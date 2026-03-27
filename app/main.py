@@ -6,9 +6,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from .routes import router
-
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+from .routes import router
 
 app = FastAPI(title="Text Meal Canary")
 app.include_router(router)

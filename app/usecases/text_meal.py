@@ -4,7 +4,7 @@ from typing import Any
 
 from ..logging import append_audit_event, now_iso
 from ..policies import HOME_COOKED_MARKERS, MEAL_CATEGORY_POLICY, is_home_cooked_signal
-from ..schemas import AuditEvent, EstimatePayload, EstimateRequest, InitialDecision, SearchDecision
+from ..schemas import AuditEvent, ComponentEstimate, EstimatePayload, EstimateRequest, InitialDecision, SearchDecision
 
 
 INITIAL_PROMPT = """You are a Traditional Chinese nutrition estimation assistant for Taiwan meals.
@@ -25,6 +25,10 @@ Rules:
 - Search only when external evidence can plausibly improve identification.
 - Use Traditional Chinese.
 - Never output user-facing failure.
+- parse_confidence and macro_confidence must be numbers from 0 to 1, not words.
+- confidence_level must be one of: high, provisional, low.
+- assumptions, components, known_quantities, implicit_components, missing_modifiers, component_estimates must all be arrays.
+- In component_estimates, use key name, not component.
 
 Required JSON keys:
 meal_title, meal_category, components, known_quantities, implicit_components, missing_modifiers,
@@ -41,6 +45,7 @@ Rules:
 - Do not use weakly similar search results as if they were exact matches.
 - If evidence is insufficient or low-similarity, choose clarify.
 - Use Traditional Chinese.
+- assumptions and component_estimates must be arrays.
 
 Required JSON keys:
 resolution, resolution_reason, search_acceptability, assumptions, followup_question,
@@ -61,8 +66,97 @@ def _home_cooked_adjustments(text: str, decision: dict[str, Any]) -> dict[str, A
     return decision
 
 
+def _coerce_float(value: Any, *, default: float = 0.0) -> float:
+    if isinstance(value, (int, float)):
+        return float(value)
+    mapping = {"高": 0.85, "中": 0.6, "低": 0.3, "high": 0.85, "medium": 0.6, "low": 0.3}
+    return mapping.get(str(value).strip().lower(), mapping.get(str(value).strip(), default))
+
+
+def _coerce_confidence_level(value: Any, *, default: str = "low") -> str:
+    text = str(value).strip().lower()
+    mapping = {
+        "高": "high",
+        "中": "provisional",
+        "低": "low",
+        "high": "high",
+        "medium": "provisional",
+        "mid": "provisional",
+        "provisional": "provisional",
+        "low": "low",
+    }
+    return mapping.get(text, mapping.get(str(value).strip(), default))
+
+
+def _coerce_list(value: Any) -> list[Any]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        return [f"{k}: {v}" for k, v in value.items()]
+    text = str(value).strip()
+    if not text:
+        return []
+    for delimiter in ["；", ";", "、", ",", "\n"]:
+        if delimiter in text:
+            return [item.strip() for item in text.split(delimiter) if item.strip()]
+    return [text]
+
+
+def _string_list(value: Any) -> list[str]:
+    items = _coerce_list(value)
+    result: list[str] = []
+    for item in items:
+        if isinstance(item, dict):
+            result.extend(f"{k}: {v}" for k, v in item.items())
+        else:
+            text = str(item).strip()
+            if text:
+                result.append(text)
+    return result
+
+
+def _normalize_component_estimates(value: Any) -> list[dict[str, Any]]:
+    items = _coerce_list(value)
+    normalized: list[dict[str, Any]] = []
+    for item in items:
+        if isinstance(item, dict):
+            normalized.append(
+                {
+                    "name": item.get("name") or item.get("component") or "未命名成分",
+                    "source": item.get("source") or ("implicit" if item.get("implicit") else "explicit"),
+                    "quantity_hint": item.get("quantity_hint") or item.get("quantity"),
+                    "estimated_kcal": int(item.get("estimated_kcal") or item.get("kcal") or 0),
+                    "protein_g": int(item.get("protein_g") or 0),
+                    "carb_g": int(item.get("carb_g") or 0),
+                    "fat_g": int(item.get("fat_g") or 0),
+                }
+            )
+        else:
+            normalized.append(ComponentEstimate(name=str(item)).model_dump())
+    return normalized
+
+
 def _normalize_initial(decision: dict[str, Any], text: str, allow_search: bool) -> InitialDecision:
     adjusted = _home_cooked_adjustments(text, dict(decision))
+    adjusted["meal_title"] = adjusted.get("meal_title") or adjusted.get("meal_name") or text.strip()
+    adjusted["components"] = _string_list(adjusted.get("components"))
+    adjusted["known_quantities"] = _string_list(adjusted.get("known_quantities"))
+    adjusted["implicit_components"] = _string_list(adjusted.get("implicit_components"))
+    adjusted["missing_modifiers"] = _string_list(adjusted.get("missing_modifiers"))
+    adjusted["assumptions"] = _string_list(adjusted.get("assumptions"))
+    adjusted["component_estimates"] = _normalize_component_estimates(adjusted.get("component_estimates"))
+    adjusted["parse_confidence"] = _coerce_float(adjusted.get("parse_confidence"))
+    adjusted["macro_confidence"] = _coerce_float(adjusted.get("macro_confidence"))
+    adjusted["confidence_level"] = _coerce_confidence_level(adjusted.get("confidence_level"))
+    ext = adjusted.get("external_verifiability")
+    if isinstance(ext, bool):
+        adjusted["external_verifiability"] = "high" if ext else "low"
+    elif ext is None:
+        adjusted["external_verifiability"] = "unknown"
+    else:
+        adjusted["external_verifiability"] = str(ext)
     if not allow_search:
         adjusted["search_eligibility"] = False
         if adjusted.get("decision") == "search":
@@ -79,6 +173,8 @@ def _normalize_initial(decision: dict[str, Any], text: str, allow_search: bool) 
 
 def _normalize_search_resolution(resolution: dict[str, Any]) -> SearchDecision:
     normalized = dict(resolution)
+    normalized["assumptions"] = _string_list(normalized.get("assumptions"))
+    normalized["component_estimates"] = _normalize_component_estimates(normalized.get("component_estimates"))
     normalized.setdefault("resolution", "clarify")
     normalized.setdefault("resolution_reason", "搜尋結果仍不足以直接回答。")
     normalized.setdefault("assumptions", [])

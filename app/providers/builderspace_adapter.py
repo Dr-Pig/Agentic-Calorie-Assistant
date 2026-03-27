@@ -51,8 +51,42 @@ class BuilderSpaceAdapter:
             content = content.strip("`")
             if content.startswith("json"):
                 content = content[4:].strip()
-        start = content.find("{")
-        end = content.rfind("}")
-        if start < 0 or end < 0 or end <= start:
+        candidates = self._extract_json_candidates(content)
+        if not candidates:
             raise RuntimeError("BuilderSpace did not return JSON.")
-        return json.loads(content[start : end + 1])
+        expected_keys = {
+            "meal_title",
+            "meal_name",
+            "meal_category",
+            "decision",
+            "components",
+            "missing_modifiers",
+            "estimated_kcal",
+            "resolution",
+        }
+        best = max(candidates, key=lambda obj: len(expected_keys.intersection(set(obj.keys()))))
+        return best
+
+    def _extract_json_candidates(self, content: str) -> list[dict[str, Any]]:
+        candidates: list[dict[str, Any]] = []
+        stack = 0
+        start_index: int | None = None
+        for index, char in enumerate(content):
+            if char == "{":
+                if stack == 0:
+                    start_index = index
+                stack += 1
+            elif char == "}":
+                if stack > 0:
+                    stack -= 1
+                    if stack == 0 and start_index is not None:
+                        chunk = content[start_index : index + 1]
+                        try:
+                            parsed = json.loads(chunk)
+                        except json.JSONDecodeError:
+                            start_index = None
+                            continue
+                        if isinstance(parsed, dict):
+                            candidates.append(parsed)
+                        start_index = None
+        return candidates
