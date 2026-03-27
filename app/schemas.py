@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 RouteTarget = Literal[
@@ -12,10 +12,8 @@ RouteTarget = Literal[
     "answer_after_search",
     "clarify_after_search",
 ]
-
-DecisionHint = Literal["estimate", "clarify", "search"]
-SearchResolution = Literal["answer", "clarify"]
-ConfidenceLevel = Literal["high", "provisional", "low"]
+SourceDecision = Literal["ready", "ask_user", "search"]
+AnswerMode = Literal["direct_answer", "answer_with_uncertainty"]
 
 
 class EstimateRequest(BaseModel):
@@ -33,74 +31,52 @@ class ComponentEstimate(BaseModel):
     fat_g: int = 0
 
 
-class EstimatePayload(BaseModel):
-    meal_title: str
-    meal_category: str
+class PhaseOneDecision(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     components: list[str] = Field(default_factory=list)
-    known_quantities: list[str] = Field(default_factory=list)
-    implicit_components: list[str] = Field(default_factory=list)
-    missing_modifiers: list[str] = Field(default_factory=list)
-    highest_impact_modifier: str | None = None
-    parse_confidence: float = 0.0
-    macro_confidence: float = 0.0
-    external_verifiability: str = "unknown"
-    search_eligibility: bool = True
-    search_acceptability: bool | None = None
-    confidence_level: ConfidenceLevel = "low"
-    estimated_kcal: int = 0
+    source_decision: SourceDecision = "ask_user"
+    meal_title: str | None = None
+    quantity_hints: list[str] = Field(default_factory=list)
+    component_estimates: list[ComponentEstimate] = Field(default_factory=list)
+    followup_question: str | None = None
+    search_query: str | None = None
+
+
+class PhaseTwoEstimate(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     protein_g: int = 0
     carb_g: int = 0
     fat_g: int = 0
+    estimated_kcal: int = 0
+    answer_mode: AnswerMode = "direct_answer"
     component_estimates: list[ComponentEstimate] = Field(default_factory=list)
-    action_taken: str
-    route_target: RouteTarget
-    route_reason: str
-    assumptions: list[str] = Field(default_factory=list)
+    uncertain_macro_areas: list[str] = Field(default_factory=list)
+
+
+class EstimatePayload(BaseModel):
+    meal_title: str
+    components: list[str] = Field(default_factory=list)
+    quantity_hints: list[str] = Field(default_factory=list)
+    component_estimates: list[ComponentEstimate] = Field(default_factory=list)
+    protein_g: int = 0
+    carb_g: int = 0
+    fat_g: int = 0
+    estimated_kcal: int = 0
+    uncertain_macro_areas: list[str] = Field(default_factory=list)
+    source_decision: SourceDecision = "ask_user"
+    answer_mode: AnswerMode | None = None
+    action_taken: str = ""
+    route_target: RouteTarget = "clarify_before_search"
+    route_reason: str = ""
     followup_question: str | None = None
     used_search: bool = False
     search_query: str | None = None
-    sources: list[dict] = Field(default_factory=list)
-    debug_steps: list[dict] = Field(default_factory=list)
-    reply_text: str
-
-
-class InitialDecision(BaseModel):
-    meal_title: str
-    meal_category: str = "unknown"
-    components: list[str] = Field(default_factory=list)
-    known_quantities: list[str] = Field(default_factory=list)
-    implicit_components: list[str] = Field(default_factory=list)
-    missing_modifiers: list[str] = Field(default_factory=list)
-    highest_impact_modifier: str | None = None
-    parse_confidence: float = 0.0
-    macro_confidence: float = 0.0
-    external_verifiability: str = "unknown"
-    search_eligibility: bool = True
-    can_estimate_with_defaults: bool = False
-    confidence_level: ConfidenceLevel = "low"
-    decision: DecisionHint = "clarify"
-    decision_reason: str = ""
-    assumptions: list[str] = Field(default_factory=list)
-    followup_question: str | None = None
-    component_estimates: list[ComponentEstimate] = Field(default_factory=list)
-    estimated_kcal: int = 0
-    protein_g: int = 0
-    carb_g: int = 0
-    fat_g: int = 0
-    search_query: str | None = None
-
-
-class SearchDecision(BaseModel):
-    resolution: SearchResolution = "clarify"
-    resolution_reason: str = ""
-    search_acceptability: bool = False
-    assumptions: list[str] = Field(default_factory=list)
-    followup_question: str | None = None
-    component_estimates: list[ComponentEstimate] = Field(default_factory=list)
-    estimated_kcal: int = 0
-    protein_g: int = 0
-    carb_g: int = 0
-    fat_g: int = 0
+    sources: list[dict[str, Any]] = Field(default_factory=list)
+    debug_steps: list[dict[str, Any]] = Field(default_factory=list)
+    llm_traces: list[dict[str, Any]] = Field(default_factory=list)
+    reply_text: str = ""
 
 
 class AuditEvent(BaseModel):
@@ -110,6 +86,7 @@ class AuditEvent(BaseModel):
     status: Literal["ok", "error"]
     route_target: str | None = None
     action_taken: str | None = None
-    debug_steps: list[dict] = Field(default_factory=list)
-    payload: dict | None = None
+    debug_steps: list[dict[str, Any]] = Field(default_factory=list)
+    llm_traces: list[dict[str, Any]] = Field(default_factory=list)
+    payload: dict[str, Any] | None = None
     error: str | None = None

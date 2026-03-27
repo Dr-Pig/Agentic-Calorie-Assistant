@@ -20,38 +20,70 @@ class BuilderSpaceAdapter:
             "model": self.model,
         }
 
-    async def complete_structured(self, *, system_prompt: str, user_payload: dict[str, Any]) -> dict[str, Any]:
+    async def complete_with_trace(
+        self,
+        *,
+        system_prompt: str,
+        user_payload: dict[str, Any],
+        stage: str,
+        max_tokens: int = 1800,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         if not (self.base_url and self.token):
             raise RuntimeError("BuilderSpace is not configured.")
-        payload = {
+        request_payload = {
             "model": self.model,
             "temperature": 0.1,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
             ],
-            "max_tokens": 1800,
+            "max_tokens": max_tokens,
         }
         async with httpx.AsyncClient(timeout=60) as client:
             response = await client.post(
                 f"{self.base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {self.token}"},
-                json=payload,
+                json=request_payload,
             )
             response.raise_for_status()
             data = response.json()
         content = data["choices"][0]["message"]["content"]
         if isinstance(content, list):
             content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
-        return self._extract_json_object(str(content))
+        raw_content = str(content)
+        parsed = self._extract_json_object(raw_content)
+        trace = {
+            "stage": stage,
+            "provider": "builderspace",
+            "model": self.model,
+            "request_payload": request_payload,
+            "raw_content": raw_content,
+            "parsed_object": parsed,
+        }
+        return parsed, trace
+
+    async def complete_structured(
+        self,
+        *,
+        system_prompt: str,
+        user_payload: dict[str, Any],
+        max_tokens: int = 1800,
+    ) -> dict[str, Any]:
+        parsed, _trace = await self.complete_with_trace(
+            system_prompt=system_prompt,
+            user_payload=user_payload,
+            stage="unspecified",
+            max_tokens=max_tokens,
+        )
+        return parsed
 
     def _extract_json_object(self, content: str) -> dict[str, Any]:
-        content = content.strip()
-        if content.startswith("```"):
-            content = content.strip("`")
-            if content.startswith("json"):
-                content = content[4:].strip()
-        candidates = self._extract_json_candidates(content)
+        text = content.strip()
+        if text.startswith("```"):
+            text = text.strip("`")
+            if text.startswith("json"):
+                text = text[4:].strip()
+        candidates = self._extract_json_candidates(text)
         if not candidates:
             raise RuntimeError("BuilderSpace did not return JSON.")
         expected_keys = {
@@ -63,9 +95,9 @@ class BuilderSpaceAdapter:
             "missing_modifiers",
             "estimated_kcal",
             "resolution",
+            "component_estimates",
         }
-        best = max(candidates, key=lambda obj: len(expected_keys.intersection(set(obj.keys()))))
-        return best
+        return max(candidates, key=lambda obj: len(expected_keys.intersection(set(obj.keys()))))
 
     def _extract_json_candidates(self, content: str) -> list[dict[str, Any]]:
         candidates: list[dict[str, Any]] = []

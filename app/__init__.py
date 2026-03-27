@@ -1,2 +1,2 @@
-CANARY_VERSION = "text-meal-canary.v1"
-SCHEMA_SIGNATURE = "meal_category,components,implicit_components,component_estimates,missing_modifiers,highest_impact_modifier,route_target"
+CANARY_VERSION = "text-meal-canary.v5"
+SCHEMA_SIGNATURE = "phase1:components,source_decision|phase2:estimated_kcal,macros,answer_mode|llm_traces"

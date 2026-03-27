@@ -3,91 +3,115 @@ from __future__ import annotations
 from typing import Any
 
 from ..logging import append_audit_event, now_iso
-from ..policies import HOME_COOKED_MARKERS, MEAL_CATEGORY_POLICY, is_home_cooked_signal
-from ..schemas import AuditEvent, ComponentEstimate, EstimatePayload, EstimateRequest, InitialDecision, SearchDecision
+from ..schemas import (
+    AnswerMode,
+    AuditEvent,
+    ComponentEstimate,
+    EstimatePayload,
+    EstimateRequest,
+    PhaseOneDecision,
+    PhaseTwoEstimate,
+    SourceDecision,
+)
 
 
-INITIAL_PROMPT = """You are a Traditional Chinese nutrition estimation assistant for Taiwan meals.
-Always reply with compact JSON only.
+COMPONENT_RESOLUTION_PROMPT = """You are a Traditional Chinese meal assistant.
+Reply with compact JSON only.
 
-Your job:
-1. Build a component sketch first.
-2. Estimate rough calories and macros from those components.
-3. Judge uncertainty.
-4. Choose one disposition: estimate, clarify, or search.
+Phase 1 task:
+1. Understand what food this input refers to.
+2. Write the main components of the meal.
+3. Add simple quantity hints when they can be inferred from the meal name.
+4. If components are not clear enough yet, decide whether the missing composition is more likely available from web search or only from the user.
 
-Important:
-- Meal category is only a weak prior. Do not let category alone decide the disposition.
-- Disposition must come from component sketch quality, macro confidence, and uncertainty.
-- Use the policy object only as hints for common implicit components and common high-impact modifiers.
-- If information is partial but still useful, you may still estimate and surface assumptions.
-- If one missing detail would materially change kcal or macros, choose clarify and ask exactly one question.
-- Search only when external evidence would plausibly improve identification.
-- Private or home-cooked meals are usually poor search targets.
-- Never output user-facing failure.
-- Use Traditional Chinese.
-- parse_confidence and macro_confidence must be numbers from 0 to 1.
-- confidence_level must be one of: high, provisional, low.
-- assumptions, components, known_quantities, implicit_components, missing_modifiers, component_estimates must all be arrays.
-- In component_estimates, use key name, not component.
+Use this source_decision:
+- ready: the main components are already usable
+- search: web evidence is likely to clarify the composition
+- ask_user: the user is the better source for the missing composition
 
-Required JSON keys:
-meal_title, meal_category, components, known_quantities, implicit_components, missing_modifiers,
-highest_impact_modifier, parse_confidence, macro_confidence, external_verifiability,
-search_eligibility, can_estimate_with_defaults, confidence_level, decision, decision_reason,
-assumptions, followup_question, component_estimates, estimated_kcal, protein_g, carb_g, fat_g, search_query
+Required keys:
+- components
+- source_decision
+
+Optional keys:
+- meal_title
+- quantity_hints
+- component_estimates
+- followup_question
+- search_query
+
+When source_decision is ask_user, include one natural followup_question that matches the user's context.
+When source_decision is search, include one short search_query.
 """
 
 
-SEARCH_PROMPT = """You are a Traditional Chinese nutrition assistant.
-You already have external evidence. Decide whether the evidence is strong enough to answer, or whether you still need one clarification.
-Always reply with compact JSON only.
+COMPONENT_RESOLUTION_WITH_EVIDENCE_PROMPT = """You are a Traditional Chinese meal assistant.
+Reply with compact JSON only.
 
-Important:
-- Search evidence is only evidence, not an automatic answer.
-- If the result is only a weakly similar substitute, choose clarify.
-- Use Traditional Chinese.
-- assumptions and component_estimates must be arrays.
+Phase 1 task with external evidence:
+1. Use the evidence to understand what meal this is.
+2. Write the main components.
+3. Add simple quantity hints when the evidence supports them.
+4. Decide whether the composition is now ready, or whether you still need the user.
 
-Required JSON keys:
-resolution, resolution_reason, search_acceptability, assumptions, followup_question,
-component_estimates, estimated_kcal, protein_g, carb_g, fat_g
+Use this source_decision:
+- ready
+- ask_user
+
+Required keys:
+- components
+- source_decision
+
+Optional keys:
+- meal_title
+- quantity_hints
+- component_estimates
+- followup_question
+
+When source_decision is ask_user, include one natural followup_question that matches the user's context.
 """
 
 
-def _home_cooked_adjustments(text: str, decision: dict[str, Any]) -> dict[str, Any]:
-    if not is_home_cooked_signal(text):
-        return decision
-    decision["meal_category"] = "homemade_or_private_meal"
-    decision["search_eligibility"] = False
-    decision["external_verifiability"] = "low"
-    if not decision.get("components"):
-        decision["decision"] = "clarify"
-        decision["decision_reason"] = "私人或家常來源通常無法靠外部搜尋確認，先補主食與主要配料。"
-        decision["followup_question"] = "你可以直接告訴我這份餐點有哪些主要內容嗎？例如主食、蛋白質、飲料或湯品。"
-    return decision
+MACRO_ESTIMATION_PROMPT = """You are a Traditional Chinese meal assistant.
+Reply with compact JSON only.
+
+Phase 2 task:
+1. Use the known components and quantity hints to estimate macros.
+2. Return protein_g, carb_g, fat_g, and estimated_kcal.
+3. Choose answer_mode:
+- direct_answer
+- answer_with_uncertainty
+
+Required keys:
+- protein_g
+- carb_g
+- fat_g
+- estimated_kcal
+- answer_mode
+
+Optional keys:
+- component_estimates
+- uncertain_macro_areas
+"""
 
 
-def _coerce_float(value: Any, *, default: float = 0.0) -> float:
-    if isinstance(value, (int, float)):
-        return float(value)
-    mapping = {"高": 0.85, "中": 0.6, "低": 0.3, "high": 0.85, "medium": 0.6, "low": 0.3}
-    return mapping.get(str(value).strip().lower(), mapping.get(str(value).strip(), default))
-
-
-def _coerce_confidence_level(value: Any, *, default: str = "low") -> str:
-    text = str(value).strip().lower()
-    mapping = {
-        "高": "high",
-        "中": "provisional",
-        "低": "low",
-        "high": "high",
-        "medium": "provisional",
-        "mid": "provisional",
-        "provisional": "provisional",
-        "low": "low",
-    }
-    return mapping.get(text, mapping.get(str(value).strip(), default))
+COMPONENT_MACRO_PRIORS: dict[str, dict[str, Any]] = {
+    "蛋餅皮": {"estimated_kcal": 140, "protein_g": 4, "carb_g": 22, "fat_g": 4, "quantity_hint": "1 份"},
+    "餅皮": {"estimated_kcal": 140, "protein_g": 4, "carb_g": 22, "fat_g": 4, "quantity_hint": "1 份"},
+    "雞蛋": {"estimated_kcal": 70, "protein_g": 6, "carb_g": 1, "fat_g": 5, "quantity_hint": "1 顆"},
+    "蛋": {"estimated_kcal": 70, "protein_g": 6, "carb_g": 1, "fat_g": 5, "quantity_hint": "1 顆"},
+    "起司": {"estimated_kcal": 60, "protein_g": 4, "carb_g": 1, "fat_g": 5, "quantity_hint": "1 片"},
+    "蔥花": {"estimated_kcal": 5, "protein_g": 0, "carb_g": 1, "fat_g": 0, "quantity_hint": "少量"},
+    "油": {"estimated_kcal": 45, "protein_g": 0, "carb_g": 0, "fat_g": 5, "quantity_hint": "約 1 茶匙"},
+    "吐司": {"estimated_kcal": 80, "protein_g": 3, "carb_g": 15, "fat_g": 1, "quantity_hint": "1 片"},
+    "培根": {"estimated_kcal": 45, "protein_g": 3, "carb_g": 0, "fat_g": 4, "quantity_hint": "1 片"},
+    "豆漿": {"estimated_kcal": 130, "protein_g": 9, "carb_g": 10, "fat_g": 6, "quantity_hint": "1 杯"},
+    "紅茶": {"estimated_kcal": 80, "protein_g": 0, "carb_g": 20, "fat_g": 0, "quantity_hint": "1 杯"},
+    "白飯": {"estimated_kcal": 230, "protein_g": 4, "carb_g": 50, "fat_g": 0, "quantity_hint": "1 碗"},
+    "排骨": {"estimated_kcal": 260, "protein_g": 20, "carb_g": 8, "fat_g": 16, "quantity_hint": "1 份"},
+    "早餐店蘿蔔糕": {"estimated_kcal": 220, "protein_g": 4, "carb_g": 38, "fat_g": 6, "quantity_hint": "早餐店常見 1 份"},
+    "蘿蔔糕": {"estimated_kcal": 220, "protein_g": 4, "carb_g": 38, "fat_g": 6, "quantity_hint": "1 份"},
+}
 
 
 def _coerce_list(value: Any) -> list[Any]:
@@ -107,134 +131,224 @@ def _coerce_list(value: Any) -> list[Any]:
 
 
 def _string_list(value: Any) -> list[str]:
-    items = _coerce_list(value)
     result: list[str] = []
-    for item in items:
-        if isinstance(item, dict):
-            result.extend(f"{k}: {v}" for k, v in item.items())
-        else:
-            text = str(item).strip()
-            if text:
-                result.append(text)
+    for item in _coerce_list(value):
+        text = str(item).strip()
+        if text:
+            result.append(text)
     return result
 
 
-def _normalize_component_estimates(value: Any) -> list[dict[str, Any]]:
-    items = _coerce_list(value)
-    normalized: list[dict[str, Any]] = []
-    for item in items:
+def _normalize_component_estimates(value: Any) -> list[ComponentEstimate]:
+    estimates: list[ComponentEstimate] = []
+    for item in _coerce_list(value):
         if isinstance(item, dict):
-            normalized.append(
-                {
-                    "name": item.get("name") or item.get("component") or "未命名成分",
-                    "source": item.get("source") or ("implicit" if item.get("implicit") else "explicit"),
-                    "quantity_hint": item.get("quantity_hint") or item.get("quantity"),
-                    "estimated_kcal": int(round(float(item.get("estimated_kcal") or item.get("kcal") or 0))),
-                    "protein_g": int(round(float(item.get("protein_g") or 0))),
-                    "carb_g": int(round(float(item.get("carb_g") or 0))),
-                    "fat_g": int(round(float(item.get("fat_g") or 0))),
-                }
+            estimates.append(
+                ComponentEstimate(
+                    name=str(item.get("name") or item.get("component") or "未命名成分"),
+                    source="implicit" if item.get("source") == "implicit" else "explicit",
+                    quantity_hint=item.get("quantity_hint") or item.get("quantity"),
+                    estimated_kcal=int(round(float(item.get("estimated_kcal") or item.get("kcal") or 0))),
+                    protein_g=int(round(float(item.get("protein_g") or 0))),
+                    carb_g=int(round(float(item.get("carb_g") or 0))),
+                    fat_g=int(round(float(item.get("fat_g") or 0))),
+                )
             )
         else:
-            normalized.append(ComponentEstimate(name=str(item)).model_dump())
-    return normalized
+            estimates.append(ComponentEstimate(name=str(item)))
+    return estimates
 
 
-def _normalize_initial(decision: dict[str, Any], text: str, allow_search: bool) -> InitialDecision:
-    adjusted = _home_cooked_adjustments(text, dict(decision))
-    adjusted["meal_title"] = adjusted.get("meal_title") or adjusted.get("meal_name") or text.strip()
-    adjusted["components"] = _string_list(adjusted.get("components"))
-    adjusted["known_quantities"] = _string_list(adjusted.get("known_quantities"))
-    adjusted["implicit_components"] = _string_list(adjusted.get("implicit_components"))
-    adjusted["missing_modifiers"] = _string_list(adjusted.get("missing_modifiers"))
-    adjusted["assumptions"] = _string_list(adjusted.get("assumptions"))
-    adjusted["component_estimates"] = _normalize_component_estimates(adjusted.get("component_estimates"))
-    adjusted["parse_confidence"] = _coerce_float(adjusted.get("parse_confidence"))
-    adjusted["macro_confidence"] = _coerce_float(adjusted.get("macro_confidence"))
-    adjusted["confidence_level"] = _coerce_confidence_level(adjusted.get("confidence_level"))
-    adjusted["estimated_kcal"] = int(round(float(adjusted.get("estimated_kcal") or 0)))
-    adjusted["protein_g"] = int(round(float(adjusted.get("protein_g") or 0)))
-    adjusted["carb_g"] = int(round(float(adjusted.get("carb_g") or 0)))
-    adjusted["fat_g"] = int(round(float(adjusted.get("fat_g") or 0)))
-    ext = adjusted.get("external_verifiability")
-    if isinstance(ext, bool):
-        adjusted["external_verifiability"] = "high" if ext else "low"
-    elif ext is None:
-        adjusted["external_verifiability"] = "unknown"
-    else:
-        adjusted["external_verifiability"] = str(ext)
-    if not allow_search:
-        adjusted["search_eligibility"] = False
-        if adjusted.get("decision") == "search":
-            adjusted["decision"] = "clarify"
-            adjusted["decision_reason"] = "目前未開啟搜尋，先補一個關鍵細節。"
-    if adjusted.get("meal_category") not in MEAL_CATEGORY_POLICY:
-        adjusted["meal_category"] = "unknown"
-    adjusted.setdefault("decision", "clarify")
-    adjusted.setdefault("decision_reason", "資訊不足，先補一個關鍵細節。")
-    adjusted.setdefault("assumptions", [])
-    adjusted.setdefault("component_estimates", [])
-    return InitialDecision.model_validate(adjusted)
+def _exception_text(exc: Exception) -> str:
+    text = str(exc).strip()
+    return text or exc.__class__.__name__
 
 
-def _normalize_search_resolution(resolution: dict[str, Any]) -> SearchDecision:
-    normalized = dict(resolution)
-    normalized["assumptions"] = _string_list(normalized.get("assumptions"))
-    normalized["component_estimates"] = _normalize_component_estimates(normalized.get("component_estimates"))
-    normalized["estimated_kcal"] = int(round(float(normalized.get("estimated_kcal") or 0)))
-    normalized["protein_g"] = int(round(float(normalized.get("protein_g") or 0)))
-    normalized["carb_g"] = int(round(float(normalized.get("carb_g") or 0)))
-    normalized["fat_g"] = int(round(float(normalized.get("fat_g") or 0)))
-    normalized.setdefault("resolution", "clarify")
-    normalized.setdefault("resolution_reason", "搜尋結果仍不足以直接回答。")
-    normalized.setdefault("assumptions", [])
-    normalized.setdefault("component_estimates", [])
-    return SearchDecision.model_validate(normalized)
+def _call_provider_request_payload(
+    system_prompt: str,
+    user_payload: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "system_prompt": system_prompt,
+        "user_payload": user_payload,
+    }
 
 
-def _fallback_clarify(text: str, reason: str) -> EstimatePayload:
-    return EstimatePayload(
-        meal_title=text.strip() or "未命名餐點",
-        meal_category="unknown",
-        components=[],
-        known_quantities=[],
-        implicit_components=[],
-        missing_modifiers=["main_components"],
-        highest_impact_modifier="main_components",
-        parse_confidence=0.0,
-        macro_confidence=0.0,
-        external_verifiability="unknown",
-        search_eligibility=False,
-        search_acceptability=None,
-        confidence_level="low",
-        estimated_kcal=0,
-        protein_g=0,
-        carb_g=0,
-        fat_g=0,
-        component_estimates=[],
-        action_taken="目前先不硬猜，改為追問最關鍵資訊。",
-        route_target="clarify_before_search",
-        route_reason=reason or "模型輸出未通過結構化驗證，先改為追問。",
-        assumptions=[],
-        followup_question="你可以直接告訴我這餐的主要內容嗎？例如主食、蛋白質、飲料或湯品。",
-        used_search=False,
-        search_query=None,
-        sources=[],
-        debug_steps=[],
-        reply_text="我現在還不知道這餐的主要內容。你可以直接告訴我主食、蛋白質、飲料或湯品嗎？",
+async def _call_provider(
+    provider: Any,
+    *,
+    stage: str,
+    system_prompt: str,
+    user_payload: dict[str, Any],
+    max_tokens: int,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    if hasattr(provider, "complete_with_trace"):
+        try:
+            return await provider.complete_with_trace(
+                system_prompt=system_prompt,
+                user_payload=user_payload,
+                stage=stage,
+                max_tokens=max_tokens,
+            )
+        except TypeError:
+            return await provider.complete_with_trace(
+                system_prompt=system_prompt,
+                user_payload=user_payload,
+                stage=stage,
+            )
+    parsed = await provider.complete_structured(
+        system_prompt=system_prompt,
+        user_payload=user_payload,
+        max_tokens=max_tokens,
+    )
+    return parsed, {
+        "stage": stage,
+        "provider": "unknown",
+        "model": None,
+        "request_payload": _call_provider_request_payload(system_prompt, user_payload),
+        "raw_content": None,
+        "parsed_object": parsed,
+    }
+
+
+def _normalize_source_decision(raw: Any, allow_search: bool) -> SourceDecision:
+    decision = str(raw or "").strip().lower()
+    mapping = {
+        "ready": "ready",
+        "components_ready": "ready",
+        "ask_user": "ask_user",
+        "clarify_for_components": "ask_user",
+        "clarify": "ask_user",
+        "search": "search",
+        "search_for_components": "search",
+    }
+    normalized = mapping.get(decision, "ask_user")
+    if normalized == "search" and not allow_search:
+        return "ask_user"
+    return normalized  # type: ignore[return-value]
+
+
+def _normalize_phase_one(raw: dict[str, Any], text: str, allow_search: bool) -> PhaseOneDecision:
+    normalized = dict(raw)
+    return PhaseOneDecision.model_validate(
+        {
+            "meal_title": normalized.get("meal_title") or normalized.get("meal_name") or text.strip() or "這餐",
+            "components": _string_list(normalized.get("components")),
+            "quantity_hints": _string_list(normalized.get("quantity_hints") or normalized.get("known_quantities")),
+            "component_estimates": _normalize_component_estimates(normalized.get("component_estimates")),
+            "source_decision": _normalize_source_decision(
+                normalized.get("source_decision") or normalized.get("component_decision") or normalized.get("decision"),
+                allow_search,
+            ),
+            "followup_question": (str(normalized.get("followup_question")).strip() or None)
+            if normalized.get("followup_question") is not None
+            else None,
+            "search_query": (str(normalized.get("search_query")).strip() or None)
+            if normalized.get("search_query") is not None
+            else None,
+        }
     )
 
 
-def _reply_for_estimate(payload: EstimatePayload) -> str:
-    macros = f"約 {payload.estimated_kcal} kcal，蛋白質 {payload.protein_g}g、碳水 {payload.carb_g}g、脂肪 {payload.fat_g}g。"
-    assumption_text = "；".join(payload.assumptions[:2])
-    if payload.route_target == "estimate_with_assumptions":
-        tail = f"目前最不確定的是 {payload.highest_impact_modifier or '份量'}。如果你願意補充，我可以再幫你修正；不補充就先以這次估算為準。"
-    else:
-        tail = f"處置：{payload.action_taken}"
-    if assumption_text:
-        tail = f"{tail} 假設：{assumption_text}"
-    return f"我先把這餐理解成「{payload.meal_title}」，{macros} {tail}"
+def _normalize_phase_two(raw: dict[str, Any]) -> PhaseTwoEstimate:
+    normalized = dict(raw)
+    answer_mode = str(normalized.get("answer_mode") or "direct_answer").strip()
+    if answer_mode not in {"direct_answer", "answer_with_uncertainty"}:
+        answer_mode = "direct_answer"
+    return PhaseTwoEstimate.model_validate(
+        {
+            "component_estimates": _normalize_component_estimates(normalized.get("component_estimates")),
+            "protein_g": int(round(float(normalized.get("protein_g") or 0))),
+            "carb_g": int(round(float(normalized.get("carb_g") or 0))),
+            "fat_g": int(round(float(normalized.get("fat_g") or 0))),
+            "estimated_kcal": int(round(float(normalized.get("estimated_kcal") or 0))),
+            "uncertain_macro_areas": _string_list(normalized.get("uncertain_macro_areas")),
+            "answer_mode": answer_mode,
+        }
+    )
+
+
+def _match_component_prior(component_name: str) -> dict[str, Any] | None:
+    normalized = component_name.strip()
+    if not normalized:
+        return None
+    for key, prior in COMPONENT_MACRO_PRIORS.items():
+        if key in normalized or normalized in key:
+            return prior
+    return None
+
+
+def _fallback_phase_two_from_components(
+    components: list[str],
+    quantity_hints: list[str],
+) -> PhaseTwoEstimate | None:
+    estimates: list[ComponentEstimate] = []
+    unmatched: list[str] = []
+    combined = quantity_hints + components
+    for component in components:
+        prior = _match_component_prior(component)
+        if prior is None:
+            for hint in combined:
+                prior = _match_component_prior(hint)
+                if prior is not None:
+                    break
+        if prior is None:
+            unmatched.append(component)
+            continue
+        estimates.append(
+            ComponentEstimate(
+                name=component,
+                source="explicit",
+                quantity_hint=prior["quantity_hint"],
+                estimated_kcal=prior["estimated_kcal"],
+                protein_g=prior["protein_g"],
+                carb_g=prior["carb_g"],
+                fat_g=prior["fat_g"],
+            )
+        )
+
+    if not estimates:
+        return None
+
+    return PhaseTwoEstimate(
+        component_estimates=estimates,
+        protein_g=sum(item.protein_g for item in estimates),
+        carb_g=sum(item.carb_g for item in estimates),
+        fat_g=sum(item.fat_g for item in estimates),
+        estimated_kcal=sum(item.estimated_kcal for item in estimates),
+        uncertain_macro_areas=(
+            [f"我現在比較不確定的是 {'、'.join(unmatched[:2])} 的份量。"] if unmatched else []
+        ),
+        answer_mode="answer_with_uncertainty" if unmatched else "direct_answer",
+    )
+
+
+def _fallback_clarify(text: str, reason: str) -> EstimatePayload:
+    message = "我現在還沒辦法確認這餐的主要內容。"
+    if reason:
+        message = f"{message} 目前卡在：{reason}"
+    return EstimatePayload(
+        meal_title=text.strip() or "這餐",
+        source_decision="ask_user",
+        action_taken="目前先停在組成判斷階段。",
+        route_target="clarify_before_search",
+        route_reason=reason or "目前還無法確認這餐的組成。",
+        reply_text=message,
+    )
+
+
+def _reply_for_answer(payload: EstimatePayload) -> str:
+    message = (
+        f"我先把這餐估成約 {payload.estimated_kcal} kcal，"
+        f"蛋白質 {payload.protein_g}g、碳水 {payload.carb_g}g、脂肪 {payload.fat_g}g。"
+    )
+    if payload.answer_mode == "answer_with_uncertainty" and payload.uncertain_macro_areas:
+        uncertainty = "；".join(payload.uncertain_macro_areas[:2])
+        message += f" 我現在比較不確定的是 {uncertainty}"
+        if not message.endswith("。"):
+            message += "。"
+        message += " 如果你願意補充，我可以再幫你修正；不補充就先以這次估算為準。"
+    return message
 
 
 async def run_text_meal_canary(
@@ -244,153 +358,168 @@ async def run_text_meal_canary(
     search: Any,
 ) -> EstimatePayload:
     debug_steps: list[dict[str, Any]] = []
+    llm_traces: list[dict[str, Any]] = []
     try:
-        initial_raw = await provider.complete_structured(
-            system_prompt=INITIAL_PROMPT,
-            user_payload={
-                "text": request.text,
-                "allow_search": request.allow_search,
-                "policy_hints": MEAL_CATEGORY_POLICY,
-                "home_cooked_markers": HOME_COOKED_MARKERS,
-            },
+        phase_one_raw, phase_one_trace = await _call_provider(
+            provider,
+            stage="component_resolution",
+            system_prompt=COMPONENT_RESOLUTION_PROMPT,
+            user_payload={"text": request.text, "allow_search": request.allow_search},
+            max_tokens=500,
         )
-        initial = _normalize_initial(initial_raw, request.text, request.allow_search)
+        llm_traces.append(phase_one_trace)
+        phase_one = _normalize_phase_one(phase_one_raw, request.text, request.allow_search)
         debug_steps.append(
             {
-                "step": "component_sketch",
-                "meal_category": initial.meal_category,
-                "decision": initial.decision,
-                "search_eligibility": initial.search_eligibility,
-                "highest_impact_modifier": initial.highest_impact_modifier,
+                "step": "component_resolution",
+                "source_decision": phase_one.source_decision,
+                "component_count": len(phase_one.components),
             }
         )
 
-        if initial.decision == "clarify":
-            return EstimatePayload(
-                meal_title=initial.meal_title,
-                meal_category=initial.meal_category,
-                components=initial.components,
-                known_quantities=initial.known_quantities,
-                implicit_components=initial.implicit_components,
-                missing_modifiers=initial.missing_modifiers,
-                highest_impact_modifier=initial.highest_impact_modifier,
-                parse_confidence=initial.parse_confidence,
-                macro_confidence=initial.macro_confidence,
-                external_verifiability=initial.external_verifiability,
-                search_eligibility=initial.search_eligibility,
-                search_acceptability=None,
-                confidence_level=initial.confidence_level,
-                estimated_kcal=initial.estimated_kcal,
-                protein_g=initial.protein_g,
-                carb_g=initial.carb_g,
-                fat_g=initial.fat_g,
-                component_estimates=initial.component_estimates,
-                action_taken="先補一個最關鍵細節，再決定是否重算。",
-                route_target="clarify_before_search",
-                route_reason=initial.decision_reason,
-                assumptions=initial.assumptions,
-                followup_question=initial.followup_question or "你可以補充最影響熱量的那個細節嗎？",
-                used_search=False,
-                search_query=None,
-                sources=[],
-                debug_steps=debug_steps,
-                reply_text=initial.followup_question or "你可以補充最影響熱量的那個細節嗎？",
-            )
+        sources: list[dict[str, Any]] = []
+        used_search = False
+        search_query: str | None = None
 
-        if initial.decision == "search" and initial.search_eligibility and request.allow_search:
-            query = initial.search_query or f"{request.text} 熱量 菜單"
-            results = await search.search(query)
-            debug_steps.append({"step": "search", "query": query, "result_count": len(results)})
-            search_raw = await provider.complete_structured(
-                system_prompt=SEARCH_PROMPT,
-                user_payload={
-                    "text": request.text,
-                    "initial": initial.model_dump(mode="json"),
-                    "search_results": results,
-                },
+        if phase_one.source_decision == "search":
+            search_query = phase_one.search_query or request.text
+            sources = await search.search(search_query)
+            used_search = True
+            debug_steps.append({"step": "search", "query": search_query, "result_count": len(sources)})
+            phase_one_search_raw, phase_one_search_trace = await _call_provider(
+                provider,
+                stage="component_resolution_after_search",
+                system_prompt=COMPONENT_RESOLUTION_WITH_EVIDENCE_PROMPT,
+                user_payload={"text": request.text, "search_results": sources},
+                max_tokens=500,
             )
-            resolved = _normalize_search_resolution(search_raw)
+            llm_traces.append(phase_one_search_trace)
+            phase_one = _normalize_phase_one(phase_one_search_raw, request.text, request.allow_search)
             debug_steps.append(
                 {
-                    "step": "search_resolution",
-                    "resolution": resolved.resolution,
-                    "search_acceptability": resolved.search_acceptability,
+                    "step": "component_resolution_after_search",
+                    "source_decision": phase_one.source_decision,
+                    "component_count": len(phase_one.components),
                 }
             )
-            route_target = "answer_after_search" if resolved.resolution == "answer" else "clarify_after_search"
-            payload = EstimatePayload(
-                meal_title=initial.meal_title,
-                meal_category=initial.meal_category,
-                components=initial.components,
-                known_quantities=initial.known_quantities,
-                implicit_components=initial.implicit_components,
-                missing_modifiers=initial.missing_modifiers,
-                highest_impact_modifier=initial.highest_impact_modifier,
-                parse_confidence=initial.parse_confidence,
-                macro_confidence=initial.macro_confidence,
-                external_verifiability=initial.external_verifiability,
-                search_eligibility=initial.search_eligibility,
-                search_acceptability=resolved.search_acceptability,
-                confidence_level=initial.confidence_level,
-                estimated_kcal=resolved.estimated_kcal,
-                protein_g=resolved.protein_g,
-                carb_g=resolved.carb_g,
-                fat_g=resolved.fat_g,
-                component_estimates=resolved.component_estimates or initial.component_estimates,
-                action_taken="先搜尋可用外部資訊，再根據 evidence 做估算或追問。",
-                route_target=route_target,
-                route_reason=resolved.resolution_reason,
-                assumptions=(initial.assumptions + resolved.assumptions)[:4],
-                followup_question=resolved.followup_question,
-                used_search=True,
-                search_query=query,
-                sources=results,
-                debug_steps=debug_steps,
-                reply_text="",
-            )
-            payload.reply_text = (
-                resolved.followup_question or "我已先查過外部資訊，但還差一個關鍵細節。你可以再補充嗎？"
-                if route_target == "clarify_after_search"
-                else _reply_for_estimate(payload)
-            )
-            return payload
+            if phase_one.source_decision == "search":
+                phase_one = phase_one.model_copy(update={"source_decision": "ask_user"})
+                debug_steps.append(
+                    {
+                        "step": "search_resolution",
+                        "result": "search_did_not_resolve_components",
+                    }
+                )
 
-        route_target = "direct_estimate" if initial.confidence_level == "high" else "estimate_with_assumptions"
-        payload = EstimatePayload(
-            meal_title=initial.meal_title,
-            meal_category=initial.meal_category,
-            components=initial.components,
-            known_quantities=initial.known_quantities,
-            implicit_components=initial.implicit_components,
-            missing_modifiers=initial.missing_modifiers,
-            highest_impact_modifier=initial.highest_impact_modifier,
-            parse_confidence=initial.parse_confidence,
-            macro_confidence=initial.macro_confidence,
-            external_verifiability=initial.external_verifiability,
-            search_eligibility=initial.search_eligibility,
-            search_acceptability=None,
-            confidence_level=initial.confidence_level,
-            estimated_kcal=initial.estimated_kcal,
-            protein_g=initial.protein_g,
-            carb_g=initial.carb_g,
-            fat_g=initial.fat_g,
-            component_estimates=initial.component_estimates,
-            action_taken="直接用組成與目前可用的假設先估算。",
-            route_target=route_target,
-            route_reason=initial.decision_reason,
-            assumptions=initial.assumptions,
-            followup_question=None,
-            used_search=False,
-            search_query=None,
-            sources=[],
-            debug_steps=debug_steps,
-            reply_text="",
+        if phase_one.source_decision != "ready":
+            route_target = "clarify_after_search" if used_search else "clarify_before_search"
+            if phase_one.followup_question is None:
+                debug_steps.append(
+                    {
+                        "step": "incomplete_followup",
+                        "reason": "ask_user_without_followup_question",
+                    }
+                )
+            reply_text = phase_one.followup_question or "我現在還缺一個關鍵資訊，才能把這餐的組成判斷清楚。"
+            return EstimatePayload(
+                meal_title=phase_one.meal_title or request.text.strip() or "這餐",
+                components=phase_one.components,
+                quantity_hints=phase_one.quantity_hints,
+                source_decision=phase_one.source_decision,
+                action_taken="先補足組成，再進 macro 估算。",
+                route_target=route_target,
+                route_reason="目前還沒有足夠的組成資訊。",
+                followup_question=phase_one.followup_question,
+                used_search=used_search,
+                search_query=search_query,
+                sources=sources,
+                debug_steps=debug_steps,
+                llm_traces=llm_traces,
+                reply_text=reply_text,
+            )
+
+        macro_fallback_used = False
+        try:
+            phase_two_raw, phase_two_trace = await _call_provider(
+                provider,
+                stage="macro_estimation",
+                system_prompt=MACRO_ESTIMATION_PROMPT,
+                user_payload={
+                    "text": request.text,
+                    "components": phase_one.components,
+                    "quantity_hints": phase_one.quantity_hints,
+                    "component_estimates": [item.model_dump(mode="json") for item in phase_one.component_estimates],
+                },
+                max_tokens=400,
+            )
+            llm_traces.append(phase_two_trace)
+            phase_two = _normalize_phase_two(phase_two_raw)
+            if phase_two.estimated_kcal <= 0:
+                raise RuntimeError("macro_estimation returned no usable macros")
+            debug_steps.append(
+                {
+                    "step": "macro_estimation",
+                    "answer_mode": phase_two.answer_mode,
+                }
+            )
+        except Exception as exc:
+            fallback = _fallback_phase_two_from_components(phase_one.components, phase_one.quantity_hints)
+            if fallback is None:
+                raise
+            phase_two = fallback
+            macro_fallback_used = True
+            debug_steps.append(
+                {
+                    "step": "macro_fallback",
+                    "reason": _exception_text(exc),
+                    "component_count": len(phase_one.components),
+                }
+            )
+
+        route_target = (
+            "answer_after_search"
+            if used_search
+            else "direct_estimate"
+            if phase_two.answer_mode == "direct_answer"
+            else "estimate_with_assumptions"
         )
-        payload.reply_text = _reply_for_estimate(payload)
+        action_taken = (
+            "模型沒有穩定回出 macro JSON，我先根據已判斷出的組成做保守 macro 估算。"
+            if macro_fallback_used
+            else "先根據組成與份量提示推估 macro，再換算熱量。"
+        )
+        route_reason = (
+            "我已經有足夠的組成資訊，可以先估算。"
+            if phase_two.answer_mode == "direct_answer"
+            else "我已經能估算，但其中一部分份量仍可能讓數字上下浮動。"
+        )
+        payload = EstimatePayload(
+            meal_title=phase_one.meal_title or request.text.strip() or "這餐",
+            components=phase_one.components,
+            quantity_hints=phase_one.quantity_hints,
+            component_estimates=phase_two.component_estimates,
+            protein_g=phase_two.protein_g,
+            carb_g=phase_two.carb_g,
+            fat_g=phase_two.fat_g,
+            estimated_kcal=phase_two.estimated_kcal,
+            uncertain_macro_areas=phase_two.uncertain_macro_areas,
+            source_decision="ready",
+            answer_mode=phase_two.answer_mode,
+            action_taken=action_taken,
+            route_target=route_target,
+            route_reason=route_reason,
+            used_search=used_search,
+            search_query=search_query,
+            sources=sources,
+            debug_steps=debug_steps,
+            llm_traces=llm_traces,
+        )
+        payload.reply_text = _reply_for_answer(payload)
         return payload
     except Exception as exc:
-        payload = _fallback_clarify(request.text, str(exc))
-        payload.debug_steps = debug_steps + [{"step": "fallback", "error": str(exc)}]
+        payload = _fallback_clarify(request.text, _exception_text(exc))
+        payload.debug_steps = debug_steps + [{"step": "fallback", "error": _exception_text(exc)}]
+        payload.llm_traces = llm_traces
         return payload
 
 
@@ -404,6 +533,7 @@ def record_success(request: EstimateRequest, payload: EstimatePayload) -> None:
             route_target=payload.route_target,
             action_taken=payload.action_taken,
             debug_steps=payload.debug_steps,
+            llm_traces=payload.llm_traces,
             payload=payload.model_dump(mode="json"),
         )
     )
