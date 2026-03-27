@@ -10,22 +10,23 @@ from ..schemas import AuditEvent, ComponentEstimate, EstimatePayload, EstimateRe
 INITIAL_PROMPT = """You are a Traditional Chinese nutrition estimation assistant for Taiwan meals.
 Always reply with compact JSON only.
 
-Goal:
-1. Parse the meal into a rough component sketch.
-2. Estimate component-level kcal, protein, carb, fat.
-3. Produce an uncertainty profile.
-4. Decide one of: estimate, clarify, search.
+Your job:
+1. Build a component sketch first.
+2. Estimate rough calories and macros from those components.
+3. Judge uncertainty.
+4. Choose one disposition: estimate, clarify, or search.
 
-Rules:
-- Always reason from components first.
-- Include explicit components and high-probability implicit components.
-- For home-cooked or private meals, external search is usually not useful.
-- If information is partial but still enough to produce a useful estimate, choose estimate and surface assumptions.
-- If a single high-impact modifier is missing, choose clarify and ask exactly one question.
-- Search only when external evidence can plausibly improve identification.
-- Use Traditional Chinese.
+Important:
+- Meal category is only a weak prior. Do not let category alone decide the disposition.
+- Disposition must come from component sketch quality, macro confidence, and uncertainty.
+- Use the policy object only as hints for common implicit components and common high-impact modifiers.
+- If information is partial but still useful, you may still estimate and surface assumptions.
+- If one missing detail would materially change kcal or macros, choose clarify and ask exactly one question.
+- Search only when external evidence would plausibly improve identification.
+- Private or home-cooked meals are usually poor search targets.
 - Never output user-facing failure.
-- parse_confidence and macro_confidence must be numbers from 0 to 1, not words.
+- Use Traditional Chinese.
+- parse_confidence and macro_confidence must be numbers from 0 to 1.
 - confidence_level must be one of: high, provisional, low.
 - assumptions, components, known_quantities, implicit_components, missing_modifiers, component_estimates must all be arrays.
 - In component_estimates, use key name, not component.
@@ -37,13 +38,14 @@ search_eligibility, can_estimate_with_defaults, confidence_level, decision, deci
 assumptions, followup_question, component_estimates, estimated_kcal, protein_g, carb_g, fat_g, search_query
 """
 
+
 SEARCH_PROMPT = """You are a Traditional Chinese nutrition assistant.
 You already have external evidence. Decide whether the evidence is strong enough to answer, or whether you still need one clarification.
 Always reply with compact JSON only.
 
-Rules:
-- Do not use weakly similar search results as if they were exact matches.
-- If evidence is insufficient or low-similarity, choose clarify.
+Important:
+- Search evidence is only evidence, not an automatic answer.
+- If the result is only a weakly similar substitute, choose clarify.
 - Use Traditional Chinese.
 - assumptions and component_estimates must be arrays.
 
@@ -61,7 +63,7 @@ def _home_cooked_adjustments(text: str, decision: dict[str, Any]) -> dict[str, A
     decision["external_verifiability"] = "low"
     if not decision.get("components"):
         decision["decision"] = "clarify"
-        decision["decision_reason"] = "私人或家常來源無法靠外部資訊確認，先補主食與主要配料。"
+        decision["decision_reason"] = "私人或家常來源通常無法靠外部搜尋確認，先補主食與主要配料。"
         decision["followup_question"] = "你可以直接告訴我這份餐點有哪些主要內容嗎？例如主食、蛋白質、飲料或湯品。"
     return decision
 
@@ -127,10 +129,10 @@ def _normalize_component_estimates(value: Any) -> list[dict[str, Any]]:
                     "name": item.get("name") or item.get("component") or "未命名成分",
                     "source": item.get("source") or ("implicit" if item.get("implicit") else "explicit"),
                     "quantity_hint": item.get("quantity_hint") or item.get("quantity"),
-                    "estimated_kcal": int(item.get("estimated_kcal") or item.get("kcal") or 0),
-                    "protein_g": int(item.get("protein_g") or 0),
-                    "carb_g": int(item.get("carb_g") or 0),
-                    "fat_g": int(item.get("fat_g") or 0),
+                    "estimated_kcal": int(round(float(item.get("estimated_kcal") or item.get("kcal") or 0))),
+                    "protein_g": int(round(float(item.get("protein_g") or 0))),
+                    "carb_g": int(round(float(item.get("carb_g") or 0))),
+                    "fat_g": int(round(float(item.get("fat_g") or 0))),
                 }
             )
         else:
@@ -150,6 +152,10 @@ def _normalize_initial(decision: dict[str, Any], text: str, allow_search: bool) 
     adjusted["parse_confidence"] = _coerce_float(adjusted.get("parse_confidence"))
     adjusted["macro_confidence"] = _coerce_float(adjusted.get("macro_confidence"))
     adjusted["confidence_level"] = _coerce_confidence_level(adjusted.get("confidence_level"))
+    adjusted["estimated_kcal"] = int(round(float(adjusted.get("estimated_kcal") or 0)))
+    adjusted["protein_g"] = int(round(float(adjusted.get("protein_g") or 0)))
+    adjusted["carb_g"] = int(round(float(adjusted.get("carb_g") or 0)))
+    adjusted["fat_g"] = int(round(float(adjusted.get("fat_g") or 0)))
     ext = adjusted.get("external_verifiability")
     if isinstance(ext, bool):
         adjusted["external_verifiability"] = "high" if ext else "low"
@@ -175,6 +181,10 @@ def _normalize_search_resolution(resolution: dict[str, Any]) -> SearchDecision:
     normalized = dict(resolution)
     normalized["assumptions"] = _string_list(normalized.get("assumptions"))
     normalized["component_estimates"] = _normalize_component_estimates(normalized.get("component_estimates"))
+    normalized["estimated_kcal"] = int(round(float(normalized.get("estimated_kcal") or 0)))
+    normalized["protein_g"] = int(round(float(normalized.get("protein_g") or 0)))
+    normalized["carb_g"] = int(round(float(normalized.get("carb_g") or 0)))
+    normalized["fat_g"] = int(round(float(normalized.get("fat_g") or 0)))
     normalized.setdefault("resolution", "clarify")
     normalized.setdefault("resolution_reason", "搜尋結果仍不足以直接回答。")
     normalized.setdefault("assumptions", [])
@@ -204,7 +214,7 @@ def _fallback_clarify(text: str, reason: str) -> EstimatePayload:
         component_estimates=[],
         action_taken="目前先不硬猜，改為追問最關鍵資訊。",
         route_target="clarify_before_search",
-        route_reason=reason,
+        route_reason=reason or "模型輸出未通過結構化驗證，先改為追問。",
         assumptions=[],
         followup_question="你可以直接告訴我這餐的主要內容嗎？例如主食、蛋白質、飲料或湯品。",
         used_search=False,
@@ -240,7 +250,7 @@ async def run_text_meal_canary(
             user_payload={
                 "text": request.text,
                 "allow_search": request.allow_search,
-                "policy": MEAL_CATEGORY_POLICY,
+                "policy_hints": MEAL_CATEGORY_POLICY,
                 "home_cooked_markers": HOME_COOKED_MARKERS,
             },
         )
@@ -254,6 +264,7 @@ async def run_text_meal_canary(
                 "highest_impact_modifier": initial.highest_impact_modifier,
             }
         )
+
         if initial.decision == "clarify":
             return EstimatePayload(
                 meal_title=initial.meal_title,
@@ -364,7 +375,7 @@ async def run_text_meal_canary(
             carb_g=initial.carb_g,
             fat_g=initial.fat_g,
             component_estimates=initial.component_estimates,
-            action_taken="直接用組成與預設假設先估算。",
+            action_taken="直接用組成與目前可用的假設先估算。",
             route_target=route_target,
             route_reason=initial.decision_reason,
             assumptions=initial.assumptions,

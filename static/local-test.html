@@ -9,8 +9,10 @@
     .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
     textarea { width: 100%; min-height: 100px; }
     button { margin-top: 12px; padding: 10px 16px; }
+    button[disabled] { opacity: 0.6; cursor: wait; }
     pre { white-space: pre-wrap; word-break: break-word; background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; }
     .muted { color: #555; font-size: 14px; }
+    .status { margin-top: 12px; font-size: 14px; color: #0f766e; }
   </style>
 </head>
 <body>
@@ -25,6 +27,7 @@
       <label><input id="allow-search" type="checkbox" checked /> 允許搜尋</label>
     </div>
     <button id="submit">送出</button>
+    <div id="status" class="status">待命中</div>
   </div>
   <div class="card">
     <h2>摘要</h2>
@@ -59,16 +62,30 @@
     async function submitEstimate() {
       const text = document.getElementById('text').value;
       const allowSearch = document.getElementById('allow-search').checked;
-      const res = await fetch('/estimate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, allow_search: allowSearch }),
-      });
-      const data = await res.json();
-      document.getElementById('summary').textContent = data.coach_message || '無摘要';
-      document.getElementById('debug').textContent = JSON.stringify(data.payload?.debug_steps || [], null, 2);
-      document.getElementById('payload').textContent = JSON.stringify(data, null, 2);
-      await refreshLogs();
+      const submit = document.getElementById('submit');
+      const status = document.getElementById('status');
+      submit.disabled = true;
+      status.textContent = '處理中，正在呼叫模型與必要工具...';
+      document.getElementById('summary').textContent = '處理中...';
+      try {
+        const res = await fetch('/estimate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, allow_search: allowSearch }),
+        });
+        const data = await res.json();
+        document.getElementById('summary').textContent = data.coach_message || '無摘要';
+        document.getElementById('debug').textContent = JSON.stringify(data.payload?.debug_steps || [], null, 2);
+        document.getElementById('payload').textContent = JSON.stringify(data, null, 2);
+        status.textContent = '處理完成';
+        await refreshLogs();
+      } catch (error) {
+        document.getElementById('summary').textContent = '送出失敗';
+        status.textContent = '送出失敗，請再試一次';
+        document.getElementById('payload').textContent = String(error);
+      } finally {
+        submit.disabled = false;
+      }
     }
 
     document.getElementById('submit').addEventListener('click', submitEstimate);
