@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Text Meal Canary</title>
+  <style>
+    body { font-family: "Segoe UI", sans-serif; margin: 24px; background: #f6f7fb; color: #111; }
+    .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+    textarea { width: 100%; min-height: 100px; }
+    button { margin-top: 12px; padding: 10px 16px; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; }
+    .muted { color: #555; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Text Meal Canary</h1>
+    <div id="meta" class="muted">載入中...</div>
+  </div>
+  <div class="card">
+    <label for="text">輸入餐點</label>
+    <textarea id="text">雙培根蛋吐司加早餐紅茶</textarea>
+    <div>
+      <label><input id="allow-search" type="checkbox" checked /> 允許搜尋</label>
+    </div>
+    <button id="submit">送出</button>
+  </div>
+  <div class="card">
+    <h2>摘要</h2>
+    <div id="summary" class="muted">尚未送出</div>
+  </div>
+  <div class="card">
+    <h2>Debug Steps</h2>
+    <pre id="debug">[]</pre>
+  </div>
+  <div class="card">
+    <h2>完整 JSON</h2>
+    <pre id="payload">{}</pre>
+  </div>
+  <div class="card">
+    <h2>最近 Logs</h2>
+    <pre id="logs">[]</pre>
+  </div>
+  <script>
+    async function refreshMeta() {
+      const res = await fetch('/ping');
+      const data = await res.json();
+      document.getElementById('meta').textContent =
+        `Version: ${data.canary_version} | Schema: ${data.schema_signature} | BuilderSpace: ${data.provider.configured} | Tavily: ${data.search.configured}`;
+    }
+
+    async function refreshLogs() {
+      const res = await fetch('/logs?limit=10');
+      const data = await res.json();
+      document.getElementById('logs').textContent = JSON.stringify(data.items, null, 2);
+    }
+
+    async function submitEstimate() {
+      const text = document.getElementById('text').value;
+      const allowSearch = document.getElementById('allow-search').checked;
+      const res = await fetch('/estimate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, allow_search: allowSearch }),
+      });
+      const data = await res.json();
+      document.getElementById('summary').textContent = data.coach_message || '無摘要';
+      document.getElementById('debug').textContent = JSON.stringify(data.payload?.debug_steps || [], null, 2);
+      document.getElementById('payload').textContent = JSON.stringify(data, null, 2);
+      await refreshLogs();
+    }
+
+    document.getElementById('submit').addEventListener('click', submitEstimate);
+    refreshMeta();
+    refreshLogs();
+  </script>
+</body>
+</html>
