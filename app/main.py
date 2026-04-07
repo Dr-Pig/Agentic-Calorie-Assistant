@@ -8,7 +8,10 @@ from fastapi.staticfiles import StaticFiles
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
+from .database import init_db
 from .routes import router
+
+init_db()
 
 app = FastAPI(title="Text Meal Canary")
 app.include_router(router)

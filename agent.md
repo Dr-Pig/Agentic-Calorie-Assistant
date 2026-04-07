@@ -1,88 +1,108 @@
-# Text Meal Canary Agent Notes
+# Text Meal Canary Agent Index
 
-## Goal
+## Read First
 
-This repo is an isolated canary for text meal estimation.
-The goal is to shape a reasoning path that generalizes, instead of hand-coding many food answers.
+Read these first, in order:
 
-## Default design stance
+1. [docs/SOURCE_OF_TRUTH.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/SOURCE_OF_TRUTH.md)
+2. [docs/handoff/README.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/handoff/README.md)
+3. [docs/APP_LAYER_MAP.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/APP_LAYER_MAP.md)
+4. [docs/TEXT_MEAL_CANARY_PROMPT_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/TEXT_MEAL_CANARY_PROMPT_SPEC.md)
 
-- Prefer prompt design over hard rules.
-- Prefer reasoning steps over case lists.
-- Prefer minimal guardrails over category-based routing tables.
-- Prefer natural user-facing language over expert-system phrasing.
+## Runtime Discipline
 
-## Core reasoning path
+This repository is `LLM-first`.
 
-The model should follow this path:
+The canonical food-estimation runtime is:
 
-1. Resolve what the meal is.
-2. Resolve the meal components.
-3. If components are missing, decide whether the missing composition should come from:
-   - the user
-   - or external evidence
-4. Once components are available, estimate component-level macros.
-5. Derive total kcal from macros.
-6. If macros are usable, answer.
-7. If macros are usable but uncertain, answer first and then explain the uncertainty naturally.
+1. `task_meal_link_pass`
+2. `decision_pass`
+3. `nutrition_resolution_pass`
+4. `final_response_pass`
 
-Treat composition resolution and macro estimation as separate stages.
+These four passes own semantic understanding.
 
-## Implementation approach
+## Deterministic Boundary
 
-- Keep the decision path simple and explicit.
-- Use prompts to define the reasoning order, the model's responsibility, and the answer style.
-- Use code mainly to wire stages together, normalize outputs, and add small defensive guardrails.
-- Prefer prompt changes that improve many similar cases at once.
-- Prefer natural follow-up wording that directly asks for the missing food information.
-- Prefer the smallest prompt and schema that still preserve reasoning quality and observability.
-- Avoid over-engineering the control layer around the model when a clearer prompt or a simpler stage boundary can solve the same problem.
+Deterministic code is strictly downgraded to a `quality gate`.
 
-## Lightweight guardrails
+Allowed deterministic behavior:
 
-Use small guardrails only when they clearly prevent bad behavior:
+- schema parsing and shape validation
+- one transport/schema retry per pass
+- state persistence bookkeeping
+- trace and observability recording
+- evidence normalization
+- exact-label base-truth consistency checks
+- macro/kcal arithmetic sanity checks
 
-- return a user-facing answer or a concrete follow-up instead of a raw failure
-- treat weak external matches as weak evidence, not final truth
-- treat private or home-cooked meals as user-known composition first
-- ask one follow-up question at a time
+Disallowed deterministic behavior:
 
-Keep guardrails narrow and defensive. Let the prompt remain the main decision engine.
+- meal-link inference
+- clarify/blocking recalibration
+- tool routing override
+- exactness override
+- semantic retry or rebuild loops
+- follow-up wording injection
+- replacing model outputs with hand-authored semantic answers
 
-Do not rely on canned default follow-up questions as the main solution.
-When clarification is needed, let the model ask a context-aware question that matches the user's actual input.
-Do not patch missing follow-up quality by silently injecting a default question from code.
+Rule:
 
-## Prompt philosophy
+- deterministic may validate
+- deterministic may downgrade confidence
+- deterministic may mark a result unusable
+- deterministic may not become a second planner, second decision layer, or second nutrition reasoner
 
-When adjusting prompts:
+## Implementation Bias
 
-- make the reasoning path clearer
-- state what the model should do, in order
-- make the output responsibility clearer
-- remove unnecessary fields before adding new ones
-- prefer fewer stronger instructions over many brittle instructions
+Prefer this build order:
 
-Prompt updates should mostly do one of these:
+1. `only LLM`
+2. `LLM + minimal structure`
+3. `LLM + narrow deterministic quality gates`
+4. `LLM + observability`
+5. `LLM + carefully justified optimization`
 
-- improve component resolution
-- improve the choice between user clarification vs external evidence
-- improve macro estimation from known components
-- improve natural answer style
+Do not invert this order.
 
-## User-facing answer style
+If unsure whether a deterministic rule is needed, delete it first and inspect raw model behavior.
 
-- Sound like a helpful assistant, not a nutrition report generator.
-- If asking, ask concretely for what is missing.
-- If answering with uncertainty, answer first, then explain what part may move the numbers.
-- If the user does not need to be blocked, keep the flow moving with an estimate plus a natural uncertainty note.
+## Layering Rule
 
-## Evaluation priority
+If one module starts doing more than one of these, split it:
 
-Judge changes by these questions:
+- reasoning
+- state transition
+- wording
+- retry semantics
 
-1. Did the model resolve components more correctly?
-2. Did it choose the right information source when components were missing?
-3. Did it derive macro estimates from components instead of skipping straight to calories?
-4. Did it answer naturally?
-5. Did the change improve the path without adding brittle rules or unnecessary special cases?
+## Current Ownership
+
+- `task_meal_link_pass` owns intent, meal boundary, target meal, and `clarification_blocking`
+- `decision_pass` owns next action, tool plan, and whether clarify is blocking
+- `nutrition_resolution_pass` owns kcal/macros/components, `resolution_mode`, `resolution_basis`, and unresolved info
+- `final_response_pass` owns the final natural-language reply and whether one unresolved item becomes an outward follow-up
+- deterministic code owns validation, bookkeeping, and trace only
+
+## Handoff Standard
+
+When changing runtime behavior, update both:
+
+- [docs/handoff/TEXT_MEAL_RUNTIME_CURRENT.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/handoff/TEXT_MEAL_RUNTIME_CURRENT.md)
+- [docs/handoff/NEXT_AGENT_CHECKLIST.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/handoff/NEXT_AGENT_CHECKLIST.md)
+
+Do not leave architecture changes only in chat history.
+
+## Debug Discipline
+
+For dashboard failures:
+
+- classify the `first_bad_pass` before patching
+- classify one root-cause bucket before patching
+- do not patch downstream behavior while the upstream pass is still broken
+- turn every repaired live failure into a regression fixture
+- do not use dish-specific prompt examples or hardcoded heuristics as a substitute for route fixes
+
+Reference:
+
+- [docs/handoff/LIVE_TRACE_TRIAGE_WORKFLOW.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/handoff/LIVE_TRACE_TRIAGE_WORKFLOW.md)

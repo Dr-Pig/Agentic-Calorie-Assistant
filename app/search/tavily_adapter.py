@@ -6,17 +6,20 @@ from typing import Any
 import httpx
 
 
+PLACEHOLDER_API_KEYS = {"", "replace-me"}
+
+
 class TavilyAdapter:
     def __init__(self) -> None:
         self.api_key = os.getenv("TAVILY_API_KEY", "")
 
     def readiness(self) -> dict[str, Any]:
-        return {"provider": "tavily", "configured": bool(self.api_key)}
+        return {"provider": "tavily", "configured": self._is_configured()}
 
-    async def search(self, query: str, *, max_results: int = 3) -> list[dict[str, Any]]:
-        if not self.api_key:
+    async def search(self, query: str, *, max_results: int = 5) -> list[dict[str, Any]]:
+        if not self._is_configured():
             raise RuntimeError("Tavily is not configured.")
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=60) as client:
             response = await client.post(
                 "https://api.tavily.com/search",
                 json={
@@ -24,7 +27,6 @@ class TavilyAdapter:
                     "query": query,
                     "search_depth": "basic",
                     "max_results": max_results,
-                    "topic": "general",
                 },
             )
             response.raise_for_status()
@@ -39,3 +41,6 @@ class TavilyAdapter:
                 }
             )
         return results
+
+    def _is_configured(self) -> bool:
+        return self.api_key.strip() not in PLACEHOLDER_API_KEYS

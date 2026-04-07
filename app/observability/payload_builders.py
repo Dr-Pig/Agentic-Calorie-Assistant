@@ -1,0 +1,286 @@
+from __future__ import annotations
+
+from typing import Any
+
+from ..agent.nutrition_resolution_llm import build_component_estimates
+from ..application.evidence_assembly import db_hit_type, summarize_retrieved_evidence
+from ..schemas import EstimatePayload, EstimateRequest
+
+
+def unicode_escape(text: str) -> str:
+    return text.encode("unicode_escape", errors="backslashreplace").decode("ascii")
+
+
+def _trace_followup_decision(best_parsed: dict[str, Any]) -> str:
+    if bool(best_parsed.get("follow_up_needed")) or str(best_parsed.get("followup_question") or "").strip():
+        return "should_ask"
+    return "not_needed"
+
+
+def _trace_followup_reason(best_parsed: dict[str, Any]) -> str | None:
+    reason = str(best_parsed.get("follow_up_reasoning") or "").strip()
+    return reason or None
+
+
+def build_trace_contract(
+    *,
+    request: EstimateRequest,
+    effective_request: EstimateRequest,
+    planner_result: Any,
+    planner_enabled: bool,
+    normalization: dict[str, Any],
+    risk_packet: dict[str, Any],
+    meal_template: dict[str, Any] | None,
+    template_override_blocked: bool,
+    retrieval_query: str | None,
+    retrieved_knowledge: list[dict[str, Any]],
+    sources: list[dict[str, Any]],
+    used_search: bool,
+    search_query: str | None,
+    current_parsed: dict[str, Any],
+    best_parsed: dict[str, Any],
+    best_source: str,
+    quality_signals: dict[str, Any],
+    retry_triggered: bool,
+    retry_reason: str | None,
+    context_pack_trace: dict[str, Any] | None = None,
+    tool_decision_trace: dict[str, Any] | None = None,
+    boundary_trace: dict[str, Any] | None = None,
+    judge_trace: dict[str, Any] | None = None,
+    evidence_resolution_trace: dict[str, Any] | None = None,
+    memory_trace: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    planner_mode = (
+        "llm"
+        if planner_enabled and not str(planner_result.route_hints.get("planner_source", "")).startswith("fallback")
+        else "fallback"
+        if planner_enabled
+        else "disabled"
+    )
+    normalizer_mode = "off"
+    if not planner_enabled:
+        normalizer_mode = "planner_off_fallback"
+    elif normalization.get("normalizer_applied"):
+        normalizer_mode = "post_planner_estimation_cleanup"
+    planner_input_view = request.text if planner_enabled else effective_request.text
+    grounding_attempts: list[dict[str, Any]] = []
+    if retrieval_query:
+        grounding_attempts.append({"kind": "local_retrieval", "query": retrieval_query, "hit_count": len(retrieved_knowledge), "used": bool(retrieved_knowledge)})
+    if used_search:
+        grounding_attempts.append({"kind": "search", "query": search_query, "hit_count": len(sources), "used": True})
+    return {
+        "raw_input_bundle": {"text": request.text, "modalities": ["text"]},
+        "planner_used": planner_enabled,
+        "planner_input_view": planner_input_view,
+        "planner_output": {
+            "intent": planner_result.intent,
+            "meal_boundary": planner_result.meal_boundary,
+            "active_meal_reference": planner_result.active_meal_reference,
+            "boundary_confidence": planner_result.boundary_confidence,
+            "planner_self_reported_boundary_confidence": planner_result.route_hints.get("planner_self_reported_boundary_confidence"),
+            "resolved_query": planner_result.resolved_query,
+            "resolution_mode": planner_result.resolution_mode,
+            "planning_brief": planner_result.planning_brief.model_dump(mode="json"),
+            "route_hints": planner_result.route_hints,
+            "missing_context": planner_result.missing_info,
+            "contextual_cues": planner_result.input_signals,
+            "normalized_user_input": planner_result.normalized_user_input,
+            "planner_mode": planner_mode,
+            "planner_source": planner_result.route_hints.get("planner_source"),
+        },
+        "normalizer_mode": normalizer_mode,
+        "normalizer_diff": {
+            "changed": bool(normalization.get("normalizer_applied")),
+            "raw_text": normalization.get("raw_text"),
+            "normalized_text": normalization.get("normalized_text"),
+            "notes": normalization.get("notes", []),
+        },
+        "risk_validator_input": effective_request.text,
+        "risk_flags": risk_packet.get("risk_flags", []),
+        "required_checks": risk_packet.get("required_checks", {}),
+        "validator_adjustments": {
+            "review_focus": risk_packet.get("review_focus", []),
+            "must_ask_if_uncertain": risk_packet.get("must_ask_if_uncertain", []),
+        },
+        "template_match": {
+            "matched": bool(meal_template),
+            "blocked": template_override_blocked,
+            "why_blocked": "specific_item_phrase_detected" if template_override_blocked else None,
+            "template_id": meal_template.get("template_id") if meal_template else None,
+            "template_title": meal_template.get("title") if meal_template else None,
+        },
+        "primary_llm_output": {
+            "decision": current_parsed.get("decision"),
+            "food_origin": current_parsed.get("food_origin"),
+            "food_class": current_parsed.get("food_class"),
+            "needs_external_data": current_parsed.get("needs_external_data"),
+            "estimated_kcal": current_parsed.get("estimated_kcal"),
+            "uncertainty_factors": current_parsed.get("uncertainty_factors", []),
+            "followup_question": current_parsed.get("followup_question", ""),
+            "follow_up_needed": current_parsed.get("follow_up_needed", False),
+            "unresolved_info": current_parsed.get("unresolved_info", []),
+        },
+        "followup_decision": _trace_followup_decision(best_parsed),
+        "followup_reason": _trace_followup_reason(best_parsed),
+        "followup_policy_decision": best_parsed.get("followup_policy_decision"),
+        "route_family": best_parsed.get("route_family"),
+        "response_mode_hint": best_parsed.get("response_mode_hint"),
+        "missing_slots": best_parsed.get("missing_slots", []),
+        "blocking_slots": best_parsed.get("blocking_slots", []),
+        "unresolved_info": best_parsed.get("unresolved_info", []),
+        "grounding_attempts": grounding_attempts,
+        "db_hit_type": db_hit_type(retrieved_knowledge=retrieved_knowledge, meal_template=meal_template),
+        "grounding_summary": {
+            "retrieved_knowledge_count": len(retrieved_knowledge),
+            "source_count": len(sources),
+            "exact_truth_present": any(str(item.get("evidence_role") or "") == "exact_truth" for item in retrieved_knowledge),
+            "evidence_roles": sorted({str(item.get("evidence_role")) for item in [*retrieved_knowledge, *sources] if item.get("evidence_role")}),
+        },
+        "match_confidence": "none",
+        "match_path": "none",
+        "grounding_contradiction": False,
+        "best_answer_source": best_source,
+        "best_estimate_mode": best_parsed.get("estimate_mode"),
+        "estimate_confidence_tier": best_parsed.get("estimate_confidence_tier"),
+        "enrichment_applied": {
+            "deterministic_component_estimates": bool(best_parsed.get("deterministic_component_estimates")),
+            "estimate_mode": best_parsed.get("estimate_mode"),
+            "estimate_confidence_tier": best_parsed.get("estimate_confidence_tier"),
+        },
+        "retry_triggered": retry_triggered,
+        "retry_reason": retry_reason,
+        "rescue_applied": {},
+        "final_answer_summary": {
+            "title": best_parsed.get("title"),
+            "decision": best_parsed.get("decision"),
+            "estimated_kcal": best_parsed.get("estimated_kcal"),
+            "components": best_parsed.get("components", []),
+        },
+        "stage_quality_signals": quality_signals,
+        "context_pack_trace": context_pack_trace or {},
+        "tool_decision_trace": tool_decision_trace or {},
+        "boundary_trace": boundary_trace or {},
+        "judge_trace": judge_trace or {},
+        "evidence_resolution_trace": evidence_resolution_trace or {},
+        "memory_trace": memory_trace or {},
+    }
+
+
+def build_payload(
+    request: EstimateRequest,
+    *,
+    request_id: str,
+    parsed: dict[str, Any],
+    risk_packet: dict[str, Any],
+    action_taken: str,
+    route_target: str,
+    route_reason: str,
+    debug_steps: list[dict[str, Any]],
+    llm_traces: list[dict[str, Any]],
+    retrieval_triggered: bool,
+    retrieval_query: str | None,
+    retrieved_knowledge: list[dict[str, Any]],
+    quality_signals: dict[str, Any],
+    retry_triggered: bool,
+    retry_reason: str | None,
+    best_answer_source: str,
+    private_only: bool,
+    used_search: bool,
+    search_query: str | None,
+    search_quality: str | None,
+    sources: list[dict[str, Any]],
+    reply_text: str | None = None,
+    trace_contract: dict[str, Any] | None = None,
+    north_star_evaluation: dict[str, Any] | None = None,
+    multi_turn_context: dict[str, Any] | None = None,
+    token_usage: dict[str, Any] | None = None,
+    trace_meta: dict[str, Any] | None = None,
+    span_timeline: list[dict[str, Any]] | None = None,
+    decision_journal: dict[str, Any] | None = None,
+    evidence_journal: dict[str, Any] | None = None,
+    diagnosis: dict[str, Any] | None = None,
+    context_pack_trace: dict[str, Any] | None = None,
+    tool_decision_trace: dict[str, Any] | None = None,
+    boundary_trace: dict[str, Any] | None = None,
+    judge_trace: dict[str, Any] | None = None,
+    evidence_resolution_trace: dict[str, Any] | None = None,
+    memory_trace: dict[str, Any] | None = None,
+) -> EstimatePayload:
+    del private_only
+    response_mode_hint = str(parsed.get("response_mode_hint") or "")
+    unresolved_info = [str(item) for item in parsed.get("unresolved_info") or [] if str(item).strip()]
+    follow_up_needed = bool(parsed.get("follow_up_needed"))
+    source_decision: str
+    if response_mode_hint == "clarify_first" or follow_up_needed or unresolved_info:
+        source_decision = "ask_user"
+    else:
+        source_decision = "retrieve" if retrieval_triggered or used_search else "ready"
+    protein = parsed["protein_g"]
+    carb = parsed["carb_g"]
+    fat = parsed["fat_g"]
+    source_label = "retrieval" if retrieved_knowledge else "llm"
+    component_estimates = parsed.get("deterministic_component_estimates") or build_component_estimates(parsed["components"], source=source_label)
+    evidence_summary = summarize_retrieved_evidence(retrieved_knowledge or sources)
+    normalized_search_quality = search_quality.get("quality") if isinstance(search_quality, dict) else search_quality
+    fallback_reply_text = (reply_text or "").strip()
+    if not fallback_reply_text:
+        if parsed["estimated_kcal"] > 0:
+            fallback_reply_text = f"{parsed['title'] or request.text} 約 {parsed['estimated_kcal']} kcal。"
+        else:
+            fallback_reply_text = "請再描述更具體的內容與份量。"
+    return EstimatePayload(
+        request_id=request_id,
+        meal_title=parsed["title"] or request.text,
+        components=parsed["components"],
+        quantity_hints=parsed["components"],
+        component_estimates=component_estimates,
+        protein_g=protein,
+        carb_g=carb,
+        fat_g=fat,
+        estimated_kcal=parsed["estimated_kcal"],
+        uncertain_macro_areas=parsed["uncertainty_factors"],
+        source_decision=source_decision,
+        answer_mode="best_effort" if retry_triggered or parsed["uncertainty_factors"] else "direct_answer",
+        action_taken=action_taken,
+        route_target=route_target,  # type: ignore[arg-type]
+        route_reason=route_reason,
+        followup_question=parsed["followup_question"] or None,
+        follow_up_needed=bool(parsed.get("follow_up_needed")),
+        follow_up_reasoning=str(parsed.get("follow_up_reasoning") or ""),
+        debug_steps=debug_steps,
+        llm_traces=llm_traces,
+        reply_text=fallback_reply_text,
+        retrieval_triggered=retrieval_triggered,
+        retrieval_query=retrieval_query,
+        retrieved_knowledge=retrieved_knowledge,
+        risk_packet=risk_packet,
+        quality_signals=quality_signals,
+        retry_triggered=retry_triggered,
+        retry_reason=retry_reason,
+        best_answer_source=best_answer_source,
+        best_estimate_mode=str(parsed.get("estimate_mode") or "llm_only"),
+        estimate_confidence_tier=str(parsed.get("estimate_confidence_tier") or "low"),
+        retrieved_evidence_summary=evidence_summary,
+        failure_family=quality_signals.get("failure_family"),
+        used_search=used_search,
+        search_query=search_query,
+        search_quality=str(normalized_search_quality or "") or None,
+        sources=sources,
+        trace_contract=trace_contract or {},
+        failed_layer=(north_star_evaluation or {}).get("failed_layer"),
+        primary_failure_reason=(north_star_evaluation or {}).get("why"),
+        north_star_evaluation=north_star_evaluation or {},
+        multi_turn_context=multi_turn_context or {},
+        token_usage=token_usage or {},
+        trace_meta=trace_meta or {},
+        span_timeline=span_timeline or [],
+        decision_journal=decision_journal or {},
+        evidence_journal=evidence_journal or {},
+        diagnosis=diagnosis or {},
+        context_pack_trace=context_pack_trace or {},
+        tool_decision_trace=tool_decision_trace or {},
+        boundary_trace=boundary_trace or {},
+        judge_trace=judge_trace or {},
+        evidence_resolution_trace=evidence_resolution_trace or {},
+        memory_trace=memory_trace or {},
+    )

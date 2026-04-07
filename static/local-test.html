@@ -5,103 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Text Meal Canary</title>
   <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      margin: 24px;
-      background: #f6f7fb;
-      color: #111827;
-    }
-    .card {
-      background: #fff;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-    }
-    textarea {
-      width: 100%;
-      min-height: 110px;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid #d1d5db;
-      font-size: 15px;
-      box-sizing: border-box;
-    }
-    button {
-      margin-top: 12px;
-      padding: 10px 16px;
-      border: 0;
-      border-radius: 8px;
-      background: #0f172a;
-      color: #fff;
-      font-size: 14px;
-    }
-    button[disabled] {
-      opacity: 0.6;
-      cursor: wait;
-    }
-    pre {
-      white-space: pre-wrap;
-      word-break: break-word;
-      background: #0f172a;
-      color: #e2e8f0;
-      padding: 12px;
-      border-radius: 8px;
-      overflow: auto;
-    }
-    .muted {
-      color: #475569;
-      font-size: 14px;
-    }
-    .status {
-      margin-top: 12px;
-      font-size: 14px;
-      color: #0f766e;
-    }
-    .meta-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-      margin-top: 12px;
-    }
-    .meta-pill {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 10px 12px;
-    }
-    .meta-pill strong {
-      display: block;
-      font-size: 12px;
-      color: #64748b;
-      margin-bottom: 4px;
-    }
-    .inline-row {
-      margin-top: 12px;
-    }
+    body { font-family: "Segoe UI", sans-serif; margin: 24px; background: #f6f7fb; color: #111827; }
+    .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.06); }
+    textarea { width: 100%; min-height: 110px; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 15px; box-sizing: border-box; }
+    button { margin-top: 12px; padding: 10px 16px; border: 0; border-radius: 8px; background: #0f172a; color: #fff; font-size: 14px; cursor: pointer; }
+    button[disabled] { opacity: .6; cursor: wait; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; overflow: auto; }
+    .muted { color: #475569; font-size: 14px; }
+    .status { margin-top: 12px; font-size: 14px; color: #0f766e; }
+    .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 12px; }
+    .meta-pill { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; }
+    .meta-pill strong { display: block; font-size: 12px; color: #64748b; margin-bottom: 4px; }
+    .inline-row { margin-top: 12px; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>Text Meal Canary</h1>
-    <div class="muted">這個頁面會直接顯示目前正在跑的 canary 版本，不用另外打 ping。</div>
+    <div class="muted">v10.4：structured main path，主流程改用 schema 輸出並保留 zero-kcal guard。</div>
     <div class="meta-grid">
-      <div class="meta-pill">
-        <strong>Canary Version</strong>
-        <div id="canary-version">讀取中...</div>
-      </div>
-      <div class="meta-pill">
-        <strong>Schema Signature</strong>
-        <div id="schema-signature">讀取中...</div>
-      </div>
-      <div class="meta-pill">
-        <strong>BuilderSpace</strong>
-        <div id="provider-status">讀取中...</div>
-      </div>
-      <div class="meta-pill">
-        <strong>Tavily</strong>
-        <div id="search-status">讀取中...</div>
-      </div>
+      <div class="meta-pill"><strong>Canary Version</strong><div id="canary-version">讀取中...</div></div>
+      <div class="meta-pill"><strong>Schema Signature</strong><div id="schema-signature">讀取中...</div></div>
+      <div class="meta-pill"><strong>Provider</strong><div id="provider-status">讀取中...</div></div>
+      <div class="meta-pill"><strong>Search</strong><div id="search-status">讀取中...</div></div>
+      <div class="meta-pill"><strong>Request ID</strong><div id="request-id">尚未送出</div></div>
     </div>
   </div>
 
@@ -109,15 +36,15 @@
     <label for="text">餐點描述</label>
     <textarea id="text">早餐店的起司蛋餅</textarea>
     <div class="inline-row">
-      <label><input id="allow-search" type="checkbox" checked /> 允許搜尋</label>
+      <label><input id="allow-search" type="checkbox" checked /> 允許 local retrieval 不足時再開 web search fallback</label>
     </div>
     <button id="submit">送出</button>
-    <div id="status" class="status">尚未送出</div>
+    <div id="status" class="status">等待送出</div>
   </div>
 
   <div class="card">
-    <h2>回覆摘要</h2>
-    <div id="summary" class="muted">送出後會顯示這次回答。</div>
+    <h2>給用戶的回答</h2>
+    <div id="summary" class="muted">送出後會顯示這裡。</div>
   </div>
 
   <div class="card">
@@ -135,27 +62,18 @@
     <pre id="payload">{}</pre>
   </div>
 
-  <div class="card">
-    <h2>最近 Logs</h2>
-    <pre id="logs">[]</pre>
-  </div>
-
   <script>
+    const PAGE_VERSION = "text-meal-canary.v10.4";
+
     async function refreshMeta() {
       const res = await fetch('/ping');
       const data = await res.json();
       document.getElementById('canary-version').textContent = data.canary_version;
       document.getElementById('schema-signature').textContent = data.schema_signature;
       document.getElementById('provider-status').textContent =
-        `${data.provider.provider} | configured=${data.provider.configured} | model=${data.provider.model}`;
+        `${data.provider.provider} | configured=${data.provider.configured} | primary=${data.provider.stage_models.primary_answer_pass_initial}`;
       document.getElementById('search-status').textContent =
         `${data.search.provider} | configured=${data.search.configured}`;
-    }
-
-    async function refreshLogs() {
-      const res = await fetch('/logs?limit=10');
-      const data = await res.json();
-      document.getElementById('logs').textContent = JSON.stringify(data.items, null, 2);
     }
 
     async function submitEstimate() {
@@ -165,28 +83,41 @@
       const status = document.getElementById('status');
 
       submit.disabled = true;
-      status.textContent = '處理中，正在呼叫模型與必要工具...';
+      status.textContent = '送出中...';
       document.getElementById('summary').textContent = '處理中...';
       document.getElementById('debug').textContent = '[]';
       document.getElementById('llm-traces').textContent = '[]';
+      document.getElementById('request-id').textContent = '尚未收到';
 
       try {
         const res = await fetch('/estimate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'X-Canary-Page-Version': PAGE_VERSION,
+          },
           body: JSON.stringify({ text, allow_search: allowSearch }),
         });
-        const data = await res.json();
-        document.getElementById('summary').textContent = data.coach_message || '沒有回覆摘要';
+        const raw = await res.text();
+        let data = null;
+        try {
+          data = JSON.parse(raw);
+        } catch (error) {
+          throw new Error(raw || 'Non-JSON response');
+        }
+        if (!res.ok) {
+          throw new Error(data.error || data.coach_message || `HTTP ${res.status}`);
+        }
+        document.getElementById('request-id').textContent = data.request_id || '無';
+        document.getElementById('summary').textContent = data.coach_message || '沒有回覆';
         document.getElementById('debug').textContent = JSON.stringify(data.payload?.debug_steps || [], null, 2);
         document.getElementById('llm-traces').textContent = JSON.stringify(data.payload?.llm_traces || [], null, 2);
         document.getElementById('payload').textContent = JSON.stringify(data, null, 2);
-        status.textContent = '處理完成';
-        await refreshLogs();
+        status.textContent = '完成';
       } catch (error) {
         document.getElementById('summary').textContent = '送出失敗';
         document.getElementById('payload').textContent = String(error);
-        status.textContent = '送出失敗，請看完整 JSON 或重新整理。';
+        status.textContent = '失敗，請看 console';
       } finally {
         submit.disabled = false;
       }
@@ -194,7 +125,6 @@
 
     document.getElementById('submit').addEventListener('click', submitEstimate);
     refreshMeta();
-    refreshLogs();
   </script>
 </body>
 </html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="bg-gray-50 text-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canary Insight | Precision Observability</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Outfit', sans-serif; -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+        .glass-header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
+        .detail-pane { background: #ffffff; border-left: 1px solid rgba(0, 0, 0, 0.05); box-shadow: -10px 0 30px rgba(0, 0, 0, 0.02); }
+        .trace-row { transition: all 120ms ease; border-bottom: 1px solid rgba(0, 0, 0, 0.03); border-left: 3px solid transparent; }
+        .trace-row:hover { background-color: #f8fafc; cursor: pointer; }
+        .trace-row.active { background-color: #f1f5f9; border-left-color: #0f172a; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .badge { font-size: 9px; font-weight: 800; padding: 2px 6px; letter-spacing: 0.05em; text-transform: uppercase; border-radius: 4px; }
+        .verdict-win { background: #ecfdf5; color: #059669; }
+        .verdict-loss { background: #fef2f2; color: #dc2626; }
+        .verdict-neutral { background: #fffbeb; color: #d97706; }
+        .verdict-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .verdict-pending { background: #f4f4f5; color: #71717a; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeIn 200ms ease-out forwards; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-[#fafafa]">
+
+    <!-- TOP NAVIGATION -->
+    <header class="glass-header h-16 flex-shrink-0 z-50 flex items-center justify-between px-8">
+        <div class="flex items-center space-x-4">
+            <div class="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center text-white font-black text-xs">C</div>
+            <div>
+                <h1 class="text-sm font-bold tracking-tight text-zinc-900 leading-none">CANARY_INSIGHT</h1>
+                <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-1 block" id="schema-sig">SYNCING_SIGNATURE...</span>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-6">
+            <div class="flex items-center space-x-8 px-6 border-r border-zinc-100">
+                <div class="text-center px-4">
+                    <p class="text-[9px] font-extrabold text-zinc-400 uppercase tracking-widest mb-0.5">Total_Vol</p>
+                    <p id="total-requests" class="text-sm font-bold text-zinc-900">---</p>
+                </div>
+                <div class="text-center px-4">
+                    <p class="text-[9px] font-extrabold text-zinc-400 uppercase tracking-widest mb-0.5">Win_Rate</p>
+                    <p id="win-rate" class="text-sm font-bold text-emerald-600">---</p>
+                </div>
+                <div class="text-center px-4">
+                    <p class="text-[9px] font-extrabold text-zinc-400 uppercase tracking-widest mb-0.5">Avg_Tkn</p>
+                    <p id="avg-tokens" class="text-sm font-bold text-zinc-900">---</p>
+                </div>
+            </div>
+            
+            <button onclick="refreshData()" class="text-[10px] font-bold text-zinc-900 hover:text-blue-600 transition tracking-widest uppercase py-2 px-4 border border-zinc-200 rounded-full hover:bg-white active:scale-95">Re_Sync</button>
+        </div>
+    </header>
+
+    <!-- CONTENT LAYOUT -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- SIDEBAR: LOG REGISTRY -->
+        <div id="log-list-container" class="w-[450px] flex-shrink-0 flex flex-col bg-white border-r border-zinc-100 shadow-[2px_0_10px_rgba(0,0,0,0.01)]">
+            <div class="p-6 border-b border-zinc-50">
+                <input type="text" id="search-input" placeholder="Search Identity / Intent..." 
+                       class="w-full bg-zinc-50 text-xs py-3 px-4 rounded-xl border-none focus:ring-1 focus:ring-zinc-400 outline-none transition-all placeholder:text-zinc-300 font-medium">
+            </div>
+            
+            <div id="trace-list" class="flex-1 overflow-y-auto no-scrollbar">
+                <!-- Trace rows dynamically injected -->
+                <div class="p-20 text-center text-zinc-300 text-xs italic">Awaiting Registry Data...</div>
+            </div>
+        </div>
+
+        <!-- MAIN VIEW: INSIGHT PANE -->
+        <div id="detail-view" class="flex-1 overflow-y-auto no-scrollbar bg-[#fcfcfd] flex flex-col items-center py-12 px-16 relative">
+            <div id="empty-state" class="my-auto text-center space-y-4 opacity-40">
+                <div class="w-16 h-16 border-2 border-dashed border-zinc-200 rounded-2xl mx-auto flex items-center justify-center text-zinc-200 text-2xl font-bold">?</div>
+                <p class="text-sm font-bold text-zinc-400 uppercase tracking-[0.2em]">Select a trace log to begin analysis</p>
+            </div>
+
+            <div id="detail-card" class="hidden w-full max-w-4xl space-y-12 animate-in">
+                
+                <!-- HEADER SECTION -->
+                <section class="flex justify-between items-start">
+                    <div class="space-y-4 group">
+                        <p id="detail-id" class="text-[10px] font-extrabold text-zinc-300 uppercase tracking-[0.3em] group-hover:text-zinc-900 transition-colors">TRACE_ID: PENDING</p>
+                        <h2 id="detail-input" class="text-4xl font-extrabold tracking-tight text-zinc-900 leading-tight break-words max-w-3xl">--</h2>
+                        <div class="flex items-center space-x-4 pt-2">
+                             <div id="detail-verdict-badge" class="badge">PENDING</div>
+                             <span id="detail-timestamp" class="text-[11px] font-bold text-zinc-400 font-mono">--:--:--</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="grid grid-cols-12 gap-12 pt-12 border-t border-zinc-100">
+                    
+                    <!-- LEFT COLUMN: FLOW & EVIDENCE -->
+                    <div class="col-span-12 lg:col-span-8 space-y-16">
+                        
+                        <!-- PIPELINE VISUALIZATION -->
+                        <div class="space-y-8">
+                            <h3 class="text-[10px] font-black text-zinc-300 uppercase tracking-[0.4em]">Integrated_Pipeline_Flow</h3>
+                            <div id="pipeline-container" class="relative pl-8 space-y-12 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[1px] before:bg-zinc-100">
+                                <!-- Pipeline nodes -->
+                            </div>
+                        </div>
+
+                        <!-- GROUNDING EVIDENCE -->
+                        <div class="space-y-8">
+                            <h3 class="text-[10px] font-black text-zinc-300 uppercase tracking-[0.4em]">Grounding_Evidence_Context</h3>
+                            <div id="grounding-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Cards -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: STATS & RAW -->
+                    <div class="col-span-12 lg:col-span-4 space-y-12">
+                        
+                        <!-- ASSESSMENT -->
+                        <div class="bg-white border border-zinc-100 rounded-2xl p-6 shadow-sm">
+                            <h3 class="text-[9px] font-black text-zinc-300 uppercase tracking-[0.4em] mb-4">North_Star_Audit</h3>
+                            <p id="detail-reason" class="text-xs font-semibold text-zinc-600 leading-relaxed italic mb-6">"--"</p>
+                            <div id="evaluation-details" class="space-y-4">
+                                <!-- Dynamic metrics -->
+                            </div>
+                        </div>
+
+                        <!-- MULTI-TURN CHAIN -->
+                        <div id="version-chain-section" class="hidden bg-zinc-50 rounded-2xl p-6 border border-zinc-100 border-dashed">
+                             <h3 class="text-[9px] font-black text-zinc-300 uppercase tracking-[0.4em] mb-4">Contextual_Refinement</h3>
+                             <div id="version-chain-container" class="flex flex-wrap gap-2">
+                                 <!-- Chain items -->
+                             </div>
+                        </div>
+
+                        <!-- RAW DATA -->
+                        <div class="opacity-40 hover:opacity-100 transition-all">
+                             <div class="flex items-center justify-between mb-4">
+                                 <h3 class="text-[9px] font-black text-zinc-300 uppercase tracking-[0.4em]">Raw_Telemetry</h3>
+                                 <button onclick="copyRaw()" class="text-[8px] font-black text-zinc-400 hover:text-zinc-900 tracking-widest uppercase">Copy_JSON</button>
+                             </div>
+                             <pre id="json-viewer" class="text-[10px] font-mono text-zinc-400 bg-white border border-zinc-50 rounded-xl p-6 overflow-x-auto no-scrollbar scrollbar-hide max-h-[400px]"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let allTraces = [];
+        let activeId = null;
+
+        async function fetchMetadata() {
+            try {
+                const r = await fetch('/ping');
+                const d = await r.json();
+                const sig = document.getElementById('schema-sig');
+                sig.innerText = d.schema_signature || 'UNAVAILABLE';
+                sig.classList.replace('text-zinc-400', 'text-blue-500');
+            } catch(e) { console.warn("Meta Sync Fail", e); }
+        }
+
+        async function refreshData() {
+            try {
+                const response = await fetch('/admin/traces?limit=100');
+                const data = await response.json();
+                allTraces = data.traces || [];
+                renderList(allTraces);
+                updateMetrics(data.stats || {});
+            } catch (err) { console.error("Data Sync Fail", err); }
+        }
+
+        function updateMetrics(stats) {
+            document.getElementById('total-requests').innerText = (stats.total || 0).toLocaleString();
+            document.getElementById('win-rate').innerText = `${stats.win_rate || 0}%`;
+            document.getElementById('avg-tokens').innerText = (stats.avg_tokens || 0).toLocaleString();
+        }
+
+        function renderList(traces) {
+            const container = document.getElementById('trace-list');
+            
+            if(traces.length === 0) {
+                container.innerHTML = '<div class="p-20 text-center text-zinc-300 text-xs italic">Registry is empty</div>';
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            traces.forEach(trace => {
+                const div = document.createElement('div');
+                div.className = `trace-row p-6 hover:bg-slate-50 transition-all ${activeId === trace.id ? 'active' : ''}`;
+                div.onclick = () => selectTrace(trace.id);
+                
+                const date = new Date(trace.timestamp);
+                const time = date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                const verdictClass = `verdict-${(trace.verdict || 'neutral').toLowerCase()}`;
+                
+                div.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-[10px] font-black text-zinc-400 font-mono">${time}</span>
+                        <span class="badge ${verdictClass}">${trace.verdict || 'NONE'}</span>
+                    </div>
+                    <p class="text-sm font-bold text-zinc-900 truncate mb-1">${trace.text || '[SYSTEM_EVENT]'}</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-extrabold text-zinc-300 uppercase tracking-widest">${trace.user_id} | ${trace.intent || 'UNK'}</span>
+                        <span class="text-[9px] font-bold text-zinc-400 font-mono">${(trace.tokens || 0).toLocaleString()}T</span>
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <span class="text-[9px] font-bold text-zinc-400">${trace.failed_layer || 'healthy'} | ${trace.repairability || 'none'}</span>
+                        <span class="text-[9px] font-bold text-zinc-400">${trace.best_answer_source || 'n/a'}</span>
+                    </div>
+                `;
+                fragment.appendChild(div);
+            });
+            
+            container.innerHTML = '';
+            container.appendChild(fragment);
+        }
+
+        async function selectTrace(id) {
+            activeId = id;
+            
+            // UI Update for active state
+            const rows = document.querySelectorAll('.trace-row');
+            rows.forEach(r => r.classList.remove('active'));
+            // Find and highlight (or just re-render list if needed, but selecting directly is faster)
+            // For simplicity and to ensure sync, we re-render small lists or just toggle class
+            renderList(allTraces); 
+
+            document.getElementById('empty-state').classList.add('hidden');
+            const card = document.getElementById('detail-card');
+            card.classList.remove('hidden');
+            card.classList.remove('animate-in');
+            void card.offsetWidth; // Trigger reflow
+            card.classList.add('animate-in');
+            
+            try {
+                const res = await fetch(`/admin/trace/${id}`);
+                const data = await res.json();
+                renderDetail(data);
+                
+                history.replaceState({id}, '', `#insight/${id}`);
+            } catch(e) { console.error("Detail Fetch Fail", e); }
+        }
+
+        function renderDetail(data) {
+            const ev = data.north_star_evaluation || {};
+            const diagnosis = data.diagnosis || data.payload?.diagnosis || {};
+            const spans = data.span_timeline || data.payload?.span_timeline || [];
+            const evidenceJournal = data.evidence_journal || data.payload?.evidence_journal || {};
+            const mt = data.multi_turn_context || data.payload?.multi_turn_context || {};
+
+            let totalTokens = data.token_usage?.total_tokens || 0;
+            if (totalTokens === 0 && data.llm_traces) {
+                totalTokens = data.llm_traces.reduce((acc, t) => acc + (t.usage?.total_tokens || t.total_tokens || 0), 0);
+            }
+
+            document.getElementById('detail-id').innerText = `TRACE_ID: ${data.request_id || data.trace_meta?.request_id || 'UNKNOWN'}`;
+            document.getElementById('detail-input').innerText = data.request?.text || data.text || 'SYSTEM_TRANSACTION';
+            document.getElementById('detail-timestamp').innerText = new Date(data.timestamp || data.trace_meta?.timestamp).toLocaleString();
+
+            const badge = document.getElementById('detail-verdict-badge');
+            const verdict = (ev.win_loss_neutral || data.verdict || 'PENDING').toUpperCase();
+            badge.innerText = verdict;
+            badge.className = `badge verdict-${verdict.toLowerCase()}`;
+
+            const reasonEl = document.getElementById('detail-reason');
+            if (data.status === 'error' || data.error) {
+                reasonEl.innerHTML = `<div class="p-4 bg-rose-50 rounded-xl border border-rose-100"><span class="text-rose-600 font-bold uppercase tracking-widest text-[10px] block mb-2">Internal_System_Error</span><code class="text-rose-500 font-mono text-xs leading-relaxed">${data.error || 'Unknown Execution Failure'}</code></div>`;
+                badge.innerText = 'ERROR';
+                badge.className = 'badge verdict-error';
+            } else {
+                reasonEl.innerText = diagnosis.why || ev.why || 'No evaluation commentary available for this trace.';
+            }
+
+            const ed = document.getElementById('evaluation-details');
+            ed.innerHTML = '';
+            [
+                { label: 'Failed Layer', val: diagnosis.failed_layer || 'none' },
+                { label: 'Repairability', val: diagnosis.repairability || 'unknown' },
+                { label: 'Suggested Action', val: diagnosis.suggested_next_action || 'inspect_trace' },
+                { label: 'Conversation Hits', val: mt.conversation_archive_hit_count ?? 0 },
+                { label: 'Window Size', val: mt.conversation_window_size ?? 0 },
+                { label: 'Cost Efficiency', val: `${totalTokens.toLocaleString()} tokens` }
+            ].forEach(m => {
+                const d = document.createElement('div');
+                d.className = 'flex justify-between items-center text-[10px] font-bold';
+                d.innerHTML = `<span class="text-zinc-400 uppercase tracking-widest">${m.label}</span><span class="text-zinc-900">${m.val || 'N/A'}</span>`;
+                ed.appendChild(d);
+            });
+
+            const pipeline = document.getElementById('pipeline-container');
+            pipeline.innerHTML = '';
+            const steps = spans.length ? spans.map((span, index) => ({
+                id: String(index + 1),
+                title: span.stage,
+                result: span.status || 'ok',
+                desc: [span.trigger_reason, span.stage_output_summary?.decision, span.stage_output_summary?.estimated_kcal ? `${span.stage_output_summary.estimated_kcal} kcal` : ''].filter(Boolean).join(' | ')
+            })) : [{
+                id: '1',
+                title: 'Intent Identification',
+                result: data.planner_result?.intent || data.payload?.trace_contract?.planner_output?.intent || 'unknown',
+                desc: data.planner_result?.normalized_user_input || data.payload?.trace_contract?.planner_output?.normalized_user_input || ''
+            }];
+
+            steps.forEach(s => {
+                const node = document.createElement('div');
+                node.className = 'relative group';
+                node.innerHTML = `
+                    <div class="absolute -left-10 top-0 w-4 h-4 bg-white border-2 border-zinc-200 rounded-full group-hover:border-zinc-900 transition-colors z-10"></div>
+                    <div>
+                        <p class="text-[9px] font-black text-zinc-300 uppercase tracking-widest mb-1">${s.id}. ${s.title}</p>
+                        <p class="text-xs font-bold text-zinc-900 mb-1">${s.result || '---'}</p>
+                        <p class="text-[10px] font-medium text-zinc-400 max-w-lg leading-relaxed">${s.desc || ''}</p>
+                    </div>
+                `;
+                pipeline.appendChild(node);
+            });
+
+            const grounding = document.getElementById('grounding-container');
+            grounding.innerHTML = '';
+            const evidenceCards = [];
+            if (mt.pending_question_source_log_id || mt.conversation_digest?.pending_question) {
+                evidenceCards.push({
+                    meal_title: 'CONVERSATION_MEMORY',
+                    kcal: 0,
+                    description: `pending=${mt.conversation_digest?.pending_question || 'none'} | refs=${(mt.conversation_hit_refs || []).join(', ') || 'none'}`
+                });
+            }
+            if (evidenceJournal.exact_truth_candidate) {
+                evidenceCards.push({
+                    meal_title: evidenceJournal.exact_truth_candidate.title || evidenceJournal.exact_truth_candidate.meal_title || 'EXACT_TRUTH',
+                    kcal: evidenceJournal.exact_truth_candidate.kcal || evidenceJournal.exact_truth_candidate.estimated_kcal || 0,
+                    description: `db_hit=${evidenceJournal.db_hit_type || 'unknown'} | confidence=${evidenceJournal.match_confidence || 'none'}`
+                });
+            }
+            const rawEvidence = data.retrieved_knowledge || data.payload?.retrieved_knowledge || [];
+            const cardSource = evidenceCards.length ? evidenceCards : rawEvidence;
+            if(!cardSource.length) {
+                grounding.innerHTML = '<div class="col-span-full py-8 border border-dashed border-zinc-100 rounded-xl text-center text-zinc-300 text-[10px] italic">No grounding evidence retrieved or injected.</div>';
+            } else {
+                cardSource.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'p-4 bg-white border border-zinc-50 rounded-xl hover:border-zinc-200 transition-all';
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                             <p class="text-[10px] font-black text-zinc-900 uppercase">${item.meal_title || item.title || 'ITEM'}</p>
+                             <span class="text-[9px] font-bold text-zinc-400 font-mono">${item.kcal || 0}K</span>
+                        </div>
+                        <p class="text-[9px] font-medium text-zinc-400 line-clamp-2">${item.description || item.raw_input || ''}</p>
+                    `;
+                    grounding.appendChild(card);
+                });
+            }
+
+            const chainSec = document.getElementById('version-chain-section');
+            const parentId = data.multi_turn_context?.parent_log_id || data.payload?.multi_turn_context?.parent_log_id;
+            if(parentId) {
+                chainSec.classList.remove('hidden');
+                const chainCont = document.getElementById('version-chain-container');
+                chainCont.innerHTML = `
+                    <button onclick="selectTrace('${parentId}')" class="px-3 py-1 bg-white border border-zinc-200 rounded-lg text-[9px] font-black text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 transition-all">PARENT_TRACE</button>
+                    <span class="text-zinc-300 text-xs mt-1">-></span>
+                    <div class="px-3 py-1 bg-zinc-900 border border-zinc-900 rounded-lg text-[9px] font-black text-white">REFINEMENT</div>
+                `;
+            } else {
+                chainSec.classList.add('hidden');
+            }
+
+            document.getElementById('json-viewer').innerText = JSON.stringify(data, null, 2);
+        }
+
+        function copyRaw() {
+            const raw = document.getElementById('json-viewer').innerText;
+            navigator.clipboard.writeText(raw);
+            alert("Payload copied to clipboard.");
+        }
+
+        // INIT
+        async function run() {
+            await fetchMetadata();
+            await refreshData();
+            
+            const hash = window.location.hash;
+            if(hash.startsWith('#insight/')) {
+                const hid = hash.replace('#insight/', '');
+                selectTrace(hid);
+            }
+            
+            setInterval(refreshData, 30000); 
+        }
+
+        // Search Logic
+        document.getElementById('search-input').addEventListener('input', e => {
+            const v = e.target.value.toLowerCase();
+            const filtered = allTraces.filter(t => 
+                (t.user_id && t.user_id.toLowerCase().includes(v)) || 
+                (t.text && t.text.toLowerCase().includes(v)) || 
+                (t.intent && t.intent.toLowerCase().includes(v))
+            );
+            renderList(filtered);
+        });
+
+        run();
+    </script>
+</body>
+</html>

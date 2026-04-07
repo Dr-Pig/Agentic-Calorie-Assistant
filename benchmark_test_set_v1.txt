@@ -1,0 +1,509 @@
+benchmark_test_set_v1
+case_001
+
+input
+星巴克冰那堤大杯
+
+expected_behavior
+
+action: exact_lookup
+confidence: high
+exactness: exact
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: true
+accepts_local_or_external_evidence: true
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: true
+
+source_of_truth
+
+final answer 應直接落在：189 kcal
+這是台灣星巴克同品項、同杯型官方值
+不需要追問
+不應把中杯 146 或特大杯 234 當成 exact substitute
+case_002
+
+input
+星巴克冰那堤
+
+expected_behavior
+
+action: estimate_with_followup
+confidence: medium
+exactness: anchored
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+also_acceptable_actions:
+  - ask_followup_only
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: true
+accepts_local_or_external_evidence: true
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: true
+
+source_of_truth
+
+正確行為可以是：
+- 先給 anchored range，再追問杯型
+- 或先追問杯型，不先估
+
+台灣星巴克冰那堤中杯 146、大杯 189、特大杯 234。
+所以未指定杯型時，不應直接假裝 exact，但可接受的先行回答是：
+- 約 146–234 kcal
+- 中間值可先抓 189 kcal
+
+可接受的追問重點：
+- 中杯 / 大杯 / 特大杯
+- 是否換奶case_003
+
+input
+大麥克
+
+expected_behavior
+
+action: exact_lookup
+confidence: high
+exactness: exact
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: true
+accepts_local_or_external_evidence: false
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: false
+
+source_of_truth
+
+final answer 應直接落在：503.17 kcal
+這是台灣麥當勞同品項官方值
+不需要追問
+case_004
+
+input
+麥香雞
+
+expected_behavior
+
+action: exact_lookup
+confidence: high
+exactness: exact
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: true
+accepts_local_or_external_evidence: false
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: false
+
+source_of_truth
+
+final answer 應直接落在：393.02 kcal
+這是台灣麥當勞同品項官方值
+case_005
+
+input
+原味麥脆雞腿2塊
+
+expected_behavior
+
+action: exact_lookup
+confidence: high
+exactness: exact
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: true
+accepts_local_or_external_evidence: false
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: false
+
+source_of_truth
+
+final answer 應直接落在：699.81 kcal
+這是台灣麥當勞同品項官方值
+不應用 1 塊或辣味版本替代
+case_006
+
+input
+松屋特盛牛丼
+
+expected_behavior
+
+action: exact_lookup
+confidence: high
+exactness: exact
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: true
+accepts_local_or_external_evidence: false
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: false
+
+source_of_truth
+
+final answer 應直接落在：1237 kcal
+macro 也可作為 secondary truth：P 31g / F 56.3g / C 145.1g
+這是松屋官方「牛めし 特盛」同品項值
+case_007
+
+input
+吉野家大碗牛丼
+
+expected_behavior
+
+action: exact_lookup
+confidence: high
+exactness: exact
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: true
+accepts_local_or_external_evidence: false
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: false
+
+source_of_truth
+
+final answer 應直接落在：893 kcal
+macro 可作為 secondary truth：P 26.3g / F 35.5g / C 120.4g
+這是吉野家官方最新營養表對應大盛牛丼的值
+case_008
+
+input
+Subway火腿潛艇堡
+
+expected_behavior
+
+action: exact_lookup
+confidence: high
+exactness: exact
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: true
+accepts_local_or_external_evidence: false
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: false
+
+source_of_truth
+
+final answer 應直接落在：317 kcal
+這是 Subway 台灣品項頁的標示值
+不應拿照燒雞肉 362 或嫩切雞肉 300 當 exact substitute
+case_009
+
+input
+Subway照燒雞肉潛艇堡
+
+expected_behavior
+
+action: exact_lookup
+confidence: high
+exactness: exact
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: true
+accepts_local_or_external_evidence: false
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: false
+
+source_of_truth
+
+final answer 應直接落在：362 kcal
+這是 Subway 台灣同品項頁面的標示值
+case_010
+
+input
+珍珠奶茶
+
+expected_behavior
+
+action: estimate_with_followup
+confidence: medium
+exactness: unknown
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: false
+accepts_local_or_external_evidence: true
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: true
+
+source_of_truth
+
+正確行為是：先給 anchored range，再追問甜度 / 杯型 / 奶精或鮮奶
+合理 anchor：
+大杯奶精奶茶：無糖約 290、半糖約 420、全糖約 500
+大杯半糖珍奶常被營養師估到接近 500 kcal
+所以沒有甜度時，不應直接給 exact；可接受的先行回答是 約 350–600 kcal，並追問甜度與杯型
+case_011
+
+input
+珍珠奶茶半糖去冰
+
+expected_behavior
+
+action: direct_estimate
+confidence: medium
+exactness: anchored
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: false
+accepts_local_or_external_evidence: true
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: true
+
+source_of_truth
+
+final answer 不該假裝 exact
+合理中心值可設：480–500 kcal，center 490 kcal
+理由：營養師對大杯半糖珍奶的公開估算，多數落在接近 500 kcal；如果系統直接回 300 出頭，通常偏低
+case_012
+
+input
+滷肉飯
+
+expected_behavior
+
+action: estimate_with_followup
+confidence: medium
+exactness: heuristic
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: false
+accepts_local_or_external_evidence: true
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: true
+
+source_of_truth
+
+正確做法不是硬回一個 exact 數字
+合理 anchor：500–650 kcal，center 600 kcal
+若系統願意先給更寬區間也合理，但應補問：
+小碗 / 大碗
+肥瘦比例
+肉燥量
+以台灣常見營養整理，一碗滷肉飯常落在 400–700 kcal，所以 center 600 比較穩；若回 300 多通常偏低
+case_013
+
+input
+咖哩飯
+
+expected_behavior
+
+action: estimate_with_followup
+confidence: medium
+exactness: heuristic
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: false
+accepts_local_or_external_evidence: true
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: true
+
+source_of_truth
+
+合理 anchor：700–850 kcal，center 780 kcal
+正確行為是先給區間，再追問：
+肉類種類
+飯量
+咖哩量
+有沒有炸豬排 / 可樂餅
+這個 range 跟日式咖哩常見料理量相符；若系統一開始直接報 450 或 500，通常偏低
+case_014
+
+input
+水餃10顆
+
+expected_behavior
+
+action: direct_estimate
+confidence: medium
+exactness: anchored
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: false
+accepts_local_or_external_evidence: true
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: true
+
+source_of_truth
+
+合理 anchor：520–600 kcal，center 560 kcal
+不需要先卡住追問
+但回答時應保留不確定性，因為不同口味單顆大約落在 52–60 kcal
+若系統直接說 300 多，通常偏低；若說 900，也明顯偏高
+case_015
+
+input
+鹹酥雞有雞排甜不辣四季豆米血
+
+expected_behavior
+
+action: direct_estimate
+confidence: medium
+exactness: anchored
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: false
+accepts_local_or_external_evidence: true
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: true
+
+source_of_truth
+
+合理 center：1290 kcal
+合理寫法是約 1250–1320 kcal
+這個加總可由常見營養表錨定：
+雞排約 622–630
+甜不辣約 248
+四季豆約 130–131
+米血約 290–345
+同時 benchmark 要接受一句歧義註記：這裡把「鹹酥雞」理解成攤位 / 餐類名稱，而不是額外再有一份鹹酥雞肉本體
+case_016
+
+input
+自助餐主餐是滷排骨然後只有吃一碗飯
+
+expected_behavior
+
+action: estimate_with_followup
+confidence: medium
+exactness: heuristic
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: false
+accepts_local_or_external_evidence: true
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: true
+
+source_of_truth
+
+正確行為是：先估主體，再追問配菜
+合理先行 anchor：500–750 kcal，center 620 kcal
+其中主體由一碗白飯加一份滷排骨構成；配菜未知時不應假裝整餐已完整
+failure 不是數字偏一點，而是沒追問配菜就裝作已算完
+case_017
+
+input
+拉麵
+
+expected_behavior
+
+action: estimate_with_followup
+confidence: medium
+exactness: heuristic
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: false
+accepts_local_or_external_evidence: true
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: true
+
+source_of_truth
+
+正確行為是先給一個保守寬區間，再追問關鍵變因，不要假裝精準。
+
+合理先行 anchor：
+- 約 450–1100 kcal
+- 中間值可先抓 780 kcal
+
+至少要補問：
+- 台式或日式
+- 湯底
+- 濃不濃、油不油
+- 肉量
+- 是否加麵
+- 有沒有喝湯
+
+這題 benchmark 測的是：
+- 系統能不能知道拉麵差異很大
+- 但仍可先給一個不誤導的保守區間case_018
+
+input
+鷹流拉麵2929豚骨拉麵
+
+expected_behavior
+
+action: direct_estimate
+confidence: medium
+exactness: anchored
+should_preserve_uncertainty: true
+should_overclaim_exactness: false
+
+expected_evidence_outcome
+
+needs_strong_same_item_evidence: false
+accepts_local_or_external_evidence: true
+requires_external_evidence_if_local_missing: false
+should_reject_sibling_variant_as_exact: true
+should_use_anchor_evidence_if_no_exact: true
+
+source_of_truth
+
+這題不適合假裝 exact
+但可以用品牌訊號做強錨定：2929 = 肉增量 / 加肉，而且是濃厚豚骨系，因此合理 center 可設在 1250–1300 kcal
+建議 benchmark target：約 1300 kcal
+如果系統只回一般豚骨拉麵 700–900，通常低估；如果它完全不利用品牌描述，也算失敗

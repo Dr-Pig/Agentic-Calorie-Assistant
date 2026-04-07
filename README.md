@@ -29,3 +29,14 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8011
 ```powershell
 python -m pytest tests -q
 ```
+
+## Workspace Hygiene
+
+- Runtime output now defaults to `runtime/`
+- Large local datasets belong in `workspace_data/`
+- Research/crawl projects belong in `workspace_data/research/`
+- One-off validation scripts belong in `scripts/manual_checks/`
+- Large local reference files belong in `artifacts/refs/`
+- Install the repo hooks with `powershell -ExecutionPolicy Bypass -File scripts/install_git_hooks.ps1`
+- Both `pre-commit` and `pre-push` block oversized files by default
+- Layout and policy details live in `docs/WORKSPACE_LAYOUT.md`
