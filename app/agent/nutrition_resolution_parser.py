@@ -1,23 +1,13 @@
 from __future__ import annotations
 
-import json
 import re
 import unicodedata
 from typing import Any
 
 from .nutrition_resolution_prompt import (
-    VALID_ACTION_TAKEN,
-    VALID_CONFIDENCE_TIERS,
     VALID_DECISIONS,
-    VALID_ESTIMATE_MODES,
-    VALID_EXACTNESS,
     VALID_ORIGINS,
-    VALID_PRIVATE_INFO_RISK,
-    VALID_RESOLUTION_BASES,
-    VALID_RESOLUTION_MODES,
-    VALID_RESPONSE_MODE_HINTS,
 )
-from ..schemas import ComponentEstimate, NutritionResolutionResult
 
 
 def _normalize_text(text: str) -> str:

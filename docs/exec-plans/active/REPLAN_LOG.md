@@ -353,6 +353,25 @@ It should be appended over time instead of rewritten.
 - `docs/_spec_snapshots/check_runtime_boundaries.py_20260412_124800/`
 - `docs/_spec_snapshots/requirements.txt_20260412_124800/`
 
+## 2026-04-12 — Repo-Wide Ruff Debt Cleanup
+
+### Trigger
+
+- repo-wide `ruff` still had pre-existing `F401`, `F821`, and `F841` debt, which prevented upgrading from diff-scoped lint confidence to a genuinely clean repository baseline
+
+### What Changed
+
+- cleared the auto-fixable unused-import and unused-variable findings across `app/`, `scripts/`, and `tests/`
+- fixed `app/application/context_assembly.py` as a contained bug fix by replacing the invalid `item.get("match_quality")` reference with `raw.get("match_quality")`
+- added explicit `__all__` exports to `app/domain/__init__.py` and `app/observability/__init__.py` so package barrel modules remain intentional instead of lint debt
+- updated `scripts/check_fat_files.ps1` to accept an empty governance-text collection without crashing the hook binder
+
+### Why It Matters
+
+- repo-wide `ruff check --select F401,F821,F841 app tests scripts` now has a clean baseline instead of relying on diff-only hygiene
+- the freeze-growth touch on `app/application/context_assembly.py` is explicitly recorded as a contained bug fix instead of an undocumented growth event
+- the fat-file gate now fails deterministically on policy violations instead of failing early on an empty-array binding error
+
 ## 2026-04-12 — Lean Governance Migration
 
 ### Trigger

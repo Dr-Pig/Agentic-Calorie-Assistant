@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 

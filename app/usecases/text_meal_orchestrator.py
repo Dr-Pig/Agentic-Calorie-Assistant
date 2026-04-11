@@ -23,7 +23,7 @@ from .passes import (
     run_nutrition_resolution_pass,
     run_final_response_pass,
 )
-from .passes.base import PassContext, sanitize_confidence
+from .passes.base import PassContext
 
 
 MAX_SELECTED_EVIDENCE_ITEMS = 3

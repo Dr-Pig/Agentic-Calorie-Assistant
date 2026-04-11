@@ -6,7 +6,6 @@ from typing import Any
 from ..agent.decision_llm import DECISION_PROMPT, fallback_decision_result, normalize_decision_result
 from ..agent.knowledge_packets import build_exact_item_lane_packet, resolve_ingredient_anchors
 from ..application.evidence_assembly import (
-    build_reasoning_state,
     build_partial_grounding_packet,
     build_tool_candidate_requests,
     build_tool_result,

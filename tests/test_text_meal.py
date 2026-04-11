@@ -5,18 +5,16 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from app.agent.knowledge_packets import match_meal_template, resolve_exact_item, resolve_ingredient_anchors
+from app.agent.knowledge_packets import resolve_exact_item, resolve_ingredient_anchors
 from app.application.planner import fallback_planner_result
-from app.application.state_transition import determine_meal_status
 from app.application.evidence_assembly import search_result_quality as _search_result_quality
 from app.database import SessionLocal, append_message, get_or_create_user, save_meal_log, get_latest_message_for_role
-from app.domain.conversation_state import ConversationState, RetrievedContextChunk
 from app.main import app
 from app.models import MealLog
 from app.infrastructure.meal_log_persistence import persist_text_meal_result
 from app.providers.builderspace_adapter import BuilderSpaceAdapter
 from app.routes import planner_provider, primary_provider, provider
-from app.schemas import ComponentEstimate, EstimatePayload, EstimateRequest, TaskMealLinkResult, TurnIntentResult
+from app.schemas import ComponentEstimate, EstimatePayload, EstimateRequest, TaskMealLinkResult
 from app.infrastructure.conversation_state_loader import load_conversation_state
 from app.infrastructure.session_record_store import load_transcript_records
 from app.usecases.text_meal import _run_text_stage, run_text_meal_canary
@@ -760,7 +758,7 @@ def test_clarify_required_lane_blocks_canonical_commit(monkeypatch) -> None:
     db = SessionLocal()
     try:
         user_id = f"clarify-blocking-{uuid4().hex}"
-        user = get_or_create_user(db, user_id)
+        get_or_create_user(db, user_id)
 
         class PlannerProvider:
             async def complete_with_trace(self, *, system_prompt, user_payload, stage, max_tokens):
@@ -1274,7 +1272,7 @@ def test_cross_midnight_correction_uses_local_attribution_timestamp(monkeypatch)
     db = SessionLocal()
     try:
         user_id = f"cross-midnight-{uuid4().hex}"
-        user = get_or_create_user(db, user_id)
+        get_or_create_user(db, user_id)
 
         class PlannerProvider:
             def __init__(self, *, meal_link_action: str, target_meal_id: int | None = None) -> None:

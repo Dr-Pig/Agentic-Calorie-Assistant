@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..application.evidence_assembly import source_class_for_item
 
 MAX_SELECTED_EVIDENCE_ITEMS = 5
 

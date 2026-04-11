@@ -12,11 +12,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 import urllib.request
 import urllib.error
 from pathlib import Path
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -73,7 +72,6 @@ def _load_tests(path: Path) -> list[TestCase]:
         should_use_db = should_use_db_m.group(1) == "true" if should_use_db_m else False
 
         # Extract kcal target
-        kcal_m = re.search(r"target_calories_kcal:\s*\n.*?mode:\s*\"?(\w+)\"?\s*\n", block, re.DOTALL)
         exact_m = re.search(r"exact:\s*(\d+)", block)
         min_m = re.search(r"min:\s*(\d+)", block)
         max_m = re.search(r"max:\s*(\d+)", block)

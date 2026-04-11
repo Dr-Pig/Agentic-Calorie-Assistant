@@ -24,7 +24,6 @@ from ...agent.nutrition_resolution_llm import (
     normalize_structured_answer as _normalize_structured_answer,
     nutrition_result_from_primary,
 )
-from ...agent.nutrition_resolution_llm import _normalize_confidence
 from ...application.context_assembly import (
     build_nutrition_resolution_payload,
     knowledge_context,

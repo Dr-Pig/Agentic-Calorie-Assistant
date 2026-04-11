@@ -73,6 +73,8 @@ def run_git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
         ["git", *args],
         cwd=REPO_ROOT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         capture_output=True,
         check=check,
     )
@@ -181,6 +183,8 @@ def get_blob_line_count(rev: str, path: str) -> int | None:
         ["git", "show", spec],
         cwd=REPO_ROOT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         capture_output=True,
     )
     if result.returncode != 0:
@@ -320,6 +324,8 @@ def run_ruff(paths: list[str]) -> int:
         ],
         cwd=REPO_ROOT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     return result.returncode
 

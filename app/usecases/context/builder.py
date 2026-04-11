@@ -14,11 +14,10 @@ Best Practices:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from ...application.context_assembly import (
-    build_boundary_features,
     build_decision_payload,
     build_four_pass_final_response_payload,
     build_nutrition_resolution_payload,

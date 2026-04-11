@@ -256,7 +256,6 @@ def _build_eval_summary(results: list[dict[str, Any]]) -> dict[str, Any]:
     followup_tp = sum(1 for r in results if r["checks"].get("followup_expected_and_present") is True)
     followup_fn = sum(1 for r in results if r["checks"].get("followup_expected_and_present") is False)
     followup_fp = sum(1 for r in results if r["checks"].get("followup_not_expected_and_absent") is False)
-    followup_tn = sum(1 for r in results if r["checks"].get("followup_not_expected_and_absent") is True)
     followup_precision = followup_tp / max(followup_tp + followup_fp, 1)
     followup_recall = followup_tp / max(followup_tp + followup_fn, 1)
 

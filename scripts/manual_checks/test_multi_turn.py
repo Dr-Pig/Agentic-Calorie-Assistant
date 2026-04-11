@@ -51,7 +51,6 @@ async def main():
         logs2 = (await client.get(f"{BASE}/user/{USER_ID}/logs")).json()
         print(f"\nLogs after Turn 2: {len(logs2['logs'])} record(s)")
         for log in logs2["logs"]:
-            status = "(active)" if log.get("id") else ""
             print(f"  [{log.get('id')}] {log['meal_title']} - {log['kcal']} kcal")
 
         print()

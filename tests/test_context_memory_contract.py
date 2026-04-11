@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from types import SimpleNamespace
 from uuid import uuid4
 
 from app.application.followup_policy import annotate_followup_policy

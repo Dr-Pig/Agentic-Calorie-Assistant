@@ -157,7 +157,6 @@ def _map_exact_record(record: dict[str, Any]) -> dict[str, Any] | None:
     source_url = _safe_text(record.get("source_url"))
     source_type = _safe_text(record.get("source_type")) or "curated_reference"
     confidence = _safe_text(record.get("confidence")) or "medium"
-    notes = _safe_text(record.get("notes"))
     return {
         "card_id": _slugify(f"{brand}-{display_title}"),
         "source_type": "exact_item_card",

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from alembic import command
 from alembic.config import Config
@@ -10,7 +9,7 @@ from sqlalchemy import create_engine, desc, inspect
 from sqlalchemy.orm import sessionmaker, Session
 
 from .infrastructure.exact_item_search import ensure_exact_item_fts
-from .models import Base, User, MealLog, MessageBuffer
+from .models import User, MealLog, MessageBuffer
 from .paths import DEFAULT_DB_PATH, LEGACY_DB_PATH, REPO_ROOT, ensure_runtime_dirs
 
 ensure_runtime_dirs()

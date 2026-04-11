@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import math
 import os
 import re
 from datetime import datetime, timezone
@@ -292,7 +291,6 @@ def retrieve_planner_context(
             else:
                 hard_filter_miss_penalty -= 1.5
         if requested_brands:
-            record_text = " ".join([text, " ".join(requested_brands)]).lower()
             if any(brand.lower() in text.lower() for brand in requested_brands):
                 hard_filter_boost += 2.5
             else:

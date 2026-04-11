@@ -1,7 +1,6 @@
 """Multi-turn persistence and observability test."""
 import asyncio
 import httpx
-import json
 
 BASE = "http://127.0.0.1:8011"
 USER_ID = "obs_test_user"

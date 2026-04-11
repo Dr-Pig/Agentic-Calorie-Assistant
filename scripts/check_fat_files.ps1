@@ -83,6 +83,7 @@ function Test-FreezeGrowthJustification {
         [Parameter(Mandatory = $true)]
         [string]$Path,
         [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
         [string[]]$GovernanceTexts
     )
 

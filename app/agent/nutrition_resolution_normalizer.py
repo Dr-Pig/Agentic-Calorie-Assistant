@@ -665,7 +665,6 @@ def _normalize_confidence(value: Any) -> str:
 
 
 def nutrition_result_from_primary(primary_result: dict[str, Any]) -> NutritionResolutionResult:
-    action_taken = str(primary_result.get("action_taken") or "")
     unresolved = [str(item) for item in primary_result.get("unresolved_info", []) if str(item).strip()]
     resolution_mode = str(primary_result.get("resolution_mode") or "cannot_estimate_yet")
     basis = str(primary_result.get("resolution_basis") or "component_model")

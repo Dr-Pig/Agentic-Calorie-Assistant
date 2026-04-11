@@ -22,7 +22,6 @@ from ...agent.final_response_llm import (
     normalize_final_response_result,
     sanitize_final_response_result,
 )
-from ...agent.nutrition_resolution_llm import _normalize_confidence
 from ...application.context_assembly import build_four_pass_final_response_payload
 from ...application.pass_runner import run_pass
 from .base import run_text_stage

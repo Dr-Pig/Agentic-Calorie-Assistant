@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Literal
 
 from ..domain import CanonicalMealState, ConversationState
-from ..schemas import FinalResponseResult, NutritionResolutionResult, TurnIntentResult
+from ..schemas import TurnIntentResult
 
 MealStatus = Literal["candidate_meal", "draft_unresolved", "completed_meal"]
 

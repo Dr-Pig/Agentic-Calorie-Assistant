@@ -1,6 +1,5 @@
 import asyncio
 import httpx
-import json
 
 BASE = "http://127.0.0.1:8011"
 USER_ID = "tester_antigravity"

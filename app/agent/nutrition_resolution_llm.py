@@ -2,32 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from .nutrition_resolution_normalizer import (
-    _normalize_confidence,
-    build_component_estimates,
-    normalize_structured_answer,
-    nutrition_result_from_primary,
-)
-from .nutrition_resolution_parser import (
-    augment_followup_metadata,
-    infer_dish_structure,
-    normalize_food_origin,
-    parse_answer_text,
-)
-from .nutrition_resolution_prompt import (
-    NUTRITION_RESOLUTION_PROMPT,
-    PRIMARY_PROMPT,
-    VALID_ACTION_TAKEN,
-    VALID_CONFIDENCE_TIERS,
-    VALID_DECISIONS,
-    VALID_ESTIMATE_MODES,
-    VALID_EXACTNESS,
-    VALID_ORIGINS,
-    VALID_PRIVATE_INFO_RISK,
-    VALID_RESOLUTION_BASES,
-    VALID_RESOLUTION_MODES,
-    VALID_RESPONSE_MODE_HINTS,
-)
 from ..schemas import TurnIntentResult
 
 

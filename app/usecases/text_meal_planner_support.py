@@ -23,7 +23,7 @@ from ..application.state_transition import (
     active_meal_context_allowed as _active_meal_context_allowed,
     build_boundary_trace as application_build_boundary_trace,
 )
-from ..schemas import EstimateRequest, PassExecutionEnvelope
+from ..schemas import EstimateRequest
 
 
 @dataclass

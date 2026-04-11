@@ -499,7 +499,7 @@ def build_nutrition_resolution_payload(
                 "match_quality": str(
                     raw.get("match_confidence")
                     or raw.get("identity_confidence")
-                    or item.get("match_quality")
+                    or raw.get("match_quality")
                     or "unknown"
                 ),
                 "match_path": str(raw.get("match_path") or ""),
