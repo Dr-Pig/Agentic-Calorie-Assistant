@@ -1,4 +1,4 @@
-# Unicode-safe Testing
+﻿# Unicode-safe Testing
 
 ## Purpose
 

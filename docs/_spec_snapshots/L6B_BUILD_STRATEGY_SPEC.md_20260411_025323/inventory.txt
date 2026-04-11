@@ -1,0 +1,42 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\L6B_BUILD_STRATEGY_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L6B_BUILD_STRATEGY_SPEC.md_20260411_025323\L6B_BUILD_STRATEGY_SPEC.md
+LINES: 409
+GIT_TRACKED: False
+
+HEADINGS:
+# L6B Build Strategy Spec
+## 1. ?桃?
+## 2. Build Strategy ??
+## 3. Build Philosophy
+### 3.1 Correctness Before Cleverness
+### 3.2 Spec-First, Adapter-Second
+### 3.3 Thin-Waist Architecture
+## 4. v1 Build Layers
+### Layer A. Canonical Domain Core
+### Layer B. Pass Runtime Core
+### Layer C. Memory / Retrieval / Context Core
+### Layer D. Eval / Benchmark / Safety Closure
+### Layer E. Provider / Ops / Optional Framework Adapters
+## 5. Recommended Phase Plan
+## Phase 0. Foundation Hardening
+## Phase 1. Domain Persistence Skeleton
+## Phase 2. Intake Vertical Slice
+## Phase 3. Recommendation Vertical Slice
+## Phase 4. Calibration Core
+## Phase 5. Rescue Core
+## Phase 6. Memory / Retrieval Deepening
+## Phase 7. Eval / Benchmark / Safety Hardening
+## Phase 8. Provider Hardening / Migration Readiness
+## 6. What Must Be Built Before Others
+### 6.1 Hard Dependencies
+### 6.2 Soft Dependencies
+## 7. BuilderSpace Strategy by Phase
+### 7.1 Early Phases
+### 7.2 Required Boundary
+### 7.3 Late Phases
+## 8. What Can Be Stubbed in v1
+## 9. Build Output Artifacts
+## 10. Exit Criteria for v1
+## 11. What We Should Not Do
+## 12. ??L6A ??靽?
+## 13. v1 Final Build Posture

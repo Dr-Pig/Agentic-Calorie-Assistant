@@ -4,3 +4,6 @@ httpx
 pydantic
 python-dotenv
 pytest
+openpyxl
+alembic
+psycopg2-binary

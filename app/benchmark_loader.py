@@ -5,6 +5,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 
 _CASE_HEADER_RE = re.compile(r"(?m)^(case_\d+)\s*$")
 _SECTION_NAMES = ("input", "expected_behavior", "expected_evidence_outcome", "source_of_truth")
@@ -32,7 +34,29 @@ def load_benchmark_cases(path: str | Path) -> list[dict[str, Any]]:
         if not isinstance(data, list):
             raise ValueError("Benchmark JSON fixture must be a list.")
         return data
-    return parse_benchmark_text(fixture_path.read_text(encoding="utf-8"))
+    raw_text = fixture_path.read_text(encoding="utf-8")
+    structured = _try_parse_structured_fixture(raw_text, fixture_path=fixture_path)
+    if structured is not None:
+        return structured
+    return parse_benchmark_text(raw_text)
+
+
+def _try_parse_structured_fixture(raw: str, *, fixture_path: Path | None = None) -> list[dict[str, Any]] | None:
+    try:
+        data = yaml.safe_load(raw)
+    except Exception:
+        return None
+    if not isinstance(data, dict):
+        return None
+    items = data.get("items")
+    if not isinstance(items, list):
+        return None
+    cases: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        cases.append(_normalize_structured_case(item, fixture_path=fixture_path))
+    return cases
 
 
 def _parse_case_block(block: str) -> dict[str, Any]:
@@ -50,6 +74,58 @@ def _parse_case_block(block: str) -> dict[str, Any]:
         "input": input_text,
         "expected_behavior": expected_behavior,
         "expected_evidence_outcome": expected_evidence_outcome,
+        "source_of_truth": source_of_truth,
+        "parsed_truth": parsed_truth,
+    }
+
+
+def _normalize_structured_case(item: dict[str, Any], *, fixture_path: Path | None = None) -> dict[str, Any]:
+    source_fixture = str(item.get("source_fixture") or "").strip()
+    source_case_id = str(item.get("source_case_id") or item.get("id") or "").strip()
+    resolved_input = item.get("input", "")
+    source_expected_behavior = dict(item.get("expected_behavior") or {})
+    source_expected_evidence_outcome = dict(item.get("expected_evidence_outcome") or {})
+    source_source_of_truth = dict(item.get("source_of_truth") or {})
+
+    if source_fixture and source_case_id:
+        source_path = Path(source_fixture)
+        if fixture_path is not None and not source_path.is_absolute():
+            source_path = fixture_path.resolve().parents[2] / source_path
+        source_cases = load_benchmark_cases(source_path)
+        source_case = next((case for case in source_cases if str(case.get("id") or "") == source_case_id), None)
+        if source_case:
+            resolved_input = source_case.get("input", resolved_input)
+            if not source_expected_behavior:
+                source_expected_behavior = dict(source_case.get("expected_behavior") or {})
+            if not source_expected_evidence_outcome:
+                source_expected_evidence_outcome = dict(source_case.get("expected_evidence_outcome") or {})
+            if not source_source_of_truth:
+                source_source_of_truth = dict(source_case.get("source_of_truth") or {})
+
+    source_of_truth = source_source_of_truth
+    target = dict(source_of_truth.get("target_calories_kcal") or {})
+    parsed_truth = {
+        "exact_kcal": target.get("exact"),
+        "reference_kcal": target.get("center", target.get("exact")),
+        "kcal_mentions": [
+            float(value)
+            for value in (
+                target.get("exact"),
+                target.get("min"),
+                target.get("max"),
+                target.get("center"),
+            )
+            if isinstance(value, (int, float))
+        ],
+        "macro_truth": None,
+    }
+    return {
+        "id": item.get("id"),
+        "input": resolved_input,
+        "expected_behavior": source_expected_behavior,
+        "expected_contract": dict(item.get("expected_contract") or {}),
+        "expected_retrieval": dict(item.get("expected_retrieval") or {}),
+        "expected_evidence_outcome": source_expected_evidence_outcome,
         "source_of_truth": source_of_truth,
         "parsed_truth": parsed_truth,
     }

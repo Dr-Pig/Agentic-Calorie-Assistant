@@ -19,10 +19,8 @@ from typing import Any
 
 from ...application.evidence_assembly import (
     build_tool_result,
-    compose_decision_lookup_query,
     execute_primary_tool_request,
     merge_evidence_items,
-    normalize_tool_evidence,
 )
 
 
@@ -78,21 +76,11 @@ class GroundingPipeline:
         if not needs_lookup:
             return result
 
-        # Compose lookup query
-        lookup_query = compose_decision_lookup_query(
-            current_user_input=planner_result.normalized_user_input
-            if hasattr(planner_result, "normalized_user_input")
-            else "",
-            meal_title=(
-                canonical_meal_state.meal_title
-                if canonical_meal_state
-                else None
-            ),
-            meal_link_action=task_meal_link_result.meal_link_action,
-            resolved_query=planner_result.resolved_query
-            if hasattr(planner_result, "resolved_query")
-            else "",
-            retrieval_query=retrieval_query,
+        lookup_query = (
+            str(getattr(decision_result, "tool_query_override", "") or "").strip()
+            or str(getattr(planner_result, "resolved_query", "") or "").strip()
+            or str(getattr(planner_result, "normalized_user_input", "") or "").strip()
+            or str(retrieval_query or "").strip()
         )
 
         # Execute tool request

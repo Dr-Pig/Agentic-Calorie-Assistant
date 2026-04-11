@@ -1,0 +1,59 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md_20260411_025320\L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md
+LINES: 417
+GIT_TRACKED: False
+
+HEADINGS:
+# L3.1 Intake Runtime / Pass Contract Spec
+## 1. ?桃?
+## 2. Canonical Runtime Shape
+### 2.1 甇?? 4-pass
+### 2.2 ?詨???
+### 2.3 intake 銝餅?蝔璅?
+### 2.4 Logical Model Roles
+## 3. 銝餅?蝔撓?亥??蝯撓??
+### 3.1 銝餅?蝔?撠撓??
+### 3.2 銝餅?蝔?蝯撓??
+## 4. Pass 1: `task_meal_link_pass`
+### 4.1 ?格?
+### 4.2 鞎砌遙
+### 4.3 ?航?
+### 4.4 敹?頛詨
+### 4.5 ?閬?
+### 4.6 銝??鈭?
+## 5. Pass 2: `decision_pass`
+### 5.1 ?格?
+### 5.2 鞎砌遙
+### 5.3 ?航?
+### 5.4 敹?頛詨
+### 5.5 ?閬?
+### 5.6 銝??鈭?
+## 6. Pass 3: `nutrition_resolution_pass`
+### 6.1 ?格?
+### 6.2 鞎砌遙
+### 6.3 ?航?
+### 6.4 敹?頛詨
+### 6.5 甇??閬?
+### 6.6 `MealItem` ??閬?
+### 6.7 銝??鈭?
+## 7. Pass 4: `final_response_pass`
+### 7.1 ?格?
+### 7.2 鞎砌遙
+### 7.3 ?航?
+### 7.4 敹?頛詨
+### 7.5 甇??閬?
+## 8. Deterministic / Commit Contract
+### 8.1 ?? deterministic 鞎砌遙
+### 8.2 `macro` 閬?
+### 8.3 failure ??
+#### `commit-critical failure`
+#### `derived-view failure`
+### 8.4 `commit_request_candidate`
+### 8.5 application layer ?賢敺?
+## 9. Important Types / Interfaces
+## 10. 皜祈岫??
+## 11. ??L0 / L1 / L2 ??朣?
+### 撠?L0 ????
+### 撠?L1 ????
+### 撠?L2 ????
+## 12. 撖虫??身

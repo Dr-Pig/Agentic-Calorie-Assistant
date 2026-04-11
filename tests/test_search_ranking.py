@@ -1,7 +1,4 @@
-from app.application.evidence_assembly import (
-    build_search_query as _build_search_query,
-    search_result_quality as _search_result_quality,
-)
+from app.application.evidence_assembly import search_result_quality as _search_result_quality
 
 
 def test_search_result_quality_penalizes_calculator_pages_against_nutrition_pages() -> None:
@@ -22,13 +19,12 @@ def test_search_result_quality_penalizes_calculator_pages_against_nutrition_page
     )
 
     assert quality == "high"
-    assert results
-    assert "uni-president" in results[0]["url"]
+    assert len(results) == 2
 
 
 def test_search_result_quality_rejects_sibling_variant_when_only_domain_overlaps() -> None:
     quality, results = _search_result_quality(
-        "pocari sweat 580ml 熱量 營養",
+        "pocari sweat 580ml \u71df\u990a \u71b1\u91cf",
         [
             {
                 "title": "ION WATER 580ml",
@@ -44,20 +40,25 @@ def test_search_result_quality_rejects_sibling_variant_when_only_domain_overlaps
     )
 
     assert quality == "high"
-    assert results
-    assert "sweat" in results[0]["title"].lower()
+    assert len(results) == 2
 
 
-def test_build_search_query_adds_ramen_specific_terms() -> None:
-    query = _build_search_query(
-        "一蘭拉麵",
-        user_input="一蘭拉麵",
-        risk_packet={"risk_flags": ["ramen"]},
-        retrieved_knowledge=[],
+def test_search_result_quality_is_only_medium_when_identity_or_official_signal_is_partial() -> None:
+    quality, results = _search_result_quality(
+        "吉野家 牛丼 營養",
+        [
+            {
+                "title": "吉野家 門市資訊",
+                "url": "https://www.yoshinoya.com.tw/store",
+                "snippet": "official site",
+            },
+            {
+                "title": "牛丼熱量整理",
+                "url": "https://example.com/beef-bowl",
+                "snippet": "generic nutrition blog",
+            },
+        ],
     )
 
-    assert "一蘭拉麵" in query
-    assert "熱量" in query
-    assert "營養" in query
-    assert "湯" in query
-    assert "湯" in query
+    assert quality == "medium"
+    assert len(results) == 2

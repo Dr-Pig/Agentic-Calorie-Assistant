@@ -1,4 +1,4 @@
-# Architecture Change Checklist
+﻿# Architecture Change Checklist
 
 Use this checklist before making any meaningful architecture change in the canary.
 

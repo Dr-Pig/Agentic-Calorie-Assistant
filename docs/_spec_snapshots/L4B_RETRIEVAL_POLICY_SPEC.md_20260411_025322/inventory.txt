@@ -1,0 +1,32 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\L4B_RETRIEVAL_POLICY_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L4B_RETRIEVAL_POLICY_SPEC.md_20260411_025322\L4B_RETRIEVAL_POLICY_SPEC.md
+LINES: 220
+GIT_TRACKED: False
+
+HEADINGS:
+# L4B Retrieval Policy Spec
+## 1. ?桃?
+## 2. ?詨???
+### 2.1 ??typed嚗? semantic
+### 2.1A Metadata-First, Semantic-Second
+### 2.2 ??summary嚗? raw
+### 2.3 retrieval 敹? task-specific
+### 2.4 ??scope嚗?瑼Ｙ揣
+### 2.5 Selector / Reranker Layer
+## 3. Retrieval Source Classes
+### 3.1 Canonical State Retrieval
+### 3.2 Derived View Retrieval
+### 3.3 Transcript Retrieval
+### 3.4 Semantic Retrieval
+## 4. Intake Retrieval Policy
+## 5. Recommendation Retrieval Policy
+## 6. Calibration Retrieval Policy
+## 7. Rescue Retrieval Policy
+## 8. Proactive Retrieval Policy
+## 9. Retrieval Fallback Policy
+### 9.1 transcript fallback
+### 9.2 semantic fallback
+### 9.2A second-stage selection
+### 9.3 freshness-aware retrieval
+### 9.4 ?嗡????脫????
+## 10. v1 Default Decisions

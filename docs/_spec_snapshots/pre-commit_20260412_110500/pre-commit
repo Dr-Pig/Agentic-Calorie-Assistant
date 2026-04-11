@@ -1,0 +1,51 @@
+#!/bin/sh
+
+set -eu
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+if command -v powershell >/dev/null 2>&1; then
+  powershell -ExecutionPolicy Bypass -File "$repo_root/scripts/block_delete_recreate_specs.ps1"
+  powershell -ExecutionPolicy Bypass -File "$repo_root/scripts/check_protected_doc_rewrites.ps1"
+  powershell -ExecutionPolicy Bypass -File "$repo_root/scripts/check_encoding.ps1" -StagedOnly
+  powershell -ExecutionPolicy Bypass -File "$repo_root/scripts/check_task_checkin_and_handoff.ps1"
+  powershell -ExecutionPolicy Bypass -File "$repo_root/scripts/check_fat_files.ps1" -StagedOnly
+  python "$repo_root/scripts/check_layer_integrity.py"
+else
+  echo "pre-commit: powershell not found; cannot run spec delete blocker" >&2
+  exit 1
+fi
+
+max_mb="${LHC_PRECOMMIT_MAX_MB:-20}"
+
+case "$max_mb" in
+  ''|*[!0-9]*)
+    echo "pre-commit: LHC_PRECOMMIT_MAX_MB must be an integer" >&2
+    exit 1
+    ;;
+esac
+
+max_bytes=$((max_mb * 1024 * 1024))
+blocked=0
+tmp_file="$(git rev-parse --git-path codex-pre-commit.$$)"
+trap 'rm -f "$tmp_file"' EXIT
+
+git diff --cached --name-only --diff-filter=AM -z > "$tmp_file"
+
+while IFS= read -r -d '' path
+do
+  size="$(git cat-file -s ":$path")"
+  if [ "$size" -gt "$max_bytes" ]; then
+    size_mb=$(( (size + 1024 * 1024 - 1) / (1024 * 1024) ))
+    echo "pre-commit: blocked large staged file: $path (${size_mb} MB)" >&2
+    blocked=1
+  fi
+done < "$tmp_file"
+
+if [ "$blocked" -ne 0 ]; then
+  echo "pre-commit: move large datasets or binaries under workspace_data/ or another ignored directory." >&2
+  echo "pre-commit: override threshold with LHC_PRECOMMIT_MAX_MB if you intentionally need a larger tracked file." >&2
+  exit 1
+fi
+
+exit 0

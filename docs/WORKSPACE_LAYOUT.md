@@ -1,4 +1,4 @@
-# Workspace Layout
+﻿# Workspace Layout
 
 This repo should separate code, runtime output, and large research datasets.
 

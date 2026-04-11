@@ -13,6 +13,12 @@ DEFAULT_BASE_URL = "https://space.ai-builders.com/backend/v1"
 PLACEHOLDER_VALUES = {"", "replace-me", "https://api.example.com"}
 DEFAULT_TRANSPORT_RETRY_COUNT = 2
 DEFAULT_TRANSPORT_RETRY_BACKOFF_SECONDS = 0.75
+DEFAULT_STAGE_TEMPERATURES = {
+    "task_meal_link_pass": 0.0,
+    "decision_pass": 0.0,
+    "nutrition_resolution_pass": 0.1,
+    "final_response_pass": 0.5,
+}
 
 
 class BuilderSpaceResponseError(RuntimeError):
@@ -49,6 +55,18 @@ class BuilderSpaceAdapter:
         self.transport_retry_backoff_seconds = float(
             os.getenv("AI_BUILDER_TRANSPORT_RETRY_BACKOFF_SECONDS", str(DEFAULT_TRANSPORT_RETRY_BACKOFF_SECONDS))
         )
+        self.task_meal_link_temperature = float(
+            os.getenv("BUILDERSPACE_TASK_MEAL_LINK_TEMPERATURE", str(DEFAULT_STAGE_TEMPERATURES["task_meal_link_pass"]))
+        )
+        self.decision_temperature = float(
+            os.getenv("BUILDERSPACE_DECISION_TEMPERATURE", str(DEFAULT_STAGE_TEMPERATURES["decision_pass"]))
+        )
+        self.nutrition_temperature = float(
+            os.getenv("BUILDERSPACE_NUTRITION_TEMPERATURE", str(DEFAULT_STAGE_TEMPERATURES["nutrition_resolution_pass"]))
+        )
+        self.final_response_temperature = float(
+            os.getenv("BUILDERSPACE_FINAL_RESPONSE_TEMPERATURE", str(DEFAULT_STAGE_TEMPERATURES["final_response_pass"]))
+        )
 
     def readiness(self) -> dict[str, Any]:
         return {
@@ -65,6 +83,12 @@ class BuilderSpaceAdapter:
             "transport_retry_count": self.transport_retry_count,
             "transport_retry_backoff_seconds": self.transport_retry_backoff_seconds,
             "role": self.role_label,
+            "stage_temperatures": {
+                "task_meal_link_pass": self.task_meal_link_temperature,
+                "decision_pass": self.decision_temperature,
+                "nutrition_resolution_pass": self.nutrition_temperature,
+                "final_response_pass": self.final_response_temperature,
+            },
             "stage_models": {
                 "task_meal_link_pass": self.task_meal_link_model,
                 "decision_pass": self.decision_model,
@@ -92,7 +116,7 @@ class BuilderSpaceAdapter:
         model = self._model_for_stage(stage)
         request_payload: dict[str, Any] = {
             "model": model,
-            "temperature": 0.1,
+            "temperature": self._temperature_for_stage(stage),
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": self._format_user_message(stage, user_payload)},
@@ -311,6 +335,17 @@ class BuilderSpaceAdapter:
             return self.final_response_model
         return self.nutrition_model
 
+    def _temperature_for_stage(self, stage: str) -> float:
+        if stage.startswith("task_meal_link_pass") or stage.startswith("planner_pass"):
+            return self.task_meal_link_temperature
+        if stage.startswith("decision_pass"):
+            return self.decision_temperature
+        if stage.startswith("nutrition_resolution_pass") or stage.startswith("primary_answer_pass"):
+            return self.nutrition_temperature
+        if stage.startswith("final_response_pass"):
+            return self.final_response_temperature
+        return self.nutrition_temperature
+
     def _extra_body_for_stage(self, stage: str, *, model: str) -> dict[str, Any] | None:
         if not self._should_send_gemini_extra_body(model):
             return None
@@ -394,6 +429,9 @@ class BuilderSpaceAdapter:
                     ],
                 },
                 "decision_confidence": {"type": "string", "enum": ["high", "medium", "low"]},
+                "tool_goal": {"type": "string"},
+                "missing_evidence_type": {"type": "string"},
+                "expected_success_condition": {"type": "string"},
                 "clarify_priority": {"anyOf": [{"type": "string"}, {"type": "null"}]},
                 "unresolved_info": {"type": "array", "items": {"type": "string"}},
                 "response_mode_hint": {"type": "string", "enum": ["exact_answer", "rough_estimate_ok", "clarify_first"]},
@@ -404,6 +442,9 @@ class BuilderSpaceAdapter:
                 "next_action",
                 "tool_plan",
                 "decision_confidence",
+                "tool_goal",
+                "missing_evidence_type",
+                "expected_success_condition",
                 "clarify_priority",
                 "unresolved_info",
                 "response_mode_hint",
@@ -442,6 +483,9 @@ class BuilderSpaceAdapter:
                 },
                 "answer_payload": {"type": "object"},
                 "unresolved_info": {"type": "array", "items": {"type": "string"}},
+                "current_evidence_sufficiency": {"type": "string"},
+                "why_no_more_tools": {"type": "string"},
+                "reason_for_not_requesting_tool": {"type": "string"},
                 "state_transition_hint": {
                     "anyOf": [
                         {"type": "string", "enum": ["candidate_meal", "draft_unresolved", "completed_meal"]},
@@ -456,6 +500,9 @@ class BuilderSpaceAdapter:
                 "exactness",
                 "answer_payload",
                 "unresolved_info",
+                "current_evidence_sufficiency",
+                "why_no_more_tools",
+                "reason_for_not_requesting_tool",
                 "state_transition_hint",
             ],
         }

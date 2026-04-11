@@ -1,4 +1,4 @@
-# Text Meal Canary 資料來源政策
+﻿# Text Meal Canary 資料來源政策
 
 ## Summary
 

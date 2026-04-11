@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..agent.nutrition_resolution_llm import build_component_estimates
-from ..application.evidence_assembly import db_hit_type, summarize_retrieved_evidence
+from ..application.evidence_assembly import db_hit_type, split_evidence_lanes, summarize_retrieved_evidence
 from ..schemas import EstimatePayload, EstimateRequest
 
 
@@ -126,14 +126,25 @@ def build_trace_contract(
         "route_family": best_parsed.get("route_family"),
         "response_mode_hint": best_parsed.get("response_mode_hint"),
         "missing_slots": best_parsed.get("missing_slots", []),
+        "missing_high_impact_slots": best_parsed.get("missing_high_impact_slots", []),
         "blocking_slots": best_parsed.get("blocking_slots", []),
         "unresolved_info": best_parsed.get("unresolved_info", []),
+        "followup_targets": best_parsed.get("followup_targets", []),
+        "why_followup": best_parsed.get("why_followup"),
+        "reason_not_direct_answer": best_parsed.get("reason_not_direct_answer"),
+        "why_not_exact": best_parsed.get("why_not_exact"),
+        "why_no_more_tools": best_parsed.get("why_no_more_tools"),
         "grounding_attempts": grounding_attempts,
+        "reasoning_state": dict((best_parsed.get("reasoning_state") or {})),
+        "search_attempt_count": int((best_parsed.get("reasoning_state") or {}).get("search_attempt_count") or 0),
+        "why_not_searching": str(best_parsed.get("reason_for_not_requesting_tool") or best_parsed.get("why_no_more_tools") or ""),
+        "request_tool_reason_quality": "present" if str(best_parsed.get("tool_request_reason") or "").strip() else "missing",
+        "observation_quality": str(((best_parsed.get("reasoning_state") or {}).get("observation_summary") or {}).get("coverage_status") or ""),
         "db_hit_type": db_hit_type(retrieved_knowledge=retrieved_knowledge, meal_template=meal_template),
         "grounding_summary": {
             "retrieved_knowledge_count": len(retrieved_knowledge),
             "source_count": len(sources),
-            "exact_truth_present": any(str(item.get("evidence_role") or "") == "exact_truth" for item in retrieved_knowledge),
+            "exact_truth_present": bool(split_evidence_lanes(retrieved_knowledge)["exact_lane"]),
             "evidence_roles": sorted({str(item.get("evidence_role")) for item in [*retrieved_knowledge, *sources] if item.get("evidence_role")}),
         },
         "match_confidence": "none",
@@ -218,6 +229,13 @@ def build_payload(
     protein = parsed["protein_g"]
     carb = parsed["carb_g"]
     fat = parsed["fat_g"]
+    answer_payload = dict(parsed.get("answer_payload") or {})
+    raw_macro_breakdown = dict(answer_payload.get("raw_macro_breakdown") or {})
+    display_macro_breakdown = dict(answer_payload.get("display_macro_breakdown") or answer_payload.get("macro_breakdown") or {})
+    if display_macro_breakdown:
+        protein = int(display_macro_breakdown.get("protein_g") or 0)
+        carb = int(display_macro_breakdown.get("carb_g") or 0)
+        fat = int(display_macro_breakdown.get("fat_g") or 0)
     source_label = "retrieval" if retrieved_knowledge else "llm"
     component_estimates = parsed.get("deterministic_component_estimates") or build_component_estimates(parsed["components"], source=source_label)
     evidence_summary = summarize_retrieved_evidence(retrieved_knowledge or sources)
@@ -234,6 +252,23 @@ def build_payload(
         components=parsed["components"],
         quantity_hints=parsed["components"],
         component_estimates=component_estimates,
+        component_breakdown=list(parsed.get("component_breakdown") or answer_payload.get("component_breakdown") or []),
+        macro_breakdown=dict(display_macro_breakdown or {
+            "protein_g": protein if protein > 0 else None,
+            "carb_g": carb if carb > 0 else None,
+            "fat_g": fat if fat > 0 else None,
+            "macro_source": "llm_hint" if any(value > 0 for value in (protein, carb, fat)) else "unavailable",
+            "macro_confidence": "low",
+        }),
+        raw_macro_breakdown=dict(raw_macro_breakdown),
+        display_macro_breakdown=dict(display_macro_breakdown or {
+            "protein_g": protein if protein > 0 else None,
+            "carb_g": carb if carb > 0 else None,
+            "fat_g": fat if fat > 0 else None,
+            "macro_source": "llm_hint" if any(value > 0 for value in (protein, carb, fat)) else "unavailable",
+            "macro_confidence": "low",
+        }),
+        evidence_ids_used=list(parsed.get("evidence_ids_used") or answer_payload.get("evidence_ids_used") or []),
         protein_g=protein,
         carb_g=carb,
         fat_g=fat,
@@ -277,6 +312,7 @@ def build_payload(
         decision_journal=decision_journal or {},
         evidence_journal=evidence_journal or {},
         diagnosis=diagnosis or {},
+        reasoning_state=dict(parsed.get("reasoning_state") or {}),
         context_pack_trace=context_pack_trace or {},
         tool_decision_trace=tool_decision_trace or {},
         boundary_trace=boundary_trace or {},

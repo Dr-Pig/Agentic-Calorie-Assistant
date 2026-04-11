@@ -18,11 +18,11 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ...agent.knowledge_packets import resolve_exact_item, resolve_ingredient_anchors
+from ...search.chain_retrieval import query_has_known_brand, resolve_chain_item
 from ...application.evidence_assembly import (
     build_tool_result,
     merge_evidence_items,
     normalize_tool_evidence,
-    pre_rank_evidence_items,
     retrieval_query_is_usable,
 )
 
@@ -92,11 +92,15 @@ class EvidenceRetrieval:
         portion_hints = input_signals.get("portion_clues", [])
 
         # Resolve exact items (FTS)
-        exact_candidates = resolve_exact_item(retrieval_query, limit=4)
+        exact_candidates = self._resolve_exact_candidates(retrieval_query)
         exact_tool_result = build_tool_result(
             tool_name="resolve_exact_item",
             status="executed",
-            reason="Local exact-item resolver executed.",
+            reason=(
+                "Local exact-item resolver executed with branded-chain fast path."
+                if query_has_known_brand(retrieval_query)
+                else "Local exact-item resolver executed."
+            ),
             result_count=len(exact_candidates),
             quality=self._quality_for_candidates(exact_candidates),
         )
@@ -116,14 +120,7 @@ class EvidenceRetrieval:
         # Merge evidence
         result.retrieved_knowledge = merge_evidence_items(exact_candidates, anchor_candidates)
 
-        # Rank and filter
-        ranked = pre_rank_evidence_items(
-            result.retrieved_knowledge,
-            query=retrieval_query,
-            limit=5
-        )
-
-        result.filtered_knowledge = ranked[:self.max_items]
+        result.filtered_knowledge = list(result.retrieved_knowledge[:self.max_items])
 
         # Normalize evidence for LLM
         result.normalized_evidence = normalize_tool_evidence(
@@ -144,3 +141,22 @@ class EvidenceRetrieval:
         if any(c.get("identity_confidence") == "medium" for c in candidates):
             return "medium"
         return "low"
+
+    def _resolve_exact_candidates(self, retrieval_query: str) -> list[dict[str, Any]]:
+        """Prefer local exact truth and strengthen branded queries before web fallback exists."""
+        exact_candidates = resolve_exact_item(retrieval_query, limit=4)
+        if not query_has_known_brand(retrieval_query):
+            return exact_candidates
+
+        chain_candidates = [
+            {
+                **candidate,
+                "tool_name": "resolve_exact_item",
+                "retrieval_lane": "exact_lane",
+            }
+            for candidate in resolve_chain_item(retrieval_query, limit=4)
+        ]
+        if not chain_candidates:
+            return exact_candidates
+
+        return merge_evidence_items(chain_candidates, exact_candidates)[:4]

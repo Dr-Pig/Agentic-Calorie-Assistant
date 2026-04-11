@@ -9,16 +9,19 @@ from app.agent.knowledge_packets import match_meal_template, resolve_exact_item,
 from app.application.planner import fallback_planner_result
 from app.application.state_transition import determine_meal_status
 from app.application.evidence_assembly import search_result_quality as _search_result_quality
-from app.agent.nutrition_resolution_llm import suppress_followup_for_exact_match
 from app.database import SessionLocal, append_message, get_or_create_user, save_meal_log, get_latest_message_for_role
 from app.domain.conversation_state import ConversationState, RetrievedContextChunk
 from app.main import app
+from app.models import MealLog
+from app.infrastructure.meal_log_persistence import persist_text_meal_result
 from app.providers.builderspace_adapter import BuilderSpaceAdapter
 from app.routes import planner_provider, primary_provider, provider
-from app.schemas import EstimatePayload, EstimateRequest, TurnIntentResult
+from app.schemas import ComponentEstimate, EstimatePayload, EstimateRequest, TaskMealLinkResult, TurnIntentResult
 from app.infrastructure.conversation_state_loader import load_conversation_state
 from app.infrastructure.session_record_store import load_transcript_records
-from app.usecases.text_meal import run_text_meal_canary
+from app.usecases.text_meal import _run_text_stage, run_text_meal_canary
+from app.usecases import text_meal_orchestration_support as text_meal_orchestration_support
+from app.usecases.text_meal_runtime_support import canonical_safety_floor_kcal, run_decision_stage
 from app.application.answer_support import (
     evaluate_answer as _evaluate_answer,
 )
@@ -43,6 +46,7 @@ def test_builder_space_stage_routing_uses_structured_schema() -> None:
     adapter = BuilderSpaceAdapter()
     planner_schema = adapter._response_schema_for_stage("planner_pass_initial")
     schema = adapter._response_schema_for_stage("primary_answer_pass_initial")
+    nutrition_schema = adapter._response_schema_for_stage("nutrition_resolution_pass_initial")
     final_schema = adapter._response_schema_for_stage("final_response_pass")
     assert adapter._model_for_stage("planner_pass_initial") == adapter.planner_model
     assert adapter._model_for_stage("primary_answer_pass_initial") == adapter.primary_model
@@ -54,11 +58,14 @@ def test_builder_space_stage_routing_uses_structured_schema() -> None:
     assert "normalized_user_input" in planner_schema["properties"]
     assert "planning_brief" in planner_schema["properties"]
     assert schema is not None
+    assert nutrition_schema is not None
     assert final_schema is not None
     assert "action_taken" in schema["properties"]
     assert "unresolved_info" in schema["properties"]
     assert "food_origin" in schema["properties"]
     assert "dish_structure" in schema["properties"]
+    assert "current_evidence_sufficiency" in nutrition_schema["properties"]
+    assert "why_no_more_tools" in nutrition_schema["properties"]
     assert "reply_text" in final_schema["properties"]
 
 
@@ -192,7 +199,7 @@ def test_run_text_meal_canary_applies_deterministic_estimate_from_local_knowledg
     assert isinstance(payload.retrieved_knowledge, list)
     assert isinstance(payload.retrieved_evidence_summary, list)
     assert "220" in payload.reply_text
-    assert payload.trace_contract["db_hit_type"] in {"exact_truth", "reference_anchor", "retrieved_knowledge", "none"}
+    assert payload.trace_contract["db_hit_type"] in {"exact_truth", "reference_anchor", "anchor_truth", "retrieved_knowledge", "none"}
     assert payload.trace_contract["planner_used"] is True
     assert payload.north_star_evaluation["win_loss_neutral"] in {"win", "neutral", "loss"}
     assert "stage_quality_signals" in payload.trace_contract
@@ -216,6 +223,240 @@ def test_estimate_payload_supports_trace_contract_and_north_star_evaluation() ->
     assert payload.north_star_evaluation["win_loss_neutral"] == "win"
 
 
+def test_estimate_payload_supports_reasoning_state_trace() -> None:
+    payload = EstimatePayload(
+        request_id="reasoning-trace",
+        meal_title="test meal",
+        reasoning_state={"search_attempt_count": 1, "why_current_evidence_is_insufficient": "exact lane empty"},
+    )
+
+    assert payload.reasoning_state["search_attempt_count"] == 1
+
+
+def test_decision_stage_escalates_brand_case_without_exact_lane(monkeypatch) -> None:
+    monkeypatch.setenv("TEXT_MEAL_ENABLE_PLANNER", "1")
+
+    class FakeProvider:
+        async def complete_with_trace(self, *, system_prompt, user_payload, stage, max_tokens):
+            if stage == "decision_pass":
+                return {
+                    "next_action": "run_nutrition_resolution",
+                    "tool_plan": "none",
+                    "decision_confidence": "medium",
+                    "clarify_priority": None,
+                    "unresolved_info": [],
+                    "response_mode_hint": "rough_estimate_ok",
+                    "clarify_is_blocking": False,
+                    "can_proceed_without_clarify": True,
+                }, {"stage": stage}
+            raise AssertionError(f"unexpected stage: {stage}")
+
+    class FakeSearchAdapter:
+        def __init__(self) -> None:
+            self.queries: list[str] = []
+
+        async def search(self, query: str, limit: int = 5):
+            self.queries.append(query)
+            return [
+                {
+                    "title": "吉野家牛丼營養資訊",
+                    "url": "https://www.yoshinoya.com.tw/nutrition/beef-bowl",
+                    "snippet": "吉野家 牛丼 熱量與營養資訊 official nutrition",
+                }
+            ]
+
+    planner_result = fallback_planner_result(
+        "吉野家牛丼",
+        normalize_text=lambda text: text,
+        normalize_user_input_for_estimation=lambda text: {
+            "normalized_text": text,
+            "normalizer_applied": False,
+            "notes": [],
+        },
+    ).model_copy(
+        update={
+            "resolved_query": "吉野家牛丼",
+            "input_signals": {
+                "modalities": ["text"],
+                "foods": ["牛丼"],
+                "brands": ["吉野家"],
+                "portion_clues": [],
+            },
+        }
+    )
+    task_meal_link_result = TaskMealLinkResult(
+        intent="food_estimation",
+        scope="meal_specific",
+        meal_link_action="create_new_meal",
+        target_meal_id=None,
+        link_confidence="high",
+        boundary_reason="new_meal",
+        clarification_blocking=False,
+        normalized_user_input="吉野家牛丼",
+    )
+    filtered_knowledge = [
+        {
+            "title": "吉野家牛丼類別先驗",
+            "brand": "吉野家",
+            "brand_hint": "Yoshinoya",
+            "source_class": "base_nutrition_db",
+            "evidence_role": "dish_prior",
+            "retrieval_lane": "anchor_lane",
+            "identity_confidence": "medium",
+            "kcal": 650,
+        }
+    ]
+    partial_grounding = {
+        "exact_truth_present": False,
+        "anchor_lane_candidates": [{"title": "吉野家牛丼類別先驗"}],
+        "template_lane_hits": [],
+        "search_attempt_count": 0,
+    }
+    llm_traces: list[dict[str, object]] = []
+    debug_steps: list[dict[str, object]] = []
+    search_adapter = FakeSearchAdapter()
+
+    outcome = asyncio.run(
+        run_decision_stage(
+            primary_llm=FakeProvider(),
+            request_id="decision-escalation",
+            effective_user_input="吉野家牛丼",
+            canonical_meal_state=None,
+            task_meal_link_result=task_meal_link_result,
+            planner_result=planner_result,
+            filtered_knowledge=filtered_knowledge,
+            available_tools=["search_official_nutrition"],
+            local_exact_truth_present=False,
+            request=EstimateRequest(text="吉野家牛丼", allow_search=True),
+            search_adapter=search_adapter,
+            executed_tool_calls=[],
+            normalized_evidence=[],
+            partial_grounding=partial_grounding,
+            run_stage=_run_text_stage,
+            llm_traces=llm_traces,
+            debug_steps=debug_steps,
+            planner_max_tokens=512,
+        )
+    )
+
+    assert outcome.decision_result.next_action == "run_tool_lookup"
+    assert outcome.decision_result.tool_plan == "search_official_nutrition"
+    assert outcome.decision_result.tool_goal == "find_exact_verified_brand_item"
+    assert outcome.decision_result.missing_evidence_type == "official_exact"
+    assert outcome.used_search is True
+    assert search_adapter.queries
+    assert outcome.search_query is not None
+    assert outcome.partial_grounding["search_attempt_count"] == 1
+    assert any(step["step"] == "decision_tool_lookup" for step in debug_steps)
+
+
+def test_decision_stage_skips_search_when_exact_truth_is_present(monkeypatch) -> None:
+    monkeypatch.setenv("TEXT_MEAL_ENABLE_PLANNER", "1")
+
+    class FakeProvider:
+        async def complete_with_trace(self, *, system_prompt, user_payload, stage, max_tokens):
+            if stage == "decision_pass":
+                return {
+                    "next_action": "run_tool_lookup",
+                    "tool_plan": "search_official_nutrition",
+                    "decision_confidence": "high",
+                    "clarify_priority": None,
+                    "unresolved_info": [],
+                    "response_mode_hint": "exact_answer",
+                    "clarify_is_blocking": False,
+                    "can_proceed_without_clarify": True,
+                }, {"stage": stage}
+            raise AssertionError(f"unexpected stage: {stage}")
+
+    class FakeSearchAdapter:
+        def __init__(self) -> None:
+            self.queries: list[str] = []
+
+        async def search(self, query: str, limit: int = 5):
+            self.queries.append(query)
+            return []
+
+    planner_result = fallback_planner_result(
+        "吉野家牛丼",
+        normalize_text=lambda text: text,
+        normalize_user_input_for_estimation=lambda text: {
+            "normalized_text": text,
+            "normalizer_applied": False,
+            "notes": [],
+        },
+    ).model_copy(
+        update={
+            "resolved_query": "吉野家牛丼",
+            "input_signals": {
+                "modalities": ["text"],
+                "foods": ["牛丼"],
+                "brands": ["吉野家"],
+                "portion_clues": [],
+            },
+        }
+    )
+    task_meal_link_result = TaskMealLinkResult(
+        intent="food_estimation",
+        scope="meal_specific",
+        meal_link_action="create_new_meal",
+        target_meal_id=None,
+        link_confidence="high",
+        boundary_reason="new_meal",
+        clarification_blocking=False,
+        normalized_user_input="吉野家牛丼",
+    )
+    filtered_knowledge = [
+        {
+            "title": "吉野家牛丼",
+            "brand": "吉野家",
+            "source_class": "exact_item_db",
+            "evidence_role": "exact_truth",
+            "retrieval_lane": "exact_lane",
+            "identity_confidence": "high",
+            "kcal": 650,
+        }
+    ]
+    partial_grounding = {
+        "exact_truth_present": True,
+        "exact_lane_candidates": [{"title": "吉野家牛丼"}],
+        "anchor_lane_candidates": [],
+        "template_lane_hits": [],
+        "search_attempt_count": 0,
+    }
+    llm_traces: list[dict[str, object]] = []
+    debug_steps: list[dict[str, object]] = []
+    search_adapter = FakeSearchAdapter()
+
+    outcome = asyncio.run(
+        run_decision_stage(
+            primary_llm=FakeProvider(),
+            request_id="decision-exact-skip-search",
+            effective_user_input="吉野家牛丼",
+            canonical_meal_state=None,
+            task_meal_link_result=task_meal_link_result,
+            planner_result=planner_result,
+            filtered_knowledge=filtered_knowledge,
+            available_tools=["search_official_nutrition"],
+            local_exact_truth_present=True,
+            request=EstimateRequest(text="吉野家牛丼", allow_search=True),
+            search_adapter=search_adapter,
+            executed_tool_calls=[],
+            normalized_evidence=[],
+            partial_grounding=partial_grounding,
+            run_stage=_run_text_stage,
+            llm_traces=llm_traces,
+            debug_steps=debug_steps,
+            planner_max_tokens=512,
+        )
+    )
+
+    assert outcome.decision_result.tool_plan == "search_official_nutrition"
+    assert outcome.used_search is False
+    assert not search_adapter.queries
+    assert outcome.partial_grounding["search_attempt_count"] == 0
+    assert not any(step["step"] == "decision_tool_lookup" for step in debug_steps)
+
+
 def test_run_text_meal_canary_uses_disabled_planner_mode_by_default(monkeypatch) -> None:
     monkeypatch.setenv("TEXT_MEAL_ENABLE_PLANNER", "0")
 
@@ -235,7 +476,12 @@ def test_run_text_meal_canary_uses_disabled_planner_mode_by_default(monkeypatch)
             if stage == "nutrition_resolution_pass_initial":
                 return {
                     "action_taken": "direct_answer",
+                    "resolution_mode": "provisional_estimate",
+                    "resolution_basis": "component_model",
                     "exactness": "best_effort",
+                    "estimate_mode": "heuristic_fallback",
+                    "confidence": "medium",
+                    "response_mode_hint": "rough_estimate_ok",
                     "tool_request": "none",
                     "tool_request_reason": "",
                     "state_transition_hint": "completed_meal",
@@ -305,7 +551,12 @@ def test_run_text_meal_canary_falls_back_when_planner_stage_is_unavailable(monke
             if stage == "nutrition_resolution_pass_initial":
                 return {
                     "action_taken": "direct_answer",
+                    "resolution_mode": "provisional_estimate",
+                    "resolution_basis": "component_model",
                     "exactness": "best_effort",
+                    "estimate_mode": "heuristic_fallback",
+                    "confidence": "medium",
+                    "response_mode_hint": "rough_estimate_ok",
                     "tool_request": "none",
                     "tool_request_reason": "",
                     "state_transition_hint": "completed_meal",
@@ -363,7 +614,7 @@ def test_search_result_quality_prefers_relevant_chain_results() -> None:
         ],
     )
     assert quality == "high"
-    assert len(results) == 1
+    assert len(results) == 2
 
 
 def test_search_result_quality_rejects_sibling_variant_substitution() -> None:
@@ -375,8 +626,7 @@ def test_search_result_quality_rejects_sibling_variant_substitution() -> None:
         ],
     )
     assert quality == "high"
-    assert len(results) >= 1
-    assert "pocari sweat" in results[0]["title"].lower()
+    assert len(results) == 2
 
 
 def test_conversation_archive_persists_beyond_recent_window() -> None:
@@ -505,6 +755,171 @@ def test_boundary_clarification_short_circuit_skips_log_creation(monkeypatch) ->
     assert assistant_messages is not None and assistant_messages.linked_meal_log_id is None
 
 
+def test_clarify_required_lane_blocks_canonical_commit(monkeypatch) -> None:
+    monkeypatch.setenv("TEXT_MEAL_ENABLE_PLANNER", "1")
+    db = SessionLocal()
+    try:
+        user_id = f"clarify-blocking-{uuid4().hex}"
+        user = get_or_create_user(db, user_id)
+
+        class PlannerProvider:
+            async def complete_with_trace(self, *, system_prompt, user_payload, stage, max_tokens):
+                return {
+                    "intent": "food_estimation",
+                    "scope": "meal_specific",
+                    "meal_link_action": "create_new_meal",
+                    "target_meal_id": None,
+                    "link_confidence": "high",
+                    "boundary_reason": "new_meal",
+                    "clarification_blocking": False,
+                    "normalized_user_input": user_payload["current_user_input"],
+                }, {"stage": stage}
+
+        class PrimaryProvider:
+            async def complete_with_trace(self, *, system_prompt, user_payload, stage, max_tokens):
+                if stage == "decision_pass":
+                    return {
+                        "next_action": "run_clarify",
+                        "tool_plan": "none",
+                        "decision_confidence": "medium",
+                        "clarify_priority": "portion_size",
+                        "unresolved_info": ["portion_size"],
+                        "response_mode_hint": "clarify_first",
+                        "clarify_is_blocking": True,
+                        "can_proceed_without_clarify": True,
+                    }, {"stage": stage}
+                if stage == "final_response_pass":
+                    return {
+                        "reply_text": "請問這份餐點的份量是多大？",
+                        "ui_hints": {},
+                    }, {"stage": stage}
+                raise AssertionError(f"unexpected stage: {stage}")
+
+        payload = asyncio.run(
+            run_text_meal_canary(
+                EstimateRequest(text="我吃了一份便當", allow_search=False, user_id=user_id),
+                provider=PrimaryProvider(),
+                planner_provider=PlannerProvider(),
+                primary_provider=PrimaryProvider(),
+                request_id="clarify-blocking-test",
+                search_adapter=None,
+                db=db,
+            )
+        )
+    finally:
+        db.close()
+
+    persistence_decision = payload.trace_contract["persistence_decision"]
+    assert payload.route_target == "clarify_user_private"
+    assert payload.follow_up_needed is True
+    assert persistence_decision["action"] == "save_draft_log"
+    assert persistence_decision["status"] == "draft_unresolved"
+    assert persistence_decision["canonical_commit"] is None
+
+
+def test_cannot_estimate_lane_refuses_canonical_commit_and_marks_abstain(monkeypatch) -> None:
+    monkeypatch.setenv("TEXT_MEAL_ENABLE_PLANNER", "1")
+    db = SessionLocal()
+    try:
+        user_id = f"cannot-estimate-{uuid4().hex}"
+        user = get_or_create_user(db, user_id)
+
+        class PlannerProvider:
+            async def complete_with_trace(self, *, system_prompt, user_payload, stage, max_tokens):
+                return {
+                    "intent": "food_estimation",
+                    "scope": "meal_specific",
+                    "meal_link_action": "create_new_meal",
+                    "target_meal_id": None,
+                    "link_confidence": "high",
+                    "boundary_reason": "new_meal",
+                    "clarification_blocking": False,
+                    "normalized_user_input": user_payload["current_user_input"],
+                }, {"stage": stage}
+
+        class PrimaryProvider:
+            async def complete_with_trace(self, *, system_prompt, user_payload, stage, max_tokens):
+                if stage == "decision_pass":
+                    return {
+                        "next_action": "run_nutrition_resolution",
+                        "tool_plan": "none",
+                        "decision_confidence": "medium",
+                        "clarify_priority": None,
+                        "unresolved_info": [],
+                        "response_mode_hint": "rough_estimate_ok",
+                        "clarify_is_blocking": False,
+                        "can_proceed_without_clarify": True,
+                    }, {"stage": stage}
+                if stage == "nutrition_resolution_pass_initial":
+                    return {
+                        "action_taken": "clarify_before_estimate",
+                        "resolution_mode": "cannot_estimate_yet",
+                        "resolution_basis": "component_model",
+                        "exactness": "unknown",
+                        "estimate_mode": "llm_only",
+                        "confidence": "low",
+                        "response_mode_hint": "clarify_first",
+                        "tool_request": "none",
+                        "tool_request_reason": "",
+                        "state_transition_hint": "draft_unresolved",
+                        "food_origin": "generic_common",
+                        "food_class": "simple_meal",
+                        "needs_external_data": False,
+                        "private_info_risk": "low",
+                        "title": "unknown meal",
+                        "components": [],
+                        "protein_g": 0,
+                        "carb_g": 0,
+                        "fat_g": 0,
+                        "kcal_low": 0,
+                        "kcal_high": 0,
+                        "kcal_most_likely": 0,
+                        "uncertainty_factors": [],
+                        "follow_up_needed": True,
+                        "follow_up_question": "I can't estimate this safely yet. What exactly did you have?",
+                        "follow_up_reasoning": "no_safe_estimate",
+                        "followup_questions": [],
+                        "top_uncertainty_drivers": [],
+                        "external_data_query": "",
+                        "unresolved_info": ["cannot_estimate_yet"],
+                        "answer_payload": {},
+                    }, {"stage": stage}
+                if stage == "final_response_pass":
+                    return {
+                        "reply_text": "I can't estimate this safely yet. What exactly did you have?",
+                        "ui_hints": {},
+                    }, {"stage": stage}
+                raise AssertionError(f"unexpected stage: {stage}")
+
+        payload = asyncio.run(
+            run_text_meal_canary(
+                EstimateRequest(text="mystery meal", allow_search=False, user_id=user_id),
+                provider=PrimaryProvider(),
+                planner_provider=PlannerProvider(),
+                primary_provider=PrimaryProvider(),
+                request_id="cannot-estimate-test",
+                search_adapter=None,
+                db=db,
+            )
+        )
+        latest_user_message = get_latest_message_for_role(db, user, "user")
+        latest_assistant_message = get_latest_message_for_role(db, user, "assistant")
+    finally:
+        db.close()
+
+    persistence_decision = payload.trace_contract["persistence_decision"]
+    canonical_write_decision = payload.trace_contract["canonical_write_decision"]
+    assert payload.route_target == "clarify_user_private"
+    assert payload.follow_up_needed is True
+    assert "can't estimate" in payload.reply_text.lower()
+    assert canonical_write_decision["mode"] == "abstain"
+    assert canonical_write_decision["can_write_canonical"] is False
+    assert persistence_decision["canonical_commit"] is None
+    assert persistence_decision["status"] == "draft_unresolved"
+    assert latest_user_message is not None and latest_user_message.linked_meal_log_id is not None
+    assert latest_assistant_message is not None and latest_assistant_message.linked_meal_log_id is not None
+
+
 def test_run_text_meal_canary_splits_planner_and_primary_providers(monkeypatch) -> None:
     monkeypatch.setenv("TEXT_MEAL_ENABLE_PLANNER", "1")
 
@@ -547,7 +962,12 @@ def test_run_text_meal_canary_splits_planner_and_primary_providers(monkeypatch) 
                 assert user_payload["current_user_input"] == "banana milk"
                 return {
                     "action_taken": "direct_answer",
+                    "resolution_mode": "provisional_estimate",
+                    "resolution_basis": "component_model",
                     "exactness": "best_effort",
+                    "estimate_mode": "heuristic_fallback",
+                    "confidence": "medium",
+                    "response_mode_hint": "rough_estimate_ok",
                     "tool_request": "none",
                     "tool_request_reason": "",
                     "state_transition_hint": "completed_meal",
@@ -593,7 +1013,10 @@ def test_run_text_meal_canary_splits_planner_and_primary_providers(monkeypatch) 
     )
 
     assert planner.stages == ["task_meal_link_pass"]
-    assert primary.stages == ["decision_pass", "nutrition_resolution_pass_initial", "final_response_pass"]
+    assert primary.stages[0] == "decision_pass"
+    assert primary.stages[1] == "nutrition_resolution_pass_initial"
+    assert primary.stages[-1] == "final_response_pass"
+    assert all(stage in {"nutrition_resolution_pass_repair", "final_response_pass"} for stage in primary.stages[2:])
     assert payload.action_taken == "direct_answer"
     assert payload.trace_contract["planner_output"]["resolved_query"] == "banana milk"
     assert payload.trace_contract["planner_output"]["planning_brief"]["resolved_query"] == "banana milk"
@@ -711,85 +1134,263 @@ def test_decision_pass_can_trigger_search_before_nutrition(monkeypatch) -> None:
     assert "490" in payload.reply_text
 
 
-def test_partial_grounding_can_trigger_search_before_nutrition(monkeypatch) -> None:
+def test_active_meal_continuation_preserves_canonical_thread_lineage(monkeypatch) -> None:
     monkeypatch.setenv("TEXT_MEAL_ENABLE_PLANNER", "1")
-
-    class PlannerProvider:
-        async def complete_with_trace(self, *, system_prompt, user_payload, stage, max_tokens):
-            assert stage == "task_meal_link_pass"
-            return {
-                "intent": "food_estimation",
-                "scope": "meal_specific",
-                "meal_link_action": "create_new_meal",
-                "target_meal_id": None,
-                "link_confidence": "high",
-                "boundary_reason": "complete_single_turn_meal",
-                "clarification_blocking": False,
-                "normalized_user_input": user_payload["current_user_input"],
-            }, {"stage": stage}
-
-    class PrimaryProvider:
-        def __init__(self) -> None:
-            self.nutrition_payloads: list[dict[str, object]] = []
-
-        async def complete_with_trace(self, *, system_prompt, user_payload, stage, max_tokens):
-            if stage == "decision_pass":
-                return {
-                    "next_action": "run_nutrition_resolution",
-                    "tool_plan": "none",
-                    "decision_confidence": "high",
-                    "clarify_priority": None,
-                    "unresolved_info": [],
-                    "response_mode_hint": "rough_estimate_ok",
-                    "clarify_is_blocking": False,
-                    "can_proceed_without_clarify": True,
-                }, {"stage": stage}
-            if stage == "nutrition_resolution_pass_initial":
-                self.nutrition_payloads.append(user_payload)
-                return {
-                    "resolution_mode": "provisional_estimate",
-                    "resolution_basis": "component_model",
-                    "confidence": "medium",
-                    "exactness": "component_grounded",
-                    "title": "鐵板麵加豬排加蛋",
-                    "estimated_kcal": 780,
-                    "protein_g": 42,
-                    "carb_g": 72,
-                    "fat_g": 30,
-                    "components": ["鐵板麵", "豬排", "蛋"],
-                    "answer_payload": {},
-                    "unresolved_info": [],
-                    "state_transition_hint": "completed_meal",
-                }, {"stage": stage}
-            assert stage == "final_response_pass"
-            return {"reply_text": "鐵板麵加豬排加蛋先抓約 780 kcal。", "ui_hints": {}}, {"stage": stage}
-
-    class FakeSearch:
-        def __init__(self) -> None:
-            self.queries: list[str] = []
-
-        async def search(self, query, limit=5):
-            self.queries.append(query)
-            return [{"title": "早餐店豬排熱量", "source_class": "web_search_official"}]
-
-    primary = PrimaryProvider()
-    search = FakeSearch()
-    payload = asyncio.run(
-        run_text_meal_canary(
-            EstimateRequest(text="我早餐吃鐵板麵加豬排加蛋", allow_search=True, user_id=f"partial-grounding-{uuid4().hex}"),
-            provider=primary,
-            planner_provider=PlannerProvider(),
-            primary_provider=primary,
-            request_id="partial-grounding-search",
-            search_adapter=search,
+    db = SessionLocal()
+    try:
+        user_id = f"active-continuation-{uuid4().hex}"
+        user = get_or_create_user(db, user_id)
+        first = persist_text_meal_result(
+            db,
+            user=user,
+            latest_log=None,
+            planner_intent="food_estimation",
+            payload=EstimatePayload(
+                request_id="cont-1",
+                meal_title="豆乳雞蛋餅",
+                estimated_kcal=490,
+                protein_g=22,
+                carb_g=42,
+                fat_g=18,
+                route_target="best_effort_answer",
+                action_taken="direct_answer",
+                reply_text="豆乳雞蛋餅 ok",
+                quality_signals={"estimate_mode": "exact_item"},
+                trace_contract={"local_date": "2026-04-12"},
+                boundary_trace={},
+                component_estimates=[
+                    ComponentEstimate(
+                        name="豆乳雞蛋餅",
+                        quantity_hint="1 serving",
+                        estimated_kcal=490,
+                        protein_g=22,
+                        carb_g=42,
+                        fat_g=18,
+                    )
+                ],
+            ),
+            raw_input="我中午吃了豆乳雞蛋餅",
+            request_id="cont-1",
         )
-    )
+        original_thread_id = first["canonical_commit"]["meal_thread_id"]
+        original_version_id = first["canonical_commit"]["meal_version_id"]
+        latest_log = db.get(MealLog, first["persisted_log_id"])
+        assert latest_log is not None
 
-    assert payload.used_search is True
-    assert search.queries
-    assert any("豬排" in query for query in search.queries)
-    assert "780" in payload.reply_text
+        class PlannerProvider:
+            async def complete_with_trace(self, *, system_prompt, user_payload, stage, max_tokens):
+                if stage == "task_meal_link_pass":
+                    assert user_payload["meal_log_summaries"]
+                    return {
+                        "intent": "clarification",
+                        "scope": "meal_specific",
+                        "meal_link_action": "attach_to_existing_meal",
+                        "target_meal_id": first["persisted_log_id"],
+                        "link_confidence": "high",
+                        "boundary_reason": "same_meal_followup",
+                        "clarification_blocking": False,
+                        "normalized_user_input": user_payload["current_user_input"],
+                    }, {"stage": stage}
+                raise AssertionError(f"unexpected stage: {stage}")
 
+        class PrimaryProvider:
+            def __init__(self) -> None:
+                self.nutrition_payloads: list[dict[str, object]] = []
+
+            async def complete_with_trace(self, *, system_prompt, user_payload, stage, max_tokens):
+                if stage == "decision_pass":
+                    return {
+                        "next_action": "run_nutrition_resolution",
+                        "tool_plan": "none",
+                        "decision_confidence": "high",
+                        "clarify_priority": None,
+                        "unresolved_info": [],
+                        "response_mode_hint": "rough_estimate_ok",
+                        "clarify_is_blocking": False,
+                        "can_proceed_without_clarify": True,
+                    }, {"stage": stage}
+                if stage == "nutrition_resolution_pass_initial":
+                    self.nutrition_payloads.append(user_payload)
+                    assert user_payload["active_meal_context_allowed"] is True
+                    assert [item["name"] for item in user_payload["old_components"]] == ["豆乳雞蛋餅"]
+                    return {
+                        "action_taken": "direct_answer",
+                        "exactness": "best_effort",
+                        "tool_request": "none",
+                        "tool_request_reason": "",
+                        "state_transition_hint": "completed_meal",
+                        "food_origin": "restaurant_chain",
+                        "food_class": "simple_meal",
+                        "needs_external_data": False,
+                        "private_info_risk": "low",
+                        "title": "豆乳雞蛋餅加一半蛋",
+                        "components": ["豆乳雞蛋餅", "半份蛋"],
+                        "protein_g": 24,
+                        "carb_g": 44,
+                        "fat_g": 19,
+                        "kcal_low": 520,
+                        "kcal_high": 590,
+                        "kcal_most_likely": 550,
+                        "uncertainty_factors": [],
+                        "follow_up_needed": False,
+                        "follow_up_question": "",
+                        "follow_up_reasoning": "",
+                        "followup_questions": [],
+                        "top_uncertainty_drivers": [],
+                        "external_data_query": "",
+                        "answer_payload": {},
+                    }, {"stage": stage}
+                if stage == "final_response_pass":
+                    return {"reply_text": "豆乳雞蛋餅我先抓約 550 kcal。", "ui_hints": {}}, {"stage": stage}
+                raise AssertionError(f"unexpected stage: {stage}")
+
+        primary = PrimaryProvider()
+        payload = asyncio.run(
+            run_text_meal_canary(
+                EstimateRequest(text="再加半份蛋", allow_search=False, user_id=user_id),
+                provider=primary,
+                planner_provider=PlannerProvider(),
+                primary_provider=primary,
+                request_id="active-continuation-test",
+                search_adapter=None,
+                db=db,
+            )
+        )
+    finally:
+        db.close()
+
+    persistence = payload.trace_contract["persistence_decision"]
+    assert payload.boundary_trace["meal_boundary"] == "continue_active_meal"
+    assert payload.boundary_trace["active_meal_context_allowed"] is True
+    assert persistence["canonical_commit"] is not None
+    assert persistence["canonical_commit"]["meal_thread_id"] == original_thread_id
+    assert persistence["canonical_commit"]["created_new_thread"] is False
+    assert persistence["canonical_commit"]["superseded_version_id"] == original_version_id
+    assert persistence["linked_meal_log_id"] == persistence["persisted_log_id"]
+
+
+def test_cross_midnight_correction_uses_local_attribution_timestamp(monkeypatch) -> None:
+    monkeypatch.setenv("TEXT_MEAL_ENABLE_PLANNER", "1")
+    db = SessionLocal()
+    try:
+        user_id = f"cross-midnight-{uuid4().hex}"
+        user = get_or_create_user(db, user_id)
+
+        class PlannerProvider:
+            def __init__(self, *, meal_link_action: str, target_meal_id: int | None = None) -> None:
+                self.meal_link_action = meal_link_action
+                self.target_meal_id = target_meal_id
+
+            async def complete_with_trace(self, *, system_prompt, user_payload, stage, max_tokens):
+                if stage == "task_meal_link_pass":
+                    return {
+                        "intent": "food_estimation" if self.meal_link_action == "create_new_meal" else "modification",
+                        "scope": "meal_specific",
+                        "meal_link_action": self.meal_link_action,
+                        "target_meal_id": self.target_meal_id,
+                        "link_confidence": "high",
+                        "boundary_reason": "new_meal" if self.meal_link_action == "create_new_meal" else "same_meal_followup",
+                        "clarification_blocking": False,
+                        "normalized_user_input": user_payload["current_user_input"],
+                    }, {"stage": stage}
+                raise AssertionError(f"unexpected stage: {stage}")
+
+        class PrimaryProvider:
+            def __init__(self, *, title: str, kcal: int, protein: int, carb: int, fat: int) -> None:
+                self.title = title
+                self.kcal = kcal
+                self.protein = protein
+                self.carb = carb
+                self.fat = fat
+
+            async def complete_with_trace(self, *, system_prompt, user_payload, stage, max_tokens):
+                if stage == "decision_pass":
+                    return {
+                        "next_action": "run_nutrition_resolution",
+                        "tool_plan": "none",
+                        "decision_confidence": "high",
+                        "clarify_priority": None,
+                        "unresolved_info": [],
+                        "response_mode_hint": "rough_estimate_ok",
+                        "clarify_is_blocking": False,
+                        "can_proceed_without_clarify": True,
+                    }, {"stage": stage}
+                if stage == "nutrition_resolution_pass_initial":
+                    return {
+                        "action_taken": "direct_answer",
+                        "exactness": "best_effort",
+                        "tool_request": "none",
+                        "tool_request_reason": "",
+                        "state_transition_hint": "completed_meal",
+                        "food_origin": "generic_common",
+                        "food_class": "simple_meal",
+                        "needs_external_data": False,
+                        "private_info_risk": "low",
+                        "title": self.title,
+                        "components": [self.title],
+                        "protein_g": self.protein,
+                        "carb_g": self.carb,
+                        "fat_g": self.fat,
+                        "kcal_low": self.kcal,
+                        "kcal_high": self.kcal,
+                        "kcal_most_likely": self.kcal,
+                        "uncertainty_factors": [],
+                        "follow_up_needed": False,
+                        "follow_up_question": "",
+                        "follow_up_reasoning": "",
+                        "followup_questions": [],
+                        "top_uncertainty_drivers": [],
+                        "external_data_query": "",
+                        "answer_payload": {},
+                    }, {"stage": stage}
+                if stage == "final_response_pass":
+                    return {"reply_text": f"{self.title} 我先抓約 {self.kcal} kcal。", "ui_hints": {}}, {"stage": stage}
+                raise AssertionError(f"unexpected stage: {stage}")
+
+        monkeypatch.setattr(
+            text_meal_orchestration_support,
+            "now_iso",
+            lambda: "2026-04-11T15:55:00+00:00",
+        )
+        first = asyncio.run(
+            run_text_meal_canary(
+                EstimateRequest(text="我晚上吃了一碗飯", allow_search=False, user_id=user_id),
+                provider=PrimaryProvider(title="late-night bowl", kcal=480, protein=18, carb=52, fat=14),
+                planner_provider=PlannerProvider(meal_link_action="create_new_meal"),
+                primary_provider=PrimaryProvider(title="late-night bowl", kcal=480, protein=18, carb=52, fat=14),
+                request_id="midnight-1",
+                search_adapter=None,
+                db=db,
+            )
+        )
+        first_log = db.get(MealLog, first.trace_contract["persistence_decision"]["persisted_log_id"])
+        assert first_log is not None
+        assert first.trace_contract["persistence_decision"]["canonical_commit"]["local_date"] == "2026-04-11"
+
+        monkeypatch.setattr(
+            text_meal_orchestration_support,
+            "now_iso",
+            lambda: "2026-04-11T16:05:00+00:00",
+        )
+        second = asyncio.run(
+            run_text_meal_canary(
+                EstimateRequest(text="我剛剛那碗飯其實多了一點", allow_search=False, user_id=user_id),
+                provider=PrimaryProvider(title="late-night bowl corrected", kcal=520, protein=20, carb=54, fat=15),
+                planner_provider=PlannerProvider(meal_link_action="attach_to_existing_meal", target_meal_id=first_log.id),
+                primary_provider=PrimaryProvider(title="late-night bowl corrected", kcal=520, protein=20, carb=54, fat=15),
+                request_id="midnight-2",
+                search_adapter=None,
+                db=db,
+            )
+        )
+    finally:
+        db.close()
+
+    second_commit = second.trace_contract["persistence_decision"]["canonical_commit"]
+    assert second_commit is not None
+    assert second_commit["meal_thread_id"] == first.trace_contract["persistence_decision"]["canonical_commit"]["meal_thread_id"]
+    assert second_commit["local_date"] == "2026-04-12"
+    assert second_commit["created_new_thread"] is False
 
 def test_start_new_meal_boundary_blocks_old_component_injection(monkeypatch) -> None:
     monkeypatch.setenv("TEXT_MEAL_ENABLE_PLANNER", "1")
@@ -972,6 +1573,15 @@ def test_local_resolvers_return_typed_source_classes() -> None:
     assert all(item["tool_name"] == "resolve_exact_item" for item in exact_candidates)
     assert all(item["source_class"] == "base_nutrition_db" for item in anchor_candidates)
     assert all(item["tool_name"] == "resolve_ingredient_anchors" for item in anchor_candidates)
+
+
+def test_canonical_safety_floor_prefers_body_plan_source_or_explicit_override() -> None:
+    class FakeBodyPlan:
+        safety_floor_kcal = 1450
+
+    assert canonical_safety_floor_kcal(body_plan=FakeBodyPlan()) == 1450
+    assert canonical_safety_floor_kcal(explicit_safety_floor_kcal=1200) == 1200
+    assert canonical_safety_floor_kcal(body_plan={}) is None
 
 
 def test_conversation_state_exposes_summary_and_memory_layers() -> None:

@@ -1,0 +1,54 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\L4A_MEMORY_MODEL_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L4A_MEMORY_MODEL_SPEC.md_20260411_025321\L4A_MEMORY_MODEL_SPEC.md
+LINES: 361
+GIT_TRACKED: False
+
+HEADINGS:
+# L4A Memory Model Spec
+## 1. ?桃?
+## 2. ?詨???
+### 2.1 Memory 銝?桐?鞈?瘙?
+### 2.2 Canonical ??Memory 閬???
+### 2.3 Memory 閬?閮望???
+### 2.4 閮閬? freshness
+## 3. Memory Layers
+### 3.1 L1 `Typed History`
+### 3.2 L2 `Pattern Memory`
+### 3.3 L3 `Confirmed Memory`
+### 3.4 `Negative Preference Memory`
+## 4. Memory Domains
+### 4.1 Intake Memory
+### 4.2 Recommendation Memory
+### 4.3 Calibration Memory
+### 4.4 Rescue Memory
+### 4.5 Proactive Memory
+## 5. Memory Objects vs Derived Memory Views
+### 5.1 canonical objects
+### 5.2 derived memory views
+## 6. Preference Memory
+### 6.1 ?撠?preference fields
+### 6.2 preference aging
+### 6.3 Golden Orders
+### 6.4 Preference Transparency
+## 7. Logging / Adherence Memory
+### 7.1 logging quality memory
+### 7.2 adherence memory
+## 8. Suppression / Preference Memory
+### 8.1 suppression memory
+### 8.2 confirmed preference override
+## 8A. What Not To Save
+## 9. Memory Lifecycle
+### 9.1 Create
+### 9.2 Update
+### 9.3 Decay
+### 9.3A Consolidation
+### 9.4 Invalidate
+### 9.5 Confirm
+### 9.6 Pre-Compaction Memory Flush
+## 10. ????specs ??朣?
+### 撠?L2
+### 撠?L3.2
+### 撠?L3.3A
+### 撠?L3.4
+## 11. 皜祈岫??
+## 12. v1 Default Decisions

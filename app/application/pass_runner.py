@@ -130,11 +130,14 @@ async def run_pass(
                     nullable_required_fields,
                 )
                 if missing:
+                    last_error = f"attempt={attempt_index};missing_fields:{','.join(missing)}"
+                    if attempt_index < max_retries:
+                        continue
                     return normalized, _envelope(
                         status="degraded",
                         payload=normalized_dump,
                         fallback_used=True,
-                        error=f"attempt={attempt_index};missing_fields:{','.join(missing)}",
+                        error=last_error,
                     )
 
             return normalized, _envelope(status="success", payload=normalized_dump)

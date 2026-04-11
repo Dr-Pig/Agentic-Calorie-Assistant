@@ -1,0 +1,34 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\L2_DATA_STATE_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L2_DATA_STATE_SPEC.md_20260411_025319\L2_DATA_STATE_SPEC.md
+LINES: 421
+GIT_TRACKED: False
+
+HEADINGS:
+# L2 Data / State Spec
+## 1. ?桃?
+## 2. Data Modeling Principles
+### 2.1 Canonical object ??derived view ?
+### 2.2 Observation / interpretation / commit ?
+### 2.3 Version chain ?臭?蝝?敹?
+### 2.4 `occurred_at` ??`recorded_at` ?
+### 2.5 `meal_thread` ??摨行憌脤?鈭辣
+### 2.6 `MealItem` ??thread ?抒??雿?閬敦蝎漲
+## 3. Canonical Objects
+### 3.1 `MessageEvent`
+### 3.2 `MealThread`
+### 3.3 `MealVersion`
+### 3.4 `MealItem`
+### 3.5 `DayBudgetLedger`
+### 3.6 `LedgerEntry`
+### 3.7 `BodyObservation`
+### 3.8 `BodyPlan`
+### 3.9 `ProposalContainer`
+### 3.10 `ProposalOption`
+### 3.11 `ProactiveTrigger`
+## 4. Object Relationships
+## 5. ??隤?
+## 6. Derived Views
+## 7. ???repo ??朣?
+### ?暹?璁艙撠?
+## 8. 皜祈岫??
+## 9. 撖虫??身

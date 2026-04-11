@@ -1,0 +1,58 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\specs\L6C_MODEL_ROUTING_PROVIDER_ABSTRACTION_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L6C_MODEL_ROUTING_PROVIDER_ABSTRACTION_SPEC.md_20260411_211424\L6C_MODEL_ROUTING_PROVIDER_ABSTRACTION_SPEC.md
+LINES: 502
+GIT_TRACKED: True
+
+HEADINGS:
+# L6C Model Routing / Provider Abstraction Spec
+## 1. 目的
+## 2. 設計前提
+## 3. 核心原則
+### 3.1 Graph-First, Role-Second
+### 3.2 Role-First Routing
+### 3.3 Adapter-Bounded Provider Knowledge
+### 3.4 Fallback Must Preserve Contract
+## 4. Logical Model Roles
+## 5. Pass-to-Role Mapping
+## 5.1 Intake
+### 5.2 Recommendation
+### 5.3 Calibration Proposal
+### 5.4 Rescue
+### 5.5 Future Vision Intake
+## 6. Provider Adapter Contract
+### 6.1 Adapter Output Contract
+## 7. BuilderSpace Current Mapping
+### 7.1 Current Empirical Defaults
+### 7.2 v1 Default BuilderSpace Mapping
+### 7.3 BuilderSpace Non-Default Candidates
+### 7.4 BuilderSpace Forbidden Usage
+## 8. Future Direct-Provider Mapping
+### 8.1 OpenAI Direct
+### 8.2 Gemini Direct
+### 8.3 xAI Direct
+### 8.4 Moonshot / Kimi Direct
+## 9. Selection Policy
+### 9.1 v1 Default Policy
+### 9.2 Upgrade Policy
+### 9.3 Downgrade / Cost Policy
+## 10. Fallback / Failover Policy
+## 10.1 Failure Classes
+### 10.2 Allowed Failover Directions
+#### `fast_router_model`
+#### `strict_reasoner_model`
+#### `response_writer_model`
+#### `vision_parser_model`
+### 10.3 Forbidden Failover Behavior
+### 10.4 Fallback Order
+### 10.5 Role-Specific Degrade Rule
+## 11. Trace Requirements for Routing
+## 12. Build Phasing
+### Phase 1-2
+### Phase 3-5
+### Phase 8
+## 13. 與其他 specs 的關係
+### 對 L3.x
+### 對 L5A / L5B / L5C
+### 對 L6A
+### 對 L6B
+## 14. v1 Final Decision

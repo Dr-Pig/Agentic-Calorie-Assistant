@@ -1,0 +1,56 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\L5C_SAFETY_GUARDRAIL_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L5C_SAFETY_GUARDRAIL_SPEC.md_20260411_025323\L5C_SAFETY_GUARDRAIL_SPEC.md
+LINES: 297
+GIT_TRACKED: False
+
+HEADINGS:
+# L5C Safety / Guardrail Spec
+## 1. ?桃?
+## 2. Safety Philosophy
+## 3. Failure Classes
+### 3.1 hard_fail
+### 3.2 soft_fail
+### 3.3 warn_only
+## 4. Hard-Fail / Soft-Fail Classification Table
+### 4.1 Cross-flow hard_fail
+### 4.2 Intake hard_fail
+### 4.3 Recommendation hard_fail
+### 4.4 Calibration hard_fail
+### 4.5 Rescue hard_fail
+### 4.6 Cross-flow soft_fail
+### 4.7 Intake soft_fail
+### 4.8 Recommendation soft_fail
+### 4.9 Calibration soft_fail
+### 4.10 Rescue soft_fail
+## 5. Cross-Flow Hard Guards
+## 6. Tool Failure Fallback Guardrails
+### 6.1 allowed fallback modes
+### 6.2 forbidden fallback behavior
+### 6.3 tool reason requirement
+## 7. Safety-Critical Thresholds
+### 7.1 Intake
+### 7.2 Recommendation
+### 7.3 Calibration
+### 7.4 Rescue
+## 8. Trace / Privacy Guardrails
+### 8.1 minimum time fields
+### 8.2 privacy baseline
+### 8.3 structured logging
+## 9. Human Review Escalation
+### 9.1 ?孛??human review / flagged escalation ??瘜?
+### 9.2 銝? human review嚗?蝟餌絞?折?蝝???
+## 10. Guardrail Enforcement Points
+### 10.1 pass-output validation
+### 10.2 deterministic gate
+### 10.3 persistence / application layer
+### 10.4 UI / action gate
+### 10.5 enforcement rule
+## 11. Soft-Fail Runtime Action Map
+### 11.1 general downgrade actions
+### 11.2 intake
+### 11.3 recommendation
+### 11.4 calibration
+### 11.5 rescue
+### 11.6 downgrade visibility
+## 12. ?隞?specs ??靽?
+## 13. 敺Ⅱ隤?憿?

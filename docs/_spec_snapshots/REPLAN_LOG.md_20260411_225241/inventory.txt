@@ -1,0 +1,169 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\exec-plans\active\REPLAN_LOG.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\REPLAN_LOG.md_20260411_225241\REPLAN_LOG.md
+LINES: 870
+GIT_TRACKED: True
+
+HEADINGS:
+# Re-plan Log
+## Purpose
+## 2026-04-11 — Canonical Core / Intake Transition
+### Trigger
+### What The Code Actually Became
+### Assumptions That Expired
+### Boundary Pressure
+### Next-Phase Corrections
+## 2026-04-11 — Dependency/Context Ordering Correction
+### Trigger
+### What The Planning Reality Became
+### Assumptions That Expired
+### Next-Phase Corrections
+### Follow-up Checks
+## 2026-04-11 — Operating Layer Activation
+### Trigger
+### What The Execution Reality Became
+### Assumptions That Expired
+### Next-Phase Corrections
+## 2026-04-11 — Rescue Deterministic Overlay Foundation
+### Trigger
+### What The Code Actually Became
+### Assumptions That Expired
+### Boundary Pressure
+### Next-Phase Corrections
+## 2026-04-11 — Canonical Safety Floor Source
+### Trigger
+### What The Planning Reality Became
+### Assumptions That Expired
+### Next-Phase Corrections
+## 2026-04-11 — Clarify-Required Lane Hardening
+### Trigger
+### What The Code Actually Became
+### Assumptions That Expired
+### Next-Phase Corrections
+## 2026-04-11 — Spec Boundary Clarifications
+### Trigger
+### What Was Clarified
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Current Plan Memory Numbering Alignment
+### Trigger
+### What Was Clarified
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Fat-File Gate Hardening
+### Trigger
+### What The Planning Reality Became
+## 2026-04-11 — Cross-Domain LLM Pass Governance Alignment
+### Trigger
+### What Was Clarified
+### Assumptions That Expired
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Decision-Mode Annotation Alignment
+### Trigger
+### What Was Clarified
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Entrypoint Rewrite Guard And Archival Cleanup
+### Trigger
+### What The Planning Reality Became
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Docs Index Compression
+### Trigger
+### What The Planning Reality Became
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Handoff Reference Split
+### Trigger
+### What The Planning Reality Became
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Harness Hard-Gate Hardening
+### Trigger
+### What The Planning Reality Became
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Decision-Mode Governance Second-Pass Alignment
+### Trigger
+### What Changed
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Encoding Recovery For Canonical Governance Specs
+### Trigger
+### What Changed
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Deprecated L6D Pass-Policy Stub Conversion
+### Trigger
+### What Changed
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Expanded-Mode Wording Cleanup
+### Trigger
+### What Changed
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Recovered Legacy Entry Boundary
+### Recovery Note
+### Recovered Legacy Content
+### Current Boundary Pressure
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Final Spec Optimization Pass
+### Trigger
+### What Changed
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Runtime Experiment Checklist
+### Trigger
+### What Changed
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Encoding Policy Hard Gate
+### Trigger
+### What Changed
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — File Placement Governance
+### Trigger
+### What The Planning Reality Became
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Layer Integrity Warning Cleanup
+### Trigger
+### What The Code Actually Became
+### Assumptions That Expired
+### Next-Phase Corrections
+## 2026-04-11 — Existing Code File Edit Rule
+### Trigger
+### What The Planning Reality Became
+### Allowed Exception Cases
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — CI Consolidation And Search Layer Formalization
+### Trigger
+### What The Planning Reality Became
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Build-Start Harness Baseline
+### Trigger
+### What The Planning Reality Became
+### Why It Matters
+### What The Code Actually Became
+### Implementation Note
+### Snapshot Record
+## 2026-04-11 — Alembic Migration Governance
+### Trigger
+### What The Planning Reality Became
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Freeze-Growth Extraction Map
+### Trigger
+### What The Planning Reality Became
+### Why It Matters
+### Snapshot Record
+## 2026-04-11 — Decision-Mode Annotation Alignment
+### Trigger
+### What Changed
+### Why It Matters
+### Snapshot Record

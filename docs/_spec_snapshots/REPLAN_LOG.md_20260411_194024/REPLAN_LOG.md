@@ -1,0 +1,383 @@
+﻿# Re-plan Log
+
+> [!NOTE]
+> This log records reality deviations and phase corrections. If a replan alters the capability dependency order, the change MUST be propagated to **[`WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md)**.
+
+## Purpose
+
+This log records implementation reality shifts that require the next-step plan to be corrected.
+
+It should be appended over time instead of rewritten.
+
+## 2026-04-11 — Canonical Core / Intake Transition
+
+### Trigger
+
+- typed canonical bridge was introduced into a repo that still carries legacy meal-log persistence and a heavy text intake entrypoint
+
+### What The Code Actually Became
+
+- canonical persistence is already real, not just a planned future layer
+- `CommitRequestCandidate` is now the meaningful bridge between intake runtime and canonical writes
+- stage trace events already have a typed runtime path
+- `text_meal.py` remains active, but no longer owns all persistence/trace details
+
+### Assumptions That Expired
+
+- "Phase 1 is only persistence, Phase 2 is where typed runtime starts"
+- "legacy meal-log persistence can keep its old canonical bridge signature"
+- "execution planning can continue without recording reality drift in active plans"
+
+### Boundary Pressure
+
+- `app/usecases/text_meal.py` is still too large for a stable long-term entrypoint
+- `app/schemas.py` is accumulating legacy and new typed contracts in one place
+- future tasks must prefer extracting services over adding more orchestration to existing fat files
+
+### Next-Phase Corrections
+
+- treat typed contract alignment as part of the current execution phase, not a later cleanup
+- require active execution plans to state reality drift explicitly
+- do not start recommendation/calibration/rescue implementation until Phase B intake hardening is explicitly closed
+
+## 2026-04-11 — Dependency/Context Ordering Correction
+
+### Trigger
+
+- the original execution grouping was too capability-centric and hid the true workflow dependency order
+
+### What The Planning Reality Became
+
+- build ordering must be driven by workflow dependencies and context density, not only by subsystem labels
+- recommendation is not an early phase target; memory-aware recommendation belongs after stable intake, today/read models, rescue, calibration, and memory deepening
+- proactive work must stay last
+
+### Assumptions That Expired
+
+- "the three execution planning artifacts can act as ordering truth on their own"
+- "recommendation should be early just because it is a major product capability"
+
+### Next-Phase Corrections
+
+- treat [`docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md) as the canonical ordering authority
+- keep the three execution planning artifacts, but only as execution-control tools
+- make upcoming active work target `Today UI / Read Models` and `Weight / Body Observation` before recommendation
+
+### Follow-up Checks
+
+- confirm the next execution plan only contains micro-detail for the current and next phase
+- confirm future active plans include re-plan metadata fields from the protocol
+
+## 2026-04-11 — Operating Layer Activation
+
+### Trigger
+
+- planning governance existed, but real checked-in task and handoff artifacts did not yet exist
+
+### What The Execution Reality Became
+
+- execution operating layer is only genuinely usable once the repo contains at least:
+  - active task artifacts
+  - a structured handoff example
+  - a current execution plan that points to concrete `slice_id` values
+- execution plans now have to be read together with checked-in task artifacts, not by themselves
+
+### Assumptions That Expired
+
+- "protocol documents alone are enough to make multi-agent execution ready"
+- "the current execution plan can stay at workflow-only granularity"
+
+### Next-Phase Corrections
+
+- treat `slice_id` and `task_id` as the active execution units, not only broad workflow labels
+- require future current-plan updates to point to active tasks when work has been checked in
+- prefer structured handoff updates over free-form status summaries
+
+## 2026-04-11 — Rescue Deterministic Overlay Foundation
+
+### Trigger
+
+- the workflow order reached `2.5a-rescue-deterministic-overlay` after Today and Weight low-fi surfaces passed the first integrated manual check
+
+### What The Code Actually Became
+
+- rescue math now exists as a deterministic application-layer helper rather than as implicit ledger mutations
+- overlay writes still go through canonical ledger entries and ledger recompute
+- the implementation stopped short of rescue proposal generation and rescue UI, keeping the slice bounded
+
+### Assumptions That Expired
+
+- "rescue can infer `safety_floor(user)` immediately from canonical state"
+
+### Boundary Pressure
+
+- `L3M` specifies sex-based safety floors, but current canonical state does not yet expose a stable deterministic field for that lookup
+
+### Next-Phase Corrections
+
+- keep `safety_floor_kcal` explicit in v1 deterministic rescue math
+- do not hide this gap inside a guessed fallback
+- decide the canonical source for `safety_floor(user)` before rescue proposal formation or rescue UI work
+
+## 2026-04-11 — Canonical Safety Floor Source
+
+### Trigger
+
+- rescue deterministic math exposed that `L3M` requires `safety_floor(user)` while current canonical state did not yet expose a stable scalar source
+
+### What The Planning Reality Became
+
+- the canonical deterministic source should be `active BodyPlan.safety_floor_kcal`
+- runtime should prefer a resolved scalar over reconstructing user sex/gender inside guardrail math
+
+### Assumptions That Expired
+
+- "rescue or calibration runtime can safely infer floor from implicit user attributes later"
+
+### Next-Phase Corrections
+
+- add `safety_floor_kcal` to canonical BodyPlan state
+- let onboarding / accepted plan setup populate that field
+- keep rescue math explicit until read models and setup flows can supply the field reliably
+
+## 2026-04-11 — Clarify-Required Lane Hardening
+
+### Trigger
+
+- `2.1c-clarify-required-lane` needed a deterministic guarantee that blocking clarify cannot drift into a proceedable commit path when provider output is internally contradictory
+
+### What The Code Actually Became
+
+- decision normalization now forces `can_proceed_without_clarify=false` whenever `clarify_is_blocking=true`
+- clarify-required intake now has a direct regression proving the system stays on the clarify route and does not write canonical meal truth
+- clarify/follow-up shaping was tightened without widening the slice into rescue, calibration, recommendation, or UI concerns
+
+### Assumptions That Expired
+
+- "prompt guidance alone is enough to keep blocking clarify behavior coherent"
+- "no-commit clarify behavior is sufficiently covered without a direct regression"
+
+### Next-Phase Corrections
+
+- treat `2.1d-cannot-estimate-lane` as the next abstain-path hardening target
+- keep clarify and cannot-estimate behavior separated from web-search fallback ownership
+- prefer bounded lane-level worker tasks over reopening intake-core-wide refactors
+
+## 2026-04-11 — Spec Boundary Clarifications
+
+### Trigger
+
+- architecture review identified three places where future agents could over-interpret the specs and widen scope in unsafe ways
+
+### What Was Clarified
+
+- `2.2` correction scope was narrowed to explicit / bounded correction targets; fuzzy cross-day or cross-week recall was pushed to later memory / retrieval work
+- `2.5` rescue dependency was clarified to read canonical ledger truth via stable read-side surfaces, not UI route or presentation behavior
+- recommendation cold-start behavior was made explicit: empty or sparse `PreferenceProfileSummary` is valid and must degrade to safe fallback sources instead of failing closed
+
+### Why It Matters
+
+- prevents intake correction from absorbing early memory-search complexity
+- prevents rescue implementation from coupling to Today UI behavior
+- prevents recommendation runtime from treating missing memory as an error condition
+
+### Snapshot Record
+
+- `docs/_spec_snapshots/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md_20260411_170502/`
+- `docs/_spec_snapshots/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_170502/`
+- `docs/_spec_snapshots/WORKFLOW_SLICE_REGISTRY.md_20260411_170502/`
+
+## 2026-04-11 — Current Plan Memory Numbering Alignment
+
+### Trigger
+
+- `CURRENT_EXECUTION_PLAN.md` still labeled memory / retrieval next-work as `2.6`, which drifted from the canonical ordering spec where memory / retrieval is `2.7`
+
+### What Was Clarified
+
+- `Next Workflow Focus` now refers to `2.7 Memory / Retrieval Deepening`
+- queued `context-selector` placeholder was renumbered to `2.7a-context-selector`
+- the correction is numbering-only and does not imply that a new formal slice registry entry has already been authored
+
+### Why It Matters
+
+- prevents future agents from planning memory work under the calibration number
+- keeps active execution wording aligned with canonical ordering truth
+
+### Snapshot Record
+
+- `docs/_spec_snapshots/CURRENT_EXECUTION_PLAN.md_20260411_170939/`
+
+## 2026-04-11 — Fat-File Gate Hardening
+
+### Trigger
+
+- the repo already has known oversized boundary files, and soft warnings alone are no longer enough to stop future agents from adding more responsibility to them
+
+### What The Planning Reality Became
+
+- `app/usecases/text_meal.py`, `app/schemas.py`, and `app/routes.py` are now treated as protected files
+- implementation planning protocol now defines a protected fat-file gate instead of only a review reminder
+- a repo script and pre-commit hook now enforce staged protection for those files
+
+### Current Boundary Pressure
+
+- `app/usecases/text_meal.py` is still above the preferred entrypoint threshold
+- `app/schemas.py` is still above the preferred schema threshold
+- `app/routes.py` is still above the preferred route threshold
+- `app/application/context_assembly.py` and `app/application/evidence_assembly.py` are also large enough to monitor next
+
+### Why It Matters
+
+- blocks protected files from quietly growing during ordinary feature work
+- gives new agents an executable repo rule instead of relying on doc interpretation alone
+- keeps future thinning work focused on extraction instead of repeated relapse into the same files
+
+### Snapshot Record
+
+- `docs/_spec_snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_171519/`
+
+## 2026-04-11 — File Placement Governance
+
+### Trigger
+
+- protected-file gates now exist, but agents still need a deterministic rule for where new code should go after a protected file rejects further growth
+
+### What The Planning Reality Became
+
+- repository governance now includes an explicit file placement decision table and naming discipline
+- role-based placement is now first-class:
+  - routes in `app/web/*`
+  - contracts in `app/schema_defs/*`
+  - orchestration/read-side logic in `app/application/*`
+  - domain invariants in `app/domain/*`
+  - persistence in `app/infrastructure/*`
+- boundary-sensitive tasks are expected to declare `allowed_touch_areas`, `forbidden_touch_areas`, and `new_files_expected`
+
+### Why It Matters
+
+- prevents agents from responding to protected-file gates with ad-hoc file creation
+- makes "cannot go here" resolve into a deterministic build path
+- keeps file growth control tied to architecture ownership instead of only line counts
+
+### Snapshot Record
+
+- `docs/_spec_snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_183000/`
+- `docs/_spec_snapshots/AGENTS.md_20260411_183000/`
+
+## 2026-04-11 — Layer Integrity Warning Cleanup
+
+### Trigger
+
+- `check_layer_integrity.py` was added and immediately exposed five warning-level ownership drifts in `app/web/*` and `app/agent/*`
+
+### What The Code Actually Became
+
+- route modules no longer import `sqlalchemy.orm`; DB session dependencies stay injected but route code no longer advertises direct ORM ownership
+- exact-item FTS lookup now lives in infrastructure via `app/infrastructure/exact_item_search.py`
+- a lightweight `app/search/exact_item_lookup.py` facade now shields higher-level callers from direct infrastructure imports
+
+### Assumptions That Expired
+
+- "route modules can keep SQLAlchemy type imports without meaningful layer drift"
+- "exact-item search can stay under `app/agent/*` even though it owns SQL-backed lookup behavior"
+- "application is the best facade location by default" once package import side effects are present
+
+### Next-Phase Corrections
+
+- if stricter layer linting is introduced later, review `app/application/__init__.py` package side effects before using `application/*` as a facade namespace
+- consider whether `app/search/*` should be documented as a lightweight query-facade family in future placement rules
+
+## 2026-04-11 — Existing Code File Edit Rule
+
+### Trigger
+
+- repo rules already forbade delete-and-recreate behavior for spec documents, but the same expectation was not yet explicit for ordinary code files
+
+### What The Planning Reality Became
+
+- existing code files now default to targeted edits rather than delete-and-recreate replacement
+- delete-and-recreate is now treated as an exception path for code files, not a normal editing method
+
+### Allowed Exception Cases
+
+- explicit retirement or move during a boundary refactor
+- patch-anchor, tooling, or encoding blockers that make targeted edits impractical
+- deliberate conversion into a thin entrypoint or compatibility shim
+
+### Why It Matters
+
+- keeps long-lived code history easier to review
+- reduces accidental semantic loss during large refactors
+- aligns code-editing behavior with the stricter document-editing discipline already used for specs and planning artifacts
+
+### Snapshot Record
+
+- `docs/_spec_snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_191500/`
+- `docs/_spec_snapshots/AGENTS.md_20260411_191500/`
+
+## 2026-04-11 — CI Consolidation And Search Layer Formalization
+
+### Trigger
+
+- layer integrity now exists as a standalone workflow, but repo governance still lacked a main test workflow and `app/search/*` was functioning as an implicit layer rather than a documented one
+
+### What The Planning Reality Became
+
+- CI is now centered on a main `ci` workflow with both `layer-integrity` and `tests` jobs
+- the standalone layer-only workflow was retired to avoid duplicated pipeline surfaces
+- `app/search/*` is now explicitly documented as a query-time retrieval layer with its own placement and dependency rules
+
+### Why It Matters
+
+- makes layer integrity part of the normal CI path instead of an isolated check
+- reduces future facade-placement drift by giving `app/search/*` a formal ownership boundary
+- keeps retrieval composition out of `app/application/*` and `app/agent/*` when the code is really query-time lookup or ranking logic
+
+### Snapshot Record
+
+- `docs/_spec_snapshots/BUILD_FILE_PLACEMENT_RULES.md_20260411_193500/`
+- `docs/_spec_snapshots/LAYER_DEPENDENCY_RULES.md_20260411_193500/`
+- `docs/_spec_snapshots/AGENTS.md_20260411_193500/`
+
+## 2026-04-11 — Build-Start Harness Baseline
+
+### Trigger
+
+- next implementation phases should not proceed until repo governance covers platform settings, freeze-growth blind spots, structured task completion, and CI test layering
+
+### What The Planning Reality Became
+
+- platform-side GitHub governance is now recorded explicitly in repo docs instead of being left as verbal expectation
+- fat-file governance now distinguishes protected legacy files from freeze-growth architecture risk files
+- task completion records are being standardized around explicit structured fields
+- CI is being split into layer integrity, smoke tests, and integration tests before the next feature-heavy build wave
+
+### Why It Matters
+
+- reduces silent relapses into oversized application or agent aggregation files
+- makes task completion machine-readable for later agents
+- prevents local hooks from being the only enforcement point
+
+### What The Code Actually Became
+
+- `docs/GITHUB_REPO_GOVERNANCE.md` now records required branch protection and required status check names for platform-side enforcement
+- `scripts/check_fat_files.ps1` now distinguishes protected legacy files from freeze-growth architecture risk files and a watchlist
+- `pytest.ini`, `tests/conftest.py`, and `.github/workflows/ci.yml` now define a layered `smoke` / `integration` / `e2e` test path
+- `.github/dependabot.yml` now governs weekly `pip` and `github-actions` updates
+- `app/infrastructure/conversation_state_loader.py` now owns retrieval and sync only, while `app/application/conversation_state_assembler.py` owns `ConversationState` assembly
+- `scripts/check_task_checkin_and_handoff.ps1` now requires structured completion fields for `COMPLETED` task artifacts
+
+### Implementation Note
+
+- `app/infrastructure/conversation_state_loader.py` required a delete-and-recreate exception during the split because garbled content blocked safe anchor-based patching; ownership was preserved and re-established immediately on the same path
+
+### Snapshot Record
+
+- `docs/_spec_snapshots/AGENTS.md_20260411_201500/`
+- `docs/_spec_snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_201500/`
+- `docs/_spec_snapshots/TASK_CHECKIN_PROTOCOL.md_20260411_201500/`
+- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_201500/`
+- `docs/_spec_snapshots/AGENTS.md_20260411_194024/`
+- `docs/_spec_snapshots/GITHUB_REPO_GOVERNANCE.md_20260411_194024/`
+- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_194024/`

@@ -1,0 +1,82 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\L3_5_PROMPT_CONTRACT_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L3_5_PROMPT_CONTRACT_SPEC.md_20260411_025321\L3_5_PROMPT_CONTRACT_SPEC.md
+LINES: 588
+GIT_TRACKED: False
+
+HEADINGS:
+# L3.5 Prompt Contract Spec
+## 1. ?桃?
+## 2. Prompt Contract ??雿?
+### 2.1 Prompt Contract 銝?Ｗ? spec
+### 2.2 Prompt Contract 銝 prompt ??憭批
+## 3. ?梢?Prompt Shape
+### 3.1 `Role / Objective`
+### 3.2 `Task Boundary`
+### 3.3 `Allowed Inputs`
+### 3.4 `Required Outputs`
+### 3.5 `Rules / Guardrails`
+### 3.6 `Dynamic Context`
+### 3.7 `Schema Reminder`
+### 3.8 `Failure / Abstain Policy`
+## 4. Prompt Layer Types
+### 4.1 `System Prompt Layer`
+### 4.2 `Flow Prompt Layer`
+### 4.3 `Pass Prompt Layer`
+### 4.4 `Dynamic Context Layer`
+## 4A. Logical Model Role Layer
+## 5. ?梢?Guardrails
+## 6. Fragment Ordering Policy
+### 6.1 ??
+### 6.2 ?曹澈 policy fragments 蝭?
+## 7. Cache-Aware Prompt Assembly
+### 7.1 ?詨???
+### 7.2 ??帘摰??摰?
+### 7.3 ??蝵桃??批捆
+### 7.4 v1 token policy
+## 8. Structured Bias Posture Injection
+### 8.1 蝳迫敶Ｗ?
+### 8.2 撱箄降敶Ｗ?
+### 8.3 閬?
+## 9. Intake Prompt Contract
+### 9.1 `task_meal_link_pass`
+### 9.2 `decision_pass`
+### 9.3 `nutrition_resolution_pass`
+### 9.4 `final_response_pass`
+## 10. Recommendation Prompt Contract
+### 10.1 `recommendation_context_pass`
+### 10.2 `candidate_generation_pass`
+### 10.3 `ranking_and_selection_pass`
+### 10.4 `recommendation_response_pass`
+## 11. Calibration Model Prompt Contract
+### 11.1 隞餃?
+### 11.2 ??
+### 11.3 蝳迫
+## 12. Calibration Proposal Prompt Contract
+### 12.1 `proposal_gate_pass`
+### 12.2 `option_generation_pass`
+### 12.3 `option_ranking_pass`
+### 12.4 `proposal_response_pass`
+## 13. Rescue Prompt Contract
+### 13.1 `rescue_trigger_pass`
+### 13.2 `rescue_assessment_pass`
+### 13.3 `rescue_option_pass`
+### 13.4 `rescue_response_pass`
+## 14. Dynamic Context Packing Rules
+### 14.1 prompt 銝??湔憛?風??
+### 14.2 dynamic context ?芸???
+### 14.3 derived views ?芸???raw tables
+## 15. Output Schema Contract
+### 15.1 schema-first ??
+### 15.2 abstain / no-op 銋???schema
+## 16. Prompt Safety / Failure Policy
+### 16.1 ?嗉?閮?頞單?
+### 16.2 ??output 憸券敺???
+## 17. Shared Prompt Fragments
+## 18. ????specs ??朣?
+### 撠?L0
+### 撠?L1
+### 撠?L2
+### 撠?L3.1-L3.4
+### 撠?L6A / L6B
+## 19. 皜祈岫??
+## 20. v1 Default Decisions

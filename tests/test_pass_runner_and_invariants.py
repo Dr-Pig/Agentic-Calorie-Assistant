@@ -8,13 +8,16 @@ from app.agent.nutrition_resolution_llm import normalize_structured_answer, nutr
 from app.agent.task_meal_link_llm import normalize_task_meal_link_result
 from app.application.context_assembly import build_decision_payload
 from app.application.evidence_assembly import build_partial_grounding_packet, infer_expected_components
+from app.application.followup_policy import annotate_followup_policy
+from app.application.followup_policy import annotate_cannot_estimate_abstain_policy
 from app.application.nutrition_invariants import apply_nutrition_invariant_guards
 from app.application.pass_runner import run_pass
 from app.application.planner import normalize_planner_result
 from app.application.state_transition import build_canonical_meal_state
 from app.domain import ConversationState
 from app.providers.builderspace_adapter import BuilderSpaceAdapter, BuilderSpaceResponseError
-from app.schemas import DecisionPassResult, FinalResponseResult, NutritionResolutionResult, TaskMealLinkResult
+from app.observability.payload_builders import build_payload
+from app.schemas import DecisionPassResult, EstimateRequest, FinalResponseResult, NutritionResolutionResult, TaskMealLinkResult
 from app.usecases.text_meal import _run_text_stage
 
 
@@ -341,6 +344,80 @@ def test_normalize_decision_result_parses_prose_tool_lookup() -> None:
     assert normalized.clarify_is_blocking is False
 
 
+def test_normalize_decision_result_forces_blocking_clarify_to_stop_proceeding() -> None:
+    fallback = DecisionPassResult()
+    normalized = normalize_decision_result(
+        {
+            "next_action": "run_clarify",
+            "tool_plan": "none",
+            "decision_confidence": "medium",
+            "clarify_priority": "portion_size",
+            "unresolved_info": ["portion_size"],
+            "response_mode_hint": "clarify_first",
+            "clarify_is_blocking": True,
+            "can_proceed_without_clarify": True,
+        },
+        fallback=fallback,
+    )
+
+    assert normalized.next_action == "run_clarify"
+    assert normalized.clarify_is_blocking is True
+    assert normalized.can_proceed_without_clarify is False
+    assert normalized.response_mode_hint == "clarify_first"
+
+
+def test_normalize_decision_result_preserves_react_tool_metadata() -> None:
+    fallback = DecisionPassResult()
+    normalized = normalize_decision_result(
+        {
+            "next_action": "run_tool_lookup",
+            "tool_plan": "search_official_nutrition",
+            "tool_goal": "find_exact_verified_brand_item",
+            "missing_evidence_type": "official_exact",
+            "expected_success_condition": "exact lane has same-item official or exact DB candidate",
+        },
+        fallback=fallback,
+    )
+
+    assert normalized.tool_goal == "find_exact_verified_brand_item"
+    assert normalized.missing_evidence_type == "official_exact"
+    assert normalized.expected_success_condition == "exact lane has same-item official or exact DB candidate"
+
+
+def test_annotate_followup_policy_marks_followup_as_needed_when_blocking() -> None:
+    parsed = annotate_followup_policy(
+        {
+            "follow_up_needed": True,
+            "followup_question": "",
+            "estimated_kcal": 0,
+            "unresolved_info": ["portion_size"],
+            "blocking_slots": ["portion_size"],
+            "reasoning_state": {"missing_high_impact_slots": ["portion_size"]},
+        }
+    )
+
+    assert parsed["followup_decision_type"] == "ask_followup_only"
+    assert parsed["why_followup"] == "needs_refinement"
+    assert parsed["reason_not_direct_answer"] == "needs_refinement"
+
+
+def test_annotate_cannot_estimate_abstain_policy_sets_typed_no_canonical_write_path() -> None:
+    parsed = annotate_cannot_estimate_abstain_policy(
+        {
+            "resolution_mode": "cannot_estimate_yet",
+            "follow_up_needed": False,
+            "unresolved_info": [],
+            "response_mode_hint": "rough_estimate_ok",
+        }
+    )
+
+    assert parsed["canonical_write_decision"]["mode"] == "abstain"
+    assert parsed["canonical_write_decision"]["can_write_canonical"] is False
+    assert parsed["followup_decision_type"] == "ask_followup_only"
+    assert parsed["response_mode_hint"] == "clarify_first"
+    assert parsed["action_taken"] == "clarify_before_estimate"
+
+
 def test_nutrition_result_from_primary_keeps_provisional_mode_when_resolution_mode_present() -> None:
     parsed = normalize_structured_answer(
         {
@@ -409,7 +486,324 @@ def test_normalize_structured_answer_accepts_calories_macros_and_component_objec
     assert normalized["answer_payload"]["items"][0]["estimated_kcal"] == 350
 
 
-def test_partial_grounding_packet_marks_missing_major_component_and_recommends_search() -> None:
+def test_normalize_structured_answer_preserves_component_breakdown_and_evidence_ids() -> None:
+    normalized = normalize_structured_answer(
+        {
+            "resolution_mode": "component_estimate",
+            "resolution_basis": "component_model",
+            "exactness": "component_grounded",
+            "estimate_mode": "anchored_component",
+            "confidence": "medium",
+            "estimated_kcal": 520,
+            "protein_g": 18,
+            "carb_g": 60,
+            "fat_g": 20,
+            "components": ["雞腿", "白飯"],
+            "items": [
+                {
+                    "title": "雞腿",
+                    "estimated_kcal": 280,
+                    "protein_g": 18,
+                    "carb_g": 0,
+                    "fat_g": 20,
+                    "reason": "anchor",
+                    "evidence_ids": ["EV_1"],
+                },
+                {
+                    "title": "白飯",
+                    "estimated_kcal": 240,
+                    "protein_g": 0,
+                    "carb_g": 60,
+                    "fat_g": 0,
+                    "reason": "anchor",
+                    "evidence_ids": ["EV_2"],
+                },
+            ],
+            "evidence_ids_used": ["EV_1", "EV_2"],
+        },
+        user_text="雞腿飯",
+    )
+
+    assert normalized["evidence_ids_used"] == ["EV_1", "EV_2"]
+    assert len(normalized["component_breakdown"]) == 2
+    assert normalized["component_breakdown"][0]["name"] == "雞腿"
+    assert normalized["answer_payload"]["component_breakdown"][1]["name"] == "白飯"
+    assert normalized["answer_payload"]["evidence_ids_used"] == ["EV_1", "EV_2"]
+
+
+def test_invariant_guard_flags_component_sum_mismatch() -> None:
+    result = NutritionResolutionResult(
+        resolution_mode="component_estimate",
+        resolution_basis="component_model",
+        confidence="high",
+        exactness="component_grounded",
+        answer_payload={
+            "title": "雞腿飯",
+            "estimated_kcal": 520,
+            "protein_g": 18,
+            "carb_g": 60,
+            "fat_g": 20,
+            "component_breakdown": [
+                {"name": "雞腿", "estimated_kcal": 150},
+                {"name": "白飯", "estimated_kcal": 120},
+            ],
+        },
+        unresolved_info=[],
+        state_transition_hint="completed_meal",
+    )
+
+    adjusted, meta = apply_nutrition_invariant_guards(result=result, normalized_evidence=[])
+
+    assert adjusted.confidence == "medium"
+    assert "flag_component_sum_mismatch" in meta["guard_actions"]
+
+
+def test_invariant_guard_uses_exact_label_macro_as_ui_truth() -> None:
+    result = NutritionResolutionResult(
+        resolution_mode="exact_label_finalize",
+        resolution_basis="exact_item_evidence",
+        confidence="high",
+        exactness="exact_item",
+        answer_payload={
+            "title": "latte",
+            "estimated_kcal": 212,
+            "protein_g": 0,
+            "carb_g": 0,
+            "fat_g": 0,
+            "component_breakdown": [{"name": "latte", "estimated_kcal": 212}],
+        },
+        unresolved_info=[],
+        state_transition_hint="completed_meal",
+    )
+    normalized_evidence = [
+        {
+            "source_type": "local_retrieval",
+            "source_class": "exact_item_db",
+            "raw": {
+                "source_class": "exact_item_db",
+                "identity_confidence": "high",
+                "label_macros": {"protein_g": 12, "carb_g": 18, "fat_g": 6},
+            },
+        }
+    ]
+
+    adjusted, meta = apply_nutrition_invariant_guards(result=result, normalized_evidence=normalized_evidence)
+
+    assert adjusted.answer_payload["raw_macro_breakdown"]["macro_source"] == "exact_label"
+    assert adjusted.answer_payload["display_macro_breakdown"]["macro_source"] == "exact_label"
+    assert adjusted.answer_payload["macro_breakdown"]["macro_source"] == "exact_label"
+    assert adjusted.answer_payload["display_macro_breakdown"]["protein_g"] == 12
+    assert meta["display_macro_breakdown"]["macro_confidence"] == "high"
+
+
+def test_invariant_guard_derives_macro_from_component_breakdown() -> None:
+    result = NutritionResolutionResult(
+        resolution_mode="component_estimate",
+        resolution_basis="component_model",
+        confidence="high",
+        exactness="component_grounded",
+        answer_payload={
+            "title": "poke",
+            "estimated_kcal": 790,
+            "component_breakdown": [
+                {"name": "salmon", "estimated_kcal": 280, "protein_g": 24, "carb_g": 0, "fat_g": 18},
+                {"name": "rice", "estimated_kcal": 260, "protein_g": 5, "carb_g": 56, "fat_g": 1},
+                {"name": "sauce", "estimated_kcal": 120, "protein_g": 0, "carb_g": 8, "fat_g": 10},
+            ],
+        },
+        unresolved_info=[],
+        state_transition_hint="completed_meal",
+    )
+
+    adjusted, meta = apply_nutrition_invariant_guards(result=result, normalized_evidence=[])
+
+    assert adjusted.answer_payload["raw_macro_breakdown"]["macro_source"] == "derived_from_components"
+    assert adjusted.answer_payload["display_macro_breakdown"]["macro_source"] == "derived_reconciled"
+    assert adjusted.answer_payload["display_macro_breakdown"]["macro_status"] == "available"
+    assert adjusted.answer_payload["display_macro_breakdown"]["protein_g"] > 29
+    assert meta["macro_delta"] is not None
+
+
+def test_invariant_guard_marks_heuristic_macro_unavailable_without_component_macros() -> None:
+    result = NutritionResolutionResult(
+        resolution_mode="provisional_estimate",
+        resolution_basis="component_model",
+        confidence="medium",
+        exactness="best_effort",
+        answer_payload={
+            "title": "generic poke",
+            "estimated_kcal": 650,
+            "component_breakdown": [
+                {"name": "base bowl", "estimated_kcal": 650, "portion_basis": "generic bowl prior"},
+            ],
+        },
+        unresolved_info=[],
+        state_transition_hint="draft_unresolved",
+    )
+
+    adjusted, _ = apply_nutrition_invariant_guards(result=result, normalized_evidence=[])
+
+    assert adjusted.answer_payload["macro_breakdown"]["macro_source"] == "unavailable"
+    assert adjusted.answer_payload["macro_breakdown"]["protein_g"] is None
+
+
+def test_invariant_guard_reconciles_display_macro_when_delta_is_medium() -> None:
+    result = NutritionResolutionResult(
+        resolution_mode="component_estimate",
+        resolution_basis="component_model",
+        confidence="high",
+        exactness="component_grounded",
+        answer_payload={
+            "title": "rice bowl",
+            "estimated_kcal": 500,
+            "component_breakdown": [
+                {"name": "rice", "estimated_kcal": 260, "protein_g": 5, "carb_g": 55, "fat_g": 1},
+                {"name": "beef", "estimated_kcal": 160, "protein_g": 20, "carb_g": 0, "fat_g": 8},
+            ],
+        },
+        unresolved_info=[],
+        state_transition_hint="completed_meal",
+    )
+
+    adjusted, meta = apply_nutrition_invariant_guards(result=result, normalized_evidence=[])
+
+    assert adjusted.answer_payload["raw_macro_breakdown"]["macro_kcal"] == 401
+    assert adjusted.answer_payload["display_macro_breakdown"]["macro_source"] == "derived_reconciled"
+    assert adjusted.answer_payload["display_macro_breakdown"]["macro_reconciled"] is True
+    assert meta["reconciliation_scale"] is not None
+
+
+def test_invariant_guard_keeps_display_macro_consistent_when_delta_is_small() -> None:
+    result = NutritionResolutionResult(
+        resolution_mode="component_estimate",
+        resolution_basis="component_model",
+        confidence="high",
+        exactness="component_grounded",
+        answer_payload={
+            "title": "chicken rice",
+            "estimated_kcal": 500,
+            "component_breakdown": [
+                {"name": "rice", "estimated_kcal": 260, "protein_g": 4, "carb_g": 68, "fat_g": 1},
+                {"name": "chicken", "estimated_kcal": 180, "protein_g": 23, "carb_g": 0, "fat_g": 8},
+            ],
+        },
+        unresolved_info=[],
+        state_transition_hint="completed_meal",
+    )
+
+    adjusted, meta = apply_nutrition_invariant_guards(result=result, normalized_evidence=[])
+
+    assert adjusted.answer_payload["raw_macro_breakdown"]["macro_kcal"] == 461
+    assert adjusted.answer_payload["display_macro_breakdown"]["macro_source"] == "derived_consistent"
+    assert adjusted.answer_payload["display_macro_breakdown"]["macro_reconciled"] is False
+    assert meta["delta_pct"] is not None and meta["delta_pct"] <= 0.1
+
+
+def test_invariant_guard_hides_display_macro_when_delta_is_large() -> None:
+    result = NutritionResolutionResult(
+        resolution_mode="component_estimate",
+        resolution_basis="component_model",
+        confidence="high",
+        exactness="component_grounded",
+        answer_payload={
+            "title": "oily noodles",
+            "estimated_kcal": 800,
+            "component_breakdown": [
+                {"name": "noodles", "estimated_kcal": 500, "protein_g": 8, "carb_g": 55, "fat_g": 2},
+                {"name": "sauce", "estimated_kcal": 300, "protein_g": 1, "carb_g": 6, "fat_g": 4},
+            ],
+        },
+        unresolved_info=[],
+        state_transition_hint="completed_meal",
+    )
+
+    adjusted, meta = apply_nutrition_invariant_guards(result=result, normalized_evidence=[])
+
+    assert adjusted.answer_payload["raw_macro_breakdown"]["macro_source"] == "derived_from_components"
+    assert adjusted.answer_payload["display_macro_breakdown"]["macro_source"] == "unavailable"
+    assert adjusted.answer_payload["display_macro_breakdown"]["protein_g"] is None
+    assert meta["macro_source_display"] == "unavailable"
+
+
+def test_build_payload_uses_display_macro_not_raw_macro_for_ui_fields() -> None:
+    parsed = {
+        "title": "rice bowl",
+        "components": ["rice", "beef"],
+        "protein_g": 0,
+        "carb_g": 0,
+        "fat_g": 0,
+        "estimated_kcal": 500,
+        "uncertainty_factors": [],
+        "followup_question": "",
+        "follow_up_needed": False,
+        "follow_up_reasoning": "",
+        "answer_payload": {
+            "component_breakdown": [
+                {"name": "rice", "estimated_kcal": 260},
+                {"name": "beef", "estimated_kcal": 180},
+            ],
+            "raw_macro_breakdown": {
+                "protein_g": 20,
+                "carb_g": 50,
+                "fat_g": 10,
+                "macro_source": "derived_from_components",
+                "macro_kcal": 370,
+            },
+            "display_macro_breakdown": {
+                "protein_g": 27,
+                "carb_g": 68,
+                "fat_g": 14,
+                "macro_source": "derived_reconciled",
+                "macro_kcal": 502,
+            },
+            "macro_breakdown": {
+                "protein_g": 27,
+                "carb_g": 68,
+                "fat_g": 14,
+                "macro_source": "derived_reconciled",
+                "macro_kcal": 502,
+            },
+        },
+        "evidence_ids_used": [],
+        "estimate_mode": "anchored_component",
+        "estimate_confidence_tier": "medium",
+        "reasoning_state": {},
+    }
+
+    payload = build_payload(
+        EstimateRequest(text="rice bowl"),
+        request_id="req-ui",
+        parsed=parsed,
+        risk_packet={},
+        action_taken="direct_answer",
+        route_target="direct_answer",
+        route_reason="test",
+        debug_steps=[],
+        llm_traces=[],
+        retrieval_triggered=False,
+        retrieval_query=None,
+        retrieved_knowledge=[],
+        quality_signals={},
+        retry_triggered=False,
+        retry_reason=None,
+        best_answer_source="nutrition_pass",
+        private_only=False,
+        used_search=False,
+        search_query=None,
+        search_quality=None,
+        sources=[],
+        reply_text="about 500 kcal",
+    )
+
+    assert payload.protein_g == 27
+    assert payload.carb_g == 68
+    assert payload.fat_g == 14
+    assert payload.raw_macro_breakdown["protein_g"] == 20
+    assert payload.display_macro_breakdown["protein_g"] == 27
+    assert payload.macro_breakdown == payload.display_macro_breakdown
+
+
+def test_partial_grounding_packet_marks_missing_major_component() -> None:
     packet = build_partial_grounding_packet(
         user_input="breakfast shop sandwich 1x soy milk 1x hash brown 1x black tea",
         planner_foods=["breakfast shop sandwich 1x", "soy milk 1x", "hash brown 1x", "black tea"],
@@ -422,7 +816,24 @@ def test_partial_grounding_packet_marks_missing_major_component_and_recommends_s
     assert packet["grounding_quality"] == "partial"
     assert "Soy Milk" in [item["evidence_title"] for item in packet["anchored_components"]]
     assert any(item["name"] == "hash brown" for item in packet["missing_components"])
-    assert packet["search_recommended"] is True
+
+
+def test_partial_grounding_packet_only_treats_exact_lane_as_exact_truth_present() -> None:
+    packet = build_partial_grounding_packet(
+        user_input="滷味",
+        planner_foods=["滷味"],
+        selected_evidence=[
+            {
+                "title": "滷味類別模板",
+                "evidence_role": "exact_truth",
+                "source_class": "meal_template_db",
+                "retrieval_lane": "template_lane",
+            }
+        ],
+    )
+
+    assert packet["exact_truth_present"] is False
+    assert packet["template_lane_hits"][0]["title"] == "滷味類別模板"
 
 
 def test_infer_expected_components_splits_quantity_list_input() -> None:

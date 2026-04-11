@@ -1,0 +1,17 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\ENCODING_POLICY.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\ENCODING_POLICY.md_20260411_225219\ENCODING_POLICY.md
+LINES: 118
+GIT_TRACKED: False
+
+HEADINGS:
+# Encoding Policy
+## Purpose
+## Required Encoding
+## Why UTF-8 with BOM
+## Why This Differs From General Engineering Advice
+## Shell Reading Rule
+## Verification Rule
+## Editing Rule
+## Preservation Rule
+## Scope
+## Related Rules

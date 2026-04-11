@@ -1,4 +1,4 @@
-# ADR 2026-03-31: Durable Architecture Policy For Text Meal Canary
+﻿# ADR 2026-03-31: Durable Architecture Policy For Text Meal Canary
 
 ## Status
 

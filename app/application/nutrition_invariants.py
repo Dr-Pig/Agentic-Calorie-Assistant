@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .macro_derivation import derive_macro_breakdown, reconcile_macro_breakdown
 from ..schemas import NutritionResolutionResult
 
 
@@ -67,23 +68,59 @@ def apply_nutrition_invariant_guards(
 
         result = result.model_copy(update={"answer_payload": payload})
 
+    estimate_mode = str(payload.get("estimate_mode") or payload.get("best_estimate_mode") or "")
+    raw_macro = derive_macro_breakdown(
+        answer_payload=payload,
+        normalized_evidence=normalized_evidence,
+        exactness=result.exactness,
+        estimate_mode=estimate_mode,
+    )
+    display_macro, reconciliation_meta = reconcile_macro_breakdown(
+        raw_macro_breakdown=raw_macro,
+        answer_payload=payload,
+        exactness=result.exactness,
+        estimate_mode=estimate_mode,
+    )
+    payload["raw_macro_breakdown"] = raw_macro
+    payload["display_macro_breakdown"] = display_macro
+    payload["macro_breakdown"] = display_macro
+    result = result.model_copy(update={"answer_payload": payload})
+    guard_meta["raw_macro_breakdown"] = raw_macro
+    guard_meta["display_macro_breakdown"] = display_macro
+    guard_meta["macro_breakdown"] = display_macro
+    guard_meta.update(reconciliation_meta)
+
     kcal = int(payload.get("estimated_kcal") or 0)
-    protein = int(payload.get("protein_g") or 0)
-    carb = int(payload.get("carb_g") or 0)
-    fat = int(payload.get("fat_g") or 0)
+    protein = _safe_float(display_macro.get("protein_g"))
+    carb = _safe_float(display_macro.get("carb_g"))
+    fat = _safe_float(display_macro.get("fat_g"))
+    if not any(value > 0 for value in (protein, carb, fat)):
+        protein = _safe_float(payload.get("protein_g"))
+        carb = _safe_float(payload.get("carb_g"))
+        fat = _safe_float(payload.get("fat_g"))
     if kcal > 0 and any(value > 0 for value in (protein, carb, fat)):
-        implied_kcal = protein * 4 + carb * 4 + fat * 9
+        implied_kcal = int(protein * 4 + carb * 4 + fat * 9)
         delta = abs(implied_kcal - kcal)
         guard_meta["macro_delta"] = delta
-        if delta > 180:
+        tolerance = max(120, int(kcal * 0.2))
+        if delta > tolerance:
             rank = max(0, _confidence_rank(result.confidence) - 1)
             if _confidence_label(rank) != result.confidence:
                 guard_meta["guard_actions"].append("flag_macro_kcal_mismatch")
                 result = result.model_copy(update={"confidence": _confidence_label(rank)})
-        elif delta > 80:
-            rank = max(0, _confidence_rank(result.confidence) - 1)
-            if _confidence_label(rank) != result.confidence:
-                guard_meta["guard_actions"].append("flag_macro_kcal_mismatch")
-                result = result.model_copy(update={"confidence": _confidence_label(rank)})
+
+    component_breakdown = list(payload.get("component_breakdown") or [])
+    if component_breakdown:
+        component_sum = sum(int(_safe_float(item.get("estimated_kcal"))) for item in component_breakdown if isinstance(item, dict))
+        guard_meta["component_kcal_sum"] = component_sum
+        if kcal > 0 and component_sum > 0:
+            delta = abs(component_sum - kcal)
+            guard_meta["component_delta"] = delta
+            tolerance = max(120, int(kcal * 0.2))
+            if delta > tolerance:
+                rank = max(0, _confidence_rank(result.confidence) - 1)
+                if _confidence_label(rank) != result.confidence:
+                    guard_meta["guard_actions"].append("flag_component_sum_mismatch")
+                    result = result.model_copy(update={"confidence": _confidence_label(rank)})
 
     return result, guard_meta

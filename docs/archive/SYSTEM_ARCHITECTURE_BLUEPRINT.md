@@ -1,4 +1,4 @@
-# Text Meal Canary: 全系統架構、權責與可觀測指標藍圖
+﻿# Text Meal Canary: 全系統架構、權責與可觀測指標藍圖
 
 ## 專案定位與核心原則
 本文件定義 `Text Meal Canary` 的系統架構與操作規、，旨在確保系統在模型升級（Frontier Model Upgrade）過程中保持長期的產品價值與技術債防禦。

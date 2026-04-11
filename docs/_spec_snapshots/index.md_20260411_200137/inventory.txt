@@ -1,0 +1,14 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\index.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\index.md_20260411_200137\index.md
+LINES: 115
+GIT_TRACKED: False
+
+HEADINGS:
+# Docs Index
+## Canonical Specs
+## Quality Docs
+## Active Execution Plans
+## Supporting Governance
+## References
+## Handoff
+## Archive

@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from ..application.canonical_commit_bridge import (
+    build_commit_request_candidate,
+    commit_request_candidate_to_canonical,
+    resolve_commit_candidate_target,
+)
 from ..application.state_transition import determine_meal_status
+from ..infrastructure.canonical_persistence import get_legacy_mapping_for_meal_log
 from ..database import append_message, save_meal_log, supersede_log, update_message_linkage
 from ..models import MealLog, User
 from ..schemas import EstimatePayload
@@ -28,6 +34,8 @@ def persist_text_meal_result(
     action = "noop"
     persisted_status = None
     persisted_log: MealLog | None = None
+    canonical_write_decision = dict(payload.trace_contract.get("canonical_write_decision") or {})
+    canonical_write_allowed = canonical_write_decision.get("can_write_canonical", True) is not False
     boundary_followup = bool((payload.boundary_trace or {}).get("boundary_followup_triggered"))
     resolved_meal_status = determine_meal_status(
         payload_action_taken=payload.action_taken,
@@ -45,7 +53,12 @@ def persist_text_meal_result(
     if boundary_followup:
         action = "skip_log_boundary_clarification"
         persisted_status = latest_log.status if latest_log else None
-    elif payload.estimated_kcal > 0 and payload.route_target != "clarify_user_private" and resolved_meal_status == "completed_meal":
+    elif (
+        canonical_write_allowed
+        and payload.estimated_kcal > 0
+        and payload.route_target != "clarify_user_private"
+        and resolved_meal_status == "completed_meal"
+    ):
         persisted_log = save_meal_log(
             db,
             user,
@@ -111,6 +124,52 @@ def persist_text_meal_result(
             trace_id=request_id,
         )
 
+    canonical_commit = None
+    if (
+        persisted_log is not None
+        and persisted_status == "completed_meal"
+        and payload.route_target != "clarify_user_private"
+        and canonical_write_allowed
+    ):
+        parent_version_id = None
+        meal_thread_id = None
+        if latest_log is not None:
+            latest_map = get_legacy_mapping_for_meal_log(db, latest_log.id)
+            if latest_map is not None:
+                meal_thread_id = latest_map.meal_thread_id
+                parent_version_id = latest_map.meal_version_id
+        commit_candidate = build_commit_request_candidate(
+            payload=payload,
+            raw_input=raw_input,
+            planner_intent=planner_intent,
+            request_id=request_id,
+            meal_thread_id=meal_thread_id,
+            parent_version_id=parent_version_id,
+        )
+        resolved_target = resolve_commit_candidate_target(
+            db,
+            candidate=commit_candidate,
+            latest_log_id=latest_log.id if latest_log is not None else None,
+        )
+        commit_candidate.meal_thread_id = resolved_target.meal_thread_id
+        commit_candidate.parent_version_id = resolved_target.parent_version_id
+        commit_candidate.version_reason = resolved_target.version_reason
+        payload.trace_contract["correction_target_resolution"] = {
+            "meal_thread_id": resolved_target.meal_thread_id,
+            "parent_version_id": resolved_target.parent_version_id,
+            "superseded_version_id": resolved_target.superseded_version_id,
+            "version_reason": resolved_target.version_reason,
+            "historical_correction_source_version_id": resolved_target.correction_target_version_id,
+            "source_log_id": resolved_target.source_log_id,
+        }
+        canonical_commit = commit_request_candidate_to_canonical(
+            db,
+            user=user,
+            candidate=commit_candidate,
+            latest_log_id=latest_log.id if latest_log is not None else None,
+            persisted_log_id=persisted_log.id,
+        )
+
     return {
         "action": action,
         "status": persisted_status,
@@ -122,4 +181,16 @@ def persist_text_meal_result(
         "incoming_user_message_id": incoming_user_message_id,
         "assistant_message_id": assistant_message_id,
         "linked_meal_log_id": linked_meal_log_id,
+        "canonical_commit": {
+            "meal_thread_id": canonical_commit.meal_thread_id,
+            "meal_version_id": canonical_commit.meal_version_id,
+            "active_version_id": canonical_commit.active_version_id,
+            "local_date": canonical_commit.local_date,
+            "consumed_kcal": canonical_commit.consumed_kcal,
+            "created_new_thread": canonical_commit.created_new_thread,
+            "superseded_version_id": canonical_commit.superseded_version_id,
+            "ledger_entry_id": canonical_commit.ledger_entry_id,
+        }
+        if canonical_commit is not None
+        else None,
     }

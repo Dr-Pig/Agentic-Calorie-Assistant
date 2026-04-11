@@ -99,7 +99,6 @@ def extract_drink_customization_clues(text: str) -> list[str]:
         "鮮奶",
         "奶精",
         "加珍珠",
-        "珍珠",
     )
     matched: list[str] = []
     for pattern in patterns:
@@ -115,43 +114,6 @@ def looks_like_standardized_drink(text: str, evidence_items: list[dict[str, Any]
         haystacks.extend(normalize_text(str(alias)).lower() for alias in item.get("aliases", []) if str(alias).strip())
     combined = " ".join(haystacks)
     return any(token.lower() in combined for token in _DRINK_LIKE_TOKENS)
-
-
-def _brand_tokens(text: str) -> list[str]:
-    return [token for token in re.findall(r"[A-Za-z0-9\u4e00-\u9fff]+", normalize_text(text).lower()) if len(token) > 1]
-
-
-def _candidate_brand_matches_input(user_input: str, brand: str) -> bool:
-    input_lower = normalize_text(user_input).lower()
-    return any(token in input_lower for token in _brand_tokens(brand))
-
-
-def should_treat_exact_candidates_as_generic_drink_refs(
-    *,
-    user_input: str,
-    standardized_drink_like: bool,
-    portion_clues: list[str],
-    exact_candidates: list[dict[str, Any]],
-) -> bool:
-    if not standardized_drink_like or portion_clues or not exact_candidates:
-        return False
-    candidate_brands = [str(item.get("brand") or "").strip() for item in exact_candidates if str(item.get("brand") or "").strip()]
-    if not candidate_brands:
-        return False
-    if any(_candidate_brand_matches_input(user_input, brand) for brand in candidate_brands):
-        return False
-    return True
-
-
-def filter_generic_drink_packaged_evidence(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    filtered: list[dict[str, Any]] = []
-    for item in items:
-        evidence_role = str(item.get("evidence_role") or item.get("record_role") or "")
-        source_class = str(item.get("source_class") or item.get("source_type") or "")
-        if evidence_role == "exact_truth" and source_class == "exact_item_db":
-            continue
-        filtered.append(item)
-    return filtered
 
 
 def normalize_user_input_for_estimation(text: str) -> dict[str, Any]:
@@ -185,15 +147,19 @@ def estimate_token_count(value: Any) -> int:
 def knowledge_context(snippets: list[dict[str, Any]]) -> str:
     if not snippets:
         return "- No supporting evidence was retrieved."
-    lines: list[str] = []
+    lines = [
+        "| ID | Item | Lane | Tier | Identity | Kcal | Note |",
+        "|:---|:---|:---|:---|:---|:---|:---|",
+    ]
     for item in snippets[:5]:
+        evidence_id = str(item.get("evidence_id") or "")
         title = str(item.get("title") or item.get("name") or "")
-        source = str(item.get("source_type") or item.get("source_class") or "unknown")
-        note = str(item.get("snippet") or item.get("summary") or item.get("note") or "").strip()
-        line = f"- [{source}] {title}"
-        if note:
-            line += f": {note}"
-        lines.append(line)
+        lane = str(item.get("retrieval_lane") or "support_lane")
+        tier = str(item.get("source_tier") or "")
+        identity = str(item.get("identity_confidence") or item.get("match_confidence") or "none")
+        kcal = item.get("label_kcal") or item.get("kcal") or ""
+        note = str(item.get("snippet") or item.get("summary") or item.get("note") or "").replace("\n", " ").strip()
+        lines.append(f"| {evidence_id} | {title} | {lane} | {tier} | {identity} | {kcal} | {note} |")
     return "\n".join(lines)
 
 
@@ -261,6 +227,10 @@ def render_conversation_state_prompt(state: ConversationState) -> str:
         parts.append("[Planner State Digest]\n" + json.dumps(state.planner_state_digest.model_dump(mode="json"), ensure_ascii=False, indent=2))
     if state.active_meal_summary:
         parts.append("[Active Meal Summary]\n" + json.dumps(state.active_meal_summary.model_dump(mode="json"), ensure_ascii=False, indent=2))
+    if state.active_meal_state:
+        parts.append("[Active Meal State]\n" + json.dumps(state.active_meal_state.model_dump(mode="json"), ensure_ascii=False, indent=2))
+    if state.pending_followup_state:
+        parts.append("[Pending Follow-up State]\n" + json.dumps(state.pending_followup_state.model_dump(mode="json"), ensure_ascii=False, indent=2))
     if state.session_summary:
         parts.append("[Session Summary]\n" + json.dumps(state.session_summary.model_dump(mode="json"), ensure_ascii=False, indent=2))
     if state.durable_memory_hits:
@@ -271,6 +241,12 @@ def render_conversation_state_prompt(state: ConversationState) -> str:
             prefix = "USER" if msg.role == "user" else "ASSISTANT"
             lines.append(f"[{prefix}] {msg.content}")
         parts.append("[Recent Conversation Context]\n" + "\n".join(lines))
+    if state.recent_relevant_turns:
+        relevant_lines = []
+        for msg in state.recent_relevant_turns[-3:]:
+            prefix = "USER" if msg.role == "user" else "ASSISTANT"
+            relevant_lines.append(f"[{prefix}] {msg.content}")
+        parts.append("[Recent Relevant Turns]\n" + "\n".join(relevant_lines))
     if state.conversation_archive_hits:
         hit_lines = []
         for hit in state.conversation_archive_hits[:4]:
@@ -317,13 +293,22 @@ def build_planner_context_payload(
         retrieved_transcript_chunks=[chunk.model_dump(mode="json") for chunk in state.retrieved_transcript_chunks],
         retrieved_meal_records=[chunk.model_dump(mode="json") for chunk in state.retrieved_meal_records],
         active_meal_summary=state.active_meal_summary.model_dump(mode="json"),
+        pending_followup_state=state.pending_followup_state.model_dump(mode="json"),
         session_summary=state.session_summary.model_dump(mode="json"),
         durable_memory_hits=[hit.model_dump(mode="json") for hit in state.durable_memory_hits],
         active_meal_state={
+            **state.active_meal_state.model_dump(mode="json"),
             "active_meal_id": state.latest_log_id,
             "active_meal_status": state.latest_log_status,
-            "active_meal_title": state.latest_meal_title,
-            "pending_question": state.pending_question,
+        },
+        recent_relevant_turns=[msg.model_dump(mode="json") for msg in state.recent_relevant_turns],
+        dynamic_context_pack={
+            "active_meal_summary": state.active_meal_summary.model_dump(mode="json"),
+            "active_meal_state": state.active_meal_state.model_dump(mode="json"),
+            "pending_followup_state": state.pending_followup_state.model_dump(mode="json"),
+            "recent_relevant_turns": [msg.model_dump(mode="json") for msg in state.recent_relevant_turns],
+            "retrieved_meal_records": [chunk.model_dump(mode="json") for chunk in state.retrieved_meal_records],
+            "session_summary": state.session_summary.model_dump(mode="json"),
         },
         time_distance_features={"active_meal_time_gap_seconds": state.active_meal_time_gap_seconds},
         boundary_state={
@@ -384,13 +369,22 @@ def build_decision_payload(
     available_tools: list[str],
     planning_brief: PlanningBrief | None = None,
 ) -> dict[str, Any]:
+    from ..application.evidence_assembly import (
+        build_attested_evidence_blocks,
+        build_reasoning_state,
+        infer_brand_hint,
+        infer_candidate_relationship,
+        infer_query_alignment,
+        infer_variant_type,
+        retrieval_lane_for_item,
+        split_evidence_lanes,
+    )
     portion_clues = extract_portion_clues(user_input)
     standardized_drink_like = looks_like_standardized_drink(user_input, selected_evidence_summary)
     drink_customization_clues = extract_drink_customization_clues(user_input) if standardized_drink_like else []
+    lane_split = split_evidence_lanes(selected_evidence_summary)
     exact_truth_candidates = []
-    for item in selected_evidence_summary:
-        if str(item.get("evidence_role") or "") != "exact_truth":
-            continue
+    for item in lane_split["exact_lane"]:
         exact_truth_candidates.append(
             {
                 "title": str(item.get("title") or ""),
@@ -400,44 +394,67 @@ def build_decision_payload(
                 "serving_basis": str(item.get("serving_basis") or ""),
                 "kcal": item.get("kcal"),
                 "match_path": str(item.get("match_path") or ""),
+                "brand_hint": str(item.get("brand_hint") or infer_brand_hint(item, query=user_input)),
+                "query_alignment": str(item.get("query_alignment") or infer_query_alignment(item, query=user_input)),
+                "variant_type": str(item.get("variant_type") or infer_variant_type(item, query=user_input)),
+                "candidate_relationship": str(item.get("candidate_relationship") or infer_candidate_relationship(item, query=user_input)),
+                "retrieval_lane": retrieval_lane_for_item(item),
                 "aliases": [str(alias) for alias in item.get("aliases", []) if str(alias).strip()][:5],
             }
         )
-    generic_drink_packaged_refs = should_treat_exact_candidates_as_generic_drink_refs(
-        user_input=user_input,
-        standardized_drink_like=standardized_drink_like,
-        portion_clues=portion_clues,
-        exact_candidates=exact_truth_candidates,
-    )
-    if generic_drink_packaged_refs:
-        exact_truth_candidates = []
-    exact_title_match_present = any(
-        str(item.get("match_path") or "") in {"exact_title", "exact_alias"}
+    exact_match_paths = [
+        str(item.get("match_path") or "").strip()
         for item in exact_truth_candidates
+        if str(item.get("match_path") or "").strip()
+    ]
+    packaged_exact_candidate_count = sum(1 for item in exact_truth_candidates if str(item.get("variant_type") or "") == "packaged_retail")
+    exact_brand_hints = sorted({str(item.get("brand_hint") or "").strip() for item in exact_truth_candidates if str(item.get("brand_hint") or "").strip()})
+    core_default_candidates = [item for item in exact_truth_candidates if str(item.get("variant_type") or "") == "core_default"]
+    attested_evidence_blocks = build_attested_evidence_blocks(selected_evidence_summary, query=user_input, limit=8)
+    reasoning_state = build_reasoning_state(
+        user_input=user_input,
+        selected_evidence=selected_evidence_summary,
+        partial_grounding=None,
+        meal_template_hit=False,
     )
     scoped_meal_state = (
         meal_state.model_dump(mode="json")
         if meal_state and meal_link_result.meal_link_action == "attach_to_existing_meal"
         else {}
     )
-    selected_evidence_payload = (
-        filter_generic_drink_packaged_evidence(selected_evidence_summary)
-        if generic_drink_packaged_refs
-        else selected_evidence_summary
-    )
     return {
         "current_user_input": user_input,
         "portion_clues": portion_clues,
         "drink_customization_clues": drink_customization_clues,
         "standardized_drink_like": standardized_drink_like,
-        "size_missing_for_standardized_drink": standardized_drink_like and not portion_clues,
-        "generic_drink_customization_present": standardized_drink_like and bool(drink_customization_clues) and not portion_clues,
-        "exact_title_match_present": exact_title_match_present,
-        "single_exact_candidate_present": len(exact_truth_candidates) == 1,
-        "generic_drink_packaged_refs": generic_drink_packaged_refs,
+        "cup_size_provided": bool(portion_clues),
+        "exact_truth_candidate_count": len(exact_truth_candidates),
+        "exact_match_paths": exact_match_paths[:5],
+        "packaged_exact_candidate_count": packaged_exact_candidate_count,
+        "exact_brand_hints": exact_brand_hints,
+        "exact_brand_conflict_count": max(0, len(exact_brand_hints) - 1),
+        "core_default_candidate_count": len(core_default_candidates),
         "canonical_meal_state": scoped_meal_state,
         "meal_link_result": meal_link_result.model_dump(mode="json"),
-        "selected_evidence_summary": selected_evidence_payload,
+        "selected_evidence_summary": selected_evidence_summary,
+        "attested_evidence_blocks": attested_evidence_blocks,
+        "reasoning_state": reasoning_state,
+        "evidence_gap_state": reasoning_state,
+        "observation_summary": dict(reasoning_state.get("observation_summary") or {}),
+        "exact_lane_candidates": exact_truth_candidates[:5],
+        "anchor_lane_candidates": lane_split["anchor_lane"][:5],
+        "template_lane_hits": lane_split["template_lane"][:5],
+        "evidence_policy": {
+            "source_priority": [
+                "tier_1_exact_verified",
+                "tier_2_context_verified",
+                "tier_3_anchor_prior",
+                "tier_4_web_nonexact",
+                "tier_5_model_context",
+            ],
+            "cite_evidence_ids_in_reasoning": True,
+            "prefer_attested_evidence_over_model_knowledge": True,
+        },
         "exact_truth_available": bool(exact_truth_candidates),
         "exact_truth_candidates": exact_truth_candidates[:5],
         "available_tools": available_tools,
@@ -456,14 +473,23 @@ def build_nutrition_resolution_payload(
     user_input: str,
     partial_grounding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    from ..application.evidence_assembly import (
+        build_attested_evidence_blocks,
+        build_reasoning_state,
+        infer_brand_hint,
+        infer_candidate_relationship,
+        infer_query_alignment,
+        infer_variant_type,
+        retrieval_lane_for_item,
+        split_evidence_lanes,
+    )
     portion_clues = extract_portion_clues(user_input)
     standardized_drink_like = looks_like_standardized_drink(user_input, [dict(item.get("raw") or {}) for item in normalized_evidence])
     drink_customization_clues = extract_drink_customization_clues(user_input) if standardized_drink_like else []
+    raw_items = [dict(item.get("raw") or {}) | {"query": str(item.get("query") or "")} for item in normalized_evidence]
+    lane_split = split_evidence_lanes(raw_items)
     exact_truth_candidates = []
-    for item in normalized_evidence:
-        raw = dict(item.get("raw") or {})
-        if str(raw.get("evidence_role") or "") != "exact_truth":
-            continue
+    for raw in lane_split["exact_lane"]:
         exact_truth_candidates.append(
             {
                 "title": str(raw.get("title") or ""),
@@ -480,54 +506,83 @@ def build_nutrition_resolution_payload(
                 "source_class": str(raw.get("source_class") or raw.get("source_type") or ""),
                 "portion_basis_quality": str(raw.get("portion_basis_quality") or ""),
                 "serving_basis": str(raw.get("serving_basis") or raw.get("portion_basis") or raw.get("serving_size") or ""),
+                "brand_hint": str(raw.get("brand_hint") or infer_brand_hint(raw, query=user_input)),
+                "query_alignment": str(raw.get("query_alignment") or infer_query_alignment(raw, query=user_input)),
+                "variant_type": str(raw.get("variant_type") or infer_variant_type(raw, query=user_input)),
+                "candidate_relationship": str(raw.get("candidate_relationship") or infer_candidate_relationship(raw, query=user_input)),
+                "retrieval_lane": retrieval_lane_for_item(raw),
                 "aliases": [str(alias) for alias in raw.get("aliases", []) if str(alias).strip()][:5],
             }
         )
-    generic_drink_packaged_refs = should_treat_exact_candidates_as_generic_drink_refs(
-        user_input=user_input,
-        standardized_drink_like=standardized_drink_like,
-        portion_clues=portion_clues,
-        exact_candidates=exact_truth_candidates,
-    )
-    if generic_drink_packaged_refs:
-        exact_truth_candidates = []
-    exact_title_match_present = any(
-        str(item.get("match_path") or "") in {"exact_title", "exact_alias"}
+    exact_match_paths = [
+        str(item.get("match_path") or "").strip()
         for item in exact_truth_candidates
+        if str(item.get("match_path") or "").strip()
+    ]
+    packaged_exact_candidate_count = sum(1 for item in exact_truth_candidates if str(item.get("variant_type") or "") == "packaged_retail")
+    exact_brand_hints = sorted({str(item.get("brand_hint") or "").strip() for item in exact_truth_candidates if str(item.get("brand_hint") or "").strip()})
+    core_default_candidates = [item for item in exact_truth_candidates if str(item.get("variant_type") or "") == "core_default"]
+    attested_evidence_blocks = build_attested_evidence_blocks(
+        raw_items,
+        query=user_input,
+        limit=10,
+    )
+    meal_template_hit = bool((partial_grounding or {}).get("template_lane_hits")) or str((partial_grounding or {}).get("store_hint") or "").strip() != ""
+    reasoning_state = build_reasoning_state(
+        user_input=user_input,
+        selected_evidence=raw_items,
+        partial_grounding=partial_grounding or {},
+        meal_template_hit=meal_template_hit,
+        used_search=bool(any(str(item.get("source_class") or "") in {"web_search_official", "web_search_nonexact"} for item in raw_items)),
+        search_query=next((str(item.get("query") or "") for item in normalized_evidence if str(item.get("query") or "").strip()), None),
+        search_quality=next((item.get("search_quality") for item in normalized_evidence if item.get("search_quality") is not None), None),
+        search_attempt_count=int((partial_grounding or {}).get("search_attempt_count") or 0),
     )
     scoped_meal_state = (
         meal_state.model_dump(mode="json")
         if meal_state and meal_link_result.meal_link_action == "attach_to_existing_meal"
         else {}
     )
-    normalized_evidence_payload = (
-        [
-            item
-            for item in normalized_evidence
-            if str(dict(item.get("raw") or {}).get("evidence_role") or "") != "exact_truth"
-            or str(dict(item.get("raw") or {}).get("source_class") or dict(item.get("raw") or {}).get("source_type") or "") != "exact_item_db"
-        ]
-        if generic_drink_packaged_refs
-        else normalized_evidence
-    )
     return {
         "current_user_input": user_input,
         "portion_clues": portion_clues,
         "drink_customization_clues": drink_customization_clues,
         "standardized_drink_like": standardized_drink_like,
-        "size_missing_for_standardized_drink": standardized_drink_like and not portion_clues,
-        "generic_drink_customization_present": standardized_drink_like and bool(drink_customization_clues) and not portion_clues,
-        "exact_title_match_present": exact_title_match_present,
-        "single_exact_candidate_present": len(exact_truth_candidates) == 1,
-        "generic_drink_packaged_refs": generic_drink_packaged_refs,
+        "cup_size_provided": bool(portion_clues),
+        "exact_truth_candidate_count": len(exact_truth_candidates),
+        "exact_match_paths": exact_match_paths[:5],
+        "packaged_exact_candidate_count": packaged_exact_candidate_count,
+        "exact_brand_hints": exact_brand_hints,
+        "exact_brand_conflict_count": max(0, len(exact_brand_hints) - 1),
+        "core_default_candidate_count": len(core_default_candidates),
         "canonical_meal_state": scoped_meal_state,
         "meal_link_result": meal_link_result.model_dump(mode="json"),
         "decision_result": decision_result.model_dump(mode="json"),
-        "normalized_evidence": normalized_evidence_payload,
+        "normalized_evidence": normalized_evidence,
+        "attested_evidence_blocks": attested_evidence_blocks,
+        "reasoning_state": reasoning_state,
+        "evidence_gap_state": reasoning_state,
+        "observation_summary": dict(reasoning_state.get("observation_summary") or {}),
+        "exact_lane_candidates": exact_truth_candidates[:5],
+        "anchor_lane_candidates": lane_split["anchor_lane"][:8],
+        "template_lane_hits": lane_split["template_lane"][:8],
+        "evidence_policy": {
+            "source_priority": [
+                "tier_1_exact_verified",
+                "tier_2_context_verified",
+                "tier_3_anchor_prior",
+                "tier_4_web_nonexact",
+                "tier_5_model_context",
+            ],
+            "cite_evidence_ids_in_reasoning": True,
+            "prefer_attested_evidence_over_model_knowledge": True,
+            "conflict_policy": "prefer_higher_tier_same_item_evidence; verified exact evidence beats context memory; verified context beats generic priors; generic priors beat weak web; never let lower-tier sibling evidence override higher-tier exact evidence",
+        },
         "exact_truth_available": bool(exact_truth_candidates),
         "exact_truth_candidates": exact_truth_candidates[:5],
         "calibration_packet": calibration_packet or {},
         "partial_grounding": partial_grounding or {},
+        "meal_template_hit": meal_template_hit,
         "active_unresolved_meal_id": (
             meal_state.meal_id
             if meal_state

@@ -16,7 +16,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ..agent.exact_item_index import resolve_exact_item_fts
+from .exact_item_lookup import resolve_exact_item_fts
 
 
 # Known brands in the exact_item_cards DB — used for brand extraction and re-ranking.
@@ -82,6 +82,11 @@ def _extract_brand(query: str) -> str | None:
         if brand in query:
             return brand
     return None
+
+
+def query_has_known_brand(query: str) -> bool:
+    """Return whether the query contains a known chain or packaged-retail brand."""
+    return _extract_brand(query) is not None
 
 
 def _normalize_spaces(text: str) -> str:

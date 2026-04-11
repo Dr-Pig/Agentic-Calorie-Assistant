@@ -1,0 +1,42 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\specs\L3M_GUARDRAIL_MATH_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L3M_GUARDRAIL_MATH_SPEC.md_20260411_205346\L3M_GUARDRAIL_MATH_SPEC.md
+LINES: 336
+GIT_TRACKED: False
+
+HEADINGS:
+# L3M Guardrail Math Spec
+## 1. 目的
+## 2. Global Math Rules
+### 2.1 Deterministic math inputs only
+### 2.1A Decision-Mode Boundary
+### 2.2 Rounding posture
+## 3. DayBudgetLedger Math
+### 3.1 Base definitions
+### 3.2 Effective budget
+### 3.3 Remaining budget
+### 3.4 Consumed kcal
+### 3.5 Recompute rule
+## 4. Rescue Guardrail Math
+### 4.1 Overshoot definition
+### 4.2 Rescue spread target
+### 4.3 Max compression denominator
+### 4.4 Safety floor check
+### 4.5 Rescue viability rule
+### 4.6 `recovery_viability`
+### 4.7 Activation rule
+## 5. Calibration Eligibility Math
+### 5.1 Observation window minimum
+### 5.2 Intake coverage minimum
+### 5.3 Drift evidence posture
+### 5.4 Behavior-first attribution gate
+## 6. Recommendation Guardrail Math
+### 6.1 Remaining-kcal posture
+### 6.2 Budget posture classification
+### 6.3 Candidate legality heuristic
+## 7. Meal Commit Arithmetic
+### 7.1 Meal total kcal
+### 7.2 Macro derivation posture
+## 8. Cross-Midnight Attribution Math
+### 8.1 Local date truth
+## 9. No-Guess Zones
+## 10. Implementation Rule

@@ -1,4 +1,8 @@
-# Text Meal Canary
+﻿# Text Meal Canary
+
+Repository map:
+
+- [docs/index.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/index.md)
 
 獨立的本地 text-meal canary。這個 repo 只做：
 

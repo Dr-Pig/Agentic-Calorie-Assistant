@@ -48,14 +48,35 @@ class MealRecord(BaseModel):
     raw_input: str
     timestamp: str
     status: str
+    conversation_id: str | None = None
+    user_id: str | None = None
+    created_at_utc: str | None = None
+    updated_at_utc: str | None = None
+    occurred_at_utc: str | None = None
+    occurred_at_local: str | None = None
+    local_date: str | None = None
+    timezone: str | None = None
+    relative_time_label: str | None = None
+    meal_type: str = "unknown"
+    normalized_user_input: str | None = None
+    resolved_food_items: list[str] = Field(default_factory=list)
     kcal: int = 0
     protein_g: int = 0
     carb_g: int = 0
     fat_g: int = 0
     components: list[dict[str, Any]] = Field(default_factory=list)
+    component_breakdown: list[dict[str, Any]] = Field(default_factory=list)
+    estimate_mode: str | None = None
+    confidence: str | None = None
+    evidence_ids_used: list[str] = Field(default_factory=list)
+    evidence_summary: list[dict[str, Any]] = Field(default_factory=list)
     pending_question: str | None = None
+    followup_status: str | None = None
+    missing_slots: list[str] = Field(default_factory=list)
     resolved_slots: list[str] = Field(default_factory=list)
     parent_log_id: int | None = None
+    correction_parent_meal_id: int | None = None
+    correction_note: str | None = None
 
 
 class RetrievedContextChunk(BaseModel):
@@ -94,6 +115,30 @@ class ActiveMealSummary(BaseModel):
     selected_evidence_titles: list[str] = Field(default_factory=list)
 
 
+class ActiveMealState(BaseModel):
+    meal_id: int | None = None
+    meal_title: str | None = None
+    status: str | None = None
+    estimate_mode: str | None = None
+    confidence: str | None = None
+    pending_question: str | None = None
+    missing_slots: list[str] = Field(default_factory=list)
+    resolved_slots: list[str] = Field(default_factory=list)
+    resolved_food_items: list[str] = Field(default_factory=list)
+    accepted_corrections: list[str] = Field(default_factory=list)
+    relative_time_label: str | None = None
+    local_date: str | None = None
+
+
+class PendingFollowupState(BaseModel):
+    is_open: bool = False
+    source_meal_id: int | None = None
+    pending_question: str | None = None
+    missing_high_impact_slots: list[str] = Field(default_factory=list)
+    asked_questions_history: list[str] = Field(default_factory=list)
+    reason_not_direct_answer: str | None = None
+
+
 class RecentTurnSummary(BaseModel):
     user_messages: list[str] = Field(default_factory=list)
     assistant_messages: list[str] = Field(default_factory=list)
@@ -104,6 +149,7 @@ class SessionSummary(BaseModel):
     active_meal_title: str | None = None
     open_questions: list[str] = Field(default_factory=list)
     recent_corrections: list[str] = Field(default_factory=list)
+    current_session_preferences_light: list[str] = Field(default_factory=list)
 
 
 class PlannerStateDigest(BaseModel):
@@ -135,11 +181,14 @@ class ConversationState(BaseModel):
     conversation_digest: ConversationDigest = Field(default_factory=ConversationDigest)
     planner_state_digest: PlannerStateDigest = Field(default_factory=PlannerStateDigest)
     active_meal_summary: ActiveMealSummary = Field(default_factory=ActiveMealSummary)
+    active_meal_state: ActiveMealState = Field(default_factory=ActiveMealState)
+    pending_followup_state: PendingFollowupState = Field(default_factory=PendingFollowupState)
     recent_turn_summary: RecentTurnSummary = Field(default_factory=RecentTurnSummary)
     session_summary: SessionSummary = Field(default_factory=SessionSummary)
     durable_memory_hits: list[DurableMemoryHit] = Field(default_factory=list)
     retrieved_transcript_chunks: list[RetrievedContextChunk] = Field(default_factory=list)
     retrieved_meal_records: list[RetrievedContextChunk] = Field(default_factory=list)
+    recent_relevant_turns: list[ConversationMessage] = Field(default_factory=list)
     retrieval_diagnostics: dict[str, Any] = Field(default_factory=dict)
     active_meal_time_gap_seconds: float | None = None
     boundary_clarification_open: bool = False
@@ -168,9 +217,12 @@ class PlannerContextPayload(BaseModel):
     retrieved_transcript_chunks: list[dict[str, Any]] = Field(default_factory=list)
     retrieved_meal_records: list[dict[str, Any]] = Field(default_factory=list)
     active_meal_summary: dict[str, Any] = Field(default_factory=dict)
+    pending_followup_state: dict[str, Any] = Field(default_factory=dict)
     session_summary: dict[str, Any] = Field(default_factory=dict)
     durable_memory_hits: list[dict[str, Any]] = Field(default_factory=list)
     active_meal_state: dict[str, Any] = Field(default_factory=dict)
+    recent_relevant_turns: list[dict[str, Any]] = Field(default_factory=list)
+    dynamic_context_pack: dict[str, Any] = Field(default_factory=dict)
     time_distance_features: dict[str, Any] = Field(default_factory=dict)
     boundary_state: dict[str, Any] = Field(default_factory=dict)
 

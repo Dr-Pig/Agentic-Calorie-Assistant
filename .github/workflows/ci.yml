@@ -1,0 +1,80 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  layer-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run layer integrity check
+        run: python scripts/check_layer_integrity.py
+
+      - name: Run protected doc rewrite audit
+        shell: pwsh
+        run: ./scripts/check_protected_doc_rewrites.ps1
+
+      - name: Run encoding policy audit
+        shell: pwsh
+        run: ./scripts/check_encoding.ps1 -AuditDocsPolicy
+
+      - name: Run fat-file governance audit
+        shell: pwsh
+        run: ./scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings
+
+      - name: Run migration discipline check
+        run: python scripts/check_migration_discipline.py
+
+  smoke-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run smoke tests
+        run: python -m pytest -q -m smoke
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run integration tests
+        run: python -m pytest -q -m integration

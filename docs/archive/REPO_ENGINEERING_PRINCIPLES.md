@@ -1,4 +1,4 @@
-# Repo Engineering Principles
+﻿# Repo Engineering Principles
 
 ## Goal
 

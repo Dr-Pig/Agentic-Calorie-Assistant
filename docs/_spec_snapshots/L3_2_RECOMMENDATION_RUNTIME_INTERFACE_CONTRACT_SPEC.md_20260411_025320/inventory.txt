@@ -1,0 +1,81 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_025320\L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md
+LINES: 572
+GIT_TRACKED: False
+
+HEADINGS:
+# L3.2 Recommendation Runtime / Interface Contract Spec
+## 1. ?桃?
+## 2. Recommendation ??雿?
+### 2.1 銝?桃???
+### 2.2 recommendation 銝遣蝡?intent state
+### 2.3 ?Ｗ??格?
+## 3. 銝餅?蝔撓?亥??蝯撓??
+### 3.1 銝餅?蝔?撠撓??
+### 3.2 銝餅?蝔?蝯撓??
+## 4. Canonical Runtime Shape
+## 5. Pass 1: `recommendation_context_pass`
+### 5.1 ?格?
+### 5.2 鞎砌遙
+### 5.3 ?航?
+### 5.4 敹?頛詨
+### 5.5 hard constraints 蝭?
+### 5.6 soft preferences 蝭?
+### 5.7 銝??鈭?
+## 6. Pass 2: `candidate_generation_pass`
+### 6.1 ?格?
+### 6.2 鞎砌遙
+### 6.3 ?靘??芸???
+#### 摰儔
+### 6.4 ?航?
+### 6.5 敹?頛詨
+### 6.6 `RecommendationCandidate` ?撠?雿?
+### 6.7 銝??鈭?
+## 7. Pass 3: `ranking_and_selection_pass`
+### 7.1 ?格?
+### 7.2 鞎砌遙
+### 7.3 ?航?
+### 7.4 敹?頛詨
+### 7.5 ranking 閬?
+#### hard constraints
+#### soft preferences
+### 7.6 銝??鈭?
+## 8. Pass 4: `recommendation_response_pass`
+### 8.1 ?格?
+### 8.2 鞎砌遙
+### 8.3 ?航?
+### 8.4 敹?頛詨
+### 8.5 ?閬?
+### 8.6 quick actions
+### 8.7 銝??鈭?
+## 9. PreferenceProfileSummary Contract
+### 9.1 摰?
+### 9.2 ?撠?雿?
+### 9.3 ???嗅惜??靽?
+## 10. Recommendation ??Intake ????
+### 10.1 recommendation ?身銝??state
+### 10.2 雿?頧?intake
+### 10.3 頧?intake ?葆???閮?
+## 11. Recommendation ??Proposal ????
+### 11.1 雿??芣 recommendation
+### 11.2 雿????proposal
+## 12. Location Context Contract
+### 12.1 ?臬蝝 contract
+### 12.2 `location_context` ?撠?雿?
+### 12.3 雿輻?孵?
+### 12.4 憭???
+## 13. Source Extensions
+### 13.1 蝚砌??蜓靘?
+### 13.2 recipe source
+### 13.3 delivery platform
+## 14. Proactive Recommendation Contract
+### 14.1 ?航孛?潭?隞?
+### 14.2 suppression / cooldown
+### 14.3 actionable nudges
+## 15. Important Types / Interfaces
+## 16. ??L0 / L1 / L2 ??朣?
+### 撠?L0
+### 撠?L1
+### 撠?L2
+## 17. 皜祈岫??
+## 18. 撖虫??身

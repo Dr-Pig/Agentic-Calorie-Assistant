@@ -1,0 +1,30 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\L0_PRODUCT_CAPABILITY_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L0_PRODUCT_CAPABILITY_SPEC.md_20260411_025319\L0_PRODUCT_CAPABILITY_SPEC.md
+LINES: 317
+GIT_TRACKED: False
+
+HEADINGS:
+# L0 Product Capability Spec
+## Summary
+## Product Interaction Model
+### Chat-First
+### UI as Dashboard and Confirm Surface
+### Cross-Surface Sync Rule
+## Core Product Objects
+### 1. `meal_thread`
+### 2. `day_budget_ledger`
+### 3. `body_plan`
+### 4. `proposal`
+### 5. `proactive_trigger`
+## Capability Domains
+### A. Meal Thread Resolution
+### B. Contextual Recommendation
+### C. Body Calibration
+### D. Rescue and Coaching
+## High-Level Product States
+### `meal_thread` states
+### `proposal` states
+### `proactive_trigger` states
+## Core Product Rules
+## Explicitly Deferred To Later Specs
+## Assumptions

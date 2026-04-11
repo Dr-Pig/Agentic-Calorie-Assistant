@@ -1,5 +1,6 @@
 from .conversation_state import (
     AnswerSourceDecision,
+    ActiveMealState,
     ActiveMealSummary,
     ConversationArchiveRecord,
     ConversationDigest,
@@ -11,6 +12,7 @@ from .conversation_state import (
     EvidenceJournal,
     GroundingBundle,
     MealRecord,
+    PendingFollowupState,
     PlannerContextPayload,
     PlannerStateDigest,
     RecentTurnSummary,
@@ -26,3 +28,17 @@ from .conversation_state import (
     TurnIntentResult,
 )
 from .meal_state import CanonicalMealState
+from .canonical_models import (
+    BodyObservation,
+    BodyPlan,
+    CurrentBudgetMealSummary,
+    CurrentBudgetView,
+    DayBudgetLedger,
+    LedgerEntry,
+    MealItem,
+    MealThread,
+    MealVersion,
+    ProactiveTrigger,
+    ProposalContainer,
+    ProposalOption,
+)

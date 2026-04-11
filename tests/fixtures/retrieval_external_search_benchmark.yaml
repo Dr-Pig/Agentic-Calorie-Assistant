@@ -1,0 +1,100 @@
+dataset_name: retrieval_external_search_benchmark
+language: zh-TW
+items:
+  - id: case_001_mos_pork_burger
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_001_mos_pork_burger
+    expected_retrieval:
+      path_family: local_exact_only
+      should_use_search: false
+      should_have_exact_lane: true
+      should_have_anchor_lane: true
+      should_have_official_evidence: false
+      should_keep_template_only: false
+      should_suppress_kcal: false
+
+  - id: case_003_mos_breakfast_combo
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_003_mos_breakfast_combo
+    expected_retrieval:
+      path_family: local_exact_only
+      should_use_search: false
+      should_have_exact_lane: true
+      should_have_anchor_lane: true
+      should_have_official_evidence: false
+      should_keep_template_only: false
+      should_suppress_kcal: false
+
+  - id: case_006_711_oyakodon
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_006_711_oyakodon
+    expected_retrieval:
+      path_family: external_official_escalation
+      should_use_search: true
+      should_have_exact_lane: false
+      should_have_anchor_lane: false
+      should_have_official_evidence: true
+      should_keep_template_only: false
+      should_suppress_kcal: false
+
+  - id: case_007_yoshinoya_large_beef_bowl
+    source_fixture: benchmark_test_set_v1.txt
+    source_case_id: case_007
+    source_of_truth:
+      note: "v1 text source linked for input only"
+    expected_retrieval:
+      path_family: external_official_escalation
+      should_use_search: true
+      should_have_exact_lane: false
+      should_have_anchor_lane: true
+      should_have_official_evidence: true
+      should_keep_template_only: false
+      should_suppress_kcal: false
+
+  - id: case_013_poke_salmon_spicy_mayo
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_013_poke_salmon_spicy_mayo
+    expected_retrieval:
+      path_family: local_anchor_only
+      should_use_search: false
+      should_have_exact_lane: false
+      should_have_anchor_lane: true
+      should_have_official_evidence: false
+      should_keep_template_only: false
+      should_suppress_kcal: false
+
+  - id: case_018_luwei_detailed
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_018_luwei_detailed
+    expected_retrieval:
+      path_family: local_anchor_only
+      should_use_search: false
+      should_have_exact_lane: false
+      should_have_anchor_lane: true
+      should_have_official_evidence: false
+      should_keep_template_only: false
+      should_suppress_kcal: false
+
+  - id: case_010_shared_stirfry_generic
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_010_shared_stirfry_generic
+    expected_retrieval:
+      path_family: local_anchor_only
+      should_use_search: false
+      should_have_exact_lane: false
+      should_have_anchor_lane: true
+      should_have_official_evidence: false
+      should_keep_template_only: false
+      should_suppress_kcal: true
+
+  - id: case_017_luwei_generic
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_017_luwei_generic
+    expected_retrieval:
+      path_family: template_only
+      should_use_search: false
+      should_have_exact_lane: false
+      should_have_anchor_lane: false
+      should_have_official_evidence: false
+      should_keep_template_only: true
+      should_suppress_kcal: true

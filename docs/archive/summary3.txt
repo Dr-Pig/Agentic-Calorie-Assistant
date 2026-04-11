@@ -1,0 +1,19 @@
+FAILED CASES:
+[]
+
+SUMMARY:
+{
+  "total_cases": 18,
+  "passed": 4,
+  "failed": 14,
+  "answer_passed": 13,
+  "route_passed": 5,
+  "verdicts": {
+    "pass": 4,
+    "fail": 14
+  },
+  "hard_failure_breakdown": {
+    "action_match": 9,
+    "kcal_reference_match": 5
+  }
+}

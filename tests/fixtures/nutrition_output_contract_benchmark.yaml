@@ -1,0 +1,66 @@
+dataset_name: nutrition_output_contract_benchmark
+language: zh-TW
+items:
+  - id: case_001_mos_pork_burger
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_001_mos_pork_burger
+    expected_contract:
+      macro_mode: unavailable
+      component_breakdown_required: true
+      evidence_ids_required: true
+
+  - id: case_003_mos_breakfast_combo
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_003_mos_breakfast_combo
+    expected_contract:
+      macro_mode: derived_from_components
+      component_breakdown_required: true
+      evidence_ids_required: true
+
+  - id: case_006_711_oyakodon
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_006_711_oyakodon
+    expected_contract:
+      macro_mode: derived_from_components
+      component_breakdown_required: true
+      evidence_ids_required: true
+
+  - id: case_011_shared_stirfry_partial_details
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_011_shared_stirfry_partial_details
+    expected_contract:
+      macro_mode: derived_from_components
+      component_breakdown_required: true
+      evidence_ids_required: false
+
+  - id: case_013_poke_salmon_spicy_mayo
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_013_poke_salmon_spicy_mayo
+    expected_contract:
+      macro_mode: derived_from_components
+      component_breakdown_required: true
+      evidence_ids_required: false
+
+  - id: case_016_salmon_ikura_don
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_016_salmon_ikura_don
+    expected_contract:
+      macro_mode: derived_from_components
+      component_breakdown_required: true
+      evidence_ids_required: false
+
+  - id: case_015_zhajiangmian_taiwanese
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_015_zhajiangmian_taiwanese
+    expected_contract:
+      macro_mode: derived_from_components
+      component_breakdown_required: true
+      evidence_ids_required: false
+
+  - id: case_014_zhajiangmian_generic
+    source_fixture: benchmark_test_set_v2.txt
+    source_case_id: case_014_zhajiangmian_generic
+    expected_contract:
+      macro_mode: derived_from_components
+      component_breakdown_required: true
+      evidence_ids_required: false

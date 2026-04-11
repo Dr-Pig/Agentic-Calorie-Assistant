@@ -184,6 +184,9 @@ async def run_nutrition_resolution_pass(
 
         # Build nutrition result
         nutrition_result = nutrition_result_from_primary(current_parsed)
+        if nutrition_result.answer_payload is not None:
+            nutrition_result.answer_payload.setdefault("estimate_mode", current_parsed.get("estimate_mode"))
+            nutrition_result.answer_payload.setdefault("exactness", current_parsed.get("exactness"))
 
         # Apply invariant guards
         nutrition_result, guard_meta = apply_nutrition_invariant_guards(

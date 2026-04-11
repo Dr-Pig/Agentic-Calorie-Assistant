@@ -1,0 +1,70 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\specs\L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md_20260411_200136\L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md
+LINES: 585
+GIT_TRACKED: False
+
+HEADINGS:
+# L3.3B Calibration Proposal Policy / Runtime Contract Spec
+## 1. 目的
+## 2. 核心定位
+## 3. Proposal Eligibility Gate
+### 3.1 進入 proposal flow 的最低條件
+### 3.2 不應進入 proposal flow 的情況
+### 3.3 proposal gate 的核心原則
+## 4. Proposal Option Families
+### 4.1 `monitor_only`
+### 4.2 `logging_quality_first`
+### 4.3 `budget_adjustment`
+### 4.4 `pace_adjustment`
+### 4.5 `plan_reset`
+## 5. Proposal Generation Priority
+## 6. Runtime Shape
+## 7. Pass 1: `proposal_gate_pass`
+### 7.1 目標
+### 7.2 可讀
+### 7.3 必須輸出
+### 7.4 不可做的事
+## 8. Pass 2: `option_generation_pass`
+### 8.1 目標
+### 8.2 可讀
+### 8.3 必須輸出
+### 8.4 option payload 最少應包含
+### 8.5 v1 option shaping 原則
+## 9. Pass 3: `option_ranking_pass`
+### 9.1 目標
+### 9.2 ranking 原則
+### 9.3 預設排序傾向
+### 9.4 必須輸出
+## 10. Pass 4: `proposal_response_pass`
+### 10.1 目標
+### 10.2 必須輸出
+### 10.3 提案密度
+### 10.3 quick actions
+### 10.4 不可做的事
+## 11. `logging_quality_first` Contract
+### 11.1 定位
+### 11.2 最小 effect payload
+### 11.3 預設建議窗
+### 11.4 與 intake runtime 的關係
+## 12. `budget_adjustment` Contract
+### 12.1 定位
+### 12.2 最小 effect payload
+### 12.3 調整步長與安全底線
+### 12.4 accept 後 side effects
+## 13. `plan_reset` Contract
+### 13.1 什麼情況才應出現
+### 13.2 不建議的做法
+### 13.3 最小 effect payload
+### 13.4 對外命名
+## 14. Commit Contract
+### 14.1 什麼可直接 commit
+### 14.2 什麼需 proposal accept 才能 commit
+### 14.3 application layer 落地後應做的事
+### 14.4 生效時機
+## 15. 與其他 flows 的邊界
+### 15.1 與 L3.1 Intake
+### 15.2 與 L3.2 Recommendation
+### 15.3 與 Rescue
+## 16. Important Types / Interfaces
+## 17. 測試情境
+## 18. v1 Default Decisions

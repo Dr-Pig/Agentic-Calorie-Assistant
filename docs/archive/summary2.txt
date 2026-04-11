@@ -1,0 +1,2 @@
+Type: <class 'dict'>
+Keys: ['provider', 'fixture', 'allow_search', 'summary', 'cases']

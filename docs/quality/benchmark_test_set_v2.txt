@@ -1,0 +1,590 @@
+dataset_name: calorie_benchmark_v2
+language: zh-TW
+benchmark_policy:
+  evaluation_scope: "single_turn_only"
+  outcome_first: true
+  ideal_output_is_reference_not_verbatim_target: true
+  notes:
+    - "評分以 action、exactness、confidence posture、熱量/範圍、追問品質為主，不做 ideal_output 逐字比對。"
+    - "單輪 benchmark 不要求固定走 local DB 或 external search，只要求 evidence 強度與最終結果合理。"
+    - "exact = 有同品項強證據；anchored = 有可信結構化錨點可收斂到合理範圍；heuristic = 只能給保守寬區間且通常仍需追問收斂；unknown = 目前不適合估。"
+items:
+  - id: case_001_mos_pork_burger
+    input: "我今天早餐吃摩斯豬排堡"
+    expected_behavior:
+      action: "exact_lookup"
+      confidence: "high"
+      exactness: "exact"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: true
+      accepts_local_or_external_evidence: true
+      preferred_evidence_tier: "tier_1_exact_verified"
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: false
+    source_of_truth:
+      target_calories_kcal:
+        mode: "exact"
+        exact: 336.2
+        min: null
+        max: null
+        center: 336.2
+      rationale: "摩斯官方同品項營養標示，可直接 exact lookup。"
+      ideal_output: |
+        這個可以直接用官方品項估。
+        摩斯豬排堡熱量約 336.2 kcal。
+        這題不需要追問。
+
+  - id: case_002_mos_japanese_pork_sandwich
+    input: "早餐吃了摩斯日式豬排三明治"
+    expected_behavior:
+      action: "exact_lookup"
+      confidence: "high"
+      exactness: "exact"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: true
+      accepts_local_or_external_evidence: true
+      preferred_evidence_tier: "tier_1_exact_verified"
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: false
+    source_of_truth:
+      target_calories_kcal:
+        mode: "exact"
+        exact: 303
+        min: null
+        max: null
+        center: 303
+      rationale: "摩斯官方同品項營養標示，可直接 exact lookup。"
+      ideal_output: |
+        這個可以直接用官方品項估。
+        摩斯日式豬排三明治熱量約 303 kcal。
+        不需要再追問。
+
+  - id: case_003_mos_breakfast_combo
+    input: "我早餐吃了摩斯豬排堡、4塊雞塊跟中杯冰紅茶"
+    expected_behavior:
+      action: "exact_lookup"
+      confidence: "high"
+      exactness: "exact"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: true
+      accepts_local_or_external_evidence: true
+      preferred_evidence_tier: "tier_1_exact_verified"
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: false
+    source_of_truth:
+      target_calories_kcal:
+        mode: "exact"
+        exact: 640.3
+        min: null
+        max: null
+        center: 640.3
+      component_breakdown:
+        - name: "摩斯豬排堡"
+          calories_kcal: 336.2
+        - name: "摩斯雞塊 4 個"
+          calories_kcal: 193.1
+        - name: "冰紅茶 M"
+          calories_kcal: 111
+      rationale: "三個官方品項可拆件後直接相加。"
+      ideal_output: |
+        這題可以直接拆成三個品項來算。
+        摩斯豬排堡約 336.2 kcal，雞塊 4 個約 193.1 kcal，中杯冰紅茶約 111 kcal。
+        合計約 640.3 kcal。
+
+  - id: case_004_711_tuna_riceball
+    input: "剛剛在 7-11 吃雙蔬鮪魚飯糰"
+    expected_behavior:
+      action: "exact_lookup"
+      confidence: "high"
+      exactness: "exact"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: true
+      accepts_local_or_external_evidence: true
+      preferred_evidence_tier: "tier_1_exact_verified"
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: false
+    source_of_truth:
+      target_calories_kcal:
+        mode: "exact"
+        exact: 248
+        min: null
+        max: null
+        center: 248
+      rationale: "7-11 同品項御飯糰可直接 exact lookup。"
+      ideal_output: |
+        這個可以直接用商品頁資料估。
+        7-11 雙蔬鮪魚飯糰熱量約 248 kcal。
+
+  - id: case_005_711_smoked_chicken_sandwich
+    input: "我剛吃 7-11 的燻雞總匯鮮蔬三明治"
+    expected_behavior:
+      action: "exact_lookup"
+      confidence: "high"
+      exactness: "exact"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: true
+      accepts_local_or_external_evidence: true
+      preferred_evidence_tier: "tier_1_exact_verified"
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: false
+    source_of_truth:
+      target_calories_kcal:
+        mode: "exact"
+        exact: 292
+        min: null
+        max: null
+        center: 292
+      rationale: "7-11 同品項三明治可直接 exact lookup。"
+      ideal_output: |
+        這個可以直接用商品頁資料估。
+        7-11 燻雞總匯鮮蔬三明治熱量約 292 kcal。
+
+  - id: case_006_711_oyakodon
+    input: "晚餐吃 7-11 的一鍋燒滑蛋嫩雞親子丼"
+    expected_behavior:
+      action: "exact_lookup"
+      confidence: "high"
+      exactness: "exact"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: true
+      accepts_local_or_external_evidence: true
+      preferred_evidence_tier: "tier_1_exact_verified"
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: false
+    source_of_truth:
+      target_calories_kcal:
+        mode: "exact"
+        exact: 613
+        min: null
+        max: null
+        center: 613
+      rationale: "7-11 同品項丼飯可直接 exact lookup。"
+      ideal_output: |
+        這題可以直接查商品頁。
+        7-11 一鍋燒滑蛋嫩雞親子丼熱量約 613 kcal。
+
+  - id: case_007_familymart_herb_chicken_riceball
+    input: "全家買了大口義式香草雞腿排飯糰"
+    expected_behavior:
+      action: "exact_lookup"
+      confidence: "high"
+      exactness: "exact"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: true
+      accepts_local_or_external_evidence: true
+      preferred_evidence_tier: "tier_1_exact_verified"
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: false
+    source_of_truth:
+      target_calories_kcal:
+        mode: "exact"
+        exact: 356
+        min: null
+        max: null
+        center: 356
+      rationale: "全家同品項飯糰可直接 exact lookup。"
+      ideal_output: |
+        這個可以直接用商品頁資料估。
+        全家大口義式香草雞腿排飯糰熱量約 356 kcal。
+
+  - id: case_008_familymart_sausage_cutlet_bento
+    input: "我中午吃全家的香腸腿排雙拼便當"
+    expected_behavior:
+      action: "exact_lookup"
+      confidence: "high"
+      exactness: "exact"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: true
+      accepts_local_or_external_evidence: true
+      preferred_evidence_tier: "tier_1_exact_verified"
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: false
+    source_of_truth:
+      target_calories_kcal:
+        mode: "exact"
+        exact: 652
+        min: null
+        max: null
+        center: 652
+      rationale: "全家同品項便當可直接 exact lookup。"
+      ideal_output: |
+        這個可以直接用商品頁資料估。
+        全家香腸腿排雙拼便當熱量約 652 kcal。
+
+  - id: case_009_familymart_fitness_g_box
+    input: "剛剛吃全家健身G肉餐盒"
+    expected_behavior:
+      action: "exact_lookup"
+      confidence: "high"
+      exactness: "exact"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: true
+      accepts_local_or_external_evidence: true
+      preferred_evidence_tier: "tier_1_exact_verified"
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: false
+    source_of_truth:
+      target_calories_kcal:
+        mode: "exact"
+        exact: 481
+        min: null
+        max: null
+        center: 481
+      rationale: "全家同品項餐盒可直接 exact lookup。"
+      ideal_output: |
+        這個可以直接用商品頁資料估。
+        全家健身 G 肉餐盒熱量約 481 kcal。
+
+  - id: case_010_shared_stirfry_generic
+    input: "剛剛跟朋友去熱炒店吃合菜"
+    expected_behavior:
+      action: "ask_followup_only"
+      confidence: "high"
+      exactness: "unknown"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: false
+      accepts_local_or_external_evidence: true
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: true
+    source_of_truth:
+      target_calories_kcal:
+        mode: "unknown"
+        exact: null
+        min: null
+        max: null
+        center: null
+      rationale: "共享合菜缺乏個人攝取資訊，正確答案是先問而不是亂估。"
+      followup_targets:
+        - "主要吃了哪些菜"
+        - "各菜大概吃了多少"
+        - "白飯吃多少"
+        - "有沒有喝酒或飲料"
+      rubric:
+        must_not_do:
+          - "不能直接給出個人總熱量估算。"
+          - "不能把整桌合菜默認全部算在使用者身上。"
+          - "不能假裝 exact 或 anchored。"
+      ideal_output: |
+        這題我不會直接估，因為合菜是共享情境。
+        我需要先知道你主要吃了哪些菜、各大概吃多少、白飯吃多少，還有有沒有喝酒或飲料，才有辦法估得合理。
+
+  - id: case_011_shared_stirfry_partial_details
+    input: "剛剛跟朋友吃熱炒，我自己大概吃半碗白飯、三杯雞三四塊、菜脯蛋兩塊、炒高麗菜一小碗"
+    expected_behavior:
+      action: "direct_estimate"
+      confidence: "medium"
+      exactness: "anchored"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: false
+      accepts_local_or_external_evidence: true
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: true
+    source_of_truth:
+      target_calories_kcal:
+        mode: "range"
+        exact: null
+        min: 450
+        max: 550
+        center: 500
+      rationale: "應按個人實際吃到的比例估，而不是整桌全算。"
+      rubric:
+        must_not_do:
+          - "不能把整桌熱炒全桌份量直接算給個人。"
+          - "不能假裝 exact。"
+          - "不需要再追問已足夠支撐估算的資訊。"
+      ideal_output: |
+        這題可以直接先估，但不適合假裝精準。
+        以你描述的分量來看，大約會落在 450–550 kcal，中間值抓 500 kcal 比較合理。
+
+  - id: case_012_poke_generic
+    input: "我剛剛吃了一碗 poke"
+    expected_behavior:
+      action: "estimate_with_followup"
+      confidence: "medium"
+      exactness: "heuristic"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+      also_acceptable_actions:
+        - "ask_followup_only"
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: false
+      accepts_local_or_external_evidence: true
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: true
+    source_of_truth:
+      target_calories_kcal:
+        mode: "range"
+        exact: null
+        min: 450
+        max: 900
+        center: 650
+      rationale: "Poke 的差異主要來自底、蛋白質、酪梨與醬。缺資訊時，可先給保守區間，再追問關鍵配料；若系統選擇先追問不先估，也可接受。"
+      followup_targets:
+        - "底是白飯、糙米、沙拉還是半半"
+        - "蛋白質是什麼"
+        - "有沒有酪梨、毛豆、海帶芽"
+        - "醬料是什麼"
+      rubric:
+        must_not_do:
+          - "不能假裝 exact。"
+          - "不能在缺底、蛋白質與醬料資訊時給過窄的範圍。"
+          - "不能忽略追問關鍵配料。"
+      ideal_output: |
+        Poke 我可以先幫你抓一個大概範圍，但因為底、蛋白質和醬料差很多，我不會直接假裝很精準。
+
+        先抓常見範圍大概：
+        - 約 450–900 kcal
+        - 中間值可先記 650 kcal
+
+        要更準，我想再確認：
+        1. 底是白飯、糙米、沙拉，還是半半？
+        2. 主蛋白是鮭魚、鮪魚、雞肉還是豆腐？
+        3. 有沒有酪梨、毛豆、海帶芽？
+        4. 醬料是什麼？
+  - id: case_013_poke_salmon_spicy_mayo
+    input: "我吃的是鮭魚poke，底是白飯，有毛豆、海帶芽、酪梨，醬是辣美乃滋"
+    expected_behavior:
+      action: "direct_estimate"
+      confidence: "medium"
+      exactness: "anchored"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: false
+      accepts_local_or_external_evidence: true
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: true
+    source_of_truth:
+      target_calories_kcal:
+        mode: "range"
+        exact: null
+        min: 760
+        max: 820
+        center: 790
+      rationale: "這是一碗高配版 poke，可用組件熱量做 anchored estimate。"
+      rubric:
+        must_not_do:
+          - "不能假裝 exact。"
+          - "不能忽略白飯底、酪梨與辣美乃滋的高熱量影響。"
+          - "不需要再追問已提供的關鍵 anchor。"
+      ideal_output: |
+        這題可以直接估，但不適合假裝 exact。
+        以白飯底、鮭魚、毛豆、海帶芽、酪梨和辣美乃滋來看，合理落點大約是 760–820 kcal，中間值抓 790 kcal。
+
+  - id: case_014_zhajiangmian_generic
+    input: "我剛吃炸醬麵"
+    expected_behavior:
+      action: "estimate_with_followup"
+      confidence: "medium"
+      exactness: "heuristic"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+      also_acceptable_actions:
+        - "ask_followup_only"
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: false
+      accepts_local_or_external_evidence: true
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: true
+    source_of_truth:
+      target_calories_kcal:
+        mode: "range"
+        exact: null
+        min: 500
+        max: 790
+        center: 620
+      rationale: "炸醬麵雖然有台式與韓式差異，但仍可先給一個常見區間，再補問是哪一種與份量大小。正確策略不是完全不估，而是先提供保守區間並追問關鍵變因。"
+      followup_targets:
+        - "是台式還是韓式"
+        - "份量大小"
+        - "有沒有加蛋、豆干或其他配料"
+      rubric:
+        must_not_do:
+          - "不能假裝 exact。"
+          - "不能把台式與韓式炸醬麵當成同一個固定熱量。"
+          - "若先估，範圍不能窄到忽略品類差異。"
+      ideal_output: |
+        炸醬麵我可以先幫你抓一個大概區間，但因為台式跟韓式差很多，我不會直接假裝很精準。
+
+        先抓常見範圍大概：
+        - 約 500–790 kcal
+        - 中間值可先記 620 kcal
+
+        要更準，我想再確認：
+        1. 你吃的是台式炸醬麵，還是韓式炸醬麵？
+        2. 份量是一般碗還是加大？
+        3. 有沒有加蛋、豆干或其他配料？
+
+
+  - id: case_015_zhajiangmian_taiwanese
+    input: "就是一般台灣麵攤那種大碗炸醬麵，不是韓式的"
+    expected_behavior:
+      action: "direct_estimate"
+      confidence: "medium"
+      exactness: "anchored"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: false
+      accepts_local_or_external_evidence: true
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: true
+    source_of_truth:
+      target_calories_kcal:
+        mode: "range"
+        exact: null
+        min: 650
+        max: 820
+        center: 730
+      rationale: "已明確排除韓式版本，且已補充為大碗，可用台式麵攤大碗炸醬麵的常見範圍做 anchored estimate。相較一般碗，主要因麵量增加而上修熱量。"
+      rubric:
+        must_not_do:
+          - "不能假裝 exact。"
+          - "不能忽略已明確給出的台式與大碗資訊。"
+          - "不需要再追問已足夠支撐 anchored estimate 的資訊。"
+      ideal_output: |
+        如果是一般台灣麵攤那種大碗炸醬麵，不是韓式的，那我就可以直接抓台式大碗版本來估。
+
+        合理範圍大概是：
+        - 約 650–820 kcal
+        - 中間值可先記 730 kcal
+
+        誤差主要會來自：
+        - 大碗實際加了多少麵
+        - 炸醬肉末和油脂多不多
+        - 有沒有再加蛋或其他配料
+
+  - id: case_016_salmon_ikura_don
+    input: "我今天吃鮭魚親子丼"
+    expected_behavior:
+      action: "direct_estimate"
+      confidence: "medium"
+      exactness: "anchored"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: false
+      accepts_local_or_external_evidence: true
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: true
+    source_of_truth:
+      target_calories_kcal:
+        mode: "range"
+        exact: null
+        min: 540
+        max: 620
+        center: 580
+      rationale: "鮭魚親子丼可用商業品項與拆件結構做 anchored estimate。"
+      rubric:
+        must_not_do:
+          - "不能假裝 exact。"
+          - "不能把鮭魚親子丼估成過低的純生魚片飯熱量。"
+          - "不需要在缺少品牌時強制追問品牌。"
+      ideal_output: |
+        這題不適合假裝 exact，但可以有穩定錨點。
+        鮭魚親子丼合理大約落在 540–620 kcal，中間值抓 580 kcal。
+
+  - id: case_017_luwei_generic
+    input: "晚餐吃滷味"
+    expected_behavior:
+      action: "ask_followup_only"
+      confidence: "high"
+      exactness: "unknown"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: false
+      accepts_local_or_external_evidence: true
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: true
+    source_of_truth:
+      target_calories_kcal:
+        mode: "unknown"
+        exact: null
+        min: null
+        max: null
+        center: null
+      rationale: "滷味熱量差異極大，缺內容時應先追問。"
+      followup_targets:
+        - "點了哪些品項"
+        - "各大概多少"
+        - "有沒有主食類"
+        - "有沒有豆皮、甜不辣、王子麵"
+      rubric:
+        must_not_do:
+          - "不能直接估總熱量。"
+          - "不能假裝 exact 或 anchored。"
+          - "不能漏問高影響品項，例如主食類、豆皮、甜不辣、王子麵。"
+      ideal_output: |
+        這題我不會直接估，因為滷味差異太大。
+        你要先告訴我點了哪些東西、各大概多少，我才比較能估準。
+
+  - id: case_018_luwei_detailed
+    input: "我滷味點了王子麵、非油炸豆皮、鴨血、兩片甜不辣，還有高麗菜"
+    expected_behavior:
+      action: "direct_estimate"
+      confidence: "medium"
+      exactness: "anchored"
+      should_preserve_uncertainty: true
+      should_overclaim_exactness: false
+    expected_evidence_outcome:
+      needs_strong_same_item_evidence: false
+      accepts_local_or_external_evidence: true
+      requires_external_evidence_if_local_missing: false
+      should_reject_sibling_variant_as_exact: true
+      should_use_anchor_evidence_if_no_exact: true
+    source_of_truth:
+      target_calories_kcal:
+        mode: "range"
+        exact: null
+        min: 520
+        max: 620
+        center: 570
+      rationale: "可依滷味常見單品熱量拆件相加，做 anchored estimate。"
+      rubric:
+        must_not_do:
+          - "不能假裝 exact。"
+          - "不能漏算王子麵與豆皮這類高影響品項。"
+          - "不需要再追問已提供的主要品項。"
+      ideal_output: |
+        這題可以直接估，但不適合假裝 exact。
+        以王子麵、非油炸豆皮、鴨血、兩片甜不辣和高麗菜來看，大約會落在 520–620 kcal，中間值抓 570 kcal。

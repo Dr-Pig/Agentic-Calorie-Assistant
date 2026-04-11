@@ -1,0 +1,82 @@
+[
+  {
+    "verdict": "fail",
+    "hard_failures": [
+      "action_match",
+      "kcal_reference_match"
+    ]
+  },
+  {
+    "verdict": "fail",
+    "hard_failures": [
+      "action_match"
+    ]
+  },
+  {
+    "verdict": "fail",
+    "hard_failures": [
+      "action_match"
+    ]
+  },
+  {
+    "verdict": "fail",
+    "hard_failures": [
+      "action_match",
+      "kcal_reference_match"
+    ]
+  },
+  {
+    "verdict": "fail",
+    "hard_failures": [
+      "action_match"
+    ]
+  },
+  {
+    "verdict": "fail",
+    "hard_failures": [
+      "action_match"
+    ]
+  },
+  {
+    "verdict": "fail",
+    "hard_failures": [
+      "action_match",
+      "kcal_reference_match"
+    ]
+  },
+  {
+    "verdict": "fail",
+    "hard_failures": []
+  },
+  {
+    "verdict": "fail",
+    "hard_failures": [
+      "kcal_reference_match"
+    ]
+  },
+  {
+    "verdict": "fail",
+    "hard_failures": []
+  },
+  {
+    "verdict": "fail",
+    "hard_failures": []
+  },
+  {
+    "verdict": "fail",
+    "hard_failures": [
+      "action_match"
+    ]
+  },
+  {
+    "verdict": "fail",
+    "hard_failures": [
+      "action_match",
+      "kcal_reference_match"
+    ]
+  },
+  {
+    "verdict": "fail",
+    "hard_failures": []
+  }
+]

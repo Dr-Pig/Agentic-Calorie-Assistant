@@ -10,6 +10,7 @@ from typing import Iterable
 
 from ..domain import MealRecord, RetrievedContextChunk, SessionTranscriptRecord
 from ..paths import SESSION_RECORD_DIR, ensure_runtime_dirs
+from ..application.time_labels import DEFAULT_TIMEZONE, describe_time_fields, infer_relative_date_target
 
 
 ensure_runtime_dirs()
@@ -46,6 +47,25 @@ def _normalize_text(text: str) -> str:
 def _tokenize(text: str) -> list[str]:
     normalized = _normalize_text(text)
     return [token for token in re.findall(r"[a-z0-9\u4e00-\u9fff]+", normalized) if len(token) > 1]
+
+
+def _infer_meal_type(text: str) -> str:
+    normalized = _normalize_text(text)
+    if any(token in normalized for token in ("早餐", "breakfast", "早上")):
+        return "breakfast"
+    if any(token in normalized for token in ("午餐", "lunch", "中午")):
+        return "lunch"
+    if any(token in normalized for token in ("晚餐", "dinner", "晚上")):
+        return "dinner"
+    if any(token in normalized for token in ("點心", "宵夜", "snack")):
+        return "snack"
+    return "unknown"
+
+
+def _extract_brand_tokens(text: str) -> list[str]:
+    normalized = _normalize_text(text)
+    brand_hints = ["7-11", "全家", "familymart", "mos", "摩斯", "starbucks", "麥當勞", "mcdonald", "subway", "吉野家"]
+    return [brand for brand in brand_hints if brand.lower() in normalized]
 
 
 def _parse_ts(value: str | None) -> datetime | None:
@@ -115,9 +135,31 @@ def sync_session_records(
     ]
     _transcript_path(session_id).write_text("\n".join(transcript_lines) + ("\n" if transcript_lines else ""), encoding="utf-8")
 
+    enriched_meal_records: list[dict[str, object]] = []
+    for record in meal_records:
+        payload = dict(record)
+        time_fields = describe_time_fields(str(payload.get("occurred_at_utc") or payload.get("timestamp") or ""), timezone_name=str(payload.get("timezone") or DEFAULT_TIMEZONE))
+        payload.setdefault("created_at_utc", str(payload.get("timestamp") or time_fields.get("occurred_at_utc") or ""))
+        payload.setdefault("updated_at_utc", str(payload.get("timestamp") or time_fields.get("occurred_at_utc") or ""))
+        payload.setdefault("occurred_at_utc", time_fields.get("occurred_at_utc"))
+        payload.setdefault("occurred_at_local", time_fields.get("occurred_at_local"))
+        payload.setdefault("local_date", time_fields.get("local_date"))
+        payload.setdefault("timezone", time_fields.get("timezone"))
+        payload.setdefault("relative_time_label", time_fields.get("relative_time_label"))
+        payload.setdefault("meal_type", _infer_meal_type(" ".join([str(payload.get("title") or ""), str(payload.get("raw_input") or "")])))
+        payload.setdefault("normalized_user_input", str(payload.get("raw_input") or ""))
+        payload.setdefault("resolved_food_items", [str(component.get("name") or "") for component in payload.get("components", []) if isinstance(component, dict) and str(component.get("name") or "").strip()])
+        payload.setdefault("component_breakdown", list(payload.get("components") or []))
+        payload.setdefault("followup_status", "open" if payload.get("pending_question") else "closed")
+        payload.setdefault("missing_slots", [str(payload.get("pending_question"))] if payload.get("pending_question") else [])
+        payload.setdefault("conversation_id", session_id)
+        payload.setdefault("user_id", session_id)
+        payload.setdefault("correction_parent_meal_id", payload.get("parent_log_id"))
+        enriched_meal_records.append(payload)
+
     meal_lines = [
         json.dumps(record, ensure_ascii=False, default=_json_default)
-        for record in meal_records
+        for record in enriched_meal_records
     ]
     _meal_path(session_id).write_text("\n".join(meal_lines) + ("\n" if meal_lines else ""), encoding="utf-8")
 
@@ -167,6 +209,9 @@ def retrieve_planner_context(
     now = datetime.now(timezone.utc)
     query_terms = set(_tokenize(query))
     pending_terms = set(_tokenize(pending_question or ""))
+    relative_date_target = infer_relative_date_target(query, timezone_name=DEFAULT_TIMEZONE, now_utc=now)
+    requested_meal_type = _infer_meal_type(query)
+    requested_brands = _extract_brand_tokens(query)
 
     active_meal = next((record for record in meal_records if active_meal_id and record.meal_id == active_meal_id), None)
     active_time_gap_seconds: float | None = None
@@ -223,6 +268,8 @@ def retrieve_planner_context(
             [
                 record.title,
                 record.raw_input,
+                record.normalized_user_input or "",
+                " ".join(record.resolved_food_items or []),
                 " ".join(str(component.get("name", "")) for component in record.components),
                 record.pending_question or "",
                 " ".join(record.resolved_slots),
@@ -232,6 +279,25 @@ def retrieve_planner_context(
         lexical = len(query_terms.intersection(content_terms))
         pending_overlap = len(pending_terms.intersection(content_terms))
         score = lexical * 3.0 + pending_overlap * 2.0
+        hard_filter_boost = 0.0
+        hard_filter_miss_penalty = 0.0
+        if relative_date_target:
+            if record.local_date == relative_date_target:
+                hard_filter_boost += 4.0
+            else:
+                hard_filter_miss_penalty -= 2.0
+        if requested_meal_type != "unknown":
+            if record.meal_type == requested_meal_type:
+                hard_filter_boost += 3.0
+            else:
+                hard_filter_miss_penalty -= 1.5
+        if requested_brands:
+            record_text = " ".join([text, " ".join(requested_brands)]).lower()
+            if any(brand.lower() in text.lower() for brand in requested_brands):
+                hard_filter_boost += 2.5
+            else:
+                hard_filter_miss_penalty -= 1.0
+        score += hard_filter_boost + hard_filter_miss_penalty
         active_meal_boost = 0.0
         if active_meal_id and record.meal_id == active_meal_id:
             active_meal_boost = 8.0
@@ -265,10 +331,17 @@ def retrieve_planner_context(
                     "score_breakdown": {
                         "lexical_overlap": lexical * 3.0,
                         "pending_overlap": pending_overlap * 2.0,
+                        "hard_filter_boost": round(hard_filter_boost, 4),
+                        "hard_filter_miss_penalty": round(hard_filter_miss_penalty, 4),
                         "active_meal_boost": active_meal_boost,
                         "unresolved_boost": unresolved_boost,
                         "time_decay": round(time_decay, 4),
                         "final_score": round(score, 4),
+                    },
+                    "router_filters": {
+                        "relative_date_target": relative_date_target,
+                        "requested_meal_type": requested_meal_type,
+                        "requested_brands": requested_brands,
                     },
                 },
             )
@@ -299,6 +372,13 @@ def retrieve_planner_context(
         item.metadata["mmr_selected"] = item.chunk_id in selected_meal_ids
         item.metadata["hard_included"] = item.chunk_id in {x.chunk_id for x in hard_meal_chunks}
     diagnostics = {
+        "router_order": ["state_memory", "typed_meal_records", "transcript_hybrid"],
+        "query_filters": {
+            "relative_date_target": relative_date_target,
+            "requested_meal_type": requested_meal_type,
+            "requested_brands": requested_brands,
+        },
+        "active_meal_id": active_meal_id,
         "transcript_candidates": [
             item.model_dump(mode="json")
             for item in sorted(transcript_candidates, key=lambda chunk: chunk.score, reverse=True)[:8]

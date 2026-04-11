@@ -52,6 +52,14 @@ def build_multi_turn_context(
         state_consistency = "ambiguous"
     elif state.latest_log_id and state.latest_log_status == "superseded":
         state_consistency = "stale"
+    dynamic_context_pack = {
+        "active_meal_summary": state.active_meal_summary.model_dump(mode="json"),
+        "active_meal_state": state.active_meal_state.model_dump(mode="json"),
+        "pending_followup_state": state.pending_followup_state.model_dump(mode="json"),
+        "recent_relevant_turns": [msg.model_dump(mode="json") for msg in state.recent_relevant_turns],
+        "retrieved_meal_records": [chunk.model_dump(mode="json") for chunk in state.retrieved_meal_records],
+        "session_summary": state.session_summary.model_dump(mode="json"),
+    }
     return {
         "is_multi_turn": is_multi_turn,
         "turn_intent": planner_intent,
@@ -72,12 +80,17 @@ def build_multi_turn_context(
         "conversation_hit_refs": [hit.message_id for hit in state.conversation_archive_hits],
         "planner_state_digest": state.planner_state_digest.model_dump(mode="json"),
         "active_meal_summary": state.active_meal_summary.model_dump(mode="json"),
+        "active_meal_state": state.active_meal_state.model_dump(mode="json"),
+        "pending_followup_state": state.pending_followup_state.model_dump(mode="json"),
         "session_summary": state.session_summary.model_dump(mode="json"),
         "recent_turn_summary": state.recent_turn_summary.model_dump(mode="json"),
+        "recent_relevant_turns": [msg.model_dump(mode="json") for msg in state.recent_relevant_turns],
         "durable_memory_hits": [hit.model_dump(mode="json") for hit in state.durable_memory_hits],
         "boundary_clarification_open": state.boundary_clarification_open,
         "boundary_clarification_source_meal_id": state.boundary_clarification_source_meal_id,
         "retrieval_diagnostics": state.retrieval_diagnostics,
+        "history_retrieval_router": (state.retrieval_diagnostics or {}).get("router_order", []),
+        "dynamic_context_pack": dynamic_context_pack,
         "context_injection_snapshot": context_snapshot[:500] if context_snapshot else "",
         "message_buffer_length": len(state.recent_messages),
         "retrieval_query_rewritten": retrieval_query_rewritten,

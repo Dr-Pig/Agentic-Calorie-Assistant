@@ -4,12 +4,14 @@ import os
 from datetime import datetime
 from typing import Any, Optional
 
-from sqlalchemy import create_engine, desc, text
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine, desc, inspect
 from sqlalchemy.orm import sessionmaker, Session
 
-from .agent.exact_item_index import ensure_exact_item_fts
+from .infrastructure.exact_item_search import ensure_exact_item_fts
 from .models import Base, User, MealLog, MessageBuffer
-from .paths import DEFAULT_DB_PATH, LEGACY_DB_PATH, ensure_runtime_dirs
+from .paths import DEFAULT_DB_PATH, LEGACY_DB_PATH, REPO_ROOT, ensure_runtime_dirs
 
 ensure_runtime_dirs()
 
@@ -21,25 +23,60 @@ engine = create_engine(
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+ALEMBIC_INI_PATH = REPO_ROOT / "alembic.ini"
+MANAGED_TABLES = {
+    "users",
+    "meal_logs",
+    "message_buffer",
+    "meal_threads",
+    "meal_versions",
+    "meal_items",
+    "legacy_meal_log_map",
+    "day_budget_ledger",
+    "ledger_entries",
+    "body_observations",
+    "body_plans",
+    "proposal_containers",
+    "proposal_options",
+    "proactive_triggers",
+}
+
 
 def init_db():
-    Base.metadata.create_all(bind=engine)
-    _ensure_sqlite_compat_columns()
+    _run_database_migrations()
     ensure_exact_item_fts()
 
 
-def _ensure_sqlite_compat_columns() -> None:
-    if not DATABASE_URL.startswith("sqlite"):
+def _alembic_config() -> Config:
+    config = Config(str(ALEMBIC_INI_PATH))
+    config.set_main_option("script_location", str(REPO_ROOT / "alembic"))
+    config.set_main_option("sqlalchemy.url", DATABASE_URL)
+    return config
+
+
+def _managed_tables_exist() -> bool:
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+    return bool(existing_tables.intersection(MANAGED_TABLES))
+
+
+def _alembic_version_table_exists() -> bool:
+    inspector = inspect(engine)
+    return "alembic_version" in inspector.get_table_names()
+
+
+def _run_database_migrations() -> None:
+    config = _alembic_config()
+    if _alembic_version_table_exists():
+        command.upgrade(config, "head")
         return
-    with engine.begin() as conn:
-        message_columns = {
-            row[1]
-            for row in conn.execute(text("PRAGMA table_info(message_buffer)")).fetchall()
-        }
-        if "linked_meal_log_id" not in message_columns:
-            conn.execute(text("ALTER TABLE message_buffer ADD COLUMN linked_meal_log_id INTEGER"))
-        if "trace_id" not in message_columns:
-            conn.execute(text("ALTER TABLE message_buffer ADD COLUMN trace_id VARCHAR(64)"))
+    if _managed_tables_exist():
+        raise RuntimeError(
+            "Legacy schema detected without alembic_version. "
+            "Run `alembic upgrade head` after resetting or migrating the database; "
+            "automatic legacy stamping is disabled."
+        )
+    command.upgrade(config, "head")
 
 
 def get_db():

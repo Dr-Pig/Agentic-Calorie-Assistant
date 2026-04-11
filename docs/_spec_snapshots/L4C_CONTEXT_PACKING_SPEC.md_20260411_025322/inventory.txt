@@ -1,0 +1,24 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\L4C_CONTEXT_PACKING_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L4C_CONTEXT_PACKING_SPEC.md_20260411_025322\L4C_CONTEXT_PACKING_SPEC.md
+LINES: 190
+GIT_TRACKED: False
+
+HEADINGS:
+# L4C Context Packing Spec
+## 1. ?桃?
+## 2. ?詨???
+### 2.1 Context 銝?券?鞈? dump
+### 2.2 ?蝛拙?嚗??曉???
+### 2.3 summary-first
+### 2.4 context 閬葆 freshness ???Ｚ???
+### 2.5 Atomic Context Blocks
+## 3. Standard Context Pack Shape
+## 4. Intake Context Pack
+## 5. Recommendation Context Pack
+## 6. Calibration Context Pack
+## 7. Rescue Context Pack
+## 8. Token Pressure Policy
+## 9. Structured Context Blocks
+### 9.2 Atomic Block Preservation
+### 9.1 Markdown 蝯?????
+## 10. v1 Default Decisions

@@ -1,0 +1,60 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\L3_3A_DEFICIT_EXPENDITURE_CALIBRATION_MODEL_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L3_3A_DEFICIT_EXPENDITURE_CALIBRATION_MODEL_SPEC.md_20260411_025320\L3_3A_DEFICIT_EXPENDITURE_CALIBRATION_MODEL_SPEC.md
+LINES: 402
+GIT_TRACKED: False
+
+HEADINGS:
+# L3.3A Deficit / Expenditure Calibration Model Spec
+## 1. ?桃?
+## 2. ?詨?摰?
+## 3. ?詨?摰儔
+### 3.1 `operating expenditure`
+### 3.2 `deficit reality`
+### 3.3 `logging quality`
+## 4. Model Inputs
+## 5. ?斗??
+### 5.1 Step 1: Observation Quality Check
+### 5.2 Step 2: Intake Quality Check
+### 5.3 Step 3: Trend Window Construction
+### 5.4 Step 4: Expenditure Inference
+### 5.5 Step 5: Deficit Reality Check
+## 6. Confidence / Posture Classes
+### 6.1 `insufficient_data`
+### 6.2 `logging_quality_first`
+### 6.3 `monitor_only`
+### 6.4 `calibration_candidate`
+### 6.5 `high_confidence_mismatch`
+## 7. Mismatch Attribution
+### 7.1 `likely_logging_gap`
+### 7.2 `likely_intake_underestimate`
+### 7.3 `likely_expenditure_shift`
+### 7.4 `likely_noise_only`
+### 7.5 `mixed_uncertainty`
+## 8. Intake Estimation Bias Posture
+### 8.1 ?箔?暻潸??
+### 8.2 posture 憿?
+### 8.3 ?舫 scope
+### 8.4 蝚砌??蔣?輻???
+### 8.5 Functionally Correct Principle
+## 9. `estimated_tdee` / Operating Estimate Policy
+### 8.1 active `BodyPlan` ????operating estimate
+### 8.2 ??靘?
+### 8.3 敺?靘?
+## 10. ??Proposal Policy ????
+## 11. ??Rescue ????
+### 10.1 rescue ????
+### 10.2 calibration ????
+### 10.3 rescue non-viable
+## 12. 撠?Recommendation ?蔣??
+### 11.1 immediate budget posture
+### 11.2 delayed strategy posture
+## 13. 撠?Intake Runtime ?蔣??
+## 14. Important Outputs
+## 15. 撠???
+### 撠?L0
+### 撠?L1
+### 撠?L2
+### 撠?L3.1
+### 撠?L3.2
+## 16. 皜祈岫??
+## 17. v1 Default Decisions

@@ -1,0 +1,48 @@
+﻿FILE: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\specs\L6D_REPO_TECH_STACK_CODE_STYLE_SPEC.md
+SNAPSHOT: C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\\_spec_snapshots\L6D_REPO_TECH_STACK_CODE_STYLE_SPEC.md_20260411_205346\L6D_REPO_TECH_STACK_CODE_STYLE_SPEC.md
+LINES: 398
+GIT_TRACKED: False
+
+HEADINGS:
+# L6D Repo Tech Stack / Code Style Spec
+## 1. 目的
+## 2. Repo Tech Stack Truth
+### 2.1 Python
+### 2.2 Web / API Layer
+### 2.3 ORM / Persistence
+### 2.4 Validation / Runtime Contracts
+### 2.5 Test Runner
+## 3. Architecture Layer Boundaries
+### 3.1 `app/domain`
+### 3.2 `app/application`
+### 3.3 `app/infrastructure`
+### 3.4 `app/providers`
+### 3.5 `app/usecases`
+### 3.6 `app/observability`
+## 4. Model / Adapter Style Rules
+### 4.1 Logical model roles first
+### 4.2 Provider model IDs must stay in adapter/config boundary
+## 5. Typing Rules
+### 5.1 New Python code must be typed
+### 5.2 Avoid untyped dict blobs for stable contracts
+### 5.3 Enums
+## 6. SQLAlchemy Rules
+### 6.1 New ORM declarations
+### 6.2 Query style
+### 6.3 Persistence helpers
+## 7. Pydantic Rules
+### 7.1 Serialization
+### 7.2 Defaults
+### 7.3 Contract evolution
+## 8. Import / Module Rules
+### 8.1 Import style
+### 8.2 Circular import avoidance
+## 9. Testing / Benchmark Rules
+### 9.1 Regression first
+### 9.2 Canonical persistence tests
+### 9.3 Benchmark fixtures
+## 10. Script / Tooling Rules
+### 10.1 Repo scripts
+### 10.2 Docs / spec safety
+## 11. Anti-Drift Rules for Long-Running Agents
+## 12. Implementation Rule

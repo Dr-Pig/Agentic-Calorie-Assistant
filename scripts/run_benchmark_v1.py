@@ -78,9 +78,12 @@ def _behavior_checks(case: dict[str, Any], payload: Any) -> tuple[dict[str, Any]
     actual_confidence = str(payload.estimate_confidence_tier or "low")
     allowed_actions = [str(item) for item in expected.get("allowed_actions", []) if str(item).strip()]
     allowed_actions.extend(str(item) for item in expected.get("also_acceptable_actions", []) if str(item).strip())
+    primary_action = str(expected.get("action") or "").strip()
+    if primary_action:
+        allowed_actions.append(primary_action)
     allowed_confidences = [str(item) for item in expected.get("allowed_confidences", []) if str(item).strip()]
-    if not allowed_actions and str(expected.get("action") or "").strip():
-        allowed_actions = [str(expected.get("action") or "").strip()]
+    if not allowed_actions and primary_action:
+        allowed_actions = [primary_action]
     if not allowed_confidences and str(expected.get("confidence") or "").strip():
         allowed_confidences = [str(expected.get("confidence") or "").strip()]
 
