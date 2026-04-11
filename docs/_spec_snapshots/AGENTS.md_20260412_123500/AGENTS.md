@@ -27,15 +27,6 @@ Do not recreate this same information in large task or handoff narratives unless
 - treat task and handoff docs as optional exception tools, not default workflow requirements
 - if a slice is complete enough to verify, prefer recording it through git plus harness rather than handwritten execution metadata
 
-## Default Harness Wall
-
-Default deterministic guardrails include:
-
-- diff scope and freeze-growth checks
-- commit traceability checks
-- runtime boundary and layer integrity checks
-- fast lint plus existing encoding, fat-file, migration, and test gates
-
 ## Hard Rules Summary
 
 - source-of-truth sync is mandatory when canonical understanding changes

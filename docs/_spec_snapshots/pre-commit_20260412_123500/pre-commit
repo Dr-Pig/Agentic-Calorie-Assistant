@@ -10,9 +10,6 @@ if command -v powershell >/dev/null 2>&1; then
   powershell -ExecutionPolicy Bypass -File "$repo_root/scripts/check_encoding.ps1" -StagedOnly
   powershell -ExecutionPolicy Bypass -File "$repo_root/scripts/check_fat_files.ps1" -StagedOnly
   python "$repo_root/scripts/check_layer_integrity.py"
-  python "$repo_root/scripts/check_runtime_boundaries.py"
-  python "$repo_root/scripts/check_git_diff_scope.py" --staged
-  python "$repo_root/scripts/check_git_diff_scope.py" --staged --run-ruff
 else
   echo "pre-commit: powershell not found; cannot run spec delete blocker" >&2
   exit 1

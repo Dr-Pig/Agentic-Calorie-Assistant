@@ -23,31 +23,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Compute diff range
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "DIFF_BASE_SHA=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_ENV"
-            echo "DIFF_HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_ENV"
-          else
-            echo "DIFF_BASE_SHA=${{ github.event.before }}" >> "$GITHUB_ENV"
-            echo "DIFF_HEAD_SHA=${{ github.sha }}" >> "$GITHUB_ENV"
-          fi
-
-      - name: Run diff scope check
-        run: python scripts/check_git_diff_scope.py --range "$DIFF_BASE_SHA" "$DIFF_HEAD_SHA"
-
-      - name: Run commit format check
-        run: python scripts/check_commit_format.py --range "$DIFF_BASE_SHA" "$DIFF_HEAD_SHA"
-
       - name: Run layer integrity check
         run: python scripts/check_layer_integrity.py
-
-      - name: Run runtime boundary check
-        run: python scripts/check_runtime_boundaries.py
-
-      - name: Run diff-scoped ruff
-        run: python scripts/check_git_diff_scope.py --range "$DIFF_BASE_SHA" "$DIFF_HEAD_SHA" --run-ruff
 
       - name: Run protected doc rewrite audit
         shell: pwsh

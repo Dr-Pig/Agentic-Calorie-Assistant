@@ -340,18 +340,6 @@ It should be appended over time instead of rewritten.
 - `docs/_spec_snapshots/ci.yml_20260412_123500/`
 - `docs/_spec_snapshots/install_git_hooks.ps1_20260412_123500/`
 - `docs/_spec_snapshots/requirements.txt_20260412_123500/`
-- `docs/_spec_snapshots/AGENTS.md_20260412_124800/`
-- `docs/_spec_snapshots/index.md_20260412_124800/`
-- `docs/_spec_snapshots/HARNESS_EXECUTION_POLICY.md_20260412_124800/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260412_124800/`
-- `docs/_spec_snapshots/pre-commit_20260412_124800/`
-- `docs/_spec_snapshots/commit-msg_20260412_124800/`
-- `docs/_spec_snapshots/ci.yml_20260412_124800/`
-- `docs/_spec_snapshots/install_git_hooks.ps1_20260412_124800/`
-- `docs/_spec_snapshots/check_git_diff_scope.py_20260412_124800/`
-- `docs/_spec_snapshots/check_commit_format.py_20260412_124800/`
-- `docs/_spec_snapshots/check_runtime_boundaries.py_20260412_124800/`
-- `docs/_spec_snapshots/requirements.txt_20260412_124800/`
 
 ## 2026-04-12 — Lean Governance Migration
 

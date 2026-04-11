@@ -310,49 +310,6 @@ It should be appended over time instead of rewritten.
 - `docs/_spec_snapshots/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md_20260411_203257/`
 - `docs/_spec_snapshots/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md_20260411_203257/`
 
-## 2026-04-12 — Deterministic Harness Wall Added
-
-### Trigger
-
-- markdown-heavy governance was intentionally reduced, but the repo still needed a stronger deterministic firewall against scope drift, dependency drift, test mutilation, truncation, and vague commit traceability
-
-### What Changed
-
-- added `scripts/check_git_diff_scope.py` for staged/range diff hard gates plus staged-python `ruff` support
-- added `scripts/check_commit_format.py` for `commit-msg` and CI commit-contract validation
-- added `scripts/check_runtime_boundaries.py` for focused runtime ownership boundary checks alongside the existing layer-integrity audit
-- wired `pre-commit` to run diff scope, runtime boundaries, and staged `ruff`
-- wired CI to run diff scope, commit format, runtime boundaries, and repo lint
-- documented the active deterministic firewall in `docs/quality/HARNESS_EXECUTION_POLICY.md`
-
-### Why It Matters
-
-- the default harness wall now blocks the most common high-cost agent failures without restoring heavy task/handoff bureaucracy
-- scope and commit checks operate on staged diff or commit/PR range, so they stay usable even when the overall repo history is large
-- commit history now carries verification and drift intent explicitly instead of relying on handwritten task metadata
-
-### Snapshot Record
-
-- `docs/_spec_snapshots/AGENTS.md_20260412_123500/`
-- `docs/_spec_snapshots/index.md_20260412_123500/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260412_123500/`
-- `docs/_spec_snapshots/pre-commit_20260412_123500/`
-- `docs/_spec_snapshots/ci.yml_20260412_123500/`
-- `docs/_spec_snapshots/install_git_hooks.ps1_20260412_123500/`
-- `docs/_spec_snapshots/requirements.txt_20260412_123500/`
-- `docs/_spec_snapshots/AGENTS.md_20260412_124800/`
-- `docs/_spec_snapshots/index.md_20260412_124800/`
-- `docs/_spec_snapshots/HARNESS_EXECUTION_POLICY.md_20260412_124800/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260412_124800/`
-- `docs/_spec_snapshots/pre-commit_20260412_124800/`
-- `docs/_spec_snapshots/commit-msg_20260412_124800/`
-- `docs/_spec_snapshots/ci.yml_20260412_124800/`
-- `docs/_spec_snapshots/install_git_hooks.ps1_20260412_124800/`
-- `docs/_spec_snapshots/check_git_diff_scope.py_20260412_124800/`
-- `docs/_spec_snapshots/check_commit_format.py_20260412_124800/`
-- `docs/_spec_snapshots/check_runtime_boundaries.py_20260412_124800/`
-- `docs/_spec_snapshots/requirements.txt_20260412_124800/`
-
 ## 2026-04-12 — Lean Governance Migration
 
 ### Trigger

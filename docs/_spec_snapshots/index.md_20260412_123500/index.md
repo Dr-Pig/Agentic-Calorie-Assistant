@@ -78,7 +78,6 @@ Start with:
 - [L5A Eval Spec](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/L5A_EVAL_SPEC.md)
 - [L5B Benchmark Spec](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/L5B_BENCHMARK_SPEC.md)
 - [L5C Safety Guardrail Spec](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/L5C_SAFETY_GUARDRAIL_SPEC.md)
-- [Harness Execution Policy](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/HARNESS_EXECUTION_POLICY.md)
 
 ## Active Execution
 

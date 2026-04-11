@@ -18,5 +18,5 @@ foreach ($dir in $runtimeDirs) {
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
 }
 
-Write-Output "Installed git hooks path: $hooksPath (pre-commit + commit-msg)"
+Write-Output "Installed git hooks path: $hooksPath"
 Write-Output "Ensured runtime directories exist."
