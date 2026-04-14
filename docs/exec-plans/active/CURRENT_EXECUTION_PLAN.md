@@ -84,6 +84,7 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `2.5d chat-first single-plan rescue response foundation`
   - `2.5d rescue chat/proactive surface entrypoint plus accept/reject state transition foundation`
   - `2.5d accept-side rescue overlay writeback and dedicated rescue web/chat routes`
+  - `2.5d rescue surface text integrity cleanup plus route/state regression hardening`
 - `legal_next_slices[]`:
   - `2.5d-rescue-response-surface`
 - `recommended_next_slice`: `2.5d-rescue-response-surface`
@@ -96,8 +97,8 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `powershell -ExecutionPolicy Bypass -File scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`
   - relevant targeted, smoke, integration, benchmark, or eval commands for the actual slice
-- `verification_status`: `2.2/2.3 wave evidence remains sufficient; 2.5d now passes targeted rescue response, rescue chat surface, accept-side overlay writeback, and rescue route integration tests`
-- `verification_reason`: `the rescue branch now includes a checked-in single-plan response layer, a real rescue chat/proactive entrypoint, accept-side overlay writeback, and dedicated rescue web/chat routes while still preserving chat-first delivery, intake separation, and UI mirror-only boundaries`
+- `verification_status`: `2.2/2.3 wave evidence remains sufficient; 2.5d now passes targeted rescue response, rescue chat surface, accept-side overlay writeback, rescue route integration, and post-accept/no-open regression tests`
+- `verification_reason`: `the rescue branch now includes a checked-in single-plan response layer, a real rescue chat/proactive entrypoint, accept-side overlay writeback, dedicated rescue web/chat routes, and cleaned rescue surface text/contracts while still preserving chat-first delivery, intake separation, and UI mirror-only boundaries`
 - `last_verified_at`: `2026-04-15`
 
 ## Selection State
@@ -107,7 +108,7 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
 - `mainline_validation_status`: `sufficient_for_domain_advance`
 - `selected_best_next_slice`: `2.5d-rescue-response-surface`
 - `selection_reason`: `the user explicitly approved the 2.5d rescue response plan and fixed the key product semantics`
-- `selection_reason_detail`: `2.5d now owns the active rescue branch, while accept-side writeback remains outside the current slice`
+- `selection_reason_detail`: `2.5d now owns the active rescue branch, with accept-side writeback already wired and the remaining safe work focused on contract hardening rather than new product semantics`
 - `deferred_legal_slices[]`:
   - `2.6 next calibration slice`
 - `deferred_selection_reason`: `calibration remains legal later in the broad order, but 2.5d rescue response surface now owns the active branch`

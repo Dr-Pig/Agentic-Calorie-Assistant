@@ -2021,3 +2021,35 @@ It should be appended over time instead of rewritten.
 
 - `python -m pytest tests/test_rescue_response.py tests/test_rescue_chat_surface.py tests/test_rescue_routes.py tests/test_rescue_runtime.py tests/test_open_proposals_read_model.py -q`
 - `python -m pytest tests/test_rescue_overlay.py tests/test_canonical_persistence.py -q -k "rescue"`
+
+## 2026-04-15 — Overnight Checkpoint And `2.5d` Rescue Contract Hardening
+
+### Trigger
+
+- before unattended overnight work, the workspace needed a clean checkpoint boundary
+- after the first `2.5d` route/writeback landing, the remaining safe gap was not new product semantics but contract hardening:
+  - garbled rescue surface text
+  - repeat-action / no-open-proposal behavior
+  - reject-with-reason route regression coverage
+
+### What Changed
+
+- created a workspace checkpoint commit before continuing low-risk overnight work
+- rewrote the rescue chat/response text layer into clean reviewable Chinese copy without changing the approved product semantics
+- hardened `2.5d` route/state behavior for:
+  - second accept after proposal close -> `no_open_rescue_proposal`
+  - reject with reason -> proposal closes and reason persists
+  - post-accept open-proposal read-side stays empty
+- expanded targeted rescue tests to cover these regressions
+
+### Why This Is The Correct Boundary
+
+- it improves the rescue branch's reliability and reviewability without reopening any unresolved product decisions
+- it stays inside spec-backed route/application/persistence contracts
+- it reduces the chance that overnight progress creates text-level noise or repeat-action drift that would force avoidable rework tomorrow
+
+### Evidence
+
+- `python -m pytest tests/test_rescue_response.py tests/test_rescue_chat_surface.py tests/test_rescue_routes.py tests/test_rescue_runtime.py tests/test_open_proposals_read_model.py tests/test_rescue_overlay.py tests/test_canonical_persistence.py -q -k "rescue or overlay or proposal or open_proposal"`
+- `python scripts/check_layer_integrity.py`
+- `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`
