@@ -1,0 +1,17 @@
+[
+  {
+    "root": "app/application",
+    "suffixes": [".py"],
+    "purpose": "user-facing application-layer reply strings and interaction surfaces"
+  },
+  {
+    "root": "app/web",
+    "suffixes": [".py"],
+    "purpose": "chat and route response payloads"
+  },
+  {
+    "root": "tests",
+    "suffixes": [".py"],
+    "purpose": "user-facing string assertions and route contract fixtures"
+  }
+]
