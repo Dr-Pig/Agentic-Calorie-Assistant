@@ -25,10 +25,7 @@ runtime/
 *.sqlite3
 *.db
 canary_persistence.db
-tmp/
 .tmp_*.pdf
-.trash/
-child_outputs/
 
 # Generated build / eval output
 artifacts/session_records/
@@ -38,10 +35,6 @@ workspace_data/
 workspace_data/**
 artifacts/
 artifacts/**
-child_outputs/
-child_outputs/**
-tmp/
-tmp/**
 cache/
 cache/**
 

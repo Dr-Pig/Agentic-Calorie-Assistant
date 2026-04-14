@@ -163,6 +163,104 @@ def test_modification_supersedes_active_version_in_canonical_thread() -> None:
     assert ledger.consumed_kcal == 480
 
 
+def test_boundary_continuation_attaches_even_when_planner_intent_stays_food_estimation() -> None:
+    db = _session()
+    user = _user(db)
+
+    first = persist_text_meal_result(
+        db,
+        user=user,
+        latest_log=None,
+        planner_intent="food_estimation",
+        payload=_payload(request_id="req-boundary-1", title="beef bowl", kcal=600),
+        raw_input="beef bowl",
+        request_id="req-boundary-1",
+    )
+    latest_log = db.get(MealLog, first["persisted_log_id"])
+    assert latest_log is not None
+
+    second_payload = _payload(request_id="req-boundary-2", title="beef bowl regular", kcal=720)
+    second_payload.boundary_trace = {"meal_boundary": "continue_active_meal"}
+
+    second = persist_text_meal_result(
+        db,
+        user=user,
+        latest_log=latest_log,
+        planner_intent="food_estimation",
+        payload=second_payload,
+        raw_input="Yoshinoya regular size",
+        request_id="req-boundary-2",
+    )
+
+    assert second["parent_log_id"] == latest_log.id
+    assert second["canonical_commit"] is not None
+    assert second["canonical_commit"]["created_new_thread"] is False
+
+
+def test_boundary_continuation_keeps_still_unresolved_followup_on_same_parent() -> None:
+    db = _session()
+    user = _user(db)
+
+    first_payload = EstimatePayload(
+        request_id="req-unresolved-1",
+        meal_title="braised snacks",
+        estimated_kcal=0,
+        protein_g=0,
+        carb_g=0,
+        fat_g=0,
+        route_target="clarify_user_private",
+        action_taken="clarify_before_estimate",
+        reply_text="What ingredients did you eat?",
+        quality_signals={"estimate_mode": "llm_only"},
+        trace_contract={"local_date": "2026-04-11"},
+        boundary_trace={},
+        followup_question="What ingredients did you eat?",
+        component_estimates=[],
+    )
+    first = persist_text_meal_result(
+        db,
+        user=user,
+        latest_log=None,
+        planner_intent="food_estimation",
+        payload=first_payload,
+        raw_input="braised snacks",
+        request_id="req-unresolved-1",
+    )
+    latest_log = db.get(MealLog, first["persisted_log_id"])
+    assert latest_log is not None
+    assert first["status"] == "draft_unresolved"
+
+    second_payload = EstimatePayload(
+        request_id="req-unresolved-2",
+        meal_title="braised snacks",
+        estimated_kcal=0,
+        protein_g=0,
+        carb_g=0,
+        fat_g=0,
+        route_target="clarify_user_private",
+        action_taken="clarify_before_estimate",
+        reply_text="About how much of each item did you eat?",
+        quality_signals={"estimate_mode": "llm_only"},
+        trace_contract={"local_date": "2026-04-11"},
+        boundary_trace={"meal_boundary": "continue_active_meal"},
+        followup_question="About how much of each item did you eat?",
+        component_estimates=[],
+    )
+    second = persist_text_meal_result(
+        db,
+        user=user,
+        latest_log=latest_log,
+        planner_intent="food_estimation",
+        payload=second_payload,
+        raw_input="cabbage, tofu skin, fish cake, noodles; no soup",
+        request_id="req-unresolved-2",
+    )
+
+    assert second["status"] == "draft_unresolved"
+    assert second["parent_log_id"] == latest_log.id
+    assert second["canonical_commit"] is None
+
+
 def test_explicit_parent_version_candidate_controls_historical_correction_target() -> None:
     db = _session()
     user = _user(db)

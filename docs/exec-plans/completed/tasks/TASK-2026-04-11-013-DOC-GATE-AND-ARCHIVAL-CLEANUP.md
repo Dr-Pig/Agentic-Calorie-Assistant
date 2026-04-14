@@ -11,10 +11,10 @@
 
 - [AGENTS.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/AGENTS.md)
 - [docs/index.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/index.md)
-- [docs/AGENT_LOADING_PATH.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/AGENT_LOADING_PATH.md)
-- [docs/TASK_CHECKIN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/TASK_CHECKIN_PROTOCOL.md)
-- [docs/SPEC_EDITING_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/SPEC_EDITING_PROTOCOL.md)
-- [docs/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
+- [AGENTS.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/archive/AGENT_LOADING_PATH.md)
+- [docs/governance/TASK_CHECKIN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/TASK_CHECKIN_PROTOCOL.md)
+- [docs/governance/SPEC_EDITING_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/SPEC_EDITING_PROTOCOL.md)
+- [docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
 
 ## Planned Touch Files
 
@@ -22,11 +22,11 @@
 - `.githooks/pre-commit`
 - `.github/workflows/ci.yml`
 - `scripts/check_task_checkin_and_handoff.ps1`
-- `docs/TASK_CHECKIN_PROTOCOL.md`
-- `docs/SPEC_EDITING_PROTOCOL.md`
-- `docs/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md`
+- `docs/governance/TASK_CHECKIN_PROTOCOL.md`
+- `docs/governance/SPEC_EDITING_PROTOCOL.md`
+- `docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md`
 - `docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md`
-- `docs/handoff/README.md`
+- `docs/exec-plans/reference/handoff/README.md`
 - `docs/index.md`
 
 ## Forbidden Files
@@ -43,7 +43,7 @@ Harden entrypoint/governance docs against near-total rewrites and clean `active/
 
 - protected entrypoint and governance docs have a staged rewrite-churn blocker
 - completed tasks no longer remain under `docs/exec-plans/active/tasks/`
-- completed handoffs no longer remain under `docs/handoff/active/`
+- completed handoffs no longer remain under `docs/exec-plans/active/handoff/`
 - current execution plan points active readers only at still-active task/handoff artifacts
 
 ## Tests To Run
@@ -64,11 +64,11 @@ Harden entrypoint/governance docs against near-total rewrites and clean `active/
   - `.githooks/pre-commit`
   - `.github/workflows/ci.yml`
   - `scripts/check_task_checkin_and_handoff.ps1`
-  - `docs/TASK_CHECKIN_PROTOCOL.md`
-  - `docs/SPEC_EDITING_PROTOCOL.md`
-  - `docs/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md`
+  - `docs/governance/TASK_CHECKIN_PROTOCOL.md`
+  - `docs/governance/SPEC_EDITING_PROTOCOL.md`
+  - `docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md`
   - `docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md`
-  - `docs/handoff/README.md`
+  - `docs/exec-plans/reference/handoff/README.md`
   - `docs/index.md`
   - `docs/exec-plans/completed/tasks/TASK-2026-04-11-013-DOC-GATE-AND-ARCHIVAL-CLEANUP.md`
   - `docs/exec-plans/completed/tasks/TASK-2026-04-11-002-READMODEL-FOUNDATION.md`
@@ -82,13 +82,13 @@ Harden entrypoint/governance docs against near-total rewrites and clean `active/
   - `docs/exec-plans/completed/tasks/TASK-2026-04-11-010-LAYER-INTEGRITY-WARNING-CLEANUP.md`
   - `docs/exec-plans/completed/tasks/TASK-2026-04-11-011-HARNESS-HARD-GATE-HARDENING.md`
   - `docs/exec-plans/completed/tasks/TASK-2026-04-11-012-ENTRYPOINT-DOC-LOADING-REORG.md`
-  - `docs/handoff/completed/HANDOFF-2026-04-11-002-READMODEL-FOUNDATION.md`
-  - `docs/handoff/completed/HANDOFF-2026-04-11-003-LOWFI-TODAY-UI.md`
-  - `docs/handoff/completed/HANDOFF-2026-04-11-005-WEIGHT-UI.md`
-  - `docs/handoff/completed/HANDOFF-2026-04-11-006-RESCUE-DETERMINISTIC-OVERLAY.md`
-  - `docs/handoff/completed/HANDOFF-2026-04-11-007-EXACT-DB-ITEM-LANE.md`
-  - `docs/handoff/completed/HANDOFF-2026-04-11-008-CLARIFY-REQUIRED-LANE.md`
-  - `docs/handoff/completed/HANDOFF-2026-04-11-009-CANNOT-ESTIMATE-LANE.md`
+  - `docs/exec-plans/completed/handoff/HANDOFF-2026-04-11-002-READMODEL-FOUNDATION.md`
+  - `docs/exec-plans/completed/handoff/HANDOFF-2026-04-11-003-LOWFI-TODAY-UI.md`
+  - `docs/exec-plans/completed/handoff/HANDOFF-2026-04-11-005-WEIGHT-UI.md`
+  - `docs/exec-plans/completed/handoff/HANDOFF-2026-04-11-006-RESCUE-DETERMINISTIC-OVERLAY.md`
+  - `docs/exec-plans/completed/handoff/HANDOFF-2026-04-11-007-EXACT-DB-ITEM-LANE.md`
+  - `docs/exec-plans/completed/handoff/HANDOFF-2026-04-11-008-CLARIFY-REQUIRED-LANE.md`
+  - `docs/exec-plans/completed/handoff/HANDOFF-2026-04-11-009-CANNOT-ESTIMATE-LANE.md`
 - `tests_run[]`:
   - `powershell -ExecutionPolicy Bypass -File scripts/check_protected_doc_rewrites.ps1`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_task_checkin_and_handoff.ps1 -AuditRepo`

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..agent.knowledge_packets import build_gate_packet, match_meal_template
-from ..agent.nutrition_resolution_llm import augment_followup_metadata
+from ..agent.nutrition_resolution_parser import augment_followup_metadata
 from ..application.answer_support import (
     evaluate_answer as _evaluate_answer,
     final_best_answer_source as _final_best_answer_source,

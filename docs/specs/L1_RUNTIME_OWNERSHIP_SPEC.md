@@ -355,6 +355,136 @@
 
 - 未經確認直接 commit rescue / calibration 這類重大變更
 
+#### `ProactiveScheduler` 機制
+
+```python
+@dataclass
+class ProactiveScheduler:
+    trigger_evaluation_interval: int = 300  # 秒
+    nightly_run_time: TimeOfDay = "23:00"
+
+    evaluation_order: list[str] = field(default_factory=lambda: [
+        "budget_alert_check",        # 即時
+        "meal_reminder_check",       # 每30分鐘（用餐時段）
+        "calibration_needed_check",  # 每日一次
+        "pattern_insight_check",    # 每日一次
+    ])
+```
+
+觸發條件細節：
+
+| 觸發類型 | 評估頻率 | 觸發條件 |
+|---------|---------|---------|
+| `budget_alert` | 即時 | remaining_kcal < 0 或 overshoot > 15% cap |
+| `meal_reminder` | 每30分鐘（07:00-22:00）| 用餐時段無 meals |
+| `calibration_needed` | 每日一次 | 14天觀察窗口期滿 + 5 observations |
+| `pattern_insight` | 每日一次 | 每日凌晨執行 NightlyInsight |
+
+#### `UserProactivePreference` Object
+
+使用者對 proactive 行為的偏好設定，是 `ProactiveScheduler` 的輸入之一。
+
+最小欄位：
+
+- `user_id`
+- `quiet_hours_start`：靜音開始時間，例如 `"22:00"`（local time）
+- `quiet_hours_end`：靜音結束時間，例如 `"08:00"`（local time）
+- `quiet_hours_enabled`：boolean，是否啟用靜音時段
+- `muted_trigger_types[]`：使用者主動關閉的 trigger 類型列表
+  - 合法值：`meal_reminder` / `budget_alert` / `calibration_suggestion` / `recommendation_nudge`
+- `max_daily_proactive_count`：每日最多主動觸發次數，v1 預設 `3`
+- `updated_at`：最後更新時間
+- `update_source`：`user_ui` / `user_chat` / `system_default`
+
+儲存位置：
+
+- `UserProactivePreference` 是獨立 object，不存在 `BodyPlan` 內
+- 它是 user-level 設定，不隨 `BodyPlan` 版本化
+- 可由 chat 或 UI 修改
+
+#### Quiet Hours 規則
+
+- `ProactiveScheduler` 在評估任何 trigger 前，必須先查 `UserProactivePreference.quiet_hours`
+- 若當前 local time 在 quiet hours 範圍內，所有 proactive trigger 應標記 `suppressed: quiet_hours`，不觸發
+- `budget_alert` 是唯一例外：若 overshoot 超過 30%，即使在 quiet hours 內仍可觸發（視為緊急）
+- quiet hours 跨午夜時（例如 22:00 - 08:00），應正確處理跨日邏輯
+
+#### `max_daily_proactive_count` 計算規則
+
+`max_daily_proactive_count` 限制每日主動觸發的總次數，但不同 trigger 類型的計算方式不同：
+
+| Trigger 類型 | 是否計入 `max_daily_proactive_count` | 說明 |
+|-------------|--------------------------------------|------|
+| `meal_reminder` | 是 | 一般提醒，受每日上限約束 |
+| `calibration_suggestion` | 是 | 一般建議，受每日上限約束 |
+| `recommendation_nudge` | 是 | 一般推薦，受每日上限約束 |
+| `budget_alert`（一般，overshoot ≤ 30%）| 是 | 受每日上限約束 |
+| `budget_alert`（緊急，overshoot > 30%）| **否** | 緊急警示，不受每日上限約束，也不受 quiet hours 約束 |
+
+規則：
+
+- 緊急 `budget_alert`（overshoot > 30%）每日最多觸發 `2` 次，超過後即使仍超標也不再觸發（避免騷擾）
+- 一般 `budget_alert` 計入 `max_daily_proactive_count`，與其他 trigger 共享每日上限
+- `max_daily_proactive_count` 的計數在每日 `00:00` local time 重置
+
+#### 使用者控制 Proactive 的入口
+
+使用者可透過以下方式控制 proactive：
+
+- **Chat**：說「不要再提醒我吃飯了」→ 寫入 `muted_trigger_types: [meal_reminder]`
+- **Chat**：說「晚上 10 點後不要打擾我」→ 寫入 `quiet_hours_start: "22:00"`
+- **UI 設定頁**：直接修改 `UserProactivePreference`
+- **Dismiss 行為**：連續 3 次 dismiss 同類 trigger → 系統提示是否要關閉該類型
+
+當使用者透過 chat 修改 proactive 設定時：
+
+- 應先確認使用者意圖（「你是說以後都不要提醒，還是今天不要？」）
+- 「今天不要」→ 寫入 `utterance_override`，session 結束後失效
+- 「以後都不要」→ 寫入 `UserProactivePreference.muted_trigger_types`
+
+### 4.9 `utterance_override` 狀態機
+
+`utterance_override` 是一個 session-scoped 的優先級覆寫機制，讓使用者的當下明確聲明優先於所有歷史記憶。
+
+#### 狀態定義
+
+```
+utterance_override states:
+  - INACTIVE: 無 override 生效
+  - ACTIVE: Override 生效（session-scoped）
+  - EXPIRED: Session 結束，等待確認是否升級為 ConfirmedMemory
+```
+
+#### 狀態轉移
+
+| 轉移 | 觸發條件 |
+|------|---------|
+| INACTIVE → ACTIVE | 使用者在當前 turn 明確聲明 |
+| ACTIVE → EXPIRED | Session 結束 |
+| EXPIRED → INACTIVE | 下一 session 無相關聲明，override失效 |
+| EXPIRED → (promoted) | 使用者在下一 session 再次確認同一聲明 |
+
+#### 優先級規則
+
+當 `utterance_override` 為 ACTIVE 時：
+
+1. 當下口頭聲明 > ConfirmedMemory > PatternMemory > generic
+2. 例如：「我今天不想喝奶茶」→ 立即過濾所有奶茶推薦
+3. Override 不可影響已 committed 的 canonical state
+
+#### 使用者明確聲明的範例
+
+- 「我今天不想喝奶茶」
+- 「我最近在減醣」
+- 「我今天不想被提醒」
+
+#### 蒸發規則
+
+Session 結束後（ACTIVE → EXPIRED）：
+
+- 若使用者再次明確確認 → 寫入 ConfirmedMemory
+- 若無確認 → 失效，回到正常 memory retrieval
+
 ---
 
 ## 5. 合法狀態轉移類型
@@ -557,6 +687,18 @@ proposal 預設支援多方案並列，而不是只有單一 yes/no。
 - 持續多方案顯示
 
 但 runtime 內部仍保留多 option 結構。
+
+#### Rescue-specific presentation policy
+
+**rescue proposal 採單一方案呈現，不適用上述多方案預設。**
+
+正式規則：
+
+- rescue `ProposalContainer` 對外只呈現一個建議方案（建議天數 + 每日回收量）
+- 不呈現 backup options，不做多策略選單
+- 使用者可透過 `shorten_rescue_plan` / `extend_rescue_plan` 調整同一方案的強度
+- 內部 `ProposalContainer` 可保留計算過程，但 surface contract 只輸出單一方案
+- 這是 rescue 的 v1 product stance，不影響 calibration / recommendation 等其他 proposal 類型的多方案呈現
 
 ### 6.5 `proactive_trigger`
 

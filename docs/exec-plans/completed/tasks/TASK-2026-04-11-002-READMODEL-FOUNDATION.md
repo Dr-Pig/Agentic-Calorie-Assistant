@@ -79,4 +79,4 @@ Will determine whether `2.3b-low-fi-today-ui` can start immediately or whether a
   - `no`
 - `followup_task_ids[]`:
   - `[]`
-- `handoff_doc_path`: `docs/handoff/active/HANDOFF-2026-04-11-002-READMODEL-FOUNDATION.md`
+- `handoff_doc_path`: `docs/exec-plans/active/handoff/HANDOFF-2026-04-11-002-READMODEL-FOUNDATION.md`

@@ -6,7 +6,6 @@ This manifest defines the canonical documentation set for the repository.
 
 - [AGENTS.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/AGENTS.md)
 - [docs/index.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/index.md)
-- [docs/AGENT_LOADING_PATH.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/AGENT_LOADING_PATH.md)
 
 ## Canonical Specs
 
@@ -59,16 +58,14 @@ This manifest defines the canonical documentation set for the repository.
 
 The following are supporting, not canonical:
 
-- `docs/handoff/`
+- `docs/exec-plans/active/handoff/`
+- `docs/exec-plans/completed/handoff/`
+- `docs/exec-plans/reference/handoff/`
 - `docs/references/`
-- `docs/EXECUTION_LOOP_BRIEF.md`
-- `docs/REPLAN_TRIGGER_BRIEF.md`
-- `docs/AUTONOMY_BOUNDARY_BRIEF.md`
-- `docs/AGENT_ROLE_EXECUTION_MODEL.md`
-- `docs/CODEX_DESKTOP_OPERATOR_GUIDE.md`
-- `docs/PLANNER_AUTONOMY_LOOP_POLICY.md`
-- `docs/EXECUTION_OPTIMAL_BUILD_ORDER_POLICY.md`
-- `docs/PLANNER_LOCAL_VS_WORKER_WORTHY_POLICY.md`
-- governance docs under `docs/` root
+- `docs/governance/EXECUTION_OPERATING_MODEL.md`
+- `docs/governance/CHANGE_CONTROL_GUARDS.md`
+- `docs/governance/EXECUTION_SELECTION_POLICY.md`
+- governance docs under `docs/governance/`
+- `artifacts/docs-snapshots/`
 
 Archive content under `docs/archive/` is never default truth.

@@ -18,12 +18,12 @@ from __future__ import annotations
 from typing import Any
 
 from ...agent.calibration_packets import get_meal_calibration, suggest_calibration_packet
-from ...agent.nutrition_resolution_llm import (
-    NUTRITION_RESOLUTION_PROMPT,
-    augment_followup_metadata,
+from ...agent.nutrition_resolution_normalizer import (
     normalize_structured_answer as _normalize_structured_answer,
     nutrition_result_from_primary,
 )
+from ...agent.nutrition_resolution_parser import augment_followup_metadata
+from ...agent.nutrition_resolution_prompt import NUTRITION_RESOLUTION_PROMPT
 from ...application.context_assembly import (
     build_nutrition_resolution_payload,
     knowledge_context,

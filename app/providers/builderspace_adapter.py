@@ -114,12 +114,15 @@ class BuilderSpaceAdapter:
             raise RuntimeError("BuilderSpace is not configured.")
 
         model = self._model_for_stage(stage)
+        formatted_user_message = self._format_user_message(stage, user_payload)
+        self._check_encoding_safety(formatted_user_message)
+
         request_payload: dict[str, Any] = {
             "model": model,
             "temperature": self._temperature_for_stage(stage),
             "messages": [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": self._format_user_message(stage, user_payload)},
+                {"role": "user", "content": formatted_user_message},
             ],
         }
         if max_tokens is not None:
@@ -323,6 +326,15 @@ class BuilderSpaceAdapter:
 
     def _format_user_message(self, stage: str, user_payload: dict[str, Any]) -> str:
         return json.dumps(_jsonable(user_payload), ensure_ascii=False)
+
+    def _check_encoding_safety(self, content: str) -> None:
+        """Layer 1 Hard Governance: Prevent mangled text from reaching LLM."""
+        if "????" in content or "\ufffd" in content:
+            raise RuntimeError(
+                f"Encoding Gate Failure (Layer 1): Mangled Chinese characters '????' or '\\ufffd' "
+                f"detected in payload. This usually means the data was piped from PowerShell "
+                f"without UTF-8 encoding. Aborting to prevent data pollution."
+            )
 
     def _model_for_stage(self, stage: str) -> str:
         if stage.startswith("task_meal_link_pass") or stage.startswith("planner_pass"):

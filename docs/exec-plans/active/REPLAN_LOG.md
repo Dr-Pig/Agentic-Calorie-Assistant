@@ -206,9 +206,9 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md_20260411_170502/`
-- `docs/_spec_snapshots/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_170502/`
-- `docs/_spec_snapshots/WORKFLOW_SLICE_REGISTRY.md_20260411_170502/`
+- `artifacts/docs-snapshots/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md_20260411_170502/`
+- `artifacts/docs-snapshots/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_170502/`
+- `artifacts/docs-snapshots/WORKFLOW_SLICE_REGISTRY.md_20260411_170502/`
 
 ## 2026-04-11 — Current Plan Memory Numbering Alignment
 
@@ -217,6 +217,98 @@ It should be appended over time instead of rewritten.
 - `CURRENT_EXECUTION_PLAN.md` still labeled memory / retrieval next-work as `2.6`, which drifted from the canonical ordering spec where memory / retrieval is `2.7`
 
 ### What Was Clarified
+
+## 2026-04-14 — Turn-2 Boundary/Persistence Continuity Re-scope
+
+### Trigger
+
+- the 9-case positive-path turn-2 replay pack showed that several turn-2 runs already resolved `meal_boundary=continue_active_meal` but still committed as new meals because persistence keyed parent attachment off `planner_intent`
+
+### What The Runtime Reality Became
+
+- same-intake recognition and persistence attachment are currently coupled too tightly to intent labels
+- turn-2 follow-up continuity should be treated as a boundary/state contract first, not as a byproduct of `clarification` or `modification` intent names
+- replay density is now sufficient; the next bounded step is continuity hardening, not more pack expansion
+
+### Assumptions That Expired
+
+- "if planner intent stays `food_estimation`, persistence should default to a new meal even when boundary already says continue the active meal"
+- "turn-2 replay pack expansion is still the best-next slice after the first dense replay run"
+
+### Next-Phase Corrections
+
+- promote boundary-first same-intake continuity to the active `2.2j` slice
+- allow `still_unresolved_followup` to remain attached on the same parent meal when turn 2 is clearly answering the pending follow-up
+- defer further pack authoring cleanup until the boundary-to-persistence contract is fixed
+
+## 2026-04-14 — Turn-2 Pack Tightening After Continuity Hardening
+
+### Trigger
+
+- `2.2j` fixed the primary runtime continuity bug; replay reruns now show the remaining misses are split between closure-threshold cases and turn-2 authoring ambiguity
+
+### What The Planning Reality Became
+
+- the next bounded step is no longer runtime continuity
+- the official 9-case turn-2 pack now needs explicit closure-complete authoring so live replay evidence tests workflow truth instead of shorthand follow-up answers
+- fixture risk should be treated as a pack-authoring problem unless bytes or registry checks prove actual encoding corruption
+
+### Assumptions That Expired
+
+- "the existing turn-2 phrasings are already explicit enough for positive-path replay"
+- "every replay miss after 2.2j must still be a runtime bug"
+
+### Next-Phase Corrections
+
+- promote `2.2k-turn2-closure-complete-pack-tightening` as the active slice
+- rewrite official turn-2 inputs to be explicit answer-shaped completions/refinements
+- rerun the full 9-case live replay pack before any new taxonomy or threshold work
+
+## 2026-04-14 — 2.2k Replay Pack Closeout
+
+### Trigger
+
+- the official 9-case turn-2 pack was tightened into closure-complete answers and rerun end-to-end with fresh run-scoped users
+
+### What The Execution Reality Became
+
+- the remaining replay ambiguity was not a deeper context-architecture gap
+- part of the observed instability came from two narrower issues:
+  - turn-2 inputs that were still too shorthand to count as positive-path closure answers
+  - replay reruns reusing stable per-case user ids, which contaminated evidence with prior unresolved state
+
+### What Was Corrected
+
+- official turn-2 replay inputs were rewritten into clearer closure-complete responses
+- the replay runner now isolates each full run with a fresh run-scoped user id while preserving turn1/turn2 continuity inside the run
+- the official 9-case live rerun now passes cleanly
+
+### Next-Phase Corrections
+
+- treat the reopened `2.2` branch as complete enough for the current wave
+- return execution selection to the rescue human gate unless the user explicitly reopens another branch
+
+## 2026-04-15 — Rescue Branch Reopened For 2.5c Formalization
+
+### Trigger
+
+- the user explicitly selected the rescue branch and asked to analyze and formalize `2.5c rescue option shaping`
+
+### What The Planning Reality Became
+
+- `2.5c` was referenced in the execution clock, but it was not yet a formal registry slice
+- the missing work is not rescue math or proposal-artifact structure; it is the bounded non-user-facing layer that gives rescue families stable meaning, ranking, and activation timing before any response surface exists
+
+### Assumptions That Expired
+
+- "`2.5c` is already formalized just because the current plan names it"
+- "the rescue human gate blocks all rescue work equally"
+
+### Next-Phase Corrections
+
+- formalize `2.5c-rescue-option-shaping` as the active rescue slice
+- keep `2.5c` non-user-facing and deterministic-first / typed-artifact-first
+- defer rescue response wording, UI surface, quick actions, and accept-side writeback to later `2.5d`
 
 - `Next Workflow Focus` now refers to `2.7 Memory / Retrieval Deepening`
 - queued `context-selector` placeholder was renumbered to `2.7a-context-selector`
@@ -229,7 +321,7 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/CURRENT_EXECUTION_PLAN.md_20260411_170939/`
+- `artifacts/docs-snapshots/CURRENT_EXECUTION_PLAN.md_20260411_170939/`
 
 ## 2026-04-11 — Fat-File Gate Hardening
 
@@ -259,6 +351,65 @@ It should be appended over time instead of rewritten.
 
 ### Assumptions That Expired
 
+## 2026-04-12 — `2.2d` Follow-Up Closure Validation Selection
+
+### Trigger
+
+- `2.2a` continuation and `2.2c` cross-midnight are already landed, but the repo still lacks an explicit validation wave for `ask_followup_only -> completion` and `estimate_with_followup -> refinement`
+
+### What The Planning Reality Became
+
+- the next missing mainline contract is backend two-turn follow-up closure, not more rescue or calibration foundation
+- this wave should be validation-first and planner-local
+- benchmark seeds should be pulled from:
+  - `tests/fixtures/benchmark_test_set_v1.json`
+  - `docs/quality/benchmark_test_set_v1.txt`
+  - `docs/quality/benchmark_test_set_v2.txt`
+- the right context-engineering boundary here is session-local pending follow-up continuity, not durable memory or retrieval deepening
+
+### Assumptions That Expired
+
+- "multi-turn validation can stay implicit inside continuation/cross-midnight regressions"
+- "rescue semantics are the best next branch once 2.5b exists"
+- "follow-up closure needs 2.7 memory/retrieval before it can be validated"
+
+### Next-Phase Corrections
+
+- formalize `2.2d-followup-closure-validation-foundation` as the current active slice
+- author stateful benchmark cases for:
+  - `ask_followup_only -> completion`
+  - `estimate_with_followup -> refinement`
+- run targeted backend closure regressions first
+- only open `2.2e-followup-session-state-hardening` if the validation wave reveals a narrow deterministic gap
+
+### Outcome
+
+- `2.2d` landed as a validation-first wave
+- the repo now has:
+  - explicit follow-up closure seed inventory
+  - two authored stateful multi-turn benchmark cases
+  - targeted backend regressions for both closure contracts
+- current deterministic checks did not require `2.2e`
+- the next unresolved question is broader founder-fit validation density, not immediate session-state hardening
+
+## 2026-04-13 — `2.2f` Founder-Fit Replay Pack Selection
+
+### Trigger
+
+- `2.2d` proved the backend two-turn closure contracts, but the project still needs a human-reviewable founder-fit replay pack before deciding whether the next increment should be more `2.2` validation or a return to `2.3`
+
+### What The Planning Reality Became
+
+- the next best increment is not more implementation by default
+- it is a reviewable replay pack built from benchmark seeds plus a small number of founder-fit authored cases
+- this should stay planner-local and review-first
+
+### Next-Phase Corrections
+
+- formalize `2.2f-founder-fit-multi-turn-replay-pack`
+- recommend an initial pack size that is small enough for review but broad enough to cover both follow-up lanes plus boundary controls
+- hand the pack to human review before asking for synthetic expansion from ChatGPT or further benchmark authoring
+
 - "because role vocabulary exists, each domain should expose matching 4-pass structure"
 - "recommendation, calibration proposal, and rescue should inherit intake's expanded pass decomposition as default truth"
 - "`L6C` can safely act as both routing spec and pass-count authority"
@@ -271,14 +422,14 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/L6D_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_200135/`
-- `docs/_spec_snapshots/L6C_MODEL_ROUTING_PROVIDER_ABSTRACTION_SPEC.md_20260411_200135/`
-- `docs/_spec_snapshots/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md_20260411_200135/`
-- `docs/_spec_snapshots/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_200136/`
-- `docs/_spec_snapshots/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md_20260411_200136/`
-- `docs/_spec_snapshots/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md_20260411_200136/`
-- `docs/_spec_snapshots/index.md_20260411_200137/`
-- `docs/_spec_snapshots/CANONICAL_DOCS_MANIFEST.md_20260411_200137/`
+- `artifacts/docs-snapshots/L6D_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_200135/`
+- `artifacts/docs-snapshots/L6C_MODEL_ROUTING_PROVIDER_ABSTRACTION_SPEC.md_20260411_200135/`
+- `artifacts/docs-snapshots/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md_20260411_200135/`
+- `artifacts/docs-snapshots/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_200136/`
+- `artifacts/docs-snapshots/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md_20260411_200136/`
+- `artifacts/docs-snapshots/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md_20260411_200136/`
+- `artifacts/docs-snapshots/index.md_20260411_200137/`
+- `artifacts/docs-snapshots/CANONICAL_DOCS_MANIFEST.md_20260411_200137/`
 
 ## 2026-04-11 — Decision-Mode Annotation Alignment
 
@@ -303,12 +454,173 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_203256/`
-- `docs/_spec_snapshots/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md_20260411_203256/`
-- `docs/_spec_snapshots/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_203256/`
-- `docs/_spec_snapshots/L3_3A_DEFICIT_EXPENDITURE_CALIBRATION_MODEL_SPEC.md_20260411_203257/`
-- `docs/_spec_snapshots/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md_20260411_203257/`
-- `docs/_spec_snapshots/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md_20260411_203257/`
+- `artifacts/docs-snapshots/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_203256/`
+- `artifacts/docs-snapshots/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md_20260411_203256/`
+- `artifacts/docs-snapshots/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_203256/`
+- `artifacts/docs-snapshots/L3_3A_DEFICIT_EXPENDITURE_CALIBRATION_MODEL_SPEC.md_20260411_203257/`
+- `artifacts/docs-snapshots/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md_20260411_203257/`
+- `artifacts/docs-snapshots/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md_20260411_203257/`
+
+## 2026-04-13 — `2.2g` Post-Pass Override Cleanup
+
+### Trigger
+
+- accepted Golden V1 exposed one concrete runtime mismatch: generic `珍珠奶茶` drifted into `exact_item`
+- architecture review confirmed that deterministic layers were still rewriting completed LLM posture fields after pass completion
+
+### What The Planning Reality Became
+
+- `poke` is not a Golden referee case; it moves to gray-zone / borderline
+- the next best slice is not broader replay expansion yet
+- first the runtime must remove deterministic post-pass posture overrides and keep generic drinks out of accidental exact finalization
+
+### Next-Phase Corrections
+
+- add a hard bootstrap/runtime rule forbidding deterministic post-pass overrides of completed LLM posture fields
+- keep `soft avoid exact` for generic bubble tea as a bounded repair gate, not a direct overwrite
+- rerun first-turn Golden audit after cleanup
+- only then move into `2.2h` turn-2 hybrid replay
+
+## 2026-04-14 — `2.2h` Turn-2 Hybrid Replay Foundation Built
+
+### Trigger
+
+- `2.2g` cleanup finished, and the next missing mainline asset was a reusable second-turn replay workflow that did not depend on full two-turn live reruns for every iteration
+
+### What Landed
+
+- a cleaned file-backed turn-2 replay pack with one `ask_followup_only -> completion` case and one `estimate_with_followup -> refinement` case
+- runner artifacts now retain `request_id`, `turn_id`, full payload, `trace_contract`, `llm_traces`, and persistence decision
+- replay summary now records same-intake attachment and expected lane/outcome fields
+- targeted tests now lock the replay pack shape and summary contract
+
+### What Did Not Change
+
+- provider readiness remains the live-evidence gate
+- `2.2h` foundation is built, but no fallback-only rerun should be treated as true LLM evidence
+
+### Next-Phase Correction
+
+- restore provider configuration
+- rerun the `9`-case Golden single-turn live audit
+- only then use the turn-2 replay foundation for real second-turn evaluation
+
+## 2026-04-14 — `2.2` Live Evidence Closed; Read-Side Confidence Selected Next
+
+### Trigger
+
+- provider readiness was restored
+- the official `9`-case Golden single-turn live audit passed with true provider usage
+- both official `2.2h` turn-2 hybrid replay lanes passed with real evidence:
+  - `ask_followup_only -> completion`
+  - `estimate_with_followup -> refinement`
+
+### What The Planning Reality Became
+
+- `2.2` is now strong enough for current-wave domain advance
+- the next bounded risk is no longer first-turn or second-turn intake behavior
+- the next bounded risk is whether current-budget and today-facing read-side surfaces still reflect the newly confirmed multi-turn intake truth
+
+### Assumptions That Expired
+
+- "provider readiness is still blocking real `2.2` evidence"
+- "`2.2h` remains the best-next slice even after live audit and replay evidence exist"
+- "the next useful step after `2.2` evidence is more intake-core work by default"
+
+### Next-Phase Corrections
+
+- move the execution pointer from `2.2` to a narrow `2.3` confidence slice
+- formalize `2.3c-read-side-confidence-follow-through`
+- keep rescue semantics and later-domain work deferred until read-side confidence is reconfirmed
+
+## 2026-04-14 — `2.3c` Read-Side Confidence Closed; Execution Stops At Rescue Gate
+
+### Trigger
+
+- the narrow `2.3c` regressions passed for:
+  - unresolved turn-1 draft state staying out of current-budget/today
+  - turn-2 completion surfacing the final active meal into current-budget/today
+
+### What The Planning Reality Became
+
+- the current wave's `2.2` and `2.3` confidence work is now complete enough
+- the next legal product branch is still `2.5 Rescue`
+- that branch remains intentionally paused at the existing human semantics gate
+
+### Next-Phase Corrections
+
+- stop active implementation here unless the user explicitly reopens rescue semantics or chooses another branch
+- keep the current wave's evidence as the new baseline:
+  - Golden single-turn live audit passed
+  - turn-2 replay evidence passed
+  - read-side confidence follow-through passed
+
+## 2026-04-14 — User Reopened `2.2` For Turn-2 Replay Density Expansion
+
+### Trigger
+
+- after the initial `2.2h` and `2.3c` evidence closed, the user explicitly requested a next step focused on fixed turn-1 outputs and broader turn-2 planner attachment/refinement testing
+
+### What The Planning Reality Became
+
+- the next active slice is not rescue semantics
+- it is a narrow planner-local `2.2` pack expansion using accepted Golden seeds and founder-fit follow-up cases to stress:
+  - same-intake attachment
+  - completion after ask-only turn 1
+  - refinement after estimate-with-followup turn 1
+  - no accidental duplicate meal creation
+
+### Next-Phase Corrections
+
+- formalize `2.2i-turn2-attachment-and-refinement-replay-pack`
+- expand the file-backed turn-2 replay pack beyond the original two official cases
+- keep this work inside replay fixtures, replay runner surfaces, and replay-pack validation only
+
+## 2026-04-12 — Docs Bootstrap State-Machine Reorg
+
+### Trigger
+
+- bootstrap docs had become too flat and too redundant for planner-first execution
+- `AGENTS.md`, `docs/index.md`, `docs/AGENT_LOADING_PATH.md`, and several root governance briefs were overlapping in purpose
+- the desired runtime shape was a short planner path centered on `CURRENT_EXECUTION_PLAN.md`
+
+### What Changed
+
+- `AGENTS.md` now acts as the only bootstrap and points directly to the execution dashboard, slice registry, and ordering spec
+- `docs/index.md` was compressed into a family-level human portal
+- `docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md` was upgraded into the planner dashboard / execution clock
+- root governance owner docs moved into `docs/governance/`
+- merged owner docs were added:
+  - `docs/governance/EXECUTION_OPERATING_MODEL.md`
+  - `docs/governance/EXECUTION_SELECTION_POLICY.md`
+  - `docs/governance/CHANGE_CONTROL_GUARDS.md`
+- `docs/AGENT_LOADING_PATH.md` was archived and removed from the default bootstrap path
+- `docs/exec-plans/active/MASTER_BUILD_MAP.md` was archived after its active-state role moved into the dashboard
+- `docs/` root now retains only `index.md`
+
+### Why It Matters
+
+- the planner now has a short, obvious execution path:
+  - `AGENTS.md -> CURRENT_EXECUTION_PLAN.md -> WORKFLOW_SLICE_REGISTRY.md -> ordering spec`
+- governance material is still preserved, but no longer competes with active execution truth at bootstrap time
+- archive, references, and snapshots remain available without polluting the default read path
+
+### Editing Note
+
+- `AGENTS.md`, `docs/index.md`, and `CURRENT_EXECUTION_PLAN.md` were finalized through same-path UTF-8-with-BOM overwrites after anchor-safe patching became unreliable during the reorg
+- no delete-and-recreate was used for those files
+
+### Snapshot Record
+
+- `artifacts/docs-snapshots/AGENTS.md_20260412_130918/`
+- `artifacts/docs-snapshots/index.md_20260412_130918/`
+- `artifacts/docs-snapshots/CURRENT_EXECUTION_PLAN.md_20260412_130918/`
+- `artifacts/docs-snapshots/SPEC_EDITING_PROTOCOL.md_20260412_130918/`
+- `artifacts/docs-snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260412_130918/`
+- `artifacts/docs-snapshots/TASK_CHECKIN_PROTOCOL.md_20260412_130918/`
+- `artifacts/docs-snapshots/HANDOFF_CONTRACT.md_20260412_130918/`
+- `artifacts/docs-snapshots/ENCODING_POLICY.md_20260412_130918/`
+- `artifacts/docs-snapshots/BUILD_FILE_PLACEMENT_RULES.md_20260412_130918/`
 
 ## 2026-04-12 — Deterministic Harness Wall Added
 
@@ -333,25 +645,25 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/AGENTS.md_20260412_123500/`
-- `docs/_spec_snapshots/index.md_20260412_123500/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260412_123500/`
-- `docs/_spec_snapshots/pre-commit_20260412_123500/`
-- `docs/_spec_snapshots/ci.yml_20260412_123500/`
-- `docs/_spec_snapshots/install_git_hooks.ps1_20260412_123500/`
-- `docs/_spec_snapshots/requirements.txt_20260412_123500/`
-- `docs/_spec_snapshots/AGENTS.md_20260412_124800/`
-- `docs/_spec_snapshots/index.md_20260412_124800/`
-- `docs/_spec_snapshots/HARNESS_EXECUTION_POLICY.md_20260412_124800/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260412_124800/`
-- `docs/_spec_snapshots/pre-commit_20260412_124800/`
-- `docs/_spec_snapshots/commit-msg_20260412_124800/`
-- `docs/_spec_snapshots/ci.yml_20260412_124800/`
-- `docs/_spec_snapshots/install_git_hooks.ps1_20260412_124800/`
-- `docs/_spec_snapshots/check_git_diff_scope.py_20260412_124800/`
-- `docs/_spec_snapshots/check_commit_format.py_20260412_124800/`
-- `docs/_spec_snapshots/check_runtime_boundaries.py_20260412_124800/`
-- `docs/_spec_snapshots/requirements.txt_20260412_124800/`
+- `artifacts/docs-snapshots/AGENTS.md_20260412_123500/`
+- `artifacts/docs-snapshots/index.md_20260412_123500/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260412_123500/`
+- `artifacts/docs-snapshots/pre-commit_20260412_123500/`
+- `artifacts/docs-snapshots/ci.yml_20260412_123500/`
+- `artifacts/docs-snapshots/install_git_hooks.ps1_20260412_123500/`
+- `artifacts/docs-snapshots/requirements.txt_20260412_123500/`
+- `artifacts/docs-snapshots/AGENTS.md_20260412_124800/`
+- `artifacts/docs-snapshots/index.md_20260412_124800/`
+- `artifacts/docs-snapshots/HARNESS_EXECUTION_POLICY.md_20260412_124800/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260412_124800/`
+- `artifacts/docs-snapshots/pre-commit_20260412_124800/`
+- `artifacts/docs-snapshots/commit-msg_20260412_124800/`
+- `artifacts/docs-snapshots/ci.yml_20260412_124800/`
+- `artifacts/docs-snapshots/install_git_hooks.ps1_20260412_124800/`
+- `artifacts/docs-snapshots/check_git_diff_scope.py_20260412_124800/`
+- `artifacts/docs-snapshots/check_commit_format.py_20260412_124800/`
+- `artifacts/docs-snapshots/check_runtime_boundaries.py_20260412_124800/`
+- `artifacts/docs-snapshots/requirements.txt_20260412_124800/`
 
 ## 2026-04-12 — Repo-Wide Ruff Debt Cleanup
 
@@ -382,10 +694,10 @@ It should be appended over time instead of rewritten.
 ### What Changed
 
 - `AGENTS.md` now points to a minimal bootstrap path and formalizes the execution-truth trio: git, harness output, and the minimal active execution board
-- `docs/index.md` and `docs/AGENT_LOADING_PATH.md` now mark task artifacts, handoffs, and role-model docs as optional or exception-path reads rather than default execution requirements
+- `docs/index.md` and `AGENTS.md` now mark task artifacts, handoffs, and role-model docs as optional or exception-path reads rather than default execution requirements
 - `docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md` was reduced to a minimal operational board instead of a long historical narrative
-- `docs/TASK_CHECKIN_PROTOCOL.md` and `docs/HANDOFF_CONTRACT.md` now define optional exception paths instead of default mandatory workflow artifacts
-- `docs/PLANNER_AUTONOMY_LOOP_POLICY.md` now defines `single-stream local planner` as the default loop shape, with delegation as an explicit exception
+- `docs/governance/TASK_CHECKIN_PROTOCOL.md` and `docs/governance/HANDOFF_CONTRACT.md` now define optional exception paths instead of default mandatory workflow artifacts
+- `docs/governance/EXECUTION_SELECTION_POLICY.md` now defines `single-stream local planner` as the default loop shape, with delegation as an explicit exception
 - `scripts/check_task_checkin_and_handoff.ps1` was downgraded to an advisory compatibility audit
 - CI and pre-commit no longer treat task/handoff artifact validation as a default blocking gate
 
@@ -397,27 +709,27 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/AGENT_LOADING_PATH.md_20260412_113200/`
-- `docs/_spec_snapshots/AGENTS.md_20260412_110500/`
-- `docs/_spec_snapshots/AGENTS.md_20260412_113200/`
-- `docs/_spec_snapshots/index.md_20260412_110500/`
-- `docs/_spec_snapshots/index.md_20260412_113200/`
-- `docs/_spec_snapshots/CURRENT_EXECUTION_PLAN.md_20260412_110500/`
-- `docs/_spec_snapshots/CURRENT_EXECUTION_PLAN.md_20260412_113200/`
-- `docs/_spec_snapshots/TASK_CHECKIN_PROTOCOL.md_20260412_110500/`
-- `docs/_spec_snapshots/TASK_CHECKIN_PROTOCOL.md_20260412_113200/`
-- `docs/_spec_snapshots/HANDOFF_CONTRACT.md_20260412_110500/`
-- `docs/_spec_snapshots/HANDOFF_CONTRACT.md_20260412_113200/`
-- `docs/_spec_snapshots/PLANNER_AUTONOMY_LOOP_POLICY.md_20260412_110500/`
-- `docs/_spec_snapshots/PLANNER_AUTONOMY_LOOP_POLICY.md_20260412_113200/`
-- `docs/_spec_snapshots/check_task_checkin_and_handoff.ps1_20260412_110500/`
-- `docs/_spec_snapshots/check_task_checkin_and_handoff.ps1_20260412_113200/`
-- `docs/_spec_snapshots/ci.yml_20260412_110500/`
-- `docs/_spec_snapshots/ci.yml_20260412_113200/`
-- `docs/_spec_snapshots/pre-commit_20260412_110500/`
-- `docs/_spec_snapshots/pre-commit_20260412_113200/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260412_113200/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260412_113450/`
+- `artifacts/docs-snapshots/AGENT_LOADING_PATH.md_20260412_113200/`
+- `artifacts/docs-snapshots/AGENTS.md_20260412_110500/`
+- `artifacts/docs-snapshots/AGENTS.md_20260412_113200/`
+- `artifacts/docs-snapshots/index.md_20260412_110500/`
+- `artifacts/docs-snapshots/index.md_20260412_113200/`
+- `artifacts/docs-snapshots/CURRENT_EXECUTION_PLAN.md_20260412_110500/`
+- `artifacts/docs-snapshots/CURRENT_EXECUTION_PLAN.md_20260412_113200/`
+- `artifacts/docs-snapshots/TASK_CHECKIN_PROTOCOL.md_20260412_110500/`
+- `artifacts/docs-snapshots/TASK_CHECKIN_PROTOCOL.md_20260412_113200/`
+- `artifacts/docs-snapshots/HANDOFF_CONTRACT.md_20260412_110500/`
+- `artifacts/docs-snapshots/HANDOFF_CONTRACT.md_20260412_113200/`
+- `artifacts/docs-snapshots/PLANNER_AUTONOMY_LOOP_POLICY.md_20260412_110500/`
+- `artifacts/docs-snapshots/PLANNER_AUTONOMY_LOOP_POLICY.md_20260412_113200/`
+- `artifacts/docs-snapshots/check_task_checkin_and_handoff.ps1_20260412_110500/`
+- `artifacts/docs-snapshots/check_task_checkin_and_handoff.ps1_20260412_113200/`
+- `artifacts/docs-snapshots/ci.yml_20260412_110500/`
+- `artifacts/docs-snapshots/ci.yml_20260412_113200/`
+- `artifacts/docs-snapshots/pre-commit_20260412_110500/`
+- `artifacts/docs-snapshots/pre-commit_20260412_113200/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260412_113200/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260412_113450/`
 
 ## 2026-04-12 — Today-Surface Date-Aware Follow-Through
 
@@ -468,18 +780,18 @@ It should be appended over time instead of rewritten.
 ### Trigger
 
 - the repo now has a single `AGENTS.md` bootstrap path, but protected entrypoint docs could still be replaced through a near-total same-path rewrite
-- `docs/exec-plans/active/tasks/` and `docs/handoff/active/` had accumulated completed artifacts, which blurred active loading paths for future agents
+- `docs/exec-plans/active/tasks/` and `docs/exec-plans/active/handoff/` had accumulated completed artifacts, which blurred active loading paths for future agents
 
 ### What The Planning Reality Became
 
 - a new `scripts/check_protected_doc_rewrites.ps1` guard now blocks suspicious near-total staged rewrites for protected entrypoint and governance docs
 - `.githooks/pre-commit` and `.github/workflows/ci.yml` now execute the protected-doc rewrite guard
 - `scripts/check_task_checkin_and_handoff.ps1` now treats completed task artifacts under `active/tasks/` and completed-task handoffs under `handoff/active/` as validation failures
-- `docs/TASK_CHECKIN_PROTOCOL.md`, `docs/SPEC_EDITING_PROTOCOL.md`, and `docs/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md` now explicitly document the rewrite/archival expectations
+- `docs/governance/TASK_CHECKIN_PROTOCOL.md`, `docs/governance/SPEC_EDITING_PROTOCOL.md`, and `docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md` now explicitly document the rewrite/archival expectations
 - completed tasks `002` through `012` were moved from `docs/exec-plans/active/tasks/` to `docs/exec-plans/completed/tasks/`
-- completed handoffs tied to those tasks were moved from `docs/handoff/active/` to `docs/handoff/completed/`
+- completed handoffs tied to those tasks were moved from `docs/exec-plans/active/handoff/` to `docs/exec-plans/completed/handoff/`
 - `docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md` now only points active readers at still-active task and handoff artifacts
-- `docs/handoff/README.md` and `docs/index.md` now clarify that root-level `docs/handoff/*.md` files are stable operator references, not the default per-task handoff queue
+- `docs/exec-plans/reference/handoff/README.md` and `docs/index.md` now clarify that root-level `docs/handoff/*.md` files are stable operator references, not the default per-task handoff queue
 
 ### Why It Matters
 
@@ -489,13 +801,13 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/TASK_CHECKIN_PROTOCOL.md_20260411_213400/`
-- `docs/_spec_snapshots/SPEC_EDITING_PROTOCOL.md_20260411_213400/`
-- `docs/_spec_snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_213400/`
-- `docs/_spec_snapshots/CURRENT_EXECUTION_PLAN.md_20260411_213400/`
-- `docs/_spec_snapshots/index.md_20260411_213400/`
-- `docs/_spec_snapshots/handoff_README.md_20260411_213400/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_213400/`
+- `artifacts/docs-snapshots/TASK_CHECKIN_PROTOCOL.md_20260411_213400/`
+- `artifacts/docs-snapshots/SPEC_EDITING_PROTOCOL.md_20260411_213400/`
+- `artifacts/docs-snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_213400/`
+- `artifacts/docs-snapshots/CURRENT_EXECUTION_PLAN.md_20260411_213400/`
+- `artifacts/docs-snapshots/index.md_20260411_213400/`
+- `artifacts/docs-snapshots/handoff_README.md_20260411_213400/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_213400/`
 
 ## 2026-04-11 — Docs Index Compression
 
@@ -518,8 +830,8 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/index.md_20260411_214600/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_214600/`
+- `artifacts/docs-snapshots/index.md_20260411_214600/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_214600/`
 
 ## 2026-04-11 — Handoff Reference Split
 
@@ -529,8 +841,8 @@ It should be appended over time instead of rewritten.
 
 ### What The Planning Reality Became
 
-- stable handoff reference docs now live under `docs/handoff/reference/`
-- `docs/handoff/README.md`, `docs/index.md`, `docs/AGENT_LOADING_PATH.md`, and `AGENTS.md` now distinguish `active`, `completed`, and `reference` handoff paths
+- stable handoff reference docs now live under `docs/exec-plans/reference/handoff/`
+- `docs/exec-plans/reference/handoff/README.md`, `docs/index.md`, `AGENTS.md`, and `AGENTS.md` now distinguish `active`, `completed`, and `reference` handoff paths
 - internal links from `NEXT_AGENT_CHECKLIST.md` and `TEXT_MEAL_RUNTIME_CURRENT.md` now point to the new reference path
 
 ### Why It Matters
@@ -541,11 +853,11 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/handoff_README.md_20260411_215800/`
-- `docs/_spec_snapshots/index.md_20260411_215800/`
-- `docs/_spec_snapshots/AGENT_LOADING_PATH.md_20260411_215800/`
-- `docs/_spec_snapshots/AGENTS.md_20260411_215800/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_215800/`
+- `artifacts/docs-snapshots/handoff_README.md_20260411_215800/`
+- `artifacts/docs-snapshots/index.md_20260411_215800/`
+- `artifacts/docs-snapshots/AGENT_LOADING_PATH.md_20260411_215800/`
+- `artifacts/docs-snapshots/AGENTS.md_20260411_215800/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_215800/`
 
 ## 2026-04-11 — Harness Hard-Gate Hardening
 
@@ -573,13 +885,13 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/AGENTS.md_20260411_210500/`
-- `docs/_spec_snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_210500/`
-- `docs/_spec_snapshots/TASK_CHECKIN_PROTOCOL.md_20260411_210500/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_210500/`
-- `docs/_spec_snapshots/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_204024/`
-- `docs/_spec_snapshots/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md_20260411_204024/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_204024/`
+- `artifacts/docs-snapshots/AGENTS.md_20260411_210500/`
+- `artifacts/docs-snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_210500/`
+- `artifacts/docs-snapshots/TASK_CHECKIN_PROTOCOL.md_20260411_210500/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_210500/`
+- `artifacts/docs-snapshots/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_204024/`
+- `artifacts/docs-snapshots/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md_20260411_204024/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_204024/`
 
 ## 2026-04-11 — Decision-Mode Governance Second-Pass Alignment
 
@@ -602,10 +914,10 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/L3M_GUARDRAIL_MATH_SPEC.md_20260411_204538/`
-- `docs/_spec_snapshots/L3T_TYPED_RUNTIME_CONTRACT_SPEC.md_20260411_204538/`
-- `docs/_spec_snapshots/L6C_MODEL_ROUTING_PROVIDER_ABSTRACTION_SPEC.md_20260411_204538/`
-- `docs/_spec_snapshots/index.md_20260411_204538/`
+- `artifacts/docs-snapshots/L3M_GUARDRAIL_MATH_SPEC.md_20260411_204538/`
+- `artifacts/docs-snapshots/L3T_TYPED_RUNTIME_CONTRACT_SPEC.md_20260411_204538/`
+- `artifacts/docs-snapshots/L6C_MODEL_ROUTING_PROVIDER_ABSTRACTION_SPEC.md_20260411_204538/`
+- `artifacts/docs-snapshots/index.md_20260411_204538/`
 
 ## 2026-04-11 — Encoding Recovery For Canonical Governance Specs
 
@@ -630,10 +942,10 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/L3M_GUARDRAIL_MATH_SPEC.md_20260411_205346/`
-- `docs/_spec_snapshots/L3T_TYPED_RUNTIME_CONTRACT_SPEC.md_20260411_205346/`
-- `docs/_spec_snapshots/L6D_REPO_TECH_STACK_CODE_STYLE_SPEC.md_20260411_205346/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_205346/`
+- `artifacts/docs-snapshots/L3M_GUARDRAIL_MATH_SPEC.md_20260411_205346/`
+- `artifacts/docs-snapshots/L3T_TYPED_RUNTIME_CONTRACT_SPEC.md_20260411_205346/`
+- `artifacts/docs-snapshots/L6D_REPO_TECH_STACK_CODE_STYLE_SPEC.md_20260411_205346/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_205346/`
 
 ## 2026-04-11 — Deprecated L6D Pass-Policy Stub Conversion
 
@@ -656,9 +968,9 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/L6D_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_205522/`
-- `docs/_spec_snapshots/L6D_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_205646/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_205646/`
+- `artifacts/docs-snapshots/L6D_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_205522/`
+- `artifacts/docs-snapshots/L6D_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_205646/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_205646/`
 
 ## 2026-04-11 — Expanded-Mode Wording Cleanup
 
@@ -679,10 +991,10 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_205925/`
-- `docs/_spec_snapshots/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md_20260411_205925/`
-- `docs/_spec_snapshots/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md_20260411_205925/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_205925/`
+- `artifacts/docs-snapshots/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_205925/`
+- `artifacts/docs-snapshots/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md_20260411_205925/`
+- `artifacts/docs-snapshots/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md_20260411_205925/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_205925/`
 
 ## 2026-04-11 — Recovered Legacy Entry Boundary
 
@@ -711,7 +1023,7 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_171519/`
+- `artifacts/docs-snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_171519/`
 
 ## 2026-04-11 — Final Spec Optimization Pass
 
@@ -740,12 +1052,12 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_211424/`
-- `docs/_spec_snapshots/L6C_MODEL_ROUTING_PROVIDER_ABSTRACTION_SPEC.md_20260411_211424/`
-- `docs/_spec_snapshots/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_211424/`
-- `docs/_spec_snapshots/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md_20260411_211424/`
-- `docs/_spec_snapshots/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md_20260411_211424/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_211424/`
+- `artifacts/docs-snapshots/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_211424/`
+- `artifacts/docs-snapshots/L6C_MODEL_ROUTING_PROVIDER_ABSTRACTION_SPEC.md_20260411_211424/`
+- `artifacts/docs-snapshots/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_211424/`
+- `artifacts/docs-snapshots/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md_20260411_211424/`
+- `artifacts/docs-snapshots/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md_20260411_211424/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_211424/`
 
 ## 2026-04-11 — Runtime Experiment Checklist
 
@@ -768,9 +1080,9 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/RUNTIME_EXPERIMENT_CHECKLIST.md_20260411_211834/`
-- `docs/_spec_snapshots/index.md_20260411_211834/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_211834/`
+- `artifacts/docs-snapshots/RUNTIME_EXPERIMENT_CHECKLIST.md_20260411_211834/`
+- `artifacts/docs-snapshots/index.md_20260411_211834/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_211834/`
 
 ## 2026-04-11 — Encoding Policy Hard Gate
 
@@ -782,7 +1094,7 @@ It should be appended over time instead of rewritten.
 ### What Changed
 
 - formalized the hard-gate scope as `docs/**/*.md` plus `AGENTS.md`
-- explicitly included `docs/_spec_snapshots/**` in that policy scope
+- explicitly included `artifacts/docs-snapshots/**` in that policy scope
 - updated `check_encoding.ps1` to support:
   - `-AuditDocsPolicy`
   - `-StagedOnly`
@@ -801,14 +1113,14 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/ENCODING_POLICY.md_20260411_224309/`
-- `docs/_spec_snapshots/ENCODING_POLICY.md_20260411_225219/`
-- `docs/_spec_snapshots/index.md_20260411_224309/`
-- `docs/_spec_snapshots/index.md_20260411_225219/`
-- `docs/_spec_snapshots/AGENTS.md_20260411_225013/`
-- `docs/_spec_snapshots/AGENTS.md_20260411_225219/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_224309/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_225219/`
+- `artifacts/docs-snapshots/ENCODING_POLICY.md_20260411_224309/`
+- `artifacts/docs-snapshots/ENCODING_POLICY.md_20260411_225219/`
+- `artifacts/docs-snapshots/index.md_20260411_224309/`
+- `artifacts/docs-snapshots/index.md_20260411_225219/`
+- `artifacts/docs-snapshots/AGENTS.md_20260411_225013/`
+- `artifacts/docs-snapshots/AGENTS.md_20260411_225219/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_224309/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_225219/`
 
 ## 2026-04-11 — Encoding Normalization Utility
 
@@ -825,7 +1137,7 @@ It should be appended over time instead of rewritten.
 - supported both:
   - `-DocsPolicy`
   - `-StagedOnly`
-- documented the repair script in `docs/ENCODING_POLICY.md` and `docs/index.md`
+- documented the repair script in `docs/governance/ENCODING_POLICY.md` and `docs/index.md`
 - smoke-tested the repair script with `-DocsPolicy` and re-verified `check_encoding.ps1 -AuditDocsPolicy`
 
 ### Why It Matters
@@ -836,9 +1148,9 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/ENCODING_POLICY.md_20260411_225738/`
-- `docs/_spec_snapshots/index.md_20260411_225738/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_225738/`
+- `artifacts/docs-snapshots/ENCODING_POLICY.md_20260411_225738/`
+- `artifacts/docs-snapshots/index.md_20260411_225738/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_225738/`
 
 ## 2026-04-11 — File Placement Governance
 
@@ -865,8 +1177,8 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_183000/`
-- `docs/_spec_snapshots/AGENTS.md_20260411_183000/`
+- `artifacts/docs-snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_183000/`
+- `artifacts/docs-snapshots/AGENTS.md_20260411_183000/`
 
 ## 2026-04-11 — Layer Integrity Warning Cleanup
 
@@ -916,8 +1228,8 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_191500/`
-- `docs/_spec_snapshots/AGENTS.md_20260411_191500/`
+- `artifacts/docs-snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_191500/`
+- `artifacts/docs-snapshots/AGENTS.md_20260411_191500/`
 
 ## 2026-04-11 — CI Consolidation And Search Layer Formalization
 
@@ -939,9 +1251,9 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/BUILD_FILE_PLACEMENT_RULES.md_20260411_193500/`
-- `docs/_spec_snapshots/LAYER_DEPENDENCY_RULES.md_20260411_193500/`
-- `docs/_spec_snapshots/AGENTS.md_20260411_193500/`
+- `artifacts/docs-snapshots/BUILD_FILE_PLACEMENT_RULES.md_20260411_193500/`
+- `artifacts/docs-snapshots/LAYER_DEPENDENCY_RULES.md_20260411_193500/`
+- `artifacts/docs-snapshots/AGENTS.md_20260411_193500/`
 
 ## 2026-04-11 — Build-Start Harness Baseline
 
@@ -964,7 +1276,7 @@ It should be appended over time instead of rewritten.
 
 ### What The Code Actually Became
 
-- `docs/GITHUB_REPO_GOVERNANCE.md` now records required branch protection and required status check names for platform-side enforcement
+- `docs/governance/GITHUB_REPO_GOVERNANCE.md` now records required branch protection and required status check names for platform-side enforcement
 - `scripts/check_fat_files.ps1` now distinguishes protected legacy files from freeze-growth architecture risk files and a watchlist
 - `pytest.ini`, `tests/conftest.py`, and `.github/workflows/ci.yml` now define a layered `smoke` / `integration` / `e2e` test path
 - `.github/dependabot.yml` now governs weekly `pip` and `github-actions` updates
@@ -977,13 +1289,13 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/AGENTS.md_20260411_201500/`
-- `docs/_spec_snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_201500/`
-- `docs/_spec_snapshots/TASK_CHECKIN_PROTOCOL.md_20260411_201500/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_201500/`
-- `docs/_spec_snapshots/AGENTS.md_20260411_194024/`
-- `docs/_spec_snapshots/GITHUB_REPO_GOVERNANCE.md_20260411_194024/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_194024/`
+- `artifacts/docs-snapshots/AGENTS.md_20260411_201500/`
+- `artifacts/docs-snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_201500/`
+- `artifacts/docs-snapshots/TASK_CHECKIN_PROTOCOL.md_20260411_201500/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_201500/`
+- `artifacts/docs-snapshots/AGENTS.md_20260411_194024/`
+- `artifacts/docs-snapshots/GITHUB_REPO_GOVERNANCE.md_20260411_194024/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_194024/`
 
 ## 2026-04-11 — Alembic Migration Governance
 
@@ -1010,10 +1322,10 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_200000/`
-- `docs/_spec_snapshots/GITHUB_REPO_GOVERNANCE.md_20260411_200000/`
-- `docs/_spec_snapshots/AGENTS.md_20260411_200000/`
-- `docs/_spec_snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_200000/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_200000/`
+- `artifacts/docs-snapshots/GITHUB_REPO_GOVERNANCE.md_20260411_200000/`
+- `artifacts/docs-snapshots/AGENTS.md_20260411_200000/`
+- `artifacts/docs-snapshots/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md_20260411_200000/`
 
 ## 2026-04-11 — Freeze-Growth Extraction Map
 
@@ -1041,9 +1353,9 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/FREEZE_GROWTH_EXTRACTION_MAP.md_20260411_201500/`
-- `docs/_spec_snapshots/index.md_20260411_201500/`
-- `docs/_spec_snapshots/REPLAN_LOG.md_20260411_201500/`
+- `artifacts/docs-snapshots/FREEZE_GROWTH_EXTRACTION_MAP.md_20260411_201500/`
+- `artifacts/docs-snapshots/index.md_20260411_201500/`
+- `artifacts/docs-snapshots/REPLAN_LOG.md_20260411_201500/`
 
 ## 2026-04-11 — Shift Back To Read-Model Follow-Through
 
@@ -1378,6 +1690,54 @@ It should be appended over time instead of rewritten.
 - keep the worker scope limited to read-model assembly, infrastructure query shape, and regression coverage
 - use the result to choose between `2.3b` and `2.5`
 
+## 2026-04-12 — Re-enter Rescue After 2.3 Wave Closure
+
+### Trigger
+
+- `2.3a` and `2.3b` follow-through both closed cleanly
+- `2.4a` and `2.4b` already exist, so the next worthwhile bounded branch is no longer inside read-side or body-observation work
+- `2.6` remains intentionally paused and `2.7a` is still not formalized
+
+### What The Planning Reality Became
+
+- the next best-next slice is `2.5b-rescue-proposal-artifact-foundation`
+- this slice should stop at structured rescue proposal artifact formation
+- response wording, rescue-family product semantics, and user-facing surfaces remain behind the next human gate
+
+### Assumptions That Expired
+
+- "after `2.3b`, the next best move is deeper calibration or memory/retrieval work"
+- "rescue can wait until later even when the preconditions for non-user-facing proposal artifact work are already in place"
+
+### Next-Phase Corrections
+
+- formalize and dispatch `TASK-2026-04-12-027-RESCUE-PROPOSAL-ARTIFACT-FOUNDATION`
+- keep the worker scope inside rescue application modules and rescue tests
+- stop after `2.5b` closes, before `2.5c` option shaping or `2.5d` response work
+
+## 2026-04-12 — Rescue Proposal Artifact Closed; Human Gate Reached
+
+### Trigger
+
+- `TASK-2026-04-12-027-RESCUE-PROPOSAL-ARTIFACT-FOUNDATION` completed with green targeted tests and governance checks
+- the bounded rescue work now covers deterministic proposal artifact structure without touching user-facing response behavior
+
+### What The Planning Reality Became
+
+- `2.5b` is complete
+- the next rescue step would move into option-family semantics, proposal framing, and possibly LLM-backed or human-facing wording decisions
+- that boundary is the planned human gate for the current rescue wave
+
+### Assumptions That Expired
+
+- "rescue can continue straight from deterministic artifact formation into option shaping without a product-semantics stop"
+
+### Next-Phase Corrections
+
+- archive `TASK-2026-04-12-027-RESCUE-PROPOSAL-ARTIFACT-FOUNDATION` with a completed handoff
+- stop active implementation here
+- discuss rescue-family meaning and `2.5c` boundaries before formalizing the next rescue slice
+
 ## 2026-04-11 — Decision-Mode Annotation Alignment
 
 ### Trigger
@@ -1401,9 +1761,263 @@ It should be appended over time instead of rewritten.
 
 ### Snapshot Record
 
-- `docs/_spec_snapshots/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_203256/`
-- `docs/_spec_snapshots/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md_20260411_203256/`
-- `docs/_spec_snapshots/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_203256/`
-- `docs/_spec_snapshots/L3_3A_DEFICIT_EXPENDITURE_CALIBRATION_MODEL_SPEC.md_20260411_203257/`
-- `docs/_spec_snapshots/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md_20260411_203257/`
-- `docs/_spec_snapshots/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md_20260411_203257/`
+- `artifacts/docs-snapshots/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md_20260411_203256/`
+- `artifacts/docs-snapshots/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md_20260411_203256/`
+- `artifacts/docs-snapshots/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md_20260411_203256/`
+- `artifacts/docs-snapshots/L3_3A_DEFICIT_EXPENDITURE_CALIBRATION_MODEL_SPEC.md_20260411_203257/`
+- `artifacts/docs-snapshots/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md_20260411_203257/`
+- `artifacts/docs-snapshots/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md_20260411_203257/`
+
+## 2026-04-14 — Anti-Bloat Preemptive Extraction: `context_assembly.py`
+
+### Trigger
+
+- `app/application/context_assembly.py` had exceeded its 636-line freeze-growth threshold (reached 706 lines) due to Role Mix (text processing, heuristics, planner assembly, and prompt formatting combined).
+- Turn 2 construction was actively ongoing and would have further bloated the file, pushing it into hard-blocked territory by `check_fat_files.ps1`.
+
+### What The Planning Reality Became
+
+- The system must proactively perform architecture extraction ("pave the way") rather than waiting for an active branch to fail the fat-file gate.
+- Pure functions and heuristic policies must be moved to specialized layers, leaving `context_assembly.py` only with payload orchestration (and legacy re-exports to maintain 0% disruption).
+- We established `context_normalizer.py`, `pass_payload_policies.py`, `planner_context_assembler.py`, and `context_pack_builder.py`.
+
+### Assumptions That Expired
+
+- "Refactoring large files should only happen after they block a feature."
+- "Legacy files under watch will shrink naturally during feature development."
+
+### Next-Phase Corrections
+
+- The `context_assembly.py` size has dropped to ~412 lines (now marked `[SHRUNK]`), freeing up space for proper Turn 2 additions.
+- Legacy text and policy features maintain active paths backwards via re-exports so no `turn-1` consumers break.
+- For future development, new pure rules or pass rendering logic must land in these newly extracted files, not the orchestrator.
+
+## 2026-04-15 — `2.5c` Deterministic Option Shaping Implemented
+
+### Trigger
+
+- the user explicitly asked to start the `2.5c rescue option shaping` implementation scope
+
+### What Changed
+
+- `rescue_proposal.py` now emits activation-aware rescue option artifacts with:
+  - `activation_mode`
+  - `horizon_days`
+  - `daily_kcal_adjustments`
+- rescue shaping now applies the `11:00` activation rule:
+  - `next_meal_protection` stays `immediate_next_meal`
+  - future-affecting rescue families resolve to `today_lunch` before the cutoff and `tomorrow_0000` after the cutoff
+- `same_day_soft_cap` is no longer shaped after the cutoff
+- ranking semantics now explicitly preserve:
+  - `non_viable -> rescue_stop_and_escalate`
+  - one-day rescue -> `next_meal_protection`
+  - viable multi-day rescue -> `short_horizon_spread`
+  - `strained` rescue -> near-term protection before wider spreading
+
+### Why This Is The Correct Boundary
+
+- it advances `2.5c` without opening rescue response wording, UI, quick actions, or accept-side writeback
+- it keeps rescue shaping deterministic-first, which matches the rescue runtime contract
+- it improves typed artifact alignment without introducing any deterministic overwrite of completed LLM pass outputs
+
+### Evidence
+
+- `python -m pytest tests/test_rescue_proposal.py -q`
+- `python scripts/check_layer_integrity.py`
+- `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`
+- `python scripts/harness_garbage_collect.py`
+
+## 2026-04-15 — `2.5c` Rescue Runtime Entrypoint Wired
+
+### Trigger
+
+- after deterministic option shaping landed, the next bounded move was to stop treating `rescue_proposal.py` as an isolated builder and expose a thin non-user-facing rescue runtime entrypoint
+
+### What Changed
+
+- added `app/application/rescue_runtime.py`
+- the new runtime entrypoint now accepts deterministic trigger truth plus deterministic assessment truth and emits:
+  - `rescue_assessment_packet`
+  - `rescue_result`
+- the integration remains intentionally thin:
+  - no response wording
+  - no UI
+  - no quick actions
+  - no accept-side commit behavior
+
+### Why This Is The Correct Boundary
+
+- it advances `2.5c` from isolated artifact generation into dispatch-safe non-user-facing runtime integration
+- it preserves the canonical `trigger -> assessment -> option shaping -> response(optional)` graph without prematurely opening `2.5d`
+- it gives later rescue work a stable application entrypoint instead of forcing future layers to call the proposal builder directly
+
+### Evidence
+
+- `python -m pytest tests/test_rescue_proposal.py tests/test_rescue_runtime.py -q`
+- `python scripts/check_layer_integrity.py`
+
+## 2026-04-15 — `2.5c` Rescue Proposal Persistence Wired
+
+### Trigger
+
+- after the thin rescue runtime entrypoint existed, the next bounded step was to persist rescue option artifacts as formal proposal containers instead of leaving them as in-memory runtime-only objects
+
+### What Changed
+
+- generalized proposal persistence from single-option skeletons to multi-option artifact persistence
+- rescue runtime can now persist:
+  - proposal container metadata
+  - ranked rescue options
+  - top-option linkage
+  - effect payloads including activation mode and daily kcal adjustments
+
+### Why This Is The Correct Boundary
+
+- it keeps `2.5c` non-user-facing and proposal-first
+- it does not accept or apply rescue overlays
+- it prepares the canonical proposal state that later rescue response or accept flows can read without reopening deterministic shaping work
+
+### Evidence
+
+- `python -m pytest tests/test_rescue_proposal.py tests/test_rescue_runtime.py tests/test_canonical_persistence.py -q`
+- `python scripts/check_layer_integrity.py`
+
+## 2026-04-15 — `2.5c` Open Rescue Proposal Read-Side Added
+
+### Trigger
+
+- after rescue proposal persistence landed, the next bounded need was a read path that can retrieve the current open rescue proposal and its ranked top option without opening any response surface
+
+### What Changed
+
+- added a rescue-only proposal read model:
+  - infrastructure loader for open rescue proposals
+  - application read-side entrypoint that returns open rescue proposal containers and their options
+- retrieval is intentionally narrow:
+  - `proposal_type = rescue`
+  - `proposal_status = open`
+  - sorted ranked options
+  - top option preserved via `top_option_id`
+
+### Why This Is The Correct Boundary
+
+- it keeps `2.5c` proposal-first and non-user-facing
+- it gives later rescue response / planner layers a stable read path instead of forcing direct ORM reads
+- it still stops before wording, quick actions, accept-side effects, or channel behavior
+
+### Evidence
+
+- `python -m pytest tests/test_open_proposals_read_model.py tests/test_rescue_runtime.py tests/test_rescue_proposal.py -q`
+- `python scripts/check_layer_integrity.py`
+
+## 2026-04-15 — `2.5c` Reaches Review Boundary
+
+### Trigger
+
+- the user asked to continue implementation only until review became necessary
+
+### What The Build State Became
+
+- `2.5c` now has the full intended non-user-facing spine:
+  - deterministic rescue option shaping
+  - thin rescue runtime entrypoint
+  - proposal-container persistence
+  - open rescue proposal read-side
+- any further rescue work would move into response-surface semantics, intervention wording, quick actions, or accept-side interaction design
+
+### Why Work Stops Here
+
+- those next-step questions belong to `2.5d`, not `2.5c`
+- they require explicit product review because they define how rescue should surface to users, not just how rescue should be shaped internally
+
+### Execution Correction
+
+- hold the rescue branch at the human review gate
+- do not dispatch `2.5d` automatically
+- treat `2.5c` as completed enough pending review of rescue response-surface semantics
+
+## 2026-04-15 — `2.5d` Chat-First Single-Plan Rescue Surface Started
+
+### Trigger
+
+- the user explicitly approved the `2.5d` rescue surface direction
+- rescue was narrowed from a multi-option surface into a single recovery-plan surface with adjustable intensity
+
+### What Changed
+
+- added a deterministic rescue response layer in `app/application/rescue_response.py`
+- the response layer now:
+  - gates rescue surface to open rescue proposals only
+  - keeps rescue and intake separated
+  - renders one recommended recovery plan instead of backup-option menus
+  - supports chat actions for accept, shorten, extend, reject, and explain
+- the surface uses:
+  - `15%` daily-budget cap for the standard recommendation
+  - `20%` daily-budget cap for the more aggressive shortening path
+  - `5` days as the maximum recovery window
+
+### Why This Is The Correct Boundary
+
+- it advances rescue into a real user-facing surface without reopening intake
+- it respects the newly fixed product rule that chat is the primary interaction surface
+- it keeps UI in a mirror role and does not open accept-side writeback semantics yet
+
+### Evidence
+
+- `python -m pytest tests/test_rescue_response.py tests/test_rescue_runtime.py tests/test_rescue_proposal.py tests/test_open_proposals_read_model.py -q`
+- `python scripts/check_layer_integrity.py`
+
+## 2026-04-15 — `2.5d` Rescue Chat Surface And Proposal Decisions Wired
+
+### Trigger
+
+- after the rescue response builder existed, the next bounded gap was to connect it to a real chat/proactive entrypoint and define how accept / reject should change proposal state
+
+### What Changed
+
+- added a thin `rescue_chat_surface` application layer
+- proactive and explicit reactive rescue now share the same open-proposal retrieval and single-plan response surface
+- accept now marks the rescue proposal `accepted`
+- reject now has two stages:
+  - no reason yet -> ask for reason in chat and keep proposal open
+  - reason supplied -> mark proposal `rejected` and close it
+
+### Why This Is The Correct Boundary
+
+- it connects `2.5d` to a real chat-facing application entrypoint without mixing rescue into intake routes
+- it introduces proposal decision semantics without prematurely doing accept-side rescue overlay writeback
+- it preserves the product rule that chat is primary and UI is mirror-only
+
+### Evidence
+
+- `python -m pytest tests/test_rescue_chat_surface.py tests/test_rescue_response.py tests/test_rescue_runtime.py tests/test_open_proposals_read_model.py -q`
+- `python scripts/check_layer_integrity.py`
+
+## 2026-04-15 — `2.5d` Accept-Side Rescue Overlay Writeback And Rescue Routes Added
+
+### Trigger
+
+- after the rescue chat surface existed, the next bounded gap was to stop treating accept as metadata-only and connect it to real rescue overlay writeback
+- the user also asked to wire rescue into actual web/chat runtime routes instead of keeping it as an application-only surface
+
+### What Changed
+
+- accept on an open rescue proposal now:
+  - reads the persisted `overlay_days` payload from the top rescue option
+  - applies those overlay deltas into ledger writeback
+  - records writeback metadata on the accepted proposal
+- added dedicated rescue web/chat routes:
+  - route to read the current rescue chat surface
+  - route to apply rescue chat actions
+- rescue remains on its own route family and is not mixed into intake endpoints
+
+### Why This Is The Correct Boundary
+
+- it preserves the single-plan, chat-first rescue posture
+- it upgrades accept from a placeholder state transition into a real rescue effect path
+- it keeps intake and rescue separated while still giving rescue a real runtime surface
+
+### Evidence
+
+- `python -m pytest tests/test_rescue_response.py tests/test_rescue_chat_surface.py tests/test_rescue_routes.py tests/test_rescue_runtime.py tests/test_open_proposals_read_model.py -q`
+- `python -m pytest tests/test_rescue_overlay.py tests/test_canonical_persistence.py -q -k "rescue"`

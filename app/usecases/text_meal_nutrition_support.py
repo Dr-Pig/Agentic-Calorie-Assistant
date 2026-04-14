@@ -4,12 +4,12 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..agent.calibration_packets import get_meal_calibration, suggest_calibration_packet
-from ..agent.nutrition_resolution_llm import (
-    NUTRITION_RESOLUTION_PROMPT,
-    augment_followup_metadata,
+from ..agent.nutrition_resolution_normalizer import (
     normalize_structured_answer as _normalize_structured_answer,
     nutrition_result_from_primary,
 )
+from ..agent.nutrition_resolution_parser import augment_followup_metadata
+from ..agent.nutrition_resolution_prompt import NUTRITION_RESOLUTION_PROMPT
 from ..application.answer_support import is_private_only_case as _is_private_only_case
 from ..application.context_assembly import (
     build_nutrition_resolution_payload,
@@ -45,51 +45,12 @@ class NutritionLoopOutcome:
     current_private: bool
 
 
-def _stabilize_resolution_mode(
-    *,
-    current_parsed: dict[str, Any],
-    nutrition_result: NutritionResolutionResult,
-) -> NutritionResolutionResult:
-    current_mode = str(getattr(nutrition_result, "resolution_mode", "") or "")
-    action_taken = str(current_parsed.get("action_taken") or "")
-    estimated_kcal = int(current_parsed.get("estimated_kcal") or 0)
-    exactness = str(current_parsed.get("exactness") or getattr(nutrition_result, "exactness", "") or "")
-
-    if current_mode != "cannot_estimate_yet":
-        return nutrition_result
-    if action_taken == "clarify_before_estimate" or estimated_kcal <= 0:
-        return nutrition_result
-
-    if exactness in {"exact_item", "near_exact"}:
-        stabilized_mode = "near_exact_finalize"
-        stabilized_basis = "exact_item_evidence"
-    elif exactness == "component_grounded":
-        stabilized_mode = "component_estimate"
-        stabilized_basis = "component_model"
-    else:
-        stabilized_mode = "provisional_estimate"
-        stabilized_basis = "component_model"
-
-    current_parsed["resolution_mode"] = stabilized_mode
-    current_parsed["resolution_basis"] = str(current_parsed.get("resolution_basis") or stabilized_basis)
-    if not current_parsed.get("confidence"):
-        current_parsed["confidence"] = getattr(nutrition_result, "confidence", "low") or "low"
-
-    return nutrition_result.model_copy(
-        update={
-            "resolution_mode": stabilized_mode,
-            "resolution_basis": current_parsed["resolution_basis"],
-            "confidence": str(current_parsed.get("confidence") or getattr(nutrition_result, "confidence", "low") or "low"),
-            "state_transition_hint": current_parsed.get("state_transition_hint") or nutrition_result.state_transition_hint,
-        }
-    )
-
-
 def _nutrition_repair_note(*, parsed: dict[str, Any], nutrition_payload: dict[str, Any]) -> str | None:
     exact_truth_available = bool(nutrition_payload.get("exact_truth_available"))
     standardized_drink_like = bool(nutrition_payload.get("standardized_drink_like"))
     cup_size_provided = bool(nutrition_payload.get("cup_size_provided"))
     packaged_exact_candidate_count = int(nutrition_payload.get("packaged_exact_candidate_count") or 0)
+    generic_drink_soft_avoid_exact = bool(nutrition_payload.get("generic_drink_soft_avoid_exact"))
     exact_brand_conflict_count = int(nutrition_payload.get("exact_brand_conflict_count") or 0)
     core_default_candidate_count = int(nutrition_payload.get("core_default_candidate_count") or 0)
     anchor_lane_count = len(nutrition_payload.get("anchor_lane_candidates") or [])
@@ -130,6 +91,15 @@ def _nutrition_repair_note(*, parsed: dict[str, Any], nutrition_payload: dict[st
             "include a component_breakdown, and add one short follow-up only for the highest-impact missing detail."
         )
 
+    if generic_drink_soft_avoid_exact and (
+        estimate_mode == "exact_item" or resolution_mode in {"exact_label_finalize", "near_exact_finalize"}
+    ):
+        return (
+            "This is a generic tea-shop drink class without an explicit brand or packaged-drink cue from the user. "
+            "Do not finalize exact_item from packaged-retail evidence. Re-answer with a class-level provisional estimate, "
+            "keep exactness below exact_item, and treat any follow-up as optional refinement rather than exact identity resolution."
+        )
+
     if exact_truth_available and (cup_size_provided or not standardized_drink_like) and estimate_mode != "exact_item":
         if exact_brand_conflict_count > 0 and core_default_candidate_count > 0:
             return (
@@ -162,27 +132,6 @@ def _nutrition_repair_note(*, parsed: dict[str, Any], nutrition_payload: dict[st
     if standardized_drink_like and packaged_exact_candidate_count > 0 and not drink_customization_clues and estimate_mode != "llm_only":
         return (
             "This is a generic drink class with packaged-retail references and no explicit size or modifier anchors. Re-answer using estimate_mode=llm_only rather than exact_item or heuristic_fallback."
-        )
-    if standardized_drink_like and drink_customization_clues and followup_question and not unresolved_info:
-        return (
-            "This customized drink already has enough anchors for a useful direct estimate. Keep estimate_mode=anchored_component, move the size note into uncertainty_factors, and leave followup_question blank."
-        )
-    if estimate_mode == "exact_item" and followup_question:
-        return (
-            "You already finalized an exact or near-exact answer. Remove the follow-up and keep any low-impact caveats inside uncertainty_factors instead."
-        )
-    if (
-        estimate_mode == "anchored_component"
-        and followup_question
-        and not unresolved_info
-        and not (standardized_drink_like and not cup_size_provided)
-    ):
-        return (
-            "You already produced a usable anchored estimate. Keep the follow-up only for standardized drinks with missing size. Otherwise answer directly and move the refinement note into uncertainty_factors."
-        )
-    if estimate_mode == "heuristic_fallback" and followup_question and not unresolved_info and not (template_lane_count > 0 and anchor_lane_count == 0):
-        return (
-            "You already produced a usable estimate. Only keep a follow-up if the missing detail materially changes the answer; otherwise answer directly and keep the uncertainty in uncertainty_factors."
         )
     if estimate_mode == "heuristic_fallback" and followup_question and "拉麵" in str(nutrition_payload.get("current_user_input") or ""):
         return (
@@ -492,10 +441,6 @@ async def run_nutrition_resolution_loop(
         current_parsed["why_no_more_tools"] = str(current_parsed.get("why_no_more_tools") or "")
         current_parsed["reason_for_not_requesting_tool"] = str(current_parsed.get("reason_for_not_requesting_tool") or "")
         current_parsed = annotate_followup_policy(current_parsed)
-        nutrition_result = _stabilize_resolution_mode(
-            current_parsed=current_parsed,
-            nutrition_result=nutrition_result,
-        )
         debug_steps.append({"request_id": request_id, "step": "nutrition_invariant_guard", **nutrition_guard_meta})
         current_private = _is_private_only_case(current_parsed, risk_packet, effective_user_input)
 

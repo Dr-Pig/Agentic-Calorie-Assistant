@@ -10,9 +10,9 @@
 
 - [docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md)
 - [docs/specs/retrieval_external_search_ownership_spec.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/retrieval_external_search_ownership_spec.md)
-- [docs/BUILD_FILE_PLACEMENT_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/BUILD_FILE_PLACEMENT_RULES.md)
-- [docs/LAYER_DEPENDENCY_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/LAYER_DEPENDENCY_RULES.md)
-- [docs/FREEZE_GROWTH_EXTRACTION_MAP.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/FREEZE_GROWTH_EXTRACTION_MAP.md)
+- [docs/governance/BUILD_FILE_PLACEMENT_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/BUILD_FILE_PLACEMENT_RULES.md)
+- [docs/governance/LAYER_DEPENDENCY_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/LAYER_DEPENDENCY_RULES.md)
+- [docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md)
 
 ## Goal
 
@@ -70,4 +70,4 @@ Should let `TASK-2026-04-12-016-WEB-SEARCH-FALLBACK-LANE` resume without reopeni
   - `yes`
 - `followup_task_ids[]`:
   - `TASK-2026-04-12-016-WEB-SEARCH-FALLBACK-LANE`
-- `handoff_doc_path`: `docs/handoff/completed/HANDOFF-2026-04-12-018-SEARCH-AUTHORITY-TIER-SEPARATION.md`
+- `handoff_doc_path`: `docs/exec-plans/completed/handoff/HANDOFF-2026-04-12-018-SEARCH-AUTHORITY-TIER-SEPARATION.md`

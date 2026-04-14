@@ -294,6 +294,255 @@ Each slice entry must define at least:
 - `handoff_required`: `false`
 - `parallelizable_with[]`: `[]`
 
+#### Slice `2.2d-followup-closure-validation-foundation`
+
+- `parent_workflow_id`: `2.2-multi-turn-intake-correction`
+- `title`: `Follow-up closure validation foundation`
+- `goal`: validate backend two-turn closure for both `ask_followup_only` and `estimate_with_followup` lanes without widening into UI, read-side, or memory/retrieval work
+- `depends_on_slices[]`:
+  - `2.2a-active-meal-continuation`
+  - `2.2c-cross-midnight-attribution`
+- `required_truth_docs[]`:
+  - `docs/specs/L2_DATA_STATE_SPEC.md`
+  - `docs/specs/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md`
+  - `docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`
+  - `docs/quality/STATEFUL_MULTI_TURN_CASE_TEMPLATE.md`
+- `allowed_touch_areas[]`:
+  - `docs/quality/benchmarks/intake/multi_turn/*`
+  - `docs/quality/benchmark_test_set_v1.txt`
+  - `docs/quality/benchmark_test_set_v2.txt`
+  - `tests/fixtures/benchmark_test_set_v1.json`
+  - `tests/test_followup_closure_validation.py`
+  - targeted intake validation helpers
+- `forbidden_touch_areas[]`:
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+  - today UI/read-model surfaces
+  - rescue/calibration/recommendation/proactive logic
+  - memory/retrieval deepening
+- `state_dependencies`: pending follow-up state, unresolved info state, same-intake closure target, continuation/supersession safety
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - `ask_followup_only -> completion` closes on the same intake boundary
+  - `estimate_with_followup -> refinement` closes on the same intake boundary
+  - first-turn unresolved state remains open until the follow-up reply arrives
+  - second turn does not silently fork into a duplicate meal thread
+  - validation passes without durable memory or retrieval deepening assumptions
+- `required_tests[]`:
+  - targeted two-turn ask-followup closure regression
+  - targeted two-turn estimate-with-followup refinement regression
+  - pending follow-up state continuity assertions
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+
+#### Slice `2.2f-founder-fit-multi-turn-replay-pack`
+
+- `parent_workflow_id`: `2.2-multi-turn-intake-correction`
+- `title`: `Founder-fit multi-turn replay pack`
+- `goal`: author and review an initial founder-fit replay pack that expands beyond `2.2d`'s two closure proofs into representative multi-turn cases that are ready for human review and later eval growth
+- `depends_on_slices[]`:
+  - `2.2d-followup-closure-validation-foundation`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md`
+  - `docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`
+  - `docs/quality/STATEFUL_MULTI_TURN_CASE_TEMPLATE.md`
+  - `docs/quality/planner_case_matrix.md`
+- `allowed_touch_areas[]`:
+  - `docs/quality/benchmarks/intake/multi_turn/*`
+  - `docs/quality/FOLLOWUP_CLOSURE_SEED_INVENTORY.md`
+  - `docs/quality/FOUNDER_FIT_MULTI_TURN_REPLAY_PACK_V1.md`
+  - benchmark seed docs under `docs/quality/*`
+- `forbidden_touch_areas[]`:
+  - production runtime code
+  - today UI/read-model surfaces
+  - rescue/calibration/recommendation/proactive logic
+  - memory/retrieval deepening
+- `state_dependencies`: session-local follow-up continuity, same-intake attachment, follow-up closure boundary, new-meal-switch boundary
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - replay pack contains a reviewable initial set of representative founder-fit multi-turn cases
+  - pack covers both `ask_followup_only` and `estimate_with_followup` closure lanes
+  - pack includes boundary controls for attachment vs new-meal-switch
+  - every replay case names its benchmark seed or authored origin
+  - pack is small enough for human review and later expansion
+- `required_tests[]`:
+  - none; this slice is review-pack authoring and selection
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+
+#### Slice `2.2g-generic-drink-exact-lane-soft-avoid`
+
+- `parent_workflow_id`: `2.2-multi-turn-intake-correction`
+- `title`: `Generic drink exact-lane soft avoid`
+- `goal`: keep generic tea-shop drink classes such as generic bubble tea out of automatic `exact_item` finalization unless the user supplied strong exact identity cues
+- `depends_on_slices[]`:
+  - `2.2f-founder-fit-multi-turn-replay-pack`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md`
+  - `docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`
+  - `docs/quality/FOUNDER_FIT_MULTI_TURN_REPLAY_PACK_V1.md`
+- `allowed_touch_areas[]`:
+  - `app/application/context_assembly.py`
+  - `app/usecases/text_meal_nutrition_support.py`
+  - `app/usecases/text_meal_response_support.py`
+  - targeted tests for pass/runtime posture guards
+- `forbidden_touch_areas[]`:
+  - retrieval architecture rewrites
+  - memory/recommendation/calibration/rescue logic
+  - broad exact-item ontology refactors
+- `state_dependencies`: generic-drink evidence interpretation, pass-level repair gating, no deterministic post-pass posture override
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - generic `珍珠奶茶` no longer defaults to exact-item finalization without explicit brand or packaged identity cues from the user
+  - branded or strong exact-cued drinks can still remain exact
+  - deterministic layers no longer rewrite completed LLM posture fields after pass completion
+- `required_tests[]`:
+  - targeted generic drink exact-lane regression
+  - targeted post-pass override regression
+- `benchmark_seed_required`: `false`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+
+#### Slice `2.2h-turn2-hybrid-replay-eval-foundation`
+
+- `parent_workflow_id`: `2.2-multi-turn-intake-correction`
+- `title`: `Turn-2 hybrid replay evaluation foundation`
+- `goal`: establish the cost-controlled standard workflow for second-turn intake evaluation by replaying saved turn-1 context and only live-calling turn 2
+- `depends_on_slices[]`:
+  - `2.2g-generic-drink-exact-lane-soft-avoid`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md`
+  - `docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`
+  - `docs/quality/STATEFUL_MULTI_TURN_CASE_TEMPLATE.md`
+- `allowed_touch_areas[]`:
+  - eval runner / fixture / benchmark docs under `docs/quality/*`
+  - targeted replay harness code
+  - targeted tests for replay closure behavior
+- `forbidden_touch_areas[]`:
+  - today UI/read-model surfaces
+  - rescue/calibration/recommendation/proactive logic
+  - durable memory / retrieval deepening
+- `state_dependencies`: saved turn-1 trace contract, saved llm traces, pending follow-up state, same-intake closure target
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - one `ask_followup_only -> completion` replay path works
+  - one `estimate_with_followup -> refinement` replay path works
+  - second turn attaches to the same intake without duplicate meal creation
+  - replay evaluation does not require full 2-turn live reruns by default
+- `required_tests[]`:
+  - targeted turn-2 hybrid replay regression
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+
+#### Slice `2.2i-turn2-attachment-and-refinement-replay-pack`
+
+- `parent_workflow_id`: `2.2-multi-turn-intake-correction`
+- `title`: `Turn-2 attachment and refinement replay pack`
+- `goal`: expand the file-backed turn-2 replay pack so planner attachment, same-intake recognition, completion, and refinement behavior can be tested across multiple founder-fit follow-up families without rerunning full live turn-1 flows each time
+- `depends_on_slices[]`:
+  - `2.2h-turn2-hybrid-replay-eval-foundation`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md`
+  - `docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`
+  - `docs/quality/FOUNDER_FIT_MULTI_TURN_REPLAY_PACK_V1.md`
+  - `docs/quality/STATEFUL_MULTI_TURN_CASE_TEMPLATE.md`
+- `allowed_touch_areas[]`:
+  - `docs/quality/benchmarks/intake/multi_turn/*`
+  - `scripts/run_turn2_hybrid_replay.py`
+  - `tests/test_turn2_hybrid_replay_foundation.py`
+- `forbidden_touch_areas[]`:
+  - intake runtime logic
+  - today/read-model runtime logic
+  - rescue/calibration/recommendation/proactive logic
+  - durable memory / retrieval deepening
+- `state_dependencies`: saved turn-1 trace contract, turn-1 persistence outcome, same-intake attachment, refinement-vs-new-meal discrimination
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - replay pack expands beyond the original two official cases
+  - pack includes both `ask_followup_only -> completion` and `estimate_with_followup -> refinement` families
+  - pack includes founder-fit cases that explicitly stress same-intake attachment and no-duplicate-meal behavior
+  - every case names its accepted Golden seed or founder-authored origin
+- `required_tests[]`:
+  - turn-2 replay pack shape validation
+  - turn-2 replay summary contract regression
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+
+#### Slice `2.2j-turn2-boundary-to-persistence-continuity`
+
+- `parent_workflow_id`: `2.2-multi-turn-intake-correction`
+- `title`: `Turn-2 boundary-to-persistence continuity`
+- `goal`: ensure same-intake turn-2 follow-ups attach to the unresolved parent meal whenever boundary/context already classify the turn as `continue_active_meal`, even if planner intent remains `food_estimation`
+- `depends_on_slices[]`:
+  - `2.2i-turn2-attachment-and-refinement-replay-pack`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md`
+  - `docs/specs/L2_DATA_STATE_SPEC.md`
+  - `docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/infrastructure/meal_log_persistence.py`
+  - `app/application/text_meal_commit_service.py`
+  - `tests/test_canonical_persistence.py`
+  - `tests/test_followup_closure_validation.py`
+- `forbidden_touch_areas[]`:
+  - prompt templates
+  - replay pack taxonomy expansion
+  - today/read-model surfaces
+  - rescue/calibration/recommendation/proactive logic
+- `state_dependencies`: unresolved meal lineage, parent log continuity, canonical commit target continuity, boundary-first same-intake recognition
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - `continue_active_meal` turns attach to the unresolved parent even when planner intent stays `food_estimation`
+  - turn-2 completion/refinement no longer opens a new meal when same-intake boundary is already resolved
+  - still-unresolved follow-up remains attached to the same parent meal instead of fragmenting lineage
+- `required_tests[]`:
+  - boundary-to-persistence continuity regression
+  - still-unresolved same-parent regression
+  - targeted turn-2 replay rerun for previously detached cases
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+
+#### Slice `2.2k-turn2-closure-complete-pack-tightening`
+
+- `parent_workflow_id`: `2.2-multi-turn-intake-correction`
+- `title`: `Turn-2 closure-complete pack tightening`
+- `goal`: tighten the 9-case positive-path replay pack so turn-2 replies are explicitly closure-complete, fixture-safe, and suitable for workflow-level replay evidence without relying on ambiguous shorthand`
+- `depends_on_slices[]`:
+  - `2.2j-turn2-boundary-to-persistence-continuity`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md`
+  - `docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`
+  - `docs/quality/FOUNDER_FIT_MULTI_TURN_REPLAY_PACK_V1.md`
+- `allowed_touch_areas[]`:
+  - `docs/quality/benchmarks/intake/multi_turn/*`
+  - `tests/test_turn2_hybrid_replay_foundation.py`
+  - `scripts/check_audit_fixture_safety.py`
+- `forbidden_touch_areas[]`:
+  - intake runtime logic
+  - prompt templates
+  - today/read-model surfaces
+  - rescue/calibration/recommendation/proactive logic
+- `state_dependencies`: closure-complete turn-2 phrasing, fixture safety, positive-path replay oracle stability
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - each of the 9 official turn-2 inputs is explicit enough to read as an answer to the previous follow-up, not a new meal
+  - known fixture-risk cases are rewritten into clear UTF-8 positive-path inputs
+  - replay pack remains schema-valid and registry-safe
+  - live rerun of the 9-case pack produces a clearer separation between continuity bugs and true closure-threshold misses
+- `required_tests[]`:
+  - turn-2 replay pack shape validation
+  - audit fixture safety check
+  - full 9-case live rerun evidence
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+
 ### 2.3 Today UI / Read Models
 
 #### Slice `2.3a-current-budget-read-model`
@@ -353,6 +602,41 @@ Each slice entry must define at least:
 - `benchmark_seed_required`: `false`
 - `handoff_required`: `true`
 - `parallelizable_with[]`: `2.4b-weight-ui`
+
+#### Slice `2.3c-read-side-confidence-follow-through`
+
+- `parent_workflow_id`: `2.3-today-ui-read-models`
+- `title`: `Read-side confidence follow-through`
+- `goal`: revalidate current-budget and today-facing read-side truth after first-turn Golden live audit and turn-2 replay evidence confirm the current multi-turn intake behavior`
+- `depends_on_slices[]`:
+  - `2.2h-turn2-hybrid-replay-eval-foundation`
+  - `2.3a-current-budget-read-model`
+  - `2.3b-low-fi-today-ui`
+- `required_truth_docs[]`:
+  - `docs/specs/L2_DATA_STATE_SPEC.md`
+  - `docs/specs/L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md`
+  - `docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/read_models/*`
+  - `app/web/*today*`
+  - targeted read-side and route-level regressions
+  - eval/replay summaries under `.logs/turn2_hybrid_replay/*`
+- `forbidden_touch_areas[]`:
+  - intake decision or nutrition pass logic
+  - rescue/calibration/recommendation/proactive logic
+  - memory / retrieval deepening
+- `state_dependencies`: canonical meal truth, unresolved-to-committed turn-2 closure, same-intake attachment, current-budget/today read assembly
+- `ui_surface_dependency`: `today UI only as a read-side consumer; no broader UI redesign`
+- `acceptance_criteria[]`:
+  - current-budget reflects confirmed turn-2 closure truth without duplicate or missing meal state
+  - today-facing read side remains correction-safe after the newly verified multi-turn paths
+  - read-side regressions explicitly cover both `ask_followup_only -> completion` and `estimate_with_followup -> refinement`
+- `required_tests[]`:
+  - targeted current-budget regression after turn-2 completion
+  - targeted today/read-side regression after estimate refinement
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
 
 ### 2.4 Weight / Body Observation
 
@@ -443,6 +727,132 @@ Each slice entry must define at least:
   - safety floor enforcement
   - overlay ledger recompute
 - `benchmark_seed_required`: `true`
+- `handoff_required`: `true`
+- `parallelizable_with[]`: `[]`
+
+#### Slice `2.5b-rescue-proposal-artifact-foundation`
+
+- `parent_workflow_id`: `2.5-rescue`
+- `title`: `Rescue proposal artifact foundation`
+- `goal`: convert deterministic rescue trigger / assessment truth into a structured non-user-facing proposal artifact without generating response copy, UI, or accept-side commit behavior
+- `depends_on_slices[]`:
+  - `2.5a-rescue-deterministic-overlay`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md`
+  - `docs/specs/L3M_GUARDRAIL_MATH_SPEC.md`
+  - `docs/specs/L2_DATA_STATE_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/rescue_*`
+  - `app/domain/canonical_models.py` only if a narrow typed artifact is required
+  - `tests/test_rescue_*`
+- `forbidden_touch_areas[]`:
+  - `app/routes.py`
+  - `app/usecases/text_meal.py`
+  - `app/schemas.py`
+  - recommendation / proactive / retrieval logic
+  - rescue response wording or UI surfaces
+  - accept-side proposal commit semantics
+- `state_dependencies`: current budget truth, rescue overlay math, active `BodyPlan.safety_floor_kcal`, rescue family legality, escalation posture
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - deterministic-first rescue proposal artifact exists
+  - proposal artifact expresses `rescue_needed`, `recovery_viability`, `rescue_horizon`, allowed and blocked rescue families, and explicit `no_rescue` or `rescue_stop_and_escalate` posture where appropriate
+  - no option violates `BodyPlan.safety_floor_kcal`
+  - slice stops before user-facing response shaping, route/UI work, recommendation wiring, or accept-side writeback
+- `required_tests[]`:
+  - rescue proposal artifact happy path
+  - viability-to-posture regression
+  - stop-and-escalate legality regression
+  - safety-floor enforcement regression
+- `benchmark_seed_required`: `false`
+- `handoff_required`: `true`
+- `parallelizable_with[]`: `[]`
+
+#### Slice `2.5c-rescue-option-shaping`
+
+- `parent_workflow_id`: `2.5-rescue`
+- `title`: `Rescue option shaping`
+- `goal`: refine deterministic rescue proposal artifacts into ranked, dispatch-safe rescue options with explicit family semantics, activation timing, and guardrail-backed effect payloads, while still stopping before any user-facing response wording or accept-side commit behavior
+- `depends_on_slices[]`:
+  - `2.5b-rescue-proposal-artifact-foundation`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md`
+  - `docs/specs/L3T_TYPED_RUNTIME_CONTRACT_SPEC.md`
+  - `docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/rescue_proposal.py`
+  - `app/application/rescue_overlay.py` only if narrow option-effect alignment is required
+  - `tests/test_rescue_proposal.py`
+  - `tests/test_rescue_overlay.py` only if option-effect payloads change
+- `forbidden_touch_areas[]`:
+  - `app/routes.py`
+  - `app/usecases/text_meal.py`
+  - `app/schemas.py`
+  - rescue response wording or UI surfaces
+  - recommendation / proactive / retrieval logic
+  - accept-side overlay commit semantics
+- `state_dependencies`: rescue trigger truth, recovery viability, rescue horizon, safety-floor legality, activation timing policy, typed rescue option contract
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - ranked rescue options exist for the legal rescue families without requiring response text
+  - `same_day_soft_cap`, `short_horizon_spread`, `next_meal_protection`, `logging_first_rescue`, and `rescue_stop_and_escalate` each have explicit shaping semantics where legal
+  - option payloads encode activation timing such as `immediate_next_meal`, `today_lunch`, or `tomorrow_0000` consistently with the `11:00` rule and the `next_meal_protection` exception
+  - `non_viable` rescue always fronts `rescue_stop_and_escalate`
+  - slice stops before response presentation, channel copy, quick actions, or accept-side writeback
+- `required_tests[]`:
+  - rescue option ranking regression
+  - activation-timing / `11:00` boundary regression
+  - non-viable escalation precedence regression
+  - legal-family shaping regression
+- `benchmark_seed_required`: `false`
+- `handoff_required`: `true`
+- `parallelizable_with[]`: `[]`
+
+#### Slice `2.5d-rescue-response-surface`
+
+- `parent_workflow_id`: `2.5-rescue`
+- `title`: `Rescue response surface`
+- `goal`: surface rescue as a single chat-first recovery plan with adjustable intensity, while keeping intake separate and UI mirror-only
+- `depends_on_slices[]`:
+  - `2.5c-rescue-option-shaping`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md`
+  - `docs/specs/L3T_TYPED_RUNTIME_CONTRACT_SPEC.md`
+  - `AGENTS.md`
+- `allowed_touch_areas[]`:
+  - `app/application/rescue_response.py`
+  - `app/application/rescue_chat_surface.py`
+  - `app/application/rescue_overlay.py` only for narrow accept-side payload application
+  - `app/application/rescue_runtime.py` only if surface inputs need narrow read compatibility
+  - `app/application/open_proposals_read_model.py`
+  - `app/infrastructure/open_proposals_read_model.py` only if top-option retrieval needs narrow shaping
+  - `app/web/rescue_routes.py`
+  - `tests/test_rescue_response.py`
+  - `tests/test_rescue_chat_surface.py`
+  - `tests/test_rescue_routes.py`
+- `forbidden_touch_areas[]`:
+  - `app/usecases/text_meal.py`
+  - `app/schemas.py`
+  - intake response surfaces
+  - backup-option UI
+- `state_dependencies`: open rescue proposal read-side, top-option retrieval, target recovery kcal, effective budget basis, chat-first product posture
+- `ui_surface_dependency`: mirror-only
+- `acceptance_criteria[]`:
+  - rescue surfaces as one recommended recovery plan, not a backup-option menu
+  - chat and intake remain separated
+  - proactive rescue and explicit reactive rescue use the same single-plan response contract
+  - plan intensity can be shortened or extended within the configured guardrails
+  - accept marks the rescue proposal accepted and applies the persisted rescue overlay payload to ledger writeback
+  - rescue exposes a dedicated web/chat route without mixing rescue into intake routes
+  - UI remains mirror-only and does not become the primary interaction surface
+- `required_tests[]`:
+  - surface gate regression
+  - single-plan response rendering regression
+  - shorten / extend guardrail regression
+  - reject / explain action regression
+  - accept-side overlay writeback regression
+  - rescue route integration regression
+- `benchmark_seed_required`: `false`
 - `handoff_required`: `true`
 - `parallelizable_with[]`: `[]`
 

@@ -362,8 +362,8 @@ benchmark fixture 的 enum 與欄位合法值，必須服從 `L2A`。
 
 涉及 canonical docs 的修改必須服從：
 
-- [`docs/SPEC_EDITING_PROTOCOL.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/SPEC_EDITING_PROTOCOL.md)
-- [`docs/ENCODING_POLICY.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/ENCODING_POLICY.md)
+- [`docs/governance/SPEC_EDITING_PROTOCOL.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/SPEC_EDITING_PROTOCOL.md)
+- [`docs/governance/ENCODING_POLICY.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/ENCODING_POLICY.md)
 
 ---
 

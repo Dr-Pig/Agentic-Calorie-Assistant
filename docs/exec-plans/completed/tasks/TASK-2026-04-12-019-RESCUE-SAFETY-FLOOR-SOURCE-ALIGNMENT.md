@@ -74,4 +74,4 @@ Will determine whether rescue work can stay in deterministic follow-through or w
   - `yes`
 - `followup_task_ids[]`:
   - `[]`
-- `handoff_doc_path`: `docs/handoff/completed/HANDOFF-2026-04-12-019-RESCUE-SAFETY-FLOOR-SOURCE-ALIGNMENT.md`
+- `handoff_doc_path`: `docs/exec-plans/completed/handoff/HANDOFF-2026-04-12-019-RESCUE-SAFETY-FLOOR-SOURCE-ALIGNMENT.md`

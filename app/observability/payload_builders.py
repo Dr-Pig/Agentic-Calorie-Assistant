@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..agent.nutrition_resolution_llm import build_component_estimates
+from ..agent.nutrition_resolution_normalizer import build_component_estimates
 from ..application.evidence_assembly import db_hit_type, split_evidence_lanes, summarize_retrieved_evidence
 from ..schemas import EstimatePayload, EstimateRequest
 

@@ -394,23 +394,101 @@ commit-critical 最小欄位：
 
 ---
 
-## 9. Implementation Rules
+## 9. Validation Contracts
 
-### 9.1 New pass/result code
+### 9.1 `DeterministicValidationResult`
+
+**Severity**: P0 — listed in L3_1 Section 9 but never defined
+
+```python
+@dataclass
+class DeterministicValidationResult:
+    validation_id: str
+
+    passed: bool
+    failure_mode: Literal[
+        "none",
+        "schema_violation",
+        "arithmetic_error",
+        "invariant_violation",
+        "version_conflict"
+    ] | None = None
+
+    checked_invariants: list[str] = field(default_factory=list)
+    violations: list[str] = field(default_factory=list)
+
+    # For bounded self-correction
+    can_self_correct: bool = False
+    self_correction_attempted: bool = False
+    self_correction_success: bool | None = None
+
+    # Metadata
+    checked_at: datetime = field(default_factory=datetime.utcnow)
+    computation_time_ms: float = 0.0
+```
+
+規則：
+
+- deterministic layer 對每個 pass output 執行 invariant check 後必須產生這個 result
+- `passed=True` 時，`failure_mode` 應為 `"none"`
+- `violations` 列出所有檢查失敗的 invariant 名稱
+- `can_self_correct=True` 時，允許 deterministic layer 執行一次 bounded self-correction
+
+### 9.2 `FeedbackSignal`
+
+**Severity**: P1 — enables recommendation learning loop
+
+```python
+@dataclass
+class FeedbackSignal:
+    signal_id: str
+    user_id: str
+
+    # Source tracking
+    recommendation_id: str | None = None  # If came from recommendation
+    meal_thread_id: str | None = None     # If came from meal logging
+
+    # Feedback content
+    feedback_type: Literal["accept", "reject", "ignore", "modify"]
+    feedback_target: str  # What was accepted/rejected
+    feedback_detail: str | None = None  # User-provided reason if any
+
+    # Context
+    context: str  # e.g., "lunch", "snack", "evening"
+    occurred_at: datetime
+
+    # Signal path
+    confidence_boost: float  # Positive for accept, negative for reject
+    created_at: datetime = field(default_factory=datetime.utcnow)
+```
+
+規則：
+
+- `FeedbackSignal` 是 recommendation → memory update 反饋閉環的正式橋樑
+- `accept` → `confidence_boost > 0`
+- `reject` → `confidence_boost < 0`
+- `ignore` → `confidence_boost = 0`（被動信號，輕微降低 confidence）
+- `modify` → 視為 partial accept，保留 modification detail
+
+---
+
+## 10. Implementation Rules
+
+### 10.1 New pass/result code
 
 任何新 pass implementation 若輸出穩定 contract：
 
 - 必須先對照本文件
 - 優先落成 Pydantic model
 
-### 9.2 Legacy runtime allowance
+### 10.2 Legacy runtime allowance
 
 若 Phase 2 仍沿用既有 assembled artifact（如 `EstimatePayload`）：
 
 - 可暫時保留
 - 但新 application bridge 應往 typed bridge 收斂
 
-### 9.3 No shape drift
+### 10.3 No shape drift
 
 禁止：
 

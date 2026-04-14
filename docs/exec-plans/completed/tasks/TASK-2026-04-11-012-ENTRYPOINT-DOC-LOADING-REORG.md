@@ -10,8 +10,8 @@
 
 - [AGENTS.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/AGENTS.md)
 - [docs/index.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/index.md)
-- [docs/SPEC_EDITING_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/SPEC_EDITING_PROTOCOL.md)
-- [docs/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
+- [docs/governance/SPEC_EDITING_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/SPEC_EDITING_PROTOCOL.md)
+- [docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
 
 ## Goal
 
@@ -21,7 +21,7 @@ Collapse root documentation bootstrap into a single agent entrypoint and make do
 
 - `AGENTS.md`
 - `docs/index.md`
-- `docs/AGENT_LOADING_PATH.md`
+- `AGENTS.md`
 - governance and operator docs that still pointed to `agent.md`
 - `scripts/block_delete_recreate_specs.ps1`
 - `docs/exec-plans/active/REPLAN_LOG.md`
@@ -55,16 +55,16 @@ Should lower entry confusion for future agents and reduce duplicate bootstrap gu
 - `actual_touch_files[]`:
   - `AGENTS.md`
   - `docs/index.md`
-  - `docs/AGENT_LOADING_PATH.md`
-  - `docs/EXECUTION_LOOP_BRIEF.md`
-  - `docs/SPEC_EDITING_PROTOCOL.md`
-  - `docs/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md`
-  - `docs/TASK_CHECKIN_PROTOCOL.md`
-  - `docs/HANDOFF_CONTRACT.md`
-  - `docs/AGENT_ROLE_EXECUTION_MODEL.md`
-  - `docs/AUTONOMY_BOUNDARY_BRIEF.md`
-  - `docs/CODEX_DESKTOP_OPERATOR_GUIDE.md`
-  - `docs/ENCODING_POLICY.md`
+  - `AGENTS.md`
+  - `docs/governance/EXECUTION_OPERATING_MODEL.md`
+  - `docs/governance/SPEC_EDITING_PROTOCOL.md`
+  - `docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md`
+  - `docs/governance/TASK_CHECKIN_PROTOCOL.md`
+  - `docs/governance/HANDOFF_CONTRACT.md`
+  - `docs/governance/EXECUTION_OPERATING_MODEL.md`
+  - `docs/governance/EXECUTION_OPERATING_MODEL.md`
+  - `docs/governance/EXECUTION_OPERATING_MODEL.md`
+  - `docs/governance/ENCODING_POLICY.md`
   - `docs/exec-plans/active/HARNESS_ENGINEERING_REORG_V2.md`
   - `docs/generated/CANONICAL_DOCS_MANIFEST.md`
   - `docs/generated/DOC_CLASSIFICATION_REGISTRY.md`
@@ -75,7 +75,7 @@ Should lower entry confusion for future agents and reduce duplicate bootstrap gu
   - `docs/exec-plans/active/REPLAN_LOG.md`
 - `tests_run[]`:
   - `Get-ChildItem AGENTS.md,docs,scripts,.editorconfig -Recurse -File | Select-String -Pattern 'agent\\.md'`
-  - `manual read-path verification from AGENTS.md into docs/index.md, docs/AGENT_LOADING_PATH.md, workflow ordering spec, slice registry, current execution plan`
+  - `manual read-path verification from AGENTS.md into docs/index.md, AGENTS.md, workflow ordering spec, slice registry, current execution plan`
 - `reality_drift_notes`:
   - `agent.md` was removed intentionally to eliminate dual-entry ambiguity; delete/rename blocker was expanded so AGENTS.md and loading-path docs cannot be casually deleted or renamed later`
 - `source_of_truth_updated`:

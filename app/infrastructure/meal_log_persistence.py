@@ -45,7 +45,15 @@ def persist_text_meal_result(
         quality_signals=payload.quality_signals,
     )
 
-    if latest_log and planner_intent in ["clarification", "modification"]:
+    boundary_continuation = (
+        latest_log is not None
+        and str((payload.boundary_trace or {}).get("meal_boundary") or "") == "continue_active_meal"
+    )
+    should_attach_to_latest = latest_log is not None and (
+        planner_intent in ["clarification", "modification"] or boundary_continuation
+    )
+
+    if should_attach_to_latest:
         supersede_log(db, latest_log.id)
         parent_id = latest_log.id
         superseded_log_id = latest_log.id

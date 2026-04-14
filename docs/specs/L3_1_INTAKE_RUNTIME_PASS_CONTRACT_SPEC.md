@@ -40,6 +40,10 @@ intake 主流程正式採用：
 - `nutrition_resolution_pass` 是唯一可產生 kcal、item 組成、portion 評估的層
 - `macro` 不是 pass 3 的 primary truth；由 deterministic layer 依 DB 下游推導
 - 主流程預設 `default-commit`，但 commit 由 application layer 根據 `commit_request_candidate` 落地
+- **Scope 限定**：`default-commit` 僅適用於**新餐點記錄**（fresh meal logging）
+  - 新餐點 record → `default-commit` 生效
+  - Rescue 事件 → 必須走 proposal-first（L3.4）
+  - Calibration 調整 → 必須走 proposal-first（L3.3B）
 - recommendation 不建立 intent state
 - item-level correction 以 `MealItem` 為最小修正單位
 - 單訊息多時段 intake 採 `Pass 1 先拆成多個 intake units`，每個 unit 各跑同一條 4-pass
@@ -348,6 +352,12 @@ pass 3 可輸出 `MealItem` 分類資訊，分兩層：
 - 重判 clarify necessity
 - 重判 exactness
 - 改寫最終語意回覆
+- 在 pass 完成後 deterministic 改寫 `action_taken`、`response_mode_hint`、`follow_up_needed`、`followup_question`、`resolution_mode`
+
+補充：
+
+- deterministic layer 可拒收不合法輸出並要求 one bounded repair / self-correction round
+- deterministic layer 不可在不經過該 pass 重答的情況下，直接把已完成 pass 的決策 posture 改成另一種 posture
 
 ### 8.2 `macro` 規則
 
@@ -410,6 +420,21 @@ pass 3 可輸出 `MealItem` 分類資訊，分兩層：
 - supersede 舊 active version（若為 correction）
 - 建立 `LedgerEntry(meal_consumption)`
 - refresh `CurrentBudgetView`
+
+### 8.6 `occurred_at` 不可變性規則
+
+**重要原則**：`occurred_at` 在 `MealVersion` chain 中是不可變的。
+
+規則：
+
+- `occurred_at` 是餐點的實際發生時間，**不可被修改**
+- correction 只影響：`recorded_at`、`version_chain`、`MealItem` 內容
+- `occurred_at` 跨版本保持不變
+- `local_date` 由 `occurred_at` 推導，不可單獨修改
+
+例外：
+
+- 若 `occurred_at` 解析錯誤是因為 timezone 設定問題，允許在 application layer 做 timezone normalization，但不改變時間點本身
 
 ---
 
@@ -495,3 +520,57 @@ L3.1 應正式化下列 contract types：
 - prompt contract 留到 `L3.5`
 - 完整 eval 留到 `L5`
 - provider model IDs 不在本層定義；本層只綁 logical model roles
+
+---
+
+## 13. Degraded Mode Policy
+
+### 13.1 定位
+
+當 LLM provider 不可用、view 無法取得、或 pass 輸出不合法時，intake flow 應有明確的 degraded mode 行為，而不是直接報錯給使用者。
+
+### 13.2 Provider 不可用
+
+若 LLM provider 在某個 pass 回傳錯誤或 timeout：
+
+| Pass | Degraded 行為 |
+|------|-------------|
+| `task_meal_link_pass` | 回傳 `intent: cannot_decide`，不進入後續 pass；對使用者說「目前無法處理，請稍後再試」 |
+| `decision_pass` | 回傳 `next_action: cannot_decide`；不 commit，不 clarify |
+| `nutrition_resolution_pass` | 回傳 `commit_readiness: not_ready`；不 commit；對使用者說「目前無法估算，請稍後再試」 |
+| `final_response_pass` | 若上游 pass 已有結果，可用 deterministic fallback 組出簡短回覆；若無，說「已記錄，稍後確認」 |
+
+規則：
+
+- provider 不可用時，不應 commit 任何 canonical state
+- 不應對使用者顯示技術錯誤訊息
+- 應保留 trace 記錄，標記 `provider_failure: true`
+
+### 13.3 Required View 無法取得
+
+若 `ActiveMealView`、`CurrentBudgetView`、`ActiveBodyPlanView` 等 required view 無法取得：
+
+| View | 無法取得時的行為 |
+|------|--------------|
+| `ActiveMealView` | 假設無 active thread，繼續執行（可能建立新 thread） |
+| `CurrentBudgetView` | intake 仍可執行，但 response 不顯示剩餘預算；標記 `budget_view_unavailable: true` |
+| `ActiveBodyPlanView` | intake 仍可執行，但不注入 `intake_estimation_bias_posture`；rescue / calibration 不觸發 |
+| `RecentCommittedMealsView` | 繼續執行，但 Pass 1 的 meal boundary 判斷可能較不準確 |
+
+### 13.4 Pass 輸出不合法（schema 驗證失敗）
+
+若某個 pass 的輸出無法通過 schema 驗證：
+
+1. deterministic layer 觸發 one bounded self-correction round
+2. 若 self-correction 後仍不合法：
+   - `task_meal_link_pass` / `decision_pass` 失敗 → 不進入後續 pass，回傳 degraded response
+   - `nutrition_resolution_pass` 失敗 → 不 commit，回傳 `commit_readiness: not_ready`
+   - `final_response_pass` 失敗 → 使用 deterministic fallback 組出最小合法回覆
+
+### 13.5 Partial Success
+
+若 intake flow 在某個 pass 降級，但前面的 pass 已有合法輸出：
+
+- 已完成的 pass 結果應保留在 trace 中
+- 不應因後面 pass 失敗而回滾前面 pass 的 trace
+- 但不應 commit 任何 canonical state，除非整個 flow 完整完成

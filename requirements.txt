@@ -4,6 +4,7 @@ httpx
 pydantic
 python-dotenv
 pytest
+pytest-asyncio
 openpyxl
 alembic
 psycopg2-binary

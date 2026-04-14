@@ -12,8 +12,8 @@
 - [docs/exec-plans/WORKFLOW_SLICE_REGISTRY.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/WORKFLOW_SLICE_REGISTRY.md)
 - [docs/specs/L2_DATA_STATE_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L2_DATA_STATE_SPEC.md)
 - [docs/specs/L3M_GUARDRAIL_MATH_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L3M_GUARDRAIL_MATH_SPEC.md)
-- [docs/BUILD_FILE_PLACEMENT_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/BUILD_FILE_PLACEMENT_RULES.md)
-- [docs/LAYER_DEPENDENCY_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/LAYER_DEPENDENCY_RULES.md)
+- [docs/governance/BUILD_FILE_PLACEMENT_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/BUILD_FILE_PLACEMENT_RULES.md)
+- [docs/governance/LAYER_DEPENDENCY_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/LAYER_DEPENDENCY_RULES.md)
 
 ## Goal
 
@@ -72,4 +72,4 @@ Will determine whether the next best-next slice is `2.3b-low-fi-today-ui` follow
 - `source_of_truth_updated`: `no`
 - `followup_task_ids[]`:
   - `[]`
-- `handoff_doc_path`: `docs/handoff/completed/HANDOFF-2026-04-12-025-CURRENT-BUDGET-READMODEL-DATE-FOLLOWTHROUGH.md`
+- `handoff_doc_path`: `docs/exec-plans/completed/handoff/HANDOFF-2026-04-12-025-CURRENT-BUDGET-READMODEL-DATE-FOLLOWTHROUGH.md`

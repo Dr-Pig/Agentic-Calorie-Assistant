@@ -5,7 +5,7 @@
 這份文件是 `Text Meal DB Wide Research v1` 的實作規格與操作說明。它不是 Greenfield DB 設計原則文件，那些已經寫在：
 
 - `docs/DATA_BUILD_PLAN.md`
-- `docs/DATA_SOURCE_POLICY.md`
+- `docs/governance/DATA_SOURCE_POLICY.md`
 
 這份文件只負責把 `wide-research-codex` 的 shard-first / subprocess fan-out 方法，落成目前 repo 可直接執行的 `Source Registry` 建置骨架。
 
@@ -91,11 +91,11 @@ data_build/runs/source-registry-v1-YYYYMMDD-HHMMSS/
   manifest.json
   notes.json
   prompts/
-  child_outputs/
+  normalized/
   logs/
   raw/
   cache/
-  tmp/
+  runtime_tmp/
   aggregated/
   smoke_test.ps1
   dry_run.ps1

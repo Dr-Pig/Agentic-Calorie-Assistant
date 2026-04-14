@@ -71,4 +71,4 @@ Will determine whether recommendation / calibration can consume a stable persona
 - `followup_task_ids[]`:
   - `[]`
 - `handoff_doc_path`:
-  - `docs/handoff/completed/HANDOFF-2026-04-12-020-RECOMMENDED-TARGET-KCAL-FOUNDATION.md`
+  - `docs/exec-plans/completed/handoff/HANDOFF-2026-04-12-020-RECOMMENDED-TARGET-KCAL-FOUNDATION.md`

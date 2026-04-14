@@ -13,8 +13,8 @@
 - [docs/specs/retrieval_external_search_ownership_spec.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/retrieval_external_search_ownership_spec.md)
 - [docs/specs/L3T_TYPED_RUNTIME_CONTRACT_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L3T_TYPED_RUNTIME_CONTRACT_SPEC.md)
 - [docs/quality/L5C_SAFETY_GUARDRAIL_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/L5C_SAFETY_GUARDRAIL_SPEC.md)
-- [docs/BUILD_FILE_PLACEMENT_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/BUILD_FILE_PLACEMENT_RULES.md)
-- [docs/LAYER_DEPENDENCY_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/LAYER_DEPENDENCY_RULES.md)
+- [docs/governance/BUILD_FILE_PLACEMENT_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/BUILD_FILE_PLACEMENT_RULES.md)
+- [docs/governance/LAYER_DEPENDENCY_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/LAYER_DEPENDENCY_RULES.md)
 
 ## Goal
 
@@ -80,4 +80,4 @@ Will determine whether intake hardening should next move into a context-selector
   - `no`
 - `followup_task_ids[]`:
   - `[]`
-- `handoff_doc_path`: `docs/handoff/completed/HANDOFF-2026-04-12-016-WEB-SEARCH-FALLBACK-LANE.md`
+- `handoff_doc_path`: `docs/exec-plans/completed/handoff/HANDOFF-2026-04-12-016-WEB-SEARCH-FALLBACK-LANE.md`

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..agent.final_response_llm import run_four_pass_final_response
-from ..agent.nutrition_resolution_llm import nutrition_result_from_primary
+from ..agent.nutrition_resolution_normalizer import nutrition_result_from_primary
 from ..observability.payload_builders import build_payload
 from ..schemas import EstimatePayload
 
@@ -93,31 +93,10 @@ async def finalize_response_payload(
     reply_text = final_response_result.reply_text
     final_best_parsed = dict(best_parsed)
     if final_response_result.asked_follow_up:
-        if str(final_best_parsed.get("estimate_mode") or "") == "anchored_component" and not existing_followup:
-            final_best_parsed["follow_up_needed"] = False
-            final_best_parsed["followup_question"] = ""
-        else:
-            final_best_parsed["follow_up_needed"] = True
-            if not str(final_best_parsed.get("followup_question") or "").strip():
-                final_best_parsed["followup_question"] = reply_text
-    elif (
-        str(final_best_parsed.get("estimate_mode") or "") == "anchored_component"
-        and existing_followup
-        and not _looks_like_drink_size_followup(existing_followup)
-    ):
-        final_best_parsed["follow_up_needed"] = False
-        final_best_parsed["followup_question"] = ""
-    elif str(final_best_parsed.get("estimate_mode") or "") == "exact_item":
-        final_best_parsed["follow_up_needed"] = False
-        final_best_parsed["followup_question"] = ""
-        if str(final_best_parsed.get("action_taken") or "") == "clarify_before_estimate":
-            final_best_parsed["action_taken"] = "direct_answer"
-        unresolved = [str(item) for item in final_best_parsed.get("unresolved_info", []) if str(item).strip()]
-        if unresolved and str(final_best_parsed.get("response_mode_hint") or "") == "clarify_first":
-            final_best_parsed["response_mode_hint"] = "rough_estimate_ok"
-
-    final_followup = str(final_best_parsed.get("followup_question") or "").strip()
-    if str(final_best_parsed.get("estimate_mode") or "") == "anchored_component" and final_followup and _should_clear_ramen_followup(final_best_parsed, final_followup):
+        final_best_parsed["follow_up_needed"] = True
+        if not str(final_best_parsed.get("followup_question") or "").strip():
+            final_best_parsed["followup_question"] = reply_text
+    else:
         final_best_parsed["follow_up_needed"] = False
         final_best_parsed["followup_question"] = ""
 

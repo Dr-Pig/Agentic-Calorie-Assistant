@@ -174,6 +174,28 @@ At minimum, experiments should log:
 - `latency_ms`
 - `token_cost_estimate`
 
+For founder-golden lane audits, pass-level review, or any experiment that may compare:
+
+- `ask_followup_only`
+- `estimate_ok`
+- `estimate_with_followup`
+
+do not stop at a compact summary only.
+
+Persist, per run:
+
+- full `llm_traces`
+- full `trace_contract`
+- final payload summary
+
+This is required so reviewers can answer:
+
+- whether `decision_pass` selected the right lane
+- whether `nutrition_resolution_pass` produced a range or only a point estimate
+- whether `final_response_pass` preserved or compressed that uncertainty correctly
+
+If only the final reply is stored, the experiment record is incomplete for pass-level review.
+
 ## 9. Decision Rules
 
 Prefer collapse when:

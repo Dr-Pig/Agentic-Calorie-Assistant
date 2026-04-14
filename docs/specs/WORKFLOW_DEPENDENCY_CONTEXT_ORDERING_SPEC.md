@@ -20,6 +20,18 @@
 
 系統建置必須嚴格依照以下順序由內而外擴展，不得跳級：
 
+### 2.0 使用者 Onboarding（前置條件）
+
+**定位：所有功能的啟動前提，不是獨立 workflow bundle，而是系統可用性的 gate。**
+
+- **Spec**：[`L0A_ONBOARDING_FLOW_SPEC.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L0A_ONBOARDING_FLOW_SPEC.md)
+- **前提**：無，是最早需要就位的 flow。
+- **產出**：active `BodyPlan`、初始 `DayBudgetLedger`、`safety_floor_kcal`。
+- **邊界**：
+  - onboarding 未完成時，intake logging 仍可運作，但不顯示預算、不觸發 rescue / calibration。
+  - onboarding 不是 2.1-2.9 的一部分，但 2.1 之後的所有 budget-aware 功能都依賴 onboarding 產出的 `BodyPlan`。
+- **進場時機**：應在 2.1 single-turn intake 之前或同步就位。
+
 ### 2.1 單回合錄入 (Single-turn Intake)
 **定位：系統的最底層核心，所有資料的活水源頭。**
 *   **前提：完全不需要依賴歷史記憶或其他模組。**

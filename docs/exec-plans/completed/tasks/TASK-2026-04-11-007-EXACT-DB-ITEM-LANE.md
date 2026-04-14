@@ -65,7 +65,7 @@ Will clarify whether the next intake hardening step should move into clarify-req
   - `tests/test_knowledge_packets.py`
   - `tests/test_text_meal.py`
   - `docs/exec-plans/active/tasks/TASK-2026-04-11-007-EXACT-DB-ITEM-LANE.md`
-  - `docs/handoff/active/HANDOFF-2026-04-11-007-EXACT-DB-ITEM-LANE.md`
+  - `docs/exec-plans/active/handoff/HANDOFF-2026-04-11-007-EXACT-DB-ITEM-LANE.md`
 - `tests_run[]`:
   - `python -m pytest tests/test_knowledge_packets.py -q -k 'exact_item_lane_packet or exact_only_lane'`
   - `python -m pytest tests/test_text_meal.py -q -k 'decision_stage_skips_search_when_exact_truth_is_present or canonical_safety_floor_prefers_body_plan_source_or_explicit_override'`
@@ -77,4 +77,4 @@ Will clarify whether the next intake hardening step should move into clarify-req
 - `followup_task_ids[]`:
   - `[]`
 - `handoff_doc_path`:
-  - `docs/handoff/active/HANDOFF-2026-04-11-007-EXACT-DB-ITEM-LANE.md`
+  - `docs/exec-plans/active/handoff/HANDOFF-2026-04-11-007-EXACT-DB-ITEM-LANE.md`

@@ -88,4 +88,4 @@ Will determine whether `2.4b-weight-ui` can reuse the same route or surface conv
   - `no`
 - `followup_task_ids[]`:
   - `TASK-2026-04-11-005-WEIGHT-UI`
-- `handoff_doc_path`: `docs/handoff/active/HANDOFF-2026-04-11-003-LOWFI-TODAY-UI.md`
+- `handoff_doc_path`: `docs/exec-plans/active/handoff/HANDOFF-2026-04-11-003-LOWFI-TODAY-UI.md`

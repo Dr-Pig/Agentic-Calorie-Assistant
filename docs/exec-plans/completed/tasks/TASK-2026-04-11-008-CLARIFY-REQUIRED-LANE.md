@@ -69,7 +69,7 @@ Will determine whether the next intake hardening step should move into cannot-es
   - `tests/test_pass_runner_and_invariants.py`
   - `tests/test_text_meal.py`
   - `docs/exec-plans/active/tasks/TASK-2026-04-11-008-CLARIFY-REQUIRED-LANE.md`
-  - `docs/handoff/active/HANDOFF-2026-04-11-008-CLARIFY-REQUIRED-LANE.md`
+  - `docs/exec-plans/active/handoff/HANDOFF-2026-04-11-008-CLARIFY-REQUIRED-LANE.md`
 - `tests_run[]`:
   - `python -m pytest tests/test_pass_runner_and_invariants.py -q -k "normalize_decision_result_forces_blocking_clarify_to_stop_proceeding or annotate_followup_policy_marks_followup_as_needed_when_blocking"`
   - `python -m pytest tests/test_text_meal.py -q -k "clarify_required_lane_blocks_canonical_commit or boundary_clarification_short_circuit_skips_log_creation"`
@@ -81,4 +81,4 @@ Will determine whether the next intake hardening step should move into cannot-es
 - `followup_task_ids[]`:
   - `[]`
 - `handoff_doc_path`:
-  - `docs/handoff/active/HANDOFF-2026-04-11-008-CLARIFY-REQUIRED-LANE.md`
+  - `docs/exec-plans/active/handoff/HANDOFF-2026-04-11-008-CLARIFY-REQUIRED-LANE.md`

@@ -1,0 +1,16 @@
+case_id: intake_multi_turn_golden_ask_followup_brand_completion_001
+title: "Brand-only ask-followup closes into same intake"
+bucket: intake_multi_turn
+tier: 1
+case_class: golden
+safety_classification: normal
+source_type: hand_authored
+version: 1
+tags:
+  - intake
+  - multi_turn
+  - ask_followup_only
+  - same_thread
+  - founder_fit
+owner: codex
+status: active

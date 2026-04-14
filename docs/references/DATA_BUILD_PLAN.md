@@ -348,7 +348,7 @@
 文件：
 
 - [docs/DATA_BUILD_PLAN.md](C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\DATA_BUILD_PLAN.md)
-- [docs/DATA_SOURCE_POLICY.md](C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\DATA_SOURCE_POLICY.md)
+- [docs/governance/DATA_SOURCE_POLICY.md](C:\Users\User\Documents\Playground\line-liff-calorie-helper-text-meal-canary-main\docs\DATA_SOURCE_POLICY.md)
 
 build workspace：
 

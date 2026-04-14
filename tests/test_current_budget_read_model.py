@@ -29,7 +29,21 @@ def _user(db: Session) -> User:
     return user
 
 
-def _payload(*, request_id: str, title: str, kcal: int, local_date: str = "2026-04-11") -> EstimatePayload:
+def _payload(
+    *,
+    request_id: str,
+    title: str,
+    kcal: int,
+    local_date: str = "2026-04-11",
+    action_taken: str = "direct_answer",
+    route_target: str = "best_effort_answer",
+    followup_question: str | None = None,
+    quality_signals: dict[str, object] | None = None,
+    trace_contract: dict[str, object] | None = None,
+) -> EstimatePayload:
+    merged_trace_contract = {"local_date": local_date}
+    if trace_contract:
+        merged_trace_contract.update(trace_contract)
     return EstimatePayload(
         request_id=request_id,
         meal_title=title,
@@ -37,12 +51,13 @@ def _payload(*, request_id: str, title: str, kcal: int, local_date: str = "2026-
         protein_g=10,
         carb_g=20,
         fat_g=5,
-        route_target="best_effort_answer",
-        action_taken="direct_answer",
+        route_target=route_target,
+        action_taken=action_taken,
         reply_text=f"{title} ok",
-        quality_signals={"estimate_mode": "exact_item"},
-        trace_contract={"local_date": local_date},
+        quality_signals={"estimate_mode": "exact_item", **dict(quality_signals or {})},
+        trace_contract=merged_trace_contract,
         boundary_trace={},
+        followup_question=followup_question,
         component_estimates=[
             ComponentEstimate(
                 name=title,
@@ -270,3 +285,67 @@ def test_current_budget_view_keeps_correction_on_the_canonical_local_day_only() 
     assert next_day_view.consumed_kcal == 0
     assert next_day_view.active_meal_count == 0
     assert next_day_view.meals == []
+
+
+def test_current_budget_view_ignores_draft_unresolved_followup_until_turn2_completion() -> None:
+    db = _session()
+    user = _user(db)
+
+    first = persist_text_meal_result(
+        db,
+        user=user,
+        latest_log=None,
+        planner_intent="food_estimation",
+        payload=_payload(
+            request_id="req-followup-1",
+            title="bubble tea",
+            kcal=394,
+            action_taken="answer_with_uncertainty",
+            followup_question="大杯還是中杯？",
+            quality_signals={"estimate_mode": "llm_only"},
+            trace_contract={
+                "local_date": "2026-04-11",
+                "response_mode_hint": "estimate_with_followup",
+                "unresolved_info": ["cup_size"],
+                "followup_question": "大杯還是中杯？",
+            },
+        ),
+        raw_input="我剛剛喝珍珠奶茶",
+        request_id="req-followup-1",
+    )
+
+    assert first["status"] == "draft_unresolved"
+    assert first["canonical_commit"] is None
+
+    unresolved_view = build_current_budget_view(db, user_id=user.id, local_date="2026-04-11")
+    assert unresolved_view.consumed_kcal == 0
+    assert unresolved_view.active_meal_count == 0
+    assert unresolved_view.meals == []
+
+    latest_log = db.get(MealLog, first["persisted_log_id"])
+    assert latest_log is not None
+
+    second = persist_text_meal_result(
+        db,
+        user=user,
+        latest_log=latest_log,
+        planner_intent="clarification",
+        payload=_payload(
+            request_id="req-followup-2",
+            title="bubble tea large half sugar",
+            kcal=450,
+            action_taken="direct_answer",
+            quality_signals={"estimate_mode": "anchored_component"},
+            trace_contract={"local_date": "2026-04-11"},
+        ),
+        raw_input="大杯、半糖、正常冰",
+        request_id="req-followup-2",
+    )
+
+    assert second["status"] == "completed_meal"
+    assert second["canonical_commit"] is not None
+
+    resolved_view = build_current_budget_view(db, user_id=user.id, local_date="2026-04-11")
+    assert resolved_view.consumed_kcal == 450
+    assert resolved_view.active_meal_count == 1
+    assert [meal.meal_title for meal in resolved_view.meals] == ["bubble tea large half sugar"]

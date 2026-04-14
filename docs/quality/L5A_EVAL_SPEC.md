@@ -198,6 +198,30 @@ v1 預設：
 - 直接聯絡資訊
 - 其他不必要的自由文字 PII
 
+### 7.5 founder-golden and pass-audit retention rule
+
+以下情況不得只保留 final reply / final kcal 摘要：
+
+- founder golden lane judgment
+- pass-level human review
+- runtime experiment comparison
+- prompt / routing / follow-up policy triage
+
+在這些情況中，單次 run 至少應保留：
+
+- full `llm_traces`
+- full `trace_contract`
+- final payload summary
+- case id / input / expected lane or oracle
+
+目的不是讓所有日常執行都長期保存完整 trace，而是確保：
+
+- human review 可以回看每個 LLM pass 的實際輸出
+- 能區分 `nutrition_resolution_pass` 的區間估算與 `final_response_pass` 的 surface 壓縮
+- lane drift、pass drift、surface drift 不會被混成同一類問題
+
+若這類評估只保留 final response，應視為不完整 eval artifact。
+
 ---
 
 ## 8. Human Eval / Human Review in Eval
@@ -295,6 +319,19 @@ pass-level eval 不應只看最終回答，必須對應到各 pass 的合法 ora
 - kcal / item structure usefulness
 - commit readiness correctness
 - bias posture usage legality
+
+若 case 允許 `estimate_ok` 且熱量仍受高影響變因左右，pass-level oracle 應額外檢查：
+
+- `kcal_low`
+- `kcal_high`
+- `kcal_most_likely`
+
+也就是：
+
+- nutrition pass 是否已產出合理區間
+- final response 是否只是將區間 surface 壓成單點 most-likely
+
+這兩者不得混為一談。
 
 ### 10.4 `final_response_pass`
 

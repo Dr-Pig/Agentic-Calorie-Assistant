@@ -2,43 +2,58 @@
 
 `AGENTS.md` is the only bootstrap file in this repository.
 
-Use it as a map, not a handbook. Read the minimum path first, then retrieve more docs only when the task shape requires them.
+Use it as a map, not a handbook. Load the minimum path first, then retrieve deeper docs only when the task shape requires them.
+
+## Truth Hierarchy
+
+Default truth families are:
+
+1. [docs/specs/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs)
+2. [docs/exec-plans/active/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active)
+3. CI and harness output
+4. `git diff / commit history`
+
+Do not use [docs/archive/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/archive), [artifacts/docs-snapshots/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/artifacts/docs-snapshots), completed task artifacts, or handoff docs as default truth.
 
 ## Read First
 
 1. [docs/index.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/index.md)
-2. [docs/AGENT_LOADING_PATH.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/AGENT_LOADING_PATH.md)
-3. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md)
+2. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md)
 
-## Execution Truth Trio
+If the task needs legality, slice detail, or next-slice selection, read next:
 
-Default execution truth comes from:
+3. [docs/exec-plans/WORKFLOW_SLICE_REGISTRY.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/WORKFLOW_SLICE_REGISTRY.md)
+4. [docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md)
+5. [docs/governance/EXECUTION_OPERATING_MODEL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/EXECUTION_OPERATING_MODEL.md)
 
-1. `git diff / commit history`
-2. CI and harness output
-3. the minimal active state in [CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md)
+Default planner path is:
 
-Do not recreate this same information in large task or handoff narratives unless a real exception path requires it.
+`AGENTS.md -> CURRENT_EXECUTION_PLAN.md -> WORKFLOW_SLICE_REGISTRY.md -> ordering spec -> EXECUTION_OPERATING_MODEL.md`
 
-## Default Working Mode
+## Planner Default
 
-- single-stream `planner-local` is the default
-- search and load docs on demand; do not preload governance documents unless they are needed
-- treat task and handoff docs as optional exception tools, not default workflow requirements
-- if a slice is complete enough to verify, prefer recording it through git plus harness rather than handwritten execution metadata
+- `CURRENT_EXECUTION_PLAN.md` is the execution clock and global build state machine
+- `WORKFLOW_SLICE_REGISTRY.md` is the slice table
+- the ordering spec is the legality and dependency truth
+- `EXECUTION_OPERATING_MODEL.md` is the execution-governance owner doc
+- task and handoff docs are exception tools, not default routing
 
-## Default Harness Wall
-
-Default deterministic guardrails include:
-
-- diff scope and freeze-growth checks
-- commit traceability checks
-- runtime boundary and layer integrity checks
-- fast lint plus existing encoding, fat-file, migration, and test gates
+If the dashboard says execution is at a human gate, stop there unless the user explicitly changes that gate.
+If the planner is selecting the next slice, the default planner path above is required reading, not a conditional governance read.
 
 ## Hard Rules Summary
 
 - source-of-truth sync is mandatory when canonical understanding changes
+- deterministic layers must not override completed LLM decision outputs
+  - do not deterministically rewrite `action_taken`, `response_mode_hint`, `follow_up_needed`, `followup_question`, `exactness`, or `resolution_mode` after a pass completes
+  - deterministic layers may validate, reject, downgrade, derive, or request one bounded repair round
+- prompt and evidence-policy fixes must target generalized estimation behavior, not one-off item patches
+  - do not optimize prompts around a single SKU, menu item, or one benchmark example unless the canonical spec explicitly requires that item-specific behavior
+  - prefer generalized rules based on evidence class, identity resolution, portion ambiguity, packaging cues, and uncertainty topology
+  - when a benchmark exposes a failure, first look for the broader estimation-family rule that should govern that case class; fix the family rule, not just the surfaced example
+- chat is the primary interaction surface for the product
+  - rescue, proposal, and calibration interactions should default to chat-first behavior unless a canonical spec explicitly defines a different primary surface
+  - UI should default to mirror / inbox behavior rather than becoming the primary interaction path
 - protected legacy files must stay thin:
   - `app/routes.py`
   - `app/schemas.py`
@@ -48,11 +63,30 @@ Default deterministic guardrails include:
   - `app/application/context_assembly.py`
   - `app/agent/knowledge_packets.py`
 - schema-sensitive ORM changes must ship with Alembic migrations
-- do not use `docs/archive/` or `docs/_spec_snapshots/` as default truth
+- governance docs are conditional reads; pull them only when the task touches repo process, spec editing, task protocol, or handoff protocol
 
-## Follow-On Reads
+## Default Harness Wall
 
-- spec or architecture work: use the canonical specs linked from [docs/index.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/index.md)
-- implementation work: use [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md), harness docs, and the relevant code area
-- delegation decisions only: use [docs/PLANNER_LOCAL_VS_WORKER_WORTHY_POLICY.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/PLANNER_LOCAL_VS_WORKER_WORTHY_POLICY.md)
-- optional resume or emergency transfer only: use [docs/HANDOFF_CONTRACT.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/HANDOFF_CONTRACT.md)
+Default deterministic guardrails include:
+
+- diff scope and freeze-growth checks
+- commit traceability checks
+- layer integrity and migration discipline checks
+- encoding, fat-file, smoke, integration, and targeted test gates
+- advisory repo-hygiene scans when structure or docs ontology changes
+
+## Conditional Reads
+
+- spec or architecture work:
+  - [docs/specs/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs)
+  - [docs/governance/SPEC_EDITING_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/SPEC_EDITING_PROTOCOL.md)
+  - [docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
+- repo rules or file placement:
+  - [docs/governance/BUILD_FILE_PLACEMENT_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/BUILD_FILE_PLACEMENT_RULES.md)
+  - [docs/governance/LAYER_DEPENDENCY_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/LAYER_DEPENDENCY_RULES.md)
+- task artifact use:
+  - [docs/governance/TASK_CHECKIN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/TASK_CHECKIN_PROTOCOL.md)
+- optional resume or emergency transfer only:
+  - [docs/governance/HANDOFF_CONTRACT.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/HANDOFF_CONTRACT.md)
+- touching a freeze-growth file:
+  - [docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md)

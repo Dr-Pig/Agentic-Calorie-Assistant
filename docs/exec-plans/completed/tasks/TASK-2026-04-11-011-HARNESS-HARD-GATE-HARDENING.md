@@ -9,9 +9,9 @@
 ## Source Of Truth Refs
 
 - [AGENTS.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/AGENTS.md)
-- [docs/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
-- [docs/TASK_CHECKIN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/TASK_CHECKIN_PROTOCOL.md)
-- [docs/GITHUB_REPO_GOVERNANCE.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/GITHUB_REPO_GOVERNANCE.md)
+- [docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
+- [docs/governance/TASK_CHECKIN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/TASK_CHECKIN_PROTOCOL.md)
+- [docs/governance/GITHUB_REPO_GOVERNANCE.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/GITHUB_REPO_GOVERNANCE.md)
 
 ## Goal
 
@@ -24,8 +24,8 @@ Turn the remaining harness governance gaps into executable gates before the next
 - `scripts/check_migration_discipline.py`
 - `.github/workflows/ci.yml`
 - `AGENTS.md`
-- `docs/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md`
-- `docs/TASK_CHECKIN_PROTOCOL.md`
+- `docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md`
+- `docs/governance/TASK_CHECKIN_PROTOCOL.md`
 - `docs/exec-plans/active/REPLAN_LOG.md`
 
 ## Forbidden Files
@@ -62,8 +62,8 @@ Should reduce the remaining harness drift between local hooks, CI, and task/migr
   - `scripts/check_migration_discipline.py`
   - `.github/workflows/ci.yml`
   - `AGENTS.md`
-  - `docs/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md`
-  - `docs/TASK_CHECKIN_PROTOCOL.md`
+  - `docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md`
+  - `docs/governance/TASK_CHECKIN_PROTOCOL.md`
   - `docs/exec-plans/active/tasks/TASK-2026-04-11-011-HARNESS-HARD-GATE-HARDENING.md`
   - `docs/exec-plans/active/REPLAN_LOG.md`
 - `tests_run[]`:

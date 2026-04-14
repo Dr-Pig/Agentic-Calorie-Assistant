@@ -40,6 +40,12 @@ jobs:
       - name: Run commit format check
         run: python scripts/check_commit_format.py --range "$DIFF_BASE_SHA" "$DIFF_HEAD_SHA"
 
+      - name: Run audit runner contract check
+        run: python scripts/check_audit_runner_contract.py
+
+      - name: Run audit fixture safety check
+        run: python scripts/check_audit_fixture_safety.py
+
       - name: Run layer integrity check
         run: python scripts/check_layer_integrity.py
 

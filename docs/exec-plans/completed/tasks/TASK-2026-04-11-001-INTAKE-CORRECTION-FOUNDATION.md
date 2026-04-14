@@ -53,8 +53,8 @@ Stabilize the historical correction path so correction-target lookup, version su
 
 - none by default
 - if a new module is required, it must follow:
-  - [docs/BUILD_FILE_PLACEMENT_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/BUILD_FILE_PLACEMENT_RULES.md)
-  - [docs/LAYER_DEPENDENCY_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/LAYER_DEPENDENCY_RULES.md)
+  - [docs/governance/BUILD_FILE_PLACEMENT_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/BUILD_FILE_PLACEMENT_RULES.md)
+  - [docs/governance/LAYER_DEPENDENCY_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/LAYER_DEPENDENCY_RULES.md)
 
 ## Completion Criteria
 
@@ -83,7 +83,7 @@ Should tighten the boundary between `2.2b-historical-correction` and `2.3a-curre
 - This task was originally scoped before the repo's protected-legacy and freeze-growth rules were hardened.
 - `app/usecases/text_meal.py` is no longer an acceptable default landing zone for correction work.
 - Correction ownership should prefer `app/application/*`, `app/infrastructure/*`, and narrow `text_meal_*_support` / `text_meal_service` modules.
-- Any worker taking this task must re-check [docs/FREEZE_GROWTH_EXTRACTION_MAP.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/FREEZE_GROWTH_EXTRACTION_MAP.md) before touching a freeze-growth file.
+- Any worker taking this task must re-check [docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md) before touching a freeze-growth file.
 
 ## Completion Notes
 
@@ -102,7 +102,7 @@ Should tighten the boundary between `2.2b-historical-correction` and `2.3a-curre
   - `app/infrastructure/meal_log_persistence.py`
   - `tests/test_canonical_persistence.py`
   - `docs/exec-plans/active/tasks/TASK-2026-04-11-001-INTAKE-CORRECTION-FOUNDATION.md`
-  - `docs/handoff/active/HANDOFF-2026-04-11-001-INTAKE-CORRECTION-FOUNDATION.md`
+  - `docs/exec-plans/active/handoff/HANDOFF-2026-04-11-001-INTAKE-CORRECTION-FOUNDATION.md`
 - `tests_run[]`:
   - `python -m pytest tests/test_canonical_persistence.py -q`
   - `python -m pytest tests/test_text_meal.py -k 'persistence or boundary or commit_request_candidate or canonical' -q`
@@ -115,4 +115,4 @@ Should tighten the boundary between `2.2b-historical-correction` and `2.3a-curre
   - `no`
 - `followup_task_ids[]`:
   - `[]`
-- `handoff_doc_path`: `docs/handoff/active/HANDOFF-2026-04-11-001-INTAKE-CORRECTION-FOUNDATION.md`
+- `handoff_doc_path`: `docs/exec-plans/active/handoff/HANDOFF-2026-04-11-001-INTAKE-CORRECTION-FOUNDATION.md`

@@ -77,4 +77,4 @@ Will determine whether the next rescue work should move into proposal generation
   - `no`
 - `followup_task_ids[]`:
   - `[]`
-- `handoff_doc_path`: `docs/handoff/active/HANDOFF-2026-04-11-006-RESCUE-DETERMINISTIC-OVERLAY.md`
+- `handoff_doc_path`: `docs/exec-plans/active/handoff/HANDOFF-2026-04-11-006-RESCUE-DETERMINISTIC-OVERLAY.md`

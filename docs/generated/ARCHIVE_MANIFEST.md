@@ -32,5 +32,5 @@ This manifest records why archived documents are retained.
 
 If a canonical document appears to have lost coverage, compare it against:
 
-- `docs/_spec_snapshots/`
+- `artifacts/docs-snapshots/`
 - relevant files under `docs/archive/`

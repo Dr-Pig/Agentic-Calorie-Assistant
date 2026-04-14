@@ -225,6 +225,7 @@ def apply_short_horizon_rescue_plan(
     user: User,
     plan: ShortHorizonRescuePlan,
     source_id: int | None = None,
+    source_type: str = "rescue_plan",
 ) -> list[LedgerEntryRecord]:
     entries: list[LedgerEntryRecord] = []
     for day in plan.overlay_days:
@@ -237,7 +238,7 @@ def apply_short_horizon_rescue_plan(
             local_date=day.local_date,
             delta_kcal=delta_kcal,
             source_id=source_id,
-            source_type="rescue_plan",
+            source_type=source_type,
             budget_kcal=day.base_budget_kcal,
             metadata={
                 "rescue_family": plan.rescue_family,
@@ -248,3 +249,46 @@ def apply_short_horizon_rescue_plan(
         )
         entries.append(entry)
     return entries
+
+
+def apply_overlay_days_payload(
+    db: Session,
+    *,
+    user: User,
+    overlay_days: Sequence[dict[str, object]],
+    safety_floor_kcal: int,
+    source_id: int | None = None,
+    source_type: str = "rescue_plan",
+    plan_viability: Literal["viable", "strained", "non_viable"] = "viable",
+) -> list[LedgerEntryRecord]:
+    plan = ShortHorizonRescuePlan(
+        target_recovery_kcal=sum(abs(int(day.get("proposed_rescue_overlay_kcal", 0))) for day in overlay_days),
+        scheduled_recovery_kcal=sum(abs(int(day.get("proposed_rescue_overlay_kcal", 0))) for day in overlay_days),
+        unallocated_recovery_kcal=0,
+        safety_floor_kcal=safety_floor_kcal,
+        viability=plan_viability,
+        requires_escalation=False,
+        overlay_days=tuple(
+            RescueOverlayDayAssessment(
+                local_date=str(day.get("local_date") or ""),
+                proposed_rescue_overlay_kcal=int(day.get("proposed_rescue_overlay_kcal") or 0),
+                base_budget_kcal=int(day.get("base_budget_kcal") or 0),
+                calibration_adjustment_kcal=int(day.get("calibration_adjustment_kcal") or 0),
+                max_daily_rescue_compression_kcal=int(day.get("max_daily_rescue_compression_kcal") or 0),
+                candidate_effective_budget_kcal=int(day.get("candidate_effective_budget_kcal") or 0),
+                safety_floor_kcal=int(day.get("safety_floor_kcal") or safety_floor_kcal),
+                compression_ratio=float(day.get("compression_ratio") or 0.0),
+                viability=str(day.get("viability") or plan_viability),  # type: ignore[arg-type]
+                within_compression_cap=bool(day.get("within_compression_cap", True)),
+                meets_safety_floor=bool(day.get("meets_safety_floor", True)),
+            )
+            for day in overlay_days
+        ),
+    )
+    return apply_short_horizon_rescue_plan(
+        db,
+        user=user,
+        plan=plan,
+        source_id=source_id,
+        source_type=source_type,
+    )

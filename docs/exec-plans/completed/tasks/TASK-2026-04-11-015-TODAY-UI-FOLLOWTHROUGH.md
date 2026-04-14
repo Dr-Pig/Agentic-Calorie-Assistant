@@ -10,8 +10,8 @@
 
 - [docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md)
 - [docs/exec-plans/WORKFLOW_SLICE_REGISTRY.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/WORKFLOW_SLICE_REGISTRY.md)
-- [docs/BUILD_FILE_PLACEMENT_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/BUILD_FILE_PLACEMENT_RULES.md)
-- [docs/LAYER_DEPENDENCY_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/LAYER_DEPENDENCY_RULES.md)
+- [docs/governance/BUILD_FILE_PLACEMENT_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/BUILD_FILE_PLACEMENT_RULES.md)
+- [docs/governance/LAYER_DEPENDENCY_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/LAYER_DEPENDENCY_RULES.md)
 - [docs/specs/L2_DATA_STATE_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L2_DATA_STATE_SPEC.md)
 
 ## Goal
@@ -66,7 +66,7 @@ Will determine whether the next best step is `2.1e-web-search-fallback-lane` or 
 - `actual_touch_files[]`:
   - `tests/test_routes_today_ui.py`
   - `docs/exec-plans/active/tasks/TASK-2026-04-11-015-TODAY-UI-FOLLOWTHROUGH.md`
-  - `docs/handoff/active/HANDOFF-2026-04-11-015-TODAY-UI-FOLLOWTHROUGH.md`
+  - `docs/exec-plans/active/handoff/HANDOFF-2026-04-11-015-TODAY-UI-FOLLOWTHROUGH.md`
 - `tests_run[]`:
   - `python -m pytest tests/test_routes_today_ui.py -q`
 - `reality_drift_notes`:
@@ -75,4 +75,4 @@ Will determine whether the next best step is `2.1e-web-search-fallback-lane` or 
   - `no`
 - `followup_task_ids[]`:
   - none
-- `handoff_doc_path`: `docs/handoff/active/HANDOFF-2026-04-11-015-TODAY-UI-FOLLOWTHROUGH.md`
+- `handoff_doc_path`: `docs/exec-plans/active/handoff/HANDOFF-2026-04-11-015-TODAY-UI-FOLLOWTHROUGH.md`

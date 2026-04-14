@@ -12,14 +12,20 @@ Execution truth remains:
 
 ## Active Hard Gates
 
-Default hard gates now include:
+These scripts are strictly enforced during the build and evaluation pipeline. Failure in any of these scripts blocks progression to the next capability layer.
 
-- `scripts/check_git_diff_scope.py`
+- **`scripts/check_git_diff_scope.py`**: Ensures bounded refactoring to prevent unreviewed architectural drift.
+- **`scripts/check_encoding.ps1`**: Enforces strict `UTF-8-BOM` or `UTF-8-NO-BOM` policies for tracked markdown documents.
+- **`scripts/audit_io_guard.py`**: Shared pre-run hard gate for formal audit runners; blocks Windows piped stdin and requires file-backed fixtures.
+- **`docs/quality/AUDIT_RUNNER_REGISTRY.json`**: The sole registry of official formal audit runners that must obey the shared audit input contract.
+- **`docs/quality/AUDIT_FIXTURE_REGISTRY.json`**: The sole registry of official formal audit fixtures that must remain valid UTF-8 and free of mojibake-risk text.
+- **`scripts/check_audit_runner_contract.py`**: CI/pre-commit hard gate that scans the audit runner registry and ensures each listed runner still imports and invokes the shared `audit_io_guard`.
+- **`scripts/check_audit_fixture_safety.py`**: CI/pre-commit hard gate that scans the audit fixture registry and blocks corrupted or mojibake-risk formal audit inputs before any official run starts.
+- **`scripts/check_audit_safety.py`**: Post-run scan that detects mangled Chinese characters (`????`) or invalid UTF-8 in logs and artifacts.
 - `scripts/check_commit_format.py`
 - `scripts/check_runtime_boundaries.py`
 - diff-scoped `ruff` on touched Python files
 - `scripts/check_layer_integrity.py`
-- `scripts/check_encoding.ps1`
 - `scripts/check_fat_files.ps1`
 - `scripts/check_migration_discipline.py`
 - smoke and integration tests in CI

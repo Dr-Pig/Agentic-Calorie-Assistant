@@ -61,8 +61,8 @@ function Test-ArtifactContainsAny {
 $artifactDirs = @(
     "docs/exec-plans/active/tasks/",
     "docs/exec-plans/completed/tasks/",
-    "docs/handoff/active/",
-    "docs/handoff/completed/"
+    "docs/exec-plans/active/handoff/",
+    "docs/exec-plans/completed/handoff/"
 )
 
 $paths = if ($AuditRepo) {
@@ -107,12 +107,13 @@ foreach ($path in $paths) {
 
     if ($path.StartsWith("docs/exec-plans/", [System.StringComparison]::OrdinalIgnoreCase)) {
         if (-not (Test-ArtifactContainsAny -Content $content -Hints $taskHints)) {
-            $issues.Add("task artifact '$path' does not appear to contain the lean optional-task fields from docs/TASK_CHECKIN_PROTOCOL.md.")
+            $issues.Add("task artifact '$path' does not appear to contain the lean optional-task fields from docs/governance/TASK_CHECKIN_PROTOCOL.md.")
         }
     }
-    elseif ($path.StartsWith("docs/handoff/", [System.StringComparison]::OrdinalIgnoreCase)) {
+    elseif ($path.StartsWith("docs/exec-plans/active/handoff/", [System.StringComparison]::OrdinalIgnoreCase) -or
+            $path.StartsWith("docs/exec-plans/completed/handoff/", [System.StringComparison]::OrdinalIgnoreCase)) {
         if (-not (Test-ArtifactContainsAny -Content $content -Hints $handoffHints)) {
-            $issues.Add("handoff artifact '$path' does not appear to contain the lean optional-handoff fields from docs/HANDOFF_CONTRACT.md.")
+            $issues.Add("handoff artifact '$path' does not appear to contain the lean optional-handoff fields from docs/governance/HANDOFF_CONTRACT.md.")
         }
     }
 }

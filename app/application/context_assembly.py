@@ -6,142 +6,36 @@ import unicodedata
 from typing import Any
 
 from ..domain import CanonicalMealState, ConversationState, PlannerContextPayload
-from ..schemas import PlanningBrief
-from ..schemas import ContextPackTrace, DecisionPassResult, NutritionResolutionResult, TaskMealLinkResult, TurnState
+from ..schemas import ContextPackTrace, DecisionPassResult, NutritionResolutionResult, PlanningBrief, TaskMealLinkResult, TurnState
 
-
-def _compact_chunk(chunk: Any) -> dict[str, Any]:
-    return {
-        "chunk_id": str(getattr(chunk, "chunk_id", "")),
-        "source_type": str(getattr(chunk, "source_type", "")),
-        "content": str(getattr(chunk, "content", "")),
-        "linked_meal_id": getattr(chunk, "linked_meal_id", None),
-        "score": getattr(chunk, "score", 0.0),
-    }
-
-
-def _compact_open_meal(chunk: Any) -> dict[str, Any]:
-    metadata = getattr(chunk, "metadata", {}) or {}
-    return {
-        "meal_id": getattr(chunk, "source_id", None),
-        "title": str(metadata.get("title") or metadata.get("meal_title") or ""),
-        "status": str(metadata.get("status") or ""),
-        "linked_meal_id": getattr(chunk, "linked_meal_id", None),
-    }
-
-
-def normalize_text(text: str) -> str:
-    return unicodedata.normalize("NFKC", text or "").replace("\r\n", "\n").replace("\r", "\n").strip()
-
-
-def canonicalize_lookup_text(text: str) -> str:
-    normalized = normalize_text(text).lower()
-    normalized = re.sub(r"[^\w\u4e00-\u9fff]+", " ", normalized)
-    normalized = re.sub(r"\s+", " ", normalized)
-    return normalized.strip()
-
-
-def lookup_key(text: str) -> str:
-    return "".join(re.findall(r"[A-Za-z0-9\u4e00-\u9fff]+", canonicalize_lookup_text(text)))
-
-
-def lookup_tokens(text: str) -> list[str]:
-    return [token for token in re.findall(r"[A-Za-z0-9\u4e00-\u9fff]+", canonicalize_lookup_text(text)) if len(token) > 1]
-
-
-_PORTION_CLUE_PATTERNS = (
-    "小杯",
-    "中杯",
-    "大杯",
-    "特大杯",
-    "超大杯",
-    "tall",
-    "grande",
-    "venti",
+# Re-exports to maintain compatibility for legacy consumers
+from .context_normalizer import (
+    canonicalize_lookup_text,
+    extract_drink_customization_clues,
+    extract_portion_clues,
+    has_packaged_drink_identity_cue,
+    looks_like_standardized_drink,
+    lookup_key,
+    lookup_tokens,
+    normalize_text,
+    normalize_user_input_for_estimation,
 )
-
-_DRINK_LIKE_TOKENS = (
-    "那堤",
-    "拿鐵",
-    "latte",
-    "咖啡",
-    "奶茶",
-    "紅茶",
-    "綠茶",
-    "茶",
-    "奶",
+from .pass_payload_policies import (
+    has_explicit_exact_brand_hint,
+    should_soft_avoid_exact_for_generic_drink,
 )
-
-
-def extract_portion_clues(text: str) -> list[str]:
-    normalized = normalize_text(text).lower()
-    matched: list[str] = []
-    for pattern in _PORTION_CLUE_PATTERNS:
-        if pattern.lower() in normalized:
-            matched.append(pattern)
-    return matched
-
-
-def extract_drink_customization_clues(text: str) -> list[str]:
-    normalized = normalize_text(text).lower()
-    patterns = (
-        "全糖",
-        "半糖",
-        "微糖",
-        "少糖",
-        "無糖",
-        "去冰",
-        "少冰",
-        "微冰",
-        "正常冰",
-        "熱",
-        "溫",
-        "鮮奶",
-        "奶精",
-        "加珍珠",
-    )
-    matched: list[str] = []
-    for pattern in patterns:
-        if pattern.lower() in normalized:
-            matched.append(pattern)
-    return matched
-
-
-def looks_like_standardized_drink(text: str, evidence_items: list[dict[str, Any]] | None = None) -> bool:
-    haystacks = [normalize_text(text).lower()]
-    for item in evidence_items or []:
-        haystacks.append(normalize_text(str(item.get("title") or "")).lower())
-        haystacks.extend(normalize_text(str(alias)).lower() for alias in item.get("aliases", []) if str(alias).strip())
-    combined = " ".join(haystacks)
-    return any(token.lower() in combined for token in _DRINK_LIKE_TOKENS)
-
-
-def normalize_user_input_for_estimation(text: str) -> dict[str, Any]:
-    raw = normalize_text(text)
-    return {
-        "raw_text": raw,
-        "normalized_text": raw,
-        "normalizer_applied": False,
-        "notes": ["normalization_patches_removed", "raw_signal_preserved"],
-    }
-
-
-def normalized_input_from_debug_steps(debug_steps: list[dict[str, Any]]) -> str | None:
-    for step in debug_steps:
-        if step.get("step") != "planner_pass":
-            continue
-        value = normalize_text(str(step.get("normalized_user_input", "")))
-        if value:
-            return value
-    return None
-
-
-def estimate_token_count(value: Any) -> int:
-    if value is None:
-        return 0
-    if isinstance(value, str):
-        return max(1, len(value) // 4)
-    return max(1, len(json.dumps(value, ensure_ascii=False)) // 4)
+from .planner_context_assembler import (
+    build_planner_context_payload,
+    build_turn_state,
+    normalized_input_from_debug_steps,
+    render_conversation_state_prompt,
+)
+from .context_pack_builder import (
+    _compact_chunk,
+    _compact_open_meal,
+    build_context_pack_trace,
+    estimate_token_count,
+)
 
 
 def knowledge_context(snippets: list[dict[str, Any]]) -> str:
@@ -206,117 +100,6 @@ def build_dynamic_system_addition(*, selected_evidence_summary: list[dict[str, A
         "risk_flags": risk_packet.get("risk_flags", []),
         "required_checks": risk_packet.get("required_checks", {}),
     }
-
-
-def build_turn_state(state: ConversationState) -> TurnState:
-    candidate_components = [comp.get("name", "") for comp in state.latest_components if comp.get("name")]
-    return TurnState(
-        active_meal_log_id=state.latest_log_id,
-        pending_question=state.pending_question,
-        last_estimate_mode=None,
-        candidate_components=candidate_components,
-        allowed_next_intents=["clarification", "modification", "new_intake", "general_chat"],
-    )
-
-
-def render_conversation_state_prompt(state: ConversationState) -> str:
-    turn_state = build_turn_state(state)
-    state_json = turn_state.model_dump(mode="json")
-    parts: list[str] = [f"[Current TurnState]\n{json.dumps(state_json, ensure_ascii=False, indent=2)}"]
-    if state.planner_state_digest:
-        parts.append("[Planner State Digest]\n" + json.dumps(state.planner_state_digest.model_dump(mode="json"), ensure_ascii=False, indent=2))
-    if state.active_meal_summary:
-        parts.append("[Active Meal Summary]\n" + json.dumps(state.active_meal_summary.model_dump(mode="json"), ensure_ascii=False, indent=2))
-    if state.active_meal_state:
-        parts.append("[Active Meal State]\n" + json.dumps(state.active_meal_state.model_dump(mode="json"), ensure_ascii=False, indent=2))
-    if state.pending_followup_state:
-        parts.append("[Pending Follow-up State]\n" + json.dumps(state.pending_followup_state.model_dump(mode="json"), ensure_ascii=False, indent=2))
-    if state.session_summary:
-        parts.append("[Session Summary]\n" + json.dumps(state.session_summary.model_dump(mode="json"), ensure_ascii=False, indent=2))
-    if state.durable_memory_hits:
-        parts.append("[Durable Memory Hits]\n" + json.dumps([hit.model_dump(mode="json") for hit in state.durable_memory_hits], ensure_ascii=False, indent=2))
-    if state.recent_messages:
-        lines = []
-        for msg in list(state.recent_messages)[-5:]:
-            prefix = "USER" if msg.role == "user" else "ASSISTANT"
-            lines.append(f"[{prefix}] {msg.content}")
-        parts.append("[Recent Conversation Context]\n" + "\n".join(lines))
-    if state.recent_relevant_turns:
-        relevant_lines = []
-        for msg in state.recent_relevant_turns[-3:]:
-            prefix = "USER" if msg.role == "user" else "ASSISTANT"
-            relevant_lines.append(f"[{prefix}] {msg.content}")
-        parts.append("[Recent Relevant Turns]\n" + "\n".join(relevant_lines))
-    if state.conversation_archive_hits:
-        hit_lines = []
-        for hit in state.conversation_archive_hits[:4]:
-            prefix = "USER" if hit.role == "user" else "ASSISTANT"
-            hit_lines.append(f"[{prefix}#{hit.message_id}] {hit.content}")
-        parts.append("[Retrieved Conversation Hits]\n" + "\n".join(hit_lines))
-    if state.retrieved_meal_records:
-        meal_lines = []
-        for chunk in state.retrieved_meal_records[:3]:
-            meal_lines.append(f"[MEAL#{chunk.source_id}] {chunk.metadata.get('title', '')} :: {chunk.content[:240]}")
-        parts.append("[Retrieved Meal Records]\n" + "\n".join(meal_lines))
-    return "\n\n".join(parts)
-
-
-def build_planner_context_payload(
-    *,
-    raw_user_input: str,
-    thin_sanitized_input: str,
-    allow_search: bool,
-    state: ConversationState,
-) -> PlannerContextPayload:
-    return PlannerContextPayload(
-        raw_user_input=raw_user_input,
-        thin_sanitized_input=thin_sanitized_input,
-        allow_search=allow_search,
-        pending_question=state.pending_question,
-        latest_meal_summary=state.latest_meal_title,
-        conversation_state_summary={
-            "latest_log_id": state.latest_log_id,
-            "latest_log_status": state.latest_log_status,
-            "latest_meal_title": state.latest_meal_title,
-            "latest_components": state.latest_components,
-            "pending_question": state.pending_question,
-            "active_parent_log_id": state.active_parent_log_id,
-            "recent_message_count": len(state.recent_messages),
-            "conversation_window_size": state.conversation_window_size,
-            "conversation_archive_count": state.conversation_archive_count,
-            "conversation_archive_hit_count": len(state.conversation_archive_hits),
-            "is_multi_turn_candidate": state.is_multi_turn_candidate,
-            "boundary_clarification_open": state.boundary_clarification_open,
-            "boundary_clarification_source_meal_id": state.boundary_clarification_source_meal_id,
-        },
-        planner_state_digest=state.planner_state_digest.model_dump(mode="json"),
-        retrieved_transcript_chunks=[chunk.model_dump(mode="json") for chunk in state.retrieved_transcript_chunks],
-        retrieved_meal_records=[chunk.model_dump(mode="json") for chunk in state.retrieved_meal_records],
-        active_meal_summary=state.active_meal_summary.model_dump(mode="json"),
-        pending_followup_state=state.pending_followup_state.model_dump(mode="json"),
-        session_summary=state.session_summary.model_dump(mode="json"),
-        durable_memory_hits=[hit.model_dump(mode="json") for hit in state.durable_memory_hits],
-        active_meal_state={
-            **state.active_meal_state.model_dump(mode="json"),
-            "active_meal_id": state.latest_log_id,
-            "active_meal_status": state.latest_log_status,
-        },
-        recent_relevant_turns=[msg.model_dump(mode="json") for msg in state.recent_relevant_turns],
-        dynamic_context_pack={
-            "active_meal_summary": state.active_meal_summary.model_dump(mode="json"),
-            "active_meal_state": state.active_meal_state.model_dump(mode="json"),
-            "pending_followup_state": state.pending_followup_state.model_dump(mode="json"),
-            "recent_relevant_turns": [msg.model_dump(mode="json") for msg in state.recent_relevant_turns],
-            "retrieved_meal_records": [chunk.model_dump(mode="json") for chunk in state.retrieved_meal_records],
-            "session_summary": state.session_summary.model_dump(mode="json"),
-        },
-        time_distance_features={"active_meal_time_gap_seconds": state.active_meal_time_gap_seconds},
-        boundary_state={
-            "boundary_clarification_open": state.boundary_clarification_open,
-            "boundary_clarification_source_meal_id": state.boundary_clarification_source_meal_id,
-        },
-        retrieved_conversation_context=[hit.model_dump(mode="json") for hit in state.conversation_archive_hits],
-    )
 
 
 def build_boundary_features(*, state: ConversationState, latest_log: Any | None) -> dict[str, Any]:
@@ -410,6 +193,12 @@ def build_decision_payload(
     packaged_exact_candidate_count = sum(1 for item in exact_truth_candidates if str(item.get("variant_type") or "") == "packaged_retail")
     exact_brand_hints = sorted({str(item.get("brand_hint") or "").strip() for item in exact_truth_candidates if str(item.get("brand_hint") or "").strip()})
     core_default_candidates = [item for item in exact_truth_candidates if str(item.get("variant_type") or "") == "core_default"]
+    generic_drink_soft_avoid_exact = should_soft_avoid_exact_for_generic_drink(
+        user_input=user_input,
+        standardized_drink_like=standardized_drink_like,
+        packaged_exact_candidate_count=packaged_exact_candidate_count,
+        exact_brand_hints=exact_brand_hints,
+    )
     attested_evidence_blocks = build_attested_evidence_blocks(selected_evidence_summary, query=user_input, limit=8)
     reasoning_state = build_reasoning_state(
         user_input=user_input,
@@ -432,6 +221,9 @@ def build_decision_payload(
         "exact_match_paths": exact_match_paths[:5],
         "packaged_exact_candidate_count": packaged_exact_candidate_count,
         "exact_brand_hints": exact_brand_hints,
+        "explicit_brand_cue_from_user": has_explicit_exact_brand_hint(user_input, exact_brand_hints),
+        "packaged_drink_identity_cue": has_packaged_drink_identity_cue(user_input),
+        "generic_drink_soft_avoid_exact": generic_drink_soft_avoid_exact,
         "exact_brand_conflict_count": max(0, len(exact_brand_hints) - 1),
         "core_default_candidate_count": len(core_default_candidates),
         "canonical_meal_state": scoped_meal_state,
@@ -522,6 +314,12 @@ def build_nutrition_resolution_payload(
     packaged_exact_candidate_count = sum(1 for item in exact_truth_candidates if str(item.get("variant_type") or "") == "packaged_retail")
     exact_brand_hints = sorted({str(item.get("brand_hint") or "").strip() for item in exact_truth_candidates if str(item.get("brand_hint") or "").strip()})
     core_default_candidates = [item for item in exact_truth_candidates if str(item.get("variant_type") or "") == "core_default"]
+    generic_drink_soft_avoid_exact = should_soft_avoid_exact_for_generic_drink(
+        user_input=user_input,
+        standardized_drink_like=standardized_drink_like,
+        packaged_exact_candidate_count=packaged_exact_candidate_count,
+        exact_brand_hints=exact_brand_hints,
+    )
     attested_evidence_blocks = build_attested_evidence_blocks(
         raw_items,
         query=user_input,
@@ -553,6 +351,9 @@ def build_nutrition_resolution_payload(
         "exact_match_paths": exact_match_paths[:5],
         "packaged_exact_candidate_count": packaged_exact_candidate_count,
         "exact_brand_hints": exact_brand_hints,
+        "explicit_brand_cue_from_user": has_explicit_exact_brand_hint(user_input, exact_brand_hints),
+        "packaged_drink_identity_cue": has_packaged_drink_identity_cue(user_input),
+        "generic_drink_soft_avoid_exact": generic_drink_soft_avoid_exact,
         "exact_brand_conflict_count": max(0, len(exact_brand_hints) - 1),
         "core_default_candidate_count": len(core_default_candidates),
         "canonical_meal_state": scoped_meal_state,
@@ -608,28 +409,3 @@ def build_four_pass_final_response_payload(
         "nutrition_result": nutrition_result.model_dump(mode="json"),
         "active_meal_summary": active_meal_summary,
     }
-
-
-def build_context_pack_trace(
-    *,
-    state: ConversationState,
-    evidence_bundle: dict[str, Any],
-    available_tools: list[str],
-    evidence_guardrail_prompt: str,
-) -> ContextPackTrace:
-    sections = [
-        {"name": "evidence_guardrail_prompt", "estimated_tokens": estimate_token_count(evidence_guardrail_prompt)},
-        {"name": "session_summary", "estimated_tokens": estimate_token_count(state.session_summary.model_dump(mode="json"))},
-        {"name": "active_meal_summary", "estimated_tokens": estimate_token_count(state.active_meal_summary.model_dump(mode="json"))},
-        {"name": "recent_turn_summary", "estimated_tokens": estimate_token_count(state.recent_turn_summary.model_dump(mode="json"))},
-        {"name": "retrieved_transcript_chunks", "estimated_tokens": estimate_token_count([chunk.model_dump(mode="json") for chunk in state.retrieved_transcript_chunks])},
-        {"name": "retrieved_meal_records", "estimated_tokens": estimate_token_count([chunk.model_dump(mode="json") for chunk in state.retrieved_meal_records])},
-        {"name": "retrieval_diagnostics", "estimated_tokens": estimate_token_count(state.retrieval_diagnostics)},
-        {"name": "durable_memory_hits", "estimated_tokens": estimate_token_count([hit.model_dump(mode="json") for hit in state.durable_memory_hits])},
-        {"name": "evidence_bundle", "estimated_tokens": estimate_token_count(evidence_bundle)},
-        {"name": "available_tools", "estimated_tokens": estimate_token_count(available_tools)},
-    ]
-    return ContextPackTrace(
-        sections=sections,
-        total_estimated_tokens=sum(int(section["estimated_tokens"]) for section in sections),
-    )

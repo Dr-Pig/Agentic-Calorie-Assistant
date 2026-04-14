@@ -68,4 +68,4 @@ This ADR is implemented by updates to:
 
 - `agent.md`
 - `docs/CANARY_NORTH_STAR.md`
-- `docs/ARCHITECTURE_CHANGE_CHECKLIST.md`
+- `docs/governance/CHANGE_CONTROL_GUARDS.md`

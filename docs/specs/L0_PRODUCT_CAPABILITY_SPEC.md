@@ -44,6 +44,8 @@ Chat is the primary surface for:
 - negotiation
 - proposal acceptance or rejection
 
+Chat is the **sole primary interaction surface** for all agent-driven flows including rescue, calibration proposals, and recommendations. All agent reasoning, proposal negotiation, and user decisions happen in chat first.
+
 ### UI as Dashboard and Confirm Surface
 
 The LIFF / dashboard surface exists to:
@@ -54,6 +56,8 @@ The LIFF / dashboard surface exists to:
 - make active proposals visible and controllable
 
 The UI is not the sole source of truth and is not the primary reasoning surface.
+
+For rescue specifically: UI acts as a proposal inbox mirror only. It displays the current open rescue proposal but does not host the primary rescue negotiation flow.
 
 ### Cross-Surface Sync Rule
 
@@ -244,6 +248,9 @@ Product requirements:
 - rescue should default to a proposal-first model
 - confirmation may happen in chat, UI, or smart chips
 - accepted rescue plans must affect future budget views and downstream recommendations
+- rescue is delivered as an independent chat message, never embedded inside an intake reply
+- rescue interaction in chat is a single-spread model: the system proposes a number of days to spread the recovery, and the user can adjust intensity (shorter/more aggressive or longer/gentler)
+- UI acts as a proposal inbox mirror for rescue; it does not host the primary rescue interaction
 
 ---
 

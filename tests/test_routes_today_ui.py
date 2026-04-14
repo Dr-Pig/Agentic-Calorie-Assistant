@@ -13,7 +13,10 @@ from app.models import Base
 from app.routes import get_db as routes_get_db
 from app.schemas import CommitRequestCandidate
 from app.application.canonical_commit_bridge import commit_request_candidate_to_canonical
+from app.infrastructure.meal_log_persistence import persist_text_meal_result
 from app.infrastructure.canonical_persistence import commit_meal_payload_to_canonical
+from app.models import MealLog
+from app.schemas import ComponentEstimate, EstimatePayload
 
 
 @pytest.fixture()
@@ -248,3 +251,119 @@ def test_today_surface_keeps_canonical_local_day_after_cross_midnight_correction
     assert "470 kcal" in same_day_html.text
     assert "2026-04-11" in same_day_html.text
     assert "source: current_budget_read_model" in same_day_html.text
+
+
+def _followup_payload(
+    *,
+    request_id: str,
+    title: str,
+    kcal: int,
+    action_taken: str,
+    route_target: str = "best_effort_answer",
+    followup_question: str | None = None,
+    quality_signals: dict[str, object] | None = None,
+    trace_contract: dict[str, object] | None = None,
+) -> EstimatePayload:
+    return EstimatePayload(
+        request_id=request_id,
+        meal_title=title,
+        estimated_kcal=kcal,
+        protein_g=10,
+        carb_g=20,
+        fat_g=5,
+        route_target=route_target,
+        action_taken=action_taken,
+        reply_text=f"{title} ok",
+        quality_signals={"estimate_mode": "llm_only", **dict(quality_signals or {})},
+        trace_contract={"local_date": "2026-04-11", **dict(trace_contract or {})},
+        boundary_trace={},
+        followup_question=followup_question,
+        component_estimates=[
+            ComponentEstimate(
+                name=title,
+                quantity_hint="1 serving",
+                estimated_kcal=kcal,
+                protein_g=10,
+                carb_g=20,
+                fat_g=5,
+            )
+        ],
+    )
+
+
+def test_today_surface_shows_turn2_completion_but_not_turn1_unresolved_draft(client, db_session) -> None:
+    user = get_or_create_user(db_session, "today-ui-followup")
+
+    first = persist_text_meal_result(
+        db_session,
+        user=user,
+        latest_log=None,
+        planner_intent="food_estimation",
+        payload=_followup_payload(
+            request_id="today-ui-followup-1",
+            title="milk tea",
+            kcal=394,
+            action_taken="answer_with_uncertainty",
+            followup_question="大杯還是中杯？",
+            trace_contract={
+                "response_mode_hint": "estimate_with_followup",
+                "unresolved_info": ["cup_size"],
+                "followup_question": "大杯還是中杯？",
+            },
+        ),
+        raw_input="我剛剛喝珍珠奶茶",
+        request_id="today-ui-followup-1",
+    )
+
+    assert first["status"] == "draft_unresolved"
+    draft_json = client.get(
+        "/today/current-budget",
+        params={"user_id": "today-ui-followup", "local_date": "2026-04-11"},
+    )
+    draft_html = client.get(
+        "/today",
+        params={"user_id": "today-ui-followup", "local_date": "2026-04-11"},
+    )
+    assert draft_json.status_code == 200
+    assert draft_json.json()["active_meal_count"] == 0
+    assert "milk tea" not in draft_html.text
+
+    latest_log = db_session.get(MealLog, first["persisted_log_id"])
+    assert latest_log is not None
+
+    second = persist_text_meal_result(
+        db_session,
+        user=user,
+        latest_log=latest_log,
+        planner_intent="clarification",
+        payload=_followup_payload(
+            request_id="today-ui-followup-2",
+            title="milk tea large half sugar",
+            kcal=450,
+            action_taken="direct_answer",
+            quality_signals={"estimate_mode": "anchored_component"},
+        ),
+        raw_input="大杯、半糖、正常冰",
+        request_id="today-ui-followup-2",
+    )
+
+    assert second["status"] == "completed_meal"
+    resolved_json = client.get(
+        "/today/current-budget",
+        params={"user_id": "today-ui-followup", "local_date": "2026-04-11"},
+    )
+    resolved_html = client.get(
+        "/today",
+        params={"user_id": "today-ui-followup", "local_date": "2026-04-11"},
+    )
+
+    assert resolved_json.status_code == 200
+    payload = resolved_json.json()
+    assert payload["consumed_kcal"] == 450
+    assert payload["active_meal_count"] == 1
+    assert [meal["meal_title"] for meal in payload["meals"]] == ["milk tea large half sugar"]
+
+    assert resolved_html.status_code == 200
+    assert "milk tea large half sugar" in resolved_html.text
+    assert "450 kcal" in resolved_html.text
+    assert "大杯還是中杯？" not in resolved_html.text

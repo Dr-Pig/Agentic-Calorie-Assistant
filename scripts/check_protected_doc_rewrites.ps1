@@ -13,12 +13,11 @@ if ($env:LHC_ALLOW_PROTECTED_REWRITE -eq "1") {
 $protectedExact = @(
     "AGENTS.md",
     "docs/index.md",
-    "docs/AGENT_LOADING_PATH.md",
-    "docs/ENCODING_POLICY.md",
-    "docs/SPEC_EDITING_PROTOCOL.md",
-    "docs/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md",
-    "docs/TASK_CHECKIN_PROTOCOL.md",
-    "docs/HANDOFF_CONTRACT.md"
+    "docs/governance/ENCODING_POLICY.md",
+    "docs/governance/SPEC_EDITING_PROTOCOL.md",
+    "docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md",
+    "docs/governance/TASK_CHECKIN_PROTOCOL.md",
+    "docs/governance/HANDOFF_CONTRACT.md"
 )
 
 $protectedPrefixes = @(

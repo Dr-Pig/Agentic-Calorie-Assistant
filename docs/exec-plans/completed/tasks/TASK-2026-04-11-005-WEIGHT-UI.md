@@ -74,4 +74,4 @@ Will determine whether the next planner step should move directly to `2.5a-rescu
   - `no`
 - `followup_task_ids[]`:
   - `[]`
-- `handoff_doc_path`: `docs/handoff/active/HANDOFF-2026-04-11-005-WEIGHT-UI.md`
+- `handoff_doc_path`: `docs/exec-plans/active/handoff/HANDOFF-2026-04-11-005-WEIGHT-UI.md`

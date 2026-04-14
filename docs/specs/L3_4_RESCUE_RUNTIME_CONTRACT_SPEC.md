@@ -72,6 +72,27 @@ rescue 預設先處理短期 horizon，不直接跳成長期計畫重設。
 
 ## 4. 主流程輸入與最終輸出
 
+### 4.0 Rescue 與 Intake 的分離規則
+
+**rescue 與 intake 是完全分開的 flow，不可混用。**
+
+正式規則：
+
+- intake reply 完成後，不可在同一則回覆裡附加 rescue 內容
+- 不允許在 intake 訊息的第二段夾帶 rescue proposal
+- rescue 訊息必須是獨立的一則 chat 訊息
+- `rescue_trigger_pass` 不可讀 `current intake event context` 作為觸發依據；rescue trigger 只依賴 ledger state 與 history，不依賴當前 intake 事件
+
+**合法的 rescue 觸發入口只有兩種**：
+
+1. **Proactive**：`ProactiveScheduler` 的 `budget_alert_check` 偵測到 overshoot，建立 rescue proposal 後作為獨立訊息送出
+2. **Reactive**：使用者在 chat 中明確詢問補救（例如「我今天超標了怎麼辦」「幫我想想怎麼補救」）
+
+不允許：
+
+- intake reply 裡順手夾帶 rescue
+- 系統在使用者沒有問的情況下，在 intake 回覆後自動附加 rescue 建議
+
 ### 4.1 主流程最小輸入
 
 - `user_id`
@@ -160,8 +181,9 @@ expanded mode 下，只有 LLM-backed 的 named pass 才需要 logical model rol
 - `RecentCommittedMealsView`
 - `OpenProposalsView`
 - `ProactiveStatusView`
-- current intake event context
 - recent rescue history
+
+（不可讀 `current intake event context`；rescue trigger 不依賴當前 intake 事件，見 Section 4.0）
 
 ### 6.3 必須輸出
 
@@ -246,88 +268,64 @@ expanded mode 下，只有 LLM-backed 的 named pass 才需要 logical model rol
 
 ### 8.1 目標
 
-形成 rescue proposal options，並決定主推方案。
+形成 rescue proposal，決定建議的分攤天數與每日回收量。
 
-`decision_mode: hybrid`
-`decision_reason: option legality 應 deterministic-first，但在多個合法 rescue family 間選主推方案屬權衡問題`
+`decision_mode: deterministic`
+`decision_reason: v1 rescue 採單一分攤模型，建議天數與每日回收量由 overshoot math 與 guardrail rule 決定，不需要 LLM 在多個 family 間做選擇`
 
 ### 8.2 可讀
 
 - `rescue_assessment_result`
 - `CurrentBudgetView`
 - `ActiveBodyPlanView`
-- recommendation context
 - recent rescue outcomes
 
-### 8.3 rescue option families
+### 8.3 v1 Rescue Model：單一分攤模型
 
-至少支援：
+**v1 rescue 採單一分攤模型，不是多 family 選單。**
 
-#### `same_day_soft_cap`
+對使用者的核心體驗是：
+- 系統告訴你這次超出多少
+- 系統建議用幾天攤回來
+- 使用者可調整強度（更短更積極 / 更長更緩和）
 
-適用：
+差別只剩分幾天、每天回收多少，不是不同策略家族。
 
-- 當日仍有剩餘空間
-- overshoot 不大
+#### 建議天數計算規則
 
-效果：
+1. 計算需回收總量：`overshoot_kcal`
+2. 以每日預算的 `15%` 為標準每日回收上限：`daily_cap = base_budget_kcal × 0.15`
+3. 計算最少需要幾天：`min_days = ceil(overshoot_kcal / daily_cap)`
+4. 建議天數 = `min(min_days, 5)`
+5. 若 `min_days > 5`，標記 `recovery_viability: non_viable`，進 `rescue_stop_and_escalate`
 
-- 對當日剩餘 intake 給出柔性上限
+#### 強度調整規則
 
-#### `short_horizon_spread`
+使用者可在 chat 中調整強度，系統重新計算：
 
-適用：
+- **`更短更積極`**：每日回收上限放寬到 `20%`（`daily_cap = base_budget_kcal × 0.20`），重新計算天數
+  - 若連 `20%` 上限都無法在 5 天內完成，明確告知不可行
+- **`更長更緩和`**：在最大 5 天內延長天數，降低每日回收量
+  - 若已是 5 天，告知已是最緩和版本
 
-- 需要分攤到未來數天
-- 但仍在合理範圍
+#### 保留的特殊 posture
 
-效果：
+以下情況不走標準分攤模型，而是走對應的特殊 posture：
 
-- 透過數日小幅 overlay 回收本次 overshoot
+- **`logging_first_rescue`**：overshoot 規模不清楚（logging 不足）時，先補記再決定是否 rescue
+- **`rescue_stop_and_escalate`**：`recovery_viability = non_viable` 時，不繼續攤平，導向 calibration
 
-規則：
-
-- v1 預設只允許 3 天或 5 天 spread
-- 不應把 rescue horizon 無限拉長
-
-#### `next_meal_protection`
-
-適用：
-
-- 當前重點是保護下一餐不要再失守
-
-效果：
-
-- 給下一餐 clear calorie posture
-- 可直接銜接 recommendation
-
-#### `logging_first_rescue`
-
-適用：
-
-- 目前連這次 overshoot 的真實規模都不夠清楚
-
-效果：
-
-- 先補記、先釐清，再決定是否需要正式 rescue
-
-#### `rescue_stop_and_escalate`
-
-適用：
-
-- `recovery_viability = non_viable`
-
-效果：
-
-- 不再繼續攤平
-- 導向 calibration / `計畫重啟`
+這兩個 posture 仍保留，但 `same_day_soft_cap` 和 `next_meal_protection` 在 v1 不作為獨立對外 family 呈現。
 
 ### 8.4 必須輸出
 
-- `rescue_options[]`
-- `top_option`
-- `backup_options[]`
-- `option_effect_summaries`
+- `recommended_days`：建議分攤天數
+- `daily_kcal_adjustment`：每日回收量（負數）
+- `overshoot_kcal`：本次超出量
+- `cap_basis`：`base_budget_kcal`
+- `cap_mode`：`standard`（15%）或 `aggressive`（20%）
+- `recovery_viability`：`viable` / `strained` / `non_viable`
+- `special_posture`：`none` / `logging_first` / `escalate`
 - `guardrail_notes`
 
 ---
@@ -344,31 +342,70 @@ expanded mode 下，只有 LLM-backed 的 named pass 才需要 logical model rol
 ### 9.2 必須輸出
 
 - `reply_text`
-- `proposal_cards`
-- `top_option`
-- `backup_options`
+- `recommended_days`
+- `daily_kcal_adjustment`
+- `overshoot_kcal`
 - `quick_actions`
 - `ui_hints`
 
 ### 9.3 對外呈現原則
 
-- 預設只主推一個方案
-- alternatives 可收起，但不可不可見
+- 只呈現一個建議方案（建議天數 + 每日回收量）
+- 不呈現 backup options，不做多策略選單
 - 用語應偏未來導向，不責備
+- 說明超出多少、建議幾天攤回、每天大約少吃多少
 
 ### 9.4 quick actions
 
-至少支援：
+v1 標準 quick actions：
 
-- `套用這個方案`
-- `換個方案`
-- `先不要`
-- `看明天怎麼吃`
+- `{ "action_id": "accept_rescue_plan", "label": "接受這個方案" }`
+- `{ "action_id": "shorten_rescue_plan", "label": "更短更積極" }`
+- `{ "action_id": "extend_rescue_plan", "label": "更長更緩和" }`
+- `{ "action_id": "reject_rescue_plan", "label": "不要這個方案" }`
+- `{ "action_id": "explain_rescue_plan", "label": "為什麼這樣建議" }`
 
-若 top option 是 `logging_first_rescue`，可支援：
+若 `special_posture = logging_first`，改為：
 
-- `補記這餐`
-- `先幫我估`
+- `{ "action_id": "log_meal", "label": "補記這餐" }`
+- `{ "action_id": "estimate_now", "label": "先幫我估" }`
+- `{ "action_id": "skip_rescue", "label": "先不管" }`
+
+若 `special_posture = escalate`，改為：
+
+- `{ "action_id": "see_calibration", "label": "看看計畫重啟" }`
+- `{ "action_id": "skip_rescue", "label": "先不管" }`
+
+### 9.5 `reject_rescue_plan` 的行為
+
+使用者點擊 `不要這個方案` 後：
+
+- 系統在 chat 中問原因（例如「好的，可以告訴我為什麼嗎？太嚴格了，還是現在不想管？」）
+- 不自動切換成另一個 backup proposal
+- 不自動關閉 open rescue proposal
+- 使用者回答後，系統可依原因決定：
+  - 若「太嚴格」→ 提示可用 `更長更緩和`
+  - 若「現在不想管」→ 標記 proposal 為 `dismissed`，不再主動推送
+
+### 9.6 `explain_rescue_plan` 的行為
+
+使用者點擊 `為什麼這樣建議` 後，系統應說明：
+
+- 這次超出多少 kcal
+- 為什麼建議這個天數（以 15% 每日上限為基準）
+- 每天大約需要少吃多少
+- 為什麼這樣比較健康（不是懲罰，是讓身體有時間調整）
+
+### 9.7 Chat Delivery 形狀
+
+rescue 訊息必須是獨立的一則訊息，不可夾帶在 intake reply 裡。
+
+規則：
+
+- intake reply 完成後，rescue 若需要送出，應作為獨立的下一則訊息
+- 不允許在同一則 intake 回覆裡附加 rescue 第二段
+- proactive rescue 由 `ProactiveScheduler` 觸發，作為獨立訊息送出
+- reactive rescue（使用者主動問）作為獨立回覆送出
 
 ---
 
@@ -414,20 +451,25 @@ rescue safety floor 的權威值來源為 `active BodyPlan.safety_floor_kcal`。
 
 ### 10.3 單次 rescue 的調整步長
 
-v1 應偏好：
+v1 採單一分攤模型，調整步長規則如下：
 
-- 小幅、可執行的步長
-- 與 `L3.3B budget_adjustment` 不衝突
+**標準模式（standard）**：
 
-更具體地說：
+- 單日回收量不超過每日有效預算的 `15%`
+- 最多分攤 `5` 天
 
-- 單日壓縮量不應超過該日有效預算的 15%
+**積極模式（aggressive）**：
 
-若 15% 壓縮仍無法在 safety floor 內完成修復：
+- 使用者選擇 `更短更積極` 後啟用
+- 單日回收量上限放寬到每日有效預算的 `20%`
+- 最多分攤 `5` 天
+- 若連 `20%` 上限都無法在 5 天內完成，明確告知不可行，不繼續加大壓縮
 
-- 不應繼續加大壓縮
-- 應改為延長至合法 horizon
-- 若仍不可行，則升級到 `rescue_stop_and_escalate`
+**共同規則**：
+
+- 任何模式下，每日實際攝取不得低於 `safety_floor_kcal`
+- 若 safety floor 限制導致無法完成回收，應升級到 `rescue_stop_and_escalate`
+- 不應提出讓未來多天難以執行的懲罰式補償
 
 ---
 
@@ -520,6 +562,7 @@ v1 可採：
 - `RescueOption`
 - `RescueResponseResult`
 - `RescueCommitEffect`
+- `RescueResponseCard`
 
 `RescueAssessmentResult` 最小欄位：
 
@@ -541,6 +584,80 @@ v1 可採：
 - `expected_effect_summary`
 - `guardrail_summary`
 - `confidence`
+
+### 14A. `RescueResponseCard` 最小欄位
+
+`RescueResponseCard` 是 rescue response pass 輸出給 chat / UI 消費的 proposal card 結構。
+
+v1 採單一分攤模型，card 結構對應如下：
+
+最小欄位：
+
+- `card_id`：對應 `proposal_id`
+- `overshoot_kcal`：本次超出量
+- `recommended_days`：建議分攤天數
+- `daily_kcal_adjustment`：每日回收量（負數）
+- `cap_mode`：`standard`（15%）或 `aggressive`（20%）
+- `effective_from`：`today` / `tomorrow`（依 11:00 規則決定）
+- `headline`：對外顯示的短標題，例如「超出約 400 大卡，建議分 3 天補回來」
+- `summary`：一到兩句說明效果與每日大約少吃多少
+- `guardrail_note`：若有 safety floor 限制相關說明
+- `quick_actions`：此 card 對應的 quick action 列表（見 Section 9.4）
+
+### 14B. Rescue Accept / Reject API Contract
+
+**Accept 觸發來源**：
+
+- `chat`：使用者說「接受」「好」「就這樣」等明確接受語意，或點擊 `accept_rescue_plan`
+- `ui`：使用者在 UI proposal inbox 點擊接受
+- `smart_chip`：使用者點擊 LINE 訊息中的快捷按鈕
+
+**Accept 最小輸入**：
+
+```json
+{
+  "proposal_id": "<ProposalContainer.proposal_id>",
+  "commit_source": "chat | ui | smart_chip",
+  "accepted_at": "<ISO 8601 timestamp>",
+  "user_id": "<user_id>",
+  "cap_mode": "standard | aggressive"
+}
+```
+
+**Accept 後 application layer 必須執行**：
+
+1. 更新 `ProposalContainer.status` 為 `accepted`
+2. 依 `recommended_days` 建立多筆 `LedgerEntry(rescue_overlay)`，每日一筆
+3. 每筆 `LedgerEntry` 的 `delta_kcal` = `daily_kcal_adjustment`
+4. `effective_from` 依 11:00 規則決定（見 Section 3.1A）
+5. refresh `CurrentBudgetView`
+6. refresh recommendation posture
+7. 回傳 `RescueCommitEffect`
+
+**Reject 觸發來源**：
+
+- 使用者點擊 `reject_rescue_plan` 或說「不要」「算了」等明確拒絕語意
+
+**Reject 後行為**：
+
+- 系統在 chat 中問原因（不自動關閉 proposal）
+- 不自動切換成另一個方案
+- 依使用者回答決定後續：
+  - 「太嚴格」→ 提示可用 `extend_rescue_plan`
+  - 「現在不想管」→ 標記 `ProposalContainer.status = dismissed`
+
+**`RescueCommitEffect` 最小欄位**：
+
+- `proposal_id`
+- `recommended_days`
+- `daily_kcal_adjustment`
+- `cap_mode`
+- `ledger_entries_created[]`
+- `effective_from`
+- `effective_to`
+- `budget_view_refreshed`: boolean
+- `recommendation_posture_updated`: boolean
+- `escalation_flagged`: boolean（僅 `rescue_stop_and_escalate` 時為 true）
 
 ---
 
@@ -581,22 +698,67 @@ rescue accept 後，recommendation 需讀新的短期 caloric posture。
 
 後續至少應覆蓋：
 
-- 單次輕微 overshoot 觸發 `same_day_soft_cap`
-- 中度 overshoot 觸發 `short_horizon_spread`
-- 對下一餐風險高時，`next_meal_protection` 成為主推
-- 記錄不清時，`logging_first_rescue` 優先
-- `recovery_viability = non_viable` 時，`rescue_stop_and_escalate` 合法成為 top option
+- overshoot 在 15% 標準模式下正確算出建議天數
+- overshoot 需要超過 5 天才能回收時，標記 `non_viable` 並進 `rescue_stop_and_escalate`
+- `更短更積極` 放寬到 20% 後重新計算天數
+- 連 20% 都無法在 5 天內完成時，明確告知不可行
+- `更長更緩和` 在已是 5 天時告知已是最緩和版本
+- logging 不足時，`logging_first_rescue` posture 優先
 - rescue 不提出低於 safety floor 的方案
-- accept 後正確建立 rescue overlay
+- accept 後正確建立多筆 `LedgerEntry(rescue_overlay)`
 - recommendation 正確讀到 rescue 後的 caloric posture
+- rescue 訊息不出現在 intake reply 裡（獨立訊息）
+- `reject_rescue_plan` 後系統問原因，不自動切換方案
+- proactive rescue 作為獨立訊息送出，不夾帶在 intake 回覆裡
 
 ---
 
 ## 17. v1 Default Decisions
 
-1. `recovery_viability` 採三段式啟發：
+1. v1 rescue 採單一分攤模型，不是多 family 選單
+2. 標準模式每日回收上限：每日有效預算的 `15%`
+3. 積極模式每日回收上限：每日有效預算的 `20%`（使用者選擇 `更短更積極` 後啟用）
+4. 最大分攤天數：`5` 天
+5. 超過 5 天仍無法回收 → `recovery_viability: non_viable` → `rescue_stop_and_escalate`
+6. `recovery_viability` 採三段式：
    - `viable`：在合法 horizon 與 safety floor 內可完成，且單日壓縮不超過 `15%`
    - `strained`：理論可完成，但會逼近 `15%` 壓縮上限、或明顯增加未來 adherence 風險
-   - `non_viable`：需要跌破 floor、超過 `15%`、或 horizon 拉長後仍不具可執行性
-2. `strained` 可進 `short_horizon_spread` 或 `next_meal_protection`，但不應長期延展
-3. `non_viable` 必須前排 `rescue_stop_and_escalate`，不得繼續硬攤
+   - `non_viable`：需要跌破 floor、超過 `20%`（即使積極模式）、或 horizon 超過 5 天
+7. `strained` 可進標準分攤，但應在 response 中提示使用者這已是較緊的方案
+8. `non_viable` 必須進 `rescue_stop_and_escalate`，不得繼續硬攤
+
+---
+
+## 18. Degraded Mode Policy
+
+### 18.1 定位
+
+當 LLM provider 不可用、required view 無法取得、或 pass 輸出不合法時，rescue flow 應有明確的 degraded mode 行為。
+
+### 18.2 Provider 不可用
+
+rescue flow 的前兩個 pass（`rescue_trigger_pass`、`rescue_assessment_pass`）是 deterministic，不依賴 LLM。
+
+若 `rescue_option_pass`（hybrid）或 `rescue_response_pass`（LLM）不可用：
+
+| Pass | Degraded 行為 |
+|------|-------------|
+| `rescue_option_pass` | 若 deterministic 部分已完成，可用 rule-based fallback 選出 top option（依 `recommended_rescue_family` 直接映射）；跳過 LLM ranking |
+| `rescue_response_pass` | 使用 deterministic template 組出最小合法 response；不顯示 coaching tone，只顯示方案摘要與 quick actions |
+
+### 18.3 Required View 無法取得
+
+| View | 無法取得時的行為 |
+|------|--------------|
+| `CurrentBudgetView` | rescue flow 無法執行；不觸發 rescue；標記 `rescue_skipped: budget_view_unavailable` |
+| `ActiveBodyPlanView` | rescue 可執行，但 safety floor 使用 conservative default（`1500 kcal/day`）；在 trace 中標記 `safety_floor_source: conservative_fallback` |
+| `RescueHistorySummary` | rescue 可執行，但 `recovery_viability` 計算不考慮歷史 rescue 次數；可能略為高估 viability |
+| `OpenProposalsView` | rescue 可執行，但無法檢查是否有 open rescue proposal；可能重複建立 proposal |
+
+### 18.4 Rescue 在 Onboarding 未完成時
+
+若 `BodyPlan` 不存在（使用者跳過 onboarding）：
+
+- rescue flow 不應觸發
+- `ProactiveScheduler` 的 `budget_alert_check` 應在 `BodyPlan` 不存在時跳過
+- 若使用者在 chat 中主動問「我今天爆卡了怎麼辦」，應引導進入 onboarding 而不是執行 rescue

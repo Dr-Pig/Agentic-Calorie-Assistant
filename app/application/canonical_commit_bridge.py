@@ -9,6 +9,7 @@ from ..infrastructure.canonical_persistence import (
     CanonicalMealCommitResult,
     CanonicalCommitTarget,
     commit_meal_payload_to_canonical,
+    ensure_proposal_artifact_skeleton,
     ensure_body_plan_skeleton,
     ensure_proactive_trigger_skeleton,
     ensure_proposal_skeleton,
@@ -186,6 +187,61 @@ def apply_proposal_acceptance_skeleton(
         "proposal_container_id": proposal.id,
         "body_plan_id": body_plan.id,
         "top_option_id": proposal.top_option_id,
+    }
+
+
+def persist_proposal_artifact_skeleton(
+    db: Session,
+    *,
+    user: User,
+    proposal_type: str,
+    options: list[dict[str, object]],
+    metadata: dict[str, object] | None = None,
+) -> dict[str, int | None]:
+    proposal = ensure_proposal_artifact_skeleton(
+        db,
+        user=user,
+        proposal_type=proposal_type,
+        options=options,
+        metadata=metadata,
+    )
+    return {
+        "proposal_container_id": proposal.id,
+        "top_option_id": proposal.top_option_id,
+        "option_count": len(proposal.options),
+    }
+
+
+def apply_proposal_decision_skeleton(
+    db: Session,
+    *,
+    proposal_container_id: int,
+    decision: str,
+    metadata_patch: dict[str, object] | None = None,
+) -> dict[str, object]:
+    from ..models import ProposalContainerRecord
+
+    proposal = db.get(ProposalContainerRecord, proposal_container_id)
+    if proposal is None:
+        raise ValueError(f"proposal_container_id={proposal_container_id} not found")
+
+    if decision not in {"accepted", "rejected"}:
+        raise ValueError(f"unsupported proposal decision: {decision}")
+
+    proposal.proposal_status = decision
+    if decision == "accepted":
+        proposal.accepted_at = datetime.now()
+
+    merged_metadata = dict(proposal.metadata_json or {})
+    merged_metadata.update(metadata_patch or {})
+    proposal.metadata_json = merged_metadata
+    db.commit()
+    db.refresh(proposal)
+    return {
+        "proposal_container_id": proposal.id,
+        "proposal_status": proposal.proposal_status,
+        "top_option_id": proposal.top_option_id,
+        "metadata": dict(proposal.metadata_json or {}),
     }
 
 
