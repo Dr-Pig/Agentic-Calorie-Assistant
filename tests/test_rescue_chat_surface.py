@@ -105,6 +105,26 @@ def test_accept_action_marks_proposal_accepted_and_applies_overlay_entries() -> 
     assert [entry.delta_kcal for entry in entries] == [-150, -150, -150]
 
 
+def test_second_accept_after_close_returns_no_open_proposal_without_duplicate_writeback() -> None:
+    db = _session()
+    user = _seed_open_rescue_proposal(db)
+
+    first = apply_rescue_chat_action(db, user_id=user.id, action="accept_rescue_plan")
+    second = apply_rescue_chat_action(db, user_id=user.id, action="accept_rescue_plan")
+
+    assert first.writeback is not None
+    assert first.writeback["status"] == "applied"
+    assert second.surfaced is False
+    assert second.response.ui_hints["mode"] == "no_open_rescue_proposal"
+
+    entries = db.execute(
+        select(LedgerEntryRecord)
+        .where(LedgerEntryRecord.source_type == "rescue_proposal_accept")
+        .order_by(LedgerEntryRecord.id.asc())
+    ).scalars().all()
+    assert len(entries) == 3
+
+
 def test_reject_action_without_reason_requests_reason_but_keeps_open() -> None:
     db = _session()
     user = _seed_open_rescue_proposal(db)
@@ -125,11 +145,11 @@ def test_reject_action_with_reason_marks_proposal_rejected() -> None:
         db,
         user_id=user.id,
         action="reject_rescue_plan",
-        reject_reason="我這幾天不想用補回的方式處理",
+        reject_reason="我這幾天行程不固定，現在不想套這個節奏。",
     )
 
     proposal = db.get(ProposalContainerRecord, result.proposal_container_id)
     assert proposal is not None
     assert proposal.proposal_status == "rejected"
-    assert proposal.metadata_json["rejected_reason"] == "我這幾天不想用補回的方式處理"
+    assert proposal.metadata_json["rejected_reason"] == "我這幾天行程不固定，現在不想套這個節奏。"
     assert result.response.ui_hints["mode"] == "rescue_proposal_closed"

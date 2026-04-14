@@ -125,7 +125,7 @@ def apply_rescue_chat_action(
         )
         response = RescueResponseResult(
             surfaced=True,
-            reply_text="好，我先把這個補回方案正式套上去。接下來我會用這個節奏幫你攤回來。",
+            reply_text="好，我已經把這個補回方案正式套用到接下來幾天。",
             recommended_days=accepted_response.recommended_days,
             daily_kcal_adjustment=accepted_response.daily_kcal_adjustment,
             overshoot_kcal=accepted_response.overshoot_kcal,
@@ -154,7 +154,7 @@ def apply_rescue_chat_action(
         )
         response = RescueResponseResult(
             surfaced=True,
-            reply_text="收到，我先把這個 rescue 提案關掉。之後如果你想重新開補回方案，再直接跟我說。",
+            reply_text="收到，我先把這個 rescue 方案關掉。之後如果你想重新開補救方案，再跟我說。",
             recommended_days=None,
             daily_kcal_adjustment=None,
             overshoot_kcal=None,

@@ -141,18 +141,21 @@ def should_surface_rescue_response(
 
 
 def _reply_for_plan(plan: RescuePlanView, *, source: RescueSurfaceSource) -> str:
-    tone_prefix = "我抓到你這次大約超出" if source == "proactive" else "你這次大約超出"
+    tone_prefix = "我先幫你抓一個補回節奏：" if source == "proactive" else "如果你現在想補回，我會建議："
     percent_text = int(round(plan.cap_percent * 100))
     reply = (
-        f"{tone_prefix} {plan.overshoot_kcal} kcal。"
-        f" 我建議先用 {plan.recommended_days} 天攤回來，"
+        f"{tone_prefix}你這次大約超出 {plan.overshoot_kcal} kcal。"
+        f" 我建議用 {plan.recommended_days} 天攤回來，"
         f"每天大約少 {plan.daily_kcal_adjustment} kcal。"
-        f" 這版是以你每日預算的 {percent_text}% 當上限。"
+        f" 這版會把每日回收上限控制在每日預算的 {percent_text}%。"
     )
     if not plan.feasible_within_window:
-        reply += f" 這次超出的量已經超過我目前預設的 {MAX_RESCUE_DAYS} 天緩衝窗，所以先給你最保守的 {MAX_RESCUE_DAYS} 天版本。"
+        reply += (
+            f" 以目前的健康上限來看，完整攤回需要超過 {MAX_RESCUE_DAYS} 天。"
+            f" 我先給你最保守的 {MAX_RESCUE_DAYS} 天版本。"
+        )
     elif plan.intensity == "aggressive":
-        reply += " 這版已經是較積極的縮短版本，會把每日上限放寬到 20%。"
+        reply += " 這是比較積極的版本，會把每日回收上限放寬到 20%。"
     return reply
 
 
@@ -234,7 +237,7 @@ def apply_rescue_plan_action(
     if action == "accept_rescue_plan":
         return RescueResponseResult(
             surfaced=True,
-            reply_text="好，我先把這個補回方案當成目前的 rescue proposal。",
+            reply_text="好，我會照這個補回節奏幫你套用到接下來幾天。",
             recommended_days=base_plan.recommended_days,
             daily_kcal_adjustment=base_plan.daily_kcal_adjustment,
             overshoot_kcal=base_plan.overshoot_kcal,
@@ -247,7 +250,7 @@ def apply_rescue_plan_action(
     if action == "reject_rescue_plan":
         return RescueResponseResult(
             surfaced=True,
-            reply_text="可以，你是不想天數拉太長、覺得太保守，還是這幾天其實不方便照這個方案做？",
+            reply_text="可以，我先不套用這個方案。你是覺得太激進、太保守，還是時間安排不適合？",
             recommended_days=base_plan.recommended_days,
             daily_kcal_adjustment=base_plan.daily_kcal_adjustment,
             overshoot_kcal=base_plan.overshoot_kcal,
@@ -261,9 +264,10 @@ def apply_rescue_plan_action(
         return RescueResponseResult(
             surfaced=True,
             reply_text=(
-                f"我這版是先用你每日預算的 15% 當上限來抓，"
-                f"你這次大約超出 {base_plan.overshoot_kcal} kcal，所以先建議分 {base_plan.recommended_days} 天，"
-                f"每天大約少 {base_plan.daily_kcal_adjustment} kcal。這樣比較不會為了補回去而走到太極端。"
+                f"這個方案是用每日預算的 15% 當健康上限來算。"
+                f" 你這次大約超出 {base_plan.overshoot_kcal} kcal，"
+                f" 分成 {base_plan.recommended_days} 天時，每天大約少 {base_plan.daily_kcal_adjustment} kcal，"
+                f" 比較不容易變成過度補償。"
             ),
             recommended_days=base_plan.recommended_days,
             daily_kcal_adjustment=base_plan.daily_kcal_adjustment,
@@ -277,7 +281,7 @@ def apply_rescue_plan_action(
     if action == "extend_rescue_plan":
         extended_days = min(MAX_RESCUE_DAYS, base_plan.recommended_days + 1)
         if extended_days == base_plan.recommended_days:
-            reply_text = "這已經是目前最緩和的版本了，我不會再把天數拉得更長。"
+            reply_text = "這已經是目前最緩和的版本了，我不能再往更長天數攤。"
             plan = base_plan
         else:
             plan = _build_plan(
@@ -287,7 +291,7 @@ def apply_rescue_plan_action(
                 forced_days=extended_days,
             )
             reply_text = (
-                f"可以，我先把它放慢成 {plan.recommended_days} 天，"
+                f"可以，我把它調成 {plan.recommended_days} 天的較緩和版本，"
                 f"每天大約少 {plan.daily_kcal_adjustment} kcal。"
             )
         return RescueResponseResult(
@@ -308,14 +312,14 @@ def apply_rescue_plan_action(
         intensity="aggressive",
     )
     if aggressive_plan.recommended_days >= base_plan.recommended_days and aggressive_plan.feasible_within_window:
-        reply_text = "這已經接近目前能給的最短版本了，再短就會超過我現在的健康上限。"
+        reply_text = "這個方案已經接近最短可行範圍了，再縮會不健康，所以我先維持目前版本。"
         plan = base_plan
     elif not aggressive_plan.feasible_within_window:
-        reply_text = "就算把每日上限放寬到 20%，也沒辦法安全地把天數再縮短。"
+        reply_text = "就算把每日回收上限放寬到 20%，你要的更短版本還是不可行。"
         plan = aggressive_plan
     else:
         reply_text = (
-            f"可以，我先幫你改成較積極版，縮到 {aggressive_plan.recommended_days} 天，"
+            f"可以，我改成比較積極的版本：{aggressive_plan.recommended_days} 天攤回來，"
             f"每天大約少 {aggressive_plan.daily_kcal_adjustment} kcal。"
         )
         plan = aggressive_plan

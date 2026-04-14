@@ -84,3 +84,49 @@ def test_rescue_chat_action_route_accepts_and_writes_overlay() -> None:
     assert payload["response"]["ui_hints"]["mode"] == "rescue_accept_applied"
     assert payload["writeback"]["status"] == "applied"
     assert len(payload["writeback"]["entry_ids"]) == 3
+
+
+def test_rescue_chat_action_route_second_accept_returns_no_open_proposal() -> None:
+    user_id = "rescue-route-user-accept-twice"
+    _seed_open_rescue_proposal(user_id)
+
+    first = client.post(
+        "/rescue/chat/action",
+        json={
+            "user_id": user_id,
+            "action": "accept_rescue_plan",
+        },
+    )
+    second = client.post(
+        "/rescue/chat/action",
+        json={
+            "user_id": user_id,
+            "action": "accept_rescue_plan",
+        },
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    payload = second.json()
+    assert payload["surfaced"] is False
+    assert payload["response"]["ui_hints"]["mode"] == "no_open_rescue_proposal"
+    assert payload["writeback"] is None
+
+
+def test_rescue_chat_action_route_reject_with_reason_closes_proposal() -> None:
+    user_id = "rescue-route-user-reject"
+    _seed_open_rescue_proposal(user_id)
+
+    response = client.post(
+        "/rescue/chat/action",
+        json={
+            "user_id": user_id,
+            "action": "reject_rescue_plan",
+            "reject_reason": "我這週作息很亂，先不要套補回方案。",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["proposal_status"] == "rejected"
+    assert payload["response"]["ui_hints"]["mode"] == "rescue_proposal_closed"

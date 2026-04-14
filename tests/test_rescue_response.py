@@ -127,7 +127,7 @@ def test_shorten_rescue_plan_moves_to_aggressive_cap() -> None:
     assert result.recommended_days == 2
     assert result.daily_kcal_adjustment == 225
     assert result.ui_hints["intensity"] == "normal"
-    assert "最短版本" in result.reply_text
+    assert "最短可行範圍" in result.reply_text
 
 
 def test_extend_rescue_plan_makes_plan_more_gradual() -> None:
@@ -153,5 +153,5 @@ def test_reject_and_explain_actions_stay_in_chat() -> None:
 
     assert reject.ui_hints["mode"] == "rescue_reject_reason_request"
     assert reject.ui_hints["reason_surface"] == "chat_only"
-    assert "不想天數拉太長" in reject.reply_text
+    assert "太激進" in reject.reply_text
     assert "15%" in explain.reply_text
