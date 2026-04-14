@@ -2053,3 +2053,35 @@ It should be appended over time instead of rewritten.
 - `python -m pytest tests/test_rescue_response.py tests/test_rescue_chat_surface.py tests/test_rescue_routes.py tests/test_rescue_runtime.py tests/test_open_proposals_read_model.py tests/test_rescue_overlay.py tests/test_canonical_persistence.py -q -k "rescue or overlay or proposal or open_proposal"`
 - `python scripts/check_layer_integrity.py`
 - `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`
+
+## 2026-04-15 — Repo-Level User-Facing Mojibake Guard Added
+
+### Trigger
+
+- rescue surface cleanup exposed that garbled text is not only an audit-fixture problem; user-facing application/web/test surfaces also needed a shared prevention wall
+
+### What Changed
+
+- added `scripts/check_user_facing_mojibake.py`
+- added `docs/quality/USER_FACING_STRING_GUARD_REGISTRY.json` to define the scanned surfaces:
+  - `app/application`
+  - `app/web`
+  - `tests`
+- added `docs/quality/USER_FACING_STRING_GUARD_ALLOWLIST.json` for intentional mojibake test fixtures
+- wired the guard into:
+  - `.githooks/pre-commit`
+  - `.github/workflows/ci.yml`
+- documented the guard in `docs/quality/HARNESS_EXECUTION_POLICY.md`
+
+### Why This Is The Correct Boundary
+
+- it upgrades mojibake prevention from local cleanup into a repo-level safety wall
+- it stays in the low-risk foundation layer: contract/harness hardening, not product semantics
+- it protects the main user-facing string surfaces without turning into a noisy whole-repo unicode policy
+
+### Evidence
+
+- `python scripts/check_user_facing_mojibake.py`
+- `python -m pytest tests/test_user_facing_mojibake_guard.py tests/test_rescue_response.py tests/test_rescue_chat_surface.py tests/test_rescue_routes.py -q`
+- `python scripts/check_layer_integrity.py`
+- `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`

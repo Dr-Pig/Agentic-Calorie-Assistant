@@ -85,6 +85,7 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `2.5d rescue chat/proactive surface entrypoint plus accept/reject state transition foundation`
   - `2.5d accept-side rescue overlay writeback and dedicated rescue web/chat routes`
   - `2.5d rescue surface text integrity cleanup plus route/state regression hardening`
+  - `repo-level user-facing mojibake guard for application/web/test surfaces`
 - `legal_next_slices[]`:
   - `2.5d-rescue-response-surface`
 - `recommended_next_slice`: `2.5d-rescue-response-surface`
@@ -97,8 +98,8 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `powershell -ExecutionPolicy Bypass -File scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`
   - relevant targeted, smoke, integration, benchmark, or eval commands for the actual slice
-- `verification_status`: `2.2/2.3 wave evidence remains sufficient; 2.5d now passes targeted rescue response, rescue chat surface, accept-side overlay writeback, rescue route integration, and post-accept/no-open regression tests`
-- `verification_reason`: `the rescue branch now includes a checked-in single-plan response layer, a real rescue chat/proactive entrypoint, accept-side overlay writeback, dedicated rescue web/chat routes, and cleaned rescue surface text/contracts while still preserving chat-first delivery, intake separation, and UI mirror-only boundaries`
+- `verification_status`: `2.2/2.3 wave evidence remains sufficient; 2.5d now passes targeted rescue response, rescue chat surface, accept-side overlay writeback, rescue route integration, post-accept/no-open regression tests, and the new repo-level user-facing mojibake guard`
+- `verification_reason`: `the rescue branch now includes a checked-in single-plan response layer, a real rescue chat/proactive entrypoint, accept-side overlay writeback, dedicated rescue web/chat routes, cleaned rescue surface text/contracts, and a repo-level guard that blocks garbled user-facing strings in application/web/test surfaces`
 - `last_verified_at`: `2026-04-15`
 
 ## Selection State

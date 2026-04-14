@@ -22,6 +22,7 @@ These scripts are strictly enforced during the build and evaluation pipeline. Fa
 - **`scripts/check_audit_runner_contract.py`**: CI/pre-commit hard gate that scans the audit runner registry and ensures each listed runner still imports and invokes the shared `audit_io_guard`.
 - **`scripts/check_audit_fixture_safety.py`**: CI/pre-commit hard gate that scans the audit fixture registry and blocks corrupted or mojibake-risk formal audit inputs before any official run starts.
 - **`scripts/check_audit_safety.py`**: Post-run scan that detects mangled Chinese characters (`????`) or invalid UTF-8 in logs and artifacts.
+- **`scripts/check_user_facing_mojibake.py`**: CI/pre-commit hard gate that scans user-facing application/web/test surfaces for replacement characters, private-use glyphs, and known mojibake shard clusters. Intentional fixtures must be explicitly listed in `docs/quality/USER_FACING_STRING_GUARD_ALLOWLIST.json`.
 - `scripts/check_commit_format.py`
 - `scripts/check_runtime_boundaries.py`
 - diff-scoped `ruff` on touched Python files
