@@ -4,14 +4,16 @@
 
 This repository is `LLM-first`.
 
-The canonical semantic runtime is:
+The canonical semantic runtime for the **intake domain** is:
 
 1. `task_meal_link_pass`
 2. `decision_pass`
 3. `nutrition_resolution_pass`
 4. `final_response_pass`
 
-These four passes own semantic understanding and semantic decisions.
+These four passes own semantic understanding and semantic decisions **within the intake workflow**.
+
+**Scope clarification**: These four passes are the intake domain's canonical runtime. They are a reference pattern, not a global shared runtime for all workflows. Other workflows (rescue, calibration, recommendation) have their own canonical graphs defined in their respective `L3.x` specs. No workflow should be forced to replicate the intake 4-pass structure unless its domain reasoning genuinely requires the same decomposition. See `L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md` for the cross-product routing governance principles.
 
 ## Hard Rule
 
