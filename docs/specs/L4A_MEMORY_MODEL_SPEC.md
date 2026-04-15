@@ -285,6 +285,25 @@ preference memory 應支持：
 - 使用者可確認、修正、刪除或否定某些偏好
 - 被使用者明確否定的偏好應優先影響 confirmed / negative memory
 
+### 6.5 Conversation Style Profile Extension Note
+
+目前 repo 尚未定義 canonical `conversation_style_profile`。
+
+也就是說，系統目前沒有 `sour.md` 等價的正式 memory object 來承載：
+
+- communication tone preference
+- explanation density preference
+- blunt vs gentle framing
+- user-specific response-style adaptation
+
+這一層目前只作為後續 `2.7` memory/context extension point。
+
+v1 規則：
+
+- 不把 style profile 寫成 active runtime contract
+- 不把 style preference 當成 `2.7a` / `2.7b` semantic routing 的前置依賴
+- 先證明 semantic routing foundation，再決定 style-profile materialization 與 retrieval policy
+
 ---
 
 ## 7. Logging / Adherence Memory

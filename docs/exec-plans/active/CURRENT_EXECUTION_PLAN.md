@@ -42,27 +42,26 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
 | `2.2 Multi-turn Intake + Correction` | `completed enough` | accepted Golden first-turn live evidence and turn-2 replay evidence are in place for the current wave |
 | `2.3 Today UI / Read Models` | `completed enough` | prior follow-through plus `2.3c` replay-driven confidence checks now reconfirm current-budget/today behavior for the current wave |
 | `2.4 Weight / Body Observation` | `completed enough` | available and not blocking current mainline work; still required before `2.6` |
-| `2.5 Rescue` | `active` | `2.5c` is completed enough; the user has explicitly opened `2.5d` rescue response surface work |
+| `2.5 Rescue` | `completed enough` | `2.5d` rescue response surface is complete enough to serve as a semantic-routing source family |
 | `2.6 Calibration` | `deferred` | not best-next while `2.2` mainline validation remains incomplete |
-| `2.7 Memory / Retrieval Deepening` | `not started` | downstream of current mainline and later-domain work |
+| `2.7 Memory / Retrieval Deepening` | `active` | `2.7d` semantic-routing prompt/state-pack hardening is now the active bounded branch |
 | `2.8 Recommendation` | `not started` | downstream of intake, rescue, and calibration maturity |
 | `2.9 Proactive Nudges` | `not started` | downstream of recommendation and current mainline maturity |
 
 ## Global Pointer
 
-- `current_pointer_bundle`: `2.5 Rescue`
-- `current_pointer_reason`: `the user explicitly approved implementation of the 2.5d rescue response surface plan`
+- `current_pointer_bundle`: `2.7 Memory / Retrieval Deepening`
+- `current_pointer_reason`: `the official text-surface guard wall is now in place, so the next bounded step is to harden semantic-routing prompts and state packs against the observed drift clusters`
 - `deferred_bundles[]`:
   - `2.6 Calibration`
-  - `2.7 Memory / Retrieval Deepening`
-- `deferred_bundle_reason`: `these bundles are legal later-domain branches, but rescue now owns the active best-next slice`
+- `deferred_bundle_reason`: `calibration remains legal later, but semantic routing now owns the active best-next slice`
 
 ## Current Execution Dashboard
 
-- `current_status`: `2.2/2.3 are complete enough for the current wave; rescue owns the active branch, 2.5c is complete enough, and 2.5d is now active for chat-first rescue response work`
-- `current_workflow_family`: `2.5 Rescue`
-- `current_slice`: `2.5d-rescue-response-surface`
-- `current_goal`: `surface rescue as a single chat-first recovery plan with adjustable intensity while keeping intake separate and UI mirror-only`
+- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough as a source family, 2.7a/2.7b semantic-routing evidence exists, 2.7c hardened the official text surfaces, a new global routing governance spec now constrains routing-vs-response boundaries, and the active next step remains 2.7d prompt/state-pack hardening`
+- `current_workflow_family`: `2.7 Memory / Retrieval Deepening`
+- `current_slice`: `2.7d-semantic-routing-prompt-state-pack-hardening`
+- `current_goal`: `use the now-guarded semantic-routing eval surfaces and 2.7b drift clusters to harden prompts, target vocabulary, and state-pack sufficiency without introducing deterministic semantic overrides or re-promoting response-side distinctions into primary routing taxonomy`
 - `completed_so_far`:
   - `2.2a active-meal continuation foundation`
   - `2.2c cross-midnight attribution foundation`
@@ -85,37 +84,45 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `2.5d rescue chat/proactive surface entrypoint plus accept/reject state transition foundation`
   - `2.5d accept-side rescue overlay writeback and dedicated rescue web/chat routes`
   - `2.5d rescue surface text integrity cleanup plus route/state regression hardening`
+  - `2.5d defer reminder contract and thin reject/defer reason bridge`
   - `repo-level user-facing mojibake guard for application/web/test surfaces`
+  - `2.5d rescue response surface is now complete enough to act as a semantic-routing source family`
+  - `2.7a semantic-routing taxonomy, founder-fit pack, state-pack quality note, eval runner, and initial mock/live evidence`
+  - `2.7b semantic-routing founder-fit pack cleanup, drift-cluster expansion, triage artifact contract, and dormant style-profile owner note`
+  - `2.7c official text-surface guard registry, shared mojibake detector, fixture semantic-field validation, and pre-commit/CI enforcement`
+  - `2.7d canonical target-vocabulary prompt tightening and normalized semantic-routing state-pack shaping`
+  - `independent global routing governance spec for routing-vs-response boundaries, anti-premature-taxonomy guard, and deterministic-gate responsibility`
+  - `2.7c official text-surface guard hardening is complete enough to unblock the next semantic-routing hardening wave`
 - `legal_next_slices[]`:
-  - `2.5d-rescue-response-surface`
-- `recommended_next_slice`: `2.5d-rescue-response-surface`
-- `why_this_next`: `the user selected a single-plan, chat-first rescue response model, which opens the rescue response surface as the next bounded slice`
-- `human_gate`: `cleared for 2.5d by explicit user approval`
+  - `2.7d-semantic-routing-prompt-state-pack-hardening`
+- `recommended_next_slice`: `2.7d-semantic-routing-prompt-state-pack-hardening`
+- `why_this_next`: `the official text-surface guard wall is now in place, and the user explicitly asked to review rescue closeout then cut to the next semantic-routing hardening wave`
+- `human_gate`: `cleared for 2.7d by explicit user approval`
 - `owner_mode`: `local`
-- `key_files_or_subsystem`: `work should stay inside rescue deterministic shaping, rescue overlay alignment, and targeted rescue harness surfaces`
+- `key_files_or_subsystem`: `work should stay inside semantic-routing prompt/eval/state-pack surfaces, benchmark packs, drift-triage contract, and targeted tests without touching production routing`
 - `required_harness`:
   - `python scripts/check_layer_integrity.py`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`
   - relevant targeted, smoke, integration, benchmark, or eval commands for the actual slice
-- `verification_status`: `2.2/2.3 wave evidence remains sufficient; 2.5d now passes targeted rescue response, rescue chat surface, accept-side overlay writeback, rescue route integration, post-accept/no-open regression tests, and the new repo-level user-facing mojibake guard`
-- `verification_reason`: `the rescue branch now includes a checked-in single-plan response layer, a real rescue chat/proactive entrypoint, accept-side overlay writeback, dedicated rescue web/chat routes, cleaned rescue surface text/contracts, and a repo-level guard that blocks garbled user-facing strings in application/web/test surfaces`
+- `verification_status`: `2.7d prompt/state-pack hardening is in progress: live semantic-routing eval improved from 0/15 to 11/15, and the remaining failures are now concentrated in a small set of boundary-semantics cases`
+- `verification_reason`: `canonical target-vocabulary constraints plus normalized state-pack shaping removed the broad workflow-family drift, leaving only decision-boundary cases that now need product review rather than more undirected hardening`
 - `last_verified_at`: `2026-04-15`
 
 ## Selection State
 
-- `active_critical_path_segment`: `2.5d rescue response surface -> later rescue accept/writeback -> later 2.6/2.7`
-- `current_domain_gate_status`: `2.2 and 2.3 are sufficient for the current wave; rescue now owns the active branch`
+- `active_critical_path_segment`: `2.7a semantic routing eval foundation -> 2.7b evidence hardening -> 2.7c official text-surface guard hardening -> 2.7d semantic-routing prompt/state-pack hardening -> later 2.7 routing/memory design -> later 2.6/2.8`
+- `current_domain_gate_status`: `2.2, 2.3, and 2.5d are sufficient enough for semantic-routing eval work`
 - `mainline_validation_status`: `sufficient_for_domain_advance`
-- `selected_best_next_slice`: `2.5d-rescue-response-surface`
-- `selection_reason`: `the user explicitly approved the 2.5d rescue response plan and fixed the key product semantics`
-- `selection_reason_detail`: `2.5d now owns the active rescue branch, with accept-side writeback already wired and the remaining safe work focused on contract hardening rather than new product semantics`
+- `selected_best_next_slice`: `2.7d-semantic-routing-prompt-state-pack-hardening`
+- `selection_reason`: `the guard-first prerequisite is now satisfied, and the user explicitly asked to cut from rescue closeout into the next semantic-routing hardening wave`
+- `selection_reason_detail`: `2.7b already exposed the drift clusters, 2.7c now protects the evidence surfaces, and the next bounded move is to improve prompt/state-pack behavior under the new routing-governance rule set without deterministic semantic overrides`
 - `deferred_legal_slices[]`:
   - `2.6 next calibration slice`
-- `deferred_selection_reason`: `calibration remains legal later in the broad order, but 2.5d rescue response surface now owns the active branch`
+- `deferred_selection_reason`: `calibration remains legal later in the broad order, but semantic routing now owns the active branch`
 - `execution_surface`: `planner-local`
-- `execution_surface_reason`: `this wave is a narrow runtime continuity hardening step plus truth-sync, not a broad workflow or product-scope branch`
-- `last_replan_at`: `2026-04-14`
+- `execution_surface_reason`: `this wave is still eval-first and LLM-led: it should improve semantic-routing prompts and state-pack sufficiency using the guarded benchmark surfaces, not bypass the judgment problem with deterministic routing`
+- `last_replan_at`: `2026-04-15`
 
 ## Working Rules
 

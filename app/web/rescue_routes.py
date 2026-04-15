@@ -18,10 +18,12 @@ class RescueChatActionRequest(BaseModel):
         "accept_rescue_plan",
         "shorten_rescue_plan",
         "extend_rescue_plan",
+        "defer_rescue_plan",
         "reject_rescue_plan",
         "explain_rescue_plan",
     ]
     reject_reason: str | None = None
+    reason: str | None = None
 
 
 @router.get("/rescue/chat")
@@ -52,6 +54,7 @@ def rescue_chat_action(
         user_id=user.id,
         action=request.action,
         reject_reason=request.reject_reason,
+        reason=request.reason,
     )
     return {
         "surfaced": result.surfaced,

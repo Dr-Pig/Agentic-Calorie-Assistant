@@ -98,6 +98,60 @@ LLM 只可用於：
   - `candidate_for_future_determinization`
   - `candidate_for_future_collapse`
 
+### 2.2D Routing vs Response Boundary Rule
+
+pass design 不只要決定 `LLM or deterministic`，還要決定某個 distinction 到底屬於：
+
+- primary routing
+- workflow-specific structured reasoning
+- response realization
+
+正式規則：
+
+> 不要把本來應由 LLM 在回應時自然決定的差異，提前硬編成 primary routing taxonomy。
+
+只有在某個 distinction 會改變下列之一時，才允許升成 primary routing taxonomy：
+
+- target object attachment
+- workflow ownership
+- state mutation intent
+- proposal / commit disposition
+- whether a new workflow should open
+- whether the system should act, wait, or remain no-op
+
+預設屬於 response realization、而非 primary routing 的差異包括：
+
+- inquiry vs explain
+- tone
+- style
+- reluctance wording
+- explanation density
+- gentle vs blunt framing
+- coaching style
+
+若需要更完整的 cross-product 治理邊界，應再對照：
+
+- `docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md`
+
+### 2.2E Deterministic Gate Boundary Rule
+
+每一個 LLM 輸出後方可以存在 deterministic gate。
+
+但 deterministic gate 的責任只限於：
+
+- schema validation
+- allowed action validation
+- object availability
+- persistence legality
+- safety / legality
+- bounded repair only
+
+禁止：
+
+- 重新解讀 user intent
+- 創造新的 semantic judgment
+- 將合法的 LLM routing / planning result silent override 成另一個語意結果
+
 ### 2.3 Expanded Mode Is Not Default Truth
 
 某些 domain 可以保留 expanded decomposition 以利觀測、debug、或未來演進。

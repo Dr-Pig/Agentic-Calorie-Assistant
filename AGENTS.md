@@ -47,6 +47,8 @@ If the planner is selecting the next slice, the default planner path above is re
 - deterministic layers must not override completed LLM decision outputs
   - do not deterministically rewrite `action_taken`, `response_mode_hint`, `follow_up_needed`, `followup_question`, `exactness`, or `resolution_mode` after a pass completes
   - deterministic layers may validate, reject, downgrade, derive, or request one bounded repair round
+- do not promote response-side distinctions into primary routing taxonomy unless they change workflow effect
+  - do not encode `inquiry vs explain`, tone, style, reluctance wording, explanation density, or similar response-realization differences as primary routing labels unless they change target attachment, workflow ownership, disposition, or state mutation semantics
 - prompt and evidence-policy fixes must target generalized estimation behavior, not one-off item patches
   - do not optimize prompts around a single SKU, menu item, or one benchmark example unless the canonical spec explicitly requires that item-specific behavior
   - prefer generalized rules based on evidence class, identity resolution, portion ambiguity, packaging cues, and uncertainty topology

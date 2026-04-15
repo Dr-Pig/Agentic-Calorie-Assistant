@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -137,19 +139,58 @@ def test_reject_action_without_reason_requests_reason_but_keeps_open() -> None:
     assert result.response.ui_hints["mode"] == "rescue_reject_reason_request"
 
 
-def test_reject_action_with_reason_marks_proposal_rejected() -> None:
+def test_reject_action_with_reason_marks_proposal_rejected_and_persists_bridge() -> None:
+    db = _session()
+    user = _seed_open_rescue_proposal(db)
+
+    reason = "我這幾天行程不固定，現在不想套這個節奏。"
+    result = apply_rescue_chat_action(
+        db,
+        user_id=user.id,
+        action="reject_rescue_plan",
+        reason=reason,
+    )
+
+    proposal = db.get(ProposalContainerRecord, result.proposal_container_id)
+    assert proposal is not None
+    assert proposal.proposal_status == "rejected"
+    assert proposal.metadata_json["rejected_reason"] == reason
+    assert proposal.metadata_json["reason_bridge"]["raw_reason_text"] == reason
+    assert proposal.metadata_json["reason_bridge"]["reason_source"] == "reject"
+    assert proposal.metadata_json["reason_bridge"]["reason_hint"] == "bad_timing"
+    assert result.response.ui_hints["mode"] == "rescue_proposal_closed"
+
+
+def test_defer_action_marks_pending_and_blocks_proactive_until_due() -> None:
     db = _session()
     user = _seed_open_rescue_proposal(db)
 
     result = apply_rescue_chat_action(
         db,
         user_id=user.id,
-        action="reject_rescue_plan",
-        reject_reason="我這幾天行程不固定，現在不想套這個節奏。",
+        action="defer_rescue_plan",
+        reason="我今天先不要，晚一點再說。",
     )
 
     proposal = db.get(ProposalContainerRecord, result.proposal_container_id)
     assert proposal is not None
-    assert proposal.proposal_status == "rejected"
-    assert proposal.metadata_json["rejected_reason"] == "我這幾天行程不固定，現在不想套這個節奏。"
-    assert result.response.ui_hints["mode"] == "rescue_proposal_closed"
+    assert proposal.proposal_status == "deferred_pending_reminder"
+    assert proposal.metadata_json["pending_state"] == "proposal_pending"
+    assert proposal.metadata_json["reason_bridge"]["reason_source"] == "defer"
+    assert proposal.metadata_json["reason_bridge"]["reason_hint"] == "not_now"
+
+    proactive_before_due = build_rescue_chat_surface(db, user_id=user.id, mode="proactive")
+    reactive = build_rescue_chat_surface(db, user_id=user.id, mode="reactive_explicit_rescue_request")
+
+    assert proactive_before_due.surfaced is False
+    assert proactive_before_due.response.ui_hints["mode"] == "rescue_deferred_waiting"
+    assert reactive.surfaced is True
+
+    proposal.metadata_json = {
+        **dict(proposal.metadata_json or {}),
+        "next_reminder_at": (datetime.now() - timedelta(minutes=1)).isoformat(timespec="seconds"),
+    }
+    db.commit()
+
+    proactive_after_due = build_rescue_chat_surface(db, user_id=user.id, mode="proactive")
+    assert proactive_after_due.surfaced is True

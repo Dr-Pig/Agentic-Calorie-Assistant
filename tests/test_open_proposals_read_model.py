@@ -93,3 +93,32 @@ def test_build_open_rescue_proposals_view_excludes_non_rescue_or_non_open_propos
     proposals = build_open_rescue_proposals_view(db, user_id=user.id)
 
     assert proposals == []
+
+
+def test_build_open_rescue_proposals_view_keeps_deferred_pending_rescue_proposals() -> None:
+    db = _session()
+    user = _user(db, user_id="proposal-read-user-3")
+    artifact = build_rescue_runtime_artifact(_runtime_inputs(target_recovery_kcal=300))
+    persisted = persist_rescue_runtime_artifact(db, user=user, artifact=artifact)
+
+    proposal = db.get(ProposalContainerRecord, persisted["proposal_container_id"])
+    assert proposal is not None
+    proposal.proposal_status = "deferred_pending_reminder"
+    proposal.metadata_json = {
+        **dict(proposal.metadata_json or {}),
+        "next_reminder_at": "2026-04-15T21:00:00",
+        "reason_bridge": {
+            "raw_reason_text": "我今天先不要，晚一點再說。",
+            "reason_hint": "not_now",
+            "reason_source": "defer",
+            "captured_at": "2026-04-15T09:00:00",
+        },
+    }
+    db.commit()
+
+    proposals = build_open_rescue_proposals_view(db, user_id=user.id)
+
+    assert len(proposals) == 1
+    assert proposals[0].proposal_status == "deferred_pending_reminder"
+    assert proposals[0].metadata["next_reminder_at"] == "2026-04-15T21:00:00"
+    assert proposals[0].metadata["reason_bridge"]["reason_hint"] == "not_now"

@@ -72,7 +72,7 @@ def _open_rescue_proposal(db: Session) -> tuple[User, object]:
     return user, proposals[0]
 
 
-def test_should_surface_rescue_response_only_for_open_rescue_proposal() -> None:
+def test_should_surface_rescue_response_only_for_open_like_rescue_proposal() -> None:
     db = _session()
     user, proposal = _open_rescue_proposal(db)
 
@@ -110,12 +110,13 @@ def test_build_rescue_response_result_returns_single_plan_chat_surface() -> None
         "accept_rescue_plan",
         "shorten_rescue_plan",
         "extend_rescue_plan",
+        "defer_rescue_plan",
         "reject_rescue_plan",
         "explain_rescue_plan",
     ]
 
 
-def test_shorten_rescue_plan_moves_to_aggressive_cap() -> None:
+def test_shorten_rescue_plan_uses_aggressive_cap_when_possible() -> None:
     db = _session()
     _, proposal = _open_rescue_proposal(db)
 
@@ -127,7 +128,7 @@ def test_shorten_rescue_plan_moves_to_aggressive_cap() -> None:
     assert result.recommended_days == 2
     assert result.daily_kcal_adjustment == 225
     assert result.ui_hints["intensity"] == "normal"
-    assert "最短可行範圍" in result.reply_text
+    assert "最短方案" in result.reply_text
 
 
 def test_extend_rescue_plan_makes_plan_more_gradual() -> None:
@@ -144,14 +145,17 @@ def test_extend_rescue_plan_makes_plan_more_gradual() -> None:
     assert "3 天" in result.reply_text
 
 
-def test_reject_and_explain_actions_stay_in_chat() -> None:
+def test_defer_reject_and_explain_actions_stay_in_chat() -> None:
     db = _session()
     _, proposal = _open_rescue_proposal(db)
 
+    defer = apply_rescue_plan_action(proposal=proposal, action="defer_rescue_plan")
     reject = apply_rescue_plan_action(proposal=proposal, action="reject_rescue_plan")
     explain = apply_rescue_plan_action(proposal=proposal, action="explain_rescue_plan")
 
+    assert defer.ui_hints["mode"] == "rescue_deferred_pending_reminder"
+    assert "12 小時" in defer.reply_text
     assert reject.ui_hints["mode"] == "rescue_reject_reason_request"
     assert reject.ui_hints["reason_surface"] == "chat_only"
-    assert "太激進" in reject.reply_text
+    assert "為什麼不要這次" in reject.reply_text
     assert "15%" in explain.reply_text

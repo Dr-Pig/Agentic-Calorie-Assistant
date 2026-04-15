@@ -1,0 +1,562 @@
+{
+  "pack_id": "semantic_routing_founder_fit_pack_v1",
+  "version": 2,
+  "purpose": "Founder-fit semantic routing eval pack for chat-first rescue proposals and intake follow-up continuation.",
+  "style_personalization_extension_note": {
+    "conversation_style_profile_defined": false,
+    "note": "The repo does not yet define a canonical conversation_style_profile or sour.md equivalent. Style adaptation remains a later 2.7 extension after semantic-routing evidence is stable."
+  },
+  "cases": [
+    {
+      "case_id": "semantic_routing_rescue_accept_001",
+      "title": "Rescue acceptance in natural language",
+      "origin": "2.5d_rescue_surface",
+      "case_family": "structured_action_equivalence",
+      "drift_cluster": "rescue_action_family",
+      "utterance": "好，就照這個方案做。",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 501,
+          "proposal_status": "open",
+          "recommended_days": 3,
+          "daily_kcal_adjustment": 180,
+          "overshoot_kcal": 540
+        },
+        "pending_intake_followup": null,
+        "latest_linked_ids": {
+          "proposal_container_id": 501,
+          "meal_log_id": null
+        },
+        "recent_message_summaries": [
+          "assistant proposed a 3-day rescue plan",
+          "assistant exposed accept, reject, defer, explain, and intensity-adjust controls"
+        ],
+        "proposal_metadata": {
+          "proposal_type": "rescue",
+          "proposal_status": "open"
+        },
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "proposal_accept",
+      "expected_target_workflow_family": "rescue_proposal",
+      "expected_target_object_type": "proposal_container",
+      "expected_target_object_id": 501,
+      "expected_workflow_effect": "accept_and_apply_current_proposal",
+      "expected_ambiguity_posture": "none",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "prompt_issue"
+    },
+    {
+      "case_id": "semantic_routing_rescue_reject_001",
+      "title": "Rescue rejection in natural language",
+      "origin": "2.5d_rescue_surface",
+      "case_family": "structured_action_equivalence",
+      "drift_cluster": "rescue_action_family",
+      "utterance": "不要這次，我先照原本節奏就好。",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 502,
+          "proposal_status": "open",
+          "recommended_days": 4,
+          "daily_kcal_adjustment": 140,
+          "overshoot_kcal": 560
+        },
+        "pending_intake_followup": null,
+        "latest_linked_ids": {
+          "proposal_container_id": 502,
+          "meal_log_id": null
+        },
+        "recent_message_summaries": [
+          "assistant proposed a 4-day rescue plan"
+        ],
+        "proposal_metadata": {
+          "proposal_type": "rescue",
+          "proposal_status": "open"
+        },
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "proposal_reject",
+      "expected_target_workflow_family": "rescue_proposal",
+      "expected_target_object_type": "proposal_container",
+      "expected_target_object_id": 502,
+      "expected_workflow_effect": "close_current_proposal",
+      "expected_ambiguity_posture": "none",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "prompt_issue"
+    },
+    {
+      "case_id": "semantic_routing_rescue_defer_001",
+      "title": "Rescue explicit defer",
+      "origin": "2.5d_rescue_surface",
+      "case_family": "structured_action_equivalence",
+      "drift_cluster": "rescue_action_family",
+      "utterance": "晚點再說，先幫我放著。",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 503,
+          "proposal_status": "open",
+          "recommended_days": 3,
+          "daily_kcal_adjustment": 160,
+          "overshoot_kcal": 480
+        },
+        "pending_intake_followup": null,
+        "latest_linked_ids": {
+          "proposal_container_id": 503,
+          "meal_log_id": null
+        },
+        "recent_message_summaries": [
+          "assistant proposed a rescue plan"
+        ],
+        "proposal_metadata": {
+          "proposal_type": "rescue",
+          "proposal_status": "open"
+        },
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "proposal_defer",
+      "expected_target_workflow_family": "rescue_proposal",
+      "expected_target_object_type": "proposal_container",
+      "expected_target_object_id": 503,
+      "expected_workflow_effect": "defer_current_proposal",
+      "expected_ambiguity_posture": "none",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "prompt_issue"
+    },
+    {
+      "case_id": "semantic_routing_rescue_adjust_shorter_001",
+      "title": "Rescue shorten request",
+      "origin": "2.5d_rescue_surface",
+      "case_family": "structured_action_equivalence",
+      "drift_cluster": "rescue_action_family",
+      "utterance": "可以再短一點嗎？我想積極一點。",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 504,
+          "proposal_status": "open",
+          "recommended_days": 4,
+          "daily_kcal_adjustment": 120,
+          "overshoot_kcal": 480
+        },
+        "pending_intake_followup": null,
+        "latest_linked_ids": {
+          "proposal_container_id": 504,
+          "meal_log_id": null
+        },
+        "recent_message_summaries": [
+          "assistant proposed a 4-day rescue plan"
+        ],
+        "proposal_metadata": {
+          "proposal_type": "rescue",
+          "proposal_status": "open"
+        },
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "proposal_adjust_shorter",
+      "expected_target_workflow_family": "rescue_proposal",
+      "expected_target_object_type": "proposal_container",
+      "expected_target_object_id": 504,
+      "expected_workflow_effect": "mutate_current_proposal",
+      "expected_ambiguity_posture": "none",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "prompt_issue"
+    },
+    {
+      "case_id": "semantic_routing_rescue_adjust_longer_001",
+      "title": "Rescue longer or gentler request",
+      "origin": "2.5d_rescue_surface",
+      "case_family": "structured_action_equivalence",
+      "drift_cluster": "rescue_action_family",
+      "utterance": "這樣有點硬，能不能拉長一點？",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 505,
+          "proposal_status": "open",
+          "recommended_days": 2,
+          "daily_kcal_adjustment": 170,
+          "overshoot_kcal": 340
+        },
+        "pending_intake_followup": null,
+        "latest_linked_ids": {
+          "proposal_container_id": 505,
+          "meal_log_id": null
+        },
+        "recent_message_summaries": [
+          "assistant proposed a 2-day rescue plan"
+        ],
+        "proposal_metadata": {
+          "proposal_type": "rescue",
+          "proposal_status": "open"
+        },
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "proposal_adjust_longer",
+      "expected_target_workflow_family": "rescue_proposal",
+      "expected_target_object_type": "proposal_container",
+      "expected_target_object_id": 505,
+      "expected_workflow_effect": "mutate_current_proposal",
+      "expected_ambiguity_posture": "none",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "prompt_issue"
+    },
+    {
+      "case_id": "semantic_routing_rescue_explain_001",
+      "title": "Rescue explanation request",
+      "origin": "2.5d_rescue_surface",
+      "case_family": "structured_action_equivalence",
+      "drift_cluster": "rescue_action_family",
+      "utterance": "為什麼你會建議三天？",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 506,
+          "proposal_status": "open",
+          "recommended_days": 3,
+          "daily_kcal_adjustment": 150,
+          "overshoot_kcal": 450
+        },
+        "pending_intake_followup": null,
+        "latest_linked_ids": {
+          "proposal_container_id": 506,
+          "meal_log_id": null
+        },
+        "recent_message_summaries": [
+          "assistant proposed a 3-day rescue plan"
+        ],
+        "proposal_metadata": {
+          "proposal_type": "rescue",
+          "proposal_status": "open"
+        },
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "proposal_explain_request",
+      "expected_target_workflow_family": "rescue_proposal",
+      "expected_target_object_type": "proposal_container",
+      "expected_target_object_id": 506,
+      "expected_workflow_effect": "request_explanation",
+      "expected_ambiguity_posture": "none",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "prompt_issue"
+    },
+    {
+      "case_id": "semantic_routing_rescue_general_inquiry_001",
+      "title": "Rescue inquiry without explicit mutation",
+      "origin": "2.5d_rescue_surface",
+      "case_family": "workflow_boundary_discrimination",
+      "drift_cluster": "boundary_discrimination_drift",
+      "utterance": "如果照這個做，每天大概要少多少？",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 507,
+          "proposal_status": "open",
+          "recommended_days": 3,
+          "daily_kcal_adjustment": 150,
+          "overshoot_kcal": 450
+        },
+        "pending_intake_followup": null,
+        "latest_linked_ids": {
+          "proposal_container_id": 507,
+          "meal_log_id": null
+        },
+        "recent_message_summaries": [
+          "assistant proposed a 3-day rescue plan"
+        ],
+        "proposal_metadata": {
+          "proposal_type": "rescue",
+          "proposal_status": "open"
+        },
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "proposal_general_inquiry",
+      "expected_target_workflow_family": "rescue_proposal",
+      "expected_target_object_type": "proposal_container",
+      "expected_target_object_id": 507,
+      "expected_workflow_effect": "remain_inquiry_only",
+      "expected_ambiguity_posture": "none",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "taxonomy_issue"
+    },
+    {
+      "case_id": "semantic_routing_rescue_boundary_001",
+      "title": "Complaint is not the same as rejection",
+      "origin": "2.5d_rescue_surface",
+      "case_family": "workflow_boundary_discrimination",
+      "drift_cluster": "boundary_discrimination_drift",
+      "utterance": "這樣也太硬了吧。",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 508,
+          "proposal_status": "open",
+          "recommended_days": 2,
+          "daily_kcal_adjustment": 190,
+          "overshoot_kcal": 380
+        },
+        "pending_intake_followup": null,
+        "latest_linked_ids": {
+          "proposal_container_id": 508,
+          "meal_log_id": null
+        },
+        "recent_message_summaries": [
+          "assistant proposed a 2-day rescue plan"
+        ],
+        "proposal_metadata": {
+          "proposal_type": "rescue",
+          "proposal_status": "open"
+        },
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "proposal_general_inquiry",
+      "expected_target_workflow_family": "rescue_proposal",
+      "expected_target_object_type": "proposal_container",
+      "expected_target_object_id": 508,
+      "expected_workflow_effect": "remain_inquiry_only",
+      "expected_ambiguity_posture": "allow_uncertain",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "inherently_ambiguous_case"
+    },
+    {
+      "case_id": "semantic_routing_rescue_boundary_002",
+      "title": "Soft not-now complaint should stay in the rescue family",
+      "origin": "2.5d_rescue_surface",
+      "case_family": "workflow_boundary_discrimination",
+      "drift_cluster": "boundary_discrimination_drift",
+      "utterance": "我現在真的沒空想這個，先晚點吧。",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 509,
+          "proposal_status": "open",
+          "recommended_days": 3,
+          "daily_kcal_adjustment": 155,
+          "overshoot_kcal": 465
+        },
+        "pending_intake_followup": null,
+        "latest_linked_ids": {
+          "proposal_container_id": 509,
+          "meal_log_id": null
+        },
+        "recent_message_summaries": [
+          "assistant proposed a 3-day rescue plan"
+        ],
+        "proposal_metadata": {
+          "proposal_type": "rescue",
+          "proposal_status": "open"
+        },
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "proposal_defer",
+      "expected_target_workflow_family": "rescue_proposal",
+      "expected_target_object_type": "proposal_container",
+      "expected_target_object_id": 509,
+      "expected_workflow_effect": "defer_current_proposal",
+      "expected_ambiguity_posture": "allow_uncertain",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "inherently_ambiguous_case"
+    },
+    {
+      "case_id": "semantic_routing_followup_completion_001",
+      "title": "Ask-followup completion for 滷味",
+      "origin": "2.2k_turn2_replay_pack",
+      "case_family": "structured_action_equivalence",
+      "drift_cluster": "intake_followup_continuation",
+      "utterance": "有高麗菜、豆皮、甜不辣、王子麵，沒有喝湯。",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": null,
+        "pending_intake_followup": {
+          "meal_log_id": 801,
+          "lane_family": "ask_followup_only",
+          "pending_question": "你吃了哪些料？有沒有喝湯？"
+        },
+        "latest_linked_ids": {
+          "proposal_container_id": null,
+          "meal_log_id": 801
+        },
+        "recent_message_summaries": [
+          "assistant asked which ingredients were eaten and whether soup was consumed"
+        ],
+        "proposal_metadata": null,
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "followup_completion",
+      "expected_target_workflow_family": "intake_followup",
+      "expected_target_object_type": "meal_log",
+      "expected_target_object_id": 801,
+      "expected_workflow_effect": "continue_followup_lane",
+      "expected_ambiguity_posture": "none",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "prompt_issue"
+    },
+    {
+      "case_id": "semantic_routing_followup_refinement_001",
+      "title": "Estimate-with-followup refinement for bubble tea",
+      "origin": "2.2k_turn2_replay_pack",
+      "case_family": "structured_action_equivalence",
+      "drift_cluster": "intake_followup_continuation",
+      "utterance": "大杯、半糖、少冰，加珍珠。",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": null,
+        "pending_intake_followup": {
+          "meal_log_id": 802,
+          "lane_family": "estimate_with_followup",
+          "pending_question": "杯型、糖冰和加料是什麼？"
+        },
+        "latest_linked_ids": {
+          "proposal_container_id": null,
+          "meal_log_id": 802
+        },
+        "recent_message_summaries": [
+          "assistant gave a provisional bubble tea estimate and asked for size and customization"
+        ],
+        "proposal_metadata": null,
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "followup_refinement",
+      "expected_target_workflow_family": "intake_followup",
+      "expected_target_object_type": "meal_log",
+      "expected_target_object_id": 802,
+      "expected_workflow_effect": "continue_followup_lane",
+      "expected_ambiguity_posture": "none",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "prompt_issue"
+    },
+    {
+      "case_id": "semantic_routing_followup_refinement_002",
+      "title": "Estimate-with-followup refinement for beef bowl",
+      "origin": "2.2k_turn2_replay_pack",
+      "case_family": "structured_action_equivalence",
+      "drift_cluster": "intake_followup_continuation",
+      "utterance": "吉野家中碗，沒有加點。",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": null,
+        "pending_intake_followup": {
+          "meal_log_id": 803,
+          "lane_family": "estimate_with_followup",
+          "pending_question": "是哪一家、什麼大小、還有沒有加點？"
+        },
+        "latest_linked_ids": {
+          "proposal_container_id": null,
+          "meal_log_id": 803
+        },
+        "recent_message_summaries": [
+          "assistant gave a provisional beef bowl estimate and asked about brand and size"
+        ],
+        "proposal_metadata": null,
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "followup_refinement",
+      "expected_target_workflow_family": "intake_followup",
+      "expected_target_object_type": "meal_log",
+      "expected_target_object_id": 803,
+      "expected_workflow_effect": "continue_followup_lane",
+      "expected_ambiguity_posture": "none",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "prompt_issue"
+    },
+    {
+      "case_id": "semantic_routing_followup_boundary_001",
+      "title": "Follow-up answer should not be mistaken for a new meal",
+      "origin": "2.2k_turn2_replay_pack",
+      "case_family": "workflow_boundary_discrimination",
+      "drift_cluster": "boundary_discrimination_drift",
+      "utterance": "炒麵一盤大概八分滿，魚是清蒸鱈魚一塊。",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": null,
+        "pending_intake_followup": {
+          "meal_log_id": 804,
+          "lane_family": "estimate_with_followup",
+          "pending_question": "魚怎麼做、炒麵份量多大？"
+        },
+        "latest_linked_ids": {
+          "proposal_container_id": null,
+          "meal_log_id": 804
+        },
+        "recent_message_summaries": [
+          "assistant asked for the fish cooking method and noodle portion"
+        ],
+        "proposal_metadata": null,
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "followup_refinement",
+      "expected_target_workflow_family": "intake_followup",
+      "expected_target_object_type": "meal_log",
+      "expected_target_object_id": 804,
+      "expected_workflow_effect": "continue_followup_lane",
+      "expected_ambiguity_posture": "none",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "state_pack_insufficiency"
+    },
+    {
+      "case_id": "semantic_routing_new_topic_001",
+      "title": "New topic rather than follow-up attach",
+      "origin": "2.2k_turn2_replay_pack",
+      "case_family": "workflow_boundary_discrimination",
+      "drift_cluster": "boundary_discrimination_drift",
+      "utterance": "剛剛那個先不管，我晚餐吃了咖哩飯。",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": null,
+        "pending_intake_followup": {
+          "meal_log_id": 805,
+          "lane_family": "estimate_with_followup",
+          "pending_question": "魚怎麼做、炒麵份量多大？"
+        },
+        "latest_linked_ids": {
+          "proposal_container_id": null,
+          "meal_log_id": 805
+        },
+        "recent_message_summaries": [
+          "assistant asked for the fish cooking method and noodle portion"
+        ],
+        "proposal_metadata": null,
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "new_topic_or_new_workflow",
+      "expected_target_workflow_family": "new_topic",
+      "expected_target_object_type": "none",
+      "expected_target_object_id": null,
+      "expected_workflow_effect": "open_new_workflow",
+      "expected_ambiguity_posture": "none",
+      "state_pack_sufficiency_hint": "sufficient",
+      "provisional_hypothesis": "prompt_issue"
+    },
+    {
+      "case_id": "semantic_routing_ambiguity_001",
+      "title": "Ambiguous utterance should allow ask-clarify posture",
+      "origin": "hand_authored_founder_fit",
+      "case_family": "ambiguity_bucket",
+      "drift_cluster": "boundary_discrimination_drift",
+      "utterance": "先這樣吧。",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 510,
+          "proposal_status": "open",
+          "recommended_days": 3,
+          "daily_kcal_adjustment": 150,
+          "overshoot_kcal": 450
+        },
+        "pending_intake_followup": {
+          "meal_log_id": 806,
+          "lane_family": "estimate_with_followup",
+          "pending_question": "杯型、糖冰和加料是什麼？"
+        },
+        "latest_linked_ids": {
+          "proposal_container_id": 510,
+          "meal_log_id": 806
+        },
+        "recent_message_summaries": [
+          "assistant proposed a 3-day rescue plan",
+          "assistant also asked a pending intake follow-up in the same chat thread"
+        ],
+        "proposal_metadata": {
+          "proposal_type": "rescue",
+          "proposal_status": "open"
+        },
+        "thin_reason_bridge": null
+      },
+      "expected_semantic_family": "proposal_general_inquiry",
+      "expected_target_workflow_family": "rescue_proposal",
+      "expected_target_object_type": "proposal_container",
+      "expected_target_object_id": 510,
+      "expected_workflow_effect": "ask_clarify_before_mutation",
+      "expected_ambiguity_posture": "allow_uncertain",
+      "state_pack_sufficiency_hint": "possibly_insufficient_for_disambiguation",
+      "provisional_hypothesis": "inherently_ambiguous_case"
+    }
+  ]
+}

@@ -46,6 +46,9 @@ jobs:
       - name: Run audit fixture safety check
         run: python scripts/check_audit_fixture_safety.py
 
+      - name: Run official text-surface mojibake guard
+        run: python scripts/check_official_text_surface_mojibake.py
+
       - name: Run user-facing mojibake guard
         run: python scripts/check_user_facing_mojibake.py
 

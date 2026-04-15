@@ -843,12 +843,16 @@ Each slice entry must define at least:
   - proactive rescue and explicit reactive rescue use the same single-plan response contract
   - plan intensity can be shortened or extended within the configured guardrails
   - accept marks the rescue proposal accepted and applies the persisted rescue overlay payload to ledger writeback
+  - defer keeps the proposal pending, sets a 12-hour reminder boundary, and keeps UI mirror-only state readable
+  - reject/defer reasons only create a thin bridge artifact for later personalization work; they do not imply `2.7` memory/retrieval deepening is implemented
   - rescue exposes a dedicated web/chat route without mixing rescue into intake routes
   - UI remains mirror-only and does not become the primary interaction surface
 - `required_tests[]`:
   - surface gate regression
   - single-plan response rendering regression
   - shorten / extend guardrail regression
+  - defer reminder regression
+  - thin reason-bridge regression
   - reject / explain action regression
   - accept-side overlay writeback regression
   - rescue route integration regression
@@ -974,4 +978,186 @@ Each slice entry must define at least:
   - no-proposal-on-low-quality-data regression
 - `benchmark_seed_required`: `false`
 - `handoff_required`: `true`
+- `parallelizable_with[]`: `[]`
+
+### 2.7 Memory / Retrieval Deepening
+
+#### Slice `2.7a-semantic-routing-eval-foundation`
+
+- `parent_workflow_id`: `2.7-memory-retrieval-deepening`
+- `title`: `Semantic routing eval foundation`
+- `goal`: turn open-world chat semantic judgment into a file-backed, state-pack-based evaluation problem before any production semantic-router implementation or durable memory deepening begins
+- `depends_on_slices[]`:
+  - `2.5d-rescue-response-surface`
+  - `2.2k-turn2-closure-complete-pack-tightening`
+- `required_truth_docs[]`:
+  - `docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`
+  - `docs/quality/L5A_EVAL_SPEC.md`
+  - `docs/quality/BENCHMARK_CASE_SCHEMA.md`
+  - `AGENTS.md`
+- `allowed_touch_areas[]`:
+  - `docs/quality/*semantic*routing*`
+  - `docs/quality/benchmarks/semantic_routing/*`
+  - `docs/quality/AUDIT_RUNNER_REGISTRY.json`
+  - `docs/quality/AUDIT_FIXTURE_REGISTRY.json`
+  - `scripts/run_semantic_routing_eval.py`
+  - targeted audit/harness helpers only if needed for the new runner
+  - `tests/test_semantic_routing_eval_foundation.py`
+- `forbidden_touch_areas[]`:
+  - production intake/rescue/calibration routing logic
+  - `app/usecases/text_meal.py`
+  - `app/routes.py`
+  - `app/schemas.py`
+  - durable memory write paths
+  - retrieval selector / reranker implementation
+  - style-personalization runtime
+- `state_dependencies`: open rescue proposal summary, pending intake follow-up summary, latest linked identifiers, thin reject/defer reason bridge, minimal recent message summaries
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - an official semantic-routing taxonomy exists for founder-fit chat utterances
+  - a file-backed founder-fit benchmark pack exists with both rescue-bound and intake-followup-bound cases
+  - the eval foundation uses a minimal state pack rather than full transcript replay
+  - the runner emits predicted semantic family, workflow family, target attachment, workflow effect, and full trace artifacts
+  - ambiguous cases remain visible in the benchmark pack instead of being hidden behind deterministic routing overrides
+  - the checked-in docs explicitly note that the repo does not yet define a canonical `conversation_style_profile` / `sour.md` equivalent, and that style adaptation is a later `2.7` extension
+- `required_tests[]`:
+  - semantic-routing benchmark pack shape validation
+  - semantic-routing runner summary/oracle contract regression
+  - audit fixture safety check for the semantic-routing pack
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+
+#### Slice `2.7b-semantic-routing-evidence-hardening`
+
+- `parent_workflow_id`: `2.7-memory-retrieval-deepening`
+- `title`: `Semantic routing evidence hardening`
+- `goal`: use the initial semantic-routing eval evidence to harden taxonomy, benchmark coverage, and drift-triage visibility without implementing a production semantic router or activating style-personalization runtime`
+- `depends_on_slices[]`:
+  - `2.7a-semantic-routing-eval-foundation`
+- `required_truth_docs[]`:
+  - `docs/specs/L4A_MEMORY_MODEL_SPEC.md`
+  - `docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`
+  - `docs/quality/SEMANTIC_ROUTING_EVAL_FOUNDATION.md`
+  - `docs/quality/L5A_EVAL_SPEC.md`
+  - `AGENTS.md`
+- `allowed_touch_areas[]`:
+  - `docs/specs/L4A_MEMORY_MODEL_SPEC.md`
+  - `docs/quality/*semantic*routing*`
+  - `docs/quality/benchmarks/semantic_routing/*`
+  - `scripts/run_semantic_routing_eval.py`
+  - `tests/test_semantic_routing_eval_foundation.py`
+  - semantic-routing audit fixture/runner registry entries only if needed
+- `forbidden_touch_areas[]`:
+  - production intake/rescue/calibration routing logic
+  - `app/usecases/text_meal.py`
+  - `app/routes.py`
+  - `app/schemas.py`
+  - durable memory write paths
+  - retrieval selector / reranker implementation
+  - style-personalization runtime
+- `state_dependencies`: semantic-routing state pack, thin reject/defer reason bridge, founder-fit rescue and intake-followup active-state summaries, drift-cluster triage metadata
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - `sour.md` / style-profile concept is recorded in repo truth only as a dormant extension note
+  - founder-fit semantic-routing pack expands with high-value boundary and ambiguity cases without widening into unrelated domains
+  - eval output emits drift triage by failure cluster, mismatch type, ambiguity posture, and state-pack sufficiency
+  - live failures are reviewable by cluster and provisional hypothesis instead of remaining a black box
+  - no deterministic semantic override table is introduced
+- `required_tests[]`:
+  - expanded semantic-routing benchmark pack shape validation
+  - semantic-routing triage contract regression
+  - mock semantic-routing regression with ambiguity case coverage
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+
+#### Slice `2.7c-official-text-surface-mojibake-guard-hardening`
+
+- `parent_workflow_id`: `2.7-memory-retrieval-deepening`
+- `title`: `Official text-surface mojibake guard hardening`
+- `goal`: harden the repository's official benchmark, eval, script, and user-facing text surfaces against UTF-8-readable but semantically corrupted mojibake without opening production routing or style-personalization runtime`
+- `depends_on_slices[]`:
+  - `2.7b-semantic-routing-evidence-hardening`
+- `required_truth_docs[]`:
+  - `docs/quality/HARNESS_EXECUTION_POLICY.md`
+  - `docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`
+  - `AGENTS.md`
+- `allowed_touch_areas[]`:
+  - `scripts/*mojibake*`
+  - `scripts/audit_io_guard.py`
+  - `scripts/check_audit_fixture_safety.py`
+  - `docs/quality/*GUARD*.json`
+  - `.githooks/pre-commit`
+  - `.github/workflows/ci.yml`
+  - targeted guard tests
+  - minimal execution-truth sync
+- `forbidden_touch_areas[]`:
+  - production intake/rescue/calibration routing logic
+  - retrieval selector / reranker implementation
+  - style-personalization runtime
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: official audit fixture registry, official audit runner registry, benchmark text fields, user-facing string surfaces, UTF-8 family enforcement
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - official benchmark fixtures, eval runners, and targeted tests are covered by a shared official text-surface guard
+  - fixture safety blocks semantic corruption in high-risk text fields such as `title`, `utterance`, `pending_question`, and `note`
+  - pre-commit and CI enforce the new official text-surface guard
+  - the existing user-facing mojibake guard continues to pass on clean rescue surfaces
+  - no production routing or semantic-judgment logic is changed
+- `required_tests[]`:
+  - official text-surface guard regression
+  - audit fixture semantic-field corruption regression
+  - existing user-facing mojibake guard regression
+- `benchmark_seed_required`: `false`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+
+#### Slice `2.7d-semantic-routing-prompt-state-pack-hardening`
+
+- `parent_workflow_id`: `2.7-memory-retrieval-deepening`
+- `title`: `Semantic routing prompt/state-pack hardening`
+- `goal`: use the 2.7b drift clusters on top of the now-guarded official text surfaces to tighten semantic-routing prompts, target vocabulary, and state-pack sufficiency without implementing a production semantic router or introducing deterministic semantic overrides`
+- `depends_on_slices[]`:
+  - `2.7b-semantic-routing-evidence-hardening`
+  - `2.7c-official-text-surface-mojibake-guard-hardening`
+- `required_truth_docs[]`:
+  - `docs/quality/SEMANTIC_ROUTING_EVAL_FOUNDATION.md`
+  - `docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`
+  - `docs/specs/L4A_MEMORY_MODEL_SPEC.md`
+  - `docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md`
+  - `AGENTS.md`
+- `allowed_touch_areas[]`:
+  - `docs/quality/*semantic*routing*`
+  - `docs/quality/benchmarks/semantic_routing/*`
+  - `scripts/run_semantic_routing_eval.py`
+  - targeted semantic-routing eval fixtures/tests
+  - semantic-routing prompt/state-pack builder code only if required by the eval contract
+  - minimal execution-truth sync
+- `forbidden_touch_areas[]`:
+  - production intake/rescue/calibration routing logic
+  - deterministic semantic override tables
+  - retrieval selector / reranker implementation
+  - style-personalization runtime
+  - durable memory write paths
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: guarded official semantic-routing benchmark pack, drift-cluster triage artifacts, rescue action family evidence, intake follow-up continuation evidence, thin reject/defer reason bridge
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - semantic-routing live failures are reduced by prompt/state-pack and target-vocabulary improvements rather than deterministic override logic
+  - rescue action family drift is reviewable as prompt/state-pack behavior rather than a black-box aggregate failure
+  - intake follow-up continuation drift is reviewable as prompt/state-pack behavior rather than a black-box aggregate failure
+  - ambiguity buckets remain explicit instead of being collapsed into keyword heuristics
+  - response-side distinctions are not promoted into primary routing labels unless they change workflow effect or object attachment
+  - no production semantic router is introduced
+- `required_tests[]`:
+  - semantic-routing benchmark pack regression
+  - semantic-routing mock runner regression
+  - semantic-routing live eval plus drift-triage artifact generation
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `false`
 - `parallelizable_with[]`: `[]`

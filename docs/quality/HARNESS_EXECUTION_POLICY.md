@@ -20,9 +20,11 @@ These scripts are strictly enforced during the build and evaluation pipeline. Fa
 - **`docs/quality/AUDIT_RUNNER_REGISTRY.json`**: The sole registry of official formal audit runners that must obey the shared audit input contract.
 - **`docs/quality/AUDIT_FIXTURE_REGISTRY.json`**: The sole registry of official formal audit fixtures that must remain valid UTF-8 and free of mojibake-risk text.
 - **`scripts/check_audit_runner_contract.py`**: CI/pre-commit hard gate that scans the audit runner registry and ensures each listed runner still imports and invokes the shared `audit_io_guard`.
-- **`scripts/check_audit_fixture_safety.py`**: CI/pre-commit hard gate that scans the audit fixture registry and blocks corrupted or mojibake-risk formal audit inputs before any official run starts.
+- **`scripts/check_audit_fixture_safety.py`**: CI/pre-commit hard gate that scans the audit fixture registry and blocks corrupted or mojibake-risk formal audit inputs before any official run starts; fixture safety now includes semantic-field corruption checks for high-risk text keys such as `title`, `utterance`, `pending_question`, and `note`.
+- **`docs/quality/OFFICIAL_TEXT_SURFACE_GUARD_REGISTRY.json`**: The registry of official text surfaces that must stay UTF-8 and free of mojibake-risk content across benchmark fixtures, eval docs, audit/eval runners, and targeted tests.
+- **`scripts/check_official_text_surface_mojibake.py`**: CI/pre-commit hard gate that scans official text surfaces for UTF-8-readable but semantically corrupted text before review or eval runs can rely on them.
 - **`scripts/check_audit_safety.py`**: Post-run scan that detects mangled Chinese characters (`????`) or invalid UTF-8 in logs and artifacts.
-- **`scripts/check_user_facing_mojibake.py`**: CI/pre-commit hard gate that scans user-facing application/web/test surfaces for replacement characters, private-use glyphs, and known mojibake shard clusters. Intentional fixtures must be explicitly listed in `docs/quality/USER_FACING_STRING_GUARD_ALLOWLIST.json`.
+- **`scripts/check_user_facing_mojibake.py`**: CI/pre-commit hard gate that scans user-facing application/web/test surfaces for replacement characters, private-use glyphs, forbidden control characters, and mojibake-risk patterns. Intentional fixtures must be explicitly listed in `docs/quality/USER_FACING_STRING_GUARD_ALLOWLIST.json`.
 - `scripts/check_commit_format.py`
 - `scripts/check_runtime_boundaries.py`
 - diff-scoped `ruff` on touched Python files

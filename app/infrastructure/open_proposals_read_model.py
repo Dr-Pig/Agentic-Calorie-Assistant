@@ -19,7 +19,7 @@ def load_open_rescue_proposals_view(
             .where(
                 ProposalContainerRecord.user_id == user_id,
                 ProposalContainerRecord.proposal_type == "rescue",
-                ProposalContainerRecord.proposal_status == "open",
+                ProposalContainerRecord.proposal_status.in_(("open", "deferred_pending_reminder")),
             )
             .order_by(ProposalContainerRecord.created_at.desc(), ProposalContainerRecord.id.desc())
         )

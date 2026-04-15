@@ -2085,3 +2085,273 @@ It should be appended over time instead of rewritten.
 - `python -m pytest tests/test_user_facing_mojibake_guard.py tests/test_rescue_response.py tests/test_rescue_chat_surface.py tests/test_rescue_routes.py -q`
 - `python scripts/check_layer_integrity.py`
 - `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`
+
+## 2026-04-15 — `2.5d` Defer Reminder And Thin Reason Bridge Closeout
+
+### Trigger
+
+- `2.5d` still lacked a complete deferred rescue state contract, a 12-hour proactive reminder gate, and a spec-bounded bridge for reject/defer reasons
+- the user explicitly decided:
+  - defer should keep the proposal pending
+  - UI should show the proposal as pending
+  - proactive rescue should ask again after 12 hours
+  - reject/defer reasons should matter later, but `2.5d` should stop at a thin bridge rather than building full personalized memory
+
+### What Changed
+
+- completed the rescue proposal state machine additions for:
+  - `deferred_pending_reminder`
+  - reminder-due gating on proactive rescue surface
+- added `defer_rescue_plan` to the rescue chat and route action contract
+- added a thin reason bridge payload for reject/defer:
+  - `raw_reason_text`
+  - `reason_hint`
+  - `reason_source`
+  - `captured_at`
+- widened open rescue read-side loading to include deferred-but-still-open rescue proposals
+- cleaned rescue user-facing strings in the touched runtime/test surfaces so the new contract is reviewable and guard-compliant
+
+### Why This Is The Correct Boundary
+
+- it finishes the remaining `2.5d` rescue surface state semantics without inventing new product behavior
+- it keeps personalization work bounded:
+  - `2.5d` stores only a bridge artifact
+  - `2.7` remains responsible for durable contextualization and fuzzy reactive routing design
+- it preserves the chat-first product posture and UI mirror-only rule
+
+### Evidence
+
+- `python -m pytest tests/test_rescue_response.py tests/test_rescue_chat_surface.py tests/test_rescue_routes.py tests/test_open_proposals_read_model.py tests/test_rescue_runtime.py -q`
+- `python -m pytest tests/test_user_facing_mojibake_guard.py -q`
+
+## 2026-04-15 — `2.7a` Semantic Routing Eval Foundation Opened
+
+### Trigger
+
+- the user explicitly approved moving on from `2.5d` into semantic judgment work
+- the user also fixed the product posture:
+  - UI remains structured/minimal
+  - chat remains open-world and should not be hard-limited by UI action vocabulary
+  - semantic judgment must remain LLM-led rather than deterministic
+
+### What The Planning Reality Became
+
+- the next bounded branch is not production routing
+- it is an eval-first foundation for semantic routing:
+  - taxonomy
+  - minimal state pack
+  - founder-fit benchmark pack
+  - runner/oracle
+- `2.5d` is now complete enough to act as one source family for semantic-routing cases
+
+### Assumptions That Expired
+
+- "after rescue closeout, the next move should be calibration first"
+- "semantic routing can be safely specified as a deterministic action table before evidence exists"
+
+### Next-Phase Corrections
+
+- formalize `2.7a-semantic-routing-eval-foundation`
+- keep `2.7a` out of production routing logic
+- record that the repo still lacks a canonical `conversation_style_profile` / `sour.md` equivalent
+- treat style adaptation as a later `2.7` extension after semantic-routing evidence is stable
+
+### Initial Evidence
+
+- the checked-in founder-fit pack now has:
+  - mock evidence that validates the pack/oracle/runner contract
+  - an initial live provider run that records broad routing drift across the pack
+- this means `2.7a` is doing the intended job:
+  - semantic judgment is now visible and reviewable
+  - production routing should not be implemented yet
+
+## 2026-04-15 — `2.7b` Semantic Routing Evidence Hardening Selected
+
+### Trigger
+
+- `2.7a` landed the taxonomy, pack, and runner, but the first live eval exposed broad routing drift
+- the user explicitly chose to harden semantic-routing evidence next
+- the user also approved treating `sour.md` as a good idea only if it stays a dormant extension rather than an active runtime dependency
+
+### What The Planning Reality Became
+
+- the next bounded step is not production routing
+- it is evidence hardening:
+  - repair corrupted eval artifacts
+  - expand founder-fit benchmark coverage
+  - cluster live drift into reviewable failure families
+  - emit a thin triage artifact per run
+- `sour.md` should enter repo truth only as an owner-level dormant note, not as a runtime contract
+
+### Assumptions That Expired
+
+- "after `2.7a`, the next useful move is to start wiring a semantic router"
+- "style-profile work should start before semantic-routing evidence is stable"
+- "the initial live failures can be interpreted case-by-case without a formal drift triage layer"
+
+### Next-Phase Corrections
+
+- formalize `2.7b-semantic-routing-evidence-hardening`
+- keep work inside benchmark docs, eval runner/tests, and owner-level memory truth only
+- explicitly forbid deterministic keyword-router shortcuts
+- record ambiguity and state-pack insufficiency as first-class triage outputs instead of hiding them inside prompt anecdotes
+
+## 2026-04-15 — `2.7b` Drift-Triage Evidence Landed
+
+### Trigger
+
+- the initial `2.7a` semantic-routing artifacts were not yet sufficient because:
+  - the checked-in founder-fit pack and runner/test strings had suffered mojibake in shell-facing review paths
+  - live eval still returned a flat `0/12` black-box failure signal
+
+### What Changed
+
+- repaired the semantic-routing founder-fit pack, runner, and targeted tests into clean reviewable UTF-8 artifacts
+- expanded the founder-fit pack with:
+  - rescue complaint vs true reject
+  - defer vs soft not-now complaint
+  - explain request vs inquiry
+  - follow-up answer vs new intake switch
+  - one ambiguity bucket that allows `ask_clarify_before_mutation`
+- added drift-triage output to the eval runner so each run now records:
+  - `semantic_failure_cluster`
+  - mismatch types
+  - ambiguity posture
+  - state-pack sufficiency
+  - provisional hypothesis
+- added a dormant `conversation_style_profile` extension note to `L4A` rather than inventing active style runtime
+
+### Evidence
+
+- mock semantic-routing eval now passes cleanly across the expanded pack
+- live semantic-routing eval still fails broadly, but no longer as a black box:
+  - rescue action family drift
+  - intake follow-up continuation drift
+  - boundary discrimination drift
+
+### Why This Matters
+
+- the next phase can now target concrete routing/prompt/state-pack problems instead of reacting to one aggregate fail count
+- the repo has explicit proof that semantic judgment remains LLM-led and not papered over by deterministic overrides
+
+## 2026-04-15 — `2.7c` Official Text-Surface Guard Hardening Selected
+
+### Trigger
+
+- semantic-routing benchmark packs, runners, and tests were shown to be vulnerable to UTF-8-readable mojibake corruption
+- existing guards were too fragmented:
+  - markdown policy only protected docs
+  - audit fixture safety only guaranteed parseability plus weak text checks
+  - user-facing mojibake guard did not cover official benchmark/docs/script surfaces
+- the user explicitly asked for a more complete systemic defense before more semantic-routing hardening
+
+### What The Planning Reality Became
+
+- the best next bounded step is not prompt/state-pack work yet
+- it is official text-surface guard hardening:
+  - shared detector
+  - official-surface registry
+  - semantic-field fixture validation
+  - pre-commit/CI enforcement
+
+### Assumptions That Expired
+
+- "existing mojibake defense is good enough because user-facing surfaces are already guarded"
+- "fixture parseability is enough to trust semantic-routing evidence"
+
+### Next-Phase Corrections
+
+- formalize `2.7c-official-text-surface-mojibake-guard-hardening`
+- extend the guard wall to official benchmark fixtures, eval docs, runners, and targeted tests
+- keep the work entirely inside harness/safety truth
+- defer the next semantic-routing prompt/state-pack hardening wave until the official text surfaces are protected
+
+## 2026-04-15 — Rescue Closeout Reviewed; Cut To `2.7d`
+
+### Trigger
+
+- the rescue-side dirty files were inspected as a distinct `2.5d` closeout batch before further semantic-routing work
+- UTF-8-explicit inspection showed the rescue user-facing strings are not actually mojibake-corrupted bytes; the earlier concern was shell display noise
+- targeted rescue closeout tests passed across chat surface, response, routes, and open-proposal read model
+- `2.7c` guard hardening is now complete enough, so the deferred semantic-routing prompt/state-pack wave can legally resume
+
+### What The Review Established
+
+- the rescue dirty files form one coherent `2.5d` closeout cluster:
+  - defer reminder contract
+  - reject/defer reason bridge
+  - proactive reminder-due gating
+  - open proposal read-model support for deferred rescue proposals
+- no blocking implementation defect was found in that batch during targeted review
+- remaining risk is operational, not conceptual:
+  - the rescue closeout changes should be reviewed and landed as a distinct `2.5d` commit instead of being mixed into later `2.7` work
+
+### Next-Phase Corrections
+
+- formalize `2.7d-semantic-routing-prompt-state-pack-hardening`
+- move the active pointer from guard hardening to semantic-routing prompt/state-pack hardening
+- keep `2.7d` LLM-led:
+  - use prompt/state-pack and target-vocabulary improvements
+  - do not introduce deterministic semantic override tables
+
+## 2026-04-15 — `2.7d` First Hardening Wave Landed
+
+### What Changed
+
+- tightened the semantic-routing eval prompt with explicit canonical target vocabulary:
+  - `rescue_proposal`
+  - `intake_followup`
+  - `new_topic`
+- added normalized state-pack shaping so the eval LLM sees active-object descriptors and lane-family hints instead of only raw nested state
+- kept the change eval-only:
+  - no production routing rewrite
+  - no deterministic semantic override
+
+### Evidence Shift
+
+- mock eval remains green: `15/15`
+- live eval improved from `0/15` to `11/15`
+- the broad workflow-family drift is no longer the main problem
+- the remaining failures now concentrate into a small boundary-semantics group:
+  - reject vs defer
+  - inquiry vs explain
+  - complaint vs reject
+  - ambiguous `先這樣吧` handling
+
+### Why This Matters
+
+- prompt/state-pack work is now producing measurable semantic-routing gains instead of just better observability
+- the next blocker is no longer generic routing drift
+- it is product-level boundary semantics that need explicit review
+
+## 2026-04-15 — Global Routing Governance Spec Added Without Widening `2.7d`
+
+### Trigger
+
+- product review established that the remaining semantic-routing problem is no longer just prompt wording
+- the repo needed an explicit governance rule preventing response-side distinctions from being promoted into primary routing taxonomy
+- external review also showed that turning `2.7d` into a whole-product routing reset would be premature abstraction and scope drift
+
+### What Changed
+
+- added an independent governance spec:
+  - `docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md`
+- kept `2.7d` as `semantic-routing prompt/state-pack hardening`
+- synced the new rule into:
+  - `AGENTS.md`
+  - `L6E_LLM_PASS_DESIGN_POLICY_SPEC.md`
+  - `WORKFLOW_SLICE_REGISTRY.md`
+  - `CURRENT_EXECUTION_PLAN.md`
+
+### Governance Outcome
+
+- routing-vs-response boundaries are now explicit repo truth
+- anti-premature-taxonomy is now a hard governance rule instead of an implicit conversation norm
+- deterministic gates are reaffirmed as legality / structure / safety boundaries only
+- the product now has cross-workflow routing guidance without claiming a shared production head router or shared runtime pass graph
+
+### Why This Matters
+
+- future `2.7d` hardening can keep improving prompts and state packs without drifting into response-taxonomy patching
+- rescue / calibration / recommendation follow-through can later reuse the same governance rule set without being forced into intake-shaped implementation
+- the repo now records the shared principle while explicitly avoiding premature runtime abstraction

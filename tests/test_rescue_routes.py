@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from fastapi.testclient import TestClient
 
 from app.application.rescue_overlay import RescueOverlayTargetDay
@@ -122,7 +124,7 @@ def test_rescue_chat_action_route_reject_with_reason_closes_proposal() -> None:
         json={
             "user_id": user_id,
             "action": "reject_rescue_plan",
-            "reject_reason": "我這週作息很亂，先不要套補回方案。",
+            "reason": "我這幾天行程不固定，現在不想套這個節奏。",
         },
     )
 
@@ -130,3 +132,59 @@ def test_rescue_chat_action_route_reject_with_reason_closes_proposal() -> None:
     payload = response.json()
     assert payload["proposal_status"] == "rejected"
     assert payload["response"]["ui_hints"]["mode"] == "rescue_proposal_closed"
+    assert payload["response"]["ui_hints"]["reason_bridge"]["reason_hint"] == "bad_timing"
+
+
+def test_rescue_chat_action_route_defer_sets_pending_state() -> None:
+    user_id = "rescue-route-user-defer"
+    _seed_open_rescue_proposal(user_id)
+
+    response = client.post(
+        "/rescue/chat/action",
+        json={
+            "user_id": user_id,
+            "action": "defer_rescue_plan",
+            "reason": "我今天先不要，晚一點再說。",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["proposal_status"] == "deferred_pending_reminder"
+    assert payload["response"]["ui_hints"]["mode"] == "rescue_deferred_pending_reminder"
+    assert payload["response"]["ui_hints"]["next_reminder_at"] is not None
+
+
+def test_rescue_chat_route_waits_until_deferred_reminder_is_due() -> None:
+    user_id = "rescue-route-user-reminder"
+    _seed_open_rescue_proposal(user_id)
+
+    defer = client.post(
+        "/rescue/chat/action",
+        json={
+            "user_id": user_id,
+            "action": "defer_rescue_plan",
+        },
+    )
+    assert defer.status_code == 200
+
+    proactive_before_due = client.get("/rescue/chat", params={"user_id": user_id, "mode": "proactive"})
+    assert proactive_before_due.status_code == 200
+    assert proactive_before_due.json()["surfaced"] is False
+    assert proactive_before_due.json()["response"]["ui_hints"]["mode"] == "rescue_deferred_waiting"
+
+    db = SessionLocal()
+    try:
+        user = get_or_create_user(db, user_id)
+        proposal = user.proposals[-1]
+        proposal.metadata_json = {
+            **dict(proposal.metadata_json or {}),
+            "next_reminder_at": (datetime.now() - timedelta(minutes=1)).isoformat(timespec="seconds"),
+        }
+        db.commit()
+    finally:
+        db.close()
+
+    proactive_after_due = client.get("/rescue/chat", params={"user_id": user_id, "mode": "proactive"})
+    assert proactive_after_due.status_code == 200
+    assert proactive_after_due.json()["surfaced"] is True

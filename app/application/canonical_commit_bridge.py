@@ -225,7 +225,7 @@ def apply_proposal_decision_skeleton(
     if proposal is None:
         raise ValueError(f"proposal_container_id={proposal_container_id} not found")
 
-    if decision not in {"accepted", "rejected"}:
+    if decision not in {"accepted", "rejected", "deferred_pending_reminder", "closed_expired"}:
         raise ValueError(f"unsupported proposal decision: {decision}")
 
     proposal.proposal_status = decision

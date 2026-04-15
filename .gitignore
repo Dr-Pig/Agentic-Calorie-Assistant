@@ -19,6 +19,7 @@ runtime/
 *.log
 *.jsonl
 *.json
+!docs/quality/benchmarks/semantic_routing/semantic_routing_founder_fit_pack_v1.json
 *.json.gz
 *.jsonl.gz
 *.sqlite
