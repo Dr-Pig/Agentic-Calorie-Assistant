@@ -38,7 +38,15 @@ Default planner path is:
 - `EXECUTION_OPERATING_MODEL.md` is the execution-governance owner doc
 - task and handoff docs are exception tools, not default routing
 
-If the dashboard says execution is at a human gate, stop there unless the user explicitly changes that gate.
+If the dashboard says execution is at a human gate, stop only when the gate is a high-impact gate:
+- global pass / architecture decisions
+- new cross-workflow product semantics
+- new `Utterance-Governed Suite` official canonical truth
+
+Otherwise, continue execution by default.
+Official suite authoring, runner work, registry work, fixture work, promotion, regression, plumbing, and other non-semantic follow-through should continue unless the dashboard explicitly marks them blocked.
+
+When work is bounded, non-semantic, and parallelizable, prefer worker/delegation posture over keeping all implementation and verification on the main thread.
 If the planner is selecting the next slice, the default planner path above is required reading, not a conditional governance read.
 
 ## Hard Rules Summary

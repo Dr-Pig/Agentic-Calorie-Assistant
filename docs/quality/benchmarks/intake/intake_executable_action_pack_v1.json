@@ -92,7 +92,8 @@
         "seed_kind": "active_followup_meal_thread",
         "seed_payload": {
           "meal_thread_id": 801,
-          "followup_lane_family": "ask_followup_only"
+          "followup_lane_family": "ask_followup_only",
+          "seed_canonical_lineage": true
         }
       },
       "expected_runtime_outcome": {

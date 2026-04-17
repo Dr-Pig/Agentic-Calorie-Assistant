@@ -514,3 +514,83 @@ calibration 與 recommendation 先只定：
 4. 是否存在 premature taxonomy overreach
 
 若未完成此檢查，則該 slice 的 routing design 視為未完整定義。
+
+---
+
+## 11. Workflow Routing Pass 架構決定
+
+### 11.1 Intake Pass 1 與全局 routing 的關係
+
+目前 intake 的 `task_meal_link_pass`（Pass 1）負責：
+
+- 判斷 utterance 是否為 intake-related
+- 連結到哪個 MealThread
+- 解析 occurred_at 語意
+- 拆分多個 intake units
+
+這個 pass 的設計假設輸入已經是 intake。它不是全局 router，不應被擴充成全局 router。
+
+### 11.2 正式決定：加一層薄的 `workflow_routing_pass`
+
+在 intake Pass 1 之前，加一個輕量的 `workflow_routing_pass`，作為全局 first-layer routing。
+
+**它只做一件事**：判斷這個 utterance 屬於哪個 workflow family，輸出 `target_workflow_family` 和 `disposition`。
+
+**它不做的事**：
+
+- 不做 intake 內部的 boundary 判斷（那是 intake Pass 1 的工作）
+- 不做 nutrition resolution
+- 不做 proposal shaping
+- 不做任何 state mutation
+
+**Input**：
+
+- `raw_user_input`
+- `active_open_rescue_proposal`（若有）
+- `pending_intake_followup`（若有）
+- `active_body_plan_summary`
+- `recent_message_summary`（最近 2-3 則）
+
+**Output**（`WorkflowRoutingResult`）：
+
+- `target_workflow_family`：`intake` / `rescue` / `calibration` / `recommendation` / `body_observation` / `general_chat`
+- `disposition`：`create` / `continue` / `accept` / `reject` / `defer` / `adjust` / `answer_only` / `open_new_workflow`
+- `routing_confidence`：`high` / `medium` / `low`
+- `ambiguity_posture`：`none` / `allow_uncertain`
+
+**Logical model role**：`fast_router_model`
+
+**Decision mode**：`llm`
+
+### 11.3 各 workflow 的 Pass 1 保持不變
+
+`workflow_routing_pass` 輸出後，各 workflow 的 Pass 1 接手：
+
+- `intake` → `task_meal_link_pass`（現有 Pass 1，不變）
+- `rescue` → `rescue_trigger_pass`（現有，不變）
+- `calibration` → `observation_ingest` 或 `proposal_gate`（現有，不變）
+- `recommendation` → `recommendation_context_pass`（現有，不變）
+- `general_chat` → 直接進 `response_writer_model`（1 pass，讀 `CurrentBudgetView` + `ActiveBodyPlanView`）
+- `body_observation` → 直接寫入，0 pass
+
+### 11.4 General Chat Workflow
+
+`general_chat` 是一個 1-pass workflow，使用 `response_writer_model`。
+
+它可以回答：
+
+- 「我今天還能吃多少」→ 讀 `CurrentBudgetView`
+- 「我的目標是什麼」→ 讀 `ActiveBodyPlanView`
+- 「這個 APP 怎麼用」→ 讀 product knowledge
+
+它不做：
+
+- 不 commit 任何 canonical state
+- 不觸發 intake、rescue、calibration flow
+- 不建立 proposal
+
+### 11.5 與 2.7d semantic routing 的關係
+
+`2.7d` 的 prompt/state-pack hardening 工作就是在強化 `workflow_routing_pass` 的準確性。
+
+`workflow_routing_pass` 是 `2.7e` slice 的實作目標，不是 intake Pass 1 的延伸。

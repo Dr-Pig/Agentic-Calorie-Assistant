@@ -6,7 +6,10 @@
     "authority_tier": "Official Golden",
     "workflow_family": "intake",
     "capability_family": "intake_runtime",
-    "validation_layer": "workflow_canonical_action"
+    "validation_layer": "workflow_canonical_action",
+    "suite_archetype": "executable_workflow",
+    "approval_mode": "agent_allowed",
+    "truth_source": "canonical_spec_derivation"
   },
   {
     "path": "scripts/run_turn2_hybrid_replay.py",
@@ -15,7 +18,10 @@
     "authority_tier": "Official Golden",
     "workflow_family": "intake",
     "capability_family": "intake_runtime",
-    "validation_layer": "cross_turn_progression"
+    "validation_layer": "cross_turn_progression",
+    "suite_archetype": "executable_workflow",
+    "approval_mode": "agent_allowed",
+    "truth_source": "canonical_spec_derivation"
   },
   {
     "path": "scripts/run_semantic_routing_eval.py",
@@ -24,6 +30,33 @@
     "authority_tier": "Provisional Exploratory",
     "workflow_family": "cross_workflow",
     "capability_family": "semantic_routing_boundary",
-    "validation_layer": "cross_workflow_boundary"
+    "validation_layer": "cross_workflow_boundary",
+    "suite_archetype": "utterance_governed",
+    "approval_mode": "agent_allowed",
+    "truth_source": "product_semantic_decision"
+  },
+  {
+    "path": "scripts/run_rescue_executable_pack.py",
+    "audit_name": "rescue_executable_action",
+    "suite_id": "rescue_runtime_smoke_v1",
+    "authority_tier": "Smoke / Infra",
+    "workflow_family": "rescue",
+    "capability_family": "rescue_runtime",
+    "validation_layer": "smoke_infra",
+    "suite_archetype": "executable_workflow",
+    "approval_mode": "agent_allowed",
+    "truth_source": "runtime_contract_derivation"
+  },
+  {
+    "path": "scripts/run_intake_executable_pack.py",
+    "audit_name": "intake_executable_pack",
+    "suite_id": "intake_runtime_smoke_v1",
+    "authority_tier": "Smoke / Infra",
+    "workflow_family": "intake",
+    "capability_family": "intake_runtime",
+    "validation_layer": "smoke_infra",
+    "suite_archetype": "executable_workflow",
+    "approval_mode": "agent_allowed",
+    "truth_source": "runtime_contract_derivation"
   }
 ]

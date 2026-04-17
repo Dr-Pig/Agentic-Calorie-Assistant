@@ -25,6 +25,38 @@ RESCUE_OFFICIAL_PACK_PATH = (
     / "rescue"
     / "rescue_official_canonical_pack_v1.json"
 )
+AGENT_ALLOWED_PACKS = (
+    (
+        ROOT
+        / "docs"
+        / "quality"
+        / "benchmarks"
+        / "retrieval"
+        / "retrieval_candidate_selection_golden_v1.json",
+        "retrieval_candidate_selection_golden_v1",
+        "capability_service",
+    ),
+    (
+        ROOT
+        / "docs"
+        / "quality"
+        / "benchmarks"
+        / "context"
+        / "context_packing_sufficiency_golden_v1.json",
+        "context_packing_sufficiency_golden_v1",
+        "capability_service",
+    ),
+    (
+        ROOT
+        / "docs"
+        / "quality"
+        / "benchmarks"
+        / "fallback"
+        / "bounded_repair_gate_golden_v1.json",
+        "bounded_repair_gate_golden_v1",
+        "capability_service",
+    ),
+)
 
 ALLOWED_AUTHORITY_TIERS = {
     "Official Golden",
@@ -47,7 +79,24 @@ REQUIRED_METADATA_FIELDS = (
     "workflow_family",
     "capability_family",
     "validation_layer",
+    "suite_archetype",
+    "approval_mode",
+    "truth_source",
 )
+ALLOWED_SUITE_ARCHETYPES = {
+    "utterance_governed",
+    "executable_workflow",
+    "capability_service",
+}
+ALLOWED_APPROVAL_MODES = {
+    "user_required",
+    "agent_allowed",
+}
+ALLOWED_TRUTH_SOURCES = {
+    "product_semantic_decision",
+    "canonical_spec_derivation",
+    "runtime_contract_derivation",
+}
 
 
 def _load_json(path: Path) -> object:
@@ -73,6 +122,9 @@ def test_audit_registries_include_l5d_metadata() -> None:
 
             assert entry["authority_tier"] in ALLOWED_AUTHORITY_TIERS
             assert entry["validation_layer"] in ALLOWED_VALIDATION_LAYERS
+            assert entry["suite_archetype"] in ALLOWED_SUITE_ARCHETYPES
+            assert entry["approval_mode"] in ALLOWED_APPROVAL_MODES
+            assert entry["truth_source"] in ALLOWED_TRUTH_SOURCES
 
 
 def test_workflow_official_packs_are_promoted_canonical_artifacts() -> None:
@@ -85,6 +137,9 @@ def test_workflow_official_packs_are_promoted_canonical_artifacts() -> None:
         assert payload["pack_mode"] == "official_canonical"
         assert payload["authority_level"] == "canonical"
         assert payload["approval_status"] == "batch_1_approved"
+        assert payload["suite_archetype"] == "utterance_governed"
+        assert payload["approval_mode"] == "user_required"
+        assert payload["truth_source"] == "product_semantic_decision"
         canonical_primary_oracle_fields = payload["canonical_primary_oracle_fields"]
         assert canonical_primary_oracle_fields in (
             [
@@ -133,3 +188,22 @@ def test_workflow_official_packs_are_promoted_canonical_artifacts() -> None:
 
 def test_suite_promotion_contract_passes_for_intake_and_rescue() -> None:
     assert check_suite_promotion_contract.main() == 0
+
+
+def test_agent_allowed_official_packs_are_non_semantic_derivations() -> None:
+    for pack_path, expected_pack_id, expected_archetype in AGENT_ALLOWED_PACKS:
+        payload = _load_json(pack_path)
+        assert payload["pack_id"] == expected_pack_id
+        assert payload["pack_mode"] == "official_canonical"
+        assert payload["authority_level"] == "canonical"
+        assert payload["approval_mode"] == "agent_allowed"
+        assert payload["truth_source"] == "canonical_spec_derivation"
+        assert payload["suite_archetype"] == expected_archetype
+        assert payload["approval_status"] == "agent_promoted_v1"
+        assert payload["cases"]
+        for case in payload["cases"]:
+            assert not case.get("promoted_from_candidate_case_id")
+            assert isinstance(case["derivation_basis"], list)
+            assert case["derivation_basis"]
+            assert isinstance(case["expected_service_outcome"], dict)
+            assert case["expected_service_outcome"]

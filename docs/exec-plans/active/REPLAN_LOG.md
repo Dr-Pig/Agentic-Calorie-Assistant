@@ -38,6 +38,17 @@ It should be appended over time instead of rewritten.
 - keep semantic-routing artifacts in their provisional/official lanes, but stop treating them as the whole benchmark backbone
 - promote the first approved intake/rescue candidate batches into workflow-specific official canonical packs once review decisions exist
 - derive workflow-specific executable action-pack contracts from approved official utterance packs without upgrading those derived artifacts into new product-truth sources
+- define suite archetypes so the utterance-governed tri-layer pattern is only used where official utterance truth and executable runtime input genuinely diverge
+- shrink the human gate to high-impact-only, so non-semantic official follow-through defaults to autonomous execution and worker-worthy delegation instead of planner-local stoppage
+
+## 2026-04-18 — `2.7d` Autonomous Follow-Through Wave Landed
+
+- converted the new suite-governance layer into agent-runnable surfaces instead of stopping at docs-only governance
+- added first `agent_allowed` official capability/service packs for retrieval candidate selection, context-packing sufficiency, and bounded-repair gate behavior
+- added benchmark artifact templates plus a scaffolding helper so future suite expansion does not require hand-built JSON each time
+- activated runnable executable workflow smoke lanes for rescue and intake, with metadata-discoverable runner/fixture registration
+- added suite-wave orchestration so the current executable smoke lanes can be planned and executed by `suite_id` / `workflow_family` filters rather than manual script memory
+- kept the remaining human gate limited to new architecture, new cross-workflow product semantics, and new utterance-governed official truth
 
 ## 2026-04-16 — Semantic-Routing Benchmark Authority Split
 

@@ -6,7 +6,10 @@
     "authority_tier": "Official Golden",
     "workflow_family": "intake",
     "capability_family": "intake_runtime",
-    "validation_layer": "workflow_canonical_action"
+    "validation_layer": "workflow_canonical_action",
+    "suite_archetype": "executable_workflow",
+    "approval_mode": "agent_allowed",
+    "truth_source": "canonical_spec_derivation"
   },
   {
     "path": "docs/quality/benchmarks/intake/multi_turn/turn2_hybrid_replay_pack_v1.json",
@@ -15,7 +18,10 @@
     "authority_tier": "Official Golden",
     "workflow_family": "intake",
     "capability_family": "intake_runtime",
-    "validation_layer": "cross_turn_progression"
+    "validation_layer": "cross_turn_progression",
+    "suite_archetype": "executable_workflow",
+    "approval_mode": "agent_allowed",
+    "truth_source": "canonical_spec_derivation"
   },
   {
     "path": "docs/quality/benchmarks/intake/intake_official_canonical_pack_v1.json",
@@ -24,7 +30,10 @@
     "authority_tier": "Official Golden",
     "workflow_family": "intake",
     "capability_family": "intake_runtime",
-    "validation_layer": "workflow_canonical_action"
+    "validation_layer": "workflow_canonical_action",
+    "suite_archetype": "utterance_governed",
+    "approval_mode": "user_required",
+    "truth_source": "product_semantic_decision"
   },
   {
     "path": "docs/quality/benchmarks/rescue/rescue_official_canonical_pack_v1.json",
@@ -33,7 +42,34 @@
     "authority_tier": "Official Golden",
     "workflow_family": "rescue",
     "capability_family": "rescue_runtime",
-    "validation_layer": "workflow_canonical_action"
+    "validation_layer": "workflow_canonical_action",
+    "suite_archetype": "utterance_governed",
+    "approval_mode": "user_required",
+    "truth_source": "product_semantic_decision"
+  },
+  {
+    "path": "docs/quality/benchmarks/intake/intake_executable_action_pack_v1.json",
+    "type": "json",
+    "suite_id": "intake_runtime_smoke_v1",
+    "authority_tier": "Smoke / Infra",
+    "workflow_family": "intake",
+    "capability_family": "intake_runtime",
+    "validation_layer": "smoke_infra",
+    "suite_archetype": "executable_workflow",
+    "approval_mode": "agent_allowed",
+    "truth_source": "runtime_contract_derivation"
+  },
+  {
+    "path": "docs/quality/benchmarks/rescue/rescue_executable_action_pack_v1.json",
+    "type": "json",
+    "suite_id": "rescue_runtime_smoke_v1",
+    "authority_tier": "Smoke / Infra",
+    "workflow_family": "rescue",
+    "capability_family": "rescue_runtime",
+    "validation_layer": "smoke_infra",
+    "suite_archetype": "executable_workflow",
+    "approval_mode": "agent_allowed",
+    "truth_source": "runtime_contract_derivation"
   },
   {
     "path": "docs/quality/benchmarks/semantic_routing/semantic_routing_founder_fit_pack_v1.json",
@@ -42,7 +78,10 @@
     "authority_tier": "Provisional Exploratory",
     "workflow_family": "cross_workflow",
     "capability_family": "semantic_routing_boundary",
-    "validation_layer": "cross_workflow_boundary"
+    "validation_layer": "cross_workflow_boundary",
+    "suite_archetype": "utterance_governed",
+    "approval_mode": "agent_allowed",
+    "truth_source": "product_semantic_decision"
   },
   {
     "path": "docs/quality/benchmarks/semantic_routing/semantic_routing_official_canonical_pack_v1.json",
@@ -51,6 +90,45 @@
     "authority_tier": "Official Golden",
     "workflow_family": "cross_workflow",
     "capability_family": "semantic_routing_boundary",
-    "validation_layer": "cross_workflow_boundary"
+    "validation_layer": "cross_workflow_boundary",
+    "suite_archetype": "utterance_governed",
+    "approval_mode": "user_required",
+    "truth_source": "product_semantic_decision"
+  },
+  {
+    "path": "docs/quality/benchmarks/retrieval/retrieval_candidate_selection_golden_v1.json",
+    "type": "json",
+    "suite_id": "retrieval_candidate_selection_golden_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "retrieval",
+    "capability_family": "retrieval_service",
+    "validation_layer": "capability_service",
+    "suite_archetype": "capability_service",
+    "approval_mode": "agent_allowed",
+    "truth_source": "canonical_spec_derivation"
+  },
+  {
+    "path": "docs/quality/benchmarks/context/context_packing_sufficiency_golden_v1.json",
+    "type": "json",
+    "suite_id": "context_packing_sufficiency_golden_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "cross_workflow",
+    "capability_family": "context_packing_service",
+    "validation_layer": "capability_service",
+    "suite_archetype": "capability_service",
+    "approval_mode": "agent_allowed",
+    "truth_source": "canonical_spec_derivation"
+  },
+  {
+    "path": "docs/quality/benchmarks/fallback/bounded_repair_gate_golden_v1.json",
+    "type": "json",
+    "suite_id": "bounded_repair_gate_golden_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "cross_workflow",
+    "capability_family": "fallback_guardrail",
+    "validation_layer": "degraded_or_fallback",
+    "suite_archetype": "capability_service",
+    "approval_mode": "agent_allowed",
+    "truth_source": "canonical_spec_derivation"
   }
 ]

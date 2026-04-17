@@ -23,7 +23,8 @@ This document is now the single owner for execution selection and execution surf
 ## Default Mode
 
 - `planner-local` is the default
-- keep work in a single stream unless delegation has clear value
+- keep high-impact semantic/architecture work in a single stream
+- do not keep bounded non-semantic follow-through in a single stream by default when delegation has clear value
 - use docs as retrieval targets, not preload targets
 - prefer code and harness truth over narrative status writing
 
@@ -90,13 +91,21 @@ If the best legal next slice is blocked by a human semantics gate:
 - only redirect to another legal branch when the global build state in `CURRENT_EXECUTION_PLAN.md` explicitly identifies that branch as the current best-next path
 - if no such branch is already justified, re-plan before continuing
 
+High-impact human gates are limited to:
+
+- global pass / architecture decisions
+- new cross-workflow product semantics
+- new `Utterance-Governed Suite` official canonical truth
+
+Do not treat ordinary `Official Golden` follow-through, runner activation, registry work, fixture work, regression work, or other non-semantic execution as human-gated by default.
+
 ## Autonomy Boundary
 
 The planner may continue local implementation when:
 
 - the next slice is already legal
 - the next slice is already selected as best-next in the execution dashboard
-- no human semantics gate is active
+- no high-impact human semantics gate is active
 - the write boundary is bounded enough to verify
 
 The planner must stop or replan when:
@@ -128,6 +137,26 @@ Treat a slice as worker-worthy only when most are true:
 - the worker can return in a standard format
 
 Worker value is context isolation, not ceremony.
+
+### Worker-First Default For Non-Semantic Follow-Through
+
+When a slice is already semantically settled and the remaining work is primarily:
+
+- registry / fixture / runner extension
+- migration mapping
+- executable-pack derivation
+- mechanical promotion
+- regression / verification authoring
+- docs sync without new product semantics
+
+prefer worker-worthy delegation whenever the write scopes can be cleanly separated.
+
+Keep the main thread for:
+
+- architecture decisions
+- product-semantics decisions
+- utterance-governed official truth
+- integration and final review
 
 ## Execution Loop
 

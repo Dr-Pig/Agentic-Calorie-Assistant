@@ -27,6 +27,7 @@
 - **Spec**：[`L0A_ONBOARDING_FLOW_SPEC.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L0A_ONBOARDING_FLOW_SPEC.md)
 - **前提**：無，是最早需要就位的 flow。
 - **產出**：active `BodyPlan`、初始 `DayBudgetLedger`、`safety_floor_kcal`。
+- **Pass count**：0 pass（UI 表單 deterministic 計算），chat 更新走 `general_chat` workflow（1 pass）
 - **邊界**：
   - onboarding 未完成時，intake logging 仍可運作，但不顯示預算、不觸發 rescue / calibration。
   - onboarding 不是 2.1-2.9 的一部分，但 2.1 之後的所有 budget-aware 功能都依賴 onboarding 產出的 `BodyPlan`。
@@ -79,6 +80,12 @@
     *   Negative memory (負面偏好與過敏紀錄)
     *   Golden orders (黃金常規餐點)
     *   Selector/Reranker (AI 選擇與重排序引擎)
+*   **Pass count 決定**：
+    *   `workflow_routing_pass`：1 pass（`fast_router_model`），全局 pre-pass，在所有 workflow 之前執行
+    *   `general_chat` workflow：1 pass（`response_writer_model`），讀 `CurrentBudgetView` + `ActiveBodyPlanView`
+    *   L2a statistical pattern consolidation：0 pass（deterministic nightly job）
+    *   L2b semantic pattern extraction：1 pass（`strict_reasoner_model`），觸發條件：21 筆新 MealItem + 7 天間隔
+    *   confirmed memory upgrade：1 pass（`strict_reasoner_model`），觸發條件：reinforcement_count ≥ 5 + confidence ≥ 0.8
 
 ### 2.8 推薦系統 (Recommendation)
 **定位：依據記憶與現有餘額的主動建議。**

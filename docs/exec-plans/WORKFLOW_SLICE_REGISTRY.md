@@ -36,6 +36,19 @@ Each slice entry must define at least:
 - `benchmark_seed_required`
 - `handoff_required`
 - `parallelizable_with[]`
+- `delegation_mode`
+- `default_worker_posture`
+
+`delegation_mode` must use one of:
+
+- `single_threaded_decision_work`
+- `parallelizable_implementation`
+- `parallelizable_verification`
+
+`default_worker_posture` should make the default execution bias explicit:
+
+- keep semantic/product truth on the main thread
+- prefer workers for bounded non-semantic follow-through
 
 ## Initial Slice Set
 
@@ -1153,6 +1166,8 @@ Each slice entry must define at least:
   - intake follow-up continuation drift is reviewable as prompt/state-pack behavior rather than a black-box aggregate failure
   - ambiguity buckets remain explicit instead of being collapsed into keyword heuristics
   - response-side distinctions are not promoted into primary routing labels unless they change workflow effect or object attachment
+  - suite-governance follow-through yields agent-allowed official capability/service packs plus executable workflow runners without introducing new product semantics
+  - orchestration can discover and run the current executable workflow smoke lane by `suite_id` / `workflow_family` metadata instead of ad hoc script memory
   - no production semantic router is introduced
 - `required_tests[]`:
   - semantic-routing benchmark pack regression
@@ -1161,3 +1176,552 @@ Each slice entry must define at least:
 - `benchmark_seed_required`: `true`
 - `handoff_required`: `false`
 - `parallelizable_with[]`: `[]`
+- `delegation_mode`: `parallelizable_implementation`
+- `default_worker_posture`: `keep semantic/product truth local, but prefer workers for bounded registry, runner, fixture, executable-pack, regression, and docs follow-through`
+
+#### Slice `2.7e-workflow-routing-pass-foundation`
+
+- `parent_workflow_id`: `2.7-memory-retrieval-deepening`
+- `title`: `Workflow routing pass foundation`
+- `goal`: implement the global `workflow_routing_pass` as a thin pre-pass that routes utterances to the correct workflow family before any domain-specific pass runs, replacing the current implicit assumption that all input is intake
+- `depends_on_slices[]`:
+  - `2.7d-semantic-routing-prompt-state-pack-hardening`
+- `required_truth_docs[]`:
+  - `docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md`
+  - `docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md`
+  - `docs/specs/L3T_TYPED_RUNTIME_CONTRACT_SPEC.md`
+  - `docs/quality/SEMANTIC_ROUTING_EVAL_FOUNDATION.md`
+  - `AGENTS.md`
+- `allowed_touch_areas[]`:
+  - `app/application/workflow_routing_pass.py`
+  - `app/application/pass_runner.py`
+  - `app/usecases/text_meal.py` only for thin wiring to new routing pass
+  - `tests/test_workflow_routing_pass.py`
+- `forbidden_touch_areas[]`:
+  - intake pass internals
+  - rescue pass internals
+  - calibration pass internals
+  - recommendation pass internals
+  - deterministic semantic override tables
+  - `app/routes.py`
+  - `app/schemas.py`
+- `state_dependencies`: open rescue proposal summary, pending intake followup summary, active body plan summary, recent message summary
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - `workflow_routing_pass` outputs `target_workflow_family`, `disposition`, `routing_confidence`, `ambiguity_posture`
+  - intake, rescue, calibration, recommendation, body_observation, general_chat are all legal `target_workflow_family` values
+  - routing pass uses `fast_router_model`, not `strict_reasoner_model`
+  - routing pass does not do intake boundary splitting or nutrition resolution
+  - existing intake flow still works when routing pass outputs `target_workflow_family: intake`
+  - general_chat utterances route correctly without entering intake flow
+- `required_tests[]`:
+  - routing pass output schema regression
+  - intake routing regression
+  - rescue routing regression
+  - general_chat routing regression
+  - ambiguous utterance routing regression
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `true`
+- `parallelizable_with[]`: `[]`
+- `delegation_mode`: `single_threaded_decision_work`
+- `default_worker_posture`: `keep semantic/product truth local`
+
+#### Slice `2.7f-general-chat-workflow`
+
+- `parent_workflow_id`: `2.7-memory-retrieval-deepening`
+- `title`: `General chat workflow`
+- `goal`: implement the general_chat workflow as a 1-pass response that reads CurrentBudgetView and ActiveBodyPlanView to answer product-related questions without entering any domain-specific flow
+- `depends_on_slices[]`:
+  - `2.7e-workflow-routing-pass-foundation`
+- `required_truth_docs[]`:
+  - `docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md`
+  - `docs/specs/L3T_TYPED_RUNTIME_CONTRACT_SPEC.md`
+  - `docs/specs/L3_5_PROMPT_CONTRACT_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/general_chat_pass.py`
+  - `app/application/pass_runner.py`
+  - `tests/test_general_chat_workflow.py`
+- `forbidden_touch_areas[]`:
+  - intake pass internals
+  - rescue pass internals
+  - calibration pass internals
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: `CurrentBudgetView`, `ActiveBodyPlanView`
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - general_chat uses `response_writer_model`, 1 pass
+  - can answer budget-related questions using `CurrentBudgetView`
+  - can answer goal-related questions using `ActiveBodyPlanView`
+  - does not commit any canonical state
+  - does not trigger intake, rescue, or calibration flow
+- `required_tests[]`:
+  - general_chat budget query regression
+  - general_chat goal query regression
+  - no-state-mutation regression
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+- `delegation_mode`: `parallelizable_implementation`
+- `default_worker_posture`: `workers handle implementation; keep product truth local`
+
+#### Slice `2.7g-memory-statistical-pattern-foundation`
+
+- `parent_workflow_id`: `2.7-memory-retrieval-deepening`
+- `title`: `Memory statistical pattern foundation (L2a)`
+- `goal`: implement the deterministic L2a statistical pattern aggregation that produces PreferenceProfileSummary from MealItem history, triggered by nightly consolidation
+- `depends_on_slices[]`:
+  - `2.7e-workflow-routing-pass-foundation`
+- `required_truth_docs[]`:
+  - `docs/specs/L4A_MEMORY_MODEL_SPEC.md`
+  - `docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md`
+  - `docs/specs/L2_DATA_STATE_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/memory_consolidation.py`
+  - `app/infrastructure/preference_profile_persistence.py`
+  - `tests/test_memory_consolidation.py`
+- `forbidden_touch_areas[]`:
+  - LLM semantic extraction (L2b)
+  - recommendation runtime
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: committed MealItem history, nightly consolidation trigger
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - `PreferenceProfileSummary` is pre-materialized after consolidation
+  - `item_kind_distribution`, `staple_type_distribution`, `drink_preference_strength` are correctly computed
+  - `time_of_day_patterns` correctly aggregates by hour bucket
+  - consolidation triggers when 24h elapsed and new MealItems exist
+  - `freshness_posture` is set to `stale` after 48h without consolidation
+- `required_tests[]`:
+  - statistical aggregation regression
+  - consolidation trigger condition regression
+  - freshness posture regression
+- `benchmark_seed_required`: `false`
+- `handoff_required`: `true`
+- `parallelizable_with[]`: `[]`
+- `delegation_mode`: `parallelizable_implementation`
+- `default_worker_posture`: `workers handle implementation`
+
+#### Slice `2.7h-memory-semantic-pattern-extraction`
+
+- `parent_workflow_id`: `2.7-memory-retrieval-deepening`
+- `title`: `Memory semantic pattern extraction (L2b)`
+- `goal`: implement the LLM-based semantic pattern extraction that produces contextual, temporal, and trend-based preference patterns from raw MealItem time series
+- `depends_on_slices[]`:
+  - `2.7g-memory-statistical-pattern-foundation`
+- `required_truth_docs[]`:
+  - `docs/specs/L4A_MEMORY_MODEL_SPEC.md`
+  - `docs/specs/L3_5_PROMPT_CONTRACT_SPEC.md`
+  - `docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/memory_semantic_extraction.py`
+  - `app/infrastructure/semantic_pattern_persistence.py`
+  - `tests/test_memory_semantic_extraction.py`
+- `forbidden_touch_areas[]`:
+  - L2a statistical pattern code
+  - confirmed memory write path
+  - recommendation runtime
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: 21 committed MealItems, 7-day trigger gap, raw MealItem fields including occurred_at, item_name, consumption_note
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - extraction triggers when 21 new MealItems accumulated AND 7 days since last extraction
+  - LLM outputs structured semantic pattern items with pattern_type, description, confidence, content_hash
+  - patterns with confidence < 0.5 are not written to L2b
+  - same content_hash increments reinforcement_count instead of creating duplicate
+  - extraction does not trigger confirmed memory upgrade (that is a separate slice)
+- `required_tests[]`:
+  - extraction trigger condition regression
+  - semantic pattern schema regression
+  - low-confidence filter regression
+  - content_hash dedup regression
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `true`
+- `parallelizable_with[]`: `[]`
+- `delegation_mode`: `single_threaded_decision_work`
+- `default_worker_posture`: `keep LLM pass design local`
+
+#### Slice `2.7i-confirmed-memory-upgrade-path`
+
+- `parent_workflow_id`: `2.7-memory-retrieval-deepening`
+- `title`: `Confirmed memory upgrade path`
+- `goal`: implement the two paths for confirmed memory creation: direct user declaration and LLM-judged upgrade from L2b semantic patterns
+- `depends_on_slices[]`:
+  - `2.7h-memory-semantic-pattern-extraction`
+- `required_truth_docs[]`:
+  - `docs/specs/L4A_MEMORY_MODEL_SPEC.md`
+  - `docs/specs/L1_RUNTIME_OWNERSHIP_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/confirmed_memory_service.py`
+  - `app/infrastructure/confirmed_memory_persistence.py`
+  - `app/application/workflow_routing_pass.py` only for declaration detection
+  - `tests/test_confirmed_memory.py`
+- `forbidden_touch_areas[]`:
+  - recommendation runtime
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: L2b semantic patterns, utterance_override state, user declaration detection
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - user declaration (「記住我不喝含糖飲料」) directly writes to confirmed memory without reinforcement_count gate
+  - L2b pattern with reinforcement_count ≥ 5 and confidence ≥ 0.8 triggers LLM upgrade judgment
+  - confirmed memory is not auto-expired unless overridden by new declaration or behavior
+  - negative preference memory is written as first-class object, not as a tag on positive preference
+- `required_tests[]`:
+  - direct declaration write regression
+  - L2b upgrade threshold regression
+  - negative preference first-class regression
+  - no-auto-expiry regression
+- `benchmark_seed_required`: `false`
+- `handoff_required`: `true`
+- `parallelizable_with[]`: `[]`
+- `delegation_mode`: `single_threaded_decision_work`
+- `default_worker_posture`: `keep memory write path design local`
+
+### 2.8 Recommendation
+
+#### Slice `2.8a-recommendation-context-and-candidate-foundation`
+
+- `parent_workflow_id`: `2.8-recommendation`
+- `title`: `Recommendation context and candidate foundation`
+- `goal`: implement the first two nodes of the recommendation 3-node graph: context shaping and candidate retrieval/filtering, using historical MealItem and golden orders as v1 candidate sources
+- `depends_on_slices[]`:
+  - `2.7i-confirmed-memory-upgrade-path`
+  - `2.6b-calibration-posture-foundation`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md`
+  - `docs/specs/L3T_TYPED_RUNTIME_CONTRACT_SPEC.md`
+  - `docs/specs/L4A_MEMORY_MODEL_SPEC.md`
+  - `docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/recommendation_context.py`
+  - `app/application/recommendation_candidate_retrieval.py`
+  - `app/infrastructure/preference_profile_persistence.py`
+  - `tests/test_recommendation_context.py`
+  - `tests/test_recommendation_candidate_retrieval.py`
+- `forbidden_touch_areas[]`:
+  - recommendation response pass
+  - proactive nudge logic
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: `CurrentBudgetView`, `ActiveBodyPlanView`, `PreferenceProfileSummary`, committed MealItem history, golden orders
+- `ui_surface_dependency`: none
+- `acceptance_criteria[]`:
+  - context pass extracts hard constraints (remaining kcal) and soft preferences from PreferenceProfileSummary
+  - candidate retrieval uses historical MealItem matches first, golden orders second
+  - candidates are filtered by remaining kcal hard constraint
+  - cold-start (empty PreferenceProfileSummary) falls back to safe defaults without error
+  - location context is optional and gracefully absent
+- `required_tests[]`:
+  - context hard constraint extraction regression
+  - candidate retrieval priority regression
+  - cold-start fallback regression
+  - kcal filter regression
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `true`
+- `parallelizable_with[]`: `[]`
+- `delegation_mode`: `parallelizable_implementation`
+- `default_worker_posture`: `workers handle implementation`
+
+#### Slice `2.8b-recommendation-ranking-and-response`
+
+- `parent_workflow_id`: `2.8-recommendation`
+- `title`: `Recommendation ranking and response`
+- `goal`: implement the third node of the recommendation 3-node graph: ranking candidates by soft preferences and producing a chat response with quick actions
+- `depends_on_slices[]`:
+  - `2.8a-recommendation-context-and-candidate-foundation`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md`
+  - `docs/specs/L3T_TYPED_RUNTIME_CONTRACT_SPEC.md`
+  - `docs/specs/L3_5_PROMPT_CONTRACT_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/recommendation_ranking.py`
+  - `app/application/recommendation_response.py`
+  - `app/web/recommendation_routes.py`
+  - `tests/test_recommendation_ranking.py`
+  - `tests/test_recommendation_response.py`
+- `forbidden_touch_areas[]`:
+  - intake flow
+  - rescue flow
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: candidate set from 2.8a, `PreferenceProfileSummary`, budget posture
+- `ui_surface_dependency`: chat response only (v1 reactive)
+- `acceptance_criteria[]`:
+  - ranking applies hard constraints first, soft preferences second
+  - chat response shows 1 top pick + 1-2 backup picks
+  - `幫我記這個` quick action correctly routes to intake flow via hint_packet
+  - recommendation does not create canonical state
+  - rescue-active state correctly filters candidates exceeding rescue overlay budget
+- `required_tests[]`:
+  - ranking hard-constraint-first regression
+  - chat response density regression
+  - intake handoff via hint_packet regression
+  - no-state-mutation regression
+  - rescue-aware filtering regression
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `true`
+- `parallelizable_with[]`: `[]`
+- `delegation_mode`: `parallelizable_implementation`
+- `default_worker_posture`: `workers handle implementation`
+
+#### Slice `2.8c-calibration-proposal-response-surface`
+
+- `parent_workflow_id`: `2.8-recommendation`
+- `title`: `Calibration proposal response surface`
+- `goal`: implement the calibration proposal response pass that presents a single primary proposal to the user in chat, with accept/defer/reject quick actions and UI mirror
+- `depends_on_slices[]`:
+  - `2.6c-calibration-proposal-gate-foundation`
+  - `2.7e-workflow-routing-pass-foundation`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md`
+  - `docs/specs/L3T_TYPED_RUNTIME_CONTRACT_SPEC.md`
+  - `docs/specs/L3_5_PROMPT_CONTRACT_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/calibration_proposal_response.py`
+  - `app/application/calibration_commit_bridge.py`
+  - `app/web/calibration_routes.py`
+  - `tests/test_calibration_proposal_response.py`
+- `forbidden_touch_areas[]`:
+  - calibration model internals
+  - recommendation runtime
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: calibration proposal gate output, `ActiveBodyPlanView`, `CurrentBudgetView`
+- `ui_surface_dependency`: chat primary, UI mirror
+- `acceptance_criteria[]`:
+  - calibration proposal surfaces as single primary recommendation in chat
+  - accept correctly writes new BodyPlan version and refreshes CurrentBudgetView
+  - 11:00 rule correctly determines effective_from
+  - `logging_quality_first` proposal correctly surfaces without plan change
+  - `plan_reset` only surfaces when recovery_viability is non_viable
+- `required_tests[]`:
+  - single-primary-proposal regression
+  - accept-side BodyPlan write regression
+  - 11:00 effective_from regression
+  - logging_quality_first no-plan-change regression
+  - plan_reset gate regression
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `true`
+- `parallelizable_with[]`: `[]`
+- `delegation_mode`: `single_threaded_decision_work`
+- `default_worker_posture`: `keep calibration commit semantics local`
+
+### 2.9 Proactive Nudges
+
+#### Slice `2.9a-proactive-scheduler-foundation`
+
+- `parent_workflow_id`: `2.9-proactive-nudges`
+- `title`: `Proactive scheduler foundation`
+- `goal`: implement the ProactiveScheduler with budget_alert_check and meal_reminder_check, UserProactivePreference, quiet hours, and max_daily_proactive_count enforcement
+- `depends_on_slices[]`:
+  - `2.8b-recommendation-ranking-and-response`
+  - `2.8c-calibration-proposal-response-surface`
+- `required_truth_docs[]`:
+  - `docs/specs/L1_RUNTIME_OWNERSHIP_SPEC.md`
+  - `docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md`
+  - `docs/specs/L2_DATA_STATE_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/proactive_scheduler.py`
+  - `app/infrastructure/user_proactive_preference_persistence.py`
+  - `app/web/proactive_routes.py`
+  - `tests/test_proactive_scheduler.py`
+- `forbidden_touch_areas[]`:
+  - recommendation runtime
+  - calibration runtime
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: `CurrentBudgetView`, `UserProactivePreference`, `ProactiveStatusView`, cooldown state
+- `ui_surface_dependency`: none (triggers chat messages)
+- `acceptance_criteria[]`:
+  - budget_alert fires when remaining_kcal < 0 or overshoot > 15%
+  - emergency budget_alert (overshoot > 30%) bypasses quiet hours and max_daily_proactive_count
+  - meal_reminder fires every 30 min during 07:00-22:00 when no meals logged in meal window
+  - quiet hours correctly suppress non-emergency triggers
+  - max_daily_proactive_count resets at 00:00 local time
+  - UserProactivePreference can be updated via chat or UI
+- `required_tests[]`:
+  - budget_alert threshold regression
+  - emergency bypass regression
+  - quiet hours suppression regression
+  - max_daily_count reset regression
+  - UserProactivePreference update regression
+- `benchmark_seed_required`: `false`
+- `handoff_required`: `true`
+- `parallelizable_with[]`: `[]`
+- `delegation_mode`: `parallelizable_implementation`
+- `default_worker_posture`: `workers handle implementation`
+
+#### Slice `2.9b-proactive-rescue-nudge`
+
+- `parent_workflow_id`: `2.9-proactive-nudges`
+- `title`: `Proactive rescue nudge`
+- `goal`: implement the proactive rescue trigger that asks the user if they want to see a rescue plan when overshoot is detected, as a separate chat message from intake
+- `depends_on_slices[]`:
+  - `2.9a-proactive-scheduler-foundation`
+  - `2.5d-rescue-response-surface`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md`
+  - `docs/specs/L1_RUNTIME_OWNERSHIP_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/proactive_scheduler.py`
+  - `app/application/rescue_runtime.py`
+  - `tests/test_proactive_rescue_nudge.py`
+- `forbidden_touch_areas[]`:
+  - intake response surfaces
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: `CurrentBudgetView`, overshoot detection, cooldown state
+- `ui_surface_dependency`: none (separate chat message)
+- `acceptance_criteria[]`:
+  - proactive rescue fires as separate chat message, never embedded in intake reply
+  - system asks 「要不要看看救援方案？」before sending full rescue proposal
+  - user saying yes triggers rescue flow
+  - user saying no marks trigger as dismissed with cooldown
+  - preventive rescue (「星期六要吃大餐，現在先少吃」) correctly routes to rescue flow via workflow_routing_pass
+- `required_tests[]`:
+  - separate-message regression
+  - ask-before-proposal regression
+  - yes-triggers-rescue regression
+  - no-dismisses-with-cooldown regression
+  - preventive rescue routing regression
+- `benchmark_seed_required`: `true`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+- `delegation_mode`: `parallelizable_implementation`
+- `default_worker_posture`: `workers handle implementation`
+
+#### Slice `2.9c-proactive-recommendation-nudge`
+
+- `parent_workflow_id`: `2.9-proactive-nudges`
+- `title`: `Proactive recommendation nudge`
+- `goal`: implement the proactive recommendation trigger that surfaces meal suggestions at meal times when the user has remaining budget and no recent meal logged
+- `depends_on_slices[]`:
+  - `2.9a-proactive-scheduler-foundation`
+  - `2.8b-recommendation-ranking-and-response`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md`
+  - `docs/specs/L1_RUNTIME_OWNERSHIP_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/proactive_scheduler.py`
+  - `app/application/recommendation_context.py`
+  - `tests/test_proactive_recommendation_nudge.py`
+- `forbidden_touch_areas[]`:
+  - intake flow
+  - rescue flow
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: `CurrentBudgetView`, `ProactiveStatusView`, meal timing patterns, suppression state
+- `ui_surface_dependency`: none (chat message)
+- `acceptance_criteria[]`:
+  - proactive recommendation fires only during meal windows (07:00-22:00)
+  - suppression / cooldown correctly prevents repeated nudges
+  - nudge respects max_daily_proactive_count
+  - nudge does not fire when rescue is active and budget is already constrained
+- `required_tests[]`:
+  - meal-window timing regression
+  - suppression regression
+  - rescue-active no-nudge regression
+  - max_daily_count regression
+- `benchmark_seed_required`: `false`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+- `delegation_mode`: `parallelizable_implementation`
+- `default_worker_posture`: `workers handle implementation`
+
+#### Slice `2.9d-proactive-calibration-nudge`
+
+- `parent_workflow_id`: `2.9-proactive-nudges`
+- `title`: `Proactive calibration nudge`
+- `goal`: implement the proactive calibration trigger that notifies the user when calibration conditions are met (14-day window + 5 observations) and surfaces the calibration proposal
+- `depends_on_slices[]`:
+  - `2.9a-proactive-scheduler-foundation`
+  - `2.8c-calibration-proposal-response-surface`
+- `required_truth_docs[]`:
+  - `docs/specs/L3_3A_DEFICIT_EXPENDITURE_CALIBRATION_MODEL_SPEC.md`
+  - `docs/specs/L1_RUNTIME_OWNERSHIP_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/application/proactive_scheduler.py`
+  - `app/application/calibration_model.py`
+  - `tests/test_proactive_calibration_nudge.py`
+- `forbidden_touch_areas[]`:
+  - recommendation runtime
+  - rescue runtime
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: `BodyObservation` history, intake coverage summary, calibration posture output
+- `ui_surface_dependency`: none (chat message)
+- `acceptance_criteria[]`:
+  - calibration nudge fires only when 14-day window elapsed AND 5+ observations exist
+  - nudge fires at most once per day (nightly check)
+  - nudge correctly surfaces calibration proposal via chat
+  - `logging_quality_first` posture surfaces as nudge to improve logging, not as plan change
+- `required_tests[]`:
+  - 14-day + 5-observation gate regression
+  - once-per-day regression
+  - logging_quality_first nudge regression
+- `benchmark_seed_required`: `false`
+- `handoff_required`: `false`
+- `parallelizable_with[]`: `[]`
+- `delegation_mode`: `parallelizable_implementation`
+- `default_worker_posture`: `workers handle implementation`
+
+### 0. Onboarding
+
+#### Slice `0.a-onboarding-ui-and-body-plan-bootstrap`
+
+- `parent_workflow_id`: `0-onboarding`
+- `title`: `Onboarding UI and BodyPlan bootstrap`
+- `goal`: implement the onboarding flow where the user fills a UI form with basic info, the system deterministically computes the initial BodyPlan, and chat can update it if the user changes their mind
+- `depends_on_slices[]`:
+  - `2.4a-body-observation-persistence`
+- `required_truth_docs[]`:
+  - `docs/specs/L0A_ONBOARDING_FLOW_SPEC.md`
+  - `docs/specs/L2_DATA_STATE_SPEC.md`
+  - `docs/specs/L3_3A_DEFICIT_EXPENDITURE_CALIBRATION_MODEL_SPEC.md`
+- `allowed_touch_areas[]`:
+  - `app/web/onboarding_routes.py`
+  - `app/application/onboarding_service.py`
+  - `app/infrastructure/body_plan_persistence.py`
+  - `tests/test_onboarding.py`
+- `forbidden_touch_areas[]`:
+  - calibration proposal runtime
+  - recommendation runtime
+  - `app/routes.py`
+  - `app/schemas.py`
+  - `app/usecases/text_meal.py`
+- `state_dependencies`: BodyPlan write path, DayBudgetLedger initialization, safety_floor_kcal from sex field
+- `ui_surface_dependency`: onboarding UI form
+- `acceptance_criteria[]`:
+  - UI form collects sex, current_weight_kg, height_cm, age_years, goal_type
+  - system deterministically computes recommended_target_kcal using Mifflin-St Jeor
+  - safety_floor_kcal is set from sex (1200 female, 1500 male, 1500 prefer_not_to_say)
+  - raw_target_kcal is clamped to safety_floor_kcal
+  - BodyPlan is created with plan_source: onboarding_bootstrap
+  - DayBudgetLedger is created for current day after BodyPlan is accepted
+  - skipping onboarding allows intake logging but hides budget display
+  - gain_weight goal_type skips rescue trigger
+- `required_tests[]`:
+  - Mifflin-St Jeor calculation regression
+  - safety_floor_kcal clamp regression
+  - DayBudgetLedger initialization regression
+  - skip-onboarding fallback regression
+  - gain_weight rescue-skip regression
+- `benchmark_seed_required`: `false`
+- `handoff_required`: `true`
+- `parallelizable_with[]`: `[]`
+- `delegation_mode`: `parallelizable_implementation`
+- `default_worker_posture`: `workers handle implementation`

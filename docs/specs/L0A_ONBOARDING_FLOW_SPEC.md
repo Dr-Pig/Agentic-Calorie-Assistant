@@ -199,6 +199,17 @@ Step 2 跳過時，系統使用 Section 3.2 的 fallback 值繼續計算。
 - 在 UI 的設定頁面修改
 - 系統在 calibration 流程中提示補充
 
+### 6.4 Chat 與 UI 的同步規則
+
+onboarding 的主要互動面是 UI 表單。Chat 是補充和確認的管道。
+
+正式規則：
+
+- UI 表單填完後，系統直接建立 `BodyPlan`，不需要 chat 確認步驟
+- 若使用者在 chat 中說「我想改目標」「我的體重不對」，系統透過 `general_chat` workflow 引導使用者到 UI 設定頁修改，或直接在 chat 中收集新資訊並更新 `BodyPlan`
+- UI 和 chat 的修改都走同一個 `BodyPlan` 更新路徑，不是兩套系統
+- `BodyPlan` 更新後，`DayBudgetLedger` 的 `base_budget_kcal` 應同步更新（依 11:00 規則決定今日或明日生效）
+
 ---
 
 ## 7. Fallback Posture（跳過 Onboarding）

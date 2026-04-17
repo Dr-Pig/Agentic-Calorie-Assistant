@@ -27,12 +27,29 @@ ALLOWED_VALIDATION_LAYERS = {
     "degraded_or_fallback",
     "smoke_infra",
 }
+ALLOWED_SUITE_ARCHETYPES = {
+    "utterance_governed",
+    "executable_workflow",
+    "capability_service",
+}
+ALLOWED_APPROVAL_MODES = {
+    "user_required",
+    "agent_allowed",
+}
+ALLOWED_TRUTH_SOURCES = {
+    "product_semantic_decision",
+    "canonical_spec_derivation",
+    "runtime_contract_derivation",
+}
 REQUIRED_METADATA_FIELDS = (
     "suite_id",
     "authority_tier",
     "workflow_family",
     "capability_family",
     "validation_layer",
+    "suite_archetype",
+    "approval_mode",
+    "truth_source",
 )
 
 
@@ -81,6 +98,18 @@ def main() -> int:
                 f"[FAIL] unsupported validation_layer for {rel_path}: {validation_layer}",
                 file=sys.stderr,
             )
+            return 1
+        suite_archetype = entry["suite_archetype"]
+        if suite_archetype not in ALLOWED_SUITE_ARCHETYPES:
+            print(f"[FAIL] unsupported suite_archetype for {rel_path}: {suite_archetype}", file=sys.stderr)
+            return 1
+        approval_mode = entry["approval_mode"]
+        if approval_mode not in ALLOWED_APPROVAL_MODES:
+            print(f"[FAIL] unsupported approval_mode for {rel_path}: {approval_mode}", file=sys.stderr)
+            return 1
+        truth_source = entry["truth_source"]
+        if truth_source not in ALLOWED_TRUTH_SOURCES:
+            print(f"[FAIL] unsupported truth_source for {rel_path}: {truth_source}", file=sys.stderr)
             return 1
         if rel_path in seen_paths:
             print(f"[FAIL] duplicate audit fixture path in registry: {rel_path}", file=sys.stderr)

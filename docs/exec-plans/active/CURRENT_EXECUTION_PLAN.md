@@ -58,7 +58,7 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
 
 ## Current Execution Dashboard
 
-- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough as a source family, 2.7a/2.7b semantic-routing evidence exists, 2.7c hardened the official text surfaces, L6F now governs routing-vs-response boundaries, and 2.7d now includes suite-governance groundwork, first approved intake/rescue official golden packs, and derived executable action-pack contracts`
+- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough as a source family, 2.7a/2.7b semantic-routing evidence exists, 2.7c hardened the official text surfaces, L6F now governs routing-vs-response boundaries, and 2.7d now includes suite-governance groundwork, first approved intake/rescue official golden packs, derived executable action-pack contracts, first agent-governed capability/service official suites, and runnable intake/rescue executable workflow smoke lanes`
 - `current_workflow_family`: `2.7 Memory / Retrieval Deepening`
 - `current_slice`: `2.7d-semantic-routing-prompt-state-pack-hardening`
 - `current_goal`: `establish the whole-product suite-governance layer, align it explicitly with L5A/L5B, map existing benchmark/test/runner assets into suite taxonomy, and keep semantic-routing artifacts in their proper provisional/official lanes under that governance`
@@ -96,22 +96,33 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `L5D suite-governance layer, suite inventory v1, and first migration mapping table for existing benchmark/test/runner assets`
   - `first approved intake/rescue candidate batches promoted into workflow-specific official canonical packs`
   - `derived intake/rescue executable action-pack contracts that stay subordinate to official utterance truth`
+  - `L5D test-suite archetype policy so tri-layer utterance packs are only used where utterance truth and runtime input genuinely diverge`
+  - `first agent-governed capability/service official packs for retrieval candidate selection, context-packing sufficiency, and bounded-repair gate behavior`
+  - `batch authoring templates plus a benchmark-artifact scaffolding helper for candidate/offical/executable pack surfaces`
+  - `runnable rescue/intake executable workflow smoke runners plus suite-wave orchestration that can execute them by registry metadata`
   - `2.7c official text-surface guard hardening is complete enough to unblock the next semantic-routing hardening wave`
 - `legal_next_slices[]`:
   - `2.7d-semantic-routing-prompt-state-pack-hardening`
 - `recommended_next_slice`: `2.7d-semantic-routing-prompt-state-pack-hardening`
-- `why_this_next`: `the user explicitly redirected from premature router officialization to a whole-product golden-suite inventory, and the repo now needs suite-governance truth before more official benchmark promotion`
-- `human_gate`: `cleared for 2.7d by explicit user approval`
+- `why_this_next`: `the user explicitly redirected from premature router officialization to a whole-product golden-suite inventory, and the repo now needs to keep converting that governance layer into agent-runnable suite/runner surfaces before moving back to high-impact workflow/pass design`
+- `human_gate`: `high-impact-only`
+- `human_gate_scope`: `high_impact_only`
+- `autonomous_execution_default`: `continue_until_high_impact_decision`
+- `blocked_only_if[]`:
+  - `new_global_pass_or_architecture_decision`
+  - `new_cross_workflow_product_semantics`
+  - `new_utterance_governed_official_truth`
 - `owner_mode`: `local`
+- `delegation_posture`: `prefer_workers_for_non_semantic_followthrough`
 - `key_files_or_subsystem`: `work should stay inside quality/spec/governance surfaces, benchmark inventories, migration mapping, and execution truth sync without touching production routing or application runtime`
 - `required_harness`:
   - `python scripts/check_layer_integrity.py`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`
   - relevant targeted, smoke, integration, benchmark, or eval commands for the actual slice
-- `verification_status`: `suite-governance groundwork is now in place for the active wave: semantic-routing authority split still holds, registries now carry suite metadata, the first intake/rescue official golden cases have been promoted, and executable runner-input contracts now exist as subordinate derived artifacts`
-- `verification_reason`: `whole-product suite-governance truth, migration mapping, registry metadata, candidate-to-official promotion flow, and executable-action derivation rules now exist together; the next work is either runner activation for executable packs or further official suite authoring, not rebuilding the governance layer`
-- `last_verified_at`: `2026-04-16`
+- `verification_status`: `suite-governance groundwork and the first autonomous follow-through wave are now in place: registries carry suite metadata, intake/rescue official utterance packs remain gated, agent-allowed capability/service packs exist, derived executable-action contracts are validated, and suite-wave orchestration can now execute the intake/rescue smoke runners by metadata rather than manual script selection`
+- `verification_reason`: `whole-product suite-governance truth, migration mapping, registry metadata, candidate-to-official promotion flow, executable-action derivation rules, suite archetype selection rules, capability/service official packs, executable workflow runners, and metadata-filtered orchestration now exist together; the next work should keep defaulting to autonomous non-semantic follow-through unless it introduces new architecture, new cross-workflow semantics, or new utterance-governed official truth`
+- `last_verified_at`: `2026-04-18`
 
 ## Selection State
 
@@ -119,13 +130,13 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
 - `current_domain_gate_status`: `2.2, 2.3, and 2.5d are sufficient enough for semantic-routing eval work`
 - `mainline_validation_status`: `sufficient_for_domain_advance`
 - `selected_best_next_slice`: `2.7d-semantic-routing-prompt-state-pack-hardening`
-- `selection_reason`: `the user explicitly redirected the branch from router-first benchmark work to whole-product golden-suite governance, and the repo now needs suite taxonomy plus migration truth before more official cases are promoted`
-- `selection_reason_detail`: `semantic-routing fallout exposed the broader governance gap: L5A and L5B already define mechanics and bucket taxonomy, but suite inventory, authority tiers, and asset migration were still implicit. The bounded next step is to make that layer explicit rather than continue optimizing a provisional pack`
+- `selection_reason`: `the user explicitly redirected the branch from router-first benchmark work to whole-product golden-suite governance, and the repo still needs more agent-runnable suite/runner follow-through before returning to new high-impact workflow design`
+- `selection_reason_detail`: `semantic-routing fallout exposed the broader governance gap: L5A and L5B already define mechanics and bucket taxonomy, but suite inventory, authority tiers, asset migration, and metadata-runnable execution surfaces were still implicit. The bounded next step is to keep expanding those runnable surfaces rather than prematurely switch back to new semantic design`
 - `deferred_legal_slices[]`:
   - `2.6 next calibration slice`
 - `deferred_selection_reason`: `calibration remains legal later in the broad order, but semantic routing now owns the active branch`
 - `execution_surface`: `planner-local`
-- `execution_surface_reason`: `this wave is still eval-first and LLM-led: it should improve semantic-routing prompts and state-pack sufficiency using the guarded benchmark surfaces, not bypass the judgment problem with deterministic routing`
+- `execution_surface_reason`: `this wave is still eval-first and LLM-led: keep architecture and semantic truth in the main thread, but default the remaining non-semantic follow-through to worker-worthy execution where the write scopes can be cleanly separated`
 - `last_replan_at`: `2026-04-15`
 
 ## Working Rules

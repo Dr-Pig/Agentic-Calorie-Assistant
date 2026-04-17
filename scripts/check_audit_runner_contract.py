@@ -21,12 +21,29 @@ ALLOWED_VALIDATION_LAYERS = {
     "degraded_or_fallback",
     "smoke_infra",
 }
+ALLOWED_SUITE_ARCHETYPES = {
+    "utterance_governed",
+    "executable_workflow",
+    "capability_service",
+}
+ALLOWED_APPROVAL_MODES = {
+    "user_required",
+    "agent_allowed",
+}
+ALLOWED_TRUTH_SOURCES = {
+    "product_semantic_decision",
+    "canonical_spec_derivation",
+    "runtime_contract_derivation",
+}
 REQUIRED_METADATA_FIELDS = (
     "suite_id",
     "authority_tier",
     "workflow_family",
     "capability_family",
     "validation_layer",
+    "suite_archetype",
+    "approval_mode",
+    "truth_source",
 )
 
 
@@ -61,6 +78,18 @@ def load_runner_registry() -> list[dict[str, str]]:
         if normalized_entry["validation_layer"] not in ALLOWED_VALIDATION_LAYERS:
             raise ValueError(
                 f"unsupported validation_layer for {path}: {normalized_entry['validation_layer']}"
+            )
+        if normalized_entry["suite_archetype"] not in ALLOWED_SUITE_ARCHETYPES:
+            raise ValueError(
+                f"unsupported suite_archetype for {path}: {normalized_entry['suite_archetype']}"
+            )
+        if normalized_entry["approval_mode"] not in ALLOWED_APPROVAL_MODES:
+            raise ValueError(
+                f"unsupported approval_mode for {path}: {normalized_entry['approval_mode']}"
+            )
+        if normalized_entry["truth_source"] not in ALLOWED_TRUTH_SOURCES:
+            raise ValueError(
+                f"unsupported truth_source for {path}: {normalized_entry['truth_source']}"
             )
         normalized.append(normalized_entry)
     return normalized

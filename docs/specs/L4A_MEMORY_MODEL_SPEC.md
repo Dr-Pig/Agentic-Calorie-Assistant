@@ -88,16 +88,85 @@ derived memory 與 pattern memory 應至少可帶：
 
 從 typed history 聚合出的穩定模式。
 
+**L2 分兩個子層，責任不同：**
+
+#### L2a `Statistical Pattern`（deterministic）
+
+純統計聚合，由 nightly consolidation 的 deterministic 部分產出。
+
 包含：
 
-- 常見 `MealItem` 分類分布
-- 飲料偏好
-- staple preference
+- 常見 `MealItem` 分類分布（`item_kind`、`staple_type`）
+- 飲料偏好強度（`drink_preference_strength`）
 - store / chain pattern
-- time-of-day patterns
+- time-of-day patterns（幾點吃什麼類型，純統計）
 - location patterns
 - intake logging completeness pattern
 - rescue viability pattern
+
+角色：
+
+- recommendation 的 hard constraint filtering 與 deterministic ranking basis
+- calibration 的 logging-quality / adherence basis
+- proactive 的 timing basis
+
+#### L2b `Semantic Pattern`（LLM extraction）
+
+由 LLM 從 raw MealItem 時間序列中提取的語意性、情境性、趨勢性 pattern。
+
+包含：
+
+- 時段性條件偏好（例如「下午茶時段偏好甜飲，晚餐後選無糖」）
+- 情境性偏好（例如「工作日選便當，週末選麵食」）
+- 趨勢性變化（例如「最近開始避免油炸食物，但之前很常吃」）
+- 飲食情緒 pattern（例如「壓力大時傾向高熱量食物」）
+
+角色：
+
+- recommendation 的 soft preference ranking basis（比 L2a 更豐富）
+- NightlyInsight 的輸入來源
+- confirmed memory 升級的候選依據
+
+#### L2b Semantic Pattern Extraction 規則
+
+**觸發條件**（兩個條件都要滿足）：
+
+- 累積 **21 筆新 committed MealItem** 尚未被納入 semantic extraction
+- 距離上次 semantic extraction 超過 **7 天**
+
+**Input**：最近 21 筆 MealItem，每筆包含：
+
+- `occurred_at`（時間戳，用於判斷時段、星期幾）
+- `item_name`（原始食物名稱）
+- `item_kind`、`staple_type`、`cuisine_family`
+- `consumption_note`（使用者補充的描述，例如「半糖少冰」）
+- `preference_tags`（已有的標籤）
+
+**LLM 任務**：從這批資料的時間序列中找出時段性、情境性、趨勢性的 pattern，輸出結構化的 semantic pattern items。
+
+**Output schema**（每個 semantic pattern item）：
+
+```json
+{
+  "pattern_type": "contextual_preference | temporal_preference | trend_shift | situational_avoidance",
+  "description": "<自然語言描述，例如「下午茶時段偏好甜飲，晚餐後傾向無糖」>",
+  "evidence_window_days": 7,
+  "evidence_meal_count": 21,
+  "confidence": 0.75,
+  "time_condition": "<若有時段條件，例如 afternoon_vs_evening>",
+  "food_category": "<若有食物類別，例如 飲料>",
+  "trend_direction": "increasing | decreasing | stable | null",
+  "content_hash": "<用於去重>",
+  "extracted_at": "<ISO 8601>"
+}
+```
+
+**規則**：
+
+- LLM 只負責提取 pattern，不負責判斷是否升級為 confirmed memory
+- 若 pattern 的 `confidence < 0.5`，不寫入 L2b，只記錄在 trace
+- 同一 `content_hash` 的 pattern 再次出現時，更新 `reinforcement_count`，不重複建立
+- L2b 的 pattern 不直接取代 L2a 的統計，兩者並存
 
 角色：
 
@@ -374,13 +443,32 @@ memory 系統不應變成 canonical state 或 transcript 的重複副本。
 
 ### 9.1 Create
 
-記憶可由：
+記憶可由以下三條路徑生成，優先級由高到低：
 
-- raw event append
-- pattern aggregation
-- explicit confirmation
+#### 路徑 1：使用者直接聲明（最快，最高優先）
 
-生成。
+使用者在 chat 中明確說「記住我不喝含糖飲料」、「我對花生過敏」等。
+
+- 直接寫入 **Confirmed Memory** 或 **Negative Preference Memory**
+- 不需要等 consolidation
+- 不需要 reinforcement_count 門檻
+- 由 intake Pass 1 的 `task_meal_link_pass` 或 general chat routing 識別後，交由 application layer 寫入
+
+#### 路徑 2：行為累積 + LLM semantic extraction（中速）
+
+累積 21 筆新 MealItem 且距離上次 extraction 超過 7 天時觸發。
+
+- LLM 從 raw MealItem 時間序列提取 **L2b Semantic Pattern**
+- Semantic Pattern 的 `reinforcement_count` 達到門檻後，可升級為 **Confirmed Memory**
+- 升級判斷由 LLM 執行（結合 pattern 穩定性與口頭聲明）
+
+#### 路徑 3：nightly deterministic consolidation（持續更新）
+
+每日 23:00 由 `ProactiveScheduler` 觸發。
+
+- deterministic 統計更新 **L2a Statistical Pattern**
+- 更新 `PreferenceProfileSummary`、`IntakeCompletenessSummary` 等 derived views
+- 不需要 LLM
 
 ### 9.2 Update
 
@@ -543,3 +631,14 @@ rescue 主要讀：
    - confirmed negative preference 不自動 expiry，除非被當下口頭聲明或後續穩定行為覆寫
 4. golden orders：
    - 最小支持證據為同一 `store + item bundle` 至少 `3` 次成功選擇，且近期仍有 freshness
+5. L2b semantic pattern extraction 觸發門檻：
+   - 累積 `21` 筆新 committed MealItem 且距離上次 extraction 超過 `7` 天，兩個條件都要滿足
+   - confidence < `0.5` 的 pattern 不寫入 L2b
+   - 同一 `content_hash` 的 pattern 再次出現時更新 `reinforcement_count`，不重複建立
+6. L2b semantic pattern → confirmed memory 升級門檻：
+   - `reinforcement_count ≥ 5` 且 `confidence ≥ 0.8`，由 LLM 判斷是否升級
+   - 使用者口頭聲明可直接升級，不需要 reinforcement_count 門檻
+7. NightlyInsight（v1 先不做）：
+   - v1 不實作 NightlyInsight
+   - L2b semantic extraction 已覆蓋基本的趨勢判斷需求
+   - NightlyInsight 等 2.7 memory deepening 有足夠資料後再加

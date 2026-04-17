@@ -4,6 +4,9 @@
   "scope": "Official intake golden candidate queue",
   "authority_level": "candidate_only",
   "approval_status": "batch_1_approved",
+  "suite_archetype": "utterance_governed",
+  "approval_mode": "user_required",
+  "truth_source": "product_semantic_decision",
   "purpose": "Candidate review queue for intake official golden suites. Entries here are not canonical truth until promoted.",
   "review_unit": "per_case_primary_outcome",
   "required_user_approval_fields": [

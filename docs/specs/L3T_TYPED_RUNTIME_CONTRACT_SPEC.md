@@ -133,6 +133,27 @@ Use `L3T` to validate output shape after the decision mode has already been chos
 
 ---
 
+## 3A. Workflow Routing Typed Contract
+
+### 3A.1 `WorkflowRoutingResult`
+
+全局 `workflow_routing_pass` 的輸出 contract。
+
+最小欄位：
+
+- `target_workflow_family: Literal["intake", "rescue", "calibration", "recommendation", "body_observation", "general_chat"]`
+- `disposition: Literal["create", "continue", "correct", "accept", "reject", "defer", "adjust", "answer_only", "open_new_workflow"]`
+- `routing_confidence: Literal["high", "medium", "low"]`
+- `ambiguity_posture: Literal["none", "allow_uncertain"]`
+
+規則：
+
+- `workflow_routing_pass` 必須輸出這個 contract，不得以裸 dict 長期存在
+- ambiguous utterance 應輸出 `routing_confidence: low` 和 `ambiguity_posture: allow_uncertain`，不得強制路由到某個 workflow
+- `general_chat` 是合法的 `target_workflow_family`，不是 fallback error state
+
+---
+
 ## 4. Intake Typed Contracts
 
 ### 4.1 `TaskMealLinkResult`

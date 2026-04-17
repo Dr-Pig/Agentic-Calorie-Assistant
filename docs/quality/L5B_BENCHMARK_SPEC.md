@@ -45,6 +45,7 @@
 - `capability_family`
 - `validation_layer`
 - suite promotion 與 migration ownership
+- suite archetype selection（哪些 suite 需要 utterance-governed 三層鏈、哪些只需 executable 或 service artifacts）
 
 若某個 Official Golden utterance pack 需要 workflow-specific runtime input 才能自動執行，derived executable action pack 的治理與 promotion 邊界由 `L5D` 管；`L5B` 不把它視為新的 bucket taxonomy。
 
