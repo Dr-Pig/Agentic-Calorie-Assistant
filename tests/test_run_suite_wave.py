@@ -111,3 +111,18 @@ def test_rescue_executable_runner_is_planned_as_runnable_suite() -> None:
     assert suite_plan.suite_id == "rescue_runtime_smoke_v1"
     assert len(suite_plan.commands) == 1
     assert suite_plan.commands[0].runner_path == "scripts/run_rescue_executable_pack.py"
+
+
+def test_agent_allowed_capability_suites_are_classified_as_fixture_only() -> None:
+    plan = run_suite_wave.build_suite_plan(
+        filters=run_suite_wave.SuiteFilters(
+            validation_layers=("capability_service", "degraded_or_fallback"),
+        )
+    )
+
+    fixture_only_ids = {item.suite_id for item in plan["fixture_only"]}
+
+    assert "retrieval_candidate_selection_golden_v1" in fixture_only_ids
+    assert "context_packing_sufficiency_golden_v1" in fixture_only_ids
+    assert "bounded_repair_gate_golden_v1" in fixture_only_ids
+    assert not plan["runnable"]
