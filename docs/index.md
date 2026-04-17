@@ -32,6 +32,10 @@ If you need the shortest path to current execution truth:
 | what is active now | [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md) |
 | what slices exist and who owns them | [docs/exec-plans/WORKFLOW_SLICE_REGISTRY.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/WORKFLOW_SLICE_REGISTRY.md) |
 | what order is legal | [docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md) |
+| routing vs response boundary, anti-premature-taxonomy, eval label governance | [docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md) |
+| suite inventory, authority tiers, benchmark migration mapping | [docs/quality/L5D_SUITE_GOVERNANCE_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/L5D_SUITE_GOVERNANCE_SPEC.md) |
+| LLM pass design, graph-first, decision-mode governance | [docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md) |
+| forbidden patterns, slop log, definition of done | [docs/governance/ANTI_SLOP_CATALOG.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/ANTI_SLOP_CATALOG.md) |
 | repo build rules | [docs/governance/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance) |
 | handoff exception path | [docs/exec-plans/active/handoff/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active/handoff) |
 | quality / eval / benchmark | [docs/quality/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality) |

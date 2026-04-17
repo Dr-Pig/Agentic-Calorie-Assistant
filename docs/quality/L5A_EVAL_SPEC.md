@@ -19,6 +19,8 @@
 
 這兩者分別由 `L5B` 與 `L5C` 定義。
 
+suite-level inventory、authority tier、suite promotion 與既有資產映射，則由 [`docs/quality/L5D_SUITE_GOVERNANCE_SPEC.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/L5D_SUITE_GOVERNANCE_SPEC.md) 定義。
+
 ---
 
 ## 2. Eval Levels

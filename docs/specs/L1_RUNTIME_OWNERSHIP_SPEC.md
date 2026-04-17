@@ -485,6 +485,40 @@ Session 結束後（ACTIVE → EXPIRED）：
 - 若使用者再次明確確認 → 寫入 ConfirmedMemory
 - 若無確認 → 失效，回到正常 memory retrieval
 
+### 4.10 Cross-Workflow Attachment Priority Rule
+
+當 chat 中同時存在多個 open object（例如 open rescue proposal 和 pending intake followup），且使用者的 utterance 語意模糊時，系統需要一個明確的 attachment priority rule。
+
+#### 預設 priority 順序
+
+1. **明確 topic reset 語意**（最高優先）：若使用者明確說「先不管」「那個之後再說」，應開新 workflow，不 attach 任何現有 object
+2. **明確 action 語意**：若 utterance 含有明確的 accept / reject / defer / adjust 語意，應 attach 到對應的 proposal object
+3. **明確 followup 回答語意**：若 utterance 明顯是在回答 pending followup question，應 attach 到對應的 meal_thread
+4. **模糊語意（ambiguous）**：若無法判斷，應路由為 `answer_only`（disposition: answer_only），不改變任何 object state，讓 response layer 在回覆中自然釐清
+
+#### 模糊語意的保守原則
+
+**正式規則：當 utterance 語意模糊時，預設路由為 `answer_only`，不做 state mutation。**
+
+例子：
+
+- 「先這樣吧」（同時有 open rescue proposal 和 pending intake followup）→ `answer_only`，不 accept / reject / defer 任何 proposal，不 attach 到任何 thread
+- 「好」（context 不清楚）→ `answer_only`，讓 response layer 確認使用者意圖
+
+規則：
+
+- 模糊語意不應被強制 attach 到 rescue proposal（即使 rescue proposal 是最近的 active object）
+- 模糊語意不應被強制 attach 到 intake followup（即使 followup 是 pending 狀態）
+- 保守路由的目的是避免誤操作 canonical state
+
+#### Rescue Proposal vs Intake Followup 的特殊邊界
+
+當 rescue proposal 和 intake followup 同時存在時：
+
+- 明確 rescue action 語意（accept / reject / defer / adjust / explain）→ attach 到 rescue proposal
+- 明確 followup 回答語意（直接回答 pending question 的內容）→ attach 到 intake followup
+- 模糊語意 → `answer_only`，不 attach 任何 object
+
 ---
 
 ## 5. 合法狀態轉移類型

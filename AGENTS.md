@@ -47,6 +47,9 @@ If the planner is selecting the next slice, the default planner path above is re
 - deterministic layers must not override completed LLM decision outputs
   - do not deterministically rewrite `action_taken`, `response_mode_hint`, `follow_up_needed`, `followup_question`, `exactness`, or `resolution_mode` after a pass completes
   - deterministic layers may validate, reject, downgrade, derive, or request one bounded repair round
+- unapproved product semantics must not enter eval truth
+  - do not write unapproved product semantics into eval packs, benchmark oracles, semantic taxonomies, or pass/fail rubrics
+  - evidence collection may record competing interpretations or ambiguity clusters, but it must not silently canonize unresolved product decisions
 - do not promote response-side distinctions into primary routing taxonomy unless they change workflow effect
   - do not encode `inquiry vs explain`, tone, style, reluctance wording, explanation density, or similar response-realization differences as primary routing labels unless they change target attachment, workflow ownership, disposition, or state mutation semantics
 - prompt and evidence-policy fixes must target generalized estimation behavior, not one-off item patches
@@ -83,6 +86,15 @@ Default deterministic guardrails include:
   - [docs/specs/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs)
   - [docs/governance/SPEC_EDITING_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/SPEC_EDITING_PROTOCOL.md)
   - [docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
+- routing design, semantic taxonomy, or eval label design:
+  - [docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md)
+  - [docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md)
+- eval / benchmark / suite-governance work:
+  - [docs/quality/L5A_EVAL_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/L5A_EVAL_SPEC.md)
+  - [docs/quality/L5B_BENCHMARK_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/L5B_BENCHMARK_SPEC.md)
+  - [docs/quality/L5D_SUITE_GOVERNANCE_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/L5D_SUITE_GOVERNANCE_SPEC.md)
+- implementation task start (before writing code):
+  - [docs/governance/ANTI_SLOP_CATALOG.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/ANTI_SLOP_CATALOG.md)
 - repo rules or file placement:
   - [docs/governance/BUILD_FILE_PLACEMENT_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/BUILD_FILE_PLACEMENT_RULES.md)
   - [docs/governance/LAYER_DEPENDENCY_RULES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/LAYER_DEPENDENCY_RULES.md)

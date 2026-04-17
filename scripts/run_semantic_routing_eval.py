@@ -20,10 +20,24 @@ from app.web.provider_runtime import primary_provider
 from scripts.audit_io_guard import enforce_file_backed_audit_input, load_json_audit_fixture
 
 
-PACK_PATH = ROOT / "docs" / "quality" / "benchmarks" / "semantic_routing" / "semantic_routing_founder_fit_pack_v1.json"
+PROVISIONAL_PACK_PATH = ROOT / "docs" / "quality" / "benchmarks" / "semantic_routing" / "semantic_routing_founder_fit_pack_v1.json"
+OFFICIAL_PACK_PATH = ROOT / "docs" / "quality" / "benchmarks" / "semantic_routing" / "semantic_routing_official_canonical_pack_v1.json"
+CANDIDATE_QUEUE_PATH = ROOT / "docs" / "quality" / "benchmarks" / "semantic_routing" / "semantic_routing_candidate_review_queue_v1.json"
 LOG_ROOT = ROOT / ".logs" / "semantic_routing_eval"
-ALLOWED_TARGET_WORKFLOW_FAMILIES = ("rescue_proposal", "intake_followup", "new_topic")
-ALLOWED_TARGET_OBJECT_TYPES = ("proposal_container", "meal_log", "none")
+ALLOWED_TARGET_WORKFLOW_FAMILIES = ("intake", "rescue", "calibration", "recommendation", "body_observation", "general_chat")
+ALLOWED_TARGET_OBJECT_TYPES = ("meal_thread", "proposal", "body_observation", "none")
+ALLOWED_DISPOSITIONS = (
+    "create",
+    "continue",
+    "correct",
+    "accept",
+    "reject",
+    "defer",
+    "adjust",
+    "answer_only",
+    "open_new_workflow",
+)
+ALLOWED_AMBIGUITY_POSTURES = ("none", "allow_uncertain")
 
 SYSTEM_PROMPT = """
 You are evaluating semantic routing for a chat-first nutrition agent.
@@ -33,7 +47,10 @@ Return exactly one JSON object with keys:
 - target_workflow_family
 - target_object_type
 - target_object_id
-- semantic_confidence
+- disposition
+- routing_confidence
+- ambiguity_posture
+- requires_structured_followthrough
 - workflow_effect
 - reasoning_brief
 
@@ -50,40 +67,70 @@ Allowed semantic_family values:
 - new_topic_or_new_workflow
 
 Allowed target_workflow_family values:
-- rescue_proposal
-- intake_followup
-- new_topic
+- intake
+- rescue
+- calibration
+- recommendation
+- body_observation
+- general_chat
 
 Allowed target_object_type values:
-- proposal_container
-- meal_log
+- meal_thread
+- proposal
+- body_observation
 - none
+
+Allowed disposition values:
+- create
+- continue
+- correct
+- accept
+- reject
+- defer
+- adjust
+- answer_only
+- open_new_workflow
+
+Allowed ambiguity_posture values:
+- none
+- allow_uncertain
 
 Allowed workflow_effect values:
 - accept_and_apply_current_proposal
 - close_current_proposal
 - defer_current_proposal
 - mutate_current_proposal
-- request_explanation
-- remain_inquiry_only
+- answer_current_object
 - continue_followup_lane
 - open_new_workflow
-- ask_clarify_before_mutation
+- no_state_change_soft_hold
 
 Rules:
 - Judge the user's current utterance against the provided active state pack.
 - Prefer the workflow or object the utterance should operate on right now.
 - Do not invent retrieval or memory state not present in the state pack.
 - Use the canonical target vocabulary exactly as written above.
-- If the utterance operates on the active rescue proposal, target_workflow_family must be rescue_proposal.
-- If the utterance continues a pending intake follow-up lane, target_workflow_family must be intake_followup.
-- If the utterance opens a different topic instead, target_workflow_family must be new_topic and target_object_type must be none.
-- For ask_followup_only lanes, prefer followup_completion when the user is supplying the missing answer.
-- For estimate_with_followup lanes, prefer followup_refinement when the user is refining an existing estimate rather than opening a new meal.
-- If the utterance only asks about the current proposal, prefer inquiry-only behavior.
-- If the utterance clearly continues a pending intake follow-up, attach to that follow-up lane.
-- If the utterance opens a different topic instead, return new_topic_or_new_workflow.
-- If the state pack is genuinely insufficient to choose between active objects, keep the best tentative family but you may use ask_clarify_before_mutation.
+- If the utterance operates on the active rescue proposal, target_workflow_family must be rescue and target_object_type must be proposal.
+- If the utterance continues a pending intake follow-up lane, target_workflow_family must be intake and target_object_type must be meal_thread.
+- Use disposition as the primary action posture:
+  - create / continue / correct / accept / reject / defer / adjust
+  - answer_only when the system should answer but not mutate state
+  - open_new_workflow when the utterance starts a new topic or workflow
+- Respect disposition eligibility:
+  - `proposal` may use accept / reject / defer / adjust / answer_only
+  - `meal_thread` may use create / continue / correct / answer_only
+  - `body_observation` may use create / answer_only
+  - `none` may use answer_only / open_new_workflow
+- Use routing_confidence and ambiguity_posture to express uncertainty or ambiguity.
+- no_action_soft_hold is a response posture, not a disposition.
+- Keep semantic_family only as a secondary diagnostic label.
+- If the utterance only asks about the current proposal, prefer disposition=answer_only.
+- If the utterance clearly continues a pending intake follow-up, attach to that follow-up lane with disposition=continue.
+- If the utterance begins by dismissing the previous topic and then states a new meal or new task, prefer disposition=open_new_workflow with target_object_type=none rather than attaching to an existing active object.
+- Complaint, reluctance, or "too hard" wording alone is not enough for reject or defer. Prefer semantic_family=proposal_general_inquiry, disposition=answer_only, and workflow_effect=answer_current_object unless the user explicitly asks to cancel, defer, or adjust.
+- If the user is soft-stopping without asking for further action, keep disposition anchored to the workflow effect, usually answer_only, and express the softness through workflow_effect or ambiguity_posture rather than inventing a custom disposition.
+- When multiple active objects exist and the utterance is a short untargeted soft-stop, prefer the most recent unresolved conversational lane, keep disposition=answer_only, keep the effect non-mutating, and use ambiguity_posture=allow_uncertain.
+- If the state pack is genuinely insufficient to choose between active objects, prefer low routing_confidence and ambiguity_posture=allow_uncertain rather than inventing a deterministic attachment.
 """.strip()
 
 
@@ -116,6 +163,12 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run semantic routing founder-fit eval cases.")
     parser.add_argument("--case-id", default=None, help="Optional case id filter.")
     parser.add_argument("--mock", action="store_true", help="Use deterministic mock provider.")
+    parser.add_argument(
+        "--mode",
+        default="provisional_smoke",
+        choices=("provisional_smoke", "official_canonical"),
+        help="Choose which benchmark authority lane to run.",
+    )
     return parser
 
 
@@ -123,8 +176,25 @@ def _provider_ready() -> bool:
     return bool(primary_provider.readiness().get("configured"))
 
 
-def _load_pack() -> dict[str, Any]:
-    return load_json_audit_fixture(path=PACK_PATH, audit_name="semantic_routing_eval")
+def _pack_config(mode: str) -> dict[str, Any]:
+    if mode == "official_canonical":
+        return {
+            "path": OFFICIAL_PACK_PATH,
+            "audit_name": "semantic_routing_official_canonical_eval",
+            "pack_mode": "official_canonical",
+        }
+    return {
+        "path": PROVISIONAL_PACK_PATH,
+        "audit_name": "semantic_routing_provisional_smoke_eval",
+        "pack_mode": "provisional_smoke",
+    }
+
+
+def _load_pack(*, mode: str) -> dict[str, Any]:
+    config = _pack_config(mode)
+    payload = load_json_audit_fixture(path=config["path"], audit_name=str(config["audit_name"]))
+    payload["_pack_runtime_config"] = config
+    return payload
 
 
 def _normalize_state_pack(state_pack: dict[str, Any]) -> dict[str, Any]:
@@ -133,14 +203,21 @@ def _normalize_state_pack(state_pack: dict[str, Any]) -> dict[str, Any]:
 
     active_objects: list[dict[str, Any]] = []
     routing_notes: list[str] = []
+    routing_priors = [
+        "Prefer explicit object references over recency priors.",
+        "If the user dismisses the prior topic and starts a new meal or task, open a new workflow against target_object_type=none.",
+        "Complaint or reluctance alone is not enough for reject or defer without an explicit cancel, defer, or adjust request.",
+    ]
 
     if rescue is not None:
         active_objects.append(
             {
-                "workflow_family": "rescue_proposal",
-                "object_type": "proposal_container",
+                "workflow_family": "rescue",
+                "object_type": "proposal",
                 "object_id": rescue.get("proposal_container_id"),
+                "recency_rank": 2 if followup is not None else 1,
                 "proposal_status": rescue.get("proposal_status"),
+                "allowed_dispositions": ["accept", "reject", "defer", "adjust", "answer_only"],
                 "supports_actions": [
                     "proposal_accept",
                     "proposal_reject",
@@ -153,7 +230,7 @@ def _normalize_state_pack(state_pack: dict[str, Any]) -> dict[str, Any]:
             }
         )
         routing_notes.append(
-            "If the utterance acts on the open rescue plan, use target_workflow_family=rescue_proposal and target_object_type=proposal_container."
+            "If the utterance acts on the open rescue plan, use target_workflow_family=rescue and target_object_type=proposal."
         )
 
     if followup is not None:
@@ -161,21 +238,27 @@ def _normalize_state_pack(state_pack: dict[str, Any]) -> dict[str, Any]:
         family_hint = "followup_completion" if lane_family == "ask_followup_only" else "followup_refinement"
         active_objects.append(
             {
-                "workflow_family": "intake_followup",
-                "object_type": "meal_log",
+                "workflow_family": "intake",
+                "object_type": "meal_thread",
                 "object_id": followup.get("meal_log_id"),
+                "recency_rank": 1,
                 "lane_family": lane_family,
                 "family_hint": family_hint,
                 "pending_question": followup.get("pending_question"),
+                "selection_hint": "prefer_this_lane_for_untargeted_soft_stop" if rescue is not None else "active_followup_lane",
+                "allowed_dispositions": ["create", "continue", "correct", "answer_only"],
             }
         )
         routing_notes.append(
-            f"If the utterance answers the pending {lane_family or 'followup'} lane, use target_workflow_family=intake_followup and target_object_type=meal_log."
+            f"If the utterance answers the pending {lane_family or 'followup'} lane, use target_workflow_family=intake and target_object_type=meal_thread."
         )
 
     if rescue is not None and followup is not None:
         routing_notes.append(
-            "When both rescue_proposal and intake_followup are active, attach only when the utterance clearly targets one object; otherwise prefer ask_clarify_before_mutation."
+            "When both rescue and intake are active, attach only when the utterance clearly targets one object; otherwise prefer low routing_confidence with ambiguity_posture=allow_uncertain."
+        )
+        routing_priors.append(
+            "When both rescue and intake are active, a short untargeted soft-stop should usually prefer the more recent unresolved follow-up lane and no_state_change_soft_hold."
         )
 
     return {
@@ -183,8 +266,10 @@ def _normalize_state_pack(state_pack: dict[str, Any]) -> dict[str, Any]:
         "target_vocabulary": {
             "target_workflow_family": list(ALLOWED_TARGET_WORKFLOW_FAMILIES),
             "target_object_type": list(ALLOWED_TARGET_OBJECT_TYPES),
+            "disposition": list(ALLOWED_DISPOSITIONS),
         },
         "routing_notes": routing_notes,
+        "routing_priors": routing_priors,
         "raw_state_pack_summary": state_pack,
     }
 
@@ -208,12 +293,19 @@ def _now_tag() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
 
+def _safe_mode_tag(pack_mode: str) -> str:
+    return pack_mode.replace("-", "_")
+
+
 def _prediction(
     semantic_family: str,
     target_workflow_family: str,
     target_object_type: str,
     target_object_id: Any,
-    semantic_confidence: str,
+    disposition: str,
+    routing_confidence: str,
+    ambiguity_posture: str,
+    requires_structured_followthrough: bool,
     workflow_effect: str,
     reasoning_brief: str,
 ) -> dict[str, Any]:
@@ -222,7 +314,10 @@ def _prediction(
         "target_workflow_family": target_workflow_family,
         "target_object_type": target_object_type,
         "target_object_id": target_object_id,
-        "semantic_confidence": semantic_confidence,
+        "disposition": disposition,
+        "routing_confidence": routing_confidence,
+        "ambiguity_posture": ambiguity_posture,
+        "requires_structured_followthrough": requires_structured_followthrough,
         "workflow_effect": workflow_effect,
         "reasoning_brief": reasoning_brief,
     }
@@ -240,12 +335,15 @@ def _mock_predict(*, utterance: str, state_pack: dict[str, Any]) -> dict[str, An
     if rescue and followup and _contains_any(text, "先這樣吧", "再看看", "先這樣"):
         return _prediction(
             "proposal_general_inquiry",
-            "rescue_proposal",
-            "proposal_container",
-            rescue.get("proposal_container_id"),
-            "low",
-            "ask_clarify_before_mutation",
-            "multiple active objects and the utterance is ambiguous",
+                "intake",
+                "meal_thread",
+                followup.get("meal_log_id"),
+                "answer_only",
+                "low",
+                "allow_uncertain",
+                False,
+                "no_state_change_soft_hold",
+                "soft hold against the more recent intake follow-up without triggering further action",
         )
 
     if rescue:
@@ -253,80 +351,104 @@ def _mock_predict(*, utterance: str, state_pack: dict[str, Any]) -> dict[str, An
         if _contains_any(text, "每天大概要少多少", "每天要少多少", "如果照這個做", "會少多少"):
             return _prediction(
                 "proposal_general_inquiry",
-                "rescue_proposal",
-                "proposal_container",
+                "rescue",
+                "proposal",
                 proposal_id,
+                "answer_only",
                 "medium",
-                "remain_inquiry_only",
+                "none",
+                False,
+                "answer_current_object",
                 "asks about the current proposal without mutating it",
             )
         if _contains_any(text, "為什麼", "理由", "怎麼算", "為何", "why"):
             return _prediction(
                 "proposal_explain_request",
-                "rescue_proposal",
-                "proposal_container",
+                "rescue",
+                "proposal",
                 proposal_id,
+                "answer_only",
                 "high",
-                "request_explanation",
+                "none",
+                False,
+                "answer_current_object",
                 "explicit explanation request",
             )
         if _contains_any(text, "照這個", "就這個", "接受", "可以，就這樣", "好，就照這個"):
             return _prediction(
                 "proposal_accept",
-                "rescue_proposal",
-                "proposal_container",
+                "rescue",
+                "proposal",
                 proposal_id,
+                "accept",
                 "high",
+                "none",
+                True,
                 "accept_and_apply_current_proposal",
                 "explicit acceptance",
             )
         if _contains_any(text, "不要這次", "先取消", "不要這個方案", "我不要", "照原本節奏"):
             return _prediction(
                 "proposal_reject",
-                "rescue_proposal",
-                "proposal_container",
+                "rescue",
+                "proposal",
                 proposal_id,
+                "reject",
                 "high",
+                "none",
+                True,
                 "close_current_proposal",
                 "explicit rejection",
             )
         if _contains_any(text, "晚點再說", "晚點吧", "先放著", "之後再說", "現在沒空想這個"):
             return _prediction(
                 "proposal_defer",
-                "rescue_proposal",
-                "proposal_container",
+                "rescue",
+                "proposal",
                 proposal_id,
+                "defer",
                 "high",
+                "allow_uncertain",
+                True,
                 "defer_current_proposal",
                 "explicit or soft defer",
             )
         if _contains_any(text, "拉長", "緩和", "不要那麼硬", "能不能拉長", "gentler"):
             return _prediction(
                 "proposal_adjust_longer",
-                "rescue_proposal",
-                "proposal_container",
+                "rescue",
+                "proposal",
                 proposal_id,
+                "adjust",
                 "medium",
+                "allow_uncertain",
+                True,
                 "mutate_current_proposal",
                 "request gentler or longer plan",
             )
         if _contains_any(text, "短一點", "積極一點", "更快", "再短", "shorter"):
             return _prediction(
                 "proposal_adjust_shorter",
-                "rescue_proposal",
-                "proposal_container",
+                "rescue",
+                "proposal",
                 proposal_id,
+                "adjust",
                 "medium",
+                "none",
+                True,
                 "mutate_current_proposal",
                 "request shorter or more aggressive plan",
             )
         return _prediction(
             "proposal_general_inquiry",
-            "rescue_proposal",
-            "proposal_container",
+            "rescue",
+            "proposal",
             proposal_id,
+            "answer_only",
             "low",
-            "remain_inquiry_only",
+            "allow_uncertain",
+            False,
+            "answer_current_object",
             "default rescue-bound inquiry",
         )
 
@@ -336,66 +458,91 @@ def _mock_predict(*, utterance: str, state_pack: dict[str, Any]) -> dict[str, An
         if lane_family == "ask_followup_only":
             return _prediction(
                 "followup_completion",
-                "intake_followup",
-                "meal_log",
+                "intake",
+                "meal_thread",
                 meal_log_id,
+                "continue",
                 "medium",
+                "none",
+                True,
                 "continue_followup_lane",
                 "pending ask-followup completion",
             )
         if lane_family == "estimate_with_followup" and _contains_any(text, "晚餐", "早餐", "午餐", "咖哩飯", "我又吃了"):
             return _prediction(
                 "new_topic_or_new_workflow",
-                "new_topic",
+                "intake",
                 "none",
                 None,
+                "open_new_workflow",
                 "medium",
+                "none",
+                True,
                 "open_new_workflow",
                 "new meal or topic signal",
             )
         return _prediction(
             "followup_refinement",
-            "intake_followup",
-            "meal_log",
+            "intake",
+            "meal_thread",
             meal_log_id,
+            "continue",
             "medium",
+            "none",
+            True,
             "continue_followup_lane",
             "pending estimate-followup refinement",
         )
 
     return _prediction(
         "new_topic_or_new_workflow",
-        "new_topic",
+        "general_chat",
         "none",
         None,
+        "open_new_workflow",
         "medium",
+        "none",
+        True,
         "open_new_workflow",
         "no attachable active state",
     )
 
 
 def _build_oracle(case: dict[str, Any], predicted: dict[str, Any]) -> dict[str, Any]:
+    expected_semantic_family = case.get("expected_semantic_family")
     checks = {
-        "matched_semantic_family": predicted.get("semantic_family") == case.get("expected_semantic_family"),
         "matched_target_workflow_family": predicted.get("target_workflow_family") == case.get("expected_target_workflow_family"),
         "matched_target_object_type": predicted.get("target_object_type") == case.get("expected_target_object_type"),
         "matched_target_object_id": predicted.get("target_object_id") == case.get("expected_target_object_id"),
+        "matched_disposition": predicted.get("disposition") == case.get("expected_disposition"),
         "matched_workflow_effect": predicted.get("workflow_effect") == case.get("expected_workflow_effect"),
+        "matched_semantic_family": True if expected_semantic_family in (None, "") else predicted.get("semantic_family") == expected_semantic_family,
     }
-    checks["passed"] = all(bool(value) for value in checks.values())
+    checks["passed"] = all(
+        bool(checks[key])
+        for key in (
+            "matched_target_workflow_family",
+            "matched_target_object_type",
+            "matched_target_object_id",
+            "matched_disposition",
+            "matched_workflow_effect",
+        )
+    )
     return checks
 
 
 def _mismatch_types(oracle: dict[str, Any]) -> list[str]:
     mismatches: list[str] = []
-    if not oracle.get("matched_semantic_family"):
-        mismatches.append("semantic_family_mismatch")
     if not oracle.get("matched_target_workflow_family"):
         mismatches.append("target_workflow_family_mismatch")
     if not oracle.get("matched_target_object_type") or not oracle.get("matched_target_object_id"):
         mismatches.append("attachment_mismatch")
+    if not oracle.get("matched_disposition"):
+        mismatches.append("disposition_mismatch")
     if not oracle.get("matched_workflow_effect"):
         mismatches.append("workflow_effect_mismatch")
+    if not oracle.get("matched_semantic_family"):
+        mismatches.append("secondary_semantic_family_mismatch")
     return mismatches
 
 
@@ -409,28 +556,56 @@ def _case_triage(case: dict[str, Any], oracle: dict[str, Any]) -> dict[str, Any]
     }
 
 
-def _build_summary(results: list[dict[str, Any]], *, pack_id: str, provider_name: str) -> dict[str, Any]:
+def _build_summary(
+    results: list[dict[str, Any]],
+    *,
+    pack_id: str,
+    provider_name: str,
+    pack_mode: str,
+    authority_level: str,
+    approval_status: str,
+) -> dict[str, Any]:
     passed = sum(1 for item in results if item["oracle"]["passed"])
-    by_family: dict[str, dict[str, int]] = {}
+    by_disposition: dict[str, dict[str, int]] = {}
+    by_semantic_family: dict[str, dict[str, int]] = {}
     for item in results:
-        family = str(item["expected"]["semantic_family"])
-        bucket = by_family.setdefault(family, {"total": 0, "passed": 0, "failed": 0})
-        bucket["total"] += 1
+        disposition = str(item["expected"]["disposition"])
+        family = item["expected"].get("semantic_family")
+        disposition_bucket = by_disposition.setdefault(disposition, {"total": 0, "passed": 0, "failed": 0})
+        disposition_bucket["total"] += 1
+        if family not in (None, ""):
+            family_bucket = by_semantic_family.setdefault(str(family), {"total": 0, "passed": 0, "failed": 0})
+            family_bucket["total"] += 1
         if item["oracle"]["passed"]:
-            bucket["passed"] += 1
+            disposition_bucket["passed"] += 1
+            if family not in (None, ""):
+                family_bucket["passed"] += 1
         else:
-            bucket["failed"] += 1
+            disposition_bucket["failed"] += 1
+            if family not in (None, ""):
+                family_bucket["failed"] += 1
     return {
         "pack_id": pack_id,
+        "pack_mode": pack_mode,
+        "authority_level": authority_level,
+        "approval_status": approval_status,
         "provider": provider_name,
         "total_cases": len(results),
         "passed_cases": passed,
         "failed_cases": len(results) - passed,
-        "by_semantic_family": by_family,
+        "by_disposition": by_disposition,
+        "by_semantic_family_secondary": by_semantic_family,
     }
 
 
-def _build_drift_triage(results: list[dict[str, Any]], *, pack_id: str, provider_name: str) -> dict[str, Any]:
+def _build_drift_triage(
+    results: list[dict[str, Any]],
+    *,
+    pack_id: str,
+    provider_name: str,
+    pack_mode: str,
+    authority_level: str,
+) -> dict[str, Any]:
     failed_results = [item for item in results if not item["oracle"]["passed"]]
     clusters: dict[str, dict[str, Any]] = {}
 
@@ -443,6 +618,7 @@ def _build_drift_triage(results: list[dict[str, Any]], *, pack_id: str, provider
                 "failed_case_ids": [],
                 "observed_failure_patterns": [],
                 "expected_semantic_families": set(),
+                "expected_dispositions": set(),
                 "expected_target_attachments": set(),
                 "provisional_hypotheses": Counter(),
                 "routing_mismatch_types": Counter(),
@@ -458,7 +634,9 @@ def _build_drift_triage(results: list[dict[str, Any]], *, pack_id: str, provider
                 "predicted": item["predicted"],
             }
         )
-        cluster["expected_semantic_families"].add(item["expected"]["semantic_family"])
+        if item["expected"].get("semantic_family") not in (None, ""):
+            cluster["expected_semantic_families"].add(item["expected"]["semantic_family"])
+        cluster["expected_dispositions"].add(item["expected"]["disposition"])
         cluster["expected_target_attachments"].add(
             f"{item['expected']['target_object_type']}:{item['expected']['target_object_id']}"
         )
@@ -475,6 +653,7 @@ def _build_drift_triage(results: list[dict[str, Any]], *, pack_id: str, provider
                 "failed_case_ids": cluster["failed_case_ids"],
                 "observed_failure_patterns": cluster["observed_failure_patterns"],
                 "expected_semantic_families": sorted(cluster["expected_semantic_families"]),
+                "expected_dispositions": sorted(cluster["expected_dispositions"]),
                 "expected_target_attachments": sorted(cluster["expected_target_attachments"]),
                 "provisional_hypotheses": dict(cluster["provisional_hypotheses"]),
                 "routing_mismatch_types": dict(cluster["routing_mismatch_types"]),
@@ -485,6 +664,8 @@ def _build_drift_triage(results: list[dict[str, Any]], *, pack_id: str, provider
 
     return {
         "pack_id": pack_id,
+        "pack_mode": pack_mode,
+        "authority_level": authority_level,
         "provider": provider_name,
         "total_failures": len(failed_results),
         "failure_clusters": sorted(serialized_clusters, key=lambda item: item["semantic_failure_cluster"]),
@@ -518,6 +699,7 @@ async def _run_case(case: dict[str, Any], *, provider: Any) -> dict[str, Any]:
             "target_workflow_family": case.get("expected_target_workflow_family"),
             "target_object_type": case.get("expected_target_object_type"),
             "target_object_id": case.get("expected_target_object_id"),
+            "disposition": case.get("expected_disposition"),
             "workflow_effect": case.get("expected_workflow_effect"),
         },
         "oracle": oracle,
@@ -528,17 +710,42 @@ async def _run_case(case: dict[str, Any], *, provider: Any) -> dict[str, Any]:
     }
 
 
-async def _run_all(cases: list[dict[str, Any]], *, provider: Any, provider_name: str, pack_id: str) -> dict[str, Any]:
+async def _run_all(
+    cases: list[dict[str, Any]],
+    *,
+    provider: Any,
+    provider_name: str,
+    pack_id: str,
+    pack_mode: str,
+    authority_level: str,
+    approval_status: str,
+) -> dict[str, Any]:
     results: list[dict[str, Any]] = []
     for case in cases:
         results.append(await _run_case(case, provider=provider))
-    triage = _build_drift_triage(results, pack_id=pack_id, provider_name=provider_name)
+    triage = _build_drift_triage(
+        results,
+        pack_id=pack_id,
+        provider_name=provider_name,
+        pack_mode=pack_mode,
+        authority_level=authority_level,
+    )
     return {
-        "run_id": f"semantic_routing_eval_{_now_tag()}",
+        "run_id": f"semantic_routing_eval_{_safe_mode_tag(pack_mode)}_{_now_tag()}",
         "pack_id": pack_id,
+        "pack_mode": pack_mode,
+        "authority_level": authority_level,
+        "approval_status": approval_status,
         "provider": provider_name,
         "recorded_at_utc": datetime.now(timezone.utc).isoformat(),
-        "summary": _build_summary(results, pack_id=pack_id, provider_name=provider_name),
+        "summary": _build_summary(
+            results,
+            pack_id=pack_id,
+            provider_name=provider_name,
+            pack_mode=pack_mode,
+            authority_level=authority_level,
+            approval_status=approval_status,
+        ),
         "triage": triage,
         "cases": results,
     }
@@ -547,7 +754,7 @@ async def _run_all(cases: list[dict[str, Any]], *, provider: Any, provider_name:
 def main() -> int:
     enforce_file_backed_audit_input(audit_name="semantic_routing_eval")
     args = _parser().parse_args()
-    pack = _load_pack()
+    pack = _load_pack(mode=args.mode)
     cases = _selected_cases(pack, case_id=args.case_id)
 
     if args.mock:
@@ -560,7 +767,17 @@ def main() -> int:
         provider = primary_provider
         provider_name = str(primary_provider.readiness().get("provider") or "primary_provider")
 
-    report = asyncio.run(_run_all(cases, provider=provider, provider_name=provider_name, pack_id=str(pack["pack_id"])))
+    report = asyncio.run(
+        _run_all(
+            cases,
+            provider=provider,
+            provider_name=provider_name,
+            pack_id=str(pack["pack_id"]),
+            pack_mode=str(pack.get("pack_mode") or pack["_pack_runtime_config"]["pack_mode"]),
+            authority_level=str(pack.get("authority_level") or "unspecified"),
+            approval_status=str(pack.get("approval_status") or "unspecified"),
+        )
+    )
     output_path = LOG_ROOT / f"{report['run_id']}.json"
     triage_path = LOG_ROOT / f"{report['run_id']}_triage.json"
     _save_json(output_path, report)

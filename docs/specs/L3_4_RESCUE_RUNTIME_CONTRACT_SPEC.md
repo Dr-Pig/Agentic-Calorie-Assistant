@@ -387,6 +387,27 @@ v1 標準 quick actions：
   - 若「太嚴格」→ 提示可用 `更長更緩和`
   - 若「現在不想管」→ 標記 proposal 為 `dismissed`，不再主動推送
 
+### 9.5A 抱怨語氣 ≠ Reject
+
+**正式規則：表達不滿或抱怨的語氣，不等於明確拒絕 rescue proposal。**
+
+例子：
+
+- 「這樣也太硬了吧」→ **不是 reject**，是對方案強度的抱怨或疑問，應路由為 `answer_only`（disposition: answer_only）
+- 「這樣我做得到嗎」→ **不是 reject**，是詢問可行性
+- 「有點難耶」→ **不是 reject**，是表達猶豫
+
+以下才算明確 reject：
+
+- 「不要」「不用了」「算了」「取消」「我不要這個方案」
+- 明確說「我不接受」「不照這個做」
+
+規則：
+
+- 若 utterance 只表達抱怨、疑問、或猶豫，應路由為 `answer_only`，不改變 proposal state
+- 若 utterance 含有明確拒絕語意，才路由為 `reject`
+- 邊界模糊時，應優先保守路由為 `answer_only`，讓使用者在 response 中有機會明確表態
+
 ### 9.6 `explain_rescue_plan` 的行為
 
 使用者點擊 `為什麼這樣建議` 後，系統應說明：

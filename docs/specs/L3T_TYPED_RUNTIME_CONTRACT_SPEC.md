@@ -318,6 +318,8 @@ commit-critical 最小欄位：
 
 ## 7. Rescue Typed Contracts
 
+> **Note**: These contracts reflect the v1 single-spread rescue model defined in `L3.4` Section 8 and 17. The multi-family model (`same_day_soft_cap`, `next_meal_protection`, `short_horizon_spread` as independent surface families) is no longer the canonical surface contract. Internal artifacts may retain family labels for computation, but the surface contract uses the single-spread shape below.
+
 ### 7.1 `RescueTriggerResult`
 
 最小欄位：
@@ -332,30 +334,55 @@ commit-critical 最小欄位：
 
 最小欄位：
 
-- `rescue_horizon: Literal[1, 3, 5] | None`
+- `rescue_horizon: Literal[1, 2, 3, 4, 5] | None`
 - `recovery_viability: Literal["viable", "strained", "non_viable"]`
-- `recommended_rescue_family: Literal["next_meal_protection", "short_horizon_spread", "logging_first_rescue", "rescue_stop_and_escalate"]`
+- `special_posture: Literal["none", "logging_first", "escalate"]`
 - `compression_summary: dict[str, Any]`
 
-### 7.3 `RescueOption`
+規則：
+
+- `rescue_horizon` 是建議分攤天數，由 overshoot math 決定
+- `special_posture` 取代舊的 `recommended_rescue_family`；只有 `logging_first` 和 `escalate` 是特殊 posture，其餘走標準分攤
+
+### 7.3 `RescueSpreadPlan`
+
+v1 rescue 的核心 output artifact，取代舊的 `RescueOption`。
 
 最小欄位：
 
-- `rescue_option_id: str`
-- `option_family: Literal["next_meal_protection", "short_horizon_spread", "logging_first_rescue", "rescue_stop_and_escalate"]`
-- `horizon_days: int | None`
-- `daily_kcal_adjustments: list[int]`
-- `activation_mode: Literal["immediate_next_meal", "today_lunch", "tomorrow_0000"]`
+- `rescue_plan_id: str`
+- `recommended_days: int`
+- `daily_kcal_adjustment: int`（負數，代表每日回收量）
+- `overshoot_kcal: int`
+- `cap_basis_kcal: int`（`base_budget_kcal`）
+- `cap_mode: Literal["standard", "aggressive"]`（standard = 15%, aggressive = 20%）
+- `activation_mode: Literal["today_lunch", "tomorrow_0000"]`（依 11:00 規則決定）
+- `recovery_viability: Literal["viable", "strained", "non_viable"]`
 - `guardrail_summary: str`
 
 ### 7.4 `RescueResponseResult`
 
 最小欄位：
 
-- `top_option: RescueOption | None`
-- `backup_options: list[RescueOption]`
+- `spread_plan: RescueSpreadPlan | None`
+- `special_posture: Literal["none", "logging_first", "escalate"]`
 - `reply_text: str`
+- `recommended_days: int | None`
+- `daily_kcal_adjustment: int | None`
+- `overshoot_kcal: int`
 - `quick_actions: list[dict[str, Any]]`
+
+規則：
+
+- `quick_actions` v1 標準集合：
+  - `accept_rescue_plan`
+  - `shorten_rescue_plan`
+  - `extend_rescue_plan`
+  - `reject_rescue_plan`
+  - `explain_rescue_plan`
+- 若 `special_posture = logging_first`，改為 `log_meal` / `estimate_now` / `skip_rescue`
+- 若 `special_posture = escalate`，改為 `see_calibration` / `skip_rescue`
+- 不再有 `backup_options` 欄位
 
 ---
 

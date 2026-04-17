@@ -9,6 +9,57 @@ This log records implementation reality shifts that require the next-step plan t
 
 It should be appended over time instead of rewritten.
 
+## 2026-04-17 — Whole-Product Suite-Governance Correction
+
+### Trigger
+
+- semantic-routing benchmark work exposed that the repo still lacked an explicit whole-product suite-governance layer tying `L5A` eval mechanics, `L5B` benchmark buckets, existing benchmark fixtures, and existing test/runner assets into one taxonomy
+
+### What The Planning Reality Became
+
+- official benchmark truth cannot be grown slice by slice without a whole-product suite-governance layer
+- semantic-routing provisional vs official split was a useful local fix, but it surfaced a repo-wide need for:
+  - authority tiers
+  - suite inventory
+  - migration mapping
+  - promotion flow
+- the next bounded step is not more router-first case expansion; it is establishing suite-governance truth and mapping existing assets into it
+
+### Assumptions That Expired
+
+- "L5A and L5B are enough by themselves to govern benchmark inventory"
+- "official router/boundary benchmark work can proceed safely before whole-product suite taxonomy is explicit"
+- "existing tests and benchmark fixtures can stay implicitly classified"
+
+### Next-Phase Corrections
+
+- add an explicit suite-governance layer on top of `L5A` / `L5B`
+- create a first migration mapping table for benchmarks, tests, registries, and runners
+- keep semantic-routing artifacts in their provisional/official lanes, but stop treating them as the whole benchmark backbone
+
+## 2026-04-16 — Semantic-Routing Benchmark Authority Split
+
+### Trigger
+
+- `2.7d` prompt/state-pack hardening had driven the legacy 15-case founder-fit pack to `15/15`, but product review clarified that this pack must not be treated as canonical benchmark truth.
+
+### What The Planning Reality Became
+
+- the legacy founder-fit pack is now only a provisional smoke pack for runner / harness / plumbing validation
+- official semantic-routing benchmark truth must live in a separate canonical pack
+- candidate cases must be reviewed and approved by the user per case before they can be promoted into the official canonical pack
+
+### Assumptions That Expired
+
+- "improving the old 15-case founder-fit pack pass rate is equivalent to validating product routing truth"
+- "semantic-routing benchmark artifacts can stay in one authority lane"
+
+### Next-Phase Corrections
+
+- keep provisional smoke and official canonical benchmark artifacts separate
+- keep official packs limited to primary oracle fields and exclude ambiguity cases
+- use a candidate review queue as the only promotion path into official canonical benchmark truth
+
 ## 2026-04-11 — Canonical Core / Intake Transition
 
 ### Trigger

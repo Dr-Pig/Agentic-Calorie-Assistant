@@ -20,6 +20,8 @@ runtime/
 *.jsonl
 *.json
 !docs/quality/benchmarks/semantic_routing/semantic_routing_founder_fit_pack_v1.json
+!docs/quality/benchmarks/intake/intake_candidate_review_queue_v1.json
+!docs/quality/benchmarks/rescue/rescue_candidate_review_queue_v1.json
 *.json.gz
 *.jsonl.gz
 *.sqlite

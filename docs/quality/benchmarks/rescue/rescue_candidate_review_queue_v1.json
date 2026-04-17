@@ -1,0 +1,112 @@
+{
+  "queue_id": "rescue_candidate_review_queue_v1",
+  "version": 1,
+  "scope": "Official rescue golden candidate queue",
+  "authority_level": "candidate_only",
+  "approval_status": "pending_user_batch_review",
+  "purpose": "Candidate review queue for rescue official golden suites. Entries here are not canonical truth until promoted.",
+  "review_unit": "per_case_primary_outcome",
+  "required_user_approval_fields": [
+    "candidate_target_object_type",
+    "candidate_target_workflow_family",
+    "candidate_disposition",
+    "candidate_workflow_effect"
+  ],
+  "cases": [
+    {
+      "candidate_case_id": "rescue_accept_candidate_001",
+      "candidate_suite_id": "rescue_accept_action_golden_v1",
+      "review_status": "pending_user_approval",
+      "origin": "2.5d_rescue_surface",
+      "utterance": "好，就照這個方案做",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 501,
+          "proposal_status": "open",
+          "recommended_days": 3,
+          "daily_kcal_adjustment": 180
+        }
+      },
+      "candidate_target_object_type": "proposal",
+      "candidate_target_workflow_family": "rescue",
+      "candidate_disposition": "accept",
+      "candidate_workflow_effect": "accept_and_apply_current_proposal"
+    },
+    {
+      "candidate_case_id": "rescue_reject_candidate_001",
+      "candidate_suite_id": "rescue_reject_action_golden_v1",
+      "review_status": "pending_user_approval",
+      "origin": "2.5d_rescue_surface",
+      "utterance": "不要這次，我先照原本節奏就好",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 502,
+          "proposal_status": "open",
+          "recommended_days": 4,
+          "daily_kcal_adjustment": 140
+        }
+      },
+      "candidate_target_object_type": "proposal",
+      "candidate_target_workflow_family": "rescue",
+      "candidate_disposition": "reject",
+      "candidate_workflow_effect": "close_current_proposal"
+    },
+    {
+      "candidate_case_id": "rescue_defer_candidate_001",
+      "candidate_suite_id": "rescue_defer_action_golden_v1",
+      "review_status": "pending_user_approval",
+      "origin": "2.5d_rescue_surface",
+      "utterance": "晚點再看，先不要現在決定",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 503,
+          "proposal_status": "open",
+          "recommended_days": 3,
+          "daily_kcal_adjustment": 160
+        }
+      },
+      "candidate_target_object_type": "proposal",
+      "candidate_target_workflow_family": "rescue",
+      "candidate_disposition": "defer",
+      "candidate_workflow_effect": "defer_current_proposal"
+    },
+    {
+      "candidate_case_id": "rescue_adjust_candidate_001",
+      "candidate_suite_id": "rescue_adjust_action_golden_v1",
+      "review_status": "pending_user_approval",
+      "origin": "2.5d_rescue_surface",
+      "utterance": "太硬了，拉長一點",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 504,
+          "proposal_status": "open",
+          "recommended_days": 3,
+          "daily_kcal_adjustment": 180
+        }
+      },
+      "candidate_target_object_type": "proposal",
+      "candidate_target_workflow_family": "rescue",
+      "candidate_disposition": "adjust",
+      "candidate_workflow_effect": "mutate_current_proposal"
+    },
+    {
+      "candidate_case_id": "rescue_answer_only_candidate_001",
+      "candidate_suite_id": "rescue_answer_only_boundary_golden_v1",
+      "review_status": "pending_user_approval",
+      "origin": "2.5d_rescue_surface",
+      "utterance": "如果照這個做，每天大概要少多少？",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 505,
+          "proposal_status": "open",
+          "recommended_days": 3,
+          "daily_kcal_adjustment": 170
+        }
+      },
+      "candidate_target_object_type": "proposal",
+      "candidate_target_workflow_family": "rescue",
+      "candidate_disposition": "answer_only",
+      "candidate_workflow_effect": "answer_current_object"
+    }
+  ]
+}

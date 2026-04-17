@@ -1,7 +1,11 @@
 {
   "pack_id": "semantic_routing_founder_fit_pack_v1",
   "version": 2,
-  "purpose": "Founder-fit semantic routing eval pack for chat-first rescue proposals and intake follow-up continuation.",
+  "pack_mode": "provisional_smoke",
+  "authority_level": "non_canonical",
+  "approval_status": "exploratory_only",
+  "purpose": "Provisional non-canonical smoke pack for semantic-routing runner, harness, and plumbing validation. This pack must not be treated as product-approved benchmark truth.",
+  "non_canonical_note": "This pack is retained for runner/harness validation and exploratory drift triage only. It does not represent official product benchmark truth and must not be used to back-solve unresolved product semantics.",
   "style_personalization_extension_note": {
     "conversation_style_profile_defined": false,
     "note": "The repo does not yet define a canonical conversation_style_profile or sour.md equivalent. Style adaptation remains a later 2.7 extension after semantic-routing evidence is stable."
@@ -38,13 +42,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "proposal_accept",
-      "expected_target_workflow_family": "rescue_proposal",
-      "expected_target_object_type": "proposal_container",
+      "expected_target_workflow_family": "rescue",
+      "expected_target_object_type": "proposal",
       "expected_target_object_id": 501,
       "expected_workflow_effect": "accept_and_apply_current_proposal",
       "expected_ambiguity_posture": "none",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "prompt_issue"
+      "provisional_hypothesis": "prompt_issue",
+      "expected_disposition": "accept"
     },
     {
       "case_id": "semantic_routing_rescue_reject_001",
@@ -76,13 +81,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "proposal_reject",
-      "expected_target_workflow_family": "rescue_proposal",
-      "expected_target_object_type": "proposal_container",
+      "expected_target_workflow_family": "rescue",
+      "expected_target_object_type": "proposal",
       "expected_target_object_id": 502,
       "expected_workflow_effect": "close_current_proposal",
       "expected_ambiguity_posture": "none",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "prompt_issue"
+      "provisional_hypothesis": "prompt_issue",
+      "expected_disposition": "reject"
     },
     {
       "case_id": "semantic_routing_rescue_defer_001",
@@ -114,13 +120,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "proposal_defer",
-      "expected_target_workflow_family": "rescue_proposal",
-      "expected_target_object_type": "proposal_container",
+      "expected_target_workflow_family": "rescue",
+      "expected_target_object_type": "proposal",
       "expected_target_object_id": 503,
       "expected_workflow_effect": "defer_current_proposal",
       "expected_ambiguity_posture": "none",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "prompt_issue"
+      "provisional_hypothesis": "prompt_issue",
+      "expected_disposition": "defer"
     },
     {
       "case_id": "semantic_routing_rescue_adjust_shorter_001",
@@ -152,13 +159,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "proposal_adjust_shorter",
-      "expected_target_workflow_family": "rescue_proposal",
-      "expected_target_object_type": "proposal_container",
+      "expected_target_workflow_family": "rescue",
+      "expected_target_object_type": "proposal",
       "expected_target_object_id": 504,
       "expected_workflow_effect": "mutate_current_proposal",
       "expected_ambiguity_posture": "none",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "prompt_issue"
+      "provisional_hypothesis": "prompt_issue",
+      "expected_disposition": "adjust"
     },
     {
       "case_id": "semantic_routing_rescue_adjust_longer_001",
@@ -190,13 +198,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "proposal_adjust_longer",
-      "expected_target_workflow_family": "rescue_proposal",
-      "expected_target_object_type": "proposal_container",
+      "expected_target_workflow_family": "rescue",
+      "expected_target_object_type": "proposal",
       "expected_target_object_id": 505,
       "expected_workflow_effect": "mutate_current_proposal",
       "expected_ambiguity_posture": "none",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "prompt_issue"
+      "provisional_hypothesis": "prompt_issue",
+      "expected_disposition": "adjust"
     },
     {
       "case_id": "semantic_routing_rescue_explain_001",
@@ -228,13 +237,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "proposal_explain_request",
-      "expected_target_workflow_family": "rescue_proposal",
-      "expected_target_object_type": "proposal_container",
+      "expected_target_workflow_family": "rescue",
+      "expected_target_object_type": "proposal",
       "expected_target_object_id": 506,
-      "expected_workflow_effect": "request_explanation",
+      "expected_workflow_effect": "answer_current_object",
       "expected_ambiguity_posture": "none",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "prompt_issue"
+      "provisional_hypothesis": "prompt_issue",
+      "expected_disposition": "answer_only"
     },
     {
       "case_id": "semantic_routing_rescue_general_inquiry_001",
@@ -266,13 +276,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "proposal_general_inquiry",
-      "expected_target_workflow_family": "rescue_proposal",
-      "expected_target_object_type": "proposal_container",
+      "expected_target_workflow_family": "rescue",
+      "expected_target_object_type": "proposal",
       "expected_target_object_id": 507,
-      "expected_workflow_effect": "remain_inquiry_only",
+      "expected_workflow_effect": "answer_current_object",
       "expected_ambiguity_posture": "none",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "taxonomy_issue"
+      "provisional_hypothesis": "taxonomy_issue",
+      "expected_disposition": "answer_only"
     },
     {
       "case_id": "semantic_routing_rescue_boundary_001",
@@ -304,13 +315,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "proposal_general_inquiry",
-      "expected_target_workflow_family": "rescue_proposal",
-      "expected_target_object_type": "proposal_container",
+      "expected_target_workflow_family": "rescue",
+      "expected_target_object_type": "proposal",
       "expected_target_object_id": 508,
-      "expected_workflow_effect": "remain_inquiry_only",
+      "expected_workflow_effect": "answer_current_object",
       "expected_ambiguity_posture": "allow_uncertain",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "inherently_ambiguous_case"
+      "provisional_hypothesis": "inherently_ambiguous_case",
+      "expected_disposition": "answer_only"
     },
     {
       "case_id": "semantic_routing_rescue_boundary_002",
@@ -342,13 +354,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "proposal_defer",
-      "expected_target_workflow_family": "rescue_proposal",
-      "expected_target_object_type": "proposal_container",
+      "expected_target_workflow_family": "rescue",
+      "expected_target_object_type": "proposal",
       "expected_target_object_id": 509,
       "expected_workflow_effect": "defer_current_proposal",
       "expected_ambiguity_posture": "allow_uncertain",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "inherently_ambiguous_case"
+      "provisional_hypothesis": "inherently_ambiguous_case",
+      "expected_disposition": "defer"
     },
     {
       "case_id": "semantic_routing_followup_completion_001",
@@ -375,13 +388,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "followup_completion",
-      "expected_target_workflow_family": "intake_followup",
-      "expected_target_object_type": "meal_log",
+      "expected_target_workflow_family": "intake",
+      "expected_target_object_type": "meal_thread",
       "expected_target_object_id": 801,
       "expected_workflow_effect": "continue_followup_lane",
       "expected_ambiguity_posture": "none",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "prompt_issue"
+      "provisional_hypothesis": "prompt_issue",
+      "expected_disposition": "continue"
     },
     {
       "case_id": "semantic_routing_followup_refinement_001",
@@ -408,13 +422,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "followup_refinement",
-      "expected_target_workflow_family": "intake_followup",
-      "expected_target_object_type": "meal_log",
+      "expected_target_workflow_family": "intake",
+      "expected_target_object_type": "meal_thread",
       "expected_target_object_id": 802,
       "expected_workflow_effect": "continue_followup_lane",
       "expected_ambiguity_posture": "none",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "prompt_issue"
+      "provisional_hypothesis": "prompt_issue",
+      "expected_disposition": "continue"
     },
     {
       "case_id": "semantic_routing_followup_refinement_002",
@@ -441,13 +456,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "followup_refinement",
-      "expected_target_workflow_family": "intake_followup",
-      "expected_target_object_type": "meal_log",
+      "expected_target_workflow_family": "intake",
+      "expected_target_object_type": "meal_thread",
       "expected_target_object_id": 803,
       "expected_workflow_effect": "continue_followup_lane",
       "expected_ambiguity_posture": "none",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "prompt_issue"
+      "provisional_hypothesis": "prompt_issue",
+      "expected_disposition": "continue"
     },
     {
       "case_id": "semantic_routing_followup_boundary_001",
@@ -474,13 +490,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "followup_refinement",
-      "expected_target_workflow_family": "intake_followup",
-      "expected_target_object_type": "meal_log",
+      "expected_target_workflow_family": "intake",
+      "expected_target_object_type": "meal_thread",
       "expected_target_object_id": 804,
       "expected_workflow_effect": "continue_followup_lane",
       "expected_ambiguity_posture": "none",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "state_pack_insufficiency"
+      "provisional_hypothesis": "state_pack_insufficiency",
+      "expected_disposition": "continue"
     },
     {
       "case_id": "semantic_routing_new_topic_001",
@@ -507,17 +524,18 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "new_topic_or_new_workflow",
-      "expected_target_workflow_family": "new_topic",
+      "expected_target_workflow_family": "intake",
       "expected_target_object_type": "none",
       "expected_target_object_id": null,
       "expected_workflow_effect": "open_new_workflow",
       "expected_ambiguity_posture": "none",
       "state_pack_sufficiency_hint": "sufficient",
-      "provisional_hypothesis": "prompt_issue"
+      "provisional_hypothesis": "prompt_issue",
+      "expected_disposition": "open_new_workflow"
     },
     {
       "case_id": "semantic_routing_ambiguity_001",
-      "title": "Ambiguous utterance should allow ask-clarify posture",
+      "title": "Ambiguous utterance should allow soft-stop ambiguity posture",
       "origin": "hand_authored_founder_fit",
       "case_family": "ambiguity_bucket",
       "drift_cluster": "boundary_discrimination_drift",
@@ -550,13 +568,14 @@
         "thin_reason_bridge": null
       },
       "expected_semantic_family": "proposal_general_inquiry",
-      "expected_target_workflow_family": "rescue_proposal",
-      "expected_target_object_type": "proposal_container",
-      "expected_target_object_id": 510,
-      "expected_workflow_effect": "ask_clarify_before_mutation",
+      "expected_target_workflow_family": "intake",
+      "expected_target_object_type": "meal_thread",
+      "expected_target_object_id": 806,
+      "expected_workflow_effect": "no_state_change_soft_hold",
       "expected_ambiguity_posture": "allow_uncertain",
       "state_pack_sufficiency_hint": "possibly_insufficient_for_disambiguation",
-      "provisional_hypothesis": "inherently_ambiguous_case"
+      "provisional_hypothesis": "inherently_ambiguous_case",
+      "expected_disposition": "answer_only"
     }
   ]
 }

@@ -44,24 +44,24 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
 | `2.4 Weight / Body Observation` | `completed enough` | available and not blocking current mainline work; still required before `2.6` |
 | `2.5 Rescue` | `completed enough` | `2.5d` rescue response surface is complete enough to serve as a semantic-routing source family |
 | `2.6 Calibration` | `deferred` | not best-next while `2.2` mainline validation remains incomplete |
-| `2.7 Memory / Retrieval Deepening` | `active` | `2.7d` semantic-routing prompt/state-pack hardening is now the active bounded branch |
+| `2.7 Memory / Retrieval Deepening` | `active` | `2.7d` is now using semantic-routing fallout to establish the product-wide suite-governance layer and migration groundwork before more official boundary truth is promoted |
 | `2.8 Recommendation` | `not started` | downstream of intake, rescue, and calibration maturity |
 | `2.9 Proactive Nudges` | `not started` | downstream of recommendation and current mainline maturity |
 
 ## Global Pointer
 
 - `current_pointer_bundle`: `2.7 Memory / Retrieval Deepening`
-- `current_pointer_reason`: `the official text-surface guard wall is now in place, so the next bounded step is to harden semantic-routing prompts and state packs against the observed drift clusters`
+- `current_pointer_reason`: `semantic-routing officialization exposed a broader eval-governance gap, so the next bounded step is to align whole-product suite governance with L5A/L5B before further official benchmark promotion`
 - `deferred_bundles[]`:
   - `2.6 Calibration`
 - `deferred_bundle_reason`: `calibration remains legal later, but semantic routing now owns the active best-next slice`
 
 ## Current Execution Dashboard
 
-- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough as a source family, 2.7a/2.7b semantic-routing evidence exists, 2.7c hardened the official text surfaces, a new global routing governance spec now constrains routing-vs-response boundaries, and the active next step remains 2.7d prompt/state-pack hardening`
+- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough as a source family, 2.7a/2.7b semantic-routing evidence exists, 2.7c hardened the official text surfaces, L6F now governs routing-vs-response boundaries, and 2.7d has widened into suite-governance groundwork so official benchmark lanes sit under L5A/L5B rather than as a parallel taxonomy`
 - `current_workflow_family`: `2.7 Memory / Retrieval Deepening`
 - `current_slice`: `2.7d-semantic-routing-prompt-state-pack-hardening`
-- `current_goal`: `use the now-guarded semantic-routing eval surfaces and 2.7b drift clusters to harden prompts, target vocabulary, and state-pack sufficiency without introducing deterministic semantic overrides or re-promoting response-side distinctions into primary routing taxonomy`
+- `current_goal`: `establish the whole-product suite-governance layer, align it explicitly with L5A/L5B, map existing benchmark/test/runner assets into suite taxonomy, and keep semantic-routing artifacts in their proper provisional/official lanes under that governance`
 - `completed_so_far`:
   - `2.2a active-meal continuation foundation`
   - `2.2c cross-midnight attribution foundation`
@@ -92,31 +92,33 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `2.7c official text-surface guard registry, shared mojibake detector, fixture semantic-field validation, and pre-commit/CI enforcement`
   - `2.7d canonical target-vocabulary prompt tightening and normalized semantic-routing state-pack shaping`
   - `independent global routing governance spec for routing-vs-response boundaries, anti-premature-taxonomy guard, and deterministic-gate responsibility`
+  - `2.7d semantic-routing provisional-vs-official benchmark split plus candidate review queue foundation`
+  - `L5D suite-governance layer, suite inventory v1, and first migration mapping table for existing benchmark/test/runner assets`
   - `2.7c official text-surface guard hardening is complete enough to unblock the next semantic-routing hardening wave`
 - `legal_next_slices[]`:
   - `2.7d-semantic-routing-prompt-state-pack-hardening`
 - `recommended_next_slice`: `2.7d-semantic-routing-prompt-state-pack-hardening`
-- `why_this_next`: `the official text-surface guard wall is now in place, and the user explicitly asked to review rescue closeout then cut to the next semantic-routing hardening wave`
+- `why_this_next`: `the user explicitly redirected from premature router officialization to a whole-product golden-suite inventory, and the repo now needs suite-governance truth before more official benchmark promotion`
 - `human_gate`: `cleared for 2.7d by explicit user approval`
 - `owner_mode`: `local`
-- `key_files_or_subsystem`: `work should stay inside semantic-routing prompt/eval/state-pack surfaces, benchmark packs, drift-triage contract, and targeted tests without touching production routing`
+- `key_files_or_subsystem`: `work should stay inside quality/spec/governance surfaces, benchmark inventories, migration mapping, and execution truth sync without touching production routing or application runtime`
 - `required_harness`:
   - `python scripts/check_layer_integrity.py`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`
   - relevant targeted, smoke, integration, benchmark, or eval commands for the actual slice
-- `verification_status`: `2.7d prompt/state-pack hardening is in progress: live semantic-routing eval improved from 0/15 to 11/15, and the remaining failures are now concentrated in a small set of boundary-semantics cases`
-- `verification_reason`: `canonical target-vocabulary constraints plus normalized state-pack shaping removed the broad workflow-family drift, leaving only decision-boundary cases that now need product review rather than more undirected hardening`
-- `last_verified_at`: `2026-04-15`
+- `verification_status`: `suite-governance groundwork is now being established: semantic-routing authority split still holds, but official benchmark promotion is paused until L5A/L5B/L5D alignment and asset migration mapping are explicit`
+- `verification_reason`: `the user redirected the branch from router-first officialization to whole-product golden-suite planning, so benchmark correctness now depends on suite-governance alignment and migration coverage rather than more pass-rate chasing on the old packs`
+- `last_verified_at`: `2026-04-16`
 
 ## Selection State
 
-- `active_critical_path_segment`: `2.7a semantic routing eval foundation -> 2.7b evidence hardening -> 2.7c official text-surface guard hardening -> 2.7d semantic-routing prompt/state-pack hardening -> later 2.7 routing/memory design -> later 2.6/2.8`
+- `active_critical_path_segment`: `2.7a semantic routing eval foundation -> 2.7b evidence hardening -> 2.7c official text-surface guard hardening -> 2.7d suite-governance and migration groundwork -> later official golden promotion by workflow -> later 2.7 routing/memory design -> later 2.6/2.8`
 - `current_domain_gate_status`: `2.2, 2.3, and 2.5d are sufficient enough for semantic-routing eval work`
 - `mainline_validation_status`: `sufficient_for_domain_advance`
 - `selected_best_next_slice`: `2.7d-semantic-routing-prompt-state-pack-hardening`
-- `selection_reason`: `the guard-first prerequisite is now satisfied, and the user explicitly asked to cut from rescue closeout into the next semantic-routing hardening wave`
-- `selection_reason_detail`: `2.7b already exposed the drift clusters, 2.7c now protects the evidence surfaces, and the next bounded move is to improve prompt/state-pack behavior under the new routing-governance rule set without deterministic semantic overrides`
+- `selection_reason`: `the user explicitly redirected the branch from router-first benchmark work to whole-product golden-suite governance, and the repo now needs suite taxonomy plus migration truth before more official cases are promoted`
+- `selection_reason_detail`: `semantic-routing fallout exposed the broader governance gap: L5A and L5B already define mechanics and bucket taxonomy, but suite inventory, authority tiers, and asset migration were still implicit. The bounded next step is to make that layer explicit rather than continue optimizing a provisional pack`
 - `deferred_legal_slices[]`:
   - `2.6 next calibration slice`
 - `deferred_selection_reason`: `calibration remains legal later in the broad order, but semantic routing now owns the active branch`

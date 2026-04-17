@@ -163,6 +163,22 @@ intake 主流程的 pass 應優先對應以下 logical model roles：
 - `MealThread` 是飲食事件，不是訊息，也不是單一食物
 - 此 pass 負責 splitting boundary，不負責 nutrition resolution
 
+#### Topic Reset 語意規則
+
+若使用者在訊息中明確表達 topic reset（例如「先不管」「剛剛那個先不管」「那個之後再說」），應視為開新 workflow，不應 attach 到舊 thread。
+
+正式規則：
+
+- 明確 topic reset 語意 + 新飲食內容 → `meal_link_action: create_new_meal`，`target_meal_thread_id: null`
+- 不應把新飲食內容 attach 到使用者明確說要先不管的舊 thread
+- topic reset 語意的判斷應以使用者明確聲明為準，不應因為舊 thread 仍 open 就強制 attach
+
+例子：
+
+- 「剛剛那個先不管，我晚餐吃了咖哩飯」→ 新 workflow，`target_object_type: none`
+- 「那個之後再說，先記這個：我剛吃了便當」→ 新 workflow，`target_object_type: none`
+- 「我剛吃了咖哩飯」（無 topic reset 語意，有 open thread）→ 依 boundary 判斷是否 attach 或新建
+
 ### 4.6 不可做的事
 
 - 不輸出 kcal / macro

@@ -65,6 +65,23 @@
 
 本文件只定義 **跨產品共用的責任邊界**，不強迫各 workflow 與 intake 完全同構。
 
+### 2.4 Repo-Level Decision Freeze Rule
+
+在 routing / taxonomy / benchmark work 中，必須遵守：
+
+> 未拍板產品語意，不得寫進 eval pack、oracle、taxonomy、或 pass/fail rubric。
+
+允許：
+
+- evidence collection
+- ambiguity clustering
+- recording competing interpretations
+
+禁止：
+
+- silently promoting unresolved product semantics into canonical eval truth
+- using benchmark pass/fail to back-solve product semantics that have not been explicitly decided
+
 ---
 
 ## 3. 核心治理原則
@@ -84,8 +101,8 @@
 
 可以定義：
 
-- 全產品都應有 first-layer routing responsibility
-- 全產品都應有 response realization responsibility
+- 全產品都應有 conceptual first-layer routing responsibility
+- 全產品都應有 conceptual response realization responsibility
 
 但不能因此宣告：
 
@@ -93,6 +110,45 @@
 - repo 已存在 shared tail response implementation
 
 如果未來要落成 shared runtime，必須由更晚的 runtime spec 與 workflow evidence 支撐。
+
+### 3.2A Workflow Family V1
+
+v1 workflow family 先收：
+
+- `intake`
+- `rescue`
+- `calibration`
+- `recommendation`
+- `body_observation`
+- `general_chat`
+
+`new_workflow` 不作獨立 workflow family。  
+topic switch 由：
+
+- `disposition = open_new_workflow`
+
+表達。
+
+### 3.2B Active Object Family V1
+
+canonical object truth 仍由 `L2 Data State Spec` 管。  
+本文件不建立平行的 canonical object inventory。
+
+routing 層只定義 **L2 canonical objects 的精簡投影**，作為 v1 可被對話直接命中的 active object families：
+
+- `meal_thread`
+- `proposal`
+- `body_observation`
+- `none`
+
+明確不在 v1 routing object family 層拆分：
+
+- `pending_intake_followup`
+- `open_rescue_proposal`
+- `open_calibration_proposal`
+- `open_recommendation_proposal`
+
+這些要嘛是 `meal_thread` 的狀態，要嘛是 `proposal` 的型別屬性，不是獨立 object family。
 
 ### 3.3 Anti-Premature-Taxonomy Rule
 
@@ -182,7 +238,7 @@ deterministic layer 不得：
 - 各 workflow 的 pass count 可以不同
 - 不得因為需要抽象治理，就強迫所有 workflow 複製 intake 4-pass
 
-### 4.3 Response Realization Responsibility
+### 4.3 Conceptual Response Realization Responsibility
 
 最終自然語言回覆應由 LLM 主導。
 
@@ -203,6 +259,8 @@ deterministic layer 不得：
 - 人性化措辭
 
 都屬於 response realization，而不是 primary routing taxonomy。
+
+這裡的 `conceptual` 指的是治理原則共享，不是要求 shared implementation。
 
 ### 4.4 Deterministic Gate Responsibility
 
@@ -238,22 +296,51 @@ deterministic layer 不得：
 
 ### 5.2 Candidate Vocabulary
 
-第一版 candidate vocabulary 可包含：
+v1 core disposition 先收：
 
 - `create`
 - `continue`
-- `refine`
 - `correct`
 - `accept`
 - `reject`
 - `defer`
 - `adjust`
 - `answer_only`
-- `no_action_soft_hold`
 - `open_new_workflow`
-- `uncertain`
 
-### 5.3 邊界
+明確不屬於 first-layer disposition：
+
+- `uncertain`
+- `no_action_soft_hold`
+
+其中：
+
+- `uncertain` 是 confidence / ambiguity 問題
+- `no_action_soft_hold` 是 response posture
+
+### 5.3 Eligibility Matrix V1
+
+v1 eligibility 先定為：
+
+- `meal_thread`
+  - `create`
+  - `continue`
+  - `correct`
+  - `answer_only`
+- `proposal`
+  - `accept`
+  - `reject`
+  - `defer`
+  - `adjust`
+  - `answer_only`
+- `body_observation`
+  - `create`
+  - `answer_only`
+- `none`
+  - `answer_only`
+  - `open_new_workflow`
+
+### 5.4 邊界
 
 本文件只把它定義成 **governance candidate vocabulary**。
 
@@ -276,6 +363,15 @@ semantic-routing eval 的 primary oracle 應優先評估：
 - workflow ownership
 - disposition
 - workflow effect
+
+### 6.1A Confidence / Ambiguity Contract
+
+第一層 routing 的不確定與模糊不放進 disposition。
+
+正式治理 contract 應包含：
+
+- `routing_confidence`
+- `ambiguity_posture`
 
 ### 6.2 Secondary Rubric 才能放什麼
 
@@ -349,7 +445,42 @@ semantic-routing eval 的 primary oracle 應優先評估：
 
 ---
 
-## 8. Future Extension Note
+## 8. Workflow Graph Mapping Guidance
+
+### 8.1 Intake
+
+必須明寫：
+
+- intake 是目前唯一成熟的 4-pass canonical graph
+- conceptual first-layer routing responsibility **不是** `task_meal_link_pass` 的替代物
+- `task_meal_link_pass` 仍是 intake domain-specific graph 的一部分
+
+### 8.2 Rescue
+
+rescue 在全局治理規範中可先寫到 subpass 粒度，因為已有較成熟 runtime truth。  
+但這只作治理對照，不在本文件中重寫 `L3.4` rescue runtime contract。
+
+### 8.3 Calibration / Recommendation
+
+calibration 與 recommendation 先只定：
+
+- 存在 workflow-specific middle reasoning
+
+但不在本文件中定死 canonical graph，避免 premature abstraction。
+
+### 8.4 Body Observation
+
+`body_observation` 在全局治理規範中視為獨立 workflow family，採 thin graph：
+
+- conceptual first-layer routing
+- body_observation-specific middle
+- conceptual response realization
+
+這裡的 `conceptual` 仍然表示治理層共享，不等於共用程式碼元件。
+
+---
+
+## 9. Future Extension Note
 
 `sour.md` / `conversation_style_profile` 類概念目前只應視為 response-layer extension point。
 
@@ -366,7 +497,7 @@ semantic-routing eval 的 primary oracle 應優先評估：
 
 ---
 
-## 9. Implementation Rule
+## 10. Implementation Rule
 
 當後續 slice 涉及：
 

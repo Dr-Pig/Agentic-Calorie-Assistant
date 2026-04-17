@@ -24,6 +24,29 @@
 - benchmark repo layout 以 [`docs/quality/BENCHMARK_FOLDER_LAYOUT.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/BENCHMARK_FOLDER_LAYOUT.md) 為準
 - stateful multi-turn case 模板以 [`docs/quality/STATEFUL_MULTI_TURN_CASE_TEMPLATE.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/STATEFUL_MULTI_TURN_CASE_TEMPLATE.md) 為準
 - supporting-doc drift 與額外欄位對齊以 [`docs/quality/BENCHMARK_SUPPORTING_DOCS_ALIGNMENT.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/BENCHMARK_SUPPORTING_DOCS_ALIGNMENT.md) 為準
+- suite-level inventory、authority tier、以及 suite 與既有資產的映射以 [`docs/quality/L5D_SUITE_GOVERNANCE_SPEC.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/L5D_SUITE_GOVERNANCE_SPEC.md) 為準
+
+### 2.1 與 L5D 的分工
+
+`L5B` 保留：
+
+- bucket taxonomy
+- case classes
+- minimum case counts
+- source mix
+- case schema
+
+`L5D` 則作為上層 suite-governance layer，負責：
+
+- `suite_id`
+- `authority_tier`
+- `maturity_status`
+- `workflow_family`
+- `capability_family`
+- `validation_layer`
+- suite promotion 與 migration ownership
+
+對 intake 等成熟 workflow，`L5B` bucket 是 scenario parent grouping；`L5D` suite 是 finer-grained execution unit。
 
 ---
 
