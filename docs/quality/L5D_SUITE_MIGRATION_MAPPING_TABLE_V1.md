@@ -16,6 +16,8 @@
 | `docs/quality/benchmarks/rescue/rescue_candidate_review_queue_v1.json` | `candidate_queue` | `rescue_accept_action_golden_v1` | `Official Golden` | `mapped_existing` | rescue 官方候選入口，逐題 promotion 到對應 suite |
 | `docs/quality/benchmarks/intake/intake_official_canonical_pack_v1.json` | `benchmark_fixture` | `intake_official_canonical_pack_v1` | `Official Golden` | `mapped_existing` | intake 第一批已核准 official canonical pack |
 | `docs/quality/benchmarks/rescue/rescue_official_canonical_pack_v1.json` | `benchmark_fixture` | `rescue_official_canonical_pack_v1` | `Official Golden` | `mapped_existing` | rescue 第一批已核准 official canonical pack |
+| `docs/quality/benchmarks/intake/intake_executable_action_pack_v1.json` | `derived_executable_pack` | `intake_official_canonical_pack_v1` | `Official Golden` | `mapped_existing` | subordinate executable contract，不是新的 suite authority source |
+| `docs/quality/benchmarks/rescue/rescue_executable_action_pack_v1.json` | `derived_executable_pack` | `rescue_official_canonical_pack_v1` | `Official Golden` | `mapped_existing` | subordinate executable contract；目前 rescue adjust case 仍 blocked |
 | `docs/quality/INTAKE_OFFICIAL_GOLDEN_BATCH_REVIEW_V1.md` | `batch_review_sheet` | `intake_task_meal_link_golden_v1` | `Official Golden` | `mapped_existing` | intake 批次審核表面，實際覆蓋多個 intake suites |
 | `docs/quality/RESCUE_OFFICIAL_GOLDEN_BATCH_REVIEW_V1.md` | `batch_review_sheet` | `rescue_accept_action_golden_v1` | `Official Golden` | `mapped_existing` | rescue 批次審核表面，實際覆蓋多個 rescue suites |
 | `docs/quality/AUDIT_RUNNER_REGISTRY.json` | `runner_registry` | `benchmark_harness_smoke_v1` | `Smoke / Infra` | `mapped_existing` | 已補 suite-governance metadata，後續只需隨新增 suite 擴展 |

@@ -46,6 +46,8 @@
 - `validation_layer`
 - suite promotion 與 migration ownership
 
+若某個 Official Golden utterance pack 需要 workflow-specific runtime input 才能自動執行，derived executable action pack 的治理與 promotion 邊界由 `L5D` 管；`L5B` 不把它視為新的 bucket taxonomy。
+
 對 intake 等成熟 workflow，`L5B` bucket 是 scenario parent grouping；`L5D` suite 是 finer-grained execution unit。
 
 ---

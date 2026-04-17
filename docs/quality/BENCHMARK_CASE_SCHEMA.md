@@ -297,3 +297,45 @@ status: active
 - `safety_critical`
 
 五種 benchmark class。
+
+---
+
+## 12. Derived Executable Action Pack
+
+當 Official Golden utterance pack 已存在，但 workflow runner 需要額外的 runtime input contract 時，可建立 derived executable action pack。
+
+這不是新的 benchmark authority tier，而是 subordinate artifact。
+
+建議 top-level 欄位：
+
+```json
+{
+  "pack_id": "rescue_executable_action_pack_v1",
+  "pack_mode": "executable_action",
+  "authority_level": "derived_from_official_canonical",
+  "derived_from_pack_id": "rescue_official_canonical_pack_v1",
+  "runner_input_contract": {},
+  "cases": []
+}
+```
+
+每個 executable case 至少應包含：
+
+- `executable_case_id`
+- `source_official_case_id`
+- `suite_id`
+- `derivation_status`
+- `expected_runtime_outcome`
+
+workflow-specific 可再加：
+
+- `state_seed`
+- `proposal_seed`
+- `execution_mode`
+- `runtime_action`
+- `block_reason`
+
+正式規則：
+
+- `expected_runtime_outcome` 必須完整繼承 source official case 的主處置 truth
+- 若尚無唯一 runtime action mapping，不得硬補語意；應改用 blocked status 與 `block_reason`

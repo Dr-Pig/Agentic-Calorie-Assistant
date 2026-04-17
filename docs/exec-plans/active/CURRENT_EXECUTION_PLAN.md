@@ -58,7 +58,7 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
 
 ## Current Execution Dashboard
 
-- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough as a source family, 2.7a/2.7b semantic-routing evidence exists, 2.7c hardened the official text surfaces, L6F now governs routing-vs-response boundaries, and 2.7d now includes suite-governance groundwork plus the first approved intake/rescue official golden packs`
+- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough as a source family, 2.7a/2.7b semantic-routing evidence exists, 2.7c hardened the official text surfaces, L6F now governs routing-vs-response boundaries, and 2.7d now includes suite-governance groundwork, first approved intake/rescue official golden packs, and derived executable action-pack contracts`
 - `current_workflow_family`: `2.7 Memory / Retrieval Deepening`
 - `current_slice`: `2.7d-semantic-routing-prompt-state-pack-hardening`
 - `current_goal`: `establish the whole-product suite-governance layer, align it explicitly with L5A/L5B, map existing benchmark/test/runner assets into suite taxonomy, and keep semantic-routing artifacts in their proper provisional/official lanes under that governance`
@@ -95,6 +95,7 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `2.7d semantic-routing provisional-vs-official benchmark split plus candidate review queue foundation`
   - `L5D suite-governance layer, suite inventory v1, and first migration mapping table for existing benchmark/test/runner assets`
   - `first approved intake/rescue candidate batches promoted into workflow-specific official canonical packs`
+  - `derived intake/rescue executable action-pack contracts that stay subordinate to official utterance truth`
   - `2.7c official text-surface guard hardening is complete enough to unblock the next semantic-routing hardening wave`
 - `legal_next_slices[]`:
   - `2.7d-semantic-routing-prompt-state-pack-hardening`
@@ -108,8 +109,8 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `powershell -ExecutionPolicy Bypass -File scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`
   - relevant targeted, smoke, integration, benchmark, or eval commands for the actual slice
-- `verification_status`: `suite-governance groundwork is now in place for the active wave: semantic-routing authority split still holds, registries now carry suite metadata, and the first intake/rescue official golden cases have been promoted under workflow-specific packs`
-- `verification_reason`: `whole-product suite-governance truth, migration mapping, registry metadata, and candidate-to-official promotion flow now exist together; the next work is choosing which additional official suites to author rather than rebuilding the governance layer`
+- `verification_status`: `suite-governance groundwork is now in place for the active wave: semantic-routing authority split still holds, registries now carry suite metadata, the first intake/rescue official golden cases have been promoted, and executable runner-input contracts now exist as subordinate derived artifacts`
+- `verification_reason`: `whole-product suite-governance truth, migration mapping, registry metadata, candidate-to-official promotion flow, and executable-action derivation rules now exist together; the next work is either runner activation for executable packs or further official suite authoring, not rebuilding the governance layer`
 - `last_verified_at`: `2026-04-16`
 
 ## Selection State

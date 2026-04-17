@@ -61,6 +61,12 @@
 
 `L5D` 不取代 bucket taxonomy。對 intake 等成熟 workflow，`L5B` bucket 是 scenario-level parent grouping；`L5D` suite 是 finer-grained execution unit。
 
+`L5D` 也允許從已核准的 Official Golden utterance pack 派生出 **executable action pack**，但這種 artifact：
+
+- 不是新的 suite authority tier
+- 不是新的產品真相來源
+- 只能作為 runner input contract 的衍生層
+
 ### 2.3 與 L5C 的關係
 
 凡屬 `safety_critical`、guardrail、hard-fail / soft-fail 邊界的 suite，仍須受 `L5C` 約束。`L5D` 不重複定義 safety threshold。
@@ -300,7 +306,42 @@ v1 具體 review artifacts 先收：
 
 ---
 
-## 9. Runner Strategy
+## 9. Derived Executable Action Packs
+
+當某個 workflow 的 Official Golden utterance pack 已存在，但自動執行仍需要 workflow-specific runtime input 時，可建立 derived executable action pack。
+
+定位：
+
+- subordinate to the official utterance pack
+- derived runtime-input contract only
+- not a separate source of benchmark truth
+
+正式規則：
+
+- executable action pack 的 primary outcome 必須完全繼承 source official case：
+  - `target object`
+  - `workflow ownership`
+  - `disposition`
+  - `workflow effect`
+- executable action pack 可以新增：
+  - `state_seed` 或 `proposal_seed`
+  - `execution_mode`
+  - `runtime_action`
+  - `block_reason`
+- 若 source official case 尚無唯一 runtime action mapping，必須顯式標記：
+  - `derivation_status = blocked_pending_runtime_action_choice`
+- blocked executable case 不得假裝成可直接 auto-run
+
+v1 derived executable artifacts 先收：
+
+- `docs/quality/benchmarks/intake/intake_executable_action_pack_v1.json`
+- `docs/quality/benchmarks/rescue/rescue_executable_action_pack_v1.json`
+
+它們是 workflow-specific runner input contract，不是新的 Official Golden suite。
+
+---
+
+## 10. Runner Strategy
 
 不新建 unified runner。先擴充現有 runner 生態，使其支援依下列 metadata 過濾：
 
@@ -317,3 +358,4 @@ v1 follow-through 先要求：
 - `AUDIT_FIXTURE_REGISTRY.json` 補 `suite_id / authority_tier / workflow_family / capability_family / validation_layer`
 - `scripts/check_audit_runner_contract.py` 與 `scripts/check_audit_fixture_safety.py` 必須把上述 metadata 當成 hard-gated registry contract，而不是 advisory fields
 - `scripts/check_suite_promotion_contract.py` 必須驗 intake / rescue official packs 與其 candidate queues 的 promotion linkage、approved status、與 primary outcome 對齊
+- `scripts/check_executable_action_pack_contract.py` 必須驗 derived executable action packs 與 source official packs 的 linkage、primary outcome inheritance、以及 blocked derivation 顯式化
