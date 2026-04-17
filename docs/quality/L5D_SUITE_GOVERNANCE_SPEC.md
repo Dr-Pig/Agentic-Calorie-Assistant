@@ -323,6 +323,8 @@ v1 具體 review artifacts 先收：
   - `workflow ownership`
   - `disposition`
   - `workflow effect`
+- 若第一層 disposition 保持粗粒度，但 workflow runtime 仍需要可執行方向欄位，該欄位只能作為 workflow-specific execution detail 存在於 official / executable 層
+  - v1 例：`rescue adjust` 保持 `disposition = adjust`，但可在 rescue 官方/可執行層補 `adjust_direction`
 - executable action pack 可以新增：
   - `state_seed` 或 `proposal_seed`
   - `execution_mode`

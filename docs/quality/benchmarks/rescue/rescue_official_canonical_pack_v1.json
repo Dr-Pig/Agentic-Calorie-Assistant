@@ -11,7 +11,8 @@
     "expected_target_object_type",
     "expected_target_workflow_family",
     "expected_disposition",
-    "expected_workflow_effect"
+    "expected_workflow_effect",
+    "expected_adjust_direction"
   ],
   "cases": [
     {
@@ -84,7 +85,8 @@
       "expected_target_object_type": "proposal",
       "expected_target_workflow_family": "rescue",
       "expected_disposition": "adjust",
-      "expected_workflow_effect": "mutate_current_proposal"
+      "expected_workflow_effect": "mutate_current_proposal",
+      "expected_adjust_direction": "longer"
     },
     {
       "case_id": "rescue_answer_only_official_001",

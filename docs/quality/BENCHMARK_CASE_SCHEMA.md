@@ -334,6 +334,7 @@ workflow-specific 可再加：
 - `execution_mode`
 - `runtime_action`
 - `block_reason`
+- workflow-specific execution detail field（例如 `adjust_direction`）
 
 正式規則：
 

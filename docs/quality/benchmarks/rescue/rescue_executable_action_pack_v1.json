@@ -3,11 +3,11 @@
   "version": 1,
   "pack_mode": "executable_action",
   "authority_level": "derived_from_official_canonical",
-  "derivation_status": "partially_blocked_pending_runtime_mapping",
+  "derivation_status": "contract_ready",
   "derived_from_pack_id": "rescue_official_canonical_pack_v1",
   "purpose": "Derived executable action contract for rescue official cases. This artifact translates approved rescue utterance outcomes into runtime-action inputs without replacing the utterance-level official truth.",
   "non_authority_note": "This pack is a derived runtime-input artifact. It must not be treated as a separate source of product truth and must stay subordinate to the official rescue utterance pack.",
-  "mapping_rule_note": "Each executable case must preserve the approved primary outcome from the source official case. Rescue action derivation may block when an official disposition maps to multiple runtime actions.",
+  "mapping_rule_note": "Each executable case must preserve the approved primary outcome from the source official case. For rescue adjust cases, runtime mapping stays coarse at disposition=adjust and becomes executable only when official truth also carries a canonical adjust_direction.",
   "runner_input_contract": {
     "workflow_family": "rescue",
     "entrypoint_kind": "rescue_chat_action_or_surface",
@@ -98,8 +98,7 @@
       "executable_case_id": "rescue_adjust_executable_001",
       "source_official_case_id": "rescue_adjust_official_001",
       "suite_id": "rescue_adjust_action_golden_v1",
-      "derivation_status": "blocked_pending_runtime_action_choice",
-      "block_reason": "Official disposition=adjust currently maps to multiple runtime actions (`shorten_rescue_plan` vs `extend_rescue_plan`) and the official utterance pack does not yet carry a canonical adjustment direction field.",
+      "derivation_status": "contract_ready",
       "proposal_seed": {
         "proposal_container_id": 504,
         "proposal_status": "open",
@@ -107,11 +106,15 @@
         "daily_kcal_adjustment": 180
       },
       "execution_mode": "chat_action",
+      "runtime_action": {
+        "action": "extend_rescue_plan"
+      },
       "expected_runtime_outcome": {
         "expected_target_object_type": "proposal",
         "expected_target_workflow_family": "rescue",
         "expected_disposition": "adjust",
-        "expected_workflow_effect": "mutate_current_proposal"
+        "expected_workflow_effect": "mutate_current_proposal",
+        "expected_adjust_direction": "longer"
       }
     },
     {

@@ -72,6 +72,17 @@ def _validate_queue(queue_payload: dict[str, Any], *, path: Path) -> dict[str, d
             if not isinstance(value, str) or not value:
                 raise ValueError(f"{path} case {case_id} missing required field {field}")
 
+        candidate_adjust_direction = case.get("candidate_adjust_direction")
+        if candidate_adjust_direction is not None:
+            if case.get("candidate_disposition") != "adjust":
+                raise ValueError(
+                    f"{path} case {case_id} uses candidate_adjust_direction outside candidate_disposition=adjust"
+                )
+            if candidate_adjust_direction not in {"shorter", "longer"}:
+                raise ValueError(
+                    f"{path} case {case_id} has unsupported candidate_adjust_direction: {candidate_adjust_direction}"
+                )
+
         normalized[case_id] = case
     return normalized
 
@@ -125,6 +136,18 @@ def _validate_official_pack(
                 raise ValueError(
                     f"{path} case {case_id} mismatch: {official_field} != {queue_field} "
                     f"({case.get(official_field)!r} vs {queue_case.get(queue_field)!r})"
+                )
+        queue_adjust_direction = queue_case.get("candidate_adjust_direction")
+        official_adjust_direction = case.get("expected_adjust_direction")
+        if queue_adjust_direction is not None or official_adjust_direction is not None:
+            if queue_case.get("candidate_disposition") != "adjust":
+                raise ValueError(
+                    f"{path} case {case_id} carries adjust direction but queue disposition is not adjust"
+                )
+            if official_adjust_direction != queue_adjust_direction:
+                raise ValueError(
+                    f"{path} case {case_id} mismatch: expected_adjust_direction != candidate_adjust_direction "
+                    f"({official_adjust_direction!r} vs {queue_adjust_direction!r})"
                 )
 
 

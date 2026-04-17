@@ -126,6 +126,27 @@ def _validate_pack(pack_payload: dict[str, Any], *, pack_path: Path, source_case
                     f"{pack_path} case {case_id} outcome field {field} must match source official case "
                     f"({outcome.get(field)!r} vs {source_case.get(field)!r})"
                 )
+        official_adjust_direction = source_case.get("expected_adjust_direction")
+        runtime_adjust_direction = outcome.get("expected_adjust_direction")
+        if official_adjust_direction is not None or runtime_adjust_direction is not None:
+            if outcome.get("expected_disposition") != "adjust":
+                raise ValueError(
+                    f"{pack_path} case {case_id} carries expected_adjust_direction outside expected_disposition=adjust"
+                )
+            if official_adjust_direction != runtime_adjust_direction:
+                raise ValueError(
+                    f"{pack_path} case {case_id} expected_adjust_direction must match source official case "
+                    f"({runtime_adjust_direction!r} vs {official_adjust_direction!r})"
+                )
+            runtime_action = case.get("runtime_action")
+            if not isinstance(runtime_action, dict):
+                raise ValueError(f"{pack_path} case {case_id} adjust mapping requires runtime_action object")
+            expected_action = "shorten_rescue_plan" if official_adjust_direction == "shorter" else "extend_rescue_plan"
+            if runtime_action.get("action") != expected_action:
+                raise ValueError(
+                    f"{pack_path} case {case_id} runtime_action.action must match expected_adjust_direction "
+                    f"({runtime_action.get('action')!r} vs {expected_action!r})"
+                )
 
 
 def main() -> int:

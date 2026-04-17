@@ -85,12 +85,22 @@ def test_workflow_official_packs_are_promoted_canonical_artifacts() -> None:
         assert payload["pack_mode"] == "official_canonical"
         assert payload["authority_level"] == "canonical"
         assert payload["approval_status"] == "batch_1_approved"
-        assert payload["canonical_primary_oracle_fields"] == [
-            "expected_target_object_type",
-            "expected_target_workflow_family",
-            "expected_disposition",
-            "expected_workflow_effect",
-        ]
+        canonical_primary_oracle_fields = payload["canonical_primary_oracle_fields"]
+        assert canonical_primary_oracle_fields in (
+            [
+                "expected_target_object_type",
+                "expected_target_workflow_family",
+                "expected_disposition",
+                "expected_workflow_effect",
+            ],
+            [
+                "expected_target_object_type",
+                "expected_target_workflow_family",
+                "expected_disposition",
+                "expected_workflow_effect",
+                "expected_adjust_direction",
+            ],
+        )
         assert payload["cases"]
         for case in payload["cases"]:
             assert case["suite_id"]
@@ -116,6 +126,9 @@ def test_workflow_official_packs_are_promoted_canonical_artifacts() -> None:
                 "open_new_workflow",
             }
             assert case["expected_workflow_effect"]
+            if "expected_adjust_direction" in case:
+                assert case["expected_disposition"] == "adjust"
+                assert case["expected_adjust_direction"] in {"shorter", "longer"}
 
 
 def test_suite_promotion_contract_passes_for_intake_and_rescue() -> None:

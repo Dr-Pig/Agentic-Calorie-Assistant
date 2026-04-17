@@ -10,7 +10,8 @@
     "candidate_target_object_type",
     "candidate_target_workflow_family",
     "candidate_disposition",
-    "candidate_workflow_effect"
+    "candidate_workflow_effect",
+    "candidate_adjust_direction"
   ],
   "cases": [
     {
@@ -91,6 +92,7 @@
       "candidate_target_workflow_family": "rescue",
       "candidate_disposition": "adjust",
       "candidate_workflow_effect": "mutate_current_proposal",
+      "candidate_adjust_direction": "longer",
       "approval_notes": "approved by user batch approval"
     },
     {

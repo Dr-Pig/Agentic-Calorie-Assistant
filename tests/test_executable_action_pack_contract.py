@@ -45,3 +45,11 @@ def test_executable_action_packs_have_expected_top_level_shape() -> None:
 
 def test_executable_action_pack_contract_check_passes() -> None:
     assert check_executable_action_pack_contract.main() == 0
+
+
+def test_rescue_adjust_executable_case_uses_adjust_direction() -> None:
+    payload = _load_json(RESCUE_EXECUTABLE_PACK_PATH)
+    adjust_case = next(case for case in payload["cases"] if case["suite_id"] == "rescue_adjust_action_golden_v1")
+    assert adjust_case["expected_runtime_outcome"]["expected_disposition"] == "adjust"
+    assert adjust_case["expected_runtime_outcome"]["expected_adjust_direction"] == "longer"
+    assert adjust_case["runtime_action"]["action"] == "extend_rescue_plan"
