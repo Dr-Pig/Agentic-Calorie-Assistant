@@ -12,6 +12,7 @@ from app.application.canonical_commit_bridge import (
     apply_rescue_overlay_skeleton,
     build_commit_request_candidate,
     commit_request_candidate_to_canonical,
+    ensure_body_plan_skeleton,
     record_body_observation_skeleton,
     resolve_commit_candidate_target,
 )
@@ -115,6 +116,39 @@ def test_persist_text_meal_result_writes_canonical_thread_version_and_ledger() -
         )
     ).scalar_one()
     assert ledger.consumed_kcal == 520
+
+
+def test_commit_meal_payload_uses_active_body_plan_budget_when_present() -> None:
+    db = _session()
+    user = _user(db)
+    ensure_body_plan_skeleton(
+        db,
+        user=user,
+        estimated_tdee=2200,
+        daily_budget_kcal=1800,
+        safety_floor_kcal=1500,
+    )
+
+    result = persist_text_meal_result(
+        db,
+        user=user,
+        latest_log=None,
+        planner_intent="food_estimation",
+        payload=_payload(request_id="req-budget-1", title="grilled chicken", kcal=520),
+        raw_input="grilled chicken",
+        request_id="req-budget-1",
+    )
+
+    assert result["canonical_commit"] is not None
+    ledger = db.execute(
+        select(DayBudgetLedgerRecord).where(
+            DayBudgetLedgerRecord.user_id == user.id,
+            DayBudgetLedgerRecord.local_date == "2026-04-11",
+        )
+    ).scalar_one()
+    assert ledger.budget_kcal == 1800
+    assert ledger.consumed_kcal == 520
+    assert ledger.remaining_kcal == 1280
 
 
 def test_modification_supersedes_active_version_in_canonical_thread() -> None:

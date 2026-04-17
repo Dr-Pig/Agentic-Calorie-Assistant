@@ -32,6 +32,10 @@
   - onboarding 未完成時，intake logging 仍可運作，但不顯示預算、不觸發 rescue / calibration。
   - onboarding 不是 2.1-2.9 的一部分，但 2.1 之後的所有 budget-aware 功能都依賴 onboarding 產出的 `BodyPlan`。
 - **進場時機**：應在 2.1 single-turn intake 之前或同步就位。
+- **v1 happy-path clarification**：
+  - `/body-plan` 與 `/today` 是這條主幹的最小 UI/read surfaces。
+  - budget-aware chat 查詢應讀 `ActiveBodyPlanView` + `CurrentBudgetView`，不得自行重算 target / consumed / remaining。
+  - UI onboarding 與 chat bootstrap 若都存在，必須匯入同一條 deterministic budget pipeline。
 
 ### 2.1 單回合錄入 (Single-turn Intake)
 **定位：系統的最底層核心，所有資料的活水源頭。**

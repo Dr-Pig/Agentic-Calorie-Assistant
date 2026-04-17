@@ -412,6 +412,45 @@ default：
 
 ## 9. BodyObservation / BodyPlan Dictionary
 
+### 9.0 `BodyProfile` fields and enums
+
+`BodyProfile` is the canonical bootstrap input object for the v1 budget-aware happy path.
+
+#### `sex`
+
+合法值：
+
+- `female`
+- `male`
+- `prefer_not_to_say`
+- `unknown`
+
+#### `activity_level`
+
+合法值：
+
+- `sedentary`
+- `light`
+- `moderate`
+- `active`
+- `very_active`
+- `unknown`
+
+#### `goal_type`
+
+合法值：
+
+- `lose_weight`
+- `maintain_weight`
+- `gain_weight`
+- `unknown`
+
+rules：
+
+- onboarding/bootstrap may write these fields from UI input or structured chat extraction
+- deterministic target computation must consume canonical `BodyProfile` values rather than prompt-only summaries
+- when `goal_type = gain_weight`, bootstrap may still seed `BodyPlan` and `DayBudgetLedger`, but rescue trigger activation should remain disabled
+
 ### 9.1 `observation_type`
 
 合法值：
@@ -440,6 +479,29 @@ rules：
 - v1 runtime 不可在 canonical state 缺值時隱性猜測 sex/gender 來決定 rescue floor
 - onboarding / body-plan setup 可先以 external input 或 accepted proposal 寫入這個欄位
 - rescue / recommendation / calibration guardrail math 應優先讀取這個欄位，而不是自行重建使用者屬性推論
+
+### 9.2B `plan_source`
+
+合法值：
+
+- `onboarding_bootstrap`
+- `accepted_proposal`
+- `manual_override`
+- `system_reconciliation`
+
+v1 rule：
+
+- the canonical happy path introduced in `L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md` should surface `onboarding_bootstrap` through metadata/read model when the first active body plan is seeded
+
+### 9.2C Shared budget-aware read models
+
+`CurrentBudgetView` and `ActiveBodyPlanView` are shared read surfaces, not alternate canonical stores.
+
+rules：
+
+- UI and chat may read them
+- UI and chat must not treat them as independent writable truth
+- they must derive from canonical `BodyPlan` and `DayBudgetLedger`
 
 ### 9.3 `proposal_type`
 

@@ -112,6 +112,24 @@ class BodyObservation(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class BodyProfile(BaseModel):
+    body_profile_id: int | None = None
+    user_id: int | None = None
+    profile_status: str = "active"
+    sex: str = "female"
+    age_years: int = 0
+    height_cm: float = 0.0
+    current_weight_kg: float = 0.0
+    activity_level: str = "sedentary"
+    goal_type: str = "lose_weight"
+    target_weight_kg: float | None = None
+    weekly_target_rate_kg: float | None = None
+    timezone: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
 class BodyPlan(BaseModel):
     body_plan_id: int | None = None
     user_id: int | None = None
@@ -124,6 +142,27 @@ class BodyPlan(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
     started_at: datetime | None = None
     ended_at: datetime | None = None
+
+
+class ActiveBodyPlanView(BaseModel):
+    body_plan_id: int | None = None
+    user_id: int | None = None
+    plan_status: str = "inactive"
+    goal_type: str | None = None
+    current_weight_kg: float | None = None
+    target_weight_kg: float | None = None
+    age_years: int | None = None
+    height_cm: float | None = None
+    activity_level: str | None = None
+    daily_budget_kcal: int = 0
+    recommended_target_kcal: int = 0
+    daily_deficit_kcal: int = 0
+    safety_floor_kcal: int = 0
+    estimated_tdee: int = 0
+    target_pace_kg_per_week: float | None = None
+    plan_source: str | None = None
+    profile_status: str = "missing"
+    last_updated_at: datetime | None = None
 
 
 class ProposalOption(BaseModel):

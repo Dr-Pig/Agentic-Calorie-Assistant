@@ -2388,6 +2388,38 @@ It should be appended over time instead of rewritten.
 - the next blocker is no longer generic routing drift
 - it is product-level boundary semantics that need explicit review
 
+## 2026-04-18 — Active Pointer Shifted From Suite Governance To Budget / Ledger Happy Path
+
+### Trigger
+
+- the repo now has enough suite-governance and runner machinery for the current autonomous wave
+- product direction shifted from expanding governance machinery to proving one concrete budget-aware end-to-end trunk
+- the chosen trunk is:
+  - bootstrap `BodyProfile`
+  - seed active `BodyPlan`
+  - seed today's `DayBudgetLedger`
+  - commit two meals through intake
+  - keep `/today`, `/body-plan`, and remaining-budget chat answers reading the same truth
+
+### What Changed
+
+- active execution moved from `2.7d-semantic-routing-prompt-state-pack-hardening` to `0.a-onboarding-ui-and-body-plan-bootstrap`
+- a focused companion spec was added:
+  - `docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md`
+- the implementation trunk now includes:
+  - `BodyProfile` persistence
+  - deterministic onboarding bootstrap
+  - active body-plan read model
+  - `/body-plan` surface
+  - active-budget fallback for intake ledger writes
+  - deterministic remaining-budget answer contract
+
+### Why This Replan Matters
+
+- recommendation, calibration, rescue, and budget-aware chat all depend on a stable budget truth
+- `/today` and chat cannot feel coherent if they do not share one deterministic source for target / consumed / remaining
+- this branch gives the project one concrete happy path that can be validated before higher-level workflow/pass decisions resume
+
 ## 2026-04-15 — Global Routing Governance Spec Added Without Widening `2.7d`
 
 ### Trigger

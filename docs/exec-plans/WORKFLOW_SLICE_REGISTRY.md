@@ -1690,17 +1690,35 @@ Each slice entry must define at least:
   - `2.4a-body-observation-persistence`
 - `required_truth_docs[]`:
   - `docs/specs/L0A_ONBOARDING_FLOW_SPEC.md`
+  - `docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md`
   - `docs/specs/L2_DATA_STATE_SPEC.md`
+  - `docs/specs/L2A_DATA_DICTIONARY_SPEC.md`
   - `docs/specs/L3_3A_DEFICIT_EXPENDITURE_CALIBRATION_MODEL_SPEC.md`
 - `allowed_touch_areas[]`:
   - `app/web/onboarding_routes.py`
+  - `app/web/body_plan_routes.py`
+  - `app/web/today_routes.py`
   - `app/application/onboarding_service.py`
+  - `app/application/active_body_plan_read_model.py`
+  - `app/application/current_budget_answer.py`
   - `app/infrastructure/body_plan_persistence.py`
+  - `app/infrastructure/active_body_plan_read_model.py`
+  - `app/infrastructure/canonical_persistence.py`
+  - `app/application/canonical_commit_bridge.py`
+  - `app/models.py`
+  - `app/database.py`
+  - `app/domain/canonical_models.py`
+  - `app/domain/__init__.py`
+  - `alembic/versions/*body_profile_bootstrap_foundation.py`
   - `tests/test_onboarding.py`
+  - `tests/test_active_body_plan_read_model.py`
+  - `tests/test_current_budget_answer.py`
+  - `tests/test_routes_body_plan_ui.py`
+  - `tests/test_routes_today_ui.py`
+  - `tests/test_canonical_persistence.py`
 - `forbidden_touch_areas[]`:
   - calibration proposal runtime
   - recommendation runtime
-  - `app/routes.py`
   - `app/schemas.py`
   - `app/usecases/text_meal.py`
 - `state_dependencies`: BodyPlan write path, DayBudgetLedger initialization, safety_floor_kcal from sex field
@@ -1712,6 +1730,9 @@ Each slice entry must define at least:
   - raw_target_kcal is clamped to safety_floor_kcal
   - BodyPlan is created with plan_source: onboarding_bootstrap
   - DayBudgetLedger is created for current day after BodyPlan is accepted
+  - `/body-plan` can show the active target after bootstrap
+  - `/today/current-budget` reflects the same target after bootstrap
+  - committed intake meals update `DayBudgetLedger` using active body-plan fallback when explicit budget is absent
   - skipping onboarding allows intake logging but hides budget display
   - gain_weight goal_type skips rescue trigger
 - `required_tests[]`:

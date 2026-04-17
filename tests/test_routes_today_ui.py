@@ -13,6 +13,7 @@ from app.models import Base
 from app.routes import get_db as routes_get_db
 from app.schemas import CommitRequestCandidate
 from app.application.canonical_commit_bridge import commit_request_candidate_to_canonical
+from app.application.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.infrastructure.meal_log_persistence import persist_text_meal_result
 from app.infrastructure.canonical_persistence import commit_meal_payload_to_canonical
 from app.models import MealLog
@@ -110,6 +111,70 @@ def test_today_surface_renders_canonical_current_budget(client, db_session) -> N
     assert "350 kcal" in response.text
     assert "1200" in response.text
     assert "current-budget read model" in response.text
+
+
+def test_today_surface_syncs_bootstrap_target_after_two_meals(client, db_session) -> None:
+    user = get_or_create_user(db_session, "today-ui-sync")
+    bootstrap = bootstrap_body_plan_for_date(
+        db_session,
+        user=user,
+        inputs=OnboardingBootstrapInput(
+            sex="female",
+            age_years=30,
+            height_cm=165.0,
+            current_weight_kg=58.0,
+            activity_level="sedentary",
+            goal_type="lose_weight",
+            weekly_target_rate_kg=0.5,
+            local_date="2026-04-18",
+        ),
+    )
+
+    commit_meal_payload_to_canonical(
+        db_session,
+        user=user,
+        candidate=CommitRequestCandidate(
+            request_id="today-sync-1",
+            planner_intent="food_estimation",
+            version_reason="new_intake",
+            meal_title="breakfast sandwich",
+            raw_input="breakfast sandwich",
+            estimated_kcal=420,
+            protein_g=18,
+            carb_g=32,
+            fat_g=14,
+            resolution_status="completed_meal",
+            occurred_at=datetime(2026, 4, 18, 8, 0),
+            local_date="2026-04-18",
+        ),
+    )
+    commit_meal_payload_to_canonical(
+        db_session,
+        user=user,
+        candidate=CommitRequestCandidate(
+            request_id="today-sync-2",
+            planner_intent="food_estimation",
+            version_reason="new_intake",
+            meal_title="chicken rice",
+            raw_input="chicken rice",
+            estimated_kcal=610,
+            protein_g=32,
+            carb_g=65,
+            fat_g=18,
+            resolution_status="completed_meal",
+            occurred_at=datetime(2026, 4, 18, 12, 30),
+            local_date="2026-04-18",
+        ),
+    )
+
+    response = client.get("/today/current-budget", params={"user_id": "today-ui-sync", "local_date": "2026-04-18"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["budget_kcal"] == bootstrap.target_result.recommended_target_kcal
+    assert payload["consumed_kcal"] == 1030
+    assert payload["remaining_kcal"] == bootstrap.target_result.recommended_target_kcal - 1030
+    assert payload["active_meal_count"] == 2
 
 
 def test_today_surface_stays_on_active_version_after_correction(client, db_session) -> None:

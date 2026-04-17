@@ -29,7 +29,9 @@ from .conversation_state import (
 )
 from .meal_state import CanonicalMealState
 from .canonical_models import (
+    ActiveBodyPlanView,
     BodyObservation,
+    BodyProfile,
     BodyPlan,
     CurrentBudgetMealSummary,
     CurrentBudgetView,
@@ -72,7 +74,9 @@ __all__ = [
     "TraceSummary",
     "TurnIntentResult",
     "CanonicalMealState",
+    "ActiveBodyPlanView",
     "BodyObservation",
+    "BodyProfile",
     "BodyPlan",
     "CurrentBudgetMealSummary",
     "CurrentBudgetView",

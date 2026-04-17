@@ -34,6 +34,7 @@ MANAGED_TABLES = {
     "day_budget_ledger",
     "ledger_entries",
     "body_observations",
+    "body_profiles",
     "body_plans",
     "proposal_containers",
     "proposal_options",

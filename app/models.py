@@ -37,6 +37,9 @@ class User(Base):
     body_observations: Mapped[list["BodyObservationRecord"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    body_profiles: Mapped[list["BodyProfileRecord"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
     body_plans: Mapped[list["BodyPlanRecord"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
@@ -222,6 +225,28 @@ class BodyObservationRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
 
     user: Mapped["User"] = relationship(back_populates="body_observations")
+
+
+class BodyProfileRecord(Base):
+    __tablename__ = "body_profiles"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    profile_status: Mapped[str] = mapped_column(String(32), default="active", index=True)
+    sex: Mapped[str] = mapped_column(String(32), default="female")
+    age_years: Mapped[int] = mapped_column(Integer, default=0)
+    height_cm: Mapped[float] = mapped_column(Float, default=0.0)
+    current_weight_kg: Mapped[float] = mapped_column(Float, default=0.0)
+    activity_level: Mapped[str] = mapped_column(String(32), default="sedentary")
+    goal_type: Mapped[str] = mapped_column(String(32), default="lose_weight")
+    target_weight_kg: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    weekly_target_rate_kg: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    timezone: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+
+    user: Mapped["User"] = relationship(back_populates="body_profiles")
 
 
 class BodyPlanRecord(Base):

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from ..domain import BodyObservation
 from ..models import (
     BodyObservationRecord,
+    BodyProfileRecord,
     BodyPlanRecord,
     DayBudgetLedgerRecord,
     LedgerEntryRecord,
@@ -296,6 +297,56 @@ def load_body_observations(
     return [_body_observation_from_record(record) for record in rows]
 
 
+def load_active_body_plan_record(
+    db: Session,
+    *,
+    user_id: int,
+) -> BodyPlanRecord | None:
+    return db.execute(
+        select(BodyPlanRecord)
+        .where(BodyPlanRecord.user_id == user_id, BodyPlanRecord.plan_status == "active")
+        .order_by(BodyPlanRecord.id.desc())
+    ).scalars().first()
+
+
+def load_active_body_profile_record(
+    db: Session,
+    *,
+    user_id: int,
+) -> BodyProfileRecord | None:
+    return db.execute(
+        select(BodyProfileRecord)
+        .where(BodyProfileRecord.user_id == user_id, BodyProfileRecord.profile_status == "active")
+        .order_by(BodyProfileRecord.id.desc())
+    ).scalars().first()
+
+
+def resolve_active_budget_kcal(
+    db: Session,
+    *,
+    user_id: int,
+    local_date: str,
+    explicit_budget_kcal: int | None = None,
+) -> int:
+    if explicit_budget_kcal is not None:
+        return explicit_budget_kcal
+
+    active_plan = load_active_body_plan_record(db, user_id=user_id)
+    if active_plan is not None and active_plan.daily_budget_kcal > 0:
+        return active_plan.daily_budget_kcal
+
+    existing_ledger = db.execute(
+        select(DayBudgetLedgerRecord).where(
+            DayBudgetLedgerRecord.user_id == user_id,
+            DayBudgetLedgerRecord.local_date == local_date,
+        )
+    ).scalar_one_or_none()
+    if existing_ledger is not None:
+        return existing_ledger.budget_kcal
+
+    return 0
+
+
 def ensure_body_plan_skeleton(
     db: Session,
     *,
@@ -401,8 +452,14 @@ def recompute_day_budget_ledger(
     *,
     user_id: int,
     local_date: str,
-    budget_kcal: int = 0,
+    budget_kcal: int | None = None,
 ) -> DayBudgetLedgerRecord:
+    resolved_budget_kcal = resolve_active_budget_kcal(
+        db,
+        user_id=user_id,
+        local_date=local_date,
+        explicit_budget_kcal=budget_kcal,
+    )
     ledger = db.execute(
         select(DayBudgetLedgerRecord).where(
             DayBudgetLedgerRecord.user_id == user_id,
@@ -413,7 +470,7 @@ def recompute_day_budget_ledger(
         ledger = DayBudgetLedgerRecord(
             user_id=user_id,
             local_date=local_date,
-            budget_kcal=budget_kcal,
+            budget_kcal=resolved_budget_kcal,
         )
         db.add(ledger)
         db.flush()
@@ -436,10 +493,10 @@ def recompute_day_budget_ledger(
     ).scalars().all()
     consumed = sum(delta for delta in active_meal_kcal if delta > 0)
     adjustments = sum(adjustment_deltas)
-    ledger.budget_kcal = budget_kcal
+    ledger.budget_kcal = resolved_budget_kcal
     ledger.consumed_kcal = consumed
     ledger.adjustment_kcal = adjustments
-    ledger.remaining_kcal = budget_kcal - consumed - adjustments
+    ledger.remaining_kcal = resolved_budget_kcal - consumed - adjustments
     ledger.last_recomputed_at = datetime.now()
     db.commit()
     db.refresh(ledger)
@@ -457,7 +514,7 @@ def commit_meal_payload_to_canonical(
     request_id: str | None = None,
     latest_log_id: int | None = None,
     persisted_log_id: int | None = None,
-    budget_kcal: int = 0,
+    budget_kcal: int | None = None,
 ) -> CanonicalMealCommitResult | None:
     if candidate is None:
         assert payload is not None

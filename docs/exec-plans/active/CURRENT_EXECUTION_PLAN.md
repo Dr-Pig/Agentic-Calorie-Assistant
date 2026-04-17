@@ -44,24 +44,24 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
 | `2.4 Weight / Body Observation` | `completed enough` | available and not blocking current mainline work; still required before `2.6` |
 | `2.5 Rescue` | `completed enough` | `2.5d` rescue response surface is complete enough to serve as a semantic-routing source family |
 | `2.6 Calibration` | `deferred` | not best-next while `2.2` mainline validation remains incomplete |
-| `2.7 Memory / Retrieval Deepening` | `active` | `2.7d` is now using semantic-routing fallout to establish the product-wide suite-governance layer and migration groundwork before more official boundary truth is promoted |
+| `2.7 Memory / Retrieval Deepening` | `completed enough` | suite-governance groundwork, metadata-runnable runners, and first agent-governed capability suites are complete enough for the current wave |
 | `2.8 Recommendation` | `not started` | downstream of intake, rescue, and calibration maturity |
 | `2.9 Proactive Nudges` | `not started` | downstream of recommendation and current mainline maturity |
 
 ## Global Pointer
 
-- `current_pointer_bundle`: `2.7 Memory / Retrieval Deepening`
-- `current_pointer_reason`: `semantic-routing officialization exposed a broader eval-governance gap, so the next bounded step is to align whole-product suite governance with L5A/L5B before further official benchmark promotion`
+- `current_pointer_bundle`: `0 Onboarding`
+- `current_pointer_reason`: `the next bounded trunk is the deterministic budget happy path: bootstrap BodyProfile/BodyPlan, seed today ledger, keep intake synced to ledger truth, and expose shared /today + /body-plan + remaining-budget surfaces before higher-level workflow design resumes`
 - `deferred_bundles[]`:
   - `2.6 Calibration`
-- `deferred_bundle_reason`: `calibration remains legal later, but semantic routing now owns the active best-next slice`
+- `deferred_bundle_reason`: `calibration remains legal later, but the budget/bootstrap trunk is now the best next slice because recommendation, rescue, and calibration all depend on it`
 
 ## Current Execution Dashboard
 
-- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough as a source family, 2.7a/2.7b semantic-routing evidence exists, 2.7c hardened the official text surfaces, L6F now governs routing-vs-response boundaries, and 2.7d now includes suite-governance groundwork, first approved intake/rescue official golden packs, derived executable action-pack contracts, first agent-governed capability/service official suites, and runnable intake/rescue executable workflow smoke lanes`
-- `current_workflow_family`: `2.7 Memory / Retrieval Deepening`
-- `current_slice`: `2.7d-semantic-routing-prompt-state-pack-hardening`
-- `current_goal`: `establish the whole-product suite-governance layer, align it explicitly with L5A/L5B, map existing benchmark/test/runner assets into suite taxonomy, and keep semantic-routing artifacts in their proper provisional/official lanes under that governance`
+- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough, 2.7 suite-governance follow-through is complete enough for this wave, and the active branch has now shifted to the budget-aware happy path: BodyProfile bootstrap, active BodyPlan read model, today-ledger seeding, intake-to-ledger budget fallback, /body-plan surface, and deterministic remaining-budget answer contract`
+- `current_workflow_family`: `0 Onboarding`
+- `current_slice`: `0.a-onboarding-ui-and-body-plan-bootstrap`
+- `current_goal`: `run the canonical budget trunk end to end: bootstrap BodyProfile + BodyPlan + DayBudgetLedger, keep intake commits synced to the active budget, expose /today and /body-plan as shared read surfaces, and lock the deterministic remaining-budget answer contract for later chat use`
 - `completed_so_far`:
   - `2.2a active-meal continuation foundation`
   - `2.2c cross-midnight attribution foundation`
@@ -100,11 +100,12 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `first agent-governed capability/service official packs for retrieval candidate selection, context-packing sufficiency, and bounded-repair gate behavior`
   - `batch authoring templates plus a benchmark-artifact scaffolding helper for candidate/offical/executable pack surfaces`
   - `runnable rescue/intake executable workflow smoke runners plus suite-wave orchestration that can execute them by registry metadata`
+  - `budget-aware happy path foundation: BodyProfile persistence, active body-plan read model, deterministic onboarding bootstrap service, /body-plan surface, active-budget fallback for intake ledger writes, and remaining-budget answer contract`
   - `2.7c official text-surface guard hardening is complete enough to unblock the next semantic-routing hardening wave`
 - `legal_next_slices[]`:
-  - `2.7d-semantic-routing-prompt-state-pack-hardening`
-- `recommended_next_slice`: `2.7d-semantic-routing-prompt-state-pack-hardening`
-- `why_this_next`: `the user explicitly redirected from premature router officialization to a whole-product golden-suite inventory, and the repo now needs to keep converting that governance layer into agent-runnable suite/runner surfaces before moving back to high-impact workflow/pass design`
+  - `0.a-onboarding-ui-and-body-plan-bootstrap`
+- `recommended_next_slice`: `0.a-onboarding-ui-and-body-plan-bootstrap`
+- `why_this_next`: `the repo now has enough suite-governance and runner machinery for this wave, and the next stable trunk is the deterministic budget/bootstrap path that recommendation, calibration, rescue, and budget-aware chat all depend on`
 - `human_gate`: `high-impact-only`
 - `human_gate_scope`: `high_impact_only`
 - `autonomous_execution_default`: `continue_until_high_impact_decision`
@@ -114,30 +115,30 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `new_utterance_governed_official_truth`
 - `owner_mode`: `local`
 - `delegation_posture`: `prefer_workers_for_non_semantic_followthrough`
-- `key_files_or_subsystem`: `work should stay inside quality/spec/governance surfaces, benchmark inventories, migration mapping, and execution truth sync without touching production routing or application runtime`
+- `key_files_or_subsystem`: `work should stay inside onboarding/bootstrap, canonical state, body-plan/today read surfaces, intake-ledger sync, and execution truth sync; do not widen into recommendation/calibration/rescue workflow redesign`
 - `required_harness`:
   - `python scripts/check_layer_integrity.py`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`
   - relevant targeted, smoke, integration, benchmark, or eval commands for the actual slice
-- `verification_status`: `suite-governance groundwork and the first autonomous follow-through wave are now in place: registries carry suite metadata, intake/rescue official utterance packs remain gated, agent-allowed capability/service packs exist, derived executable-action contracts are validated, and suite-wave orchestration can now execute the intake/rescue smoke runners by metadata rather than manual script selection`
-- `verification_reason`: `whole-product suite-governance truth, migration mapping, registry metadata, candidate-to-official promotion flow, executable-action derivation rules, suite archetype selection rules, capability/service official packs, executable workflow runners, and metadata-filtered orchestration now exist together; the next work should keep defaulting to autonomous non-semantic follow-through unless it introduces new architecture, new cross-workflow semantics, or new utterance-governed official truth`
+- `verification_status`: `the budget-aware happy-path implementation wave is in progress: canonical bootstrap/writeback surfaces exist locally and targeted route/read-model/persistence tests already prove the main trunk, but execution-truth sync and full harness completion are still required before this branch is fully landed`
+- `verification_reason`: `the branch has already added BodyProfile persistence, active BodyPlan read surfaces, deterministic onboarding bootstrap, /body-plan routes, active-budget fallback for intake commits, and a remaining-budget answer contract. The remaining work is to sync planner/spec truth and then rerun the targeted + harness gates for this trunk`
 - `last_verified_at`: `2026-04-18`
 
 ## Selection State
 
-- `active_critical_path_segment`: `2.7a semantic routing eval foundation -> 2.7b evidence hardening -> 2.7c official text-surface guard hardening -> 2.7d suite-governance and migration groundwork -> later official golden promotion by workflow -> later 2.7 routing/memory design -> later 2.6/2.8`
-- `current_domain_gate_status`: `2.2, 2.3, and 2.5d are sufficient enough for semantic-routing eval work`
+- `active_critical_path_segment`: `0 onboarding/bootstrap deterministic target -> intake-to-ledger sync -> shared /today and /body-plan read surfaces -> deterministic remaining-budget answer contract -> later recommendation/calibration/rescue budget-aware workflow design`
+- `current_domain_gate_status`: `2.1, 2.2, 2.3, and onboarding/body-plan bootstrap are sufficient enough for the budget-aware happy-path trunk`
 - `mainline_validation_status`: `sufficient_for_domain_advance`
-- `selected_best_next_slice`: `2.7d-semantic-routing-prompt-state-pack-hardening`
-- `selection_reason`: `the user explicitly redirected the branch from router-first benchmark work to whole-product golden-suite governance, and the repo still needs more agent-runnable suite/runner follow-through before returning to new high-impact workflow design`
-- `selection_reason_detail`: `semantic-routing fallout exposed the broader governance gap: L5A and L5B already define mechanics and bucket taxonomy, but suite inventory, authority tiers, asset migration, and metadata-runnable execution surfaces were still implicit. The bounded next step is to keep expanding those runnable surfaces rather than prematurely switch back to new semantic design`
+- `selected_best_next_slice`: `0.a-onboarding-ui-and-body-plan-bootstrap`
+- `selection_reason`: `the user explicitly redirected from governance expansion to the canonical budget happy path, and the repo now needs the deterministic target/ledger trunk in place before higher-level workflow or pass-graph design can be trusted`
+- `selection_reason_detail`: `the product needs one concrete, shared source of truth for daily target, consumed calories, remaining calories, and UI/chat sync. That makes onboarding/bootstrap plus intake-to-ledger sync the most leverage-heavy bounded slice before recommendation, calibration, or broader routing work`
 - `deferred_legal_slices[]`:
   - `2.6 next calibration slice`
-- `deferred_selection_reason`: `calibration remains legal later in the broad order, but semantic routing now owns the active branch`
+- `deferred_selection_reason`: `calibration remains legal later in the broad order, but the active branch now belongs to onboarding/bootstrap because it establishes the budget truth that calibration and recommendation will depend on`
 - `execution_surface`: `planner-local`
-- `execution_surface_reason`: `this wave is still eval-first and LLM-led: keep architecture and semantic truth in the main thread, but default the remaining non-semantic follow-through to worker-worthy execution where the write scopes can be cleanly separated`
-- `last_replan_at`: `2026-04-15`
+- `execution_surface_reason`: `this wave is product-trunk-first and mostly deterministic: keep high-impact workflow design local, but allow bounded non-semantic follow-through across read-model, route, persistence, and test surfaces`
+- `last_replan_at`: `2026-04-18`
 
 ## Working Rules
 

@@ -98,7 +98,7 @@ def commit_request_candidate_to_canonical(
     candidate: CommitRequestCandidate,
     latest_log_id: int | None = None,
     persisted_log_id: int | None = None,
-    budget_kcal: int = 0,
+    budget_kcal: int | None = None,
 ) -> CanonicalMealCommitResult | None:
     return commit_meal_payload_to_canonical(
         db,
@@ -131,7 +131,7 @@ def apply_rescue_overlay_skeleton(
     delta_kcal: int,
     source_id: int | None = None,
     source_type: str = "rescue_plan",
-    budget_kcal: int = 0,
+    budget_kcal: int | None = None,
     metadata: dict[str, object] | None = None,
 ) -> LedgerEntryRecord:
     entry = LedgerEntryRecord(

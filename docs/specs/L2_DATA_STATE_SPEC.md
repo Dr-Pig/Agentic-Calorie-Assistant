@@ -271,6 +271,35 @@ L2 必須同時支持：
 - `source_channel`
 - `raw_input`
 
+### 3.7A `BodyProfile`
+
+代表使用者可穩定重用的身體與基礎目標輸入。
+
+最小欄位：
+
+- `body_profile_id`
+- `user_id`
+- `status`
+- `sex`
+- `age_years`
+- `height_cm`
+- `current_weight_kg`
+- `activity_level`
+- `goal_type`
+- `target_weight_kg`
+- `weekly_target_rate_kg`
+- `timezone`
+- `created_at`
+- `updated_at`
+
+規則：
+
+- `BodyProfile` 是 bootstrap / onboarding / chat profile update 的 canonical target
+- 它不是 calibration output，也不是 temporary prompt bundle
+- `BodyProfile` 與 `BodyObservation` 分離：
+  - `BodyProfile` 承接穩定 baseline
+  - `BodyObservation` 承接時間序列觀測
+
 ### 3.8 `BodyPlan`
 
 代表當前生效的體態策略版本。
@@ -425,6 +454,8 @@ L2 必須同時保留：
 - `CurrentBudgetView` 建議 materialized
 - `ActiveMealView` 可在 runtime assemble
 - `OpenProposalsView` 應直接支援 chat / UI 共用
+- `CurrentBudgetView` 在 v1 同時作為 Today UI 與 remaining-budget query 的 shared today summary read model
+- `ActiveBodyPlanView` 在 v1 作為目標熱量與 plan-source 的 shared target read model
 
 ---
 
