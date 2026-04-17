@@ -6,6 +6,28 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = ROOT / "docs" / "quality" / "AUDIT_RUNNER_REGISTRY.json"
+ALLOWED_AUTHORITY_TIERS = {
+    "Official Golden",
+    "Provisional Exploratory",
+    "Smoke / Infra",
+}
+ALLOWED_VALIDATION_LAYERS = {
+    "workflow_canonical_action",
+    "pass_or_node_decision",
+    "cross_turn_progression",
+    "cross_workflow_boundary",
+    "capability_service",
+    "response_contract",
+    "degraded_or_fallback",
+    "smoke_infra",
+}
+REQUIRED_METADATA_FIELDS = (
+    "suite_id",
+    "authority_tier",
+    "workflow_family",
+    "capability_family",
+    "validation_layer",
+)
 
 
 def load_runner_registry() -> list[dict[str, str]]:
@@ -26,7 +48,21 @@ def load_runner_registry() -> list[dict[str, str]]:
             raise ValueError("audit runner registry entry missing string field 'path'")
         if not isinstance(audit_name, str) or not audit_name:
             raise ValueError("audit runner registry entry missing string field 'audit_name'")
-        normalized.append({"path": path, "audit_name": audit_name})
+        normalized_entry = {"path": path, "audit_name": audit_name}
+        for field in REQUIRED_METADATA_FIELDS:
+            value = entry.get(field)
+            if not isinstance(value, str) or not value:
+                raise ValueError(f"audit runner registry entry missing string field '{field}'")
+            normalized_entry[field] = value
+        if normalized_entry["authority_tier"] not in ALLOWED_AUTHORITY_TIERS:
+            raise ValueError(
+                f"unsupported authority_tier for {path}: {normalized_entry['authority_tier']}"
+            )
+        if normalized_entry["validation_layer"] not in ALLOWED_VALIDATION_LAYERS:
+            raise ValueError(
+                f"unsupported validation_layer for {path}: {normalized_entry['validation_layer']}"
+            )
+        normalized.append(normalized_entry)
     return normalized
 
 
@@ -38,11 +74,24 @@ def main() -> int:
         print(f"[FAIL] audit runner registry invalid: {exc}", file=sys.stderr)
         return 1
 
+    seen_paths: set[str] = set()
+    seen_audit_names: set[str] = set()
     for entry in runner_registry:
         relative_path = entry["path"]
+        if relative_path in seen_paths:
+            violations.append(f"duplicate runner registry path: {relative_path}")
+            continue
+        seen_paths.add(relative_path)
+
+        audit_name = entry["audit_name"]
+        if audit_name in seen_audit_names:
+            violations.append(f"duplicate audit runner name: {audit_name}")
+            continue
+        seen_audit_names.add(audit_name)
+
         required_snippets = [
             "from scripts.audit_io_guard import enforce_file_backed_audit_input",
-            f'enforce_file_backed_audit_input(audit_name="{entry["audit_name"]}")',
+            f'enforce_file_backed_audit_input(audit_name="{audit_name}")',
         ]
         path = ROOT / relative_path
         if not path.exists():

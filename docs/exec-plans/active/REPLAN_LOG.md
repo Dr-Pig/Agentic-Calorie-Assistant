@@ -36,6 +36,7 @@ It should be appended over time instead of rewritten.
 - add an explicit suite-governance layer on top of `L5A` / `L5B`
 - create a first migration mapping table for benchmarks, tests, registries, and runners
 - keep semantic-routing artifacts in their provisional/official lanes, but stop treating them as the whole benchmark backbone
+- promote the first approved intake/rescue candidate batches into workflow-specific official canonical packs once review decisions exist
 
 ## 2026-04-16 — Semantic-Routing Benchmark Authority Split
 

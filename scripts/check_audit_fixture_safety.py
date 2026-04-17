@@ -12,6 +12,28 @@ from scripts.audit_io_guard import load_json_audit_fixture
 
 
 REGISTRY_PATH = ROOT / "docs" / "quality" / "AUDIT_FIXTURE_REGISTRY.json"
+ALLOWED_AUTHORITY_TIERS = {
+    "Official Golden",
+    "Provisional Exploratory",
+    "Smoke / Infra",
+}
+ALLOWED_VALIDATION_LAYERS = {
+    "workflow_canonical_action",
+    "pass_or_node_decision",
+    "cross_turn_progression",
+    "cross_workflow_boundary",
+    "capability_service",
+    "response_contract",
+    "degraded_or_fallback",
+    "smoke_infra",
+}
+REQUIRED_METADATA_FIELDS = (
+    "suite_id",
+    "authority_tier",
+    "workflow_family",
+    "capability_family",
+    "validation_layer",
+)
 
 
 def main() -> int:
@@ -28,6 +50,7 @@ def main() -> int:
         print("[FAIL] audit fixture registry must be a non-empty JSON list", file=sys.stderr)
         return 1
 
+    seen_paths: set[str] = set()
     for entry in registry:
         if not isinstance(entry, dict):
             print("[FAIL] audit fixture registry entries must be objects", file=sys.stderr)
@@ -40,6 +63,29 @@ def main() -> int:
         if fixture_type != "json":
             print(f"[FAIL] unsupported audit fixture type for {rel_path}: {fixture_type}", file=sys.stderr)
             return 1
+        for field in REQUIRED_METADATA_FIELDS:
+            value = entry.get(field)
+            if not isinstance(value, str) or not value:
+                print(
+                    f"[FAIL] audit fixture registry entry missing string field '{field}' for {rel_path}",
+                    file=sys.stderr,
+                )
+                return 1
+        authority_tier = entry["authority_tier"]
+        if authority_tier not in ALLOWED_AUTHORITY_TIERS:
+            print(f"[FAIL] unsupported authority_tier for {rel_path}: {authority_tier}", file=sys.stderr)
+            return 1
+        validation_layer = entry["validation_layer"]
+        if validation_layer not in ALLOWED_VALIDATION_LAYERS:
+            print(
+                f"[FAIL] unsupported validation_layer for {rel_path}: {validation_layer}",
+                file=sys.stderr,
+            )
+            return 1
+        if rel_path in seen_paths:
+            print(f"[FAIL] duplicate audit fixture path in registry: {rel_path}", file=sys.stderr)
+            return 1
+        seen_paths.add(rel_path)
 
         path = ROOT / rel_path
         if not path.exists():

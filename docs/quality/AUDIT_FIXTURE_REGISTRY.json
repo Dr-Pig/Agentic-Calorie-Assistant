@@ -1,0 +1,56 @@
+[
+  {
+    "path": "docs/quality/benchmarks/founder_fit_golden_v1.json",
+    "type": "json",
+    "suite_id": "intake_founder_fit_primary_golden_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "intake",
+    "capability_family": "intake_runtime",
+    "validation_layer": "workflow_canonical_action"
+  },
+  {
+    "path": "docs/quality/benchmarks/intake/multi_turn/turn2_hybrid_replay_pack_v1.json",
+    "type": "json",
+    "suite_id": "intake_turn2_hybrid_replay_golden_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "intake",
+    "capability_family": "intake_runtime",
+    "validation_layer": "cross_turn_progression"
+  },
+  {
+    "path": "docs/quality/benchmarks/intake/intake_official_canonical_pack_v1.json",
+    "type": "json",
+    "suite_id": "intake_task_meal_link_golden_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "intake",
+    "capability_family": "intake_runtime",
+    "validation_layer": "workflow_canonical_action"
+  },
+  {
+    "path": "docs/quality/benchmarks/rescue/rescue_official_canonical_pack_v1.json",
+    "type": "json",
+    "suite_id": "rescue_accept_action_golden_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "rescue",
+    "capability_family": "rescue_runtime",
+    "validation_layer": "workflow_canonical_action"
+  },
+  {
+    "path": "docs/quality/benchmarks/semantic_routing/semantic_routing_founder_fit_pack_v1.json",
+    "type": "json",
+    "suite_id": "semantic_routing_provisional_smoke_v1",
+    "authority_tier": "Provisional Exploratory",
+    "workflow_family": "cross_workflow",
+    "capability_family": "semantic_routing_boundary",
+    "validation_layer": "cross_workflow_boundary"
+  },
+  {
+    "path": "docs/quality/benchmarks/semantic_routing/semantic_routing_official_canonical_pack_v1.json",
+    "type": "json",
+    "suite_id": "semantic_routing_official_canonical_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "cross_workflow",
+    "capability_family": "semantic_routing_boundary",
+    "validation_layer": "cross_workflow_boundary"
+  }
+]

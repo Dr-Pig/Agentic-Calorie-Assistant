@@ -186,6 +186,7 @@ response-side distinctions 不得進 Official Golden primary oracle。
 | `intake_open_new_workflow_boundary_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `cross_workflow_boundary` | `commit_boundary` |
 | `intake_founder_fit_primary_golden_v1` | `Official Golden` | `legacy_mapped` | `workflow_canonical_action` | `intake_single_turn` |
 | `intake_turn2_hybrid_replay_golden_v1` | `Official Golden` | `legacy_mapped` | `cross_turn_progression` | `intake_multi_turn` |
+| `intake_official_canonical_pack_v1` | `Official Golden` | `authored_active` | `workflow_canonical_action` | `intake_single_turn` |
 | `intake_runtime_smoke_v1` | `Smoke / Infra` | `legacy_mapped` | `smoke_infra` | `none` |
 
 ### 6.2 Rescue
@@ -200,6 +201,7 @@ response-side distinctions 不得進 Official Golden primary oracle。
 | `rescue_adjust_action_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `workflow_canonical_action` | `rescue_short_horizon_spread` |
 | `rescue_answer_only_boundary_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `cross_workflow_boundary` | `rescue_logging_first` |
 | `rescue_response_contract_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `response_contract` | `rescue_short_horizon_spread` |
+| `rescue_official_canonical_pack_v1` | `Official Golden` | `authored_active` | `workflow_canonical_action` | `rescue_short_horizon_spread` |
 | `rescue_runtime_smoke_v1` | `Smoke / Infra` | `legacy_mapped` | `smoke_infra` | `none` |
 
 ### 6.3 Recommendation
@@ -313,3 +315,5 @@ v1 follow-through 先要求：
 
 - `AUDIT_RUNNER_REGISTRY.json` 補 `suite_id / authority_tier / workflow_family / capability_family / validation_layer`
 - `AUDIT_FIXTURE_REGISTRY.json` 補 `suite_id / authority_tier / workflow_family / capability_family / validation_layer`
+- `scripts/check_audit_runner_contract.py` 與 `scripts/check_audit_fixture_safety.py` 必須把上述 metadata 當成 hard-gated registry contract，而不是 advisory fields
+- `scripts/check_suite_promotion_contract.py` 必須驗 intake / rescue official packs 與其 candidate queues 的 promotion linkage、approved status、與 primary outcome 對齊

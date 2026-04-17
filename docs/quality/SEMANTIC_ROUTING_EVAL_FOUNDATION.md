@@ -44,6 +44,13 @@ Under `L5D`, the current semantic-routing artifacts map as:
 
 They remain boundary-governance artifacts, not the whole-product benchmark backbone.
 
+The first non-routing Official Golden workflow packs now live separately for:
+
+- intake
+- rescue
+
+Those workflow packs are the preferred source of future boundary-truth extraction, instead of re-expanding semantic-routing packs into the whole benchmark backbone.
+
 ## Founder-Fit Taxonomy
 
 The first founder-fit semantic-routing vocabulary is:

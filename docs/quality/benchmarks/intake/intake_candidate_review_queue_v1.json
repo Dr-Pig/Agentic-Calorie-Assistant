@@ -3,7 +3,7 @@
   "version": 1,
   "scope": "Official intake golden candidate queue",
   "authority_level": "candidate_only",
-  "approval_status": "pending_user_batch_review",
+  "approval_status": "batch_1_approved",
   "purpose": "Candidate review queue for intake official golden suites. Entries here are not canonical truth until promoted.",
   "review_unit": "per_case_primary_outcome",
   "required_user_approval_fields": [
@@ -16,7 +16,7 @@
     {
       "candidate_case_id": "intake_task_meal_link_candidate_001",
       "candidate_suite_id": "intake_task_meal_link_golden_v1",
-      "review_status": "pending_user_approval",
+      "review_status": "approved_for_promotion",
       "origin": "intake_single_turn_foundation",
       "utterance": "午餐吃雞胸便當",
       "state_pack_summary": {
@@ -27,12 +27,13 @@
       "candidate_target_object_type": "meal_thread",
       "candidate_target_workflow_family": "intake",
       "candidate_disposition": "create",
-      "candidate_workflow_effect": "create_new_meal_thread"
+      "candidate_workflow_effect": "create_new_meal_thread",
+      "approval_notes": "approved by user batch approval"
     },
     {
       "candidate_case_id": "intake_decision_candidate_001",
       "candidate_suite_id": "intake_decision_clarify_vs_proceed_golden_v1",
-      "review_status": "pending_user_approval",
+      "review_status": "approved_for_promotion",
       "origin": "clarify_required_lane",
       "utterance": "喝了一杯手搖",
       "state_pack_summary": {
@@ -44,12 +45,13 @@
       "candidate_target_object_type": "meal_thread",
       "candidate_target_workflow_family": "intake",
       "candidate_disposition": "create",
-      "candidate_workflow_effect": "create_thread_and_request_clarify"
+      "candidate_workflow_effect": "create_thread_and_request_clarify",
+      "approval_notes": "approved by user batch approval"
     },
     {
       "candidate_case_id": "intake_turn2_candidate_001",
       "candidate_suite_id": "intake_followup_turn2_continuation_golden_v1",
-      "review_status": "pending_user_approval",
+      "review_status": "approved_for_promotion",
       "origin": "turn2_hybrid_replay",
       "utterance": "大杯，半糖，少冰",
       "state_pack_summary": {
@@ -64,12 +66,13 @@
       "candidate_target_object_type": "meal_thread",
       "candidate_target_workflow_family": "intake",
       "candidate_disposition": "continue",
-      "candidate_workflow_effect": "continue_followup_lane"
+      "candidate_workflow_effect": "continue_followup_lane",
+      "approval_notes": "approved by user batch approval"
     },
     {
       "candidate_case_id": "intake_correction_candidate_001",
       "candidate_suite_id": "intake_correction_action_golden_v1",
-      "review_status": "pending_user_approval",
+      "review_status": "approved_for_promotion",
       "origin": "historical_correction",
       "utterance": "剛剛那餐不是雞腿，是雞胸",
       "state_pack_summary": {
@@ -88,12 +91,13 @@
       "candidate_target_object_type": "meal_thread",
       "candidate_target_workflow_family": "intake",
       "candidate_disposition": "correct",
-      "candidate_workflow_effect": "correct_existing_meal_thread"
+      "candidate_workflow_effect": "correct_existing_meal_thread",
+      "approval_notes": "approved by user batch approval"
     },
     {
       "candidate_case_id": "intake_new_workflow_candidate_001",
       "candidate_suite_id": "intake_open_new_workflow_boundary_golden_v1",
-      "review_status": "pending_user_approval",
+      "review_status": "approved_for_promotion",
       "origin": "boundary_new_meal",
       "utterance": "先不管剛剛那杯，晚餐我吃牛肉麵",
       "state_pack_summary": {
@@ -108,7 +112,8 @@
       "candidate_target_object_type": "none",
       "candidate_target_workflow_family": "intake",
       "candidate_disposition": "open_new_workflow",
-      "candidate_workflow_effect": "open_new_workflow"
+      "candidate_workflow_effect": "open_new_workflow",
+      "approval_notes": "approved by user batch approval"
     }
   ]
 }
