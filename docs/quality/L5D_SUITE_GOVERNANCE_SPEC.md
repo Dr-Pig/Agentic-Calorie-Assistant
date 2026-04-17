@@ -192,6 +192,49 @@ response-side distinctions 不得進 Official Golden primary oracle。
 
 但不得藉此引入未拍板產品語意。
 
+### 4.1A `general_chat` official truth posture
+
+`general_chat` v1 official truth 先只核：
+
+- `target_workflow_family`
+- `disposition`
+- `workflow_effect`
+- `required_read_surfaces`
+
+不核：
+
+- tone
+- explanation density
+- inquiry vs explain
+- wording style
+
+對 budget-aware 與 goal-aware chat，`required_read_surfaces` 應直接對齊：
+
+- `CurrentBudgetView`
+- `ActiveBodyPlanView`
+
+### 4.1B `intake` two-layer official truth posture
+
+`intake` official truth 不應只停在全局 routing labels。
+
+`intake` v1 應分兩層：
+
+- Layer A：global routing truth
+  - `target_object`
+  - `target_workflow_family`
+  - `disposition`
+  - `workflow_effect`
+- Layer B：workflow-specific decision truth
+  - `meal_link_action`
+  - `decision_next_action`
+  - `commit_posture`
+
+規則：
+
+- Layer A 仍是 cross-product routing oracle
+- Layer B 只在 intake suite 中補充，不回推成全局 routing taxonomy
+- response wording 仍不得進 primary oracle
+
 ---
 
 ## 5. Validation Layer 上限框架
@@ -354,16 +397,17 @@ response-side distinctions 不得進 Official Golden primary oracle。
 
 | suite_id | authority_tier | maturity_status | validation_layer | parent_bucket |
 | --- | --- | --- | --- | --- |
-| `intake_task_meal_link_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `pass_or_node_decision` | `intake_single_turn` |
-| `intake_decision_clarify_vs_proceed_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `pass_or_node_decision` | `commit_boundary` |
+| `intake_task_meal_link_golden_v1` | `Official Golden` | `authored_active` | `pass_or_node_decision` | `intake_single_turn` |
+| `intake_decision_clarify_vs_proceed_golden_v1` | `Official Golden` | `authored_active` | `pass_or_node_decision` | `commit_boundary` |
 | `intake_nutrition_resolution_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `pass_or_node_decision` | `intake_single_turn` |
 | `intake_final_response_contract_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `response_contract` | `intake_single_turn` |
+| `intake_ledger_writeback_contract_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `workflow_canonical_action` | `commit_boundary` |
 | `intake_followup_question_generation_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `response_contract` | `intake_multi_turn` |
-| `intake_followup_turn2_continuation_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `cross_turn_progression` | `intake_multi_turn` |
+| `intake_followup_turn2_continuation_golden_v1` | `Official Golden` | `authored_active` | `cross_turn_progression` | `intake_multi_turn` |
 | `intake_followup_answer_integration_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `cross_turn_progression` | `intake_multi_turn` |
 | `intake_same_thread_vs_new_meal_boundary_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `cross_workflow_boundary` | `commit_boundary` |
-| `intake_correction_action_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `workflow_canonical_action` | `historical_correction` |
-| `intake_open_new_workflow_boundary_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `cross_workflow_boundary` | `commit_boundary` |
+| `intake_correction_action_golden_v1` | `Official Golden` | `authored_active` | `workflow_canonical_action` | `historical_correction` |
+| `intake_open_new_workflow_boundary_golden_v1` | `Official Golden` | `authored_active` | `cross_workflow_boundary` | `commit_boundary` |
 | `intake_founder_fit_primary_golden_v1` | `Official Golden` | `legacy_mapped` | `workflow_canonical_action` | `intake_single_turn` |
 | `intake_turn2_hybrid_replay_golden_v1` | `Official Golden` | `legacy_mapped` | `cross_turn_progression` | `intake_multi_turn` |
 | `intake_official_canonical_pack_v1` | `Official Golden` | `authored_active` | `workflow_canonical_action` | `intake_single_turn` |
@@ -411,8 +455,10 @@ response-side distinctions 不得進 Official Golden primary oracle。
 | `body_observation_create_action_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `workflow_canonical_action` | `none` |
 | `body_observation_response_contract_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `response_contract` | `none` |
 | `body_observation_to_calibration_boundary_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `cross_workflow_boundary` | `cross_flow_state_sync` |
-| `general_chat_answer_only_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `workflow_canonical_action` | `none` |
-| `general_chat_open_workflow_boundary_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `cross_workflow_boundary` | `none` |
+| `general_chat_budget_query_golden_v1` | `Official Golden` | `authored_active` | `workflow_canonical_action` | `none` |
+| `general_chat_goal_query_golden_v1` | `Official Golden` | `authored_active` | `workflow_canonical_action` | `none` |
+| `general_chat_open_workflow_boundary_golden_v1` | `Official Golden` | `authored_active` | `cross_workflow_boundary` | `none` |
+| `general_chat_official_canonical_pack_v1` | `Official Golden` | `authored_active` | `workflow_canonical_action` | `none` |
 
 ### 6.6 Retrieval / Memory / Context Packing / Fallback
 

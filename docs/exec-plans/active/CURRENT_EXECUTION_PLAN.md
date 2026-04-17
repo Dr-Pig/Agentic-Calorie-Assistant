@@ -101,6 +101,7 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `batch authoring templates plus a benchmark-artifact scaffolding helper for candidate/offical/executable pack surfaces`
   - `runnable rescue/intake executable workflow smoke runners plus suite-wave orchestration that can execute them by registry metadata`
   - `budget-aware happy path foundation: BodyProfile persistence, active body-plan read model, deterministic onboarding bootstrap service, /body-plan surface, active-budget fallback for intake ledger writes, and remaining-budget answer contract`
+  - `2.7f general_chat one-pass runtime surface plus official runnable suite for budget/goal/open-workflow queries`
   - `2.7c official text-surface guard hardening is complete enough to unblock the next semantic-routing hardening wave`
 - `legal_next_slices[]`:
   - `0.a-onboarding-ui-and-body-plan-bootstrap`

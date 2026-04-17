@@ -210,6 +210,21 @@ def _build_known_commands(
             issues.append("runner_has_no_fixture_match")
         return commands, issues
 
+    if script_name == "run_general_chat_official_pack.py":
+        matched_fixture_path = fixtures[0]["path"] if fixtures else None
+        commands.append(
+            PlannedCommand(
+                suite_id=suite_id,
+                command=(sys.executable, str(script_path)),
+                runner_path=runner["path"],
+                fixture_path=matched_fixture_path,
+                note="official_utterance_runner",
+            )
+        )
+        if not fixtures:
+            issues.append("runner_has_no_fixture_match")
+        return commands, issues
+
     issues.append(f"unsupported_runner:{runner['path']}")
     return commands, issues
 

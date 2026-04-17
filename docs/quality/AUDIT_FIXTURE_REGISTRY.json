@@ -36,6 +36,18 @@
     "truth_source": "product_semantic_decision"
   },
   {
+    "path": "docs/quality/benchmarks/general_chat/general_chat_official_canonical_pack_v1.json",
+    "type": "json",
+    "suite_id": "general_chat_budget_query_golden_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "general_chat",
+    "capability_family": "general_chat_runtime",
+    "validation_layer": "workflow_canonical_action",
+    "suite_archetype": "utterance_governed",
+    "approval_mode": "user_required",
+    "truth_source": "product_semantic_decision"
+  },
+  {
     "path": "docs/quality/benchmarks/rescue/rescue_official_canonical_pack_v1.json",
     "type": "json",
     "suite_id": "rescue_accept_action_golden_v1",

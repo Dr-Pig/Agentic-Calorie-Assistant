@@ -50,6 +50,13 @@ It should be appended over time instead of rewritten.
 - added suite-wave orchestration so the current executable smoke lanes can be planned and executed by `suite_id` / `workflow_family` filters rather than manual script memory
 - kept the remaining human gate limited to new architecture, new cross-workflow product semantics, and new utterance-governed official truth
 
+## 2026-04-18 — `general_chat` Runnable Official Lane Landed
+
+- implemented the `general_chat` 1-pass runtime surface as a deterministic-read, no-mutation answer lane for budget and goal queries plus open-workflow handoff
+- promoted the first `general_chat` official canonical pack covering budget query, goal query, and open-workflow boundary truth
+- added a runnable `general_chat` official-pack runner and registered it in suite-wave orchestration so `workflow_family=general_chat` can execute as a real official lane instead of staying fixture-only
+- kept the lane bounded to official truth already approved in-product: workflow family, disposition, workflow effect, and required read surfaces
+
 ## 2026-04-16 — Semantic-Routing Benchmark Authority Split
 
 ### Trigger

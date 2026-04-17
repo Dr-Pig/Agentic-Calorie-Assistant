@@ -1,0 +1,90 @@
+{
+  "pack_id": "general_chat_official_canonical_pack_v1",
+  "version": 1,
+  "pack_mode": "official_canonical",
+  "authority_level": "canonical",
+  "approval_status": "batch_1_approved",
+  "suite_archetype": "utterance_governed",
+  "approval_mode": "user_required",
+  "truth_source": "product_semantic_decision",
+  "purpose": "Official canonical general_chat benchmark pack. Cases here carry user-approved primary outcomes only.",
+  "scope_note": "V1 scope is limited to budget query, goal query, and open-workflow boundary cases.",
+  "review_process_note": "Cases entered this pack only after explicit user approval of workflow family, disposition, workflow effect, and required read surfaces.",
+  "canonical_primary_oracle_fields": [
+    "expected_target_object_type",
+    "expected_target_workflow_family",
+    "expected_disposition",
+    "expected_workflow_effect",
+    "expected_required_read_surfaces"
+  ],
+  "cases": [
+    {
+      "case_id": "general_chat_budget_official_001",
+      "suite_id": "general_chat_budget_query_golden_v1",
+      "promoted_from_candidate_case_id": "general_chat_budget_candidate_001",
+      "utterance": "我今天還剩多少熱量？",
+      "state_pack_summary": {
+        "current_budget_view": {
+          "budget_kcal": 1650,
+          "consumed_kcal": 1030,
+          "remaining_kcal": 620,
+          "active_meal_count": 2
+        },
+        "active_body_plan_view": {
+          "daily_budget_kcal": 1650,
+          "goal_type": "lose_weight"
+        }
+      },
+      "expected_target_object_type": "none",
+      "expected_target_workflow_family": "general_chat",
+      "expected_disposition": "answer_only",
+      "expected_workflow_effect": "answer_budget_summary_without_state_mutation",
+      "expected_required_read_surfaces": [
+        "CurrentBudgetView",
+        "ActiveBodyPlanView"
+      ]
+    },
+    {
+      "case_id": "general_chat_goal_official_001",
+      "suite_id": "general_chat_goal_query_golden_v1",
+      "promoted_from_candidate_case_id": "general_chat_goal_candidate_001",
+      "utterance": "我現在的目標是什麼？",
+      "state_pack_summary": {
+        "current_budget_view": {
+          "budget_kcal": 1650
+        },
+        "active_body_plan_view": {
+          "daily_budget_kcal": 1650,
+          "goal_type": "lose_weight",
+          "plan_source": "onboarding_bootstrap"
+        }
+      },
+      "expected_target_object_type": "none",
+      "expected_target_workflow_family": "general_chat",
+      "expected_disposition": "answer_only",
+      "expected_workflow_effect": "answer_goal_summary_without_state_mutation",
+      "expected_required_read_surfaces": [
+        "ActiveBodyPlanView"
+      ]
+    },
+    {
+      "case_id": "general_chat_open_workflow_official_001",
+      "suite_id": "general_chat_open_workflow_boundary_golden_v1",
+      "promoted_from_candidate_case_id": "general_chat_open_workflow_candidate_001",
+      "utterance": "晚餐我吃牛肉麵",
+      "state_pack_summary": {
+        "current_budget_view": {
+          "budget_kcal": 1650
+        },
+        "active_body_plan_view": {
+          "daily_budget_kcal": 1650
+        }
+      },
+      "expected_target_object_type": "none",
+      "expected_target_workflow_family": "general_chat",
+      "expected_disposition": "open_new_workflow",
+      "expected_workflow_effect": "handoff_to_formal_workflow",
+      "expected_required_read_surfaces": []
+    }
+  ]
+}

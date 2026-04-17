@@ -14,6 +14,10 @@ PROMOTION_PAIRS = (
         "official_pack_path": ROOT / "docs" / "quality" / "benchmarks" / "intake" / "intake_official_canonical_pack_v1.json",
     },
     {
+        "queue_path": ROOT / "docs" / "quality" / "benchmarks" / "general_chat" / "general_chat_candidate_review_queue_v1.json",
+        "official_pack_path": ROOT / "docs" / "quality" / "benchmarks" / "general_chat" / "general_chat_official_canonical_pack_v1.json",
+    },
+    {
         "queue_path": ROOT / "docs" / "quality" / "benchmarks" / "rescue" / "rescue_candidate_review_queue_v1.json",
         "official_pack_path": ROOT / "docs" / "quality" / "benchmarks" / "rescue" / "rescue_official_canonical_pack_v1.json",
     },
@@ -96,6 +100,24 @@ def _validate_queue(queue_payload: dict[str, Any], *, path: Path) -> dict[str, d
             value = case.get(field)
             if not isinstance(value, str) or not value:
                 raise ValueError(f"{path} case {case_id} missing required field {field}")
+
+        candidate_required_read_surfaces = case.get("candidate_required_read_surfaces")
+        if candidate_required_read_surfaces is not None:
+            if not isinstance(candidate_required_read_surfaces, list) or not all(
+                isinstance(item, str) for item in candidate_required_read_surfaces
+            ):
+                raise ValueError(
+                    f"{path} case {case_id} has invalid candidate_required_read_surfaces"
+                )
+
+        for field in (
+            "candidate_meal_link_action",
+            "candidate_decision_next_action",
+            "candidate_commit_posture",
+        ):
+            value = case.get(field)
+            if value is not None and (not isinstance(value, str) or not value):
+                raise ValueError(f"{path} case {case_id} has invalid optional field {field}")
 
         candidate_adjust_direction = case.get("candidate_adjust_direction")
         if candidate_adjust_direction is not None:
@@ -188,6 +210,22 @@ def _validate_official_pack(
                     raise ValueError(
                         f"{path} case {case_id} mismatch: expected_adjust_direction != candidate_adjust_direction "
                         f"({official_adjust_direction!r} vs {queue_adjust_direction!r})"
+                    )
+            optional_comparisons = (
+                ("expected_required_read_surfaces", "candidate_required_read_surfaces"),
+                ("expected_meal_link_action", "candidate_meal_link_action"),
+                ("expected_decision_next_action", "candidate_decision_next_action"),
+                ("expected_commit_posture", "candidate_commit_posture"),
+            )
+            for official_field, queue_field in optional_comparisons:
+                queue_value = queue_case.get(queue_field)
+                official_value = case.get(official_field)
+                if queue_value is None and official_value is None:
+                    continue
+                if official_value != queue_value:
+                    raise ValueError(
+                        f"{path} case {case_id} mismatch: {official_field} != {queue_field} "
+                        f"({official_value!r} vs {queue_value!r})"
                     )
         elif promoted_from not in (None, ""):
             raise ValueError(

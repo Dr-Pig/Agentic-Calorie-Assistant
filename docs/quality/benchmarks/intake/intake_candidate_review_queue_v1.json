@@ -13,7 +13,10 @@
     "candidate_target_object_type",
     "candidate_target_workflow_family",
     "candidate_disposition",
-    "candidate_workflow_effect"
+    "candidate_workflow_effect",
+    "candidate_meal_link_action",
+    "candidate_decision_next_action",
+    "candidate_commit_posture"
   ],
   "cases": [
     {
@@ -31,6 +34,9 @@
       "candidate_target_workflow_family": "intake",
       "candidate_disposition": "create",
       "candidate_workflow_effect": "create_new_meal_thread",
+      "candidate_meal_link_action": "create_new_meal",
+      "candidate_decision_next_action": "run_nutrition_resolution",
+      "candidate_commit_posture": "commit",
       "approval_notes": "approved by user batch approval"
     },
     {
@@ -49,6 +55,9 @@
       "candidate_target_workflow_family": "intake",
       "candidate_disposition": "create",
       "candidate_workflow_effect": "create_thread_and_request_clarify",
+      "candidate_meal_link_action": "create_new_meal",
+      "candidate_decision_next_action": "run_clarify",
+      "candidate_commit_posture": "no_commit",
       "approval_notes": "approved by user batch approval"
     },
     {
@@ -70,6 +79,9 @@
       "candidate_target_workflow_family": "intake",
       "candidate_disposition": "continue",
       "candidate_workflow_effect": "continue_followup_lane",
+      "candidate_meal_link_action": "link_existing_thread",
+      "candidate_decision_next_action": "run_nutrition_resolution",
+      "candidate_commit_posture": "commit",
       "approval_notes": "approved by user batch approval"
     },
     {
@@ -95,6 +107,9 @@
       "candidate_target_workflow_family": "intake",
       "candidate_disposition": "correct",
       "candidate_workflow_effect": "correct_existing_meal_thread",
+      "candidate_meal_link_action": "link_existing_thread",
+      "candidate_decision_next_action": "run_nutrition_resolution",
+      "candidate_commit_posture": "commit",
       "approval_notes": "approved by user batch approval"
     },
     {
@@ -116,6 +131,9 @@
       "candidate_target_workflow_family": "intake",
       "candidate_disposition": "open_new_workflow",
       "candidate_workflow_effect": "open_new_workflow",
+      "candidate_meal_link_action": "create_new_meal",
+      "candidate_decision_next_action": "run_nutrition_resolution",
+      "candidate_commit_posture": "commit",
       "approval_notes": "approved by user batch approval"
     }
   ]

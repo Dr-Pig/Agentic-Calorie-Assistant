@@ -16,6 +16,11 @@
     "expected_disposition",
     "expected_workflow_effect"
   ],
+  "workflow_specific_oracle_fields": [
+    "expected_meal_link_action",
+    "expected_decision_next_action",
+    "expected_commit_posture"
+  ],
   "cases": [
     {
       "case_id": "intake_task_meal_link_official_001",
@@ -30,7 +35,10 @@
       "expected_target_object_type": "meal_thread",
       "expected_target_workflow_family": "intake",
       "expected_disposition": "create",
-      "expected_workflow_effect": "create_new_meal_thread"
+      "expected_workflow_effect": "create_new_meal_thread",
+      "expected_meal_link_action": "create_new_meal",
+      "expected_decision_next_action": "run_nutrition_resolution",
+      "expected_commit_posture": "commit"
     },
     {
       "case_id": "intake_decision_official_001",
@@ -46,7 +54,10 @@
       "expected_target_object_type": "meal_thread",
       "expected_target_workflow_family": "intake",
       "expected_disposition": "create",
-      "expected_workflow_effect": "create_thread_and_request_clarify"
+      "expected_workflow_effect": "create_thread_and_request_clarify",
+      "expected_meal_link_action": "create_new_meal",
+      "expected_decision_next_action": "run_clarify",
+      "expected_commit_posture": "no_commit"
     },
     {
       "case_id": "intake_turn2_official_001",
@@ -65,7 +76,10 @@
       "expected_target_object_type": "meal_thread",
       "expected_target_workflow_family": "intake",
       "expected_disposition": "continue",
-      "expected_workflow_effect": "continue_followup_lane"
+      "expected_workflow_effect": "continue_followup_lane",
+      "expected_meal_link_action": "link_existing_thread",
+      "expected_decision_next_action": "run_nutrition_resolution",
+      "expected_commit_posture": "commit"
     },
     {
       "case_id": "intake_correction_official_001",
@@ -88,7 +102,10 @@
       "expected_target_object_type": "meal_thread",
       "expected_target_workflow_family": "intake",
       "expected_disposition": "correct",
-      "expected_workflow_effect": "correct_existing_meal_thread"
+      "expected_workflow_effect": "correct_existing_meal_thread",
+      "expected_meal_link_action": "link_existing_thread",
+      "expected_decision_next_action": "run_nutrition_resolution",
+      "expected_commit_posture": "commit"
     },
     {
       "case_id": "intake_new_workflow_official_001",
@@ -107,7 +124,10 @@
       "expected_target_object_type": "none",
       "expected_target_workflow_family": "intake",
       "expected_disposition": "open_new_workflow",
-      "expected_workflow_effect": "open_new_workflow"
+      "expected_workflow_effect": "open_new_workflow",
+      "expected_meal_link_action": "create_new_meal",
+      "expected_decision_next_action": "run_nutrition_resolution",
+      "expected_commit_posture": "commit"
     }
   ]
 }

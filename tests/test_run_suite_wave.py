@@ -126,3 +126,17 @@ def test_agent_allowed_capability_suites_are_classified_as_fixture_only() -> Non
     assert "context_packing_sufficiency_golden_v1" in fixture_only_ids
     assert "bounded_repair_gate_golden_v1" in fixture_only_ids
     assert not plan["runnable"]
+
+
+def test_general_chat_official_runner_is_planned_as_runnable_suite() -> None:
+    plan = run_suite_wave.build_suite_plan(
+        filters=run_suite_wave.SuiteFilters(
+            suite_ids=("general_chat_budget_query_golden_v1",),
+        )
+    )
+
+    assert len(plan["runnable"]) == 1
+    suite_plan = plan["runnable"][0]
+    assert suite_plan.suite_id == "general_chat_budget_query_golden_v1"
+    assert len(suite_plan.commands) == 1
+    assert suite_plan.commands[0].runner_path == "scripts/run_general_chat_official_pack.py"

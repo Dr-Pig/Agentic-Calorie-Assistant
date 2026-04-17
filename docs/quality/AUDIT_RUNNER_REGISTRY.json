@@ -58,5 +58,17 @@
     "suite_archetype": "executable_workflow",
     "approval_mode": "agent_allowed",
     "truth_source": "runtime_contract_derivation"
+  },
+  {
+    "path": "scripts/run_general_chat_official_pack.py",
+    "audit_name": "general_chat_official_pack",
+    "suite_id": "general_chat_budget_query_golden_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "general_chat",
+    "capability_family": "general_chat_runtime",
+    "validation_layer": "workflow_canonical_action",
+    "suite_archetype": "utterance_governed",
+    "approval_mode": "user_required",
+    "truth_source": "product_semantic_decision"
   }
 ]

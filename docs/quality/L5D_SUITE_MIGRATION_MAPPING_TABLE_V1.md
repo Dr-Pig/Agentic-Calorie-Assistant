@@ -13,17 +13,21 @@
 | `docs/quality/benchmarks/semantic_routing/semantic_routing_official_canonical_pack_v1.json` | `benchmark_fixture` | `semantic_routing_official_canonical_v1` | `Official Golden` | `mapped_existing` | 官方 lane，但目前 case 仍極少 / 待 promotion |
 | `docs/quality/benchmarks/semantic_routing/semantic_routing_candidate_review_queue_v1.json` | `candidate_queue` | `semantic_routing_candidate_queue_v1` | `Provisional Exploratory` | `mapped_existing` | candidate-only，不屬 oracle truth |
 | `docs/quality/benchmarks/intake/intake_candidate_review_queue_v1.json` | `candidate_queue` | `intake_task_meal_link_golden_v1` | `Official Golden` | `mapped_existing` | intake 官方候選入口，逐題 promotion 到對應 suite |
+| `docs/quality/benchmarks/general_chat/general_chat_candidate_review_queue_v1.json` | `candidate_queue` | `general_chat_budget_query_golden_v1` | `Official Golden` | `mapped_existing` | general_chat 官方候選入口，逐題 promotion 到 budget/goal/open-workflow suites |
 | `docs/quality/benchmarks/rescue/rescue_candidate_review_queue_v1.json` | `candidate_queue` | `rescue_accept_action_golden_v1` | `Official Golden` | `mapped_existing` | rescue 官方候選入口，逐題 promotion 到對應 suite |
 | `docs/quality/benchmarks/intake/intake_official_canonical_pack_v1.json` | `benchmark_fixture` | `intake_official_canonical_pack_v1` | `Official Golden` | `mapped_existing` | intake 第一批已核准 official canonical pack |
+| `docs/quality/benchmarks/general_chat/general_chat_official_canonical_pack_v1.json` | `benchmark_fixture` | `general_chat_official_canonical_pack_v1` | `Official Golden` | `mapped_existing` | general_chat 第一批已核准 official canonical pack，覆蓋 budget/goal/open-workflow boundary |
 | `docs/quality/benchmarks/rescue/rescue_official_canonical_pack_v1.json` | `benchmark_fixture` | `rescue_official_canonical_pack_v1` | `Official Golden` | `mapped_existing` | rescue 第一批已核准 official canonical pack |
 | `docs/quality/benchmarks/intake/intake_executable_action_pack_v1.json` | `derived_executable_pack` | `intake_official_canonical_pack_v1` | `Official Golden` | `mapped_existing` | subordinate executable contract，不是新的 suite authority source |
 | `docs/quality/benchmarks/rescue/rescue_executable_action_pack_v1.json` | `derived_executable_pack` | `rescue_official_canonical_pack_v1` | `Official Golden` | `mapped_existing` | subordinate executable contract；rescue adjust direction 已明確映射到 runtime action |
 | `scripts/run_rescue_executable_pack.py` | `runner` | `rescue_runtime_smoke_v1` | `Smoke / Infra` | `mapped_existing` | derived executable runner，直接消費 rescue executable action pack |
 | `scripts/run_intake_executable_pack.py` | `runner` | `intake_runtime_smoke_v1` | `Smoke / Infra` | `mapped_existing` | derived executable runner，直接消費 intake executable action pack |
+| `scripts/run_general_chat_official_pack.py` | `runner` | `general_chat_budget_query_golden_v1` | `Official Golden` | `mapped_existing` | general_chat official canonical runner，直接執行 budget/goal/open-workflow pack |
 | `docs/quality/benchmarks/retrieval/retrieval_candidate_selection_golden_v1.json` | `benchmark_fixture` | `retrieval_candidate_selection_golden_v1` | `Official Golden` | `mapped_existing` | agent-governed capability/service suite，直接由 canonical spec 與現有 retrieval tests 派生 |
 | `docs/quality/benchmarks/context/context_packing_sufficiency_golden_v1.json` | `benchmark_fixture` | `context_packing_sufficiency_golden_v1` | `Official Golden` | `mapped_existing` | agent-governed capability/service suite，覆蓋 context packing sufficiency |
 | `docs/quality/benchmarks/fallback/bounded_repair_gate_golden_v1.json` | `benchmark_fixture` | `bounded_repair_gate_golden_v1` | `Official Golden` | `mapped_existing` | agent-governed degraded/fallback suite，覆蓋 bounded repair 與 gate immutability |
 | `docs/quality/INTAKE_OFFICIAL_GOLDEN_BATCH_REVIEW_V1.md` | `batch_review_sheet` | `intake_task_meal_link_golden_v1` | `Official Golden` | `mapped_existing` | intake 批次審核表面，實際覆蓋多個 intake suites |
+| `docs/quality/GENERAL_CHAT_OFFICIAL_GOLDEN_BATCH_REVIEW_V1.md` | `batch_review_sheet` | `general_chat_budget_query_golden_v1` | `Official Golden` | `mapped_existing` | general_chat 批次審核表面，實際覆蓋 budget/goal/open-workflow suites |
 | `docs/quality/RESCUE_OFFICIAL_GOLDEN_BATCH_REVIEW_V1.md` | `batch_review_sheet` | `rescue_accept_action_golden_v1` | `Official Golden` | `mapped_existing` | rescue 批次審核表面，實際覆蓋多個 rescue suites |
 | `docs/quality/benchmarks/templates/candidate_review_queue_template.json` | `template` | `none` | `Smoke / Infra` | `mapped_existing` | utterance-governed candidate queue scaffold |
 | `docs/quality/benchmarks/templates/official_canonical_pack_template.json` | `template` | `none` | `Smoke / Infra` | `mapped_existing` | official canonical pack scaffold |
@@ -76,6 +80,7 @@
 | `tests/test_trace_observability_contract.py` | `test_file` | `trace_contract_smoke_v1` | `Smoke / Infra` | `mapped_existing` | trace observability |
 | `tests/test_trace_triage.py` | `test_file` | `trace_contract_smoke_v1` | `Smoke / Infra` | `mapped_existing` | trace triage contract |
 | `tests/test_current_budget_read_model.py` | `test_file` | `trace_contract_smoke_v1` | `Smoke / Infra` | `mapped_existing` | current budget read-side contract |
+| `tests/test_general_chat_workflow.py` | `test_file` | `general_chat_budget_query_golden_v1` | `Official Golden` | `mapped_existing` | general_chat budget/goal/open-workflow contract smoke |
 | `tests/test_routes_today_ui.py` | `test_file` | `trace_contract_smoke_v1` | `Smoke / Infra` | `mapped_existing` | read-model/UI smoke |
 | `tests/test_routes_weight_ui.py` | `test_file` | `trace_contract_smoke_v1` | `Smoke / Infra` | `mapped_existing` | read-model/UI smoke |
 | `tests/test_retrieval_external_search.py` | `test_file` | `retrieval_runtime_smoke_v1` | `Smoke / Infra` | `mapped_existing` | retrieval integration smoke |

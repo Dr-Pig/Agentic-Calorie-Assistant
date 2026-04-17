@@ -25,6 +25,14 @@ RESCUE_OFFICIAL_PACK_PATH = (
     / "rescue"
     / "rescue_official_canonical_pack_v1.json"
 )
+GENERAL_CHAT_OFFICIAL_PACK_PATH = (
+    ROOT
+    / "docs"
+    / "quality"
+    / "benchmarks"
+    / "general_chat"
+    / "general_chat_official_canonical_pack_v1.json"
+)
 AGENT_ALLOWED_PACKS = (
     (
         ROOT
@@ -130,6 +138,7 @@ def test_audit_registries_include_l5d_metadata() -> None:
 def test_workflow_official_packs_are_promoted_canonical_artifacts() -> None:
     for pack_path, expected_pack_id in (
         (INTAKE_OFFICIAL_PACK_PATH, "intake_official_canonical_pack_v1"),
+        (GENERAL_CHAT_OFFICIAL_PACK_PATH, "general_chat_official_canonical_pack_v1"),
         (RESCUE_OFFICIAL_PACK_PATH, "rescue_official_canonical_pack_v1"),
     ):
         payload = _load_json(pack_path)
@@ -154,6 +163,13 @@ def test_workflow_official_packs_are_promoted_canonical_artifacts() -> None:
                 "expected_disposition",
                 "expected_workflow_effect",
                 "expected_adjust_direction",
+            ],
+            [
+                "expected_target_object_type",
+                "expected_target_workflow_family",
+                "expected_disposition",
+                "expected_workflow_effect",
+                "expected_required_read_surfaces",
             ],
         )
         assert payload["cases"]
@@ -181,6 +197,19 @@ def test_workflow_official_packs_are_promoted_canonical_artifacts() -> None:
                 "open_new_workflow",
             }
             assert case["expected_workflow_effect"]
+            if "expected_required_read_surfaces" in case:
+                assert isinstance(case["expected_required_read_surfaces"], list)
+                assert all(isinstance(item, str) for item in case["expected_required_read_surfaces"])
+            if "expected_meal_link_action" in case:
+                assert case["expected_meal_link_action"] in {"link_existing_thread", "create_new_meal"}
+            if "expected_decision_next_action" in case:
+                assert case["expected_decision_next_action"] in {
+                    "run_clarify",
+                    "run_tool_lookup",
+                    "run_nutrition_resolution",
+                }
+            if "expected_commit_posture" in case:
+                assert case["expected_commit_posture"] in {"commit", "no_commit"}
             if "expected_adjust_direction" in case:
                 assert case["expected_disposition"] == "adjust"
                 assert case["expected_adjust_direction"] in {"shorter", "longer"}
