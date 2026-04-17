@@ -1,4 +1,4 @@
-# Protected Doc Rewrite Inventory 2026-04-17
+﻿# Protected Doc Rewrite Inventory 2026-04-17
 
 ## Purpose
 
