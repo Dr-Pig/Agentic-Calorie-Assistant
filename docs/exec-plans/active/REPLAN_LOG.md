@@ -2409,6 +2409,34 @@ It should be appended over time instead of rewritten.
 - the next blocker is no longer generic routing drift
 - it is product-level boundary semantics that need explicit review
 
+## 2026-04-18 — Recommendation 2.8b Ranking / Response Started
+
+### Trigger
+
+- `2.8a` now provides a deterministic context packet plus filtered candidate pool
+- the next bounded recommendation wave is ranking and response, not more retrieval machinery
+- workflow truth for `recommendation v1` is already locked as non-mutating with intake handoff only through `hint_packet`
+
+### What Changed
+
+- active execution moved from `2.8a-recommendation-context-and-candidate-foundation` to `2.8b-recommendation-ranking-and-response`
+- the implementation target is now:
+  - hard-constraint-first ranking
+  - soft-preference ordering
+  - chat-first recommendation response
+  - `幫我記這個` quick action via `hint_packet`
+  - no canonical state mutation
+
+### Why This Replan Matters
+
+- it turns recommendation from background context machinery into a user-visible workflow lane
+- it keeps recommendation inside the approved v1 posture:
+  - non-mutating
+  - budget-aware
+  - rescue-aware
+  - intake-handoff-only
+- it avoids reopening intake, rescue, or global routing semantics while still advancing the workflow implementation wave
+
 ## 2026-04-18 — Active Pointer Shifted From Suite Governance To Budget / Ledger Happy Path
 
 ### Trigger

@@ -45,23 +45,23 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
 | `2.5 Rescue` | `completed enough` | `2.5d` rescue response surface is complete enough to serve as a semantic-routing source family |
 | `2.6 Calibration` | `deferred` | not best-next while `2.2` mainline validation remains incomplete |
 | `2.7 Memory / Retrieval Deepening` | `completed enough` | suite-governance groundwork, metadata-runnable runners, and first agent-governed capability suites are complete enough for the current wave |
-| `2.8 Recommendation` | `not started` | downstream of intake, rescue, and calibration maturity |
+| `2.8 Recommendation` | `in progress` | `2.8a` foundation is landed and `2.8b` ranking/response is the active bounded wave |
 | `2.9 Proactive Nudges` | `not started` | downstream of recommendation and current mainline maturity |
 
 ## Global Pointer
 
 - `current_pointer_bundle`: `2.8 Recommendation`
-- `current_pointer_reason`: `the budget-aware happy path and workflow graph truth are now stable enough that the next bounded implementation wave is recommendation 2.8a: context shaping plus deterministic candidate retrieval/filtering`
+- `current_pointer_reason`: `the recommendation context and candidate foundation is landed, so the next bounded wave is recommendation 2.8b: ranking candidates by soft preference under hard constraints and surfacing a non-mutating chat response with intake hint handoff`
 - `deferred_bundles[]`:
   - `2.6 Calibration`
-- `deferred_bundle_reason`: `calibration remains legal later, but recommendation 2.8a is now the best next slice because workflow graph truth is locked and recommendation can start from shared budget/body-plan/read-model surfaces without waiting for proposal surfaces`
+- `deferred_bundle_reason`: `calibration remains legal later, but recommendation 2.8b is now the best next slice because the repo already has deterministic context and candidate retrieval, and can now add ranking/response without reopening proposal or routing semantics`
 
 ## Current Execution Dashboard
 
-- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough, 2.7 suite-governance follow-through is complete enough for this wave, the budget-aware happy path is landed, and the active branch has now shifted to recommendation 2.8a: deterministic-first context shaping plus candidate retrieval/filtering on top of CurrentBudgetView, ActiveBodyPlanView, preference summary, and safe fallback sources`
+- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough, 2.7 suite-governance follow-through is complete enough for this wave, the budget-aware happy path is landed, recommendation 2.8a context/candidate foundation is landed, and the active branch is now recommendation 2.8b: deterministic-first ranking plus non-mutating chat response on top of the existing shared read-model surfaces`
 - `current_workflow_family`: `2.8 Recommendation`
-- `current_slice`: `2.8a-recommendation-context-and-candidate-foundation`
-- `current_goal`: `implement the first two nodes of recommendation: build the deterministic-first context packet, derive sparse-safe preference summary inputs, retrieve/filter candidates from historical matches, golden orders, and safe defaults, and keep the flow non-mutating`
+- `current_slice`: `2.8b-recommendation-ranking-and-response`
+- `current_goal`: `rank legal recommendation candidates by soft preference after hard-constraint filtering, produce a chat-first non-mutating response with 1 top pick plus 1-2 backups, and expose intake handoff only through hint_packet quick actions`
 - `completed_so_far`:
   - `2.2a active-meal continuation foundation`
   - `2.2c cross-midnight attribution foundation`
@@ -104,11 +104,12 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `2.7f general_chat one-pass runtime surface plus official runnable suite for budget/goal/open-workflow queries`
   - `workflow graph / official truth v1 locked for general_chat, intake, rescue, recommendation, calibration, and body_observation`
   - `2.8a recommendation context packet plus deterministic candidate retrieval/filtering foundation`
+  - `2.8b recommendation ranking/response wave started`
   - `2.7c official text-surface guard hardening is complete enough to unblock the next semantic-routing hardening wave`
 - `legal_next_slices[]`:
-  - `2.8a-recommendation-context-and-candidate-foundation`
-- `recommended_next_slice`: `2.8a-recommendation-context-and-candidate-foundation`
-- `why_this_next`: `the repo now has stable shared budget/body-plan truth and locked workflow graph truth, so recommendation 2.8a is the next bounded implementation wave that can advance without reopening high-impact routing or proposal semantics`
+  - `2.8b-recommendation-ranking-and-response`
+- `recommended_next_slice`: `2.8b-recommendation-ranking-and-response`
+- `why_this_next`: `the repo now has stable shared budget/body-plan truth, locked workflow graph truth, and the 2.8a context/candidate foundation, so recommendation 2.8b is the next bounded implementation wave that can advance without reopening high-impact routing or proposal semantics`
 - `human_gate`: `high-impact-only`
 - `human_gate_scope`: `high_impact_only`
 - `autonomous_execution_default`: `continue_until_high_impact_decision`
