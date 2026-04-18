@@ -1,0 +1,111 @@
+from __future__ import annotations
+
+from dataclasses import asdict
+
+from fastapi import APIRouter, Depends
+
+from ..application.active_body_plan_read_model import build_active_body_plan_view
+from ..application.current_budget_read_model import build_current_budget_view
+from ..application.recommendation_candidate_retrieval import build_recommendation_candidates
+from ..application.recommendation_context import build_recommendation_context
+from ..application.recommendation_ranking import rank_recommendation_candidates
+from ..application.recommendation_response import build_recommendation_response
+from ..database import get_db, get_or_create_user
+from ..schemas import RecommendationCandidate
+
+router = APIRouter()
+
+
+def _preview_candidates(*, remaining_budget_kcal: int) -> list[RecommendationCandidate]:
+    safe_budget = max(0, int(remaining_budget_kcal or 0))
+    return [
+        RecommendationCandidate(
+            candidate_id="preview-historical-1",
+            candidate_kind="golden_order",
+            title="雞胸沙拉餐",
+            store_name="Fresh Box",
+            estimated_kcal=min(safe_budget, 430) if safe_budget > 0 else 430,
+            protein_g=32,
+            fit_summary="high_protein",
+            source_metadata={
+                "item_kind": "meal",
+                "staple_type": "salad",
+                "cuisine_family": "western",
+                "protein_posture": "high_protein",
+                "retrieval_tier": "historical_match",
+            },
+        ),
+        RecommendationCandidate(
+            candidate_id="preview-nearby-1",
+            candidate_kind="nearby",
+            title="牛肉飯",
+            store_name="Local Bento",
+            estimated_kcal=max(520, min(safe_budget, 620)) if safe_budget > 0 else 620,
+            protein_g=26,
+            fit_summary="balanced",
+            source_metadata={
+                "item_kind": "meal",
+                "staple_type": "rice",
+                "cuisine_family": "taiwanese",
+                "protein_posture": "balanced",
+                "retrieval_tier": "nearby",
+            },
+        ),
+        RecommendationCandidate(
+            candidate_id="preview-safe-1",
+            candidate_kind="safe_fallback",
+            title="茶葉蛋 + 無糖豆漿",
+            store_name="Convenience Store",
+            estimated_kcal=210,
+            protein_g=18,
+            fit_summary="light",
+            source_metadata={
+                "item_kind": "snack",
+                "staple_type": "light",
+                "cuisine_family": "convenience",
+                "protein_posture": "high_protein",
+                "retrieval_tier": "safe_fallback",
+            },
+        ),
+    ]
+
+
+@router.get("/recommendation/preview")
+def recommendation_preview(
+    user_id: str,
+    local_date: str,
+    raw_user_input: str = "",
+    db=Depends(get_db),
+) -> dict[str, object]:
+    user = get_or_create_user(db, user_id)
+    current_budget_view = build_current_budget_view(db, user_id=user.id, local_date=local_date)
+    active_body_plan_view = build_active_body_plan_view(db, user_id=user.id)
+    context_packet = build_recommendation_context(
+        user_id=user.id,
+        current_budget_view=current_budget_view,
+        active_body_plan_view=active_body_plan_view,
+        raw_user_input=raw_user_input,
+    )
+    retrieval_result = build_recommendation_candidates(
+        context_packet=context_packet,
+        historical_matches=_preview_candidates(
+            remaining_budget_kcal=context_packet.hard_constraints.remaining_budget_kcal
+        ),
+    )
+    ranking_result = rank_recommendation_candidates(
+        context_packet=context_packet,
+        retrieval_result=retrieval_result,
+    )
+    response_packet = build_recommendation_response(
+        context_packet=context_packet,
+        ranking_result=ranking_result,
+    )
+    return {
+        "context_packet": asdict(context_packet),
+        "candidate_count": retrieval_result.candidate_count,
+        "ranking_explanation": ranking_result.ranking_explanation,
+        "filter_reasons": ranking_result.filter_reasons,
+        "response": response_packet.response.model_dump(mode="json"),
+        "asked_follow_up": response_packet.asked_follow_up,
+        "ui_hints": response_packet.ui_hints,
+    }
