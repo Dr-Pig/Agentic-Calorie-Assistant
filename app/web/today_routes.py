@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 
 from pydantic import BaseModel
-from pydantic import BaseModel
 from ..application.current_budget_read_model import build_current_budget_view
 from ..application.canonical_commit_bridge import record_budget_adjustment_to_canonical
 from ..database import get_db, get_or_create_user

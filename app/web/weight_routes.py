@@ -262,6 +262,7 @@ async def post_weight_observation(req: WeightObservationRequest, db: Any = Depen
     )
     
     # Re-bootstrap plan if a plan already exists, carrying over settings
+    recomputed_target = None
     profile = get_active_body_profile_record(db, user_id=user.id)
     if profile:
         profile_meta = dict(profile.metadata_json or {})
@@ -272,11 +273,18 @@ async def post_weight_observation(req: WeightObservationRequest, db: Any = Depen
             current_weight_kg=req.weight_kg,
             activity_level=profile.activity_level,
             goal_type=profile.goal_type,
-            weekly_target_rate_kg=profile_meta.get("weekly_target_rate_kg", 0.5), # type: ignore
+            weekly_target_rate_kg=profile_meta.get("weekly_target_rate_kg", 0.5),  # type: ignore
             local_date=req.local_date,
             timezone="UTC"
         )
-        bootstrap_body_plan_for_date(db, user=user, inputs=inputs)
-        
-    return {"status": "ok", "observation_id": obs.id, "weight_kg": req.weight_kg}
+        result = bootstrap_body_plan_for_date(db, user=user, inputs=inputs)
+        if isinstance(result, dict):
+            recomputed_target = result.get("recommended_target_kcal")
+
+    return {
+        "status": "ok",
+        "observation_id": obs.observation_id,
+        "weight_kg": req.weight_kg,
+        "recomputed_target_kcal": recomputed_target,
+    }
 

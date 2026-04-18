@@ -33,6 +33,7 @@ If you need the shortest path to current execution truth:
 | what slices exist and who owns them | [docs/exec-plans/WORKFLOW_SLICE_REGISTRY.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/WORKFLOW_SLICE_REGISTRY.md) |
 | what order is legal | [docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md) |
 | routing vs response boundary, anti-premature-taxonomy, eval label governance | [docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md) |
+| multi-dispatch, sequential chaining, confirm-then-chain, compound utterance governance | [docs/specs/L6G_MULTI_DISPATCH_SEQUENTIAL_CHAINING_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L6G_MULTI_DISPATCH_SEQUENTIAL_CHAINING_SPEC.md) |
 | onboarding budget/bootstrap happy path and shared `/today`/`/body-plan` truth | [docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md) |
 | suite inventory, authority tiers, benchmark migration mapping | [docs/quality/L5D_SUITE_GOVERNANCE_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/L5D_SUITE_GOVERNANCE_SPEC.md) |
 | LLM pass design, graph-first, decision-mode governance | [docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md) |
@@ -40,6 +41,7 @@ If you need the shortest path to current execution truth:
 | repo build rules | [docs/governance/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance) |
 | handoff exception path | [docs/exec-plans/active/handoff/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active/handoff) |
 | quality / eval / benchmark | [docs/quality/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality) |
+| UX journey to slice mapping, human gates, founder test scenarios | [docs/quality/UX_JOURNEY_TO_SLICE_MAP.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/UX_JOURNEY_TO_SLICE_MAP.md) |
 | reference material | [docs/references/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/references) |
 
 ## Notes
