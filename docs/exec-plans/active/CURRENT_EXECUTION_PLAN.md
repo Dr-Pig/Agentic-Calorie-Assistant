@@ -50,18 +50,18 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
 
 ## Global Pointer
 
-- `current_pointer_bundle`: `0 Onboarding`
-- `current_pointer_reason`: `the next bounded trunk is the deterministic budget happy path: bootstrap BodyProfile/BodyPlan, seed today ledger, keep intake synced to ledger truth, and expose shared /today + /body-plan + remaining-budget surfaces before higher-level workflow design resumes`
+- `current_pointer_bundle`: `2.8 Recommendation`
+- `current_pointer_reason`: `the budget-aware happy path and workflow graph truth are now stable enough that the next bounded implementation wave is recommendation 2.8a: context shaping plus deterministic candidate retrieval/filtering`
 - `deferred_bundles[]`:
   - `2.6 Calibration`
-- `deferred_bundle_reason`: `calibration remains legal later, but the budget/bootstrap trunk is now the best next slice because recommendation, rescue, and calibration all depend on it`
+- `deferred_bundle_reason`: `calibration remains legal later, but recommendation 2.8a is now the best next slice because workflow graph truth is locked and recommendation can start from shared budget/body-plan/read-model surfaces without waiting for proposal surfaces`
 
 ## Current Execution Dashboard
 
-- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough, 2.7 suite-governance follow-through is complete enough for this wave, and the active branch has now shifted to the budget-aware happy path: BodyProfile bootstrap, active BodyPlan read model, today-ledger seeding, intake-to-ledger budget fallback, /body-plan surface, and deterministic remaining-budget answer contract`
-- `current_workflow_family`: `0 Onboarding`
-- `current_slice`: `0.a-onboarding-ui-and-body-plan-bootstrap`
-- `current_goal`: `run the canonical budget trunk end to end: bootstrap BodyProfile + BodyPlan + DayBudgetLedger, keep intake commits synced to the active budget, expose /today and /body-plan as shared read surfaces, and lock the deterministic remaining-budget answer contract for later chat use`
+- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough, 2.7 suite-governance follow-through is complete enough for this wave, the budget-aware happy path is landed, and the active branch has now shifted to recommendation 2.8a: deterministic-first context shaping plus candidate retrieval/filtering on top of CurrentBudgetView, ActiveBodyPlanView, preference summary, and safe fallback sources`
+- `current_workflow_family`: `2.8 Recommendation`
+- `current_slice`: `2.8a-recommendation-context-and-candidate-foundation`
+- `current_goal`: `implement the first two nodes of recommendation: build the deterministic-first context packet, derive sparse-safe preference summary inputs, retrieve/filter candidates from historical matches, golden orders, and safe defaults, and keep the flow non-mutating`
 - `completed_so_far`:
   - `2.2a active-meal continuation foundation`
   - `2.2c cross-midnight attribution foundation`
@@ -102,11 +102,13 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `runnable rescue/intake executable workflow smoke runners plus suite-wave orchestration that can execute them by registry metadata`
   - `budget-aware happy path foundation: BodyProfile persistence, active body-plan read model, deterministic onboarding bootstrap service, /body-plan surface, active-budget fallback for intake ledger writes, and remaining-budget answer contract`
   - `2.7f general_chat one-pass runtime surface plus official runnable suite for budget/goal/open-workflow queries`
+  - `workflow graph / official truth v1 locked for general_chat, intake, rescue, recommendation, calibration, and body_observation`
+  - `2.8a recommendation context packet plus deterministic candidate retrieval/filtering foundation`
   - `2.7c official text-surface guard hardening is complete enough to unblock the next semantic-routing hardening wave`
 - `legal_next_slices[]`:
-  - `0.a-onboarding-ui-and-body-plan-bootstrap`
-- `recommended_next_slice`: `0.a-onboarding-ui-and-body-plan-bootstrap`
-- `why_this_next`: `the repo now has enough suite-governance and runner machinery for this wave, and the next stable trunk is the deterministic budget/bootstrap path that recommendation, calibration, rescue, and budget-aware chat all depend on`
+  - `2.8a-recommendation-context-and-candidate-foundation`
+- `recommended_next_slice`: `2.8a-recommendation-context-and-candidate-foundation`
+- `why_this_next`: `the repo now has stable shared budget/body-plan truth and locked workflow graph truth, so recommendation 2.8a is the next bounded implementation wave that can advance without reopening high-impact routing or proposal semantics`
 - `human_gate`: `high-impact-only`
 - `human_gate_scope`: `high_impact_only`
 - `autonomous_execution_default`: `continue_until_high_impact_decision`
@@ -116,27 +118,27 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `new_utterance_governed_official_truth`
 - `owner_mode`: `local`
 - `delegation_posture`: `prefer_workers_for_non_semantic_followthrough`
-- `key_files_or_subsystem`: `work should stay inside onboarding/bootstrap, canonical state, body-plan/today read surfaces, intake-ledger sync, and execution truth sync; do not widen into recommendation/calibration/rescue workflow redesign`
+- `key_files_or_subsystem`: `work should stay inside recommendation context shaping, deterministic candidate retrieval/filtering, sparse-safe preference summary inputs, and recommendation tests; do not widen into recommendation response surfaces, proposal semantics, or calibration/rescue redesign`
 - `required_harness`:
   - `python scripts/check_layer_integrity.py`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`
   - relevant targeted, smoke, integration, benchmark, or eval commands for the actual slice
-- `verification_status`: `the budget-aware happy-path implementation wave is in progress: canonical bootstrap/writeback surfaces exist locally and targeted route/read-model/persistence tests already prove the main trunk, but execution-truth sync and full harness completion are still required before this branch is fully landed`
-- `verification_reason`: `the branch has already added BodyProfile persistence, active BodyPlan read surfaces, deterministic onboarding bootstrap, /body-plan routes, active-budget fallback for intake commits, and a remaining-budget answer contract. The remaining work is to sync planner/spec truth and then rerun the targeted + harness gates for this trunk`
+- `verification_status`: `the recommendation 2.8a implementation wave is in progress: context shaping and deterministic candidate retrieval/filtering now exist locally with targeted tests passing, but execution-truth sync and broader slice-level follow-through are still required before the wave is fully landed`
+- `verification_reason`: `the branch now includes recommendation context shaping, sparse-safe preference summary loading, and deterministic candidate retrieval/filtering with targeted regressions passing. The remaining work is to complete truth sync, review any worker follow-through, and then rerun the relevant gates for the recommendation slice`
 - `last_verified_at`: `2026-04-18`
 
 ## Selection State
 
-- `active_critical_path_segment`: `0 onboarding/bootstrap deterministic target -> intake-to-ledger sync -> shared /today and /body-plan read surfaces -> deterministic remaining-budget answer contract -> later recommendation/calibration/rescue budget-aware workflow design`
-- `current_domain_gate_status`: `2.1, 2.2, 2.3, and onboarding/body-plan bootstrap are sufficient enough for the budget-aware happy-path trunk`
+- `active_critical_path_segment`: `shared budget/body-plan truth -> recommendation 2.8a context + deterministic candidate retrieval -> recommendation response surface -> calibration proposal/chat surfaces`
+- `current_domain_gate_status`: `2.1, 2.2, 2.3, onboarding/body-plan bootstrap, and workflow graph truth are sufficient enough for recommendation 2.8a`
 - `mainline_validation_status`: `sufficient_for_domain_advance`
-- `selected_best_next_slice`: `0.a-onboarding-ui-and-body-plan-bootstrap`
-- `selection_reason`: `the user explicitly redirected from governance expansion to the canonical budget happy path, and the repo now needs the deterministic target/ledger trunk in place before higher-level workflow or pass-graph design can be trusted`
-- `selection_reason_detail`: `the product needs one concrete, shared source of truth for daily target, consumed calories, remaining calories, and UI/chat sync. That makes onboarding/bootstrap plus intake-to-ledger sync the most leverage-heavy bounded slice before recommendation, calibration, or broader routing work`
+- `selected_best_next_slice`: `2.8a-recommendation-context-and-candidate-foundation`
+- `selection_reason`: `the shared target/ledger trunk is now in place and the workflow graph truth is locked, so recommendation 2.8a is the first bounded workflow wave that can move from design truth into implementation without reopening product semantics`
+- `selection_reason_detail`: `recommendation can now safely read CurrentBudgetView, ActiveBodyPlanView, and sparse-safe preference signals to produce a deterministic-first candidate set. That makes 2.8a the highest-leverage next slice before response surfaces, calibration proposal chat, or broader routing work`
 - `deferred_legal_slices[]`:
   - `2.6 next calibration slice`
-- `deferred_selection_reason`: `calibration remains legal later in the broad order, but the active branch now belongs to onboarding/bootstrap because it establishes the budget truth that calibration and recommendation will depend on`
+- `deferred_selection_reason`: `calibration remains legal later in the broad order, but recommendation 2.8a now has the required shared truth and can proceed without reopening proposal or commit semantics`
 - `execution_surface`: `planner-local`
 - `execution_surface_reason`: `this wave is product-trunk-first and mostly deterministic: keep high-impact workflow design local, but allow bounded non-semantic follow-through across read-model, route, persistence, and test surfaces`
 - `last_replan_at`: `2026-04-18`

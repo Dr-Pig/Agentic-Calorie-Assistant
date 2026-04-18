@@ -64,6 +64,13 @@ It should be appended over time instead of rewritten.
 - clarified that `recommendation v1` remains non-mutating and does not create recommendation intent state
 - clarified that `calibration proposal response surface` belongs to `calibration`, not `recommendation`
 
+## 2026-04-18 — Recommendation 2.8a Foundation Started
+
+- shifted the active implementation wave from budget/bootstrap trunk completion to `2.8a-recommendation-context-and-candidate-foundation`
+- implemented a sparse-safe `PreferenceProfileSummary` loader from committed meal history without widening into memory consolidation or response surfaces
+- implemented deterministic-first recommendation context shaping and candidate retrieval/filtering, with hard kcal filtering, cold-start fallback, and historical-vs-golden-vs-safe-default priority
+- kept the wave non-mutating and stopped before ranking/response or intake handoff surfaces
+
 ## 2026-04-16 — Semantic-Routing Benchmark Authority Split
 
 ### Trigger
