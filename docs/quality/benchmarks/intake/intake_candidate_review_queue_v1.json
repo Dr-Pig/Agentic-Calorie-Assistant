@@ -3,7 +3,7 @@
   "version": 1,
   "scope": "Official intake golden candidate queue",
   "authority_level": "candidate_only",
-  "approval_status": "batch_1_approved",
+  "approval_status": "batch_2_approved",
   "suite_archetype": "utterance_governed",
   "approval_mode": "user_required",
   "truth_source": "product_semantic_decision",
@@ -132,6 +132,50 @@
       "candidate_disposition": "open_new_workflow",
       "candidate_workflow_effect": "open_new_workflow",
       "candidate_meal_link_action": "create_new_meal",
+      "candidate_decision_next_action": "run_nutrition_resolution",
+      "candidate_commit_posture": "commit",
+      "approval_notes": "approved by user batch approval"
+    },
+    {
+      "candidate_case_id": "intake_lookup_candidate_001",
+      "candidate_suite_id": "intake_nutrition_resolution_golden_v1",
+      "review_status": "approved_for_promotion",
+      "origin": "brand_lookup_lane",
+      "utterance": "晚餐吃 Subway 6 吋嫩雞潛艇堡",
+      "state_pack_summary": {
+        "active_meal_thread": null,
+        "recent_committed_meals": [],
+        "pending_followup": null,
+        "lookup_pressure": "branded_menu_item_exact_match"
+      },
+      "candidate_target_object_type": "meal_thread",
+      "candidate_target_workflow_family": "intake",
+      "candidate_disposition": "create",
+      "candidate_workflow_effect": "create_thread_and_lookup_then_commit",
+      "candidate_meal_link_action": "create_new_meal",
+      "candidate_decision_next_action": "run_tool_lookup",
+      "candidate_commit_posture": "commit",
+      "approval_notes": "approved by user batch approval"
+    },
+    {
+      "candidate_case_id": "intake_same_thread_candidate_001",
+      "candidate_suite_id": "intake_same_thread_vs_new_meal_boundary_golden_v1",
+      "review_status": "approved_for_promotion",
+      "origin": "same_thread_boundary",
+      "utterance": "再加一顆茶葉蛋",
+      "state_pack_summary": {
+        "active_meal_thread": {
+          "meal_thread_id": 845,
+          "committed_status": "draft_open"
+        },
+        "recent_committed_meals": [],
+        "pending_followup": null
+      },
+      "candidate_target_object_type": "meal_thread",
+      "candidate_target_workflow_family": "intake",
+      "candidate_disposition": "continue",
+      "candidate_workflow_effect": "continue_existing_meal_thread",
+      "candidate_meal_link_action": "link_existing_thread",
       "candidate_decision_next_action": "run_nutrition_resolution",
       "candidate_commit_posture": "commit",
       "approval_notes": "approved by user batch approval"

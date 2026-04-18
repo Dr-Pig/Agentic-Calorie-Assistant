@@ -3,7 +3,7 @@
   "version": 1,
   "pack_mode": "official_canonical",
   "authority_level": "canonical",
-  "approval_status": "batch_1_approved",
+  "approval_status": "batch_2_approved",
   "suite_archetype": "utterance_governed",
   "approval_mode": "user_required",
   "truth_source": "product_semantic_decision",
@@ -126,6 +126,46 @@
       "expected_disposition": "open_new_workflow",
       "expected_workflow_effect": "open_new_workflow",
       "expected_meal_link_action": "create_new_meal",
+      "expected_decision_next_action": "run_nutrition_resolution",
+      "expected_commit_posture": "commit"
+    },
+    {
+      "case_id": "intake_lookup_official_001",
+      "suite_id": "intake_nutrition_resolution_golden_v1",
+      "promoted_from_candidate_case_id": "intake_lookup_candidate_001",
+      "utterance": "晚餐吃 Subway 6 吋嫩雞潛艇堡",
+      "state_pack_summary": {
+        "active_meal_thread": null,
+        "recent_committed_meals": [],
+        "pending_followup": null,
+        "lookup_pressure": "branded_menu_item_exact_match"
+      },
+      "expected_target_object_type": "meal_thread",
+      "expected_target_workflow_family": "intake",
+      "expected_disposition": "create",
+      "expected_workflow_effect": "create_thread_and_lookup_then_commit",
+      "expected_meal_link_action": "create_new_meal",
+      "expected_decision_next_action": "run_tool_lookup",
+      "expected_commit_posture": "commit"
+    },
+    {
+      "case_id": "intake_same_thread_official_001",
+      "suite_id": "intake_same_thread_vs_new_meal_boundary_golden_v1",
+      "promoted_from_candidate_case_id": "intake_same_thread_candidate_001",
+      "utterance": "再加一顆茶葉蛋",
+      "state_pack_summary": {
+        "active_meal_thread": {
+          "meal_thread_id": 845,
+          "committed_status": "draft_open"
+        },
+        "recent_committed_meals": [],
+        "pending_followup": null
+      },
+      "expected_target_object_type": "meal_thread",
+      "expected_target_workflow_family": "intake",
+      "expected_disposition": "continue",
+      "expected_workflow_effect": "continue_existing_meal_thread",
+      "expected_meal_link_action": "link_existing_thread",
       "expected_decision_next_action": "run_nutrition_resolution",
       "expected_commit_posture": "commit"
     }
