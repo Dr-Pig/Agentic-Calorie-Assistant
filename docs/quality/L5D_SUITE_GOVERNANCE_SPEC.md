@@ -531,9 +531,10 @@ response-side distinctions 不得進 Official Golden primary oracle。
 
 | suite_id | authority_tier | maturity_status | validation_layer | parent_bucket |
 | --- | --- | --- | --- | --- |
-| `body_observation_create_action_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `workflow_canonical_action` | `none` |
+| `body_observation_create_action_golden_v1` | `Official Golden` | `authored_active` | `workflow_canonical_action` | `none` |
 | `body_observation_response_contract_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `response_contract` | `none` |
 | `body_observation_to_calibration_boundary_golden_v1` | `Official Golden` | `planned_not_yet_authored` | `cross_workflow_boundary` | `cross_flow_state_sync` |
+| `body_observation_official_canonical_pack_v1` | `Official Golden` | `authored_active` | `workflow_canonical_action` | `none` |
 | `general_chat_budget_query_golden_v1` | `Official Golden` | `authored_active` | `workflow_canonical_action` | `none` |
 | `general_chat_goal_query_golden_v1` | `Official Golden` | `authored_active` | `workflow_canonical_action` | `none` |
 | `general_chat_open_workflow_boundary_golden_v1` | `Official Golden` | `authored_active` | `cross_workflow_boundary` | `none` |

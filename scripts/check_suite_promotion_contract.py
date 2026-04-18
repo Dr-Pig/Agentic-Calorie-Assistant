@@ -21,6 +21,10 @@ PROMOTION_PAIRS = (
         "queue_path": ROOT / "docs" / "quality" / "benchmarks" / "rescue" / "rescue_candidate_review_queue_v1.json",
         "official_pack_path": ROOT / "docs" / "quality" / "benchmarks" / "rescue" / "rescue_official_canonical_pack_v1.json",
     },
+    {
+        "queue_path": ROOT / "docs" / "quality" / "benchmarks" / "body_observation" / "body_observation_candidate_review_queue_v1.json",
+        "official_pack_path": ROOT / "docs" / "quality" / "benchmarks" / "body_observation" / "body_observation_official_canonical_pack_v1.json",
+    },
 )
 AGENT_ALLOWED_OFFICIAL_PACKS = (
     ROOT / "docs" / "quality" / "benchmarks" / "retrieval" / "retrieval_candidate_selection_golden_v1.json",
@@ -114,6 +118,7 @@ def _validate_queue(queue_payload: dict[str, Any], *, path: Path) -> dict[str, d
             "candidate_meal_link_action",
             "candidate_decision_next_action",
             "candidate_commit_posture",
+            "candidate_observation_action",
         ):
             value = case.get(field)
             if value is not None and (not isinstance(value, str) or not value):
@@ -128,6 +133,13 @@ def _validate_queue(queue_payload: dict[str, Any], *, path: Path) -> dict[str, d
             if candidate_adjust_direction not in {"shorter", "longer"}:
                 raise ValueError(
                     f"{path} case {case_id} has unsupported candidate_adjust_direction: {candidate_adjust_direction}"
+                )
+
+        candidate_special_posture = case.get("candidate_special_posture")
+        if candidate_special_posture is not None:
+            if candidate_special_posture not in {"logging_first", "escalate", "standard_spread"}:
+                raise ValueError(
+                    f"{path} case {case_id} has unsupported candidate_special_posture: {candidate_special_posture}"
                 )
 
         normalized[case_id] = case
@@ -216,6 +228,8 @@ def _validate_official_pack(
                 ("expected_meal_link_action", "candidate_meal_link_action"),
                 ("expected_decision_next_action", "candidate_decision_next_action"),
                 ("expected_commit_posture", "candidate_commit_posture"),
+                ("expected_observation_action", "candidate_observation_action"),
+                ("expected_special_posture", "candidate_special_posture"),
             )
             for official_field, queue_field in optional_comparisons:
                 queue_value = queue_case.get(queue_field)

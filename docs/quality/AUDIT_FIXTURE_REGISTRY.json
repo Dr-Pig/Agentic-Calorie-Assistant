@@ -60,6 +60,18 @@
     "truth_source": "product_semantic_decision"
   },
   {
+    "path": "docs/quality/benchmarks/body_observation/body_observation_official_canonical_pack_v1.json",
+    "type": "json",
+    "suite_id": "body_observation_create_action_golden_v1",
+    "authority_tier": "Official Golden",
+    "workflow_family": "body_observation",
+    "capability_family": "body_observation_runtime",
+    "validation_layer": "workflow_canonical_action",
+    "suite_archetype": "utterance_governed",
+    "approval_mode": "user_required",
+    "truth_source": "product_semantic_decision"
+  },
+  {
     "path": "docs/quality/benchmarks/intake/intake_executable_action_pack_v1.json",
     "type": "json",
     "suite_id": "intake_runtime_smoke_v1",

@@ -74,7 +74,7 @@
 | `tests/test_calibration_benchmark_fixture.py` | `test_file` | `calibration_runtime_smoke_v1` | `Smoke / Infra` | `mapped_existing` | calibration fixture smoke |
 | `tests/test_calibration_model.py` | `test_file` | `calibration_runtime_smoke_v1` | `Smoke / Infra` | `mapped_existing` | calibration model smoke |
 | `tests/test_calibration_proposal_gate.py` | `test_file` | `calibration_runtime_smoke_v1` | `Smoke / Infra` | `mapped_existing` | calibration proposal gate |
-| `tests/test_body_observation_persistence.py` | `test_file` | `calibration_runtime_smoke_v1` | `Smoke / Infra` | `mapped_existing` | body observation persistence under calibration-adjacent lane |
+| `tests/test_body_observation_persistence.py` | `test_file` | `body_observation_create_action_golden_v1` | `Official Golden` | `mapped_existing` | persistence coverage backs thin body_observation create lane even though utterance truth stays in the official pack |
 | `tests/test_context_memory_contract.py` | `test_file` | `trace_contract_smoke_v1` | `Smoke / Infra` | `mapped_existing` | memory/context contract |
 | `tests/test_knowledge_packets.py` | `test_file` | `trace_contract_smoke_v1` | `Smoke / Infra` | `mapped_existing` | knowledge/context packet smoke |
 | `tests/test_trace_observability_contract.py` | `test_file` | `trace_contract_smoke_v1` | `Smoke / Infra` | `mapped_existing` | trace observability |

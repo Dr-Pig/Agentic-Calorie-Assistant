@@ -33,6 +33,14 @@ GENERAL_CHAT_OFFICIAL_PACK_PATH = (
     / "general_chat"
     / "general_chat_official_canonical_pack_v1.json"
 )
+BODY_OBSERVATION_OFFICIAL_PACK_PATH = (
+    ROOT
+    / "docs"
+    / "quality"
+    / "benchmarks"
+    / "body_observation"
+    / "body_observation_official_canonical_pack_v1.json"
+)
 AGENT_ALLOWED_PACKS = (
     (
         ROOT
@@ -139,13 +147,14 @@ def test_workflow_official_packs_are_promoted_canonical_artifacts() -> None:
     for pack_path, expected_pack_id in (
         (INTAKE_OFFICIAL_PACK_PATH, "intake_official_canonical_pack_v1"),
         (GENERAL_CHAT_OFFICIAL_PACK_PATH, "general_chat_official_canonical_pack_v1"),
+        (BODY_OBSERVATION_OFFICIAL_PACK_PATH, "body_observation_official_canonical_pack_v1"),
         (RESCUE_OFFICIAL_PACK_PATH, "rescue_official_canonical_pack_v1"),
     ):
         payload = _load_json(pack_path)
         assert payload["pack_id"] == expected_pack_id
         assert payload["pack_mode"] == "official_canonical"
         assert payload["authority_level"] == "canonical"
-        assert payload["approval_status"] == "batch_1_approved"
+        assert payload["approval_status"] in {"batch_1_approved", "batch_2_approved"}
         assert payload["suite_archetype"] == "utterance_governed"
         assert payload["approval_mode"] == "user_required"
         assert payload["truth_source"] == "product_semantic_decision"
@@ -156,6 +165,13 @@ def test_workflow_official_packs_are_promoted_canonical_artifacts() -> None:
                 "expected_target_workflow_family",
                 "expected_disposition",
                 "expected_workflow_effect",
+            ],
+            [
+                "expected_target_object_type",
+                "expected_target_workflow_family",
+                "expected_disposition",
+                "expected_workflow_effect",
+                "expected_observation_action",
             ],
             [
                 "expected_target_object_type",
@@ -210,9 +226,17 @@ def test_workflow_official_packs_are_promoted_canonical_artifacts() -> None:
                 }
             if "expected_commit_posture" in case:
                 assert case["expected_commit_posture"] in {"commit", "no_commit"}
+            if "expected_observation_action" in case:
+                assert case["expected_observation_action"] in {
+                    "create_observation",
+                    "answer_existing_state",
+                    "handoff_to_calibration",
+                }
             if "expected_adjust_direction" in case:
                 assert case["expected_disposition"] == "adjust"
                 assert case["expected_adjust_direction"] in {"shorter", "longer"}
+            if "expected_special_posture" in case:
+                assert case["expected_special_posture"] in {"logging_first", "escalate", "standard_spread"}
 
 
 def test_suite_promotion_contract_passes_for_intake_and_rescue() -> None:
