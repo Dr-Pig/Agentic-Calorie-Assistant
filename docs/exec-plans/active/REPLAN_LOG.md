@@ -57,6 +57,13 @@ It should be appended over time instead of rewritten.
 - added a runnable `general_chat` official-pack runner and registered it in suite-wave orchestration so `workflow_family=general_chat` can execute as a real official lane instead of staying fixture-only
 - kept the lane bounded to official truth already approved in-product: workflow family, disposition, workflow effect, and required read surfaces
 
+## 2026-04-18 — Workflow Graph / Official Truth v1 Locked
+
+- locked the v1 canonical graph summary for `general_chat`, `intake`, `rescue`, `recommendation`, `calibration`, and `body_observation`
+- locked the repo-wide rule that official utterance truth is two-layered: Layer A global routing truth plus Layer B workflow-specific decision truth
+- clarified that `recommendation v1` remains non-mutating and does not create recommendation intent state
+- clarified that `calibration proposal response surface` belongs to `calibration`, not `recommendation`
+
 ## 2026-04-16 — Semantic-Routing Benchmark Authority Split
 
 ### Trigger

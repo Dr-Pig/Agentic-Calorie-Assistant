@@ -589,7 +589,36 @@ calibration 與 recommendation 先只定：
 - 不觸發 intake、rescue、calibration flow
 - 不建立 proposal
 
-### 11.5 與 2.7d semantic routing 的關係
+### 11.5 Workflow Canonical Graph Summary
+
+在 global routing governance 層，六條 workflow 的 canonical graph 摘要如下：
+
+- `general_chat`
+  - 1-pass
+  - `response_writer_model`
+- `intake`
+  - canonical 4-pass
+  - `fast_router_model -> fast_router_model -> strict_reasoner_model -> response_writer_model`
+- `rescue`
+  - 2-node default / 3-node expanded
+  - deterministic-first assessment + optional proposal shaping + response presentation
+- `recommendation`
+  - non-mutating 3-node
+  - context shaping -> candidate retrieval/filtering -> ranking/response
+- `calibration`
+  - split into `calibration_model` and `calibration_proposal`
+  - model is deterministic-first; proposal is 2-3 node
+- `body_observation`
+  - thin workflow
+  - create / ingest path only; pure answer path may return to `general_chat`
+
+補充規則：
+
+- `intake` 以外的 workflow 不得預設採 4-pass
+- deterministic-first nodes 不得要求 LLM 重做 truth judgment
+- response-side差異不回推成 workflow graph 分裂理由
+
+### 11.6 與 2.7d semantic routing 的關係
 
 `2.7d` 的 prompt/state-pack hardening 工作就是在強化 `workflow_routing_pass` 的準確性。
 

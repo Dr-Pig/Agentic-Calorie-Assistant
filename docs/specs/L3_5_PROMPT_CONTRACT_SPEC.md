@@ -608,6 +608,128 @@ Abstain schema（無法判斷時）：
 - `asked_follow_up`：boolean
 - `ui_hints`：dict
 
+### 14.3 `intake` workflow（canonical 4-pass）
+
+Canonical graph：
+
+1. `task_meal_link_pass`
+2. `decision_pass`
+3. `nutrition_resolution_pass`
+4. `final_response_pass`
+
+Logical model roles：
+
+- `task_meal_link_pass` -> `fast_router_model`
+- `decision_pass` -> `fast_router_model`
+- `nutrition_resolution_pass` -> `strict_reasoner_model`
+- `final_response_pass` -> `response_writer_model`
+
+補充規則：
+
+- `task_meal_link_pass` 負責 boundary / thread attachment / intake-unit splitting
+- `decision_pass` 是 hybrid；clarify / proceed / lookup 允許語意判斷，但 blocking legality 保持 deterministic
+- `nutrition_resolution_pass` 可用 LLM 合成 kcal / composition / portion reasoning，但 invariant checks 仍需 deterministic
+- committed intake 必須產出 writeback contract：`meal_thread_id / resolved_calories / ledger_delta / day_key`
+
+### 14.4 `rescue` workflow（2-node default / 3-node expanded）
+
+Canonical default graph：
+
+1. deterministic trigger / viability assessment
+2. response presentation
+
+Expanded graph：
+
+1. deterministic trigger / viability assessment
+2. rescue option / proposal shaping
+3. response presentation
+
+Logical model roles：
+
+- deterministic assessment node 不映射 LLM role
+- rescue option / proposal shaping -> `strict_reasoner_model`（若 node 存在）
+- response presentation -> `response_writer_model`
+
+補充規則：
+
+- overshoot math、spread horizon、safety floor、viability、cooldown 均屬 deterministic-first
+- `rescue_option_pass` 不得承擔 deterministic rescue math 的責任
+
+### 14.5 `recommendation` workflow（non-mutating 3-node）
+
+Canonical graph：
+
+1. context shaping
+2. candidate retrieval / filtering
+3. ranking + response
+
+Collapse rule：
+
+- 若 candidate pool 已由 deterministic retrieval 組好，可 collapse 成：
+  1. ranking / selection
+  2. response
+
+Logical model roles：
+
+- context shaping -> `fast_router_model`（若需要 LLM context interpretation）
+- candidate retrieval / filtering 優先 deterministic-first
+- ranking / selection -> `strict_reasoner_model`（若 ranking 需要 LLM）
+- response -> `response_writer_model`
+
+補充規則：
+
+- recommendation v1 不建立 recommendation intent state
+- recommendation 只做 suggestion / ranking / handoff to intake
+- plan-changing 或 budget-changing suggestion 應進 proposal family，不得留在 recommendation
+
+### 14.6 `calibration` workflow（model + proposal split）
+
+`calibration` v1 應拆成兩段，不做單一 heavy workflow。
+
+`calibration_model`：
+
+- canonical execution mode：deterministic-first
+- 0-1 pass
+- primary output：`posture_class`
+
+`calibration_proposal` canonical graph：
+
+1. deterministic proposal gate
+2. proposal policy shaping
+3. proposal presentation（若 surface 需要）
+
+Logical model roles：
+
+- deterministic proposal gate 不映射 LLM role
+- proposal policy shaping -> `strict_reasoner_model`（若需要）
+- proposal presentation -> `response_writer_model`
+
+補充規則：
+
+- `calibration proposal response surface` 屬於 `calibration` workflow family，不屬於 `recommendation`
+- proposal eligibility、blocked families、confidence gate 均屬 deterministic-first
+
+### 14.7 `body_observation` workflow（thin path）
+
+Create path canonical graph：
+
+1. observation extraction / create pass
+
+Answer path：
+
+- 不建立獨立 heavy workflow
+- 直接使用 `general_chat + answer_only`
+
+Logical model roles：
+
+- create / extraction pass -> extraction-oriented semantic pass
+- optional wording pass -> `response_writer_model`（只有 channel 真需要時）
+
+補充規則：
+
+- `body_observation` v1 主要負責 create / ingest
+- 讀取既有 observation state 的純問答不應假裝進入新 workflow
+
 ---
 
 ## 15. Dynamic Context Packing Rules

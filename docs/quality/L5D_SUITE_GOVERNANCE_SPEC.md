@@ -235,6 +235,85 @@ response-side distinctions 不得進 Official Golden primary oracle。
 - Layer B 只在 intake suite 中補充，不回推成全局 routing taxonomy
 - response wording 仍不得進 primary oracle
 
+### 4.1C `rescue` two-layer official truth posture
+
+`rescue` official truth 應維持 proposal-attached、deterministic-first 的兩層結構。
+
+- Layer A：global routing truth
+  - `target_object`
+  - `target_workflow_family`
+  - `disposition`
+  - `workflow_effect`
+- Layer B：workflow-specific decision truth
+  - `proposal_action`
+  - `adjust_direction`
+  - `special_posture`
+
+規則：
+
+- `rescue` v1 surface contract 仍以單一 spread plan 為主，不回退到 intake-style 4-pass taxonomy
+- `adjust_direction` 只在 `proposal_action = adjust` 時要求
+- `special_posture` 只在 `logging_first` / `escalate` 等特殊姿態成立時要求
+- rescue math、viability、cooldown、floor legality 不得被 response wording 取代
+
+### 4.1D `recommendation` two-layer official truth posture
+
+`recommendation` v1 official truth 應明確維持 non-mutating。
+
+- Layer A：global routing truth
+  - `target_object`
+  - `target_workflow_family`
+  - `disposition`
+  - `workflow_effect`
+- Layer B：workflow-specific decision truth
+  - `candidate_set_action`
+  - `ranking_posture`
+  - `handoff_posture`
+
+規則：
+
+- recommendation 顯示、排序、或回應本身不建立 canonical intent state
+- recommendation 若需要進入 commit，應顯式 handoff 到 intake，而不是在 recommendation 內偷做 mutation
+- plan-changing 或 budget-changing suggestion 不得被降格成 recommendation；應走 proposal family
+
+### 4.1E `calibration` two-layer official truth posture
+
+`calibration` official truth 應區分 model posture 與 proposal posture，但兩者都屬 `calibration` workflow family。
+
+- Layer A：global routing truth
+  - `target_object`
+  - `target_workflow_family`
+  - `disposition`
+  - `workflow_effect`
+- Layer B：workflow-specific decision truth
+  - `posture_class`
+  - `proposal_gate_outcome`
+  - `proposal_action_family`
+
+規則：
+
+- `calibration_model` 的 posture judgment 是 deterministic-first，不得讓 LLM 重做 truth judgment
+- `calibration proposal response surface` 屬於 `calibration`，不屬於 `recommendation`
+- `proposal_action_family` 只在 proposal lane active 時要求
+
+### 4.1F `body_observation` two-layer official truth posture
+
+`body_observation` v1 official truth 應保持 thin workflow，不把純 answer path 硬抬成 heavy graph。
+
+- Layer A：global routing truth
+  - `target_object`
+  - `target_workflow_family`
+  - `disposition`
+  - `workflow_effect`
+- Layer B：workflow-specific decision truth
+  - `observation_action`
+
+規則：
+
+- create / ingest 路徑走 `body_observation`
+- 純 read / answer path 可回到 `general_chat + answer_only`
+- 若未來需要 handoff 到 calibration，應以顯式 Layer B decision truth 新增，不得偷混成 response phrasing
+
 ---
 
 ## 5. Validation Layer 上限框架
