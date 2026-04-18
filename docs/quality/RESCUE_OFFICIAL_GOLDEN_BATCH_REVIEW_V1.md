@@ -16,10 +16,17 @@ Review rule:
 
 ## Batch 1
 
-| candidate_case_id | candidate_suite_id | utterance | candidate_target_object_type | candidate_target_workflow_family | candidate_disposition | candidate_workflow_effect | candidate_adjust_direction | review_decision | approved_notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `rescue_accept_candidate_001` | `rescue_accept_action_golden_v1` | `好，就照這個方案做` | `proposal` | `rescue` | `accept` | `accept_and_apply_current_proposal` |  | `approve` | `approved by user batch approval` |
-| `rescue_reject_candidate_001` | `rescue_reject_action_golden_v1` | `不要這次，我先照原本節奏就好` | `proposal` | `rescue` | `reject` | `close_current_proposal` |  | `approve` | `approved by user batch approval` |
-| `rescue_defer_candidate_001` | `rescue_defer_action_golden_v1` | `晚點再看，先不要現在決定` | `proposal` | `rescue` | `defer` | `defer_current_proposal` |  | `approve` | `approved by user batch approval` |
-| `rescue_adjust_candidate_001` | `rescue_adjust_action_golden_v1` | `太硬了，拉長一點` | `proposal` | `rescue` | `adjust` | `mutate_current_proposal` | `longer` | `approve` | `approved by user batch approval` |
-| `rescue_answer_only_candidate_001` | `rescue_answer_only_boundary_golden_v1` | `如果照這個做，每天大概要少多少？` | `proposal` | `rescue` | `answer_only` | `answer_current_object` |  | `approve` | `approved by user batch approval` |
+| candidate_case_id | candidate_suite_id | utterance | candidate_target_object_type | candidate_target_workflow_family | candidate_disposition | candidate_workflow_effect | candidate_adjust_direction | candidate_special_posture | review_decision | approved_notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `rescue_accept_candidate_001` | `rescue_accept_action_golden_v1` | `好，就照這個方案做` | `proposal` | `rescue` | `accept` | `accept_and_apply_current_proposal` |  |  | `approve` | `approved by user batch approval` |
+| `rescue_reject_candidate_001` | `rescue_reject_action_golden_v1` | `不要這次，我先照原本節奏就好` | `proposal` | `rescue` | `reject` | `close_current_proposal` |  |  | `approve` | `approved by user batch approval` |
+| `rescue_defer_candidate_001` | `rescue_defer_action_golden_v1` | `晚點再看，先不要現在決定` | `proposal` | `rescue` | `defer` | `defer_current_proposal` |  |  | `approve` | `approved by user batch approval` |
+| `rescue_adjust_candidate_001` | `rescue_adjust_action_golden_v1` | `太硬了，拉長一點` | `proposal` | `rescue` | `adjust` | `mutate_current_proposal` | `longer` |  | `approve` | `approved by user batch approval` |
+| `rescue_answer_only_candidate_001` | `rescue_answer_only_boundary_golden_v1` | `如果照這個做，每天大概要少多少？` | `proposal` | `rescue` | `answer_only` | `answer_current_object` |  |  | `approve` | `approved by user batch approval` |
+
+## Batch 2
+
+| candidate_case_id | candidate_suite_id | utterance | candidate_target_object_type | candidate_target_workflow_family | candidate_disposition | candidate_workflow_effect | candidate_adjust_direction | candidate_special_posture | review_decision | approved_notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `rescue_adjust_candidate_002` | `rescue_adjust_action_golden_v1` | `不要拉那麼長，縮短一點就好` | `proposal` | `rescue` | `adjust` | `mutate_current_proposal` | `shorter` |  | `approve` | `approved by user batch approval` |
+| `rescue_answer_only_candidate_002` | `rescue_answer_only_boundary_golden_v1` | `如果我這幾天其實記得不完整，這個方案還可靠嗎？` | `proposal` | `rescue` | `answer_only` | `answer_current_object` |  | `logging_first` | `approve` | `approved by user batch approval` |

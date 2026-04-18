@@ -3,7 +3,7 @@
   "version": 1,
   "scope": "Official rescue golden candidate queue",
   "authority_level": "candidate_only",
-  "approval_status": "batch_1_approved",
+  "approval_status": "batch_2_approved",
   "suite_archetype": "utterance_governed",
   "approval_mode": "user_required",
   "truth_source": "product_semantic_decision",
@@ -14,7 +14,8 @@
     "candidate_target_workflow_family",
     "candidate_disposition",
     "candidate_workflow_effect",
-    "candidate_adjust_direction"
+    "candidate_adjust_direction",
+    "candidate_special_posture"
   ],
   "cases": [
     {
@@ -116,6 +117,49 @@
       "candidate_target_workflow_family": "rescue",
       "candidate_disposition": "answer_only",
       "candidate_workflow_effect": "answer_current_object",
+      "approval_notes": "approved by user batch approval"
+    },
+    {
+      "candidate_case_id": "rescue_adjust_candidate_002",
+      "candidate_suite_id": "rescue_adjust_action_golden_v1",
+      "review_status": "approved_for_promotion",
+      "origin": "2.5d_rescue_surface",
+      "utterance": "不要拉那麼長，縮短一點就好",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 506,
+          "proposal_status": "open",
+          "recommended_days": 5,
+          "daily_kcal_adjustment": 120
+        }
+      },
+      "candidate_target_object_type": "proposal",
+      "candidate_target_workflow_family": "rescue",
+      "candidate_disposition": "adjust",
+      "candidate_workflow_effect": "mutate_current_proposal",
+      "candidate_adjust_direction": "shorter",
+      "approval_notes": "approved by user batch approval"
+    },
+    {
+      "candidate_case_id": "rescue_answer_only_candidate_002",
+      "candidate_suite_id": "rescue_answer_only_boundary_golden_v1",
+      "review_status": "approved_for_promotion",
+      "origin": "logging_quality_boundary",
+      "utterance": "如果我這幾天其實記得不完整，這個方案還可靠嗎？",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 507,
+          "proposal_status": "open",
+          "recommended_days": 3,
+          "daily_kcal_adjustment": 160
+        },
+        "logging_quality": "sparse_recent_days"
+      },
+      "candidate_target_object_type": "proposal",
+      "candidate_target_workflow_family": "rescue",
+      "candidate_disposition": "answer_only",
+      "candidate_workflow_effect": "answer_current_object",
+      "candidate_special_posture": "logging_first",
       "approval_notes": "approved by user batch approval"
     }
   ]

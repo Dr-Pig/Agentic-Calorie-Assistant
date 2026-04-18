@@ -3,7 +3,7 @@
   "version": 1,
   "pack_mode": "official_canonical",
   "authority_level": "canonical",
-  "approval_status": "batch_1_approved",
+  "approval_status": "batch_2_approved",
   "suite_archetype": "utterance_governed",
   "approval_mode": "user_required",
   "truth_source": "product_semantic_decision",
@@ -16,6 +16,10 @@
     "expected_disposition",
     "expected_workflow_effect",
     "expected_adjust_direction"
+  ],
+  "workflow_specific_oracle_fields": [
+    "expected_adjust_direction",
+    "expected_special_posture"
   ],
   "cases": [
     {
@@ -108,6 +112,45 @@
       "expected_target_workflow_family": "rescue",
       "expected_disposition": "answer_only",
       "expected_workflow_effect": "answer_current_object"
+    },
+    {
+      "case_id": "rescue_adjust_official_002",
+      "suite_id": "rescue_adjust_action_golden_v1",
+      "promoted_from_candidate_case_id": "rescue_adjust_candidate_002",
+      "utterance": "不要拉那麼長，縮短一點就好",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 506,
+          "proposal_status": "open",
+          "recommended_days": 5,
+          "daily_kcal_adjustment": 120
+        }
+      },
+      "expected_target_object_type": "proposal",
+      "expected_target_workflow_family": "rescue",
+      "expected_disposition": "adjust",
+      "expected_workflow_effect": "mutate_current_proposal",
+      "expected_adjust_direction": "shorter"
+    },
+    {
+      "case_id": "rescue_answer_only_official_002",
+      "suite_id": "rescue_answer_only_boundary_golden_v1",
+      "promoted_from_candidate_case_id": "rescue_answer_only_candidate_002",
+      "utterance": "如果我這幾天其實記得不完整，這個方案還可靠嗎？",
+      "state_pack_summary": {
+        "active_open_rescue_proposal": {
+          "proposal_container_id": 507,
+          "proposal_status": "open",
+          "recommended_days": 3,
+          "daily_kcal_adjustment": 160
+        },
+        "logging_quality": "sparse_recent_days"
+      },
+      "expected_target_object_type": "proposal",
+      "expected_target_workflow_family": "rescue",
+      "expected_disposition": "answer_only",
+      "expected_workflow_effect": "answer_current_object",
+      "expected_special_posture": "logging_first"
     }
   ]
 }
