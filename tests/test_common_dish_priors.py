@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.agent.knowledge_packets import resolve_ingredient_anchors, search_local_knowledge
-from app.agent.nutrition_resolution_llm import normalize_structured_answer
+from app.agent.local_knowledge_selector import resolve_ingredient_anchors, search_local_knowledge
+from app.agent.nutrition_resolution_normalizer import normalize_structured_answer
 from app.application.evidence_assembly import infer_expected_components
 
 

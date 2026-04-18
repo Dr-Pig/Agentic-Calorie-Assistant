@@ -6,12 +6,14 @@ from .rescue_routes import router as rescue_router
 from .today_routes import router as today_router
 from .user_routes import router as user_router
 from .weight_routes import router as weight_router
+from .onboarding_routes import router as onboarding_router
 
 __all__ = [
     "admin_router",
     "base_router",
     "body_plan_router",
     "intake_router",
+    "onboarding_router",
     "rescue_router",
     "today_router",
     "user_router",

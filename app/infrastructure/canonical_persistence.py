@@ -279,6 +279,31 @@ def upsert_observation_skeleton(
     return record
 
 
+def upsert_budget_adjustment_skeleton(
+    db: Session,
+    *,
+    user: User,
+    delta_kcal: int,
+    local_date: str,
+    metadata: dict[str, Any] | None = None,
+) -> LedgerEntryRecord:
+    entry = LedgerEntryRecord(
+        user_id=user.id,
+        local_date=local_date,
+        entry_type="manual_adjustment",
+        source_type="manual",
+        source_id=0,
+        delta_kcal=delta_kcal,
+        metadata_json=dict(metadata or {}),
+    )
+    db.add(entry)
+    db.flush()
+    db.commit()
+    db.refresh(entry)
+    recompute_day_budget_ledger(db, user_id=user.id, local_date=local_date)
+    return entry
+
+
 def load_body_observations(
     db: Session,
     *,

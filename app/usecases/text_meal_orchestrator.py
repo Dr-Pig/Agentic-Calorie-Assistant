@@ -178,7 +178,7 @@ class TextMealOrchestrator:
         ctx.search_quality = grounding_result.search_quality
 
         # Step 5: Nutrition Resolution Pass
-        from ...agent.knowledge_packets import build_gate_packet, match_meal_template
+        from ...agent.risk_gate_policy import build_gate_packet, match_meal_template
         risk_packet = build_gate_packet(ctx.user_input)
         meal_template = match_meal_template(ctx.user_input, risk_packet)
 

@@ -1,4 +1,4 @@
-﻿# Freeze-Growth Extraction Map
+# Freeze-Growth Extraction Map
 
 ## Purpose
 
@@ -21,38 +21,19 @@ Use this when a task needs to touch one of the large guarded modules below.
 
 ## app/application/evidence_assembly.py
 
+Status: **extracted** (thin facade remains)
+
 Current role mix:
+- facade re-exports for backward compatibility
+- orchestration of merge/bundle/grounding/reasoning (high-level assembly)
 
-- evidence merge and dedupe
-- evidence lane classification
-- source tier classification
-- candidate normalization and shaping
-- tool request / tool result packaging
-- calibration and local retrieval packet bridging
+Extracted modules:
+- [x] `app/application/evidence_selector.py` (lane split, rank hints, selection caps)
+- [x] `app/application/evidence_normalizer.py` (canonical item shaping, source tier fields)
+- [x] `app/application/tool_evidence_policy.py` (tool request assembly, availability reasoning)
 
-Target split:
-
-- `app/application/evidence_selector.py`
-  - lane split, rank hints, selection caps, exact-vs-anchor filtering
-- `app/application/evidence_normalizer.py`
-  - canonical item shaping, source tier fields, lookup-key-safe payload normalization
-- `app/application/tool_evidence_policy.py`
-  - tool request assembly, tool availability reasoning, tool result packet shaping
-
-Extract now:
-
-- evidence normalization helpers
-- selector / ranking / lane split logic
-
-Extract later:
-
-- calibration packet bridging if a later calibration slice needs its own module family
-
-Trigger to split now:
-
-- any task touching both retrieval ranking and tool packet shaping
-- any task adding a new evidence lane or source tier
-- any task increasing this file while it is already frozen
+Trigger to revisit:
+- high-level assembly becomes too complex (>400 lines)
 
 ## app/application/context_assembly.py
 
@@ -100,14 +81,11 @@ Current role mix:
 
 Target split:
 
-- `app/agent/knowledge_loader.py`
-  - JSON load, cache, repository-local knowledge file access
-- `app/agent/knowledge_lookup_normalizer.py`
-  - normalize, canonicalize, tokenization, lookup-key logic
-- `app/agent/exact_item_packets.py`
-  - exact lane packet assembly and exact candidate shaping
-- `app/agent/local_knowledge_selector.py`
-  - risk packet selection, anchor selection, bounded local retrieval
+- [x] extract `knowledge_loader`: `app.agent.knowledge_loader`
+- [x] extract `knowledge_lookup_normalizer`: `app.agent.knowledge_lookup_normalizer`
+- [x] extract `exact_item_packets`: `app.agent.exact_item_packets`
+- [x] extract `local_knowledge_selector`: `app.agent.local_knowledge_selector`
+- [x] check `import` dependencies constraint
 
 Extract now:
 
@@ -126,39 +104,18 @@ Trigger to split now:
 
 ## app/agent/nutrition_engine.py
 
-Status:
-
-- `watchlist`
+Status: **extracted** (thin facade remains)
 
 Current role mix:
+- facade re-exports for backward compatibility
 
-- macro profile registry
-- alias registry
-- heuristic ratio policy
-- lookup result shaping
-- nutrition estimation support logic
+Extracted modules:
+- [x] `app/agent/nutrition_profiles.py` (static alias tables, default macro profiles)
+- [x] `app/agent/nutrition_lookup_policy.py` (bounded lookup rules, evidence-role assignment)
+- [x] `app/agent/nutrition_estimation_support.py` (result shaping and estimation support helpers)
 
-Target split:
-
-- `app/agent/nutrition_profiles.py`
-  - static alias tables, default macro profiles, food-specific ratio maps
-- `app/agent/nutrition_lookup_policy.py`
-  - bounded lookup rules, evidence-role assignment, confidence tier decisions
-- `app/agent/nutrition_estimation_support.py`
-  - result shaping and estimation support helpers
-
-Extract now:
-
-- static profile and alias tables, if the next task touches registry growth
-
-Extract later:
-
-- lookup policy, once a future nutrition-resolution slice changes confidence or evidence-role rules
-
-Trigger to freeze formally:
-
-- this file grows again
-- a task mixes static profile registry work with runtime lookup policy changes
+Trigger to revisit:
+- new registry types or global estimation policies are added to the shim
 
 ## Execution Rule
 

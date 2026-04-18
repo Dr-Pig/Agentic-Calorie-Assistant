@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ..agent.knowledge_packets import build_gate_packet, match_meal_template
+from ..agent.risk_gate_policy import build_gate_packet, match_meal_template
 from ..agent.nutrition_resolution_parser import augment_followup_metadata
 from ..application.answer_support import (
     evaluate_answer as _evaluate_answer,

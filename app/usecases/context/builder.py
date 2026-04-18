@@ -28,7 +28,7 @@ from ...application.context_assembly import (
     render_conversation_state_prompt,
     risk_context,
 )
-from ...application.evidence_assembly import summarize_selected_evidence
+from ...application.evidence_selector import summarize_selected_evidence
 
 
 @dataclass

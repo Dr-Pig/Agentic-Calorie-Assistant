@@ -17,7 +17,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from ...agent.knowledge_packets import resolve_exact_item, resolve_ingredient_anchors
+from ...agent.exact_item_packets import resolve_exact_item
+from ...agent.local_knowledge_selector import resolve_ingredient_anchors
 from ...search.chain_retrieval import query_has_known_brand, resolve_chain_item
 from ...application.evidence_assembly import (
     build_tool_result,

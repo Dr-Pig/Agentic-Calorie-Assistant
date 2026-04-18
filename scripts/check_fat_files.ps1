@@ -27,10 +27,18 @@ function Get-HeadText {
         [string]$Path
     )
 
-    & git show "HEAD:$Path" 2>$null
+    try {
+        $result = & git show "HEAD:$Path" 2>$null
+    }
+    catch {
+        return $null
+    }
+
     if ($LASTEXITCODE -ne 0) {
         return $null
     }
+
+    return $result
 }
 
 function Get-StagedText {
@@ -39,16 +47,33 @@ function Get-StagedText {
         [string]$Path
     )
 
-    & git show ":$Path" 2>$null
+    try {
+        $result = & git show ":$Path" 2>$null
+    }
+    catch {
+        return $null
+    }
+
     if ($LASTEXITCODE -ne 0) {
         return $null
     }
+
+    return $result
 }
 
 function Get-StagedPaths {
     $output = & git diff --cached --name-only --diff-filter=ACMR
     if ($LASTEXITCODE -ne 0) {
         throw "Unable to read staged paths."
+    }
+
+    return @($output | Where-Object { $_ -and $_.Trim().Length -gt 0 })
+}
+
+function Get-StagedDeletedPaths {
+    $output = & git diff --cached --name-only --diff-filter=D
+    if ($LASTEXITCODE -ne 0) {
+        throw "Unable to read staged deleted paths."
     }
 
     return @($output | Where-Object { $_ -and $_.Trim().Length -gt 0 })
@@ -210,7 +235,7 @@ $protectedRules = @(
 $freezeGrowthRules = @(
     @{
         Path = "app/application/evidence_assembly.py"
-        FreezeLines = 962
+        FreezeLines = 320
         Kind = "application-freeze"
     },
     @{
@@ -219,16 +244,67 @@ $freezeGrowthRules = @(
         Kind = "application-freeze"
     },
     @{
-        Path = "app/agent/knowledge_packets.py"
-        FreezeLines = 1058
+        Path = "app/agent/local_knowledge_selector.py"
+        FreezeLines = 600
         Kind = "agent-freeze"
+        LegacyPath = "app/agent/knowledge_packets.py"
     }
 )
 
 $watchlistRules = @(
     @{
+        Path = "app/agent/nutrition_profiles.py"
+        WatchLines = 170
+        Kind = "agent-watchlist"
+    },
+    @{
+        Path = "app/agent/nutrition_lookup_policy.py"
+        WatchLines = 280
+        Kind = "agent-watchlist"
+    },
+    @{
+        Path = "app/agent/nutrition_estimation_support.py"
+        WatchLines = 160
+        Kind = "agent-watchlist"
+    },
+    @{
+        Path = "app/agent/risk_gate_policy.py"
+        WatchLines = 140
+        Kind = "agent-watchlist"
+    },
+    @{
+        Path = "app/application/evidence_selector.py"
+        WatchLines = 110
+        Kind = "application-watchlist"
+    },
+    @{
+        Path = "app/application/evidence_normalizer.py"
+        WatchLines = 410
+        Kind = "application-watchlist"
+    },
+    @{
+        Path = "app/application/tool_evidence_policy.py"
+        WatchLines = 240
+        Kind = "application-watchlist"
+    },
+    @{
         Path = "app/agent/nutrition_engine.py"
-        WatchLines = 571
+        WatchLines = 50
+        Kind = "agent-watchlist"
+    },
+    @{
+        Path = "app/agent/exact_item_packets.py"
+        WatchLines = 186
+        Kind = "agent-watchlist"
+    },
+    @{
+        Path = "app/agent/knowledge_lookup_normalizer.py"
+        WatchLines = 130
+        Kind = "agent-watchlist"
+    },
+    @{
+        Path = "app/agent/knowledge_loader.py"
+        WatchLines = 46
         Kind = "agent-watchlist"
     }
 )
@@ -321,6 +397,10 @@ if ($StagedOnly) {
     foreach ($rule in $freezeGrowthRules) {
         $freezeMap[$rule.Path] = $rule
     }
+    $stagedDeletedPathSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($deletedPath in (Get-StagedDeletedPaths)) {
+        [void]$stagedDeletedPathSet.Add($deletedPath)
+    }
     $governanceTexts = @(Get-StagedGovernanceTexts)
 
     foreach ($path in $stagedPaths) {
@@ -368,13 +448,17 @@ if ($StagedOnly) {
         if ($isFrozen) {
             $rule = $freezeMap[$path]
             Write-Output ("- {0}: HEAD={1}, STAGED={2}, FREEZE={3}" -f $path, $headLines, $stagedLines, $rule.FreezeLines)
+            $legacyDeleted = $false
+            if ($rule.ContainsKey("LegacyPath")) {
+                $legacyDeleted = $stagedDeletedPathSet.Contains([string]$rule.LegacyPath)
+            }
 
             if ($stagedLines -gt $rule.FreezeLines) {
                 $violations.Add("$path exceeded freeze-growth ceiling $($rule.FreezeLines) ($headLines -> $stagedLines)")
                 continue
             }
 
-            if ($stagedLines -gt $headLines) {
+            if ($stagedLines -gt $headLines -and -not ($headLines -eq 0 -and $legacyDeleted)) {
                 $violations.Add("$path grew from $headLines to $stagedLines while in freeze-growth mode")
                 continue
             }

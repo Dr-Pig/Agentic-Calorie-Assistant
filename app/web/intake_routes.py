@@ -6,9 +6,14 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
-from ..database import get_db
+from datetime import datetime
+from ..database import get_db, get_or_create_user
 from ..schemas import EstimateRequest
 from ..usecases.text_meal import record_error, record_success, run_text_meal_canary
+from ..application.workflow_routing_pass import build_workflow_routing_pass
+from ..usecases.chat_intents import parse_weight_or_budget_intent
+from ..application.canonical_commit_bridge import record_body_observation_to_canonical, record_budget_adjustment_to_canonical, get_active_body_profile_record
+from ..application.onboarding_service import bootstrap_body_plan_for_date, OnboardingBootstrapInput
 from .provider_runtime import planner_provider, primary_provider, search_provider
 
 router = APIRouter()
@@ -19,11 +24,57 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
     request_id = uuid4().hex
     source_page_version = raw_request.headers.get("X-Canary-Page-Version")
     try:
+        user_id = request.user_id if hasattr(request, "user_id") and request.user_id else "default_user"
+        local_date = datetime.now().date().isoformat()
+        
+        # 1. Global Router Pass
+        routing_result = build_workflow_routing_pass(raw_user_input=request.text)
+        
+        if routing_result.target_workflow_family == "body_observation":
+            parsed = await parse_weight_or_budget_intent(planner_provider, request.text)
+            if parsed.get("weight_kg"):
+                user = get_or_create_user(db, user_id)
+                record_body_observation_to_canonical(db, user=user, value=parsed["weight_kg"], local_date=local_date)
+                
+                profile = get_active_body_profile_record(db, user_id=user.id)
+                if profile:
+                    profile_meta = dict(profile.metadata_json or {})
+                    bootstrap_body_plan_for_date(db, user=user, inputs=OnboardingBootstrapInput(
+                        sex=profile.sex,
+                        age_years=profile.age_years,
+                        height_cm=profile.height_cm,
+                        current_weight_kg=parsed["weight_kg"],
+                        activity_level=profile.activity_level,
+                        goal_type=profile.goal_type,
+                        weekly_target_rate_kg=profile_meta.get("weekly_target_rate_kg", 0.5), # type: ignore
+                        local_date=local_date,
+                        timezone="UTC"
+                    ))
+                return {
+                    "request_id": request_id,
+                    "coach_message": f"已為您更新體重為 {parsed['weight_kg']} 公斤，並重新校準了運作計畫！",
+                    "payload": None,
+                }
+                
+        elif routing_result.target_workflow_family == "calibration":
+            parsed = await parse_weight_or_budget_intent(planner_provider, request.text)
+            if parsed.get("delta_kcal"):
+                user = get_or_create_user(db, user_id)
+                record_budget_adjustment_to_canonical(db, user=user, delta_kcal=parsed["delta_kcal"], local_date=local_date, metadata={"source": "chat_adjustment"})
+                action = "增加" if parsed["delta_kcal"] > 0 else "減少"
+                return {
+                    "request_id": request_id,
+                    "coach_message": f"好的，已為您今日預算{action}了 {abs(parsed['delta_kcal'])} 卡。",
+                    "payload": None,
+                }
+
+        # 2. Default Canonical Intake 
         payload = await run_text_meal_canary(
             request,
             provider=primary_provider,
             planner_provider=planner_provider,
             primary_provider=primary_provider,
+
             request_id=request_id,
             search_adapter=search_provider,
             db=db,

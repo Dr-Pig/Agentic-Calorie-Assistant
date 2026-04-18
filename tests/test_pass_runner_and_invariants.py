@@ -4,7 +4,7 @@ import asyncio
 
 from app.agent.decision_llm import normalize_decision_result
 from app.agent.final_response_llm import sanitize_final_response_result
-from app.agent.nutrition_resolution_llm import normalize_structured_answer, nutrition_result_from_primary
+from app.agent.nutrition_resolution_normalizer import normalize_structured_answer, nutrition_result_from_primary
 from app.agent.task_meal_link_llm import normalize_task_meal_link_result
 from app.application.context_assembly import build_decision_payload
 from app.application.evidence_assembly import build_partial_grounding_packet, infer_expected_components

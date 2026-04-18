@@ -7,11 +7,20 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 
+from pydantic import BaseModel
+from pydantic import BaseModel
 from ..application.current_budget_read_model import build_current_budget_view
+from ..application.canonical_commit_bridge import record_budget_adjustment_to_canonical
 from ..database import get_db, get_or_create_user
 from ..domain import CurrentBudgetView
 
 router = APIRouter()
+
+class BudgetAdjustmentRequest(BaseModel):
+    user_id: str
+    delta_kcal: int
+    local_date: str
+
 
 
 def _resolve_today_local_date(local_date: str | None) -> str:
@@ -244,3 +253,20 @@ async def today(
         content=_render_today_surface(user_id=user_id, local_date=resolved_local_date, view=view),
         media_type="text/html; charset=utf-8",
     )
+
+@router.post("/today/budget-adjustment")
+async def post_budget_adjustment(req: BudgetAdjustmentRequest, db: Any = Depends(get_db)) -> dict:
+    user = get_or_create_user(db, req.user_id)
+    entry = record_budget_adjustment_to_canonical(
+        db,
+        user=user,
+        delta_kcal=req.delta_kcal,
+        local_date=req.local_date,
+        metadata={"source": "ui_adjustment"}
+    )
+    return {
+        "status": "ok",
+        "ledger_entry_id": entry.id,
+        "delta_kcal": req.delta_kcal,
+    }
+

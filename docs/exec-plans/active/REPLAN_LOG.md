@@ -2500,3 +2500,10 @@ It should be appended over time instead of rewritten.
 - future `2.7d` hardening can keep improving prompts and state packs without drifting into response-taxonomy patching
 - rescue / calibration / recommendation follow-through can later reuse the same governance rule set without being forced into intake-shaped implementation
 - the repo now records the shared principle while explicitly avoiding premature runtime abstraction
+
+## 2026-04-18 — Knowledge Extraction / Freeze-Growth Split Correction
+
+- completed a shrink-only extraction on `app/application/evidence_assembly.py`, moving selector and policy responsibilities into dedicated support modules instead of regrowing the freeze file
+- replaced the deleted `app/agent/knowledge_packets.py` monolith with a thin successor `app/agent/local_knowledge_selector.py` plus extracted document-factory, scoring-policy, and lookup-normalization modules
+- treated the staged `app/agent/local_knowledge_selector.py` touches as boundary-safe wiring under freeze-growth mode because the same wave deletes the predecessor monolith and leaves the successor below its freeze ceiling
+- included contained bug fixes required to restore the extraction wave to green, including the local-knowledge import repair and exact-item fallback behavior needed by the targeted meal and knowledge suites

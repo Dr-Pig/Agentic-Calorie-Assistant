@@ -1,11 +1,12 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import asyncio
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from app.agent.knowledge_packets import resolve_exact_item, resolve_ingredient_anchors
+from app.agent.exact_item_packets import resolve_exact_item
+from app.agent.local_knowledge_selector import resolve_ingredient_anchors
 from app.application.planner import fallback_planner_result
 from app.application.evidence_assembly import search_result_quality as _search_result_quality
 from app.database import SessionLocal, append_message, get_or_create_user, save_meal_log, get_latest_message_for_role
@@ -145,32 +146,36 @@ def test_run_text_meal_canary_applies_deterministic_estimate_from_local_knowledg
                     "answer_payload": {},
                 }, {"stage": stage}
             if stage == "nutrition_resolution_pass_tool_round_2":
-                return {
-                    "action_taken": "direct_answer",
-                    "exactness": "component_grounded",
-                    "tool_request": "none",
-                    "tool_request_reason": "",
-                    "state_transition_hint": "completed_meal",
-                    "food_origin": "generic_common",
-                    "food_class": "simple_meal",
-                    "needs_external_data": False,
-                    "private_info_risk": "low",
+                    return {
+                        "action_taken": "direct_answer",
+                        "resolution_mode": "provisional_estimate",
+                        "resolution_basis": "component_model",
+                        "estimate_mode": "llm_only",
+                        "confidence": "low",
+                        "exactness": "component_grounded",
+                        "tool_request": "none",
+                        "tool_request_reason": "",
+                        "state_transition_hint": "completed_meal",
+                        "food_origin": "generic_common",
+                        "food_class": "simple_meal",
+                        "needs_external_data": False,
+                        "private_info_risk": "low",
                     "title": "擐?鞊撚",
                     "components": ["擐?", "鞊撚"],
-                    "protein_g": 8,
-                    "carb_g": 30,
-                    "fat_g": 4,
-                    "kcal_low": 180,
-                    "kcal_high": 260,
-                    "kcal_most_likely": 220,
-                    "uncertainty_factors": [],
-                    "follow_up_needed": False,
-                    "follow_up_question": "",
-                    "follow_up_reasoning": "",
-                    "followup_questions": [],
-                    "top_uncertainty_drivers": [],
-                    "external_data_query": "",
-                    "answer_payload": {},
+                        "protein_g": 8,
+                        "carb_g": 30,
+                        "fat_g": 4,
+                        "kcal_low": 180,
+                        "kcal_high": 260,
+                        "kcal_most_likely": 220,
+                        "uncertainty_factors": [],
+                        "follow_up_needed": False,
+                        "follow_up_question": "",
+                        "follow_up_reasoning": "",
+                        "followup_questions": [],
+                        "top_uncertainty_drivers": [],
+                        "external_data_query": "",
+                        "answer_payload": {},
                 }, {"stage": stage}
             if stage == "final_response_pass":
                 return {
@@ -1074,6 +1079,10 @@ def test_decision_pass_can_trigger_search_before_nutrition(monkeypatch) -> None:
                     self.nutrition_payloads.append(user_payload)
                     return {
                         "action_taken": "direct_answer",
+                        "resolution_mode": "provisional_estimate",
+                        "resolution_basis": "component_model",
+                        "estimate_mode": "llm_only",
+                        "confidence": "medium",
                         "exactness": "best_effort",
                         "tool_request": "none",
                         "tool_request_reason": "",
@@ -1213,6 +1222,10 @@ def test_active_meal_continuation_preserves_canonical_thread_lineage(monkeypatch
                     assert [item["name"] for item in user_payload["old_components"]] == ["豆乳雞蛋餅"]
                     return {
                         "action_taken": "direct_answer",
+                        "resolution_mode": "provisional_estimate",
+                        "resolution_basis": "component_model",
+                        "estimate_mode": "llm_only",
+                        "confidence": "medium",
                         "exactness": "best_effort",
                         "tool_request": "none",
                         "tool_request_reason": "",
@@ -1316,6 +1329,10 @@ def test_cross_midnight_correction_uses_local_attribution_timestamp(monkeypatch)
                 if stage == "nutrition_resolution_pass_initial":
                     return {
                         "action_taken": "direct_answer",
+                        "resolution_mode": "provisional_estimate",
+                        "resolution_basis": "component_model",
+                        "estimate_mode": "llm_only",
+                        "confidence": "medium",
                         "exactness": "best_effort",
                         "tool_request": "none",
                         "tool_request_reason": "",

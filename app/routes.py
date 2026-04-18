@@ -8,6 +8,7 @@ from .web import (
     base_router,
     body_plan_router,
     intake_router,
+    onboarding_router,
     rescue_router,
     today_router,
     user_router,
@@ -19,6 +20,7 @@ router = APIRouter()
 router.include_router(base_router)
 router.include_router(body_plan_router)
 router.include_router(intake_router)
+router.include_router(onboarding_router)
 router.include_router(rescue_router)
 router.include_router(user_router)
 router.include_router(admin_router)

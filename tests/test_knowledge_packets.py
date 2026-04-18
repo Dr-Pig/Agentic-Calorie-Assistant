@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from app.agent.knowledge_packets import build_exact_item_lane_packet, resolve_exact_item, search_local_knowledge
+from app.agent.exact_item_packets import build_exact_item_lane_packet, resolve_exact_item
+from app.agent.local_knowledge_selector import search_local_knowledge
 
 
 def test_search_local_knowledge_marks_exact_item_high_confidence_for_true_alias_match() -> None:
@@ -65,7 +66,7 @@ def test_exact_item_lane_packet_uses_brand_context_before_fallback(monkeypatch) 
             }
         ]
 
-    monkeypatch.setattr("app.agent.knowledge_packets.resolve_exact_item", fake_resolve_exact_item)
+    monkeypatch.setattr("app.agent.exact_item_packets.resolve_exact_item", fake_resolve_exact_item)
 
     packet = build_exact_item_lane_packet("牛丼", active_brand_context="吉野家", limit=3)
 

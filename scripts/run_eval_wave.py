@@ -29,7 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.agent.knowledge_packets import search_local_knowledge
+from app.agent.local_knowledge_selector import search_local_knowledge
 from app.schemas import EstimateRequest
 from app.usecases.text_meal import run_text_meal_canary
 

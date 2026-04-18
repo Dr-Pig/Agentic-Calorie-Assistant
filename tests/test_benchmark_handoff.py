@@ -43,6 +43,11 @@ def test_nutrition_resolution_payload_includes_exact_truth_candidates() -> None:
             "source_class": "exact_item_db",
             "portion_basis_quality": "",
             "serving_basis": "",
+            "brand_hint": "Starbucks",
+            "query_alignment": "weak",
+            "variant_type": "core_default",
+            "candidate_relationship": "default_same_item_candidate",
+            "retrieval_lane": "exact_lane",
             "aliases": [],
         }
     ]

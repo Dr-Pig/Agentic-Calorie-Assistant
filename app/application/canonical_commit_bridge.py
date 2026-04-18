@@ -17,8 +17,10 @@ from ..infrastructure.canonical_persistence import (
     recompute_day_budget_ledger,
     resolve_canonical_commit_target,
     upsert_observation_skeleton,
+    upsert_budget_adjustment_skeleton,
+    load_active_body_profile_record,
 )
-from ..models import LedgerEntryRecord, User
+from ..models import LedgerEntryRecord, User, BodyProfileRecord
 from ..schemas import CommitRequestCandidate, CommitVersionReason, EstimatePayload, MealItemPayload
 
 
@@ -320,6 +322,31 @@ def load_body_observation_history(
         local_date=local_date,
         observation_type=observation_type,
     )
+
+
+def record_budget_adjustment_to_canonical(
+    db: Session,
+    *,
+    user: User,
+    delta_kcal: int,
+    local_date: str,
+    metadata: dict[str, object] | None = None,
+) -> LedgerEntryRecord:
+    return upsert_budget_adjustment_skeleton(
+        db,
+        user=user,
+        delta_kcal=delta_kcal,
+        local_date=local_date,
+        metadata=metadata,
+    )
+
+
+def get_active_body_profile_record(
+    db: Session,
+    *,
+    user_id: int,
+) -> BodyProfileRecord | None:
+    return load_active_body_profile_record(db, user_id=user_id)
 
 
 def record_proactive_trigger_skeleton(

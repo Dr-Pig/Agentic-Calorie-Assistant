@@ -6,11 +6,19 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 
-from ..application.canonical_commit_bridge import load_body_observation_history
+from pydantic import BaseModel
+from ..application.canonical_commit_bridge import load_body_observation_history, record_body_observation_to_canonical, get_active_body_profile_record
 from ..database import get_db, get_or_create_user
 from ..domain import BodyObservation
+from ..application.onboarding_service import bootstrap_body_plan_for_date, OnboardingBootstrapInput
 
 router = APIRouter()
+
+class WeightObservationRequest(BaseModel):
+    user_id: str
+    weight_kg: float
+    local_date: str
+
 
 
 def _load_weight_history(
@@ -239,3 +247,36 @@ async def weight(
         content=_render_weight_surface(user_id=user_id, local_date=resolved_local_date, observations=observations),
         media_type="text/html; charset=utf-8",
     )
+
+@router.post("/weight/observation")
+async def post_weight_observation(req: WeightObservationRequest, db: Any = Depends(get_db)) -> dict:
+    user = get_or_create_user(db, req.user_id)
+    # Save the new weight
+    obs = record_body_observation_to_canonical(
+        db,
+        user=user,
+        value=req.weight_kg,
+        unit="kg",
+        observation_type="weight",
+        local_date=req.local_date
+    )
+    
+    # Re-bootstrap plan if a plan already exists, carrying over settings
+    profile = get_active_body_profile_record(db, user_id=user.id)
+    if profile:
+        profile_meta = dict(profile.metadata_json or {})
+        inputs = OnboardingBootstrapInput(
+            sex=profile.sex,
+            age_years=profile.age_years,
+            height_cm=profile.height_cm,
+            current_weight_kg=req.weight_kg,
+            activity_level=profile.activity_level,
+            goal_type=profile.goal_type,
+            weekly_target_rate_kg=profile_meta.get("weekly_target_rate_kg", 0.5), # type: ignore
+            local_date=req.local_date,
+            timezone="UTC"
+        )
+        bootstrap_body_plan_for_date(db, user=user, inputs=inputs)
+        
+    return {"status": "ok", "observation_id": obs.id, "weight_kg": req.weight_kg}
+
