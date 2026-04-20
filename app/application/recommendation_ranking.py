@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..schemas import RecommendationCandidate
+from .recommendation_candidate_spec import RecommendationCandidateSpec
 from .recommendation_candidate_retrieval import RecommendationCandidateRetrievalResult
 from .recommendation_context import RecommendationContextPacket
 
@@ -15,6 +16,7 @@ class RecommendationRankingResult:
     ranking_explanation: str
     presentation_policy: dict[str, object] = field(default_factory=dict)
     filter_reasons: dict[str, list[str]] = field(default_factory=dict)
+    candidate_spec_posture: str = ""
 
 
 def _candidate_item_kind(candidate: RecommendationCandidate) -> str:
@@ -123,6 +125,7 @@ def _soft_preference_score(
 def rank_recommendation_candidates(
     *,
     context_packet: RecommendationContextPacket,
+    candidate_spec: RecommendationCandidateSpec,
     retrieval_result: RecommendationCandidateRetrievalResult,
     backup_limit: int = 2,
 ) -> RecommendationRankingResult:
@@ -156,7 +159,9 @@ def rank_recommendation_candidates(
     else:
         explanation = (
             "Hard constraints applied first, then soft preferences ranked by retrieval confidence, "
-            "preference profile fit, and kcal fit against current remaining budget."
+            "preference profile fit, and kcal fit against current remaining budget. "
+            f"Candidate spec posture={candidate_spec.candidate_spec_posture}, "
+            f"style={candidate_spec.desired_meal_style}, venue={candidate_spec.venue_posture}."
         )
 
     return RecommendationRankingResult(
@@ -169,6 +174,23 @@ def rank_recommendation_candidates(
             "show_top_pick": top_pick is not None,
             "backup_limit": max(0, backup_limit),
             "rescue_active": context_packet.hard_constraints.rescue_active,
+            "candidate_spec_posture": candidate_spec.candidate_spec_posture,
         },
         filter_reasons=filter_reasons,
+        candidate_spec_posture=candidate_spec.candidate_spec_posture,
+    )
+
+
+def build_recommendation_ranking_and_synthesis(
+    *,
+    context_packet: RecommendationContextPacket,
+    candidate_spec: RecommendationCandidateSpec,
+    retrieval_result: RecommendationCandidateRetrievalResult,
+    backup_limit: int = 2,
+) -> RecommendationRankingResult:
+    return rank_recommendation_candidates(
+        context_packet=context_packet,
+        candidate_spec=candidate_spec,
+        retrieval_result=retrieval_result,
+        backup_limit=backup_limit,
     )

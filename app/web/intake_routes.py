@@ -51,18 +51,79 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
         # --- recommendation: non-mutating meal suggestion ---
         if routing_result.target_workflow_family == "recommendation":
             try:
-                from ..application.recommendation_ranking import rank_recommendation_candidates
+                from ..application.active_body_plan_read_model import build_active_body_plan_view
+                from ..application.current_budget_read_model import build_current_budget_view
+                from ..application.recommendation_candidate_spec import build_recommendation_candidate_spec
+                from ..application.recommendation_candidate_retrieval import retrieve_recommendation_candidates
                 from ..application.recommendation_response import build_recommendation_response
                 from ..application.recommendation_context import build_recommendation_context
-                from ..application.recommendation_candidate_retrieval import retrieve_recommendation_candidates
+                from ..application.recommendation_ranking import build_recommendation_ranking_and_synthesis
+                from ..schemas import RecommendationCandidate
 
-                rec_ctx = build_recommendation_context(db, user_external_id=user_id, local_date=local_date)
-                candidates = retrieve_recommendation_candidates(db, context=rec_ctx)
-                ranked = rank_recommendation_candidates(candidates=candidates, context=rec_ctx)
-                rec_response = build_recommendation_response(ranked_candidates=ranked, context=rec_ctx)
+                user = get_or_create_user(db, user_id)
+                current_budget_view = build_current_budget_view(
+                    db,
+                    user_id=user.id,
+                    local_date=local_date,
+                )
+                active_body_plan_view = build_active_body_plan_view(db, user_id=user.id)
+                rec_ctx = build_recommendation_context(
+                    user_id=user.id,
+                    current_budget_view=current_budget_view,
+                    active_body_plan_view=active_body_plan_view,
+                    raw_user_input=request.text,
+                )
+                candidate_spec = build_recommendation_candidate_spec(
+                    context_packet=rec_ctx,
+                )
+                candidates = retrieve_recommendation_candidates(
+                    context_packet=rec_ctx,
+                    candidate_spec=candidate_spec,
+                    safe_defaults=[
+                        RecommendationCandidate(
+                            candidate_id="chat-safe-1",
+                            candidate_kind="safe_fallback",
+                            title="Chicken Salad Bowl",
+                            store_name="Convenience Store",
+                            estimated_kcal=430,
+                            protein_g=30,
+                            fit_summary="safe_fallback",
+                            source_metadata={
+                                "item_kind": "meal",
+                                "staple_type": "salad",
+                                "cuisine_family": "western",
+                                "protein_posture": "high_protein",
+                            },
+                        ),
+                        RecommendationCandidate(
+                            candidate_id="chat-safe-2",
+                            candidate_kind="safe_fallback",
+                            title="Tofu Bento",
+                            store_name="Bento House",
+                            estimated_kcal=520,
+                            protein_g=24,
+                            fit_summary="balanced",
+                            source_metadata={
+                                "item_kind": "meal",
+                                "staple_type": "rice",
+                                "cuisine_family": "taiwanese",
+                                "protein_posture": "balanced",
+                            },
+                        ),
+                    ],
+                )
+                ranked = build_recommendation_ranking_and_synthesis(
+                    context_packet=rec_ctx,
+                    candidate_spec=candidate_spec,
+                    retrieval_result=candidates,
+                )
+                rec_response = build_recommendation_response(
+                    context_packet=rec_ctx,
+                    ranking_result=ranked,
+                )
                 return {
                     "request_id": request_id,
-                    "coach_message": rec_response.reply_text,
+                    "coach_message": rec_response.response.reply_text,
                     "payload": None,
                 }
             except Exception:
@@ -143,4 +204,3 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                 "payload": None,
             },
         )
-

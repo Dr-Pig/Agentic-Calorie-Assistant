@@ -206,3 +206,22 @@ This document is aligned with:
 
 Recommendation, calibration, and rescue may later depend on this budget truth,
 but they are not allowed to replace the shared truth surface or re-compute today math on their own.
+
+---
+
+## 9. Exercise Bonus Ledger Contract
+
+When a user logs exercise, the system must:
+
+1. Create an `ExerciseEvent` record with `estimated_kcal_burned` (deterministic calculation)
+2. Immediately create a `LedgerEntry(exercise_bonus)` with `delta_kcal = +estimated_kcal_burned`
+3. Refresh `DayBudgetLedger.exercise_bonus_total` and recompute `effective_budget_kcal`
+4. Refresh `CurrentBudgetView`
+
+Rules:
+
+- Exercise bonus applies to the current day only (`local_date` of the exercise event)
+- Does not modify `BodyPlan.estimated_tdee` — long-term activity changes are handled by calibration
+- No confirmation required — exercise input is applied immediately (same pattern as weight update)
+- Chat response must confirm the bonus and state the new effective budget (e.g. "跑步 30 分鐘消耗約 250 kcal，今天可以多吃 250 kcal，有效預算調整為 1700 kcal")
+- UI Today page must reflect the updated effective budget immediately

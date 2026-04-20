@@ -7,8 +7,9 @@ from fastapi import APIRouter, Depends
 from ..application.active_body_plan_read_model import build_active_body_plan_view
 from ..application.current_budget_read_model import build_current_budget_view
 from ..application.recommendation_candidate_retrieval import build_recommendation_candidates
+from ..application.recommendation_candidate_spec import build_recommendation_candidate_spec
 from ..application.recommendation_context import build_recommendation_context
-from ..application.recommendation_ranking import rank_recommendation_candidates
+from ..application.recommendation_ranking import build_recommendation_ranking_and_synthesis
 from ..application.recommendation_response import build_recommendation_response
 from ..database import get_db, get_or_create_user
 from ..schemas import RecommendationCandidate
@@ -22,39 +23,41 @@ def _preview_candidates(*, remaining_budget_kcal: int) -> list[RecommendationCan
         RecommendationCandidate(
             candidate_id="preview-historical-1",
             candidate_kind="golden_order",
-            title="雞胸沙拉餐",
+            title="Chicken salad bowl",
             store_name="Fresh Box",
             estimated_kcal=min(safe_budget, 430) if safe_budget > 0 else 430,
             protein_g=32,
             fit_summary="high_protein",
             source_metadata={
-                "item_kind": "meal",
+                "item_kind": "salad",
                 "staple_type": "salad",
                 "cuisine_family": "western",
                 "protein_posture": "high_protein",
                 "retrieval_tier": "historical_match",
+                "venue_type": "restaurant",
             },
         ),
         RecommendationCandidate(
             candidate_id="preview-nearby-1",
             candidate_kind="nearby",
-            title="牛肉飯",
+            title="Hot chicken rice box",
             store_name="Local Bento",
             estimated_kcal=max(520, min(safe_budget, 620)) if safe_budget > 0 else 620,
             protein_g=26,
             fit_summary="balanced",
             source_metadata={
-                "item_kind": "meal",
+                "item_kind": "main_meal",
                 "staple_type": "rice",
                 "cuisine_family": "taiwanese",
                 "protein_posture": "balanced",
                 "retrieval_tier": "nearby",
+                "venue_type": "restaurant",
             },
         ),
         RecommendationCandidate(
             candidate_id="preview-safe-1",
             candidate_kind="safe_fallback",
-            title="茶葉蛋 + 無糖豆漿",
+            title="Protein drink and egg",
             store_name="Convenience Store",
             estimated_kcal=210,
             protein_g=18,
@@ -65,6 +68,7 @@ def _preview_candidates(*, remaining_budget_kcal: int) -> list[RecommendationCan
                 "cuisine_family": "convenience",
                 "protein_posture": "high_protein",
                 "retrieval_tier": "safe_fallback",
+                "venue_type": "convenience_store",
             },
         ),
     ]
@@ -86,14 +90,19 @@ def recommendation_preview(
         active_body_plan_view=active_body_plan_view,
         raw_user_input=raw_user_input,
     )
+    candidate_spec = build_recommendation_candidate_spec(
+        context_packet=context_packet,
+    )
     retrieval_result = build_recommendation_candidates(
         context_packet=context_packet,
+        candidate_spec=candidate_spec,
         historical_matches=_preview_candidates(
             remaining_budget_kcal=context_packet.hard_constraints.remaining_budget_kcal
         ),
     )
-    ranking_result = rank_recommendation_candidates(
+    ranking_result = build_recommendation_ranking_and_synthesis(
         context_packet=context_packet,
+        candidate_spec=candidate_spec,
         retrieval_result=retrieval_result,
     )
     response_packet = build_recommendation_response(
@@ -102,7 +111,9 @@ def recommendation_preview(
     )
     return {
         "context_packet": asdict(context_packet),
+        "candidate_spec": asdict(candidate_spec),
         "candidate_count": retrieval_result.candidate_count,
+        "candidate_spec_used": retrieval_result.candidate_spec_used,
         "ranking_explanation": ranking_result.ranking_explanation,
         "filter_reasons": ranking_result.filter_reasons,
         "response": response_packet.response.model_dump(mode="json"),

@@ -498,6 +498,38 @@ v1 可採：
 - rescue / adherence pattern
 - logging quality summary
 
+### 9.3A-1 WeeklyInsightReport（週報洞察）
+
+`WeeklyInsightReport` 是每週產生一次的使用者行為洞察報告，屬於 derived view，不是 canonical object。
+
+**定位：**
+- 不是 calibration（那是系統內部的數學調整）
+- 是給使用者看得懂的行為洞察，幫助他們理解自己的模式
+- 由 `ProactiveScheduler` 的 weekly run 觸發（例如每週一早上）
+
+**最小欄位：**
+
+- `report_id`
+- `user_id`
+- `week_start_date`
+- `week_end_date`
+- `generated_at`
+- `deficit_achievement_rate`：本週赤字達成率（例如 71%）
+- `overshoot_days`：超標天數
+- `overshoot_pattern`：超標集中在哪些時段 / 星期幾（例如「週三晚上」）
+- `top_calorie_sources[]`：熱量來源前三名（例如「飲料佔 18%」）
+- `logging_coverage`：本週 intake logging 覆蓋率
+- `weight_trend_summary`：體重趨勢摘要（若有足夠觀測）
+- `swap_opportunities[]`：具體可執行的替換建議（來自 L3.2 swap suggestion）
+- `positive_highlights[]`：正向行為亮點（例如「你這週有 4 天達標」）
+- `narrative_summary`：LLM 生成的自然語言摘要（1-3 句）
+
+**規則：**
+- `WeeklyInsightReport` 是 read-only derived view，不直接改寫任何 canonical state
+- `narrative_summary` 由 LLM 生成，但數字來源必須是 deterministic 計算結果
+- 若本週資料不足（例如 logging coverage < 50%），應降級輸出，不強行生成洞察
+- 報告透過 chat 主動推送（proactive），也可在 UI 歷史頁面查看
+
 ### 9.3B Consolidation 觸發機制
 
 #### 觸發者

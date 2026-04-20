@@ -33,17 +33,17 @@ def _build_quick_actions(
     location_required: bool,
 ) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = [
-        {"action": "recommendation_refresh", "label": "換一個"},
-        {"action": "recommendation_filter_low_kcal", "label": "看低熱量"},
-        {"action": "recommendation_filter_high_protein", "label": "看高蛋白"},
+        {"action": "recommendation_refresh", "label": "Show another"},
+        {"action": "recommendation_filter_low_kcal", "label": "Lower kcal"},
+        {"action": "recommendation_filter_high_protein", "label": "Higher protein"},
     ]
     if location_required:
-        actions.append({"action": "recommendation_filter_nearby", "label": "看附近店家"})
+        actions.append({"action": "recommendation_filter_nearby", "label": "Nearby only"})
     if top_pick is not None and hint_packet is not None:
         actions.append(
             {
                 "action": "recommendation_intake_handoff",
-                "label": "幫我記這個",
+                "label": "Log this meal",
                 "hint_packet": hint_packet.model_dump(mode="json"),
             }
         )
@@ -51,17 +51,26 @@ def _build_quick_actions(
 
 
 def _render_candidate_line(candidate: RecommendationCandidate) -> str:
-    store = f"（{candidate.store_name}）" if candidate.store_name else ""
-    kcal = f"{int(candidate.estimated_kcal or 0)} kcal" if candidate.estimated_kcal is not None else "熱量待估"
-    return f"{candidate.title}{store}，約 {kcal}"
+    store = f" ({candidate.store_name})" if candidate.store_name else ""
+    kcal = f"{int(candidate.estimated_kcal or 0)} kcal" if candidate.estimated_kcal is not None else "kcal unknown"
+    return f"{candidate.title}{store} - {kcal}"
 
 
 def _empty_reply(context_packet: RecommendationContextPacket) -> str:
     if context_packet.recommendation_mode == "cold_start":
-        return "我先給你保守選項，但你目前的偏好資料還很少，所以這輪先以安全 fallback 為主。"
+        return (
+            "I do not have enough preference history yet, so I only have fallback options right now. "
+            "Log a few meals and I can make better recommendations."
+        )
     if context_packet.hard_constraints.location_required:
-        return "我目前沒有足夠的附近候選可推薦，你可以先放寬地點條件，或直接告訴我想吃哪一類。"
-    return "我現在找不到合適的候選，你可以改說想吃的類型，或直接要我看低熱量/高蛋白選項。"
+        return (
+            "I do not have enough legal nearby candidates for this request yet. "
+            "Try broadening the ask or let me suggest a lower-friction fallback."
+        )
+    return (
+        "I do not have a legal recommendation candidate right now under the current constraints. "
+        "You can loosen the ask or ask for a different style."
+    )
 
 
 def build_recommendation_response(
@@ -93,17 +102,20 @@ def build_recommendation_response(
                 "mode": "recommendation_no_candidates",
                 "delivery": "chat_only",
                 "non_mutating": True,
+                "candidate_spec_posture": ranking_result.candidate_spec_posture,
             },
         )
 
     top_line = _render_candidate_line(top_pick)
-    backup_lines = "；備選：" + "、".join(_render_candidate_line(candidate) for candidate in backup_picks) if backup_picks else ""
+    backup_lines = ""
+    if backup_picks:
+        backup_lines = " Backups: " + "; ".join(_render_candidate_line(candidate) for candidate in backup_picks)
     rescue_note = (
-        "現在 rescue 還在作用中，所以我先只保留不超過目前可用預算的選項。 "
+        "Rescue is active, so these picks stay inside the tighter budget window. "
         if context_packet.hard_constraints.rescue_active
         else ""
     )
-    reply_text = f"{rescue_note}我首推你這餐吃 {top_line}。{backup_lines}".strip()
+    reply_text = f"{rescue_note}Top pick: {top_line}.{backup_lines}".strip()
 
     response = RecommendationResponseResult(
         top_pick=top_pick,
@@ -120,5 +132,6 @@ def build_recommendation_response(
             "delivery": "chat_only",
             "non_mutating": True,
             "candidate_count": len(ranking_result.ranked_candidates),
+            "candidate_spec_posture": ranking_result.candidate_spec_posture,
         },
     )

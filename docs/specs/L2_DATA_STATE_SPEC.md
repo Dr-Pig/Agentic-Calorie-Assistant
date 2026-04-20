@@ -130,12 +130,16 @@ L2 必須同時支持：
 - `pending_question_key`
 - `pending_question_text`
 - `last_followup_at`
+- `media_attachments[]`（optional）
 
 規則：
 
 - `MealThread` 的粒度是飲食事件，不是訊息，也不是單一食物
 - 一個 thread 內可以有多個 `MealItem`
 - 不綁早餐 / 午餐 / 晚餐；這些是 display label，不是 primary data model
+- `media_attachments[]` 承接與此餐點相關的照片或媒體，每筆包含 `attachment_id`、`media_type`（`photo` / `audio`）、`storage_url`、`captured_at`、`source_channel`
+- 照片輸入只在 chat 對話框支援；UI 餐點列表可顯示縮圖，但不提供上傳入口
+- `media_attachments[]` 缺失不影響 `MealThread` 的 commit 或 correction
 
 ### 3.3 `MealVersion`
 
@@ -222,6 +226,7 @@ L2 必須同時支持：
 - `consumed_kcal`
 - `rescue_overlay_total`
 - `calibration_adjustment_total`
+- `exercise_bonus_total`
 - `effective_budget_kcal`
 - `remaining_kcal`
 - `recomputed_at`
@@ -231,6 +236,8 @@ L2 必須同時支持：
 
 - `DayBudgetLedger` 可作 materialized snapshot
 - TodayPage 讀此物件，不直接掃全量 thread
+- `effective_budget_kcal = base_budget_kcal + rescue_overlay_total + calibration_adjustment_total + exercise_bonus_total`
+- `exercise_bonus_total` 是當日所有 `LedgerEntry(exercise_bonus)` 的加總，預設為 0
 
 ### 3.6 `LedgerEntry`
 
@@ -255,6 +262,7 @@ L2 必須同時支持：
 - committed meal 產生 `meal_consumption`
 - rescue accept 產生 `rescue_overlay`
 - calibration accept 產生 `calibration_adjustment`
+- exercise event 產生 `exercise_bonus`（正值，增加今日可進食熱量）
 
 ### 3.7 `BodyObservation`
 
@@ -270,6 +278,38 @@ L2 必須同時支持：
 - `timezone`
 - `source_channel`
 - `raw_input`
+
+### 3.7B `ExerciseEvent`
+
+代表使用者記錄的一次運動事件，用於計算當日額外消耗熱量並調整今日可進食預算。
+
+**定位：**
+- `ExerciseEvent` 是 observation，不是 canonical plan 的一部分
+- 它不改寫 `BodyPlan.estimated_tdee`（那是長期 calibration 的責任）
+- 它只影響當日 `DayBudgetLedger` 的 `exercise_bonus_kcal`
+- 計算邏輯是 deterministic（依運動類型 + 時長 + 體重估算消耗）
+
+最小欄位：
+
+- `exercise_event_id`
+- `user_id`
+- `exercise_type`（例如 `running` / `walking` / `cycling` / `strength_training` / `other`）
+- `duration_minutes`
+- `estimated_kcal_burned`（deterministic 計算結果）
+- `calculation_basis`（例如 `met_formula` / `user_asserted`）
+- `occurred_at`
+- `recorded_at`
+- `local_date`
+- `timezone`
+- `source_channel`（`chat` / `ui`）
+- `raw_input`
+
+規則：
+
+- `estimated_kcal_burned` 由 deterministic formula 計算（MET × 體重 × 時長），不由 LLM 自由生成
+- 若使用者直接說「我今天消耗了 300 kcal」，採 `calculation_basis: user_asserted`，直接使用該值
+- `ExerciseEvent` 寫入後，application layer 應立即建立對應 `LedgerEntry(exercise_bonus)`
+- 不改寫 `BodyPlan`；長期運動習慣的影響由 calibration 處理
 
 ### 3.7A `BodyProfile`
 
@@ -406,6 +446,7 @@ L2 必須同時支持：
 - `ProposalContainer 1 -> N ProposalOption`
 - `ProactiveTrigger 0..1 -> 1 ProposalContainer`
 - `ProposalContainer accept -> BodyPlan / LedgerEntry / MealThread`（依 type 而定）
+- `ExerciseEvent 1 -> 1 LedgerEntry(exercise_bonus)`
 
 關鍵規則：
 

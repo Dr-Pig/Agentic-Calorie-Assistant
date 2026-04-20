@@ -9,6 +9,7 @@ from sqlalchemy import create_engine, desc, inspect
 from sqlalchemy.orm import sessionmaker, Session
 
 from .infrastructure.exact_item_search import ensure_exact_item_fts
+from .logger import logger
 from .models import User, MealLog, MessageBuffer
 from .paths import DEFAULT_DB_PATH, LEGACY_DB_PATH, REPO_ROOT, ensure_runtime_dirs
 
@@ -139,7 +140,7 @@ def save_meal_log(
 
 def get_latest_log(db: Session, user: User) -> MealLog | None:
     """Get the most recent non-superseded MealLog for this user."""
-    print(f"[DEBUG] get_latest_log for internal user_id={user.id}")
+    logger.debug(f"get_latest_log for internal user_id={user.id}")
     log = (
         db.query(MealLog)
         .filter(MealLog.user_id == user.id, MealLog.status != "superseded")
@@ -147,9 +148,9 @@ def get_latest_log(db: Session, user: User) -> MealLog | None:
         .first()
     )
     if log:
-        print(f"[DEBUG] Checked DB: Found latest log ID={log.id}, title={log.meal_title}")
+        logger.debug(f"Checked DB: Found latest log ID={log.id}, title={log.meal_title}")
     else:
-        print(f"[DEBUG] Checked DB: No suitable latest log found for user {user.id}")
+        logger.debug(f"Checked DB: No suitable latest log found for user {user.id}")
     return log
 
 
@@ -165,7 +166,7 @@ def get_meal_log_history(db: Session, user: User, limit: int = 10, include_super
     query = db.query(MealLog).filter(MealLog.user_id == user.id)
     if not include_superseded:
         query = query.filter(MealLog.status != "superseded")
-    print(f"[DEBUG] get_meal_log_history include_superseded={include_superseded}, count found: {query.count()}")
+    logger.debug(f"get_meal_log_history include_superseded={include_superseded}, count found: {query.count()}")
     return (
         query.order_by(desc(MealLog.id))
         .limit(limit)
@@ -183,6 +184,7 @@ def append_message(
     *,
     linked_meal_log_id: int | None = None,
     trace_id: str | None = None,
+    trace_json: dict[str, Any] | None = None,
 ) -> MessageBuffer:
     """Append a message to the conversation buffer."""
     msg = MessageBuffer(
@@ -191,6 +193,7 @@ def append_message(
         content=content,
         linked_meal_log_id=linked_meal_log_id,
         trace_id=trace_id,
+        trace_json=trace_json or {},
     )
     db.add(msg)
     db.commit()

@@ -118,77 +118,81 @@ recommendation 必須支援：
 
 ## 4. Canonical Runtime Shape
 
-正式 recommendation flow 的 canonical default 應採 3-node graph：
+正式 recommendation flow 的 canonical default 應採 **5-node graph**：
 
-1. `recommendation_context`
-2. `candidate_retrieval_filtering_and_ranking`
-3. `recommendation_response`
+1. `recommendation_context`（LLM）
+2. `candidate_spec_generation`（LLM）
+3. `candidate_retrieval`（Deterministic）
+4. `ranking_and_synthesis`（LLM）
+5. `recommendation_response`（LLM）
 
-補充規則：
+**設計原則：**
 
-- `candidate retrieval / availability filtering / hard constraint filtering` 應優先 deterministic-first
-- 若 candidate pool 已由 deterministic retrieval 組好，可 collapse 成 2-node graph：
-  1. `ranking_and_selection`
-  2. `recommendation_response`
-- chat surface 通常需要 response node；UI / API surface 可直接輸出 structured ranking result
-- cross-domain 原則見 [`L6E LLM Pass Design Policy Spec`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md)
+- Node 1：LLM 理解使用者當下的意圖和情境
+- Node 2：LLM 把「自然語言偏好」轉成可檢索的 candidate blueprint（candidate spec）。這一層是關鍵——沒有它，Node 3 的 deterministic retrieval 只是 dumb SQL，候選集合從一開始就錯了
+- Node 3：Deterministic retrieval，用 Node 2 的 candidate spec 去撈候選。這樣 deterministic retrieval 才不是機械查表
+- Node 4：LLM 讀取候選 + 完整情境，真正判斷「哪個最適合現在、為什麼」
+- Node 5：LLM 對話呈現，non-mutating
 
-expanded mode 啟用條件至少包括：
+**Logical model roles：**
 
-- candidate pool 為零，需要 LLM 生成 fallback candidates
-- candidate generation 本身需要獨立的 LLM synthesis，而不能由 deterministic retrieval 組成
-
-expanded mode 可保留 4-pass decomposition：
-
-1. `recommendation_context_pass`
-2. `candidate_generation_pass`
-3. `ranking_and_selection_pass`
-4. `recommendation_response_pass`
-
-若後續需要與 intake 共用統一 runtime 命名，可映射成：
-
-- context
-- candidate / decision
-- ranking / resolution
-- response
-
-expanded mode 下，只有實際為 LLM-backed 的 named pass 才需要 logical model role 對應：
-
-- `recommendation_context_pass` -> `fast_router_model`
-- `candidate_generation_pass` -> `fast_router_model`（僅當 candidate generation 不是 deterministic retrieval/filtering）
-- `ranking_and_selection_pass` -> `strict_reasoner_model`
-- `recommendation_response_pass` -> `response_writer_model`
+- Node 1 `recommendation_context` → `fast_router_model`
+- Node 2 `candidate_spec_generation` → `fast_router_model`
+- Node 3 `candidate_retrieval` → deterministic（無 LLM）
+- Node 4 `ranking_and_synthesis` → `strict_reasoner_model`
+- Node 5 `recommendation_response` → `response_writer_model`
 
 ### 4.1 Canonical Path Walkthrough
 
-正常讀法應先以 canonical 3-node graph 理解 recommendation flow：
+1. `recommendation_context`（LLM）
+   - 理解使用者當下說的話：「輕的」「不要太油」「今天超標了」「想吃熱的」
+   - 這些在此情境下代表什麼
+   - 輸出：recommendation goal、hard constraints、soft preferences、recommendation mode
 
-1. `recommendation_context`
-   - 解讀 recommendation goal、hard constraints、soft preferences、與當前 context posture
-2. `candidate_retrieval_filtering_and_ranking`
-   - 先用 deterministic retrieval / availability / hard filtering 組 candidate pool，再完成 ranking
-3. `recommendation_response`
-   - 只在 channel 需要時做 explanation / phrasing；UI / API 可直接輸出 structured result
+2. `candidate_spec_generation`（LLM）
+   - 不直接產生最終答案
+   - 把「自然語言偏好」轉成可檢索的 candidate blueprint，例如：
+     - desired meal style
+     - acceptable cuisine families
+     - excluded item patterns
+     - soft target kcal band
+     - convenience-store vs restaurant posture
+     - whether swaps are allowed
+   - 輸出：`candidate_spec`（結構化的檢索藍圖）
 
-expanded 4-pass decomposition 只用於 observability、debug、或需要獨立 candidate-generation node 的特殊情況，不應被當成 primary reader path 或 default truth。
+3. `candidate_retrieval`（Deterministic）
+   - 用 Node 2 的 `candidate_spec` 去撈候選
+   - 過濾明顯不合法的選項（超出預算、已知不吃）
+   - 輸出：candidate pool（未排序）
+
+4. `ranking_and_synthesis`（LLM）
+   - 讀取 candidate pool + 完整情境（今天已吃了什麼、偏好、rescue 狀態）
+   - 真正判斷「哪個最適合現在、為什麼」
+   - 輸出：top pick、backup picks、個人化推薦理由
+
+5. `recommendation_response`（LLM）
+   - chat-first 呈現
+   - non-mutating：不建立 intent state
+   - 只允許 handoff intake（使用者點「幫我記這個」才轉 L3.1）
 
 ---
 
-## 5. Expanded Decomposition Only: Pass 1 `recommendation_context_pass`
+## 5. Node 1: `recommendation_context`
 
 ### 5.1 目標
 
-決定現在為什麼要推薦，以及推薦必須遵守哪些上下文約束。
+LLM 理解使用者當下的意圖、情境、限制，決定推薦的目標和約束。
 
 ### 5.2 責任
 
-- `decision_mode: hybrid`
-- `decision_reason: recommendation goal 與 soft preference 解讀需要語義判斷，但 hard constraints 應保持 deterministic-first`
+`decision_mode: llm`
+`decision_reason: recommendation goal 與 soft preference 解讀是語義理解，必須由 LLM 執行。hard constraints 的數值來自 deterministic read，但「這些 constraints 對這個人現在意味著什麼」是 LLM 的工作。`
+`logical_model_role: fast_router_model`
 
-- 判斷 recommendation 是主動還是被動觸發
-- 組合 recommendation 所需 context
+- 理解使用者當下說的話（「我想吃點輕的」「有什麼推薦」「我在信義區」）
+- 讀取完整情境：剩餘預算、今天已吃什麼、偏好、時段、位置、rescue 狀態
 - 提取 hard constraints 與 soft preferences
-- 決定 recommendation mode
+- 決定 recommendation mode（一般推薦 / menu scan / swap suggestion / pre-meal planning）
 
 ### 5.3 可讀
 
@@ -200,6 +204,7 @@ expanded 4-pass decomposition 只用於 observability、debug、或需要獨立 
 - `PreferenceProfileSummary`
 - raw user ask（若由 chat 觸發）
 - optional `location_context`
+- optional `menu_scan_context`（若使用者上傳菜單）
 
 ### 5.4 必須輸出
 
@@ -207,149 +212,147 @@ expanded 4-pass decomposition 只用於 observability、debug、或需要獨立 
 - `hard_constraints`
 - `soft_preferences`
 - `context_window_summary`
-- `recommendation_mode`
+- `recommendation_mode`：`general` / `menu_scan` / `swap_suggestion` / `pre_meal_planning`
 - `budget_posture`
 - `preference_profile_ref`
 - `location_posture`
 
-### 5.5 hard constraints 範例
+### 5.5 不可做的事
 
-- 剩餘預算上限
-- rescue 狀態下的短期扣減
-- calibration 後的策略限制
-- 已接受 proposal 的短期行為限制
-
-### 5.6 soft preferences 範例
-
-- 愛喝飲料
-- 偏飯類 / 麵類
-- 常見 `cuisine_family`
-- 偏高蛋白
-- 偏特定店家 / 鏈店
-- 某些時段常選某類食物
-- 某些地點常吃某類餐
-
-### 5.7 不可做的事
-
-- 不產生最終候選清單
+- 不產生候選清單
 - 不建立 proposal
 - 不建立 intake state
 
 ---
 
-## 6. Expanded Decomposition Only: Pass 2 `candidate_generation_pass`
+## 5A. Node 2: `candidate_spec_generation`
 
-### 6.1 目標
+### 5A.1 目標
 
-產生可排序的 recommendation candidate set。
+LLM 把「自然語言偏好」轉成可檢索的 candidate blueprint（candidate spec）。
 
-### 6.2 責任
+這一層是 recommendation flow 的關鍵橋樑：沒有它，Node 3 的 deterministic retrieval 只是 dumb SQL，候選集合從一開始就錯了。
 
-- `decision_mode: deterministic`
-- `decision_reason: candidate pool 的主體應來自 retrieval、availability、source filtering，而不是自由生成`
+### 5A.2 責任
 
-- 從可用來源抽取 candidate
-- 去掉明顯不合法候選
-- 將候選正規化成統一 recommendation item 結構
+`decision_mode: llm`
+`decision_reason: 把自然語言偏好（「輕的」「不要太油」「想吃熱的」）轉成結構化的可檢索 spec，需要語義理解。`
+`logical_model_role: fast_router_model`
 
-### 6.3 候選來源優先順序
+- 讀取 Node 1 的 recommendation_context_result
+- 把 soft preferences 轉成結構化的 candidate spec
+- 決定 retrieval 的方向和約束
 
-正式建議固定如下：
-
-1. `historical preference matches`
-2. `context-valid nearby candidates`
-3. `golden orders`
-4. `safe fallback candidates`
-5. `generic healthy suggestions`
-
-#### 定義
-
-`historical preference matches`
-- 根據 `MealItem` 歷史、店家歷史、時段偏好、location pattern 產生的高相容候選
-
-`context-valid nearby candidates`
-- 在當前時間與位置可取得、且符合 hard constraints 的附近店家 / 餐點
-
-`golden orders`
-- `favorite stores + near search + current calorie / protein gap fit`
-- 在 recommendation runtime 中，`golden orders` 可被視為高信度的 item bundle 記憶；例如特定店家 + 特定餐點或飲料組合，可在相符時段與情境下被明顯提權
-
-`safe fallback candidates`
-- 偏好資料不足或 location 不可用時的保底候選
-
-`generic healthy suggestions`
-- generic 健康選項，只能作為最後 fallback，不應成為前排
-
-### 6.7 Cold-Start 執行模式
-
-若 `PreferenceProfileSummary` 為 empty / sparse：
-
-- `candidate generation` 應優先退回 safe defaults、available menu candidates、generic fallback，不得因記憶不足而 fail closed
-- `ranking_and_selection_pass` 可降級為 deterministic sort，例如依與 budget 的 kcal distance、protein posture、availability 做排序
-- 此模式下 graph 可簡化為 `context + filter -> response`
-- LLM 若仍介入，優先用在 response phrasing，而不是假造偏好推理
-
-### 6.4 可讀
+### 5A.3 可讀
 
 - `recommendation_context_result`
-- favorite stores / golden orders
-- store / menu retrieval results
-- known safe defaults
-- optional location-aware candidates
+- `PreferenceProfileSummary`
+- `RecentCommittedMealsView`（今天已吃了什麼，避免重複）
 
-### 6.5 必須輸出
+### 5A.4 必須輸出
 
-- `candidate_items[]`
-- `candidate_source_summary`
-- `candidate_filter_reasons`
-- `candidate_count`
-- `coverage_gaps`
+`candidate_spec`，包含：
 
-### 6.6 `RecommendationCandidate` 最小欄位
+- `desired_meal_style`：例如 `light` / `filling` / `hot` / `cold`
+- `acceptable_cuisine_families[]`：例如 `[taiwanese, japanese]`
+- `excluded_item_patterns[]`：例如 `[fried, sugary_drinks]`
+- `soft_target_kcal_band`：例如 `{min: 400, max: 650}`
+- `venue_posture`：`convenience_store` / `restaurant` / `any`
+- `swaps_allowed`：boolean（是否允許替換建議）
+- `priority_signals[]`：例如 `[high_protein, avoid_repeat_from_today]`
 
-- `candidate_id`
-- `title`
-- `source_type`
-- `store_name`
-- `estimated_kcal_range`
-- `protein_posture`
-- `staple_type`
-- `item_kind`
-- `cuisine_family`
-- `confidence`
-- `why_it_matches`
-- `disqualifier_flags`
-- `external_links`
+### 5A.5 不可做的事
 
-### 6.7 不可做的事
-
-- 不決定最終 top choice
-- 不直接對使用者呈現
+- 不直接產生候選清單
+- 不做 retrieval
 - 不建立 proposal / intake state
 
 ---
 
-## 7. Expanded Decomposition Only: Pass 3 `ranking_and_selection_pass`
+## 6. Node 3: `candidate_retrieval`
+
+### 6.1 目標
+
+用 Node 2 的 `candidate_spec` 去撈候選，輸出未排序的 candidate pool。
+
+### 6.2 責任
+
+`decision_mode: deterministic`
+`decision_reason: 候選的撈取和 hard constraint 過濾是機械的查詢。但因為有 Node 2 的 candidate_spec 作為輸入，這個 deterministic retrieval 才不是 dumb SQL——它是在執行 LLM 語義化後的檢索藍圖。`
+
+- 從可用來源撈出候選
+- 過濾明顯不合法的選項（超出預算、已知不吃、不可取得）
+- 正規化成統一 candidate 結構
+- 輸出 candidate pool（不排序）
+
+### 6.3 候選來源優先順序
+
+1. `historical preference matches`（來自 `PreferenceProfileSummary`）
+2. `context-valid nearby candidates`（來自 location API，若可用）
+3. `golden orders`（來自 memory）
+4. `menu_scan_items`（若 `recommendation_mode = menu_scan`）
+5. `safe fallback candidates`
+6. `generic healthy suggestions`（最後 fallback）
+
+### 6.4 可讀
+
+- `recommendation_context_result`
+- `candidate_spec`（來自 Node 2）
+- `PreferenceProfileSummary`
+- store / menu retrieval results
+- location-aware candidates（若可用）
+- `menu_scan_context`（若 menu scan mode）
+
+### 6.5 必須輸出
+
+- `candidate_items[]`（未排序）
+- `candidate_source_summary`
+- `candidate_count`
+- `coverage_gaps`（若某些來源無法取得）
+
+### 6.6 Cold-Start 規則
+
+若 `PreferenceProfileSummary` 為 empty / sparse：
+
+- 退回 safe fallback candidates + generic healthy suggestions
+- 不因記憶不足而 fail closed
+- cold-start 時不得假造偏好推理；缺乏個人偏好時應退回 safe fallback candidates 與 generic healthy suggestions
+
+### 6.7 不可做的事
+
+- 不排序候選
+- 不決定 top choice
+- 不建立 proposal / intake state
+
+---
+
+## 7. Node 4: `ranking_and_synthesis`
 
 ### 7.1 目標
 
-根據 hard constraints 與 soft preferences 對候選排序，決定主推與備選。
+LLM 讀取候選 + 完整情境，真正理解「這個人現在最適合吃什麼」，生成排序和推薦理由。
+
+這是 recommendation flow 的 agentic 核心。
 
 ### 7.2 責任
 
-- `decision_mode: hybrid`
-- `decision_reason: 在多個合法 candidate 間做 soft tradeoff ranking 可用 LLM，但 ranking 必須受 budget 與 availability 約束`
+`decision_mode: llm`
+`decision_reason: 在多個合法候選中做 soft tradeoff ranking 需要真正理解使用者情境——今天已吃了什麼、偏好是什麼、現在的心情和需求是什麼。這不是機械排序，而是語義理解後的選擇。`
+`logical_model_role: strict_reasoner_model`
 
-- 先做 constraint filtering
-- 再做 preference scoring
-- 產生 top result 與備選集
+- 讀取 candidate pool + 完整情境
+- 理解「這個人現在最適合吃什麼」
+- 生成排序：top pick + backup picks
+- 生成個人化推薦理由（不是模板，是真正針對這個人這個時刻的說明）
 - 決定對外呈現密度
 
 ### 7.3 可讀
 
 - `recommendation_context_result`
-- `candidate_generation_result`
+- `candidate_retrieval_result`
 - `PreferenceProfileSummary`
+- `RecentCommittedMealsView`（今天已吃了什麼）
+- `OpenProposalsView`（rescue 狀態）
 - budget posture
 - body-plan posture
 
@@ -358,30 +361,25 @@ expanded 4-pass decomposition 只用於 observability、debug、或需要獨立 
 - `ranked_candidates[]`
 - `top_pick`
 - `backup_picks[]`
-- `ranking_explanation`
+- `ranking_explanation`（個人化，不是模板）
 - `presentation_policy`
 
 ### 7.5 ranking 規則
 
-先 hard constraints，再 soft preferences。
+先 hard constraints（deterministic gate），再 soft preferences（LLM synthesis）。
 
-#### hard constraints
-
+**Hard constraints（deterministic gate，在 Node 3 已過濾，Node 4 再確認）：**
 - 明顯超出預算
 - 與已接受 rescue 方案衝突
-- 與短期 body-plan posture 明顯衝突
 - 已知不吃 / 已知拒絕條件
 
-#### soft preferences
-
-- 常見 `item_kind`
-- 常見 `staple_type`
-- 常見 `cuisine_family`
-- 常喝飲料與飲料時段
-- 常見店家 / 鏈店
+**Soft preferences（LLM synthesis）：**
+- 今天已吃了什麼（避免重複、補充不足的營養）
+- 常見 `item_kind` / `staple_type` / `cuisine_family`
 - 時段偏好
 - 地點模式
 - 過去接受 / 忽略某類推薦的行為訊號
+- 當下說的話（「我想吃點輕的」「我想吃飽一點」）
 
 ### 7.6 不可做的事
 
@@ -391,18 +389,19 @@ expanded 4-pass decomposition 只用於 observability、debug、或需要獨立 
 
 ---
 
-## 8. Expanded Decomposition Only: Pass 4 `recommendation_response_pass`
+## 8. Node 5: `recommendation_response`
 
 ### 8.1 目標
 
-把 recommendation 轉成 chat / UI 可消費的呈現格式。
+把 Node 4 的結果轉成 chat / UI 可消費的呈現格式。
 
 ### 8.2 責任
 
-- `decision_mode: llm`
-- `decision_reason: 此步驟主要負責 recommendation 的 explanation 與 chat phrasing`
+`decision_mode: llm`
+`decision_reason: 自然語言生成`
+`logical_model_role: response_writer_model`
 
-- chat 中輸出少量高信心建議
+- chat 中輸出少量高信心建議（1 主推 + 1-2 備選）
 - UI 中輸出完整候選與篩選資訊
 - 產生 quick actions
 - 決定是否附帶 actionable nudges
@@ -426,8 +425,6 @@ expanded 4-pass decomposition 只用於 observability、debug、或需要獨立 
 
 - chat：預設 1 個主推 + 1-2 個備選
 - UI：可顯示更多候選與篩選器
-- 上方可顯示主推組
-- 下方可顯示附近店家 / 類別切換 / 更多候選
 
 ### 8.6 quick actions
 
@@ -440,12 +437,7 @@ expanded 4-pass decomposition 只用於 observability、debug、或需要獨立 
 - `開啟地圖`
 - `幫我記這個`
 
-其中：
-
-- `幫我記這個` 是 explicit intake action
-- 一旦使用者點擊，應直接轉進 `L3.1 intake flow`
-- 這不是 recommendation intent state
-- `幫我記這個` 與 `換一組` 應作為預設 quick actions 存在；具體 action 可依 channel / surface / context 降級或替換
+其中 `幫我記這個` 是 explicit intake action，點擊後直接轉進 `L3.1 intake flow`。
 
 ### 8.7 不可做的事
 
@@ -615,6 +607,116 @@ recipe recommendation 先不進第一版主流程，但保留 extension point。
 ### 13.3 delivery platform
 
 Foodpanda / 外送平台整合不納入 v1 contract。
+
+---
+
+## 13A. Menu Scan Mode（外食菜單掃描）
+
+### 13A.1 定位
+
+Menu scan 是 recommendation flow 的一個 input mode，不是 intake flow。
+
+核心差異：
+- intake flow：記錄**已吃**的食物
+- menu scan：在**吃之前**根據菜單幫使用者決定點什麼
+
+### 13A.2 觸發方式
+
+- 使用者在 chat 上傳菜單照片，並說「我在 XX 餐廳，有什麼可以點？」
+- 使用者在 chat 說「我等一下要去 XX，幫我看看菜單」並附上照片
+
+### 13A.3 Flow
+
+1. `vision_parser_model` 解析菜單照片，提取菜單項目清單（item name + 估算 kcal range）
+2. 進入 recommendation flow 的 `candidate_retrieval_filtering_and_ranking` node
+3. 以菜單項目作為 candidate pool，依剩餘預算 + 偏好排序
+4. 輸出推薦點什麼（例如「建議點雞腿飯約 550 kcal，符合你的剩餘預算 600 kcal」）
+
+### 13A.4 規則
+
+- 菜單解析結果是 recommendation 的 candidate source，不直接成為 canonical intake state
+- 使用者說「就點這個」後，才轉入 intake flow
+- 若菜單照片無法解析，系統應說明並引導使用者手動描述
+- `menu_scan_context` 作為 `recommendation_context_result` 的 optional 欄位
+
+### 13A.5 `MenuScanContext` 最小欄位
+
+- `scan_source`: `photo` / `text_description`
+- `restaurant_name`（若可識別）
+- `parsed_items[]`：每項包含 `item_name`、`estimated_kcal_range`、`confidence`
+- `parse_confidence`：整體解析信心
+- `unparsed_items[]`：無法識別的項目
+
+---
+
+## 13B. Swap Suggestion Mode（食物替換建議）
+
+### 13B.1 定位
+
+Swap suggestion 是 recommendation 的一個 sub-mode，觸發條件是使用者剛記錄了高熱量食物，系統主動提出具體替換選項。
+
+它不是「下一餐吃什麼」，而是「你剛才吃的東西，下次可以換成什麼」。
+
+### 13B.2 觸發條件
+
+- 使用者剛 commit 一個 `MealItem`，其 `estimated_kcal` 明顯高於同類食物的平均值
+- 或使用者剛超標，系統在 intake reply 後（獨立訊息）提出替換建議
+
+### 13B.3 規則
+
+- swap suggestion 是獨立訊息，不夾帶在 intake reply 裡
+- 只在使用者有歷史記錄（知道他常吃什麼）時才提出，cold-start 使用者不觸發
+- 建議應具體可執行（例如「全糖珍奶改半糖每次省 100 kcal，一週省 700 kcal」）
+- 不建立 proposal state，只是 recommendation 的 informational output
+- 使用者可以說「記住這個建議」，系統才寫入 confirmed preference memory
+
+### 13B.4 `SwapSuggestion` 最小欄位
+
+- `original_item_name`
+- `original_kcal`
+- `suggested_item_name`
+- `suggested_kcal`
+- `kcal_saving_per_instance`
+- `weekly_saving_estimate`（若使用者有固定頻率）
+- `suggestion_basis`：`preference_pattern` / `generic_healthier_option`
+
+---
+
+## 13C. Pre-Meal Planning Mode（餐前情境規劃）
+
+### 13C.1 定位
+
+Pre-meal planning 是 recommendation 的 proactive / context-aware variant，觸發條件是使用者說「等一下要去哪裡吃」或「今晚有聚餐」。
+
+### 13C.2 觸發方式
+
+- 使用者說「我等一下要去信義區吃飯」
+- 使用者說「今晚有公司聚餐，不知道會吃什麼」
+- 使用者說「我要去 XX 餐廳」
+
+### 13C.3 Flow
+
+1. 系統識別 pre-meal planning intent
+2. 讀取剩餘預算、偏好、位置（若可用）
+3. 若有具體地點：走 menu scan 或 nearby candidate retrieval
+4. 若無具體地點（例如聚餐）：走全天熱量分配策略（見 13C.4）
+5. 輸出建議
+
+### 13C.4 全天熱量分配策略（聚餐情境）
+
+當使用者說「今晚有聚餐，不知道會吃多少」：
+
+1. 系統計算今日剩餘預算
+2. 系統建議白天保留空間（例如「今晚聚餐建議保留 600 kcal，午餐控制在 400 kcal 以內」）
+3. 若使用者接受，系統在 chat 說明今日的分配策略
+4. 不建立 proposal state（這是 informational recommendation，不是 budget overlay）
+5. 若使用者說「幫我設定今晚保留 800 kcal」，才升格為 `planned_event_budget_allocation`（見 L3.4 補充）
+
+### 13C.5 規則
+
+- pre-meal planning 是 recommendation flow，不是 rescue flow
+- 不直接改寫 `DayBudgetLedger`，除非使用者明確確認分配策略
+- 聚餐後使用者記錄實際吃了什麼，走標準 intake flow
 
 ---
 

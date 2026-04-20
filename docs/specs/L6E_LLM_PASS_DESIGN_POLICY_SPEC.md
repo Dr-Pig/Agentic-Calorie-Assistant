@@ -189,10 +189,11 @@ L0、L1、L2、L3M、L3T、L4、L5、L6 多數文件定義的是：
 | L1 | Runtime ownership / layer policy | 0 | N/A | ownership, legal transitions, proposal boundary, commit boundary | none | no |
 | L2 | Data state / dictionary / contracts | 0 | N/A | schema, enums, canonical state, provenance, ledger fields | none | no |
 | L3.1 | Meal Thread Resolution / Intake | 4 | boundary-first collapse only; keep `task_meal_link` isolated | occurred-at normalization, downstream macro derivation, commit validation, deterministic guards | fuzzy boundary interpretation, clarify decision under ambiguity, nutrition estimation with incomplete evidence, final wording | yes |
-| L3.2 | Contextual Recommendation | 3 | 2-pass when candidate pool is already retrieved and filtered | candidate retrieval, hard constraint filtering, availability filtering, source joins | soft ranking, tradeoff synthesis, concise explanation | no |
+| L3.2 | Contextual Recommendation | 5 | 4-pass when candidate spec already exists; 3-pass when candidate spec and candidate pool are both already assembled | candidate retrieval, hard constraint filtering, availability filtering, source joins | context understanding, candidate spec generation, soft ranking, tradeoff synthesis, concise explanation | no |
 | L3.3A | Body Calibration Model | 0-1 | 0-pass preferred | trend math, expenditure estimation, confidence scoring, mismatch attribution | optional narrative explanation only | no |
 | L3.3B | Calibration Proposal Policy | 2-3 | `deterministic gate -> proposal response` when option families are template-shaped | proposal eligibility gate, blocked family rules, effect math, budget delta computation | proposal shaping, negotiation framing, response wording | no |
-| L3.4 | Rescue / Coaching | 2-3 | 2-pass default; 1-pass when rescue families are template-shaped | overshoot detection, spread math, horizon limits, viability scoring, cooldown checks | rescue family selection under soft tradeoffs, coaching phrasing, proposal presentation | no |
+| L3.4 | Rescue / Coaching | 4 expanded / 2 default | 2-pass default when response-only rescue posture is enough | overshoot detection, spread math, horizon limits, viability scoring, cooldown checks, option generation | proposal shaping, coaching phrasing, proposal presentation | no |
+| L3.5 | Body Observation / Exercise | 2 chat / 1 structured UI | answer-only paths should collapse into `general_chat` | TDEE recompute, MET math, ledger bonus writeback, canonical object create legality | observation extraction, exercise extraction, response wording | no |
 | L3.5 | Prompt contract / response surface | 0 | N/A | prompt schema, output contract, channel formatting rules | none at spec level | no |
 | L3M | Guardrail math | 0 | N/A | nutrition invariants, bounds, consistency checks, safety floors | none | no |
 | L3T | Typed runtime contract | 0 | N/A | typed payloads, required fields, validation envelopes | none | no |
@@ -229,18 +230,32 @@ L0、L1、L2、L3M、L3T、L4、L5、L6 多數文件定義的是：
 
 ### 4.2 Recommendation
 
-`L3.2 recommendation` 的 canonical default 是 3-node graph：
+`L3.2 recommendation` 的 canonical default 是 5-node graph：
 
-1. context shaping
-2. retrieval / candidate filtering plus ranking
-3. response or UI presentation
+1. `recommendation_context`
+2. `candidate_spec_generation`
+3. `candidate_retrieval`
+4. `ranking_and_synthesis`
+5. `recommendation_response`
 
-若 candidate pool 已由 deterministic retrieval 組好，則可 collapse 成 2-pass：
+正式規則：
 
-1. ranking / selection
-2. response
+- `recommendation_context` 應為 `llm`
+- `candidate_spec_generation` 應為 `llm`
+- `candidate_retrieval` 應為 deterministic
+- `ranking_and_synthesis` 應為 `llm`
+- `recommendation_response` 應為 `llm`
 
-`candidate_generation_pass` 可存在於 expanded mode，但不得再被視為所有路徑的必要 LLM pass。
+理由：
+
+- 若缺少 `candidate_spec_generation`，則 deterministic retrieval 只是在做 dumb SQL / hard-filter 查詢，candidate universe 從一開始就可能錯
+- recommendation 的 agentic 核心不是讓 LLM 直接亂選，而是先由 LLM 把自然語言偏好語義化，再由 deterministic retrieval 執行該 blueprint，最後再由 LLM 進行 contextual ranking and synthesis
+
+collapse 規則：
+
+- 若 `candidate_spec` 已由前段 surface 或 proactive handoff 明確提供，可 collapse 成 4-node
+- 若 `candidate_spec` 與 `candidate_pool` 皆已確定，才可進一步 collapse 成 3-node
+- `candidate_spec_generation` 不得被重新降格為 expanded-only helper
 
 ### 4.3 Calibration
 
@@ -256,21 +271,66 @@ L0、L1、L2、L3M、L3T、L4、L5、L6 多數文件定義的是：
 
 ### 4.4 Rescue
 
-`L3.4 rescue` 的 canonical default 是 2-node 或 3-node graph：
+`L3.4 rescue` 的 canonical default 應以 expanded 4-node graph 定義責任：
 
-1. deterministic trigger / viability assessment
-2. rescue option shaping
-3. response presentation（若 channel 需要）
+1. `trigger_and_viability_assessment`
+2. `option_generation`
+3. `proposal_shaping`
+4. `response_presentation`
 
-以下應視為 deterministic-first：
+decision ownership：
+
+- `trigger_and_viability_assessment` 應為 deterministic
+- `option_generation` 應為 deterministic
+- `proposal_shaping` 應為 `llm`
+- `response_presentation` 應為 `llm`
+
+以下必須留在 deterministic：
 
 - overshoot amount
 - spread horizon limits
 - safety floor checks
 - `recovery_viability`
 - cooldown / suppression
+- recovery-option math / days / cap mode generation
 
-`rescue_option_pass` 不得承擔本應由 deterministic rescue math 完成的責任。
+以下不得被硬規則化回 deterministic：
+
+- proposal family shaping
+- coaching framing
+- user-facing proposal condensation
+
+default collapse 規則：
+
+- 當 rescue 只需要 deterministic assessment + single response surface 時，可 collapse 為 2-node
+- 但 expanded 4-node 仍是 owner truth，避免 `option_generation` 與 `proposal_shaping` 再次混責
+
+### 4.5 Body Observation / Exercise
+
+`L3.5 body_observation / exercise` 採 thin workflow，不應誤標成 deterministic extraction。
+
+正式規則：
+
+- observation extraction / create path 應為 `llm`
+- exercise extraction / create path 應為 `llm`
+- TDEE recompute、MET math、ledger bonus writeback 應為 deterministic
+- pure answer path 應優先走 `general_chat + answer_only`，而不是重開 heavy workflow
+
+### 4.6 Proactive
+
+`L3.6 proactive` 現在就定義，不再延後為未來 bundle placeholder。
+
+canonical layering：
+
+1. deterministic trigger gate
+2. LLM contextual send / skip decision
+3. chat-first delivery
+
+正式規則：
+
+- schedule / event check、cooldown、suppression、quiet hours、onboarding gate 應為 deterministic
+- 是否真的送出、如何 contextualize、以及 `skip_reason` 應由 LLM 決定
+- proactive delivery 應進對應 workflow family surface，不在 scheduler 層直接做高影響 mutation
 
 ---
 
@@ -326,5 +386,6 @@ L0、L1、L2、L3M、L3T、L4、L5、L6 多數文件定義的是：
 - `collapse rules`
 - `deterministic-first nodes`
 - `LLM-backed nodes only`
+- `decision_mode` and `decision_reason` for any new or controversial step
 
-若缺少這五項，則該 pass design 視為未完整定義。
+若缺少這些欄位，則該 pass design 視為未完整定義。

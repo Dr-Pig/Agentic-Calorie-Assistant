@@ -106,6 +106,15 @@ def persist_text_meal_result(
     assistant_message_appended = False
     assistant_message_id: int | None = None
     if payload.reply_text:
+        # Collect traces for persistence
+        trace_blob = {
+            "llm_traces": payload.llm_traces,
+            "boundary_trace": payload.boundary_trace,
+            "judge_trace": payload.judge_trace,
+            "evidence_resolution_trace": payload.evidence_resolution_trace,
+            "token_usage": payload.token_usage,
+            "trace_contract": payload.trace_contract,
+        }
         assistant_msg = append_message(
             db,
             user,
@@ -113,6 +122,7 @@ def persist_text_meal_result(
             payload.reply_text,
             linked_meal_log_id=persisted_log.id if persisted_log else (latest_log.id if boundary_followup and latest_log else None),
             trace_id=request_id,
+            trace_json=trace_blob,
         )
         assistant_message_appended = True
         assistant_message_id = assistant_msg.id

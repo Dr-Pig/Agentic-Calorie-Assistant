@@ -43,25 +43,25 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
 | `2.3 Today UI / Read Models` | `completed enough` | prior follow-through plus `2.3c` replay-driven confidence checks now reconfirm current-budget/today behavior for the current wave |
 | `2.4 Weight / Body Observation` | `completed enough` | available and not blocking current mainline work; still required before `2.6` |
 | `2.5 Rescue` | `completed enough` | `2.5d` rescue response surface is complete enough to serve as a semantic-routing source family |
-| `2.6 Calibration` | `deferred` | not best-next while `2.2` mainline validation remains incomplete |
+| `2.6 Calibration` | `in progress` | recommendation truth-sync and 5-node alignment are landed, so calibration + body observation is now the active bounded wave |
 | `2.7 Memory / Retrieval Deepening` | `completed enough` | suite-governance groundwork, metadata-runnable runners, and first agent-governed capability suites are complete enough for the current wave |
-| `2.8 Recommendation` | `in progress` | `2.8a` foundation is landed and `2.8b` ranking/response is the active bounded wave |
+| `2.8 Recommendation` | `completed enough` | truth-sync plus 5-node candidate-spec, retrieval, ranking, and non-mutating response alignment are landed for the current wave |
 | `2.9 Proactive Nudges` | `not started` | downstream of recommendation and current mainline maturity |
 
 ## Global Pointer
 
-- `current_pointer_bundle`: `2.8 Recommendation`
-- `current_pointer_reason`: `the recommendation context and candidate foundation is landed, so the next bounded wave is recommendation 2.8b: ranking candidates by soft preference under hard constraints and surfacing a non-mutating chat response with intake hint handoff`
+- `current_pointer_bundle`: `2.6 Calibration`
+- `current_pointer_reason`: `workflow truth v2 sync is landed and recommendation now matches its 5-node owner truth, so the next bounded wave is calibration + body observation alignment before rescue/proactive widening`
 - `deferred_bundles[]`:
-  - `2.6 Calibration`
-- `deferred_bundle_reason`: `calibration remains legal later, but recommendation 2.8b is now the best next slice because the repo already has deterministic context and candidate retrieval, and can now add ranking/response without reopening proposal or routing semantics`
+  - `2.9 Proactive Nudges`
+- `deferred_bundle_reason`: `proactive remains downstream because it depends on stable recommendation, calibration, body observation, and rescue ownership truth`
 
 ## Current Execution Dashboard
 
-- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough, 2.7 suite-governance follow-through is complete enough for this wave, the budget-aware happy path is landed, recommendation 2.8a context/candidate foundation is landed, and the active branch is now recommendation 2.8b: deterministic-first ranking plus non-mutating chat response on top of the existing shared read-model surfaces`
-- `current_workflow_family`: `2.8 Recommendation`
-- `current_slice`: `2.8b-recommendation-ranking-and-response`
-- `current_goal`: `rank legal recommendation candidates by soft preference after hard-constraint filtering, produce a chat-first non-mutating response with 1 top pick plus 1-2 backups, and expose intake handoff only through hint_packet quick actions`
+- `current_status`: `2.2/2.3 remain complete enough, 2.5d rescue is complete enough, 2.7 suite-governance follow-through is complete enough for this wave, the budget-aware happy path is landed, workflow truth v2 sync is landed, recommendation now matches its 5-node runtime shape, and the active branch is now calibration + body observation alignment`
+- `current_workflow_family`: `2.6 Calibration + 2.4 Weight / Body Observation`
+- `current_slice`: `2.6a-calibration-and-body-observation-alignment`
+- `current_goal`: `keep calibration model deterministic-first, keep calibration proposal inside calibration family, and align body observation / exercise extraction-create paths to llm-owned thin workflows with deterministic downstream recompute`
 - `completed_so_far`:
   - `2.2a active-meal continuation foundation`
   - `2.2c cross-midnight attribution foundation`
@@ -104,12 +104,14 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `2.7f general_chat one-pass runtime surface plus official runnable suite for budget/goal/open-workflow queries`
   - `workflow graph / official truth v1 locked for general_chat, intake, rescue, recommendation, calibration, and body_observation`
   - `2.8a recommendation context packet plus deterministic candidate retrieval/filtering foundation`
-  - `2.8b recommendation ranking/response wave started`
+  - `workflow truth v2 approved: recommendation 5-node, rescue 4-node expanded, body observation extraction llm, proactive deterministic gate plus llm contextual dispatch`
+  - `workflow truth v2 sync landed in owner docs and execution truth`
+  - `recommendation 5-node runtime alignment landed: candidate_spec_generation, spec-driven retrieval, ranking/synthesis, and non-mutating response/handoff`
   - `2.7c official text-surface guard hardening is complete enough to unblock the next semantic-routing hardening wave`
 - `legal_next_slices[]`:
-  - `2.8b-recommendation-ranking-and-response`
-- `recommended_next_slice`: `2.8b-recommendation-ranking-and-response`
-- `why_this_next`: `the repo now has stable shared budget/body-plan truth, locked workflow graph truth, and the 2.8a context/candidate foundation, so recommendation 2.8b is the next bounded implementation wave that can advance without reopening high-impact routing or proposal semantics`
+  - `2.6a-calibration-and-body-observation-alignment`
+- `recommended_next_slice`: `2.6a-calibration-and-body-observation-alignment`
+- `why_this_next`: `recommendation is aligned, so the next bounded wave is to keep body observation extraction thin-and-llm-owned, keep downstream recompute deterministic, and keep calibration proposal firmly inside the calibration family`
 - `human_gate`: `high-impact-only`
 - `human_gate_scope`: `high_impact_only`
 - `autonomous_execution_default`: `continue_until_high_impact_decision`
@@ -119,30 +121,30 @@ Task artifacts and handoff docs are optional exception tools. They are not requi
   - `new_utterance_governed_official_truth`
 - `owner_mode`: `local`
 - `delegation_posture`: `prefer_workers_for_non_semantic_followthrough`
-- `key_files_or_subsystem`: `work should stay inside recommendation context shaping, deterministic candidate retrieval/filtering, sparse-safe preference summary inputs, and recommendation tests; do not widen into recommendation response surfaces, proposal semantics, or calibration/rescue redesign`
+- `key_files_or_subsystem`: `work should stay inside calibration model/gate/response, body observation and exercise write paths, related routes, and targeted tests; do not widen into rescue/proactive implementation yet`
 - `required_harness`:
   - `python scripts/check_layer_integrity.py`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings`
   - `powershell -ExecutionPolicy Bypass -File scripts/check_encoding.ps1 -AuditDocsPolicy`
   - relevant targeted, smoke, integration, benchmark, or eval commands for the actual slice
-- `verification_status`: `the recommendation 2.8a implementation wave is in progress: context shaping and deterministic candidate retrieval/filtering now exist locally with targeted tests passing, but execution-truth sync and broader slice-level follow-through are still required before the wave is fully landed`
-- `verification_reason`: `the branch now includes recommendation context shaping, sparse-safe preference summary loading, and deterministic candidate retrieval/filtering with targeted regressions passing. The remaining work is to complete truth sync, review any worker follow-through, and then rerun the relevant gates for the recommendation slice`
-- `last_verified_at`: `2026-04-18`
+- `verification_status`: `workflow truth v2 sync has passed and recommendation targeted runtime tests are green; calibration/body-observation route-level verification is partially blocked by readiness drift in unrelated dirty files`
+- `verification_reason`: `owner docs and execution truth are aligned, recommendation targeted tests and compile checks passed, and repo-level layer/encoding/fat-file checks passed. The remaining friction observed in weight-route tests comes from startup readiness requirements in unrelated dirty files, not from the workflow truth itself`
+- `last_verified_at`: `2026-04-19`
 
 ## Selection State
 
-- `active_critical_path_segment`: `shared budget/body-plan truth -> recommendation 2.8a context + deterministic candidate retrieval -> recommendation response surface -> calibration proposal/chat surfaces`
-- `current_domain_gate_status`: `2.1, 2.2, 2.3, onboarding/body-plan bootstrap, and workflow graph truth are sufficient enough for recommendation 2.8a`
+- `active_critical_path_segment`: `shared budget/body-plan truth -> recommendation 5-node runtime alignment -> calibration/body observation wave -> rescue wave -> proactive wave`
+- `current_domain_gate_status`: `2.1, 2.2, 2.3, onboarding/body-plan bootstrap, workflow truth v2 sync, and recommendation alignment are sufficient enough for calibration/body observation follow-through`
 - `mainline_validation_status`: `sufficient_for_domain_advance`
-- `selected_best_next_slice`: `2.8a-recommendation-context-and-candidate-foundation`
-- `selection_reason`: `the shared target/ledger trunk is now in place and the workflow graph truth is locked, so recommendation 2.8a is the first bounded workflow wave that can move from design truth into implementation without reopening product semantics`
-- `selection_reason_detail`: `recommendation can now safely read CurrentBudgetView, ActiveBodyPlanView, and sparse-safe preference signals to produce a deterministic-first candidate set. That makes 2.8a the highest-leverage next slice before response surfaces, calibration proposal chat, or broader routing work`
+- `selected_best_next_slice`: `2.6a-calibration-and-body-observation-alignment`
+- `selection_reason`: `recommendation is no longer the highest-risk drift point; calibration/body observation now provide the next bounded implementation surface that can advance without reopening rescue or proactive semantics`
+- `selection_reason_detail`: `the repo already has deterministic calibration model/gate foundations and typed body-observation persistence, so the next leverage point is to align thin llm extraction ownership and calibration-family proposal surfaces without crossing into proactive scheduling or rescue redesign`
 - `deferred_legal_slices[]`:
   - `2.6 next calibration slice`
-- `deferred_selection_reason`: `calibration remains legal later in the broad order, but recommendation 2.8a now has the required shared truth and can proceed without reopening proposal or commit semantics`
+- `deferred_selection_reason`: `proactive remains legal later, but calibration/body observation should land first because proactive dispatch depends on stable downstream workflow ownership`
 - `execution_surface`: `planner-local`
-- `execution_surface_reason`: `this wave is product-trunk-first and mostly deterministic: keep high-impact workflow design local, but allow bounded non-semantic follow-through across read-model, route, persistence, and test surfaces`
-- `last_replan_at`: `2026-04-18`
+- `execution_surface_reason`: `this wave is application-and-route bounded: keep calibration/body observation follow-through local, and leave rescue/proactive for the next slices once these foundations are stable`
+- `last_replan_at`: `2026-04-19`
 
 ## Working Rules
 

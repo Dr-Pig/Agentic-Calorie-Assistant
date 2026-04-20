@@ -8,6 +8,8 @@ from typing import Any
 
 import httpx
 
+from ..logger import logger
+
 
 DEFAULT_BASE_URL = "https://space.ai-builders.com/backend/v1"
 PLACEHOLDER_VALUES = {"", "replace-me", "https://api.example.com"}
@@ -146,6 +148,7 @@ class BuilderSpaceAdapter:
                         "stage": stage,
                     }
                     try:
+                        logger.debug(f"BuilderSpace request: stage={stage}, model={model}, URL={self.base_url}")
                         response = await client.post(
                             f"{self.base_url}/chat/completions",
                             params={"debug": "true"},
@@ -163,12 +166,14 @@ class BuilderSpaceAdapter:
                             attempt_trace["error"] = str(exc)
                             attempt_trace["response_excerpt"] = exc.response.text[:800]
                             transport_attempts.append(attempt_trace)
+                            logger.error(f"BuilderSpace HTTPError stage={stage} status={exc.response.status_code}")
                             raise RuntimeError(
                                 f"BuilderSpace request failed: status={exc.response.status_code}, body={exc.response.text[:800]}"
                             ) from exc
                         data = response.json()
                         attempt_trace["status"] = "success"
                         transport_attempts.append(attempt_trace)
+                        logger.info(f"BuilderSpace success: stage={stage}, model={model}, tokens={data.get('usage', {}).get('total_tokens', 'unknown')}")
                         break
                     except httpx.ReadTimeout as exc:
                         last_error = exc
@@ -190,6 +195,7 @@ class BuilderSpaceAdapter:
                     if data is not None:
                         break
                     if attempt_index < self.transport_retry_count + 1:
+                        logger.warning(f"BuilderSpace transport failure stage={stage}, attempt={attempt_index}. Retrying in {self.transport_retry_backoff_seconds * attempt_index}s...")
                         await asyncio.sleep(self.transport_retry_backoff_seconds * attempt_index)
                 if data is None:
                     raise last_error or RuntimeError("BuilderSpace transport failed without a captured exception.")

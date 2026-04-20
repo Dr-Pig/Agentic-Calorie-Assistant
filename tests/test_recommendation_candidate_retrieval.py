@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.application.recommendation_candidate_spec import build_recommendation_candidate_spec
 from app.application.recommendation_candidate_retrieval import build_recommendation_candidates
 from app.application.recommendation_context import build_recommendation_context
 from app.domain import ActiveBodyPlanView, CurrentBudgetView
@@ -13,6 +14,7 @@ def _candidate(
     kcal: int,
     kind: str = "generic",
     store_name: str | None = None,
+    source_metadata: dict[str, object] | None = None,
 ) -> RecommendationCandidate:
     return RecommendationCandidate(
         candidate_id=candidate_id,
@@ -21,6 +23,7 @@ def _candidate(
         store_name=store_name,
         estimated_kcal=kcal,
         fit_summary="ok",
+        source_metadata=source_metadata or {},
     )
 
 
@@ -44,8 +47,10 @@ def _context(*, remaining_kcal: int, raw_user_input: str = ""):
 
 
 def test_candidate_retrieval_prefers_historical_then_golden_then_fallback() -> None:
+    context = _context(remaining_kcal=700)
     result = build_recommendation_candidates(
-        context_packet=_context(remaining_kcal=700),
+        context_packet=context,
+        candidate_spec=build_recommendation_candidate_spec(context_packet=context),
         historical_matches=[
             _candidate("h1", "Chicken Bowl", kcal=520, store_name="Store A"),
         ],
@@ -66,8 +71,10 @@ def test_candidate_retrieval_prefers_historical_then_golden_then_fallback() -> N
 
 
 def test_candidate_retrieval_applies_kcal_filter_before_ordering() -> None:
+    context = _context(remaining_kcal=500)
     result = build_recommendation_candidates(
-        context_packet=_context(remaining_kcal=500),
+        context_packet=context,
+        candidate_spec=build_recommendation_candidate_spec(context_packet=context),
         historical_matches=[
             _candidate("h1", "Too Big", kcal=820, store_name="Store A"),
         ],
@@ -84,8 +91,10 @@ def test_candidate_retrieval_applies_kcal_filter_before_ordering() -> None:
 
 
 def test_candidate_retrieval_uses_safe_defaults_for_cold_start() -> None:
+    context = _context(remaining_kcal=650)
     result = build_recommendation_candidates(
-        context_packet=_context(remaining_kcal=650),
+        context_packet=context,
+        candidate_spec=build_recommendation_candidate_spec(context_packet=context),
         historical_matches=[],
         golden_orders=[],
         safe_defaults=[
@@ -98,3 +107,32 @@ def test_candidate_retrieval_uses_safe_defaults_for_cold_start() -> None:
     assert result.candidate_source_summary["safe_fallback"] == 2
     assert "missing_historical_matches" in result.coverage_gaps
     assert "cold_start" in result.coverage_gaps
+
+
+def test_candidate_retrieval_is_driven_by_candidate_spec_filters() -> None:
+    context = _context(remaining_kcal=700, raw_user_input="I want something light")
+    result = build_recommendation_candidates(
+        context_packet=context,
+        candidate_spec=build_recommendation_candidate_spec(context_packet=context),
+        historical_matches=[
+            _candidate(
+                "heavy",
+                "Heavy Plate",
+                kcal=520,
+                kind="generic",
+                store_name="Store A",
+                source_metadata={"item_kind": "fried"},
+            ),
+            _candidate(
+                "light",
+                "Light Bowl",
+                kcal=420,
+                kind="generic",
+                store_name="Store B",
+                source_metadata={"item_kind": "salad"},
+            ),
+        ],
+    )
+
+    assert [item.candidate_id for item in result.candidate_items] == ["light"]
+    assert result.candidate_filter_reasons["heavy"] == ["excluded_by_candidate_spec"]

@@ -119,11 +119,12 @@ v1 正式 role vocabulary：
 
 ### 5.2 Recommendation
 
-canonical default 依 `L6E` 採 3-node graph；以下只描述 LLM-backed node 存在時的 role mapping。
+canonical default 依 `L6E` 採 5-node graph；以下只描述 LLM-backed node 存在時的 role mapping。
 
 - `recommendation_context_pass` -> `fast_router_model`
-- `candidate_generation_pass` -> `fast_router_model`（僅當 candidate generation 不是 deterministic retrieval/filtering，而是獨立 LLM synthesis 時）
-- `ranking_and_selection_pass` -> `strict_reasoner_model`
+- `candidate_spec_generation_pass` -> `fast_router_model`
+- `candidate_retrieval_pass` -> deterministic（不映射 LLM role）
+- `ranking_and_synthesis_pass` -> `strict_reasoner_model`
 - `recommendation_response_pass` -> `response_writer_model`
 
 ### 5.3 Calibration Proposal
@@ -146,19 +147,42 @@ canonical default 依 `L6E` 採 2-3 node graph：
 
 ### 5.4 Rescue
 
-canonical default 依 `L6E` 採 2-3 node graph。
+canonical default 依 `L6E` 採 expanded 4-node graph。
 
 正式規則：
 
-- `rescue_trigger_pass` 與 `rescue_assessment_pass` 若對應的是 overshoot math、horizon、viability、safety floor、cooldown 等 deterministic step，則不分配 LLM role
-- 只有當某個 rescue node 的責任已被 domain spec 明確標示為 LLM-backed 時，才可在本節做 role mapping
+- `trigger_and_viability_assessment_pass` -> deterministic（不映射 LLM role）
+- `option_generation_pass` -> deterministic（不映射 LLM role）
+- `proposal_shaping_pass` -> `strict_reasoner_model`
+- `response_presentation_pass` -> `response_writer_model`
 
-常見 LLM-backed node 映射：
+不得再使用舊的模糊映射，把 deterministic rescue math 與 proposal shaping 混在同一個 `rescue_option_pass`。
 
-- `rescue_option_pass` -> `strict_reasoner_model`
-- `rescue_response_pass` -> `response_writer_model`
+### 5.5 Body Observation / Exercise
 
-### 5.5 Future Vision Intake
+- `observation_extraction_pass` -> `fast_router_model`
+- `observation_response_pass` -> `response_writer_model`
+- `exercise_extraction_pass` -> `fast_router_model`
+- `exercise_response_pass` -> `response_writer_model`
+
+補充規則：
+
+- `TDEE_recompute_step`、`MET_estimation_step`、`exercise_bonus_writeback_step` 保持 deterministic，不映射 LLM role
+
+### 5.6 Proactive
+
+canonical default 採 3-layer orchestration：
+
+- `proactive_trigger_gate` -> deterministic（不映射 LLM role）
+- `proactive_contextual_dispatch_pass` -> `strict_reasoner_model`
+- `proactive_delivery_pass` -> `response_writer_model`
+
+補充規則：
+
+- `send` vs `skip` 的 contextual decision 與 `skip_reason` 屬於 LLM-backed dispatch layer
+- schedule / cooldown / suppression / quiet-hours / onboarding gate 保持 deterministic
+
+### 5.7 Future Vision Intake
 
 - image / multimodal meal parse -> `vision_parser_model`
 

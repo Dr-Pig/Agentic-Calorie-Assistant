@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.application.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
+from app.application.recommendation_candidate_retrieval import build_recommendation_candidates
+from app.application.recommendation_candidate_spec import build_recommendation_candidate_spec
 from app.application.recommendation_candidate_retrieval import RecommendationCandidateRetrievalResult
 from app.application.recommendation_context import build_recommendation_context
-from app.application.recommendation_ranking import rank_recommendation_candidates
+from app.application.recommendation_ranking import build_recommendation_ranking_and_synthesis
 from app.application.recommendation_response import build_recommendation_response
 from app.database import get_or_create_user
 from app.domain import ActiveBodyPlanView, CurrentBudgetView
@@ -16,7 +16,6 @@ from app.infrastructure.canonical_persistence import commit_meal_payload_to_cano
 from app.infrastructure.preference_profile_persistence import PreferenceFacet, PreferenceProfileSummary
 from app.models import Base, BodyPlanRecord, DayBudgetLedgerRecord, MealThreadRecord
 from app.schemas import CommitRequestCandidate, RecommendationCandidate
-from app.web import recommendation_routes
 
 
 def _session() -> Session:
@@ -33,7 +32,17 @@ def _candidate(
     estimated_kcal: int,
     retrieval_tier: str,
     store_name: str | None = None,
+    source_metadata: dict[str, object] | None = None,
 ) -> RecommendationCandidate:
+    metadata = {
+        "retrieval_tier": retrieval_tier,
+        "item_kind": "meal",
+        "staple_type": "rice",
+        "cuisine_family": "taiwanese",
+        "protein_posture": "high_protein",
+    }
+    if source_metadata:
+        metadata.update(source_metadata)
     return RecommendationCandidate(
         candidate_id=candidate_id,
         candidate_kind="golden_order",
@@ -42,13 +51,7 @@ def _candidate(
         estimated_kcal=estimated_kcal,
         protein_g=24,
         fit_summary="fit",
-        source_metadata={
-            "retrieval_tier": retrieval_tier,
-            "item_kind": "meal",
-            "staple_type": "rice",
-            "cuisine_family": "taiwanese",
-            "protein_posture": "high_protein",
-        },
+        source_metadata=metadata,
     )
 
 
@@ -83,8 +86,9 @@ def test_recommendation_response_returns_top_pick_backups_and_hint_packet() -> N
         candidate_count=3,
     )
 
-    ranking_result = rank_recommendation_candidates(
+    ranking_result = build_recommendation_ranking_and_synthesis(
         context_packet=context,
+        candidate_spec=build_recommendation_candidate_spec(context_packet=context),
         retrieval_result=retrieval_result,
     )
     response_packet = build_recommendation_response(
@@ -136,8 +140,9 @@ def test_recommendation_response_remains_non_mutating_and_falls_back_without_can
         active_body_plan_view=ActiveBodyPlanView(user_id=user.id, daily_budget_kcal=1500),
         raw_user_input="推薦晚餐",
     )
-    ranking_result = rank_recommendation_candidates(
+    ranking_result = build_recommendation_ranking_and_synthesis(
         context_packet=context,
+        candidate_spec=build_recommendation_candidate_spec(context_packet=context),
         retrieval_result=RecommendationCandidateRetrievalResult(
             candidate_items=[],
             candidate_source_summary={},
@@ -153,12 +158,13 @@ def test_recommendation_response_remains_non_mutating_and_falls_back_without_can
     assert response_packet.response.top_pick is None
     assert response_packet.response.hint_packet is None
     assert not any(action["action"] == "recommendation_intake_handoff" for action in response_packet.response.quick_actions)
+    assert response_packet.ui_hints["candidate_spec_posture"] == "budget_constrained"
     assert db.query(BodyPlanRecord).count() == before_body_plan_count
     assert db.query(DayBudgetLedgerRecord).count() == before_ledger_count
     assert db.query(MealThreadRecord).count() == before_meal_thread_count
 
 
-def test_recommendation_preview_route_returns_chat_surface_payload() -> None:
+def test_recommendation_pipeline_exposes_candidate_spec_and_handoff_ready() -> None:
     db = _session()
     user = get_or_create_user(db, "recommendation-preview")
     bootstrap_body_plan_for_date(
@@ -193,29 +199,56 @@ def test_recommendation_preview_route_returns_chat_surface_payload() -> None:
         ),
     )
 
-    app = FastAPI()
-    app.include_router(recommendation_routes.router)
+    context = build_recommendation_context(
+        user_id=user.id,
+        current_budget_view=CurrentBudgetView(
+            user_id=user.id,
+            local_date="2026-04-18",
+            budget_kcal=1500,
+            consumed_kcal=420,
+            remaining_kcal=1080,
+            active_meal_count=1,
+        ),
+        active_body_plan_view=ActiveBodyPlanView(user_id=user.id, daily_budget_kcal=1500),
+        raw_user_input="recommend something light nearby",
+    )
+    candidate_spec = build_recommendation_candidate_spec(context_packet=context)
+    retrieval_result = build_recommendation_candidates(
+        context_packet=context,
+        candidate_spec=candidate_spec,
+        historical_matches=[
+            _candidate(
+                "top",
+                title="Chicken Bowl",
+                store_name="Bowl Lab",
+                estimated_kcal=620,
+                retrieval_tier="historical_match",
+                source_metadata={"item_kind": "salad"},
+            ),
+        ],
+        nearby_candidates=[
+            _candidate(
+                "backup-1",
+                title="Tofu Bento",
+                store_name="Bento House",
+                estimated_kcal=560,
+                retrieval_tier="nearby",
+                source_metadata={"item_kind": "salad"},
+            ),
+        ],
+    )
+    ranking_result = build_recommendation_ranking_and_synthesis(
+        context_packet=context,
+        candidate_spec=candidate_spec,
+        retrieval_result=retrieval_result,
+    )
+    response_packet = build_recommendation_response(
+        context_packet=context,
+        ranking_result=ranking_result,
+    )
 
-    def override_get_db():
-        try:
-            yield db
-        finally:
-            pass
-
-    app.dependency_overrides[recommendation_routes.get_db] = override_get_db
-    with TestClient(app) as client:
-        response = client.get(
-            "/recommendation/preview",
-            params={
-                "user_id": "recommendation-preview",
-                "local_date": "2026-04-18",
-                "raw_user_input": "幫我推薦附近晚餐",
-            },
-        )
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["context_packet"]["recommendation_mode"] == "reactive_chat"
-    assert payload["response"]["top_pick"] is not None
-    assert payload["ui_hints"]["non_mutating"] is True
-    assert any(action["action"] == "recommendation_intake_handoff" for action in payload["response"]["quick_actions"])
+    assert context.recommendation_mode == "reactive_chat"
+    assert candidate_spec.handoff_ready is True
+    assert response_packet.response.top_pick is not None
+    assert response_packet.ui_hints["non_mutating"] is True
+    assert any(action["action"] == "recommendation_intake_handoff" for action in response_packet.response.quick_actions)

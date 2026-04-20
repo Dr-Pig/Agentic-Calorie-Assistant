@@ -9,6 +9,56 @@ This log records implementation reality shifts that require the next-step plan t
 
 It should be appended over time instead of rewritten.
 
+## 2026-04-19 — Workflow Truth v2 Sync Required Before Further Widening
+
+### Trigger
+
+- product approval locked a new workflow truth set that no longer matches several owner docs:
+  - `recommendation` must be 5-node canonical
+  - `rescue` must separate deterministic option generation from LLM proposal shaping
+  - `body_observation` extraction must be `llm`, not `hybrid`
+  - `proactive` must now be an explicit deterministic-gate plus LLM contextual-dispatch workflow
+
+### What The Planning Reality Became
+
+- recommendation runtime widening must pause until owner docs stop encoding the older 3-node recommendation truth
+- rescue implementation must not proceed under a spec that still blurs deterministic rescue math with proposal shaping
+- body observation and proactive can no longer stay as implied or deferred domains; they now need readable owner truth
+
+### Assumptions That Expired
+
+- "recommendation 2.8b can proceed safely on top of existing owner docs"
+- "proactive can stay a downstream placeholder until after recommendation implementation"
+- "garbled owner docs for body observation / proactive are good enough for implementation"
+
+### Next-Phase Corrections
+
+- run a truth-sync wave before additional runtime widening
+- align `L6E`, `L6C`, `CURRENT_EXECUTION_PLAN`, and the relevant `L3.x` workflow specs
+- rebuild the garbled `L3.5` and `L3.6` owner docs into readable, build-safe truth
+
+## 2026-04-19 — Recommendation 5-Node Runtime Alignment Landed
+
+### Trigger
+
+- workflow truth v2 sync was completed, so recommendation could no longer stay on the older context-plus-deterministic-retrieval shape
+
+### What The Code Actually Became
+
+- recommendation now has an explicit `candidate_spec_generation` step
+- deterministic candidate retrieval now executes against a generated semantic blueprint instead of raw context alone
+- ranking/synthesis and response remain non-mutating and handoff-only
+
+### Assumptions That Expired
+
+- "deterministic retrieval plus ranking is enough to avoid NPC-like recommendation behavior"
+- "recommendation runtime can stay aligned to owner truth without a real candidate spec step"
+
+### Next-Phase Corrections
+
+- move the active pointer to calibration + body observation alignment
+- keep route-level verification honest about unrelated readiness drift in the dirty tree
+
 ## 2026-04-17 — Whole-Product Suite-Governance Correction
 
 ### Trigger

@@ -92,6 +92,7 @@ class MessageBuffer(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
     linked_meal_log_id: Mapped[Optional[int]] = mapped_column(ForeignKey("meal_logs.id"), nullable=True, index=True)
     trace_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    trace_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
     user: Mapped["User"] = relationship(back_populates="messages")
 

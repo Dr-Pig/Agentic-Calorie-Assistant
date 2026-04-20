@@ -345,6 +345,16 @@ pass 3 可輸出 `MealItem` 分類資訊，分兩層：
 - 不建立 proposal
 - 對外預設以 `MealItem` 級呈現，不做 ingredient 級細拆，除非使用者主動要求
 
+### 7.6 超標說明規則
+
+若 `CurrentBudgetView.remaining_kcal < 0`（今日已超標），`final_response_pass` 必須：
+
+- 在 reply 中明確說明超標量（例如「今天已超出目標約 550 kcal」）
+- 不可只說「已記錄」而不提超標狀態
+- 不可在同一則 reply 裡附加 rescue 建議（rescue 是獨立訊息，見 L3.4 Section 4.0）
+
+若 `remaining_kcal >= 0`，正常呈現剩餘預算即可，不需要特別說明。
+
 ---
 
 ## 8. Deterministic / Commit Contract
@@ -436,6 +446,13 @@ pass 3 可輸出 `MealItem` 分類資訊，分兩層：
 - supersede 舊 active version（若為 correction）
 - 建立 `LedgerEntry(meal_consumption)`
 - refresh `CurrentBudgetView`
+
+**Post-commit optional hooks（不屬於 intake flow 本身，由 application layer 決定是否觸發）：**
+
+- `swap_suggestion_check`：若新 commit 的 `MealItem` 中有 `estimated_kcal` 明顯高於同類食物平均值的 item，且使用者有足夠歷史記錄（非 cold-start），可觸發 L3.2 swap suggestion mode，作為獨立訊息送出
+- `rescue_trigger_check`：若 commit 後 `CurrentBudgetView.remaining_kcal < 0`，`ProactiveScheduler` 的 `budget_alert_check` 可在適當時機（非立即）觸發 rescue nudge
+
+這兩個 hook 都是 post-commit 的獨立 flow，不夾帶在 intake reply 裡。
 
 ### 8.6 `occurred_at` 不可變性規則
 

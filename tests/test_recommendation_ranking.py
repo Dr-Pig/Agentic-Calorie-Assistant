@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from app.application.recommendation_candidate_spec import build_recommendation_candidate_spec
 from app.application.recommendation_candidate_retrieval import RecommendationCandidateRetrievalResult
 from app.application.recommendation_context import build_recommendation_context
-from app.application.recommendation_ranking import rank_recommendation_candidates
+from app.application.recommendation_ranking import build_recommendation_ranking_and_synthesis
 from app.domain import ActiveBodyPlanView, CurrentBudgetView, ProposalContainer
 from app.infrastructure.preference_profile_persistence import PreferenceFacet, PreferenceProfileSummary
 from app.schemas import RecommendationCandidate
@@ -84,8 +85,9 @@ def test_recommendation_ranking_applies_hard_constraints_before_soft_preferences
         candidate_count=2,
     )
 
-    result = rank_recommendation_candidates(
+    result = build_recommendation_ranking_and_synthesis(
         context_packet=context,
+        candidate_spec=build_recommendation_candidate_spec(context_packet=context),
         retrieval_result=retrieval_result,
     )
 
@@ -145,8 +147,9 @@ def test_recommendation_ranking_uses_soft_preferences_to_break_ties() -> None:
         candidate_count=2,
     )
 
-    result = rank_recommendation_candidates(
+    result = build_recommendation_ranking_and_synthesis(
         context_packet=context,
+        candidate_spec=build_recommendation_candidate_spec(context_packet=context),
         retrieval_result=retrieval_result,
     )
 
@@ -192,8 +195,9 @@ def test_recommendation_ranking_filters_excess_when_rescue_is_active() -> None:
         candidate_count=2,
     )
 
-    result = rank_recommendation_candidates(
+    result = build_recommendation_ranking_and_synthesis(
         context_packet=context,
+        candidate_spec=build_recommendation_candidate_spec(context_packet=context),
         retrieval_result=retrieval_result,
     )
 

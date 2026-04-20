@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="bg-slate-50 text-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canary E2E Canvas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Outfit', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .chat-container { scroll-behavior: smooth; }
+        .bubble-left { background: white; border-radius: 16px; border-top-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .bubble-right { background: #95ec79; border-radius: 16px; border-top-right-radius: 4px; color: #1c1c1c; box-shadow: 0 1px 2px rgba(0,0,0,0.05); text-align: left; }
+        .loading-dots:after { content: ' .'; animation: dots 1.5s steps(5, end) infinite; }
+        @keyframes dots { 0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); } 40% { color: #666; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); } 60% { text-shadow: .25em 0 0 #666, .5em 0 0 rgba(0,0,0,0); } 80%, 100% { text-shadow: .25em 0 0 #666, .5em 0 0 #666; } }
+        /* Syncing Overlay */
+        .syncing-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(2px); z-index: 10; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .syncing-overlay.active { opacity: 1; pointer-events: auto; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- HEADER -->
+    <header class="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-20">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-emerald-500 rounded flex items-center justify-center text-white font-black text-sm">E2E</div>
+            <div>
+                <h1 class="text-sm font-bold text-slate-900 leading-none">Canary Sandbox</h1>
+                <p class="text-[10px] text-slate-500 font-medium tracking-widest mt-0.5">ONBOARDING &rarr; INTAKE &rarr; SHARED TRUTH</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span class="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded" id="current-user-display">USER: e2e-tester-01</span>
+            <button onclick="resetData()" class="text-xs font-bold text-red-500 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition active:scale-95">Reset Session</button>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- PANEL 1: ONBOARDING -->
+        <div class="w-[340px] bg-white border-r border-slate-200 overflow-y-auto no-scrollbar flex flex-col z-10 transition-transform relative">
+            <div class="p-5 border-b border-slate-100 sticky top-0 bg-white/95 backdrop-blur z-10">
+                <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest">1. Onboarding Profile</h2>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Date Offset (Debug)</label>
+                    <input type="date" id="ob-date" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Weight (kg)</label>
+                        <input type="number" id="ob-weight" value="70" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Height (cm)</label>
+                        <input type="number" id="ob-height" value="175" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Age</label>
+                        <input type="number" id="ob-age" value="30" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Sex</label>
+                        <select id="ob-sex" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Activity Level</label>
+                    <select id="ob-activity" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                        <option value="sedentary">Sedentary</option>
+                        <option value="light">Light</option>
+                        <option value="moderate" selected>Moderate</option>
+                        <option value="active">Active</option>
+                        <option value="very_active">Very Active</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Goal Type</label>
+                    <select id="ob-goal" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                        <option value="lose_weight" selected>Lose Weight</option>
+                        <option value="maintain_weight">Maintain Weight</option>
+                        <option value="gain_weight">Gain Weight</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Target Rate (kg/week)</label>
+                    <input type="number" step="0.1" id="ob-rate" value="0.5" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm">
+                </div>
+                <div class="pt-4 border-t border-slate-100">
+                    <button onclick="submitOnboarding()" id="btn-onboard" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition active:scale-95 text-sm">
+                        Initialize Body Plan
+                    </button>
+                    <p id="ob-status" class="text-xs text-center font-bold text-emerald-600 mt-3 hidden">Setup Complete!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANEL 2: CHAT INTERFACE (LINE-LIKE) -->
+        <div class="w-[380px] flex flex-col flex-shrink-0 bg-[#849ebc] border-r border-slate-200 relative">
+            <div class="p-3 bg-white/90 backdrop-blur z-10 flex items-center justify-center border-b border-black/5">
+                <span class="text-sm border-b border-slate-100 text-center font-bold text-slate-800 w-full pb-3">Canary Diet AI</span>
+            </div>
+            
+            <div id="chat-box" class="flex-1 overflow-y-auto chat-container p-4 space-y-4">
+                <div class="flex items-start mb-4">
+                    <div class="w-8 h-8 rounded-full bg-emerald-500 flex-shrink-0 mr-2 flex items-center justify-center text-[10px] text-white font-bold">AI</div>
+                    <div class="bubble-left p-3 shadow-sm max-w-[75%] text-slate-800 text-sm">
+                        設定完成後，隨時告訴我你吃了什麼，我會幫你計算熱量並更新預算！
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3 bg-white border-t border-slate-200 z-10 flex">
+                <input type="text" id="chat-input" class="flex-1 bg-slate-100 border-none rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-300" placeholder="Aa" onkeypress="if(event.key==='Enter') sendMessage()">
+                <button onclick="sendMessage()" class="bg-emerald-500 text-white rounded-xl px-4 ml-2 font-bold text-sm hover:bg-emerald-600 transition">傳送</button>
+            </div>
+        </div>
+
+        <!-- PANEL 3: READ MODELS (TODAY & BODY PLAN) -->
+        <div class="flex-1 overflow-y-auto no-scrollbar bg-slate-50 relative p-8">
+            <div id="sync-overlay" class="syncing-overlay">
+                <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center space-x-3">
+                    <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span class="font-bold text-sm tracking-wide">Syncing Surfaces...</span>
+                </div>
+            </div>
+
+            <div class="max-w-2xl mx-auto space-y-8">
+                
+                <!-- BODY PLAN -->
+                <div class="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                        <div class="flex items-center space-x-2">
+                            <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest">Active Body Plan</h2>
+                            <button onclick="logWeightPrompt()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded transition">✏️ Edit Weight</button>
+                        </div>
+                        <span class="bg-indigo-50 text-indigo-600 text-[9px] font-extrabold uppercase px-2 py-0.5 rounded tracking-widest">Read Model</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Goal</p>
+                            <p id="bp-goal" class="text-sm font-black text-slate-800">--</p>
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Target (kcal)</p>
+                            <p id="bp-target" class="text-2xl font-black text-emerald-600">--</p>
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Deficit</p>
+                            <p id="bp-deficit" class="text-sm font-black text-slate-800">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TODAY BUDGET -->
+                <div class="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                        <div class="flex items-center space-x-2">
+                            <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest">Today Ledger Truth</h2>
+                            <button onclick="adjustBudgetPrompt()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded transition">+/- Adjust Budget</button>
+                        </div>
+                        <span class="bg-emerald-50 text-emerald-600 text-[9px] font-extrabold uppercase px-2 py-0.5 rounded tracking-widest">Read Model</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="p-3">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Budget</p>
+                            <p id="td-budget" class="text-2xl font-black text-slate-800">--</p>
+                        </div>
+                        <div class="p-3">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Consumed</p>
+                            <p id="td-consumed" class="text-2xl font-black text-rose-500">--</p>
+                        </div>
+                        <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-800">
+                            <p class="text-[10px] font-bold text-emerald-600/80 uppercase tracking-wider mb-1">Remaining</p>
+                            <p id="td-remaining" class="text-3xl font-black">--</p>
+                        </div>
+                    </div>
+                    
+                    <!-- MEAL LOGS -->
+                    <div class="mt-6">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-2">Committed Meals</h3>
+                        <ul id="td-meals" class="space-y-2">
+                            <li class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center text-xs text-slate-400 italic font-medium">No meals logged today yet.</li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Stable user ID across page reloads (sessionStorage)
+        let USER_ID = sessionStorage.getItem('e2e_user_id');
+        if (!USER_ID) {
+            USER_ID = "e2e_tester_" + Math.floor(Math.random()*1000);
+            sessionStorage.setItem('e2e_user_id', USER_ID);
+        }
+        document.getElementById('current-user-display').innerText = `USER: ${USER_ID}`;
+
+        // Init dates
+        const today = new Date();
+        const localDateStr = today.toISOString().split('T')[0];
+        document.getElementById('ob-date').value = localDateStr;
+
+        let messageCounter = 0;
+        const CHAT_STORAGE_KEY = `chat_history_${USER_ID}`;
+
+        function getNextId() { return 'msg-' + (++messageCounter); }
+
+        // --- Chat history persistence ---
+        function saveChatHistory() {
+            const box = document.getElementById('chat-box');
+            const entries = [];
+            box.querySelectorAll('[data-role]').forEach(el => {
+                entries.push({ role: el.dataset.role, text: el.querySelector('.bubble-left,.bubble-right')?.innerHTML || '' });
+            });
+            try { localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(entries)); } catch(e) {}
+        }
+
+        function loadChatHistory() {
+            try {
+                const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+                if (!raw) return;
+                const entries = JSON.parse(raw);
+                const box = document.getElementById('chat-box');
+                // Keep only the initial welcome message
+                entries.forEach(e => {
+                    appendMessage(e.role === 'user' ? 'user' : 'bot', e.text, true);
+                });
+            } catch(e) {}
+        }
+
+        async function submitOnboarding() {
+            const btn = document.getElementById('btn-onboard');
+            btn.innerText = "Processing...";
+            btn.disabled = true;
+
+            try {
+                const req = {
+                    user_id: USER_ID,
+                    sex: document.getElementById('ob-sex').value,
+                    age_years: parseInt(document.getElementById('ob-age').value),
+                    height_cm: parseFloat(document.getElementById('ob-height').value),
+                    current_weight_kg: parseFloat(document.getElementById('ob-weight').value),
+                    activity_level: document.getElementById('ob-activity').value,
+                    goal_type: document.getElementById('ob-goal').value,
+                    weekly_target_rate_kg: parseFloat(document.getElementById('ob-rate').value),
+                    local_date: document.getElementById('ob-date').value,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                };
+
+                const res = await fetch('/onboarding/bootstrap', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(req)
+                });
+                
+                if(!res.ok) throw new Error("Failed to bootstrap");
+                
+                const data = await res.json();
+                
+                const status = document.getElementById('ob-status');
+                status.classList.remove('hidden');
+                setTimeout(() => status.classList.add('hidden'), 3000);
+                
+                await syncSurfaces();
+                
+            } catch(e) {
+                alert("Error: " + e.message);
+            } finally {
+                btn.innerText = "Initialize Body Plan";
+                btn.disabled = false;
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if(!text) return;
+
+            appendMessage('user', text, false);
+            input.value = '';
+            
+            const loadingId = appendMessage('bot', '<span class="loading-dots text-slate-500">...</span>');
+            
+            try {
+                const res = await fetch('/estimate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        user_id: USER_ID,
+                        allow_search: true
+                    })
+                });
+                const data = await res.json();
+                
+                updateBotMessage(loadingId, data.coach_message);
+                saveChatHistory();
+
+                // Triggers an automatic UI sync to update Ledger read models!
+                await syncSurfaces();
+
+            } catch (err) {
+                updateBotMessage(loadingId, "連線失敗，請檢查後端是否正常運行。");
+            }
+        }
+
+        async function logWeightPrompt() {
+            const val = prompt("請輸入今日最新的體重 (kg)：");
+            if (!val || isNaN(parseFloat(val))) return;
+            try {
+                const obDate = document.getElementById('ob-date').value;
+                const res = await fetch('/weight/observation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: USER_ID, weight_kg: parseFloat(val), local_date: obDate })
+                });
+                if (!res.ok) throw new Error("API failed");
+                alert("體重已更新！Body Plan 將自動重新計算 TDEE 與目標。");
+                await syncSurfaces();
+            } catch (e) {
+                alert("更新失敗：" + e.message);
+            }
+        }
+
+        async function adjustBudgetPrompt() {
+            const val = prompt("請輸入今日要微調的預算 (正數代表增加預算，負數代表扣除預算)：");
+            if (!val || isNaN(parseInt(val))) return;
+            try {
+                const obDate = document.getElementById('ob-date').value;
+                const res = await fetch('/today/budget-adjustment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: USER_ID, delta_kcal: parseInt(val), local_date: obDate })
+                });
+                if (!res.ok) throw new Error("API failed");
+                alert("預算微調已生效！");
+                await syncSurfaces();
+            } catch (e) {
+                alert("微調失敗：" + e.message);
+            }
+        }
+
+        function appendMessage(role, text, skipSave) {
+            const id = getNextId();
+            const box = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            div.dataset.role = role;
+
+            if(role === 'bot') {
+                div.className = 'flex items-start mb-4';
+                div.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-emerald-500 flex-shrink-0 mr-2 flex items-center justify-center text-[10px] text-white font-bold">AI</div>
+                    <div id="${id}" class="bubble-left p-3 text-sm max-w-[80%] text-slate-800 whitespace-pre-wrap">${text}</div>
+                `;
+            } else {
+                div.className = 'flex items-start justify-end mb-4';
+                div.innerHTML = `
+                    <div id="${id}" class="bubble-right p-3 text-sm max-w-[80%] whitespace-pre-wrap">${text}</div>
+                `;
+            }
+
+            box.appendChild(div);
+            setTimeout(() => box.scrollTop = box.scrollHeight, 10);
+            if (!skipSave && role === 'user') saveChatHistory();
+            return id;
+        }
+
+        function updateBotMessage(id, text) {
+            const el = document.getElementById(id);
+            if(el) el.innerHTML = text;
+            const box = document.getElementById('chat-box');
+            setTimeout(() => box.scrollTop = box.scrollHeight, 10);
+        }
+
+        async function syncSurfaces() {
+            const overlay = document.getElementById('sync-overlay');
+            overlay.classList.add('active');
+            
+            try {
+                const obDate = document.getElementById('ob-date').value;
+                const [bpRes, tdRes] = await Promise.all([
+                    fetch(`/body-plan/active?user_id=${USER_ID}&local_date=${obDate}`),
+                    fetch(`/today/current-budget?user_id=${USER_ID}&local_date=${obDate}`)
+                ]);
+                
+                if(bpRes.ok) {
+                    const bp = await bpRes.json();
+                    document.getElementById('bp-goal').innerText = bp.goal_type || 'unlinked';
+                    document.getElementById('bp-target').innerText = bp.recommended_target_kcal || 0;
+                    // Deficit = TDEE - target (how much under maintenance)
+                    const tdee = bp.estimated_tdee || 0;
+                    const target = bp.recommended_target_kcal || 0;
+                    const deficit = tdee - target;
+                    document.getElementById('bp-deficit').innerText = deficit > 0 ? `-${deficit}` : (deficit === 0 ? '0' : `+${Math.abs(deficit)}`);
+                }
+                
+                if(tdRes.ok) {
+                    const td = await tdRes.json();
+                    document.getElementById('td-budget').innerText = td.budget_kcal || 0;
+                    document.getElementById('td-consumed').innerText = td.consumed_kcal || 0;
+                    const remaining = td.remaining_kcal || 0;
+                    const remainEl = document.getElementById('td-remaining');
+                    remainEl.innerText = remaining;
+                    // Over-budget color coding
+                    const remainCard = remainEl.closest('.rounded-xl') || remainEl.parentElement;
+                    if (remaining < 0) {
+                        remainCard.className = 'p-3 bg-rose-50 rounded-xl border border-rose-200 text-rose-800';
+                        remainEl.className = 'text-3xl font-black text-rose-600';
+                    } else if (remaining < 200) {
+                        remainCard.className = 'p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800';
+                        remainEl.className = 'text-3xl font-black text-amber-600';
+                    } else {
+                        remainCard.className = 'p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-800';
+                        remainEl.className = 'text-3xl font-black';
+                    }
+                    
+                    const mealsUl = document.getElementById('td-meals');
+                    if(td.meals && td.meals.length > 0) {
+                        mealsUl.innerHTML = td.meals.map(m => `
+                            <li class="bg-white border border-slate-100 rounded-xl p-3 shadow-sm hover:shadow-md transition cursor-default">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-slate-800 text-sm">${m.meal_title}</span>
+                                    <span class="text-xs font-black text-rose-500 bg-rose-50 px-2 py-1 rounded">${m.total_kcal} kcal</span>
+                                </div>
+                                <div class="flex mt-1 space-x-2">
+                                     <span class="text-[10px] text-slate-400 capitalize">${m.resolution_status.replace('_',' ')}</span>
+                                     <span class="text-[10px] text-slate-400 font-mono">${m.occurred_at ? new Date(m.occurred_at).toLocaleTimeString() : 'N/A'}</span>
+                                </div>
+                            </li>
+                        `).join('');
+                    } else {
+                        mealsUl.innerHTML = `<li class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center text-xs text-slate-400 italic font-medium">No meals logged today yet.</li>`;
+                    }
+                }
+                
+            } catch(e) {
+                console.error("Sync partial failure:", e);
+            } finally {
+                setTimeout(() => overlay.classList.remove('active'), 300);
+            }
+        }
+
+        async function resetData() {
+            if(!confirm("Reset User context?")) return;
+            try {
+                await fetch(`/user/${USER_ID}/context/reset`, { method: 'POST' });
+                localStorage.removeItem(CHAT_STORAGE_KEY);
+                sessionStorage.removeItem('e2e_user_id');
+                alert("Reset Complete!");
+                location.reload();
+            } catch(e) { alert("Error"); }
+        }
+
+        // Load chat history + initial surface sync
+        loadChatHistory();
+        syncSurfaces();
+
+    </script>
+</body>
+</html>

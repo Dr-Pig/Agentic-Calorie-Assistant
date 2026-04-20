@@ -81,7 +81,7 @@ rescue 預設先處理短期 horizon，不直接跳成長期計畫重設。
 - intake reply 完成後，不可在同一則回覆裡附加 rescue 內容
 - 不允許在 intake 訊息的第二段夾帶 rescue proposal
 - rescue 訊息必須是獨立的一則 chat 訊息
-- `rescue_trigger_pass` 不可讀 `current intake event context` 作為觸發依據；rescue trigger 只依賴 ledger state 與 history，不依賴當前 intake 事件
+- `trigger_and_viability_assessment` 不可讀 `current intake event context` 作為觸發依據；rescue trigger 只依賴 ledger state 與 history，不依賴當前 intake 事件
 
 **合法的 rescue 觸發入口只有兩種**：
 
@@ -137,36 +137,53 @@ rescue 預設先處理短期 horizon，不直接跳成長期計畫重設。
 
 ## 5. Canonical Runtime Shape
 
-`L3.4` 的 canonical default 應採 2-3 node graph：
+`L3.4` 的 canonical default 應採 **4-node graph**：
 
-1. `deterministic_trigger_and_viability_assessment`
-2. `rescue_option_shaping`
-3. `rescue_response`（若 surface 需要）
+1. `trigger_and_viability_assessment` — deterministic
+2. `option_generation` — deterministic
+3. `proposal_shaping` — LLM
+4. `response_presentation` — LLM
 
-補充規則：
+**設計原則：**
 
-- `overshoot math`、`spread horizon limit`、`safety floor`、`recovery_viability`、`cooldown / suppression` 應優先 deterministic-first
-- 若 rescue family 已模板化，LLM 可只負責 option phrasing 與 response presentation
-- cross-domain 原則見 [`L6E LLM Pass Design Policy Spec`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md)
+- Node 1 + 2 是純數學：overshoot math、spread horizon、safety floor、recovery viability、分攤天數計算——全部 deterministic，不需要 LLM
+- Node 3 是 LLM 的工作：把合法的數學選項轉成真正像 assistant 的 proposal（coaching tone、framing、個人化說明）
+- Node 4 是 LLM 的工作：對話呈現、quick actions、使用者可理解的說明
 
-expanded mode 可保留 4-pass：
+不這樣分的話，你會得到一個數學上正確、但很像 NPC 的 rescue。
 
-1. `rescue_trigger_pass`
-2. `rescue_assessment_pass`
-3. `rescue_option_pass`
-4. `rescue_response_pass`
+**Logical model roles：**
 
-expanded mode 下，只有 LLM-backed 的 named pass 才需要 logical model role 對應：
+- Node 1 `trigger_and_viability_assessment` → deterministic（無 LLM）
+- Node 2 `option_generation` → deterministic（無 LLM）
+- Node 3 `proposal_shaping` → `strict_reasoner_model`
+- Node 4 `response_presentation` → `response_writer_model`
 
-- `rescue_trigger_pass` 若只是 overshoot / cooldown / proposal-state trigger 判斷，則保持 deterministic，不映射 LLM role
-- `rescue_assessment_pass` 若只是 viability / horizon / safety floor assessment，則保持 deterministic，不映射 LLM role
-- `rescue_option_pass` -> `strict_reasoner_model`
-- `rescue_response_pass` -> `response_writer_model`
-- 下方 `Pass 1-4` 章節屬 expanded decomposition only，不得覆蓋 canonical graph 的優先序
+### 5.1 Canonical Path Walkthrough
+
+1. `trigger_and_viability_assessment`（deterministic）
+   - 讀 `CurrentBudgetView`，計算 overshoot
+   - 評估 recovery viability、safety floor、cooldown、suppression
+   - 輸出：是否觸發、overshoot 量、viability 等級
+
+2. `option_generation`（deterministic）
+   - 計算分攤天數、每日回收量
+   - 套用 15% / 20% cap 規則
+   - 輸出：`recommended_days`、`daily_kcal_adjustment`、`cap_mode`、`special_posture`
+
+3. `proposal_shaping`（LLM，strict_reasoner_model）
+   - 讀取 option_generation 結果 + 完整情境（今天吃了什麼、使用者歷史、rescue history）
+   - 把合法的數學選項轉成真正像 assistant 的 proposal
+   - 決定 framing、coaching tone、個人化說明
+   - 輸出：proposal card 內容、headline、summary
+
+4. `response_presentation`（LLM，response_writer_model）
+   - 對話呈現
+   - 輸出：reply_text、quick_actions、ui_hints
 
 ---
 
-## 6. Pass 1: `rescue_trigger_pass`
+## 6. Node 1: `trigger_and_viability_assessment`
 
 ### 6.1 目標
 
@@ -208,18 +225,18 @@ expanded mode 下，只有 LLM-backed 的 named pass 才需要 logical model rol
 
 ---
 
-## 7. Pass 2: `rescue_assessment_pass`
+## 7. Node 2: `option_generation`
 
 ### 7.1 目標
 
-判斷這次偏離適合用什麼類型的短期修復策略，以及目前 rescue 是否仍具可行性。
+根據 overshoot 與 viability 結果產出合法的 rescue option math。
 
 `decision_mode: deterministic`
-`decision_reason: horizon、viability、safety floor、spread feasibility 應以 rescue math 與 guardrail rule 決定`
+`decision_reason: spread days、daily adjustment、cap mode、special posture 應以 rescue math 與 guardrail rule 決定`
 
 ### 7.2 可讀
 
-- `rescue_trigger_result`
+- `trigger_and_viability_assessment_result`
 - `CurrentBudgetView`
 - `ActiveBodyPlanView`
 - recent rescue history
@@ -231,9 +248,11 @@ expanded mode 下，只有 LLM-backed 的 named pass 才需要 logical model rol
 - `rescue_needed`
 - `rescue_horizon`
 - `recovery_viability`
-- `recommended_rescue_family`
-- `escalation_risk`
-- `assessment_confidence`
+- `recommended_days`
+- `daily_kcal_adjustment`
+- `cap_mode`
+- `special_posture`
+- `guardrail_notes`
 
 ### 7.4 核心概念
 
@@ -264,23 +283,42 @@ expanded mode 下，只有 LLM-backed 的 named pass 才需要 logical model rol
 
 ---
 
-## 8. Pass 3: `rescue_option_pass`
+## 8. Node 3: `proposal_shaping`
 
 ### 8.1 目標
 
-形成 rescue proposal，決定建議的分攤天數與每日回收量。
+把 deterministic option math 轉成 user-facing rescue proposal。
 
-`decision_mode: deterministic`
-`decision_reason: v1 rescue 採單一分攤模型，建議天數與每日回收量由 overshoot math 與 guardrail rule 決定，不需要 LLM 在多個 family 間做選擇`
+`decision_mode: llm`
+`decision_reason: proposal framing、coaching tone、個人化摘要與 option condensation 屬於語義 shaping，不應被硬規則化回 deterministic`
 
 ### 8.2 可讀
 
-- `rescue_assessment_result`
+- `option_generation_result`
 - `CurrentBudgetView`
 - `ActiveBodyPlanView`
 - recent rescue outcomes
+- recent rescue history summary
 
-### 8.3 v1 Rescue Model：單一分攤模型
+### 8.3 Proposal Shaping Inputs
+
+Node 3 不重新計算數學。
+
+它只讀取：
+
+- deterministic option generation 結果
+- 最近 rescue history
+- 當前 budget posture
+- 必要的語境訊號
+
+並產出：
+
+- proposal headline
+- proposal summary
+- coaching framing
+- quick-action posture
+
+### 8.4 v1 Rescue Model：單一分攤模型
 
 **v1 rescue 採單一分攤模型，不是多 family 選單。**
 
@@ -317,24 +355,20 @@ expanded mode 下，只有 LLM-backed 的 named pass 才需要 logical model rol
 
 這兩個 posture 仍保留，但 `same_day_soft_cap` 和 `next_meal_protection` 在 v1 不作為獨立對外 family 呈現。
 
-### 8.4 必須輸出
+### 8.5 必須輸出
 
-- `recommended_days`：建議分攤天數
-- `daily_kcal_adjustment`：每日回收量（負數）
-- `overshoot_kcal`：本次超出量
-- `cap_basis`：`base_budget_kcal`
-- `cap_mode`：`standard`（15%）或 `aggressive`（20%）
-- `recovery_viability`：`viable` / `strained` / `non_viable`
-- `special_posture`：`none` / `logging_first` / `escalate`
-- `guardrail_notes`
+- `proposal_headline`
+- `proposal_summary`
+- `coaching_frame`
+- `quick_action_posture`
 
 ---
 
-## 9. Pass 4: `rescue_response_pass`
+## 9. Node 4: `response_presentation`
 
 ### 9.1 目標
 
-把 rescue proposal 轉成可執行、低挫敗感的對外呈現。
+把 shaped rescue proposal 轉成可執行、低挫敗感的對外呈現。
 
 `decision_mode: llm`
 `decision_reason: 此步驟主要負責 coaching tone、proposal framing、與 user-facing explanation`
@@ -750,6 +784,44 @@ rescue accept 後，recommendation 需讀新的短期 caloric posture。
 
 ---
 
+## 17A. Planned Event Budget Allocation（預期大餐 / 聚餐提前分配）
+
+### 17A.1 定位
+
+`planned_event_budget_allocation` 是 rescue 的 pre-event variant。
+
+它與標準 rescue 的差異：
+- 標準 rescue：事後補救（已超標）
+- planned event：事前規劃（預期會超標，提前減量）
+
+### 17A.2 觸發方式
+
+- 使用者說「我這週六要吃火鍋吃到飽，我想提前減量」
+- 使用者說「今晚有聚餐，幫我設定今晚保留 800 kcal」（從 L3.2 pre-meal planning 升格）
+
+### 17A.3 Flow
+
+1. 使用者說明預期大餐的時間與預計超標量（若未說，系統可詢問或採保守預設）
+2. 系統計算：需要提前幾天、每天少吃多少，才能在不超過 safety floor 的情況下預留空間
+3. 系統提出 `planned_event_budget_allocation` proposal
+4. 使用者確認後，建立對應的 `LedgerEntry(rescue_overlay)` 覆蓋未來幾天的預算
+
+### 17A.4 計算規則
+
+與標準 rescue 相同，採單一分攤模型：
+- 每日回收上限：`base_budget_kcal × 15%`（標準）或 `× 20%`（積極）
+- 最多提前 5 天
+- 不得低於 `safety_floor_kcal`
+
+### 17A.5 規則
+
+- planned event allocation 走 proposal-first，不直接改寫 ledger
+- 使用者確認後，建立未來幾天的 `LedgerEntry(rescue_overlay)`（負值，減少每日預算）
+- 大餐當天不建立 overlay（讓使用者自由吃，事後記錄）
+- 若大餐後實際超標量與預期不同，走標準 rescue flow 處理差額
+
+---
+
 ## 18. Degraded Mode Policy
 
 ### 18.1 定位
@@ -758,14 +830,14 @@ rescue accept 後，recommendation 需讀新的短期 caloric posture。
 
 ### 18.2 Provider 不可用
 
-rescue flow 的前兩個 pass（`rescue_trigger_pass`、`rescue_assessment_pass`）是 deterministic，不依賴 LLM。
+rescue flow 的前兩個 nodes（`trigger_and_viability_assessment`、`option_generation`）是 deterministic，不依賴 LLM。
 
-若 `rescue_option_pass`（hybrid）或 `rescue_response_pass`（LLM）不可用：
+若 `proposal_shaping`（LLM）或 `response_presentation`（LLM）不可用：
 
 | Pass | Degraded 行為 |
 |------|-------------|
-| `rescue_option_pass` | 若 deterministic 部分已完成，可用 rule-based fallback 選出 top option（依 `recommended_rescue_family` 直接映射）；跳過 LLM ranking |
-| `rescue_response_pass` | 使用 deterministic template 組出最小合法 response；不顯示 coaching tone，只顯示方案摘要與 quick actions |
+| `proposal_shaping` | 若 deterministic option math 已完成，可使用最小 proposal template 組出 headline / summary，但不得重算 rescue math |
+| `response_presentation` | 使用 deterministic template 組出最小合法 response；不顯示 coaching tone，只顯示方案摘要與 quick actions |
 
 ### 18.3 Required View 無法取得
 
