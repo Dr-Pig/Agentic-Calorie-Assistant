@@ -56,22 +56,27 @@ Wave 1 的目標是建立：
 
 目的：理解第一批應實作與驗證的 case-level contracts。
 
-### 5. Failure taxonomy
+### 5. Minimal implementation contracts
+`docs/specs/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md`
+
+目的：理解 manager decision envelope、tool/workflow result shape、guard result、trace/artifact 最小輸出契約。
+
+### 6. Failure taxonomy
 `docs/quality/V2_FAILURE_TAXONOMY.md`
 
 目的：修任何 failure 時，必須標記 primary failure family。
 
-### 6. Grading rubric
+### 7. Grading rubric
 `docs/quality/V2_GRADING_RUBRIC.md`
 
 目的：理解 hard fail、soft pass、quality review、founder review 的分層。
 
-### 7. Foundation patch addendum
+### 8. Foundation patch addendum
 `docs/quality/V2_FOUNDATION_DOCS_EXECUTION_PATCH.md`
 
 目的：補充 evidence-path、Tavily、fake-pass、tool-correctness 的新增規則。
 
-### 8. Bundle acceptance docs
+### 9. Bundle acceptance docs
 只在 micro-suite phase 有初步進展後閱讀與執行：
 
 - `docs/quality/V2_EVAL_BUNDLE_1_CASES.md`
@@ -96,6 +101,7 @@ Wave 1 的目標是建立：
 要求：
 - 先讓 system routing / state boundary 穩定
 - 不要先 patch Bundle 2 response wording
+- 至少暴露 `manager_decision`、`thread_result`、`commit_result`、`guard_result`、`trace_artifact` 的必要欄位
 
 ---
 
@@ -112,6 +118,7 @@ Wave 1 的目標是建立：
 - Exact DB hit should not go to web search
 - Homemade / composition-ambiguous food should usually clarify first, not search
 - Retrieved evidence must be normalized before estimate synthesis
+- 至少暴露 `selected_evidence_path`、`evidence_packet`、`estimate_result`、Tavily retrieval artifact
 
 ---
 
@@ -131,6 +138,7 @@ Wave 1 的目標是建立：
 - Overshoot must come from ledger truth
 - Chat / UI / later query must reflect the same truth
 - No pass claim without artifacts
+- 至少暴露 correction version delta、ledger mutation result、macro visibility result、same-truth read result
 
 ---
 
@@ -294,9 +302,11 @@ This bootstrap is complete when coding agent can answer:
 - What counts as fake pass?
 - When can I run Bundle 1 / Bundle 2?
 - What should not be implemented in Wave 1?
+- What minimal structured contracts must be exposed for verification?
 
 ---
 
 ## 歷史
 
 - 2026-04-24: v1 初始版本，建立 Wave 1 coding-agent entrypoint、reading order、execution order、anti-fake-pass protocol
+- 2026-04-24: v1.1 補入 `V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md` 作為必讀文件與各 phase 的最小 contract 要求
