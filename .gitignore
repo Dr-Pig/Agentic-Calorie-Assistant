@@ -14,6 +14,8 @@ __pycache__/
 # Runtime output
 .logs/
 runtime/
+!app/runtime/
+!app/runtime/**
 .server.out.log
 .server.err.log
 *.log
