@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from pathlib import Path
 
 import pytest
 
@@ -30,7 +31,7 @@ def test_single_manager_entrypoint_has_no_bundle_specific_modes() -> None:
 
 
 def test_single_manager_system_prompt_requires_semantic_contract_not_reasoning_dump() -> None:
-    source = manager_service.__file__.replace("application\\manager_service.py", "agent\\manager.py")
+    source = Path(manager_service.__file__).resolve().parents[1] / "agent" / "manager.py"
     with open(source, "r", encoding="utf-8") as handle:
         content = handle.read()
 

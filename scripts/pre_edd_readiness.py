@@ -4,6 +4,7 @@ import argparse
 from dataclasses import dataclass
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 from typing import Any
@@ -11,6 +12,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REPORT_PATH = ROOT / "artifacts" / "pre_edd_readiness_report.json"
+POWERSHELL_BIN = shutil.which("pwsh") or shutil.which("powershell") or "pwsh"
 
 
 @dataclass(frozen=True)
@@ -28,7 +30,7 @@ COMMAND_PLAN: tuple[CommandSpec, ...] = (
     ),
     CommandSpec(
         name="docs_encoding_policy",
-        command=("powershell", "-ExecutionPolicy", "Bypass", "-File", "scripts/check_encoding.ps1", "-AuditDocsPolicy"),
+        command=(POWERSHELL_BIN, "-ExecutionPolicy", "Bypass", "-File", "scripts/check_encoding.ps1", "-AuditDocsPolicy"),
         status_key="encoding_status",
     ),
     CommandSpec(
@@ -38,7 +40,7 @@ COMMAND_PLAN: tuple[CommandSpec, ...] = (
     ),
     CommandSpec(
         name="fat_file_audit",
-        command=("powershell", "-ExecutionPolicy", "Bypass", "-File", "scripts/check_fat_files.ps1", "-AuditAll"),
+        command=(POWERSHELL_BIN, "-ExecutionPolicy", "Bypass", "-File", "scripts/check_fat_files.ps1", "-AuditAll"),
         status_key="fat_file_status",
     ),
     CommandSpec(
