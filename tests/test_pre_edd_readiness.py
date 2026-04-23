@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+
 from scripts.pre_edd_readiness import (
     COMMAND_PLAN,
     classify_fat_audit,
@@ -15,6 +17,15 @@ def test_pre_edd_command_plan_excludes_business_eval_suites() -> None:
     assert "run_v2_bundle2_live_eval.py" not in command_text
     assert "run_v2_founder_realism_eval.py" not in command_text
     assert "run_v2_benchmark_blocking_eval.py" not in command_text
+
+
+def test_docs_encoding_policy_is_windows_only_auxiliary_check() -> None:
+    command_names = {item.name for item in COMMAND_PLAN}
+
+    if sys.platform.startswith("win"):
+        assert "docs_encoding_policy" in command_names
+    else:
+        assert "docs_encoding_policy" not in command_names
 
 
 def test_fat_audit_classifier_blocks_protected_overage_but_not_watchlist_overage() -> None:
