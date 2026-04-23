@@ -3,14 +3,14 @@ from __future__ import annotations
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.application.open_proposals_read_model import build_open_rescue_proposals_view
-from app.application.rescue_overlay import RescueOverlayTargetDay
-from app.application.rescue_response import (
+from app.rescue.application import build_open_rescue_proposals_view
+from app.rescue.application import RescueOverlayTargetDay
+from app.rescue.application.response import (
     apply_rescue_plan_action,
     build_rescue_response_result,
     should_surface_rescue_response,
 )
-from app.application.rescue_runtime import (
+from app.rescue.application.runtime import (
     RescueAssessmentResult,
     RescueRuntimeInputs,
     RescueTriggerResult,

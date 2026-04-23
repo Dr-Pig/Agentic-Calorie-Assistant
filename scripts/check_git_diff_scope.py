@@ -10,12 +10,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FREEZE_GROWTH_FILES = {
-    "app/application/evidence_assembly.py",
-    "app/application/context_assembly.py",
-    "app/agent/knowledge_packets.py",
+    "app/nutrition/application/evidence_assembly.py",
+    "app/nutrition/application/context_normalizer.py",
+    "app/nutrition/agent/knowledge_packets.py",
 }
 HIGH_RISK_TRUNCATION_FILES = FREEZE_GROWTH_FILES | {
-    "app/usecases/text_meal.py",
     "app/routes.py",
     "app/schemas.py",
 }
@@ -30,9 +29,14 @@ DEPENDENCY_FILES = {
 CORE_APP_PREFIXES = ("app/",)
 TEST_PREFIX = "tests/"
 CORE_LOGIC_PREFIXES = (
-    "app/application/",
-    "app/domain/",
-    "app/usecases/",
+    "app/intake/",
+    "app/nutrition/",
+    "app/budget/",
+    "app/body/",
+    "app/rescue/",
+    "app/recommendation/",
+    "app/memory/",
+    "app/runtime/",
 )
 CORE_LOGIC_EXACT = {
     "app/routes.py",
@@ -243,22 +247,31 @@ def check_cross_layer(paths: list[str], exceptions: set[str]) -> list[str]:
         return []
     issues: list[str] = []
     has_routes = "app/routes.py" in paths
-    has_app_application = any(path.startswith("app/application/") for path in paths)
-    if has_routes and has_app_application:
-        issues.append("app/routes.py and app/application/** changed together without Scope-Exception: cross-layer")
+    has_runtime = any(path.startswith("app/runtime/") for path in paths)
+    has_business_domain = any(
+        path.startswith(prefix)
+        for path in paths
+        for prefix in (
+            "app/intake/",
+            "app/nutrition/",
+            "app/budget/",
+            "app/body/",
+            "app/rescue/",
+            "app/recommendation/",
+            "app/memory/",
+        )
+    )
+    if has_routes and has_business_domain:
+        issues.append("app/routes.py and business-domain code changed together without Scope-Exception: cross-layer")
 
-    has_web = any(path.startswith("app/web/") for path in paths)
-    has_infra = any(path.startswith("app/infrastructure/") for path in paths)
-    if has_web and has_infra:
-        issues.append("app/web/** and app/infrastructure/** changed together without Scope-Exception: cross-layer")
+    has_shared = any(path.startswith("app/shared/") for path in paths)
+    if has_runtime and has_shared:
+        issues.append("app/runtime/** and app/shared/** changed together without Scope-Exception: cross-layer")
 
     has_specs = any(path.startswith("docs/specs/") for path in paths)
-    has_app_runtime = any(
-        path.startswith("app/application/") or path.startswith("app/usecases/")
-        for path in paths
-    )
+    has_app_runtime = has_runtime or has_business_domain
     if has_specs and has_app_runtime:
-        issues.append("docs/specs/** and app/application/** or app/usecases/** changed together without Scope-Exception: cross-layer")
+        issues.append("docs/specs/** and app runtime/domain code changed together without Scope-Exception: cross-layer")
     return issues
 
 

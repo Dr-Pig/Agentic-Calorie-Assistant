@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.application.calibration_model import CalibrationModelInputs, build_calibration_model
+from app.body.application.calibration_model import CalibrationModelInputs, build_calibration_model
 
 
 def test_calibration_model_requires_the_v1_observation_window_and_count() -> None:

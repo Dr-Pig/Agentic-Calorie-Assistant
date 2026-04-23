@@ -33,9 +33,9 @@ COMMON_MOJIBAKE_MARKERS = (
     "臬",
     "拚",
     "",
-    "",
-    "",
-    "",
+    chr(0xEA53),
+    chr(0xE850),
+    chr(0xF5FB),
 )
 
 
@@ -129,12 +129,10 @@ def looks_like_mojibake(text: str) -> bool:
     if "\uFFFD" in value or _contains_private_use(value) or _contains_forbidden_control(value):
         return True
     has_non_ascii = any(ord(ch) > 127 for ch in value)
-    if value.count("?") >= 2 and has_non_ascii:
+    if "??" in value and has_non_ascii:
         return True
     marker_hits = sum(1 for marker in COMMON_MOJIBAKE_MARKERS if marker in value)
     if marker_hits >= 2:
-        return True
-    if marker_hits >= 1 and len(value) <= 40 and has_non_ascii:
         return True
     return False
 

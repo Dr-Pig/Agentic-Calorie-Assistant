@@ -512,7 +512,7 @@ L2 必須同時保留：
   - 在 L2 中應提升為 `MessageEvent`
 - 現有 `EstimatePayload`
   - 應視為 runtime trace / response envelope，不是 canonical object
-- 現有 `NutritionResolutionResult`
+- 現有 legacy nutrition estimate result
   - 應視為產生 `MealVersion snapshot` 的上游結果，而不是 canonical data model
 
 ---

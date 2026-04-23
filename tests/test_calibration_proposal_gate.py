@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.application.calibration_model import CalibrationModelInputs, build_calibration_model
-from app.application.calibration_proposal_gate import (
+from app.body.application.calibration_model import CalibrationModelInputs, build_calibration_model
+from app.body.application.calibration_proposal_gate import (
     ALL_OPTION_FAMILIES,
     CalibrationProposalGateInputs,
     build_calibration_proposal_gate,

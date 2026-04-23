@@ -7,6 +7,11 @@ from typing import Any
 
 import httpx
 
+from ..runtime.contracts.trace import (
+    MANAGER_BUNDLE1_DECISION_STAGE,
+    MANAGER_FINAL_DECISION_STAGE,
+    MANAGER_ROUND_1_STAGE,
+)
 
 DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 PLACEHOLDER_VALUES = {
@@ -44,7 +49,7 @@ class GeminiAdapter:
         self.default_model = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
         self.component_model = os.getenv("GEMINI_COMPONENT_MODEL", self.default_model)
         self.answer_model = os.getenv("GEMINI_ANSWER_MODEL", self.default_model)
-        self.timeout_seconds = int(os.getenv("GEMINI_TIMEOUT_SECONDS", "120"))
+        self.timeout_seconds = min(int(os.getenv("GEMINI_TIMEOUT_SECONDS", "15")), 15)
 
     def readiness(self) -> dict[str, Any]:
         return {
@@ -54,9 +59,9 @@ class GeminiAdapter:
             "base_url": self.base_url,
             "timeout_seconds": self.timeout_seconds,
             "stage_models": {
-                "planner_pass_initial": self.component_model,
-                "main_pass": self.component_model,
-                "answer_after_search": self.answer_model,
+                MANAGER_BUNDLE1_DECISION_STAGE: self.component_model,
+                MANAGER_ROUND_1_STAGE: self.component_model,
+                MANAGER_FINAL_DECISION_STAGE: self.answer_model,
             },
         }
 
@@ -130,7 +135,7 @@ class GeminiAdapter:
         parsed, _ = await self.complete_with_trace(
             system_prompt=system_prompt,
             user_payload=user_payload,
-            stage="unspecified",
+            stage=MANAGER_ROUND_1_STAGE,
             max_tokens=max_tokens,
         )
         return parsed
@@ -204,18 +209,18 @@ class GeminiAdapter:
         return text
 
     def _model_for_stage(self, stage: str) -> str:
-        if stage.startswith("planner_pass"):
+        if stage == MANAGER_BUNDLE1_DECISION_STAGE:
             return self.component_model
-        if stage == "main_pass":
+        if stage == MANAGER_ROUND_1_STAGE:
             return self.component_model
-        if stage == "answer_after_search":
+        if stage == MANAGER_FINAL_DECISION_STAGE:
             return self.answer_model
         return self.default_model
 
     def _response_schema_for_stage(self, stage: str) -> dict[str, Any] | None:
-        if stage.startswith("planner_pass"):
+        if stage == MANAGER_BUNDLE1_DECISION_STAGE:
             return self._planner_schema()
-        if stage == "main_pass":
+        if stage == MANAGER_ROUND_1_STAGE:
             return self._main_pass_schema(
                 route_targets=[
                     "direct_estimate",
@@ -224,7 +229,7 @@ class GeminiAdapter:
                     "ask_user",
                 ]
             )
-        if stage == "answer_after_search":
+        if stage == MANAGER_FINAL_DECISION_STAGE:
             return self._main_pass_schema(
                 route_targets=[
                     "direct_estimate",

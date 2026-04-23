@@ -21,39 +21,21 @@ class Rule:
 
 RULES: tuple[Rule, ...] = (
     Rule(
-        path_prefix="app/web/",
-        forbidden_prefixes=("app.infrastructure",),
-        label="web-layer",
+        path_prefix="app/runtime/",
+        forbidden_prefixes=("app.intake.domain", "app.nutrition.domain", "app.budget.domain"),
+        label="runtime-boundary",
         severity="error",
     ),
     Rule(
-        path_prefix="app/web/",
-        forbidden_prefixes=("sqlalchemy",),
-        label="web-layer",
-        severity="warning",
-    ),
-    Rule(
-        path_prefix="app/domain/",
-        forbidden_prefixes=("app.web", "app.infrastructure", "fastapi", "sqlalchemy"),
-        label="domain-layer",
+        path_prefix="app/shared/",
+        forbidden_prefixes=("app.intake", "app.nutrition", "app.budget", "app.body", "app.rescue", "app.recommendation"),
+        label="shared-neutrality",
         severity="error",
     ),
     Rule(
-        path_prefix="app/schema_defs/",
-        forbidden_prefixes=("app.web", "app.infrastructure", "fastapi", "sqlalchemy"),
-        label="schema-layer",
-        severity="error",
-    ),
-    Rule(
-        path_prefix="app/search/",
-        forbidden_prefixes=("app.web", "fastapi"),
-        label="search-layer",
-        severity="error",
-    ),
-    Rule(
-        path_prefix="app/agent/",
-        forbidden_prefixes=("app.web", "app.infrastructure", "fastapi", "sqlalchemy"),
-        label="agent-layer",
+        path_prefix="app/providers/",
+        forbidden_prefixes=("fastapi", "sqlalchemy"),
+        label="provider-adapter-boundary",
         severity="warning",
     ),
 )
@@ -155,8 +137,8 @@ def main() -> int:
 
     if warnings:
         print("Advisory:")
-        print("- app/agent legacy drift is currently warning-only")
-        print("- move route ownership to app/web and persistence ownership to app/infrastructure/application")
+        print("- provider adapter warnings are advisory unless they cross into domain/runtime ownership")
+        print("- route ownership belongs in domain interface modules; persistence ownership belongs in domain infrastructure modules")
         print()
 
     if errors:

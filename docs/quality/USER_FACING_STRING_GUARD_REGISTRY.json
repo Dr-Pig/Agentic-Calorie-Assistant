@@ -1,13 +1,8 @@
 [
   {
-    "root": "app/application",
+    "root": "app",
     "suffixes": [".py"],
-    "purpose": "user-facing application-layer reply strings and interaction surfaces"
-  },
-  {
-    "root": "app/web",
-    "suffixes": [".py"],
-    "purpose": "chat and route response payloads"
+    "purpose": "active runtime and domain user-facing strings"
   },
   {
     "root": "tests",

@@ -3,10 +3,10 @@ from __future__ import annotations
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.application.current_budget_answer import build_remaining_budget_answer_contract
-from app.application.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
+from app.budget.application import build_remaining_budget_answer_contract
+from app.body.application import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_or_create_user
-from app.infrastructure.canonical_persistence import commit_meal_payload_to_canonical
+from app.shared.infra.canonical_persistence import commit_meal_payload_to_canonical
 from app.models import Base
 from app.schemas import CommitRequestCandidate
 

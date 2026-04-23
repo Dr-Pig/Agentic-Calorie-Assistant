@@ -1,5 +1,16 @@
 ﻿# L1 Runtime Ownership Spec
 
+> **⚠️ V2 架構注意：** 本文件 Section 4 的 layer 名稱（Interpretation Layer、Decision Layer、Resolution Layer、Response Layer）對應 V1 的 4-pass 架構，在 V2 下已被重新命名：
+>
+> - Interpretation + Decision → Primary Manager Agent
+> - Resolution → `estimate_nutrition` tool（LLM inside tool）
+> - Response → Renderer
+> - Application/Deterministic → Execution Guard + Deterministic Sidecar
+>
+> 本文件的**核心原則**（Section 2–3：default-commit、proposal 與 committed state 分離、version chain、recommendation 不建立 intent state）在 V2 下仍然有效。
+>
+> **V2 設計真相：** `app_v2_ideal_architecture_final.md`
+
 ## 1. 目的
 
 本文件定義 L0 產品能力層之下的第一層 runtime 規格：共享狀態、layer ownership、合法狀態轉移、commit 邊界，以及 chat / UI / proactive 三條路徑如何匯流到同一組 canonical state。
@@ -257,7 +268,7 @@
 
 補充規則：
 
-- `nutrition_resolution_pass` 可輸出 `MealItem` 粗分類
+- nutrition evidence layer 可輸出 `MealItem` 粗分類
 - `MealItem` 細分類可選，但不應成為 commit blocking 條件
 
 不可以：

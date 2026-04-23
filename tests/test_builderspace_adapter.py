@@ -24,27 +24,49 @@ def test_format_user_message_serializes_pydantic_objects() -> None:
         }
     }
 
-    serialized = adapter._format_user_message("final_response_pass", payload)
+    serialized = adapter._format_user_message("intake_manager_round", payload)
     parsed = json.loads(serialized)
-    assert parsed["original_answer"]["component_estimates"][0]["name"] == "Test"
+    assert parsed["stage"] == "intake_manager_round"
+    assert parsed["payload"]["original_answer"]["component_estimates"][0]["name"] == "Test"
 
 
-def test_stage_temperatures_default_to_independent_values() -> None:
+def test_stage_temperatures_only_expose_single_manager_stages() -> None:
     adapter = BuilderSpaceAdapter()
 
-    assert adapter._temperature_for_stage("task_meal_link_pass") == 0.0
-    assert adapter._temperature_for_stage("planner_pass_initial") == 0.0
-    assert adapter._temperature_for_stage("decision_pass") == 0.0
-    assert adapter._temperature_for_stage("nutrition_resolution_pass_initial") == 0.1
-    assert adapter._temperature_for_stage("primary_answer_pass_initial") == 0.1
-    assert adapter._temperature_for_stage("final_response_pass") == 0.5
+    assert adapter._temperature_for_stage("intake_manager_round") == 0.0
+    assert adapter.timeout_seconds <= 15
 
 
-def test_decision_schema_exposes_react_fields() -> None:
+def test_manager_round_schema_exposes_react_fields() -> None:
     adapter = BuilderSpaceAdapter()
-    schema = adapter._response_schema_for_stage("decision_pass")
+    schema = adapter._response_schema_for_stage("intake_manager_round")
 
     assert schema is not None
-    assert "tool_goal" in schema["properties"]
-    assert "missing_evidence_type" in schema["properties"]
-    assert "expected_success_condition" in schema["properties"]
+    assert "manager_action" in schema["properties"]
+    assert "tool_calls" in schema["properties"]
+    assert "workflow_effect" in schema["properties"]
+    assert "intent" in schema["properties"]
+    assert "target_attachment" in schema["properties"]
+    assert "exactness" in schema["properties"]
+    assert "confidence" in schema["properties"]
+    assert "evidence_posture" in schema["properties"]
+    assert "repair_ack" in schema["properties"]
+    assert "thoughts" not in schema["properties"]
+
+
+def test_manager_stages_use_manager_model_and_schema() -> None:
+    adapter = BuilderSpaceAdapter(manager_model_override="deepseek")
+
+    assert adapter._model_for_stage("intake_manager_round") == "deepseek"
+    assert adapter._response_schema_for_stage("intake_manager_round") is not None
+
+
+def test_readiness_exposes_manager_model_stage_mapping() -> None:
+    adapter = BuilderSpaceAdapter(manager_model_override="deepseek")
+    readiness = adapter.readiness()
+
+    assert readiness["manager_model"] == "deepseek"
+    assert readiness["stage_models"]["intake_manager_round"] == "deepseek"
+    assert set(readiness["stage_models"].keys()) == {
+        "intake_manager_round",
+    }

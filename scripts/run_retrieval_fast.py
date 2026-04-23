@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.search.chain_retrieval import resolve_chain_item
+from app.nutrition.infrastructure.web_search.chain_retrieval import resolve_chain_item
 
 
 def _load_cases(path: Path) -> list[dict]:

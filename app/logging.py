@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .observability.trace_triage import build_live_trace_triage
+from .runtime.infrastructure.trace.trace_triage import build_live_trace_triage
 from .paths import RUNTIME_LOG_DIR, ensure_runtime_dirs
 from .schemas import AuditEvent
 
@@ -126,7 +126,7 @@ def get_trace_summaries(limit: int = 100) -> dict[str, Any]:
                     "planner_mode": (trace_contract.get("planner_output") or {}).get("planner_mode"),
                     "best_answer_source": trace_contract.get("best_answer_source"),
                     "retry_triggered": trace_contract.get("retry_triggered", False),
-                    "first_bad_pass": triage.get("first_bad_pass"),
+                    "request_failure_family": triage.get("request_failure_family"),
                     "root_cause_bucket": triage.get("suspected_root_cause_bucket"),
                 })
         except (json.JSONDecodeError, OSError):
@@ -153,3 +153,27 @@ def get_full_trace(request_id: str) -> dict | None:
         return data
     except (json.JSONDecodeError, OSError):
         return None
+
+
+def find_latest_trace_for_user_date(*, user_id: str, local_date: str, bundle: str | None = None) -> dict | None:
+    """Return the newest request trace artifact for the given user/date pair."""
+    if not REQUEST_TRACE_DIR.exists():
+        return None
+    files = sorted(REQUEST_TRACE_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    for path in files:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        trace_meta = data.get("trace_meta", {}) or {}
+        request = data.get("request", {}) or {}
+        if str(trace_meta.get("user_id") or request.get("user_id") or "") != user_id:
+            continue
+        if str(trace_meta.get("local_date") or request.get("local_date") or "") != local_date:
+            continue
+        if bundle is not None and str(trace_meta.get("bundle") or "") != bundle:
+            continue
+        if not isinstance(data.get("live_trace_triage"), dict):
+            data["live_trace_triage"] = build_live_trace_triage(data)
+        return data
+    return None

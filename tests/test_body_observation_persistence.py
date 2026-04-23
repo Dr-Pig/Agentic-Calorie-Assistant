@@ -5,11 +5,11 @@ from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.application.canonical_commit_bridge import (
+from app.intake.application.canonical_commit_bridge import (
     load_body_observation_history,
     record_body_observation_to_canonical,
 )
-from app.domain import BodyObservation
+from app.shared.domain import BodyObservation
 from app.models import Base, User
 
 

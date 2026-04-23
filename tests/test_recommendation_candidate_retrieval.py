@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from app.application.recommendation_candidate_spec import build_recommendation_candidate_spec
-from app.application.recommendation_candidate_retrieval import build_recommendation_candidates
-from app.application.recommendation_context import build_recommendation_context
-from app.domain import ActiveBodyPlanView, CurrentBudgetView
+from app.recommendation.application import build_recommendation_candidate_spec, build_recommendation_candidates, build_recommendation_context
+from app.shared.domain import ActiveBodyPlanView, CurrentBudgetView
 from app.schemas import RecommendationCandidate
 
 

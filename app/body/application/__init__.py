@@ -1,0 +1,30 @@
+from __future__ import annotations
+from importlib import import_module
+from typing import Any
+
+__all__ = [
+    "OnboardingBootstrapInput",
+    "TargetCalculationInputs",
+    "bootstrap_body_plan_for_date",
+    "build_active_body_plan_view",
+    "calculate_recommended_target_kcal",
+]
+
+_EXPORT_MAP = {
+    "OnboardingBootstrapInput": (".onboarding_service", "OnboardingBootstrapInput"),
+    "TargetCalculationInputs": (".target_calculation", "TargetCalculationInputs"),
+    "bootstrap_body_plan_for_date": (".onboarding_service", "bootstrap_body_plan_for_date"),
+    "build_active_body_plan_view": (".active_body_plan_read_model", "build_active_body_plan_view"),
+    "calculate_recommended_target_kcal": (".target_calculation", "calculate_recommended_target_kcal"),
+}
+
+
+def __getattr__(name: str) -> Any:
+    try:
+        module_name, attr_name = _EXPORT_MAP[name]
+    except KeyError as exc:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from exc
+    module = import_module(module_name, __name__)
+    value = getattr(module, attr_name)
+    globals()[name] = value
+    return value

@@ -19,34 +19,14 @@ class Rule:
 
 RUNTIME_RULES: tuple[Rule, ...] = (
     Rule(
-        importer_prefix="app/web/",
-        forbidden_import_prefixes=("app.agent",),
-        label="web-to-agent",
+        importer_prefix="app/runtime/",
+        forbidden_import_prefixes=("app.intake.domain", "app.nutrition.domain", "app.budget.domain"),
+        label="runtime-must-not-own-domain-semantics",
     ),
     Rule(
-        importer_prefix="app/infrastructure/",
-        forbidden_import_prefixes=("app.agent", "app.web"),
-        label="infrastructure-runtime-boundary",
-    ),
-    Rule(
-        importer_prefix="app/domain/",
-        forbidden_import_prefixes=("app.agent", "app.web", "app.infrastructure", "fastapi", "sqlalchemy"),
-        label="domain-runtime-boundary",
-    ),
-    Rule(
-        importer_prefix="app/schema_defs/",
-        forbidden_import_prefixes=("app.agent", "app.web", "app.infrastructure", "fastapi", "sqlalchemy"),
-        label="schema-runtime-boundary",
-    ),
-    Rule(
-        importer_prefix="app/search/",
-        forbidden_import_prefixes=("app.agent", "app.web", "fastapi"),
-        label="search-runtime-boundary",
-    ),
-    Rule(
-        importer_prefix="app/usecases/",
-        forbidden_import_prefixes=("app.web", "fastapi"),
-        label="usecase-runtime-boundary",
+        importer_prefix="app/shared/",
+        forbidden_import_prefixes=("app.intake", "app.nutrition", "app.budget", "app.body", "app.rescue", "app.recommendation"),
+        label="shared-must-remain-neutral",
     ),
 )
 

@@ -62,6 +62,10 @@ function Test-IsPolicyPath {
         return $true
     }
 
+    if ($normalized.StartsWith('docs/archive/')) {
+        return $false
+    }
+
     if ($normalized.StartsWith('docs/') -and $normalized.EndsWith('.md')) {
         return $true
     }
@@ -85,6 +89,19 @@ function Get-RepoRoot {
     }
 
     return $resolvedRoot
+}
+
+function Get-RelativePathCompat {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BasePath,
+        [Parameter(Mandatory = $true)]
+        [string]$TargetPath
+    )
+
+    $baseUri = [System.Uri]((Resolve-Path -LiteralPath $BasePath).Path.TrimEnd('\') + '\')
+    $targetUri = [System.Uri]((Resolve-Path -LiteralPath $TargetPath).Path)
+    return [System.Uri]::UnescapeDataString($baseUri.MakeRelativeUri($targetUri).ToString()).Replace('/', '\')
 }
 
 function New-Result {
@@ -124,7 +141,8 @@ elseif ($AuditDocsPolicy) {
     $docRoot = Join-Path $repoRoot 'docs'
     $docFiles = @()
     if (Test-Path -LiteralPath $docRoot -PathType Container) {
-        $docFiles = Get-ChildItem -Path $docRoot -Recurse -File -Filter '*.md' -ErrorAction SilentlyContinue
+        $docFiles = Get-ChildItem -Path $docRoot -Recurse -File -Filter '*.md' -ErrorAction SilentlyContinue |
+            Where-Object { -not ((Get-RelativePathCompat -BasePath $repoRoot -TargetPath $_.FullName).Replace('\', '/').StartsWith('docs/archive/')) }
     }
 
     $allFiles = @($docFiles)

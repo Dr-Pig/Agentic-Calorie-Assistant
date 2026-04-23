@@ -28,7 +28,7 @@ BASE_TARGET_FILES = {
 EXTRA_EXACT_SOURCE_FILES = {
     "starbucks_food_extracted.json",
 }
-MOJIBAKE_CHARS = set("?暻瘥蝢憭銝撌拇寥寞")
+MOJIBAKE_CHARS = set("?暻瘥蝢憭銝撌拇寥寞") | {chr(0xEE01), chr(0xEE5A)}
 CARD_CATEGORIES = {
     "burger": "fast_food",
     "fast_food": "fast_food",

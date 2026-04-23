@@ -1,4 +1,4 @@
-from app.application.target_calculation import TargetCalculationInputs, calculate_recommended_target_kcal
+from app.body.application import TargetCalculationInputs, calculate_recommended_target_kcal
 
 
 def test_recommended_target_clamps_to_floor() -> None:

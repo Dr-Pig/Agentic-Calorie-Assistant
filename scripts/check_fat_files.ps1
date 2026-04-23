@@ -163,19 +163,6 @@ function Get-StructuralViolations {
     }
 
     switch ($Path) {
-        "app/usecases/text_meal.py" {
-            $patterns = @(
-                '(?m)^\s*(if|for|while|try|with)\b',
-                '(?m)^\s*return\b',
-                '(?m)^\s*await\b'
-            )
-            foreach ($pattern in $patterns) {
-                if ($normalized -match $pattern) {
-                    $violations.Add("must remain an import-and-re-export compatibility shim")
-                    break
-                }
-            }
-        }
         "app/schemas.py" {
             $patterns = @(
                 '(?m)^\s*(if|for|while|try|with)\b',
@@ -213,12 +200,6 @@ Set-Location $repoRoot
 
 $protectedRules = @(
     @{
-        Path = "app/usecases/text_meal.py"
-        Threshold = 350
-        Kind = "entrypoint"
-        Rule = "protected: must not grow while above threshold"
-    },
-    @{
         Path = "app/schemas.py"
         Threshold = 450
         Kind = "schema"
@@ -229,83 +210,81 @@ $protectedRules = @(
         Threshold = 400
         Kind = "routes"
         Rule = "protected: new surfaces should prefer dedicated route modules or adapters"
+    },
+    @{
+        Path = "app/runtime/application/manager_service.py"
+        Threshold = 500
+        Kind = "runtime-manager"
+        Rule = "protected: single manager service must stay bounded; extract domain logic to business-domain application services"
+    },
+    @{
+        Path = "app/intake/application/bundle1_service.py"
+        Threshold = 500
+        Kind = "application-service"
+        Rule = "protected: V2 Bundle 1 service is considered finalized, do not pile Bundle 2 logic here"
+    },
+    @{
+        Path = "app/intake/application/bundle2_service.py"
+        Threshold = 400
+        Kind = "application-service"
+        Rule = "protected: Bundle 2 orchestrator must stay thin; delegate tool execution and clarification logic"
+    },
+    @{
+        Path = "app/intake/application/manager_tools.py"
+        Threshold = 500
+        Kind = "application-tools"
+        Rule = "protected: V2 Core tools must not exceed threshold; create dedicated tool suites for new features"
     }
 )
 
 $freezeGrowthRules = @(
     @{
-        Path = "app/application/evidence_assembly.py"
-        FreezeLines = 320
-        Kind = "application-freeze"
-    },
-    @{
-        Path = "app/application/context_assembly.py"
-        FreezeLines = 636
-        Kind = "application-freeze"
-    },
-    @{
-        Path = "app/agent/local_knowledge_selector.py"
-        FreezeLines = 600
-        Kind = "agent-freeze"
-        LegacyPath = "app/agent/knowledge_packets.py"
+        Path = "app/providers/builderspace_adapter.py"
+        FreezeLines = 760
+        Kind = "provider-freeze"
     }
 )
 
 $watchlistRules = @(
     @{
-        Path = "app/agent/nutrition_profiles.py"
+        Path = "app/nutrition/agent/nutrition_profiles.py"
         WatchLines = 170
-        Kind = "agent-watchlist"
+        Kind = "nutrition-agent-watchlist"
     },
     @{
-        Path = "app/agent/nutrition_lookup_policy.py"
+        Path = "app/nutrition/agent/nutrition_lookup_policy.py"
         WatchLines = 280
-        Kind = "agent-watchlist"
+        Kind = "nutrition-agent-watchlist"
     },
     @{
-        Path = "app/agent/nutrition_estimation_support.py"
+        Path = "app/nutrition/agent/nutrition_estimation_support.py"
         WatchLines = 160
-        Kind = "agent-watchlist"
+        Kind = "nutrition-agent-watchlist"
     },
     @{
-        Path = "app/agent/risk_gate_policy.py"
+        Path = "app/nutrition/agent/risk_gate_policy.py"
         WatchLines = 140
-        Kind = "agent-watchlist"
+        Kind = "nutrition-agent-watchlist"
     },
     @{
-        Path = "app/application/evidence_selector.py"
-        WatchLines = 110
-        Kind = "application-watchlist"
-    },
-    @{
-        Path = "app/application/evidence_normalizer.py"
-        WatchLines = 410
-        Kind = "application-watchlist"
-    },
-    @{
-        Path = "app/application/tool_evidence_policy.py"
-        WatchLines = 240
-        Kind = "application-watchlist"
-    },
-    @{
-        Path = "app/agent/nutrition_engine.py"
+        Path = "app/nutrition/agent/nutrition_engine.py"
         WatchLines = 50
-        Kind = "agent-watchlist"
+        Kind = "nutrition-agent-watchlist"
     },
     @{
-        Path = "app/agent/exact_item_packets.py"
+        Path = "app/nutrition/agent/exact_item_packets.py"
         WatchLines = 186
-        Kind = "agent-watchlist"
+        Kind = "nutrition-agent-watchlist"
     },
     @{
-        Path = "app/agent/knowledge_lookup_normalizer.py"
+        Path = "app/nutrition/agent/knowledge_lookup_normalizer.py"
         WatchLines = 130
-        Kind = "agent-watchlist"
+        Kind = "nutrition-agent-watchlist"
     },
     @{
-        Path = "app/agent/knowledge_loader.py"
+        Path = "app/nutrition/agent/knowledge_loader.py"
         WatchLines = 46
-        Kind = "agent-watchlist"
+        Kind = "nutrition-agent-watchlist"
     }
 )
 
@@ -408,6 +387,19 @@ if ($StagedOnly) {
         $isFrozen = $freezeMap.ContainsKey($path)
 
         if (-not $isProtected -and -not $isFrozen) {
+            $isTestOrScript = $path.StartsWith("tests/", [System.StringComparison]::OrdinalIgnoreCase) -or 
+                              $path.StartsWith("scripts/", [System.StringComparison]::OrdinalIgnoreCase) -or 
+                              $path.StartsWith("data_build/", [System.StringComparison]::OrdinalIgnoreCase)
+            
+            if ($path.EndsWith(".py", [System.StringComparison]::OrdinalIgnoreCase) -and -not $isTestOrScript) {
+                $stagedBlobForCatchAll = Get-StagedText -Path $path
+                if ($null -ne $stagedBlobForCatchAll) {
+                    $stagedCatchAllLines = Get-LineCountFromText -Text ($stagedBlobForCatchAll -join "`n")
+                    if ($stagedCatchAllLines -gt 400) {
+                        $violations.Add("$path exceeded global catch-all ceiling (400 lines). Staged size: $stagedCatchAllLines. New or unmapped Python modules must stay below 400 lines.")
+                    }
+                }
+            }
             continue
         }
 

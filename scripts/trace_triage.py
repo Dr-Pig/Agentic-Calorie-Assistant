@@ -10,7 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.logging import REQUEST_TRACE_DIR
-from app.observability.trace_triage import build_live_trace_triage
+from app.runtime.infrastructure.trace.trace_triage import build_live_trace_triage
 
 
 def _latest_trace_paths(limit: int) -> list[Path]:

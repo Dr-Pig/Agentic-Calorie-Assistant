@@ -1,6 +1,6 @@
 [
   "tests/test_import_external_workspace_candidates.py",
-  "tests/test_text_meal.py",
+  "tests/test_text_integrity.py",
   "tests/test_user_facing_mojibake_guard.py",
   "tests/test_official_text_surface_mojibake_guard.py"
 ]
