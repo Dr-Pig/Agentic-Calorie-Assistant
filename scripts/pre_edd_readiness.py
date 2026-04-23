@@ -22,61 +22,72 @@ class CommandSpec:
     status_key: str
 
 
-COMMAND_PLAN: tuple[CommandSpec, ...] = (
+_command_plan: list[CommandSpec] = [
     CommandSpec(
         name="markdown_encoding_policy",
         command=(sys.executable, "scripts/check_markdown_encoding.py", "--policy-docs", "--require-bom"),
         status_key="encoding_status",
     ),
-    CommandSpec(
-        name="docs_encoding_policy",
-        command=(POWERSHELL_BIN, "-ExecutionPolicy", "Bypass", "-File", "scripts/check_encoding.ps1", "-AuditDocsPolicy"),
-        status_key="encoding_status",
-    ),
-    CommandSpec(
-        name="user_facing_mojibake_guard",
-        command=(sys.executable, "scripts/check_user_facing_mojibake.py"),
-        status_key="encoding_status",
-    ),
-    CommandSpec(
-        name="fat_file_audit",
-        command=(POWERSHELL_BIN, "-ExecutionPolicy", "Bypass", "-File", "scripts/check_fat_files.ps1", "-AuditAll"),
-        status_key="fat_file_status",
-    ),
-    CommandSpec(
-        name="layer_integrity",
-        command=(sys.executable, "scripts/check_layer_integrity.py"),
-        status_key="legacy_status",
-    ),
-    CommandSpec(
-        name="runtime_boundaries",
-        command=(sys.executable, "scripts/check_runtime_boundaries.py"),
-        status_key="single_manager_status",
-    ),
-    CommandSpec(
-        name="architecture_guard_tests",
-        command=(
-            sys.executable,
-            "-m",
-            "pytest",
-            "tests/test_domain_first_guardrails.py",
-            "tests/test_v2_architecture_regression.py",
-            "tests/test_manager_service.py",
-            "tests/test_deepseek_adapter.py",
-            "tests/test_builderspace_adapter.py",
-            "tests/test_eval_bootstrap.py",
-            "tests/test_markdown_encoding_guard.py",
-            "tests/test_runner_timeout_contract.py",
-            "tests/test_tavily_timeout_contract.py",
-            "tests/test_text_integrity.py",
-            "tests/test_import_external_workspace_candidates.py",
-            "tests/test_pre_edd_readiness.py",
-            "tests/test_workflow_routing_decision.py",
-            "-q",
+]
+
+if sys.platform.startswith("win"):
+    _command_plan.append(
+        CommandSpec(
+            name="docs_encoding_policy",
+            command=(POWERSHELL_BIN, "-ExecutionPolicy", "Bypass", "-File", "scripts/check_encoding.ps1", "-AuditDocsPolicy"),
+            status_key="encoding_status",
+        )
+    )
+
+_command_plan.extend(
+    [
+        CommandSpec(
+            name="user_facing_mojibake_guard",
+            command=(sys.executable, "scripts/check_user_facing_mojibake.py"),
+            status_key="encoding_status",
         ),
-        status_key="single_manager_status",
-    ),
+        CommandSpec(
+            name="fat_file_audit",
+            command=(POWERSHELL_BIN, "-ExecutionPolicy", "Bypass", "-File", "scripts/check_fat_files.ps1", "-AuditAll"),
+            status_key="fat_file_status",
+        ),
+        CommandSpec(
+            name="layer_integrity",
+            command=(sys.executable, "scripts/check_layer_integrity.py"),
+            status_key="legacy_status",
+        ),
+        CommandSpec(
+            name="runtime_boundaries",
+            command=(sys.executable, "scripts/check_runtime_boundaries.py"),
+            status_key="single_manager_status",
+        ),
+        CommandSpec(
+            name="architecture_guard_tests",
+            command=(
+                sys.executable,
+                "-m",
+                "pytest",
+                "tests/test_domain_first_guardrails.py",
+                "tests/test_v2_architecture_regression.py",
+                "tests/test_manager_service.py",
+                "tests/test_deepseek_adapter.py",
+                "tests/test_builderspace_adapter.py",
+                "tests/test_eval_bootstrap.py",
+                "tests/test_markdown_encoding_guard.py",
+                "tests/test_runner_timeout_contract.py",
+                "tests/test_tavily_timeout_contract.py",
+                "tests/test_text_integrity.py",
+                "tests/test_import_external_workspace_candidates.py",
+                "tests/test_pre_edd_readiness.py",
+                "tests/test_workflow_routing_decision.py",
+                "-q",
+            ),
+            status_key="single_manager_status",
+        ),
+    ]
 )
+
+COMMAND_PLAN: tuple[CommandSpec, ...] = tuple(_command_plan)
 
 
 PROTECTED_FAT_PATHS = (
