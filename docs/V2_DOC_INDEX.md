@@ -32,6 +32,7 @@
 - whole-product capability lattice
 
 原因：
+
 - Bundle / benchmark 是 acceptance 或 regression，不是 build order
 - whole-product lattice 是 product capability map，不是施工指令
 - bootstrap 會引導 coding agent 依正確順序閱讀必要文件
@@ -86,91 +87,77 @@ They should be remapped to Wave 1 micro-suites and used as regression / anti-ove
 
 ---
 
-## L0–L6 Legacy Handling Policy
+## Legacy / L-Series Handling
 
-### Current finding
+## Important Note
 
-GitHub search did not find explicit files named `L0_`, `L1_`, `L2_`, `L3_`, `L4_`, `L5_`, or `L6_` in the indexed repository.
+This repo contains older L-series specs that still include canonical truth. They should not be blindly archived.
 
-Therefore, this document does **not** directly archive or delete any L0–L6 files.
+The correct handling is:
 
-### Decision rule
-
-If L0–L6 files exist locally or under different filenames, apply the following classification:
-
-## Keep as Active Canonical
-Keep a legacy file active only if it contains canonical truth not yet represented in V2 docs.
-
-Examples:
-- product object semantics not covered elsewhere
-- architecture constraints still binding
-- database truth still current
-
-Required action:
-- Add a top notice: `ACTIVE CANONICAL REFERENCE — still required by V2 docs`
-- Add a link to the relevant V2 doc that depends on it
+- keep canonical L-series specs as upstream reference
+- do not use L-series specs as Wave 1 implementation entrypoint
+- mark superseded routing/pass-era specs as archive/reference only
+- use `V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md` as the active Wave 1 coding entrypoint
 
 ---
 
-## Keep as Reference Only
-Use this for files that remain useful background but should not drive implementation.
+## Concrete L-Series Decisions So Far
 
-Examples:
-- old product exploration
-- old bundle concepts
-- previous eval ideas
-- discarded workflow notes that still explain rationale
+The following files have been inspected or identified from existing canonical docs / implementation plan.
 
-Required action:
-- Add a top notice: `REFERENCE ONLY — do not use as implementation entrypoint`
-- Link to `docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md`
-
----
-
-## Mark as Superseded
-Use this for files whose responsibilities are now covered by V2 docs.
-
-Examples:
-- old current-wave build plans
-- old intake eval plans replaced by Wave 1 micro-suites
-- old capability maps replaced by `V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md`
-
-Required action:
-- Add a top notice: `SUPERSEDED — replaced by [new V2 file]`
-- Do not delete immediately
-- Optionally move later to `docs/archive/`
-
----
-
-## Archive
-Archive only when:
-
-- file is clearly superseded
-- no canonical truth remains
-- coding agent could be confused by it
-- user / maintainer has reviewed it
-
-Suggested archive path:
-
-`docs/archive/legacy/`
-
-Do not archive files blindly based on name alone.
-
----
-
-## Suggested L0–L6 Review Table
-
-When the actual files are identified, classify them with this table:
-
-| Legacy File | Current Status | New Role | Replacement / Reference | Action |
+| Legacy File | Status | New Role | Replacement / Reference | Action |
 |---|---|---|---|---|
-| L0 | unknown | likely active/reference if product objects remain canonical | TBD | inspect before moving |
-| L1 | unknown | TBD | TBD | inspect before moving |
-| L2 | unknown | TBD | TBD | inspect before moving |
-| L3 | unknown | TBD | TBD | inspect before moving |
-| L4 | unknown | TBD | TBD | inspect before moving |
-| L5 | unknown | TBD | TBD | inspect before moving |
-| L6 | unknown | TBD | TBD | inspect before moving |
+| `docs/specs/L0_PRODUCT_CAPABILITY_SPEC.md` | Active canonical reference | Product semantics, shared product objects, chat/UI product model | Referenced by V2 lattice and execution plan | Keep; do not archive |
+| `docs/specs/L0A_ONBOARDING_FLOW_SPEC.md` | Active canonical reference for onboarding | Onboarding fields, BodyPlan bootstrap, no-onboarding fallback | Referenced by Wave 1 F1 / Bundle 1 | Keep; do not archive |
+| `docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md` | Active canonical reference for budget happy path | BodyPlan → DayBudgetLedger → chat/UI shared truth | Referenced by Wave 1 F3 / Bundle 1-2 | Keep; do not archive |
+| `docs/specs/app_v2_ideal_architecture_final.md` | Active canonical architecture truth | Business-domain-first modular monolith and layer rules | Required by bootstrap and implementation plan | Keep; do not archive |
+| `docs/specs/APP_V2_IMPLEMENTATION_PLAN.md` | Active repo-aware implementation plan, but partially older bundle framing | Repo reality, existing module evidence, bundle/tool history, EDD stage guardrails | Use as architecture/repo evidence, not as current Wave 1 build order | Keep; update only if actively misleading |
+| `docs/specs/L3_1_INTAKE_RUNTIME_CONTRACT_SPEC.md` | Active canonical intake runtime contract | Single-manager intake shape, tool batch, guard, sidecar, sync rules | Aligns strongly with Wave 1 specs and minimal contracts | Keep; do not archive |
+| `docs/specs/L4A_MEMORY_MODEL_SPEC.md` | Active later-wave canonical reference | Memory layers, preference memory, consolidation, style-profile extension note | Required before Wave 3 / memory work | Keep; not required for Wave 1 Phase A except as reference |
+| `docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md` | Active canonical retrieval policy | Typed-first retrieval, web search retrieval policy, source/evidence classification | Useful for Wave 1 Phase B evidence/Tavily work | Keep; do not archive |
+| `docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md` | Superseded / archive according to implementation plan | Old router governance | Replaced by single-manager + semantic routing governance | Do not use as active implementation truth |
+| `docs/specs/L6G_MULTI_DISPATCH_SEQUENTIAL_CHAINING_SPEC.md` | Superseded / archive according to implementation plan | Old multi-dispatch / sequential chaining framing | Replaced by single-manager orchestration + domain workflows/tools | Do not use as active implementation truth |
+| `docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md` | Superseded / archive according to implementation plan | Old pass-centered design policy | Replaced by single-manager frame | Do not use as active implementation truth |
+
+---
+
+## L-Series Still Needing Local Confirmation
+
+Some files are referenced by canonical specs but were not directly fetched through the GitHub connector in this audit. They should be inspected locally before any archive/move action.
+
+| Referenced File | Likely Role | Recommended Action |
+|---|---|---|
+| `docs/specs/L2_DATA_STATE_SPEC.md` | Canonical data/state model | Keep if exists; likely active canonical |
+| `docs/specs/L3_3A_DEFICIT_EXPENDITURE_CALIBRATION_MODEL_SPEC.md` | Calibration model | Keep for Wave 2 |
+| `docs/specs/L3_3B...` | Calibration proposal / body plan proposal gate if exists | Keep for Wave 2 if canonical |
+| `docs/specs/L3_4...` | Rescue logic / safety floor / proposal flow if exists | Keep for Wave 2 |
+| `docs/specs/L4C...` | Context packing / retrieval context ordering if exists | Keep as reference; maybe active for manager context |
+| `docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md` | Memory lifecycle details | Keep for Wave 3 |
+| `docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md` | Workflow/context dependency order | Keep as reference if still aligned |
+| `docs/quality/L5A_EVAL_SPEC.md` | Eval policy | Compare with V2 grading/micro-suite docs before deciding |
+| `docs/quality/BENCHMARK_CASE_SCHEMA.md` | Benchmark schema | Keep if current benchmark runner still uses it |
+
+Do not archive these until inspected.
+
+---
+
+## Archive / Superseded Rule
+
+A file can be moved to `docs/archive/legacy/` only if all are true:
+
+1. It no longer contains unique canonical product / architecture / data / eval truth
+2. Its responsibility is clearly replaced by a V2 file
+3. It is not required by tests, scripts, or active docs
+4. User / maintainer confirms the move
+
+Recommended top notice before moving:
+
+```md
+> SUPERSEDED / ARCHIVE CANDIDATE
+> Do not use as implementation entrypoint.
+> Current replacement: <new V2 file>
+```
 
 ---
 
@@ -231,3 +218,4 @@ Next recommended action:
 ## 歷史
 
 - 2026-04-24: v1 初始版本，建立 V2 文件索引、Wave 1 entrypoint、L0–L6 legacy handling policy
+- 2026-04-24: v1.1 補入已定位 L-series 文件的具體保留 / superseded 判斷
