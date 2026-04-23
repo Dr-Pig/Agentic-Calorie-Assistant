@@ -10,6 +10,7 @@ WORKSPACE_DATA_ROOT = Path(os.getenv("WORKSPACE_DATA_ROOT", REPO_ROOT / "workspa
 
 RUNTIME_DB_DIR = RUNTIME_ROOT / "db"
 RUNTIME_LOG_DIR = RUNTIME_ROOT / "logs"
+REQUEST_TRACE_DIR = RUNTIME_LOG_DIR / "requests"
 RUNTIME_ARTIFACT_DIR = RUNTIME_ROOT / "artifacts"
 SESSION_RECORD_DIR = RUNTIME_ARTIFACT_DIR / "session_records"
 
@@ -20,5 +21,6 @@ DEFAULT_DB_PATH = RUNTIME_DB_DIR / "canary_persistence.db"
 def ensure_runtime_dirs() -> None:
     RUNTIME_DB_DIR.mkdir(parents=True, exist_ok=True)
     RUNTIME_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    REQUEST_TRACE_DIR.mkdir(parents=True, exist_ok=True)
     SESSION_RECORD_DIR.mkdir(parents=True, exist_ok=True)
 

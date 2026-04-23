@@ -4,11 +4,12 @@ from scripts.import_external_workspace_candidates import _build_aliases, _looks_
 
 
 def test_looks_mojibake_rejects_garbled_text() -> None:
-    assert _looks_mojibake("??蝝??") is True
+    garbled = "?" + chr(0xEB8F) + "?蝝" + chr(0xF1B2) + chr(0xF5CB) + "??" + chr(0xEE5D)
+    assert _looks_mojibake(garbled) is True
 
 
 def test_looks_mojibake_rejects_private_use_text_even_with_cjk() -> None:
-    assert _looks_mojibake("五十嵐珍珠奶茶") is True
+    assert _looks_mojibake("五" + chr(0xEB8F) + "十嵐珍珠奶茶") is True
 
 
 def test_looks_mojibake_accepts_readable_cjk_text() -> None:
@@ -23,7 +24,7 @@ def test_map_exact_record_skips_mojibake_records() -> None:
     mapped = _map_exact_record(
         {
             "brand": "7-ELEVEN CITY CAFE",
-            "title": "??蝝??",
+            "title": "?" + chr(0xEB8F) + "?蝝" + chr(0xF1B2) + chr(0xF5CB) + "??" + chr(0xEE5D),
             "variant": "",
             "category": "drink",
             "kcal": 248,

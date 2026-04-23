@@ -18,9 +18,14 @@ BANNED_SUBJECTS = {
     "fix typo",
 }
 CORE_LOGIC_PREFIXES = (
-    "app/application/",
-    "app/domain/",
-    "app/usecases/",
+    "app/intake/",
+    "app/nutrition/",
+    "app/budget/",
+    "app/body/",
+    "app/rescue/",
+    "app/recommendation/",
+    "app/memory/",
+    "app/runtime/",
 )
 CORE_LOGIC_EXACT = {
     "app/routes.py",

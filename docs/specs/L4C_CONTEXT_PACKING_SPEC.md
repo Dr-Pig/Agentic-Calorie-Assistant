@@ -12,6 +12,8 @@
 - token 壓力下先刪什麼
 - shared fragment 與 dynamic context 如何組裝
 
+**關於 Promotion 與 Demotion 規則**：請參閱 [L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md](./L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md)。
+
 ---
 
 ## 2. 核心原則

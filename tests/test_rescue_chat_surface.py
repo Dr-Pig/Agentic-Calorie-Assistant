@@ -5,10 +5,10 @@ from datetime import datetime, timedelta
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.application.open_proposals_read_model import build_open_rescue_proposals_view
-from app.application.rescue_chat_surface import apply_rescue_chat_action, build_rescue_chat_surface
-from app.application.rescue_overlay import RescueOverlayTargetDay
-from app.application.rescue_runtime import (
+from app.rescue.application import build_open_rescue_proposals_view
+from app.rescue.application.chat_surface import apply_rescue_chat_action, build_rescue_chat_surface
+from app.rescue.application import RescueOverlayTargetDay
+from app.rescue.application.runtime import (
     RescueAssessmentResult,
     RescueRuntimeInputs,
     RescueTriggerResult,

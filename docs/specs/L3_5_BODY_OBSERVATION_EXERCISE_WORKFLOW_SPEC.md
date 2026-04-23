@@ -45,7 +45,7 @@ Formal rule:
 
 Reason:
 
-- user utterances like `??憭?61 ?祆`, `????23%`, `??甇?30 ??`, or `??憭拚?????300 kcal` require intent recognition, value extraction, unit interpretation, and time interpretation
+- user utterances like `我體重 61 公斤`, `體脂 23%`, `跑步 30 分鐘`, or `我剛剛騎車消耗 300 kcal` require intent recognition, value extraction, unit interpretation, and time interpretation
 - those are semantic interpretation tasks, not deterministic parsing
 
 Deterministic layers begin only after the canonical extraction result exists.
@@ -263,9 +263,9 @@ Pure answer behavior should not fake a new workflow.
 
 Examples:
 
-- `??券??之璁?撠
-- `隞予????憭??梢?`
-- `??券??拙?撠????
+- `我今天還能吃多少？`
+- `運動後熱量要怎麼算？`
+- `體脂下降代表什麼？`
 
 These should default to:
 

@@ -1,4 +1,4 @@
-# L0A Onboarding Flow Spec
+﻿# L0A Onboarding Flow Spec
 
 ## 1. 目的
 

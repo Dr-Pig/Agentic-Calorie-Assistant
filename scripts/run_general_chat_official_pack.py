@@ -16,8 +16,8 @@ if str(ROOT) not in sys.path:
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.application.current_budget_answer import build_remaining_budget_answer_contract
-from app.application.general_chat_pass import build_general_chat_response_pass
+from app.budget.application import build_remaining_budget_answer_contract
+from app.intake.application.general_chat_service import build_general_chat_response_pass
 from app.database import get_or_create_user
 from app.models import Base, BodyPlanRecord, DayBudgetLedgerRecord, MealThreadRecord, MealVersionRecord
 from scripts.audit_io_guard import enforce_file_backed_audit_input, load_json_audit_fixture

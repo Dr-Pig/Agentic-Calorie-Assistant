@@ -12,10 +12,12 @@
 - 哪些記憶可以被直接讀取，哪些只能作為 summary view
 - 哪些記憶可被確認、修正、衰減或失效
 
+**關於 Promotion 與 Demotion 規則**：詳細的升級/降級邏輯、Entity Normalization 流程，請參閱 [L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md](./L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md)。
+
 它暫時不回答：
 
-- retrieval ranking
-- context packing token 順序
+- retrieval ranking（見 L4B）
+- context packing token 順序（見 L4C）
 - prompt wording
 
 ---
@@ -225,6 +227,52 @@ Pattern memory 不應靠自由文字重複堆疊。
 - recommendation 避雷
 - proactive suppression
 - 避免重複推薦使用者明確反感的食物 / 類型 / 時段
+
+### 3.5 `Temporary Preference`
+
+ временный 偏好是一種獨立的記憶類型，適用於「不是一次性，但也不是長期」的偏好。
+
+**與 Confirmed Memory 的區別**：
+- Confirmed Memory：長期穩定，預設不 decay
+- Temporary Preference：有明確過期時間，到期自動失效
+
+**結構**：
+- `valid_from` / `valid_until`：有效時間範圍
+- `context_scope`：什麼情境有效（午餐/晚餐/工作日）
+- `expires_in_days`：或用天數計算
+
+**範例**：
+- 「這週在減醣」
+- 「這兩天不想吃辣」
+- 「今天不要推薦太油的」
+
+詳細規則見 [L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md](./L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md) Section 3.6。
+
+### 3.6 `Golden Orders`（Derived View）
+
+**重要澄清**：Golden Order 不是從 Pattern Memory「升級」來的，而是從 canonical history 直接派生的 materialized view。
+
+```
+Golden Order = 從 L1 Canonical History materialized 的 derived view
+             ≠ Pattern Memory 的 promotion 結果
+```
+
+Golden Order 的核心是：
+- 特定店家 + 特定 item bundle
+- 在短期窗口內穩定重複
+- 是「事實層」，不是「推論層」
+
+詳細規則見 [L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md](./L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md) Section 3.3。
+
+### 3.7 `Archive`
+
+不再參與即時 retrieval 的記憶會被移至 Archive。
+
+- Pattern Memory 60 天無新觀察
+- Golden Order 90 天無重複
+- 被 demote 的記憶
+
+Archive 中的記憶仍可被查詢（用於歷史分析），但不參與即時推薦。
 
 ---
 
@@ -441,9 +489,11 @@ memory 系統不應變成 canonical state 或 transcript 的重複副本。
 
 ## 9. Memory Lifecycle
 
+> **詳細的 Promotion 與 Demotion 規則**：請參閱 [L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md](./L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md)。
+
 ### 9.1 Create
 
-記憶可由以下三條路徑生成，優先級由高到低：
+記憶可由以下路徑生成。詳細規則見 L4D Section 3。
 
 #### 路徑 1：使用者直接聲明（最快，最高優先）
 
@@ -454,15 +504,43 @@ memory 系統不應變成 canonical state 或 transcript 的重複副本。
 - 不需要 reinforcement_count 門檻
 - 由 intake Pass 1 的 `task_meal_link_pass` 或 general chat routing 識別後，交由 application layer 寫入
 
-#### 路徑 2：行為累積 + LLM semantic extraction（中速）
+#### 路徑 2：行為累積 → Pattern Memory（中速）
 
-累積 21 筆新 MealItem 且距離上次 extraction 超過 7 天時觸發。
+同一行為反覆出現時，建立 Pattern Memory。
 
-- LLM 從 raw MealItem 時間序列提取 **L2b Semantic Pattern**
-- Semantic Pattern 的 `reinforcement_count` 達到門檻後，可升級為 **Confirmed Memory**
-- 升級判斷由 LLM 執行（結合 pattern 穩定性與口頭聲明）
+- 同一 store + item bundle 出現 3 次
+- 或同一 item_kind 出現 5 次
 
-#### 路徑 3：nightly deterministic consolidation（持續更新）
+#### 路徑 3：Canonical History → Golden Order（Materialization）
+
+Golden Order 是從 canonical history 直接派生的 derived view，不是「升級」來的。
+
+- 30 天內同一 store + bundle 出現 ≥ 3 次
+- 最近 60 天仍有新觀察
+
+#### 路徑 4：Pattern → Confirmed（需使用者確認）
+
+**重要**：只能由以下兩條合法路徑觸發，LLM 不能自己完成升級：
+
+- **路徑 4a**：系統建議 + 使用者確認
+- **路徑 4b**：使用者口頭確認
+
+詳細規則見 L4D Section 3.4。
+
+#### 路徑 5：修正 → Canonical Truth
+
+使用者修正餐點估算時，只更新 Canonical MealItem，不寫入 Pattern Memory。
+
+#### 路徑 6：一次性 / Temporary 偏好
+
+- 一次性實驗 → 不寫入
+- Temporary Preference → 寫入（帶 valid_until）
+- 長期偏好 → 寫入 Pattern Memory
+- Confirmed Negative → 寫入 Confirmed Memory
+
+詳細規則見 L4D Section 3.6。
+
+#### 路徑 7：nightly deterministic consolidation（持續更新）
 
 每日 23:00 由 `ProactiveScheduler` 觸發。
 
@@ -480,9 +558,17 @@ memory 系統不應變成 canonical state 或 transcript 的重複副本。
 
 更新。
 
-### 9.3 Decay
+### 9.3 Decay & Demotion
 
-pattern 與偏好記憶應隨時間衰減。
+pattern 與偏好記憶應隨時間衰減或降級。
+
+**詳細的 Demotion 規則**：請參閱 [L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md](./L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md) Section 4。
+
+**最小原則**：
+- Pattern Memory：30 天無新觀察 → 降權，60 天 → archive
+- Golden Order：60 天無重複 → inactive，90 天 → archive
+- Behavior-upgraded Confirmed：30 天無相關行為 → needs_validation，60 天 → 降級為 Pattern
+- Confirmed Negative（user_verbal）：不自動 demote，除非使用者明講取消
 
 ### 9.3A Consolidation
 
@@ -596,6 +682,14 @@ consolidation 失敗時：
 
 某些 pattern 可升級為 confirmed memory。
 
+**重要**：Pattern → Confirmed 只能由以下兩條合法路徑觸發：
+- 系統建議 + 使用者明確確認
+- 使用者口頭確認
+
+LLM 可以「提議」升級，但不能自己完成升級。
+
+詳細規則見 [L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md](./L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md) Section 3.4。
+
 ### 9.6 Pre-Compaction Memory Flush
 
 在 transcript compaction 前，系統應允許先做一次 memory flush。
@@ -652,25 +746,56 @@ rescue 主要讀：
 
 ## 12. v1 Default Decisions
 
+> **詳細的閾值和決策**：請參閱 [L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md](./L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md) Section 7。
+
 1. confirmed memory：
    - 需滿足「使用者明確口頭確認」或「高一致性行為重複出現」
    - 若無明確確認，至少需 `3` 次一致觀察才可升為 confirmed memory
+   - **重要**：Pattern → Confirmed 只能由使用者確認觸發，LLM 不能自己完成升級
+
 2. preference aging：
    - pattern memory 預設使用 `7` 天 / `21` 筆 intake 的滾動窗口做 consolidation
    - 超過 `30` 天未再出現的 pattern 應顯著降權
+   - 60 天無新觀察 → 移至 archive
+
 3. suppression memory expiry：
    - 一般 suppression 預設 `14` 天後重新評估
    - confirmed negative preference 不自動 expiry，除非被當下口頭聲明或後續穩定行為覆寫
+
 4. golden orders：
-   - 最小支持證據為同一 `store + item bundle` 至少 `3` 次成功選擇，且近期仍有 freshness
+   - **重要**：Golden Order 是 materialized view，不是 promotion 結果
+   - 30 天內同一 store + bundle 出現 ≥ 3 次
+   - 最近 60 天仍有新觀察（保持 freshness）
+   - 不需要「接受推薦並實際消費」作為必要條件
+
 5. L2b semantic pattern extraction 觸發門檻：
    - 累積 `21` 筆新 committed MealItem 且距離上次 extraction 超過 `7` 天，兩個條件都要滿足
    - confidence < `0.5` 的 pattern 不寫入 L2b
    - 同一 `content_hash` 的 pattern 再次出現時更新 `reinforcement_count`，不重複建立
+
 6. L2b semantic pattern → confirmed memory 升級門檻：
-   - `reinforcement_count ≥ 5` 且 `confidence ≥ 0.8`，由 LLM 判斷是否升級
-   - 使用者口頭聲明可直接升級，不需要 reinforcement_count 門檻
-7. NightlyInsight（v1 先不做）：
+   - **已更新**：只能由以下兩條合法路徑觸發：
+     - 路徑 1：系統建議 + 使用者明確確認
+     - 路徑 2：使用者口頭確認
+   - LLM 可以提議升級，但不能自己完成升級
+
+7. Temporary Preference：
+   - 新增記憶類型，適用於「不是一次性，但也不是長期」的偏好
+   - 預設最大有效天數：14 天
+   - 需帶 valid_until 或 expires_in_days
+
+8. Demotion 規則：
+   - Pattern：30 天無新觀察 → 降權，60 天 → archive
+   - Golden Order：60 天無重複 → inactive，90 天 → archive
+   - Behavior-upgraded Confirmed：30 天無相關行為 → needs_validation，60 天 → 降級
+   - Confirmed Negative（user_verbal）：不自動 demote
+
+9. NightlyInsight（v1 先不做）：
    - v1 不實作 NightlyInsight
    - L2b semantic extraction 已覆蓋基本的趨勢判斷需求
    - NightlyInsight 等 2.7 memory deepening 有足夠資料後再加
+
+10. Entity Normalization：
+    - Golden Order 建立時需進行實體正規化
+    - 先嘗試 deterministic 匹配（alias table），失敗則用 LLM fallback
+    - 詳細規則見 L4D Section 5

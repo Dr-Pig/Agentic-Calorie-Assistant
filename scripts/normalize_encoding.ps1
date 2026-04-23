@@ -44,11 +44,28 @@ function Test-IsPolicyPath {
         return $true
     }
 
+    if ($normalized.StartsWith('docs/archive/')) {
+        return $false
+    }
+
     if ($normalized.StartsWith('docs/') -and $normalized.EndsWith('.md')) {
         return $true
     }
 
     return $false
+}
+
+function Get-RelativePathCompat {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BasePath,
+        [Parameter(Mandatory = $true)]
+        [string]$TargetPath
+    )
+
+    $baseUri = [System.Uri]((Resolve-Path -LiteralPath $BasePath).Path.TrimEnd('\') + '\')
+    $targetUri = [System.Uri]((Resolve-Path -LiteralPath $TargetPath).Path)
+    return [System.Uri]::UnescapeDataString($baseUri.MakeRelativeUri($targetUri).ToString()).Replace('/', '\')
 }
 
 function Get-PolicyFiles {
@@ -78,7 +95,9 @@ function Get-PolicyFiles {
     $docRoot = Join-Path $RepoRoot 'docs'
     $files = @()
     if (Test-Path -LiteralPath $docRoot -PathType Container) {
-        $files += Get-ChildItem -Path $docRoot -Recurse -File -Filter '*.md' -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
+        $files += Get-ChildItem -Path $docRoot -Recurse -File -Filter '*.md' -ErrorAction SilentlyContinue |
+            Where-Object { -not ((Get-RelativePathCompat -BasePath $RepoRoot -TargetPath $_.FullName).Replace('\', '/').StartsWith('docs/archive/')) } |
+            ForEach-Object { $_.FullName }
     }
 
     $agentsPath = Join-Path $RepoRoot 'AGENTS.md'

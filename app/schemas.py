@@ -1,5 +1,5 @@
-from .schema_defs.audit import AuditEvent
-from .schema_defs.common import (
+from .shared.contracts.audit import AuditEvent
+from .shared.contracts.common import (
     AnswerMode,
     CommitVersionReason,
     ComponentContext,
@@ -21,14 +21,14 @@ from .schema_defs.common import (
     TaskScope,
     TurnState,
 )
-from .schema_defs.intake import (
+from .shared.contracts.intake import (
     CommitRequestCandidate,
     ComponentEstimate,
-    DecisionPassResult,
     EstimatePayload,
     EvidenceBundle,
     EvidenceCandidate,
     EvidenceResolutionTrace,
+    ExecutionEnvelope,
     FinalResponseResult,
     IngredientCandidate,
     JudgeRequest,
@@ -36,18 +36,14 @@ from .schema_defs.intake import (
     JudgeTrace,
     MealItemPayload,
     MemoryTrace,
-    NutritionResolutionResult,
-    PassExecutionEnvelope,
-    PlanningBrief,
     PrimaryResult,
-    TaskMealLinkResult,
     ToolCallRequest,
     ToolCallResult,
-    TurnIntentResult,
+    ToolRoutingDecision,
 )
-from .schema_defs.legacy import LegacyDecisionDraft
-from .schema_defs.recommendation import HintPacket, RecommendationCandidate, RecommendationResponseResult
-from .schema_defs.trace import ContextPackTrace, StageTraceEvent, ToolDecisionTrace
+from .shared.contracts.legacy import LegacyDecisionDraft
+from .shared.contracts.recommendation import HintPacket, RecommendationCandidate, RecommendationResponseResult
+from .shared.contracts.trace import ContextPackTrace, StageTraceEvent, ToolDecisionTrace
 
 __all__ = [
     "AnswerMode",
@@ -58,10 +54,10 @@ __all__ = [
     "ComponentEstimate",
     "ContextPackTrace",
     "DecisionNextAction",
-    "DecisionPassResult",
     "EstimatePayload",
     "EstimateRequest",
     "EstimateSessionState",
+    "ExecutionEnvelope",
     "EvidenceBundle",
     "EvidenceCandidate",
     "EvidenceResolutionTrace",
@@ -78,10 +74,7 @@ __all__ = [
     "MealLinkAction",
     "MealStatus",
     "MemoryTrace",
-    "NutritionResolutionResult",
-    "PassExecutionEnvelope",
     "PassExecutionStatus",
-    "PlanningBrief",
     "PrimaryResult",
     "RecommendationBudgetPosture",
     "RecommendationCandidate",
@@ -93,11 +86,10 @@ __all__ = [
     "SourceDecision",
     "StageTraceEvent",
     "StageTraceStatus",
-    "TaskMealLinkResult",
     "TaskScope",
     "ToolCallRequest",
     "ToolCallResult",
     "ToolDecisionTrace",
-    "TurnIntentResult",
+    "ToolRoutingDecision",
     "TurnState",
 ]

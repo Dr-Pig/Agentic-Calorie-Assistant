@@ -1,4 +1,4 @@
-from app.agent.risk_gate_policy import build_gate_packet
+from app.nutrition.agent.risk_gate_policy import build_gate_packet
 
 
 def test_risk_gate_matches_ramen_by_exact_keyword() -> None:

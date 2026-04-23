@@ -3,11 +3,11 @@ from __future__ import annotations
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.application.canonical_commit_bridge import (
+from app.intake.application.canonical_commit_bridge import (
     apply_proposal_acceptance_skeleton,
     commit_request_candidate_to_canonical,
 )
-from app.application.rescue_overlay import (
+from app.rescue.application.overlay import (
     RescueOverlayTargetDay,
     apply_short_horizon_rescue_plan,
     assess_rescue_overlay_day,

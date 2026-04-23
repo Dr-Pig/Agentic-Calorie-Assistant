@@ -3,10 +3,10 @@ from __future__ import annotations
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.application.general_chat_pass import build_general_chat_response_pass
-from app.application.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
+from app.intake.application.general_chat_service import build_general_chat_response_pass
+from app.body.application import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_or_create_user
-from app.infrastructure.canonical_persistence import commit_meal_payload_to_canonical
+from app.shared.infra.canonical_persistence import commit_meal_payload_to_canonical
 from app.models import Base, BodyPlanRecord, DayBudgetLedgerRecord, MealThreadRecord
 from app.schemas import CommitRequestCandidate
 

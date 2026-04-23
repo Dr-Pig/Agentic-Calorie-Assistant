@@ -211,6 +211,33 @@ Product requirements:
 - recommendations must align with the currently effective budget and plan state
 - ordinary next-meal suggestions are `recommendation`; only plan-changing or budget-affecting suggestions should become `proposal`
 
+### B.2 Location-Triggered Recommendation
+
+Goal: proactively recommend food options when the user is near a suitable place, based on their location, remaining budget, and preferences.
+
+Includes:
+
+- geofencing to detect when user enters an area of interest
+- nearby restaurant search using Google Places API
+- LLM-based matching between restaurant/food options and user preferences
+- push notification with recommendation card
+- seamless handoff to chat or UI when user engages
+
+Product requirements:
+
+- location-triggered recommendation is a **proactive** capability, not user-initiated
+- it requires Native App as the host (LINE/LIFF cannot reliably do background location)
+- trigger conditions include: entering geofence region, having remaining calorie budget, being in meal time context (lunch/dinner hours)
+- matching algorithm uses LLM to score how well each candidate fits user's dietary preferences (low-carb, high-protein, avoid certain foods)
+- user can configure: which areas to monitor, notification frequency, minimum match score threshold
+- recommendation card in notification should link to chat or UI for full interaction
+
+**Technical feasibility:**
+
+- iOS: CLRegion monitoring (max 20 regions), background events may be delayed in iOS 18
+- Android: GeofencingClient API
+- Google Places: searchNearby endpoint, max 50,000m radius, 20 results per call
+
 ### C. Body Calibration
 
 Goal: align estimated intake with observed body-weight change over time.
@@ -296,6 +323,50 @@ These are product-semantic states, not low-level runtime states.
 - proactive behavior must support suppression and cooldown
 - body calibration may influence recommendations and budgets, but committed plan changes must remain confirmable
 - budget, calibration, and rescue changes must remain attributable and traceable
+
+---
+
+## Multi-Channel Architecture
+
+The product supports multiple entry points, but with different capability levels:
+
+### Channel Roles
+
+| Channel | Role | Key Capabilities |
+|---------|------|------------------|
+| **Native App** | Primary product | Background location, geofencing, push notification, voice/photo input, full experience |
+| **Web App** | Shared logic | Shares backend and partial frontend logic with Native App |
+| **LINE** | Lightweight chat entry | Webhook messaging, reply/push message, quick replies |
+| **LIFF** | Supplementary interface | Webview inside LINE for Today page, body plan, settings |
+
+### Shared Core
+
+All channels share the same "intelligent brain":
+
+- Manager (LLM)
+- Tools (data + LLM-inside)
+- Memory (L1-L4)
+- Recommendation logic
+- Estimation logic
+- Trace
+
+### Channel-Specific Differences
+
+| Capability | Native App | LINE | LIFF |
+|------------|------------|------|------|
+| Background location trigger | ✅ | ❌ | ❌ |
+| Geofencing | ✅ | ❌ | ❌ |
+| Push notification | ✅ | ✅ (LINE Messaging API) | ❌ |
+| Voice input | ✅ | ❌ | ❌ |
+| Photo input | ✅ | ✅ (LINE Message API) | ✅ |
+| Full UI | ✅ | ❌ (chat only) | ✅ (webview) |
+
+### Design Principles
+
+- **Core location-triggered capabilities should not depend on LINE** — because LINE/LIFF cannot reliably get background location
+- Native App is the core host for location awareness and proactive features
+- LINE is suitable as an entry point for "quick logging" and "simple Q&A"
+- LIFF is suitable as a supplement for "opening full pages inside LINE"
 
 ---
 

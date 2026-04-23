@@ -9,7 +9,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from app.database import SessionLocal, init_db
-from app.infrastructure.schema_reset_export import export_schema_reset_snapshot
+from app.shared.infra.schema_reset_export import export_schema_reset_snapshot
 
 
 def main() -> int:

@@ -95,13 +95,13 @@
 - provider API calls
 - route/request objects
 
-### 3.2 `app/application`
+### 3.2 Domain `application/`
 
 放：
 
-- runtime orchestration helpers
-- commit / proposal / trace services
-- pass-to-pass transition logic
+- domain-owned application services
+- commit / proposal / trace coordination that belongs to that domain
+- cross-boundary calls through explicit domain interfaces
 
 不放：
 
@@ -109,7 +109,7 @@
 - provider SDK-specific payload building
 - direct DB table definitions
 
-### 3.3 `app/infrastructure`
+### 3.3 Domain `infrastructure/`
 
 放：
 
@@ -137,19 +137,19 @@
 - meal classification semantics
 - ledger arithmetic
 
-### 3.5 `app/usecases`
+### 3.5 Domain application services
 
 定位：
 
-- thin entrypoint / vertical-slice assembly layer
+- business-domain-owned application services under each top-level domain
 
 規則：
 
-- 可以組裝 application + provider + persistence
-- 不應繼續擴張成厚 orchestrator
-- 新責任優先進 `app/application` 或 `app/infrastructure`
+- 可以組裝 domain policy + provider + persistence
+- 不應擴張成跨 domain 的厚 orchestrator
+- 新責任優先進 `app/intake`、`app/nutrition`、`app/budget` 等 business-domain top-level folder
 
-### 3.6 `app/observability`
+### 3.6 Runtime trace infrastructure
 
 放：
 
@@ -395,4 +395,3 @@ benchmark fixture 的 enum 與欄位合法值，必須服從 `L2A`。
 - legacy code 可暫時保留
 - 但新變更不得擴張舊風格
 - 重構時應朝本文件規定方向收斂
-

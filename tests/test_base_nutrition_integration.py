@@ -1,6 +1,6 @@
-from app.agent.local_knowledge_selector import load_retrieval_documents, search_local_knowledge
-from app.agent.exact_item_packets import resolve_exact_item
-from app.agent.nutrition_engine import _kcal, deterministic_macro_estimate, lookup_ingredient_profile
+from app.nutrition.agent.local_knowledge_selector import load_retrieval_documents, search_local_knowledge
+from app.nutrition.agent.exact_item_packets import resolve_exact_item
+from app.nutrition.agent.nutrition_engine import _kcal, deterministic_macro_estimate, lookup_ingredient_profile
 from app.schemas import IngredientCandidate
 
 

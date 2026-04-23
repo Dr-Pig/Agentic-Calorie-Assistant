@@ -8,50 +8,138 @@ Use it as a map, not a handbook. Load the minimum path first, then retrieve deep
 
 Default truth families are:
 
-1. [docs/specs/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs)
-2. [docs/exec-plans/active/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active)
+1. [docs/specs/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs) — canonical product, runtime, and architecture truth
+2. [docs/quality/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality) — eval bundle gates and E2E acceptance criteria
 3. CI and harness output
 4. `git diff / commit history`
 
 Do not use [docs/archive/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/archive), [artifacts/docs-snapshots/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/artifacts/docs-snapshots), completed task artifacts, or handoff docs as default truth.
 
+## Product Truth Priority
+
+Product end-state and real user interaction truth are higher-order than eval fixture shape.
+
+Apply this precedence when architecture, runtime, manager contracts, tools, guards, or EDD plans are being designed:
+
+1. user-visible product behavior and end-state truth
+2. canonical architecture and domain ownership
+3. runtime invariants and manager contract
+4. eval bundles, benchmarks, replay packs, and runner implementations
+
+Hard rules:
+
+- do not treat benchmark fixture shape, runner vocabulary, or replay-pack implementation detail as product architecture truth
+- eval assets are validators of product truth, not designers of product truth
+- when eval assets and intended product behavior diverge, resolve the product invariant first, then realign eval governance and oracles explicitly
+- manager, tool, and guard design must be justified in terms of user-visible behavior, truth ownership, latency, and honesty, not merely by making a fixture pass
+
 ## Read First
 
 1. [docs/index.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/index.md)
-2. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md)
+2. [docs/specs/APP_V2_IMPLEMENTATION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/APP_V2_IMPLEMENTATION_PLAN.md)
 
-If the task needs legality, slice detail, or next-slice selection, read next:
+If the task needs architecture context or eval gate status, read next:
 
-3. [docs/exec-plans/WORKFLOW_SLICE_REGISTRY.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/WORKFLOW_SLICE_REGISTRY.md)
-4. [docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md)
-5. [docs/governance/EXECUTION_OPERATING_MODEL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/EXECUTION_OPERATING_MODEL.md)
+3. [docs/specs/app_v2_ideal_architecture_final.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/app_v2_ideal_architecture_final.md) (canonical architecture truth)
+4. [docs/quality/V2_EVAL_BUNDLE_1_CASES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/V2_EVAL_BUNDLE_1_CASES.md)
+5. [docs/quality/V2_EVAL_BUNDLE_2_CASES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/V2_EVAL_BUNDLE_2_CASES.md)
 
 Default planner path is:
 
-`AGENTS.md -> CURRENT_EXECUTION_PLAN.md -> WORKFLOW_SLICE_REGISTRY.md -> ordering spec -> EXECUTION_OPERATING_MODEL.md`
+`AGENTS.md -> APP_V2_IMPLEMENTATION_PLAN.md -> V2_EVAL_BUNDLE_X_CASES.md -> app_v2_ideal_architecture_final.md`
+
+## Best Practice Search
+
+Before implementing high-impact code, you MUST search for current best practices.
+
+A steering file is auto-loaded for all Python work: `.kiro/steering/best-practice-search.md`
+
+This file is automatically included in context when editing `.py` files. It requires you to search for best practices before implementing:
+
+- Agent runtime (manager, tools, orchestration)
+- Retrieval (RAG, knowledge lookup)
+- Database patterns (ORM, migrations)
+- API design
+- Testing patterns
+- Security
+
+Use `remote_web_search` to find current best practices. Apply what you find to your implementation.
+
+## Encoding Evidence Contract
+
+Terminal rendering is not encoding evidence. PowerShell, console fonts, code pages, and subprocess pipes may display valid UTF-8 bytes as mojibake.
+
+Hard rules:
+
+- do not classify a file as corrupted because `Get-Content`, `type`, shell output, or terminal transcript looks garbled
+- prove encoding status with byte-level verification only
+- for canonical markdown, run `python scripts/check_markdown_encoding.py --policy-docs --require-bom`
+- if byte-level verification passes but terminal output looks garbled, classify it as `terminal_rendering_issue`, not `encoding_corruption`
+- if byte-level verification fails, report the exact failing path and reason from the verifier
+- do not use PowerShell inline non-ASCII probes as formal evidence; use UTF-8 files or Python byte reads
+
+This contract exists because CJK mojibake can happen before the agent sees command output. The repo truth is bytes and JSON artifacts, not terminal rendering.
+
+## Eval Bootstrap Contract
+
+Before claiming any bundle eval result, you MUST execute the bootstrap order below:
+
+1. load owner truth
+   - [docs/specs/APP_V2_IMPLEMENTATION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/APP_V2_IMPLEMENTATION_PLAN.md)
+   - the corresponding bundle eval pack
+2. run spec-to-runner parity audit
+3. run the bundle eval runner
+4. verify trace roundtrip and text integrity
+5. run or explicitly classify founder realism status
+
+Hard rules:
+
+- if parity audit is incomplete or has blocking gaps, do not claim bundle pass
+- if founder realism status is unknown, only report `founder_realism_status = not_run`
+- do not collapse these verdicts into a single assistant judgment
+- pass / fail claims must be backed by:
+  - full bundle report
+  - parity audit report
+  - founder realism report or explicit `not_run`
+
+Required bundle verdict fields:
+
+- `runner_case_status`
+- `coverage_status`
+- `founder_realism_status`
+- `bundle_ready_for_human_e2e`
+
+Assistant claim policy:
+
+- do not say `全部通過`, `可以人工 E2E`, `bundle 完成`, or `可以切下一階段`
+  unless coverage is complete, blocking gaps are zero, and founder realism is not failing
+- when official runner is green but parity/founder checks are not, say so explicitly
 
 ## Planner Default
 
-- `CURRENT_EXECUTION_PLAN.md` is the execution clock and global build state machine
-- `WORKFLOW_SLICE_REGISTRY.md` is the slice table
-- the ordering spec is the legality and dependency truth
-- `EXECUTION_OPERATING_MODEL.md` is the execution-governance owner doc
-- task and handoff docs are exception tools, not default routing
+- `APP_V2_IMPLEMENTATION_PLAN.md` is the execution blueprint and bundle roadmap
+- `V2_EVAL_BUNDLE_X_CASES.md` are the execution gates — each bundle has E2E acceptance criteria
+- `app_v2_ideal_architecture_final.md` is the canonical architecture truth (replaces APP_V2_TARGET_ARCHITECTURE_SPEC.md)
+- governance docs are exception tools, not default routing
 
-If the dashboard says execution is at a human gate, stop only when the gate is a high-impact gate:
-- global pass / architecture decisions
-- new cross-workflow product semantics
-- new `Utterance-Governed Suite` official canonical truth
+V2 uses **eval-first** execution model:
+- Each bundle has E2E eval cases as the completion gate
+- `summary.bundle_gate == "pass"` + trace artifacts = bundle complete
+- No slice-based planning; execution flows through bundles sequentially
 
-Otherwise, continue execution by default.
-Official suite authoring, runner work, registry work, fixture work, promotion, regression, plumbing, and other non-semantic follow-through should continue unless the dashboard explicitly marks them blocked.
+If the eval bundle shows all P0 cases passing, the bundle is complete.
+If P0 cases fail, fix the code until the eval passes — do not skip gates or claim completion without eval evidence.
 
 When work is bounded, non-semantic, and parallelizable, prefer worker/delegation posture over keeping all implementation and verification on the main thread.
-If the planner is selecting the next slice, the default planner path above is required reading, not a conditional governance read.
+If the planner is selecting the next bundle, the default planner path above is required reading, not a conditional governance read.
 
 ## Hard Rules Summary
 
 - source-of-truth sync is mandatory when canonical understanding changes
+- product truth is higher-order than eval shape
+  - do not design architecture, manager contracts, tool surfaces, or guards around the incidental shape of benchmark fixtures, replay packs, or runner payloads
+  - first decide the intended user-visible behavior and truth ownership, then use evals to verify that behavior
+  - if a test asset is green but the resulting product behavior is wrong, treat the product behavior as the bug and the eval asset as incomplete or misaligned evidence
 - deterministic layers must not override completed LLM decision outputs
   - do not deterministically rewrite `action_taken`, `response_mode_hint`, `follow_up_needed`, `followup_question`, `exactness`, or `resolution_mode` after a pass completes
   - deterministic layers may validate, reject, downgrade, derive, or request one bounded repair round
@@ -64,6 +152,10 @@ If the planner is selecting the next slice, the default planner path above is re
   - do not optimize prompts around a single SKU, menu item, or one benchmark example unless the canonical spec explicitly requires that item-specific behavior
   - prefer generalized rules based on evidence class, identity resolution, portion ambiguity, packaging cues, and uncertainty topology
   - when a benchmark exposes a failure, first look for the broader estimation-family rule that should govern that case class; fix the family rule, not just the surfaced example
+- high-impact agent runtime work must start from current official best practice and a high-capability baseline
+  - for agent runtime, retrieval, tool orchestration, and structured extraction work, check current official best-practice guidance before constraining the design
+  - when official guidance and current repo habits conflict, build the strongest reasonable baseline first, then use eval / latency / cost traces to converge
+  - do not prematurely hard-cap iteration budgets, retrieval budgets, or model capability before an eval-backed baseline exists
 - chat is the primary interaction surface for the product
   - rescue, proposal, and calibration interactions should default to chat-first behavior unless a canonical spec explicitly defines a different primary surface
   - UI should default to mirror / inbox behavior rather than becoming the primary interaction path
@@ -94,21 +186,19 @@ Default deterministic guardrails include:
   - [docs/specs/](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs)
   - [docs/governance/SPEC_EDITING_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/SPEC_EDITING_PROTOCOL.md)
   - [docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
+- V2 implementation or eval-first work:
+  - [docs/specs/APP_V2_IMPLEMENTATION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/APP_V2_IMPLEMENTATION_PLAN.md)
+  - [docs/specs/app_v2_ideal_architecture_final.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/app_v2_ideal_architecture_final.md)
+  - [docs/quality/V2_EVAL_BUNDLE_1_CASES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/V2_EVAL_BUNDLE_1_CASES.md)
+  - [docs/quality/V2_EVAL_BUNDLE_2_CASES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/V2_EVAL_BUNDLE_2_CASES.md)
 - onboarding / budget / today-sync happy-path work:
   - [docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md)
   - [docs/specs/L2_DATA_STATE_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L2_DATA_STATE_SPEC.md)
   - [docs/specs/L2A_DATA_DICTIONARY_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L2A_DATA_DICTIONARY_SPEC.md)
-  - [docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md)
 - body observation, weight update, or exercise input work:
   - [docs/specs/L3_5_BODY_OBSERVATION_EXERCISE_WORKFLOW_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L3_5_BODY_OBSERVATION_EXERCISE_WORKFLOW_SPEC.md)
 - proactive scheduler, trigger conditions, suppression, or nudge design:
   - [docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md)
-- routing design, semantic taxonomy, or eval label design:
-  - [docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L6F_GLOBAL_ROUTING_GOVERNANCE_SPEC.md)
-  - [docs/specs/L6G_MULTI_DISPATCH_SEQUENTIAL_CHAINING_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L6G_MULTI_DISPATCH_SEQUENTIAL_CHAINING_SPEC.md)
-  - [docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/L6E_LLM_PASS_DESIGN_POLICY_SPEC.md)
-- V2 manager architecture, tool calling, renderer design, or migration plan:
-  - [docs/specs/APP_V2_MANAGER_ARCHITECTURE_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/APP_V2_MANAGER_ARCHITECTURE_SPEC.md)
 - eval / benchmark / suite-governance work:
   - [docs/quality/L5A_EVAL_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/L5A_EVAL_SPEC.md)
   - [docs/quality/L5B_BENCHMARK_SPEC.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/L5B_BENCHMARK_SPEC.md)

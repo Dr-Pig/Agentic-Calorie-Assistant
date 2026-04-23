@@ -100,12 +100,14 @@ Therefore:
 
 ## 4. Phase 2: Intake -> Ledger Sync
 
-Use the canonical intake 4-pass:
+Use the canonical intake single-manager flow:
 
-1. `task_meal_link_pass`
-2. `decision_pass`
-3. `nutrition_resolution_pass`
-4. `final_response_pass`
+1. `state_resolver`
+2. `manager_rounds`
+3. `tool_batch`
+4. `manager_final_decision`
+5. `execution_guard`
+6. `sidecar_truth`
 
 The additional writeback contract is:
 
@@ -201,7 +203,7 @@ This document is aligned with:
 
 - `L0A_ONBOARDING_FLOW_SPEC.md`
 - `L2_DATA_STATE_SPEC.md`
-- `L3_1_INTAKE_RUNTIME_PASS_CONTRACT_SPEC.md`
+- `L3_1_INTAKE_RUNTIME_CONTRACT_SPEC.md`
 - `WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`
 
 Recommendation, calibration, and rescue may later depend on this budget truth,
