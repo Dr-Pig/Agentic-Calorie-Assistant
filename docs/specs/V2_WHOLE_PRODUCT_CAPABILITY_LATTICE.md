@@ -51,6 +51,44 @@
 - **本文件不是架構真理的替代品**
 - 本文件只能幫助切 execution / eval / ownership，不可反向主導整體 architecture
 
+### 4. 與 `V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md` 的關係
+
+- 本文件定義 whole-product capability families
+- `V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md` 定義 execution stance、wave sequencing、manager/workflow/tool 分工與 coding-agent reading pack
+- 若兩者重疊，本文件應保持產品能力骨架；execution 細節應留在 execution architecture overview
+
+---
+
+## Target Execution Stance（摘要）
+
+V2 的目標執行樣貌是：
+
+> **single manager orchestration + domain-owned workflows / tools + shared truth owners + guards / trace / sidecar governance**
+
+這代表：
+
+- manager 是外層動態協調者，負責多意圖判斷、workflow/tool 調度、state boundary awareness 與 final response planning
+- domain workflows / tools 是內層可測能力單位，負責 nutrition、intake、budget、body、rescue、recommendation 等 domain-owned work
+- shared product objects 是 truth anchors，不得由 channel、renderer、sidecar 或 eval fixture 形成平行 truth
+- guards / trace / sidecar 是治理層，負責防 fake pass、artifact linkage、shared-truth visibility 與 regression auditability
+
+本節只是 stance 摘要；完整執行架構見 `V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md`。
+
+---
+
+## Build-Order Principle
+
+本文件定義的是 **product capability map**，不是 implementation order。
+
+硬規則：
+
+- product capabilities 決定 build scope 與 acceptance targets
+- system capabilities 決定 implementation order 與 micro-suites
+- bundles 是 acceptance gates，不是施工順序本身
+- current-wave deep specs 才負責把 whole-product families 展開成可建置、可測的 system capabilities
+
+因此，不應直接以 journey 或 bundle 名稱作為 coding agent 的施工順序。coding agent 應先看 current-wave deep capability spec 與 capability micro-suites，再回到 bundle eval packs 做 acceptance。
+
 ---
 
 ## 核心 shared product objects
@@ -392,3 +430,9 @@ current wave 不需要先把 F4-F7 完整展開成 deep spec，但 whole-product
 2. 產出 whole-product failure taxonomy
 3. 產出 grading rubric（functional gate + quality rubric + founder review）
 4. bundle-by-bundle 擴張 eval packs
+
+---
+
+## 歷史
+
+- 2026-04-24: 補充 Target Execution Stance 與 Build-Order Principle，明確區分 product capability、system capability、bundle acceptance 與 implementation order
