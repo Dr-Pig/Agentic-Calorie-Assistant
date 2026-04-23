@@ -2,84 +2,22 @@ name: ci
 
 on:
   push:
+    branches:
+      - main
   pull_request:
   workflow_call:
 
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  PYTHONUTF8: "1"
+
 jobs:
-  layer-integrity:
+  pre-edd-readiness:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Compute diff range
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "DIFF_BASE_SHA=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_ENV"
-            echo "DIFF_HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_ENV"
-          else
-            echo "DIFF_BASE_SHA=${{ github.event.before }}" >> "$GITHUB_ENV"
-            echo "DIFF_HEAD_SHA=${{ github.sha }}" >> "$GITHUB_ENV"
-          fi
-
-      - name: Run diff scope check
-        run: python scripts/check_git_diff_scope.py --range "$DIFF_BASE_SHA" "$DIFF_HEAD_SHA"
-
-      - name: Run commit format check
-        run: python scripts/check_commit_format.py --range "$DIFF_BASE_SHA" "$DIFF_HEAD_SHA"
-
-      - name: Run audit runner contract check
-        run: python scripts/check_audit_runner_contract.py
-
-      - name: Run audit fixture safety check
-        run: python scripts/check_audit_fixture_safety.py
-
-      - name: Run official text-surface mojibake guard
-        run: python scripts/check_official_text_surface_mojibake.py
-
-      - name: Run user-facing mojibake guard
-        run: python scripts/check_user_facing_mojibake.py
-
-      - name: Run layer integrity check
-        run: python scripts/check_layer_integrity.py
-
-      - name: Run runtime boundary check
-        run: python scripts/check_runtime_boundaries.py
-
-      - name: Run diff-scoped ruff
-        run: python scripts/check_git_diff_scope.py --range "$DIFF_BASE_SHA" "$DIFF_HEAD_SHA" --run-ruff
-
-      - name: Run protected doc rewrite audit
-        shell: pwsh
-        run: ./scripts/check_protected_doc_rewrites.ps1
-
-      - name: Run encoding policy audit
-        shell: pwsh
-        run: ./scripts/check_encoding.ps1 -AuditDocsPolicy
-
-      - name: Run fat-file governance audit
-        shell: pwsh
-        run: ./scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings
-
-      - name: Run migration discipline check
-        run: python scripts/check_migration_discipline.py
-
-  smoke-tests:
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -87,19 +25,28 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-          cache: "pip"
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run smoke tests
-        run: python -m pytest -q -m smoke
+      - name: Run pre-EDD readiness gate
+        run: python scripts/pre_edd_readiness.py --timeout-seconds 180
 
-  integration-tests:
+      - name: Upload pre-EDD readiness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-edd-readiness-report
+          path: artifacts/pre_edd_readiness_report.json
+          if-no-files-found: error
+
+  runtime-contract-tests:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -107,13 +54,25 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-          cache: "pip"
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run integration tests
-        run: python -m pytest -q -m integration
+      - name: Run single-manager contract test wall
+        run: |
+          python -m pytest \
+            tests/test_domain_first_guardrails.py \
+            tests/test_manager_service.py \
+            tests/test_deepseek_adapter.py \
+            tests/test_builderspace_adapter.py \
+            tests/test_eval_bootstrap.py \
+            tests/test_pre_edd_readiness.py \
+            tests/test_runner_timeout_contract.py \
+            tests/test_tavily_timeout_contract.py \
+            tests/test_text_integrity.py \
+            tests/test_workflow_routing_decision.py \
+            -q
