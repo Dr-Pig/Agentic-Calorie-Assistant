@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.runtime.agent.manager import SINGLE_MANAGER_SYSTEM_PROMPT, run_intake_manager
+from app.providers.builderspace_adapter import BuilderSpaceResponseError
 
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
 LATEST_REPORT = DEFAULT_OUTPUT_DIR / "wave1_phase_b_minimal_tool_loop_smoke.json"
@@ -593,13 +594,48 @@ def _provider_runtime_error_report(
     started_perf: float,
     provider_timeout_ms: int,
 ) -> dict[str, Any]:
-    is_timeout = isinstance(error, TimeoutError)
+    provider_trace = dict(getattr(error, "trace", {}) or {})
+    transport_attempts = (
+        provider_trace.get("transport_attempts") if isinstance(provider_trace.get("transport_attempts"), list) else []
+    )
+    timeout_error_types = {"TimeoutError", "ReadTimeout", "ConnectTimeout", "WriteTimeout", "PoolTimeout"}
+    transport_timeout = any(
+        isinstance(attempt, dict) and str(attempt.get("error_type") or "") in timeout_error_types
+        for attempt in transport_attempts
+    )
+    is_timeout = (
+        isinstance(error, TimeoutError)
+        or transport_timeout
+        or (isinstance(error, BuilderSpaceResponseError) and "timeout" in str(error).lower())
+    )
+    if isinstance(error, TimeoutError):
+        timeout_layer = "outer_provider_timeout"
+    elif is_timeout:
+        timeout_layer = "adapter_http_timeout"
+    else:
+        timeout_layer = None
+    readiness_timeout = readiness.get("timeout_seconds")
+    stage = provider_trace.get("stage")
+    model = provider_trace.get("model") or readiness.get("manager_model") or readiness.get("model")
+    base_url = provider_trace.get("base_url") or readiness.get("base_url")
+    retry_count = readiness.get("transport_retry_count")
     provider_runtime: dict[str, Any] = {
         "configured": bool(readiness.get("configured")),
         "blocker": True,
         "reason": "provider_timeout" if is_timeout else "provider_runtime_error",
         "error_type": type(error).__name__,
         "error": str(error),
+        "provider": provider_trace.get("provider") or readiness.get("provider"),
+        "model": model,
+        "stage": stage,
+        "adapter_timeout_seconds": provider_trace.get("timeout_seconds") or readiness_timeout,
+        "outer_provider_timeout_ms": provider_timeout_ms,
+        "timeout_layer": timeout_layer,
+        "attempt_count": len(transport_attempts) if transport_attempts else 1,
+        "retry_count": retry_count,
+        "completed_trace_count": len(traces),
+        "expected_case_count": len(smoke_cases),
+        "base_url": base_url,
     }
     if is_timeout:
         provider_runtime["timeout_ms"] = provider_timeout_ms

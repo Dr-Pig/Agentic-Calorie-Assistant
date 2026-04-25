@@ -16,6 +16,8 @@ from ..text_integrity import corruption_summary, find_text_corruption
 DEFAULT_BASE_URL = "https://space.ai-builders.com/backend/v1"
 PLACEHOLDER_VALUES = {"", "replace-me", "https://api.example.com"}
 MAX_PARSE_RETRIES = 1
+DEFAULT_TIMEOUT_SECONDS = 30
+MAX_TIMEOUT_SECONDS = 120
 
 DEFAULT_STAGE_TEMPERATURES = {
     MANAGER_LOOP_STAGE: 0.0,
@@ -34,7 +36,8 @@ class BuilderSpaceAdapter:
         self.token = os.getenv("AI_BUILDER_TOKEN", "")
         self.manager_model = manager_model_override or os.getenv("BUILDERSPACE_MANAGER_MODEL", "deepseek")
         self.role_label = role_label
-        self.timeout_seconds = min(int(os.getenv("AI_BUILDER_TIMEOUT_SECONDS", "15")), 15)
+        self.configured_timeout_env = os.getenv("AI_BUILDER_TIMEOUT_SECONDS")
+        self.timeout_seconds, self.timeout_was_clamped = self._effective_timeout_seconds(self.configured_timeout_env)
         self.transport_retry_count = max(0, int(os.getenv("AI_BUILDER_TRANSPORT_RETRY_COUNT", "2")))
         self.transport_retry_backoff_seconds = float(os.getenv("AI_BUILDER_TRANSPORT_RETRY_BACKOFF_SECONDS", "0.75"))
         self.manager_temperature = float(
@@ -48,6 +51,10 @@ class BuilderSpaceAdapter:
             "manager_model": self.manager_model,
             "base_url": self.base_url,
             "timeout_seconds": self.timeout_seconds,
+            "configured_timeout_env": self.configured_timeout_env,
+            "default_timeout_seconds": DEFAULT_TIMEOUT_SECONDS,
+            "max_timeout_seconds": MAX_TIMEOUT_SECONDS,
+            "timeout_was_clamped": self.timeout_was_clamped,
             "transport_retry_count": self.transport_retry_count,
             "transport_retry_backoff_seconds": self.transport_retry_backoff_seconds,
             "role": self.role_label,
@@ -347,6 +354,19 @@ class BuilderSpaceAdapter:
         if normalized.endswith("example.com"):
             return False
         return True
+
+    def _effective_timeout_seconds(self, raw_value: str | None) -> tuple[int, bool]:
+        if raw_value in (None, ""):
+            return DEFAULT_TIMEOUT_SECONDS, False
+        try:
+            parsed = int(str(raw_value).strip())
+        except (TypeError, ValueError):
+            return DEFAULT_TIMEOUT_SECONDS, False
+        if parsed <= 0:
+            return DEFAULT_TIMEOUT_SECONDS, False
+        if parsed > MAX_TIMEOUT_SECONDS:
+            return MAX_TIMEOUT_SECONDS, True
+        return parsed, False
 
 
 def _jsonable(value: Any) -> Any:
