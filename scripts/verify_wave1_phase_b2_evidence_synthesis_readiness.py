@@ -1,0 +1,659 @@
+from __future__ import annotations
+
+import argparse
+from datetime import UTC, datetime
+import json
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_PHASE_B2_REPORT = ROOT / "artifacts" / "wave1_phase_b2_evidence_synthesis_smoke.json"
+DEFAULT_OUTPUT = ROOT / "artifacts" / "wave1_phase_b2_evidence_synthesis_readiness.json"
+
+REQUIRED_SMOKE_CASES = (
+    "我吃了一顆茶葉蛋",
+    "我喝了一杯珍珠奶茶",
+    "我吃了一個便當",
+    "我吃了滷味",
+    "我吃了豆干、海帶、貢丸的滷味",
+    "迷客夏珍珠紅茶拿鐵",
+    "松屋特盛牛丼",
+    "珍珠奶茶多少熱量？",
+    "sibling_negative_milkshop_black_tea_latte_matched_fresh_milk_tea",
+    "official_wrong_item_negative",
+)
+REQUIRED_PACKET_FIELDS = ("packet_id", "truth_level", "source_type", "source_quality_label", "raw_ref")
+SAME_ITEM_DIMENSION_FIELDS = (
+    "matched_name",
+    "canonical_name",
+    "brand_match",
+    "size_or_serving_match",
+    "modifier_match",
+    "serving_basis",
+    "sibling_variant_risk",
+)
+SOURCE_QUALITY_LABELS = {
+    "internal_exact",
+    "internal_generic",
+    "official",
+    "brand_menu",
+    "trusted_database",
+    "third_party",
+    "semantic_hint",
+    "llm_prior",
+    "unknown",
+}
+TRUTH_LEVELS = {"candidate", "hint", "rule_hint"}
+SOURCE_TYPES = {"exact_db", "generic_db", "web_search", "web_extract", "taiwan_skill", "llm_prior"}
+MATCH_TYPES = {"exact", "alias_exact", "generic", "related", "no_match"}
+EVIDENCE_USAGE = {"exact", "anchor", "fallback", "semantic_hint", "rejected"}
+EVIDENCE_CONFIDENCE = {"exact", "strong", "moderate", "weak", "insufficient"}
+EXACTNESS_POSTURES = {"exact", "estimated", "provisional", "unresolved"}
+SAME_ITEM_MATCH_TYPES = {"exact", "alias_exact"}
+EXACT_SOURCE_QUALITY = {"internal_exact", "official", "brand_menu"}
+EXACT_SOURCE_TYPES = {"exact_db", "web_search", "web_extract"}
+FORBIDDEN_PACKET_FINAL_TRUTH_FIELDS = {
+    "final_kcal",
+    "final_truth",
+    "primary_source",
+    "ledger_mutation_result",
+}
+FORBIDDEN_TAIWAN_SKILL_FIELDS = {
+    "kcal",
+    "kcal_range",
+    "likely_kcal",
+    "macro",
+    "macros",
+    "macro_candidate",
+    "portion",
+    "portion_grams",
+}
+REQUIRED_CACHE_FIELDS = ("cache_key", "cache_hit", "cache_policy", "unavailable_reason")
+REQUIRED_GENERIC_SEED_FOODS = {"茶葉蛋", "珍珠奶茶", "便當", "豆干", "海帶", "貢丸"}
+REQUIRED_SEED_FIELDS = ("food_name", "seed_type", "used_by_smoke_case", "fixture_only", "allowed_fields")
+GENERIC_SEED_ALLOWED_FIELDS = {"kcal_range", "likely_kcal", "macro_candidate"}
+LLM_PRIOR_ALLOWED_CONFIDENCE = {"weak", "insufficient"}
+
+
+def _json_safe(value: Any) -> Any:
+    return json.loads(json.dumps(value, ensure_ascii=False, default=str))
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _resolve_path(path_text: str | None, *, default: Path) -> Path:
+    if not path_text:
+        return default
+    path = Path(path_text)
+    return path if path.is_absolute() else ROOT / path
+
+
+def _project_relative(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(ROOT).as_posix()
+    except ValueError:
+        return resolved.as_posix()
+
+
+def _add(blockers: list[dict[str, str]], code: str, detail: str) -> None:
+    blockers.append({"code": code, "detail": detail})
+
+
+def _warn(warnings: list[dict[str, str]], code: str, detail: str) -> None:
+    warnings.append({"code": code, "detail": detail})
+
+
+def _contains_key(value: Any, key_name: str) -> bool:
+    if isinstance(value, dict):
+        return key_name in value or any(_contains_key(item, key_name) for item in value.values())
+    if isinstance(value, list):
+        return any(_contains_key(item, key_name) for item in value)
+    return False
+
+
+def _contains_any_key(value: Any, keys: set[str]) -> str | None:
+    for key in keys:
+        if _contains_key(value, key):
+            return key
+    return None
+
+
+def _sibling_risk_present(packet: dict[str, Any]) -> bool:
+    risk = packet.get("sibling_variant_risk")
+    if isinstance(risk, dict):
+        return bool(risk.get("present"))
+    return bool(risk)
+
+
+def _packet_supports_exact_claim(packet: dict[str, Any]) -> bool:
+    return (
+        packet.get("source_type") in EXACT_SOURCE_TYPES
+        and packet.get("source_quality_label") in EXACT_SOURCE_QUALITY
+        and packet.get("match_type") in SAME_ITEM_MATCH_TYPES
+        and not _sibling_risk_present(packet)
+    )
+
+
+def _packets_by_id(case: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    packets: dict[str, dict[str, Any]] = {}
+    for packet in case.get("packets") or []:
+        if isinstance(packet, dict) and isinstance(packet.get("packet_id"), str):
+            packets[packet["packet_id"]] = packet
+    return packets
+
+
+def _check_smoke_cases(report: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    cases_run = set(str(item) for item in report.get("smoke_cases_run") or [])
+    missing = [case for case in REQUIRED_SMOKE_CASES if case not in cases_run]
+    if missing:
+        _add(blockers, "phase_b2_smoke_case_missing", f"Missing Phase B-2 smoke cases: {', '.join(missing)}.")
+    return {"required": list(REQUIRED_SMOKE_CASES), "missing": missing, "passed": not missing}
+
+
+def _check_non_scope(report: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    non_scope = report.get("non_scope") or {}
+    disallowed = [
+        key
+        for key in (
+            "autonomous_nutrition_subagent",
+            "independent_llm_evidence_normalizer",
+            "full_macro_engine",
+            "nutrition_accuracy_production_ready_claim",
+        )
+        if bool(non_scope.get(key))
+    ]
+    if disallowed:
+        _add(blockers, "phase_b2_non_scope_enabled", f"Phase B-2 gate must not enable: {', '.join(disallowed)}.")
+    return {"disallowed": disallowed, "passed": not disallowed}
+
+
+def _trusted_source_ids(report: dict[str, Any]) -> set[str]:
+    manifest = report.get("trusted_source_manifest") or {}
+    entries = manifest.get("entries") if isinstance(manifest, dict) else []
+    return {
+        str(entry.get("source_id"))
+        for entry in entries or []
+        if isinstance(entry, dict)
+        and entry.get("source_quality_label") == "trusted_database"
+        and bool(entry.get("approved"))
+        and entry.get("source_id")
+    }
+
+
+def _check_trusted_database_policy(report: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    policy = report.get("trusted_database_policy") or {}
+    allowlist = set(str(item) for item in policy.get("allowlist") or []) if isinstance(policy, dict) else set()
+    manifest_ids = _trusted_source_ids(report)
+    unresolved: list[dict[str, Any]] = []
+    for case in report.get("cases") or []:
+        if not isinstance(case, dict):
+            continue
+        for packet in case.get("packets") or []:
+            if not isinstance(packet, dict) or packet.get("source_quality_label") != "trusted_database":
+                continue
+            source_id = packet.get("source_id")
+            explicit_justification = packet.get("trusted_database_justification") or packet.get("justification")
+            source_resolved = isinstance(source_id, str) and source_id in manifest_ids and source_id in allowlist
+            if not source_resolved and not explicit_justification:
+                unresolved.append({"case_id": case.get("case_id"), "packet_id": packet.get("packet_id"), "source_id": source_id})
+    if unresolved:
+        _add(
+            blockers,
+            "trusted_database_source_unresolved",
+            "trusted_database packets must resolve source_id to an approved manifest entry/allowlist or include explicit artifact-level justification.",
+        )
+    return {"unresolved": unresolved, "approved_manifest_ids": sorted(manifest_ids), "passed": not unresolved}
+
+
+def _llm_prior_packets_or_evidence_present(report: dict[str, Any]) -> bool:
+    for case in report.get("cases") or []:
+        if not isinstance(case, dict):
+            continue
+        for packet in case.get("packets") or []:
+            if isinstance(packet, dict) and (
+                packet.get("source_type") == "llm_prior" or packet.get("source_quality_label") == "llm_prior"
+            ):
+                return True
+        for item in ((case.get("manager_pass_2") or {}).get("item_results") or []):
+            if not isinstance(item, dict):
+                continue
+            for evidence in item.get("evidence_used") or []:
+                if isinstance(evidence, dict) and (
+                    evidence.get("source_type") == "llm_prior" or evidence.get("source_quality_label") == "llm_prior"
+                ):
+                    return True
+    return False
+
+
+def _check_llm_prior_trace(report: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    used = _llm_prior_packets_or_evidence_present(report)
+    trace = report.get("llm_prior_trace") or {}
+    missing_or_invalid = False
+    exact_claim_allowed = False
+    if used:
+        rationale = trace.get("why_no_better_evidence_available") if isinstance(trace, dict) else None
+        confidence = trace.get("evidence_confidence") if isinstance(trace, dict) else None
+        missing_or_invalid = (
+            not isinstance(trace, dict)
+            or trace.get("llm_prior_used") is not True
+            or not rationale
+            or trace.get("exact_claim_allowed") is not False
+            or confidence not in LLM_PRIOR_ALLOWED_CONFIDENCE
+        )
+        exact_claim_allowed = (
+            isinstance(trace, dict)
+            and (
+                trace.get("exact_claim_allowed") is not False
+                or trace.get("evidence_confidence") in {"exact", "strong", "moderate"}
+            )
+        )
+    if used and missing_or_invalid:
+        _add(
+            blockers,
+            "llm_prior_trace_missing",
+            "LLM prior requires last-resort trace with rationale, exact_claim_allowed=false, and weak/insufficient confidence.",
+        )
+    if used and exact_claim_allowed:
+        _add(blockers, "llm_prior_exact_claim_allowed", "LLM prior must never support exact claims or strong evidence confidence.")
+    return {"llm_prior_used": used, "trace_present": bool(trace), "passed": not (used and (missing_or_invalid or exact_claim_allowed))}
+
+
+def _check_minimal_db_seed_manifest(report: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    manifest = report.get("minimal_db_seed_manifest")
+    if not isinstance(manifest, dict):
+        _add(blockers, "minimal_db_seed_manifest_missing", "Phase B-2 readiness requires minimal_db_seed_manifest.")
+        return {"missing": True, "passed": False}
+    seeds = manifest.get("seeds")
+    if not isinstance(seeds, list):
+        _add(blockers, "minimal_db_seed_manifest_missing", "minimal_db_seed_manifest must include a seeds list.")
+        return {"missing": True, "passed": False}
+
+    smoke_cases = set(str(item) for item in report.get("smoke_cases_run") or [])
+    found_generic = {
+        str(seed.get("food_name"))
+        for seed in seeds
+        if isinstance(seed, dict) and seed.get("seed_type") == "generic" and seed.get("food_name")
+    }
+    missing_default = sorted(REQUIRED_GENERIC_SEED_FOODS - found_generic)
+    malformed: list[dict[str, Any]] = []
+    exact_truth: list[dict[str, Any]] = []
+    outside_scope: list[dict[str, Any]] = []
+    exact_runtime_seeds: list[dict[str, Any]] = []
+    for index, seed in enumerate(seeds):
+        if not isinstance(seed, dict):
+            malformed.append({"index": index, "reason": "seed_not_object"})
+            continue
+        missing_fields = [field for field in REQUIRED_SEED_FIELDS if field not in seed]
+        if missing_fields:
+            malformed.append({"index": index, "missing": missing_fields})
+        seed_type = seed.get("seed_type")
+        fixture_only = bool(seed.get("fixture_only"))
+        used_by = str(seed.get("used_by_smoke_case") or "")
+        if seed_type == "generic":
+            allowed_fields = set(str(item) for item in seed.get("allowed_fields") or [])
+            forbidden_allowed_fields = sorted(allowed_fields - GENERIC_SEED_ALLOWED_FIELDS)
+            if forbidden_allowed_fields or seed.get("source_quality_label") == "internal_exact" or seed.get("match_type") in SAME_ITEM_MATCH_TYPES:
+                exact_truth.append({"index": index, "food_name": seed.get("food_name"), "forbidden": forbidden_allowed_fields})
+        elif seed_type == "exact" and not fixture_only:
+            exact_runtime_seeds.append({"index": index, "food_name": seed.get("food_name")})
+        elif seed_type not in {"generic", "exact"}:
+            malformed.append({"index": index, "seed_type": seed_type})
+        if used_by not in smoke_cases and not fixture_only and not bool(seed.get("out_of_scope")):
+            outside_scope.append({"index": index, "food_name": seed.get("food_name"), "used_by_smoke_case": used_by})
+    if missing_default or malformed:
+        _add(blockers, "minimal_db_seed_manifest_missing", "minimal_db_seed_manifest must include all required smoke generic seeds with required fields.")
+    if exact_truth or exact_runtime_seeds:
+        _add(blockers, "minimal_db_seed_contains_exact_truth", "Generic seeds must not contain brand exact truth; real exact seeds must stay empty in this slice.")
+    if outside_scope:
+        _add(blockers, "minimal_db_seed_outside_smoke_scope", "Extra non-smoke seeds must be fixture_only or explicitly out_of_scope.")
+    return {
+        "missing_default_generic_seeds": missing_default,
+        "malformed": malformed,
+        "exact_truth": exact_truth,
+        "outside_scope": outside_scope,
+        "exact_runtime_seeds": exact_runtime_seeds,
+        "passed": not missing_default and not malformed and not exact_truth and not outside_scope and not exact_runtime_seeds,
+    }
+
+
+def _check_runtime_trace_parity(report: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    parity = report.get("runtime_trace_parity")
+    if not isinstance(parity, dict):
+        _add(blockers, "runtime_trace_parity_failed", "runtime_trace_parity must be present; synthetic-only artifacts may use status=not_applicable.")
+        return {"missing": True, "passed": False}
+    passed = (
+        parity.get("required_core_fields_match") is True
+        and parity.get("extra_fields_allowed") is True
+        and parity.get("renamed_core_fields_allowed") is False
+        and parity.get("missing_core_fields_allowed") is False
+    )
+    if not passed:
+        _add(
+            blockers,
+            "runtime_trace_parity_failed",
+            "Runtime trace may add metadata but must not rename or omit canonical packet, Pass 2, mutation, or renderer fields.",
+        )
+    return {"status": parity.get("status"), "passed": passed}
+
+
+def _check_packet_contract(case: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    invalid_packets: list[dict[str, Any]] = []
+    packets = case.get("packets") or []
+    for index, packet in enumerate(packets):
+        if not isinstance(packet, dict):
+            invalid_packets.append({"index": index, "reason": "packet_not_object"})
+            continue
+        missing = [field for field in REQUIRED_PACKET_FIELDS if field not in packet]
+        if missing:
+            _add(blockers, "packet_contract_missing_required_field", "Every B-2 packet must include packet_id, truth_level, source_type, source_quality_label, and raw_ref.")
+            invalid_packets.append({"index": index, "missing": missing})
+        if packet.get("truth_level") not in TRUTH_LEVELS:
+            _add(blockers, "packet_truth_level_invalid", "B-2 read/packetizer packets must use candidate, hint, or rule_hint.")
+            invalid_packets.append({"index": index, "truth_level": packet.get("truth_level")})
+        if packet.get("source_type") not in SOURCE_TYPES:
+            _add(blockers, "packet_source_type_invalid", "B-2 packet source_type must use the evidence source enum.")
+            invalid_packets.append({"index": index, "source_type": packet.get("source_type")})
+        if packet.get("source_quality_label") not in SOURCE_QUALITY_LABELS:
+            _add(blockers, "packet_source_quality_label_invalid", "B-2 packet source_quality_label must use the Phase B-2 enum.")
+            invalid_packets.append({"index": index, "source_quality_label": packet.get("source_quality_label")})
+        final_truth_key = _contains_any_key(packet, FORBIDDEN_PACKET_FINAL_TRUTH_FIELDS)
+        if final_truth_key:
+            _add(blockers, "packet_final_truth_present", "Candidate packets must not contain final truth fields such as final_kcal or primary_source.")
+            invalid_packets.append({"index": index, "final_truth_key": final_truth_key})
+        if packet.get("source_type") == "generic_db" and packet.get("match_type") in SAME_ITEM_MATCH_TYPES:
+            _add(blockers, "generic_db_marked_exact", "Generic DB packets must not claim exact or alias_exact match_type.")
+            invalid_packets.append({"index": index, "reason": "generic_db_marked_exact"})
+        if packet.get("source_type") == "generic_db" and packet.get("source_quality_label") == "internal_exact":
+            _add(blockers, "generic_db_marked_exact", "Generic DB packets must not use internal_exact source quality.")
+            invalid_packets.append({"index": index, "reason": "generic_db_internal_exact"})
+        if packet.get("source_type") == "taiwan_skill":
+            forbidden_key = _contains_any_key(packet, FORBIDDEN_TAIWAN_SKILL_FIELDS)
+            if forbidden_key:
+                _add(blockers, "taiwan_skill_contains_nutrition_truth", "Taiwan Skill packets may contain semantic hints only, not kcal, macro, or portion truth.")
+                invalid_packets.append({"index": index, "forbidden_skill_key": forbidden_key})
+        elif packet.get("source_type") in {"exact_db", "generic_db", "web_search", "web_extract"}:
+            missing_dimensions = [field for field in SAME_ITEM_DIMENSION_FIELDS if field not in packet]
+            if missing_dimensions:
+                _add(blockers, "candidate_same_item_dimensions_missing", "Candidate packets must include same-item dimensions.")
+                invalid_packets.append({"index": index, "missing_same_item_dimensions": missing_dimensions})
+        match_type = packet.get("match_type")
+        if match_type is not None and match_type not in MATCH_TYPES:
+            _add(blockers, "packet_match_type_invalid", "match_type must distinguish exact, alias_exact, generic, related, or no_match.")
+            invalid_packets.append({"index": index, "match_type": match_type})
+    return {"invalid_packets": invalid_packets, "passed": not invalid_packets}
+
+
+def _evidence_packet(entry: dict[str, Any], packets: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
+    packet_id = entry.get("packet_id")
+    return packets.get(packet_id) if isinstance(packet_id, str) else None
+
+
+def _check_manager_pass_2(case: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    packets = _packets_by_id(case)
+    invalid_evidence: list[dict[str, Any]] = []
+    unresolved_ledger_violations: list[dict[str, Any]] = []
+    exactness_violations: list[dict[str, Any]] = []
+    rejected_candidate_violations: list[dict[str, Any]] = []
+    item_results = ((case.get("manager_pass_2") or {}).get("item_results") or [])
+    for item_index, item in enumerate(item_results):
+        if not isinstance(item, dict):
+            continue
+        evidence_confidence = item.get("evidence_confidence")
+        exactness_posture = item.get("exactness_posture")
+        if evidence_confidence not in EVIDENCE_CONFIDENCE:
+            _add(blockers, "evidence_confidence_invalid", "Manager Pass 2 must output evidence_confidence from the B-2 enum.")
+            exactness_violations.append({"item_index": item_index, "evidence_confidence": evidence_confidence})
+        if exactness_posture not in EXACTNESS_POSTURES:
+            _add(blockers, "exactness_posture_invalid", "Manager Pass 2 must output exactness_posture from the B-2 enum.")
+            exactness_violations.append({"item_index": item_index, "exactness_posture": exactness_posture})
+
+        exact_supporting_packets: list[str] = []
+        for evidence_index, evidence in enumerate(item.get("evidence_used") or []):
+            if not isinstance(evidence, dict):
+                _add(blockers, "evidence_used_missing_packet_ref", "evidence_used entries must be packet-ref objects, not free text.")
+                invalid_evidence.append({"item_index": item_index, "evidence_index": evidence_index, "reason": "not_object"})
+                continue
+            missing = [
+                field
+                for field in ("packet_id", "source_type", "source_quality_label", "usage", "reason")
+                if field not in evidence
+            ]
+            if missing:
+                _add(blockers, "evidence_used_missing_packet_ref", "Manager Pass 2 evidence_used must cite packet_id, source_type, source_quality_label, usage, and reason.")
+                invalid_evidence.append({"item_index": item_index, "evidence_index": evidence_index, "missing": missing})
+                continue
+            if evidence.get("usage") not in EVIDENCE_USAGE:
+                _add(blockers, "evidence_used_usage_invalid", "evidence_used.usage must use exact, anchor, fallback, semantic_hint, or rejected.")
+                invalid_evidence.append({"item_index": item_index, "evidence_index": evidence_index, "usage": evidence.get("usage")})
+            packet = _evidence_packet(evidence, packets)
+            if packet is None:
+                _add(blockers, "evidence_used_unknown_packet_id", "Manager Pass 2 evidence_used must cite a packet_id present in the case packets.")
+                invalid_evidence.append({"item_index": item_index, "evidence_index": evidence_index, "packet_id": evidence.get("packet_id")})
+                continue
+            if evidence.get("usage") == "exact":
+                if _sibling_risk_present(packet):
+                    _add(blockers, "sibling_variant_used_as_exact", "Sibling or related variants must not support exact claims.")
+                    invalid_evidence.append({"item_index": item_index, "packet_id": packet.get("packet_id"), "reason": "sibling_exact"})
+                if packet.get("source_type") == "llm_prior":
+                    _add(blockers, "llm_prior_used_for_exact_claim", "LLM prior is last resort and must not support exact claims.")
+                    invalid_evidence.append({"item_index": item_index, "packet_id": packet.get("packet_id"), "reason": "llm_prior_exact"})
+                if not _packet_supports_exact_claim(packet):
+                    _add(blockers, "exact_claim_without_same_item_evidence", "Exact claims require same-item match and exact internal or official/brand evidence.")
+                    invalid_evidence.append({"item_index": item_index, "packet_id": packet.get("packet_id"), "reason": "not_exact_evidence"})
+                else:
+                    exact_supporting_packets.append(str(packet.get("packet_id")))
+
+        if exactness_posture == "exact" and not exact_supporting_packets:
+            _add(blockers, "exactness_guard_failed", "exact exactness_posture requires exact internal DB or official/brand same-item evidence.")
+            exactness_violations.append({"item_index": item_index, "reason": "no_exact_support"})
+        if exactness_posture == "unresolved" and item.get("ledger_status") == "included":
+            _add(blockers, "unresolved_entered_ledger", "unresolved exactness_posture must forbid ledger inclusion.")
+            unresolved_ledger_violations.append({"item_index": item_index})
+
+        rejected = item.get("rejected_candidates") or []
+        rejected_ids = {
+            entry.get("packet_id")
+            for entry in rejected
+            if isinstance(entry, dict) and isinstance(entry.get("packet_id"), str)
+        }
+        for rejected_entry in rejected:
+            if not isinstance(rejected_entry, dict):
+                _add(blockers, "rejected_candidate_missing_packet_ref", "rejected_candidates entries must cite packet_id, risk_type, and reason.")
+                rejected_candidate_violations.append({"item_index": item_index, "reason": "not_object"})
+                continue
+            missing_rejected = [field for field in ("packet_id", "risk_type", "reason") if field not in rejected_entry]
+            if missing_rejected:
+                _add(blockers, "rejected_candidate_missing_packet_ref", "rejected_candidates entries must cite packet_id, risk_type, and reason.")
+                rejected_candidate_violations.append({"item_index": item_index, "missing": missing_rejected})
+        anchor_ids = {
+            evidence.get("packet_id")
+            for evidence in item.get("evidence_used") or []
+            if isinstance(evidence, dict) and evidence.get("usage") == "anchor"
+        }
+        for packet_id, packet in packets.items():
+            should_reject_or_anchor = _sibling_risk_present(packet) or packet.get("match_type") in {"related", "no_match"}
+            if should_reject_or_anchor and packet_id not in rejected_ids and packet_id not in anchor_ids:
+                _add(blockers, "sibling_candidate_not_rejected_or_downgraded", "Sibling/wrong-item candidates must be rejected or downgraded to anchor_only.")
+                rejected_candidate_violations.append({"item_index": item_index, "packet_id": packet_id})
+    return {
+        "invalid_evidence": invalid_evidence,
+        "exactness_violations": exactness_violations,
+        "unresolved_ledger_violations": unresolved_ledger_violations,
+        "rejected_candidate_violations": rejected_candidate_violations,
+        "passed": not invalid_evidence and not exactness_violations and not unresolved_ledger_violations and not rejected_candidate_violations,
+    }
+
+
+def _check_extract_policy(case: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    policy = case.get("extract_policy") or {}
+    packets = _packets_by_id(case)
+    required = (
+        "selected_search_packet_id",
+        "extract_reason",
+        "extract_allowed_by_policy",
+        "max_extract_urls",
+        "extract_count",
+    )
+    missing = [field for field in required if field not in policy]
+    if missing:
+        _add(blockers, "extract_policy_trace_incomplete", "Selected extract policy must trace selected packet, reason, policy decision, max URLs, and count.")
+    selected = policy.get("selected_search_packet_id")
+    extract_count = int(policy.get("extract_count") or 0)
+    max_extract_urls = int(policy.get("max_extract_urls") or 0)
+    all_web = selected == "*" or (extract_count > 0 and not selected)
+    too_many = max_extract_urls >= 0 and extract_count > max_extract_urls
+    selected_missing = isinstance(selected, str) and selected not in {"*"} and selected not in packets
+    if all_web or too_many:
+        _add(blockers, "extract_policy_all_web_extract", "B-2 selected extract forbids all-web extract and must respect max_extract_urls.")
+    if selected_missing:
+        _add(blockers, "extract_policy_selected_packet_missing", "selected_search_packet_id must refer to a packet in the case.")
+    return {
+        "missing": missing,
+        "all_web": all_web,
+        "too_many": too_many,
+        "selected_missing": selected_missing,
+        "passed": not missing and not all_web and not too_many and not selected_missing,
+    }
+
+
+def _check_mutation(case: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    mutation = case.get("mutation") or {}
+    missing = [field for field in ("mutation_attempted", "reason", "mutation_result") if field not in mutation]
+    if missing:
+        _add(blockers, "mutation_trace_incomplete", "B-2 cases must keep explicit mutation trace.")
+    no_mutation_query = case.get("input_message") == "珍珠奶茶多少熱量？"
+    no_mutation_violation = no_mutation_query and bool(mutation.get("mutation_attempted"))
+    if no_mutation_violation:
+        _add(blockers, "no_mutation_query_mutated_ledger", "Nutrition info query may use read tools but must not mutate.")
+    return {"missing": missing, "no_mutation_violation": no_mutation_violation, "passed": not missing and not no_mutation_violation}
+
+
+def _check_renderer(case: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    renderer = case.get("renderer") or {}
+    renderer_input = renderer.get("input")
+    missing_input: list[str] = []
+    if not isinstance(renderer_input, dict):
+        missing_input = ["input"]
+    else:
+        missing_input = [field for field in ("allowed_facts", "forbidden_claims", "item_results", "ledger_mutation_result") if field not in renderer_input]
+    if missing_input:
+        _add(blockers, "renderer_input_incomplete", "Renderer input must carry allowed_facts, forbidden_claims, item_results, and ledger_mutation_result.")
+    response = str(renderer.get("final_response") or "")
+    allowed_text = json.dumps(renderer_input or {}, ensure_ascii=False)
+    has_exact_wording = "資料顯示" in response
+    exact_allowed_by_input = "資料顯示" in allowed_text
+    item_results = ((case.get("manager_pass_2") or {}).get("item_results") or [])
+    response_exactness_allowed = any(isinstance(item, dict) and item.get("exactness_posture") == "exact" for item in item_results)
+    unsupported_kcal_claim = "999" in response and "999" not in allowed_text
+    if (has_exact_wording and (not exact_allowed_by_input or not response_exactness_allowed)) or unsupported_kcal_claim:
+        _add(blockers, "renderer_exactness_wording_exceeds_input", "Renderer exactness wording must not exceed RendererInput or item exactness posture.")
+    return {
+        "missing_input": missing_input,
+        "has_exact_wording": has_exact_wording,
+        "response_exactness_allowed": response_exactness_allowed,
+        "unsupported_kcal_claim": unsupported_kcal_claim,
+        "passed": not missing_input and not ((has_exact_wording and (not exact_allowed_by_input or not response_exactness_allowed)) or unsupported_kcal_claim),
+    }
+
+
+def _check_cache(case: dict[str, Any], blockers: list[dict[str, str]], warnings: list[dict[str, str]]) -> dict[str, Any]:
+    cache = case.get("cache")
+    if not isinstance(cache, dict):
+        _warn(warnings, "cache_metadata_missing", "Cache metadata should keep stable nullable fields even before cache implementation.")
+        return {"missing": list(REQUIRED_CACHE_FIELDS), "passed": False}
+    missing = [field for field in REQUIRED_CACHE_FIELDS if field not in cache]
+    if missing:
+        _warn(warnings, "cache_metadata_incomplete", "Cache metadata should keep stable nullable fields even before cache implementation.")
+    return {"missing": missing, "passed": not missing}
+
+
+def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
+    report_data = _read_json(phase_b2_report_path)
+    blockers: list[dict[str, str]] = []
+    warnings: list[dict[str, str]] = []
+
+    if report_data.get("phase") != "B2":
+        _add(blockers, "phase_b2_report_phase_invalid", "Phase B-2 readiness requires phase=B2.")
+    if report_data.get("mode") != "evidence_synthesis_gate":
+        _add(blockers, "phase_b2_mode_invalid", "Phase B-2 readiness requires evidence_synthesis_gate mode.")
+
+    smoke_cases = _check_smoke_cases(report_data, blockers)
+    non_scope = _check_non_scope(report_data, blockers)
+    trusted_database_policy = _check_trusted_database_policy(report_data, blockers)
+    llm_prior_trace = _check_llm_prior_trace(report_data, blockers)
+    minimal_db_seed_manifest = _check_minimal_db_seed_manifest(report_data, blockers)
+    runtime_trace_parity = _check_runtime_trace_parity(report_data, blockers)
+    case_checks: list[dict[str, Any]] = []
+    for case in report_data.get("cases") or []:
+        if not isinstance(case, dict):
+            _add(blockers, "phase_b2_case_not_object", "Phase B-2 cases must be objects.")
+            continue
+        before = len(blockers)
+        checks = {
+            "case_id": case.get("case_id"),
+            "input_message": case.get("input_message"),
+            "packet_contract": _check_packet_contract(case, blockers),
+            "manager_pass_2": _check_manager_pass_2(case, blockers),
+            "extract_policy": _check_extract_policy(case, blockers),
+            "mutation": _check_mutation(case, blockers),
+            "renderer": _check_renderer(case, blockers),
+            "cache": _check_cache(case, blockers, warnings),
+        }
+        checks["passed"] = len(blockers) == before
+        case_checks.append(checks)
+
+    ready = not blockers
+    report = {
+        "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "phase_b2_report_path": _project_relative(phase_b2_report_path),
+        "ready_for_phase_b2_implementation": ready,
+        "blockers": blockers,
+        "warnings": warnings,
+        "smoke_cases": smoke_cases,
+        "non_scope": non_scope,
+        "trusted_database_policy": trusted_database_policy,
+        "llm_prior_trace": llm_prior_trace,
+        "minimal_db_seed_manifest": minimal_db_seed_manifest,
+        "runtime_trace_parity": runtime_trace_parity,
+        "case_checks": case_checks,
+        "recommended_next_steps_ordered": (
+            ["proceed_to_phase_b2_evidence_synthesis_implementation"]
+            if ready
+            else ["fix_phase_b2_gate_blockers", "rerun_phase_b2_evidence_synthesis_readiness_gate"]
+        ),
+    }
+    return _json_safe(report)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Verify Wave 1 Phase B-2 evidence/synthesis readiness.")
+    parser.add_argument("--phase-b2-report", default=str(DEFAULT_PHASE_B2_REPORT))
+    parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
+    args = parser.parse_args()
+
+    phase_b2_report_path = _resolve_path(args.phase_b2_report, default=DEFAULT_PHASE_B2_REPORT)
+    output_path = _resolve_path(args.output, default=DEFAULT_OUTPUT)
+    report = verify_phase_b2_readiness(phase_b2_report_path=phase_b2_report_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(
+        json.dumps(
+            {
+                "report_path": str(output_path),
+                "ready_for_phase_b2_implementation": report["ready_for_phase_b2_implementation"],
+                "blocker_count": len(report["blockers"]),
+                "recommended_next_steps_ordered": report["recommended_next_steps_ordered"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0 if report["ready_for_phase_b2_implementation"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
