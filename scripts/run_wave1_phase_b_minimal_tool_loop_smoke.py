@@ -984,6 +984,17 @@ def _provider_runtime_error_report(
         "expected_case_count": len(smoke_cases),
         "base_url": base_url,
         "failing_component": failing_component,
+        "failure_family": provider_trace.get("failure_family") or provider_trace.get("request_failure_family"),
+        "observed_type": provider_trace.get("observed_type"),
+        "value_excerpt": provider_trace.get("value_excerpt"),
+        "value_truncated": provider_trace.get("value_truncated"),
+        "raw_content_excerpt": provider_trace.get("raw_content_excerpt"),
+        "raw_response_excerpt": provider_trace.get("raw_response_excerpt"),
+        "response_status": provider_trace.get("response_status"),
+        "parse_contract_status": provider_trace.get("parse_contract_status"),
+        "parse_recovery_used": provider_trace.get("parse_recovery_used"),
+        "parse_recovery_strategy": provider_trace.get("parse_recovery_strategy"),
+        "parse_recovery_ambiguous": provider_trace.get("parse_recovery_ambiguous"),
     }
     if is_timeout:
         provider_runtime["timeout_ms"] = provider_timeout_ms
@@ -1171,7 +1182,7 @@ async def _async_main() -> int:
                 "trace_count": len(report.get("tool_loop_traces") or []),
                 "provider_runtime": report.get("provider_runtime"),
             },
-            ensure_ascii=False,
+            ensure_ascii=True,
             indent=2,
         )
     )

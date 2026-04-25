@@ -158,6 +158,36 @@ class WrappedReadTimeoutPhaseBProvider(FakePhaseBProvider):
         )
 
 
+class AdapterParseAttributedErrorPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        raise BuilderSpaceResponseError(
+            "BuilderSpace manager error at stage=intake_manager_round: RuntimeError: BuilderSpace did not return JSON.",
+            trace={
+                "stage": "intake_manager_round",
+                "provider": "builderspace",
+                "model": "deepseek",
+                "base_url": "https://space.ai-builders.com/backend/v1",
+                "timeout_seconds": 45,
+                "failure_family": "non_json_model_output",
+                "failing_component": "builderspace_adapter.extract_json_object",
+                "raw_content_excerpt": "I am ready to help",
+                "parse_contract_status": None,
+                "parse_recovery_used": False,
+                "parse_recovery_strategy": None,
+                "parse_recovery_ambiguous": False,
+                "transport_attempts": [],
+                "parse_attempts": [
+                    {
+                        "attempt_index": 1,
+                        "stage": "intake_manager_round",
+                        "status": "failed",
+                        "failure_family": "non_json_model_output",
+                    }
+                ],
+            },
+        )
+
+
 class TraceAsListPhaseBProvider(FakePhaseBProvider):
     async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], list[str]]:
         self.calls.append(dict(kwargs))
@@ -420,6 +450,26 @@ async def test_phase_b1_runtime_smoke_wrapped_read_timeout_has_timeout_diagnosti
     assert runtime["expected_case_count"] == 1
     assert runtime["base_url"] == "https://space.ai-builders.com/backend/v1"
     assert report["tool_loop_traces"] == []
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_runtime_smoke_preserves_adapter_parse_attribution_in_provider_runtime(tmp_path: Path) -> None:
+    provider = AdapterParseAttributedErrorPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["??鈭?憿??"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    runtime = report["provider_runtime"]
+    assert runtime["reason"] == "provider_runtime_error"
+    assert runtime["failure_family"] == "non_json_model_output"
+    assert runtime["failing_component"] == "builderspace_adapter.extract_json_object"
+    assert runtime["raw_content_excerpt"] == "I am ready to help"
+    assert runtime["parse_recovery_used"] is False
+    assert runtime["parse_recovery_ambiguous"] is False
 
 
 @pytest.mark.asyncio
