@@ -245,6 +245,10 @@ def valid_phase_b_report_fixture(tmp_path: Path) -> Path:
             "provider": "builderspace",
             "manager_model": "deepseek",
             "mode": "hybrid_canary",
+            "pass1_mode": "forced_tool_request_smoke",
+            "forced_tool_request_contract": True,
+            "manager_tool_selection_claimed": False,
+            "natural_tool_selection_pass": "not_applicable",
             "core_smoke_cases_run": CORE_CASES,
             "tool_loop_traces": traces,
         },
@@ -273,6 +277,8 @@ def test_valid_phase_b_trace_fixture_is_ready(tmp_path: Path) -> None:
 
     assert report["ready_for_phase_b1_implementation"] is True
     assert report["blockers"] == []
+    assert report["forced_loop_scaffold_pass"] is True
+    assert report["mode_verdicts"]["forced_loop_scaffold_pass"] is True
     assert report["recommended_next_steps_ordered"] == ["proceed_to_phase_b1_minimal_tool_loop_implementation"]
 
 
@@ -451,6 +457,106 @@ def test_pass2_forbidden_mutation_fields_block_readiness(tmp_path: Path) -> None
     report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
 
     assert any(item["code"] == "manager_pass_2_forbidden_mutation_fields_present" for item in report["blockers"])
+
+
+def test_forced_mode_claiming_natural_tool_selection_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["forced_tool_request_contract"] = True
+        data["manager_tool_selection_claimed"] = True
+        data["natural_tool_selection_pass"] = True
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert any(item["code"] == "forced_mode_claimed_natural_tool_selection" for item in report["blockers"])
+    assert report["natural_tool_selection_pass"] == "not_applicable"
+
+
+def test_natural_probe_web_only_for_generic_food_fails_tool_selection(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][0]
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+        trace["manager_pass_1"]["requested_read_tools"] = ["retrieve_web_food_evidence"]
+        trace["runtime_tool_router"]["requested_read_tools"] = ["retrieve_web_food_evidence"]
+        trace["runtime_tool_router"]["manager_requested_tools"] = ["retrieve_web_food_evidence"]
+        trace["runtime_tool_router"]["allowed_tools"] = ["retrieve_web_food_evidence"]
+        trace["runtime_tool_router"]["filtered_tool_plan"] = ["retrieve_web_food_evidence"]
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["natural_tool_selection_pass"] is False
+    assert any(item["code"] == "expected_tool_policy_mismatch" for item in report["blockers"])
+
+
+def test_natural_probe_listed_luwei_without_item_level_generic_lookup_fails_selection(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][4]
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+        trace["manager_pass_1"]["requested_read_tools"] = ["retrieve_web_food_evidence"]
+        trace["runtime_tool_router"]["requested_read_tools"] = ["retrieve_web_food_evidence"]
+        trace["runtime_tool_router"]["manager_requested_tools"] = ["retrieve_web_food_evidence"]
+        trace["runtime_tool_router"]["allowed_tools"] = ["retrieve_web_food_evidence"]
+        trace["runtime_tool_router"]["filtered_tool_plan"] = ["retrieve_web_food_evidence"]
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["natural_tool_selection_pass"] is False
+    assert any(item["code"] == "expected_tool_policy_mismatch" for item in report["blockers"])
+
+
+def test_natural_probe_missing_pass2_item_results_fails_loop_completion_not_selection(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        for trace in data["tool_loop_traces"]:
+            trace["pass1_mode"] = "natural_tool_selection_probe"
+            trace["forced_tool_request_contract"] = False
+            trace["manager_tool_selection_claimed"] = True
+        data["tool_loop_traces"][0]["manager_pass_2"]["item_results"] = []
+        data["tool_loop_traces"][0]["runner_derived_item_results"] = False
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["natural_tool_selection_pass"] is True
+    assert report["natural_tool_loop_completion_pass"] is False
+    assert any(item["code"] == "manager_pass2_item_results_missing" for item in report["blockers"])
+
+
+def test_natural_probe_runner_derived_item_results_fails_loop_completion(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][0]
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+        trace["runner_derived_item_results"] = True
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["natural_tool_loop_completion_pass"] is False
+    assert any(item["code"] == "natural_probe_runner_derived_item_results" for item in report["blockers"])
 
 
 def test_logged_estimable_case_without_tool_path_fails_quality_but_not_scaffold(tmp_path: Path) -> None:

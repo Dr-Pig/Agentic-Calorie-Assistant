@@ -19,6 +19,9 @@ from app.runtime.agent.manager import SINGLE_MANAGER_SYSTEM_PROMPT, run_intake_m
 
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
 LATEST_REPORT = DEFAULT_OUTPUT_DIR / "wave1_phase_b_minimal_tool_loop_smoke.json"
+FORCED_MODE = "forced_tool_request_smoke"
+NATURAL_MODE = "natural_tool_selection_probe"
+CLI_MODES = {"forced": FORCED_MODE, "natural-probe": NATURAL_MODE}
 
 CORE_SMOKE_CASES = (
     "我吃了一顆茶葉蛋",
@@ -68,7 +71,13 @@ PASS_1_TOOL_REQUEST_PAYLOAD = (
     "For listed ingredients inside a self-selected basket, request lookup_generic_food for the listed ingredients.\n"
     "For web evidence candidates, request retrieve_web_food_evidence.\n"
     "For self-selected basket foods without listed ingredients, still expose requested estimate tools so the runtime router can block them.\n"
-    "The runtime, not the model, validates allowed and blocked tools."
+    "The runtime, not the model, validates allowed and blocked tools.\n"
+    "JSON example for tea egg:\n"
+    "{\"manager_action\":\"call_tools\",\"interaction_family\":\"food_logging\",\"response_mode\":\"intake_result\",\"operations\":[],\"answer_contract\":{},\"tool_calls\":[{\"name\":\"lookup_generic_food\",\"arguments\":{\"food_name\":\"茶葉蛋\"}}]}\n"
+    "JSON example for nutrition query:\n"
+    "{\"manager_action\":\"call_tools\",\"interaction_family\":\"nutrition_info_query\",\"response_mode\":\"info_answer\",\"operations\":[],\"answer_contract\":{},\"tool_calls\":[{\"name\":\"lookup_generic_food\",\"arguments\":{\"food_name\":\"珍珠奶茶\"}}]}\n"
+    "JSON example for self-selected basket blocking trace:\n"
+    "{\"manager_action\":\"call_tools\",\"interaction_family\":\"food_logging\",\"response_mode\":\"clarification\",\"operations\":[],\"answer_contract\":{},\"tool_calls\":[{\"name\":\"lookup_generic_food\",\"arguments\":{\"food_name\":\"滷味\"}},{\"name\":\"retrieve_web_food_evidence\",\"arguments\":{\"query\":\"滷味 熱量\"}}]}"
 )
 PASS_2_SYNTHESIS_PAYLOAD = (
     "Phase B-1 minimal tool-loop smoke mode.\n"
@@ -118,8 +127,9 @@ def _normalize_provider_trace(trace: dict[str, Any], *, manager_role: str, user_
 
 
 class _PhaseB1ManagerProvider:
-    def __init__(self, provider: Any) -> None:
+    def __init__(self, provider: Any, *, pass1_mode: str) -> None:
         self._provider = provider
+        self.pass1_mode = pass1_mode
 
     def readiness(self) -> dict[str, Any]:
         if hasattr(self._provider, "readiness"):
@@ -131,20 +141,27 @@ class _PhaseB1ManagerProvider:
         user_payload = dict(kwargs.get("user_payload") or {})
         round_index = int(user_payload.get("round_index") or 0)
         manager_role = "pass_1_tool_request" if round_index == 0 else "pass_2_synthesis"
-        task_payload = PASS_1_TOOL_REQUEST_PAYLOAD if round_index == 0 else PASS_2_SYNTHESIS_PAYLOAD
+        task_payload = PASS_1_TOOL_REQUEST_PAYLOAD if round_index == 0 and self.pass1_mode == FORCED_MODE else PASS_2_SYNTHESIS_PAYLOAD
         constraints = dict(user_payload.get("constraints") or {})
         constraints.update(
             {
                 "phase_b1_manager_role": manager_role,
+                "phase_b1_pass1_mode": self.pass1_mode,
                 "phase_b1_task_payload_id": f"phase_b1_{manager_role}_v1",
             }
         )
         user_payload["constraints"] = constraints
         kwargs["user_payload"] = user_payload
-        kwargs["system_prompt"] = f"{task_payload}\n\n{kwargs.get('system_prompt')}\n\n{task_payload}"
+        if round_index == 0 and self.pass1_mode == NATURAL_MODE:
+            kwargs["system_prompt"] = str(kwargs.get("system_prompt") or "")
+        elif round_index == 0 and self.pass1_mode == FORCED_MODE:
+            kwargs["system_prompt"] = task_payload
+        else:
+            kwargs["system_prompt"] = f"{task_payload}\n\n{kwargs.get('system_prompt')}\n\n{task_payload}"
         payload, trace = await self._provider.complete_with_trace(**kwargs)
         trace = _normalize_provider_trace(dict(trace or {}), manager_role=manager_role, user_payload=user_payload)
         trace["manager_role"] = manager_role
+        trace["pass1_mode"] = self.pass1_mode
         trace["phase_b1_task_payload_id"] = constraints["phase_b1_task_payload_id"]
         trace["phase_b1_task_payload_hash"] = _hash(task_payload)
         return payload, trace
@@ -184,8 +201,9 @@ def _fixture_packet(*, case_id: str, tool_name: str, food_name: str, truth_level
             "rule_id": "taiwan_food_semantic_hint",
             "trigger_food_name": food_name,
         }
+    packet_type = "GenericFoodDbPacket" if tool_name == "lookup_generic_food" else "SearchCandidatePacket"
     packet = {
-        "packet_type": "GenericFoodDbPacket" if tool_name == "lookup_generic_food" else "SearchCandidatePacket",
+        "packet_type": packet_type,
         "truth_level": truth_level,
         "fixture_id": fixture_id,
         "fixture_hash": _hash({"fixture_id": fixture_id, "food_name": food_name, "tool_name": tool_name}),
@@ -193,7 +211,7 @@ def _fixture_packet(*, case_id: str, tool_name: str, food_name: str, truth_level
         "generated_by": "deterministic_fixture",
         "candidates": [{"food_name": food_name, "kcal_range": [70, 90], "likely_kcal": 80}],
     }
-    if tool_name == "retrieve_web_food_evidence":
+    if packet_type == "SearchCandidatePacket":
         packet.update(
             {
                 "query": food_name,
@@ -273,10 +291,17 @@ def _mutation_trace(*, message: str, item_results: list[dict[str, Any]]) -> dict
     }
 
 
-def _item_results_from_payload(payload: dict[str, Any], packets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _item_results_from_payload(
+    payload: dict[str, Any],
+    packets: list[dict[str, Any]],
+    *,
+    allow_packet_fallback: bool,
+) -> tuple[list[dict[str, Any]], bool]:
     raw_item_results = payload.get("item_results")
     if isinstance(raw_item_results, list) and raw_item_results:
-        return [dict(item) for item in raw_item_results if isinstance(item, dict)]
+        return [dict(item) for item in raw_item_results if isinstance(item, dict)], False
+    if not allow_packet_fallback:
+        return [], False
     results: list[dict[str, Any]] = []
     for packet in packets:
         candidates = packet.get("candidates") if isinstance(packet, dict) else None
@@ -293,10 +318,10 @@ def _item_results_from_payload(payload: dict[str, Any], packets: list[dict[str, 
                         "evidence_used": [packet.get("fixture_id")],
                     }
                 )
-    return results
+    return results, bool(results)
 
 
-async def _run_case(*, case_id: str, message: str, provider: Any) -> dict[str, Any]:
+async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: str) -> dict[str, Any]:
     router_trace: dict[str, Any] = {
         "requested_read_tools": [],
         "manager_requested_tools": [],
@@ -377,13 +402,21 @@ async def _run_case(*, case_id: str, message: str, provider: Any) -> dict[str, A
     pass2_round = rounds[-1] if len(rounds) > 1 else {"decision": {}, "trace": {}}
     pass1_decision = dict(pass1_round.get("decision") or {})
     pass2_decision = dict(pass2_round.get("decision") or {})
-    item_results = _item_results_from_payload(pass2_decision, packetizer_outputs)
+    item_results, runner_derived_item_results = _item_results_from_payload(
+        pass2_decision,
+        packetizer_outputs,
+        allow_packet_fallback=pass1_mode == FORCED_MODE,
+    )
     mutation = _mutation_trace(message=message, item_results=item_results)
     guard = {"ran": True, "ran_before_mutation": True, "result": "no_mutation" if not mutation["mutation_attempted"] else "pass"}
     return {
         "case_id": case_id,
         "input_message": message,
         "semantic_boundary": "self_selected_basket_without_ingredients" if _is_self_selected_basket_without_ingredients(message) else None,
+        "pass1_mode": pass1_mode,
+        "forced_tool_request_contract": pass1_mode == FORCED_MODE,
+        "manager_tool_selection_claimed": pass1_mode == NATURAL_MODE,
+        "runner_derived_item_results": runner_derived_item_results,
         "is_live_tavily_canary": False,
         "uses_deterministic_stub_fixtures": True,
         "stub_fixture_source": "scripts/run_wave1_phase_b_minimal_tool_loop_smoke.py",
@@ -415,7 +448,7 @@ async def _run_case(*, case_id: str, message: str, provider: Any) -> dict[str, A
     }
 
 
-def _provider_unavailable_report(*, readiness: dict[str, Any], artifact_path: Path) -> dict[str, Any]:
+def _provider_unavailable_report(*, readiness: dict[str, Any], artifact_path: Path, pass1_mode: str) -> dict[str, Any]:
     return {
         "phase": "B-1",
         "scope": "minimal_tool_loop_smoke",
@@ -424,6 +457,10 @@ def _provider_unavailable_report(*, readiness: dict[str, Any], artifact_path: Pa
         "provider": readiness.get("provider"),
         "manager_model": readiness.get("manager_model"),
         "mode": "hybrid_canary",
+        "pass1_mode": pass1_mode,
+        "forced_tool_request_contract": pass1_mode == FORCED_MODE,
+        "manager_tool_selection_claimed": pass1_mode == NATURAL_MODE,
+        "natural_tool_selection_pass": "not_applicable" if pass1_mode == FORCED_MODE else False,
         "provider_runtime": {"configured": False, "blocker": True, "reason": readiness.get("reason") or "provider_not_configured"},
         "core_smoke_cases_run": [],
         "tool_loop_traces": [],
@@ -438,6 +475,7 @@ def _provider_runtime_error_report(
     smoke_cases: list[str] | tuple[str, ...],
     traces: list[dict[str, Any]],
     error: Exception,
+    pass1_mode: str,
 ) -> dict[str, Any]:
     return {
         "phase": "B-1",
@@ -447,6 +485,10 @@ def _provider_runtime_error_report(
         "provider": readiness.get("provider") or "builderspace",
         "manager_model": readiness.get("manager_model") or readiness.get("model") or "deepseek",
         "mode": "hybrid_canary",
+        "pass1_mode": pass1_mode,
+        "forced_tool_request_contract": pass1_mode == FORCED_MODE,
+        "manager_tool_selection_claimed": pass1_mode == NATURAL_MODE,
+        "natural_tool_selection_pass": "not_applicable" if pass1_mode == FORCED_MODE else False,
         "provider_runtime": {
             "configured": bool(readiness.get("configured")),
             "blocker": True,
@@ -466,19 +508,30 @@ async def run_phase_b_minimal_tool_loop_smoke(
     smoke_cases: list[str] | tuple[str, ...] = CORE_SMOKE_CASES,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
     write_latest: bool = True,
+    mode: str = "forced",
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
-    phase_b_provider = _PhaseB1ManagerProvider(provider)
+    pass1_mode = CLI_MODES.get(mode, mode)
+    if pass1_mode not in {FORCED_MODE, NATURAL_MODE}:
+        raise ValueError(f"Unsupported B-1 smoke mode: {mode}")
+    phase_b_provider = _PhaseB1ManagerProvider(provider, pass1_mode=pass1_mode)
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     artifact_path = output_dir / f"wave1_phase_b_minimal_tool_loop_smoke_{timestamp}.json"
     readiness = phase_b_provider.readiness()
     if not readiness.get("configured"):
-        report = _provider_unavailable_report(readiness=dict(readiness), artifact_path=artifact_path)
+        report = _provider_unavailable_report(readiness=dict(readiness), artifact_path=artifact_path, pass1_mode=pass1_mode)
     else:
         traces: list[dict[str, Any]] = []
         try:
             for index, message in enumerate(smoke_cases, start=1):
-                traces.append(await _run_case(case_id=f"B1-{index:03d}", message=message, provider=phase_b_provider))
+                traces.append(
+                    await _run_case(
+                        case_id=f"B1-{index:03d}",
+                        message=message,
+                        provider=phase_b_provider,
+                        pass1_mode=pass1_mode,
+                    )
+                )
         except Exception as exc:
             report = _provider_runtime_error_report(
                 readiness=dict(readiness),
@@ -486,6 +539,7 @@ async def run_phase_b_minimal_tool_loop_smoke(
                 smoke_cases=smoke_cases,
                 traces=traces,
                 error=exc,
+                pass1_mode=pass1_mode,
             )
         else:
             report = {
@@ -496,6 +550,10 @@ async def run_phase_b_minimal_tool_loop_smoke(
                 "provider": readiness.get("provider") or "builderspace",
                 "manager_model": readiness.get("manager_model") or readiness.get("model") or "deepseek",
                 "mode": "hybrid_canary",
+                "pass1_mode": pass1_mode,
+                "forced_tool_request_contract": pass1_mode == FORCED_MODE,
+                "manager_tool_selection_claimed": pass1_mode == NATURAL_MODE,
+                "natural_tool_selection_pass": "not_applicable" if pass1_mode == FORCED_MODE else False,
                 "core_smoke_cases_run": list(smoke_cases),
                 "tool_loop_traces": _json_safe(traces),
                 "artifact_path": str(artifact_path),
@@ -509,10 +567,11 @@ async def run_phase_b_minimal_tool_loop_smoke(
 async def _async_main() -> int:
     parser = argparse.ArgumentParser(description="Run Wave 1 Phase B-1 minimal runtime LLM tool-loop smoke.")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument("--mode", choices=sorted(CLI_MODES), default="forced")
     args = parser.parse_args()
     from app.runtime.interface.provider_runtime import manager_provider
 
-    report = await run_phase_b_minimal_tool_loop_smoke(provider=manager_provider, output_dir=Path(args.output_dir))
+    report = await run_phase_b_minimal_tool_loop_smoke(provider=manager_provider, output_dir=Path(args.output_dir), mode=args.mode)
     print(
         json.dumps(
             {

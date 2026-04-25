@@ -51,6 +51,9 @@ LOGGED_ESTIMABLE_CASES = {
 NO_MUTATION_QUERY_CASES = {
     "珍珠奶茶大概多少熱量？",
 }
+EXPECTED_GENERIC_LOOKUP_CASES = LOGGED_ESTIMABLE_CASES | NO_MUTATION_QUERY_CASES
+FORCED_MODE = "forced_tool_request_smoke"
+NATURAL_MODE = "natural_tool_selection_probe"
 LEGACY_PHASE_B_TERMS = (
     "thread_result",
     "target_thread_action",
@@ -477,6 +480,145 @@ def _check_path_level_quality(trace: dict[str, Any], quality_blockers: list[dict
     }
 
 
+def _trace_requested_allowed(trace: dict[str, Any]) -> tuple[list[str], list[str]]:
+    manager_pass_1 = trace.get("manager_pass_1") or {}
+    router = trace.get("runtime_tool_router") or {}
+    requested = list(manager_pass_1.get("requested_read_tools") or router.get("requested_read_tools") or [])
+    allowed = list(router.get("allowed_tools") or [])
+    return [str(item) for item in requested], [str(item) for item in allowed]
+
+
+def _has_estimate_execution_or_packet(trace: dict[str, Any]) -> bool:
+    read_tool_executions = trace.get("read_tool_executions") or []
+    packetizer_outputs = (trace.get("packetizer") or {}).get("outputs") or []
+    estimate_executions = [
+        item for item in read_tool_executions
+        if isinstance(item, dict) and str(item.get("tool_name") or "") in ESTIMATE_READ_TOOLS
+    ]
+    estimate_packets = [
+        packet for packet in packetizer_outputs
+        if isinstance(packet, dict) and packet.get("packet_type") in {"GenericFoodDbPacket", "SearchCandidatePacket"}
+    ]
+    return bool(estimate_executions or estimate_packets)
+
+
+def _check_mode_verdicts(
+    report: dict[str, Any],
+    traces: list[dict[str, Any]],
+    quality_blockers: list[dict[str, str]],
+) -> dict[str, Any]:
+    pass1_mode = str(report.get("pass1_mode") or FORCED_MODE)
+    forced_contract = bool(report.get("forced_tool_request_contract"))
+    manager_tool_selection_claimed = bool(report.get("manager_tool_selection_claimed"))
+    reported_natural_pass = report.get("natural_tool_selection_pass")
+
+    mode_failures: list[str] = []
+    selection_failures: list[dict[str, Any]] = []
+    loop_failures: list[dict[str, Any]] = []
+
+    if pass1_mode == FORCED_MODE:
+        if manager_tool_selection_claimed or reported_natural_pass is True:
+            _quality_add(
+                quality_blockers,
+                "forced_mode_claimed_natural_tool_selection",
+                "Forced tool-request smoke must not claim natural Manager tool-selection quality.",
+            )
+            mode_failures.append("forced_mode_claimed_natural_tool_selection")
+        return {
+            "pass1_mode": pass1_mode,
+            "forced_loop_scaffold_pass": None,
+            "natural_tool_selection_pass": "not_applicable",
+            "natural_tool_loop_completion_pass": "not_applicable",
+            "mode_failures": mode_failures,
+            "selection_failures": selection_failures,
+            "loop_failures": loop_failures,
+        }
+
+    if pass1_mode != NATURAL_MODE:
+        _quality_add(quality_blockers, "unknown_pass1_mode", "Phase B-1 report must declare forced or natural-probe pass1_mode.")
+        mode_failures.append("unknown_pass1_mode")
+        return {
+            "pass1_mode": pass1_mode,
+            "forced_loop_scaffold_pass": None,
+            "natural_tool_selection_pass": False,
+            "natural_tool_loop_completion_pass": False,
+            "mode_failures": mode_failures,
+            "selection_failures": selection_failures,
+            "loop_failures": loop_failures,
+        }
+
+    if forced_contract:
+        _quality_add(quality_blockers, "natural_probe_used_forced_contract", "Natural probe must not use the forced call-tools contract.")
+        mode_failures.append("natural_probe_used_forced_contract")
+    if not manager_tool_selection_claimed:
+        _quality_add(quality_blockers, "natural_probe_missing_tool_selection_claim", "Natural probe must explicitly claim it is evaluating Manager tool selection.")
+        mode_failures.append("natural_probe_missing_tool_selection_claim")
+
+    for trace in traces:
+        input_message = str(trace.get("input_message") or "")
+        requested, allowed = _trace_requested_allowed(trace)
+        if input_message in EXPECTED_GENERIC_LOOKUP_CASES:
+            if "lookup_generic_food" not in requested or "lookup_generic_food" not in allowed:
+                selection_failures.append(
+                    {
+                        "case_id": trace.get("case_id"),
+                        "input_message": input_message,
+                        "expected_tool": "lookup_generic_food",
+                        "requested_read_tools": requested,
+                        "allowed_tools": allowed,
+                    }
+                )
+        if _is_self_selected_basket_without_ingredients(trace):
+            router = trace.get("runtime_tool_router") or {}
+            blocked_check: list[dict[str, str]] = []
+            block_result = _check_self_selected_basket_without_ingredients(trace, router if isinstance(router, dict) else {}, blocked_check)
+            if not block_result.get("passed") or _has_estimate_execution_or_packet(trace):
+                selection_failures.append(
+                    {
+                        "case_id": trace.get("case_id"),
+                        "input_message": input_message,
+                        "expected": "blocked_estimate_tools_without_estimate_execution",
+                    }
+                )
+
+        manager_pass_2 = trace.get("manager_pass_2") or {}
+        item_results = manager_pass_2.get("item_results") or []
+        pass2_params = manager_pass_2.get("provider_params") or {}
+        if input_message in LOGGED_ESTIMABLE_CASES and not _has_non_empty_list(item_results):
+            loop_failures.append({"case_id": trace.get("case_id"), "input_message": input_message, "reason": "manager_pass2_item_results_missing"})
+        missing_pass2_values = [
+            key for key in ("provider", "model", "request_id")
+            if not isinstance(pass2_params, dict) or pass2_params.get(key) in (None, "")
+        ]
+        if missing_pass2_values:
+            loop_failures.append({"case_id": trace.get("case_id"), "input_message": input_message, "reason": "pass2_provider_trace_missing", "missing": missing_pass2_values})
+        if bool(trace.get("runner_derived_item_results")):
+            loop_failures.append({"case_id": trace.get("case_id"), "input_message": input_message, "reason": "natural_probe_runner_derived_item_results"})
+
+    if selection_failures:
+        _quality_add(
+            quality_blockers,
+            "expected_tool_policy_mismatch",
+            "Natural-probe tool selection must request/allow the expected tool policy, not just any tool.",
+        )
+    if any(item.get("reason") == "natural_probe_runner_derived_item_results" for item in loop_failures):
+        _quality_add(
+            quality_blockers,
+            "natural_probe_runner_derived_item_results",
+            "Natural-probe item_results must come from Manager Pass 2, not runner packet fallback.",
+        )
+
+    return {
+        "pass1_mode": pass1_mode,
+        "forced_loop_scaffold_pass": "not_applicable",
+        "natural_tool_selection_pass": not mode_failures and not selection_failures,
+        "natural_tool_loop_completion_pass": not mode_failures and not loop_failures,
+        "mode_failures": mode_failures,
+        "selection_failures": selection_failures,
+        "loop_failures": loop_failures,
+    }
+
+
 def _check_renderer_boundary(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
     renderer = trace.get("renderer") or {}
     invented = list(renderer.get("invented_facts") or [])
@@ -612,7 +754,18 @@ def verify_phase_b_readiness(
 
     scaffold_pass = not blockers
     path_level_quality = [_check_path_level_quality(trace, quality_blockers) for trace in traces]
-    quality_pass = scaffold_pass and not quality_blockers
+    mode_verdicts = _check_mode_verdicts(phase_b_report, traces, quality_blockers)
+    if mode_verdicts["pass1_mode"] == FORCED_MODE:
+        forced_loop_scaffold_pass = scaffold_pass and not quality_blockers
+        mode_verdicts["forced_loop_scaffold_pass"] = forced_loop_scaffold_pass
+        natural_tool_selection_pass: bool | str = "not_applicable"
+        natural_tool_loop_completion_pass: bool | str = "not_applicable"
+        quality_pass = forced_loop_scaffold_pass
+    else:
+        forced_loop_scaffold_pass = "not_applicable"
+        natural_tool_selection_pass = bool(mode_verdicts["natural_tool_selection_pass"])
+        natural_tool_loop_completion_pass = bool(mode_verdicts["natural_tool_loop_completion_pass"])
+        quality_pass = scaffold_pass and natural_tool_selection_pass and natural_tool_loop_completion_pass and not quality_blockers
     all_blockers = blockers + quality_blockers
     ready = not all_blockers
     blocker_codes = {item["code"] for item in all_blockers}
@@ -632,6 +785,9 @@ def verify_phase_b_readiness(
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "phase_b_report_path": _project_relative(phase_b_report_path),
         "scaffold_pass": scaffold_pass,
+        "forced_loop_scaffold_pass": forced_loop_scaffold_pass,
+        "natural_tool_selection_pass": natural_tool_selection_pass,
+        "natural_tool_loop_completion_pass": natural_tool_loop_completion_pass,
         "quality_pass": quality_pass,
         "ready_for_phase_b1_implementation": ready,
         "blockers": all_blockers,
@@ -641,6 +797,7 @@ def verify_phase_b_readiness(
         "core_smoke_cases": core_smoke_cases,
         "trace_checks": trace_checks,
         "path_level_quality": path_level_quality,
+        "mode_verdicts": mode_verdicts,
         "legacy_adjacency_check": legacy_vocab,
         "recommended_next_steps_ordered": (
             next_steps
