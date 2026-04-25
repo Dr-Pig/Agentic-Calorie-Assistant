@@ -76,3 +76,120 @@ jobs:
             tests/test_text_integrity.py \
             tests/test_workflow_routing_decision.py \
             -q
+
+  wave1-phase-a-contracts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Wave 1 Phase A deterministic contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            tests/test_wave1_phase_a_routes.py
+            tests/test_wave1_phase_a2_smoke_runner.py
+            tests/test_wave1_state_guard_contracts.py
+            tests/test_wave1_trace_and_render_contracts.py
+          )
+          existing=()
+          for file in "${files[@]}"; do
+            if [ -f "$file" ]; then
+              existing+=("$file")
+            else
+              echo "::notice title=Wave 1 Phase A test not present::$file is not present on this ref; skipped."
+            fi
+          done
+          if [ -f tests/test_run_suite_wave.py ] && [ -f docs/quality/AUDIT_RUNNER_REGISTRY.json ]; then
+            existing+=(tests/test_run_suite_wave.py)
+          elif [ -f tests/test_run_suite_wave.py ]; then
+            echo "::notice title=Wave suite runner test skipped::tests/test_run_suite_wave.py needs docs/quality/AUDIT_RUNNER_REGISTRY.json, which is not present on this ref."
+          fi
+          if [ "${#existing[@]}" -eq 0 ]; then
+            echo "No Wave 1 Phase A contract tests are present on this ref; skipping job."
+            exit 0
+          fi
+          python -m pytest "${existing[@]}" -q
+
+  wave1-phase-b-contracts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Wave 1 Phase B deterministic contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            tests/test_wave1_phase_b_minimal_tool_loop_smoke.py
+            tests/test_wave1_phase_b_tool_loop_readiness.py
+            tests/test_wave1_phase_b2_evidence_synthesis_readiness.py
+          )
+          existing=()
+          for file in "${files[@]}"; do
+            if [ -f "$file" ]; then
+              existing+=("$file")
+            else
+              echo "::notice title=Wave 1 Phase B test not present::$file is not present on this ref; skipped."
+            fi
+          done
+          if [ "${#existing[@]}" -eq 0 ]; then
+            echo "No Wave 1 Phase B contract tests are present on this ref; skipping job."
+            exit 0
+          fi
+          python -m pytest "${existing[@]}" -q
+
+  wave1-hygiene:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Wave 1 hygiene checks when present
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f scripts/check_wave1_legacy_terms.py ]; then
+            python scripts/check_wave1_legacy_terms.py
+          else
+            echo "::notice title=Wave 1 hygiene skipped::scripts/check_wave1_legacy_terms.py is not present on this ref."
+          fi
+          echo "Markdown encoding policy is enforced by pre-edd-readiness."
