@@ -26,6 +26,11 @@ READ_PACKET_TRUTH_LEVELS = {"candidate", "hint", "rule_hint"}
 PACKETIZER_TRUTH_LEVELS = {"candidate", "hint", "rule_hint"}
 MUTATION_TRUTH_LEVEL = "mutation_result"
 ESTIMATE_READ_TOOLS = {"lookup_generic_food", "retrieve_web_food_evidence"}
+SUPPORTED_READ_TOOLS = {
+    "lookup_generic_food",
+    "retrieve_web_food_evidence",
+    "load_taiwan_food_semantics_skill",
+}
 TAVILY_SOURCE_QUALITY_LABELS = {
     "official",
     "brand_menu",
@@ -253,12 +258,63 @@ def _check_tool_router_trace(trace: dict[str, Any], blockers: list[dict[str, str
                 "filtered_tool_plan",
                 "blocked_tools",
                 "block_reasons",
+                "available_read_tools",
+                "canonical_tool_catalog_hash",
             )
         )
     if not ok:
         _add(blockers, "tool_router_trace_incomplete", "ToolLoopTrace must include requested tools, filtered plan, blocked tools, and read executions.")
+    unsupported_allowed: list[str] = []
+    unsupported_executed: list[str] = []
+    unsupported_block_reason_missing: list[str] = []
+    if isinstance(router, dict):
+        allowed = [str(item) for item in router.get("allowed_tools") or []]
+        supported = [str(item) for item in router.get("available_read_tools") or []]
+        supported_set = set(supported) if supported else set(SUPPORTED_READ_TOOLS)
+        unsupported_allowed = [tool for tool in allowed if tool not in supported_set]
+        block_reasons = router.get("block_reasons") if isinstance(router.get("block_reasons"), list) else []
+        blocked_unsupported = [
+            str(item)
+            for item in router.get("blocked_tools") or []
+            if str(item) not in supported_set
+        ]
+        for tool_name in blocked_unsupported:
+            matching = [
+                reason
+                for reason in block_reasons
+                if isinstance(reason, dict)
+                and reason.get("tool_name") == tool_name
+                and reason.get("reason") == "unsupported_read_tool_name"
+                and reason.get("normalization_attempted") is False
+            ]
+            if not matching:
+                unsupported_block_reason_missing.append(tool_name)
+        if not supported or not router.get("canonical_tool_catalog_hash"):
+            _add(blockers, "canonical_tool_catalog_trace_missing", "Router trace must include supported read tools and a canonical tool catalog hash.")
+    if isinstance(executions, list):
+        unsupported_executed = [
+            str(item.get("tool_name"))
+            for item in executions
+            if isinstance(item, dict) and str(item.get("tool_name")) not in SUPPORTED_READ_TOOLS
+        ]
+    if unsupported_allowed:
+        _add(blockers, "unsupported_read_tool_allowed", "Runtime router must not allow non-canonical read tool names.")
+    if unsupported_executed:
+        _add(blockers, "unsupported_read_tool_executed", "Runtime router must not execute non-canonical read tool names.")
+    if unsupported_block_reason_missing:
+        _add(blockers, "unsupported_read_tool_block_reason_missing", "Blocked non-canonical read tools must include structured unsupported_read_tool_name reasons.")
     unknown_basket_check = _check_self_selected_basket_without_ingredients(trace, router if isinstance(router, dict) else {}, blockers)
-    return {"passed": ok and unknown_basket_check["passed"], "self_selected_basket_without_ingredients": unknown_basket_check}
+    return {
+        "passed": ok
+        and not unsupported_allowed
+        and not unsupported_executed
+        and not unsupported_block_reason_missing
+        and unknown_basket_check["passed"],
+        "unsupported_allowed_tools": unsupported_allowed,
+        "unsupported_executed_tools": unsupported_executed,
+        "unsupported_block_reason_missing": unsupported_block_reason_missing,
+        "self_selected_basket_without_ingredients": unknown_basket_check,
+    }
 
 
 def _is_self_selected_basket_without_ingredients(trace: dict[str, Any]) -> bool:
@@ -552,6 +608,19 @@ def _item_results_source(trace: dict[str, Any]) -> str:
     return "none"
 
 
+def _unsupported_tool_names(trace: dict[str, Any]) -> list[str]:
+    router = trace.get("runtime_tool_router") if isinstance(trace.get("runtime_tool_router"), dict) else {}
+    block_reasons = router.get("block_reasons") if isinstance(router, dict) else []
+    unsupported: list[str] = []
+    if isinstance(block_reasons, list):
+        for reason in block_reasons:
+            if isinstance(reason, dict) and reason.get("reason") == "unsupported_read_tool_name":
+                tool_name = str(reason.get("tool_name") or "")
+                if tool_name:
+                    unsupported.append(tool_name)
+    return sorted(set(unsupported))
+
+
 def _natural_failure_family(
     *,
     trace: dict[str, Any],
@@ -629,6 +698,7 @@ def _build_natural_probe_failure_report(traces: list[dict[str, Any]]) -> dict[st
                     "missing_required_tools": missing_required,
                     "wrong_tools": wrong_tools,
                 },
+                "unsupported_tool_names": _unsupported_tool_names(trace),
                 "pass2_ran": pass2_ran,
                 "item_results_source": _item_results_source(trace),
                 "failure_family": family,
@@ -968,6 +1038,10 @@ def verify_phase_b_readiness(
         }
         checks["passed"] = len(blockers) == trace_blockers_before
         trace_checks.append(checks)
+    router_validation_pass = bool(traces) and all(
+        bool((check.get("tool_router_trace") or {}).get("passed"))
+        for check in trace_checks
+    )
 
     resolved_active_paths = list(active_paths) if active_paths is not None else list(DEFAULT_ACTIVE_PHASE_B_PATHS)
     legacy_vocab = _scan_active_legacy_vocab(resolved_active_paths, blockers, warnings)
@@ -991,6 +1065,12 @@ def verify_phase_b_readiness(
         natural_tool_selection_pass = bool(mode_verdicts["natural_tool_selection_pass"])
         natural_tool_loop_completion_pass = bool(mode_verdicts["natural_tool_loop_completion_pass"])
         quality_pass = scaffold_pass and natural_tool_selection_pass and natural_tool_loop_completion_pass and not quality_blockers
+    provider_runtime = phase_b_report.get("provider_runtime") if isinstance(phase_b_report.get("provider_runtime"), dict) else {}
+    provider_runtime_attribution = {
+        "reason": provider_runtime.get("reason"),
+        "tool_selection_status": "not_proven" if provider_runtime.get("reason") == "provider_timeout" else "evaluated",
+        "loop_completion_status": "blocked" if provider_runtime.get("blocker") else "evaluated",
+    }
     all_blockers = blockers + quality_blockers + latency_blockers
     ready = not all_blockers
     blocker_codes = {item["code"] for item in all_blockers}
@@ -1011,11 +1091,13 @@ def verify_phase_b_readiness(
         "phase_b_report_path": _project_relative(phase_b_report_path),
         "scaffold_pass": scaffold_pass,
         "forced_loop_scaffold_pass": forced_loop_scaffold_pass,
+        "router_validation_pass": router_validation_pass,
         "natural_tool_selection_pass": natural_tool_selection_pass,
         "natural_tool_loop_completion_pass": natural_tool_loop_completion_pass,
         "runtime_latency_pass": runtime_latency["pass"],
         "runtime_latency_status": runtime_latency["status"],
         "quality_pass": quality_pass,
+        "provider_runtime_attribution": provider_runtime_attribution,
         "ready_for_phase_b1_implementation": ready,
         "blockers": all_blockers,
         "scaffold_blockers": blockers,

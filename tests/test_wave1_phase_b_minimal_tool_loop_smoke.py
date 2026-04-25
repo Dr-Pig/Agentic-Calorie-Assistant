@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from pathlib import Path
 
 import pytest
@@ -151,6 +152,29 @@ class SearchAliasPhaseBProvider(FakePhaseBProvider):
                     "operations": [],
                     "answer_contract": {},
                     "tool_calls": [{"name": "search", "arguments": {"query": "茶葉蛋"}}],
+                },
+                self._trace(call_index=len(self.calls), kwargs=kwargs),
+            )
+        return await super().complete_with_trace(**kwargs)
+
+
+class MixedCanonicalAndAliasPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        self.calls.append(dict(kwargs))
+        user_payload = kwargs["user_payload"]
+        round_index = user_payload["round_index"]
+        if round_index == 0:
+            return (
+                {
+                    "manager_action": "call_tools",
+                    "interaction_family": "food_logging",
+                    "response_mode": "intake_result",
+                    "operations": [],
+                    "answer_contract": {},
+                    "tool_calls": [
+                        {"name": "lookup_generic_food", "arguments": {"food_name": "茶葉蛋"}},
+                        {"name": "search", "arguments": {"query": "茶葉蛋 熱量"}},
+                    ],
                 },
                 self._trace(call_index=len(self.calls), kwargs=kwargs),
             )
@@ -442,7 +466,7 @@ async def test_phase_b1_natural_probe_does_not_fallback_item_results_from_packet
 
 
 @pytest.mark.asyncio
-async def test_phase_b1_smoke_search_alias_packet_has_source_quality_label(tmp_path: Path) -> None:
+async def test_phase_b1_smoke_blocks_search_alias_without_execution_or_packet(tmp_path: Path) -> None:
     provider = SearchAliasPhaseBProvider()
 
     report = await run_phase_b_minimal_tool_loop_smoke(
@@ -452,6 +476,69 @@ async def test_phase_b1_smoke_search_alias_packet_has_source_quality_label(tmp_p
         write_latest=False,
     )
 
-    packet = report["tool_loop_traces"][0]["packetizer"]["outputs"][0]
-    assert packet["packet_type"] == "SearchCandidatePacket"
-    assert packet["source_quality_label"] == "third_party"
+    trace = report["tool_loop_traces"][0]
+    router = trace["runtime_tool_router"]
+    assert router["requested_read_tools"] == ["search"]
+    assert router["allowed_tools"] == []
+    assert router["filtered_tool_plan"] == []
+    assert router["blocked_tools"] == ["search"]
+    assert router["available_read_tools"] == [
+        "lookup_generic_food",
+        "retrieve_web_food_evidence",
+        "load_taiwan_food_semantics_skill",
+    ]
+    assert router["canonical_tool_catalog_hash"]
+    assert router["block_reasons"] == [
+        {
+            "tool_name": "search",
+            "reason": "unsupported_read_tool_name",
+            "supported_tools": [
+                "lookup_generic_food",
+                "retrieve_web_food_evidence",
+                "load_taiwan_food_semantics_skill",
+            ],
+            "normalization_attempted": False,
+        }
+    ]
+    assert trace["read_tool_executions"] == []
+    assert trace["packetizer"]["outputs"] == []
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_smoke_allows_canonical_lookup_generic_food(tmp_path: Path) -> None:
+    provider = FakePhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["我吃了一顆茶葉蛋"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    trace = report["tool_loop_traces"][0]
+    router = trace["runtime_tool_router"]
+    assert "lookup_generic_food" in router["allowed_tools"]
+    assert "unsupported_read_tool_name" not in str(router["block_reasons"])
+    assert any(item["tool_name"] == "lookup_generic_food" for item in trace["read_tool_executions"])
+    assert any(packet["packet_type"] == "GenericFoodDbPacket" for packet in trace["packetizer"]["outputs"])
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_smoke_mixed_canonical_and_alias_only_executes_canonical_tool(tmp_path: Path) -> None:
+    provider = MixedCanonicalAndAliasPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["我吃了一顆茶葉蛋"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    trace = report["tool_loop_traces"][0]
+    router = trace["runtime_tool_router"]
+    assert router["requested_read_tools"] == ["lookup_generic_food", "search"]
+    assert router["allowed_tools"] == ["lookup_generic_food"]
+    assert router["blocked_tools"] == ["search"]
+    assert [item["tool_name"] for item in trace["read_tool_executions"]] == ["lookup_generic_food"]
+    assert [packet["packet_type"] for packet in trace["packetizer"]["outputs"]] == ["GenericFoodDbPacket"]
+    assert "search" not in json.dumps(trace["packetizer"]["outputs"], ensure_ascii=False)
