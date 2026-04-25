@@ -7,6 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+import time
 from types import SimpleNamespace
 from typing import Any
 
@@ -22,6 +23,8 @@ LATEST_REPORT = DEFAULT_OUTPUT_DIR / "wave1_phase_b_minimal_tool_loop_smoke.json
 FORCED_MODE = "forced_tool_request_smoke"
 NATURAL_MODE = "natural_tool_selection_probe"
 CLI_MODES = {"forced": FORCED_MODE, "natural-probe": NATURAL_MODE}
+DEFAULT_PROVIDER_TIMEOUT_MS = 180_000
+FULL_SMOKE_LATENCY_TARGET_MS = 180_000
 
 CORE_SMOKE_CASES = (
     "我吃了一顆茶葉蛋",
@@ -92,6 +95,14 @@ def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
 
 
+def _utc_now() -> str:
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def _elapsed_ms(start: float) -> int:
+    return max(0, int((time.perf_counter() - start) * 1000))
+
+
 def _hash(value: Any) -> str:
     payload = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
@@ -127,9 +138,10 @@ def _normalize_provider_trace(trace: dict[str, Any], *, manager_role: str, user_
 
 
 class _PhaseB1ManagerProvider:
-    def __init__(self, provider: Any, *, pass1_mode: str) -> None:
+    def __init__(self, provider: Any, *, pass1_mode: str, provider_timeout_ms: int) -> None:
         self._provider = provider
         self.pass1_mode = pass1_mode
+        self.provider_timeout_ms = provider_timeout_ms
 
     def readiness(self) -> dict[str, Any]:
         if hasattr(self._provider, "readiness"):
@@ -158,10 +170,20 @@ class _PhaseB1ManagerProvider:
             kwargs["system_prompt"] = task_payload
         else:
             kwargs["system_prompt"] = f"{task_payload}\n\n{kwargs.get('system_prompt')}\n\n{task_payload}"
-        payload, trace = await self._provider.complete_with_trace(**kwargs)
+        started_at_utc = _utc_now()
+        started_perf = time.perf_counter()
+        payload, trace = await asyncio.wait_for(
+            self._provider.complete_with_trace(**kwargs),
+            timeout=self.provider_timeout_ms / 1000,
+        )
+        ended_at_utc = _utc_now()
+        latency_ms = _elapsed_ms(started_perf)
         trace = _normalize_provider_trace(dict(trace or {}), manager_role=manager_role, user_payload=user_payload)
         trace["manager_role"] = manager_role
         trace["pass1_mode"] = self.pass1_mode
+        trace["started_at_utc"] = started_at_utc
+        trace["ended_at_utc"] = ended_at_utc
+        trace["latency_ms"] = latency_ms
         trace["phase_b1_task_payload_id"] = constraints["phase_b1_task_payload_id"]
         trace["phase_b1_task_payload_hash"] = _hash(task_payload)
         return payload, trace
@@ -322,6 +344,8 @@ def _item_results_from_payload(
 
 
 async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: str) -> dict[str, Any]:
+    case_started_at_utc = _utc_now()
+    case_started_perf = time.perf_counter()
     router_trace: dict[str, Any] = {
         "requested_read_tools": [],
         "manager_requested_tools": [],
@@ -409,9 +433,13 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
     )
     mutation = _mutation_trace(message=message, item_results=item_results)
     guard = {"ran": True, "ran_before_mutation": True, "result": "no_mutation" if not mutation["mutation_attempted"] else "pass"}
+    case_ended_at_utc = _utc_now()
     return {
         "case_id": case_id,
         "input_message": message,
+        "case_started_at_utc": case_started_at_utc,
+        "case_ended_at_utc": case_ended_at_utc,
+        "case_latency_ms": _elapsed_ms(case_started_perf),
         "semantic_boundary": "self_selected_basket_without_ingredients" if _is_self_selected_basket_without_ingredients(message) else None,
         "pass1_mode": pass1_mode,
         "forced_tool_request_contract": pass1_mode == FORCED_MODE,
@@ -425,6 +453,9 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
             "manager_round": 0,
             "manager_role": "pass_1_tool_request",
             "prompt_hash": _prompt_hash(manager_role="pass_1_tool_request"),
+            "started_at_utc": (dict(pass1_round.get("trace") or {})).get("started_at_utc"),
+            "ended_at_utc": (dict(pass1_round.get("trace") or {})).get("ended_at_utc"),
+            "latency_ms": (dict(pass1_round.get("trace") or {})).get("latency_ms"),
             "provider_params": _provider_params(dict(pass1_round.get("trace") or {})),
             "requested_read_tools": router_trace["requested_read_tools"],
             "forbidden_final_truth_fields_present": _contains_any_key(pass1_decision, PASS_1_FORBIDDEN_FIELDS),
@@ -436,6 +467,9 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
             "manager_round": 1,
             "manager_role": "pass_2_synthesis",
             "prompt_hash": _prompt_hash(manager_role="pass_2_synthesis"),
+            "started_at_utc": (dict(pass2_round.get("trace") or {})).get("started_at_utc"),
+            "ended_at_utc": (dict(pass2_round.get("trace") or {})).get("ended_at_utc"),
+            "latency_ms": (dict(pass2_round.get("trace") or {})).get("latency_ms"),
             "provider_params": _provider_params(dict(pass2_round.get("trace") or {})),
             "item_results": item_results,
             "mutation_attempted": False,
@@ -448,7 +482,25 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
     }
 
 
-def _provider_unavailable_report(*, readiness: dict[str, Any], artifact_path: Path, pass1_mode: str) -> dict[str, Any]:
+def _runtime_latency_summary(*, started_perf: float, traces: list[dict[str, Any]], pass1_mode: str) -> dict[str, Any]:
+    return {
+        "latency_budget_type": "b1_full_smoke_reporting_target",
+        "not_user_runtime_budget": True,
+        "full_smoke_target_ms": FULL_SMOKE_LATENCY_TARGET_MS,
+        "total_latency_ms": _elapsed_ms(started_perf),
+        "trace_count": len(traces),
+        "completed_trace_count": len(traces),
+        "mode": pass1_mode,
+    }
+
+
+def _provider_unavailable_report(
+    *,
+    readiness: dict[str, Any],
+    artifact_path: Path,
+    pass1_mode: str,
+    started_perf: float,
+) -> dict[str, Any]:
     return {
         "phase": "B-1",
         "scope": "minimal_tool_loop_smoke",
@@ -462,6 +514,7 @@ def _provider_unavailable_report(*, readiness: dict[str, Any], artifact_path: Pa
         "manager_tool_selection_claimed": pass1_mode == NATURAL_MODE,
         "natural_tool_selection_pass": "not_applicable" if pass1_mode == FORCED_MODE else False,
         "provider_runtime": {"configured": False, "blocker": True, "reason": readiness.get("reason") or "provider_not_configured"},
+        "runtime_latency": _runtime_latency_summary(started_perf=started_perf, traces=[], pass1_mode=pass1_mode),
         "core_smoke_cases_run": [],
         "tool_loop_traces": [],
         "artifact_path": str(artifact_path),
@@ -476,7 +529,20 @@ def _provider_runtime_error_report(
     traces: list[dict[str, Any]],
     error: Exception,
     pass1_mode: str,
+    started_perf: float,
+    provider_timeout_ms: int,
 ) -> dict[str, Any]:
+    is_timeout = isinstance(error, TimeoutError)
+    provider_runtime: dict[str, Any] = {
+        "configured": bool(readiness.get("configured")),
+        "blocker": True,
+        "reason": "provider_timeout" if is_timeout else "provider_runtime_error",
+        "error_type": type(error).__name__,
+        "error": str(error),
+    }
+    if is_timeout:
+        provider_runtime["timeout_ms"] = provider_timeout_ms
+        provider_runtime["completed_traces"] = len(traces)
     return {
         "phase": "B-1",
         "scope": "minimal_tool_loop_smoke",
@@ -489,13 +555,8 @@ def _provider_runtime_error_report(
         "forced_tool_request_contract": pass1_mode == FORCED_MODE,
         "manager_tool_selection_claimed": pass1_mode == NATURAL_MODE,
         "natural_tool_selection_pass": "not_applicable" if pass1_mode == FORCED_MODE else False,
-        "provider_runtime": {
-            "configured": bool(readiness.get("configured")),
-            "blocker": True,
-            "reason": "provider_runtime_error",
-            "error_type": type(error).__name__,
-            "error": str(error),
-        },
+        "provider_runtime": provider_runtime,
+        "runtime_latency": _runtime_latency_summary(started_perf=started_perf, traces=traces, pass1_mode=pass1_mode),
         "core_smoke_cases_run": list(smoke_cases)[: len(traces)],
         "tool_loop_traces": _json_safe(traces),
         "artifact_path": str(artifact_path),
@@ -509,17 +570,24 @@ async def run_phase_b_minimal_tool_loop_smoke(
     output_dir: Path = DEFAULT_OUTPUT_DIR,
     write_latest: bool = True,
     mode: str = "forced",
+    provider_timeout_ms: int = DEFAULT_PROVIDER_TIMEOUT_MS,
 ) -> dict[str, Any]:
+    run_started_perf = time.perf_counter()
     output_dir.mkdir(parents=True, exist_ok=True)
     pass1_mode = CLI_MODES.get(mode, mode)
     if pass1_mode not in {FORCED_MODE, NATURAL_MODE}:
         raise ValueError(f"Unsupported B-1 smoke mode: {mode}")
-    phase_b_provider = _PhaseB1ManagerProvider(provider, pass1_mode=pass1_mode)
+    phase_b_provider = _PhaseB1ManagerProvider(provider, pass1_mode=pass1_mode, provider_timeout_ms=provider_timeout_ms)
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     artifact_path = output_dir / f"wave1_phase_b_minimal_tool_loop_smoke_{timestamp}.json"
     readiness = phase_b_provider.readiness()
     if not readiness.get("configured"):
-        report = _provider_unavailable_report(readiness=dict(readiness), artifact_path=artifact_path, pass1_mode=pass1_mode)
+        report = _provider_unavailable_report(
+            readiness=dict(readiness),
+            artifact_path=artifact_path,
+            pass1_mode=pass1_mode,
+            started_perf=run_started_perf,
+        )
     else:
         traces: list[dict[str, Any]] = []
         try:
@@ -540,6 +608,8 @@ async def run_phase_b_minimal_tool_loop_smoke(
                 traces=traces,
                 error=exc,
                 pass1_mode=pass1_mode,
+                started_perf=run_started_perf,
+                provider_timeout_ms=provider_timeout_ms,
             )
         else:
             report = {
@@ -554,6 +624,11 @@ async def run_phase_b_minimal_tool_loop_smoke(
                 "forced_tool_request_contract": pass1_mode == FORCED_MODE,
                 "manager_tool_selection_claimed": pass1_mode == NATURAL_MODE,
                 "natural_tool_selection_pass": "not_applicable" if pass1_mode == FORCED_MODE else False,
+                "runtime_latency": _runtime_latency_summary(
+                    started_perf=run_started_perf,
+                    traces=traces,
+                    pass1_mode=pass1_mode,
+                ),
                 "core_smoke_cases_run": list(smoke_cases),
                 "tool_loop_traces": _json_safe(traces),
                 "artifact_path": str(artifact_path),
@@ -568,10 +643,16 @@ async def _async_main() -> int:
     parser = argparse.ArgumentParser(description="Run Wave 1 Phase B-1 minimal runtime LLM tool-loop smoke.")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--mode", choices=sorted(CLI_MODES), default="forced")
+    parser.add_argument("--provider-timeout-ms", type=int, default=DEFAULT_PROVIDER_TIMEOUT_MS)
     args = parser.parse_args()
     from app.runtime.interface.provider_runtime import manager_provider
 
-    report = await run_phase_b_minimal_tool_loop_smoke(provider=manager_provider, output_dir=Path(args.output_dir), mode=args.mode)
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=manager_provider,
+        output_dir=Path(args.output_dir),
+        mode=args.mode,
+        provider_timeout_ms=args.provider_timeout_ms,
+    )
     print(
         json.dumps(
             {
