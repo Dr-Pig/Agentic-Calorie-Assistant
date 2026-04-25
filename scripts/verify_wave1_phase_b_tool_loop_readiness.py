@@ -1,0 +1,679 @@
+from __future__ import annotations
+
+import argparse
+from datetime import UTC, datetime
+import json
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_OUTPUT = ROOT / "artifacts" / "wave1_phase_b_minimal_tool_loop_readiness.json"
+DEFAULT_PHASE_B_REPORT = ROOT / "artifacts" / "wave1_phase_b_minimal_tool_loop_smoke.json"
+
+REQUIRED_PROVIDER_PARAM_KEYS = (
+    "provider",
+    "model",
+    "temperature",
+    "max_tokens",
+    "response_format",
+    "timeout",
+    "retry_policy",
+    "tool_choice",
+    "request_id",
+)
+READ_PACKET_TRUTH_LEVELS = {"candidate", "hint", "rule_hint"}
+PACKETIZER_TRUTH_LEVELS = {"candidate", "hint", "rule_hint"}
+MUTATION_TRUTH_LEVEL = "mutation_result"
+ESTIMATE_READ_TOOLS = {"lookup_generic_food", "retrieve_web_food_evidence"}
+TAVILY_SOURCE_QUALITY_LABELS = {
+    "official",
+    "brand_menu",
+    "trusted_database",
+    "third_party",
+    "irrelevant",
+    "unknown",
+}
+REQUIRED_CORE_SMOKE_CASES = (
+    "我吃了一顆茶葉蛋",
+    "我喝了一杯珍珠奶茶",
+    "我吃了一個便當",
+    "我吃了滷味",
+    "我吃了豆干、海帶、貢丸的滷味",
+    "珍珠奶茶大概多少熱量？",
+)
+LOGGED_ESTIMABLE_CASES = {
+    "我吃了一顆茶葉蛋",
+    "我喝了一杯珍珠奶茶",
+    "我吃了一個便當",
+    "我吃了豆干、海帶、貢丸的滷味",
+}
+NO_MUTATION_QUERY_CASES = {
+    "珍珠奶茶大概多少熱量？",
+}
+LEGACY_PHASE_B_TERMS = (
+    "thread_result",
+    "target_thread_action",
+    "clarify_mode",
+    "commit_status",
+    "canonical_commit",
+)
+DEFAULT_ACTIVE_PHASE_B_PATHS = (
+    ROOT / "docs" / "specs" / "WAVE_1_PHASE_B_MINIMAL_TOOL_LOOP_SPEC.md",
+    ROOT / "scripts" / "run_wave1_phase_b_minimal_tool_loop_smoke.py",
+)
+
+
+def _json_safe(value: Any) -> Any:
+    return json.loads(json.dumps(value, ensure_ascii=False, default=str))
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _resolve_path(path_text: str | None, *, default: Path) -> Path:
+    if not path_text:
+        return default
+    path = Path(path_text)
+    return path if path.is_absolute() else ROOT / path
+
+
+def _project_relative(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(ROOT).as_posix()
+    except ValueError:
+        return resolved.as_posix()
+
+
+def _add(blockers: list[dict[str, str]], code: str, detail: str) -> None:
+    blockers.append({"code": code, "detail": detail})
+
+
+def _warn(warnings: list[dict[str, str]], code: str, detail: str) -> None:
+    warnings.append({"code": code, "detail": detail})
+
+
+def _has_value(mapping: dict[str, Any], key: str) -> bool:
+    return key in mapping
+
+
+def _provider_param_missing(params: Any) -> list[str]:
+    if not isinstance(params, dict):
+        return list(REQUIRED_PROVIDER_PARAM_KEYS)
+    return [key for key in REQUIRED_PROVIDER_PARAM_KEYS if not _has_value(params, key)]
+
+
+def _truth_level(value: Any) -> str | None:
+    if isinstance(value, dict):
+        raw = value.get("truth_level")
+        return str(raw) if raw is not None else None
+    return None
+
+
+def _contains_key(value: Any, key_name: str) -> bool:
+    if isinstance(value, dict):
+        return key_name in value or any(_contains_key(item, key_name) for item in value.values())
+    if isinstance(value, list):
+        return any(_contains_key(item, key_name) for item in value)
+    return False
+
+
+def _scan_active_legacy_vocab(paths: list[Path], blockers: list[dict[str, str]], warnings: list[dict[str, str]]) -> dict[str, Any]:
+    findings: list[dict[str, Any]] = []
+    for path in paths:
+        if not path.exists() or not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8-sig", errors="ignore")
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            stripped = line.strip()
+            allow_forbidden_list = (
+                "LEGACY_PHASE_B_TERMS" in line
+                or "Forbidden legacy terms" in line
+                or "must not contain" in line
+                or "不得" in line
+                or "禁止" in line
+            )
+            for term in LEGACY_PHASE_B_TERMS:
+                if term in line and not allow_forbidden_list:
+                    findings.append(
+                        {
+                            "path": _project_relative(path),
+                            "line": line_no,
+                            "term": term,
+                            "text": stripped,
+                        }
+                    )
+    if findings:
+        _add(
+            blockers,
+            "legacy_vocab_in_active_phase_b_surface",
+            "Active Phase B-1 spec/code must not depend on legacy manager vocabulary.",
+        )
+    missing_paths = [_project_relative(path) for path in paths if not path.exists()]
+    if missing_paths:
+        _warn(
+            warnings,
+            "active_phase_b_paths_missing",
+            f"Some active Phase B paths do not exist yet: {', '.join(missing_paths)}.",
+        )
+    return {"findings": findings, "missing_paths": missing_paths, "passed": not findings}
+
+
+def _check_provider_params(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    missing: dict[str, list[str]] = {}
+    for pass_name in ("manager_pass_1", "manager_pass_2"):
+        params = (trace.get(pass_name) or {}).get("provider_params")
+        pass_missing = _provider_param_missing(params)
+        if pass_missing:
+            missing[pass_name] = pass_missing
+    if missing:
+        _add(
+            blockers,
+            "provider_params_missing",
+            f"Manager Pass 1/2 provider params must include {', '.join(REQUIRED_PROVIDER_PARAM_KEYS)}.",
+        )
+    return {"missing": missing, "passed": not missing}
+
+
+def _check_pass_boundaries(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    pass_1_forbidden = list((trace.get("manager_pass_1") or {}).get("forbidden_final_truth_fields_present") or [])
+    pass_2_mutation = bool((trace.get("manager_pass_2") or {}).get("mutation_attempted"))
+    pass_2_forbidden_mutation_fields = list((trace.get("manager_pass_2") or {}).get("forbidden_mutation_fields_present") or [])
+    if pass_1_forbidden:
+        _add(blockers, "manager_pass_1_final_truth_present", "Manager Pass 1 must not contain final nutrition truth.")
+    if pass_2_mutation:
+        _add(blockers, "manager_pass_2_attempted_mutation", "Manager Pass 2 may synthesize item results but must not mutate.")
+    if pass_2_forbidden_mutation_fields:
+        _add(
+            blockers,
+            "manager_pass_2_forbidden_mutation_fields_present",
+            "Manager Pass 2 must not output mutation_result, ledger_delta, or canonical_ledger_entry.",
+        )
+    return {
+        "manager_pass_1_forbidden_fields": pass_1_forbidden,
+        "manager_pass_2_mutation_attempted": pass_2_mutation,
+        "manager_pass_2_forbidden_mutation_fields": pass_2_forbidden_mutation_fields,
+        "passed": not pass_1_forbidden and not pass_2_mutation and not pass_2_forbidden_mutation_fields,
+    }
+
+
+def _check_manager_pass_prompt_trace(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    missing: dict[str, list[str]] = {}
+    expected_roles = {
+        "manager_pass_1": "pass_1_tool_request",
+        "manager_pass_2": "pass_2_synthesis",
+    }
+    for pass_name, expected_role in expected_roles.items():
+        payload = trace.get(pass_name) or {}
+        pass_missing = [
+            key
+            for key in ("manager_round", "manager_role", "prompt_hash")
+            if key not in payload or payload.get(key) in (None, "")
+        ]
+        if payload.get("manager_role") not in (None, expected_role):
+            pass_missing.append("manager_role_expected_" + expected_role)
+        if pass_missing:
+            missing[pass_name] = pass_missing
+    if missing:
+        _add(
+            blockers,
+            "manager_pass_prompt_trace_missing",
+            "Manager Pass 1/2 traces must include manager_round, manager_role, and prompt_hash.",
+        )
+    return {"missing": missing, "passed": not missing}
+
+
+def _check_tool_router_trace(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    router = trace.get("runtime_tool_router")
+    executions = trace.get("read_tool_executions")
+    ok = isinstance(router, dict) and isinstance(executions, list)
+    if ok:
+        ok = all(
+            key in router
+            for key in (
+                "requested_read_tools",
+                "allowed_tools",
+                "filtered_tool_plan",
+                "blocked_tools",
+                "block_reasons",
+            )
+        )
+    if not ok:
+        _add(blockers, "tool_router_trace_incomplete", "ToolLoopTrace must include requested tools, filtered plan, blocked tools, and read executions.")
+    unknown_basket_check = _check_self_selected_basket_without_ingredients(trace, router if isinstance(router, dict) else {}, blockers)
+    return {"passed": ok and unknown_basket_check["passed"], "self_selected_basket_without_ingredients": unknown_basket_check}
+
+
+def _is_self_selected_basket_without_ingredients(trace: dict[str, Any]) -> bool:
+    marker = str(trace.get("semantic_boundary") or trace.get("family_boundary") or "")
+    if marker == "self_selected_basket_without_ingredients":
+        return True
+    message = str(trace.get("input_message") or "")
+    return message in {"我吃了滷味", "我吃滷味", "我吃了麻辣燙", "我吃麻辣燙"}
+
+
+def _check_self_selected_basket_without_ingredients(
+    trace: dict[str, Any],
+    router: dict[str, Any],
+    blockers: list[dict[str, str]],
+) -> dict[str, Any]:
+    if not _is_self_selected_basket_without_ingredients(trace):
+        return {"checked": False, "passed": True}
+    allowed = set(str(item) for item in router.get("allowed_tools") or [])
+    filtered = set(str(item) for item in router.get("filtered_tool_plan") or [])
+    blocked = set(str(item) for item in router.get("blocked_tools") or [])
+    block_reasons = router.get("block_reasons") or []
+    estimate_tools_allowed = sorted((allowed | filtered) & ESTIMATE_READ_TOOLS)
+    estimate_tools_missing_from_blocked = sorted(ESTIMATE_READ_TOOLS - blocked)
+    has_rule_reason = "self_selected_basket_without_ingredients_blocks_estimate_tools" in json.dumps(
+        block_reasons,
+        ensure_ascii=False,
+    )
+    passed = not estimate_tools_allowed and not estimate_tools_missing_from_blocked and has_rule_reason
+    if not passed:
+        _add(
+            blockers,
+            "self_selected_basket_without_ingredients_estimate_tools_not_blocked",
+            "Self-selected basket without listed ingredients must block generic DB and Tavily estimate tools.",
+        )
+    return {
+        "checked": True,
+        "estimate_tools_allowed": estimate_tools_allowed,
+        "estimate_tools_missing_from_blocked": estimate_tools_missing_from_blocked,
+        "has_rule_reason": has_rule_reason,
+        "passed": passed,
+    }
+
+
+def _check_truth_levels(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    invalid_read_outputs: list[dict[str, Any]] = []
+    invalid_packet_outputs: list[dict[str, Any]] = []
+    invalid_source_quality_labels: list[dict[str, Any]] = []
+    for index, execution in enumerate(trace.get("read_tool_executions") or []):
+        output = execution.get("output") if isinstance(execution, dict) else None
+        level = _truth_level(output)
+        if level not in READ_PACKET_TRUTH_LEVELS:
+            invalid_read_outputs.append({"index": index, "truth_level": level})
+    for index, packet in enumerate(((trace.get("packetizer") or {}).get("outputs") or [])):
+        level = _truth_level(packet)
+        if level not in PACKETIZER_TRUTH_LEVELS:
+            invalid_packet_outputs.append({"index": index, "truth_level": level})
+        if isinstance(packet, dict) and _contains_key(packet, "final_kcal"):
+            invalid_packet_outputs.append({"index": index, "truth_level": level, "reason": "final_kcal_present"})
+        if isinstance(packet, dict) and packet.get("packet_type") == "SearchCandidatePacket":
+            label = packet.get("source_quality_label")
+            if label not in TAVILY_SOURCE_QUALITY_LABELS:
+                invalid_source_quality_labels.append({"index": index, "source_quality_label": label})
+    if invalid_read_outputs:
+        _add(blockers, "read_tool_truth_level_invalid", "Read tool outputs must use candidate/hint/rule_hint truth levels only.")
+    if invalid_packet_outputs:
+        _add(blockers, "packetizer_truth_level_invalid", "Packetizer outputs must remain candidate/hint/rule_hint and no final truth.")
+    if invalid_source_quality_labels:
+        _add(blockers, "tavily_source_quality_label_invalid", "SearchCandidatePacket source_quality_label must use the Phase B-1 enum.")
+    return {
+        "invalid_read_outputs": invalid_read_outputs,
+        "invalid_packet_outputs": invalid_packet_outputs,
+        "invalid_source_quality_labels": invalid_source_quality_labels,
+        "mutation_truth_level": MUTATION_TRUTH_LEVEL,
+        "passed": not invalid_read_outputs and not invalid_packet_outputs and not invalid_source_quality_labels,
+    }
+
+
+def _check_guard_and_mutation(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    guard = trace.get("guard") or {}
+    mutation = trace.get("mutation") or {}
+    guard_ok = bool(guard.get("ran")) and bool(guard.get("ran_before_mutation"))
+    if not guard_ok:
+        _add(blockers, "guard_not_run_before_mutation", "Deterministic guard must run before mutation.")
+    mutation_keys_ok = all(key in mutation for key in ("mutation_attempted", "reason", "mutation_result"))
+    if not mutation_keys_ok:
+        _add(blockers, "mutation_trace_incomplete", "Mutation trace must always include mutation_attempted, reason, and mutation_result.")
+    attempted = bool(mutation.get("mutation_attempted"))
+    no_mutation_query_violation = (
+        trace.get("input_message") == "珍珠奶茶大概多少熱量？"
+        and attempted
+    )
+    if no_mutation_query_violation:
+        _add(blockers, "no_mutation_query_mutated_ledger", "Nutrition info query may use read tools but must not mutate ledger.")
+    input_message = str(trace.get("input_message") or "")
+    no_mutation_shape_invalid = mutation_keys_ok and not attempted and mutation.get("mutation_result") is not None
+    if mutation_keys_ok and not attempted and input_message in NO_MUTATION_QUERY_CASES and mutation.get("reason") != "no_mutation_intent":
+        no_mutation_shape_invalid = True
+    if no_mutation_shape_invalid:
+        _add(blockers, "mutation_trace_incomplete", "No-mutation trace must use reason=no_mutation_intent and mutation_result=null.")
+    return {
+        "guard_ran_before_mutation": guard_ok,
+        "mutation_trace_shape_valid": mutation_keys_ok and not no_mutation_shape_invalid,
+        "no_mutation_query_violation": no_mutation_query_violation,
+        "passed": guard_ok and mutation_keys_ok and not no_mutation_shape_invalid and not no_mutation_query_violation,
+    }
+
+
+def _has_non_empty_list(value: Any) -> bool:
+    return isinstance(value, list) and bool(value)
+
+
+def _quality_add(blockers: list[dict[str, str]], code: str, detail: str) -> None:
+    blockers.append({"code": code, "detail": detail})
+
+
+def _check_path_level_quality(trace: dict[str, Any], quality_blockers: list[dict[str, str]]) -> dict[str, Any]:
+    input_message = str(trace.get("input_message") or "")
+    manager_pass_1 = trace.get("manager_pass_1") or {}
+    manager_pass_2 = trace.get("manager_pass_2") or {}
+    router = trace.get("runtime_tool_router") or {}
+    mutation = trace.get("mutation") or {}
+    read_tool_executions = trace.get("read_tool_executions") or []
+    packetizer_outputs = (trace.get("packetizer") or {}).get("outputs") or []
+    item_results = manager_pass_2.get("item_results") or []
+    pass2_params = manager_pass_2.get("provider_params") or {}
+
+    failures: list[str] = []
+    is_logged_estimable = input_message in LOGGED_ESTIMABLE_CASES
+    is_query = input_message in NO_MUTATION_QUERY_CASES
+    is_blocking_basket = _is_self_selected_basket_without_ingredients(trace)
+
+    requested = list(manager_pass_1.get("requested_read_tools") or router.get("requested_read_tools") or [])
+    allowed = list(router.get("allowed_tools") or [])
+
+    if is_logged_estimable:
+        if not requested:
+            _quality_add(
+                quality_blockers,
+                "expected_tool_request_coverage_missing",
+                "Logged estimable B-1 cases must have Manager Pass 1 read-tool requests.",
+            )
+            failures.append("expected_tool_request_coverage_missing")
+        if not allowed:
+            _quality_add(
+                quality_blockers,
+                "expected_tool_request_coverage_missing",
+                "Logged estimable B-1 cases must have allowed read tools after router validation.",
+            )
+            failures.append("expected_allowed_tool_coverage_missing")
+        if not _has_non_empty_list(read_tool_executions):
+            _quality_add(
+                quality_blockers,
+                "expected_tool_execution_coverage_missing",
+                "Logged estimable B-1 cases must execute deterministic read-tool fixtures.",
+            )
+            failures.append("expected_tool_execution_coverage_missing")
+        if not _has_non_empty_list(packetizer_outputs):
+            _quality_add(
+                quality_blockers,
+                "expected_packetizer_output_coverage_missing",
+                "Logged estimable B-1 cases must produce packetizer outputs before Pass 2 synthesis.",
+            )
+            failures.append("expected_packetizer_output_coverage_missing")
+        if not _has_non_empty_list(item_results):
+            _quality_add(
+                quality_blockers,
+                "manager_pass2_item_results_missing",
+                "Logged estimable B-1 cases require non-empty Manager Pass 2 item_results.",
+            )
+            failures.append("manager_pass2_item_results_missing")
+
+    if is_query and not requested:
+        _quality_add(
+            quality_blockers,
+            "query_answer_tool_support_missing",
+            "Nutrition query B-1 case did not request read tools; scaffold may pass, but query-answer quality is not proven.",
+        )
+        failures.append("query_answer_tool_support_missing")
+
+    if is_blocking_basket:
+        estimate_executions = [
+            item for item in read_tool_executions
+            if isinstance(item, dict) and str(item.get("tool_name") or "") in ESTIMATE_READ_TOOLS
+        ]
+        estimate_packets = [
+            packet for packet in packetizer_outputs
+            if isinstance(packet, dict) and packet.get("packet_type") in {"GenericFoodDbPacket", "SearchCandidatePacket"}
+        ]
+        if estimate_executions or estimate_packets:
+            _quality_add(
+                quality_blockers,
+                "blocking_case_estimate_path_executed",
+                "Self-selected basket without ingredients must not execute or packetize estimate tools.",
+            )
+            failures.append("blocking_case_estimate_path_executed")
+
+    if bool(mutation.get("mutation_attempted")) and not _has_non_empty_list(item_results):
+        _quality_add(
+            quality_blockers,
+            "mutation_without_item_results",
+            "Ledger mutation requires non-empty Manager Pass 2 item_results; mutation cannot be approved from intent alone.",
+        )
+        failures.append("mutation_without_item_results")
+
+    missing_pass2_values = [
+        key for key in ("provider", "model", "request_id")
+        if not isinstance(pass2_params, dict) or pass2_params.get(key) in (None, "")
+    ]
+    if missing_pass2_values:
+        _quality_add(
+            quality_blockers,
+            "pass2_provider_trace_missing",
+            "Manager Pass 2 provider/model/request_id trace must be present to prove a real second LLM pass.",
+        )
+        failures.append("pass2_provider_trace_missing")
+
+    return {
+        "input_message": input_message,
+        "is_logged_estimable": is_logged_estimable,
+        "is_no_mutation_query": is_query,
+        "is_blocking_basket": is_blocking_basket,
+        "requested_read_tools": requested,
+        "allowed_tools": allowed,
+        "read_tool_execution_count": len(read_tool_executions) if isinstance(read_tool_executions, list) else 0,
+        "packetizer_output_count": len(packetizer_outputs) if isinstance(packetizer_outputs, list) else 0,
+        "item_result_count": len(item_results) if isinstance(item_results, list) else 0,
+        "mutation_attempted": bool(mutation.get("mutation_attempted")),
+        "missing_pass2_provider_values": missing_pass2_values,
+        "failures": failures,
+        "passed": not failures,
+    }
+
+
+def _check_renderer_boundary(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    renderer = trace.get("renderer") or {}
+    invented = list(renderer.get("invented_facts") or [])
+    renderer_input = renderer.get("input")
+    input_present = isinstance(renderer_input, dict)
+    required_input_keys = ("allowed_facts", "forbidden_claims", "item_results", "ledger_mutation_result")
+    missing_input_keys = [
+        key for key in required_input_keys if not input_present or key not in renderer_input
+    ]
+    final_response = str(renderer.get("final_response") or "")
+    allowed_text = json.dumps(renderer_input or {}, ensure_ascii=False)
+    response_has_unbacked_claim = bool(final_response) and any(
+        marker in final_response and marker not in allowed_text
+        for marker in ("大卡", "還剩", "已記錄", "logged", "remaining")
+    )
+    if response_has_unbacked_claim:
+        invented.append("final_response_contains_fact_outside_renderer_input")
+    if not input_present or missing_input_keys or invented:
+        _add(blockers, "renderer_truth_boundary_failed", "Renderer must receive truth input and must not invent facts.")
+    return {
+        "invented_facts": invented,
+        "input_present": input_present,
+        "missing_input_keys": missing_input_keys,
+        "passed": input_present and not missing_input_keys and not invented,
+    }
+
+
+def _check_stub_fixture(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    if trace.get("is_live_tavily_canary"):
+        return {"checked": False, "passed": True}
+    deterministic = bool(trace.get("uses_deterministic_stub_fixtures"))
+    generated_by_llm = bool(trace.get("stub_generated_by_llm"))
+    source = trace.get("stub_fixture_source")
+    packet_metadata_missing: list[int] = []
+    for index, packet in enumerate(((trace.get("packetizer") or {}).get("outputs") or [])):
+        if not isinstance(packet, dict):
+            packet_metadata_missing.append(index)
+            continue
+        required = ("fixture_id", "fixture_hash", "fixture_only", "generated_by")
+        if any(key not in packet for key in required) or packet.get("fixture_only") is not True or packet.get("generated_by") != "deterministic_fixture":
+            packet_metadata_missing.append(index)
+    if packet_metadata_missing:
+        _add(
+            blockers,
+            "packetizer_fixture_metadata_missing",
+            "Core stub packetizer outputs must include fixture_id, fixture_hash, fixture_only=true, and generated_by=deterministic_fixture.",
+        )
+    if not deterministic or generated_by_llm or not source:
+        _add(blockers, "stub_fixture_generated_by_llm", "Core Phase B-1 stub packets must be deterministic fixtures, not LLM-generated.")
+    return {
+        "checked": True,
+        "uses_deterministic_stub_fixtures": deterministic,
+        "stub_generated_by_llm": generated_by_llm,
+        "stub_fixture_source": source,
+        "packet_metadata_missing": packet_metadata_missing,
+        "passed": deterministic and not generated_by_llm and bool(source) and not packet_metadata_missing,
+    }
+
+
+def _check_tavily_canary(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    if not trace.get("is_live_tavily_canary"):
+        return {"checked": False, "passed": True}
+    canary = trace.get("tavily_canary") or {}
+    mutation = trace.get("mutation") or {}
+    required = (
+        "query",
+        "search_depth",
+        "max_results",
+        "chunks_per_source",
+        "provider_params",
+        "raw_results_ref",
+        "latency_ms",
+        "call_count",
+    )
+    missing = [key for key in required if key not in canary]
+    if not bool(canary.get("packetized_candidate_present")):
+        missing.append("packetized_candidate_present")
+    if not bool(canary.get("manager_pass_2_saw_search_packet")):
+        missing.append("manager_pass_2_saw_search_packet")
+    if missing:
+        _add(blockers, "tavily_canary_trace_incomplete", "Live Tavily canary must trace query, params, raw output ref, packet, latency, and Pass 2 usage.")
+    mutated = bool(mutation.get("mutation_attempted"))
+    if mutated:
+        _add(blockers, "tavily_canary_mutated_ledger", "Live Tavily canary must not create ledger mutation in Phase B-1.")
+    return {"missing": missing, "mutated_ledger": mutated, "passed": not missing and not mutated}
+
+
+def _check_core_smoke_cases(report: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    cases_run = set(str(item) for item in report.get("core_smoke_cases_run") or [])
+    missing = [case for case in REQUIRED_CORE_SMOKE_CASES if case not in cases_run]
+    if missing:
+        _add(blockers, "core_smoke_case_missing", f"Missing Phase B-1 core smoke cases: {', '.join(missing)}.")
+    return {"required": list(REQUIRED_CORE_SMOKE_CASES), "missing": missing, "passed": not missing}
+
+
+def verify_phase_b_readiness(
+    *,
+    phase_b_report_path: Path,
+    active_paths: list[Path] | None = None,
+) -> dict[str, Any]:
+    phase_b_report = _read_json(phase_b_report_path)
+    blockers: list[dict[str, str]] = []
+    quality_blockers: list[dict[str, str]] = []
+    warnings: list[dict[str, str]] = []
+    traces = [dict(item) for item in phase_b_report.get("tool_loop_traces") or []]
+
+    if phase_b_report.get("mode") != "hybrid_canary":
+        _add(blockers, "phase_b_mode_not_hybrid_canary", "Phase B-1 readiness requires hybrid_canary mode.")
+    if not traces:
+        _add(blockers, "tool_loop_trace_missing", "Phase B-1 readiness requires ToolLoopTrace artifacts.")
+
+    core_smoke_cases = _check_core_smoke_cases(phase_b_report, blockers)
+    trace_checks: list[dict[str, Any]] = []
+    for trace in traces:
+        trace_blockers_before = len(blockers)
+        checks = {
+            "case_id": trace.get("case_id"),
+            "provider_params": _check_provider_params(trace, blockers),
+            "manager_pass_prompt_trace": _check_manager_pass_prompt_trace(trace, blockers),
+            "pass_boundaries": _check_pass_boundaries(trace, blockers),
+            "tool_router_trace": _check_tool_router_trace(trace, blockers),
+            "truth_levels": _check_truth_levels(trace, blockers),
+            "guard_and_mutation": _check_guard_and_mutation(trace, blockers),
+            "renderer_boundary": _check_renderer_boundary(trace, blockers),
+            "stub_fixture": _check_stub_fixture(trace, blockers),
+            "tavily_canary": _check_tavily_canary(trace, blockers),
+        }
+        checks["passed"] = len(blockers) == trace_blockers_before
+        trace_checks.append(checks)
+
+    resolved_active_paths = list(active_paths) if active_paths is not None else list(DEFAULT_ACTIVE_PHASE_B_PATHS)
+    legacy_vocab = _scan_active_legacy_vocab(resolved_active_paths, blockers, warnings)
+
+    scaffold_pass = not blockers
+    path_level_quality = [_check_path_level_quality(trace, quality_blockers) for trace in traces]
+    quality_pass = scaffold_pass and not quality_blockers
+    all_blockers = blockers + quality_blockers
+    ready = not all_blockers
+    blocker_codes = {item["code"] for item in all_blockers}
+    if ready:
+        next_steps = ["proceed_to_phase_b1_minimal_tool_loop_implementation"]
+    else:
+        next_steps = []
+        if "expected_tool_request_coverage_missing" in blocker_codes:
+            next_steps.append("tighten_manager_pass1_tool_request_contract")
+        if "pass2_provider_trace_missing" in blocker_codes:
+            next_steps.append("ensure_manager_pass2_runs_after_packetized_tool_results")
+        if "mutation_without_item_results" in blocker_codes:
+            next_steps.append("harden_guard_no_mutation_without_item_results")
+        next_steps.extend(["rerun_phase_b1_runtime_smoke", "rerun_phase_b1_readiness_gate"])
+
+    report = {
+        "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "phase_b_report_path": _project_relative(phase_b_report_path),
+        "scaffold_pass": scaffold_pass,
+        "quality_pass": quality_pass,
+        "ready_for_phase_b1_implementation": ready,
+        "blockers": all_blockers,
+        "scaffold_blockers": blockers,
+        "quality_blockers": quality_blockers,
+        "warnings": warnings,
+        "core_smoke_cases": core_smoke_cases,
+        "trace_checks": trace_checks,
+        "path_level_quality": path_level_quality,
+        "legacy_adjacency_check": legacy_vocab,
+        "recommended_next_steps_ordered": (
+            next_steps
+        ),
+    }
+    return _json_safe(report)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Verify Wave 1 Phase B-1 minimal tool-loop readiness.")
+    parser.add_argument("--phase-b-report", default=str(DEFAULT_PHASE_B_REPORT))
+    parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
+    args = parser.parse_args()
+
+    phase_b_report_path = _resolve_path(args.phase_b_report, default=DEFAULT_PHASE_B_REPORT)
+    output_path = _resolve_path(args.output, default=DEFAULT_OUTPUT)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b_report_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(
+        json.dumps(
+            {
+                "report_path": str(output_path),
+                "ready_for_phase_b1_implementation": report["ready_for_phase_b1_implementation"],
+                "blocker_count": len(report["blockers"]),
+                "recommended_next_steps_ordered": report["recommended_next_steps_ordered"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0 if report["ready_for_phase_b1_implementation"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
