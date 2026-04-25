@@ -30,11 +30,52 @@ def test_format_user_message_serializes_pydantic_objects() -> None:
     assert parsed["payload"]["original_answer"]["component_estimates"][0]["name"] == "Test"
 
 
-def test_stage_temperatures_only_expose_single_manager_stages() -> None:
+def test_stage_temperatures_only_expose_single_manager_stages(monkeypatch) -> None:
+    monkeypatch.delenv("AI_BUILDER_TIMEOUT_SECONDS", raising=False)
     adapter = BuilderSpaceAdapter()
 
     assert adapter._temperature_for_stage("intake_manager_round") == 0.0
-    assert adapter.timeout_seconds <= 15
+    assert adapter.timeout_seconds == 30
+
+
+def test_timeout_env_45_is_honored_without_15_second_clamp(monkeypatch) -> None:
+    monkeypatch.setenv("AI_BUILDER_TIMEOUT_SECONDS", "45")
+
+    adapter = BuilderSpaceAdapter()
+    readiness = adapter.readiness()
+
+    assert adapter.timeout_seconds == 45
+    assert readiness["timeout_seconds"] == 45
+    assert readiness["configured_timeout_env"] == "45"
+    assert readiness["default_timeout_seconds"] == 30
+    assert readiness["max_timeout_seconds"] == 120
+    assert readiness["timeout_was_clamped"] is False
+
+
+def test_invalid_timeout_env_falls_back_to_default(monkeypatch) -> None:
+    for value in ("", "not-a-number", "0", "-5"):
+        monkeypatch.setenv("AI_BUILDER_TIMEOUT_SECONDS", value)
+        adapter = BuilderSpaceAdapter()
+        readiness = adapter.readiness()
+
+        assert adapter.timeout_seconds == 30
+        assert readiness["timeout_seconds"] == 30
+        assert readiness["configured_timeout_env"] == value
+        assert readiness["timeout_was_clamped"] is False
+
+
+def test_timeout_env_above_max_is_clamped_and_reported(monkeypatch) -> None:
+    monkeypatch.setenv("AI_BUILDER_TIMEOUT_SECONDS", "999999")
+
+    adapter = BuilderSpaceAdapter()
+    readiness = adapter.readiness()
+
+    assert adapter.timeout_seconds == 120
+    assert readiness["timeout_seconds"] == 120
+    assert readiness["configured_timeout_env"] == "999999"
+    assert readiness["default_timeout_seconds"] == 30
+    assert readiness["max_timeout_seconds"] == 120
+    assert readiness["timeout_was_clamped"] is True
 
 
 def test_manager_round_schema_exposes_react_fields() -> None:

@@ -4,6 +4,7 @@ import asyncio
 import json
 from pathlib import Path
 
+from app.providers.builderspace_adapter import BuilderSpaceResponseError
 import pytest
 
 from scripts.run_wave1_phase_b_minimal_tool_loop_smoke import run_phase_b_minimal_tool_loop_smoke
@@ -92,6 +93,45 @@ class FakePhaseBProvider:
 class FailingPhaseBProvider(FakePhaseBProvider):
     async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
         raise TimeoutError("simulated provider timeout")
+
+
+class NonTimeoutFailingPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        raise ValueError("simulated non-timeout provider failure")
+
+
+class WrappedReadTimeoutPhaseBProvider(FakePhaseBProvider):
+    def readiness(self) -> dict[str, object]:
+        readiness = dict(super().readiness())
+        readiness.update(
+            {
+                "timeout_seconds": 45,
+                "transport_retry_count": 0,
+                "transport_retry_backoff_seconds": 0.75,
+                "base_url": "https://space.ai-builders.com/backend/v1",
+            }
+        )
+        return readiness
+
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        raise BuilderSpaceResponseError(
+            "BuilderSpace manager error at stage=intake_manager_round: ReadTimeout: ",
+            trace={
+                "stage": "intake_manager_round",
+                "provider": "builderspace",
+                "model": "deepseek",
+                "base_url": "https://space.ai-builders.com/backend/v1",
+                "timeout_seconds": 45,
+                "transport_attempts": [
+                    {
+                        "attempt_index": 1,
+                        "stage": "intake_manager_round",
+                        "model": "deepseek",
+                        "error_type": "ReadTimeout",
+                    }
+                ],
+            },
+        )
 
 
 class FinalOnlyPhaseBProvider(FakePhaseBProvider):
@@ -302,6 +342,53 @@ async def test_phase_b1_runtime_smoke_provider_error_emits_diagnostic_artifact(t
 
 
 @pytest.mark.asyncio
+async def test_phase_b1_runtime_smoke_wrapped_read_timeout_has_timeout_diagnostics(tmp_path: Path) -> None:
+    provider = WrappedReadTimeoutPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["我吃了一顆茶葉蛋"],
+        output_dir=tmp_path,
+        write_latest=False,
+        provider_timeout_ms=240000,
+    )
+
+    runtime = report["provider_runtime"]
+    assert runtime["blocker"] is True
+    assert runtime["reason"] == "provider_timeout"
+    assert runtime["error_type"] == "BuilderSpaceResponseError"
+    assert runtime["provider"] == "builderspace"
+    assert runtime["model"] == "deepseek"
+    assert runtime["stage"] == "intake_manager_round"
+    assert runtime["adapter_timeout_seconds"] == 45
+    assert runtime["outer_provider_timeout_ms"] == 240000
+    assert runtime["timeout_layer"] == "adapter_http_timeout"
+    assert runtime["attempt_count"] == 1
+    assert runtime["retry_count"] == 0
+    assert runtime["completed_trace_count"] == 0
+    assert runtime["expected_case_count"] == 1
+    assert runtime["base_url"] == "https://space.ai-builders.com/backend/v1"
+    assert report["tool_loop_traces"] == []
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_runtime_smoke_non_timeout_error_is_not_labeled_timeout(tmp_path: Path) -> None:
+    provider = NonTimeoutFailingPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["我吃了一顆茶葉蛋"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    runtime = report["provider_runtime"]
+    assert runtime["reason"] == "provider_runtime_error"
+    assert runtime["error_type"] == "ValueError"
+    assert runtime["timeout_layer"] is None
+
+
+@pytest.mark.asyncio
 async def test_phase_b1_runtime_smoke_records_positive_latency_for_slow_provider(tmp_path: Path) -> None:
     provider = SlowPhaseBProvider()
 
@@ -333,6 +420,10 @@ async def test_phase_b1_runtime_smoke_provider_timeout_is_artifactized(tmp_path:
     assert report["provider_runtime"]["blocker"] is True
     assert report["provider_runtime"]["reason"] == "provider_timeout"
     assert report["provider_runtime"]["timeout_ms"] == 1
+    assert report["provider_runtime"]["outer_provider_timeout_ms"] == 1
+    assert report["provider_runtime"]["timeout_layer"] == "outer_provider_timeout"
+    assert report["provider_runtime"]["completed_trace_count"] == 0
+    assert report["provider_runtime"]["expected_case_count"] == 1
     assert report["runtime_latency"]["completed_trace_count"] == 0
     assert report["tool_loop_traces"] == []
 
