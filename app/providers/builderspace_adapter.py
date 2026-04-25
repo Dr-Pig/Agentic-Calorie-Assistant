@@ -30,6 +30,34 @@ class BuilderSpaceResponseError(RuntimeError):
         self.trace = trace
 
 
+class _BuilderSpaceParseError(RuntimeError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        failure_family: str,
+        failing_component: str,
+        observed_value: Any = None,
+        raw_content: str | None = None,
+        parse_attempts: list[dict[str, Any]] | None = None,
+        parse_contract_status: str | None = None,
+        parse_recovery_used: bool = False,
+        parse_recovery_strategy: str | None = None,
+        parse_recovery_ambiguous: bool = False,
+    ) -> None:
+        super().__init__(message)
+        self.failure_family = failure_family
+        self.failing_component = failing_component
+        self.observed_type = _observed_type_name(observed_value)
+        self.value_excerpt, self.value_truncated = _value_excerpt(observed_value)
+        self.raw_content_excerpt, self.raw_content_truncated = _value_excerpt(raw_content)
+        self.parse_attempts = list(parse_attempts or [])
+        self.parse_contract_status = parse_contract_status
+        self.parse_recovery_used = parse_recovery_used
+        self.parse_recovery_strategy = parse_recovery_strategy
+        self.parse_recovery_ambiguous = parse_recovery_ambiguous
+
+
 class BuilderSpaceAdapter:
     def __init__(self, *, manager_model_override: str | None = None, role_label: str = "manager") -> None:
         self.base_url = os.getenv("AI_BUILDER_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
@@ -122,10 +150,43 @@ class BuilderSpaceAdapter:
                         )
                         attempt_trace["http_status"] = response.status_code
                         response.raise_for_status()
-                        data = response.json()
+                        try:
+                            data = response.json()
+                        except Exception as exc:
+                            raise _BuilderSpaceParseError(
+                                "BuilderSpace response body is not a JSON object.",
+                                failure_family="response_json_shape_error",
+                                failing_component="builderspace_adapter.response_json",
+                                observed_value=response.text,
+                                parse_attempts=[
+                                    {
+                                        "attempt_index": attempt_index,
+                                        "stage": stage,
+                                        "parser": "response_json",
+                                        "status": "failed",
+                                        "failure_family": "response_json_shape_error",
+                                    }
+                                ],
+                            ) from exc
+                        if not isinstance(data, dict):
+                            raise _BuilderSpaceParseError(
+                                "BuilderSpace response JSON must be an object.",
+                                failure_family="response_json_shape_error",
+                                failing_component="builderspace_adapter.response_json",
+                                observed_value=data,
+                                parse_attempts=[
+                                    {
+                                        "attempt_index": attempt_index,
+                                        "stage": stage,
+                                        "parser": "response_json",
+                                        "status": "failed",
+                                        "failure_family": "response_json_shape_error",
+                                    }
+                                ],
+                            )
                         raw_content = self._extract_text_content(data)
                         try:
-                            parsed = self._extract_json_object(raw_content)
+                            parsed, parse_meta = self._extract_json_object(raw_content)
                         except Exception as exc:  # parse failure is retriable once
                             parse_attempt = {
                                 "attempt_index": attempt_index,
@@ -133,8 +194,12 @@ class BuilderSpaceAdapter:
                                 "error_type": type(exc).__name__,
                                 "error": str(exc),
                                 "raw_content_excerpt": raw_content[:600],
-                                "failure_family": "malformed_json",
+                                "failure_family": getattr(exc, "failure_family", "malformed_json"),
                             }
+                            if isinstance(exc, _BuilderSpaceParseError):
+                                parse_attempt["parse_recovery_used"] = exc.parse_recovery_used
+                                parse_attempt["parse_recovery_strategy"] = exc.parse_recovery_strategy
+                                parse_attempt["parse_recovery_ambiguous"] = exc.parse_recovery_ambiguous
                             parse_attempts.append(parse_attempt)
                             last_error = exc
                             if parse_retry_budget > 0:
@@ -171,8 +236,14 @@ class BuilderSpaceAdapter:
                             "incomplete_details": data.get("incomplete_details"),
                             "usage": data.get("usage"),
                             "transport_attempts": transport_attempts,
-                            "parse_attempts": parse_attempts,
-                            "finish_reason": data["choices"][0].get("finish_reason"),
+                            "parse_attempts": parse_attempts + list(parse_meta.get("parse_attempts") or []),
+                            "finish_reason": parse_meta.get("finish_reason"),
+                            "response_status": response.status_code,
+                            "parse_contract_status": parse_meta.get("parse_contract_status"),
+                            "parse_recovery_used": parse_meta.get("parse_recovery_used"),
+                            "parse_recovery_strategy": parse_meta.get("parse_recovery_strategy"),
+                            "parse_recovery_ambiguous": parse_meta.get("parse_recovery_ambiguous"),
+                            "raw_content_excerpt": parse_meta.get("raw_content_excerpt"),
                             "request_failure_family": None,
                         }
                         return parsed, trace
@@ -185,7 +256,8 @@ class BuilderSpaceAdapter:
                             await asyncio.sleep(self.transport_retry_backoff_seconds * attempt_index)
                 raise last_error or RuntimeError("BuilderSpace transport failed without a captured exception.")
         except Exception as exc:
-            failure_family = "empty_content" if "empty" in str(exc).lower() else "malformed_json"
+            failure_family = getattr(exc, "failure_family", None)
+            failing_component = getattr(exc, "failing_component", "builderspace_adapter.complete_with_trace")
             message = f"BuilderSpace manager error at stage={stage}: {type(exc).__name__}: {exc}"
             raise BuilderSpaceResponseError(
                 message,
@@ -195,10 +267,23 @@ class BuilderSpaceAdapter:
                     "model": model,
                     "request_payload": request_payload,
                     "transport_attempts": transport_attempts,
-                    "parse_attempts": parse_attempts,
+                    "parse_attempts": list(parse_attempts) + list(getattr(exc, "parse_attempts", []) or []),
                     "base_url": self.base_url,
                     "timeout_seconds": self.timeout_seconds,
                     "request_failure_family": failure_family,
+                    "failure_family": failure_family,
+                    "failing_component": failing_component,
+                    "observed_type": getattr(exc, "observed_type", None),
+                    "value_excerpt": getattr(exc, "value_excerpt", None),
+                    "value_truncated": getattr(exc, "value_truncated", None),
+                    "raw_content_excerpt": getattr(exc, "raw_content_excerpt", None),
+                    "raw_content_truncated": getattr(exc, "raw_content_truncated", None),
+                    "raw_response_excerpt": response.text[:1200] if response is not None else None,
+                    "response_status": response.status_code if response is not None else None,
+                    "parse_contract_status": getattr(exc, "parse_contract_status", None),
+                    "parse_recovery_used": getattr(exc, "parse_recovery_used", False),
+                    "parse_recovery_strategy": getattr(exc, "parse_recovery_strategy", None),
+                    "parse_recovery_ambiguous": getattr(exc, "parse_recovery_ambiguous", False),
                 },
             ) from exc
 
@@ -219,25 +304,182 @@ class BuilderSpaceAdapter:
         return parsed
 
     def _extract_text_content(self, data: dict[str, Any]) -> str:
-        choices = data.get("choices") or []
-        if not choices:
-            raise RuntimeError(f"BuilderSpace returned no choices: {json.dumps(data)[:800]}")
-        message = choices[0].get("message") or {}
+        choices = data.get("choices")
+        if not isinstance(choices, list) or not choices:
+            raise _BuilderSpaceParseError(
+                "BuilderSpace returned invalid choices envelope.",
+                failure_family="choices_shape_error",
+                failing_component="builderspace_adapter.extract_choices",
+                observed_value=choices,
+            )
+        first_choice = choices[0]
+        if not isinstance(first_choice, dict):
+            raise _BuilderSpaceParseError(
+                "BuilderSpace first choice must be an object.",
+                failure_family="choices_shape_error",
+                failing_component="builderspace_adapter.extract_choices",
+                observed_value=first_choice,
+            )
+        message = first_choice.get("message")
+        if not isinstance(message, dict):
+            raise _BuilderSpaceParseError(
+                "BuilderSpace message must be an object.",
+                failure_family="message_shape_error",
+                failing_component="builderspace_adapter.extract_message",
+                observed_value=message,
+            )
         content = message.get("content")
         if isinstance(content, list):
-            texts = [str(item.get("text") or "") for item in content if isinstance(item, dict)]
+            texts: list[str] = []
+            for item in content:
+                if not isinstance(item, dict):
+                    raise _BuilderSpaceParseError(
+                        "BuilderSpace content list must contain object parts only.",
+                        failure_family="content_shape_error",
+                        failing_component="builderspace_adapter.extract_text_content",
+                        observed_value=item,
+                    )
+                texts.append(str(item.get("text") or ""))
             content = "\n".join(texts).strip()
+        elif content is not None and not isinstance(content, str):
+            raise _BuilderSpaceParseError(
+                "BuilderSpace content must be a string or a list of text parts.",
+                failure_family="content_shape_error",
+                failing_component="builderspace_adapter.extract_text_content",
+                observed_value=content,
+            )
         content = str(content or "").strip()
         if not content:
-            raise RuntimeError(f"BuilderSpace returned empty content: {json.dumps(data)[:800]}")
+            raise _BuilderSpaceParseError(
+                "BuilderSpace returned empty content.",
+                failure_family="non_json_model_output",
+                failing_component="builderspace_adapter.extract_text_content",
+                observed_value=content,
+                raw_content=content,
+            )
         return content
 
-    def _extract_json_object(self, content: str) -> dict[str, Any]:
-        text = self._sanitize_content(content)
-        candidates = self._extract_json_candidates(text)
-        if not candidates:
-            raise RuntimeError("BuilderSpace did not return JSON.")
-        return candidates[-1]
+    def _extract_json_object(self, content: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        raw_text = content.strip().replace("\ufeff", "")
+        parse_attempts: list[dict[str, Any]] = []
+        try:
+            parsed = json.loads(raw_text)
+        except json.JSONDecodeError as exc:
+            parse_attempts.append(
+                {
+                    "parser": "strict_json",
+                    "status": "failed",
+                    "failure_family": "malformed_json",
+                    "error_type": type(exc).__name__,
+                }
+            )
+        else:
+            if isinstance(parsed, dict):
+                parse_attempts.append(
+                    {
+                        "parser": "strict_json",
+                        "status": "success",
+                        "parse_contract_status": "strict_json",
+                    }
+                )
+                return parsed, {
+                    "parse_contract_status": "strict_json",
+                    "parse_recovery_used": False,
+                    "parse_recovery_strategy": None,
+                    "parse_recovery_ambiguous": False,
+                    "parse_attempts": parse_attempts,
+                    "raw_content_excerpt": raw_text[:1200],
+                    "finish_reason": None,
+                }
+            raise _BuilderSpaceParseError(
+                "BuilderSpace strict JSON content must be an object.",
+                failure_family="malformed_json",
+                failing_component="builderspace_adapter.extract_json_object",
+                observed_value=parsed,
+                raw_content=raw_text,
+                parse_attempts=parse_attempts,
+            )
+
+        fenced = re.findall(r"```(?:json)?\s*(.*?)```", raw_text, flags=re.DOTALL | re.IGNORECASE)
+        fenced_candidates: list[dict[str, Any]] = []
+        for chunk in fenced:
+            chunk_text = chunk.strip()
+            if not chunk_text:
+                continue
+            try:
+                parsed = json.loads(chunk_text)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(parsed, dict):
+                fenced_candidates.append(parsed)
+        if len(fenced_candidates) == 1:
+            parse_attempts.append(
+                {
+                    "parser": "fenced_json",
+                    "status": "recovered",
+                    "parse_contract_status": "fenced_json_recovered",
+                }
+            )
+            return fenced_candidates[0], {
+                "parse_contract_status": "fenced_json_recovered",
+                "parse_recovery_used": True,
+                "parse_recovery_strategy": "fenced_json",
+                "parse_recovery_ambiguous": False,
+                "parse_attempts": parse_attempts,
+                "raw_content_excerpt": raw_text[:1200],
+                "finish_reason": None,
+            }
+        if len(fenced_candidates) > 1:
+            raise _BuilderSpaceParseError(
+                "BuilderSpace fenced JSON recovery is ambiguous.",
+                failure_family="malformed_json",
+                failing_component="builderspace_adapter.extract_json_object",
+                observed_value=raw_text,
+                raw_content=raw_text,
+                parse_attempts=parse_attempts,
+                parse_recovery_used=True,
+                parse_recovery_strategy="fenced_json",
+                parse_recovery_ambiguous=True,
+            )
+
+        candidates = self._extract_json_candidates(raw_text)
+        if len(candidates) == 1:
+            parse_attempts.append(
+                {
+                    "parser": "last_valid_json_object",
+                    "status": "recovered",
+                    "parse_contract_status": "prose_json_recovered",
+                }
+            )
+            return candidates[0], {
+                "parse_contract_status": "prose_json_recovered",
+                "parse_recovery_used": True,
+                "parse_recovery_strategy": "last_valid_json_object",
+                "parse_recovery_ambiguous": False,
+                "parse_attempts": parse_attempts,
+                "raw_content_excerpt": raw_text[:1200],
+                "finish_reason": None,
+            }
+        if len(candidates) > 1:
+            raise _BuilderSpaceParseError(
+                "BuilderSpace prose JSON recovery is ambiguous.",
+                failure_family="malformed_json",
+                failing_component="builderspace_adapter.extract_json_object",
+                observed_value=raw_text,
+                raw_content=raw_text,
+                parse_attempts=parse_attempts,
+                parse_recovery_used=True,
+                parse_recovery_strategy="last_valid_json_object",
+                parse_recovery_ambiguous=True,
+            )
+        raise _BuilderSpaceParseError(
+            "BuilderSpace did not return JSON.",
+            failure_family="non_json_model_output",
+            failing_component="builderspace_adapter.extract_json_object",
+            observed_value=raw_text,
+            raw_content=raw_text,
+            parse_attempts=parse_attempts,
+        )
 
     def _extract_json_candidates(self, content: str) -> list[dict[str, Any]]:
         candidates: list[dict[str, Any]] = []
@@ -367,6 +609,33 @@ class BuilderSpaceAdapter:
         if parsed > MAX_TIMEOUT_SECONDS:
             return MAX_TIMEOUT_SECONDS, True
         return parsed, False
+
+
+def _observed_type_name(value: Any) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, dict):
+        return "object"
+    if isinstance(value, list):
+        return "array"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, (int, float)):
+        return "number"
+    if isinstance(value, tuple):
+        return "tuple"
+    return "unknown"
+
+
+def _value_excerpt(value: Any, *, max_chars: int = 1200) -> tuple[str | None, bool]:
+    if value is None:
+        return None, False
+    rendered = value if isinstance(value, str) else json.dumps(_jsonable(value), ensure_ascii=False, default=str)
+    if len(rendered) <= max_chars:
+        return rendered, False
+    return rendered[:max_chars], True
 
 
 def _jsonable(value: Any) -> Any:
