@@ -125,6 +125,26 @@ class _ManagerPayloadShapeError(RuntimeError):
         super().__init__(f"manager_payload_shape_error stage={stage} round_index={round_index} payload={excerpt}")
 
 
+class _ProviderTraceShapeError(RuntimeError):
+    def __init__(
+        self,
+        *,
+        trace_field: str,
+        observed_value: Any,
+        stage: str | None,
+        failing_component: str,
+    ) -> None:
+        self.trace_field = trace_field
+        self.observed_value = _json_safe(observed_value)
+        self.observed_type = _observed_type_name(observed_value)
+        self.value_excerpt, self.value_truncated = _value_excerpt(observed_value)
+        self.stage = stage
+        self.failing_component = failing_component
+        super().__init__(
+            f"provider_trace_shape_error trace_field={trace_field} observed_type={self.observed_type} stage={stage or 'unknown'}"
+        )
+
+
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
 
@@ -171,9 +191,84 @@ def _provider_params(trace: dict[str, Any]) -> dict[str, Any]:
     return {key: trace.get(key) for key in PROVIDER_PARAM_KEYS}
 
 
-def _normalize_provider_trace(trace: dict[str, Any], *, manager_role: str, user_payload: dict[str, Any]) -> dict[str, Any]:
-    normalized = dict(trace or {})
-    request_payload = normalized.get("request_payload") if isinstance(normalized.get("request_payload"), dict) else {}
+def _observed_type_name(value: Any) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, dict):
+        return "object"
+    if isinstance(value, list):
+        return "array"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, (int, float)):
+        return "number"
+    if isinstance(value, tuple):
+        return "tuple"
+    return "unknown"
+
+
+def _value_excerpt(value: Any, *, max_chars: int = 1000) -> tuple[str, bool]:
+    rendered = json.dumps(_json_safe(value), ensure_ascii=False, default=str)
+    if len(rendered) <= max_chars:
+        return rendered, False
+    return rendered[:max_chars], True
+
+
+def _require_trace_shape(
+    *,
+    value: Any,
+    trace_field: str,
+    expected_type: type[Any] | tuple[type[Any], ...],
+    stage: str | None,
+    failing_component: str,
+) -> Any:
+    if isinstance(value, expected_type):
+        return value
+    raise _ProviderTraceShapeError(
+        trace_field=trace_field,
+        observed_value=value,
+        stage=stage,
+        failing_component=failing_component,
+    )
+
+
+def _normalize_provider_trace(trace: Any, *, manager_role: str, user_payload: dict[str, Any]) -> dict[str, Any]:
+    stage = None
+    normalized = dict(
+        _require_trace_shape(
+            value=trace,
+            trace_field="trace",
+            expected_type=dict,
+            stage=stage,
+            failing_component="normalize_provider_trace",
+        )
+    )
+    stage = str(normalized.get("stage")) if normalized.get("stage") not in (None, "") else None
+    raw_request_payload = normalized.get("request_payload")
+    if raw_request_payload is None:
+        request_payload: dict[str, Any] = {}
+    else:
+        request_payload = dict(
+            _require_trace_shape(
+                value=raw_request_payload,
+                trace_field="request_payload",
+                expected_type=dict,
+                stage=stage,
+                failing_component="normalize_provider_trace",
+            )
+        )
+    for field_name in ("transport_attempts", "parse_attempts"):
+        raw_value = normalized.get(field_name)
+        if raw_value is not None:
+            _require_trace_shape(
+                value=raw_value,
+                trace_field=field_name,
+                expected_type=list,
+                stage=stage,
+                failing_component="normalize_provider_trace",
+            )
     def pick(key: str, fallback: Any) -> Any:
         value = normalized.get(key)
         return fallback if value in (None, "") else value
@@ -239,7 +334,7 @@ class _PhaseB1ManagerProvider:
         )
         ended_at_utc = _utc_now()
         latency_ms = _elapsed_ms(started_perf)
-        trace = _normalize_provider_trace(dict(trace or {}), manager_role=manager_role, user_payload=user_payload)
+        trace = _normalize_provider_trace(trace, manager_role=manager_role, user_payload=user_payload)
         trace["manager_role"] = manager_role
         trace["pass1_mode"] = self.pass1_mode
         trace["started_at_utc"] = started_at_utc
@@ -842,7 +937,8 @@ def _provider_runtime_error_report(
     started_perf: float,
     provider_timeout_ms: int,
 ) -> dict[str, Any]:
-    provider_trace = dict(getattr(error, "trace", {}) or {})
+    raw_provider_trace = getattr(error, "trace", {})
+    provider_trace = dict(raw_provider_trace) if isinstance(raw_provider_trace, dict) else {}
     transport_attempts = (
         provider_trace.get("transport_attempts") if isinstance(provider_trace.get("transport_attempts"), list) else []
     )
@@ -867,6 +963,9 @@ def _provider_runtime_error_report(
     model = provider_trace.get("model") or readiness.get("manager_model") or readiness.get("model")
     base_url = provider_trace.get("base_url") or readiness.get("base_url")
     retry_count = readiness.get("transport_retry_count")
+    failing_component = getattr(error, "failing_component", None) or provider_trace.get("failing_component")
+    if failing_component is None and isinstance(error, BuilderSpaceResponseError):
+        failing_component = "builderspace_adapter.complete_with_trace"
     provider_runtime: dict[str, Any] = {
         "configured": bool(readiness.get("configured")),
         "blocker": True,
@@ -884,6 +983,7 @@ def _provider_runtime_error_report(
         "completed_trace_count": len(traces),
         "expected_case_count": len(smoke_cases),
         "base_url": base_url,
+        "failing_component": failing_component,
     }
     if is_timeout:
         provider_runtime["timeout_ms"] = provider_timeout_ms
@@ -901,6 +1001,48 @@ def _provider_runtime_error_report(
         "manager_tool_selection_claimed": pass1_mode == NATURAL_MODE,
         "natural_tool_selection_pass": "not_applicable" if pass1_mode == FORCED_MODE else False,
         "provider_runtime": provider_runtime,
+        "runtime_latency": _runtime_latency_summary(started_perf=started_perf, traces=traces, pass1_mode=pass1_mode),
+        "core_smoke_cases_run": list(smoke_cases)[: len(traces)],
+        "tool_loop_traces": _json_safe(traces),
+        "artifact_path": str(artifact_path),
+    }
+
+
+def _provider_trace_blocker_report(
+    *,
+    readiness: dict[str, Any],
+    artifact_path: Path,
+    smoke_cases: list[str] | tuple[str, ...],
+    traces: list[dict[str, Any]],
+    blocker: _ProviderTraceShapeError,
+    pass1_mode: str,
+    started_perf: float,
+) -> dict[str, Any]:
+    provider_trace_blocker = {
+        "blocker": True,
+        "reason": "provider_trace_shape_error",
+        "trace_field": blocker.trace_field,
+        "observed_type": blocker.observed_type,
+        "value_excerpt": blocker.value_excerpt,
+        "value_truncated": blocker.value_truncated,
+        "stage": blocker.stage,
+        "failing_component": blocker.failing_component,
+        "completed_trace_count": len(traces),
+        "expected_case_count": len(smoke_cases),
+    }
+    return {
+        "phase": "B-1",
+        "scope": "minimal_tool_loop_smoke",
+        "b2_evidence_runtime_started": False,
+        "nutrition_accuracy_claimed": False,
+        "provider": readiness.get("provider") or "builderspace",
+        "manager_model": readiness.get("manager_model") or readiness.get("model") or "deepseek",
+        "mode": "hybrid_canary",
+        "pass1_mode": pass1_mode,
+        "forced_tool_request_contract": pass1_mode == FORCED_MODE,
+        "manager_tool_selection_claimed": pass1_mode == NATURAL_MODE,
+        "natural_tool_selection_pass": "not_applicable" if pass1_mode == FORCED_MODE else False,
+        "provider_trace_blocker": provider_trace_blocker,
         "runtime_latency": _runtime_latency_summary(started_perf=started_perf, traces=traces, pass1_mode=pass1_mode),
         "core_smoke_cases_run": list(smoke_cases)[: len(traces)],
         "tool_loop_traces": _json_safe(traces),
@@ -949,6 +1091,16 @@ async def run_phase_b_minimal_tool_loop_smoke(
             if exc.partial_trace is not None:
                 traces.append(_json_safe(exc.partial_trace))
             report = _runtime_blocker_report(
+                readiness=dict(readiness),
+                artifact_path=artifact_path,
+                smoke_cases=smoke_cases,
+                traces=traces,
+                blocker=exc,
+                pass1_mode=pass1_mode,
+                started_perf=run_started_perf,
+            )
+        except _ProviderTraceShapeError as exc:
+            report = _provider_trace_blocker_report(
                 readiness=dict(readiness),
                 artifact_path=artifact_path,
                 smoke_cases=smoke_cases,
