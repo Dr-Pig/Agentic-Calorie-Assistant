@@ -136,6 +136,26 @@ class MissingRequestIdPhaseBProvider(FakePhaseBProvider):
         return trace
 
 
+class SearchAliasPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        self.calls.append(dict(kwargs))
+        user_payload = kwargs["user_payload"]
+        round_index = user_payload["round_index"]
+        if round_index == 0:
+            return (
+                {
+                    "manager_action": "call_tools",
+                    "interaction_family": "food_logging",
+                    "response_mode": "intake_result",
+                    "operations": [],
+                    "answer_contract": {},
+                    "tool_calls": [{"name": "search", "arguments": {"query": "茶葉蛋"}}],
+                },
+                self._trace(call_index=len(self.calls), kwargs=kwargs),
+            )
+        return await super().complete_with_trace(**kwargs)
+
+
 @pytest.mark.asyncio
 async def test_phase_b1_runtime_smoke_calls_provider_exactly_twice_and_emits_trace(tmp_path: Path) -> None:
     provider = FakePhaseBProvider()
@@ -151,9 +171,15 @@ async def test_phase_b1_runtime_smoke_calls_provider_exactly_twice_and_emits_tra
     trace = report["tool_loop_traces"][0]
     assert report["phase"] == "B-1"
     assert report["scope"] == "minimal_tool_loop_smoke"
+    assert report["pass1_mode"] == "forced_tool_request_smoke"
+    assert report["forced_tool_request_contract"] is True
+    assert report["manager_tool_selection_claimed"] is False
     assert report["b2_evidence_runtime_started"] is False
     assert report["nutrition_accuracy_claimed"] is False
     assert trace["manager_pass_1"]["manager_role"] == "pass_1_tool_request"
+    assert trace["pass1_mode"] == "forced_tool_request_smoke"
+    assert trace["forced_tool_request_contract"] is True
+    assert trace["manager_tool_selection_claimed"] is False
     assert trace["manager_pass_2"]["manager_role"] == "pass_2_synthesis"
     assert trace["manager_pass_1"]["prompt_hash"]
     assert trace["manager_pass_2"]["prompt_hash"]
@@ -284,3 +310,75 @@ async def test_phase_b1_runtime_smoke_pass1_prompt_prioritizes_tool_request_mode
     assert pass1_prompt.startswith("Phase B-1 Pass 1 HARD CONTRACT")
     assert "MUST return manager_action='call_tools'" in pass1_prompt
     assert "Do not choose manager_action='final' in Pass 1" in pass1_prompt
+    assert "JSON example for tea egg" in pass1_prompt
+    assert "lookup_generic_food" in pass1_prompt
+    assert "If ready, return manager_action='final'" not in pass1_prompt
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_natural_probe_does_not_inject_hard_call_tools_prompt(tmp_path: Path) -> None:
+    provider = FinalOnlyPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["我吃了一顆茶葉蛋"],
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="natural-probe",
+    )
+
+    pass1_prompt = str(provider.calls[0]["system_prompt"])
+    assert "MUST return manager_action='call_tools'" not in pass1_prompt
+    assert report["pass1_mode"] == "natural_tool_selection_probe"
+    assert report["forced_tool_request_contract"] is False
+    assert report["manager_tool_selection_claimed"] is True
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_natural_probe_does_not_add_tool_calls_when_manager_skips(tmp_path: Path) -> None:
+    provider = FinalOnlyPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["我吃了一顆茶葉蛋"],
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="natural-probe",
+    )
+
+    trace = report["tool_loop_traces"][0]
+    assert trace["runtime_tool_router"]["manager_requested_tools"] == []
+    assert trace["read_tool_executions"] == []
+    assert trace["packetizer"]["outputs"] == []
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_natural_probe_does_not_fallback_item_results_from_packets(tmp_path: Path) -> None:
+    provider = FakePhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["我吃了一顆茶葉蛋"],
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="natural-probe",
+    )
+
+    trace = report["tool_loop_traces"][0]
+    assert trace["runner_derived_item_results"] is False
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_smoke_search_alias_packet_has_source_quality_label(tmp_path: Path) -> None:
+    provider = SearchAliasPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["我吃了一顆茶葉蛋"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    packet = report["tool_loop_traces"][0]["packetizer"]["outputs"][0]
+    assert packet["packet_type"] == "SearchCandidatePacket"
+    assert packet["source_quality_label"] == "third_party"
