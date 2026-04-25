@@ -186,6 +186,12 @@ def valid_phase_b_trace_fixture(
             "filtered_tool_plan": filtered_plan,
             "blocked_tools": blocked_tools,
             "block_reasons": block_reasons,
+            "available_read_tools": [
+                "lookup_generic_food",
+                "retrieve_web_food_evidence",
+                "load_taiwan_food_semantics_skill",
+            ],
+            "canonical_tool_catalog_hash": "canonical_tools_hash",
         },
         "read_tool_executions": read_tool_executions,
         "packetizer": {
@@ -356,6 +362,35 @@ def test_provider_timeout_blocks_readiness(tmp_path: Path) -> None:
     assert report["ready_for_phase_b1_implementation"] is False
     assert report["runtime_latency_status"] == "blocker"
     assert any(item["code"] == "provider_timeout" for item in report["latency_blockers"])
+
+
+def test_provider_timeout_does_not_become_wrong_tool_request(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        data["provider_runtime"] = {
+            "configured": True,
+            "blocker": True,
+            "reason": "provider_timeout",
+            "timeout_ms": 180000,
+        }
+        data["tool_loop_traces"] = data["tool_loop_traces"][:1]
+        trace = data["tool_loop_traces"][0]
+        trace["manager_pass_1"]["requested_read_tools"] = []
+        trace["runtime_tool_router"]["requested_read_tools"] = []
+        trace["runtime_tool_router"]["manager_requested_tools"] = []
+        trace["runtime_tool_router"]["allowed_tools"] = []
+        trace["runtime_tool_router"]["filtered_tool_plan"] = []
+        trace["read_tool_executions"] = []
+        trace["packetizer"]["outputs"] = []
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["provider_runtime_attribution"]["tool_selection_status"] == "not_proven"
+    assert report["natural_probe_failure_report"]["failure_family_counts"]["wrong_tool_request"] == 0
 
 
 def test_pass2_mutation_attempt_blocks_readiness(tmp_path: Path) -> None:
@@ -567,6 +602,62 @@ def test_natural_probe_web_only_for_generic_food_fails_tool_selection(tmp_path: 
         "wrong_tools": ["retrieve_web_food_evidence"],
     }
     assert case_report["failure_family"] == "wrong_tool_request"
+
+
+def test_natural_probe_search_alias_is_router_validated_but_selection_still_fails(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][0]
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+        trace["manager_pass_1"]["requested_read_tools"] = ["search"]
+        trace["runtime_tool_router"].update(
+            {
+                "requested_read_tools": ["search"],
+                "manager_requested_tools": ["search"],
+                "allowed_tools": [],
+                "filtered_tool_plan": [],
+                "blocked_tools": ["search"],
+                "block_reasons": [
+                    {
+                        "tool_name": "search",
+                        "reason": "unsupported_read_tool_name",
+                        "supported_tools": [
+                            "lookup_generic_food",
+                            "retrieve_web_food_evidence",
+                            "load_taiwan_food_semantics_skill",
+                        ],
+                        "normalization_attempted": False,
+                    }
+                ],
+                "available_read_tools": [
+                    "lookup_generic_food",
+                    "retrieve_web_food_evidence",
+                    "load_taiwan_food_semantics_skill",
+                ],
+                "canonical_tool_catalog_hash": "canonical_tools_hash",
+            }
+        )
+        trace["read_tool_executions"] = []
+        trace["packetizer"]["outputs"] = []
+        trace["manager_pass_2"]["item_results"] = []
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["router_validation_pass"] is True
+    assert report["natural_tool_selection_pass"] is False
+    case_report = report["natural_probe_failure_report"]["cases"][0]
+    assert case_report["failure_family"] == "wrong_tool_request"
+    assert case_report["unsupported_tool_names"] == ["search"]
+    assert case_report["missing_or_wrong_tools"] == {
+        "missing_required_tools": ["lookup_generic_food"],
+        "wrong_tools": ["search"],
+    }
 
 
 def test_natural_probe_listed_luwei_without_item_level_generic_lookup_fails_selection(tmp_path: Path) -> None:

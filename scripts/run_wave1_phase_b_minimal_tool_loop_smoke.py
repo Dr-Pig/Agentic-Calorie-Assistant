@@ -302,18 +302,38 @@ def _food_names_for_message(message: str) -> list[str]:
 
 
 def _route_tools(*, message: str, requested_tools: list[str]) -> dict[str, Any]:
+    supported_tools = list(AVAILABLE_READ_TOOLS)
+    supported_tool_set = set(supported_tools)
     blocked_tools: list[str] = []
-    block_reasons: list[dict[str, str]] = []
+    block_reasons: list[dict[str, Any]] = []
+    for tool_name in requested_tools:
+        if tool_name not in supported_tool_set:
+            blocked_tools.append(tool_name)
+            block_reasons.append(
+                {
+                    "tool_name": tool_name,
+                    "reason": "unsupported_read_tool_name",
+                    "supported_tools": supported_tools,
+                    "normalization_attempted": False,
+                }
+            )
     if _is_self_selected_basket_without_ingredients(message):
-        blocked_tools = sorted(ESTIMATE_READ_TOOLS)
-        block_reasons.append(
-            {
-                "rule": "self_selected_basket_without_ingredients_blocks_estimate_tools",
-                "detail": "Composition is unknown; ask for ingredients before generic DB or web estimate.",
-            }
-        )
-    allowed_tools = [tool for tool in requested_tools if tool not in set(blocked_tools)]
+        for tool_name in sorted(ESTIMATE_READ_TOOLS):
+            if tool_name not in blocked_tools:
+                blocked_tools.append(tool_name)
+            block_reasons.append(
+                {
+                    "tool_name": tool_name,
+                    "reason": "self_selected_basket_without_ingredients_blocks_estimate_tools",
+                    "rule": "self_selected_basket_without_ingredients_blocks_estimate_tools",
+                    "detail": "Composition is unknown; ask for ingredients before generic DB or web estimate.",
+                }
+            )
+    blocked_tool_set = set(blocked_tools)
+    allowed_tools = [tool for tool in requested_tools if tool in supported_tool_set and tool not in blocked_tool_set]
     return {
+        "available_read_tools": supported_tools,
+        "canonical_tool_catalog_hash": _hash(supported_tools),
         "requested_read_tools": list(requested_tools),
         "manager_requested_tools": list(requested_tools),
         "allowed_tools": allowed_tools,
@@ -388,6 +408,8 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
         "filtered_tool_plan": [],
         "blocked_tools": [],
         "block_reasons": [],
+        "available_read_tools": list(AVAILABLE_READ_TOOLS),
+        "canonical_tool_catalog_hash": _hash(list(AVAILABLE_READ_TOOLS)),
     }
     read_tool_executions: list[dict[str, Any]] = []
     packetizer_outputs: list[dict[str, Any]] = []
