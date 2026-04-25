@@ -646,7 +646,11 @@ def _natural_failure_family(
     return "none"
 
 
-def _build_natural_probe_failure_report(traces: list[dict[str, Any]]) -> dict[str, Any]:
+def _build_natural_probe_failure_report(
+    traces: list[dict[str, Any]],
+    *,
+    provider_state: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     cases: list[dict[str, Any]] = []
     counts: dict[str, int] = {
         "manager_no_tool_request": 0,
@@ -705,7 +709,43 @@ def _build_natural_probe_failure_report(traces: list[dict[str, Any]]) -> dict[st
                 "manager_blocking_semantics": manager_blocking_semantics,
             }
         )
-    return {"cases": cases, "failure_family_counts": counts}
+    provider_state = provider_state or {}
+    return {
+        "cases": cases,
+        "failure_family_counts": counts,
+        "provider_blocked_before_cases": bool(provider_state.get("provider_blocked_before_cases")),
+        "provider_blocked_before_all_cases_completed": bool(
+            provider_state.get("provider_blocked_before_all_cases_completed")
+        ),
+        "completed_trace_count": provider_state.get("completed_trace_count", len(traces)),
+        "expected_case_count": provider_state.get("expected_case_count", _expected_case_count()),
+        "provider_runtime_reason": provider_state.get("provider_runtime_reason"),
+    }
+
+
+def _completed_trace_count(report: dict[str, Any], traces: list[dict[str, Any]]) -> int:
+    runtime_latency = report.get("runtime_latency") if isinstance(report.get("runtime_latency"), dict) else {}
+    raw_count = runtime_latency.get("completed_trace_count") if isinstance(runtime_latency, dict) else None
+    return int(raw_count) if isinstance(raw_count, int) else len(traces)
+
+
+def _expected_case_count() -> int:
+    return len(REQUIRED_CORE_SMOKE_CASES)
+
+
+def _provider_blocker_state(report: dict[str, Any], traces: list[dict[str, Any]]) -> dict[str, Any]:
+    provider_runtime = report.get("provider_runtime") if isinstance(report.get("provider_runtime"), dict) else {}
+    completed_count = _completed_trace_count(report, traces)
+    expected_count = _expected_case_count()
+    provider_blocker = bool(provider_runtime.get("blocker"))
+    return {
+        "provider_blocker": provider_blocker,
+        "provider_runtime_reason": provider_runtime.get("reason"),
+        "completed_trace_count": completed_count,
+        "expected_case_count": expected_count,
+        "provider_blocked_before_cases": provider_blocker and completed_count == 0,
+        "provider_blocked_before_all_cases_completed": provider_blocker and completed_count < expected_count,
+    }
 
 
 def _check_mode_verdicts(
@@ -759,6 +799,28 @@ def _check_mode_verdicts(
     if not manager_tool_selection_claimed:
         _quality_add(quality_blockers, "natural_probe_missing_tool_selection_claim", "Natural probe must explicitly claim it is evaluating Manager tool selection.")
         mode_failures.append("natural_probe_missing_tool_selection_claim")
+
+    provider_state = _provider_blocker_state(report, traces)
+    if provider_state["provider_blocked_before_cases"]:
+        return {
+            "pass1_mode": pass1_mode,
+            "forced_loop_scaffold_pass": "not_applicable",
+            "natural_tool_selection_pass": "not_proven",
+            "natural_tool_loop_completion_pass": False,
+            "mode_failures": mode_failures,
+            "selection_failures": [
+                {
+                    "reason": "provider_blocked_before_cases",
+                    "provider_runtime_reason": provider_state["provider_runtime_reason"],
+                }
+            ],
+            "loop_failures": [
+                {
+                    "reason": "provider_blocked_before_cases",
+                    "provider_runtime_reason": provider_state["provider_runtime_reason"],
+                }
+            ],
+        }
 
     for trace in traces:
         input_message = str(trace.get("input_message") or "")
@@ -814,11 +876,25 @@ def _check_mode_verdicts(
             "Natural-probe item_results must come from Manager Pass 2, not runner packet fallback.",
         )
 
+    natural_selection_pass: bool | str = not mode_failures and not selection_failures
+    natural_loop_completion_pass = not mode_failures and not loop_failures
+    if provider_state["provider_blocked_before_all_cases_completed"]:
+        natural_selection_pass = "not_proven"
+        natural_loop_completion_pass = False
+        loop_failures.append(
+            {
+                "reason": "provider_blocked_before_all_cases_completed",
+                "completed_trace_count": provider_state["completed_trace_count"],
+                "expected_case_count": provider_state["expected_case_count"],
+                "provider_runtime_reason": provider_state["provider_runtime_reason"],
+            }
+        )
+
     return {
         "pass1_mode": pass1_mode,
         "forced_loop_scaffold_pass": "not_applicable",
-        "natural_tool_selection_pass": not mode_failures and not selection_failures,
-        "natural_tool_loop_completion_pass": not mode_failures and not loop_failures,
+        "natural_tool_selection_pass": natural_selection_pass,
+        "natural_tool_loop_completion_pass": natural_loop_completion_pass,
         "mode_failures": mode_failures,
         "selection_failures": selection_failures,
         "loop_failures": loop_failures,
@@ -1013,9 +1089,16 @@ def verify_phase_b_readiness(
     latency_warnings: list[dict[str, str]] = []
     warnings: list[dict[str, str]] = []
     traces = [dict(item) for item in phase_b_report.get("tool_loop_traces") or []]
+    provider_state = _provider_blocker_state(phase_b_report, traces)
 
     if phase_b_report.get("mode") != "hybrid_canary":
         _add(blockers, "phase_b_mode_not_hybrid_canary", "Phase B-1 readiness requires hybrid_canary mode.")
+    if provider_state["provider_blocker"]:
+        _add(
+            blockers,
+            "provider_runtime_blocker",
+            "Provider runtime blocker prevents B-1 readiness from proving tool-loop quality.",
+        )
     if not traces:
         _add(blockers, "tool_loop_trace_missing", "Phase B-1 readiness requires ToolLoopTrace artifacts.")
 
@@ -1050,7 +1133,7 @@ def verify_phase_b_readiness(
     path_level_quality = [_check_path_level_quality(trace, quality_blockers) for trace in traces]
     mode_verdicts = _check_mode_verdicts(phase_b_report, traces, quality_blockers)
     natural_probe_failure_report = (
-        _build_natural_probe_failure_report(traces)
+        _build_natural_probe_failure_report(traces, provider_state=provider_state)
         if mode_verdicts["pass1_mode"] == NATURAL_MODE
         else {"cases": [], "failure_family_counts": {}}
     )
@@ -1062,13 +1145,19 @@ def verify_phase_b_readiness(
         quality_pass = forced_loop_scaffold_pass
     else:
         forced_loop_scaffold_pass = "not_applicable"
-        natural_tool_selection_pass = bool(mode_verdicts["natural_tool_selection_pass"])
+        raw_selection_pass = mode_verdicts["natural_tool_selection_pass"]
+        natural_tool_selection_pass = "not_proven" if raw_selection_pass == "not_proven" else bool(raw_selection_pass)
         natural_tool_loop_completion_pass = bool(mode_verdicts["natural_tool_loop_completion_pass"])
-        quality_pass = scaffold_pass and natural_tool_selection_pass and natural_tool_loop_completion_pass and not quality_blockers
+        quality_pass = (
+            scaffold_pass
+            and natural_tool_selection_pass is True
+            and natural_tool_loop_completion_pass
+            and not quality_blockers
+        )
     provider_runtime = phase_b_report.get("provider_runtime") if isinstance(phase_b_report.get("provider_runtime"), dict) else {}
     provider_runtime_attribution = {
         "reason": provider_runtime.get("reason"),
-        "tool_selection_status": "not_proven" if provider_runtime.get("reason") == "provider_timeout" else "evaluated",
+        "tool_selection_status": "not_proven" if provider_state["provider_blocker"] else "evaluated",
         "loop_completion_status": "blocked" if provider_runtime.get("blocker") else "evaluated",
     }
     all_blockers = blockers + quality_blockers + latency_blockers
