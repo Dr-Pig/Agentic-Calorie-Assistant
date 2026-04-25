@@ -76,3 +76,29 @@ jobs:
             tests/test_text_integrity.py \
             tests/test_workflow_routing_decision.py \
             -q
+
+  wave1-phase-a-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Phase A contracts (if registry exists)
+        shell: bash
+        run: |
+          if [ -f "docs/quality/AUDIT_RUNNER_REGISTRY.json" ]; then
+            python -m pytest tests/test_run_suite_wave.py -q
+          else
+            echo "Skipping Wave 1 Phase A contracts because AUDIT_RUNNER_REGISTRY.json is missing"
+          fi

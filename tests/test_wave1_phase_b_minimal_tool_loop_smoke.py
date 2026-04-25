@@ -283,7 +283,7 @@ async def test_phase_b1_runtime_smoke_records_positive_latency_for_slow_provider
 
     report = await run_phase_b_minimal_tool_loop_smoke(
         provider=provider,
-        smoke_cases=["??鈭?憿??"],
+        smoke_cases=["我吃了一顆茶葉蛋"],
         output_dir=tmp_path,
         write_latest=False,
     )
@@ -300,7 +300,7 @@ async def test_phase_b1_runtime_smoke_provider_timeout_is_artifactized(tmp_path:
 
     report = await run_phase_b_minimal_tool_loop_smoke(
         provider=provider,
-        smoke_cases=["??鈭?憿??"],
+        smoke_cases=["我吃了一顆茶葉蛋"],
         output_dir=tmp_path,
         write_latest=False,
         provider_timeout_ms=1,
