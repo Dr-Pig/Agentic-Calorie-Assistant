@@ -764,19 +764,33 @@ def _expected_case_count() -> int:
 
 def _provider_blocker_state(report: dict[str, Any], traces: list[dict[str, Any]]) -> dict[str, Any]:
     provider_runtime = report.get("provider_runtime") if isinstance(report.get("provider_runtime"), dict) else {}
+    provider_trace_blocker = report.get("provider_trace_blocker") if isinstance(report.get("provider_trace_blocker"), dict) else {}
     runtime_blocker = report.get("runtime_blocker") if isinstance(report.get("runtime_blocker"), dict) else {}
     completed_count = _completed_trace_count(report, traces)
     expected_count = _expected_case_count()
     provider_blocker = bool(provider_runtime.get("blocker"))
+    provider_trace_blocker_active = bool(provider_trace_blocker.get("blocker"))
     runtime_blocker_active = bool(runtime_blocker.get("blocker"))
-    blocker_reason = runtime_blocker.get("reason") or provider_runtime.get("reason")
-    blocker_kind = "runtime_blocker" if runtime_blocker_active else "provider_runtime" if provider_blocker else None
-    any_blocker = provider_blocker or runtime_blocker_active
+    blocker_reason = runtime_blocker.get("reason") or provider_trace_blocker.get("reason") or provider_runtime.get("reason")
+    blocker_kind = (
+        "runtime_blocker"
+        if runtime_blocker_active
+        else "provider_trace_blocker"
+        if provider_trace_blocker_active
+        else "provider_runtime"
+        if provider_blocker
+        else None
+    )
+    any_blocker = provider_blocker or provider_trace_blocker_active or runtime_blocker_active
     return {
         "provider_blocker": provider_blocker,
+        "provider_trace_blocker": provider_trace_blocker_active,
         "runtime_blocker": runtime_blocker_active,
         "provider_runtime_reason": blocker_reason,
         "blocker_kind": blocker_kind,
+        "failing_component": runtime_blocker.get("failing_component")
+        or provider_trace_blocker.get("failing_component")
+        or provider_runtime.get("failing_component"),
         "completed_trace_count": completed_count,
         "expected_case_count": expected_count,
         "provider_blocked_before_cases": any_blocker and completed_count == 0,
@@ -1135,6 +1149,12 @@ def verify_phase_b_readiness(
             "provider_runtime_blocker",
             "Provider runtime blocker prevents B-1 readiness from proving tool-loop quality.",
         )
+    if provider_state["provider_trace_blocker"]:
+        _add(
+            blockers,
+            "provider_trace_shape_error",
+            "Provider trace shape blocker prevents B-1 readiness from proving tool-loop quality.",
+        )
     if provider_state["runtime_blocker"]:
         _add(
             blockers,
@@ -1198,10 +1218,12 @@ def verify_phase_b_readiness(
             and not quality_blockers
         )
     provider_runtime = phase_b_report.get("provider_runtime") if isinstance(phase_b_report.get("provider_runtime"), dict) else {}
+    provider_trace_blocker = phase_b_report.get("provider_trace_blocker") if isinstance(phase_b_report.get("provider_trace_blocker"), dict) else {}
     runtime_blocker = phase_b_report.get("runtime_blocker") if isinstance(phase_b_report.get("runtime_blocker"), dict) else {}
     provider_runtime_attribution = {
-        "reason": runtime_blocker.get("reason") or provider_runtime.get("reason"),
+        "reason": runtime_blocker.get("reason") or provider_trace_blocker.get("reason") or provider_runtime.get("reason"),
         "blocker_kind": provider_state.get("blocker_kind"),
+        "failing_component": provider_state.get("failing_component"),
         "tool_selection_status": "not_proven" if provider_state["provider_blocked_before_all_cases_completed"] else "evaluated",
         "loop_completion_status": "blocked" if provider_state["provider_blocked_before_all_cases_completed"] else "evaluated",
     }
@@ -1232,6 +1254,7 @@ def verify_phase_b_readiness(
         "runtime_latency_status": runtime_latency["status"],
         "quality_pass": quality_pass,
         "provider_runtime_attribution": provider_runtime_attribution,
+        "provider_trace_blocker": provider_trace_blocker,
         "runtime_blocker": runtime_blocker,
         "ready_for_phase_b1_implementation": ready,
         "blockers": all_blockers,

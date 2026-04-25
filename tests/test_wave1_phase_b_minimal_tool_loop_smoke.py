@@ -158,6 +158,33 @@ class WrappedReadTimeoutPhaseBProvider(FakePhaseBProvider):
         )
 
 
+class TraceAsListPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], list[str]]:
+        self.calls.append(dict(kwargs))
+        return {"manager_action": "call_tools", "tool_calls": []}, ["bad-trace"]
+
+
+class RequestPayloadAsStringPhaseBProvider(FakePhaseBProvider):
+    def _trace(self, *, call_index: int, kwargs: dict[str, object]) -> dict[str, object]:
+        trace = dict(super()._trace(call_index=call_index, kwargs=kwargs))
+        trace["request_payload"] = "bad-request-payload"
+        return trace
+
+
+class TransportAttemptsAsStringPhaseBProvider(FakePhaseBProvider):
+    def _trace(self, *, call_index: int, kwargs: dict[str, object]) -> dict[str, object]:
+        trace = dict(super()._trace(call_index=call_index, kwargs=kwargs))
+        trace["transport_attempts"] = "bad-transport-attempts"
+        return trace
+
+
+class ParseAttemptsAsStringPhaseBProvider(FakePhaseBProvider):
+    def _trace(self, *, call_index: int, kwargs: dict[str, object]) -> dict[str, object]:
+        trace = dict(super()._trace(call_index=call_index, kwargs=kwargs))
+        trace["parse_attempts"] = "bad-parse-attempts"
+        return trace
+
+
 class FinalOnlyPhaseBProvider(FakePhaseBProvider):
     async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
         self.calls.append(dict(kwargs))
@@ -410,6 +437,45 @@ async def test_phase_b1_runtime_smoke_non_timeout_error_is_not_labeled_timeout(t
     assert runtime["reason"] == "provider_runtime_error"
     assert runtime["error_type"] == "ValueError"
     assert runtime["timeout_layer"] is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("provider_factory", "trace_field", "observed_type"),
+    (
+        (TraceAsListPhaseBProvider, "trace", "array"),
+        (RequestPayloadAsStringPhaseBProvider, "request_payload", "string"),
+        (TransportAttemptsAsStringPhaseBProvider, "transport_attempts", "string"),
+        (ParseAttemptsAsStringPhaseBProvider, "parse_attempts", "string"),
+    ),
+)
+async def test_phase_b1_runtime_smoke_provider_trace_shape_error_emits_provider_trace_blocker(
+    tmp_path: Path,
+    provider_factory: type[FakePhaseBProvider],
+    trace_field: str,
+    observed_type: str,
+) -> None:
+    provider = provider_factory()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["??鈭?憿??"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    assert report.get("provider_runtime") is None
+    blocker = report["provider_trace_blocker"]
+    assert blocker["blocker"] is True
+    assert blocker["reason"] == "provider_trace_shape_error"
+    assert blocker["trace_field"] == trace_field
+    assert blocker["observed_type"] == observed_type
+    assert blocker["failing_component"] == "normalize_provider_trace"
+    assert blocker["completed_trace_count"] == 0
+    assert blocker["expected_case_count"] == 1
+    assert isinstance(blocker["value_excerpt"], str)
+    assert isinstance(blocker["value_truncated"], bool)
+    assert report["tool_loop_traces"] == []
 
 
 @pytest.mark.asyncio

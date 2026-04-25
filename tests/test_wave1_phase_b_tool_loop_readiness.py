@@ -501,6 +501,61 @@ def test_natural_zero_trace_runtime_blocker_is_not_proven_not_manager_failure(tm
     assert failure_report["failure_family_counts"]["pass2_no_item_results"] == 0
 
 
+def test_natural_zero_trace_provider_trace_blocker_is_not_proven_not_manager_failure(tmp_path: Path) -> None:
+    phase_b = _write_json(
+        tmp_path / "natural_provider_trace_blocker.json",
+        {
+            "phase": "B-1",
+            "provider": "builderspace",
+            "manager_model": "deepseek",
+            "mode": "hybrid_canary",
+            "pass1_mode": "natural_tool_selection_probe",
+            "forced_tool_request_contract": False,
+            "manager_tool_selection_claimed": True,
+            "natural_tool_selection_pass": False,
+            "provider_trace_blocker": {
+                "blocker": True,
+                "reason": "provider_trace_shape_error",
+                "trace_field": "request_payload",
+                "observed_type": "array",
+                "value_excerpt": "[]",
+                "value_truncated": False,
+                "stage": None,
+                "failing_component": "normalize_provider_trace",
+                "completed_trace_count": 0,
+                "expected_case_count": len(CORE_CASES),
+            },
+            "runtime_latency": {
+                "latency_budget_type": "b1_full_smoke_reporting_target",
+                "not_user_runtime_budget": True,
+                "full_smoke_target_ms": 180000,
+                "total_latency_ms": 15760,
+                "trace_count": 0,
+                "completed_trace_count": 0,
+                "mode": "natural_tool_selection_probe",
+            },
+            "core_smoke_cases_run": CORE_CASES,
+            "tool_loop_traces": [],
+        },
+    )
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["scaffold_pass"] is False
+    assert report["quality_pass"] is False
+    assert report["natural_tool_selection_pass"] == "not_proven"
+    assert report["natural_tool_loop_completion_pass"] is False
+    assert report["provider_runtime_attribution"]["blocker_kind"] == "provider_trace_blocker"
+    assert report["provider_runtime_attribution"]["tool_selection_status"] == "not_proven"
+    assert report["provider_runtime_attribution"]["failing_component"] == "normalize_provider_trace"
+    failure_report = report["natural_probe_failure_report"]
+    assert failure_report["provider_blocked_before_cases"] is True
+    assert failure_report["provider_runtime_reason"] == "provider_trace_shape_error"
+    assert failure_report["failure_family_counts"]["manager_no_tool_request"] == 0
+    assert failure_report["failure_family_counts"]["wrong_tool_request"] == 0
+    assert failure_report["failure_family_counts"]["pass2_no_item_results"] == 0
+
+
 def test_forced_zero_trace_provider_error_fails_forced_scaffold(tmp_path: Path) -> None:
     phase_b = _write_json(
         tmp_path / "forced_provider_error.json",
@@ -585,6 +640,53 @@ def test_forced_zero_trace_runtime_blocker_fails_forced_scaffold(tmp_path: Path)
     assert report["natural_tool_selection_pass"] == "not_applicable"
 
 
+def test_forced_zero_trace_provider_trace_blocker_fails_forced_scaffold(tmp_path: Path) -> None:
+    phase_b = _write_json(
+        tmp_path / "forced_provider_trace_blocker.json",
+        {
+            "phase": "B-1",
+            "provider": "builderspace",
+            "manager_model": "deepseek",
+            "mode": "hybrid_canary",
+            "pass1_mode": "forced_tool_request_smoke",
+            "forced_tool_request_contract": True,
+            "manager_tool_selection_claimed": False,
+            "natural_tool_selection_pass": "not_applicable",
+            "provider_trace_blocker": {
+                "blocker": True,
+                "reason": "provider_trace_shape_error",
+                "trace_field": "trace",
+                "observed_type": "array",
+                "value_excerpt": "[\"bad-trace\"]",
+                "value_truncated": False,
+                "stage": None,
+                "failing_component": "normalize_provider_trace",
+                "completed_trace_count": 0,
+                "expected_case_count": len(CORE_CASES),
+            },
+            "runtime_latency": {
+                "latency_budget_type": "b1_full_smoke_reporting_target",
+                "not_user_runtime_budget": True,
+                "full_smoke_target_ms": 180000,
+                "total_latency_ms": 15760,
+                "trace_count": 0,
+                "completed_trace_count": 0,
+                "mode": "forced_tool_request_smoke",
+            },
+            "core_smoke_cases_run": CORE_CASES,
+            "tool_loop_traces": [],
+        },
+    )
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["scaffold_pass"] is False
+    assert report["quality_pass"] is False
+    assert report["forced_loop_scaffold_pass"] is False
+    assert report["provider_runtime_attribution"]["blocker_kind"] == "provider_trace_blocker"
+    assert report["provider_runtime_attribution"]["failing_component"] == "normalize_provider_trace"
+
+
 def test_partial_trace_provider_error_keeps_case_report_but_blocks_global_pass(tmp_path: Path) -> None:
     phase_b = valid_phase_b_report_fixture(tmp_path)
     data = json.loads(phase_b.read_text(encoding="utf-8"))
@@ -651,6 +753,49 @@ def test_partial_trace_runtime_blocker_keeps_case_report_but_blocks_global_pass(
     failure_report = report["natural_probe_failure_report"]
     assert failure_report["provider_blocked_before_all_cases_completed"] is True
     assert failure_report["completed_trace_count"] == 2
+    assert len(failure_report["cases"]) == 2
+
+
+def test_partial_trace_provider_trace_blocker_keeps_case_report_but_blocks_global_pass(tmp_path: Path) -> None:
+    phase_b = valid_phase_b_report_fixture(tmp_path)
+    data = json.loads(phase_b.read_text(encoding="utf-8"))
+    data["pass1_mode"] = "natural_tool_selection_probe"
+    data["forced_tool_request_contract"] = False
+    data["manager_tool_selection_claimed"] = True
+    data["provider_trace_blocker"] = {
+        "blocker": True,
+        "reason": "provider_trace_shape_error",
+        "trace_field": "request_payload",
+        "observed_type": "string",
+        "value_excerpt": "\"bad-request-payload\"",
+        "value_truncated": False,
+        "stage": None,
+        "failing_component": "normalize_provider_trace",
+        "completed_trace_count": 2,
+        "expected_case_count": len(CORE_CASES),
+    }
+    data["tool_loop_traces"] = data["tool_loop_traces"][:2]
+    data["core_smoke_cases_run"] = CORE_CASES[:2]
+    data["runtime_latency"]["mode"] = "natural_tool_selection_probe"
+    data["runtime_latency"]["trace_count"] = 2
+    data["runtime_latency"]["completed_trace_count"] = 2
+    for trace in data["tool_loop_traces"]:
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+    phase_b.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["quality_pass"] is False
+    assert report["natural_tool_selection_pass"] == "not_proven"
+    assert report["natural_tool_loop_completion_pass"] is False
+    assert report["provider_runtime_attribution"]["blocker_kind"] == "provider_trace_blocker"
+    assert report["provider_runtime_attribution"]["loop_completion_status"] == "blocked"
+    failure_report = report["natural_probe_failure_report"]
+    assert failure_report["provider_blocked_before_all_cases_completed"] is True
+    assert failure_report["completed_trace_count"] == 2
+    assert failure_report["expected_case_count"] == len(CORE_CASES)
     assert len(failure_report["cases"]) == 2
 
 
