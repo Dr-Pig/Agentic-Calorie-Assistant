@@ -4,7 +4,6 @@ import os
 
 from ...providers.builderspace_adapter import BuilderSpaceAdapter
 from ...providers.deepseek_adapter import DeepSeekAdapter
-from ...providers.gemini_adapter import GeminiAdapter
 from ...nutrition.infrastructure.web_search.tavily_adapter import TavilyAdapter
 
 
@@ -13,12 +12,12 @@ def _create_provider(
     provider_env: str,
     default_provider: str,
     role_label: str,
-) -> BuilderSpaceAdapter | DeepSeekAdapter | GeminiAdapter:
+) -> BuilderSpaceAdapter | DeepSeekAdapter:
     provider_name = os.getenv(provider_env, default_provider).strip().lower()
     if provider_name == "deepseek":
         return DeepSeekAdapter()
     if provider_name == "gemini":
-        return GeminiAdapter()
+        raise RuntimeError("Gemini provider is not supported in V2 single-manager runtime yet.")
     return BuilderSpaceAdapter(role_label=role_label)
 
 
