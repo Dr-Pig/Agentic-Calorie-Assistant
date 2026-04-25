@@ -383,7 +383,25 @@ async def test_phase_b1_natural_probe_does_not_inject_hard_call_tools_prompt(tmp
     )
 
     pass1_prompt = str(provider.calls[0]["system_prompt"])
+    trace = report["tool_loop_traces"][0]
+    constraints = provider.calls[0]["user_payload"]["constraints"]
+    pass1_provider_trace = trace["manager_pass_1"]
+
+    assert pass1_prompt.startswith("Phase B-1 natural-probe tool selection guidance")
+    assert "Phase B-1 natural-probe tool selection guidance" in pass1_prompt
+    assert "evidence-needed scenarios" in pass1_prompt
+    assert "manager_action='call_tools'" in pass1_prompt
+    assert "tool_calls" in pass1_prompt
+    assert "operations=[]" in pass1_prompt
+    assert "answer_contract={}" in pass1_prompt
+    assert "lookup_generic_food" in pass1_prompt
+    assert "Do not use generic aliases such as search or web_search" in pass1_prompt
     assert "MUST return manager_action='call_tools'" not in pass1_prompt
+    assert "Do not choose manager_action='final'" not in pass1_prompt
+    assert "every food_logging or nutrition_info_query case must call at least one read tool" not in pass1_prompt
+    assert constraints["phase_b1_task_payload_id"] == "phase_b1_pass_1_natural_tool_selection_guidance_v1"
+    assert pass1_provider_trace["phase_b1_task_payload_id"] == "phase_b1_pass_1_natural_tool_selection_guidance_v1"
+    assert pass1_provider_trace["phase_b1_task_payload_hash"]
     assert report["pass1_mode"] == "natural_tool_selection_probe"
     assert report["forced_tool_request_contract"] is False
     assert report["manager_tool_selection_claimed"] is True
