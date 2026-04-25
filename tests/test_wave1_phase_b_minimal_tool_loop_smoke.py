@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 import pytest
@@ -156,6 +157,18 @@ class SearchAliasPhaseBProvider(FakePhaseBProvider):
         return await super().complete_with_trace(**kwargs)
 
 
+class SlowPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        await asyncio.sleep(0.01)
+        return await super().complete_with_trace(**kwargs)
+
+
+class HangingPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        await asyncio.sleep(0.05)
+        return await super().complete_with_trace(**kwargs)
+
+
 @pytest.mark.asyncio
 async def test_phase_b1_runtime_smoke_calls_provider_exactly_twice_and_emits_trace(tmp_path: Path) -> None:
     provider = FakePhaseBProvider()
@@ -183,6 +196,12 @@ async def test_phase_b1_runtime_smoke_calls_provider_exactly_twice_and_emits_tra
     assert trace["manager_pass_2"]["manager_role"] == "pass_2_synthesis"
     assert trace["manager_pass_1"]["prompt_hash"]
     assert trace["manager_pass_2"]["prompt_hash"]
+    assert trace["manager_pass_1"]["latency_ms"] >= 0
+    assert trace["manager_pass_2"]["latency_ms"] >= 0
+    assert trace["case_latency_ms"] >= trace["manager_pass_1"]["latency_ms"] + trace["manager_pass_2"]["latency_ms"]
+    assert report["runtime_latency"]["latency_budget_type"] == "b1_full_smoke_reporting_target"
+    assert report["runtime_latency"]["not_user_runtime_budget"] is True
+    assert report["runtime_latency"]["total_latency_ms"] >= trace["case_latency_ms"]
     assert provider.calls[1]["user_payload"]["tool_results"][0]["packetizer_outputs"]
     assert "raw_stub_output" not in provider.calls[1]["user_payload"]["tool_results"][0]
     assert trace["packetizer"]["outputs"][0]["fixture_id"]
@@ -253,8 +272,44 @@ async def test_phase_b1_runtime_smoke_provider_error_emits_diagnostic_artifact(t
     )
 
     assert report["provider_runtime"]["blocker"] is True
-    assert report["provider_runtime"]["reason"] == "provider_runtime_error"
+    assert report["provider_runtime"]["reason"] == "provider_timeout"
     assert report["provider_runtime"]["error_type"] == "TimeoutError"
+    assert report["tool_loop_traces"] == []
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_runtime_smoke_records_positive_latency_for_slow_provider(tmp_path: Path) -> None:
+    provider = SlowPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["??鈭?憿??"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    trace = report["tool_loop_traces"][0]
+    assert trace["manager_pass_1"]["latency_ms"] > 0
+    assert trace["manager_pass_2"]["latency_ms"] > 0
+    assert report["runtime_latency"]["total_latency_ms"] > 0
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_runtime_smoke_provider_timeout_is_artifactized(tmp_path: Path) -> None:
+    provider = HangingPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["??鈭?憿??"],
+        output_dir=tmp_path,
+        write_latest=False,
+        provider_timeout_ms=1,
+    )
+
+    assert report["provider_runtime"]["blocker"] is True
+    assert report["provider_runtime"]["reason"] == "provider_timeout"
+    assert report["provider_runtime"]["timeout_ms"] == 1
+    assert report["runtime_latency"]["completed_trace_count"] == 0
     assert report["tool_loop_traces"] == []
 
 

@@ -54,6 +54,18 @@ NO_MUTATION_QUERY_CASES = {
 EXPECTED_GENERIC_LOOKUP_CASES = LOGGED_ESTIMABLE_CASES | NO_MUTATION_QUERY_CASES
 FORCED_MODE = "forced_tool_request_smoke"
 NATURAL_MODE = "natural_tool_selection_probe"
+FULL_SMOKE_LATENCY_TARGET_MS = 180_000
+RUNTIME_LATENCY_REQUIRED_KEYS = (
+    "latency_budget_type",
+    "not_user_runtime_budget",
+    "full_smoke_target_ms",
+    "total_latency_ms",
+    "trace_count",
+    "completed_trace_count",
+    "mode",
+)
+CASE_LATENCY_REQUIRED_KEYS = ("case_started_at_utc", "case_ended_at_utc", "case_latency_ms")
+PASS_LATENCY_REQUIRED_KEYS = ("started_at_utc", "ended_at_utc", "latency_ms")
 LEGACY_PHASE_B_TERMS = (
     "thread_result",
     "target_thread_action",
@@ -714,6 +726,87 @@ def _check_core_smoke_cases(report: dict[str, Any], blockers: list[dict[str, str
     return {"required": list(REQUIRED_CORE_SMOKE_CASES), "missing": missing, "passed": not missing}
 
 
+def _missing_keys(payload: Any, keys: tuple[str, ...]) -> list[str]:
+    if not isinstance(payload, dict):
+        return list(keys)
+    return [key for key in keys if key not in payload or payload.get(key) in (None, "")]
+
+
+def _check_runtime_latency(
+    report: dict[str, Any],
+    traces: list[dict[str, Any]],
+    latency_blockers: list[dict[str, str]],
+    latency_warnings: list[dict[str, str]],
+) -> dict[str, Any]:
+    provider_runtime = report.get("provider_runtime") if isinstance(report.get("provider_runtime"), dict) else {}
+    runtime_latency = report.get("runtime_latency") if isinstance(report.get("runtime_latency"), dict) else {}
+    missing: dict[str, Any] = {}
+
+    if provider_runtime.get("reason") == "provider_timeout":
+        _add(
+            latency_blockers,
+            "provider_timeout",
+            "Provider timeout must block readiness and be represented in provider_runtime.",
+        )
+
+    top_missing = _missing_keys(runtime_latency, RUNTIME_LATENCY_REQUIRED_KEYS)
+    if top_missing:
+        missing["runtime_latency"] = top_missing
+
+    trace_missing: list[dict[str, Any]] = []
+    for trace in traces:
+        case_missing = _missing_keys(trace, CASE_LATENCY_REQUIRED_KEYS)
+        pass_missing: dict[str, list[str]] = {}
+        for pass_name in ("manager_pass_1", "manager_pass_2"):
+            payload = trace.get(pass_name) if isinstance(trace.get(pass_name), dict) else {}
+            missing_pass_keys = _missing_keys(payload, PASS_LATENCY_REQUIRED_KEYS)
+            if missing_pass_keys:
+                pass_missing[pass_name] = missing_pass_keys
+        if case_missing or pass_missing:
+            trace_missing.append(
+                {
+                    "case_id": trace.get("case_id"),
+                    "case_missing": case_missing,
+                    "pass_missing": pass_missing,
+                }
+            )
+    if trace_missing:
+        missing["tool_loop_traces"] = trace_missing
+
+    if missing:
+        _add(
+            latency_blockers,
+            "runtime_latency_trace_missing",
+            "B-1 latency gate requires total, case-level, and pass-level latency fields.",
+        )
+
+    total_latency_ms = runtime_latency.get("total_latency_ms") if isinstance(runtime_latency, dict) else None
+    target_ms = runtime_latency.get("full_smoke_target_ms", FULL_SMOKE_LATENCY_TARGET_MS) if isinstance(runtime_latency, dict) else FULL_SMOKE_LATENCY_TARGET_MS
+    over_target = (
+        isinstance(total_latency_ms, (int, float))
+        and isinstance(target_ms, (int, float))
+        and total_latency_ms > target_ms
+    )
+    if over_target and not missing and provider_runtime.get("reason") != "provider_timeout":
+        _warn(
+            latency_warnings,
+            "runtime_latency_over_target",
+            "B-1 full smoke latency exceeded reporting target; this is a warning, not a truth-boundary failure.",
+        )
+
+    status = "blocker" if latency_blockers else "warning" if latency_warnings else "pass"
+    return {
+        "status": status,
+        "pass": status == "pass",
+        "target_ms": target_ms,
+        "total_latency_ms": total_latency_ms,
+        "latency_budget_type": runtime_latency.get("latency_budget_type") if isinstance(runtime_latency, dict) else None,
+        "not_user_runtime_budget": runtime_latency.get("not_user_runtime_budget") if isinstance(runtime_latency, dict) else None,
+        "missing": missing,
+        "over_target": over_target,
+    }
+
+
 def verify_phase_b_readiness(
     *,
     phase_b_report_path: Path,
@@ -722,6 +815,8 @@ def verify_phase_b_readiness(
     phase_b_report = _read_json(phase_b_report_path)
     blockers: list[dict[str, str]] = []
     quality_blockers: list[dict[str, str]] = []
+    latency_blockers: list[dict[str, str]] = []
+    latency_warnings: list[dict[str, str]] = []
     warnings: list[dict[str, str]] = []
     traces = [dict(item) for item in phase_b_report.get("tool_loop_traces") or []]
 
@@ -731,6 +826,7 @@ def verify_phase_b_readiness(
         _add(blockers, "tool_loop_trace_missing", "Phase B-1 readiness requires ToolLoopTrace artifacts.")
 
     core_smoke_cases = _check_core_smoke_cases(phase_b_report, blockers)
+    runtime_latency = _check_runtime_latency(phase_b_report, traces, latency_blockers, latency_warnings)
     trace_checks: list[dict[str, Any]] = []
     for trace in traces:
         trace_blockers_before = len(blockers)
@@ -766,7 +862,7 @@ def verify_phase_b_readiness(
         natural_tool_selection_pass = bool(mode_verdicts["natural_tool_selection_pass"])
         natural_tool_loop_completion_pass = bool(mode_verdicts["natural_tool_loop_completion_pass"])
         quality_pass = scaffold_pass and natural_tool_selection_pass and natural_tool_loop_completion_pass and not quality_blockers
-    all_blockers = blockers + quality_blockers
+    all_blockers = blockers + quality_blockers + latency_blockers
     ready = not all_blockers
     blocker_codes = {item["code"] for item in all_blockers}
     if ready:
@@ -788,12 +884,17 @@ def verify_phase_b_readiness(
         "forced_loop_scaffold_pass": forced_loop_scaffold_pass,
         "natural_tool_selection_pass": natural_tool_selection_pass,
         "natural_tool_loop_completion_pass": natural_tool_loop_completion_pass,
+        "runtime_latency_pass": runtime_latency["pass"],
+        "runtime_latency_status": runtime_latency["status"],
         "quality_pass": quality_pass,
         "ready_for_phase_b1_implementation": ready,
         "blockers": all_blockers,
         "scaffold_blockers": blockers,
         "quality_blockers": quality_blockers,
+        "latency_blockers": latency_blockers,
+        "latency_warnings": latency_warnings,
         "warnings": warnings,
+        "runtime_latency": runtime_latency,
         "core_smoke_cases": core_smoke_cases,
         "trace_checks": trace_checks,
         "path_level_quality": path_level_quality,

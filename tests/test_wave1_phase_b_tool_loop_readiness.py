@@ -161,6 +161,9 @@ def valid_phase_b_trace_fixture(
     return {
         "case_id": case_id,
         "input_message": prompt,
+        "case_started_at_utc": "2026-04-25T00:00:00Z",
+        "case_ended_at_utc": "2026-04-25T00:00:01Z",
+        "case_latency_ms": 1000,
         "is_live_tavily_canary": canary,
         "uses_deterministic_stub_fixtures": not canary,
         "stub_fixture_source": None if canary else "tests/fixtures/phase_b_stub_packets.json",
@@ -169,6 +172,9 @@ def valid_phase_b_trace_fixture(
             "manager_round": 0,
             "manager_role": "pass_1_tool_request",
             "prompt_hash": f"pass1_hash_{case_id}",
+            "started_at_utc": "2026-04-25T00:00:00Z",
+            "ended_at_utc": "2026-04-25T00:00:00.400000Z",
+            "latency_ms": 400,
             "provider_params": _provider_params(),
             "requested_read_tools": requested_tools,
             "forbidden_final_truth_fields_present": [],
@@ -190,6 +196,9 @@ def valid_phase_b_trace_fixture(
             "manager_round": 1,
             "manager_role": "pass_2_synthesis",
             "prompt_hash": f"pass2_hash_{case_id}",
+            "started_at_utc": "2026-04-25T00:00:00.500000Z",
+            "ended_at_utc": "2026-04-25T00:00:00.900000Z",
+            "latency_ms": 400,
             "provider_params": _provider_params(),
             "item_results": item_results,
             "mutation_attempted": False,
@@ -249,6 +258,15 @@ def valid_phase_b_report_fixture(tmp_path: Path) -> Path:
             "forced_tool_request_contract": True,
             "manager_tool_selection_claimed": False,
             "natural_tool_selection_pass": "not_applicable",
+            "runtime_latency": {
+                "latency_budget_type": "b1_full_smoke_reporting_target",
+                "not_user_runtime_budget": True,
+                "full_smoke_target_ms": 180000,
+                "total_latency_ms": 7000,
+                "trace_count": len(traces),
+                "completed_trace_count": len(traces),
+                "mode": "forced_tool_request_smoke",
+            },
             "core_smoke_cases_run": CORE_CASES,
             "tool_loop_traces": traces,
         },
@@ -278,6 +296,8 @@ def test_valid_phase_b_trace_fixture_is_ready(tmp_path: Path) -> None:
     assert report["ready_for_phase_b1_implementation"] is True
     assert report["blockers"] == []
     assert report["forced_loop_scaffold_pass"] is True
+    assert report["runtime_latency_status"] == "pass"
+    assert report["runtime_latency_pass"] is True
     assert report["mode_verdicts"]["forced_loop_scaffold_pass"] is True
     assert report["recommended_next_steps_ordered"] == ["proceed_to_phase_b1_minimal_tool_loop_implementation"]
 
@@ -291,6 +311,51 @@ def test_missing_provider_params_blocks_readiness(tmp_path: Path) -> None:
     report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
 
     assert any(item["code"] == "provider_params_missing" for item in report["blockers"])
+
+
+def test_latency_over_target_warns_without_failing_quality(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["runtime_latency"]["total_latency_ms"] = 193000
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["quality_pass"] is True
+    assert report["forced_loop_scaffold_pass"] is True
+    assert report["runtime_latency_pass"] is False
+    assert report["runtime_latency_status"] == "warning"
+    assert any(item["code"] == "runtime_latency_over_target" for item in report["latency_warnings"])
+
+
+def test_missing_latency_fields_block_readiness(tmp_path: Path) -> None:
+    phase_b = invalid_phase_b_report_fixture(
+        tmp_path,
+        lambda data: data["tool_loop_traces"][0]["manager_pass_1"].pop("latency_ms"),
+    )
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["runtime_latency_status"] == "blocker"
+    assert any(item["code"] == "runtime_latency_trace_missing" for item in report["latency_blockers"])
+
+
+def test_provider_timeout_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["provider_runtime"] = {
+            "configured": True,
+            "blocker": True,
+            "reason": "provider_timeout",
+            "timeout_ms": 180000,
+        }
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["ready_for_phase_b1_implementation"] is False
+    assert report["runtime_latency_status"] == "blocker"
+    assert any(item["code"] == "provider_timeout" for item in report["latency_blockers"])
 
 
 def test_pass2_mutation_attempt_blocks_readiness(tmp_path: Path) -> None:
