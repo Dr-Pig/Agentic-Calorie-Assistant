@@ -192,8 +192,4 @@ jobs:
           else
             echo "::notice title=Wave 1 hygiene skipped::scripts/check_wave1_legacy_terms.py is not present on this ref."
           fi
-          if [ -f scripts/check_markdown_encoding.py ]; then
-            python scripts/check_markdown_encoding.py --policy-docs --require-bom
-          else
-            echo "::notice title=Markdown encoding check skipped::scripts/check_markdown_encoding.py is not present on this ref."
-          fi
+          echo "Markdown encoding policy is enforced by pre-edd-readiness."
