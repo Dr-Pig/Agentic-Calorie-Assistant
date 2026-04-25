@@ -82,6 +82,21 @@ PASS_1_TOOL_REQUEST_PAYLOAD = (
     "JSON example for self-selected basket blocking trace:\n"
     "{\"manager_action\":\"call_tools\",\"interaction_family\":\"food_logging\",\"response_mode\":\"clarification\",\"operations\":[],\"answer_contract\":{},\"tool_calls\":[{\"name\":\"lookup_generic_food\",\"arguments\":{\"food_name\":\"滷味\"}},{\"name\":\"retrieve_web_food_evidence\",\"arguments\":{\"query\":\"滷味 熱量\"}}]}"
 )
+PASS_1_NATURAL_TOOL_SELECTION_GUIDANCE = (
+    "Phase B-1 natural-probe tool selection guidance.\n"
+    "This probe evaluates whether Manager Pass 1 naturally selects appropriate read tools without the forced smoke contract.\n"
+    "For this probe, already-consumed estimable common foods, common commercial drinks, common commercial meals, listed ingredients, and nutrition information queries are evidence-needed scenarios before B-1 can continue to synthesis.\n"
+    "When the user reports an already-consumed estimable common food, common commercial drink, common commercial meal, or listed ingredients, select appropriate read tools when evidence is needed.\n"
+    "For evidence-needed scenarios, return manager_action='call_tools' with tool_calls rather than producing final nutrition or logging output from model memory.\n"
+    "When returning manager_action='call_tools', include the active wrapper fields: interaction_family, response_mode, operations=[], and answer_contract={}.\n"
+    "Each tool_calls item should include name and arguments; use available tool names only.\n"
+    "Use lookup_generic_food for generic common foods and item-level listed ingredients.\n"
+    "Do not use generic aliases such as search or web_search; retrieve_web_food_evidence is the canonical web evidence tool when web evidence is appropriate.\n"
+    "For generic common foods and listed ingredients, lookup_generic_food is the core tool; web evidence may be extra but does not replace lookup_generic_food.\n"
+    "A nutrition information query may use read tools for answer support, but it must not mutate the ledger.\n"
+    "For a self-selected basket without listed ingredients, do not execute estimate tools; ask for the missing composition or let the runtime block estimate tools if they are requested.\n"
+    "This is not forced mode: do not call tools when the input does not need evidence."
+)
 PASS_2_SYNTHESIS_PAYLOAD = (
     "Phase B-1 minimal tool-loop smoke mode.\n"
     "This is Manager Pass 2: consume packetized tool_results only and return manager_action='final'.\n"
@@ -110,6 +125,26 @@ def _hash(value: Any) -> str:
 
 def _prompt_hash(*, manager_role: str) -> str:
     task_payload = PASS_1_TOOL_REQUEST_PAYLOAD if manager_role == "pass_1_tool_request" else PASS_2_SYNTHESIS_PAYLOAD
+    return _hash({"manager_role": manager_role, "system_prompt": SINGLE_MANAGER_SYSTEM_PROMPT, "task_payload": task_payload})
+
+
+def _pass_1_task_payload(pass1_mode: str) -> tuple[str, str]:
+    if pass1_mode == NATURAL_MODE:
+        return "phase_b1_pass_1_natural_tool_selection_guidance_v1", PASS_1_NATURAL_TOOL_SELECTION_GUIDANCE
+    return "phase_b1_pass_1_forced_tool_request_v1", PASS_1_TOOL_REQUEST_PAYLOAD
+
+
+def _task_payload_for_round(*, round_index: int, pass1_mode: str) -> tuple[str, str]:
+    if round_index == 0:
+        return _pass_1_task_payload(pass1_mode)
+    return "phase_b1_pass_2_synthesis_v1", PASS_2_SYNTHESIS_PAYLOAD
+
+
+def _case_prompt_hash(*, manager_role: str, pass1_mode: str) -> str:
+    if manager_role == "pass_1_tool_request":
+        _, task_payload = _pass_1_task_payload(pass1_mode)
+    else:
+        task_payload = PASS_2_SYNTHESIS_PAYLOAD
     return _hash({"manager_role": manager_role, "system_prompt": SINGLE_MANAGER_SYSTEM_PROMPT, "task_payload": task_payload})
 
 
@@ -153,19 +188,19 @@ class _PhaseB1ManagerProvider:
         user_payload = dict(kwargs.get("user_payload") or {})
         round_index = int(user_payload.get("round_index") or 0)
         manager_role = "pass_1_tool_request" if round_index == 0 else "pass_2_synthesis"
-        task_payload = PASS_1_TOOL_REQUEST_PAYLOAD if round_index == 0 and self.pass1_mode == FORCED_MODE else PASS_2_SYNTHESIS_PAYLOAD
+        task_payload_id, task_payload = _task_payload_for_round(round_index=round_index, pass1_mode=self.pass1_mode)
         constraints = dict(user_payload.get("constraints") or {})
         constraints.update(
             {
                 "phase_b1_manager_role": manager_role,
                 "phase_b1_pass1_mode": self.pass1_mode,
-                "phase_b1_task_payload_id": f"phase_b1_{manager_role}_v1",
+                "phase_b1_task_payload_id": task_payload_id,
             }
         )
         user_payload["constraints"] = constraints
         kwargs["user_payload"] = user_payload
         if round_index == 0 and self.pass1_mode == NATURAL_MODE:
-            kwargs["system_prompt"] = str(kwargs.get("system_prompt") or "")
+            kwargs["system_prompt"] = f"{task_payload}\n\n{str(kwargs.get('system_prompt') or '')}"
         elif round_index == 0 and self.pass1_mode == FORCED_MODE:
             kwargs["system_prompt"] = task_payload
         else:
@@ -452,11 +487,13 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
         "manager_pass_1": {
             "manager_round": 0,
             "manager_role": "pass_1_tool_request",
-            "prompt_hash": _prompt_hash(manager_role="pass_1_tool_request"),
+            "prompt_hash": _case_prompt_hash(manager_role="pass_1_tool_request", pass1_mode=pass1_mode),
             "started_at_utc": (dict(pass1_round.get("trace") or {})).get("started_at_utc"),
             "ended_at_utc": (dict(pass1_round.get("trace") or {})).get("ended_at_utc"),
             "latency_ms": (dict(pass1_round.get("trace") or {})).get("latency_ms"),
             "provider_params": _provider_params(dict(pass1_round.get("trace") or {})),
+            "phase_b1_task_payload_id": (dict(pass1_round.get("trace") or {})).get("phase_b1_task_payload_id"),
+            "phase_b1_task_payload_hash": (dict(pass1_round.get("trace") or {})).get("phase_b1_task_payload_hash"),
             "requested_read_tools": router_trace["requested_read_tools"],
             "forbidden_final_truth_fields_present": _contains_any_key(pass1_decision, PASS_1_FORBIDDEN_FIELDS),
         },
@@ -466,11 +503,13 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
         "manager_pass_2": {
             "manager_round": 1,
             "manager_role": "pass_2_synthesis",
-            "prompt_hash": _prompt_hash(manager_role="pass_2_synthesis"),
+            "prompt_hash": _case_prompt_hash(manager_role="pass_2_synthesis", pass1_mode=pass1_mode),
             "started_at_utc": (dict(pass2_round.get("trace") or {})).get("started_at_utc"),
             "ended_at_utc": (dict(pass2_round.get("trace") or {})).get("ended_at_utc"),
             "latency_ms": (dict(pass2_round.get("trace") or {})).get("latency_ms"),
             "provider_params": _provider_params(dict(pass2_round.get("trace") or {})),
+            "phase_b1_task_payload_id": (dict(pass2_round.get("trace") or {})).get("phase_b1_task_payload_id"),
+            "phase_b1_task_payload_hash": (dict(pass2_round.get("trace") or {})).get("phase_b1_task_payload_hash"),
             "item_results": item_results,
             "mutation_attempted": False,
             "forbidden_mutation_fields_present": _contains_any_key(pass2_decision, PASS_2_FORBIDDEN_MUTATION_FIELDS),
