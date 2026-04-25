@@ -100,6 +100,30 @@ class NonTimeoutFailingPhaseBProvider(FakePhaseBProvider):
         raise ValueError("simulated non-timeout provider failure")
 
 
+class Pass1MalformedPayloadPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        self.calls.append(dict(kwargs))
+        return ["call_tools", "lookup_generic_food"], self._trace(call_index=len(self.calls), kwargs=kwargs)
+
+
+class Pass2MalformedPayloadPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        self.calls.append(dict(kwargs))
+        user_payload = kwargs["user_payload"]
+        round_index = user_payload["round_index"]
+        if round_index == 0:
+            return (
+                {
+                    "manager_action": "call_tools",
+                    "tool_calls": [
+                        {"name": "lookup_generic_food", "arguments": {"food_name": "?嗉???"}},
+                    ],
+                },
+                self._trace(call_index=len(self.calls), kwargs=kwargs),
+            )
+        return "final", self._trace(call_index=len(self.calls), kwargs=kwargs)
+
+
 class WrappedReadTimeoutPhaseBProvider(FakePhaseBProvider):
     def readiness(self) -> dict[str, object]:
         readiness = dict(super().readiness())
@@ -386,6 +410,55 @@ async def test_phase_b1_runtime_smoke_non_timeout_error_is_not_labeled_timeout(t
     assert runtime["reason"] == "provider_runtime_error"
     assert runtime["error_type"] == "ValueError"
     assert runtime["timeout_layer"] is None
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_runtime_smoke_pass1_malformed_payload_is_runtime_blocker_not_provider_error(tmp_path: Path) -> None:
+    provider = Pass1MalformedPayloadPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["??鈭?憿??"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    assert report.get("provider_runtime") is None
+    blocker = report["runtime_blocker"]
+    assert blocker["blocker"] is True
+    assert blocker["reason"] == "manager_payload_shape_error"
+    assert blocker["stage"] == "pass_1_tool_request"
+    assert blocker["round_index"] == 0
+    assert blocker["decision_payload_type"] == "list"
+    assert blocker["completed_trace_count"] == 0
+    assert blocker["expected_case_count"] == 1
+    assert report["tool_loop_traces"] == []
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_runtime_smoke_pass2_malformed_payload_keeps_completed_trace_and_sets_runtime_blocker(tmp_path: Path) -> None:
+    provider = Pass2MalformedPayloadPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["??鈭?憿??"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    assert report.get("provider_runtime") is None
+    blocker = report["runtime_blocker"]
+    assert blocker["blocker"] is True
+    assert blocker["reason"] == "manager_payload_shape_error"
+    assert blocker["stage"] == "pass_2_synthesis"
+    assert blocker["round_index"] == 1
+    assert blocker["decision_payload_type"] == "str"
+    assert blocker["completed_trace_count"] == 1
+    assert blocker["expected_case_count"] == 1
+    trace = report["tool_loop_traces"][0]
+    assert trace["manager_pass_1"]["payload_shape_valid"] is True
+    assert trace["manager_pass_2"]["payload_shape_valid"] is False
+    assert trace["manager_pass_2"]["decision_payload_type"] == "str"
 
 
 @pytest.mark.asyncio
