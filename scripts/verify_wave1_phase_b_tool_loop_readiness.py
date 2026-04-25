@@ -71,6 +71,7 @@ RUNTIME_LATENCY_REQUIRED_KEYS = (
 )
 CASE_LATENCY_REQUIRED_KEYS = ("case_started_at_utc", "case_ended_at_utc", "case_latency_ms")
 PASS_LATENCY_REQUIRED_KEYS = ("started_at_utc", "ended_at_utc", "latency_ms")
+MANAGER_DECISION_TRACE_KEYS = ("decision_payload_type", "payload_shape_valid", "payload_shape_error")
 LEGACY_PHASE_B_TERMS = (
     "thread_result",
     "target_thread_action",
@@ -243,6 +244,32 @@ def _check_manager_pass_prompt_trace(trace: dict[str, Any], blockers: list[dict[
             "Manager Pass 1/2 traces must include manager_round, manager_role, and prompt_hash.",
         )
     return {"missing": missing, "passed": not missing}
+
+
+def _check_manager_payload_shape_trace(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    missing: dict[str, list[str]] = {}
+    invalid: dict[str, dict[str, Any]] = {}
+    for pass_name in ("manager_pass_1", "manager_pass_2"):
+        payload = trace.get(pass_name) or {}
+        pass_missing = [key for key in MANAGER_DECISION_TRACE_KEYS if key not in payload]
+        if pass_missing:
+            missing[pass_name] = pass_missing
+            continue
+        payload_shape_valid = payload.get("payload_shape_valid")
+        payload_type = payload.get("decision_payload_type")
+        payload_shape_error = payload.get("payload_shape_error")
+        if payload_shape_valid is False:
+            invalid[pass_name] = {
+                "decision_payload_type": payload_type,
+                "payload_shape_error": payload_shape_error,
+            }
+    if missing:
+        _add(
+            blockers,
+            "manager_payload_shape_trace_missing",
+            "Manager Pass 1/2 traces must include decision_payload_type, payload_shape_valid, and payload_shape_error.",
+        )
+    return {"missing": missing, "invalid": invalid, "passed": not missing}
 
 
 def _check_tool_router_trace(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
@@ -726,7 +753,9 @@ def _build_natural_probe_failure_report(
 def _completed_trace_count(report: dict[str, Any], traces: list[dict[str, Any]]) -> int:
     runtime_latency = report.get("runtime_latency") if isinstance(report.get("runtime_latency"), dict) else {}
     raw_count = runtime_latency.get("completed_trace_count") if isinstance(runtime_latency, dict) else None
-    return int(raw_count) if isinstance(raw_count, int) else len(traces)
+    if isinstance(raw_count, int):
+        return min(raw_count, len(traces))
+    return len(traces)
 
 
 def _expected_case_count() -> int:
@@ -735,16 +764,23 @@ def _expected_case_count() -> int:
 
 def _provider_blocker_state(report: dict[str, Any], traces: list[dict[str, Any]]) -> dict[str, Any]:
     provider_runtime = report.get("provider_runtime") if isinstance(report.get("provider_runtime"), dict) else {}
+    runtime_blocker = report.get("runtime_blocker") if isinstance(report.get("runtime_blocker"), dict) else {}
     completed_count = _completed_trace_count(report, traces)
     expected_count = _expected_case_count()
     provider_blocker = bool(provider_runtime.get("blocker"))
+    runtime_blocker_active = bool(runtime_blocker.get("blocker"))
+    blocker_reason = runtime_blocker.get("reason") or provider_runtime.get("reason")
+    blocker_kind = "runtime_blocker" if runtime_blocker_active else "provider_runtime" if provider_blocker else None
+    any_blocker = provider_blocker or runtime_blocker_active
     return {
         "provider_blocker": provider_blocker,
-        "provider_runtime_reason": provider_runtime.get("reason"),
+        "runtime_blocker": runtime_blocker_active,
+        "provider_runtime_reason": blocker_reason,
+        "blocker_kind": blocker_kind,
         "completed_trace_count": completed_count,
         "expected_case_count": expected_count,
-        "provider_blocked_before_cases": provider_blocker and completed_count == 0,
-        "provider_blocked_before_all_cases_completed": provider_blocker and completed_count < expected_count,
+        "provider_blocked_before_cases": any_blocker and completed_count == 0,
+        "provider_blocked_before_all_cases_completed": any_blocker and completed_count < expected_count,
     }
 
 
@@ -1099,6 +1135,12 @@ def verify_phase_b_readiness(
             "provider_runtime_blocker",
             "Provider runtime blocker prevents B-1 readiness from proving tool-loop quality.",
         )
+    if provider_state["runtime_blocker"]:
+        _add(
+            blockers,
+            "manager_payload_shape_error",
+            "Manager payload shape blocker prevents B-1 readiness from proving tool-loop quality.",
+        )
     if not traces:
         _add(blockers, "tool_loop_trace_missing", "Phase B-1 readiness requires ToolLoopTrace artifacts.")
 
@@ -1111,6 +1153,7 @@ def verify_phase_b_readiness(
             "case_id": trace.get("case_id"),
             "provider_params": _check_provider_params(trace, blockers),
             "manager_pass_prompt_trace": _check_manager_pass_prompt_trace(trace, blockers),
+            "manager_payload_shape_trace": _check_manager_payload_shape_trace(trace, blockers),
             "pass_boundaries": _check_pass_boundaries(trace, blockers),
             "tool_router_trace": _check_tool_router_trace(trace, blockers),
             "truth_levels": _check_truth_levels(trace, blockers),
@@ -1155,10 +1198,12 @@ def verify_phase_b_readiness(
             and not quality_blockers
         )
     provider_runtime = phase_b_report.get("provider_runtime") if isinstance(phase_b_report.get("provider_runtime"), dict) else {}
+    runtime_blocker = phase_b_report.get("runtime_blocker") if isinstance(phase_b_report.get("runtime_blocker"), dict) else {}
     provider_runtime_attribution = {
-        "reason": provider_runtime.get("reason"),
-        "tool_selection_status": "not_proven" if provider_state["provider_blocker"] else "evaluated",
-        "loop_completion_status": "blocked" if provider_runtime.get("blocker") else "evaluated",
+        "reason": runtime_blocker.get("reason") or provider_runtime.get("reason"),
+        "blocker_kind": provider_state.get("blocker_kind"),
+        "tool_selection_status": "not_proven" if provider_state["provider_blocked_before_all_cases_completed"] else "evaluated",
+        "loop_completion_status": "blocked" if provider_state["provider_blocked_before_all_cases_completed"] else "evaluated",
     }
     all_blockers = blockers + quality_blockers + latency_blockers
     ready = not all_blockers
@@ -1187,6 +1232,7 @@ def verify_phase_b_readiness(
         "runtime_latency_status": runtime_latency["status"],
         "quality_pass": quality_pass,
         "provider_runtime_attribution": provider_runtime_attribution,
+        "runtime_blocker": runtime_blocker,
         "ready_for_phase_b1_implementation": ready,
         "blockers": all_blockers,
         "scaffold_blockers": blockers,

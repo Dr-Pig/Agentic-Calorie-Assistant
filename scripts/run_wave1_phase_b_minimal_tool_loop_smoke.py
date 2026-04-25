@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.runtime.agent.manager import SINGLE_MANAGER_SYSTEM_PROMPT, run_intake_manager
+from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 from app.providers.builderspace_adapter import BuilderSpaceResponseError
 
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
@@ -107,6 +108,23 @@ PASS_2_SYNTHESIS_PAYLOAD = (
 )
 
 
+class _ManagerPayloadShapeError(RuntimeError):
+    def __init__(
+        self,
+        *,
+        stage: str,
+        round_index: int,
+        decision_payload: Any,
+        partial_trace: dict[str, Any] | None = None,
+    ) -> None:
+        self.stage = stage
+        self.round_index = round_index
+        self.decision_payload = _json_safe(decision_payload)
+        self.partial_trace = _json_safe(partial_trace) if partial_trace is not None else None
+        excerpt = json.dumps(self.decision_payload, ensure_ascii=False, default=str)[:300]
+        super().__init__(f"manager_payload_shape_error stage={stage} round_index={round_index} payload={excerpt}")
+
+
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
 
@@ -178,6 +196,13 @@ class _PhaseB1ManagerProvider:
         self._provider = provider
         self.pass1_mode = pass1_mode
         self.provider_timeout_ms = provider_timeout_ms
+        self._current_case_rounds: list[dict[str, Any]] = []
+
+    def begin_case(self) -> None:
+        self._current_case_rounds = []
+
+    def case_rounds(self) -> list[dict[str, Any]]:
+        return _json_safe(self._current_case_rounds)
 
     def readiness(self) -> dict[str, Any]:
         if hasattr(self._provider, "readiness"):
@@ -222,6 +247,20 @@ class _PhaseB1ManagerProvider:
         trace["latency_ms"] = latency_ms
         trace["phase_b1_task_payload_id"] = constraints["phase_b1_task_payload_id"]
         trace["phase_b1_task_payload_hash"] = _hash(task_payload)
+        self._current_case_rounds.append(
+            {
+                "round_index": round_index,
+                "stage": MANAGER_LOOP_STAGE,
+                "decision": _json_safe(payload),
+                "trace": _json_safe(trace),
+            }
+        )
+        if not isinstance(payload, dict):
+            raise _ManagerPayloadShapeError(
+                stage=manager_role,
+                round_index=round_index,
+                decision_payload=payload,
+            )
         return payload, trace
 
 
@@ -236,6 +275,34 @@ def _contains_any_key(value: Any, keys: set[str]) -> list[str]:
         for item in value:
             found.extend(_contains_any_key(item, keys))
     return sorted(set(found))
+
+
+def _payload_shape_fields(payload: Any) -> dict[str, Any]:
+    safe_payload = _json_safe(payload)
+    payload_type = type(payload).__name__
+    return {
+        "decision_payload": safe_payload if isinstance(payload, dict) else None,
+        "decision_payload_type": payload_type,
+        "payload_shape_valid": isinstance(payload, dict),
+        "payload_shape_error": None if isinstance(payload, dict) else f"expected_object_got_{payload_type}",
+    }
+
+
+def _ensure_decision_payload_dict(
+    *,
+    payload: Any,
+    stage: str,
+    round_index: int,
+    partial_trace: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if isinstance(payload, dict):
+        return dict(payload)
+    raise _ManagerPayloadShapeError(
+        stage=stage,
+        round_index=round_index,
+        decision_payload=payload,
+        partial_trace=partial_trace,
+    )
 
 
 def _is_self_selected_basket_without_ingredients(message: str) -> bool:
@@ -452,19 +519,84 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
             }
         ]
 
-    result = await run_intake_manager(
-        provider=provider,
-        raw_user_input=message,
-        resolved_state=SimpleNamespace(onboarding_ready=True),
-        available_tools=AVAILABLE_READ_TOOLS,
-        tool_executor=tool_executor,
-        constraints={
-            "phase": "B-1",
-            "scope": "minimal_tool_loop_smoke",
-            "manager_pass_contract": "pass1_requests_tools_pass2_synthesizes",
-        },
-        max_rounds=2,
-    )
+    if hasattr(provider, "begin_case"):
+        provider.begin_case()
+    try:
+        result = await run_intake_manager(
+            provider=provider,
+            raw_user_input=message,
+            resolved_state=SimpleNamespace(onboarding_ready=True),
+            available_tools=AVAILABLE_READ_TOOLS,
+            tool_executor=tool_executor,
+            constraints={
+                "phase": "B-1",
+                "scope": "minimal_tool_loop_smoke",
+                "manager_pass_contract": "pass1_requests_tools_pass2_synthesizes",
+            },
+            max_rounds=2,
+        )
+    except _ManagerPayloadShapeError as exc:
+        round_history = provider.case_rounds() if hasattr(provider, "case_rounds") else []
+        if exc.round_index == 1 and round_history:
+            pass1_round = round_history[0] if round_history else {"decision": {}, "trace": {}}
+            pass2_round = round_history[-1]
+            pass1_trace = dict(pass1_round.get("trace") or {})
+            pass1_decision = dict(pass1_round.get("decision") or {}) if isinstance(pass1_round.get("decision"), dict) else {}
+            pass1_shape = _payload_shape_fields(pass1_round.get("decision"))
+            pass2_trace = dict(pass2_round.get("trace") or {})
+            pass2_shape = _payload_shape_fields(pass2_round.get("decision"))
+            exc.partial_trace = {
+                "case_id": case_id,
+                "input_message": message,
+                "case_started_at_utc": case_started_at_utc,
+                "case_ended_at_utc": _utc_now(),
+                "case_latency_ms": _elapsed_ms(case_started_perf),
+                "semantic_boundary": "self_selected_basket_without_ingredients" if _is_self_selected_basket_without_ingredients(message) else None,
+                "pass1_mode": pass1_mode,
+                "forced_tool_request_contract": pass1_mode == FORCED_MODE,
+                "manager_tool_selection_claimed": pass1_mode == NATURAL_MODE,
+                "runner_derived_item_results": False,
+                "is_live_tavily_canary": False,
+                "uses_deterministic_stub_fixtures": True,
+                "stub_fixture_source": "scripts/run_wave1_phase_b_minimal_tool_loop_smoke.py",
+                "stub_generated_by_llm": False,
+                "manager_pass_1": {
+                    "manager_round": 0,
+                    "manager_role": "pass_1_tool_request",
+                    "prompt_hash": _case_prompt_hash(manager_role="pass_1_tool_request", pass1_mode=pass1_mode),
+                    "started_at_utc": pass1_trace.get("started_at_utc"),
+                    "ended_at_utc": pass1_trace.get("ended_at_utc"),
+                    "latency_ms": pass1_trace.get("latency_ms"),
+                    "provider_params": _provider_params(pass1_trace),
+                    "phase_b1_task_payload_id": pass1_trace.get("phase_b1_task_payload_id"),
+                    "phase_b1_task_payload_hash": pass1_trace.get("phase_b1_task_payload_hash"),
+                    "requested_read_tools": router_trace["requested_read_tools"],
+                    "forbidden_final_truth_fields_present": _contains_any_key(pass1_decision, PASS_1_FORBIDDEN_FIELDS),
+                    **pass1_shape,
+                },
+                "runtime_tool_router": router_trace,
+                "read_tool_executions": read_tool_executions,
+                "packetizer": {
+                    "outputs": packetizer_outputs,
+                    "forbidden_final_truth_fields_present": _contains_any_key(packetizer_outputs, {"final_kcal", "final_truth", "primary_source"}),
+                },
+                "manager_pass_2": {
+                    "manager_round": 1,
+                    "manager_role": "pass_2_synthesis",
+                    "prompt_hash": _case_prompt_hash(manager_role="pass_2_synthesis", pass1_mode=pass1_mode),
+                    "started_at_utc": pass2_trace.get("started_at_utc"),
+                    "ended_at_utc": pass2_trace.get("ended_at_utc"),
+                    "latency_ms": pass2_trace.get("latency_ms"),
+                    "provider_params": _provider_params(pass2_trace),
+                    "phase_b1_task_payload_id": pass2_trace.get("phase_b1_task_payload_id"),
+                    "phase_b1_task_payload_hash": pass2_trace.get("phase_b1_task_payload_hash"),
+                    "item_results": [],
+                    "mutation_attempted": False,
+                    "forbidden_mutation_fields_present": [],
+                    **pass2_shape,
+                },
+            }
+        raise
     if _is_self_selected_basket_without_ingredients(message) and not router_trace["blocked_tools"]:
         router_trace = _route_tools(message=message, requested_tools=[])
         if not packetizer_outputs:
@@ -482,8 +614,82 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
     rounds = list(result.manager_rounds)
     pass1_round = rounds[0] if rounds else {"decision": {}, "trace": {}}
     pass2_round = rounds[-1] if len(rounds) > 1 else {"decision": {}, "trace": {}}
-    pass1_decision = dict(pass1_round.get("decision") or {})
-    pass2_decision = dict(pass2_round.get("decision") or {})
+    pass1_trace = dict(pass1_round.get("trace") or {})
+    pass2_trace = dict(pass2_round.get("trace") or {})
+    pass1_shape = _payload_shape_fields(pass1_round.get("decision"))
+    pass2_shape = _payload_shape_fields(pass2_round.get("decision"))
+    if not pass1_shape["payload_shape_valid"]:
+        raise _ManagerPayloadShapeError(
+            stage="pass_1_tool_request",
+            round_index=0,
+            decision_payload=pass1_round.get("decision"),
+        )
+    pass1_decision = _ensure_decision_payload_dict(
+        payload=pass1_round.get("decision"),
+        stage="pass_1_tool_request",
+        round_index=0,
+    )
+    partial_trace_base = {
+        "case_id": case_id,
+        "input_message": message,
+        "pass1_mode": pass1_mode,
+        "forced_tool_request_contract": pass1_mode == FORCED_MODE,
+        "manager_tool_selection_claimed": pass1_mode == NATURAL_MODE,
+        "manager_pass_1": {
+            "manager_round": 0,
+            "manager_role": "pass_1_tool_request",
+            "prompt_hash": _case_prompt_hash(manager_role="pass_1_tool_request", pass1_mode=pass1_mode),
+            "started_at_utc": pass1_trace.get("started_at_utc"),
+            "ended_at_utc": pass1_trace.get("ended_at_utc"),
+            "latency_ms": pass1_trace.get("latency_ms"),
+            "provider_params": _provider_params(pass1_trace),
+            "phase_b1_task_payload_id": pass1_trace.get("phase_b1_task_payload_id"),
+            "phase_b1_task_payload_hash": pass1_trace.get("phase_b1_task_payload_hash"),
+            "requested_read_tools": router_trace["requested_read_tools"],
+            "forbidden_final_truth_fields_present": _contains_any_key(pass1_decision, PASS_1_FORBIDDEN_FIELDS),
+            **pass1_shape,
+        },
+        "runtime_tool_router": router_trace,
+        "read_tool_executions": read_tool_executions,
+        "packetizer": {
+            "outputs": packetizer_outputs,
+            "forbidden_final_truth_fields_present": _contains_any_key(packetizer_outputs, {"final_kcal", "final_truth", "primary_source"}),
+        },
+    }
+    if len(rounds) <= 1:
+        pass2_decision: dict[str, Any] = {}
+    else:
+        if not pass2_shape["payload_shape_valid"]:
+            partial_trace = {
+                **partial_trace_base,
+                "manager_pass_2": {
+                    "manager_round": 1,
+                    "manager_role": "pass_2_synthesis",
+                    "prompt_hash": _case_prompt_hash(manager_role="pass_2_synthesis", pass1_mode=pass1_mode),
+                    "started_at_utc": pass2_trace.get("started_at_utc"),
+                    "ended_at_utc": pass2_trace.get("ended_at_utc"),
+                    "latency_ms": pass2_trace.get("latency_ms"),
+                    "provider_params": _provider_params(pass2_trace),
+                    "phase_b1_task_payload_id": pass2_trace.get("phase_b1_task_payload_id"),
+                    "phase_b1_task_payload_hash": pass2_trace.get("phase_b1_task_payload_hash"),
+                    "item_results": [],
+                    "mutation_attempted": False,
+                    "forbidden_mutation_fields_present": [],
+                    **pass2_shape,
+                },
+                "runner_derived_item_results": False,
+            }
+            raise _ManagerPayloadShapeError(
+                stage="pass_2_synthesis",
+                round_index=1,
+                decision_payload=pass2_round.get("decision"),
+                partial_trace=partial_trace,
+            )
+        pass2_decision = _ensure_decision_payload_dict(
+            payload=pass2_round.get("decision"),
+            stage="pass_2_synthesis",
+            round_index=1,
+        )
     item_results, runner_derived_item_results = _item_results_from_payload(
         pass2_decision,
         packetizer_outputs,
@@ -511,14 +717,15 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
             "manager_round": 0,
             "manager_role": "pass_1_tool_request",
             "prompt_hash": _case_prompt_hash(manager_role="pass_1_tool_request", pass1_mode=pass1_mode),
-            "started_at_utc": (dict(pass1_round.get("trace") or {})).get("started_at_utc"),
-            "ended_at_utc": (dict(pass1_round.get("trace") or {})).get("ended_at_utc"),
-            "latency_ms": (dict(pass1_round.get("trace") or {})).get("latency_ms"),
-            "provider_params": _provider_params(dict(pass1_round.get("trace") or {})),
-            "phase_b1_task_payload_id": (dict(pass1_round.get("trace") or {})).get("phase_b1_task_payload_id"),
-            "phase_b1_task_payload_hash": (dict(pass1_round.get("trace") or {})).get("phase_b1_task_payload_hash"),
+            "started_at_utc": pass1_trace.get("started_at_utc"),
+            "ended_at_utc": pass1_trace.get("ended_at_utc"),
+            "latency_ms": pass1_trace.get("latency_ms"),
+            "provider_params": _provider_params(pass1_trace),
+            "phase_b1_task_payload_id": pass1_trace.get("phase_b1_task_payload_id"),
+            "phase_b1_task_payload_hash": pass1_trace.get("phase_b1_task_payload_hash"),
             "requested_read_tools": router_trace["requested_read_tools"],
             "forbidden_final_truth_fields_present": _contains_any_key(pass1_decision, PASS_1_FORBIDDEN_FIELDS),
+            **pass1_shape,
         },
         "runtime_tool_router": router_trace,
         "read_tool_executions": read_tool_executions,
@@ -527,20 +734,61 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
             "manager_round": 1,
             "manager_role": "pass_2_synthesis",
             "prompt_hash": _case_prompt_hash(manager_role="pass_2_synthesis", pass1_mode=pass1_mode),
-            "started_at_utc": (dict(pass2_round.get("trace") or {})).get("started_at_utc"),
-            "ended_at_utc": (dict(pass2_round.get("trace") or {})).get("ended_at_utc"),
-            "latency_ms": (dict(pass2_round.get("trace") or {})).get("latency_ms"),
-            "provider_params": _provider_params(dict(pass2_round.get("trace") or {})),
-            "phase_b1_task_payload_id": (dict(pass2_round.get("trace") or {})).get("phase_b1_task_payload_id"),
-            "phase_b1_task_payload_hash": (dict(pass2_round.get("trace") or {})).get("phase_b1_task_payload_hash"),
+            "started_at_utc": pass2_trace.get("started_at_utc"),
+            "ended_at_utc": pass2_trace.get("ended_at_utc"),
+            "latency_ms": pass2_trace.get("latency_ms"),
+            "provider_params": _provider_params(pass2_trace),
+            "phase_b1_task_payload_id": pass2_trace.get("phase_b1_task_payload_id"),
+            "phase_b1_task_payload_hash": pass2_trace.get("phase_b1_task_payload_hash"),
             "item_results": item_results,
             "mutation_attempted": False,
             "forbidden_mutation_fields_present": _contains_any_key(pass2_decision, PASS_2_FORBIDDEN_MUTATION_FIELDS),
+            **pass2_shape,
         },
         "guard": guard,
         "mutation": mutation,
         "renderer": _renderer_trace(item_results=item_results, mutation=mutation),
         "tavily_canary": None,
+    }
+
+
+def _runtime_blocker_report(
+    *,
+    readiness: dict[str, Any],
+    artifact_path: Path,
+    smoke_cases: list[str] | tuple[str, ...],
+    traces: list[dict[str, Any]],
+    blocker: _ManagerPayloadShapeError,
+    pass1_mode: str,
+    started_perf: float,
+) -> dict[str, Any]:
+    runtime_blocker = {
+        "blocker": True,
+        "reason": "manager_payload_shape_error",
+        "stage": blocker.stage,
+        "round_index": blocker.round_index,
+        "decision_payload_type": type(blocker.decision_payload).__name__,
+        "decision_payload_excerpt": json.dumps(blocker.decision_payload, ensure_ascii=False, default=str)[:300],
+        "completed_trace_count": len(traces),
+        "expected_case_count": len(smoke_cases),
+    }
+    return {
+        "phase": "B-1",
+        "scope": "minimal_tool_loop_smoke",
+        "b2_evidence_runtime_started": False,
+        "nutrition_accuracy_claimed": False,
+        "provider": readiness.get("provider") or "builderspace",
+        "manager_model": readiness.get("manager_model") or readiness.get("model") or "deepseek",
+        "mode": "hybrid_canary",
+        "pass1_mode": pass1_mode,
+        "forced_tool_request_contract": pass1_mode == FORCED_MODE,
+        "manager_tool_selection_claimed": pass1_mode == NATURAL_MODE,
+        "natural_tool_selection_pass": "not_applicable" if pass1_mode == FORCED_MODE else False,
+        "runtime_blocker": runtime_blocker,
+        "runtime_latency": _runtime_latency_summary(started_perf=started_perf, traces=traces, pass1_mode=pass1_mode),
+        "core_smoke_cases_run": list(smoke_cases)[: len(traces)],
+        "tool_loop_traces": _json_safe(traces),
+        "artifact_path": str(artifact_path),
     }
 
 
@@ -697,6 +945,18 @@ async def run_phase_b_minimal_tool_loop_smoke(
                         pass1_mode=pass1_mode,
                     )
                 )
+        except _ManagerPayloadShapeError as exc:
+            if exc.partial_trace is not None:
+                traces.append(_json_safe(exc.partial_trace))
+            report = _runtime_blocker_report(
+                readiness=dict(readiness),
+                artifact_path=artifact_path,
+                smoke_cases=smoke_cases,
+                traces=traces,
+                blocker=exc,
+                pass1_mode=pass1_mode,
+                started_perf=run_started_perf,
+            )
         except Exception as exc:
             report = _provider_runtime_error_report(
                 readiness=dict(readiness),
