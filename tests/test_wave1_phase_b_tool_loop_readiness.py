@@ -559,6 +559,14 @@ def test_natural_probe_web_only_for_generic_food_fails_tool_selection(tmp_path: 
 
     assert report["natural_tool_selection_pass"] is False
     assert any(item["code"] == "expected_tool_policy_mismatch" for item in report["blockers"])
+    case_report = report["natural_probe_failure_report"]["cases"][0]
+    assert case_report["expected_tool_policy"]["required_tools"] == ["lookup_generic_food"]
+    assert case_report["actual_requested_read_tools"] == ["retrieve_web_food_evidence"]
+    assert case_report["missing_or_wrong_tools"] == {
+        "missing_required_tools": ["lookup_generic_food"],
+        "wrong_tools": ["retrieve_web_food_evidence"],
+    }
+    assert case_report["failure_family"] == "wrong_tool_request"
 
 
 def test_natural_probe_listed_luwei_without_item_level_generic_lookup_fails_selection(tmp_path: Path) -> None:
@@ -582,6 +590,47 @@ def test_natural_probe_listed_luwei_without_item_level_generic_lookup_fails_sele
 
     assert report["natural_tool_selection_pass"] is False
     assert any(item["code"] == "expected_tool_policy_mismatch" for item in report["blockers"])
+    case_report = report["natural_probe_failure_report"]["cases"][4]
+    assert case_report["expected_tool_policy"]["required_tools"] == ["lookup_generic_food"]
+    assert case_report["failure_family"] == "wrong_tool_request"
+
+
+def test_natural_probe_failure_report_classifies_no_tool_request_and_blocking_boundary(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        for trace in data["tool_loop_traces"]:
+            trace["pass1_mode"] = "natural_tool_selection_probe"
+            trace["forced_tool_request_contract"] = False
+            trace["manager_tool_selection_claimed"] = True
+            trace["manager_pass_1"]["requested_read_tools"] = []
+            trace["runtime_tool_router"]["requested_read_tools"] = []
+            trace["runtime_tool_router"]["manager_requested_tools"] = []
+            trace["runtime_tool_router"]["allowed_tools"] = []
+            trace["runtime_tool_router"]["filtered_tool_plan"] = []
+            trace["read_tool_executions"] = []
+            trace["packetizer"]["outputs"] = []
+            trace["manager_pass_2"]["provider_params"]["provider"] = None
+            trace["manager_pass_2"]["provider_params"]["model"] = None
+            trace["manager_pass_2"]["provider_params"]["request_id"] = None
+            trace["manager_pass_2"]["item_results"] = []
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+    failure_report = report["natural_probe_failure_report"]
+
+    assert failure_report["failure_family_counts"]["manager_no_tool_request"] >= 1
+    assert failure_report["failure_family_counts"]["blocking_boundary_ok"] == 1
+    assert failure_report["failure_family_counts"]["manager_blocking_semantics_not_proven"] == 1
+    blocking_case = failure_report["cases"][3]
+    assert blocking_case["expected_tool_policy"]["estimate_tool_execution"] == "forbidden"
+    assert blocking_case["expected_tool_policy"]["lookup_generic_food"] == "not_required"
+    assert blocking_case["failure_family"] == "blocking_boundary_ok"
+    assert blocking_case["manager_blocking_semantics"] == "not_proven"
+    assert blocking_case["pass2_ran"] is False
+    assert blocking_case["item_results_source"] == "none"
 
 
 def test_natural_probe_missing_pass2_item_results_fails_loop_completion_not_selection(tmp_path: Path) -> None:
