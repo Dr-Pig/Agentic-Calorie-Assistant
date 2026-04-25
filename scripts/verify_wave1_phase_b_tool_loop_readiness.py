@@ -514,6 +514,130 @@ def _has_estimate_execution_or_packet(trace: dict[str, Any]) -> bool:
     return bool(estimate_executions or estimate_packets)
 
 
+def _expected_tool_policy_for_trace(trace: dict[str, Any]) -> dict[str, Any]:
+    input_message = str(trace.get("input_message") or "")
+    if _is_self_selected_basket_without_ingredients(trace):
+        return {
+            "policy_type": "self_selected_basket_without_ingredients",
+            "required_tools": [],
+            "lookup_generic_food": "not_required",
+            "retrieve_web_food_evidence": "not_required",
+            "estimate_tool_execution": "forbidden",
+            "acceptable_paths": [
+                "no_tool_request_with_blocking_semantics",
+                "requested_estimate_tools_but_router_blocked",
+            ],
+        }
+    if input_message in EXPECTED_GENERIC_LOOKUP_CASES:
+        return {
+            "policy_type": "generic_lookup_required",
+            "required_tools": ["lookup_generic_food"],
+            "optional_tools": ["retrieve_web_food_evidence"],
+            "estimate_tool_execution": "allowed",
+        }
+    return {
+        "policy_type": "not_applicable",
+        "required_tools": [],
+        "optional_tools": [],
+    }
+
+
+def _item_results_source(trace: dict[str, Any]) -> str:
+    manager_pass_2 = trace.get("manager_pass_2") if isinstance(trace.get("manager_pass_2"), dict) else {}
+    item_results = manager_pass_2.get("item_results") if isinstance(manager_pass_2, dict) else []
+    if bool(trace.get("runner_derived_item_results")):
+        return "runner_packet_fallback"
+    if _has_non_empty_list(item_results):
+        return "manager_pass_2_payload"
+    return "none"
+
+
+def _natural_failure_family(
+    *,
+    trace: dict[str, Any],
+    expected_policy: dict[str, Any],
+    requested: list[str],
+    allowed: list[str],
+    missing_required: list[str],
+    wrong_tools: list[str],
+) -> str:
+    if expected_policy.get("policy_type") == "self_selected_basket_without_ingredients":
+        return "blocking_boundary_ok" if not _has_estimate_execution_or_packet(trace) else "router_policy_failure"
+    if not requested and missing_required:
+        return "manager_no_tool_request"
+    if missing_required or wrong_tools:
+        return "wrong_tool_request"
+    manager_pass_2 = trace.get("manager_pass_2") if isinstance(trace.get("manager_pass_2"), dict) else {}
+    pass2_params = manager_pass_2.get("provider_params") if isinstance(manager_pass_2, dict) else {}
+    pass2_ran = isinstance(pass2_params, dict) and all(pass2_params.get(key) not in (None, "") for key in ("provider", "model", "request_id"))
+    if not pass2_ran:
+        return "pass2_not_run"
+    if _item_results_source(trace) == "none":
+        return "pass2_no_item_results"
+    return "none"
+
+
+def _build_natural_probe_failure_report(traces: list[dict[str, Any]]) -> dict[str, Any]:
+    cases: list[dict[str, Any]] = []
+    counts: dict[str, int] = {
+        "manager_no_tool_request": 0,
+        "wrong_tool_request": 0,
+        "router_policy_failure": 0,
+        "pass2_not_run": 0,
+        "pass2_no_item_results": 0,
+        "blocking_boundary_ok": 0,
+        "manager_blocking_semantics_not_proven": 0,
+    }
+    for trace in traces:
+        requested, allowed = _trace_requested_allowed(trace)
+        expected_policy = _expected_tool_policy_for_trace(trace)
+        required_tools = [str(tool) for tool in expected_policy.get("required_tools") or []]
+        optional_tools = set(str(tool) for tool in expected_policy.get("optional_tools") or [])
+        missing_required = [tool for tool in required_tools if tool not in requested or tool not in allowed]
+        wrong_tools = [
+            tool for tool in requested
+            if required_tools and (tool not in set(required_tools) | optional_tools or missing_required)
+        ]
+        manager_pass_2 = trace.get("manager_pass_2") if isinstance(trace.get("manager_pass_2"), dict) else {}
+        pass2_params = manager_pass_2.get("provider_params") if isinstance(manager_pass_2, dict) else {}
+        pass2_ran = isinstance(pass2_params, dict) and all(pass2_params.get(key) not in (None, "") for key in ("provider", "model", "request_id"))
+        family = _natural_failure_family(
+            trace=trace,
+            expected_policy=expected_policy,
+            requested=requested,
+            allowed=allowed,
+            missing_required=missing_required,
+            wrong_tools=wrong_tools,
+        )
+        if family in counts:
+            counts[family] += 1
+        manager_blocking_semantics = "not_applicable"
+        if expected_policy.get("policy_type") == "self_selected_basket_without_ingredients":
+            # In B-1 natural-probe, no estimate execution proves the boundary, but
+            # the current artifact does not yet prove the Manager itself selected
+            # blocking semantics unless it emits explicit semantic state later.
+            manager_blocking_semantics = "not_proven"
+            counts["manager_blocking_semantics_not_proven"] += 1
+        cases.append(
+            {
+                "case_id": trace.get("case_id"),
+                "input_message": trace.get("input_message"),
+                "expected_tool_policy": expected_policy,
+                "actual_requested_read_tools": requested,
+                "actual_allowed_tools": allowed,
+                "missing_or_wrong_tools": {
+                    "missing_required_tools": missing_required,
+                    "wrong_tools": wrong_tools,
+                },
+                "pass2_ran": pass2_ran,
+                "item_results_source": _item_results_source(trace),
+                "failure_family": family,
+                "manager_blocking_semantics": manager_blocking_semantics,
+            }
+        )
+    return {"cases": cases, "failure_family_counts": counts}
+
+
 def _check_mode_verdicts(
     report: dict[str, Any],
     traces: list[dict[str, Any]],
@@ -851,6 +975,11 @@ def verify_phase_b_readiness(
     scaffold_pass = not blockers
     path_level_quality = [_check_path_level_quality(trace, quality_blockers) for trace in traces]
     mode_verdicts = _check_mode_verdicts(phase_b_report, traces, quality_blockers)
+    natural_probe_failure_report = (
+        _build_natural_probe_failure_report(traces)
+        if mode_verdicts["pass1_mode"] == NATURAL_MODE
+        else {"cases": [], "failure_family_counts": {}}
+    )
     if mode_verdicts["pass1_mode"] == FORCED_MODE:
         forced_loop_scaffold_pass = scaffold_pass and not quality_blockers
         mode_verdicts["forced_loop_scaffold_pass"] = forced_loop_scaffold_pass
@@ -895,6 +1024,7 @@ def verify_phase_b_readiness(
         "latency_warnings": latency_warnings,
         "warnings": warnings,
         "runtime_latency": runtime_latency,
+        "natural_probe_failure_report": natural_probe_failure_report,
         "core_smoke_cases": core_smoke_cases,
         "trace_checks": trace_checks,
         "path_level_quality": path_level_quality,
