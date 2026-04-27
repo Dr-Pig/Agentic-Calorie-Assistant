@@ -35,18 +35,19 @@ Hard rules:
 
 ## Read First
 
-1. [docs/index.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/index.md)
-2. [docs/specs/APP_V2_IMPLEMENTATION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/APP_V2_IMPLEMENTATION_PLAN.md)
+1. [docs/V2_DOC_INDEX.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/V2_DOC_INDEX.md)
+2. [docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md)
 
 If the task needs architecture context or eval gate status, read next:
 
-3. [docs/specs/app_v2_ideal_architecture_final.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/app_v2_ideal_architecture_final.md) (canonical architecture truth)
-4. [docs/quality/V2_EVAL_BUNDLE_1_CASES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/V2_EVAL_BUNDLE_1_CASES.md)
-5. [docs/quality/V2_EVAL_BUNDLE_2_CASES.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/quality/V2_EVAL_BUNDLE_2_CASES.md)
+3. [docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md)
+4. [docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md)
+5. task-specific canonical spec
+6. task-specific micro-suite / eval gate
 
 Default planner path is:
 
-`AGENTS.md -> APP_V2_IMPLEMENTATION_PLAN.md -> V2_EVAL_BUNDLE_X_CASES.md -> app_v2_ideal_architecture_final.md`
+`AGENTS.md -> docs/V2_DOC_INDEX.md -> docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md -> docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md -> docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md -> task-specific canonical spec -> task-specific micro-suite / eval gate`
 
 ## Best Practice Search
 
@@ -117,12 +118,18 @@ Assistant claim policy:
 
 ## Planner Default
 
-- `APP_V2_IMPLEMENTATION_PLAN.md` is the execution blueprint and bundle roadmap
-- `V2_EVAL_BUNDLE_X_CASES.md` are the execution gates — each bundle has E2E acceptance criteria
+- `APP_V2_IMPLEMENTATION_PLAN.md` is a legacy / historical implementation plan unless reconciled
+- `V2_EVAL_BUNDLE_X_CASES.md` are acceptance / regression reference, not build order
 - `app_v2_ideal_architecture_final.md` is the canonical architecture truth (replaces APP_V2_TARGET_ARCHITECTURE_SPEC.md)
 - governance docs are exception tools, not default routing
 
 V2 uses **eval-first** execution model:
+- system capabilities determine implementation order
+- product capabilities determine acceptance scope
+- eval-first ≠ schema-first
+- bundle-first ≠ implementation order
+- synthetic readiness gate ≠ runtime product pass
+- Phase B gates do not complete Wave 1 unless Phase C mutation / ledger / same-truth integration passes
 - Each bundle has E2E eval cases as the completion gate
 - `summary.bundle_gate == "pass"` + trace artifacts = bundle complete
 - No slice-based planning; execution flows through bundles sequentially

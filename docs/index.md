@@ -47,7 +47,7 @@ If you need the shortest path to current execution truth:
 ## Notes
 
 - V2 uses **eval-first** execution model — execution progress is tracked via eval bundle gates, not slice-based planning.
-- `docs/specs/APP_V2_IMPLEMENTATION_PLAN.md` is the execution blueprint.
-- `docs/quality/V2_EVAL_BUNDLE_X_CASES.md` are the completion gates — each bundle must pass E2E eval before moving to the next.
+- `docs/specs/APP_V2_IMPLEMENTATION_PLAN.md` is a legacy/historical implementation plan unless reconciled.
+- `docs/quality/V2_EVAL_BUNDLE_X_CASES.md` are acceptance/regression reference, not build order.
 - `docs/governance/` is not part of the default bootstrap path unless the task touches repo process.
 - `docs/archive/` and `artifacts/docs-snapshots/` are important preservation layers, but they are not default reading paths.
