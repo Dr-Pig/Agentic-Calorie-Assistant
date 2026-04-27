@@ -133,6 +133,27 @@ If P0 cases fail, fix the code until the eval passes — do not skip gates or cl
 When work is bounded, non-semantic, and parallelizable, prefer worker/delegation posture over keeping all implementation and verification on the main thread.
 If the planner is selecting the next bundle, the default planner path above is required reading, not a conditional governance read.
 
+## Destructive Git Command Ban
+
+* 禁止在未得到明確人工確認前執行：
+  * `git clean`
+  * `git clean -fd`
+  * `git clean -fdx`
+  * `git reset --hard`
+  * `git checkout .`
+  * `git restore .`
+  * `git rebase`
+  * force push
+* 如果真的需要清理，必須先執行並回報：
+  * `git status --short --branch`
+  * `git clean -n -d`
+  * `git diff --name-status`
+  * `git diff --cached --name-status`
+  * `git ls-files --others --exclude-standard`
+* 任何會刪除 untracked files 的操作，必須先建立 repo snapshot。
+* coding agent 不得用 destructive git commands 來「解決衝突」。
+* 如果遇到 branch conflict，先輸出 conflict report，不得自行 reset / clean。
+
 ## Hard Rules Summary
 
 - source-of-truth sync is mandatory when canonical understanding changes
