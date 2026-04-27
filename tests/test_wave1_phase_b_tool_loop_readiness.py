@@ -280,7 +280,13 @@ def valid_phase_b_report_fixture(tmp_path: Path) -> Path:
                 "trace_count": len(traces),
                 "completed_trace_count": len(traces),
                 "mode": "forced_tool_request_smoke",
+                "readiness_claim_scope": "full_actual_smoke",
             },
+            "case_set": "full",
+            "requested_case_ids": [f"B1-{index:03d}" for index in range(1, 7)],
+            "completed_case_count": len(CORE_CASES),
+            "expected_full_case_count": len(CORE_CASES),
+            "full_readiness_claimed": True,
             "core_smoke_cases_run": CORE_CASES,
             "tool_loop_traces": traces,
         },
@@ -1097,7 +1103,7 @@ def test_natural_probe_failure_report_classifies_no_tool_request_and_blocking_bo
         data["pass1_mode"] = "natural_tool_selection_probe"
         data["forced_tool_request_contract"] = False
         data["manager_tool_selection_claimed"] = True
-        for trace in data["tool_loop_traces"]:
+        for index, trace in enumerate(data["tool_loop_traces"]):
             trace["pass1_mode"] = "natural_tool_selection_probe"
             trace["forced_tool_request_contract"] = False
             trace["manager_tool_selection_claimed"] = True
@@ -1112,6 +1118,18 @@ def test_natural_probe_failure_report_classifies_no_tool_request_and_blocking_bo
             trace["manager_pass_2"]["provider_params"]["model"] = None
             trace["manager_pass_2"]["provider_params"]["request_id"] = None
             trace["manager_pass_2"]["item_results"] = []
+            if index == 3:
+                trace["manager_pass_1"]["decision_payload"] = {
+                    "manager_action": "final",
+                    "final_action": "request_clarification",
+                    "answer_contract": {},
+                    "operations": [],
+                }
+                trace["mutation"] = {
+                    "mutation_attempted": False,
+                    "reason": "no_mutation_intent",
+                    "mutation_result": None,
+                }
 
     phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
 
@@ -1120,14 +1138,828 @@ def test_natural_probe_failure_report_classifies_no_tool_request_and_blocking_bo
 
     assert failure_report["failure_family_counts"]["manager_no_tool_request"] >= 1
     assert failure_report["failure_family_counts"]["blocking_boundary_ok"] == 1
-    assert failure_report["failure_family_counts"]["manager_blocking_semantics_not_proven"] == 1
+    assert failure_report["failure_family_counts"]["manager_blocking_semantics_not_proven"] == 0
     blocking_case = failure_report["cases"][3]
     assert blocking_case["expected_tool_policy"]["estimate_tool_execution"] == "forbidden"
     assert blocking_case["expected_tool_policy"]["lookup_generic_food"] == "not_required"
     assert blocking_case["failure_family"] == "blocking_boundary_ok"
-    assert blocking_case["manager_blocking_semantics"] == "not_proven"
+    assert blocking_case["manager_blocking_semantics"] == "proven"
+    assert blocking_case["pass1_decision_shape"]["status"] == "valid"
     assert blocking_case["pass2_ran"] is False
     assert blocking_case["item_results_source"] == "none"
+
+
+def test_natural_probe_clarify_boundary_final_is_not_misclassified_as_manager_no_tool_request(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][3]
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+        trace["manager_pass_1"]["decision_payload"] = {
+            "manager_action": "final",
+            "final_action": "request_clarification",
+            "clarifying_question": "請問滷味裡有哪些品項？",
+            "answer_contract": {},
+            "operations": [],
+        }
+        trace["manager_pass_1"]["requested_read_tools"] = []
+        trace["runtime_tool_router"]["requested_read_tools"] = []
+        trace["runtime_tool_router"]["manager_requested_tools"] = []
+        trace["runtime_tool_router"]["allowed_tools"] = []
+        trace["runtime_tool_router"]["filtered_tool_plan"] = []
+        trace["read_tool_executions"] = []
+        trace["packetizer"]["outputs"] = []
+        trace["manager_pass_2"]["provider_params"]["provider"] = None
+        trace["manager_pass_2"]["provider_params"]["model"] = None
+        trace["manager_pass_2"]["provider_params"]["request_id"] = None
+        trace["manager_pass_2"]["item_results"] = []
+        trace["mutation"] = {
+            "mutation_attempted": False,
+            "reason": "no_mutation_intent",
+            "mutation_result": None,
+        }
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    blocking_case = report["natural_probe_failure_report"]["cases"][3]
+    assert blocking_case["failure_family"] == "blocking_boundary_ok"
+
+
+def test_natural_probe_composition_unknown_lookup_is_hard_invariant_violation(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][3]
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+        trace["manager_pass_1"]["decision_payload"] = {
+            "manager_action": "call_tools",
+            "tool_calls": [{"name": "lookup_generic_food", "arguments": {"food_name": "滷味"}}],
+            "answer_contract": {},
+            "operations": [],
+        }
+        trace["manager_pass_1"]["requested_read_tools"] = ["lookup_generic_food"]
+        trace["runtime_tool_router"]["requested_read_tools"] = ["lookup_generic_food"]
+        trace["runtime_tool_router"]["manager_requested_tools"] = ["lookup_generic_food"]
+        trace["runtime_tool_router"]["allowed_tools"] = []
+        trace["runtime_tool_router"]["filtered_tool_plan"] = []
+        trace["runtime_tool_router"]["blocked_tools"] = ["lookup_generic_food", "retrieve_web_food_evidence"]
+        trace["runtime_tool_router"]["block_reasons"] = [
+            {
+                "rule": "self_selected_basket_without_ingredients_blocks_estimate_tools",
+                "detail": "Composition is unknown; ask for ingredients before generic DB or web estimate.",
+            }
+        ]
+        trace["read_tool_executions"] = []
+        trace["packetizer"]["outputs"] = []
+        trace["manager_pass_2"]["provider_params"]["provider"] = None
+        trace["manager_pass_2"]["provider_params"]["model"] = None
+        trace["manager_pass_2"]["provider_params"]["request_id"] = None
+        trace["manager_pass_2"]["item_results"] = []
+        trace["mutation"] = {
+            "mutation_attempted": False,
+            "reason": "no_mutation_intent",
+            "mutation_result": None,
+        }
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["natural_tool_selection_pass"] is False
+    assert report["quality_pass"] is False
+    assert any(item["code"] == "hard_invariant_decision_shape_violation" for item in report["quality_blockers"])
+    blocking_case = report["natural_probe_failure_report"]["cases"][3]
+    assert blocking_case["failure_family"] == "composition_unknown_invalid_estimate_or_log"
+    assert blocking_case["pass1_decision_shape"]["status"] == "invalid"
+    assert blocking_case["pass1_decision_shape"]["violation_family"] == "composition_unknown_invalid_estimate_or_log"
+    assert blocking_case["pass1_decision_shape"]["expected_shape"] == "final.request_clarification.no_tools.no_mutation"
+    assert "call_tools.lookup_generic_food" in blocking_case["pass1_decision_shape"]["actual_shape"]
+
+
+def test_natural_probe_composition_unknown_log_consumption_is_hard_invariant_violation(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][3]
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+        trace["manager_pass_1"]["decision_payload"] = {
+            "manager_action": "final",
+            "final_action": "log_consumption",
+            "answer_contract": {"text": "已為你記錄滷味熱量。"},
+            "operations": [],
+            "item_results": [{"food_name": "滷味", "likely_kcal": 350, "kcal_range": [300, 400]}],
+        }
+        trace["manager_pass_1"]["requested_read_tools"] = []
+        trace["runtime_tool_router"]["requested_read_tools"] = []
+        trace["runtime_tool_router"]["manager_requested_tools"] = []
+        trace["runtime_tool_router"]["allowed_tools"] = []
+        trace["runtime_tool_router"]["filtered_tool_plan"] = []
+        trace["read_tool_executions"] = []
+        trace["packetizer"]["outputs"] = []
+        trace["manager_pass_2"]["provider_params"]["provider"] = None
+        trace["manager_pass_2"]["provider_params"]["model"] = None
+        trace["manager_pass_2"]["provider_params"]["request_id"] = None
+        trace["manager_pass_2"]["item_results"] = []
+        trace["mutation"] = {
+            "mutation_attempted": True,
+            "reason": "guard_approved_logging",
+            "mutation_result": {"truth_level": "mutation_result", "ledger_item_ids": ["bad"]},
+        }
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["natural_tool_selection_pass"] is False
+    assert report["quality_pass"] is False
+    blocking_case = report["natural_probe_failure_report"]["cases"][3]
+    assert blocking_case["failure_family"] == "composition_unknown_invalid_estimate_or_log"
+    assert blocking_case["pass1_decision_shape"]["status"] == "invalid"
+    assert "final.log_consumption" in blocking_case["pass1_decision_shape"]["actual_shape"]
+
+
+def test_natural_probe_composition_unknown_request_clarification_with_intake_result_is_invalid(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][3]
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+        trace["manager_pass_1"]["decision_payload"] = {
+            "manager_action": "final",
+            "response_mode": "intake_result",
+            "final_action": "request_clarification",
+            "workflow_effect": "pass_to_next_round",
+            "answer_contract": {"text": "Please list the specific items first."},
+            "operations": [],
+        }
+        trace["manager_pass_1"]["requested_read_tools"] = []
+        trace["runtime_tool_router"]["requested_read_tools"] = []
+        trace["runtime_tool_router"]["manager_requested_tools"] = []
+        trace["runtime_tool_router"]["allowed_tools"] = []
+        trace["runtime_tool_router"]["filtered_tool_plan"] = []
+        trace["read_tool_executions"] = []
+        trace["packetizer"]["outputs"] = []
+        trace["manager_pass_2"]["provider_params"]["provider"] = None
+        trace["manager_pass_2"]["provider_params"]["model"] = None
+        trace["manager_pass_2"]["provider_params"]["request_id"] = None
+        trace["manager_pass_2"]["item_results"] = []
+        trace["mutation"] = {
+            "mutation_attempted": False,
+            "reason": "no_mutation_intent",
+            "mutation_result": None,
+        }
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    blocking_case = report["natural_probe_failure_report"]["cases"][3]
+    assert blocking_case["failure_family"] == "composition_unknown_invalid_estimate_or_log"
+    assert blocking_case["pass1_decision_shape"]["status"] == "invalid"
+    assert "response_mode=intake_result" in blocking_case["pass1_decision_shape"]["actual_shape"]
+    assert "workflow_effect=pass_to_next_round" in blocking_case["pass1_decision_shape"]["actual_shape"]
+
+
+def test_natural_probe_composition_unknown_request_clarification_with_high_variance_posture_is_invalid(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][3]
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+        trace["manager_pass_1"]["decision_payload"] = {
+            "manager_action": "final",
+            "final_action": "request_clarification",
+            "response_mode": "clarification",
+            "uncertainty_posture": "high_variance_generic_item",
+            "answer_contract": {"text": "Please list the specific items first."},
+            "operations": [],
+        }
+        trace["manager_pass_1"]["requested_read_tools"] = []
+        trace["runtime_tool_router"]["requested_read_tools"] = []
+        trace["runtime_tool_router"]["manager_requested_tools"] = []
+        trace["runtime_tool_router"]["allowed_tools"] = []
+        trace["runtime_tool_router"]["filtered_tool_plan"] = []
+        trace["read_tool_executions"] = []
+        trace["packetizer"]["outputs"] = []
+        trace["manager_pass_2"]["provider_params"]["provider"] = None
+        trace["manager_pass_2"]["provider_params"]["model"] = None
+        trace["manager_pass_2"]["provider_params"]["request_id"] = None
+        trace["manager_pass_2"]["item_results"] = []
+        trace["mutation"] = {
+            "mutation_attempted": False,
+            "reason": "no_mutation_intent",
+            "mutation_result": None,
+        }
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    blocking_case = report["natural_probe_failure_report"]["cases"][3]
+    assert blocking_case["failure_family"] == "composition_unknown_invalid_estimate_or_log"
+    assert blocking_case["pass1_decision_shape"]["status"] == "invalid"
+    assert "uncertainty_posture=high_variance_generic_item" in blocking_case["pass1_decision_shape"]["actual_shape"]
+
+
+def test_natural_probe_composition_unknown_search_tool_request_is_hard_invariant_violation(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][3]
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+        trace["manager_pass_1"]["decision_payload"] = {
+            "manager_action": "call_tools",
+            "interaction_family": "food_logging",
+            "response_mode": "intake_result",
+            "operations": [],
+            "answer_contract": {},
+            "tool_calls": [{"name": "search", "arguments": {"query": "滷味 熱量"}}],
+        }
+        trace["manager_pass_1"]["requested_read_tools"] = ["search"]
+        trace["runtime_tool_router"]["requested_read_tools"] = ["search"]
+        trace["runtime_tool_router"]["manager_requested_tools"] = ["search"]
+        trace["runtime_tool_router"]["allowed_tools"] = []
+        trace["runtime_tool_router"]["filtered_tool_plan"] = []
+        trace["runtime_tool_router"]["blocked_tools"] = ["search"]
+        trace["read_tool_executions"] = []
+        trace["packetizer"]["outputs"] = []
+        trace["manager_pass_2"]["provider_params"]["provider"] = None
+        trace["manager_pass_2"]["provider_params"]["model"] = None
+        trace["manager_pass_2"]["provider_params"]["request_id"] = None
+        trace["manager_pass_2"]["item_results"] = []
+        trace["mutation"] = {
+            "mutation_attempted": False,
+            "reason": "no_mutation_intent",
+            "mutation_result": None,
+        }
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    blocking_case = report["natural_probe_failure_report"]["cases"][3]
+    assert blocking_case["failure_family"] == "composition_unknown_invalid_estimate_or_log"
+    assert blocking_case["pass1_decision_shape"]["status"] == "invalid"
+    assert blocking_case["pass1_decision_shape"]["actual_shape"] == "call_tools.search.response_mode=intake_result"
+
+
+def test_natural_probe_flexible_case_no_tool_request_is_not_hard_invariant_violation(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][0]
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+        trace["manager_pass_1"]["decision_payload"] = {
+            "manager_action": "final",
+            "final_action": "request_clarification",
+            "answer_contract": {"text": "請提供更多資訊。"},
+            "operations": [],
+        }
+        trace["manager_pass_1"]["requested_read_tools"] = []
+        trace["runtime_tool_router"]["requested_read_tools"] = []
+        trace["runtime_tool_router"]["manager_requested_tools"] = []
+        trace["runtime_tool_router"]["allowed_tools"] = []
+        trace["runtime_tool_router"]["filtered_tool_plan"] = []
+        trace["read_tool_executions"] = []
+        trace["packetizer"]["outputs"] = []
+        trace["manager_pass_2"]["provider_params"]["provider"] = None
+        trace["manager_pass_2"]["provider_params"]["model"] = None
+        trace["manager_pass_2"]["provider_params"]["request_id"] = None
+        trace["manager_pass_2"]["item_results"] = []
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    case_report = report["natural_probe_failure_report"]["cases"][0]
+    assert case_report["failure_family"] == "manager_no_tool_request"
+    assert case_report["pass1_decision_shape"]["status"] == "not_applicable"
+
+
+def test_targeted_artifact_does_not_trigger_core_smoke_case_missing(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        data["case_set"] = "targeted"
+        data["requested_case_ids"] = ["B1-004", "B1-005"]
+        data["core_smoke_cases_run"] = [CORE_CASES[3], CORE_CASES[4]]
+        data["tool_loop_traces"] = data["tool_loop_traces"][3:5]
+        data["completed_case_count"] = 2
+        data["expected_full_case_count"] = len(CORE_CASES)
+        data["full_readiness_claimed"] = False
+        data["runtime_latency"]["mode"] = "natural_tool_selection_probe"
+        data["runtime_latency"]["trace_count"] = 2
+        data["runtime_latency"]["completed_trace_count"] = 2
+        data["runtime_latency"]["readiness_claim_scope"] = "diagnostic"
+        blocking_trace = data["tool_loop_traces"][0]
+        blocking_trace["pass1_mode"] = "natural_tool_selection_probe"
+        blocking_trace["forced_tool_request_contract"] = False
+        blocking_trace["manager_tool_selection_claimed"] = True
+        blocking_trace["manager_pass_1"]["decision_payload"] = {
+            "manager_action": "final",
+            "final_action": "request_clarification",
+            "answer_contract": {},
+            "operations": [],
+        }
+        blocking_trace["manager_pass_1"]["requested_read_tools"] = []
+        blocking_trace["runtime_tool_router"]["requested_read_tools"] = []
+        blocking_trace["runtime_tool_router"]["manager_requested_tools"] = []
+        blocking_trace["runtime_tool_router"]["allowed_tools"] = []
+        blocking_trace["runtime_tool_router"]["filtered_tool_plan"] = []
+        blocking_trace["read_tool_executions"] = []
+        blocking_trace["packetizer"]["outputs"] = []
+        blocking_trace["manager_pass_2"]["provider_params"]["provider"] = None
+        blocking_trace["manager_pass_2"]["provider_params"]["model"] = None
+        blocking_trace["manager_pass_2"]["provider_params"]["request_id"] = None
+        blocking_trace["manager_pass_2"]["item_results"] = []
+        blocking_trace["mutation"] = {
+            "mutation_attempted": False,
+            "reason": "no_mutation_intent",
+            "mutation_result": None,
+        }
+        listed_trace = data["tool_loop_traces"][1]
+        listed_trace["pass1_mode"] = "natural_tool_selection_probe"
+        listed_trace["forced_tool_request_contract"] = False
+        listed_trace["manager_tool_selection_claimed"] = True
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert not any(item["code"] == "core_smoke_case_missing" for item in report["blockers"])
+    assert any(item["code"] == "diagnostic_case_set_not_full_readiness" for item in report["quality_blockers"])
+    assert report["ready_for_phase_b1_implementation"] is False
+    assert report["natural_probe_failure_report"]["cases"][0]["pass1_decision_shape"]["status"] == "valid"
+
+
+def test_targeted_timeout_only_artifact_is_provider_diagnostic_not_decision_shape_failure(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        data["case_set"] = "targeted"
+        data["requested_case_ids"] = ["B1-004"]
+        data["core_smoke_cases_run"] = []
+        data["tool_loop_traces"] = []
+        data["case_results"] = [
+            {
+                "case_id": "B1-004",
+                "input_message": CORE_CASES[3],
+                "case_execution_status": "provider_timeout",
+                "attempt_count": 2,
+                "trace_present": False,
+                "case_started_at_utc": "2026-04-25T00:00:00Z",
+                "case_ended_at_utc": "2026-04-25T00:00:10Z",
+                "provider_runtime": {
+                    "reason": "provider_timeout",
+                    "timeout_layer": "adapter_http_timeout",
+                },
+            }
+        ]
+        data["completed_case_count"] = 0
+        data["expected_full_case_count"] = len(CORE_CASES)
+        data["full_readiness_claimed"] = False
+        data["runtime_latency"]["mode"] = "natural_tool_selection_probe"
+        data["runtime_latency"]["trace_count"] = 0
+        data["runtime_latency"]["completed_trace_count"] = 0
+        data["runtime_latency"]["readiness_claim_scope"] = "diagnostic"
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert not any(item["code"] == "core_smoke_case_missing" for item in report["blockers"])
+    assert report["natural_tool_selection_pass"] == "not_proven"
+    assert report["provider_runtime_attribution"]["tool_selection_status"] == "not_proven"
+    assert report["natural_probe_failure_report"]["provider_blocked_before_cases"] is True
+    assert report["natural_probe_failure_report"]["failure_family_counts"]["composition_unknown_invalid_estimate_or_log"] == 0
+    assert report["natural_probe_failure_report"]["cases"] == []
+
+
+def test_targeted_runtime_blocker_with_partial_trace_keeps_b1_004_decision_shape_visible(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        data["case_set"] = "targeted"
+        data["requested_case_ids"] = ["B1-004"]
+        data["core_smoke_cases_run"] = [CORE_CASES[3]]
+        data["tool_loop_traces"] = [
+            {
+                "case_id": "B1-004",
+                "input_message": CORE_CASES[3],
+                "semantic_boundary": "self_selected_basket_without_ingredients",
+                "pass1_mode": "natural_tool_selection_probe",
+                "forced_tool_request_contract": False,
+                "manager_tool_selection_claimed": True,
+                "runner_derived_item_results": False,
+                "is_live_tavily_canary": False,
+                "uses_deterministic_stub_fixtures": True,
+                "stub_fixture_source": "scripts/run_wave1_phase_b_minimal_tool_loop_smoke.py",
+                "stub_generated_by_llm": False,
+                "manager_pass_1": {
+                    "manager_round": 0,
+                    "manager_role": "pass_1_tool_request",
+                    "prompt_hash": "hash",
+                    "started_at_utc": "2026-04-25T00:00:00Z",
+                    "ended_at_utc": "2026-04-25T00:00:01Z",
+                    "latency_ms": 10,
+                    "provider_params": {"provider": "builderspace", "model": "deepseek", "request_id": "req"},
+                    "phase_b1_task_payload_id": "phase_b1_pass_1_natural_tool_selection_guidance_v5",
+                    "phase_b1_task_payload_hash": "hash",
+                    "requested_read_tools": ["search", "extract"],
+                    "forbidden_final_truth_fields_present": [],
+                    "decision_payload": {
+                        "manager_action": "call_tools",
+                        "interaction_family": "food_logging",
+                        "response_mode": "intake_result",
+                        "operations": [],
+                        "answer_contract": {},
+                        "tool_calls": [
+                            {"name": "search", "arguments": {"query": "滷味 熱量"}},
+                            {"name": "extract", "arguments": {"urls": ["https://example.test/luwei"]}},
+                        ],
+                    },
+                    "decision_payload_type": "dict",
+                    "payload_shape_valid": True,
+                    "payload_shape_error": None,
+                },
+                "runtime_tool_router": {
+                    "requested_read_tools": ["search", "extract"],
+                    "manager_requested_tools": ["search", "extract"],
+                    "allowed_tools": [],
+                    "filtered_tool_plan": [],
+                    "blocked_tools": ["search", "extract", "lookup_generic_food", "retrieve_web_food_evidence"],
+                    "block_reasons": [],
+                    "available_read_tools": ["lookup_generic_food", "retrieve_web_food_evidence", "load_taiwan_food_semantics_skill"],
+                    "canonical_tool_catalog_hash": "hash",
+                },
+                "read_tool_executions": [],
+                "packetizer": {"outputs": [], "forbidden_final_truth_fields_present": []},
+                "manager_pass_2": {
+                    "manager_round": 1,
+                    "manager_role": "pass_2_synthesis",
+                    "prompt_hash": "hash2",
+                    "started_at_utc": None,
+                    "ended_at_utc": None,
+                    "latency_ms": None,
+                    "provider_params": {"provider": None, "model": None, "request_id": None},
+                    "phase_b1_task_payload_id": None,
+                    "phase_b1_task_payload_hash": None,
+                    "item_results": [],
+                    "mutation_attempted": False,
+                    "forbidden_mutation_fields_present": [],
+                    "decision_payload": None,
+                    "decision_payload_type": None,
+                    "payload_shape_valid": True,
+                    "payload_shape_error": None,
+                },
+                "mutation": {
+                    "mutation_attempted": False,
+                    "reason": "no_mutation_intent",
+                    "mutation_result": None,
+                },
+                "guard": {"ran": True, "ran_before_mutation": True, "result": "no_mutation"},
+                "renderer": {"input": {}, "final_response": "", "invented_facts": []},
+            }
+        ]
+        data["case_results"] = [
+            {
+                "case_id": "B1-004",
+                "input_message": CORE_CASES[3],
+                "case_execution_status": "runtime_blocker",
+                "attempt_count": 1,
+                "trace_present": True,
+                "case_started_at_utc": "2026-04-25T00:00:00Z",
+                "case_ended_at_utc": "2026-04-25T00:00:01Z",
+                "runtime_blocker": {
+                    "reason": "manager_output_contract_violation",
+                    "stage": "pass_1_tool_request",
+                    "round_index": 0,
+                    "decision_payload_type": "dict",
+                    "violation_family": "clarification_branch_conflicting_fields",
+                    "actual_shape": "call_tools.search.extract.response_mode=intake_result",
+                },
+            }
+        ]
+        data["completed_case_count"] = 1
+        data["expected_full_case_count"] = len(CORE_CASES)
+        data["full_readiness_claimed"] = False
+        data["runtime_latency"]["mode"] = "natural_tool_selection_probe"
+        data["runtime_latency"]["trace_count"] = 1
+        data["runtime_latency"]["completed_trace_count"] = 1
+        data["runtime_latency"]["readiness_claim_scope"] = "diagnostic"
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["provider_runtime_attribution"]["blocker_kind"] == "runtime_blocker"
+    assert report["natural_tool_selection_pass"] is False
+    assert report["natural_probe_failure_report"]["failure_family_counts"]["composition_unknown_invalid_estimate_or_log"] == 1
+    case_report = report["natural_probe_failure_report"]["cases"][0]
+    assert case_report["failure_family"] == "composition_unknown_invalid_estimate_or_log"
+    assert case_report["pass1_decision_shape"]["status"] == "invalid"
+    assert case_report["pass1_decision_shape"]["actual_shape"] == "call_tools.search.extract.response_mode=intake_result"
+
+
+def test_targeted_b1_004_real_pass2_trace_clears_trace_and_latency_skeleton_blockers(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        data["case_set"] = "targeted"
+        data["requested_case_ids"] = ["B1-004"]
+        data["core_smoke_cases_run"] = [CORE_CASES[3]]
+        data["tool_loop_traces"] = [
+            {
+                "case_id": "B1-004",
+                "input_message": CORE_CASES[3],
+                "case_started_at_utc": "2026-04-25T00:00:00Z",
+                "case_ended_at_utc": "2026-04-25T00:00:01Z",
+                "case_latency_ms": 1000,
+                "semantic_boundary": "self_selected_basket_without_ingredients",
+                "pass1_mode": "natural_tool_selection_probe",
+                "forced_tool_request_contract": False,
+                "manager_tool_selection_claimed": True,
+                "runner_derived_item_results": False,
+                "is_live_tavily_canary": False,
+                "uses_deterministic_stub_fixtures": True,
+                "stub_fixture_source": "scripts/run_wave1_phase_b_minimal_tool_loop_smoke.py",
+                "stub_generated_by_llm": False,
+                "manager_pass_1": {
+                    "manager_round": 0,
+                    "manager_role": "pass_1_tool_request",
+                    "prompt_hash": "hash",
+                    "started_at_utc": "2026-04-25T00:00:00Z",
+                    "ended_at_utc": "2026-04-25T00:00:00.400000Z",
+                    "latency_ms": 400,
+                    "usage": {"prompt_tokens": 12, "completion_tokens": 8, "total_tokens": 20},
+                    "provider_params": _provider_params(),
+                    "phase_b1_task_payload_id": "phase_b1_pass_1_natural_tool_selection_guidance_v5",
+                    "phase_b1_task_payload_hash": "hash",
+                    "requested_read_tools": [],
+                    "forbidden_final_truth_fields_present": [],
+                    "decision_payload": {
+                        "manager_action": "final",
+                        "response_mode": "clarification",
+                        "final_action": "request_clarification",
+                        "operations": [],
+                        "answer_contract": {"text": "Please list the specific items first."},
+                    },
+                    "decision_payload_type": "dict",
+                    "payload_shape_valid": True,
+                    "payload_shape_error": None,
+                },
+                "runtime_tool_router": {
+                    "requested_read_tools": [],
+                    "manager_requested_tools": [],
+                    "allowed_tools": [],
+                    "filtered_tool_plan": [],
+                    "blocked_tools": ["lookup_generic_food", "retrieve_web_food_evidence"],
+                    "block_reasons": [
+                        {
+                            "tool_name": "lookup_generic_food",
+                            "reason": "self_selected_basket_without_ingredients_blocks_estimate_tools",
+                            "rule": "self_selected_basket_without_ingredients_blocks_estimate_tools",
+                            "detail": "Composition is unknown; ask for ingredients before generic DB or web estimate.",
+                        }
+                    ],
+                    "available_read_tools": ["lookup_generic_food", "retrieve_web_food_evidence", "load_taiwan_food_semantics_skill"],
+                    "canonical_tool_catalog_hash": "hash",
+                },
+                "read_tool_executions": [],
+                "packetizer": {
+                    "outputs": [
+                        {
+                            "packet_type": "TaiwanSkillPacket",
+                            "truth_level": "rule_hint",
+                            "fixture_id": "B1-004_self_selected_basket",
+                            "fixture_hash": "hash_b1_004_rule_hint",
+                            "fixture_only": True,
+                            "generated_by": "deterministic_fixture",
+                            "rule_id": "self_selected_basket_without_ingredients",
+                        }
+                    ],
+                    "forbidden_final_truth_fields_present": [],
+                },
+                "manager_pass_2": {
+                    "manager_round": 1,
+                    "manager_role": "pass_2_synthesis",
+                    "prompt_hash": "hash2",
+                    "started_at_utc": "2026-04-25T00:00:00.500000Z",
+                    "ended_at_utc": "2026-04-25T00:00:00.900000Z",
+                    "latency_ms": 400,
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 6, "total_tokens": 16},
+                    "provider_params": _provider_params(),
+                    "phase_b1_task_payload_id": "phase_b1_pass_2_synthesis_v1",
+                    "phase_b1_task_payload_hash": "hash2",
+                    "item_results": [],
+                    "item_results_source": "none",
+                    "item_results_bridge_shape": None,
+                    "item_results_bridge_parent_fallback_fields": [],
+                    "mutation_attempted": False,
+                    "forbidden_mutation_fields_present": [],
+                    "decision_payload": {
+                        "manager_action": "final",
+                        "response_mode": "clarification",
+                        "final_action": "request_clarification",
+                        "operations": [],
+                        "answer_contract": {"text": "Please list the specific items first."},
+                    },
+                    "decision_payload_type": "dict",
+                    "payload_shape_valid": True,
+                    "payload_shape_error": None,
+                },
+                "mutation": {
+                    "mutation_attempted": False,
+                    "reason": "no_mutation_intent",
+                    "mutation_result": None,
+                },
+                "guard": {"ran": True, "ran_before_mutation": True, "result": "no_mutation"},
+                "renderer": {
+                    "input": {"item_results": [], "ledger_mutation_result": None},
+                    "final_response": "",
+                    "invented_facts": [],
+                },
+            }
+        ]
+        data["case_results"] = []
+        data["completed_case_count"] = 1
+        data["expected_full_case_count"] = len(CORE_CASES)
+        data["full_readiness_claimed"] = False
+        data["runtime_latency"]["mode"] = "natural_tool_selection_probe"
+        data["runtime_latency"]["trace_count"] = 1
+        data["runtime_latency"]["completed_trace_count"] = 1
+        data["runtime_latency"]["readiness_claim_scope"] = "diagnostic"
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert not any(item["code"] == "pass2_provider_trace_missing" for item in report["blockers"])
+    assert not any(item["code"] == "runtime_latency_trace_missing" for item in report["blockers"])
+
+
+def test_natural_probe_listed_ingredients_basket_lookup_is_hard_invariant_violation(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][4]
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+        trace["manager_pass_1"]["decision_payload"] = {
+            "manager_action": "call_tools",
+            "tool_calls": [{"name": "lookup_generic_food", "arguments": {"food_name": "滷味"}}],
+            "operations": [],
+            "answer_contract": {},
+        }
+        trace["manager_pass_1"]["requested_read_tools"] = ["lookup_generic_food"]
+        trace["runtime_tool_router"]["requested_read_tools"] = ["lookup_generic_food"]
+        trace["runtime_tool_router"]["manager_requested_tools"] = ["lookup_generic_food"]
+        trace["runtime_tool_router"]["allowed_tools"] = ["lookup_generic_food"]
+        trace["runtime_tool_router"]["filtered_tool_plan"] = ["lookup_generic_food"]
+        trace["read_tool_executions"] = [
+            {
+                "tool_name": "lookup_generic_food",
+                "raw_tool_output_ref": "artifacts/raw/B1-005_luwei.json",
+                "output": {"truth_level": "candidate", "candidate": {"food_name": "滷味"}},
+            }
+        ]
+        trace["packetizer"]["outputs"] = [
+            _with_fixture_metadata(
+                {
+                    "packet_type": "GenericFoodDbPacket",
+                    "truth_level": "candidate",
+                    "candidates": [{"food_name": "滷味"}],
+                },
+                case_id="B1-005",
+            )
+        ]
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert report["natural_tool_selection_pass"] is False
+    assert any(item["code"] == "hard_invariant_decision_shape_violation" for item in report["quality_blockers"])
+    case_report = report["natural_probe_failure_report"]["cases"][4]
+    assert case_report["failure_family"] == "listed_ingredients_collapsed_to_basket_lookup"
+    assert case_report["pass1_decision_shape"]["status"] == "invalid"
+    assert case_report["pass1_decision_shape"]["violation_family"] == "listed_ingredients_collapsed_to_basket_lookup"
+
+
+def test_natural_probe_listed_ingredients_item_level_lookup_is_valid_decision_shape(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][4]
+        trace["pass1_mode"] = "natural_tool_selection_probe"
+        trace["forced_tool_request_contract"] = False
+        trace["manager_tool_selection_claimed"] = True
+        trace["manager_pass_1"]["decision_payload"] = {
+            "manager_action": "call_tools",
+            "tool_calls": [
+                {"name": "lookup_generic_food", "arguments": {"food_name": "豆干"}},
+                {"name": "lookup_generic_food", "arguments": {"food_name": "海帶"}},
+                {"name": "lookup_generic_food", "arguments": {"food_name": "貢丸"}},
+            ],
+            "operations": [],
+            "answer_contract": {},
+        }
+        trace["manager_pass_1"]["requested_read_tools"] = [
+            "lookup_generic_food",
+            "lookup_generic_food",
+            "lookup_generic_food",
+        ]
+        trace["runtime_tool_router"]["requested_read_tools"] = [
+            "lookup_generic_food",
+            "lookup_generic_food",
+            "lookup_generic_food",
+        ]
+        trace["runtime_tool_router"]["manager_requested_tools"] = [
+            "lookup_generic_food",
+            "lookup_generic_food",
+            "lookup_generic_food",
+        ]
+        trace["runtime_tool_router"]["allowed_tools"] = [
+            "lookup_generic_food",
+            "lookup_generic_food",
+            "lookup_generic_food",
+        ]
+        trace["runtime_tool_router"]["filtered_tool_plan"] = [
+            "lookup_generic_food",
+            "lookup_generic_food",
+            "lookup_generic_food",
+        ]
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    case_report = report["natural_probe_failure_report"]["cases"][4]
+    assert case_report["pass1_decision_shape"]["status"] == "valid"
+    assert case_report["pass1_decision_shape"]["violation_family"] is None
+
+
+def test_natural_probe_listed_ingredients_answer_contract_bridge_counts_as_pass2_item_results(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["pass1_mode"] = "natural_tool_selection_probe"
+        data["forced_tool_request_contract"] = False
+        data["manager_tool_selection_claimed"] = True
+        for trace in data["tool_loop_traces"]:
+            trace["pass1_mode"] = "natural_tool_selection_probe"
+            trace["forced_tool_request_contract"] = False
+            trace["manager_tool_selection_claimed"] = True
+        trace = data["tool_loop_traces"][4]
+        fixture_id = trace["packetizer"]["outputs"][0]["fixture_id"]
+        trace["manager_pass_2"]["item_results"] = [
+            {
+                "food_name": "豆干",
+                "kcal_range": [60, 100],
+                "likely_kcal": 80,
+                "uncertainty": "medium",
+                "evidence_used": [fixture_id],
+            },
+            {
+                "food_name": "海帶",
+                "kcal_range": [15, 45],
+                "likely_kcal": 30,
+                "uncertainty": "medium",
+                "evidence_used": [fixture_id],
+            },
+            {
+                "food_name": "貢丸",
+                "kcal_range": [60, 90],
+                "likely_kcal": 75,
+                "uncertainty": "low",
+                "evidence_used": [fixture_id],
+            },
+        ]
+        trace["manager_pass_2"]["item_results_source"] = "answer_contract_bridge"
+        trace["runner_derived_item_results"] = False
+
+    phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    case_report = report["natural_probe_failure_report"]["cases"][4]
+    assert case_report["failure_family"] == "none"
+    assert case_report["item_results_source"] == "answer_contract_bridge"
+    assert report["natural_probe_failure_report"]["failure_family_counts"]["pass2_no_item_results"] == 0
 
 
 def test_natural_probe_missing_pass2_item_results_fails_loop_completion_not_selection(tmp_path: Path) -> None:
@@ -1141,6 +1973,29 @@ def test_natural_probe_missing_pass2_item_results_fails_loop_completion_not_sele
             trace["manager_tool_selection_claimed"] = True
         data["tool_loop_traces"][0]["manager_pass_2"]["item_results"] = []
         data["tool_loop_traces"][0]["runner_derived_item_results"] = False
+        blocking_trace = data["tool_loop_traces"][3]
+        blocking_trace["manager_pass_1"]["decision_payload"] = {
+            "manager_action": "final",
+            "final_action": "request_clarification",
+            "answer_contract": {},
+            "operations": [],
+        }
+        blocking_trace["manager_pass_1"]["requested_read_tools"] = []
+        blocking_trace["runtime_tool_router"]["requested_read_tools"] = []
+        blocking_trace["runtime_tool_router"]["manager_requested_tools"] = []
+        blocking_trace["runtime_tool_router"]["allowed_tools"] = []
+        blocking_trace["runtime_tool_router"]["filtered_tool_plan"] = []
+        blocking_trace["read_tool_executions"] = []
+        blocking_trace["packetizer"]["outputs"] = []
+        blocking_trace["manager_pass_2"]["provider_params"]["provider"] = None
+        blocking_trace["manager_pass_2"]["provider_params"]["model"] = None
+        blocking_trace["manager_pass_2"]["provider_params"]["request_id"] = None
+        blocking_trace["manager_pass_2"]["item_results"] = []
+        blocking_trace["mutation"] = {
+            "mutation_attempted": False,
+            "reason": "no_mutation_intent",
+            "mutation_result": None,
+        }
 
     phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
 
@@ -1161,6 +2016,32 @@ def test_natural_probe_runner_derived_item_results_fails_loop_completion(tmp_pat
         trace["forced_tool_request_contract"] = False
         trace["manager_tool_selection_claimed"] = True
         trace["runner_derived_item_results"] = True
+        blocking_trace = data["tool_loop_traces"][3]
+        blocking_trace["pass1_mode"] = "natural_tool_selection_probe"
+        blocking_trace["forced_tool_request_contract"] = False
+        blocking_trace["manager_tool_selection_claimed"] = True
+        blocking_trace["manager_pass_1"]["decision_payload"] = {
+            "manager_action": "final",
+            "final_action": "request_clarification",
+            "answer_contract": {},
+            "operations": [],
+        }
+        blocking_trace["manager_pass_1"]["requested_read_tools"] = []
+        blocking_trace["runtime_tool_router"]["requested_read_tools"] = []
+        blocking_trace["runtime_tool_router"]["manager_requested_tools"] = []
+        blocking_trace["runtime_tool_router"]["allowed_tools"] = []
+        blocking_trace["runtime_tool_router"]["filtered_tool_plan"] = []
+        blocking_trace["read_tool_executions"] = []
+        blocking_trace["packetizer"]["outputs"] = []
+        blocking_trace["manager_pass_2"]["provider_params"]["provider"] = None
+        blocking_trace["manager_pass_2"]["provider_params"]["model"] = None
+        blocking_trace["manager_pass_2"]["provider_params"]["request_id"] = None
+        blocking_trace["manager_pass_2"]["item_results"] = []
+        blocking_trace["mutation"] = {
+            "mutation_attempted": False,
+            "reason": "no_mutation_intent",
+            "mutation_result": None,
+        }
 
     phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
 

@@ -116,6 +116,30 @@ Hard rules：
 - 不得依賴 runner-specific payload fields 作為 manager vocabulary
 - 不得用 renderer 文案補註來掩蓋 exactness、ownership、或 evidence honesty 的語義錯誤
 
+### 3.2B Branch Contract Ownership
+
+prompt 的責任是提供 task framing、family-level rules、與正向 examples；prompt 不是 hard-boundary correctness 的唯一保證。
+
+對於 clarification-only、tool-call、logging / intake 這類互斥 branch：
+
+- hard boundary 規則不得只存在 prompt wording
+- schema / provider support 應在安全可行時盡量前移 impossible shape narrowing
+- shared branch validation 必須拒絕 mixed-branch payload
+- guard / verifier 必須保留 attribution 並防止 fake green
+
+Provider adapters 可以：
+
+- 套用 provider-specific response format 或 schema transport
+- 呼叫 shared manager contract helpers
+- 附加 provider metadata 與 attribution
+
+Provider adapters 不可以：
+
+- own product semantic rules
+- 各自複製 hard-boundary branch policy
+- auto-repair manager semantic decisions
+- 把 manager contract violation 降格成 generic provider runtime noise
+
 ### 3.3 Tool Batch
 
 合法 tool outputs 包含：
