@@ -20,3 +20,4 @@ foreach ($dir in $runtimeDirs) {
 
 Write-Output "Installed git hooks path: $hooksPath (pre-commit + commit-msg)"
 Write-Output "Ensured runtime directories exist."
+Write-Output "If you installed Python tooling, run 'pre-commit install --install-hooks' and 'pre-commit run --all-files'."

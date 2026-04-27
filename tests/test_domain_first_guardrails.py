@@ -2,31 +2,24 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from scripts.repo_policy import (
+    category_for_repo_path,
+    effective_cap_for_repo_path,
+    iter_active_python_files,
+    load_active_code_policy,
+    normalize_repo_path,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
+ACTIVE_CODE_POLICY = load_active_code_policy()
 
 
 def _legacy_path_token(*parts: str) -> str:
     return "".join(parts)
 
 ACTIVE_FILE_LINE_LIMITS = {
-    ROOT / "app" / "intake" / "application" / "bundle1_service.py": 420,
-    ROOT / "app" / "intake" / "application" / "bundle2_service.py": 400,
-    ROOT / "app" / "intake" / "application" / "manager_tools.py": 500,
-    ROOT / "app" / "intake" / "application" / "canonical_commit_bridge.py": 1100,
-    ROOT / "app" / "intake" / "application" / "general_chat_service.py": 220,
-    ROOT / "app" / "intake" / "application" / "workflow_routing.py": 260,
-    ROOT / "app" / "recommendation" / "application" / "context.py": 220,
-    ROOT / "app" / "recommendation" / "application" / "ranking.py": 260,
-    ROOT / "app" / "rescue" / "application" / "chat_surface.py": 360,
-    ROOT / "app" / "rescue" / "application" / "proposal.py": 620,
-    ROOT / "app" / "rescue" / "application" / "runtime.py": 240,
-    ROOT / "app" / "body" / "application" / "calibration_commit_bridge.py": 240,
-    ROOT / "app" / "runtime" / "interface" / "provider_runtime.py": 120,
-    ROOT / "app" / "intake" / "interface" / "v2_routes.py": 220,
-    ROOT / "app" / "intake" / "interface" / "intake_routes.py": 260,
-    ROOT / "app" / "runtime" / "application" / "manager_service.py": 500,
-    ROOT / "app" / "runtime" / "application" / "state_resolver.py": 260,
+    ROOT / Path(path): int(limit)
+    for path, limit in ACTIVE_CODE_POLICY["transition_overrides"].items()
 }
 
 ACTIVE_IMPORT_GUARDS = {
@@ -121,6 +114,23 @@ def test_active_domain_files_stay_under_line_limits() -> None:
         if line_count > limit:
             violations.append(f"{path.name}: {line_count}>{limit}")
     assert not violations, f"fat-file guard failed: {', '.join(violations)}"
+
+
+def test_active_app_python_files_are_mapped_to_categories() -> None:
+    unmapped: list[str] = []
+    for path in iter_active_python_files(ACTIVE_CODE_POLICY):
+        repo_path = normalize_repo_path(path)
+        if category_for_repo_path(repo_path, ACTIVE_CODE_POLICY) is None:
+            unmapped.append(repo_path)
+    assert not unmapped, f"active app python files are unmapped in the active code policy: {unmapped[:20]}"
+
+
+def test_transition_override_paths_have_effective_caps() -> None:
+    missing: list[str] = []
+    for path_str in ACTIVE_CODE_POLICY["transition_overrides"]:
+        if effective_cap_for_repo_path(path_str, ACTIVE_CODE_POLICY) is None:
+            missing.append(path_str)
+    assert not missing, f"transition override paths must resolve to effective caps: {missing}"
 
 
 def test_active_domain_files_do_not_reimport_legacy_usecases() -> None:

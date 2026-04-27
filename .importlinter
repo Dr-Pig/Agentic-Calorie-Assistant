@@ -1,0 +1,41 @@
+[importlinter]
+root_package = app
+exclude_type_checking_imports = True
+
+[importlinter:contract:provider-domain-guard]
+name = Providers cannot import business domains
+type = forbidden
+source_modules =
+    app.providers
+forbidden_modules =
+    app.intake
+    app.nutrition
+    app.budget
+    app.body
+    app.rescue
+    app.recommendation
+    app.memory
+
+[importlinter:contract:runtime-shared-business-independence]
+name = Runtime and shared should not depend on business domains directly
+type = forbidden
+source_modules =
+    app.runtime
+    app.shared
+forbidden_modules =
+    app.intake
+    app.budget
+    app.body
+    app.rescue
+    app.recommendation
+
+[importlinter:contract:business-domain-independence]
+name = Business domains remain independent by default
+type = independence
+modules =
+    app.intake
+    app.nutrition
+    app.budget
+    app.body
+    app.rescue
+    app.recommendation

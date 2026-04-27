@@ -20,6 +20,7 @@ Apply these settings to the default protected branch, expected to be `main`:
 
 The following check names must be required:
 
+- `repo-hygiene-and-architecture`
 - `pre-edd-readiness`
 - `runtime-contract-tests`
 - `wave1-phase-a-contracts`

@@ -1,0 +1,65 @@
+repos:
+  - repo: local
+    hooks:
+      - id: truth-alignment-audit
+        name: truth-alignment-audit
+        entry: python scripts/truth_alignment_audit.py
+        language: system
+        pass_filenames: false
+        stages: [manual]
+      - id: active-code-inventory
+        name: active-code-inventory
+        entry: python scripts/active_code_inventory.py
+        language: system
+        pass_filenames: false
+        stages: [manual]
+      - id: check-fat-files-audit
+        name: check-fat-files-audit
+        entry: python scripts/run_powershell_hook.py scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings
+        language: system
+        pass_filenames: false
+      - id: check-layer-integrity
+        name: check-layer-integrity
+        entry: python scripts/check_layer_integrity.py
+        language: system
+        pass_filenames: false
+      - id: check-runtime-boundaries
+        name: check-runtime-boundaries
+        entry: python scripts/check_runtime_boundaries.py
+        language: system
+        pass_filenames: false
+      - id: check-markdown-encoding
+        name: check-markdown-encoding
+        entry: python scripts/check_markdown_encoding.py --policy-docs --require-bom
+        language: system
+        pass_filenames: false
+      - id: check-protected-doc-rewrites
+        name: check-protected-doc-rewrites
+        entry: python scripts/run_powershell_hook.py scripts/check_protected_doc_rewrites.ps1
+        language: system
+        pass_filenames: false
+        stages: [manual]
+      - id: lint-imports
+        name: lint-imports
+        entry: lint-imports --config .importlinter
+        language: system
+        pass_filenames: false
+        stages: [manual]
+      - id: pylint-module-lines
+        name: pylint-module-lines
+        entry: pylint app
+        language: system
+        pass_filenames: false
+        stages: [manual]
+      - id: xenon-complexity
+        name: xenon-complexity
+        entry: xenon -b B -m A -a A app
+        language: system
+        pass_filenames: false
+        stages: [manual]
+      - id: ruff-check
+        name: ruff-check
+        entry: ruff check .
+        language: system
+        pass_filenames: false
+        stages: [manual]

@@ -4,7 +4,7 @@ Use this before starting a new build wave. It should take about 30 seconds.
 
 ## Go
 
-- `main` branch protection requires the current CI job names from `.github/workflows/ci.yml`: `pre-edd-readiness`, `runtime-contract-tests`, `wave1-phase-a-contracts`, and `wave1-phase-b-contracts`
+- `main` branch protection requires the current CI job names from `.github/workflows/ci.yml`: `repo-hygiene-and-architecture`, `pre-edd-readiness`, `runtime-contract-tests`, `wave1-phase-a-contracts`, and `wave1-phase-b-contracts`
 - `python scripts/check_layer_integrity.py` passes
 - `python scripts/check_runtime_boundaries.py` passes
 - `powershell -ExecutionPolicy Bypass -File scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings` passes
