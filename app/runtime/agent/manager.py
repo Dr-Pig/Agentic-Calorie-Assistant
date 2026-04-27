@@ -40,8 +40,42 @@ class IntakeManagerResult:
     trace: dict[str, Any] = field(default_factory=dict)
 
 
+class _ManagerFinalPayloadShapeError(RuntimeError):
+    def __init__(self, *, field_name: str, observed_value: Any) -> None:
+        self.field_name = field_name
+        self.observed_value = _json_safe(observed_value)
+        self.observed_type = _observed_type_name(observed_value)
+        self.value_excerpt, self.value_truncated = _value_excerpt(observed_value)
+        super().__init__(f"manager final payload field {field_name} expected object, got {self.observed_type}")
+
+
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
+
+
+def _observed_type_name(value: Any) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, dict):
+        return "object"
+    if isinstance(value, list):
+        return "array"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, (int, float)):
+        return "number"
+    if isinstance(value, tuple):
+        return "tuple"
+    return "unknown"
+
+
+def _value_excerpt(value: Any, *, max_chars: int = 1000) -> tuple[str, bool]:
+    rendered = json.dumps(_json_safe(value), ensure_ascii=False, default=str)
+    if len(rendered) <= max_chars:
+        return rendered, False
+    return rendered[:max_chars], True
 
 
 def _provider_ready(provider: Any) -> bool:
@@ -125,6 +159,9 @@ def _result_from_payload(
     failure_family: str | None = None,
 ) -> IntakeManagerResult:
     answer_contract = payload.get("answer_contract") if isinstance(payload.get("answer_contract"), dict) else {}
+    raw_target_attachment = payload.get("target_attachment")
+    if raw_target_attachment not in (None, "") and not isinstance(raw_target_attachment, dict):
+        raise _ManagerFinalPayloadShapeError(field_name="target_attachment", observed_value=raw_target_attachment)
     return IntakeManagerResult(
         intent=str(payload.get("intent") or payload.get("intent_type") or "log_meal"),
         manager_action=str(payload.get("manager_action") or "final"),
@@ -155,6 +192,55 @@ def _result_from_payload(
             "guard_outcome": _json_safe(guard_outcome or {}),
             "repair_round_used": repair_round_used,
             "request_failure_family": failure_family,
+        },
+    )
+
+
+def _payload_shape_failure_result(
+    payload: dict[str, Any],
+    *,
+    manager_rounds: list[dict[str, Any]],
+    tool_results: list[dict[str, Any]],
+    guard_outcome: dict[str, Any] | None = None,
+    repair_round_used: bool = False,
+    field_error: _ManagerFinalPayloadShapeError,
+) -> IntakeManagerResult:
+    return IntakeManagerResult(
+        intent=str(payload.get("intent") or payload.get("intent_type") or "log_meal"),
+        manager_action="final",
+        final_action="no_commit",
+        workflow_effect="safe_failure",
+        target_attachment={},
+        exactness="unknown",
+        confidence="unknown",
+        evidence_posture="unknown",
+        repair_ack=False,
+        answer_contract={},
+        uncertainty_posture="unknown",
+        evidence_honesty_posture="unknown",
+        intent_type=str(payload.get("intent_type") or "log_meal"),
+        response_summary="",
+        pending_followup=None,
+        tool_calls=_tool_names(payload.get("tool_calls") or []),
+        tool_results=tuple(_json_safe(tool_results)),
+        manager_rounds=tuple(_json_safe(manager_rounds)),
+        guard_outcome=dict(guard_outcome or {}),
+        repair_round_used=repair_round_used,
+        request_failure_family="final_payload_shape_error",
+        llm_used=True,
+        trace={
+            "decision_source": "single_manager_loop",
+            "manager_rounds": _json_safe(manager_rounds),
+            "tool_results": _json_safe(tool_results),
+            "guard_outcome": _json_safe(guard_outcome or {}),
+            "repair_round_used": repair_round_used,
+            "request_failure_family": "final_payload_shape_error",
+            "payload_shape_error": {
+                "field_name": field_error.field_name,
+                "observed_type": field_error.observed_type,
+                "value_excerpt": field_error.value_excerpt,
+                "value_truncated": field_error.value_truncated,
+            },
         },
     )
 
@@ -268,13 +354,23 @@ async def run_intake_manager(
                         repair_round_used=repair_round_used,
                         failure_family=str(guard_outcome.get("failure_family") or "guard_blocked"),
                     )
-            return _result_from_payload(
-                parsed,
-                manager_rounds=manager_rounds,
-                tool_results=tool_results,
-                guard_outcome=guard_outcome,
-                repair_round_used=repair_round_used,
-            )
+            try:
+                return _result_from_payload(
+                    parsed,
+                    manager_rounds=manager_rounds,
+                    tool_results=tool_results,
+                    guard_outcome=guard_outcome,
+                    repair_round_used=repair_round_used,
+                )
+            except _ManagerFinalPayloadShapeError as exc:
+                return _payload_shape_failure_result(
+                    parsed,
+                    manager_rounds=manager_rounds,
+                    tool_results=tool_results,
+                    guard_outcome=guard_outcome,
+                    repair_round_used=repair_round_used,
+                    field_error=exc,
+                )
 
         return _result_from_payload(
             {"manager_action": "final", "final_action": "no_commit", "workflow_effect": "safe_failure"},

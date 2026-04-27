@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from pathlib import Path
 
+from app.providers.builderspace_adapter import BuilderSpaceResponseError
 import pytest
 
 from scripts.run_wave1_phase_b_minimal_tool_loop_smoke import run_phase_b_minimal_tool_loop_smoke
@@ -93,6 +95,126 @@ class FailingPhaseBProvider(FakePhaseBProvider):
         raise TimeoutError("simulated provider timeout")
 
 
+class NonTimeoutFailingPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        raise ValueError("simulated non-timeout provider failure")
+
+
+class Pass1MalformedPayloadPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        self.calls.append(dict(kwargs))
+        return ["call_tools", "lookup_generic_food"], self._trace(call_index=len(self.calls), kwargs=kwargs)
+
+
+class Pass2MalformedPayloadPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        self.calls.append(dict(kwargs))
+        user_payload = kwargs["user_payload"]
+        round_index = user_payload["round_index"]
+        if round_index == 0:
+            return (
+                {
+                    "manager_action": "call_tools",
+                    "tool_calls": [
+                        {"name": "lookup_generic_food", "arguments": {"food_name": "?嗉???"}},
+                    ],
+                },
+                self._trace(call_index=len(self.calls), kwargs=kwargs),
+            )
+        return "final", self._trace(call_index=len(self.calls), kwargs=kwargs)
+
+
+class WrappedReadTimeoutPhaseBProvider(FakePhaseBProvider):
+    def readiness(self) -> dict[str, object]:
+        readiness = dict(super().readiness())
+        readiness.update(
+            {
+                "timeout_seconds": 45,
+                "transport_retry_count": 0,
+                "transport_retry_backoff_seconds": 0.75,
+                "base_url": "https://space.ai-builders.com/backend/v1",
+            }
+        )
+        return readiness
+
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        raise BuilderSpaceResponseError(
+            "BuilderSpace manager error at stage=intake_manager_round: ReadTimeout: ",
+            trace={
+                "stage": "intake_manager_round",
+                "provider": "builderspace",
+                "model": "deepseek",
+                "base_url": "https://space.ai-builders.com/backend/v1",
+                "timeout_seconds": 45,
+                "transport_attempts": [
+                    {
+                        "attempt_index": 1,
+                        "stage": "intake_manager_round",
+                        "model": "deepseek",
+                        "error_type": "ReadTimeout",
+                    }
+                ],
+            },
+        )
+
+
+class AdapterParseAttributedErrorPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        raise BuilderSpaceResponseError(
+            "BuilderSpace manager error at stage=intake_manager_round: RuntimeError: BuilderSpace did not return JSON.",
+            trace={
+                "stage": "intake_manager_round",
+                "provider": "builderspace",
+                "model": "deepseek",
+                "base_url": "https://space.ai-builders.com/backend/v1",
+                "timeout_seconds": 45,
+                "failure_family": "non_json_model_output",
+                "failing_component": "builderspace_adapter.extract_json_object",
+                "raw_content_excerpt": "I am ready to help",
+                "parse_contract_status": None,
+                "parse_recovery_used": False,
+                "parse_recovery_strategy": None,
+                "parse_recovery_ambiguous": False,
+                "transport_attempts": [],
+                "parse_attempts": [
+                    {
+                        "attempt_index": 1,
+                        "stage": "intake_manager_round",
+                        "status": "failed",
+                        "failure_family": "non_json_model_output",
+                    }
+                ],
+            },
+        )
+
+
+class TraceAsListPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], list[str]]:
+        self.calls.append(dict(kwargs))
+        return {"manager_action": "call_tools", "tool_calls": []}, ["bad-trace"]
+
+
+class RequestPayloadAsStringPhaseBProvider(FakePhaseBProvider):
+    def _trace(self, *, call_index: int, kwargs: dict[str, object]) -> dict[str, object]:
+        trace = dict(super()._trace(call_index=call_index, kwargs=kwargs))
+        trace["request_payload"] = "bad-request-payload"
+        return trace
+
+
+class TransportAttemptsAsStringPhaseBProvider(FakePhaseBProvider):
+    def _trace(self, *, call_index: int, kwargs: dict[str, object]) -> dict[str, object]:
+        trace = dict(super()._trace(call_index=call_index, kwargs=kwargs))
+        trace["transport_attempts"] = "bad-transport-attempts"
+        return trace
+
+
+class ParseAttemptsAsStringPhaseBProvider(FakePhaseBProvider):
+    def _trace(self, *, call_index: int, kwargs: dict[str, object]) -> dict[str, object]:
+        trace = dict(super()._trace(call_index=call_index, kwargs=kwargs))
+        trace["parse_attempts"] = "bad-parse-attempts"
+        return trace
+
+
 class FinalOnlyPhaseBProvider(FakePhaseBProvider):
     async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
         self.calls.append(dict(kwargs))
@@ -151,6 +273,29 @@ class SearchAliasPhaseBProvider(FakePhaseBProvider):
                     "operations": [],
                     "answer_contract": {},
                     "tool_calls": [{"name": "search", "arguments": {"query": "茶葉蛋"}}],
+                },
+                self._trace(call_index=len(self.calls), kwargs=kwargs),
+            )
+        return await super().complete_with_trace(**kwargs)
+
+
+class MixedCanonicalAndAliasPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        self.calls.append(dict(kwargs))
+        user_payload = kwargs["user_payload"]
+        round_index = user_payload["round_index"]
+        if round_index == 0:
+            return (
+                {
+                    "manager_action": "call_tools",
+                    "interaction_family": "food_logging",
+                    "response_mode": "intake_result",
+                    "operations": [],
+                    "answer_contract": {},
+                    "tool_calls": [
+                        {"name": "lookup_generic_food", "arguments": {"food_name": "茶葉蛋"}},
+                        {"name": "search", "arguments": {"query": "茶葉蛋 熱量"}},
+                    ],
                 },
                 self._trace(call_index=len(self.calls), kwargs=kwargs),
             )
@@ -278,6 +423,161 @@ async def test_phase_b1_runtime_smoke_provider_error_emits_diagnostic_artifact(t
 
 
 @pytest.mark.asyncio
+async def test_phase_b1_runtime_smoke_wrapped_read_timeout_has_timeout_diagnostics(tmp_path: Path) -> None:
+    provider = WrappedReadTimeoutPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["我吃了一顆茶葉蛋"],
+        output_dir=tmp_path,
+        write_latest=False,
+        provider_timeout_ms=240000,
+    )
+
+    runtime = report["provider_runtime"]
+    assert runtime["blocker"] is True
+    assert runtime["reason"] == "provider_timeout"
+    assert runtime["error_type"] == "BuilderSpaceResponseError"
+    assert runtime["provider"] == "builderspace"
+    assert runtime["model"] == "deepseek"
+    assert runtime["stage"] == "intake_manager_round"
+    assert runtime["adapter_timeout_seconds"] == 45
+    assert runtime["outer_provider_timeout_ms"] == 240000
+    assert runtime["timeout_layer"] == "adapter_http_timeout"
+    assert runtime["attempt_count"] == 1
+    assert runtime["retry_count"] == 0
+    assert runtime["completed_trace_count"] == 0
+    assert runtime["expected_case_count"] == 1
+    assert runtime["base_url"] == "https://space.ai-builders.com/backend/v1"
+    assert report["tool_loop_traces"] == []
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_runtime_smoke_preserves_adapter_parse_attribution_in_provider_runtime(tmp_path: Path) -> None:
+    provider = AdapterParseAttributedErrorPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["??鈭?憿??"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    runtime = report["provider_runtime"]
+    assert runtime["reason"] == "provider_runtime_error"
+    assert runtime["failure_family"] == "non_json_model_output"
+    assert runtime["failing_component"] == "builderspace_adapter.extract_json_object"
+    assert runtime["raw_content_excerpt"] == "I am ready to help"
+    assert runtime["parse_recovery_used"] is False
+    assert runtime["parse_recovery_ambiguous"] is False
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_runtime_smoke_non_timeout_error_is_not_labeled_timeout(tmp_path: Path) -> None:
+    provider = NonTimeoutFailingPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["我吃了一顆茶葉蛋"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    runtime = report["provider_runtime"]
+    assert runtime["reason"] == "provider_runtime_error"
+    assert runtime["error_type"] == "ValueError"
+    assert runtime["timeout_layer"] is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("provider_factory", "trace_field", "observed_type"),
+    (
+        (TraceAsListPhaseBProvider, "trace", "array"),
+        (RequestPayloadAsStringPhaseBProvider, "request_payload", "string"),
+        (TransportAttemptsAsStringPhaseBProvider, "transport_attempts", "string"),
+        (ParseAttemptsAsStringPhaseBProvider, "parse_attempts", "string"),
+    ),
+)
+async def test_phase_b1_runtime_smoke_provider_trace_shape_error_emits_provider_trace_blocker(
+    tmp_path: Path,
+    provider_factory: type[FakePhaseBProvider],
+    trace_field: str,
+    observed_type: str,
+) -> None:
+    provider = provider_factory()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["??鈭?憿??"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    assert report.get("provider_runtime") is None
+    blocker = report["provider_trace_blocker"]
+    assert blocker["blocker"] is True
+    assert blocker["reason"] == "provider_trace_shape_error"
+    assert blocker["trace_field"] == trace_field
+    assert blocker["observed_type"] == observed_type
+    assert blocker["failing_component"] == "normalize_provider_trace"
+    assert blocker["completed_trace_count"] == 0
+    assert blocker["expected_case_count"] == 1
+    assert isinstance(blocker["value_excerpt"], str)
+    assert isinstance(blocker["value_truncated"], bool)
+    assert report["tool_loop_traces"] == []
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_runtime_smoke_pass1_malformed_payload_is_runtime_blocker_not_provider_error(tmp_path: Path) -> None:
+    provider = Pass1MalformedPayloadPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["??鈭?憿??"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    assert report.get("provider_runtime") is None
+    blocker = report["runtime_blocker"]
+    assert blocker["blocker"] is True
+    assert blocker["reason"] == "manager_payload_shape_error"
+    assert blocker["stage"] == "pass_1_tool_request"
+    assert blocker["round_index"] == 0
+    assert blocker["decision_payload_type"] == "list"
+    assert blocker["completed_trace_count"] == 0
+    assert blocker["expected_case_count"] == 1
+    assert report["tool_loop_traces"] == []
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_runtime_smoke_pass2_malformed_payload_keeps_completed_trace_and_sets_runtime_blocker(tmp_path: Path) -> None:
+    provider = Pass2MalformedPayloadPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["??鈭?憿??"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    assert report.get("provider_runtime") is None
+    blocker = report["runtime_blocker"]
+    assert blocker["blocker"] is True
+    assert blocker["reason"] == "manager_payload_shape_error"
+    assert blocker["stage"] == "pass_2_synthesis"
+    assert blocker["round_index"] == 1
+    assert blocker["decision_payload_type"] == "str"
+    assert blocker["completed_trace_count"] == 1
+    assert blocker["expected_case_count"] == 1
+    trace = report["tool_loop_traces"][0]
+    assert trace["manager_pass_1"]["payload_shape_valid"] is True
+    assert trace["manager_pass_2"]["payload_shape_valid"] is False
+    assert trace["manager_pass_2"]["decision_payload_type"] == "str"
+
+
+@pytest.mark.asyncio
 async def test_phase_b1_runtime_smoke_records_positive_latency_for_slow_provider(tmp_path: Path) -> None:
     provider = SlowPhaseBProvider()
 
@@ -309,6 +609,10 @@ async def test_phase_b1_runtime_smoke_provider_timeout_is_artifactized(tmp_path:
     assert report["provider_runtime"]["blocker"] is True
     assert report["provider_runtime"]["reason"] == "provider_timeout"
     assert report["provider_runtime"]["timeout_ms"] == 1
+    assert report["provider_runtime"]["outer_provider_timeout_ms"] == 1
+    assert report["provider_runtime"]["timeout_layer"] == "outer_provider_timeout"
+    assert report["provider_runtime"]["completed_trace_count"] == 0
+    assert report["provider_runtime"]["expected_case_count"] == 1
     assert report["runtime_latency"]["completed_trace_count"] == 0
     assert report["tool_loop_traces"] == []
 
@@ -383,7 +687,25 @@ async def test_phase_b1_natural_probe_does_not_inject_hard_call_tools_prompt(tmp
     )
 
     pass1_prompt = str(provider.calls[0]["system_prompt"])
+    trace = report["tool_loop_traces"][0]
+    constraints = provider.calls[0]["user_payload"]["constraints"]
+    pass1_provider_trace = trace["manager_pass_1"]
+
+    assert pass1_prompt.startswith("Phase B-1 natural-probe tool selection guidance")
+    assert "Phase B-1 natural-probe tool selection guidance" in pass1_prompt
+    assert "evidence-needed scenarios" in pass1_prompt
+    assert "manager_action='call_tools'" in pass1_prompt
+    assert "tool_calls" in pass1_prompt
+    assert "operations=[]" in pass1_prompt
+    assert "answer_contract={}" in pass1_prompt
+    assert "lookup_generic_food" in pass1_prompt
+    assert "Do not use generic aliases such as search or web_search" in pass1_prompt
     assert "MUST return manager_action='call_tools'" not in pass1_prompt
+    assert "Do not choose manager_action='final'" not in pass1_prompt
+    assert "every food_logging or nutrition_info_query case must call at least one read tool" not in pass1_prompt
+    assert constraints["phase_b1_task_payload_id"] == "phase_b1_pass_1_natural_tool_selection_guidance_v1"
+    assert pass1_provider_trace["phase_b1_task_payload_id"] == "phase_b1_pass_1_natural_tool_selection_guidance_v1"
+    assert pass1_provider_trace["phase_b1_task_payload_hash"]
     assert report["pass1_mode"] == "natural_tool_selection_probe"
     assert report["forced_tool_request_contract"] is False
     assert report["manager_tool_selection_claimed"] is True
@@ -424,7 +746,7 @@ async def test_phase_b1_natural_probe_does_not_fallback_item_results_from_packet
 
 
 @pytest.mark.asyncio
-async def test_phase_b1_smoke_search_alias_packet_has_source_quality_label(tmp_path: Path) -> None:
+async def test_phase_b1_smoke_blocks_search_alias_without_execution_or_packet(tmp_path: Path) -> None:
     provider = SearchAliasPhaseBProvider()
 
     report = await run_phase_b_minimal_tool_loop_smoke(
@@ -434,6 +756,69 @@ async def test_phase_b1_smoke_search_alias_packet_has_source_quality_label(tmp_p
         write_latest=False,
     )
 
-    packet = report["tool_loop_traces"][0]["packetizer"]["outputs"][0]
-    assert packet["packet_type"] == "SearchCandidatePacket"
-    assert packet["source_quality_label"] == "third_party"
+    trace = report["tool_loop_traces"][0]
+    router = trace["runtime_tool_router"]
+    assert router["requested_read_tools"] == ["search"]
+    assert router["allowed_tools"] == []
+    assert router["filtered_tool_plan"] == []
+    assert router["blocked_tools"] == ["search"]
+    assert router["available_read_tools"] == [
+        "lookup_generic_food",
+        "retrieve_web_food_evidence",
+        "load_taiwan_food_semantics_skill",
+    ]
+    assert router["canonical_tool_catalog_hash"]
+    assert router["block_reasons"] == [
+        {
+            "tool_name": "search",
+            "reason": "unsupported_read_tool_name",
+            "supported_tools": [
+                "lookup_generic_food",
+                "retrieve_web_food_evidence",
+                "load_taiwan_food_semantics_skill",
+            ],
+            "normalization_attempted": False,
+        }
+    ]
+    assert trace["read_tool_executions"] == []
+    assert trace["packetizer"]["outputs"] == []
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_smoke_allows_canonical_lookup_generic_food(tmp_path: Path) -> None:
+    provider = FakePhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["我吃了一顆茶葉蛋"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    trace = report["tool_loop_traces"][0]
+    router = trace["runtime_tool_router"]
+    assert "lookup_generic_food" in router["allowed_tools"]
+    assert "unsupported_read_tool_name" not in str(router["block_reasons"])
+    assert any(item["tool_name"] == "lookup_generic_food" for item in trace["read_tool_executions"])
+    assert any(packet["packet_type"] == "GenericFoodDbPacket" for packet in trace["packetizer"]["outputs"])
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_smoke_mixed_canonical_and_alias_only_executes_canonical_tool(tmp_path: Path) -> None:
+    provider = MixedCanonicalAndAliasPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["我吃了一顆茶葉蛋"],
+        output_dir=tmp_path,
+        write_latest=False,
+    )
+
+    trace = report["tool_loop_traces"][0]
+    router = trace["runtime_tool_router"]
+    assert router["requested_read_tools"] == ["lookup_generic_food", "search"]
+    assert router["allowed_tools"] == ["lookup_generic_food"]
+    assert router["blocked_tools"] == ["search"]
+    assert [item["tool_name"] for item in trace["read_tool_executions"]] == ["lookup_generic_food"]
+    assert [packet["packet_type"] for packet in trace["packetizer"]["outputs"]] == ["GenericFoodDbPacket"]
+    assert "search" not in json.dumps(trace["packetizer"]["outputs"], ensure_ascii=False)

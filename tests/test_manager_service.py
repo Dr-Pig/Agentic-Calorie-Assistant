@@ -119,3 +119,44 @@ async def test_run_intake_manager_max_rounds_is_hard_failure() -> None:
     assert result.final_action == "no_commit"
     assert result.request_failure_family == "max_rounds_exceeded"
     assert len(result.manager_rounds) == manager_service.MAX_MANAGER_ROUNDS
+
+
+@pytest.mark.asyncio
+async def test_run_intake_manager_malformed_final_target_attachment_returns_safe_failure_not_raw_crash() -> None:
+    provider = FakeLoopProvider(
+        [
+            {"manager_action": "call_tools", "tool_calls": [{"name": "read_day_budget"}]},
+            {
+                "manager_action": "final",
+                "intent": "log_meal",
+                "final_action": "commit",
+                "workflow_effect": "commit",
+                "target_attachment": ["bad-shape"],
+                "exactness": "anchored",
+                "confidence": "medium",
+                "evidence_posture": "generic_with_uncertainty",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "ok"},
+                "uncertainty_posture": "bounded",
+                "evidence_honesty_posture": "generic_with_uncertainty",
+            },
+        ]
+    )
+
+    async def tool_executor(**_: object) -> list[dict[str, object]]:
+        return [{"tool_name": "read_day_budget", "evidence": {"remaining_kcal": 1200}, "failure_family": None}]
+
+    result = await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="我吃了一杯珍珠奶茶",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=("read_day_budget",),
+        tool_executor=tool_executor,
+    )
+
+    assert result.final_action == "no_commit"
+    assert result.workflow_effect == "safe_failure"
+    assert result.request_failure_family == "final_payload_shape_error"
+    assert result.trace["request_failure_family"] == "final_payload_shape_error"
+    assert result.trace["payload_shape_error"]["field_name"] == "target_attachment"
+    assert result.trace["payload_shape_error"]["observed_type"] == "array"
