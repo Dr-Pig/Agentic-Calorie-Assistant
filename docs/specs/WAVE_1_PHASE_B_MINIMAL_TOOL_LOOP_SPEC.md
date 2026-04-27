@@ -24,6 +24,10 @@ Phase B-1 does not optimize nutrition accuracy. It verifies ownership boundaries
 
 Passing Phase B-1 does not mean nutrition accuracy is production-ready. It only means tool-loop ownership, trace, guard, mutation, and renderer boundaries are clean enough to proceed to Phase B-2.
 
+Evidence path policy is defined separately in [WAVE_1_EVIDENCE_PATH_SELECTION_MATRIX.md](C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/WAVE_1_EVIDENCE_PATH_SELECTION_MATRIX.md). In Phase B-1, `B1-001` uses `lookup_generic_food` to validate the generic evidence tool-loop path, while `B1-004` remains a composition-unknown clarify boundary case. This does not imply that `llm_prior` is permanently forbidden in later no-mutation or fallback paths.
+
+Phase B-1 tool-loop smoke may intentionally specify a golden-path route for selected cases, but that smoke contract must not be confused with product-wide routing truth. First-version decision-shape validation is reserved for hard safety, truth, and mutation boundaries. Flexible-route cases remain outcome-evaluated until product policy is finalized.
+
 ## Non-Scope
 
 Phase B-1 must not implement:
@@ -188,6 +192,77 @@ For `self_selected_basket_without_ingredients`, generic DB and Tavily estimate t
 - renderer input includes allowed facts and forbidden claims
 - Tavily canary source quality label uses the Phase B-1 enum
 - active Phase B surfaces do not depend on legacy manager vocabulary
+
+## Probe Contract Modes
+
+Phase B-1 uses two distinct Pass 1 probe contract modes:
+
+- `forced_tool_request_smoke`
+- `natural_tool_selection_probe`
+
+`forced_tool_request_smoke` exists to prove the bounded tool-loop scaffold can run end-to-end when Pass 1 is explicitly constrained to request tools.
+
+`natural_tool_selection_probe` exists to evaluate whether Manager Pass 1 naturally chooses appropriate read tools for evidence-needed cases without being rewritten into a forced scaffold.
+
+These modes must not share the same readiness interpretation.
+
+## natural_tool_selection_probe Is Not Forced-Lite
+
+`natural_tool_selection_probe` must not be turned into forced-lite.
+
+Hard rules:
+
+- do not add `always call tools`, `never choose final`, `MUST call_tools`, or equivalent forced-contract wording
+- do not hardcode exact food strings to coerce tool requests
+- do not let runner fallback or alias normalization silently manufacture canonical tool requests
+
+Pass 1 in natural mode is responsible for deciding whether evidence is needed.
+
+If evidence is needed, it should select canonical read tools.
+
+If the case is a composition-unknown or blocking boundary case, it may still avoid generic lookup and surface a boundary-safe decision path.
+
+This distinction must remain visible in artifacts and verifier output.
+
+## Recovered JSON Is Diagnostic Continuity Only
+
+Recovered JSON is allowed only for bounded diagnostic continuity.
+
+If BuilderSpace output is recovered from fenced JSON or prose-plus-JSON, the artifact must preserve that fact explicitly.
+
+Recovered JSON must not be treated as strict structured-output compliance.
+
+It exists only to keep smoke and attribution flowing long enough to diagnose runtime behavior, not to claim the provider honored the Manager contract cleanly.
+
+## Runtime Budget Note
+
+`command timeout` and `provider timeout` are different layers and must remain separately attributable.
+
+Observed full actual smoke wall-clock time has already ranged beyond a narrow 240-second outer command budget, so `240000ms` must not be treated as a stable default for full actual smoke.
+
+Quick and targeted smoke are the default day-to-day diagnostic path. Full actual smoke is reserved for milestone, pre-merge, nightly, or explicit readiness checks.
+
+## Diagnostic Readiness Scope
+
+Quick diagnostic smoke and full actual smoke must not share readiness claim.
+
+Actual smoke may run in:
+
+- `full` case-set mode for full actual smoke readiness evaluation
+- `quick` or manually targeted case execution for diagnostic-only checks
+
+Diagnostic case sets must trace:
+
+- `case_set`
+- `requested_case_ids`
+- `completed_case_count`
+- `expected_full_case_count`
+- `full_readiness_claimed=false`
+- `runtime_latency.readiness_claim_scope=diagnostic`
+
+Only `case_set=full` may use `runtime_latency.readiness_claim_scope=full_actual_smoke` and enter full readiness evaluation.
+
+`full_readiness_claimed=true` only means the artifact is eligible for full-readiness evaluation. It does not imply `quality_pass=true`.
 
 Forbidden legacy terms: `thread_result`, `target_thread_action`, `clarify_mode`, `commit_status`, `canonical_commit`.
 

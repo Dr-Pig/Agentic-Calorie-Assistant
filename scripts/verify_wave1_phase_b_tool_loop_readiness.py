@@ -68,6 +68,7 @@ RUNTIME_LATENCY_REQUIRED_KEYS = (
     "trace_count",
     "completed_trace_count",
     "mode",
+    "readiness_claim_scope",
 )
 CASE_LATENCY_REQUIRED_KEYS = ("case_started_at_utc", "case_ended_at_utc", "case_latency_ms")
 PASS_LATENCY_REQUIRED_KEYS = ("started_at_utc", "ended_at_utc", "latency_ms")
@@ -352,6 +353,11 @@ def _is_self_selected_basket_without_ingredients(trace: dict[str, Any]) -> bool:
     return message in {"我吃了滷味", "我吃滷味", "我吃了麻辣燙", "我吃麻辣燙"}
 
 
+def _is_listed_ingredient_basket(trace: dict[str, Any]) -> bool:
+    message = str(trace.get("input_message") or "")
+    return all(token in message for token in ("豆干", "海帶", "貢丸", "滷味"))
+
+
 def _check_self_selected_basket_without_ingredients(
     trace: dict[str, Any],
     router: dict[str, Any],
@@ -451,6 +457,25 @@ def _check_guard_and_mutation(trace: dict[str, Any], blockers: list[dict[str, st
 
 def _has_non_empty_list(value: Any) -> bool:
     return isinstance(value, list) and bool(value)
+
+
+def _report_case_set(report: dict[str, Any]) -> str:
+    case_set = str(report.get("case_set") or "full")
+    return case_set if case_set in {"full", "targeted"} else "full"
+
+
+def _selected_case_count(report: dict[str, Any]) -> int:
+    requested_case_ids = report.get("requested_case_ids")
+    if isinstance(requested_case_ids, list) and requested_case_ids:
+        return len(requested_case_ids)
+    return len(REQUIRED_CORE_SMOKE_CASES)
+
+
+def _case_results(report: dict[str, Any]) -> list[dict[str, Any]]:
+    raw = report.get("case_results")
+    if not isinstance(raw, list):
+        return []
+    return [item for item in raw if isinstance(item, dict)]
 
 
 def _quality_add(blockers: list[dict[str, str]], code: str, detail: str) -> None:
@@ -628,8 +653,11 @@ def _expected_tool_policy_for_trace(trace: dict[str, Any]) -> dict[str, Any]:
 def _item_results_source(trace: dict[str, Any]) -> str:
     manager_pass_2 = trace.get("manager_pass_2") if isinstance(trace.get("manager_pass_2"), dict) else {}
     item_results = manager_pass_2.get("item_results") if isinstance(manager_pass_2, dict) else []
+    explicit_source = str(manager_pass_2.get("item_results_source") or "") if isinstance(manager_pass_2, dict) else ""
     if bool(trace.get("runner_derived_item_results")):
         return "runner_packet_fallback"
+    if explicit_source == "answer_contract_bridge" and _has_non_empty_list(item_results):
+        return "answer_contract_bridge"
     if _has_non_empty_list(item_results):
         return "manager_pass_2_payload"
     return "none"
@@ -648,6 +676,162 @@ def _unsupported_tool_names(trace: dict[str, Any]) -> list[str]:
     return sorted(set(unsupported))
 
 
+def _pass1_decision_payload(trace: dict[str, Any]) -> dict[str, Any]:
+    manager_pass_1 = trace.get("manager_pass_1") if isinstance(trace.get("manager_pass_1"), dict) else {}
+    payload = manager_pass_1.get("decision_payload") if isinstance(manager_pass_1, dict) else {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _pass1_tool_call_names(decision_payload: dict[str, Any]) -> list[str]:
+    tool_calls = decision_payload.get("tool_calls")
+    if not isinstance(tool_calls, list):
+        return []
+    names: list[str] = []
+    for item in tool_calls:
+        if isinstance(item, dict):
+            name = str(item.get("name") or "")
+            if name:
+                names.append(name)
+    return names
+
+
+def _composition_unknown_pass1_decision_shape(trace: dict[str, Any]) -> dict[str, Any]:
+    result = {
+        "status": "not_applicable",
+        "case_family": None,
+        "violation_family": None,
+        "expected_shape": None,
+        "actual_shape": None,
+    }
+    if not _is_self_selected_basket_without_ingredients(trace):
+        return result
+
+    decision_payload = _pass1_decision_payload(trace)
+    requested, _allowed = _trace_requested_allowed(trace)
+    manager_action = str(decision_payload.get("manager_action") or "")
+    final_action = str(decision_payload.get("final_action") or "")
+    response_mode = str(decision_payload.get("response_mode") or "")
+    workflow_effect = str(decision_payload.get("workflow_effect") or "")
+    uncertainty_posture = str(decision_payload.get("uncertainty_posture") or "")
+    mutation_intent = bool(decision_payload.get("mutation_intent"))
+    tool_call_names = _pass1_tool_call_names(decision_payload)
+    mutation = trace.get("mutation") if isinstance(trace.get("mutation"), dict) else {}
+    mutation_attempted = bool(mutation.get("mutation_attempted"))
+    has_estimate_fields = any(
+        _contains_key(decision_payload, key_name)
+        for key_name in ("item_results", "kcal_range", "likely_kcal")
+    )
+
+    actual_parts: list[str] = []
+    if manager_action:
+        actual_parts.append(manager_action)
+    if final_action:
+        actual_parts.append(final_action)
+    if tool_call_names:
+        actual_parts.extend(tool_call_names)
+    elif requested:
+        actual_parts.extend(requested)
+    if response_mode:
+        actual_parts.append(f"response_mode={response_mode}")
+    if workflow_effect:
+        actual_parts.append(f"workflow_effect={workflow_effect}")
+    if uncertainty_posture:
+        actual_parts.append(f"uncertainty_posture={uncertainty_posture}")
+    if has_estimate_fields:
+        actual_parts.append("pass1_estimate_fields")
+    if mutation_intent:
+        actual_parts.append("mutation_intent=true")
+    if mutation_attempted:
+        actual_parts.append("mutation_attempted")
+    actual_shape = ".".join(actual_parts) if actual_parts else "empty"
+
+    has_logging_or_intake_signals = (
+        response_mode == "intake_result"
+        or workflow_effect in {"logging", "commit", "log_pending", "pass_to_next_round", "record_food"}
+        or final_action in {"log_food", "log_consumption", "record_food", "commit"}
+        or uncertainty_posture == "high_variance_generic_item"
+        or mutation_intent
+    )
+
+    valid_shape = (
+        manager_action == "final"
+        and final_action == "request_clarification"
+        and not requested
+        and not tool_call_names
+        and not has_estimate_fields
+        and not has_logging_or_intake_signals
+        and not mutation_attempted
+    )
+    if valid_shape:
+        return {
+            "status": "valid",
+            "case_family": "composition_unknown_self_selected_basket",
+            "violation_family": None,
+            "expected_shape": "final.request_clarification.no_tools.no_mutation",
+            "actual_shape": actual_shape,
+        }
+
+    return {
+        "status": "invalid",
+        "case_family": "composition_unknown_self_selected_basket",
+        "violation_family": "composition_unknown_invalid_estimate_or_log",
+        "expected_shape": "final.request_clarification.no_tools.no_mutation",
+        "actual_shape": actual_shape,
+    }
+
+
+def _listed_ingredients_pass1_decision_shape(trace: dict[str, Any]) -> dict[str, Any]:
+    result = {
+        "status": "not_applicable",
+        "case_family": None,
+        "violation_family": None,
+        "expected_shape": None,
+        "actual_shape": None,
+    }
+    if not _is_listed_ingredient_basket(trace):
+        return result
+
+    decision_payload = _pass1_decision_payload(trace)
+    tool_calls = decision_payload.get("tool_calls")
+    if not isinstance(tool_calls, list) or not tool_calls:
+        return result
+
+    normalized_names: list[str] = []
+    basket_level_lookup = False
+    item_level_lookup = False
+    for item in tool_calls:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name") or "")
+        arguments = item.get("arguments") if isinstance(item.get("arguments"), dict) else {}
+        food_name = str(arguments.get("food_name") or "")
+        normalized_names.append(f"{name}:{food_name}" if food_name else name)
+        if name == "lookup_generic_food":
+            if food_name == "滷味":
+                basket_level_lookup = True
+            elif food_name in {"豆干", "海帶", "貢丸"}:
+                item_level_lookup = True
+    actual_shape = ".".join(normalized_names) if normalized_names else "empty"
+
+    if basket_level_lookup and not item_level_lookup:
+        return {
+            "status": "invalid",
+            "case_family": "listed_ingredient_basket",
+            "violation_family": "listed_ingredients_collapsed_to_basket_lookup",
+            "expected_shape": "item_level_lookup_generic_food",
+            "actual_shape": actual_shape,
+        }
+    if item_level_lookup:
+        return {
+            "status": "valid",
+            "case_family": "listed_ingredient_basket",
+            "violation_family": None,
+            "expected_shape": "item_level_lookup_generic_food",
+            "actual_shape": actual_shape,
+        }
+    return result
+
+
 def _natural_failure_family(
     *,
     trace: dict[str, Any],
@@ -657,8 +841,14 @@ def _natural_failure_family(
     missing_required: list[str],
     wrong_tools: list[str],
 ) -> str:
+    decision_shape = _composition_unknown_pass1_decision_shape(trace)
     if expected_policy.get("policy_type") == "self_selected_basket_without_ingredients":
+        if decision_shape.get("status") == "invalid":
+            return str(decision_shape.get("violation_family") or "composition_unknown_invalid_estimate_or_log")
         return "blocking_boundary_ok" if not _has_estimate_execution_or_packet(trace) else "router_policy_failure"
+    listed_decision_shape = _listed_ingredients_pass1_decision_shape(trace)
+    if listed_decision_shape.get("status") == "invalid":
+        return str(listed_decision_shape.get("violation_family") or "listed_ingredients_collapsed_to_basket_lookup")
     if not requested and missing_required:
         return "manager_no_tool_request"
     if missing_required or wrong_tools:
@@ -686,6 +876,8 @@ def _build_natural_probe_failure_report(
         "pass2_not_run": 0,
         "pass2_no_item_results": 0,
         "blocking_boundary_ok": 0,
+        "composition_unknown_invalid_estimate_or_log": 0,
+        "listed_ingredients_collapsed_to_basket_lookup": 0,
         "manager_blocking_semantics_not_proven": 0,
     }
     for trace in traces:
@@ -709,6 +901,9 @@ def _build_natural_probe_failure_report(
             missing_required=missing_required,
             wrong_tools=wrong_tools,
         )
+        pass1_decision_shape = _composition_unknown_pass1_decision_shape(trace)
+        if pass1_decision_shape.get("status") == "not_applicable":
+            pass1_decision_shape = _listed_ingredients_pass1_decision_shape(trace)
         if family in counts:
             counts[family] += 1
         manager_blocking_semantics = "not_applicable"
@@ -716,8 +911,13 @@ def _build_natural_probe_failure_report(
             # In B-1 natural-probe, no estimate execution proves the boundary, but
             # the current artifact does not yet prove the Manager itself selected
             # blocking semantics unless it emits explicit semantic state later.
-            manager_blocking_semantics = "not_proven"
-            counts["manager_blocking_semantics_not_proven"] += 1
+            if pass1_decision_shape.get("status") == "valid":
+                manager_blocking_semantics = "proven"
+            elif pass1_decision_shape.get("status") == "invalid":
+                manager_blocking_semantics = "invalid"
+            else:
+                manager_blocking_semantics = "not_proven"
+                counts["manager_blocking_semantics_not_proven"] += 1
         cases.append(
             {
                 "case_id": trace.get("case_id"),
@@ -734,6 +934,7 @@ def _build_natural_probe_failure_report(
                 "item_results_source": _item_results_source(trace),
                 "failure_family": family,
                 "manager_blocking_semantics": manager_blocking_semantics,
+                "pass1_decision_shape": pass1_decision_shape,
             }
         )
     provider_state = provider_state or {}
@@ -766,8 +967,12 @@ def _provider_blocker_state(report: dict[str, Any], traces: list[dict[str, Any]]
     provider_runtime = report.get("provider_runtime") if isinstance(report.get("provider_runtime"), dict) else {}
     provider_trace_blocker = report.get("provider_trace_blocker") if isinstance(report.get("provider_trace_blocker"), dict) else {}
     runtime_blocker = report.get("runtime_blocker") if isinstance(report.get("runtime_blocker"), dict) else {}
-    completed_count = _completed_trace_count(report, traces)
-    expected_count = _expected_case_count()
+    case_results = _case_results(report)
+    if case_results:
+        completed_count = sum(1 for item in case_results if item.get("trace_present") is True)
+    else:
+        completed_count = _completed_trace_count(report, traces)
+    expected_count = _selected_case_count(report)
     provider_blocker = bool(provider_runtime.get("blocker"))
     provider_trace_blocker_active = bool(provider_trace_blocker.get("blocker"))
     runtime_blocker_active = bool(runtime_blocker.get("blocker"))
@@ -782,6 +987,21 @@ def _provider_blocker_state(report: dict[str, Any], traces: list[dict[str, Any]]
         else None
     )
     any_blocker = provider_blocker or provider_trace_blocker_active or runtime_blocker_active
+    if case_results:
+        failed_cases = [item for item in case_results if item.get("case_execution_status") != "completed"]
+        if failed_cases:
+            any_blocker = True
+            first_failure = failed_cases[0]
+            blocker_reason = (
+                ((first_failure.get("provider_runtime") or {}).get("reason"))
+                or str(first_failure.get("case_execution_status") or blocker_reason)
+            )
+            if first_failure.get("case_execution_status") in {"provider_timeout", "provider_runtime_error"}:
+                blocker_kind = "provider_runtime"
+            elif first_failure.get("case_execution_status") == "provider_trace_blocker":
+                blocker_kind = "provider_trace_blocker"
+            elif first_failure.get("case_execution_status") == "runtime_blocker":
+                blocker_kind = "runtime_blocker"
     return {
         "provider_blocker": provider_blocker,
         "provider_trace_blocker": provider_trace_blocker_active,
@@ -875,6 +1095,8 @@ def _check_mode_verdicts(
     for trace in traces:
         input_message = str(trace.get("input_message") or "")
         requested, allowed = _trace_requested_allowed(trace)
+        decision_shape = _composition_unknown_pass1_decision_shape(trace)
+        listed_decision_shape = _listed_ingredients_pass1_decision_shape(trace)
         if input_message in EXPECTED_GENERIC_LOOKUP_CASES:
             if "lookup_generic_food" not in requested or "lookup_generic_food" not in allowed:
                 selection_failures.append(
@@ -887,17 +1109,38 @@ def _check_mode_verdicts(
                     }
                 )
         if _is_self_selected_basket_without_ingredients(trace):
-            router = trace.get("runtime_tool_router") or {}
-            blocked_check: list[dict[str, str]] = []
-            block_result = _check_self_selected_basket_without_ingredients(trace, router if isinstance(router, dict) else {}, blocked_check)
-            if not block_result.get("passed") or _has_estimate_execution_or_packet(trace):
+            if decision_shape.get("status") == "invalid":
                 selection_failures.append(
                     {
                         "case_id": trace.get("case_id"),
                         "input_message": input_message,
-                        "expected": "blocked_estimate_tools_without_estimate_execution",
+                        "reason": "composition_unknown_invalid_estimate_or_log",
+                        "expected": "final.request_clarification.no_tools.no_mutation",
+                        "actual": decision_shape.get("actual_shape"),
                     }
                 )
+            else:
+                router = trace.get("runtime_tool_router") or {}
+                blocked_check: list[dict[str, str]] = []
+                block_result = _check_self_selected_basket_without_ingredients(trace, router if isinstance(router, dict) else {}, blocked_check)
+                if not block_result.get("passed") or _has_estimate_execution_or_packet(trace):
+                    selection_failures.append(
+                        {
+                            "case_id": trace.get("case_id"),
+                            "input_message": input_message,
+                            "expected": "blocked_estimate_tools_without_estimate_execution",
+                        }
+                    )
+        if listed_decision_shape.get("status") == "invalid":
+            selection_failures.append(
+                {
+                    "case_id": trace.get("case_id"),
+                    "input_message": input_message,
+                    "reason": "listed_ingredients_collapsed_to_basket_lookup",
+                    "expected": "item_level_lookup_generic_food",
+                    "actual": listed_decision_shape.get("actual_shape"),
+                }
+            )
 
         manager_pass_2 = trace.get("manager_pass_2") or {}
         item_results = manager_pass_2.get("item_results") or []
@@ -914,11 +1157,24 @@ def _check_mode_verdicts(
             loop_failures.append({"case_id": trace.get("case_id"), "input_message": input_message, "reason": "natural_probe_runner_derived_item_results"})
 
     if selection_failures:
-        _quality_add(
-            quality_blockers,
-            "expected_tool_policy_mismatch",
-            "Natural-probe tool selection must request/allow the expected tool policy, not just any tool.",
-        )
+        if any(
+            item.get("reason") in {"composition_unknown_invalid_estimate_or_log", "listed_ingredients_collapsed_to_basket_lookup"}
+            for item in selection_failures
+        ):
+            _quality_add(
+                quality_blockers,
+                "hard_invariant_decision_shape_violation",
+                "Natural-probe hard-invariant cases must not estimate, log, or request estimate tools when the accepted boundary shape is clarify-only.",
+            )
+        if any(
+            item.get("reason") not in {"composition_unknown_invalid_estimate_or_log", "listed_ingredients_collapsed_to_basket_lookup"}
+            for item in selection_failures
+        ):
+            _quality_add(
+                quality_blockers,
+                "expected_tool_policy_mismatch",
+                "Natural-probe tool selection must request/allow the expected tool policy, not just any tool.",
+            )
     if any(item.get("reason") == "natural_probe_runner_derived_item_results" for item in loop_failures):
         _quality_add(
             quality_blockers,
@@ -1039,11 +1295,19 @@ def _check_tavily_canary(trace: dict[str, Any], blockers: list[dict[str, str]]) 
 
 
 def _check_core_smoke_cases(report: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    case_set = _report_case_set(report)
+    full_readiness_claimed = bool(report.get("full_readiness_claimed", case_set == "full"))
     cases_run = set(str(item) for item in report.get("core_smoke_cases_run") or [])
     missing = [case for case in REQUIRED_CORE_SMOKE_CASES if case not in cases_run]
-    if missing:
+    if missing and full_readiness_claimed:
         _add(blockers, "core_smoke_case_missing", f"Missing Phase B-1 core smoke cases: {', '.join(missing)}.")
-    return {"required": list(REQUIRED_CORE_SMOKE_CASES), "missing": missing, "passed": not missing}
+    return {
+        "required": list(REQUIRED_CORE_SMOKE_CASES),
+        "missing": missing,
+        "passed": not missing or not full_readiness_claimed,
+        "case_set": case_set,
+        "full_readiness_claimed": full_readiness_claimed,
+    }
 
 
 def _missing_keys(payload: Any, keys: tuple[str, ...]) -> list[str]:
@@ -1165,6 +1429,12 @@ def verify_phase_b_readiness(
         _add(blockers, "tool_loop_trace_missing", "Phase B-1 readiness requires ToolLoopTrace artifacts.")
 
     core_smoke_cases = _check_core_smoke_cases(phase_b_report, blockers)
+    if core_smoke_cases["case_set"] != "full" or not core_smoke_cases["full_readiness_claimed"]:
+        _quality_add(
+            quality_blockers,
+            "diagnostic_case_set_not_full_readiness",
+            "Targeted/diagnostic smoke artifacts may carry diagnostics but must not claim full Phase B-1 readiness.",
+        )
     runtime_latency = _check_runtime_latency(phase_b_report, traces, latency_blockers, latency_warnings)
     trace_checks: list[dict[str, Any]] = []
     for trace in traces:

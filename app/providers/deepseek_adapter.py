@@ -8,12 +8,21 @@ from typing import Any
 
 import httpx
 
+from ..runtime.agent.manager_branch_contract import (
+    ManagerPass1BranchContractError,
+    manager_pass1_decision_tool_arguments_schema_for_constraints,
+    manager_pass1_schema_for_constraints,
+    should_attempt_b1_common_commercial_meal_pass1_decision_transport,
+    should_attempt_b1_generic_pass1_structured_output_transport,
+    validate_manager_pass1_branch,
+)
 from ..runtime.contracts.trace import MANAGER_LOOP_STAGE
 from ..text_integrity import corruption_summary, find_text_corruption
 
 
 DEFAULT_BASE_URL = "https://api.deepseek.com/v1"
 MAX_PARSE_RETRIES = 1
+DECISION_TRANSPORT_TOOL_NAME = "manager_call_tools_decision"
 
 
 class DeepSeekResponseError(RuntimeError):
@@ -64,7 +73,9 @@ class DeepSeekAdapter:
 
         formatted_user_message = self._format_user_message(stage, user_payload)
         self._check_encoding_safety(formatted_user_message)
+        constraints = dict(user_payload.get("constraints") or {})
 
+        response_format, transport_meta = self._response_format_request_for_stage(stage, constraints=constraints)
         request_payload: dict[str, Any] = {
             "model": self.model,
             "temperature": self._temperature_for_stage(stage),
@@ -72,7 +83,7 @@ class DeepSeekAdapter:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": formatted_user_message},
             ],
-            "response_format": {"type": "json_object"},
+            "response_format": response_format,
         }
         if max_tokens is not None:
             request_payload["max_tokens"] = max_tokens
@@ -139,7 +150,9 @@ class DeepSeekAdapter:
                                 continue
                             raise exc
                         try:
-                            self._validate_manager_payload(stage, parsed)
+                            self._validate_manager_payload(stage, parsed, constraints=constraints)
+                        except ManagerPass1BranchContractError:
+                            raise
                         except Exception as exc:
                             parse_attempts.append(
                                 {
@@ -147,7 +160,7 @@ class DeepSeekAdapter:
                                     "stage": stage,
                                     "error_type": type(exc).__name__,
                                     "error": str(exc),
-                                    "failure_family": "malformed_json",
+                                    "failure_family": getattr(exc, "failure_family", "malformed_json"),
                                 }
                             )
                             last_error = exc
@@ -170,6 +183,13 @@ class DeepSeekAdapter:
                             "parse_attempts": parse_attempts,
                             "finish_reason": (data.get("choices") or [{}])[0].get("finish_reason"),
                             "request_failure_family": None,
+                            "structured_output_transport_attempted": transport_meta["structured_output_transport_attempted"],
+                            "structured_output_transport_mode": transport_meta["structured_output_transport_mode"],
+                            "structured_output_transport_accepted": transport_meta["structured_output_transport_accepted"],
+                            "structured_output_transport_fallback": transport_meta["structured_output_transport_fallback"],
+                            "fallback_reason": transport_meta["fallback_reason"],
+                            "structured_output_transport_constraint_snapshot": transport_meta["structured_output_transport_constraint_snapshot"],
+                            "effective_response_format_type": response_format.get("type"),
                         }
                         return parsed, trace
                     except Exception as exc:
@@ -181,7 +201,11 @@ class DeepSeekAdapter:
                             await asyncio.sleep(self.transport_retry_backoff_seconds * attempt_index)
                 raise last_error or RuntimeError("DeepSeek transport failed without a captured exception.")
         except Exception as exc:
-            failure_family = "empty_content" if "empty" in str(exc).lower() else "malformed_json"
+            failure_family = getattr(
+                exc,
+                "failure_family",
+                "empty_content" if "empty" in str(exc).lower() else "malformed_json",
+            )
             raise DeepSeekResponseError(
                 f"DeepSeek manager error at stage={stage}: {type(exc).__name__}: {exc}",
                 trace={
@@ -192,6 +216,20 @@ class DeepSeekAdapter:
                     "transport_attempts": transport_attempts,
                     "parse_attempts": parse_attempts,
                     "request_failure_family": failure_family,
+                    "failure_family": failure_family,
+                    "failing_component": getattr(exc, "failing_component", "deepseek_adapter.complete_with_trace"),
+                    "violation_family": getattr(exc, "violation_family", None),
+                    "actual_shape": getattr(exc, "actual_shape", None),
+                    "parsed_object": getattr(exc, "observed_value", None),
+                    "value_excerpt": getattr(exc, "value_excerpt", None),
+                    "value_truncated": getattr(exc, "value_truncated", None),
+                    "structured_output_transport_attempted": transport_meta["structured_output_transport_attempted"],
+                    "structured_output_transport_mode": transport_meta["structured_output_transport_mode"],
+                    "structured_output_transport_accepted": transport_meta["structured_output_transport_accepted"],
+                    "structured_output_transport_fallback": transport_meta["structured_output_transport_fallback"],
+                    "fallback_reason": transport_meta["fallback_reason"],
+                    "structured_output_transport_constraint_snapshot": transport_meta["structured_output_transport_constraint_snapshot"],
+                    "effective_response_format_type": response_format.get("type"),
                 },
             ) from exc
 
@@ -277,12 +315,14 @@ class DeepSeekAdapter:
     def _temperature_for_stage(self, stage: str) -> float:
         return self.temperature
 
-    def _response_schema_for_stage(self, stage: str) -> dict[str, Any] | None:
+    def _response_schema_for_stage(self, stage: str, constraints: dict[str, Any] | None = None) -> dict[str, Any] | None:
         if stage == MANAGER_LOOP_STAGE:
-            return {
+            base_schema = {
                 "type": "object",
                 "properties": {
                     "manager_action": {"type": "string"},
+                    "interaction_family": {"type": "string"},
+                    "response_mode": {"type": "string"},
                     "intent": {"type": "string"},
                     "intent_type": {"type": "string"},
                     "final_action": {"type": "string"},
@@ -309,6 +349,7 @@ class DeepSeekAdapter:
                             "additionalProperties": False,
                         },
                     },
+                    "operations": {"type": "array"},
                 },
                 "required": [
                     "manager_action",
@@ -322,10 +363,106 @@ class DeepSeekAdapter:
                 ],
                 "additionalProperties": False,
             }
+            return manager_pass1_schema_for_constraints(base_schema, constraints)
         return None
 
-    def _validate_manager_payload(self, stage: str, payload: dict[str, Any]) -> None:
-        schema = self._response_schema_for_stage(stage)
+    def _response_format_request_for_stage(
+        self,
+        stage: str,
+        *,
+        constraints: dict[str, Any] | None = None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        constraint_snapshot = {
+            "phase_b1_manager_role": str((constraints or {}).get("phase_b1_manager_role") or ""),
+            "phase_b1_pass1_mode": str((constraints or {}).get("phase_b1_pass1_mode") or ""),
+            "phase_b1_case_family": str((constraints or {}).get("phase_b1_case_family") or ""),
+        }
+        if stage == MANAGER_LOOP_STAGE and should_attempt_b1_generic_pass1_structured_output_transport(constraints):
+            schema = self._response_schema_for_stage(stage, constraints)
+            return (
+                {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "phase_b1_generic_pass1_call_tools",
+                        "strict": True,
+                        "schema": schema,
+                    },
+                },
+                {
+                    "structured_output_transport_attempted": True,
+                    "structured_output_transport_mode": "json_schema",
+                    "structured_output_transport_accepted": True,
+                    "structured_output_transport_fallback": None,
+                    "fallback_reason": None,
+                    "structured_output_transport_constraint_snapshot": constraint_snapshot,
+                },
+            )
+        return (
+            {"type": "json_object"},
+            {
+                "structured_output_transport_attempted": False,
+                "structured_output_transport_mode": "json_object",
+                "structured_output_transport_accepted": False,
+                "structured_output_transport_fallback": None,
+                "fallback_reason": None,
+                "structured_output_transport_constraint_snapshot": constraint_snapshot,
+            },
+        )
+
+    def _decision_transport_request_for_stage(
+        self,
+        stage: str,
+        *,
+        constraints: dict[str, Any] | None = None,
+    ) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+        constraint_snapshot = {
+            "phase_b1_manager_role": str((constraints or {}).get("phase_b1_manager_role") or ""),
+            "phase_b1_pass1_mode": str((constraints or {}).get("phase_b1_pass1_mode") or ""),
+            "phase_b1_case_family": str((constraints or {}).get("phase_b1_case_family") or ""),
+        }
+        meta = {
+            "decision_transport_attempted": False,
+            "decision_transport_mode": None,
+            "decision_transport_accepted": False,
+            "decision_transport_fallback": None,
+            "decision_transport_fallback_reason": None,
+            "decision_transport_contract_breach": False,
+            "decision_transport_constraint_snapshot": constraint_snapshot,
+        }
+        if stage != MANAGER_LOOP_STAGE or not should_attempt_b1_common_commercial_meal_pass1_decision_transport(constraints):
+            return None, meta
+        schema = manager_pass1_decision_tool_arguments_schema_for_constraints(self._response_schema_for_stage(stage), constraints)
+        meta["decision_transport_attempted"] = True
+        meta["decision_transport_mode"] = "tool_call_decision_transport"
+        return (
+            {
+                "mode": "tool_call_decision_transport",
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": DECISION_TRANSPORT_TOOL_NAME,
+                            "description": "Return the manager call-tools decision as structured arguments.",
+                            "parameters": schema,
+                        },
+                    }
+                ],
+                "tool_choice": {
+                    "type": "function",
+                    "function": {"name": DECISION_TRANSPORT_TOOL_NAME},
+                },
+            },
+            meta,
+        )
+
+    def _validate_manager_payload(
+        self,
+        stage: str,
+        payload: dict[str, Any],
+        *,
+        constraints: dict[str, Any] | None = None,
+    ) -> None:
+        schema = self._response_schema_for_stage(stage, constraints)
         if schema is None:
             return
         required = set(schema.get("required") or [])
@@ -337,6 +474,8 @@ class DeepSeekAdapter:
             unknown = sorted(key for key in payload.keys() if key not in allowed)
             if unknown:
                 raise RuntimeError(f"manager payload has unknown fields for {stage}: {unknown}")
+        if stage == MANAGER_LOOP_STAGE:
+            validate_manager_pass1_branch(payload, constraints)
 
     def _jsonable(self, value: Any) -> Any:
         if hasattr(value, "model_dump"):
