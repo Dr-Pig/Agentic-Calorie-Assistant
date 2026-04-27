@@ -1,5 +1,8 @@
 name: wave1-runtime-smoke
 
+# Manual diagnostic only. This workflow is not a required branch gate and may
+# be expected-red in natural-probe mode while Wave 1 runtime probes evolve.
+
 on:
   workflow_dispatch:
     inputs:

@@ -20,11 +20,17 @@ Apply these settings to the default protected branch, expected to be `main`:
 
 The following check names must be required:
 
-- `layer-integrity`
-- `smoke-tests`
-- `integration-tests`
+- `pre-edd-readiness`
+- `runtime-contract-tests`
+- `wave1-phase-a-contracts`
+- `wave1-phase-b-contracts`
 
 If workflow job names change, this document must be updated in the same governance change.
+
+Manual-only workflows are not required status checks:
+
+- `wave1-runtime-smoke`
+- `cd`
 
 ## Platform-Level Hygiene
 
@@ -38,8 +44,8 @@ Enable or confirm:
 
 This document complements:
 
-- [`AGENTS.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/AGENTS.md)
-- [`docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
-- [`docs/governance/TASK_CHECKIN_PROTOCOL.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/TASK_CHECKIN_PROTOCOL.md)
+- [`AGENTS.md`](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/AGENTS.md)
+- [`docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md`](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
+- [`docs/governance/TASK_CHECKIN_PROTOCOL.md`](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/governance/TASK_CHECKIN_PROTOCOL.md)
 
 It does not replace repo-local gates; it ensures they become merge requirements instead of advisory automation.

@@ -1,6 +1,6 @@
 ﻿# Text Meal Canary
 
-Technical bootstrap starts at [AGENTS.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/AGENTS.md).
+Technical bootstrap starts at [AGENTS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/AGENTS.md).
 
 ## Local Run
 

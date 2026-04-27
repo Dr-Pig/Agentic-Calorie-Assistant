@@ -3,66 +3,13 @@ name: cd
 on:
   workflow_dispatch:
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 jobs:
-  # ── Gate: CI must pass first ──────────────────────────────────
-  ci-gate:
-    uses: ./.github/workflows/ci.yml
-
-  # ── Build & Push Docker Image ────────────────────────────────
-  build-and-push:
-    needs: ci-gate
+  deployment-placeholder:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-  # ── Deploy (webhook-based, works with Render / Railway) ──────
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Trigger deploy webhook
+      - name: Deployment placeholder only
         run: |
-          if [ -n "${{ secrets.DEPLOY_WEBHOOK_URL }}" ]; then
-            curl -sf "${{ secrets.DEPLOY_WEBHOOK_URL }}" \
-              -H "Content-Type: application/json" \
-              -d '{"ref":"${{ github.sha }}","image":"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"}'
-            echo "Deploy webhook triggered."
-          else
-            echo "::warning::DEPLOY_WEBHOOK_URL secret not set. Skipping deploy."
-            echo "Set DEPLOY_WEBHOOK_URL in repository secrets to enable auto-deploy."
-          fi
+          echo "Manual placeholder only."
+          echo "This workflow intentionally performs no Docker build, push, or deploy side effects."
+          echo "Use ci.yml for required code-health gates."
