@@ -10,6 +10,7 @@ Set-StrictMode -Version Latest
 function Get-LineCountFromText {
     param(
         [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
         [string]$Text
     )
 
@@ -101,6 +102,158 @@ function Get-StagedGovernanceTexts {
     }
 
     return @($texts)
+}
+
+function Get-ActiveCodePolicy {
+    $policyPath = Join-Path $repoRoot "config/active_code_policy.jsonc"
+    if (-not (Test-Path -LiteralPath $policyPath)) {
+        throw "Unable to find active code policy at $policyPath"
+    }
+
+    return Get-Content -Encoding UTF8 -Raw -LiteralPath $policyPath | ConvertFrom-Json
+}
+
+function Get-NormalizedRepoPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    return ($Path -replace "\\", "/")
+}
+
+function Test-RepoPathMatchesPattern {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [string]$Pattern
+    )
+
+    $normalizedPath = Get-NormalizedRepoPath -Path $Path
+    $normalizedPattern = Get-NormalizedRepoPath -Path $Pattern
+    return $normalizedPath -like $normalizedPattern
+}
+
+function Test-PolicyHasTransitionOverride {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [object]$Policy
+    )
+
+    return $Policy.transition_overrides.PSObject.Properties.Name -contains $Path
+}
+
+function Get-PolicyTransitionOverrideValue {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [object]$Policy
+    )
+
+    if (-not (Test-PolicyHasTransitionOverride -Path $Path -Policy $Policy)) {
+        return $null
+    }
+
+    return [int]$Policy.transition_overrides.PSObject.Properties[$Path].Value
+}
+
+function Get-PolicyCategoryForPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [object]$Policy
+    )
+
+    foreach ($rule in $Policy.category_rules) {
+        if (Test-RepoPathMatchesPattern -Path $Path -Pattern ([string]$rule.pattern)) {
+            return [string]$rule.category
+        }
+    }
+
+    return $null
+}
+
+function Get-PolicyTargetCapForPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [object]$Policy
+    )
+
+    $category = Get-PolicyCategoryForPath -Path $Path -Policy $Policy
+    if ($null -eq $category) {
+        return $null
+    }
+
+    return [int]$Policy.category_caps.PSObject.Properties[$category].Value
+}
+
+function Get-PolicyEffectiveCapForPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [object]$Policy
+    )
+
+    if (Test-PolicyHasTransitionOverride -Path $Path -Policy $Policy) {
+        return Get-PolicyTransitionOverrideValue -Path $Path -Policy $Policy
+    }
+
+    return Get-PolicyTargetCapForPath -Path $Path -Policy $Policy
+}
+
+function Get-ActivePythonPolicyRows {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Policy
+    )
+
+    $rows = New-Object System.Collections.Generic.List[hashtable]
+    $appRoot = Join-Path $repoRoot ([string]$Policy.active_code.root)
+    $excludedPatterns = @()
+    foreach ($pattern in $Policy.active_code.excluded_globs) {
+        $excludedPatterns += [string]$pattern
+    }
+
+    $files = Get-ChildItem -Path $appRoot -Recurse -Filter *.py -File
+    foreach ($file in $files) {
+        $fullPath = $file.FullName
+        $rootWithSeparator = $repoRoot.Path.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+        if ($fullPath.StartsWith($rootWithSeparator, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $relativePath = $fullPath.Substring($rootWithSeparator.Length)
+        }
+        else {
+            $relativePath = $fullPath
+        }
+        $normalizedPath = Get-NormalizedRepoPath -Path $relativePath
+        $isExcluded = $false
+        foreach ($pattern in $excludedPatterns) {
+            if (Test-RepoPathMatchesPattern -Path $normalizedPath -Pattern $pattern) {
+                $isExcluded = $true
+                break
+            }
+        }
+        if ($isExcluded) {
+            continue
+        }
+
+        $rows.Add(@{
+            Path = $normalizedPath
+            Category = Get-PolicyCategoryForPath -Path $normalizedPath -Policy $Policy
+            TargetCap = Get-PolicyTargetCapForPath -Path $normalizedPath -Policy $Policy
+            EffectiveCap = Get-PolicyEffectiveCapForPath -Path $normalizedPath -Policy $Policy
+            UsesTransitionOverride = (Test-PolicyHasTransitionOverride -Path $normalizedPath -Policy $Policy)
+        })
+    }
+
+    return @($rows)
 }
 
 function Test-FreezeGrowthJustification {
@@ -206,6 +359,8 @@ function Get-StructuralViolations {
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 Set-Location $repoRoot
+$activeCodePolicy = Get-ActiveCodePolicy
+$activePythonPolicyRows = @(Get-ActivePythonPolicyRows -Policy $activeCodePolicy)
 
 $protectedRules = @(
     @{
@@ -377,11 +532,52 @@ if ($AuditAll) {
     }
 
     Write-Output ""
+    Write-Output "Active code policy audit:"
+
+    foreach ($row in $activePythonPolicyRows) {
+        $path = [string]$row.Path
+        if (-not (Test-Path -LiteralPath $path)) {
+            continue
+        }
+
+        $text = Get-Content -Encoding UTF8 -Raw -LiteralPath $path
+        $lines = Get-LineCountFromText -Text $text
+        $category = [string]$row.Category
+        $targetCap = $row.TargetCap
+        $effectiveCap = $row.EffectiveCap
+        $usesTransitionOverride = [bool]$row.UsesTransitionOverride
+
+        if ([string]::IsNullOrWhiteSpace($category)) {
+            Write-Output ("[UNMAPPED] {0} lines={1}" -f $path, $lines)
+            $warnings.Add("$path is not mapped to an active code category")
+            continue
+        }
+
+        if ($lines -gt $targetCap) {
+            $targetStatus = "TARGET_OVER"
+            $warnings.Add("$path is above target cap ($lines > $targetCap) for category $category")
+        }
+        elseif ($lines -eq $targetCap) {
+            $targetStatus = "TARGET_EDGE"
+        }
+        else {
+            $targetStatus = "TARGET_OK"
+        }
+
+        Write-Output ("[{0}] {1} lines={2} category={3} target={4} effective={5} transition_override={6}" -f $targetStatus, $path, $lines, $category, $targetCap, $effectiveCap, $usesTransitionOverride.ToString().ToLowerInvariant())
+
+        if ($lines -gt $effectiveCap) {
+            $warnings.Add("$path exceeded effective transition cap ($lines > $effectiveCap)")
+        }
+    }
+
+    Write-Output ""
     Write-Output "Guidance:"
     Write-Output "- protected files above threshold should only shrink or stay flat during extraction work"
     Write-Output "- freeze-growth files must not grow until an extraction task reduces their responsibility pressure"
     Write-Output "- watchlist files need boundary review before they join the freeze-growth set"
     Write-Output "- new responsibilities should move into application/domain/support modules"
+    Write-Output "- files above target caps may exist temporarily under transition overrides, but they must not continue growing"
 }
 
 if ($StagedOnly) {
@@ -406,21 +602,50 @@ if ($StagedOnly) {
     foreach ($path in $stagedPaths) {
         $isProtected = $protectedMap.ContainsKey($path)
         $isFrozen = $freezeMap.ContainsKey($path)
+        $policyCategory = Get-PolicyCategoryForPath -Path $path -Policy $activeCodePolicy
+        $policyTargetCap = Get-PolicyTargetCapForPath -Path $path -Policy $activeCodePolicy
+        $policyEffectiveCap = Get-PolicyEffectiveCapForPath -Path $path -Policy $activeCodePolicy
+        $usesTransitionOverride = Test-PolicyHasTransitionOverride -Path $path -Policy $activeCodePolicy
 
         if (-not $isProtected -and -not $isFrozen) {
-            $isTestOrScript = $path.StartsWith("tests/", [System.StringComparison]::OrdinalIgnoreCase) -or 
-                              $path.StartsWith("scripts/", [System.StringComparison]::OrdinalIgnoreCase) -or 
-                              $path.StartsWith("data_build/", [System.StringComparison]::OrdinalIgnoreCase)
-            
-            if ($path.EndsWith(".py", [System.StringComparison]::OrdinalIgnoreCase) -and -not $isTestOrScript) {
-                $stagedBlobForCatchAll = Get-StagedText -Path $path
-                if ($null -ne $stagedBlobForCatchAll) {
-                    $stagedCatchAllLines = Get-LineCountFromText -Text ($stagedBlobForCatchAll -join "`n")
-                    if ($stagedCatchAllLines -gt 400) {
-                        $violations.Add("$path exceeded global catch-all ceiling (400 lines). Staged size: $stagedCatchAllLines. New or unmapped Python modules must stay below 400 lines.")
-                    }
+            $isActivePython = $path.StartsWith("app/", [System.StringComparison]::OrdinalIgnoreCase) -and
+                              $path.EndsWith(".py", [System.StringComparison]::OrdinalIgnoreCase)
+
+            if ($isActivePython) {
+                $stagedBlobForPolicy = Get-StagedText -Path $path
+                if ($null -eq $stagedBlobForPolicy) {
+                    continue
+                }
+
+                $headTextForPolicy = Get-HeadText -Path $path
+                $headLinesForPolicy = if ($null -eq $headTextForPolicy) { 0 } else { Get-LineCountFromText -Text ($headTextForPolicy -join "`n") }
+                $stagedLinesForPolicy = Get-LineCountFromText -Text ($stagedBlobForPolicy -join "`n")
+
+                if ($null -eq $policyCategory) {
+                    $violations.Add("$path is an active Python module but is not mapped to any active code category.")
+                    continue
+                }
+
+                if ($headLinesForPolicy -eq 0 -and $stagedLinesForPolicy -gt [int]$activeCodePolicy.active_code.new_active_python_file_default_cap) {
+                    $violations.Add("$path is a new active Python module and exceeded the new-file cap ($stagedLinesForPolicy > $($activeCodePolicy.active_code.new_active_python_file_default_cap)).")
+                    continue
+                }
+
+                if ($headLinesForPolicy -gt $policyTargetCap -and $stagedLinesForPolicy -gt $headLinesForPolicy) {
+                    $violations.Add("$path grew from $headLinesForPolicy to $stagedLinesForPolicy while already above its target cap $policyTargetCap for category $policyCategory.")
+                    continue
+                }
+
+                if ($headLinesForPolicy -le $policyEffectiveCap -and $stagedLinesForPolicy -gt $policyEffectiveCap) {
+                    $violations.Add("$path crossed its effective cap $policyEffectiveCap for category $policyCategory ($headLinesForPolicy -> $stagedLinesForPolicy).")
+                    continue
+                }
+
+                if ($usesTransitionOverride -and $stagedLinesForPolicy -eq $headLinesForPolicy -and $headLinesForPolicy -gt $policyTargetCap) {
+                    $warnings.Add("$path remains above target cap $policyTargetCap under a transition override; prefer shrink-only follow-up.")
                 }
             }
+
             continue
         }
 

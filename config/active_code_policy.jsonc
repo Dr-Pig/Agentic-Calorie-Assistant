@@ -1,0 +1,237 @@
+{
+  "policy_version": 1,
+  "active_code": {
+    "root": "app",
+    "new_active_python_file_default_cap": 220,
+    "new_scaffold_shell_default_cap": 80,
+    "excluded_globs": [
+      "app/**/__pycache__/**",
+      "app/**/*.pyc"
+    ]
+  },
+  "category_caps": {
+    "facade_shim": 120,
+    "boundary_surface": 200,
+    "adapter_infrastructure": 350,
+    "application_orchestration": 320,
+    "domain_helper_policy": 260
+  },
+  "category_rules": [
+    {
+      "pattern": "app/__init__.py",
+      "category": "facade_shim"
+    },
+    {
+      "pattern": "app/**/__init__.py",
+      "category": "facade_shim"
+    },
+    {
+      "pattern": "app/routes.py",
+      "category": "boundary_surface"
+    },
+    {
+      "pattern": "app/schemas.py",
+      "category": "boundary_surface"
+    },
+    {
+      "pattern": "app/models.py",
+      "category": "boundary_surface"
+    },
+    {
+      "pattern": "app/main.py",
+      "category": "boundary_surface"
+    },
+    {
+      "pattern": "app/database.py",
+      "category": "adapter_infrastructure"
+    },
+    {
+      "pattern": "app/logger.py",
+      "category": "adapter_infrastructure"
+    },
+    {
+      "pattern": "app/logging.py",
+      "category": "adapter_infrastructure"
+    },
+    {
+      "pattern": "app/paths.py",
+      "category": "adapter_infrastructure"
+    },
+    {
+      "pattern": "app/benchmark_loader.py",
+      "category": "adapter_infrastructure"
+    },
+    {
+      "pattern": "app/readiness.py",
+      "category": "boundary_surface"
+    },
+    {
+      "pattern": "app/text_integrity.py",
+      "category": "domain_helper_policy"
+    },
+    {
+      "pattern": "app/shared/conversation_prompt.py",
+      "category": "domain_helper_policy"
+    },
+    {
+      "pattern": "app/shared/time_labels.py",
+      "category": "domain_helper_policy"
+    },
+    {
+      "pattern": "app/shared/infra/*.py",
+      "category": "adapter_infrastructure"
+    },
+    {
+      "pattern": "app/shared/infra/**/*.py",
+      "category": "adapter_infrastructure"
+    },
+    {
+      "pattern": "app/**/interface/*.py",
+      "category": "boundary_surface"
+    },
+    {
+      "pattern": "app/**/contracts/*.py",
+      "category": "boundary_surface"
+    },
+    {
+      "pattern": "app/providers/*.py",
+      "category": "adapter_infrastructure"
+    },
+    {
+      "pattern": "app/**/infrastructure/*.py",
+      "category": "adapter_infrastructure"
+    },
+    {
+      "pattern": "app/**/infrastructure/**/*.py",
+      "category": "adapter_infrastructure"
+    },
+    {
+      "pattern": "app/runtime/application/*.py",
+      "category": "application_orchestration"
+    },
+    {
+      "pattern": "app/runtime/agent/*.py",
+      "category": "application_orchestration"
+    },
+    {
+      "pattern": "app/**/application/*.py",
+      "category": "application_orchestration"
+    },
+    {
+      "pattern": "app/**/agent/*.py",
+      "category": "domain_helper_policy"
+    },
+    {
+      "pattern": "app/**/domain/*.py",
+      "category": "domain_helper_policy"
+    }
+  ],
+  "transition_overrides": {
+    "app/intake/application/bundle1_service.py": 420,
+    "app/intake/application/manager_tools.py": 500,
+    "app/intake/application/canonical_commit_bridge.py": 1100,
+    "app/recommendation/application/context.py": 220,
+    "app/recommendation/application/ranking.py": 260,
+    "app/rescue/application/chat_surface.py": 360,
+    "app/rescue/application/proposal.py": 620,
+    "app/rescue/application/runtime.py": 240,
+    "app/runtime/application/manager_service.py": 500,
+    "app/runtime/application/state_resolver.py": 260,
+    "app/providers/builderspace_adapter.py": 1100,
+    "app/providers/deepseek_adapter.py": 500,
+    "app/runtime/agent/manager_branch_contract.py": 550,
+    "app/shared/infra/canonical_persistence.py": 750,
+    "app/nutrition/agent/nutrition_resolution_normalizer.py": 700,
+    "app/runtime/application/conversation_state_assembler.py": 450,
+    "app/nutrition/application/evidence_normalizer.py": 430,
+    "app/runtime/agent/manager.py": 420,
+    "app/nutrition/infrastructure/web_search/chain_retrieval.py": 420,
+    "app/memory/infrastructure/session_record_store.py": 420,
+    "app/runtime/agent/manager_support.py": 380,
+    "app/runtime/infrastructure/trace/text_meal_observability.py": 380,
+    "app/rescue/application/response.py": 380,
+    "app/shared/contracts/intake.py": 360,
+    "app/budget/interface/today_routes.py": 360
+  },
+  "domain_status": {
+    "body": "active_wave1_implementation",
+    "budget": "active_wave1_implementation",
+    "intake": "active_wave1_implementation",
+    "knowledge": "thin_future_skeleton",
+    "memory": "thin_future_skeleton",
+    "nutrition": "active_wave1_implementation",
+    "providers": "active_wave1_implementation",
+    "recommendation": "premature_active_implementation",
+    "rescue": "premature_active_implementation",
+    "runtime": "active_wave1_implementation",
+    "shared": "active_wave1_implementation"
+  },
+  "focus_modules": [
+    {
+      "path": "app/providers/builderspace_adapter.py",
+      "classification": "historical_workaround_residue",
+      "recommended_action": "keep_and_deflate",
+      "note": "Transport, fallback, parse recovery, diagnostics, and contract validation are currently mixed in one adapter."
+    },
+    {
+      "path": "app/providers/deepseek_adapter.py",
+      "classification": "historical_workaround_residue",
+      "recommended_action": "keep_and_deflate",
+      "note": "Shares the same transport and structured-output seam shape as BuilderSpace, but with less accumulated workaround pressure."
+    },
+    {
+      "path": "app/runtime/agent/manager_branch_contract.py",
+      "classification": "wave1_canonical_active",
+      "recommended_action": "keep_and_deflate",
+      "note": "Wave 1 contract helpers are active, but the file needs schema and validation seams split out."
+    },
+    {
+      "path": "app/shared/infra/canonical_persistence.py",
+      "classification": "wave1_canonical_active",
+      "recommended_action": "keep_and_deflate",
+      "note": "Canonical persistence is active Wave 1 infrastructure, but proposal persistence and serializer helpers need extraction."
+    },
+    {
+      "path": "app/nutrition/agent/nutrition_resolution_normalizer.py",
+      "classification": "wave1_canonical_active",
+      "recommended_action": "keep_and_deflate",
+      "note": "Normalization is Wave 1 canonical, but shaping and policy concerns are mixed in one module."
+    },
+    {
+      "path": "app/rescue/application/proposal.py",
+      "classification": "later_wave_premature_active",
+      "recommended_action": "deactivate_from_active_wiring",
+      "note": "Spec marks rescue as later-wave, but proposal synthesis is already wired into active routes, runtime, persistence, and tests."
+    },
+    {
+      "path": "app/rescue/application/runtime.py",
+      "classification": "later_wave_premature_active",
+      "recommended_action": "deactivate_from_active_wiring",
+      "note": "Runtime artifact persistence exists even though Wave 1 truth says rescue should not be in the required path."
+    },
+    {
+      "path": "app/rescue/interface/rescue_routes.py",
+      "classification": "later_wave_premature_active",
+      "recommended_action": "deactivate_from_active_wiring",
+      "note": "Live route wiring makes rescue appear active before the Wave 1 closure reaches that domain."
+    },
+    {
+      "path": "app/recommendation/interface/recommendation_routes.py",
+      "classification": "later_wave_premature_active",
+      "recommended_action": "freeze_and_quarantine",
+      "note": "Preview routes and candidate-building code are wired, but recommendation remains later-wave in the capability lattice."
+    },
+    {
+      "path": "app/memory/infrastructure/conversation_context_retriever.py",
+      "classification": "wave1_canonical_active",
+      "recommended_action": "keep_and_deflate",
+      "note": "Conversation retrieval supports active runtime state loading even though the memory product domain is not a Wave 1 headline."
+    },
+    {
+      "path": "app/memory/infrastructure/session_record_store.py",
+      "classification": "wave1_canonical_active",
+      "recommended_action": "keep_and_deflate",
+      "note": "Session record storage currently supports active runtime conversation state, but should stay infrastructure-only."
+    }
+  ]
+}

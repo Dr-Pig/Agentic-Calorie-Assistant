@@ -10,6 +10,7 @@ def test_github_repo_governance_mentions_current_required_jobs() -> None:
     governance = (ROOT / "docs" / "governance" / "GITHUB_REPO_GOVERNANCE.md").read_text(encoding="utf-8")
 
     for job_name in (
+        "repo-hygiene-and-architecture",
         "pre-edd-readiness",
         "runtime-contract-tests",
         "wave1-phase-a-contracts",
@@ -22,6 +23,7 @@ def test_harness_go_no_go_mentions_current_required_jobs() -> None:
     harness = (ROOT / "docs" / "governance" / "HARNESS_GO_NO_GO.md").read_text(encoding="utf-8")
 
     for job_name in (
+        "repo-hygiene-and-architecture",
         "pre-edd-readiness",
         "runtime-contract-tests",
         "wave1-phase-a-contracts",
