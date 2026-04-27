@@ -347,7 +347,6 @@ app/
 │
 ├── providers/
 │   ├── __init__.py
-│   ├── gemini_adapter.py
 │   └── builderspace_adapter.py
 │
 ├── knowledge/

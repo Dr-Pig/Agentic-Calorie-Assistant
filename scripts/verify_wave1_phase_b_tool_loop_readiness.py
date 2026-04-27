@@ -26,6 +26,11 @@ READ_PACKET_TRUTH_LEVELS = {"candidate", "hint", "rule_hint"}
 PACKETIZER_TRUTH_LEVELS = {"candidate", "hint", "rule_hint"}
 MUTATION_TRUTH_LEVEL = "mutation_result"
 ESTIMATE_READ_TOOLS = {"lookup_generic_food", "retrieve_web_food_evidence"}
+SUPPORTED_READ_TOOLS = {
+    "lookup_generic_food",
+    "retrieve_web_food_evidence",
+    "load_taiwan_food_semantics_skill",
+}
 TAVILY_SOURCE_QUALITY_LABELS = {
     "official",
     "brand_menu",
@@ -66,6 +71,7 @@ RUNTIME_LATENCY_REQUIRED_KEYS = (
 )
 CASE_LATENCY_REQUIRED_KEYS = ("case_started_at_utc", "case_ended_at_utc", "case_latency_ms")
 PASS_LATENCY_REQUIRED_KEYS = ("started_at_utc", "ended_at_utc", "latency_ms")
+MANAGER_DECISION_TRACE_KEYS = ("decision_payload_type", "payload_shape_valid", "payload_shape_error")
 LEGACY_PHASE_B_TERMS = (
     "thread_result",
     "target_thread_action",
@@ -240,6 +246,32 @@ def _check_manager_pass_prompt_trace(trace: dict[str, Any], blockers: list[dict[
     return {"missing": missing, "passed": not missing}
 
 
+def _check_manager_payload_shape_trace(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    missing: dict[str, list[str]] = {}
+    invalid: dict[str, dict[str, Any]] = {}
+    for pass_name in ("manager_pass_1", "manager_pass_2"):
+        payload = trace.get(pass_name) or {}
+        pass_missing = [key for key in MANAGER_DECISION_TRACE_KEYS if key not in payload]
+        if pass_missing:
+            missing[pass_name] = pass_missing
+            continue
+        payload_shape_valid = payload.get("payload_shape_valid")
+        payload_type = payload.get("decision_payload_type")
+        payload_shape_error = payload.get("payload_shape_error")
+        if payload_shape_valid is False:
+            invalid[pass_name] = {
+                "decision_payload_type": payload_type,
+                "payload_shape_error": payload_shape_error,
+            }
+    if missing:
+        _add(
+            blockers,
+            "manager_payload_shape_trace_missing",
+            "Manager Pass 1/2 traces must include decision_payload_type, payload_shape_valid, and payload_shape_error.",
+        )
+    return {"missing": missing, "invalid": invalid, "passed": not missing}
+
+
 def _check_tool_router_trace(trace: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
     router = trace.get("runtime_tool_router")
     executions = trace.get("read_tool_executions")
@@ -253,12 +285,63 @@ def _check_tool_router_trace(trace: dict[str, Any], blockers: list[dict[str, str
                 "filtered_tool_plan",
                 "blocked_tools",
                 "block_reasons",
+                "available_read_tools",
+                "canonical_tool_catalog_hash",
             )
         )
     if not ok:
         _add(blockers, "tool_router_trace_incomplete", "ToolLoopTrace must include requested tools, filtered plan, blocked tools, and read executions.")
+    unsupported_allowed: list[str] = []
+    unsupported_executed: list[str] = []
+    unsupported_block_reason_missing: list[str] = []
+    if isinstance(router, dict):
+        allowed = [str(item) for item in router.get("allowed_tools") or []]
+        supported = [str(item) for item in router.get("available_read_tools") or []]
+        supported_set = set(supported) if supported else set(SUPPORTED_READ_TOOLS)
+        unsupported_allowed = [tool for tool in allowed if tool not in supported_set]
+        block_reasons = router.get("block_reasons") if isinstance(router.get("block_reasons"), list) else []
+        blocked_unsupported = [
+            str(item)
+            for item in router.get("blocked_tools") or []
+            if str(item) not in supported_set
+        ]
+        for tool_name in blocked_unsupported:
+            matching = [
+                reason
+                for reason in block_reasons
+                if isinstance(reason, dict)
+                and reason.get("tool_name") == tool_name
+                and reason.get("reason") == "unsupported_read_tool_name"
+                and reason.get("normalization_attempted") is False
+            ]
+            if not matching:
+                unsupported_block_reason_missing.append(tool_name)
+        if not supported or not router.get("canonical_tool_catalog_hash"):
+            _add(blockers, "canonical_tool_catalog_trace_missing", "Router trace must include supported read tools and a canonical tool catalog hash.")
+    if isinstance(executions, list):
+        unsupported_executed = [
+            str(item.get("tool_name"))
+            for item in executions
+            if isinstance(item, dict) and str(item.get("tool_name")) not in SUPPORTED_READ_TOOLS
+        ]
+    if unsupported_allowed:
+        _add(blockers, "unsupported_read_tool_allowed", "Runtime router must not allow non-canonical read tool names.")
+    if unsupported_executed:
+        _add(blockers, "unsupported_read_tool_executed", "Runtime router must not execute non-canonical read tool names.")
+    if unsupported_block_reason_missing:
+        _add(blockers, "unsupported_read_tool_block_reason_missing", "Blocked non-canonical read tools must include structured unsupported_read_tool_name reasons.")
     unknown_basket_check = _check_self_selected_basket_without_ingredients(trace, router if isinstance(router, dict) else {}, blockers)
-    return {"passed": ok and unknown_basket_check["passed"], "self_selected_basket_without_ingredients": unknown_basket_check}
+    return {
+        "passed": ok
+        and not unsupported_allowed
+        and not unsupported_executed
+        and not unsupported_block_reason_missing
+        and unknown_basket_check["passed"],
+        "unsupported_allowed_tools": unsupported_allowed,
+        "unsupported_executed_tools": unsupported_executed,
+        "unsupported_block_reason_missing": unsupported_block_reason_missing,
+        "self_selected_basket_without_ingredients": unknown_basket_check,
+    }
 
 
 def _is_self_selected_basket_without_ingredients(trace: dict[str, Any]) -> bool:
@@ -552,6 +635,19 @@ def _item_results_source(trace: dict[str, Any]) -> str:
     return "none"
 
 
+def _unsupported_tool_names(trace: dict[str, Any]) -> list[str]:
+    router = trace.get("runtime_tool_router") if isinstance(trace.get("runtime_tool_router"), dict) else {}
+    block_reasons = router.get("block_reasons") if isinstance(router, dict) else []
+    unsupported: list[str] = []
+    if isinstance(block_reasons, list):
+        for reason in block_reasons:
+            if isinstance(reason, dict) and reason.get("reason") == "unsupported_read_tool_name":
+                tool_name = str(reason.get("tool_name") or "")
+                if tool_name:
+                    unsupported.append(tool_name)
+    return sorted(set(unsupported))
+
+
 def _natural_failure_family(
     *,
     trace: dict[str, Any],
@@ -577,7 +673,11 @@ def _natural_failure_family(
     return "none"
 
 
-def _build_natural_probe_failure_report(traces: list[dict[str, Any]]) -> dict[str, Any]:
+def _build_natural_probe_failure_report(
+    traces: list[dict[str, Any]],
+    *,
+    provider_state: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     cases: list[dict[str, Any]] = []
     counts: dict[str, int] = {
         "manager_no_tool_request": 0,
@@ -629,13 +729,73 @@ def _build_natural_probe_failure_report(traces: list[dict[str, Any]]) -> dict[st
                     "missing_required_tools": missing_required,
                     "wrong_tools": wrong_tools,
                 },
+                "unsupported_tool_names": _unsupported_tool_names(trace),
                 "pass2_ran": pass2_ran,
                 "item_results_source": _item_results_source(trace),
                 "failure_family": family,
                 "manager_blocking_semantics": manager_blocking_semantics,
             }
         )
-    return {"cases": cases, "failure_family_counts": counts}
+    provider_state = provider_state or {}
+    return {
+        "cases": cases,
+        "failure_family_counts": counts,
+        "provider_blocked_before_cases": bool(provider_state.get("provider_blocked_before_cases")),
+        "provider_blocked_before_all_cases_completed": bool(
+            provider_state.get("provider_blocked_before_all_cases_completed")
+        ),
+        "completed_trace_count": provider_state.get("completed_trace_count", len(traces)),
+        "expected_case_count": provider_state.get("expected_case_count", _expected_case_count()),
+        "provider_runtime_reason": provider_state.get("provider_runtime_reason"),
+    }
+
+
+def _completed_trace_count(report: dict[str, Any], traces: list[dict[str, Any]]) -> int:
+    runtime_latency = report.get("runtime_latency") if isinstance(report.get("runtime_latency"), dict) else {}
+    raw_count = runtime_latency.get("completed_trace_count") if isinstance(runtime_latency, dict) else None
+    if isinstance(raw_count, int):
+        return min(raw_count, len(traces))
+    return len(traces)
+
+
+def _expected_case_count() -> int:
+    return len(REQUIRED_CORE_SMOKE_CASES)
+
+
+def _provider_blocker_state(report: dict[str, Any], traces: list[dict[str, Any]]) -> dict[str, Any]:
+    provider_runtime = report.get("provider_runtime") if isinstance(report.get("provider_runtime"), dict) else {}
+    provider_trace_blocker = report.get("provider_trace_blocker") if isinstance(report.get("provider_trace_blocker"), dict) else {}
+    runtime_blocker = report.get("runtime_blocker") if isinstance(report.get("runtime_blocker"), dict) else {}
+    completed_count = _completed_trace_count(report, traces)
+    expected_count = _expected_case_count()
+    provider_blocker = bool(provider_runtime.get("blocker"))
+    provider_trace_blocker_active = bool(provider_trace_blocker.get("blocker"))
+    runtime_blocker_active = bool(runtime_blocker.get("blocker"))
+    blocker_reason = runtime_blocker.get("reason") or provider_trace_blocker.get("reason") or provider_runtime.get("reason")
+    blocker_kind = (
+        "runtime_blocker"
+        if runtime_blocker_active
+        else "provider_trace_blocker"
+        if provider_trace_blocker_active
+        else "provider_runtime"
+        if provider_blocker
+        else None
+    )
+    any_blocker = provider_blocker or provider_trace_blocker_active or runtime_blocker_active
+    return {
+        "provider_blocker": provider_blocker,
+        "provider_trace_blocker": provider_trace_blocker_active,
+        "runtime_blocker": runtime_blocker_active,
+        "provider_runtime_reason": blocker_reason,
+        "blocker_kind": blocker_kind,
+        "failing_component": runtime_blocker.get("failing_component")
+        or provider_trace_blocker.get("failing_component")
+        or provider_runtime.get("failing_component"),
+        "completed_trace_count": completed_count,
+        "expected_case_count": expected_count,
+        "provider_blocked_before_cases": any_blocker and completed_count == 0,
+        "provider_blocked_before_all_cases_completed": any_blocker and completed_count < expected_count,
+    }
 
 
 def _check_mode_verdicts(
@@ -689,6 +849,28 @@ def _check_mode_verdicts(
     if not manager_tool_selection_claimed:
         _quality_add(quality_blockers, "natural_probe_missing_tool_selection_claim", "Natural probe must explicitly claim it is evaluating Manager tool selection.")
         mode_failures.append("natural_probe_missing_tool_selection_claim")
+
+    provider_state = _provider_blocker_state(report, traces)
+    if provider_state["provider_blocked_before_cases"]:
+        return {
+            "pass1_mode": pass1_mode,
+            "forced_loop_scaffold_pass": "not_applicable",
+            "natural_tool_selection_pass": "not_proven",
+            "natural_tool_loop_completion_pass": False,
+            "mode_failures": mode_failures,
+            "selection_failures": [
+                {
+                    "reason": "provider_blocked_before_cases",
+                    "provider_runtime_reason": provider_state["provider_runtime_reason"],
+                }
+            ],
+            "loop_failures": [
+                {
+                    "reason": "provider_blocked_before_cases",
+                    "provider_runtime_reason": provider_state["provider_runtime_reason"],
+                }
+            ],
+        }
 
     for trace in traces:
         input_message = str(trace.get("input_message") or "")
@@ -744,11 +926,25 @@ def _check_mode_verdicts(
             "Natural-probe item_results must come from Manager Pass 2, not runner packet fallback.",
         )
 
+    natural_selection_pass: bool | str = not mode_failures and not selection_failures
+    natural_loop_completion_pass = not mode_failures and not loop_failures
+    if provider_state["provider_blocked_before_all_cases_completed"]:
+        natural_selection_pass = "not_proven"
+        natural_loop_completion_pass = False
+        loop_failures.append(
+            {
+                "reason": "provider_blocked_before_all_cases_completed",
+                "completed_trace_count": provider_state["completed_trace_count"],
+                "expected_case_count": provider_state["expected_case_count"],
+                "provider_runtime_reason": provider_state["provider_runtime_reason"],
+            }
+        )
+
     return {
         "pass1_mode": pass1_mode,
         "forced_loop_scaffold_pass": "not_applicable",
-        "natural_tool_selection_pass": not mode_failures and not selection_failures,
-        "natural_tool_loop_completion_pass": not mode_failures and not loop_failures,
+        "natural_tool_selection_pass": natural_selection_pass,
+        "natural_tool_loop_completion_pass": natural_loop_completion_pass,
         "mode_failures": mode_failures,
         "selection_failures": selection_failures,
         "loop_failures": loop_failures,
@@ -943,9 +1139,28 @@ def verify_phase_b_readiness(
     latency_warnings: list[dict[str, str]] = []
     warnings: list[dict[str, str]] = []
     traces = [dict(item) for item in phase_b_report.get("tool_loop_traces") or []]
+    provider_state = _provider_blocker_state(phase_b_report, traces)
 
     if phase_b_report.get("mode") != "hybrid_canary":
         _add(blockers, "phase_b_mode_not_hybrid_canary", "Phase B-1 readiness requires hybrid_canary mode.")
+    if provider_state["provider_blocker"]:
+        _add(
+            blockers,
+            "provider_runtime_blocker",
+            "Provider runtime blocker prevents B-1 readiness from proving tool-loop quality.",
+        )
+    if provider_state["provider_trace_blocker"]:
+        _add(
+            blockers,
+            "provider_trace_shape_error",
+            "Provider trace shape blocker prevents B-1 readiness from proving tool-loop quality.",
+        )
+    if provider_state["runtime_blocker"]:
+        _add(
+            blockers,
+            "manager_payload_shape_error",
+            "Manager payload shape blocker prevents B-1 readiness from proving tool-loop quality.",
+        )
     if not traces:
         _add(blockers, "tool_loop_trace_missing", "Phase B-1 readiness requires ToolLoopTrace artifacts.")
 
@@ -958,6 +1173,7 @@ def verify_phase_b_readiness(
             "case_id": trace.get("case_id"),
             "provider_params": _check_provider_params(trace, blockers),
             "manager_pass_prompt_trace": _check_manager_pass_prompt_trace(trace, blockers),
+            "manager_payload_shape_trace": _check_manager_payload_shape_trace(trace, blockers),
             "pass_boundaries": _check_pass_boundaries(trace, blockers),
             "tool_router_trace": _check_tool_router_trace(trace, blockers),
             "truth_levels": _check_truth_levels(trace, blockers),
@@ -968,6 +1184,10 @@ def verify_phase_b_readiness(
         }
         checks["passed"] = len(blockers) == trace_blockers_before
         trace_checks.append(checks)
+    router_validation_pass = bool(traces) and all(
+        bool((check.get("tool_router_trace") or {}).get("passed"))
+        for check in trace_checks
+    )
 
     resolved_active_paths = list(active_paths) if active_paths is not None else list(DEFAULT_ACTIVE_PHASE_B_PATHS)
     legacy_vocab = _scan_active_legacy_vocab(resolved_active_paths, blockers, warnings)
@@ -976,7 +1196,7 @@ def verify_phase_b_readiness(
     path_level_quality = [_check_path_level_quality(trace, quality_blockers) for trace in traces]
     mode_verdicts = _check_mode_verdicts(phase_b_report, traces, quality_blockers)
     natural_probe_failure_report = (
-        _build_natural_probe_failure_report(traces)
+        _build_natural_probe_failure_report(traces, provider_state=provider_state)
         if mode_verdicts["pass1_mode"] == NATURAL_MODE
         else {"cases": [], "failure_family_counts": {}}
     )
@@ -988,9 +1208,25 @@ def verify_phase_b_readiness(
         quality_pass = forced_loop_scaffold_pass
     else:
         forced_loop_scaffold_pass = "not_applicable"
-        natural_tool_selection_pass = bool(mode_verdicts["natural_tool_selection_pass"])
+        raw_selection_pass = mode_verdicts["natural_tool_selection_pass"]
+        natural_tool_selection_pass = "not_proven" if raw_selection_pass == "not_proven" else bool(raw_selection_pass)
         natural_tool_loop_completion_pass = bool(mode_verdicts["natural_tool_loop_completion_pass"])
-        quality_pass = scaffold_pass and natural_tool_selection_pass and natural_tool_loop_completion_pass and not quality_blockers
+        quality_pass = (
+            scaffold_pass
+            and natural_tool_selection_pass is True
+            and natural_tool_loop_completion_pass
+            and not quality_blockers
+        )
+    provider_runtime = phase_b_report.get("provider_runtime") if isinstance(phase_b_report.get("provider_runtime"), dict) else {}
+    provider_trace_blocker = phase_b_report.get("provider_trace_blocker") if isinstance(phase_b_report.get("provider_trace_blocker"), dict) else {}
+    runtime_blocker = phase_b_report.get("runtime_blocker") if isinstance(phase_b_report.get("runtime_blocker"), dict) else {}
+    provider_runtime_attribution = {
+        "reason": runtime_blocker.get("reason") or provider_trace_blocker.get("reason") or provider_runtime.get("reason"),
+        "blocker_kind": provider_state.get("blocker_kind"),
+        "failing_component": provider_state.get("failing_component"),
+        "tool_selection_status": "not_proven" if provider_state["provider_blocked_before_all_cases_completed"] else "evaluated",
+        "loop_completion_status": "blocked" if provider_state["provider_blocked_before_all_cases_completed"] else "evaluated",
+    }
     all_blockers = blockers + quality_blockers + latency_blockers
     ready = not all_blockers
     blocker_codes = {item["code"] for item in all_blockers}
@@ -1011,11 +1247,15 @@ def verify_phase_b_readiness(
         "phase_b_report_path": _project_relative(phase_b_report_path),
         "scaffold_pass": scaffold_pass,
         "forced_loop_scaffold_pass": forced_loop_scaffold_pass,
+        "router_validation_pass": router_validation_pass,
         "natural_tool_selection_pass": natural_tool_selection_pass,
         "natural_tool_loop_completion_pass": natural_tool_loop_completion_pass,
         "runtime_latency_pass": runtime_latency["pass"],
         "runtime_latency_status": runtime_latency["status"],
         "quality_pass": quality_pass,
+        "provider_runtime_attribution": provider_runtime_attribution,
+        "provider_trace_blocker": provider_trace_blocker,
+        "runtime_blocker": runtime_blocker,
         "ready_for_phase_b1_implementation": ready,
         "blockers": all_blockers,
         "scaffold_blockers": blockers,
