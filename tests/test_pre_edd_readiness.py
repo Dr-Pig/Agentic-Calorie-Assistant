@@ -45,6 +45,14 @@ def test_fat_audit_classifier_blocks_protected_overage_but_not_watchlist_overage
     assert "bundle2_service.py" in result["details"][0]
 
 
+def test_fat_audit_classifier_blocks_freeze_growth_overage() -> None:
+    freeze_stdout = "[OVER] app/providers/builderspace_adapter.py lines=1081 freeze=760 kind=provider-freeze"
+    result = classify_fat_audit(stdout=freeze_stdout, exit_code=0)
+
+    assert result["status"] == "fail"
+    assert "builderspace_adapter.py" in result["details"][0]
+
+
 def test_summarize_status_returns_not_ready_on_any_failure() -> None:
     summary = summarize_status(
         {

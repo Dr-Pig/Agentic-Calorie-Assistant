@@ -34,6 +34,12 @@ RULES: tuple[Rule, ...] = (
     ),
     Rule(
         path_prefix="app/providers/",
+        forbidden_prefixes=("app.intake", "app.budget", "app.body", "app.rescue", "app.recommendation", "app.memory"),
+        label="provider-domain-ownership",
+        severity="error",
+    ),
+    Rule(
+        path_prefix="app/providers/",
         forbidden_prefixes=("fastapi", "sqlalchemy"),
         label="provider-adapter-boundary",
         severity="warning",

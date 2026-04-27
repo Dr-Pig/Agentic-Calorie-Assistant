@@ -97,6 +97,12 @@ PROTECTED_FAT_PATHS = (
     "app/intake/application/bundle1_service.py",
     "app/intake/application/bundle2_service.py",
     "app/intake/application/manager_tools.py",
+    "app/providers/builderspace_adapter.py",
+    "app/providers/deepseek_adapter.py",
+)
+
+FREEZE_GROWTH_PATHS = (
+    "app/providers/builderspace_adapter.py",
 )
 
 
@@ -107,9 +113,10 @@ def classify_fat_audit(*, stdout: str, exit_code: int) -> dict[str, Any]:
     for line in stdout.splitlines():
         if not line.startswith("[OVER] "):
             continue
-        if "threshold=" not in line:
+        if "threshold=" in line and any(path in line for path in PROTECTED_FAT_PATHS):
+            details.append(line)
             continue
-        if any(path in line for path in PROTECTED_FAT_PATHS):
+        if "freeze=" in line and any(path in line for path in FREEZE_GROWTH_PATHS):
             details.append(line)
     return {
         "status": "fail" if details else "pass",
