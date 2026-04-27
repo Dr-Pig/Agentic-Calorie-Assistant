@@ -116,7 +116,7 @@ class Pass2MalformedPayloadPhaseBProvider(FakePhaseBProvider):
                 {
                     "manager_action": "call_tools",
                     "tool_calls": [
-                        {"name": "lookup_generic_food", "arguments": {"food_name": "?嗉???"}},
+                        {"name": "lookup_generic_food", "arguments": {"food_name": "茶葉蛋"}},
                     ],
                 },
                 self._trace(call_index=len(self.calls), kwargs=kwargs),
@@ -458,7 +458,7 @@ async def test_phase_b1_runtime_smoke_preserves_adapter_parse_attribution_in_pro
 
     report = await run_phase_b_minimal_tool_loop_smoke(
         provider=provider,
-        smoke_cases=["??鈭?憿??"],
+        smoke_cases=["我吃了一顆茶葉蛋"],
         output_dir=tmp_path,
         write_latest=False,
     )
@@ -509,7 +509,7 @@ async def test_phase_b1_runtime_smoke_provider_trace_shape_error_emits_provider_
 
     report = await run_phase_b_minimal_tool_loop_smoke(
         provider=provider,
-        smoke_cases=["??鈭?憿??"],
+        smoke_cases=["我吃了一顆茶葉蛋"],
         output_dir=tmp_path,
         write_latest=False,
     )
@@ -534,7 +534,7 @@ async def test_phase_b1_runtime_smoke_pass1_malformed_payload_is_runtime_blocker
 
     report = await run_phase_b_minimal_tool_loop_smoke(
         provider=provider,
-        smoke_cases=["??鈭?憿??"],
+        smoke_cases=["我吃了一顆茶葉蛋"],
         output_dir=tmp_path,
         write_latest=False,
     )
@@ -557,7 +557,7 @@ async def test_phase_b1_runtime_smoke_pass2_malformed_payload_keeps_completed_tr
 
     report = await run_phase_b_minimal_tool_loop_smoke(
         provider=provider,
-        smoke_cases=["??鈭?憿??"],
+        smoke_cases=["我吃了一顆茶葉蛋"],
         output_dir=tmp_path,
         write_latest=False,
     )
