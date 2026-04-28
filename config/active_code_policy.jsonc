@@ -133,6 +133,21 @@
     }
   ],
   "transition_overrides": {},
+  "governance_tooling": {
+    "docs": [
+      "docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md",
+      "docs/agent/autonomy-prompts/**",
+      "docs/agent/autonomy-schemas/**"
+    ],
+    "scripts": [
+      "scripts/run_b1_cli_autorun.py",
+      "scripts/run_codex_exec_with_prompt.py"
+    ],
+    "tests": [
+      "tests/test_b1_cli_autorun.py",
+      "tests/test_run_codex_exec_with_prompt.py"
+    ]
+  },
   "domain_status": {
     "body": "active_wave1_implementation",
     "budget": "active_wave1_implementation",

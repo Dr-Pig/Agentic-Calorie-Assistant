@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ...models import BodyPlanRecord, LedgerEntryRecord, User
-from ...intake.application.canonical_support_bridge import apply_rescue_overlay_skeleton
+from ...intake.application.canonical_quarantine_bridge import apply_rescue_overlay_skeleton
 
 
 @dataclass(frozen=True)

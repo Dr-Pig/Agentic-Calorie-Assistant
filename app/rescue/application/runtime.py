@@ -5,7 +5,7 @@ from typing import Any, Literal, Sequence
 
 from sqlalchemy.orm import Session
 
-from ...intake.application.canonical_support_bridge import persist_proposal_artifact_skeleton
+from ...intake.application.canonical_quarantine_bridge import persist_proposal_artifact_skeleton
 from .overlay import RescueOverlayTargetDay
 from .proposal import (
     RescueProposalArtifact,

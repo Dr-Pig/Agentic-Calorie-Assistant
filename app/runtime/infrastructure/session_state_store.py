@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Iterable
 
 from app.paths import SESSION_RECORD_DIR, ensure_runtime_dirs
-from app.runtime.infrastructure.session_state_store_support import (
+from app.runtime.infrastructure.session_archive_query_support import (
     enrich_meal_records,
     json_default,
     load_jsonl_records,
