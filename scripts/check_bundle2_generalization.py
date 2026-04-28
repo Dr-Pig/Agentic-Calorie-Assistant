@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGETS = [
     ROOT / "app" / "agent" / "manager.py",
     ROOT / "app" / "agent" / "manager_support.py",
-    ROOT / "app" / "intake" / "application" / "bundle2_service.py",
+    ROOT / "app" / "intake" / "application" / "intake_execution_orchestrator.py",
     ROOT / "app" / "intake" / "application" / "manager_tools.py",
     ROOT / "scripts" / "run_v2_bundle2_live_eval.py",
 ]

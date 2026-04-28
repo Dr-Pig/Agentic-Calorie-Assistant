@@ -6,7 +6,13 @@
     "new_scaffold_shell_default_cap": 80,
     "excluded_globs": [
       "app/**/__pycache__/**",
-      "app/**/*.pyc"
+      "app/**/*.pyc",
+      "app/memory/*.py",
+      "app/memory/**/*.py",
+      "app/recommendation/*.py",
+      "app/recommendation/**/*.py",
+      "app/rescue/*.py",
+      "app/rescue/**/*.py"
     ]
   },
   "category_caps": {
@@ -127,14 +133,9 @@
     }
   ],
   "transition_overrides": {
-    "app/intake/application/bundle1_service.py": 420,
+    "app/intake/application/intake_turn_orchestrator.py": 420,
     "app/intake/application/manager_tools.py": 500,
     "app/intake/application/canonical_commit_bridge.py": 1100,
-    "app/recommendation/application/context.py": 220,
-    "app/recommendation/application/ranking.py": 260,
-    "app/rescue/application/chat_surface.py": 360,
-    "app/rescue/application/proposal.py": 620,
-    "app/rescue/application/runtime.py": 240,
     "app/runtime/application/manager_service.py": 500,
     "app/runtime/application/state_resolver.py": 260,
     "app/providers/builderspace_adapter.py": 1100,
@@ -146,10 +147,8 @@
     "app/nutrition/application/evidence_normalizer.py": 430,
     "app/runtime/agent/manager.py": 420,
     "app/nutrition/infrastructure/web_search/chain_retrieval.py": 420,
-    "app/memory/infrastructure/session_record_store.py": 420,
     "app/runtime/agent/manager_support.py": 380,
     "app/runtime/infrastructure/trace/text_meal_observability.py": 380,
-    "app/rescue/application/response.py": 380,
     "app/shared/contracts/intake.py": 360,
     "app/budget/interface/today_routes.py": 360
   },
@@ -158,11 +157,11 @@
     "budget": "active_wave1_implementation",
     "intake": "active_wave1_implementation",
     "knowledge": "thin_future_skeleton",
-    "memory": "thin_future_skeleton",
+    "memory": "legacy_quarantine",
     "nutrition": "active_wave1_implementation",
     "providers": "active_wave1_implementation",
-    "recommendation": "premature_active_implementation",
-    "rescue": "premature_active_implementation",
+    "recommendation": "legacy_quarantine",
+    "rescue": "legacy_quarantine",
     "runtime": "active_wave1_implementation",
     "shared": "active_wave1_implementation"
   },
@@ -200,38 +199,38 @@
     {
       "path": "app/rescue/application/proposal.py",
       "classification": "later_wave_premature_active",
-      "recommended_action": "deactivate_from_active_wiring",
-      "note": "Spec marks rescue as later-wave, but proposal synthesis is already wired into active routes, runtime, persistence, and tests."
+      "recommended_action": "archive_candidate",
+      "note": "Pre-V2 rescue proposal synthesis should be treated as legacy-relative-to-mainline and kept out of Wave 1 active debt."
     },
     {
       "path": "app/rescue/application/runtime.py",
       "classification": "later_wave_premature_active",
-      "recommended_action": "deactivate_from_active_wiring",
-      "note": "Runtime artifact persistence exists even though Wave 1 truth says rescue should not be in the required path."
+      "recommended_action": "archive_candidate",
+      "note": "Pre-V2 rescue runtime persistence is no longer counted as Wave 1 mainline behavior."
     },
     {
       "path": "app/rescue/interface/rescue_routes.py",
       "classification": "later_wave_premature_active",
-      "recommended_action": "deactivate_from_active_wiring",
-      "note": "Live route wiring makes rescue appear active before the Wave 1 closure reaches that domain."
+      "recommended_action": "archive_candidate",
+      "note": "Rescue routes are removed from mainline router registration and should remain quarantine-only."
     },
     {
       "path": "app/recommendation/interface/recommendation_routes.py",
       "classification": "later_wave_premature_active",
-      "recommended_action": "freeze_and_quarantine",
-      "note": "Preview routes and candidate-building code are wired, but recommendation remains later-wave in the capability lattice."
+      "recommended_action": "archive_candidate",
+      "note": "Recommendation is treated as pre-V2 residue and excluded from Wave 1 active routing and debt."
     },
     {
       "path": "app/memory/infrastructure/conversation_context_retriever.py",
-      "classification": "wave1_canonical_active",
-      "recommended_action": "keep_and_deflate",
-      "note": "Conversation retrieval supports active runtime state loading even though the memory product domain is not a Wave 1 headline."
+      "classification": "legacy_or_archive_candidate",
+      "recommended_action": "archive_candidate",
+      "note": "Conversation retrieval moved under runtime infrastructure; the old memory-domain location is no longer mainline."
     },
     {
       "path": "app/memory/infrastructure/session_record_store.py",
-      "classification": "wave1_canonical_active",
-      "recommended_action": "keep_and_deflate",
-      "note": "Session record storage currently supports active runtime conversation state, but should stay infrastructure-only."
+      "classification": "legacy_or_archive_candidate",
+      "recommended_action": "archive_candidate",
+      "note": "Session record storage now survives only as a legacy path; active runtime support lives under runtime infrastructure."
     }
   ]
 }

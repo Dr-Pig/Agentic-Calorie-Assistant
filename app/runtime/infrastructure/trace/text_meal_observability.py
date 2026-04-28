@@ -246,30 +246,6 @@ def _build_evidence_journal(
     ).model_dump(mode="json")
 
 
-def _build_context_pack_trace(trace_contract: dict[str, Any]) -> dict[str, Any]:
-    return trace_contract.get("context_pack_trace", {}) or {}
-
-
-def _build_tool_decision_trace(trace_contract: dict[str, Any]) -> dict[str, Any]:
-    return trace_contract.get("tool_decision_trace", {}) or {}
-
-
-def _build_boundary_trace(trace_contract: dict[str, Any]) -> dict[str, Any]:
-    return trace_contract.get("boundary_trace", {}) or {}
-
-
-def _build_judge_trace(trace_contract: dict[str, Any]) -> dict[str, Any]:
-    return trace_contract.get("judge_trace", {}) or {}
-
-
-def _build_evidence_resolution_trace(trace_contract: dict[str, Any]) -> dict[str, Any]:
-    return trace_contract.get("evidence_resolution_trace", {}) or {}
-
-
-def _build_memory_trace(trace_contract: dict[str, Any]) -> dict[str, Any]:
-    return trace_contract.get("memory_trace", {}) or {}
-
-
 def _build_diagnosis(
     *,
     north_star_evaluation: dict[str, Any],
@@ -344,10 +320,10 @@ def build_trace_envelope(
             best_answer_source=best_answer_source,
         ),
         diagnosis=diagnosis,
-        context_pack_trace=_build_context_pack_trace(trace_contract),
-        tool_decision_trace=_build_tool_decision_trace(trace_contract),
-        boundary_trace=_build_boundary_trace(trace_contract),
-        judge_trace=_build_judge_trace(trace_contract),
-        evidence_resolution_trace=_build_evidence_resolution_trace(trace_contract),
-        memory_trace=_build_memory_trace(trace_contract),
+        context_pack_trace=trace_contract.get("context_pack_trace", {}) or {},
+        tool_decision_trace=trace_contract.get("tool_decision_trace", {}) or {},
+        boundary_trace=trace_contract.get("boundary_trace", {}) or {},
+        judge_trace=trace_contract.get("judge_trace", {}) or {},
+        evidence_resolution_trace=trace_contract.get("evidence_resolution_trace", {}) or {},
+        memory_trace=trace_contract.get("memory_trace", {}) or {},
     )

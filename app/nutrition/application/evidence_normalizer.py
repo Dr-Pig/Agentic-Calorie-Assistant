@@ -3,10 +3,8 @@ from __future__ import annotations
 from typing import Any
 from .evidence_eligibility import evaluate_candidate_eligibility
 
-
 def source_class_for_item(item: dict[str, Any]) -> str:
     return str(item.get("source_class") or item.get("source_type") or "unknown")
-
 
 def source_tier_for_item(item: dict[str, Any]) -> str:
     source_class = source_class_for_item(item)
@@ -20,17 +18,13 @@ def source_tier_for_item(item: dict[str, Any]) -> str:
         return "tier_4_web_nonexact"
     return "tier_5_model_context"
 
-
 def infer_evidence_tier(item: dict[str, Any], *, query: str = "") -> str:
     """Classify evidence with generalized eligibility policy instead of source-only shortcuts."""
     return str(evaluate_candidate_eligibility(item, query=query).get("evidence_tier") or "unusable")
 
-
 import re
 import hashlib
 from .context_normalizer import lookup_key, lookup_tokens, normalize_text
-
-
 
 _NUTRITION_SIGNAL_HINTS = ("nutrition", "nutrition facts", "kcal", "calories", "熱量", "營養")
 _BRAND_HINT_PATTERNS: tuple[tuple[str, str], ...] = (
@@ -46,7 +40,6 @@ _BRAND_HINT_PATTERNS: tuple[tuple[str, str], ...] = (
     ('ok超商', 'ok_mart'), ('pxmart', 'pxmart'), ('全聯', 'pxmart'), ('carrefour', 'carrefour'),
     ('家樂福', 'carrefour'),
 )
-
 
 def infer_variant_type(item: dict[str, Any], *, query: str = "") -> str:
     source_class = source_class_for_item(item)
@@ -79,7 +72,6 @@ def infer_variant_type(item: dict[str, Any], *, query: str = "") -> str:
     if source_class == "web_search_official":
         return "official_candidate"
     return "untyped"
-
 def infer_candidate_relationship(item: dict[str, Any], *, query: str = "") -> str:
     variant_type = infer_variant_type(item, query=query)
     if variant_type == "flavored_sibling":
@@ -91,7 +83,6 @@ def infer_candidate_relationship(item: dict[str, Any], *, query: str = "") -> st
     if variant_type == "class_prior":
         return "generic_class_anchor"
     return "independent_candidate"
-
 def infer_brand_hint(item: dict[str, Any], *, query: str = "") -> str:
     del query
     brand = normalize_text(str(item.get("brand") or ""))
@@ -110,7 +101,6 @@ def infer_brand_hint(item: dict[str, Any], *, query: str = "") -> str:
         if token.lower() in haystack:
             return label
     return ""
-
 def infer_query_alignment(item: dict[str, Any], *, query: str = "") -> str:
     query_key = lookup_key(query)
     if not query_key:
@@ -124,7 +114,6 @@ def infer_query_alignment(item: dict[str, Any], *, query: str = "") -> str:
     if title_key and (query_key in title_key or title_key in query_key):
         return "partial_title"
     return "weak"
-
 def infer_source_officialness(item: dict[str, Any], *, query: str = "") -> str:
     url = str(item.get("url") or "").strip().lower()
     title = normalize_text(str(item.get("title") or item.get("name") or "")).lower()
@@ -149,7 +138,6 @@ def infer_source_officialness(item: dict[str, Any], *, query: str = "") -> str:
     if url and "nutrition" in url:
         return "official"
     return "unknown"
-
 def _evidence_id_for_item(item: dict[str, Any], *, query: str = "") -> str:
     stable = "||".join(
         [
@@ -163,7 +151,6 @@ def _evidence_id_for_item(item: dict[str, Any], *, query: str = "") -> str:
     digest = hashlib.md5(stable.encode("utf-8", errors="ignore")).hexdigest()[:10]
     prefix = "EV"
     return f"{prefix}_{digest}"
-
 def to_evidence_candidate(item: dict[str, Any], *, selected: bool = False, drop_reason: str | None = None) -> dict[str, Any]:
     return {
         "evidence_id": str(item.get("evidence_id") or _evidence_id_for_item(item)),
@@ -179,122 +166,61 @@ def to_evidence_candidate(item: dict[str, Any], *, selected: bool = False, drop_
         "evidence_role": str(item.get("evidence_role") or "unknown"),
         "identity_confidence": str(item.get("identity_confidence") or item.get("match_confidence") or "none"),
         "portion_basis_quality": str(item.get("portion_basis_quality") or "unknown"),
-
         "provenance": dict(item.get("provenance") or {}),
-
         "conflict_status": str(item.get("conflict_status") or "none"),
-
         "selected": selected,
-
         "drop_reason": drop_reason,
-
     }
-
 def _dedupe_texts(values: list[str]) -> list[str]:
-
     seen: set[str] = set()
-
     ordered: list[str] = []
-
     for value in values:
-
         cleaned = normalize_text(str(value))
-
         if not cleaned:
-
             continue
-
         key = lookup_key(cleaned)
-
         if not key or key in seen:
-
             continue
-
         seen.add(key)
-
         ordered.append(cleaned)
-
     return ordered
-
 def _sanitize_component_phrase(text: str) -> str:
-
     cleaned = normalize_text(text)
-
     if not cleaned:
-
         return ""
-
     cleaned = re.sub(r"^(?:\u6211(?:\u65e9\u9910|\u5348\u9910|\u665a\u9910)?\u5403|(?:\u65e9\u9910|\u5348\u9910|\u665a\u9910)\u5403)", "", cleaned)
-
     cleaned = re.sub(r"\b\d+\s*x\b", " ", cleaned, flags=re.IGNORECASE)
-
     cleaned = re.sub(r"\bx\s*\d+\b", " ", cleaned, flags=re.IGNORECASE)
-
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" ,")
-
     return cleaned
-
 def _looks_like_store_header(component: str, remaining: list[str]) -> bool:
-
     cleaned = normalize_text(component).lower()
-
     if not cleaned or len(remaining) < 2:
-
         return False
-
     return any(cleaned.endswith(suffix) for suffix in _STORE_HINT_SUFFIXES)
-
 def infer_expected_components(*, user_input: str, planner_foods: list[str] | None = None) -> list[str]:
-
     expected = _dedupe_texts([_sanitize_component_phrase(item) for item in (planner_foods or [])])
-
     if expected:
-
         return expected
-
-
-
     text = normalize_text(user_input)
-
     if not text:
-
         return []
-
-
-
     raw_components: list[str] = []
-
     quantity_matches = list(re.finditer(r"\b\d+\s*x\b", text, flags=re.IGNORECASE))
-
     if quantity_matches:
-
         previous_end = 0
-
         for match in quantity_matches:
-
             segment = text[previous_end:match.start()].strip()
-
             if segment:
-
                 raw_components.append(segment)
-
             previous_end = match.end()
-
         tail = text[previous_end:].strip()
-
         if tail:
-
             raw_components.append(tail)
-
     else:
-
         split_ready = re.sub(r"加(?!大|小|量|價|倍)", " + ", text)
-
         parts = re.split(r"(?:,|/| with | and |\+)", split_ready, flags=re.IGNORECASE)
-
         raw_components = [part for part in parts if normalize_text(part)]
-
-
 
     expanded_components: list[str] = []
     for part in raw_components:
@@ -310,19 +236,12 @@ def infer_expected_components(*, user_input: str, planner_foods: list[str] | Non
     if raw_components and len(raw_components) >= 4 and _looks_like_store_header(raw_components[0], raw_components[1:]):
         raw_components = raw_components[1:]
     return _dedupe_texts([_sanitize_component_phrase(part) for part in raw_components if _sanitize_component_phrase(part)])
-
 def infer_store_hint(user_input: str) -> str:
-
     components = infer_expected_components(user_input=user_input, planner_foods=None)
-
     if components:
-
         return ""
-
     text = normalize_text(user_input)
-
     return text if any(text.lower().endswith(suffix) for suffix in _STORE_HINT_SUFFIXES) else ""
-
 def retrieval_lane_for_item(item: dict[str, Any]) -> str:
     explicit = str(item.get("retrieval_lane") or "").strip()
     if explicit:
@@ -336,7 +255,6 @@ def retrieval_lane_for_item(item: dict[str, Any]) -> str:
     if source_class == "meal_template_db":
         return "template_lane"
     return "support_lane"
-
 def split_evidence_lanes(items: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     lanes: dict[str, list[dict[str, Any]]] = {
         "exact_lane": [],
@@ -347,7 +265,6 @@ def split_evidence_lanes(items: list[dict[str, Any]]) -> dict[str, list[dict[str
     for item in items:
         lanes.setdefault(retrieval_lane_for_item(item), []).append(item)
     return lanes
-
 _FLAVOR_VARIANT_TOKENS = (
     "太妃",
     "白巧克力",
@@ -391,15 +308,9 @@ _NONOFFICIAL_SEARCH_HINTS = (
 _NUTRITION_SIGNAL_HINTS = ("nutrition", "nutrition facts", "kcal", "calories", "熱量", "營養")
 
 _STORE_HINT_SUFFIXES = (
-
     "breakfast shop",
-
     "familymart",
-
     "7-11",
-
     "starbucks",
-
     "mcdonalds",
-
 )
