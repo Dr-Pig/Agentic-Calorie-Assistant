@@ -9,7 +9,7 @@ from app.intake.application.canonical_commit_bridge import (
 from app.intake.application.canonical_quarantine_bridge import (
     apply_proposal_acceptance_skeleton,
 )
-from app.rescue.application.overlay import (
+from app.archive.rescue.application.overlay import (
     RescueOverlayTargetDay,
     apply_short_horizon_rescue_plan,
     assess_rescue_overlay_day,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.rescue.application import RescueOverlayTargetDay
-from app.rescue.application.proposal import (
+from app.archive.rescue.application import RescueOverlayTargetDay
+from app.archive.rescue.application.proposal import (
     ALL_RESCUE_FAMILIES,
     RescueProposalInputs,
     build_rescue_proposal,

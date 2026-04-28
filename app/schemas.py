@@ -11,8 +11,6 @@ from .shared.contracts.common import (
     MealLinkAction,
     MealStatus,
     PassExecutionStatus,
-    RecommendationBudgetPosture,
-    RecommendationCandidateKind,
     ResolutionBasis,
     ResolutionMode,
     RouteTarget,
@@ -42,7 +40,6 @@ from .shared.contracts.intake import (
     ToolRoutingDecision,
 )
 from .shared.contracts.legacy import LegacyDecisionDraft
-from .shared.contracts.recommendation import HintPacket, RecommendationCandidate, RecommendationResponseResult
 from .shared.contracts.trace import ContextPackTrace, StageTraceEvent, ToolDecisionTrace
 
 __all__ = [
@@ -62,7 +59,6 @@ __all__ = [
     "EvidenceCandidate",
     "EvidenceResolutionTrace",
     "FinalResponseResult",
-    "HintPacket",
     "IngredientCandidate",
     "JudgeRequest",
     "JudgeResult",
@@ -76,10 +72,6 @@ __all__ = [
     "MemoryTrace",
     "PassExecutionStatus",
     "PrimaryResult",
-    "RecommendationBudgetPosture",
-    "RecommendationCandidate",
-    "RecommendationCandidateKind",
-    "RecommendationResponseResult",
     "ResolutionBasis",
     "ResolutionMode",
     "RouteTarget",

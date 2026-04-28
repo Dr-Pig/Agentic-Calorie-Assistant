@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from math import ceil
 from typing import Any, Literal
 
-from ...shared.domain import ProposalContainer, ProposalOption
+from app.shared.domain import ProposalContainer, ProposalOption
 
 RescueSurfaceSource = Literal["proactive", "reactive_explicit_rescue_request"]
 RescuePlanIntensity = Literal["normal", "aggressive"]

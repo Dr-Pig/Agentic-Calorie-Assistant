@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from ...schemas import HintPacket, RecommendationCandidate, RecommendationResponseResult
+from app.shared.contracts.recommendation import HintPacket, RecommendationCandidate, RecommendationResponseResult
 from .context import RecommendationContextPacket
 from .ranking import RecommendationRankingResult
 

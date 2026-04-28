@@ -6,8 +6,8 @@ from typing import Literal
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from ...database import get_db, get_or_create_user
-from ..application import apply_rescue_chat_action, build_rescue_chat_surface
+from app.database import get_db, get_or_create_user
+from app.archive.rescue.application import apply_rescue_chat_action, build_rescue_chat_surface
 
 router = APIRouter()
 

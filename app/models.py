@@ -7,7 +7,7 @@ from app.shared.infra.models import Base, utcnow, User, MealLog, MessageBuffer, 
 from app.intake.infrastructure.models import MealThreadRecord, MealVersionRecord, MealItemRecord, LegacyMealLogMapRecord  # noqa: F401
 from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord  # noqa: F401
 from app.body.infrastructure.models import BodyObservationRecord, BodyProfileRecord, BodyPlanRecord  # noqa: F401
-from app.rescue.infrastructure.models import ProposalContainerRecord, ProposalOptionRecord  # noqa: F401
+from app.archive.rescue.infrastructure.models import ProposalContainerRecord, ProposalOptionRecord  # noqa: F401
 
 __all__ = [
     "Base",

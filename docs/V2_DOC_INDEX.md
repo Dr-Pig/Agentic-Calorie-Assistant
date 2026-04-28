@@ -159,6 +159,8 @@ Recommended top notice before moving:
 > Current replacement: <new V2 file>
 ```
 
+For the current repo-level archive policy, see `docs/archive/ARCHIVE_GOVERNANCE_INDEX.md`.
+
 ---
 
 ## Current Recommended Canonical Flow

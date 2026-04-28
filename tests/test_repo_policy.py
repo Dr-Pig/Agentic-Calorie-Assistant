@@ -5,6 +5,7 @@ from scripts.repo_policy import (
     effective_cap_for_repo_path,
     focus_modules,
     governance_tooling,
+    iter_active_python_files,
     load_active_code_policy,
     target_cap_for_repo_path,
 )
@@ -14,7 +15,7 @@ def test_policy_classifies_rescue_proposal_and_builderspace_focus_modules() -> N
     policy = load_active_code_policy()
     focus = focus_modules(policy)
 
-    assert focus["app/rescue/application/proposal.py"]["classification"] == "later_wave_premature_active"
+    assert focus["app/archive/rescue/application/proposal.py"]["classification"] == "legacy_archive"
     assert focus["app/providers/builderspace_adapter.py"]["classification"] == "historical_workaround_residue"
 
 
@@ -38,3 +39,10 @@ def test_policy_tracks_autonomy_and_autorun_as_governance_tooling() -> None:
     assert "scripts/run_codex_exec_with_prompt.py" in tooling["scripts"]
     assert "tests/test_b1_cli_autorun.py" in tooling["tests"]
     assert "tests/test_run_codex_exec_with_prompt.py" in tooling["tests"]
+
+
+def test_policy_excludes_archive_app_family_from_active_inventory() -> None:
+    policy = load_active_code_policy()
+    active_paths = {path.as_posix().replace("\\", "/") for path in iter_active_python_files(policy)}
+
+    assert not any(path.startswith("app/archive/") for path in active_paths)

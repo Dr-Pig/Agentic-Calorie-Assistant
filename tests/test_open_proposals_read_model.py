@@ -3,15 +3,15 @@ from __future__ import annotations
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.rescue.application import build_open_rescue_proposals_view
-from app.rescue.application.runtime import (
+from app.archive.rescue.application import build_open_rescue_proposals_view
+from app.archive.rescue.application.runtime import (
     RescueAssessmentResult,
     RescueRuntimeInputs,
     RescueTriggerResult,
     build_rescue_runtime_artifact,
     persist_rescue_runtime_artifact,
 )
-from app.rescue.application import RescueOverlayTargetDay
+from app.archive.rescue.application import RescueOverlayTargetDay
 from app.models import Base, ProposalContainerRecord, User
 
 

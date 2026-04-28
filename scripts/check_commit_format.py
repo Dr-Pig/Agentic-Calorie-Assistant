@@ -22,9 +22,6 @@ CORE_LOGIC_PREFIXES = (
     "app/nutrition/",
     "app/budget/",
     "app/body/",
-    "app/rescue/",
-    "app/recommendation/",
-    "app/memory/",
     "app/runtime/",
 )
 CORE_LOGIC_EXACT = {

@@ -20,12 +20,12 @@ class Rule:
 RUNTIME_RULES: tuple[Rule, ...] = (
     Rule(
         importer_prefix="app/runtime/",
-        forbidden_import_prefixes=("app.intake.domain", "app.nutrition.domain", "app.budget.domain"),
+        forbidden_import_prefixes=("app.intake.domain", "app.nutrition.domain", "app.budget.domain", "app.archive"),
         label="runtime-must-not-own-domain-semantics",
     ),
     Rule(
         importer_prefix="app/shared/",
-        forbidden_import_prefixes=("app.intake", "app.nutrition", "app.budget", "app.body", "app.rescue", "app.recommendation"),
+        forbidden_import_prefixes=("app.intake", "app.nutrition", "app.budget", "app.body", "app.archive"),
         label="shared-must-remain-neutral",
     ),
 )

@@ -58,26 +58,6 @@ ACTIVE_IMPORT_GUARDS = {
         "app.runtime.application",
         "..application",
     ),
-    ROOT / "app" / "recommendation" / "application" / "context.py": (
-        "app.runtime.application",
-        "..application",
-    ),
-    ROOT / "app" / "recommendation" / "application" / "ranking.py": (
-        "app.runtime.application",
-        "..application",
-    ),
-    ROOT / "app" / "rescue" / "application" / "chat_surface.py": (
-        "app.runtime.application",
-        "..application",
-    ),
-    ROOT / "app" / "rescue" / "application" / "proposal.py": (
-        "app.runtime.application",
-        "..application",
-    ),
-    ROOT / "app" / "rescue" / "application" / "runtime.py": (
-        "app.runtime.application",
-        "..application",
-    ),
     ROOT / "app" / "body" / "application" / "calibration_commit_bridge.py": (
         "app.runtime.application",
         "..application",
@@ -311,6 +291,25 @@ def test_active_support_or_helper_paths_must_be_allowlisted() -> None:
         if repo_path not in ALLOWED_SUPPORT_HELPER_SEAMS:
             offenders.append(repo_path)
     assert not offenders, f"unexpected support/helper seam paths require explicit review: {offenders}"
+
+
+def test_active_mainline_paths_do_not_import_archive_app_family() -> None:
+    offenders: list[str] = []
+    active_roots = (
+        ROOT / "app" / "intake",
+        ROOT / "app" / "nutrition",
+        ROOT / "app" / "budget",
+        ROOT / "app" / "body",
+        ROOT / "app" / "runtime",
+        ROOT / "app" / "shared",
+        ROOT / "app" / "providers",
+    )
+    for root in active_roots:
+        for path in root.rglob("*.py"):
+            source = path.read_text(encoding="utf-8", errors="ignore")
+            if "app.archive" in source:
+                offenders.append(path.relative_to(ROOT).as_posix())
+    assert not offenders, f"active mainline code must not import archive app families: {offenders}"
 
 
 def test_canonical_specs_do_not_describe_v2_as_four_pass_runtime() -> None:

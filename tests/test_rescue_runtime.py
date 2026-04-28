@@ -3,8 +3,8 @@ from __future__ import annotations
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.rescue.application import RescueOverlayTargetDay
-from app.rescue.application.runtime import (
+from app.archive.rescue.application import RescueOverlayTargetDay
+from app.archive.rescue.application.runtime import (
     RescueAssessmentResult,
     RescueRuntimeInputs,
     RescueTriggerResult,
