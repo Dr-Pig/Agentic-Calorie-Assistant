@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.intake.application.canonical_commit_bridge import (
     commit_request_candidate_to_canonical,
 )
-from app.intake.application.canonical_support_bridge import (
+from app.intake.application.canonical_quarantine_bridge import (
     apply_proposal_acceptance_skeleton,
 )
 from app.rescue.application.overlay import (

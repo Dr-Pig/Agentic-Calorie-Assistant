@@ -3,13 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from app.runtime.agent.manager_fallback_policy import fallback_decision
 from app.runtime.agent.manager_payload_utils import (
     json_safe,
     observed_type_name,
     tool_names,
     value_excerpt,
 )
-from app.runtime.agent.manager_support import fallback_decision
 
 
 @dataclass(frozen=True)
@@ -46,11 +46,6 @@ class ManagerFinalPayloadShapeError(RuntimeError):
         self.observed_type = observed_type_name(observed_value)
         self.value_excerpt, self.value_truncated = value_excerpt(observed_value)
         super().__init__(f"manager final payload field {field_name} expected object, got {self.observed_type}")
-
-
-def provider_ready(provider: Any) -> bool:
-    readiness = provider.readiness() if hasattr(provider, "readiness") else {}
-    return bool(readiness.get("configured")) and hasattr(provider, "complete_with_trace")
 
 
 def fallback_result(*, raw_user_input: str, onboarding_payload: dict[str, Any] | None, resolved_state: Any) -> IntakeManagerResult:
@@ -177,15 +172,3 @@ def payload_shape_failure_result(
             },
         },
     )
-
-
-SINGLE_MANAGER_SYSTEM_PROMPT = (
-    "You are the single manager agent for the intake runtime.\n"
-    "Use a bounded ReAct loop. Return strict JSON.\n"
-    "If more evidence is needed, return manager_action='call_tools' with tool_calls.\n"
-    "If ready, return manager_action='final' with intent, target_attachment, final_action, workflow_effect, "
-    "answer_contract, exactness, confidence, evidence_posture, repair_ack, uncertainty_posture, and "
-    "evidence_honesty_posture.\n"
-    "Tools only provide evidence or mutation results. Do not assume hidden state.\n"
-    "Do not emit freeform internal rationale fields.\n"
-)

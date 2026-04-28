@@ -12,6 +12,17 @@ from scripts.repo_policy import (
 
 ROOT = Path(__file__).resolve().parents[1]
 ACTIVE_CODE_POLICY = load_active_code_policy()
+ALLOWED_SUPPORT_HELPER_SEAMS = {
+    "app/shared/infra/canonical_body_support.py",
+    "app/shared/infra/canonical_commit_support.py",
+    "app/shared/infra/canonical_proposal_support.py",
+    "app/intake/application/intake_turn_support.py",
+    "app/runtime/agent/manager_support_prompts.py",
+    "app/runtime/infrastructure/session_archive_query_support.py",
+    "app/nutrition/application/answer_support.py",
+    "app/nutrition/agent/nutrition_estimation_support.py",
+    "app/nutrition/agent/exact_item_candidate_support.py",
+}
 
 
 def _legacy_path_token(*parts: str) -> str:
@@ -288,6 +299,18 @@ def test_active_repo_paths_do_not_reintroduce_stage_pass_vocabulary() -> None:
         if any(token in name_lower for token in banned_path_tokens):
             offenders.append(normalized)
     assert not offenders, f"legacy path vocabulary guard failed: {offenders[:20]}"
+
+
+def test_active_support_or_helper_paths_must_be_allowlisted() -> None:
+    offenders: list[str] = []
+    for path in iter_active_python_files(ACTIVE_CODE_POLICY):
+        repo_path = normalize_repo_path(path)
+        file_name = path.name.lower()
+        if "support" not in file_name and "helper" not in file_name and "helpers" not in file_name:
+            continue
+        if repo_path not in ALLOWED_SUPPORT_HELPER_SEAMS:
+            offenders.append(repo_path)
+    assert not offenders, f"unexpected support/helper seam paths require explicit review: {offenders}"
 
 
 def test_canonical_specs_do_not_describe_v2_as_four_pass_runtime() -> None:

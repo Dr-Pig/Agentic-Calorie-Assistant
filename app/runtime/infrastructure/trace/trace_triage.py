@@ -11,7 +11,7 @@ FAILURE_FAMILY_OWNERS: dict[str, list[str]] = {
     ],
     "schema_drift": [
         "app/runtime/agent/manager.py",
-        "app/runtime/agent/manager_support.py",
+        "app/runtime/agent/manager_fallback_policy.py",
         "app/providers/builderspace_adapter.py",
     ],
     "tool_routing_gap": [

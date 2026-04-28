@@ -59,6 +59,15 @@ def target_cap_for_repo_path(repo_path: str, policy: dict[str, Any]) -> int | No
     return int(policy["category_caps"][category])
 
 
+def governance_tooling(policy: dict[str, Any]) -> dict[str, list[str]]:
+    tooling = policy.get("governance_tooling", {})
+    return {
+        "docs": [str(item) for item in tooling.get("docs", [])],
+        "scripts": [str(item) for item in tooling.get("scripts", [])],
+        "tests": [str(item) for item in tooling.get("tests", [])],
+    }
+
+
 def line_count(path: Path) -> int:
     return len(path.read_text(encoding="utf-8", errors="replace").replace("\r\n", "\n").split("\n"))
 
