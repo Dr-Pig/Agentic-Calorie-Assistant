@@ -10,7 +10,7 @@ def test_truth_alignment_audit_flags_rescue_proposal_as_premature_active() -> No
 
     assert rescue is not None
     assert rescue["classification"] == "later_wave_premature_active"
-    assert rescue["recommended_action"] == "deactivate_from_active_wiring"
+    assert rescue["recommended_action"] == "archive_candidate"
 
 
 def test_truth_alignment_audit_flags_builderspace_as_workaround_residue() -> None:

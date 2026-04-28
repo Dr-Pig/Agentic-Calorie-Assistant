@@ -5,20 +5,24 @@ from typing import Any
 from ...shared.domain import (
     ActiveMealState,
     ActiveMealSummary,
-    ConversationArchiveRecord,
     ConversationDigest,
     ConversationMessage,
     ConversationRetrievalHit,
     ConversationState,
     DurableMemoryHit,
     MealRecord,
-    PendingFollowupState,
     PlannerStateDigest,
-    RecentTurnSummary,
-    SessionSummary,
-    SessionTranscriptRecord,
 )
 from ...shared.time_labels import describe_time_fields
+from .conversation_state_meal_state import build_active_meal_state, build_active_meal_summary
+from .conversation_state_summaries import (
+    build_archive_records,
+    build_pending_followup_state,
+    build_recent_turn_summary,
+    build_session_transcript_records,
+    build_session_summary,
+    extract_current_session_preferences,
+)
 
 BOUNDARY_CLARIFICATION_QUESTION = "這是在補充剛剛那餐，還是你另外又吃了一份新的？"
 
@@ -40,38 +44,6 @@ def infer_meal_type(text: str) -> str:
         if any(token in normalized for token in tokens):
             return meal_type
     return "unknown"
-
-
-def extract_current_session_preferences(archive_messages: list[Any]) -> list[str]:
-    preferences: list[str] = []
-    for msg in reversed(archive_messages[-12:]):
-        if msg.role != "user":
-            continue
-        content = (msg.content or "").strip()
-        if not content:
-            continue
-        normalized = content.lower()
-        if any(token in normalized for token in PREFERENCE_KEYWORDS):
-            if content not in preferences:
-                preferences.append(content)
-        if len(preferences) >= 3:
-            break
-    return list(reversed(preferences))
-
-
-def build_session_transcript_records(*, session_id: str, archive_messages: list[Any]) -> list[dict[str, Any]]:
-    return [
-        SessionTranscriptRecord(
-            session_id=session_id,
-            turn_id=msg.id,
-            role=msg.role,
-            content=msg.content,
-            timestamp=msg.created_at.isoformat(),
-            trace_id=msg.trace_id,
-            linked_meal_id=msg.linked_meal_log_id,
-        ).model_dump(mode="json")
-        for msg in archive_messages
-    ]
 
 
 def build_session_meal_records(*, session_id: str, meal_history: list[Any]) -> list[dict[str, Any]]:
@@ -117,19 +89,6 @@ def build_session_meal_records(*, session_id: str, meal_history: list[Any]) -> l
             ).model_dump(mode="json")
         )
     return records
-
-
-def build_archive_records(archive_messages: list[Any]) -> list[ConversationArchiveRecord]:
-    return [
-        ConversationArchiveRecord(
-            id=msg.id,
-            role=msg.role,
-            content=msg.content,
-            created_at=msg.created_at.isoformat(),
-            linked_meal_log_id=msg.linked_meal_log_id,
-        )
-        for msg in archive_messages
-    ]
 
 
 def _build_conversation_digest(*, latest_log: Any | None, recent_messages: list[Any]) -> ConversationDigest:
@@ -197,95 +156,6 @@ def _build_durable_memory_hits(*, latest_log: Any | None, archive_messages: list
     return hits
 
 
-def _build_active_meal_summary(*, latest_log: Any | None, conversation_digest: ConversationDigest) -> ActiveMealSummary:
-    debug_steps = list(latest_log.debug_steps_json or []) if latest_log else []
-    selected_evidence_titles: list[str] = []
-    for step in debug_steps:
-        title = step.get("reference_title") or step.get("evidence_title")
-        if title and title not in selected_evidence_titles:
-            selected_evidence_titles.append(str(title))
-    accepted_corrections = []
-    if conversation_digest.last_explicit_correction:
-        accepted_corrections.append(conversation_digest.last_explicit_correction)
-    return ActiveMealSummary(
-        meal_title=latest_log.meal_title if latest_log else None,
-        status=latest_log.status if latest_log else None,
-        unresolved_slots=[latest_log.pending_question] if latest_log and latest_log.pending_question else [],
-        accepted_corrections=accepted_corrections,
-        selected_evidence_titles=selected_evidence_titles[:3],
-    )
-
-
-def _build_active_meal_state(*, latest_log: Any | None, conversation_digest: ConversationDigest) -> ActiveMealState:
-    if latest_log is None:
-        return ActiveMealState()
-    time_fields = describe_time_fields(latest_log.timestamp.isoformat() if latest_log.timestamp else None)
-    debug_steps = list(latest_log.debug_steps_json or [])
-    trace_contract = next(
-        (
-            dict(step.get("trace_contract") or {})
-            for step in reversed(debug_steps)
-            if isinstance(step, dict) and step.get("trace_contract")
-        ),
-        {},
-    )
-    return ActiveMealState(
-        meal_id=latest_log.id,
-        meal_title=latest_log.meal_title,
-        status=latest_log.status,
-        estimate_mode=str(trace_contract.get("best_estimate_mode") or "") or None,
-        confidence=str(trace_contract.get("estimate_confidence_tier") or "") or None,
-        pending_question=latest_log.pending_question,
-        missing_slots=[latest_log.pending_question] if latest_log.pending_question else [],
-        resolved_slots=[],
-        resolved_food_items=[
-            str(item.get("name") or "")
-            for item in list(latest_log.components_json or [])
-            if str(item.get("name") or "").strip()
-        ],
-        accepted_corrections=[conversation_digest.last_explicit_correction] if conversation_digest.last_explicit_correction else [],
-        relative_time_label=time_fields.get("relative_time_label") or None,
-        local_date=time_fields.get("local_date") or None,
-    )
-
-
-def _build_pending_followup_state(*, latest_log: Any | None) -> PendingFollowupState:
-    if latest_log is None or not latest_log.pending_question:
-        return PendingFollowupState()
-    return PendingFollowupState(
-        is_open=True,
-        source_meal_id=latest_log.id,
-        pending_question=latest_log.pending_question,
-        missing_high_impact_slots=[latest_log.pending_question],
-        asked_questions_history=[latest_log.pending_question],
-        reason_not_direct_answer="high_impact_slot_missing",
-    )
-
-
-def _build_recent_turn_summary(recent_messages: list[Any]) -> RecentTurnSummary:
-    return RecentTurnSummary(
-        user_messages=[msg.content for msg in recent_messages if msg.role == "user"][-3:],
-        assistant_messages=[msg.content for msg in recent_messages if msg.role == "assistant"][-3:],
-    )
-
-
-def _build_session_summary(
-    *,
-    latest_log: Any | None,
-    conversation_digest: ConversationDigest,
-    durable_memory_hits: list[DurableMemoryHit],
-    archive_messages: list[Any],
-) -> SessionSummary:
-    goal = next((hit.value for hit in durable_memory_hits if hit.memory_type == "goal"), None)
-    return SessionSummary(
-        active_goal=goal,
-        active_meal_title=latest_log.meal_title if latest_log else None,
-        open_questions=[latest_log.pending_question] if latest_log and latest_log.pending_question else [],
-        recent_corrections=[conversation_digest.last_explicit_correction] if conversation_digest.last_explicit_correction else [],
-        current_session_preferences_light=extract_current_session_preferences(archive_messages),
-    )
-
-
 def _boundary_clarification_state(*, latest_log: Any | None, archive_messages: list[Any]) -> tuple[bool, int | None]:
     if latest_log and latest_log.pending_question == BOUNDARY_CLARIFICATION_QUESTION:
         return True, latest_log.id
@@ -320,21 +190,25 @@ def assemble_conversation_state(
         latest_log=latest_log,
         archive_messages=archive_messages,
     )
-    active_meal_summary = _build_active_meal_summary(
+    active_meal_summary = build_active_meal_summary(
         latest_log=latest_log,
         conversation_digest=conversation_digest,
     )
-    active_meal_state = _build_active_meal_state(
+    active_meal_state = build_active_meal_state(
         latest_log=latest_log,
         conversation_digest=conversation_digest,
     )
-    pending_followup_state = _build_pending_followup_state(latest_log=latest_log)
-    recent_turn_summary = _build_recent_turn_summary(recent_messages)
-    session_summary = _build_session_summary(
+    pending_followup_state = build_pending_followup_state(latest_log=latest_log)
+    recent_turn_summary = build_recent_turn_summary(recent_messages)
+    session_summary = build_session_summary(
         latest_log=latest_log,
         conversation_digest=conversation_digest,
         durable_memory_hits=durable_memory_hits,
         archive_messages=archive_messages,
+        extract_current_session_preferences=lambda messages: extract_current_session_preferences(
+            messages,
+            preference_keywords=PREFERENCE_KEYWORDS,
+        ),
     )
     transcript_hits_for_archive = [
         ConversationRetrievalHit(

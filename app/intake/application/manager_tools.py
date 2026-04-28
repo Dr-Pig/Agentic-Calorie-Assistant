@@ -1,21 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
-import json
-import re
 from typing import Any
 
 from sqlalchemy.orm import Session
 
-from ...nutrition.agent.exact_item_packets import build_exact_item_lane_packet
-from .commit_service import persist_text_meal_payload
-from ...shared.time_labels import resolve_local_attribution
-from ...shared.domain import ConversationState
 from ...database import get_or_create_user
 from ...logging import now_iso
-from ...runtime.infrastructure.trace.stage_trace_store import append_stage_trace_event
-from ...shared.contracts.intake import ComponentEstimate, EstimatePayload
 from ...nutrition.application.evidence_eligibility import classify_query_family, is_high_variance_family
 from ...nutrition.application.estimate_artifacts import (
     EstimatedNutritionArtifact,
@@ -23,170 +14,18 @@ from ...nutrition.application.estimate_artifacts import (
     build_shadow_stub_artifact,
     shadow_stub_estimate_enabled,
 )
-
-
-@dataclass(frozen=True)
-class PersistMealLogResult:
-    action: str
-    status: str | None
-    persisted_log_id: int | None
-    linked_meal_log_id: int | None
-    canonical_commit: dict[str, Any] | None
-
-
-def _conversation_pending_followup(conversation_state: ConversationState | Any) -> dict[str, Any]:
-    pending = getattr(conversation_state, "pending_followup_state", None)
-    if pending is None:
-        return {
-            "is_open": False,
-            "source_meal_id": None,
-            "pending_question": None,
-            "missing_high_impact_slots": [],
-        }
-    if hasattr(pending, "model_dump"):
-        return pending.model_dump(mode="json")
-    return dict(pending)
-
-
-def _trace_slots(trace_contract: dict[str, Any], key: str) -> list[str]:
-    return [str(item) for item in trace_contract.get(key, []) if str(item).strip()]
-
-
-def _json_safe(value: Any) -> Any:
-    return json.loads(json.dumps(value, ensure_ascii=False, default=str))
-
-
-_GENERIC_MILK_TEA_TOKENS = ("珍珠奶茶", "奶茶", "milk tea", "bubble tea")
-_BRAND_PACKAGE_TOKENS = ("7-11", "city cafe", "全家", "familymart", "coco", "50嵐", "五十嵐", "可不可", "麻古")
-_SIZE_TOKENS = ("大杯", "中杯", "小杯", "l杯", "m杯", "s杯", "大", "中", "小")
-_SWEETNESS_TOKENS = ("全糖", "半糖", "微糖", "少糖", "無糖", "正常糖")
-_COUNT_ANCHOR_PATTERN = re.compile(r"\d+\s*(顆|個|粒|份|pcs?|pieces?)", re.IGNORECASE)
-_MULTI_ITEM_SPLIT_TOKENS = ("\u548c", "\u3001", ",", "\uff0c", "\u9084\u6709", "+")
-
-
-def _looks_like_generic_milk_tea(raw_user_input: str) -> bool:
-    normalized = raw_user_input.strip().lower()
-    return any(token in normalized for token in _GENERIC_MILK_TEA_TOKENS) or classify_query_family(raw_user_input) == "generic_milk_tea"
-
-
-def _has_brand_or_package_cue(raw_user_input: str) -> bool:
-    normalized = raw_user_input.strip().lower()
-    return any(token in normalized for token in _BRAND_PACKAGE_TOKENS)
-
-
-def _has_structuring_drink_details(raw_user_input: str) -> bool:
-    normalized = raw_user_input.strip().lower()
-    return any(token in normalized for token in _SIZE_TOKENS) and any(token in normalized for token in _SWEETNESS_TOKENS)
-
-
-def _has_count_anchor(raw_user_input: str) -> bool:
-    normalized = raw_user_input.strip().lower()
-    return bool(_COUNT_ANCHOR_PATTERN.search(normalized))
-
-
-def _looks_like_multi_item_input(raw_user_input: str) -> bool:
-    normalized = str(raw_user_input or "").strip().lower()
-    if any(token in normalized for token in _MULTI_ITEM_SPLIT_TOKENS):
-        return True
-    quantity_markers = ["一碗", "一杯", "一顆", "一個", "一份"]
-    return sum(1 for token in quantity_markers if token in normalized) >= 2
-
-
-def _normalize_bundle1_live_payload(payload: EstimatePayload, *, raw_user_input: str) -> None:
-    """Bridge V1 nutrition payloads into Bundle 1 execution semantics.
-
-    Bundle 1 expects simple completed meals to:
-    - surface item-level kcal in the renderer
-    - commit canonically when the payload is best-effort but not actually asking a follow-up
-    """
-
-    if (
-        payload.component_breakdown
-        and (
-            not payload.component_estimates
-            or all(int(component.estimated_kcal or 0) <= 0 for component in payload.component_estimates)
-        )
-    ):
-        payload.component_estimates = [
-            ComponentEstimate(
-                name=str(item.get("name") or "item"),
-                quantity_hint=str(item.get("quantity_hint") or item.get("portion_basis") or "").strip() or None,
-                estimated_kcal=int(item.get("estimated_kcal") or 0),
-                protein_g=int(item.get("protein_g") or 0),
-                carb_g=int(item.get("carb_g") or 0),
-                fat_g=int(item.get("fat_g") or 0),
-            )
-            for item in payload.component_breakdown
-            if int(item.get("estimated_kcal") or 0) > 0
-        ]
-
-    trace_contract = payload.trace_contract
-    has_followup = bool(payload.followup_question) or bool(_trace_slots(trace_contract, "unresolved_info"))
-    has_blocking = bool(_trace_slots(trace_contract, "blocking_slots"))
-    has_missing = bool(_trace_slots(trace_contract, "missing_slots"))
-    clarify_first = str(trace_contract.get("response_mode_hint") or "") == "clarify_first"
-
-    if (
-        payload.estimated_kcal > 0
-        and payload.route_target == "clarify_user_private"
-        and not has_followup
-        and not has_blocking
-        and not has_missing
-        and not clarify_first
-    ):
-        payload.route_target = "best_effort_answer"
-
-    if (
-        payload.estimated_kcal > 0
-        and payload.action_taken == "answer_with_uncertainty"
-        and not has_followup
-        and not has_blocking
-        and not has_missing
-    ):
-        payload.follow_up_needed = False
-
-    family_rule = classify_query_family(raw_user_input)
-    if (
-        payload.estimated_kcal > 0
-        and is_high_variance_family(raw_user_input)
-        and not _has_brand_or_package_cue(raw_user_input)
-        and not _has_structuring_drink_details(raw_user_input)
-        and not _has_count_anchor(raw_user_input)
-    ):
-        payload.route_target = "clarify_user_private"
-        payload.action_taken = "answer_with_uncertainty"
-        payload.follow_up_needed = True
-        if not str(payload.followup_question or "").strip():
-            if family_rule == "generic_milk_tea" or _looks_like_generic_milk_tea(raw_user_input):
-                payload.followup_question = "請問是幾分糖、什麼杯型？"
-            elif family_rule == "dumpling_count_required":
-                payload.followup_question = "請問大概吃了幾顆？"
-            else:
-                payload.followup_question = "我還需要更完整的組成或份量，才能把這餐記準。"
-        payload.trace_contract = {
-            **dict(payload.trace_contract or {}),
-            "bundle2_guard_family": family_rule or "high_variance_followup_required",
-            "why_not_exact": ["high_variance_family_requires_followup", "missing_identity_or_customization"],
-        }
-
-    # Generic hand-shaken milk tea without brand/package or size/sweetness cues must not
-    # be treated as exact-item truth. Demote to follow-up-required so Bundle 2 can ask for
-    # the high-impact drink details before canonical commit.
-    if (
-        payload.estimated_kcal > 0
-        and False
-        and not _has_brand_or_package_cue(raw_user_input)
-        and not _has_structuring_drink_details(raw_user_input)
-    ):
-        payload.route_target = "clarify_user_private"
-        payload.action_taken = "answer_with_uncertainty"
-        payload.follow_up_needed = True
-        if not str(payload.followup_question or "").strip():
-            payload.followup_question = "請問是幾分糖、什麼杯型？"
-        payload.trace_contract = {
-            **dict(payload.trace_contract or {}),
-            "bundle2_guard_family": "legacy_disabled_high_variance_guard",
-        }
+from ...nutrition.agent.exact_item_packets import build_exact_item_lane_packet
+from ...runtime.infrastructure.trace.stage_trace_store import append_stage_trace_event
+from ...shared.contracts.intake import EstimatePayload
+from ...shared.time_labels import resolve_local_attribution
+from .commit_service import persist_text_meal_payload
+from .intake_tool_runtime import (
+    PersistMealLogResult,
+    conversation_pending_followup,
+    json_safe,
+    looks_like_multi_item_input,
+    normalize_live_payload,
+)
 
 
 def read_body_plan_tool(db: Session, *, user_id: int) -> Any:
@@ -231,7 +70,7 @@ def append_trace_event_tool(
             "stage": stage,
             "status": status,
             "timestamp": now_iso(),
-            "summary": _json_safe(summary),
+            "summary": json_safe(summary),
         },
     )
 
@@ -241,7 +80,7 @@ def resolve_correction_target_tool(
     resolved_state: Any,
 ) -> dict[str, Any]:
     target = ((resolved_state.injected_context or {}).get("TARGET_MEAL_REFERENCE") or {}).copy()
-    pending = _conversation_pending_followup(getattr(resolved_state, "conversation_state", None))
+    pending = conversation_pending_followup(getattr(resolved_state, "conversation_state", None))
     if pending.get("is_open"):
         target["target_resolution_source"] = "pending_followup_state"
         target["correction_confidence"] = "high"
@@ -269,6 +108,31 @@ def compare_against_budget_tool(
     }
 
 
+def _fill_missing_trace_dates(payload: EstimatePayload) -> None:
+    trace_contract = dict(payload.trace_contract or {})
+    if str(trace_contract.get("local_date") or "").strip():
+        payload.trace_contract = trace_contract
+        return
+    attribution = resolve_local_attribution(
+        trace_contract.get("occurred_at"),
+        timezone_name=str(trace_contract.get("timezone") or "") or None,
+    )
+    if attribution.get("occurred_at") is not None:
+        trace_contract["occurred_at"] = attribution["occurred_at"]
+    if str(attribution.get("occurred_at_utc") or "").strip():
+        trace_contract["occurred_at_utc"] = attribution["occurred_at_utc"]
+    if str(attribution.get("occurred_at_local") or "").strip():
+        trace_contract["occurred_at_local"] = attribution["occurred_at_local"]
+    if str(attribution.get("local_date") or "").strip():
+        trace_contract["local_date"] = attribution["local_date"]
+    if str(attribution.get("timezone") or "").strip():
+        trace_contract["timezone"] = attribution["timezone"]
+    trace_contract.setdefault("search_attempt_count", 0)
+    trace_contract.setdefault("grounding_summary", {"exact_truth_present": False, "retrieved_knowledge_count": 0, "evidence_roles": []})
+    trace_contract.setdefault("reasoning_state", {"exact_lane_count": 0, "search_attempt_count": 0})
+    payload.trace_contract = trace_contract
+
+
 async def estimate_nutrition_tool(
     db: Session,
     *,
@@ -284,10 +148,9 @@ async def estimate_nutrition_tool(
     contextualized_query: str | None = None,
 ) -> EstimatedNutritionArtifact:
     active_provider = manager_provider or provider
-
     exact_packet = build_exact_item_lane_packet(raw_user_input, limit=3)
     top_exact_candidate = exact_packet.get("top_exact_candidate")
-    if isinstance(top_exact_candidate, dict) and not _looks_like_multi_item_input(raw_user_input):
+    if isinstance(top_exact_candidate, dict) and not looks_like_multi_item_input(raw_user_input):
         artifact = build_exact_item_artifact(
             db,
             user_external_id=user_external_id,
@@ -295,7 +158,7 @@ async def estimate_nutrition_tool(
             local_date=local_date or datetime.now().date().isoformat(),
             exact_candidate=top_exact_candidate,
         )
-        _normalize_bundle1_live_payload(artifact.payload, raw_user_input=raw_user_input)
+        normalize_live_payload(artifact.payload, raw_user_input=raw_user_input)
         return artifact
 
     if shadow_stub_estimate_enabled(provider=active_provider):
@@ -321,27 +184,13 @@ async def estimate_nutrition_tool(
                 pending_state = getattr(conversation_state, "pending_followup_state")
                 if pending_state is not None and hasattr(pending_state, "is_open"):
                     pending_state.is_open = False
-    trace_contract = dict(artifact.payload.trace_contract or {})
-    if not str(trace_contract.get("local_date") or "").strip():
-        attribution = resolve_local_attribution(
-            trace_contract.get("occurred_at"),
-            timezone_name=str(trace_contract.get("timezone") or "") or None,
-        )
-        if attribution.get("occurred_at") is not None:
-            trace_contract["occurred_at"] = attribution["occurred_at"]
-        if str(attribution.get("occurred_at_utc") or "").strip():
-            trace_contract["occurred_at_utc"] = attribution["occurred_at_utc"]
-        if str(attribution.get("occurred_at_local") or "").strip():
-            trace_contract["occurred_at_local"] = attribution["occurred_at_local"]
-        if str(attribution.get("local_date") or "").strip():
-            trace_contract["local_date"] = attribution["local_date"]
-        if str(attribution.get("timezone") or "").strip():
-            trace_contract["timezone"] = attribution["timezone"]
-    trace_contract.setdefault("search_attempt_count", 0)
-    trace_contract.setdefault("grounding_summary", {"exact_truth_present": False, "retrieved_knowledge_count": 0, "evidence_roles": []})
-    trace_contract.setdefault("reasoning_state", {"exact_lane_count": 0, "search_attempt_count": 0})
-    artifact.payload.trace_contract = trace_contract
-    _normalize_bundle1_live_payload(artifact.payload, raw_user_input=raw_user_input)
+    _fill_missing_trace_dates(artifact.payload)
+    normalize_live_payload(
+        artifact.payload,
+        raw_user_input=raw_user_input,
+        family_rule=classify_query_family(raw_user_input),
+        high_variance=is_high_variance_family(raw_user_input),
+    )
     return artifact
 
 

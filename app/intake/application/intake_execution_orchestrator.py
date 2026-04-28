@@ -16,7 +16,7 @@ from ...runtime.application.bundle2_tool_batch import apply_final_action_to_payl
 from ...runtime.application.manager_service import run_intake_manager
 from ...runtime.application.state_resolver import resolve_v2_bundle1_state
 from . import manager_tools as tools
-from .bundle2_persistence import initial_state_mutation_summary, persist_bundle2_artifact
+from .intake_execution_persistence import initial_state_mutation_summary, persist_bundle2_artifact
 
 
 def _now_ms() -> int:

@@ -41,8 +41,8 @@ def test_v2_manager_tools_no_longer_imports_v1_orchestration_bridge() -> None:
 
 
 def test_v2_services_import_intake_domain_tools_and_ignore_legacy_provider_split() -> None:
-    bundle1 = (ROOT / "app" / "intake" / "application" / "bundle1_service.py").read_text(encoding="utf-8")
-    bundle2 = (ROOT / "app" / "intake" / "application" / "bundle2_service.py").read_text(encoding="utf-8")
+    bundle1 = (ROOT / "app" / "intake" / "application" / "intake_turn_orchestrator.py").read_text(encoding="utf-8")
+    bundle2 = (ROOT / "app" / "intake" / "application" / "intake_execution_orchestrator.py").read_text(encoding="utf-8")
 
     assert "from . import manager_tools as tools" in bundle1
     assert "from . import manager_tools as tools" in bundle2

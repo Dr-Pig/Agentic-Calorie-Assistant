@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
@@ -10,18 +9,15 @@ from sqlalchemy.orm import Session
 
 from ...budget.application.current_budget_answer import build_remaining_budget_answer_contract
 from ...body.application.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
-from ...runtime.application.request_trace_artifacts import (
-    build_trace_refs,
-    write_bundle1_request_trace_artifact,
-    write_bundle2_request_trace_artifact,
-)
-from ...runtime.application.reply_renderer import render_bundle1_reply
-from ...runtime.application.execution_guard import validate_intake_persistence, validate_onboarding_seed
+from ...runtime.agent.manager import IntakeManagerResult
+from ...runtime.application.execution_guard import validate_onboarding_seed
 from ...runtime.application.manager_service import run_intake_manager
+from ...runtime.application.reply_renderer import render_bundle1_reply
+from ...runtime.application.request_trace_artifacts import build_trace_refs, write_bundle1_request_trace_artifact
 from ...runtime.application.sidecar_service import build_deterministic_sidecar
 from ...runtime.application.state_resolver import resolve_v2_bundle1_state
 from . import manager_tools as tools
-from ...runtime.agent.manager import IntakeManagerResult
+from .intake_turn_support import normalized_activity_level, resolve_local_date
 
 
 @dataclass(frozen=True)
@@ -37,33 +33,10 @@ class V2Bundle1OnboardingPayload:
     activity_level: str | None = None
     daily_lifestyle: str | None = None
     weekly_exercise_days_band: str | None = None
-    timezone: str = "UTC"
-    target_weight_kg: float | None = None
 
 
-def _normalized_activity_level(activity_level: str | None) -> str:
-    value = (activity_level or "").strip().lower()
-    return value or "sedentary"
-
-
-def _resolve_local_date(local_date: str | None) -> str:
-    if isinstance(local_date, str) and local_date.strip():
-        return local_date.strip()
-    return datetime.now().date().isoformat()
-
-
-def _payload_trace_contract(payload: Any) -> dict[str, Any]:
-    trace_contract = getattr(payload, "trace_contract", None) or {}
-    return dict(trace_contract)
-
-
-def _payload_unresolved_info(payload: Any) -> list[str]:
-    trace_contract = _payload_trace_contract(payload)
-    raw = trace_contract.get("unresolved_info") or []
-    return [str(item) for item in raw if str(item).strip()]
-
-
-
+def _record_timing(stage_timings: list[dict[str, Any]], stage: str, duration_ms: int) -> None:
+    stage_timings.append({"stage": stage, "duration_ms": duration_ms})
 
 
 async def execute_bundle1_turn(
@@ -77,28 +50,21 @@ async def execute_bundle1_turn(
     manager_provider: Any | None = None,
     provider: Any | None = None,
     search_adapter: Any | None = None,
-    _timing_context: dict[str, Any] | None = None,  # Internal: for latency tracking
+    _timing_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    # Initialize timing tracking
-    stage_timings: list[dict[str, Any]] = []
-    
-    def _record_timing(stage: str, duration_ms: int) -> None:
-        stage_timings.append({"stage": stage, "duration_ms": duration_ms})
-    
     request_id = uuid4().hex
-    resolved_local_date = _resolve_local_date(local_date)
+    stage_timings: list[dict[str, Any]] = []
+    resolved_local_date = resolve_local_date(local_date)
     active_manager_provider = manager_provider or provider
-    
-    # Stage: state resolution
+
     stage_start = int(time.time() * 1000)
     state_before = resolve_v2_bundle1_state(
         db,
         user_external_id=user_external_id,
         local_date=resolved_local_date,
     )
-    _record_timing("state_resolution", int(time.time() * 1000) - stage_start)
-    
-    # Stage: manager decision
+    _record_timing(stage_timings, "state_resolution", int(time.time() * 1000) - stage_start)
+
     stage_start = int(time.time() * 1000)
     manager_decision: IntakeManagerResult = await run_intake_manager(
         provider=active_manager_provider,
@@ -108,8 +74,7 @@ async def execute_bundle1_turn(
         available_tools=("read_body_plan", "read_day_budget"),
     )
     manager_decision_ms = int(time.time() * 1000) - stage_start
-    _record_timing("manager_decision", manager_decision_ms)
-    
+    _record_timing(stage_timings, "manager_decision", manager_decision_ms)
     tools.append_trace_event_tool(
         request_id=request_id,
         stage="v2_manager_decision",
@@ -127,8 +92,6 @@ async def execute_bundle1_turn(
     remaining_budget = None
     nutrition_artifact = None
     persistence_result = None
-    bundle2_tool_outputs: dict[str, Any] | None = None
-    budget_summary: dict[str, Any] | None = None
     state_mutation_summary: dict[str, Any] = {
         "body_plan_seeded": False,
         "meal_logged": False,
@@ -147,14 +110,14 @@ async def execute_bundle1_turn(
             db,
             user=user,
             inputs=OnboardingBootstrapInput(
-                sex=onboarding_payload.sex,  # type: ignore[arg-type]
+                sex=onboarding_payload.sex,
                 age_years=onboarding_payload.age_years,
                 height_cm=onboarding_payload.height_cm,
                 current_weight_kg=onboarding_payload.current_weight_kg,
-                activity_level=_normalized_activity_level(onboarding_payload.activity_level),  # type: ignore[arg-type]
-                daily_lifestyle=onboarding_payload.daily_lifestyle,  # type: ignore[arg-type]
-                weekly_exercise_days_band=onboarding_payload.weekly_exercise_days_band,  # type: ignore[arg-type]
-                goal_type=onboarding_payload.goal_type,  # type: ignore[arg-type]
+                activity_level=normalized_activity_level(onboarding_payload.activity_level),
+                daily_lifestyle=onboarding_payload.daily_lifestyle,
+                weekly_exercise_days_band=onboarding_payload.weekly_exercise_days_band,
+                goal_type=onboarding_payload.goal_type,
                 weekly_target_rate_kg=onboarding_payload.weekly_target_rate_kg,
                 target_weight_kg=onboarding_payload.target_weight_kg,
                 local_date=resolved_local_date,
@@ -214,8 +177,8 @@ async def execute_bundle1_turn(
     elif manager_decision.intent_type == "log_meal":
         if not raw_user_input or not raw_user_input.strip():
             raise ValueError("raw_user_input is required for Bundle 1 intake logging.")
-        
-        from .bundle2_service import process_bundle2_intake
+        from .intake_execution_orchestrator import process_bundle2_intake
+
         return await process_bundle2_intake(
             db=db,
             user_external_id=user_external_id,
@@ -278,6 +241,18 @@ async def execute_bundle1_turn(
         },
     )
 
+    latency_tracking = {
+        "intent_type": manager_decision.intent_type,
+        "tools_used": [
+            (tc.get("tool_name") or tc.get("name", "unknown")) if isinstance(tc, dict) else str(tc)
+            for tc in manager_decision.tool_calls
+        ],
+        "total_duration_ms": sum(st["duration_ms"] for st in stage_timings),
+        "slowest_step_ms": max((st["duration_ms"] for st in stage_timings), default=0),
+        "slowest_step_name": max(stage_timings, key=lambda x: x["duration_ms"])["stage"] if stage_timings else "none",
+        "stage_timings": stage_timings,
+    }
+
     write_bundle1_request_trace_artifact(
         request_id=request_id,
         user_external_id=user_external_id,
@@ -295,28 +270,10 @@ async def execute_bundle1_turn(
         assistant_message=assistant_message,
         sidecar=sidecar,
         state_delta=state_mutation_summary,
-        latency_tracking=latency_tracking if 'latency_tracking' in locals() else {},
+        latency_tracking=latency_tracking,
     )
-    
     trace_refs = build_trace_refs(request_id=request_id)
-    
-    # Compute latency tracking from stage timings
-    total_duration = sum(st["duration_ms"] for st in stage_timings)
-    slowest_stage = max(stage_timings, key=lambda x: x["duration_ms"]) if stage_timings else {"stage": "none", "duration_ms": 0}
-    
-    # Build latency_tracking for return and trace
-    latency_tracking = {
-        "intent_type": manager_decision.intent_type,
-        "tools_used": [
-            (tc.get("tool_name") or tc.get("name", "unknown")) if isinstance(tc, dict) else str(tc)
-            for tc in manager_decision.tool_calls
-        ],
-        "total_duration_ms": total_duration,
-        "slowest_step_ms": slowest_stage["duration_ms"],
-        "slowest_step_name": slowest_stage["stage"],
-        "stage_timings": stage_timings,
-    }
-    
+
     return {
         "request_id": request_id,
         "assistant_message": assistant_message,
@@ -330,26 +287,8 @@ async def execute_bundle1_turn(
             "trace": manager_decision.trace,
         },
         "bundle2_manager": {
-            "decision_1": (
-                {
-                    "intent_type": bundle2_decision_1.intent_type,
-                    "clarify_posture": bundle2_decision_1.clarify_posture,
-                    "tool_plan": list(bundle2_decision_1.tool_plan),
-                    "target_attachment": bundle2_decision_1.target_attachment,
-                    "pending_followup_resolution_mode": bundle2_decision_1.pending_followup_resolution_mode,
-                    "workflow_effect": bundle2_decision_1.workflow_effect,
-                }
-                if bundle2_decision_1 is not None
-                else None
-            ),
-            "decision_2": (
-                {
-                    "final_action": bundle2_decision_2.final_action,
-                    "workflow_effect": bundle2_decision_2.workflow_effect,
-                }
-                if bundle2_decision_2 is not None
-                else None
-            ),
+            "decision_1": None,
+            "decision_2": None,
         },
         "remaining_budget": {
             "status": remaining_budget.status,

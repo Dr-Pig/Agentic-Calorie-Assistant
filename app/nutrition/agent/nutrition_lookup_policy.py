@@ -2,22 +2,16 @@ from __future__ import annotations
 import re
 from .base_nutrition_aliases import merged_base_nutrition_aliases
 from .nutrition_profiles import (
-    EstimateBasis, ConfidenceTier, MacroProfile, LookupResult, ROLE_DEFAULTS, PROFILE_ALIASES,
-    _normalize_name, _load_food_catalog, _load_portion_anchors, _load_base_nutrition_records,
-    _macro_profile_from_kcal
+    ConfidenceTier, EstimateBasis, LookupResult, MacroProfile, PROFILE_ALIASES, ROLE_DEFAULTS,
+    _load_base_nutrition_records, _load_food_catalog, _load_portion_anchors, _macro_profile_from_kcal, _normalize_name,
 )
-
 def _amount_multiplier(amount_hint: str) -> float:
     text = amount_hint.strip().lower()
     if not text:
         return 1.0
-
-    # Phase 4: 數量詞解析 (e.g. "3顆", "2份", "3 顆")
     qty_match = re.match(r"^(\d+(?:\.\d+)?)\s*[顆份杯碗瓶盤塊片個條罐包袋]", text)
     if qty_match:
         return float(qty_match.group(1))
-
-    # Phase 3: 語義份量倍率（LLM portion_hint → multiplier）
     if any(token in text for token in ["extra large", "double", "雙份", "加大"]):
         return 2.0
     if any(token in text for token in ["特盛", "特大"]):
@@ -37,7 +31,6 @@ def _amount_multiplier(amount_hint: str) -> float:
     if any(token in text for token in ["optional", "unknown"]):
         return 0.5
     return 1.0
-
 
 def _base_record_multiplier(record: dict, amount_hint: str, *, has_exact_macros: bool) -> float:
     multiplier = _amount_multiplier(amount_hint)
@@ -69,7 +62,6 @@ def _macro_completeness(nutrition: dict) -> str:
     if isinstance(nutrition.get("kcal"), (int, float)):
         return "kcal_only"
     return "partial"
-
 
 def _base_nutrition_lookup(name: str, amount_hint: str = "", role: str = "other") -> LookupResult | None:
     normalized_name = _normalize_name(name)
@@ -133,7 +125,6 @@ def _base_nutrition_lookup(name: str, amount_hint: str = "", role: str = "other"
 
     return None
 
-
 def _catalog_lookup(name: str, amount_hint: str = "") -> LookupResult | None:
     normalized_name = _normalize_name(name)
     if not normalized_name:
@@ -169,7 +160,6 @@ def _catalog_lookup(name: str, amount_hint: str = "") -> LookupResult | None:
             why_not_exact="Fell back to generic catalog range instead of an exact or complete anchor.",
         )
     return None
-
 
 def _portion_anchor_lookup(name: str, amount_hint: str = "", role: str = "other") -> LookupResult | None:
     normalized_name = _normalize_name(name)
@@ -208,7 +198,6 @@ def _portion_anchor_lookup(name: str, amount_hint: str = "", role: str = "other"
         )
     return None
 
-
 def resolve_ingredient_estimate(name: str, amount_hint: str = "", role: str = "other") -> LookupResult | None:
     normalized_name = _normalize_name(name)
     if not normalized_name:
@@ -225,8 +214,8 @@ def resolve_ingredient_estimate(name: str, amount_hint: str = "", role: str = "o
             return LookupResult(
                 profile=scaled,
                 evidence_role="ingredient_anchor",
-                estimate_basis="anchored",  # 提升為 anchored 以確保優先於 LLM 的初步預估
-                confidence_tier="high",     # 手調黃金基準視為高信心度
+                estimate_basis="anchored",
+                confidence_tier="high",
                 macro_completeness="partial",
                 source_name="profile_aliases",
                 heuristic_dependencies=("alias_profile",),
@@ -267,5 +256,3 @@ def resolve_ingredient_estimate(name: str, amount_hint: str = "", role: str = "o
 def lookup_ingredient_profile(name: str, amount_hint: str = "", role: str = "other") -> MacroProfile | None:
     matched = resolve_ingredient_estimate(name, amount_hint, role)
     return matched.profile if matched is not None else None
-
-

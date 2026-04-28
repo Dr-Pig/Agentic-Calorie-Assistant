@@ -1,16 +1,3 @@
-"""
-Fast chain-item retrieval using FTS5 index.
-
-This module provides a fast path for branded chain items (McDonald's, Starbucks,
-convenience store drinks, etc.) by using the FTS5 exact_item index rather than
-scoring all 10K+ docs via the full search_local_knowledge pipeline.
-
-Design principles:
-- FTS is the primary retrieval mechanism (milliseconds, not seconds)
-- Space normalization fixes FTS5 unicode61 tokenization issues with Chinese
-- Results are compatible with search_local_knowledge schema for transparent substitution
-- Deterministic: only returns what the FTS index contains; no LLM involved
-"""
 from __future__ import annotations
 
 import re
@@ -19,8 +6,6 @@ from typing import Any
 from .exact_item_lookup import resolve_exact_item_fts
 
 
-# Known brands in the exact_item_cards DB — used for brand extraction and re-ranking.
-# These are the brand names that appear as exact titles/aliases in the DB.
 _KNOWN_BRANDS: list[str] = [
     "麥當勞",
     "McDonald's",
@@ -77,7 +62,6 @@ _KNOWN_BRANDS: list[str] = [
 
 
 def _extract_brand(query: str) -> str | None:
-    """Extract the first known brand from a query string."""
     for brand in _KNOWN_BRANDS:
         if brand in query:
             return brand
@@ -85,12 +69,10 @@ def _extract_brand(query: str) -> str | None:
 
 
 def query_has_known_brand(query: str) -> bool:
-    """Return whether the query contains a known chain or packaged-retail brand."""
     return _extract_brand(query) is not None
 
 
 def _normalize_spaces(text: str) -> str:
-    """Remove all whitespace characters (spaces, full-width spaces, etc.)."""
     return re.sub(r"\s+", "", text)
 
 
@@ -115,7 +97,6 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
     brand_in_query = _extract_brand(query)
     brand_part, product_part = None, None
 
-    # Extract brand and product parts if query contains a known brand
     if brand_in_query:
         idx = query.find(brand_in_query)
         before_brand = query[:idx].strip()
@@ -127,7 +108,6 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
         else:
             brand_part = brand_in_query
 
-    # Strategy 1: FTS with original query (best for "麥當勞 大麥克", "CITY CAFE 招牌冠軍拿鐵")
     results_map: dict[tuple[str, str], dict[str, Any]] = {}
     for rank, item in enumerate(resolve_exact_item_fts(original_query, limit=limit * 2)):
         key = (str(item.get("title", "")), str(item.get("brand", "")))
@@ -136,7 +116,6 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
             item["_bm25_rank"] = rank
             results_map[key] = item
 
-    # Strategy 2: FTS with no-space query (fixes "新東陽 蜜汁豬肉乾")
     if query_no_space != original_query:
         for rank, item in enumerate(resolve_exact_item_fts(query_no_space, limit=limit * 2)):
             key = (str(item.get("title", "")), str(item.get("brand", "")))
@@ -145,8 +124,6 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
                 item["_bm25_rank"] = rank
                 results_map[key] = item
 
-    # Strategy 3: If brand+product query gave no results, try brand-only
-    # (only for queries like "新東陽 蜜汁豬肉乾" where the product alone gives wrong-brand results)
     if brand_part and not any(v.get("_found_by") == "original" for v in results_map.values()):
         for rank, item in enumerate(resolve_exact_item_fts(brand_part, limit=limit * 2)):
             key = (str(item.get("title", "")), str(item.get("brand", "")))
@@ -155,12 +132,6 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
                 item["_bm25_rank"] = rank
                 results_map[key] = item
 
-    # Strategy 4: If brand is CITY CAFE and strategy 1 got only CITY-prefixed results,
-    # strip the brand prefix and search for plain product name as fallback.
-    # Handles cases like "CITY CAFE 燕麥奶拿鐵" → no plain item exists, but
-    # "燕麥奶拿鐵" without CITY prefix also returns no results.
-    # Only apply when brand_in_query is a CITY-family brand and all top results
-    # have titles starting with the brand name.
     if brand_in_query in ("CITY CAFE", "CITY PRIMA", "CITY PEARL") and results_map:
         first_key = next(iter(results_map.keys()))
         top_title = str(results_map[first_key].get("title", ""))
@@ -172,16 +143,6 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
                     item["_bm25_rank"] = rank
                     results_map[key] = item
 
-    # Strategy 5: General product-only fallback.
-    # If the top result's title starts with the brand prefix (not just CITY brands),
-    # try searching for the product name alone to find generic/unbranded matches.
-    # Also apply when brand search gave zero results but product alone might help
-    # (e.g., "新東陽 蜜汁豬肉乾" where brand-only search finds wrong brands).
-    #
-    # FTS unicode61 tokenization splits Chinese characters individually, so
-    # "湖池屋" as a single query may not match "湖池屋平切洋芋片" even though the
-    # substring exists. If product_part FTS returns nothing, try the full query
-    # (brand+product combined without space) as a last resort.
     if product_part:
         top_has_brand_prefix = False
         brand_only_dominated = False
@@ -199,9 +160,6 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
                     item["_found_by"] = "product_only"
                     item["_bm25_rank"] = rank
                     results_map[key] = item
-            # If product-only FTS returned nothing, try the full no-space query
-            # (handles cases like "湖池屋 洋芋片 海苔塩" where unicode61 tokenization
-            # prevents "湖池屋" from matching "湖池屋平切洋芋片")
             if not product_results and query_no_space:
                 full_results = resolve_exact_item_fts(query_no_space, limit=limit * 2)
                 for rank, item in enumerate(full_results):
@@ -211,12 +169,6 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
                         item["_bm25_rank"] = rank
                         results_map[key] = item
 
-    # Strategy 6: Token-by-token prefix fallback when all FTS queries returned nothing.
-    # Breaks the original query into individual tokens and tries each as a prefix query.
-    # This handles FTS unicode61 tokenization edge cases where a multi-character
-    # term (like "湖池屋") doesn't match a longer title (like "湖池屋平切洋芋片")
-    # even though the term is a prefix of a word in the title.
-    # FTS prefix queries like "湖*" work when exact match doesn't.
     if not results_map and original_query:
         tokens = original_query.split()
         for token in tokens:
@@ -233,9 +185,6 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
                 except Exception:
                     pass  # FTS prefix syntax may not be supported for all queries
 
-    # Strategy 7: Brand-prefix-only search when all strategies above failed
-    # but we have a known brand in the query. Search for brand* to find
-    # brand-specific items when the full brand+product query doesn't match.
     if not results_map and brand_in_query and brand_part:
         try:
             brand_prefix_q = brand_part + "*"
@@ -249,12 +198,8 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
         except Exception:
             pass
 
-    # Strategy 8: AND-query fallback when brand+product query returned wrong-brand results.
-    # Uses FTS AND syntax: "新東陽" AND "鳳梨酥" to require both terms to be present.
-    # This filters out the many unrelated items returned for generic product names.
     if brand_in_query and product_part and results_map:
         top_title = str(list(results_map.values())[0].get("title", ""))
-        # If top result's title doesn't contain brand prefix, try AND query
         if not top_title.startswith(brand_in_query):
             and_query = f'"{brand_in_query}" AND "{product_part}"'
             and_results = resolve_exact_item_fts(and_query, limit=limit * 2)
@@ -265,7 +210,6 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
                     item["_bm25_rank"] = rank
                     results_map[key] = item
 
-    # Build candidate list, then re-rank
     all_items = list(results_map.values())
 
     def _rerank_score(item: dict[str, Any]) -> tuple[int, int, int, int]:
@@ -284,7 +228,6 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
         q_clean = _normalize_spaces(original_query)
         t_clean = _normalize_spaces(title)
 
-        # Tier
         if q_clean == t_clean:
             tier = 0
         elif found_by in ("original", "no_space", "brand_stripped", "full_query"):
@@ -294,14 +237,11 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
         else:
             tier = 3
 
-        # Exact brand substring match
         item_brand = str(item.get("brand") or "")
         brand_exact_match = 0
         if brand_in_query and brand_in_query in item_brand:
             brand_exact_match = 1
 
-        # BM25 rank within the strategy that found this item (lower = better)
-        # Items from higher-priority strategies start with a rank offset
         bm25_rank = item.get("_bm25_rank", 999)
 
         return (tier, -brand_exact_match, bm25_rank, 0)
@@ -309,7 +249,6 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
     all_items.sort(key=_rerank_score)
     top_items = all_items[:limit]
 
-    # Normalize into search_local_knowledge-compatible schema
     results: list[dict[str, Any]] = []
     for rank, item in enumerate(top_items, start=1):
         bm25_score = max(0, 100 - rank * 15)
@@ -320,7 +259,6 @@ def resolve_chain_item(query: str, *, limit: int = 5) -> list[dict[str, Any]]:
         q_clean = _normalize_spaces(original_query)
         t_clean = _normalize_spaces(title)
 
-        # Determine final confidence and match path
         if q_clean == t_clean:
             final_confidence = "high"
             match_path = "exact_title"

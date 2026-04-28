@@ -13,8 +13,8 @@ from app.runtime.application.conversation_state_assembler import (
 from app.database import append_message, get_conversation_archive, get_latest_log, get_meal_log_history, get_or_create_user, get_recent_messages
 from app.shared.domain import ConversationState
 from app.models import MealLog, MessageBuffer, User
-from ...memory.infrastructure.conversation_context_retriever import ConversationContextRetriever
-from ...memory.infrastructure.session_record_store import retrieve_planner_context, sync_session_records
+from .conversation_archive_retriever import ConversationArchiveRetriever
+from .session_state_store import retrieve_planner_context, sync_session_records
 
 
 @dataclass
@@ -43,7 +43,7 @@ def load_conversation_state(db: Session, *, user_id: str, incoming_user_text: st
     )
 
     archive_records = build_archive_records(archive_messages)
-    retriever = ConversationContextRetriever()
+    retriever = ConversationArchiveRetriever()
     file_transcript_hits, file_meal_hits, active_meal_time_gap_seconds, retrieval_diagnostics = retrieve_planner_context(
         session_id=user_id,
         query=incoming_user_text or (latest_log.meal_title if latest_log else ""),

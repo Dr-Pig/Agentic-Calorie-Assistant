@@ -1,130 +1,48 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..domain import BodyObservation
+from .canonical_body_support import (
+    body_observation_from_record as _body_observation_from_record,
+    ensure_body_plan_skeleton,
+    load_active_body_plan_record,
+    load_active_body_profile_record,
+    load_body_observations,
+    recompute_day_budget_ledger,
+    resolve_active_budget_kcal,
+    resolved_body_observation_time as _resolved_body_observation_time,
+    upsert_observation_skeleton,
+)
+from .canonical_commit_support import (
+    CanonicalCommitTarget,
+    CanonicalMealCommitResult,
+    commit_candidate_from_payload as _commit_candidate_from_payload,
+    get_legacy_mapping_for_meal_log,
+    legacy_resolved_local_date as _legacy_resolved_local_date,
+    legacy_resolved_occurred_at as _legacy_resolved_occurred_at,
+    load_active_meal_version,
+    resolve_canonical_commit_target,
+    resolved_local_date as _resolved_local_date,
+    resolved_occurred_at as _resolved_occurred_at,
+)
+from .canonical_proposal_support import (
+    ensure_proactive_trigger_skeleton,
+    ensure_proposal_artifact_skeleton,
+    ensure_proposal_skeleton,
+)
 from app.models import (
     BodyObservationRecord,
-    BodyProfileRecord,
-    BodyPlanRecord,
-    DayBudgetLedgerRecord,
     LedgerEntryRecord,
     LegacyMealLogMapRecord,
     MealItemRecord,
     MealThreadRecord,
     MealVersionRecord,
-    ProposalContainerRecord,
-    ProposalOptionRecord,
-    ProactiveTriggerRecord,
     User,
 )
 from app.schemas import CommitRequestCandidate, CommitVersionReason, EstimatePayload
-
-
-@dataclass(frozen=True)
-class CanonicalCommitTarget:
-    meal_thread_id: int | None
-    parent_version_id: int | None
-    superseded_version_id: int | None
-    version_reason: CommitVersionReason
-    correction_target_version_id: int | None
-    source_log_id: int | None
-
-
-@dataclass
-class CanonicalMealCommitResult:
-    meal_thread_id: int
-    meal_version_id: int
-    active_version_id: int
-    local_date: str
-    consumed_kcal: int
-    created_new_thread: bool
-    superseded_version_id: int | None
-    ledger_entry_id: int | None
-
-
-def _resolved_occurred_at(candidate: CommitRequestCandidate, occurred_at: datetime | None = None) -> datetime:
-    chosen = occurred_at or candidate.occurred_at
-    if isinstance(chosen, datetime):
-        return chosen
-    return datetime.now()
-
-
-def _resolved_local_date(candidate: CommitRequestCandidate, occurred_at: datetime) -> str:
-    if isinstance(candidate.local_date, str) and candidate.local_date.strip():
-        return candidate.local_date.strip()
-    return occurred_at.date().isoformat()
-
-
-def _resolved_body_observation_time(
-    *,
-    observed_at: datetime | None = None,
-    local_date: str | None = None,
-) -> tuple[datetime, str]:
-    normalized_observed_at = observed_at or datetime.now()
-    normalized_local_date = local_date.strip() if isinstance(local_date, str) and local_date.strip() else normalized_observed_at.date().isoformat()
-    return normalized_observed_at, normalized_local_date
-
-
-def _body_observation_from_record(record: BodyObservationRecord) -> BodyObservation:
-    return BodyObservation(
-        observation_id=record.id,
-        user_id=record.user_id,
-        observation_type=record.observation_type,
-        value=record.value,
-        unit=record.unit,
-        observed_at=record.observed_at,
-        local_date=record.local_date,
-        source=record.source,
-        metadata=dict(record.metadata_json or {}),
-    )
-
-
-def _commit_candidate_from_payload(
-    *,
-    payload: EstimatePayload,
-    raw_input: str,
-    planner_intent: str,
-    request_id: str | None,
-) -> CommitRequestCandidate:
-    trace_contract = payload.trace_contract or {}
-    return CommitRequestCandidate(
-        request_id=request_id or payload.request_id,
-        planner_intent=planner_intent,
-        version_reason="new_intake",
-        meal_title=payload.meal_title or raw_input,
-        raw_input=raw_input,
-        estimated_kcal=payload.estimated_kcal,
-        protein_g=payload.protein_g,
-        carb_g=payload.carb_g,
-        fat_g=payload.fat_g,
-        resolution_status="completed_meal",
-        occurred_at=trace_contract.get("occurred_at"),
-        local_date=str(trace_contract.get("local_date") or ""),
-        items=[],
-        trace_ref={"request_id": request_id or payload.request_id},
-    )
-
-
-def _legacy_resolved_occurred_at(payload: EstimatePayload, occurred_at: datetime | None = None) -> datetime:
-    trace_contract = payload.trace_contract or {}
-    candidate = occurred_at or trace_contract.get("occurred_at")
-    if isinstance(candidate, datetime):
-        return candidate
-    return datetime.now()
-
-
-def _legacy_resolved_local_date(payload: EstimatePayload, occurred_at: datetime) -> str:
-    trace_contract = payload.trace_contract or {}
-    legacy = trace_contract.get("local_date")
-    if isinstance(legacy, str) and legacy.strip():
-        return legacy.strip()
-    return occurred_at.date().isoformat()
 
 
 def _item_records_from_payload(version_id: int, payload: EstimatePayload) -> list[MealItemRecord]:
@@ -171,114 +89,6 @@ def _item_records_from_payload(version_id: int, payload: EstimatePayload) -> lis
     return items
 
 
-def get_legacy_mapping_for_meal_log(db: Session, meal_log_id: int | None) -> LegacyMealLogMapRecord | None:
-    if meal_log_id is None:
-        return None
-    return db.execute(
-        select(LegacyMealLogMapRecord).where(LegacyMealLogMapRecord.meal_log_id == meal_log_id)
-    ).scalar_one_or_none()
-
-
-def resolve_canonical_commit_target(
-    db: Session,
-    *,
-    candidate: CommitRequestCandidate,
-    latest_log_id: int | None = None,
-) -> CanonicalCommitTarget:
-    thread: MealThreadRecord | None = None
-    parent_version_id: int | None = None
-    superseded_version_id: int | None = None
-    correction_target_version_id: int | None = None
-    version_reason: CommitVersionReason = candidate.version_reason
-    source_log_id = latest_log_id
-
-    if candidate.meal_thread_id is not None:
-        thread = db.get(MealThreadRecord, candidate.meal_thread_id)
-
-    if candidate.parent_version_id is not None:
-        parent = db.get(MealVersionRecord, candidate.parent_version_id)
-        if parent is not None:
-            parent_version_id = parent.id
-            correction_target_version_id = parent.id
-            if thread is None:
-                thread = db.get(MealThreadRecord, parent.meal_thread_id)
-
-    if thread is None and latest_log_id is not None:
-        existing_map = get_legacy_mapping_for_meal_log(db, latest_log_id)
-        if existing_map is not None:
-            thread = db.get(MealThreadRecord, existing_map.meal_thread_id)
-            source_log_id = latest_log_id
-            if parent_version_id is None:
-                parent_version_id = existing_map.meal_version_id
-            if correction_target_version_id is None:
-                correction_target_version_id = existing_map.meal_version_id
-
-    if thread is not None:
-        active_version_id = thread.active_version_id
-        if parent_version_id is None:
-            parent_version_id = active_version_id
-        if correction_target_version_id is None:
-            correction_target_version_id = parent_version_id
-        if version_reason in {"correction", "historical_correction"}:
-            if active_version_id is not None and parent_version_id is not None and active_version_id != parent_version_id:
-                version_reason = "historical_correction"
-                superseded_version_id = active_version_id
-            else:
-                superseded_version_id = parent_version_id
-        else:
-            superseded_version_id = None
-    else:
-        parent_version_id = None
-
-    return CanonicalCommitTarget(
-        meal_thread_id=thread.id if thread is not None else None,
-        parent_version_id=parent_version_id,
-        superseded_version_id=superseded_version_id,
-        version_reason=version_reason,
-        correction_target_version_id=correction_target_version_id,
-        source_log_id=source_log_id,
-    )
-
-
-def load_active_meal_version(db: Session, meal_thread_id: int) -> MealVersionRecord | None:
-    thread = db.get(MealThreadRecord, meal_thread_id)
-    if thread is None or thread.active_version_id is None:
-        return None
-    return db.get(MealVersionRecord, thread.active_version_id)
-
-
-def upsert_observation_skeleton(
-    db: Session,
-    *,
-    user: User,
-    value: float,
-    unit: str = "kg",
-    observation_type: str = "weight",
-    source: str = "manual",
-    observed_at: datetime | None = None,
-    local_date: str | None = None,
-    metadata: dict[str, Any] | None = None,
-) -> BodyObservationRecord:
-    normalized_observed_at, normalized_local_date = _resolved_body_observation_time(
-        observed_at=observed_at,
-        local_date=local_date,
-    )
-    record = BodyObservationRecord(
-        user_id=user.id,
-        observation_type=observation_type,
-        value=value,
-        unit=unit,
-        observed_at=normalized_observed_at,
-        local_date=normalized_local_date,
-        source=source,
-        metadata_json=dict(metadata or {}),
-    )
-    db.add(record)
-    db.commit()
-    db.refresh(record)
-    return record
-
-
 def upsert_budget_adjustment_skeleton(
     db: Session,
     *,
@@ -301,231 +111,7 @@ def upsert_budget_adjustment_skeleton(
     db.commit()
     db.refresh(entry)
     recompute_day_budget_ledger(db, user_id=user.id, local_date=local_date)
-    return entry
-
-
-def load_body_observations(
-    db: Session,
-    *,
-    user_id: int,
-    local_date: str | None = None,
-    observation_type: str | None = "weight",
-) -> list[BodyObservation]:
-    stmt = select(BodyObservationRecord).where(BodyObservationRecord.user_id == user_id)
-    if isinstance(observation_type, str) and observation_type.strip():
-        stmt = stmt.where(BodyObservationRecord.observation_type == observation_type.strip())
-    if isinstance(local_date, str) and local_date.strip():
-        stmt = stmt.where(BodyObservationRecord.local_date == local_date.strip())
-    rows = db.execute(
-        stmt.order_by(BodyObservationRecord.observed_at.asc(), BodyObservationRecord.id.asc())
-    ).scalars().all()
-    return [_body_observation_from_record(record) for record in rows]
-
-
-def load_active_body_plan_record(
-    db: Session,
-    *,
-    user_id: int,
-) -> BodyPlanRecord | None:
-    return db.execute(
-        select(BodyPlanRecord)
-        .where(BodyPlanRecord.user_id == user_id, BodyPlanRecord.plan_status == "active")
-        .order_by(BodyPlanRecord.id.desc())
-    ).scalars().first()
-
-
-def load_active_body_profile_record(
-    db: Session,
-    *,
-    user_id: int,
-) -> BodyProfileRecord | None:
-    return db.execute(
-        select(BodyProfileRecord)
-        .where(BodyProfileRecord.user_id == user_id, BodyProfileRecord.profile_status == "active")
-        .order_by(BodyProfileRecord.id.desc())
-    ).scalars().first()
-
-
-def resolve_active_budget_kcal(
-    db: Session,
-    *,
-    user_id: int,
-    local_date: str,
-    explicit_budget_kcal: int | None = None,
-) -> int:
-    if explicit_budget_kcal is not None:
-        return explicit_budget_kcal
-
-    active_plan = load_active_body_plan_record(db, user_id=user_id)
-    if active_plan is not None and active_plan.daily_budget_kcal > 0:
-        return active_plan.daily_budget_kcal
-
-    existing_ledger = db.execute(
-        select(DayBudgetLedgerRecord).where(
-            DayBudgetLedgerRecord.user_id == user_id,
-            DayBudgetLedgerRecord.local_date == local_date,
-        )
-    ).scalar_one_or_none()
-    if existing_ledger is not None:
-        return existing_ledger.budget_kcal
-
-    return 0
-
-
-def ensure_body_plan_skeleton(
-    db: Session,
-    *,
-    user: User,
-    estimated_tdee: int = 0,
-    daily_budget_kcal: int = 0,
-    safety_floor_kcal: int = 0,
-) -> BodyPlanRecord:
-    active = db.execute(
-        select(BodyPlanRecord)
-        .where(BodyPlanRecord.user_id == user.id, BodyPlanRecord.plan_status == "active")
-        .order_by(BodyPlanRecord.id.desc())
-    ).scalars().first()
-    if active is not None:
-        return active
-    record = BodyPlanRecord(
-        user_id=user.id,
-        estimated_tdee=estimated_tdee,
-        daily_budget_kcal=daily_budget_kcal,
-        safety_floor_kcal=safety_floor_kcal,
-    )
-    db.add(record)
-    db.commit()
-    db.refresh(record)
     return record
-
-
-def ensure_proposal_skeleton(
-    db: Session,
-    *,
-    user: User,
-    proposal_type: str,
-    option_type: str,
-    option_label: str,
-) -> ProposalContainerRecord:
-    return ensure_proposal_artifact_skeleton(
-        db,
-        user=user,
-        proposal_type=proposal_type,
-        options=[
-            {
-                "option_type": option_type,
-                "option_label": option_label,
-                "is_primary": True,
-                "rank_order": 0,
-            }
-        ],
-    )
-
-
-def ensure_proposal_artifact_skeleton(
-    db: Session,
-    *,
-    user: User,
-    proposal_type: str,
-    options: list[dict[str, Any]],
-    metadata: dict[str, Any] | None = None,
-) -> ProposalContainerRecord:
-    proposal = ProposalContainerRecord(user_id=user.id, proposal_type=proposal_type)
-    proposal.metadata_json = dict(metadata or {})
-    db.add(proposal)
-    db.flush()
-    created_options: list[ProposalOptionRecord] = []
-    for index, option_payload in enumerate(options):
-        option = ProposalOptionRecord(
-            proposal_container_id=proposal.id,
-            option_type=str(option_payload.get("option_type", "")),
-            option_label=str(option_payload.get("option_label", "")),
-            option_summary=str(option_payload.get("option_summary", "")),
-            rank_order=int(option_payload.get("rank_order", index)),
-            is_primary=bool(option_payload.get("is_primary", False)),
-            effect_payload_json=dict(option_payload.get("effect_payload_json", {})),
-        )
-        db.add(option)
-        db.flush()
-        created_options.append(option)
-
-    if created_options:
-        primary = next((option for option in created_options if option.is_primary), created_options[0])
-        if not primary.is_primary:
-            primary.is_primary = True
-        proposal.top_option_id = primary.id
-    db.commit()
-    db.refresh(proposal)
-    return proposal
-
-
-def ensure_proactive_trigger_skeleton(
-    db: Session,
-    *,
-    user: User,
-    trigger_type: str,
-) -> ProactiveTriggerRecord:
-    record = ProactiveTriggerRecord(user_id=user.id, trigger_type=trigger_type)
-    db.add(record)
-    db.commit()
-    db.refresh(record)
-    return record
-
-
-def recompute_day_budget_ledger(
-    db: Session,
-    *,
-    user_id: int,
-    local_date: str,
-    budget_kcal: int | None = None,
-) -> DayBudgetLedgerRecord:
-    resolved_budget_kcal = resolve_active_budget_kcal(
-        db,
-        user_id=user_id,
-        local_date=local_date,
-        explicit_budget_kcal=budget_kcal,
-    )
-    ledger = db.execute(
-        select(DayBudgetLedgerRecord).where(
-            DayBudgetLedgerRecord.user_id == user_id,
-            DayBudgetLedgerRecord.local_date == local_date,
-        )
-    ).scalar_one_or_none()
-    if ledger is None:
-        ledger = DayBudgetLedgerRecord(
-            user_id=user_id,
-            local_date=local_date,
-            budget_kcal=resolved_budget_kcal,
-        )
-        db.add(ledger)
-        db.flush()
-    active_meal_kcal = db.execute(
-        select(MealVersionRecord.total_kcal)
-        .join(MealThreadRecord, MealThreadRecord.active_version_id == MealVersionRecord.id)
-        .where(
-            MealThreadRecord.user_id == user_id,
-            MealVersionRecord.local_date == local_date,
-            MealVersionRecord.version_status == "active",
-            MealVersionRecord.resolution_status == "completed_meal",
-        )
-    ).scalars().all()
-    adjustment_deltas = db.execute(
-        select(LedgerEntryRecord.delta_kcal).where(
-            LedgerEntryRecord.user_id == user_id,
-            LedgerEntryRecord.local_date == local_date,
-            LedgerEntryRecord.entry_type != "meal_consumption",
-        )
-    ).scalars().all()
-    consumed = sum(delta for delta in active_meal_kcal if delta > 0)
-    adjustments = sum(adjustment_deltas)
-    ledger.budget_kcal = resolved_budget_kcal
-    ledger.consumed_kcal = consumed
-    ledger.adjustment_kcal = adjustments
-    ledger.remaining_kcal = resolved_budget_kcal - consumed - adjustments
-    ledger.last_recomputed_at = datetime.now()
-    db.commit()
-    db.refresh(ledger)
-    return ledger
 
 
 def commit_meal_payload_to_canonical(
