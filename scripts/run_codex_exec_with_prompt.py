@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Sequence
 
 
 def resolve_codex_bin() -> str:
@@ -29,12 +30,15 @@ def resolve_codex_bin() -> str:
     return "codex"
 
 
-def main() -> int:
+ROLE_CHOICES = ("planner", "evaluator", "worker", "verifier")
+
+
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--prompt-file", required=True)
     parser.add_argument("--cd", required=True)
-    parser.add_argument("--mode", choices=["worker", "reviewer"], required=True)
-    args = parser.parse_args()
+    parser.add_argument("--mode", choices=ROLE_CHOICES, required=True)
+    args = parser.parse_args(argv)
 
     prompt = Path(args.prompt_file).read_text(encoding="utf-8")
     codex_bin = resolve_codex_bin()

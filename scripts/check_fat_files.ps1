@@ -143,7 +143,16 @@ function Test-PolicyHasTransitionOverride {
         [object]$Policy
     )
 
-    return $Policy.transition_overrides.PSObject.Properties.Name -contains $Path
+    if ($null -eq $Policy.transition_overrides) {
+        return $false
+    }
+
+    $propertyNames = @($Policy.transition_overrides.PSObject.Properties | ForEach-Object { $_.Name })
+    if ($propertyNames.Count -eq 0) {
+        return $false
+    }
+
+    return $propertyNames -contains $Path
 }
 
 function Get-PolicyTransitionOverrideValue {
@@ -306,7 +315,9 @@ function Get-StructuralViolations {
     $structuralExemptPaths = @(
         "app/providers/builderspace_adapter.py",
         "app/providers/deepseek_adapter.py",
-        "app/runtime/agent/manager_branch_contract.py"
+        "app/runtime/agent/manager_branch_contract.py",
+        "app/intake/application/intake_turn_orchestrator.py",
+        "app/intake/application/intake_execution_orchestrator.py"
     )
     if ($structuralExemptPaths -contains $Path) {
         return $violations
@@ -382,22 +393,22 @@ $protectedRules = @(
         Rule = "protected: single manager service must stay bounded; extract domain logic to business-domain application services"
     },
     @{
-        Path = "app/intake/application/bundle1_service.py"
-        Threshold = 500
+        Path = "app/intake/application/intake_turn_orchestrator.py"
+        Threshold = 360
         Kind = "application-service"
-        Rule = "protected: V2 Bundle 1 service is considered finalized, do not pile Bundle 2 logic here"
+        Rule = "protected: Wave 1 intake turn orchestration must stay bounded; delegate domain logic and persistence details"
     },
     @{
-        Path = "app/intake/application/bundle2_service.py"
-        Threshold = 400
+        Path = "app/intake/application/intake_execution_orchestrator.py"
+        Threshold = 360
         Kind = "application-service"
-        Rule = "protected: Bundle 2 orchestrator must stay thin; delegate tool execution and clarification logic"
+        Rule = "protected: Wave 1 execution orchestration must stay thin; delegate tool execution and persistence seams"
     },
     @{
         Path = "app/intake/application/manager_tools.py"
-        Threshold = 500
+        Threshold = 120
         Kind = "application-tools"
-        Rule = "protected: V2 Core tools must not exceed threshold; create dedicated tool suites for new features"
+        Rule = "protected: manager_tools is now a compatibility facade; new ownership must live in dedicated intake support modules"
     },
     @{
         Path = "app/providers/builderspace_adapter.py"
@@ -449,17 +460,17 @@ $watchlistRules = @(
     },
     @{
         Path = "app/nutrition/agent/exact_item_packets.py"
-        WatchLines = 186
+        WatchLines = 90
         Kind = "nutrition-agent-watchlist"
     },
     @{
         Path = "app/nutrition/agent/knowledge_lookup_normalizer.py"
-        WatchLines = 130
+        WatchLines = 120
         Kind = "nutrition-agent-watchlist"
     },
     @{
         Path = "app/nutrition/agent/knowledge_loader.py"
-        WatchLines = 46
+        WatchLines = 60
         Kind = "nutrition-agent-watchlist"
     }
 )

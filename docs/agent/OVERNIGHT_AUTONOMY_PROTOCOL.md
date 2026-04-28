@@ -76,6 +76,18 @@ The Evaluator must focus first on:
 
 The Evaluator may also inspect implementation risk, but technical nitpicks are secondary to architecture trajectory.
 
+The Evaluator should be skeptical, but calibrated.
+
+It must classify concerns as:
+
+- `must_block`
+- `approve_condition`
+- `cleanup_debt`
+
+Reject only for `must_block`.
+Use `approve_with_conditions` when the slice is directionally correct but needs explicit guardrails.
+Record reversible, checkpointed, trace-visible local debt as `cleanup_debt` instead of automatically blocking.
+
 The Evaluator must answer:
 
 - does this slice move the system toward the intended long-term architecture?
@@ -87,6 +99,7 @@ The Evaluator must answer:
 Allowed Evaluator verdicts:
 
 - `approve`
+- `approve_with_conditions`
 - `approve_with_narrower_boundary`
 - `reject`
 
@@ -114,6 +127,7 @@ The Verifier must:
 - run the targeted tests or checks defined by the slice
 - run the required smoke/readiness gates when the slice touches active phase truth
 - report what changed in artifacts, traces, or readiness state
+- verify evaluator conditions were actually satisfied
 - classify the outcome clearly
 
 Allowed result classes:
@@ -178,18 +192,21 @@ Overnight autonomy should not assume one surface can do everything safely.
 
 Preferred split:
 
-- `desktop planner`
-  - owns long-lived context
-  - owns next-slice selection
-  - owns stop or continue decisions
-  - owns architecture-sensitive evaluator judgment
+- `desktop control plane`
+  - owns human setup
+  - owns next-morning inspection
+  - may still host planner-local or evaluator-local work when a detached pilot is not yet ready
+- `CLI planner`
+  - owns detached next-slice selection for approved pilot loops
+- `CLI evaluator`
+  - owns detached architecture and product-journey review for approved pilot loops
 - `CLI worker`
   - owns bounded implementation slices
   - should receive explicit scope and prompt files
-- `CLI reviewer`
-  - owns bounded review or verification passes when isolation is useful
+- `CLI verifier`
+  - owns bounded verification passes and checkpoint closeout
 
-The planner stays as the control plane. Detached workers and reviewers are bounded runtime actors, not replacement planners.
+Detached roles are bounded runtime actors. They do not replace canonical repo truth or human product authority.
 
 ## Planner-Local vs CLI-Worker
 
@@ -226,7 +243,7 @@ For overnight continuation, prefer a role split that mirrors the same idea opera
 - planner
 - evaluator
 - worker
-- verifier or reviewer
+- verifier
 
 The important rule is role separation, not whether the role runs through an in-thread sub-agent or a detached CLI process.
 
@@ -234,7 +251,7 @@ Do not promote autonomous nutrition subagents into product runtime just because 
 
 ## CLI Runner Pattern
 
-This repo already contains a bounded Codex CLI wrapper:
+This repo contains a bounded Codex CLI wrapper:
 
 - [scripts/run_codex_exec_with_prompt.py](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/scripts/run_codex_exec_with_prompt.py)
 
@@ -242,16 +259,18 @@ Current confirmed shape:
 
 - accepts `--prompt-file`
 - accepts `--cd`
-- accepts `--mode worker|reviewer`
+- accepts `--mode planner|evaluator|worker|verifier`
 - resolves a local `codex` binary
 - executes `codex exec` with workspace-write sandbox
 
 Recommended overnight use:
 
-1. desktop planner writes or refreshes prompt files
-2. CLI worker runs a bounded implementation slice
-3. CLI reviewer verifies bounded output
-4. desktop planner re-reads the output and decides whether the next slice is still safe
+1. control plane writes or refreshes prompt files
+2. CLI planner selects the next slice
+3. CLI evaluator approves, narrows, or rejects it
+4. CLI worker runs a bounded implementation slice
+5. CLI verifier closes the slice with evidence and checkpoint data
+6. control plane inspects whether the next slice is still safe
 
 This is intentionally not a free-running infinite loop. It is a bounded continuation loop with explicit checkpoints.
 
@@ -279,7 +298,7 @@ Minimum recommended fields:
 
 ```yaml
 task_id: string
-role: planner | evaluator | worker | reviewer
+role: planner | evaluator | worker | verifier
 status: queued | running | completed | failed | blocked
 input_prompt_file: string
 output_artifact: string | null
@@ -408,7 +427,7 @@ Overnight autonomy must stay budget-aware.
 Minimum guardrails:
 
 - max implementation slices per unattended run
-- max reviewer retries per slice
+- max verification retries per slice
 - stop on repeated non-progress
 - stop on unresolved semantics
 - stop when verification becomes ambiguous

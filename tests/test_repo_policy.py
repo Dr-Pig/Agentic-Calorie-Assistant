@@ -22,7 +22,7 @@ def test_policy_assigns_expected_categories_and_caps() -> None:
 
     assert category_for_repo_path("app/providers/builderspace_adapter.py", policy) == "adapter_infrastructure"
     assert target_cap_for_repo_path("app/providers/builderspace_adapter.py", policy) == 350
-    assert effective_cap_for_repo_path("app/providers/builderspace_adapter.py", policy) == 1100
+    assert effective_cap_for_repo_path("app/providers/builderspace_adapter.py", policy) == 350
 
     assert category_for_repo_path("app/runtime/interface/base_routes.py", policy) == "boundary_surface"
     assert target_cap_for_repo_path("app/runtime/interface/base_routes.py", policy) == 200

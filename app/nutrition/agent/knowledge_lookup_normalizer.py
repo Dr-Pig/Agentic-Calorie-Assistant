@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import re
-from functools import lru_cache
 from typing import Any
 
 from app.nutrition.application.context_normalizer import canonicalize_lookup_text, lookup_key, lookup_tokens, normalize_text
-from .knowledge_loader import _exact_item_cards
 
 
 def _normalize(text: str) -> str:
@@ -115,26 +113,3 @@ def _expand_aliases(*, title: str, aliases: list[str], brand: str) -> list[str]:
         if brand_variant and brand_variant not in expanded:
             expanded.append(brand_variant)
     return expanded
-
-
-@lru_cache(maxsize=1)
-def _exact_item_signal_tokens() -> set[str]:
-    tokens: set[str] = set()
-    for card in _exact_item_cards():
-        for field in (
-            str(card.get("brand", "")),
-            str(card.get("title", "")),
-            *[str(item) for item in card.get("aliases", []) if isinstance(item, str)],
-        ):
-            tokens.update(_normalize_tokens(field))
-    return tokens
-
-
-@lru_cache(maxsize=1)
-def _exact_item_brand_keys() -> set[str]:
-    keys: set[str] = set()
-    for card in _exact_item_cards():
-        brand = _lookup_key(str(card.get("brand", "")))
-        if brand:
-            keys.add(brand)
-    return keys

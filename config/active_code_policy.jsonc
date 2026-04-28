@@ -132,26 +132,7 @@
       "category": "domain_helper_policy"
     }
   ],
-  "transition_overrides": {
-    "app/intake/application/intake_turn_orchestrator.py": 420,
-    "app/intake/application/manager_tools.py": 500,
-    "app/intake/application/canonical_commit_bridge.py": 1100,
-    "app/runtime/application/manager_service.py": 500,
-    "app/runtime/application/state_resolver.py": 260,
-    "app/providers/builderspace_adapter.py": 1100,
-    "app/providers/deepseek_adapter.py": 500,
-    "app/runtime/agent/manager_branch_contract.py": 550,
-    "app/shared/infra/canonical_persistence.py": 750,
-    "app/nutrition/agent/nutrition_resolution_normalizer.py": 700,
-    "app/runtime/application/conversation_state_assembler.py": 450,
-    "app/nutrition/application/evidence_normalizer.py": 430,
-    "app/runtime/agent/manager.py": 420,
-    "app/nutrition/infrastructure/web_search/chain_retrieval.py": 420,
-    "app/runtime/agent/manager_support.py": 380,
-    "app/runtime/infrastructure/trace/text_meal_observability.py": 380,
-    "app/shared/contracts/intake.py": 360,
-    "app/budget/interface/today_routes.py": 360
-  },
+  "transition_overrides": {},
   "domain_status": {
     "body": "active_wave1_implementation",
     "budget": "active_wave1_implementation",

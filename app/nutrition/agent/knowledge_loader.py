@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+"""Raw knowledge-source loaders only.
+
+Normalization, packet assembly, and scoring logic must stay in adjacent
+modules; this file is intentionally limited to source access and cache seams.
+"""
+
 import json
 from functools import lru_cache
 from pathlib import Path

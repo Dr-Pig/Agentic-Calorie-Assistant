@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "B1VerifierResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "result_class",
+    "tests_run",
+    "artifact_paths",
+    "readiness_delta",
+    "conditions_verified",
+    "blocker_status",
+    "next_safe_action",
+    "human_review_required"
+  ],
+  "properties": {
+    "result_class": {
+      "type": "string",
+      "enum": ["fixed", "narrower_blocker_exposed", "semantic_ambiguity_reached", "verification_incomplete"]
+    },
+    "tests_run": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["command", "result"],
+        "properties": {
+          "command": { "type": "string" },
+          "result": {
+            "type": "string",
+            "enum": ["pass", "fail", "not_run"]
+          }
+        }
+      }
+    },
+    "artifact_paths": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "readiness_delta": { "type": "string" },
+    "conditions_verified": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "blocker_status": {
+      "type": "string",
+      "enum": ["cleared", "moved", "unchanged", "not_evaluable"]
+    },
+    "next_safe_action": {
+      "type": "string",
+      "enum": ["continue", "stop", "human_review"]
+    },
+    "human_review_required": { "type": "boolean" }
+  }
+}
