@@ -40,6 +40,22 @@ def test_v2_manager_tools_no_longer_imports_v1_orchestration_bridge() -> None:
     assert _legacy_request_support_token() not in source
 
 
+def test_v2_manager_tools_remains_a_thin_compatibility_facade() -> None:
+    source = (ROOT / "app" / "intake" / "application" / "manager_tools.py").read_text(encoding="utf-8")
+
+    assert "def " not in source
+    assert "class " not in source
+    assert "if " not in source
+
+
+def test_v2_schemas_no_longer_exports_archived_recommendation_contracts() -> None:
+    source = (ROOT / "app" / "schemas.py").read_text(encoding="utf-8")
+
+    assert "RecommendationCandidate" not in source
+    assert "RecommendationResponseResult" not in source
+    assert "HintPacket" not in source
+
+
 def test_v2_services_import_intake_domain_tools_and_ignore_legacy_provider_split() -> None:
     bundle1 = (ROOT / "app" / "intake" / "application" / "intake_turn_orchestrator.py").read_text(encoding="utf-8")
     bundle2 = (ROOT / "app" / "intake" / "application" / "intake_execution_orchestrator.py").read_text(encoding="utf-8")

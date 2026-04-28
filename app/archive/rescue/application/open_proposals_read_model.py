@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from ...shared.domain import ProposalContainer
-from ..infrastructure.open_proposals_read_model import load_open_rescue_proposals_view
+from app.shared.domain import ProposalContainer
+from app.archive.rescue.infrastructure.open_proposals_read_model import load_open_rescue_proposals_view
 
 
 def build_open_rescue_proposals_view(

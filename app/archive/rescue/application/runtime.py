@@ -5,7 +5,7 @@ from typing import Any, Literal, Sequence
 
 from sqlalchemy.orm import Session
 
-from ...intake.application.canonical_quarantine_bridge import persist_proposal_artifact_skeleton
+from app.intake.application.canonical_quarantine_bridge import persist_proposal_artifact_skeleton
 from .overlay import RescueOverlayTargetDay
 from .proposal import (
     RescueProposalArtifact,
@@ -14,7 +14,7 @@ from .proposal import (
     RecoveryViability,
     build_rescue_proposal,
 )
-from ...models import User
+from app.models import User
 
 AssessmentConfidence = Literal["low", "medium", "high"]
 EscalationRisk = Literal["low", "medium", "high"]

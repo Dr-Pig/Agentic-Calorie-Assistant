@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from ...schemas import RecommendationCandidate
+from app.shared.contracts.recommendation import RecommendationCandidate
 from .candidate_spec import RecommendationCandidateSpec
 from .context import RecommendationContextPacket
 

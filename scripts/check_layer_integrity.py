@@ -22,20 +22,44 @@ class Rule:
 RULES: tuple[Rule, ...] = (
     Rule(
         path_prefix="app/runtime/",
-        forbidden_prefixes=("app.intake.domain", "app.nutrition.domain", "app.budget.domain"),
+        forbidden_prefixes=("app.intake.domain", "app.nutrition.domain", "app.budget.domain", "app.archive"),
         label="runtime-boundary",
         severity="error",
     ),
     Rule(
         path_prefix="app/shared/",
-        forbidden_prefixes=("app.intake", "app.nutrition", "app.budget", "app.body", "app.rescue", "app.recommendation"),
+        forbidden_prefixes=("app.intake", "app.nutrition", "app.budget", "app.body", "app.archive"),
         label="shared-neutrality",
         severity="error",
     ),
     Rule(
         path_prefix="app/providers/",
-        forbidden_prefixes=("app.intake", "app.budget", "app.body", "app.rescue", "app.recommendation", "app.memory"),
+        forbidden_prefixes=("app.intake", "app.budget", "app.body", "app.archive"),
         label="provider-domain-ownership",
+        severity="error",
+    ),
+    Rule(
+        path_prefix="app/intake/",
+        forbidden_prefixes=("app.archive",),
+        label="intake-mainline-archive-separation",
+        severity="error",
+    ),
+    Rule(
+        path_prefix="app/body/",
+        forbidden_prefixes=("app.archive",),
+        label="body-mainline-archive-separation",
+        severity="error",
+    ),
+    Rule(
+        path_prefix="app/budget/",
+        forbidden_prefixes=("app.archive",),
+        label="budget-mainline-archive-separation",
+        severity="error",
+    ),
+    Rule(
+        path_prefix="app/nutrition/",
+        forbidden_prefixes=("app.archive",),
+        label="nutrition-mainline-archive-separation",
         severity="error",
     ),
     Rule(

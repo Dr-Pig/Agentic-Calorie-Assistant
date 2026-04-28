@@ -12,9 +12,7 @@ forbidden_modules =
     app.nutrition
     app.budget
     app.body
-    app.rescue
-    app.recommendation
-    app.memory
+    app.archive
 
 [importlinter:contract:runtime-shared-business-independence]
 name = Runtime and shared should not depend on business domains directly
@@ -26,8 +24,21 @@ forbidden_modules =
     app.intake
     app.budget
     app.body
-    app.rescue
-    app.recommendation
+    app.archive
+
+[importlinter:contract:active-mainline-cannot-import-archive]
+name = Active mainline packages must not import archive app families
+type = forbidden
+source_modules =
+    app.runtime
+    app.shared
+    app.providers
+    app.intake
+    app.nutrition
+    app.budget
+    app.body
+forbidden_modules =
+    app.archive
 
 [importlinter:contract:business-domain-independence]
 name = Business domains remain independent by default
@@ -37,5 +48,3 @@ modules =
     app.nutrition
     app.budget
     app.body
-    app.rescue
-    app.recommendation

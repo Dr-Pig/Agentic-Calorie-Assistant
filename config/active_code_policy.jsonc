@@ -7,12 +7,8 @@
     "excluded_globs": [
       "app/**/__pycache__/**",
       "app/**/*.pyc",
-      "app/memory/*.py",
-      "app/memory/**/*.py",
-      "app/recommendation/*.py",
-      "app/recommendation/**/*.py",
-      "app/rescue/*.py",
-      "app/rescue/**/*.py"
+      "app/archive/*.py",
+      "app/archive/**/*.py"
     ]
   },
   "category_caps": {
@@ -149,15 +145,13 @@
     ]
   },
   "domain_status": {
+    "archive": "legacy_archive",
     "body": "active_wave1_implementation",
     "budget": "active_wave1_implementation",
     "intake": "active_wave1_implementation",
     "knowledge": "thin_future_skeleton",
-    "memory": "legacy_quarantine",
     "nutrition": "active_wave1_implementation",
     "providers": "active_wave1_implementation",
-    "recommendation": "legacy_quarantine",
-    "rescue": "legacy_quarantine",
     "runtime": "active_wave1_implementation",
     "shared": "active_wave1_implementation"
   },
@@ -193,40 +187,40 @@
       "note": "Normalization is Wave 1 canonical, but shaping and policy concerns are mixed in one module."
     },
     {
-      "path": "app/rescue/application/proposal.py",
-      "classification": "later_wave_premature_active",
-      "recommended_action": "archive_candidate",
-      "note": "Pre-V2 rescue proposal synthesis should be treated as legacy-relative-to-mainline and kept out of Wave 1 active debt."
+      "path": "app/archive/rescue/application/proposal.py",
+      "classification": "legacy_archive",
+      "recommended_action": "archive_hard_keep_out_of_mainline",
+      "note": "Pre-V2 rescue proposal synthesis now lives under the archive app family and must stay out of Wave 1 mainline imports."
     },
     {
-      "path": "app/rescue/application/runtime.py",
-      "classification": "later_wave_premature_active",
-      "recommended_action": "archive_candidate",
-      "note": "Pre-V2 rescue runtime persistence is no longer counted as Wave 1 mainline behavior."
+      "path": "app/archive/rescue/application/runtime.py",
+      "classification": "legacy_archive",
+      "recommended_action": "archive_hard_keep_out_of_mainline",
+      "note": "Pre-V2 rescue runtime persistence is archive-only and must not re-enter Wave 1 runtime ownership."
     },
     {
-      "path": "app/rescue/interface/rescue_routes.py",
-      "classification": "later_wave_premature_active",
-      "recommended_action": "archive_candidate",
-      "note": "Rescue routes are removed from mainline router registration and should remain quarantine-only."
+      "path": "app/archive/rescue/interface/rescue_routes.py",
+      "classification": "legacy_archive",
+      "recommended_action": "archive_hard_keep_out_of_mainline",
+      "note": "Rescue routes live only as archive code and must not regain active router registration."
     },
     {
-      "path": "app/recommendation/interface/recommendation_routes.py",
-      "classification": "later_wave_premature_active",
-      "recommended_action": "archive_candidate",
-      "note": "Recommendation is treated as pre-V2 residue and excluded from Wave 1 active routing and debt."
+      "path": "app/archive/recommendation/interface/recommendation_routes.py",
+      "classification": "legacy_archive",
+      "recommended_action": "archive_hard_keep_out_of_mainline",
+      "note": "Recommendation preview and chat code now lives under the archive app family and is excluded from Wave 1 routing."
     },
     {
-      "path": "app/memory/infrastructure/conversation_context_retriever.py",
-      "classification": "legacy_or_archive_candidate",
-      "recommended_action": "archive_candidate",
-      "note": "Conversation retrieval moved under runtime infrastructure; the old memory-domain location is no longer mainline."
+      "path": "app/archive/memory/infrastructure/conversation_context_retriever.py",
+      "classification": "legacy_archive",
+      "recommended_action": "archive_hard_keep_out_of_mainline",
+      "note": "Conversation retrieval moved under runtime infrastructure; the old memory-domain location now survives only as archive code."
     },
     {
-      "path": "app/memory/infrastructure/session_record_store.py",
-      "classification": "legacy_or_archive_candidate",
-      "recommended_action": "archive_candidate",
-      "note": "Session record storage now survives only as a legacy path; active runtime support lives under runtime infrastructure."
+      "path": "app/archive/memory/infrastructure/session_record_store.py",
+      "classification": "legacy_archive",
+      "recommended_action": "archive_hard_keep_out_of_mainline",
+      "note": "Session record storage survives only as archived pre-V2 residue; active runtime support lives under runtime infrastructure."
     }
   ]
 }

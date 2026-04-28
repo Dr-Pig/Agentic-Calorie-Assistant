@@ -4,17 +4,17 @@ from dataclasses import asdict
 
 from fastapi import APIRouter, Depends
 
-from ...body.application import build_active_body_plan_view
-from ...budget.application import build_current_budget_view
-from ..application import (
+from app.body.application import build_active_body_plan_view
+from app.budget.application import build_current_budget_view
+from app.archive.recommendation.application import (
     build_recommendation_candidates,
     build_recommendation_candidate_spec,
     build_recommendation_context,
     build_recommendation_ranking_and_synthesis,
     build_recommendation_response,
 )
-from ...database import get_db, get_or_create_user
-from ...schemas import RecommendationCandidate
+from app.database import get_db, get_or_create_user
+from app.shared.contracts.recommendation import RecommendationCandidate
 
 router = APIRouter()
 

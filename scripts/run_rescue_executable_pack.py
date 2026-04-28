@@ -15,7 +15,7 @@ if str(ROOT) not in sys.path:
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.rescue.application import apply_rescue_chat_action, build_rescue_chat_surface
+from app.archive.rescue.application import apply_rescue_chat_action, build_rescue_chat_surface
 from app.models import Base, LedgerEntryRecord, ProposalContainerRecord, ProposalOptionRecord, User
 from scripts.audit_io_guard import enforce_file_backed_audit_input, load_json_audit_fixture
 

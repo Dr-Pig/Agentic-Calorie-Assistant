@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
-from ...shared.domain import ActiveBodyPlanView, CurrentBudgetView, ProposalContainer
-from ..infrastructure.preference_profile_persistence import PreferenceProfileSummary
+from app.shared.domain import ActiveBodyPlanView, CurrentBudgetView, ProposalContainer
+from app.archive.recommendation.infrastructure.preference_profile_persistence import PreferenceProfileSummary
 
 RecommendationMode = Literal["reactive_chat", "cold_start", "default"]
 BudgetPosture = Literal["within_budget", "tight_budget", "over_budget"]

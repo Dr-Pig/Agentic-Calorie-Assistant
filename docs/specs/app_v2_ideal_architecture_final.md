@@ -712,9 +712,9 @@ Should not:
 | Nutrition | `app/nutrition/` | lookup, web/search grounding, evidence eligibility, exactness, estimate output |
 | Budget | `app/budget/` | consumed/remaining, overshoot, ledger projections, aggregate truth |
 | Body | `app/body/` | body profile, body plan, observations, TDEE and exercise-related application services |
-| Rescue | `app/rescue/` | rescue trigger/proposal/acceptance semantics |
-| Recommendation | `app/recommendation/` | recommendation candidate/ranking/suppression semantics |
-| Memory | `app/memory/` | durable preference/profile memory and conversation context infrastructure |
+| Rescue | `app/archive/rescue/` | archive-only pre-V2 rescue semantics; excluded from Wave 1 mainline ownership |
+| Recommendation | `app/archive/recommendation/` | archive-only pre-V2 recommendation semantics; excluded from Wave 1 mainline ownership |
+| Memory | `app/archive/memory/` | archive-only pre-V2 memory/retrieval residue; Wave 1 runtime keeps only dedicated runtime support seams |
 | Runtime | `app/runtime/` | state resolution, manager orchestration, tool coordination, guard, sidecar, trace |
 | Providers | `app/providers/` | model/provider adapters only |
 | Knowledge | `app/knowledge/` | read-only static knowledge assets |

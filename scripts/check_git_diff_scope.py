@@ -33,9 +33,6 @@ CORE_LOGIC_PREFIXES = (
     "app/nutrition/",
     "app/budget/",
     "app/body/",
-    "app/rescue/",
-    "app/recommendation/",
-    "app/memory/",
     "app/runtime/",
 )
 CORE_LOGIC_EXACT = {
@@ -256,9 +253,6 @@ def check_cross_layer(paths: list[str], exceptions: set[str]) -> list[str]:
             "app/nutrition/",
             "app/budget/",
             "app/body/",
-            "app/rescue/",
-            "app/recommendation/",
-            "app/memory/",
         )
     )
     if has_routes and has_business_domain:

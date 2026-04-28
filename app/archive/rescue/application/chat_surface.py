@@ -6,8 +6,8 @@ from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
-from ...models import User
-from ...intake.application.canonical_quarantine_bridge import apply_proposal_decision_skeleton
+from app.models import User
+from app.intake.application.canonical_quarantine_bridge import apply_proposal_decision_skeleton
 from .open_proposals_read_model import build_open_rescue_proposals_view
 from .overlay import apply_overlay_days_payload
 from .response import RescuePlanAction, RescueResponseResult, apply_rescue_plan_action, build_rescue_response_result
