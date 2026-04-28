@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "B1WorkerResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "files_changed",
+    "commands_run",
+    "blocker_found",
+    "conditions_followed",
+    "out_of_scope_changes_avoided",
+    "notes"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["completed", "blocked", "not_run"]
+    },
+    "files_changed": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "commands_run": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "blocker_found": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["code", "detail"],
+      "properties": {
+        "code": { "type": "string" },
+        "detail": { "type": "string" }
+      }
+    },
+    "conditions_followed": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "out_of_scope_changes_avoided": { "type": "boolean" },
+    "notes": { "type": "string" }
+  }
+}

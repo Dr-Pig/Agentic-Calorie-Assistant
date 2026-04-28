@@ -3,12 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from .knowledge_doc_factory import load_retrieval_documents
-from .knowledge_lookup_normalizer import (
-    _exact_item_brand_keys,
-    _exact_item_signal_tokens,
-    _lookup_key,
-    _normalize_tokens,
-)
+from .knowledge_exact_item_signals import _exact_item_brand_keys, _exact_item_signal_tokens
+from .knowledge_lookup_normalizer import _lookup_key, _normalize_tokens
 
 
 _MODIFIER_TOKENS = {

@@ -26,11 +26,3 @@ async def ping() -> dict:
 async def index() -> HTMLResponse:
     html = (Path(__file__).resolve().parent.parent.parent.parent / "static" / "test-chat.html").read_text(encoding="utf-8")
     return HTMLResponse(content=html, media_type="text/html; charset=utf-8")
-
-
-@router.get("/dashboard", response_class=HTMLResponse)
-async def dashboard() -> HTMLResponse:
-    html_path = Path(__file__).resolve().parent.parent.parent.parent / "static" / "dashboard.html"
-    if not html_path.exists():
-        return HTMLResponse(content="<h1>Dashboard missing</h1>", status_code=404)
-    return HTMLResponse(content=html_path.read_text(encoding="utf-8"), media_type="text/html; charset=utf-8")
