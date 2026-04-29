@@ -472,6 +472,29 @@ Hard boundaries:
 - default localhost script settings are diagnostic unless `--base-url` is explicitly provided for readiness.
 - Slice 14 does not change runtime behavior, provider adapters, Phase C enforcement, UI same-truth, B2 rollout, or `ShadowHypothesis` authority.
 
+### Live Diagnostic Evidence And Product Semantics Decision Pack Lock
+
+The next live-readiness macro-batch may collect evidence and prepare product decisions, but it must not canonize unresolved product semantics.
+
+The batch has three separate outputs:
+
+- live diagnostic report: records live preflight, provider readiness, Phase C gate status, and readiness claim scope.
+- B2 live LLM diagnostic lane: records packet-based synthesis candidate evidence only; it must not create ledger truth, mutation authority, source-priority truth, or product semantic truth.
+- product semantic decision pack: records pending decisions, options, recommendations, and affected surfaces for user approval.
+
+Diagnostic verdict categories are:
+
+- `diagnostic_observation`: useful evidence, not a blocker by itself.
+- `readiness_blocker`: technical or trace evidence blocks readiness, such as Phase C hard fail or provider/schema failure.
+- `product_decision_required`: product semantics require explicit user approval before becoming canonical.
+
+Hard boundaries:
+
+- pending product decisions must not be written into canonical behavior, guard behavior, prompt policy, test oracles, or copy without explicit approval.
+- the decision pack is not a canonical spec.
+- B2 live LLM diagnostic output is candidate evidence only and must remain non-mutating.
+- Bundle names remain acceptance-package compatibility vocabulary, not implementation order or capability owner truth.
+
 ---
 
 ## Fake Pass Blocking Rules

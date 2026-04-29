@@ -155,6 +155,13 @@ Slice 14 live harness status:
 - hard-fail Phase C evidence may be recorded for diagnosis, but it blocks bundle readiness
 - this status does not change runtime behavior, provider adapters, Phase C enforcement, UI same-truth, B2 rollout, or `ShadowHypothesis` authority
 
+Product semantic decision pack status:
+- the live diagnostic macro-batch may collect evidence and prepare pending product decisions
+- the decision pack is not a canonical spec
+- pending product decisions must not be converted into guard behavior, test oracle truth, prompt policy, copy, or runtime semantics without explicit user approval
+- report verdicts should distinguish `diagnostic_observation`, `readiness_blocker`, and `product_decision_required`
+- B2 live LLM diagnostic output may be packet-based synthesis candidate evidence only; it must not become ledger truth, mutation authority, source-priority truth, or product semantic truth
+
 ### Phase A extra boundary: ownership selection
 
 Before Phase B evidence-stack work grows, keep manager contract selection and provider/profile selection behind a single trace-visible ownership surface.
