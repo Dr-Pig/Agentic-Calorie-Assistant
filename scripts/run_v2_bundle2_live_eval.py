@@ -9,7 +9,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -574,12 +574,85 @@ CASE_RUNNERS = [
 ]
 
 
+CASE_RUNNER_MAP: dict[str, Callable[[str, str], dict[str, Any]]] = {
+    "C-001": _run_case_c001,
+    "C-002": _run_case_c002,
+    "D-001": _run_case_d001,
+    "D-002": _run_case_d002,
+    "E-001": _run_case_e001,
+    "E-002": _run_case_e002,
+    "E-003": _run_case_e003,
+    "K-001": _run_case_k001,
+    "K-002": _run_case_k002,
+    "K-003": _run_case_k003,
+}
+
+
+def _select_case_runners(case_ids: list[str] | None) -> list[tuple[str, Callable[[str, str], dict[str, Any]]]]:
+    if not case_ids:
+        return list(CASE_RUNNER_MAP.items())
+    unknown = [case_id for case_id in case_ids if case_id not in CASE_RUNNER_MAP]
+    if unknown:
+        raise ValueError(f"Unknown case_id(s): {', '.join(unknown)}")
+    return [(case_id, CASE_RUNNER_MAP[case_id]) for case_id in case_ids]
+
+
+def _run_mode(case_ids: list[str] | None) -> str:
+    if not case_ids:
+        return "full"
+    return "single_case" if len(case_ids) == 1 else "shard"
+
+
+def _selection_metadata(case_ids: list[str] | None, *, completed_cases: int = 0) -> dict[str, Any]:
+    selected = _select_case_runners(case_ids)
+    run_mode = _run_mode(case_ids)
+    return {
+        "run_mode": run_mode,
+        "selected_case_ids": [case_id for case_id, _ in selected],
+        "expected_total_cases": len(selected),
+        "completed_cases": completed_cases,
+        "full_acceptance_package_run": run_mode == "full",
+    }
+
+
+def _runner_case_status(*, all_cases_pass: bool, run_mode: str) -> str:
+    if run_mode != "full":
+        return "diagnostic"
+    return "pass" if all_cases_pass else "fail"
+
+
+def _readiness_claim_scope_for_run(*, live_preflight_scope: str, run_mode: str) -> str:
+    if run_mode != "full":
+        return "diagnostic_case_run"
+    return live_preflight_scope
+
+
+def _case_error_result(case_id: str, exc: Exception) -> dict[str, Any]:
+    if isinstance(exc, urllib.error.HTTPError):
+        body = exc.read().decode("utf-8", errors="replace")
+        return {
+            "case_id": case_id,
+            "passed": False,
+            "checks": {"http_ok": False},
+            "error": {"status": exc.code, "body": body},
+        }
+    return {
+        "case_id": case_id,
+        "passed": False,
+        "checks": {"runner_ok": False},
+        "error": {"type": type(exc).__name__, "message": str(exc)},
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run Bundle 2 live E2E eval cases against /v2/estimate.")
     parser.add_argument("--base-url", default=None)
+    parser.add_argument("--case-id", action="append", default=None)
     parser.add_argument("--local-date", default=datetime.now().date().isoformat())
     parser.add_argument("--output", default=None)
     args = parser.parse_args()
+    selected_case_runners = _select_case_runners(args.case_id)
+    selection = _selection_metadata(args.case_id)
     base_url = args.base_url or DEFAULT_BASE_URL
     base_url_explicit = args.base_url is not None
     ping_payload, ping_error = fetch_server_ping(base_url)
@@ -594,27 +667,17 @@ def main() -> int:
     output_path = Path(args.output) if args.output else OUTPUT_DIR / f"bundle2_live_eval_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.json"
 
     results: list[dict[str, Any]] = []
-    for runner in CASE_RUNNERS:
+    for case_id, runner in selected_case_runners:
         try:
             result = runner(base_url, args.local_date)
         except urllib.error.HTTPError as exc:
-            body = exc.read().decode("utf-8", errors="replace")
-            result = {
-                "case_id": runner.__name__.replace("_run_case_", "").upper(),
-                "passed": False,
-                "checks": {"http_ok": False},
-                "error": {"status": exc.code, "body": body},
-            }
+            result = _case_error_result(case_id, exc)
         except Exception as exc:
-            result = {
-                "case_id": runner.__name__.replace("_run_case_", "").upper(),
-                "passed": False,
-                "checks": {"runner_ok": False},
-                "error": {"type": type(exc).__name__, "message": str(exc)},
-            }
+            result = _case_error_result(case_id, exc)
         results.append(result)
         print(f"{result['case_id']}: {'PASS' if result['passed'] else 'FAIL'}")
 
+    selection = _selection_metadata(args.case_id, completed_cases=len(results))
     p0_ids = {"C-001", "D-001", "E-001", "E-002", "K-001"}
     p0_pass = all(result.get("passed") for result in results if result["case_id"] in p0_ids)
     all_cases_pass = all(result.get("passed") for result in results)
@@ -622,7 +685,11 @@ def main() -> int:
     bootstrap = build_bootstrap_checklist(bundle=2)
     coverage_status = bootstrap["parity_audit"]["coverage_status"]
     founder_status = bootstrap["founder_realism"]["status"]
-    runner_case_status = "pass" if all_cases_pass else "fail"
+    runner_case_status = _runner_case_status(all_cases_pass=all_cases_pass, run_mode=selection["run_mode"])
+    readiness_claim_scope = _readiness_claim_scope_for_run(
+        live_preflight_scope=live_preflight["readiness_claim_scope"],
+        run_mode=selection["run_mode"],
+    )
     verdict = build_bundle_verdict(
         runner_case_status=runner_case_status,
         coverage_status=coverage_status,
@@ -639,15 +706,17 @@ def main() -> int:
         "live_test_mode": live_preflight["live_test_mode"],
         "server_ping_status": live_preflight["server_ping_status"],
         "phase_c_gate_status": phase_c_gate_status,
-        "readiness_claim_scope": live_preflight["readiness_claim_scope"],
+        "readiness_claim_scope": readiness_claim_scope,
+        **selection,
         **verdict,
     }
     report = {
         "base_url": base_url,
+        **selection,
         "live_test_mode": live_preflight["live_test_mode"],
         "server_ping_status": live_preflight["server_ping_status"],
         "provider_readiness": live_preflight["provider_readiness"],
-        "readiness_claim_scope": live_preflight["readiness_claim_scope"],
+        "readiness_claim_scope": readiness_claim_scope,
         "phase_c_gate_status": phase_c_gate_status,
         "live_preflight": live_preflight,
         "local_date": args.local_date,
@@ -657,14 +726,16 @@ def main() -> int:
     }
     report = apply_runner_timeout_contract(
         report,
-        expected_total_cases=len(CASE_RUNNERS),
+        expected_total_cases=selection["expected_total_cases"],
         completed_cases=len(results),
-        run_mode="full",
+        run_mode=selection["run_mode"],
     )
     output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     summary = report["summary"]
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"saved: {output_path}")
+    if selection["run_mode"] != "full":
+        return 0 if all_cases_pass else 1
     return 0 if summary["runner_case_status"] == "pass" and summary["coverage_status"] == "complete" else 1
 
 

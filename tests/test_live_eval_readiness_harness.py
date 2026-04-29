@@ -106,6 +106,66 @@ def test_bundle2_live_runner_can_attach_phase_c_readiness_to_case_checks() -> No
     assert extra["phase_c_live_readiness"]["readiness_pass"] is True
 
 
+def test_live_runner_case_selection_supports_single_case_and_shard_modes() -> None:
+    from scripts import run_v2_bundle2_live_eval as runner
+
+    single = runner._selection_metadata(["C-001"])
+    shard = runner._selection_metadata(["C-001", "D-001"])
+
+    assert single["run_mode"] == "single_case"
+    assert single["selected_case_ids"] == ["C-001"]
+    assert single["expected_total_cases"] == 1
+    assert single["full_acceptance_package_run"] is False
+    assert [case_id for case_id, _ in runner._select_case_runners(["C-001"])] == ["C-001"]
+    assert shard["run_mode"] == "shard"
+    assert shard["selected_case_ids"] == ["C-001", "D-001"]
+    assert shard["expected_total_cases"] == 2
+    assert shard["full_acceptance_package_run"] is False
+
+
+def test_live_runner_no_case_selector_keeps_full_mode() -> None:
+    from scripts import run_v2_bundle1_live_eval as runner
+
+    metadata = runner._selection_metadata(None)
+
+    assert metadata["run_mode"] == "full"
+    assert metadata["expected_total_cases"] == len(runner.CASE_RUNNER_MAP)
+    assert metadata["completed_cases"] == 0
+    assert metadata["full_acceptance_package_run"] is True
+
+
+def test_selected_live_run_cannot_report_readiness_status() -> None:
+    from scripts import run_v2_bundle2_live_eval as runner
+
+    assert runner._runner_case_status(all_cases_pass=True, run_mode="single_case") == "diagnostic"
+    assert runner._runner_case_status(all_cases_pass=True, run_mode="shard") == "diagnostic"
+    assert runner._runner_case_status(all_cases_pass=True, run_mode="full") == "pass"
+    assert (
+        runner._readiness_claim_scope_for_run(
+            live_preflight_scope="live_readiness_candidate",
+            run_mode="single_case",
+        )
+        == "diagnostic_case_run"
+    )
+    assert (
+        runner._readiness_claim_scope_for_run(
+            live_preflight_scope="live_readiness_candidate",
+            run_mode="full",
+        )
+        == "live_readiness_candidate"
+    )
+
+
+def test_live_runner_error_result_preserves_canonical_case_id() -> None:
+    from scripts import run_v2_bundle1_live_eval as runner
+
+    result = runner._case_error_result("B-004", RuntimeError("boom"))
+
+    assert result["case_id"] == "B-004"
+    assert result["passed"] is False
+    assert result["checks"] == {"runner_ok": False}
+
+
 def test_live_eval_readiness_docs_lock_ladder_and_phase_c_gate() -> None:
     spec = (ROOT / "docs/specs/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md").read_text(encoding="utf-8-sig")
     bootstrap = (ROOT / "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md").read_text(encoding="utf-8-sig")
