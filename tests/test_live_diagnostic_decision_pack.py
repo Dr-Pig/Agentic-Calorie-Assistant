@@ -89,11 +89,11 @@ def test_b2_live_llm_diagnostic_flags_schema_or_mutation_fields_as_readiness_blo
     assert evidence["mutation_authority"] is False
 
 
-def test_product_semantic_decision_pack_entries_stay_pending_and_non_canonical() -> None:
+def test_product_semantic_decision_pack_marks_approved_pearl_milk_tea_policy() -> None:
     decision_pack = build_product_semantic_decision_pack(
         observations={
             "pearl_milk_tea_missing_sugar_size": {
-                "observed_system_behavior": "draft_with_followup",
+                "observed_system_behavior": "logged_estimate_with_followup",
                 "observed_live_llm_behavior": "logged_estimate_with_followup",
             }
         }
@@ -104,10 +104,13 @@ def test_product_semantic_decision_pack_entries_stay_pending_and_non_canonical()
     assert decision_pack["decision_count"] >= 10
     first = decision_pack["decisions"][0]
     assert first["decision_id"] == "pearl_milk_tea_missing_sugar_size"
-    assert first["status"] == "pending"
-    assert first["requires_user_approval"] is True
-    assert first["observed_system_behavior"] == "draft_with_followup"
+    assert first["status"] == "approved"
+    assert first["selected_policy"] == "logged_estimate_with_followup"
+    assert first["requires_user_approval"] is False
+    assert first["observed_system_behavior"] == "logged_estimate_with_followup"
     assert first["observed_live_llm_behavior"] == "logged_estimate_with_followup"
+    assert "old_c001_draft_first_oracle" in first["supersedes_stale_expectations"]
+    assert any(decision["status"] == "pending" for decision in decision_pack["decisions"][1:])
 
 
 def test_macro_report_keeps_three_outputs_separate() -> None:
@@ -148,5 +151,7 @@ def test_docs_lock_live_diagnostic_macro_batch_without_canonizing_decisions() ->
     assert "`readiness_blocker`" in spec
     assert "`product_decision_required`" in spec
     assert "pending product decisions must not be written into canonical behavior" in spec
+    assert "User-approved product semantic decisions supersede stale eval expectations" in bootstrap
+    assert "pearl milk tea missing sugar/size is approved as logged estimate plus follow-up" in bootstrap
     assert "Product semantic decision pack status" in bootstrap
     assert "decision pack is not a canonical spec" in bootstrap

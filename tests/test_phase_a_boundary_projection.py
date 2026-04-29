@@ -80,6 +80,36 @@ def test_pearl_milk_tea_turn_one_projects_estimate_with_followup_draft() -> None
     assert projection.legacy_projection["clarify_mode"] == "estimate_with_followup"
 
 
+def test_estimate_with_followup_can_project_commit_when_write_owner_allows_it() -> None:
+    payload = _payload(
+        meal_title="pearl milk tea",
+        estimated_kcal=450,
+        action_taken="answer_with_uncertainty",
+        follow_up_needed=True,
+        followup_question="What size and sugar level was it?",
+        response_mode_hint="rough_estimate_ok",
+        missing_slots=["size", "sugar_level"],
+        canonical_write_allowed=True,
+    )
+
+    projection = build_intake_boundary_projection(
+        payload=payload,
+        persistence_result=_PersistenceResult(
+            action="save_completed_log",
+            canonical_commit={"meal_thread_id": 10},
+        ),
+        active_body_plan_present=True,
+    )
+
+    assert projection.clarification_decision.mode == "estimate_with_followup"
+    assert projection.clarification_decision.followup_required is True
+    assert projection.commit_boundary_decision.intent == "commit"
+    assert projection.commit_boundary_decision.predicted_meal_status == "completed_meal"
+    assert projection.commit_boundary_decision.canonical_write_allowed is True
+    assert projection.commit_boundary_decision.ledger_mutation_allowed is True
+    assert projection.owner_alignment == "aligned"
+
+
 def test_homemade_dish_projects_clarify_before_estimate() -> None:
     payload = _payload(
         meal_title="home cooked dish",

@@ -159,6 +159,8 @@ Product semantic decision pack status:
 - the live diagnostic macro-batch may collect evidence and prepare pending product decisions
 - the decision pack is not a canonical spec
 - pending product decisions must not be converted into guard behavior, test oracle truth, prompt policy, copy, or runtime semantics without explicit user approval
+- User-approved product semantic decisions supersede stale eval expectations; when they conflict, realign the case/oracle/report instead of forcing runtime to satisfy stale fixture shape
+- pearl milk tea missing sugar/size is approved as logged estimate plus follow-up; follow-up is a precision/refinement request and not a hidden commit gate
 - report verdicts should distinguish `diagnostic_observation`, `readiness_blocker`, and `product_decision_required`
 - B2 live LLM diagnostic output may be packet-based synthesis candidate evidence only; it must not become ledger truth, mutation authority, source-priority truth, or product semantic truth
 
