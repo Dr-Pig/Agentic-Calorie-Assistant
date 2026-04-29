@@ -64,6 +64,9 @@ def _build_rejected_candidate(
         "reason": reason,
         "canonical_name": packet.get("canonical_name"),
         "source_type": packet.get("source_type"),
+        "usable_as_evidence": False,
+        "exact_claim_blocked": True,
+        "estimability_blocked": False,
     }
 
 

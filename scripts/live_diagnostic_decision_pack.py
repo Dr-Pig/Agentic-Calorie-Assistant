@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 from typing import Any
@@ -16,6 +16,24 @@ VERDICT_PRODUCT_DECISION_REQUIRED = "product_decision_required"
 
 B2_DIAGNOSTIC_LANE = "b2_packet_synthesis"
 B2_DIAGNOSTIC_FAILURE = "b2_live_llm_diagnostic_contract_violation"
+B2_ASK_FIRST_POLICY_VIOLATION = "b2_ask_first_policy_violation"
+B2_LIVE_CONTRACT_CASE_IDS = ("B2-002", "B2-007", "B2-001", "B2-009", "B2-004", "B2-008")
+ASK_FIRST_SELF_SELECTED_BASKET_DECISION_ID = "self_selected_basket_without_listed_items"
+
+_B2_LIVE_FORBIDDEN_OUTPUT_FIELDS = (
+    "logged",
+    "draft",
+    "canonical_write",
+    "canonical_commit",
+    "ledger_update",
+    "ledger_mutation",
+    "mutation_result",
+    "mutation_intent",
+    "commit",
+    "correction_applied",
+    "source_priority_decision",
+    "product_semantic_decision",
+)
 
 _PRODUCT_DECISION_TEMPLATES: tuple[dict[str, Any], ...] = (
     {
@@ -200,6 +218,364 @@ def build_b2_live_llm_diagnostic_evidence(manager_pass_2: dict[str, Any] | None)
     }
 
 
+def build_b2_live_llm_diagnostic_contract_report(
+    *,
+    phase_b2_report: dict[str, Any],
+    provider_outputs_by_case_id: dict[str, dict[str, Any]] | None = None,
+    provider_mode: str = "fake",
+    payload_artifact_id: str = "deterministic_b2_artifact",
+    model_profile: str = "fake-contract-provider",
+    schema_mode: str = "json_schema",
+    selected_case_ids: tuple[str, ...] = B2_LIVE_CONTRACT_CASE_IDS,
+    approved_ask_first_policy_ids: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    """Validate fake Pass 2 outputs against deterministic B2 packet contracts.
+
+    This harness is an evaluator only: it consumes the deterministic B2 artifact
+    and provider-shaped candidate output, then reports contract violations.
+    """
+
+    provider_outputs = provider_outputs_by_case_id or {}
+    case_results = [
+        _validate_b2_live_contract_case(
+            _case_by_id(phase_b2_report, case_id),
+            provider_outputs.get(case_id),
+            approved_ask_first_policy_ids=approved_ask_first_policy_ids,
+        )
+        for case_id in selected_case_ids
+    ]
+    verdict_category = _contract_report_verdict(case_results)
+    return {
+        "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "diagnostic_lane": B2_DIAGNOSTIC_LANE,
+        "harness": "b2_live_llm_diagnostic_contract",
+        "provider_mode": provider_mode,
+        "live_invoked": False,
+        "readiness_claimed": False,
+        "live_provider_diagnostic_complete": False,
+        "payload_artifact_id": payload_artifact_id,
+        "schema_mode": schema_mode,
+        "model_profile": model_profile,
+        "provider_params": {
+            "provider": provider_mode,
+            "model_profile": model_profile,
+            "schema_mode": schema_mode,
+        },
+        "selected_case_ids": list(selected_case_ids),
+        "case_ids_are_diagnostic_labels_only": True,
+        "report_builder_role": "evaluator_only",
+        "case_results": case_results,
+        "verdict_category": verdict_category,
+        "verdict": _verdict(verdict_category, _contract_report_reason(verdict_category)),
+        "diagnostic_scope": "b2_packet_synthesis_only",
+        "readiness_scope": "none",
+        "user_facing_enabled": False,
+        "mutation_enabled": False,
+        "mutation_authority": False,
+        "ledger_truth_authority": False,
+        "source_priority_authority": False,
+        "product_semantic_authority": False,
+        "canonical_truth_authority": False,
+        "canonicalizes_product_semantics": False,
+        "user_facing_behavior_changed": False,
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "tavily_or_web_activated": False,
+    }
+
+
+def _case_by_id(report: dict[str, Any], case_id: str) -> dict[str, Any]:
+    for case in _list(report.get("cases")):
+        candidate = _dict(case)
+        if candidate.get("case_id") == case_id:
+            return candidate
+    raise KeyError(f"B2 deterministic artifact missing case_id={case_id}")
+
+
+def _validate_b2_live_contract_case(
+    deterministic_case: dict[str, Any],
+    provider_output: dict[str, Any] | None,
+    *,
+    approved_ask_first_policy_ids: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    case_id = str(deterministic_case.get("case_id") or "")
+    payload = _dict(provider_output) if provider_output is not None else _default_fake_provider_output(deterministic_case)
+    item_results = [_dict(item) for item in _list(payload.get("item_results")) if isinstance(item, dict)]
+    packet_permissions = _packet_permissions(deterministic_case)
+    rejected_packet_ids = _rejected_packet_ids(deterministic_case)
+    evidence_refs = _evidence_refs(item_results)
+    forbidden_fields = _forbidden_output_fields(payload, item_results)
+    blockers: list[str] = []
+    product_decisions_required: list[str] = []
+    failure_family = B2_DIAGNOSTIC_FAILURE
+
+    if _is_approved_ask_first_case(
+        deterministic_case,
+        approved_ask_first_policy_ids=approved_ask_first_policy_ids,
+    ):
+        if "item_results" in payload:
+            blockers.append("ask_first_item_results_present")
+        if _has_estimate(item_results) or _has_top_level_estimate(payload):
+            blockers.append("ask_first_estimate_present")
+        if evidence_refs or _has_top_level_evidence_refs(payload):
+            blockers.append("ask_first_evidence_refs_present")
+        if forbidden_fields or _has_mutation_intent(payload, item_results):
+            blockers.append("forbidden_authority_fields")
+        if payload.get("payload_shape_valid") is False:
+            blockers.append("provider_schema_invalid")
+        verdict_category = VERDICT_READINESS_BLOCKER if blockers else VERDICT_DIAGNOSTIC_OBSERVATION
+        if blockers:
+            failure_family = B2_ASK_FIRST_POLICY_VIOLATION
+        return {
+            "case_id": case_id,
+            "case_label_only": True,
+            "input_message": deterministic_case.get("input_message"),
+            "provider_mode": "fake",
+            "live_invoked": False,
+            "source_path": _dict(deterministic_case.get("source_selection")).get("source_path"),
+            "contract_type": "clarify_only",
+            "ask_first_policy_id": ASK_FIRST_SELF_SELECTED_BASKET_DECISION_ID,
+            "packet_permissions": packet_permissions,
+            "rejected_packet_ids": sorted(rejected_packet_ids),
+            "evidence_refs": sorted(evidence_refs),
+            "rejected_packet_evidence_refs": [],
+            "item_result_count": len(item_results),
+            "forbidden_fields_present": forbidden_fields,
+            "blockers": _dedupe(blockers),
+            "product_decisions_required": [],
+            "failure_family": failure_family if blockers else None,
+            "verdict_category": verdict_category,
+            "verdict": _verdict(verdict_category, failure_family if blockers else _case_verdict_reason(verdict_category)),
+        }
+
+    if not item_results:
+        blockers.append("missing_item_results")
+    if forbidden_fields:
+        blockers.append("forbidden_authority_fields")
+    if payload.get("payload_shape_valid") is False:
+        blockers.append("provider_schema_invalid")
+
+    rejected_evidence_refs = sorted(ref for ref in evidence_refs if ref in rejected_packet_ids)
+    if rejected_evidence_refs:
+        blockers.append("rejected_packet_used_as_evidence")
+
+    exact_item_results = [item for item in item_results if str(item.get("exactness_posture") or "") == "exact"]
+    if _is_generic_anchor_case(deterministic_case) and exact_item_results:
+        blockers.append("generic_anchor_returned_exact")
+    if exact_item_results and not _exactness_permitted(exact_item_results, packet_permissions["exact_packet_ids"]):
+        blockers.append("exactness_exceeds_packet_permission")
+
+    if _is_query_only_case(deterministic_case) and _has_mutation_intent(payload, item_results):
+        blockers.append("query_only_mutation_intent")
+
+    if _is_composition_unknown_case(deterministic_case) and _has_estimate(item_results):
+        product_decisions_required.append("unknown_composition_estimated")
+
+    verdict_category = (
+        VERDICT_READINESS_BLOCKER
+        if blockers
+        else VERDICT_PRODUCT_DECISION_REQUIRED
+        if product_decisions_required
+        else VERDICT_DIAGNOSTIC_OBSERVATION
+    )
+    return {
+        "case_id": case_id,
+        "case_label_only": True,
+        "input_message": deterministic_case.get("input_message"),
+        "provider_mode": "fake",
+        "live_invoked": False,
+        "source_path": _dict(deterministic_case.get("source_selection")).get("source_path"),
+        "packet_permissions": packet_permissions,
+        "rejected_packet_ids": sorted(rejected_packet_ids),
+        "evidence_refs": sorted(evidence_refs),
+        "rejected_packet_evidence_refs": rejected_evidence_refs,
+        "item_result_count": len(item_results),
+        "forbidden_fields_present": forbidden_fields,
+        "blockers": _dedupe(blockers),
+        "product_decisions_required": _dedupe(product_decisions_required),
+        "failure_family": B2_DIAGNOSTIC_FAILURE if blockers else None,
+        "verdict_category": verdict_category,
+        "verdict": _verdict(verdict_category, _case_verdict_reason(verdict_category)),
+    }
+
+
+def _default_fake_provider_output(deterministic_case: dict[str, Any]) -> dict[str, Any]:
+    manager_pass_2 = _dict(deterministic_case.get("manager_pass_2"))
+    return {
+        "payload_shape_valid": True,
+        "item_results": [_dict(item) for item in _list(manager_pass_2.get("item_results"))],
+        "provider_params": {"provider": "fake", "model_profile": "fake-contract-provider"},
+        "mutation_attempted": False,
+    }
+
+
+def _packet_permissions(deterministic_case: dict[str, Any]) -> dict[str, Any]:
+    exact_packet_ids: set[str] = set()
+    anchor_packet_ids: set[str] = set()
+    packets_by_id: dict[str, dict[str, Any]] = {
+        str(packet.get("packet_id")): _dict(packet)
+        for packet in _list(deterministic_case.get("packets"))
+        if isinstance(packet, dict) and packet.get("packet_id")
+    }
+    for item in _list(_dict(deterministic_case.get("manager_pass_2")).get("item_results")):
+        if not isinstance(item, dict):
+            continue
+        for evidence in _list(item.get("evidence_used")):
+            evidence_dict = _dict(evidence)
+            packet_id = str(evidence_dict.get("packet_id") or "")
+            if not packet_id:
+                continue
+            usage = str(evidence_dict.get("usage") or "")
+            if usage == "exact" and packets_by_id.get(packet_id, {}).get("supports_exact_claim") is True:
+                exact_packet_ids.add(packet_id)
+            elif usage in {"anchor", "fallback"}:
+                anchor_packet_ids.add(packet_id)
+    return {
+        "exact_packet_ids": sorted(exact_packet_ids),
+        "anchor_packet_ids": sorted(anchor_packet_ids),
+        "accepted_usage": "exact" if exact_packet_ids else "anchor" if anchor_packet_ids else "none",
+    }
+
+
+def _rejected_packet_ids(deterministic_case: dict[str, Any]) -> set[str]:
+    rejected: set[str] = set()
+    manager_pass_2 = _dict(deterministic_case.get("manager_pass_2"))
+    for item in _list(manager_pass_2.get("item_results")):
+        item_dict = _dict(item)
+        for candidate in _list(item_dict.get("rejected_candidates")):
+            packet_id = str(_dict(candidate).get("packet_id") or "")
+            if packet_id:
+                rejected.add(packet_id)
+    return rejected
+
+
+def _evidence_refs(item_results: list[dict[str, Any]]) -> set[str]:
+    refs: set[str] = set()
+    for item in item_results:
+        for evidence in _list(item.get("evidence_used")):
+            packet_id = str(_dict(evidence).get("packet_id") or "")
+            if packet_id:
+                refs.add(packet_id)
+    return refs
+
+
+def _forbidden_output_fields(payload: dict[str, Any], item_results: list[dict[str, Any]]) -> list[str]:
+    fields: set[str] = {field for field in _B2_LIVE_FORBIDDEN_OUTPUT_FIELDS if field in payload}
+    for item in item_results:
+        fields.update(field for field in _B2_LIVE_FORBIDDEN_OUTPUT_FIELDS if field in item)
+    return sorted(fields)
+
+
+def _is_generic_anchor_case(deterministic_case: dict[str, Any]) -> bool:
+    return _dict(deterministic_case.get("source_selection")).get("source_path") == "generic_anchor"
+
+
+def _is_query_only_case(deterministic_case: dict[str, Any]) -> bool:
+    source_selection = _dict(deterministic_case.get("source_selection"))
+    mutation = _dict(deterministic_case.get("mutation"))
+    return source_selection.get("read_only") is True or mutation.get("reason") == "no_mutation_intent"
+
+
+def _is_composition_unknown_case(deterministic_case: dict[str, Any]) -> bool:
+    source_selection = _dict(deterministic_case.get("source_selection"))
+    if source_selection.get("source_path") == "ask_user":
+        return True
+    for packet in _list(deterministic_case.get("packets")):
+        packet_dict = _dict(packet)
+        if packet_dict.get("semantic_problem") == "composition_unknown":
+            return True
+    return False
+
+
+def _is_approved_ask_first_case(
+    deterministic_case: dict[str, Any],
+    *,
+    approved_ask_first_policy_ids: tuple[str, ...],
+) -> bool:
+    if ASK_FIRST_SELF_SELECTED_BASKET_DECISION_ID not in set(approved_ask_first_policy_ids):
+        return False
+    if not _is_composition_unknown_case(deterministic_case):
+        return False
+    source_selection = _dict(deterministic_case.get("source_selection"))
+    if source_selection.get("source_path") == "ask_user":
+        return True
+    return any(
+        _dict(packet).get("rule_id") == "self_selected_basket_without_ingredients"
+        for packet in _list(deterministic_case.get("packets"))
+    )
+
+
+def _has_mutation_intent(payload: dict[str, Any], item_results: list[dict[str, Any]]) -> bool:
+    if payload.get("mutation_attempted") is True:
+        return True
+    if any(field in payload for field in ("mutation_intent", "ledger_update", "mutation_result", "logged", "draft")):
+        return True
+    return any(
+        any(field in item for field in ("mutation_intent", "ledger_update", "mutation_result", "logged", "draft"))
+        for item in item_results
+    )
+
+
+def _has_estimate(item_results: list[dict[str, Any]]) -> bool:
+    for item in item_results:
+        if item.get("likely_kcal") is not None:
+            return True
+        kcal_range = item.get("kcal_range")
+        if isinstance(kcal_range, list) and any(value is not None for value in kcal_range):
+            return True
+    return False
+
+
+def _has_top_level_estimate(payload: dict[str, Any]) -> bool:
+    if payload.get("likely_kcal") is not None:
+        return True
+    kcal_range = payload.get("kcal_range")
+    return isinstance(kcal_range, list) and any(value is not None for value in kcal_range)
+
+
+def _has_top_level_evidence_refs(payload: dict[str, Any]) -> bool:
+    return bool(_list(payload.get("evidence_used")) or _list(payload.get("evidence_refs")))
+
+
+def _exactness_permitted(item_results: list[dict[str, Any]], exact_packet_ids: list[str]) -> bool:
+    allowed = set(exact_packet_ids)
+    if not allowed:
+        return False
+    for item in item_results:
+        refs = _evidence_refs([item])
+        if not refs or not refs.issubset(allowed):
+            return False
+    return True
+
+
+def _contract_report_verdict(case_results: list[dict[str, Any]]) -> str:
+    if any(result.get("verdict_category") == VERDICT_READINESS_BLOCKER for result in case_results):
+        return VERDICT_READINESS_BLOCKER
+    if any(result.get("verdict_category") == VERDICT_PRODUCT_DECISION_REQUIRED for result in case_results):
+        return VERDICT_PRODUCT_DECISION_REQUIRED
+    return VERDICT_DIAGNOSTIC_OBSERVATION
+
+
+def _contract_report_reason(verdict_category: str) -> str:
+    if verdict_category == VERDICT_READINESS_BLOCKER:
+        return B2_DIAGNOSTIC_FAILURE
+    if verdict_category == VERDICT_PRODUCT_DECISION_REQUIRED:
+        return "pending_product_semantic_decision"
+    return "b2_fake_provider_contract_diagnostic_collected"
+
+
+def _case_verdict_reason(verdict_category: str) -> str:
+    if verdict_category == VERDICT_READINESS_BLOCKER:
+        return B2_DIAGNOSTIC_FAILURE
+    if verdict_category == VERDICT_PRODUCT_DECISION_REQUIRED:
+        return "pending_product_semantic_decision"
+    return "case_contract_passed_as_diagnostic_observation"
+
+
+def _dedupe(items: list[str]) -> list[str]:
+    return list(dict.fromkeys(items))
+
+
 def build_product_semantic_decision_pack(
     *,
     observations: dict[str, dict[str, Any]] | None = None,
@@ -223,7 +599,7 @@ def build_product_semantic_decision_pack(
     pending_count = sum(1 for decision in decisions if decision.get("status") == "pending")
     approved_count = sum(1 for decision in decisions if decision.get("status") == "approved")
     return {
-        "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "pack_type": "product_semantic_decision_pack",
         "pack_status": "pending_user_decision" if pending_count else "approved",
         "canonicalizes_product_semantics": False,
@@ -250,7 +626,7 @@ def build_live_diagnostic_macro_report(
     }
     provider_schema_valid = b2_live_llm_diagnostic.get("verdict_category") != VERDICT_READINESS_BLOCKER
     return {
-        "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "macro_batch": "live_diagnostic_evidence_product_semantics_decision_pack",
         "outputs": [
             "live_diagnostic_report",
@@ -334,11 +710,14 @@ def _read_json_optional(path_text: str | None) -> dict[str, Any] | None:
 
 
 __all__ = [
+    "ASK_FIRST_SELF_SELECTED_BASKET_DECISION_ID",
+    "B2_ASK_FIRST_POLICY_VIOLATION",
     "B2_DIAGNOSTIC_FAILURE",
     "B2_DIAGNOSTIC_LANE",
     "VERDICT_DIAGNOSTIC_OBSERVATION",
     "VERDICT_PRODUCT_DECISION_REQUIRED",
     "VERDICT_READINESS_BLOCKER",
+    "build_b2_live_llm_diagnostic_contract_report",
     "build_b2_live_llm_diagnostic_evidence",
     "build_live_diagnostic_macro_report",
     "build_product_semantic_decision_pack",

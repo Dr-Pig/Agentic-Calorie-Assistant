@@ -100,6 +100,10 @@ async def run_b2_manager_pass2_with_provider(
         "item_results_source": "manager_pass_2_payload" if item_results else "none",
         "item_results_owner_class": "runtime_payload" if item_results else "none",
         "mutation_attempted": False,
+        "mutation_authority": False,
+        "ledger_truth_authority": False,
+        "source_priority_authority": False,
+        "product_semantic_authority": False,
         "forbidden_mutation_fields_present": _forbidden_mutation_fields(payload_dict),
     }
 

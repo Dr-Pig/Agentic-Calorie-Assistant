@@ -78,6 +78,9 @@ def test_packet_consumption_rejects_exact_item_with_sibling_or_size_risk() -> No
     assert result.accepted_packets == ()
     assert len(result.rejected_candidates) == 1
     assert result.rejected_candidates[0]["risk_type"] == "wrong_size"
+    assert result.rejected_candidates[0]["usable_as_evidence"] is False
+    assert result.rejected_candidates[0]["exact_claim_blocked"] is True
+    assert result.rejected_candidates[0]["estimability_blocked"] is False
 
 
 def test_packet_consumption_does_not_silently_drop_packets() -> None:
@@ -198,3 +201,22 @@ def test_packet_consumption_rejects_web_search_wrong_item_packet() -> None:
     assert result.accepted_packets == ()
     assert len(result.rejected_candidates) == 1
     assert result.rejected_candidates[0]["risk_type"] == "wrong_item"
+    assert result.rejected_candidates[0]["usable_as_evidence"] is False
+
+
+def test_packet_consumption_rejects_exact_item_with_wrong_modifier_without_blocking_estimation_policy() -> None:
+    exact_result = lookup_exact_item_card_candidates(build_retrieval_intent("\u661f\u5df4\u514b\u51b0\u90a3\u5802\u5927\u676f"))
+    seed = packetizer_input_seeds_from_exact_item_lookup_result(exact_result)[0]
+    packet = build_candidate_packet(seed)
+    packet["modifier_match"] = "different"
+    rechecked = add_hard_recheck_metadata(packet)
+
+    result = consume_rechecked_packets((rechecked,))
+
+    assert result.accepted_packets == ()
+    assert len(result.rejected_candidates) == 1
+    rejected = result.rejected_candidates[0]
+    assert rejected["risk_type"] == "wrong_modifier"
+    assert rejected["reason"] == "deterministic_hard_recheck_failed:wrong_modifier"
+    assert rejected["exact_claim_blocked"] is True
+    assert rejected["estimability_blocked"] is False

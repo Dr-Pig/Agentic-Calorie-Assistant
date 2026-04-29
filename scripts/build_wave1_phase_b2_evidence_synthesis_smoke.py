@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import argparse
+from dataclasses import asdict
 from datetime import UTC, datetime
 import json
 from pathlib import Path
@@ -16,8 +17,10 @@ from app.nutrition.application.b2_candidate_packetizer import (
     add_hard_recheck_metadata_many,
     build_candidate_packets,
 )
+from app.nutrition.application.b2_final_mapping import map_b2_final_item_result
 from app.nutrition.application.b2_local_synthesis import synthesize_b2_local_manager_pass2
 from app.nutrition.application.b2_packet_consumption import consume_rechecked_packets
+from app.nutrition.application.b2_source_selection import select_b2_evidence_source
 from app.nutrition.application.exact_item_card_lookup import lookup_exact_item_card_candidates
 from app.nutrition.application.listed_item_fanout import fanout_listed_item_anchor_lookups
 from app.nutrition.application.packetizer_input_seed import packetizer_input_seeds_from_anchor_lookup_result
@@ -90,6 +93,10 @@ def _producer_trace(
         "support_basis": support_basis,
         "compatibility_reason": compatibility_reason,
     }
+
+
+def _source_selection_trace(intent: RetrievalIntent) -> dict[str, object]:
+    return _json_safe(asdict(select_b2_evidence_source(intent)))
 
 
 def _mutation(*, attempted: bool, reason: str, result: dict[str, object] | None = None) -> dict[str, object]:
@@ -209,19 +216,7 @@ def _compat_uncertainty_level_from_exactness_posture(exactness_posture: str) -> 
     return "low" if exactness_posture == "exact" else "moderate"
 
 
-def _compat_ledger_status_from_runtime_item_result(item: dict[str, object]) -> str:
-    exactness_posture = str(item.get("exactness_posture") or "").strip()
-    evidence_used = item.get("evidence_used") or []
-    has_accepted_estimate_projection = (
-        bool(evidence_used)
-        and exactness_posture in {"estimated", "provisional", "exact"}
-        and (item.get("likely_kcal") is not None or item.get("kcal_range") is not None)
-    )
-    return "included" if has_accepted_estimate_projection else "excluded_pending_info"
-
-
 def _bridge_runtime_item_result_for_readiness(item: dict[str, object]) -> dict[str, object]:
-    # Compatibility projection only: this bridge must not become a second schema or truth owner.
     interpreted_food_identity = str(item.get("interpreted_food_identity") or "").strip()
     exactness_posture = str(item.get("exactness_posture") or "").strip()
     return {
@@ -237,8 +232,36 @@ def _bridge_runtime_item_result_for_readiness(item: dict[str, object]) -> dict[s
         "rejected_candidates": list(item.get("rejected_candidates") or []),
         "uncertainty_reason": item.get("uncertainty_reason"),
         "suggested_followup_question": item.get("suggested_followup_question"),
-        "ledger_status": _compat_ledger_status_from_runtime_item_result(item),
     }
+
+
+def _apply_final_mapping(
+    item_results: list[dict[str, object]],
+    *,
+    mutation: dict[str, object],
+) -> list[dict[str, object]]:
+    interaction_type = _interaction_type_from_mutation(mutation)
+    canonical_write_decision = {
+        "can_write_canonical": bool(mutation.get("mutation_attempted") and mutation.get("mutation_result") is not None)
+    }
+    mapped_results: list[dict[str, object]] = []
+    for item in item_results:
+        mapped = dict(item)
+        final_mapping = map_b2_final_item_result(
+            mapped,
+            canonical_write_decision=canonical_write_decision,
+            interaction_type=interaction_type,
+        )
+        mapped["final_mapping"] = final_mapping
+        mapped["ledger_status"] = final_mapping["ledger_status"]
+        mapped_results.append(mapped)
+    return mapped_results
+
+
+def _interaction_type_from_mutation(mutation: dict[str, object]) -> str:
+    if mutation.get("mutation_attempted") is False and mutation.get("reason") == "no_mutation_intent":
+        return "nutrition_info_query"
+    return "food_logging"
 
 
 def _runtime_generic_case(
@@ -265,6 +288,7 @@ def _runtime_generic_case(
         packets,
         item_results,
         producer_trace=_producer_trace("runtime_backed", "generic_anchor"),
+        source_selection=_source_selection_trace(intent),
         mutation=mutation,
         final_response=final_response,
     )
@@ -297,6 +321,7 @@ def _runtime_clarify_case_with_taiwan_skill_compat(
         [compatibility_packet],
         item_results,
         producer_trace=_producer_trace("runtime_backed", "clarify_support"),
+        source_selection=_source_selection_trace(intent),
         mutation=mutation,
         final_response=final_response,
     )
@@ -326,6 +351,7 @@ def _runtime_exact_item_case(
         packets,
         item_results,
         producer_trace=_producer_trace("runtime_backed", "exact_item_card"),
+        source_selection=_source_selection_trace(intent),
         mutation=mutation,
         final_response=final_response,
     )
@@ -360,6 +386,7 @@ def _runtime_web_rejection_case(
         packets,
         item_results,
         producer_trace=_producer_trace("runtime_backed", "web_search_rejection"),
+        source_selection=_source_selection_trace(intent),
         mutation=mutation,
         final_response=final_response,
     )
@@ -427,6 +454,7 @@ def _runtime_selected_extract_exact_positive_case(
         [*search_packets, *extract_packets],
         item_results,
         producer_trace=_producer_trace("runtime_backed", "selected_extract_exact_positive"),
+        source_selection=_source_selection_trace(intent),
         mutation=mutation,
         final_response=final_response,
         extract_policy=extract_policy.to_trace(),
@@ -485,6 +513,7 @@ def _runtime_listed_item_fanout_case(
         packets,
         item_results,
         producer_trace=_producer_trace("runtime_backed", "listed_item_runtime_fanout"),
+        source_selection=_source_selection_trace(intent),
         mutation=mutation,
         final_response=final_response,
         extra_case_trace={"listed_item_fanout": {"resolutions": resolution_trace}},
@@ -498,6 +527,7 @@ def _case(
     item_results: list[dict[str, object]],
     *,
     producer_trace: dict[str, object] | None = None,
+    source_selection: dict[str, object] | None = None,
     mutation: dict[str, object] | None = None,
     final_response: str = "已根據 renderer input 回覆。",
     extract_policy: dict[str, object] | None = None,
@@ -508,6 +538,7 @@ def _case(
         reason="guard_approved_logging",
         result={"truth_level": "mutation_result", "ledger_item_ids": [f"item_{case_id}"]},
     )
+    item_results = _apply_final_mapping(item_results, mutation=mutation)
     renderer_input = {
         "allowed_facts": ["估算", "先記一筆粗估", "資料顯示", "缺少滷味品項"],
         "forbidden_claims": ["facts outside item_results", "unsupported exact kcal"],
@@ -518,6 +549,7 @@ def _case(
         "case_id": case_id,
         "input_message": input_message,
         "producer_trace": producer_trace,
+        "source_selection": source_selection,
         "packets": packets,
         "manager_pass_2": {"item_results": item_results},
         "extract_policy": extract_policy
