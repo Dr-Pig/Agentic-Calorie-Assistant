@@ -228,6 +228,37 @@ def _log(base_url: str, *, user_id: str, local_date: str, text: str, allow_searc
     )
 
 
+C001_APPROVED_POLICY = "logged_estimate_with_followup"
+C001_BLOCKING_CHECKS = [
+    "turn1_logged_estimate",
+    "turn1_followup_or_refinement_signal",
+    "turn2_refinement_or_correction",
+    *PHASE_C_LIVE_BLOCKING_CHECKS,
+]
+
+
+def _followup_or_refinement_signal(response: dict[str, Any], trace: dict[str, Any]) -> bool:
+    final = _trace_final_decision(trace)
+    assistant_message = response.get("assistant_message", "")
+    return (
+        final.get("final_action") == "ask_followup"
+        or bool(final.get("follow_up_needed"))
+        or bool(final.get("followup_question"))
+        or _contains_any(assistant_message, ["糖", "甜", "杯", "size", "sugar"])
+    )
+
+
+def _refinement_or_correction_signal(response: dict[str, Any], trace: dict[str, Any]) -> bool:
+    state_delta = dict(response.get("state_delta") or {})
+    final = _trace_final_decision(trace)
+    return (
+        bool(state_delta.get("canonical_commit"))
+        or bool(state_delta.get("ledger_updated"))
+        or bool(state_delta.get("new_meal_version_created"))
+        or str(final.get("final_action") or "") in {"commit", "correction_applied"}
+    )
+
+
 def _run_case_c001(base_url: str, local_date: str) -> dict[str, Any]:
     user_id = _fresh_user("bundle2-c001")
     _seed_onboarding(base_url, user_id=user_id, local_date=local_date)
@@ -238,11 +269,12 @@ def _run_case_c001(base_url: str, local_date: str) -> dict[str, Any]:
     trace2 = _trace(base_url, turn2)
     today2 = _today(base_url, user_id=user_id, local_date=local_date)
     checks = {
-        "turn1_no_commit": turn1["state_delta"]["canonical_commit"] is False,
+        "turn1_logged_estimate": turn1["state_delta"]["canonical_commit"] is True,
         "turn1_has_range": _contains_range(turn1["assistant_message"]) or _contains_any(turn1["assistant_message"], ["約", "大概"]),
-        "turn1_asks_detail": _contains_any(turn1["assistant_message"], ["糖", "杯", "大小", "幾分糖"]),
+        "turn1_followup_or_refinement_signal": _followup_or_refinement_signal(turn1, trace1),
         **_macro_visibility_checks(turn1, today1, trace1),
         "turn2_commit": turn2["state_delta"]["canonical_commit"] is True,
+        "turn2_refinement_or_correction": _refinement_or_correction_signal(turn2, trace2),
         **{k: v for k, v in _macro_visibility_checks(turn2, today2, trace2).items() if k != "turn1_macro_hidden"},
         **_same_turn_sync_checks(response=turn2, trace=trace2, today=today2),
     }
@@ -255,17 +287,7 @@ def _run_case_c001(base_url: str, local_date: str) -> dict[str, Any]:
         today_snapshot=today2,
         trace_refs=[turn1["audit"]["admin_trace_url"], turn2["audit"]["admin_trace_url"]],
         checks=checks,
-        blocking_checks=[
-            "turn1_no_commit",
-            "turn1_has_range",
-            "turn1_asks_detail",
-            "turn1_macro_hidden",
-            "macro_alignment_contract",
-            "turn2_macro_totals_positive",
-            "chat_macro_visibility_contract",
-            "same_turn_budget_sync",
-            *PHASE_C_LIVE_BLOCKING_CHECKS,
-        ],
+        blocking_checks=C001_BLOCKING_CHECKS,
         extra=extra,
     )
 

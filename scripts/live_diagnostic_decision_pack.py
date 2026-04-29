@@ -21,10 +21,10 @@ _PRODUCT_DECISION_TEMPLATES: tuple[dict[str, Any], ...] = (
     {
         "decision_id": "pearl_milk_tea_missing_sugar_size",
         "case": "Pearl milk tea with missing sugar level and size.",
-        "current_spec_posture": "estimate_with_followup may stay draft unless commit boundary says estimable.",
-        "decision_needed": "Should this be draft + follow-up or logged estimate + follow-up?",
+        "current_spec_posture": "Approved: missing sugar/size pearl milk tea is estimable and may log with strong follow-up.",
+        "decision_needed": "Resolved: logged estimate + follow-up refinement.",
         "options": ["draft_with_followup", "logged_estimate_with_followup"],
-        "recommended_option": "draft_with_followup_until_founder_approved",
+        "recommended_option": "logged_estimate_with_followup",
         "affected_runtime_surfaces": ["ClarificationDecision", "CommitBoundaryDecision", "Phase C same-truth"],
         "affected_tests": ["MS2", "MS7", "founder_human_gate"],
         "affected_copy": ["intake follow-up wording", "logged/draft honesty wording"],
@@ -130,6 +130,18 @@ _PRODUCT_DECISION_TEMPLATES: tuple[dict[str, Any], ...] = (
     },
 )
 
+_APPROVED_PRODUCT_DECISIONS: dict[str, dict[str, Any]] = {
+    "pearl_milk_tea_missing_sugar_size": {
+        "status": "approved",
+        "selected_policy": "logged_estimate_with_followup",
+        "approval_source": "user_approved_product_semantics",
+        "supersedes_stale_expectations": [
+            "old_c001_draft_first_oracle",
+            "pending_decision_pack_status",
+        ],
+    }
+}
+
 
 def _dict(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
@@ -199,16 +211,25 @@ def build_product_semantic_decision_pack(
         observation = _dict(observed.get(str(decision["decision_id"])))
         decision["observed_system_behavior"] = observation.get("observed_system_behavior", "not_observed")
         decision["observed_live_llm_behavior"] = observation.get("observed_live_llm_behavior", "not_observed")
-        decision["requires_user_approval"] = True
-        decision["status"] = "pending"
+        approved = _dict(_APPROVED_PRODUCT_DECISIONS.get(str(decision["decision_id"])))
+        if approved:
+            decision.update(approved)
+            decision["requires_user_approval"] = False
+        else:
+            decision["requires_user_approval"] = True
+            decision["status"] = "pending"
         decision["canonicalizes_product_semantics"] = False
         decisions.append(decision)
+    pending_count = sum(1 for decision in decisions if decision.get("status") == "pending")
+    approved_count = sum(1 for decision in decisions if decision.get("status") == "approved")
     return {
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "pack_type": "product_semantic_decision_pack",
-        "pack_status": "pending_user_decision",
+        "pack_status": "pending_user_decision" if pending_count else "approved",
         "canonicalizes_product_semantics": False,
         "decision_count": len(decisions),
+        "pending_decision_count": pending_count,
+        "approved_decision_count": approved_count,
         "decisions": decisions,
     }
 
@@ -220,7 +241,9 @@ def build_live_diagnostic_macro_report(
     b2_live_llm_diagnostic: dict[str, Any],
     product_semantic_decision_pack: dict[str, Any],
 ) -> dict[str, Any]:
-    product_decision_required = bool(_list(product_semantic_decision_pack.get("decisions")))
+    product_decision_required = any(
+        _dict(decision).get("status") == "pending" for decision in _list(product_semantic_decision_pack.get("decisions"))
+    )
     phase_c_readiness = {
         "status": phase_c_gate_status,
         "readiness_pass": phase_c_gate_status not in {"hard_fail", "flagged"},

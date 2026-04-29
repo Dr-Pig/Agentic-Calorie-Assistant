@@ -22,6 +22,11 @@ def determine_meal_status(
     blocking_slots = [str(item) for item in trace_contract.get("blocking_slots", []) if str(item).strip()]
     unresolved_info = [str(item) for item in trace_contract.get("unresolved_info", []) if str(item).strip()]
     has_followup = bool(trace_contract.get("followup_question")) or bool(unresolved_info)
+    canonical_write_decision = trace_contract.get("canonical_write_decision")
+    canonical_write_allowed = (
+        isinstance(canonical_write_decision, dict)
+        and canonical_write_decision.get("can_write_canonical") is True
+    )
     exact_like = str(trace_contract.get("db_hit_type") or "") == "exact_truth" or str(
         quality_signals.get("estimate_mode") or ""
     ) == "exact_item"
@@ -35,7 +40,12 @@ def determine_meal_status(
         return "draft_unresolved"
     if route_family == "component_driven_meal" and (has_followup or missing_slots):
         return "draft_unresolved"
-    if payload_action_taken in {"clarify_before_estimate", "answer_with_uncertainty"} and has_followup and not exact_like:
+    if (
+        payload_action_taken in {"clarify_before_estimate", "answer_with_uncertainty"}
+        and has_followup
+        and not exact_like
+        and not canonical_write_allowed
+    ):
         return "draft_unresolved"
     if estimated_kcal > 0:
         return "completed_meal"

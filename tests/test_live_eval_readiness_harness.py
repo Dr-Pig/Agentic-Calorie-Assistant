@@ -106,6 +106,15 @@ def test_bundle2_live_runner_can_attach_phase_c_readiness_to_case_checks() -> No
     assert extra["phase_c_live_readiness"]["readiness_pass"] is True
 
 
+def test_c001_oracle_uses_approved_logged_followup_policy() -> None:
+    from scripts import run_v2_bundle2_live_eval as runner
+
+    assert runner.C001_APPROVED_POLICY == "logged_estimate_with_followup"
+    assert "turn1_logged_estimate" in runner.C001_BLOCKING_CHECKS
+    assert "turn1_no_commit" not in runner.C001_BLOCKING_CHECKS
+    assert "turn2_refinement_or_correction" in runner.C001_BLOCKING_CHECKS
+
+
 def test_live_runner_case_selection_supports_single_case_and_shard_modes() -> None:
     from scripts import run_v2_bundle2_live_eval as runner
 
