@@ -4,6 +4,8 @@ Use it as a map, not a handbook. Load the minimum path first, then retrieve deep
 
 [docs/V2_DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/V2_DOC_INDEX.md) owns document taxonomy, file-role mapping, and longer navigation guidance. [docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md) owns the product-wide anti-drift operating layer. `AGENTS.md` only owns bootstrap order, always-on repo rules, and conditional-read triggers.
 
+Before any plan or edit, first classify whether this is a capability-order trap, architecture-boundary trap, both, or neither; if either may apply, pause and use the relevant skill before choosing files, tests, classes, eval fixes, or local next steps.
+
 ## Truth Hierarchy
 
 Default truth families are:
