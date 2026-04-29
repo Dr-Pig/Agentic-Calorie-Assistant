@@ -115,6 +115,18 @@ def test_c001_oracle_uses_approved_logged_followup_policy() -> None:
     assert "turn2_refinement_or_correction" in runner.C001_BLOCKING_CHECKS
 
 
+def test_c001_active_docs_no_longer_require_draft_first_turn_one() -> None:
+    bundle2 = (ROOT / "docs/quality/V2_EVAL_BUNDLE_2_CASES.md").read_text(encoding="utf-8-sig")
+    c001_section = bundle2.split("#### C-001", 1)[1].split("#### C-002", 1)[0]
+
+    assert "state_delta.canonical_commit` 應為 `true`" in c001_section
+    assert "turn 1 no longer requires `canonical_commit=false`" in c001_section
+    assert "precision/refinement" in c001_section
+    assert "state_delta.canonical_commit` 應為 `false`" not in c001_section
+    assert "today.consumed_kcal == 0" not in c001_section
+    assert "draft 尚未 commit" not in c001_section
+
+
 def test_live_runner_case_selection_supports_single_case_and_shard_modes() -> None:
     from scripts import run_v2_bundle2_live_eval as runner
 

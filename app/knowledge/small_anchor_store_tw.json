@@ -1,0 +1,137 @@
+{
+  "anchors": [
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "single_item_tea_egg",
+      "canonical_name": "\u8336\u8449\u86cb",
+      "aliases": ["\u8336\u8449\u86cb"],
+      "dish_type": "single_item",
+      "composition_posture": "single_item",
+      "variance_level": "low",
+      "semantic_hints": ["stable_single_item"],
+      "followup_hints": [],
+      "clarify_required": false,
+      "baseline_kcal_range": [70, 90],
+      "baseline_likely_kcal": 80,
+      "major_modifiers": [],
+      "composition_hints": ["egg"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "custom_drink_boba_milk_tea",
+      "canonical_name": "\u73cd\u73e0\u5976\u8336",
+      "aliases": ["\u73cd\u73e0\u5976\u8336"],
+      "dish_type": "customizable_drink",
+      "composition_posture": "estimable_with_modifier_refinement",
+      "variance_level": "high",
+      "semantic_hints": ["customizable_drink"],
+      "followup_hints": ["ask_sugar_level", "ask_cup_size"],
+      "clarify_required": false,
+      "baseline_kcal_range": [350, 550],
+      "baseline_likely_kcal": 450,
+      "major_modifiers": [
+        {"name": "sugar_level", "values": ["unsweetened", "half_sugar", "full_sugar"]},
+        {"name": "cup_size", "values": ["small", "medium", "large"]}
+      ],
+      "composition_hints": ["milk_tea", "tapioca_pearls"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_meal_chicken_bento",
+      "canonical_name": "\u96de\u817f\u4fbf\u7576",
+      "aliases": ["\u4fbf\u7576", "\u96de\u817f\u4fbf\u7576"],
+      "dish_type": "generic_meal",
+      "composition_posture": "estimable_generic_meal",
+      "variance_level": "moderate",
+      "semantic_hints": ["bento"],
+      "followup_hints": ["ask_main_style", "ask_rice_portion"],
+      "clarify_required": false,
+      "baseline_kcal_range": [650, 900],
+      "baseline_likely_kcal": 780,
+      "major_modifiers": [
+        {"name": "main_style", "values": ["fried", "braised"]},
+        {"name": "rice_portion", "values": ["half", "full"]}
+      ],
+      "composition_hints": ["rice", "protein", "side_dishes"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "stable_base_beef_noodle",
+      "canonical_name": "\u725b\u8089\u9eb5",
+      "aliases": ["\u725b\u8089\u9eb5"],
+      "dish_type": "stable_base_variable_dish",
+      "composition_posture": "stable_base_variable_dish",
+      "variance_level": "moderate",
+      "semantic_hints": ["noodle_soup"],
+      "followup_hints": ["ask_noodle_amount", "ask_addons", "ask_portion"],
+      "clarify_required": false,
+      "baseline_kcal_range": [550, 850],
+      "baseline_likely_kcal": 700,
+      "major_modifiers": [
+        {"name": "noodle_amount", "values": ["small", "regular", "large"]},
+        {"name": "addons", "values": ["none", "extra_meat", "extra_noodles"]}
+      ],
+      "composition_hints": ["noodles", "beef", "broth"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_tofu_dried",
+      "canonical_name": "\u8c46\u5e72",
+      "aliases": ["\u8c46\u5e72"],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "low",
+      "semantic_hints": ["luwei_component"],
+      "followup_hints": [],
+      "clarify_required": false,
+      "baseline_kcal_range": [70, 120],
+      "baseline_likely_kcal": 95,
+      "major_modifiers": [],
+      "composition_hints": ["soy_product"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_kelp",
+      "canonical_name": "\u6d77\u5e36",
+      "aliases": ["\u6d77\u5e36"],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "low",
+      "semantic_hints": ["luwei_component"],
+      "followup_hints": [],
+      "clarify_required": false,
+      "baseline_kcal_range": [20, 60],
+      "baseline_likely_kcal": 40,
+      "major_modifiers": [],
+      "composition_hints": ["seaweed"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_meatball",
+      "canonical_name": "\u8ca2\u4e38",
+      "aliases": ["\u8ca2\u4e38"],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "moderate",
+      "semantic_hints": ["luwei_component"],
+      "followup_hints": [],
+      "clarify_required": false,
+      "baseline_kcal_range": [45, 90],
+      "baseline_likely_kcal": 65,
+      "major_modifiers": [],
+      "composition_hints": ["processed_meatball"]
+    },
+    {
+      "record_kind": "generic_semantic_only",
+      "canonical_name": "\u6ef7\u5473",
+      "aliases": ["\u6ef7\u5473"],
+      "dish_type": "composition_unknown_basket",
+      "composition_posture": "composition_unknown_basket",
+      "variance_level": "high",
+      "semantic_hints": ["self_selected_basket"],
+      "followup_hints": ["ask_listed_items", "ask_portion"],
+      "clarify_required": true,
+      "unresolved_reason": "composition_unknown_basket_requires_listed_items"
+    }
+  ]
+}

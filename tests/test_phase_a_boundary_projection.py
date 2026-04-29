@@ -51,7 +51,7 @@ def _payload(
     )
 
 
-def test_pearl_milk_tea_turn_one_projects_estimate_with_followup_draft() -> None:
+def test_estimate_with_followup_projects_draft_when_write_owner_blocks_it() -> None:
     payload = _payload(
         meal_title="pearl milk tea",
         estimated_kcal=450,

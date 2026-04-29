@@ -35,6 +35,29 @@ Hard rules:
 - when eval assets and intended product behavior diverge, resolve the product invariant first, then realign eval governance and oracles explicitly
 - manager, tool, and guard design must be justified in terms of user-visible behavior, truth ownership, latency, and honesty, not merely by making a fixture pass
 
+## Strategic Sequencing Gate
+
+Before approving, planning, or implementing any non-trivial slice, first decide whether the slice is on the current mainline or is a detour.
+
+Do not approve a slice only because it is locally correct.
+
+Every non-trivial plan must declare:
+
+```yaml
+current_mainline:
+is_detour: true | false
+blocked_mainline:
+detour_reason:
+detour_exit_gate:
+exit_gate_status:
+return_slice_after_exit:
+strategic_verdict: mainline | allowed_detour | stop_and_return
+```
+
+If `is_detour=false`, detour-only fields such as `blocked_mainline`, `detour_reason`, and `detour_exit_gate` should be `null` or `not_applicable`; record the active risk as `mainline_blocker_being_removed` instead.
+
+If a detour exit gate is green, return to the blocked mainline unless new evidence proves another blocker.
+
 ## Capability Dependency Build Order
 
 Do not use product journey order or local slice momentum as implementation order.

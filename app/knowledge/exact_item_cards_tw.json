@@ -1,0 +1,49 @@
+{
+  "cards": [
+    {
+      "item_id": "exact_unified_chocolate_milk_400ml",
+      "title": "\u7d71\u4e00\u5de7\u514b\u529b\u725b\u4e73(400ml)",
+      "aliases": ["\u7d71\u4e00\u5de7\u514b\u529b\u725b\u4e73 400ml", "\u7d71\u4e00\u5de7\u514b\u529b\u725b\u4e73(400ml)"],
+      "brand": "\u7d71\u4e00",
+      "serving_basis": "400ml",
+      "kcal": 300,
+      "kcal_band": "per_package"
+    },
+    {
+      "item_id": "exact_starbucks_latte_iced_large",
+      "title": "\u661f\u5df4\u514b \u90a3\u5802(\u51b0) \u5927\u676f",
+      "aliases": ["\u661f\u5df4\u514b\u51b0\u90a3\u5802\u5927\u676f", "\u661f\u5df4\u514b \u51b0\u90a3\u5802 \u5927\u676f"],
+      "brand": "\u661f\u5df4\u514b",
+      "serving_basis": "\u5927\u676f",
+      "kcal": 154,
+      "kcal_band": "per_cup"
+    },
+    {
+      "item_id": "exact_starbucks_latte_hot_medium",
+      "title": "\u661f\u5df4\u514b \u90a3\u5802(\u71b1) \u4e2d\u676f",
+      "aliases": ["\u661f\u5df4\u514b\u71b1\u90a3\u5802\u4e2d\u676f"],
+      "brand": "\u661f\u5df4\u514b",
+      "serving_basis": "\u4e2d\u676f",
+      "kcal": 180,
+      "kcal_band": "per_cup"
+    },
+    {
+      "item_id": "exact_sushiro_caramel_fish_two_piece",
+      "title": "\u722d\u9bae \u7126\u7cd6\u9bae\u9b5a(\u5169\u8cab)",
+      "aliases": ["\u722d\u9bae\u8ff4\u8f49\u58fd\u53f8\u7684\u300c\u7126\u7cd6\u9bae\u9b5a\u300d\uff08\u5169\u8cab\uff09", "\u722d\u9bae\u7126\u7cd6\u9bae\u9b5a\u5169\u8cab"],
+      "brand": "\u722d\u9bae",
+      "serving_basis": "\u5169\u8cab",
+      "kcal": 130,
+      "kcal_band": "per_two_piece"
+    },
+    {
+      "item_id": "exact_matsuya_tokumori_gyudon",
+      "title": "\u677e\u5c4b\u7279\u76db\u725b\u4e3c",
+      "aliases": ["\u677e\u5c4b\u7279\u76db\u725b\u4e3c", "\u677e\u5c4b \u7279\u76db \u725b\u4e3c"],
+      "brand": "\u677e\u5c4b",
+      "serving_basis": "\u7279\u76db",
+      "kcal": 1350,
+      "kcal_band": "per_bowl"
+    }
+  ]
+}

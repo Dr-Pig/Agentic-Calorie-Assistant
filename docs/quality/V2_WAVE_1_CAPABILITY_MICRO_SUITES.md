@@ -331,8 +331,8 @@
 - 資訊足夠 → 應 commit，不可無限卡 draft
 
 ### 典型案例
-- 「珍珠奶茶」第一輪 → draft
-- 「半糖大杯」第二輪 → commit
+- 「珍珠奶茶」第一輪 → logged estimate + follow-up when the owner allows canonical write
+- 「半糖大杯」第二輪 → refinement/correction of the logged estimate
 - 「炒青菜和白飯一碗」→ 直接 commit
 
 ### 驗證方式

@@ -494,6 +494,64 @@ def _check_producer_trace(case: dict[str, Any], blockers: list[dict[str, str]]) 
     }
 
 
+SOURCE_SELECTION_PATHS = {"exact_db", "generic_anchor", "listed_item_fanout", "ask_user"}
+SOURCE_SELECTION_EVIDENCE = {
+    "exact_item_card",
+    "generic_anchor_packet",
+    "generic_anchor_packet_per_listed_item",
+    "clarify_support",
+}
+SOURCE_SELECTION_POLICY_STATUS = {"source_selection_only", "pending_or_provisional"}
+
+
+def _check_source_selection(case: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    selection = case.get("source_selection")
+    if not isinstance(selection, dict):
+        _add(blockers, "source_selection_missing", "Official B-2 producer cases must include source_selection from the B2 source-selection owner.")
+        return {"missing": True, "passed": False}
+
+    missing = [
+        field
+        for field in (
+            "source_path",
+            "evidence_required",
+            "reason",
+            "web_allowed",
+            "read_only",
+            "mutation_allowed",
+            "decides_logged_or_draft",
+            "product_policy_status",
+        )
+        if field not in selection
+    ]
+    if missing:
+        _add(blockers, "source_selection_incomplete", "source_selection must expose path, evidence, web, read-only, mutation, and ownership fields.")
+
+    if selection.get("source_path") not in SOURCE_SELECTION_PATHS:
+        _add(blockers, "source_selection_path_invalid", "source_selection.source_path must use the B2 source-selection enum.")
+    if selection.get("evidence_required") not in SOURCE_SELECTION_EVIDENCE:
+        _add(blockers, "source_selection_evidence_invalid", "source_selection.evidence_required must use the B2 evidence enum.")
+    if selection.get("product_policy_status") not in SOURCE_SELECTION_POLICY_STATUS:
+        _add(blockers, "source_selection_policy_status_invalid", "source_selection must declare source-only or pending/provisional policy status.")
+    if selection.get("web_allowed") is not False:
+        _add(blockers, "source_selection_web_activation_forbidden", "B2 deterministic closure must not activate web from source selection.")
+    if selection.get("decides_logged_or_draft") is not False:
+        _add(blockers, "source_selection_semantic_owner_forbidden", "Source selection must not decide logged/draft semantics.")
+    if selection.get("read_only") is True and selection.get("mutation_allowed") is not False:
+        _add(blockers, "source_selection_query_mutation_allowed", "Read-only source selection must not allow mutation.")
+
+    passed = (
+        not missing
+        and selection.get("source_path") in SOURCE_SELECTION_PATHS
+        and selection.get("evidence_required") in SOURCE_SELECTION_EVIDENCE
+        and selection.get("product_policy_status") in SOURCE_SELECTION_POLICY_STATUS
+        and selection.get("web_allowed") is False
+        and selection.get("decides_logged_or_draft") is False
+        and not (selection.get("read_only") is True and selection.get("mutation_allowed") is not False)
+    )
+    return {"missing": False, "missing_fields": missing, "passed": passed}
+
+
 def _check_listed_item_fanout(case: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
     trace = case.get("listed_item_fanout")
     producer_trace = case.get("producer_trace")
@@ -709,10 +767,27 @@ def _check_manager_pass_2(case: dict[str, Any], blockers: list[dict[str, str]]) 
     unresolved_ledger_violations: list[dict[str, Any]] = []
     exactness_violations: list[dict[str, Any]] = []
     rejected_candidate_violations: list[dict[str, Any]] = []
+    final_mapping_violations: list[dict[str, Any]] = []
     item_results = ((case.get("manager_pass_2") or {}).get("item_results") or [])
     for item_index, item in enumerate(item_results):
         if not isinstance(item, dict):
             continue
+        final_mapping = item.get("final_mapping")
+        if not isinstance(final_mapping, dict):
+            _add(blockers, "b2_final_mapping_missing", "Manager Pass 2 item_results must carry B2 final_mapping from the B2 final mapping owner.")
+            final_mapping_violations.append({"item_index": item_index, "reason": "missing"})
+        elif final_mapping.get("final_mapping_owner") != "b2_final_mapping":
+            _add(blockers, "b2_final_mapping_owner_invalid", "final_mapping must be owned by b2_final_mapping.")
+            final_mapping_violations.append({"item_index": item_index, "owner": final_mapping.get("final_mapping_owner")})
+        elif item.get("ledger_status") != final_mapping.get("ledger_status"):
+            _add(blockers, "b2_final_mapping_ledger_status_mismatch", "ledger_status must be derived from B2 final_mapping, not compatibility helper logic.")
+            final_mapping_violations.append(
+                {
+                    "item_index": item_index,
+                    "ledger_status": item.get("ledger_status"),
+                    "final_mapping_ledger_status": final_mapping.get("ledger_status"),
+                }
+            )
         evidence_confidence = item.get("evidence_confidence")
         exactness_posture = item.get("exactness_posture")
         if evidence_confidence not in EVIDENCE_CONFIDENCE:
@@ -823,7 +898,12 @@ def _check_manager_pass_2(case: dict[str, Any], blockers: list[dict[str, str]]) 
         "exactness_violations": exactness_violations,
         "unresolved_ledger_violations": unresolved_ledger_violations,
         "rejected_candidate_violations": rejected_candidate_violations,
-        "passed": not invalid_evidence and not exactness_violations and not unresolved_ledger_violations and not rejected_candidate_violations,
+        "final_mapping_violations": final_mapping_violations,
+        "passed": not invalid_evidence
+        and not exactness_violations
+        and not unresolved_ledger_violations
+        and not rejected_candidate_violations
+        and not final_mapping_violations,
     }
 
 
@@ -921,6 +1001,133 @@ def _honesty_gate_status() -> dict[str, bool]:
     }
 
 
+REQUIRED_ARTIFACT_CHAIN_NODES = [
+    "source_selection",
+    "candidate_packets",
+    "exact_hard_recheck",
+    "packet_consumption",
+    "synthesis_item_results",
+    "final_mapping",
+    "readiness_summary",
+]
+PENDING_PRODUCT_POLICY_IDS = {
+    "homemade_dish_minimum_estimability",
+    "tavily_exact_brand_scope",
+    "llm_synthesis_trust_boundary",
+    "founder_human_e2e_required_journeys",
+}
+
+
+def _artifact_completeness_audit(
+    report_data: dict[str, Any],
+    *,
+    case_checks: list[dict[str, Any]],
+) -> dict[str, Any]:
+    missing_chain_nodes: list[dict[str, Any]] = []
+    rejected_packet_evidence_ref_violations: list[dict[str, Any]] = []
+    source_selection_semantic_owner_violations: list[dict[str, Any]] = []
+    producer_final_mapping_owner_violations: list[dict[str, Any]] = []
+    strict_exact_estimability_violations: list[dict[str, Any]] = []
+
+    for case in report_data.get("cases") or []:
+        if not isinstance(case, dict):
+            continue
+        case_id = case.get("case_id")
+        packets = _packets_by_id(case)
+        item_results = ((case.get("manager_pass_2") or {}).get("item_results") or [])
+        source_selection = case.get("source_selection")
+
+        if not isinstance(source_selection, dict):
+            missing_chain_nodes.append({"case_id": case_id, "node": "source_selection"})
+        elif source_selection.get("decides_logged_or_draft") is not False:
+            source_selection_semantic_owner_violations.append({"case_id": case_id})
+
+        if not packets:
+            missing_chain_nodes.append({"case_id": case_id, "node": "candidate_packets"})
+        elif any("supports_exact_claim" not in packet for packet in packets.values() if packet.get("source_type") in {"exact_db", "web_search", "web_extract", "generic_db"}):
+            missing_chain_nodes.append({"case_id": case_id, "node": "exact_hard_recheck"})
+
+        if not item_results:
+            missing_chain_nodes.append({"case_id": case_id, "node": "synthesis_item_results"})
+
+        rejected_ids = {
+            rejected.get("packet_id")
+            for item in item_results
+            if isinstance(item, dict)
+            for rejected in item.get("rejected_candidates") or []
+            if isinstance(rejected, dict) and isinstance(rejected.get("packet_id"), str)
+        }
+        evidence_ids = {
+            evidence.get("packet_id")
+            for item in item_results
+            if isinstance(item, dict)
+            for evidence in item.get("evidence_used") or []
+            if isinstance(evidence, dict) and isinstance(evidence.get("packet_id"), str)
+        }
+        for packet_id in sorted(rejected_ids.intersection(evidence_ids)):
+            rejected_packet_evidence_ref_violations.append({"case_id": case_id, "packet_id": packet_id})
+
+        for item_index, item in enumerate(item_results):
+            if not isinstance(item, dict):
+                continue
+            final_mapping = item.get("final_mapping")
+            if not isinstance(final_mapping, dict):
+                missing_chain_nodes.append({"case_id": case_id, "node": "final_mapping", "item_index": item_index})
+                continue
+            if final_mapping.get("final_mapping_owner") != "b2_final_mapping" or item.get("ledger_status") != final_mapping.get("ledger_status"):
+                producer_final_mapping_owner_violations.append({"case_id": case_id, "item_index": item_index})
+            for rejected in item.get("rejected_candidates") or []:
+                if not isinstance(rejected, dict):
+                    continue
+                if rejected.get("exact_claim_blocked") is True and rejected.get("estimability_blocked") is not False:
+                    strict_exact_estimability_violations.append(
+                        {"case_id": case_id, "packet_id": rejected.get("packet_id")}
+                    )
+
+    readiness_summary_present = bool(case_checks) and "phase" in report_data and "mode" in report_data
+    if not readiness_summary_present:
+        missing_chain_nodes.append({"case_id": None, "node": "readiness_summary"})
+
+    pending_policy_promotions = _pending_policy_promotions()
+    passed = (
+        not missing_chain_nodes
+        and not rejected_packet_evidence_ref_violations
+        and not source_selection_semantic_owner_violations
+        and not producer_final_mapping_owner_violations
+        and not strict_exact_estimability_violations
+        and not pending_policy_promotions
+    )
+    return {
+        "passed": passed,
+        "required_chain_nodes": REQUIRED_ARTIFACT_CHAIN_NODES,
+        "chain_complete": not missing_chain_nodes,
+        "missing_chain_nodes": missing_chain_nodes,
+        "rejected_packet_evidence_ref_violations": rejected_packet_evidence_ref_violations,
+        "source_selection_semantic_owner_violations": source_selection_semantic_owner_violations,
+        "producer_final_mapping_owner_violations": producer_final_mapping_owner_violations,
+        "strict_exact_estimability_violations": strict_exact_estimability_violations,
+        "pending_policy_promotions": pending_policy_promotions,
+    }
+
+
+def _pending_policy_promotions() -> list[dict[str, str]]:
+    register_path = ROOT / "docs" / "specs" / "WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md"
+    if not register_path.exists():
+        return []
+    text = register_path.read_text(encoding="utf-8-sig")
+    promotions: list[dict[str, str]] = []
+    for decision_id in PENDING_PRODUCT_POLICY_IDS:
+        marker = f"  {decision_id}:"
+        start = text.find(marker)
+        if start < 0:
+            continue
+        next_decision = text.find("\n  ", start + len(marker))
+        section = text[start:] if next_decision < 0 else text[start:next_decision]
+        if "status: approved" in section:
+            promotions.append({"decision_id": decision_id, "reason": "pending_policy_marked_approved"})
+    return promotions
+
+
 def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
     report_data = _read_json(phase_b2_report_path)
     blockers: list[dict[str, str]] = []
@@ -948,6 +1155,7 @@ def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
             "case_id": case.get("case_id"),
             "input_message": case.get("input_message"),
             "producer_trace": _check_producer_trace(case, blockers),
+            "source_selection": _check_source_selection(case, blockers),
             "listed_item_fanout": _check_listed_item_fanout(case, blockers),
             "selected_extract_exact_positive": _check_selected_extract_exact_positive(case, blockers),
             "packet_contract": _check_packet_contract(case, blockers),
@@ -959,6 +1167,10 @@ def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
         }
         checks["passed"] = len(blockers) == before
         case_checks.append(checks)
+
+    artifact_completeness_audit = _artifact_completeness_audit(report_data, case_checks=case_checks)
+    if not artifact_completeness_audit["passed"]:
+        _add(blockers, "artifact_completeness_audit_failed", "B2 artifact completeness audit must pass before live LLM diagnostic.")
 
     ready = not blockers
     report = {
@@ -976,6 +1188,7 @@ def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
         "b1_green_handoff_snapshot": _json_safe(report_data.get("b1_green_handoff_snapshot")),
         "b1_green_handoff_check": b1_green_handoff_check,
         "honesty_gate_status": _honesty_gate_status(),
+        "artifact_completeness_audit": artifact_completeness_audit,
         "case_checks": case_checks,
         "recommended_next_steps_ordered": (
             ["proceed_to_phase_b2_evidence_synthesis_implementation"]

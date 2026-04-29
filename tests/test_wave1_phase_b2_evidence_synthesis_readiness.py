@@ -237,12 +237,65 @@ def test_valid_phase_b2_evidence_synthesis_fixture_is_ready(tmp_path: Path) -> N
         "insufficient_evidence_blocked": True,
     }
     assert report["b1_green_handoff_check"]["passed"] is True
+    audit = report["artifact_completeness_audit"]
+    assert audit["passed"] is True
+    assert audit["chain_complete"] is True
+    assert audit["required_chain_nodes"] == [
+        "source_selection",
+        "candidate_packets",
+        "exact_hard_recheck",
+        "packet_consumption",
+        "synthesis_item_results",
+        "final_mapping",
+        "readiness_summary",
+    ]
+    assert audit["rejected_packet_evidence_ref_violations"] == []
+    assert audit["source_selection_semantic_owner_violations"] == []
+    assert audit["producer_final_mapping_owner_violations"] == []
+    assert audit["strict_exact_estimability_violations"] == []
+    assert audit["pending_policy_promotions"] == []
+
+
+def test_artifact_completeness_audit_flags_rejected_packet_used_as_evidence(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        case = _case_by_id(data, "B2-009")
+        packet = case["packets"][0]
+        item = case["manager_pass_2"]["item_results"][0]
+        item["evidence_used"] = [_evidence(packet, usage="fallback")]
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    audit = report["artifact_completeness_audit"]
+    assert audit["passed"] is False
+    assert audit["rejected_packet_evidence_ref_violations"][0]["case_id"] == "B2-009"
+
+
+def test_artifact_completeness_audit_flags_strict_exact_as_estimability_blocker(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        rejected = _case_by_id(data, "B2-009")["manager_pass_2"]["item_results"][0]["rejected_candidates"][0]
+        rejected["estimability_blocked"] = True
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    audit = report["artifact_completeness_audit"]
+    assert audit["passed"] is False
+    assert audit["strict_exact_estimability_violations"][0]["case_id"] == "B2-009"
 
 
 def test_official_b2_producer_uses_runtime_path_for_runtime_backed_generic_cases() -> None:
     report = build_phase_b2_synthetic_smoke_report(b1_green_handoff_snapshot=_b1_green_handoff_snapshot())
 
     tea_egg = _case_by_id(report, "B2-001")
+    assert tea_egg["source_selection"] == {
+        "source_path": "generic_anchor",
+        "evidence_required": "generic_anchor_packet",
+        "reason": "generic_intent_uses_local_generic_anchor",
+        "web_allowed": False,
+        "read_only": False,
+        "mutation_allowed": True,
+        "decides_logged_or_draft": False,
+        "product_policy_status": "source_selection_only",
+    }
     assert tea_egg["producer_trace"] == {
         "backing_class": "runtime_backed",
         "support_basis": "generic_anchor",
@@ -257,6 +310,9 @@ def test_official_b2_producer_uses_runtime_path_for_runtime_backed_generic_cases
     assert tea_egg_item["evidence_used"][0]["packet_id"] == tea_egg["packets"][0]["packet_id"]
 
     boba_query = _case_by_id(report, "B2-008")
+    assert boba_query["source_selection"]["read_only"] is True
+    assert boba_query["source_selection"]["mutation_allowed"] is False
+    assert boba_query["source_selection"]["web_allowed"] is False
     assert boba_query["producer_trace"] == {
         "backing_class": "runtime_backed",
         "support_basis": "generic_anchor",
@@ -271,10 +327,31 @@ def test_official_b2_producer_uses_runtime_path_for_runtime_backed_generic_cases
     assert boba_query_item["evidence_used"][0]["packet_id"] == boba_query["packets"][0]["packet_id"]
 
 
+def test_official_b2_producer_consumes_final_mapping_owner_for_ledger_status() -> None:
+    report = build_phase_b2_synthetic_smoke_report(b1_green_handoff_snapshot=_b1_green_handoff_snapshot())
+
+    boba = _case_by_id(report, "B2-002")["manager_pass_2"]["item_results"][0]
+    assert boba["final_mapping"]["final_mapping_owner"] == "b2_final_mapping"
+    assert boba["final_mapping"]["external_outcome"] == "logged"
+    assert boba["final_mapping"]["followup_role"] == "precision_refinement"
+    assert boba["ledger_status"] == boba["final_mapping"]["ledger_status"] == "included"
+
+    luwei = _case_by_id(report, "B2-004")["manager_pass_2"]["item_results"][0]
+    assert luwei["final_mapping"]["external_outcome"] == "unresolved"
+    assert luwei["ledger_status"] == luwei["final_mapping"]["ledger_status"] == "excluded_pending_info"
+
+    boba_query = _case_by_id(report, "B2-008")["manager_pass_2"]["item_results"][0]
+    assert boba_query["final_mapping"]["external_outcome"] == "no_mutation_query"
+    assert boba_query["ledger_status"] == boba_query["final_mapping"]["ledger_status"] == "not_applicable"
+
+
 def test_official_b2_producer_keeps_taiwan_skill_compatibility_but_uses_runtime_clarify_output() -> None:
     report = build_phase_b2_synthetic_smoke_report(b1_green_handoff_snapshot=_b1_green_handoff_snapshot())
 
     luwei = _case_by_id(report, "B2-004")
+    assert luwei["source_selection"]["source_path"] == "ask_user"
+    assert luwei["source_selection"]["product_policy_status"] == "pending_or_provisional"
+    assert luwei["source_selection"]["decides_logged_or_draft"] is False
     assert luwei["producer_trace"] == {
         "backing_class": "runtime_backed",
         "support_basis": "clarify_support",
@@ -532,6 +609,24 @@ def test_evidence_used_missing_packet_id_blocks_readiness(tmp_path: Path) -> Non
     assert any(item["code"] == "evidence_used_missing_packet_ref" for item in report["blockers"])
 
 
+def test_missing_b2_final_mapping_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        _case_by_id(data, "B2-002")["manager_pass_2"]["item_results"][0].pop("final_mapping")
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "b2_final_mapping_missing" for item in report["blockers"])
+
+
+def test_ledger_status_not_owned_by_b2_final_mapping_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        _case_by_id(data, "B2-002")["manager_pass_2"]["item_results"][0]["ledger_status"] = "excluded_pending_info"
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "b2_final_mapping_ledger_status_mismatch" for item in report["blockers"])
+
+
 def test_rejected_sibling_candidate_missing_blocks_readiness(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
         _case_by_id(data, "B2-009")["manager_pass_2"]["item_results"][0]["rejected_candidates"] = []
@@ -550,6 +645,29 @@ def test_missing_producer_trace_blocks_readiness(tmp_path: Path) -> None:
     )
 
     assert any(item["code"] == "producer_trace_missing" for item in report["blockers"])
+
+
+def test_missing_source_selection_blocks_readiness(tmp_path: Path) -> None:
+    report = verify_phase_b2_readiness(
+        phase_b2_report_path=invalid_phase_b2_report_fixture(
+            tmp_path,
+            lambda data: _case_by_id(data, "B2-001").pop("source_selection"),
+        )
+    )
+
+    assert any(item["code"] == "source_selection_missing" for item in report["blockers"])
+
+
+def test_source_selection_cannot_activate_web_or_decide_logged_draft(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        selection = _case_by_id(data, "B2-001")["source_selection"]
+        selection["web_allowed"] = True
+        selection["decides_logged_or_draft"] = True
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "source_selection_web_activation_forbidden" for item in report["blockers"])
+    assert any(item["code"] == "source_selection_semantic_owner_forbidden" for item in report["blockers"])
 
 
 def test_synthetic_producer_trace_without_reason_blocks_readiness(tmp_path: Path) -> None:
@@ -837,10 +955,18 @@ def test_b1_green_handoff_snapshot_missing_blocks_readiness(tmp_path: Path) -> N
 
 
 def test_official_phase_b2_synthetic_producer_writes_latest_and_timestamped_artifacts(tmp_path: Path) -> None:
+    b1_readiness = _write_json(
+        tmp_path / "wave1_phase_b_minimal_tool_loop_readiness.json",
+        {
+            "ready_for_phase_b1_implementation": True,
+            "blockers": [],
+            "phase_b_report_path": "artifacts/phase_b1_full_smoke.json",
+        },
+    )
     outputs = write_phase_b2_synthetic_smoke_report(
         output_dir=tmp_path,
         stable_output_path=tmp_path / "wave1_phase_b2_evidence_synthesis_smoke.json",
-        b1_readiness_artifact_path=Path("artifacts/wave1_phase_b_minimal_tool_loop_readiness.json"),
+        b1_readiness_artifact_path=b1_readiness,
     )
 
     stable_path = Path(outputs["stable_output_path"])

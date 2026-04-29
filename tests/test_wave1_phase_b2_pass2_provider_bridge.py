@@ -86,6 +86,10 @@ async def test_b2_pass2_provider_bridge_uses_explicit_provider_item_results_with
     assert manager_pass_2["provider_params"]["model"] == "deepseek"
     assert manager_pass_2["provider_params"]["request_id"] == "fake-b2-pass2-req"
     assert manager_pass_2["mutation_attempted"] is False
+    assert manager_pass_2["mutation_authority"] is False
+    assert manager_pass_2["ledger_truth_authority"] is False
+    assert manager_pass_2["source_priority_authority"] is False
+    assert manager_pass_2["product_semantic_authority"] is False
 
 
 @pytest.mark.asyncio

@@ -155,9 +155,16 @@ Slice 14 live harness status:
 - hard-fail Phase C evidence may be recorded for diagnosis, but it blocks bundle readiness
 - this status does not change runtime behavior, provider adapters, Phase C enforcement, UI same-truth, B2 rollout, or `ShadowHypothesis` authority
 
+Wave 1 current mainline rebaseline:
+- Current Wave 1 mainline is B2 / Phase B semantic closure.
+- Completed Context Engineering, Phase A, Phase C, and live harness work is now baseline guardrail support, not the current mainline.
+- No further Phase A, Phase C, or live harness expansion should proceed unless it removes a proven blocker for B2 semantic closure.
+- The next mainline order is B2 final mapping closure, B2 evidence / packet / synthesis contract alignment, deterministic B2 semantic closure tests, packet-based B2 live LLM diagnostic, then exact-brand web trace-only canary.
+
 Product semantic decision pack status:
 - the live diagnostic macro-batch may collect evidence and prepare pending product decisions
 - the decision pack is not a canonical spec
+- canonical B2 product-semantic decisions live in `docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md`
 - pending product decisions must not be converted into guard behavior, test oracle truth, prompt policy, copy, or runtime semantics without explicit user approval
 - User-approved product semantic decisions supersede stale eval expectations; when they conflict, realign the case/oracle/report instead of forcing runtime to satisfy stale fixture shape
 - pearl milk tea missing sugar/size is approved as logged estimate plus follow-up; follow-up is a precision/refinement request and not a hidden commit gate

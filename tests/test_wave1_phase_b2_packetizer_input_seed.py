@@ -24,8 +24,8 @@ def test_anchor_candidate_maps_to_generic_packet_seed() -> None:
     assert seed.match_type == "generic"
     assert seed.canonical_name == "\u8336\u8449\u86cb"
     assert seed.serving_basis == "common_serving"
-    assert seed.kcal_range == (65, 85)
-    assert seed.likely_kcal == 75
+    assert seed.kcal_range == (70, 90)
+    assert seed.likely_kcal == 80
     assert seed.kcal is None
     assert seed.kcal_band is None
 
@@ -53,7 +53,7 @@ def test_exact_item_title_match_maps_to_exact_packet_seed() -> None:
     assert seed.match_type == "exact"
     assert seed.canonical_name == "\u677e\u5c4b\u7279\u76db\u725b\u4e3c"
     assert seed.serving_basis == "\u7279\u76db"
-    assert seed.kcal == 1045.0
+    assert seed.kcal == 1350.0
     assert seed.kcal_range is None
     assert seed.likely_kcal is None
 
