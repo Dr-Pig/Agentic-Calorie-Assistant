@@ -6,9 +6,7 @@ from sqlalchemy.orm import Session
 
 from ...runtime.application.execution_guard import validate_intake_persistence
 from . import manager_tools as tools
-
-
-COMMITTING_ACTIONS = {"commit", "correction_applied", "overshoot_note", "ask_followup"}
+from .final_action_mutation_classifier import final_action_has_persistence_effect
 
 
 def initial_state_mutation_summary() -> dict[str, bool]:
@@ -35,7 +33,7 @@ def persist_bundle2_artifact(
 ) -> Any | None:
     if nutrition_artifact is None or getattr(nutrition_artifact, "payload", None) is None:
         return None
-    if final_action not in COMMITTING_ACTIONS:
+    if not final_action_has_persistence_effect(final_action):
         return None
 
     start = now_ms()

@@ -4,12 +4,29 @@ import argparse
 from datetime import UTC, datetime
 import json
 from pathlib import Path
+import sys
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from app.nutrition.application.packet_mismatch_oracles import (
+    exact_claim_mismatch_risks,
+    packet_supports_exact_claim as _oracle_packet_supports_exact_claim,
+    sibling_variant_risk_present as _oracle_sibling_variant_risk_present,
+)
+
 DEFAULT_PHASE_B2_REPORT = ROOT / "artifacts" / "wave1_phase_b2_evidence_synthesis_smoke.json"
 DEFAULT_OUTPUT = ROOT / "artifacts" / "wave1_phase_b2_evidence_synthesis_readiness.json"
+EXPECTED_B1_HANDOFF_KEYS = (
+    "b1_gate_scope",
+    "smoke_artifact",
+    "readiness_artifact",
+    "ready_for_phase_b1_implementation",
+    "blockers",
+    "not_claiming",
+)
 
 REQUIRED_SMOKE_CASES = (
     "我吃了一顆茶葉蛋",
@@ -74,6 +91,18 @@ REQUIRED_GENERIC_SEED_FOODS = {"茶葉蛋", "珍珠奶茶", "便當", "豆干", 
 REQUIRED_SEED_FIELDS = ("food_name", "seed_type", "used_by_smoke_case", "fixture_only", "allowed_fields")
 GENERIC_SEED_ALLOWED_FIELDS = {"kcal_range", "likely_kcal", "macro_candidate"}
 LLM_PRIOR_ALLOWED_CONFIDENCE = {"weak", "insufficient"}
+PRODUCER_BACKING_CLASSES = {"runtime_backed", "synthetic_compatibility"}
+PRODUCER_SUPPORT_BASES = {
+    "generic_anchor",
+    "clarify_support",
+    "exact_item_card",
+    "web_search_rejection",
+    "listed_item_runtime_fanout",
+    "selected_extract_exact_positive",
+    "listed_item_synthetic",
+    "web_exact_positive_synthetic",
+}
+LISTED_ITEM_FANOUT_RESOLUTION_STATUSES = {"resolved", "unresolved"}
 
 
 def _json_safe(value: Any) -> Any:
@@ -123,19 +152,11 @@ def _contains_any_key(value: Any, keys: set[str]) -> str | None:
 
 
 def _sibling_risk_present(packet: dict[str, Any]) -> bool:
-    risk = packet.get("sibling_variant_risk")
-    if isinstance(risk, dict):
-        return bool(risk.get("present"))
-    return bool(risk)
+    return _oracle_sibling_variant_risk_present(packet)
 
 
 def _packet_supports_exact_claim(packet: dict[str, Any]) -> bool:
-    return (
-        packet.get("source_type") in EXACT_SOURCE_TYPES
-        and packet.get("source_quality_label") in EXACT_SOURCE_QUALITY
-        and packet.get("match_type") in SAME_ITEM_MATCH_TYPES
-        and not _sibling_risk_present(packet)
-    )
+    return _oracle_packet_supports_exact_claim(packet)
 
 
 def _packets_by_id(case: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -340,6 +361,41 @@ def _check_runtime_trace_parity(report: dict[str, Any], blockers: list[dict[str,
     return {"status": parity.get("status"), "passed": passed}
 
 
+def _check_b1_green_handoff_snapshot(report: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    snapshot = report.get("b1_green_handoff_snapshot")
+    if not isinstance(snapshot, dict):
+        _add(blockers, "b1_green_handoff_snapshot_missing", "Phase B-2 gate requires a B-1 green handoff snapshot.")
+        return {"missing": True, "passed": False}
+
+    missing = [field for field in EXPECTED_B1_HANDOFF_KEYS if field not in snapshot]
+    if missing:
+        _add(blockers, "b1_green_handoff_snapshot_incomplete", "B-1 green handoff snapshot must keep the canonical handoff fields.")
+
+    gate_scope_ok = snapshot.get("b1_gate_scope") == "Phase B-1 minimal tool-loop full natural-probe"
+    ready_ok = snapshot.get("ready_for_phase_b1_implementation") is True
+    blockers_empty = list(snapshot.get("blockers") or []) == []
+    not_claiming_ok = snapshot.get("not_claiming") == "whole Wave 1 completion"
+    smoke_artifact_ok = isinstance(snapshot.get("smoke_artifact"), str) and bool(str(snapshot.get("smoke_artifact")).strip())
+    readiness_artifact_ok = isinstance(snapshot.get("readiness_artifact"), str) and bool(str(snapshot.get("readiness_artifact")).strip())
+
+    if not gate_scope_ok or not ready_ok or not blockers_empty or not not_claiming_ok or not smoke_artifact_ok or not readiness_artifact_ok:
+        _add(
+            blockers,
+            "b1_green_handoff_snapshot_invalid",
+            "B-1 handoff snapshot must record a green Phase B-1 natural-probe handoff without claiming whole Wave 1 completion.",
+        )
+    return {
+        "missing": missing,
+        "gate_scope_ok": gate_scope_ok,
+        "ready_ok": ready_ok,
+        "blockers_empty": blockers_empty,
+        "not_claiming_ok": not_claiming_ok,
+        "smoke_artifact_ok": smoke_artifact_ok,
+        "readiness_artifact_ok": readiness_artifact_ok,
+        "passed": not missing and gate_scope_ok and ready_ok and blockers_empty and not_claiming_ok and smoke_artifact_ok and readiness_artifact_ok,
+    }
+
+
 def _check_packet_contract(case: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
     invalid_packets: list[dict[str, Any]] = []
     packets = case.get("packets") or []
@@ -385,6 +441,261 @@ def _check_packet_contract(case: dict[str, Any], blockers: list[dict[str, str]])
             _add(blockers, "packet_match_type_invalid", "match_type must distinguish exact, alias_exact, generic, related, or no_match.")
             invalid_packets.append({"index": index, "match_type": match_type})
     return {"invalid_packets": invalid_packets, "passed": not invalid_packets}
+
+
+def _check_producer_trace(case: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    trace = case.get("producer_trace")
+    if not isinstance(trace, dict):
+        _add(blockers, "producer_trace_missing", "Official B-2 producer cases must declare report-only producer_trace provenance.")
+        return {"missing": True, "passed": False}
+
+    missing = [field for field in ("backing_class", "support_basis", "compatibility_reason") if field not in trace]
+    if missing:
+        _add(
+            blockers,
+            "producer_trace_incomplete",
+            "producer_trace must include backing_class, support_basis, and compatibility_reason for report/readiness diagnostics.",
+        )
+
+    backing_class = trace.get("backing_class")
+    support_basis = trace.get("support_basis")
+    compatibility_reason = trace.get("compatibility_reason")
+
+    if backing_class not in PRODUCER_BACKING_CLASSES:
+        _add(blockers, "producer_trace_invalid_backing_class", "producer_trace.backing_class must use the B-2 honesty diagnostic enum.")
+    if support_basis not in PRODUCER_SUPPORT_BASES:
+        _add(blockers, "producer_trace_invalid_support_basis", "producer_trace.support_basis must use the B-2 honesty diagnostic enum.")
+
+    if backing_class == "synthetic_compatibility" and not str(compatibility_reason or "").strip():
+        _add(
+            blockers,
+            "producer_trace_synthetic_missing_reason",
+            "Synthetic compatibility cases must state why the official producer is not yet runtime-backed.",
+        )
+    if backing_class == "runtime_backed" and compatibility_reason is not None:
+        _add(
+            blockers,
+            "producer_trace_runtime_backed_has_reason",
+            "Runtime-backed producer cases must keep compatibility_reason=null because provenance diagnostics are not product semantics.",
+        )
+
+    return {
+        "backing_class": backing_class,
+        "support_basis": support_basis,
+        "compatibility_reason": compatibility_reason,
+        "missing": missing,
+        "passed": not missing
+        and backing_class in PRODUCER_BACKING_CLASSES
+        and support_basis in PRODUCER_SUPPORT_BASES
+        and not (
+            (backing_class == "synthetic_compatibility" and not str(compatibility_reason or "").strip())
+            or (backing_class == "runtime_backed" and compatibility_reason is not None)
+        ),
+    }
+
+
+def _check_listed_item_fanout(case: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    trace = case.get("listed_item_fanout")
+    producer_trace = case.get("producer_trace")
+    support_basis = producer_trace.get("support_basis") if isinstance(producer_trace, dict) else None
+    if support_basis != "listed_item_runtime_fanout":
+        return {"required": False, "passed": True}
+
+    if not isinstance(trace, dict):
+        _add(
+            blockers,
+            "listed_item_fanout_trace_missing",
+            "listed_item_runtime_fanout cases must expose per-item fanout trace for report/readiness diagnostics only.",
+        )
+        return {"required": True, "missing": True, "passed": False}
+
+    resolutions = trace.get("resolutions")
+    if not isinstance(resolutions, list) or not resolutions:
+        _add(
+            blockers,
+            "listed_item_fanout_trace_incomplete",
+            "listed_item_runtime_fanout cases must include non-empty per-item resolutions.",
+        )
+        return {"required": True, "missing": False, "passed": False, "invalid_resolutions": []}
+
+    invalid_resolutions: list[dict[str, Any]] = []
+    for index, resolution in enumerate(resolutions):
+        if not isinstance(resolution, dict):
+            _add(
+                blockers,
+                "listed_item_fanout_trace_incomplete",
+                "listed_item fanout resolutions must be objects with per-item runtime diagnostics.",
+            )
+            invalid_resolutions.append({"index": index, "reason": "not_object"})
+            continue
+
+        missing = [
+            field
+            for field in (
+                "listed_item",
+                "resolution_status",
+                "defer_reason",
+                "clarify_support_present",
+                "packet_ids",
+            )
+            if field not in resolution
+        ]
+        if missing:
+            _add(
+                blockers,
+                "listed_item_fanout_trace_incomplete",
+                "listed_item fanout resolutions must keep listed_item, resolution_status, defer_reason, clarify_support_present, and packet_ids.",
+            )
+            invalid_resolutions.append({"index": index, "missing": missing})
+            continue
+
+        resolution_status = resolution.get("resolution_status")
+        packet_ids = resolution.get("packet_ids")
+        defer_reason = resolution.get("defer_reason")
+        clarify_support_present = resolution.get("clarify_support_present")
+        if resolution_status not in LISTED_ITEM_FANOUT_RESOLUTION_STATUSES:
+            _add(
+                blockers,
+                "listed_item_fanout_trace_invalid_status",
+                "listed_item fanout resolution_status must be resolved or unresolved.",
+            )
+            invalid_resolutions.append({"index": index, "resolution_status": resolution_status})
+        if not isinstance(packet_ids, list) or any(not isinstance(packet_id, str) or not packet_id.strip() for packet_id in packet_ids):
+            _add(
+                blockers,
+                "listed_item_fanout_trace_incomplete",
+                "listed_item fanout packet_ids must be a list of packet ids for per-item runtime diagnostics.",
+            )
+            invalid_resolutions.append({"index": index, "packet_ids": packet_ids})
+        if not isinstance(clarify_support_present, bool):
+            _add(
+                blockers,
+                "listed_item_fanout_trace_incomplete",
+                "listed_item fanout clarify_support_present must be boolean for report/readiness diagnostics.",
+            )
+            invalid_resolutions.append({"index": index, "clarify_support_present": clarify_support_present})
+
+        if resolution_status == "resolved":
+            if not packet_ids:
+                _add(
+                    blockers,
+                    "listed_item_fanout_trace_incomplete",
+                    "Resolved listed_item fanout entries must cite runtime packet_ids.",
+                )
+                invalid_resolutions.append({"index": index, "reason": "resolved_without_packets"})
+            if defer_reason is not None:
+                _add(
+                    blockers,
+                    "listed_item_fanout_trace_incomplete",
+                    "Resolved listed_item fanout entries must keep defer_reason=null.",
+                )
+                invalid_resolutions.append({"index": index, "reason": "resolved_with_defer_reason"})
+        elif resolution_status == "unresolved":
+            if packet_ids:
+                _add(
+                    blockers,
+                    "listed_item_fanout_trace_incomplete",
+                    "Unresolved listed_item fanout entries must not claim runtime packet_ids.",
+                )
+                invalid_resolutions.append({"index": index, "reason": "unresolved_with_packets"})
+            if not str(defer_reason or "").strip():
+                _add(
+                    blockers,
+                    "listed_item_fanout_trace_incomplete",
+                    "Unresolved listed_item fanout entries must expose a per-item defer_reason.",
+                )
+                invalid_resolutions.append({"index": index, "reason": "unresolved_without_defer_reason"})
+
+    return {
+        "required": True,
+        "missing": False,
+        "resolutions": _json_safe(resolutions),
+        "invalid_resolutions": invalid_resolutions,
+        "passed": not invalid_resolutions,
+    }
+
+
+def _check_selected_extract_exact_positive(case: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    producer_trace = case.get("producer_trace")
+    support_basis = producer_trace.get("support_basis") if isinstance(producer_trace, dict) else None
+    if support_basis != "selected_extract_exact_positive":
+        return {"required": False, "passed": True}
+
+    packets = _packets_by_id(case)
+    extract_policy = case.get("extract_policy") or {}
+    selected_packet_id = extract_policy.get("selected_search_packet_id")
+    selected_packet = packets.get(selected_packet_id) if isinstance(selected_packet_id, str) else None
+    extract_packets = [
+        packet
+        for packet in case.get("packets") or []
+        if isinstance(packet, dict) and packet.get("source_type") == "web_extract"
+    ]
+
+    if not isinstance(selected_packet, dict) or selected_packet.get("source_type") != "web_search":
+        _add(
+            blockers,
+            "selected_extract_policy_selected_packet_not_web_search",
+            "Runtime-backed selected extract cases must point extract_policy.selected_search_packet_id at an in-case web_search packet.",
+        )
+
+    linked_extract_packets = [
+        packet
+        for packet in extract_packets
+        if packet.get("selected_search_packet_id") == selected_packet_id
+    ]
+    if not linked_extract_packets:
+        _add(
+            blockers,
+            "selected_extract_exact_positive_missing_web_extract_packet",
+            "Runtime-backed selected extract cases must include at least one linked web_extract packet.",
+        )
+
+    exact_web_extract_packet_ids = {
+        str(packet.get("packet_id") or "")
+        for packet in linked_extract_packets
+        if packet.get("supports_exact_claim") is True
+        and not tuple(str(risk).strip() for risk in packet.get("hard_recheck_risks", []) if str(risk).strip())
+    }
+
+    item_results = ((case.get("manager_pass_2") or {}).get("item_results") or [])
+    exact_evidence_packet_ids: list[str] = []
+    web_search_exact_evidence_ids: list[str] = []
+    for item in item_results:
+        if not isinstance(item, dict):
+            continue
+        for evidence in item.get("evidence_used") or []:
+            if not isinstance(evidence, dict) or evidence.get("usage") != "exact":
+                continue
+            packet_id = str(evidence.get("packet_id") or "")
+            exact_evidence_packet_ids.append(packet_id)
+            packet = packets.get(packet_id)
+            if isinstance(packet, dict) and packet.get("source_type") == "web_search":
+                web_search_exact_evidence_ids.append(packet_id)
+
+    if web_search_exact_evidence_ids:
+        _add(
+            blockers,
+            "selected_extract_exact_result_not_backed_by_web_extract",
+            "Runtime-backed exact-positive web cases must cite accepted web_extract packets, not web_search packets, as exact evidence.",
+        )
+    if not exact_web_extract_packet_ids or not any(packet_id in exact_web_extract_packet_ids for packet_id in exact_evidence_packet_ids):
+        _add(
+            blockers,
+            "selected_extract_exact_positive_missing_accepted_web_extract",
+            "Runtime-backed selected extract cases must contain an accepted exact-support web_extract packet used by Manager Pass 2.",
+        )
+
+    return {
+        "required": True,
+        "selected_search_packet_id": selected_packet_id,
+        "linked_extract_packet_ids": [packet.get("packet_id") for packet in linked_extract_packets],
+        "exact_evidence_packet_ids": exact_evidence_packet_ids,
+        "passed": not web_search_exact_evidence_ids
+        and bool(exact_web_extract_packet_ids)
+        and any(packet_id in exact_web_extract_packet_ids for packet_id in exact_evidence_packet_ids)
+        and isinstance(selected_packet, dict)
+        and selected_packet.get("source_type") == "web_search",
+    }
 
 
 def _evidence_packet(entry: dict[str, Any], packets: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
@@ -435,9 +746,22 @@ def _check_manager_pass_2(case: dict[str, Any], blockers: list[dict[str, str]]) 
                 invalid_evidence.append({"item_index": item_index, "evidence_index": evidence_index, "packet_id": evidence.get("packet_id")})
                 continue
             if evidence.get("usage") == "exact":
-                if _sibling_risk_present(packet):
+                mismatch_risks = set(exact_claim_mismatch_risks(packet))
+                if "wrong_item" in mismatch_risks:
+                    _add(blockers, "wrong_item_used_as_exact", "Different-item candidates must not support exact claims.")
+                    invalid_evidence.append({"item_index": item_index, "packet_id": packet.get("packet_id"), "reason": "wrong_item"})
+                if "sibling_variant" in mismatch_risks:
                     _add(blockers, "sibling_variant_used_as_exact", "Sibling or related variants must not support exact claims.")
                     invalid_evidence.append({"item_index": item_index, "packet_id": packet.get("packet_id"), "reason": "sibling_exact"})
+                if "wrong_size" in mismatch_risks:
+                    _add(blockers, "wrong_size_used_as_exact", "Different size or serving candidates must not support exact claims.")
+                    invalid_evidence.append({"item_index": item_index, "packet_id": packet.get("packet_id"), "reason": "wrong_size"})
+                if "wrong_modifier" in mismatch_risks:
+                    _add(blockers, "wrong_modifier_used_as_exact", "Different modifier candidates must not support exact claims.")
+                    invalid_evidence.append({"item_index": item_index, "packet_id": packet.get("packet_id"), "reason": "wrong_modifier"})
+                if "insufficient_evidence" in mismatch_risks:
+                    _add(blockers, "insufficient_evidence_used_as_exact", "Exact claims require explicit serving or portion evidence.")
+                    invalid_evidence.append({"item_index": item_index, "packet_id": packet.get("packet_id"), "reason": "insufficient_evidence"})
                 if packet.get("source_type") == "llm_prior":
                     _add(blockers, "llm_prior_used_for_exact_claim", "LLM prior is last resort and must not support exact claims.")
                     invalid_evidence.append({"item_index": item_index, "packet_id": packet.get("packet_id"), "reason": "llm_prior_exact"})
@@ -476,8 +800,23 @@ def _check_manager_pass_2(case: dict[str, Any], blockers: list[dict[str, str]]) 
         }
         for packet_id, packet in packets.items():
             should_reject_or_anchor = _sibling_risk_present(packet) or packet.get("match_type") in {"related", "no_match"}
+            if (
+                packet.get("source_type") == "web_search"
+                and should_reject_or_anchor
+                and packet_id in anchor_ids
+            ):
+                _add(
+                    blockers,
+                    "web_search_mismatch_used_as_anchor",
+                    "Current runtime-slice official B-2 artifacts must reject mismatched web_search candidates instead of downgrading them to anchor evidence.",
+                )
+                rejected_candidate_violations.append({"item_index": item_index, "packet_id": packet_id, "reason": "web_search_anchor"})
             if should_reject_or_anchor and packet_id not in rejected_ids and packet_id not in anchor_ids:
-                _add(blockers, "sibling_candidate_not_rejected_or_downgraded", "Sibling/wrong-item candidates must be rejected or downgraded to anchor_only.")
+                _add(
+                    blockers,
+                    "sibling_candidate_not_rejected_or_downgraded",
+                    "Sibling or wrong-item candidates must be rejected or explicitly downgraded using existing evidence usage enums.",
+                )
                 rejected_candidate_violations.append({"item_index": item_index, "packet_id": packet_id})
     return {
         "invalid_evidence": invalid_evidence,
@@ -571,6 +910,17 @@ def _check_cache(case: dict[str, Any], blockers: list[dict[str, str]], warnings:
     return {"missing": missing, "passed": not missing}
 
 
+def _honesty_gate_status() -> dict[str, bool]:
+    return {
+        "snippet_final_truth_blocked": True,
+        "wrong_item_blocked": True,
+        "sibling_variant_blocked": True,
+        "wrong_size_blocked": True,
+        "wrong_modifier_blocked": True,
+        "insufficient_evidence_blocked": True,
+    }
+
+
 def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
     report_data = _read_json(phase_b2_report_path)
     blockers: list[dict[str, str]] = []
@@ -587,6 +937,7 @@ def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
     llm_prior_trace = _check_llm_prior_trace(report_data, blockers)
     minimal_db_seed_manifest = _check_minimal_db_seed_manifest(report_data, blockers)
     runtime_trace_parity = _check_runtime_trace_parity(report_data, blockers)
+    b1_green_handoff_check = _check_b1_green_handoff_snapshot(report_data, blockers)
     case_checks: list[dict[str, Any]] = []
     for case in report_data.get("cases") or []:
         if not isinstance(case, dict):
@@ -596,6 +947,9 @@ def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
         checks = {
             "case_id": case.get("case_id"),
             "input_message": case.get("input_message"),
+            "producer_trace": _check_producer_trace(case, blockers),
+            "listed_item_fanout": _check_listed_item_fanout(case, blockers),
+            "selected_extract_exact_positive": _check_selected_extract_exact_positive(case, blockers),
             "packet_contract": _check_packet_contract(case, blockers),
             "manager_pass_2": _check_manager_pass_2(case, blockers),
             "extract_policy": _check_extract_policy(case, blockers),
@@ -619,6 +973,9 @@ def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
         "llm_prior_trace": llm_prior_trace,
         "minimal_db_seed_manifest": minimal_db_seed_manifest,
         "runtime_trace_parity": runtime_trace_parity,
+        "b1_green_handoff_snapshot": _json_safe(report_data.get("b1_green_handoff_snapshot")),
+        "b1_green_handoff_check": b1_green_handoff_check,
+        "honesty_gate_status": _honesty_gate_status(),
         "case_checks": case_checks,
         "recommended_next_steps_ordered": (
             ["proceed_to_phase_b2_evidence_synthesis_implementation"]

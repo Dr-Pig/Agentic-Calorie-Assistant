@@ -18,10 +18,18 @@ if str(ROOT) not in sys.path:
 
 from app.text_integrity import corruption_summary, find_text_corruption
 from scripts.eval_bootstrap import build_bootstrap_checklist, build_bundle_verdict
+from scripts.live_eval_readiness import (
+    DEFAULT_LOCAL_LIVE_BASE_URL,
+    PHASE_C_LIVE_BLOCKING_CHECKS,
+    build_live_preflight_report,
+    build_phase_c_live_readiness,
+    fetch_server_ping,
+    summarize_phase_c_gate_status,
+)
 from scripts.runner_timeout_contract import apply_runner_timeout_contract
 
 
-DEFAULT_BASE_URL = "http://127.0.0.1:8010"
+DEFAULT_BASE_URL = DEFAULT_LOCAL_LIVE_BASE_URL
 OUTPUT_DIR = ROOT / "runtime" / "evals" / "v2_bundle2_live"
 
 
@@ -198,6 +206,20 @@ def _base_case_report(
     return report
 
 
+def _phase_c_checked_case(
+    *,
+    checks: dict[str, bool],
+    response: dict[str, Any],
+    trace: dict[str, Any],
+    extra: dict[str, Any] | None = None,
+) -> tuple[dict[str, bool], dict[str, Any]]:
+    phase_c_readiness = build_phase_c_live_readiness(response=response, trace=trace)
+    merged_checks = {**checks, **phase_c_readiness["checks"]}
+    merged_extra = dict(extra or {})
+    merged_extra["phase_c_live_readiness"] = phase_c_readiness["summary"]
+    return merged_checks, merged_extra
+
+
 def _log(base_url: str, *, user_id: str, local_date: str, text: str, allow_search: bool = False) -> dict[str, Any]:
     return _post_json(
         base_url,
@@ -224,6 +246,7 @@ def _run_case_c001(base_url: str, local_date: str) -> dict[str, Any]:
         **{k: v for k, v in _macro_visibility_checks(turn2, today2, trace2).items() if k != "turn1_macro_hidden"},
         **_same_turn_sync_checks(response=turn2, trace=trace2, today=today2),
     }
+    checks, extra = _phase_c_checked_case(checks=checks, response=turn2, trace=trace2)
     return _base_case_report(
         case_id="C-001",
         user_id=user_id,
@@ -241,7 +264,9 @@ def _run_case_c001(base_url: str, local_date: str) -> dict[str, Any]:
             "turn2_macro_totals_positive",
             "chat_macro_visibility_contract",
             "same_turn_budget_sync",
+            *PHASE_C_LIVE_BLOCKING_CHECKS,
         ],
+        extra=extra,
     )
 
 
@@ -257,6 +282,7 @@ def _run_case_c002(base_url: str, local_date: str) -> dict[str, Any]:
         **_macro_visibility_checks(response, today, trace),
         **_same_turn_sync_checks(response=response, trace=trace, today=today),
     }
+    checks, extra = _phase_c_checked_case(checks=checks, response=response, trace=trace)
     return _base_case_report(
         case_id="C-002",
         user_id=user_id,
@@ -265,7 +291,8 @@ def _run_case_c002(base_url: str, local_date: str) -> dict[str, Any]:
         today_snapshot=today,
         trace_refs=[response["audit"]["admin_trace_url"]],
         checks=checks,
-        blocking_checks=["committed", "no_followup", "same_turn_budget_sync"],
+        blocking_checks=["committed", "no_followup", "same_turn_budget_sync", *PHASE_C_LIVE_BLOCKING_CHECKS],
+        extra=extra,
     )
 
 
@@ -286,6 +313,7 @@ def _run_case_d001(base_url: str, local_date: str) -> dict[str, Any]:
         **{k: v for k, v in _macro_visibility_checks(turn2, today2, trace2).items() if k != "turn1_macro_hidden"},
         **_same_turn_sync_checks(response=turn2, trace=trace2, today=today2),
     }
+    checks, extra = _phase_c_checked_case(checks=checks, response=turn2, trace=trace2)
     return _base_case_report(
         case_id="D-001",
         user_id=user_id,
@@ -294,7 +322,15 @@ def _run_case_d001(base_url: str, local_date: str) -> dict[str, Any]:
         today_snapshot=today2,
         trace_refs=[turn1["audit"]["admin_trace_url"], turn2["audit"]["admin_trace_url"]],
         checks=checks,
-        blocking_checks=["turn1_no_commit", "turn1_asks_dish_details", "turn2_commit", "turn1_macro_hidden", "same_turn_budget_sync"],
+        blocking_checks=[
+            "turn1_no_commit",
+            "turn1_asks_dish_details",
+            "turn2_commit",
+            "turn1_macro_hidden",
+            "same_turn_budget_sync",
+            *PHASE_C_LIVE_BLOCKING_CHECKS,
+        ],
+        extra=extra,
     )
 
 
@@ -309,6 +345,7 @@ def _run_case_d002(base_url: str, local_date: str) -> dict[str, Any]:
         "no_followup": _trace_final_decision(trace).get("final_action") != "ask_followup",
         **_same_turn_sync_checks(response=response, trace=trace, today=today),
     }
+    checks, extra = _phase_c_checked_case(checks=checks, response=response, trace=trace)
     return _base_case_report(
         case_id="D-002",
         user_id=user_id,
@@ -317,7 +354,8 @@ def _run_case_d002(base_url: str, local_date: str) -> dict[str, Any]:
         today_snapshot=today,
         trace_refs=[response["audit"]["admin_trace_url"]],
         checks=checks,
-        blocking_checks=["committed", "no_followup", "same_turn_budget_sync"],
+        blocking_checks=["committed", "no_followup", "same_turn_budget_sync", *PHASE_C_LIVE_BLOCKING_CHECKS],
+        extra=extra,
     )
 
 
@@ -338,6 +376,7 @@ def _run_case_e001(base_url: str, local_date: str) -> dict[str, Any]:
         **_same_turn_sync_checks(response=response, trace=trace, today=today),
         "no_rescue_in_same_reply": not _contains_any(response["assistant_message"], ["建議", "rescue", "補救"]),
     }
+    checks, extra = _phase_c_checked_case(checks=checks, response=response, trace=trace)
     return _base_case_report(
         case_id="E-001",
         user_id=user_id,
@@ -352,7 +391,9 @@ def _run_case_e001(base_url: str, local_date: str) -> dict[str, Any]:
             "remaining_negative",
             "no_rescue_in_same_reply",
             "same_turn_budget_sync",
+            *PHASE_C_LIVE_BLOCKING_CHECKS,
         ],
+        extra=extra,
     )
 
 
@@ -366,6 +407,7 @@ def _run_case_e002(base_url: str, local_date: str) -> dict[str, Any]:
         **_overshoot_checks(response, today, trace),
         **_same_turn_sync_checks(response=response, trace=trace, today=today),
     }
+    checks, extra = _phase_c_checked_case(checks=checks, response=response, trace=trace)
     return _base_case_report(
         case_id="E-002",
         user_id=user_id,
@@ -374,7 +416,14 @@ def _run_case_e002(base_url: str, local_date: str) -> dict[str, Any]:
         today_snapshot=today,
         trace_refs=[response["audit"]["admin_trace_url"]],
         checks=checks,
-        blocking_checks=["reply_mentions_over", "remaining_negative", "reply_matches_today_remaining", "same_turn_budget_sync"],
+        blocking_checks=[
+            "reply_mentions_over",
+            "remaining_negative",
+            "reply_matches_today_remaining",
+            "same_turn_budget_sync",
+            *PHASE_C_LIVE_BLOCKING_CHECKS,
+        ],
+        extra=extra,
     )
 
 
@@ -389,6 +438,7 @@ def _run_case_e003(base_url: str, local_date: str) -> dict[str, Any]:
         "remaining_not_negative": int(today.get("remaining_kcal") or 0) >= 0,
         **_same_turn_sync_checks(response=response, trace=trace, today=today),
     }
+    checks, extra = _phase_c_checked_case(checks=checks, response=response, trace=trace)
     return _base_case_report(
         case_id="E-003",
         user_id=user_id,
@@ -397,7 +447,8 @@ def _run_case_e003(base_url: str, local_date: str) -> dict[str, Any]:
         today_snapshot=today,
         trace_refs=[response["audit"]["admin_trace_url"]],
         checks=checks,
-        blocking_checks=["not_overshoot_reply", "remaining_not_negative", "same_turn_budget_sync"],
+        blocking_checks=["not_overshoot_reply", "remaining_not_negative", "same_turn_budget_sync", *PHASE_C_LIVE_BLOCKING_CHECKS],
+        extra=extra,
     )
 
 
@@ -422,6 +473,7 @@ def _run_case_k001(base_url: str, local_date: str) -> dict[str, Any]:
         **_macro_visibility_checks(correction, today, trace),
         **_same_turn_sync_checks(response=correction, trace=trace, today=today),
     }
+    checks, extra = _phase_c_checked_case(checks=checks, response=correction, trace=trace)
     return _base_case_report(
         case_id="K-001",
         user_id=user_id,
@@ -441,7 +493,9 @@ def _run_case_k001(base_url: str, local_date: str) -> dict[str, Any]:
             "corrected_total_matches_preserved_plus_target",
             "correction_macro_updated",
             "same_turn_budget_sync",
+            *PHASE_C_LIVE_BLOCKING_CHECKS,
         ],
+        extra=extra,
     )
 
 
@@ -460,6 +514,7 @@ def _run_case_k002(base_url: str, local_date: str) -> dict[str, Any]:
         "correction_macro_updated": all(int(today.get(key) or 0) > 0 for key in ("consumed_protein", "consumed_carbs", "consumed_fat")),
         **_same_turn_sync_checks(response=correction, trace=trace, today=today),
     }
+    checks, extra = _phase_c_checked_case(checks=checks, response=correction, trace=trace)
     return _base_case_report(
         case_id="K-002",
         user_id=user_id,
@@ -474,7 +529,9 @@ def _run_case_k002(base_url: str, local_date: str) -> dict[str, Any]:
             "corrected_total_matches_removed_target_delta",
             "correction_macro_updated",
             "same_turn_budget_sync",
+            *PHASE_C_LIVE_BLOCKING_CHECKS,
         ],
+        extra=extra,
     )
 
 
@@ -519,10 +576,19 @@ CASE_RUNNERS = [
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run Bundle 2 live E2E eval cases against /v2/estimate.")
-    parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
+    parser.add_argument("--base-url", default=None)
     parser.add_argument("--local-date", default=datetime.now().date().isoformat())
     parser.add_argument("--output", default=None)
     args = parser.parse_args()
+    base_url = args.base_url or DEFAULT_BASE_URL
+    base_url_explicit = args.base_url is not None
+    ping_payload, ping_error = fetch_server_ping(base_url)
+    live_preflight = build_live_preflight_report(
+        base_url=base_url,
+        base_url_explicit=base_url_explicit,
+        ping_payload=ping_payload,
+        ping_error=ping_error,
+    )
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_path = Path(args.output) if args.output else OUTPUT_DIR / f"bundle2_live_eval_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.json"
@@ -530,7 +596,7 @@ def main() -> int:
     results: list[dict[str, Any]] = []
     for runner in CASE_RUNNERS:
         try:
-            result = runner(args.base_url, args.local_date)
+            result = runner(base_url, args.local_date)
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
             result = {
@@ -552,6 +618,7 @@ def main() -> int:
     p0_ids = {"C-001", "D-001", "E-001", "E-002", "K-001"}
     p0_pass = all(result.get("passed") for result in results if result["case_id"] in p0_ids)
     all_cases_pass = all(result.get("passed") for result in results)
+    phase_c_gate_status = summarize_phase_c_gate_status(results)
     bootstrap = build_bootstrap_checklist(bundle=2)
     coverage_status = bootstrap["parity_audit"]["coverage_status"]
     founder_status = bootstrap["founder_realism"]["status"]
@@ -569,10 +636,20 @@ def main() -> int:
         "p0_pass": p0_pass,
         "p0_failed": sum(1 for result in results if result["case_id"] in p0_ids and not result.get("passed")),
         "all_cases_pass": all_cases_pass,
+        "live_test_mode": live_preflight["live_test_mode"],
+        "server_ping_status": live_preflight["server_ping_status"],
+        "phase_c_gate_status": phase_c_gate_status,
+        "readiness_claim_scope": live_preflight["readiness_claim_scope"],
         **verdict,
     }
     report = {
-        "base_url": args.base_url,
+        "base_url": base_url,
+        "live_test_mode": live_preflight["live_test_mode"],
+        "server_ping_status": live_preflight["server_ping_status"],
+        "provider_readiness": live_preflight["provider_readiness"],
+        "readiness_claim_scope": live_preflight["readiness_claim_scope"],
+        "phase_c_gate_status": phase_c_gate_status,
+        "live_preflight": live_preflight,
         "local_date": args.local_date,
         "bootstrap_checklist": bootstrap,
         "summary": summary,

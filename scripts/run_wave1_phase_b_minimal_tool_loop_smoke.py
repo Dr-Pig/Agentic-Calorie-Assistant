@@ -21,6 +21,26 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.runtime.agent.manager import SINGLE_MANAGER_SYSTEM_PROMPT, run_intake_manager
+from app.runtime.agent.phase_b1_selection import (
+    PHASE_B1_PASS_1_COMMON_COMMERCIAL_DRINK_ID,
+    PHASE_B1_PASS_1_COMMON_COMMERCIAL_MEAL_ID,
+    PHASE_B1_PASS_1_COMMON_FOOD_ITEM_ID,
+    PHASE_B1_PASS_1_FORCED_ID,
+    PHASE_B1_PASS_1_NATURAL_FALLBACK_ID,
+    PHASE_B1_PASS_2_B1_004_CLARIFY_ONLY_ID,
+    PHASE_B1_PASS_2_COMMON_COMMERCIAL_DRINK_ID,
+    PHASE_B1_PASS_2_COMMON_COMMERCIAL_MEAL_ID,
+    PHASE_B1_PASS_2_COMMON_FOOD_ITEM_ID,
+    PHASE_B1_PASS_2_GENERIC_ID,
+    PHASE_B1_PASS_2_LISTED_INGREDIENT_ID,
+    build_phase_b1_selector_inputs,
+    select_phase_b1_profile_route,
+    select_phase_b1_task_payload,
+)
+from app.runtime.agent.phase_b1_profile_route_rules import (
+    phase_b1_local_diagnostic_requested_profile_allowed,
+    resolve_phase_b1_local_diagnostic_cli_defaults,
+)
 from app.runtime.agent.manager_branch_contract import (
     B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY,
     B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
@@ -123,6 +143,8 @@ class _PhaseB1ProfileRoute:
     rule_id: str
     routing_scope: str
     artifact_basis: dict[str, Any] | None = None
+    uses_case_id_local_debt: bool = False
+    should_migrate_post_b1: bool = False
 
 
 PHASE_B1_PROVIDER_PROFILES: dict[str, dict[str, Any]] = {
@@ -161,6 +183,25 @@ PHASE_B1_PROVIDER_PROFILES: dict[str, dict[str, Any]] = {
         "production_selected": False,
         "default_for_build_loop": False,
         "branch_scope": B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
+        "manager_role_scope": "pass_1_tool_request",
+        "temperature": 0.0,
+    },
+    "builderspace-grok-4-fast-b1004-probe": {
+        "provider": "builderspace",
+        "model": "grok-4-fast",
+        "cost_tier": "low",
+        "manual_only": False,
+        "provider_profile_role": "low_cost_transport_probe",
+        "allow_expensive_model_probe": False,
+        "transport_mode": "tool_call_decision_transport",
+        "selection_reason": "lowest-cost alternate candidate for B1-004 clarify-only provider-profile probe",
+        "documented_tool_call_support": "documented_at_endpoint_surface",
+        "documented_reasoning_status": "documented",
+        "artifact_tool_call_reliability": "B1-004_probe_pending",
+        "manager_candidate_status": "not_applicable",
+        "production_selected": False,
+        "default_for_build_loop": False,
+        "branch_scope": B1_COMPOSITION_UNKNOWN_CASE_FAMILY,
         "manager_role_scope": "pass_1_tool_request",
         "temperature": 0.0,
     },
@@ -259,38 +300,6 @@ PHASE_B1_PROVIDER_PROFILES: dict[str, dict[str, Any]] = {
         "manager_role_scope": "pass_1_tool_request",
         "temperature": 1.0,
     },
-}
-PHASE_B1_DEFAULT_ROUTE_RULE_ID = "phase_b1_default_build_loop_v1"
-PHASE_B1_TARGETED_OVERRIDE_RULE_ID = "phase_b1_targeted_profile_override_v1"
-PHASE_B1_FULL_SMOKE_B1003_GROK_ROUTE_RULE_ID = "phase_b1_full_smoke_b1003_pass1_grok_route_v1"
-PHASE_B1_FULL_SMOKE_B1005_GROK_ROUTE_RULE_ID = "phase_b1_full_smoke_b1005_pass1_grok_route_v1"
-PHASE_B1_FULL_SMOKE_B1006_GROK_ROUTE_RULE_ID = "phase_b1_full_smoke_b1006_pass1_grok_route_v1"
-PHASE_B1_ROUTE_SCOPE = "b1_local_diagnostic"
-PHASE_B1_FULL_SMOKE_B1003_GROK_ARTIFACT_BASIS = (
-    {
-        "artifact_path": "artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T155117.987328Z_natural-probe_targeted_B1-003_4ab12d.json",
-        "observed_result": "B1-003_pass1_grok_legal_decision",
-        "prior_default_failure": "B1-003_pass1_deepseek_tool_call_transport_contract_breach",
-    }
-)
-PHASE_B1_FULL_SMOKE_B1005_GROK_ARTIFACT_BASIS = (
-    {
-        "artifact_path": "artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T180042.469158Z_natural-probe_targeted_B1-005_b176c8.json",
-        "observed_result": "B1-005_pass1_grok_item_level_lookup_generic_food",
-        "prior_default_failure": "B1-005_pass1_deepseek_search_tool_policy_mismatch",
-    }
-)
-PHASE_B1_FULL_SMOKE_B1006_GROK_ARTIFACT_BASIS = (
-    {
-        "artifact_path": "artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T172310.969052Z_natural-probe_targeted_B1-006_242ece.json",
-        "observed_result": "B1-006_pass1_grok_legal_decision",
-        "prior_default_failure": "B1-006_pass1_deepseek_non_json_model_output",
-    }
-)
-PHASE_B1_TARGETED_PROFILE_CASE_ALLOWLIST: dict[str, list[str]] = {
-    "builderspace-grok-4-fast-b1003-probe": ["B1-003"],
-    "builderspace-grok-4-fast-b1005-probe": ["B1-005"],
-    "builderspace-grok-4-fast-b1006-probe": ["B1-006"],
 }
 PASS_1_FORBIDDEN_FIELDS = {
     "final_kcal",
@@ -513,6 +522,36 @@ PASS_2_LISTED_INGREDIENT_COMPACT_JSON_FIRST_PAYLOAD = (
 )
 
 
+PASS_2_B1_004_CLARIFY_ONLY_PAYLOAD = (
+    "Phase B-1 B1-004 clarify-only Pass 2 boundary-preservation mode.\n"
+    "This is Manager Pass 2: consume packetized tool_results only and return manager_action='final'.\n"
+    "Output exactly one compact JSON object.\n"
+    "The first non-whitespace character of your response must be '{'.\n"
+    "Keep request_clarification as the canonical outcome.\n"
+    "Retain response_mode='clarification', final_action='request_clarification', operations=[], and answer_contract.\n"
+    "Do not turn this case into a logged estimate, final calorie answer, mutation, or tool request.\n"
+    "Trace-only item_results may appear in the raw model payload, but they must not replace the clarification outcome.\n"
+    "Do not replay the runner payload envelope like {\"stage\": ..., \"payload\": ...}.\n"
+    "Do not output mutation_result, ledger_delta, canonical_ledger_entry, or renderer final response.\n"
+    "Compact JSON example:\n"
+    "{\"manager_action\":\"final\",\"interaction_family\":\"food_logging\",\"response_mode\":\"clarification\",\"final_action\":\"request_clarification\",\"operations\":[],\"answer_contract\":{\"text\":\"Please list the specific items in the basket so I can estimate accurately.\"}}"
+)
+
+PHASE_B1_TASK_PAYLOADS: dict[str, str] = {
+    PHASE_B1_PASS_1_FORCED_ID: PASS_1_TOOL_REQUEST_PAYLOAD,
+    PHASE_B1_PASS_1_COMMON_FOOD_ITEM_ID: PASS_1_NATURAL_TOOL_SELECTION_GUIDANCE + PASS_1_COMMON_FOOD_ITEM_ANTI_FINAL_FRAGMENT,
+    PHASE_B1_PASS_1_COMMON_COMMERCIAL_DRINK_ID: PASS_1_NATURAL_TOOL_SELECTION_GUIDANCE + PASS_1_COMMON_COMMERCIAL_DRINK_ANTI_FINAL_FRAGMENT,
+    PHASE_B1_PASS_1_COMMON_COMMERCIAL_MEAL_ID: PASS_1_NATURAL_TOOL_SELECTION_GUIDANCE + PASS_1_COMMON_COMMERCIAL_MEAL_ANTI_FINAL_FRAGMENT,
+    PHASE_B1_PASS_1_NATURAL_FALLBACK_ID: PASS_1_NATURAL_TOOL_SELECTION_GUIDANCE,
+    PHASE_B1_PASS_2_B1_004_CLARIFY_ONLY_ID: PASS_2_B1_004_CLARIFY_ONLY_PAYLOAD,
+    PHASE_B1_PASS_2_COMMON_FOOD_ITEM_ID: PASS_2_COMMON_FOOD_ITEM_COMPACT_JSON_FIRST_PAYLOAD,
+    PHASE_B1_PASS_2_COMMON_COMMERCIAL_DRINK_ID: PASS_2_COMMON_COMMERCIAL_DRINK_COMPACT_JSON_FIRST_PAYLOAD,
+    PHASE_B1_PASS_2_COMMON_COMMERCIAL_MEAL_ID: PASS_2_COMMON_COMMERCIAL_MEAL_COMPACT_JSON_FIRST_PAYLOAD,
+    PHASE_B1_PASS_2_LISTED_INGREDIENT_ID: PASS_2_LISTED_INGREDIENT_COMPACT_JSON_FIRST_PAYLOAD,
+    PHASE_B1_PASS_2_GENERIC_ID: PASS_2_SYNTHESIS_PAYLOAD,
+}
+
+
 class _ManagerPayloadShapeError(RuntimeError):
     def __init__(
         self,
@@ -566,6 +605,11 @@ def _provider_contract_violation_trace(
     trace: dict[str, Any],
     payload: dict[str, Any],
 ) -> dict[str, Any]:
+    case_family = (
+        str(trace.get("selector_inputs", {}).get("case_family") or "")
+        if isinstance(trace.get("selector_inputs"), dict)
+        else ""
+    ) or _phase_b1_case_family_for_message(message)
     requested_tools = _tool_call_names(payload)
     router_trace = _route_tools(message=message, requested_tools=requested_tools)
     packetizer_outputs: list[dict[str, Any]] = []
@@ -599,13 +643,20 @@ def _provider_contract_violation_trace(
         "manager_pass_1": {
             "manager_round": 0,
             "manager_role": "pass_1_tool_request",
-            "prompt_hash": _case_prompt_hash(manager_role="pass_1_tool_request", pass1_mode=pass1_mode, raw_user_input=message),
+            "prompt_hash": _case_prompt_hash(
+                manager_role="pass_1_tool_request",
+                pass1_mode=pass1_mode,
+                case_family=case_family,
+            ),
             "started_at_utc": trace.get("started_at_utc"),
             "ended_at_utc": trace.get("ended_at_utc"),
             "latency_ms": trace.get("latency_ms"),
             "provider_params": _provider_params(trace),
             "phase_b1_task_payload_id": trace.get("phase_b1_task_payload_id"),
             "phase_b1_task_payload_hash": trace.get("phase_b1_task_payload_hash"),
+            "selector_inputs": _selector_trace_dict(trace, "selector_inputs"),
+            "manager_contract_selection": _selector_trace_dict(trace, "manager_contract_selection"),
+            "provider_profile_selection": _selector_trace_dict(trace, "provider_profile_selection"),
             "requested_read_tools": requested_tools,
             "forbidden_final_truth_fields_present": _contains_any_key(payload, PASS_1_FORBIDDEN_FIELDS),
             **_payload_shape_fields(payload),
@@ -619,13 +670,29 @@ def _provider_contract_violation_trace(
         "manager_pass_2": {
             "manager_round": 1,
             "manager_role": "pass_2_synthesis",
-            "prompt_hash": _case_prompt_hash(manager_role="pass_2_synthesis", pass1_mode=pass1_mode, raw_user_input=message),
+            "prompt_hash": _case_prompt_hash(
+                manager_role="pass_2_synthesis",
+                pass1_mode=pass1_mode,
+                case_family=case_family,
+            ),
             "started_at_utc": None,
             "ended_at_utc": None,
             "latency_ms": None,
             "provider_params": {"provider": None, "model": None, "request_id": None},
             "phase_b1_task_payload_id": None,
             "phase_b1_task_payload_hash": None,
+            "selector_inputs": _selector_inputs_trace(
+                case_family=case_family,
+                manager_role="pass_2_synthesis",
+                probe_mode=pass1_mode,
+                case_id=case_id,
+            ),
+            "manager_contract_selection": _manager_contract_selection_trace(
+                manager_role="pass_2_synthesis",
+                probe_mode=NATURAL_MODE,
+                case_family=case_family,
+            ),
+            "provider_profile_selection": {},
             "item_results": [],
             "mutation_attempted": False,
             "forbidden_mutation_fields_present": [],
@@ -718,8 +785,11 @@ def _resolve_phase_b1_provider_profile(
     profile = _phase_b1_provider_profile(requested_profile_id)
     if profile.cost_tier == "high" and not allow_expensive_model_probe:
         raise ValueError("expensive provider profile is disabled by default")
-    allowed_case_ids = PHASE_B1_TARGETED_PROFILE_CASE_ALLOWLIST.get(requested_profile_id)
-    if case_set != "targeted" or allowed_case_ids is None or requested_case_ids != allowed_case_ids:
+    if not phase_b1_local_diagnostic_requested_profile_allowed(
+        requested_profile_id=requested_profile_id,
+        case_set=case_set,
+        requested_case_ids=requested_case_ids,
+    ):
         return default_profile
     return profile
 
@@ -739,82 +809,6 @@ def _profile_applies_to_round(
     return True
 
 
-def _default_phase_b1_profile_route(profile: _PhaseB1ProviderProfile | None = None) -> _PhaseB1ProfileRoute:
-    active_profile = profile or _default_phase_b1_provider_profile()
-    return _PhaseB1ProfileRoute(
-        profile=active_profile,
-        route_mode="default_build_loop",
-        route_reason="no_branch_specific_override",
-        rule_id=PHASE_B1_DEFAULT_ROUTE_RULE_ID,
-        routing_scope=PHASE_B1_ROUTE_SCOPE,
-        artifact_basis=None,
-    )
-
-
-def _explicit_targeted_phase_b1_profile_route(profile: _PhaseB1ProviderProfile) -> _PhaseB1ProfileRoute:
-    return _PhaseB1ProfileRoute(
-        profile=profile,
-        route_mode="explicit_targeted_override",
-        route_reason="requested_targeted_profile_override",
-        rule_id=PHASE_B1_TARGETED_OVERRIDE_RULE_ID,
-        routing_scope=PHASE_B1_ROUTE_SCOPE,
-        artifact_basis=None,
-    )
-
-
-def _should_auto_route_b1_full_smoke_b1003_pass1(
-    *,
-    case_set: str,
-    requested_profile_id: str | None,
-    pass1_mode: str,
-    manager_role: str,
-    constraints: dict[str, Any],
-) -> bool:
-    return (
-        case_set == "full"
-        and not requested_profile_id
-        and pass1_mode == NATURAL_MODE
-        and manager_role == "pass_1_tool_request"
-        and constraints.get("phase_b1_case_family") == B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY
-    )
-
-
-def _should_auto_route_b1_full_smoke_b1006_pass1(
-    *,
-    case_set: str,
-    requested_profile_id: str | None,
-    pass1_mode: str,
-    manager_role: str,
-    constraints: dict[str, Any],
-) -> bool:
-    return (
-        case_set == "full"
-        and not requested_profile_id
-        and pass1_mode == NATURAL_MODE
-        and manager_role == "pass_1_tool_request"
-        and constraints.get("phase_b1_case_id") == "B1-006"
-        and constraints.get("phase_b1_case_family") == B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY
-    )
-
-
-def _should_auto_route_b1_full_smoke_b1005_pass1(
-    *,
-    case_set: str,
-    requested_profile_id: str | None,
-    pass1_mode: str,
-    manager_role: str,
-    constraints: dict[str, Any],
-) -> bool:
-    return (
-        case_set == "full"
-        and not requested_profile_id
-        and pass1_mode == NATURAL_MODE
-        and manager_role == "pass_1_tool_request"
-        and constraints.get("phase_b1_case_id") == "B1-005"
-        and constraints.get("phase_b1_case_family") == B1_LISTED_INGREDIENT_CASE_FAMILY
-    )
-
-
 def _resolve_round_phase_b1_profile_route(
     *,
     selected_profile: _PhaseB1ProviderProfile,
@@ -825,60 +819,27 @@ def _resolve_round_phase_b1_profile_route(
     constraints: dict[str, Any],
 ) -> _PhaseB1ProfileRoute:
     default_profile = _default_phase_b1_provider_profile()
-    if _should_auto_route_b1_full_smoke_b1003_pass1(
+    decision = select_phase_b1_profile_route(
         case_set=case_set,
         requested_profile_id=requested_profile_id,
-        pass1_mode=pass1_mode,
+        probe_mode=pass1_mode,
         manager_role=manager_role,
-        constraints=constraints,
-    ):
-        return _PhaseB1ProfileRoute(
-            profile=_phase_b1_provider_profile("builderspace-grok-4-fast-b1003-probe"),
-            route_mode="auto_branch_route",
-            route_reason="known_deepseek_b1003_pass1_transport_breach",
-            rule_id=PHASE_B1_FULL_SMOKE_B1003_GROK_ROUTE_RULE_ID,
-            routing_scope=PHASE_B1_ROUTE_SCOPE,
-            artifact_basis=PHASE_B1_FULL_SMOKE_B1003_GROK_ARTIFACT_BASIS,
-        )
-    if _should_auto_route_b1_full_smoke_b1005_pass1(
-        case_set=case_set,
-        requested_profile_id=requested_profile_id,
-        pass1_mode=pass1_mode,
-        manager_role=manager_role,
-        constraints=constraints,
-    ):
-        return _PhaseB1ProfileRoute(
-            profile=_phase_b1_provider_profile("builderspace-grok-4-fast-b1005-probe"),
-            route_mode="auto_branch_route",
-            route_reason="known_deepseek_b1005_pass1_tool_policy_mismatch",
-            rule_id=PHASE_B1_FULL_SMOKE_B1005_GROK_ROUTE_RULE_ID,
-            routing_scope=PHASE_B1_ROUTE_SCOPE,
-            artifact_basis=PHASE_B1_FULL_SMOKE_B1005_GROK_ARTIFACT_BASIS,
-        )
-    if _should_auto_route_b1_full_smoke_b1006_pass1(
-        case_set=case_set,
-        requested_profile_id=requested_profile_id,
-        pass1_mode=pass1_mode,
-        manager_role=manager_role,
-        constraints=constraints,
-    ):
-        return _PhaseB1ProfileRoute(
-            profile=_phase_b1_provider_profile("builderspace-grok-4-fast-b1006-probe"),
-            route_mode="auto_branch_route",
-            route_reason="known_deepseek_b1006_pass1_non_json_output",
-            rule_id=PHASE_B1_FULL_SMOKE_B1006_GROK_ROUTE_RULE_ID,
-            routing_scope=PHASE_B1_ROUTE_SCOPE,
-            artifact_basis=PHASE_B1_FULL_SMOKE_B1006_GROK_ARTIFACT_BASIS,
-        )
-    if (
-        requested_profile_id
-        and selected_profile.profile_id != default_profile.profile_id
-        and _profile_applies_to_round(selected_profile, manager_role=manager_role, constraints=constraints)
-    ):
-        return _explicit_targeted_phase_b1_profile_route(selected_profile)
-    if _profile_applies_to_round(selected_profile, manager_role=manager_role, constraints=constraints):
-        return _default_phase_b1_profile_route(selected_profile)
-    return _default_phase_b1_profile_route(default_profile)
+        case_id=str(constraints.get("phase_b1_case_id") or ""),
+        case_family=str(constraints.get("phase_b1_case_family") or "") or None,
+        selected_profile_id=selected_profile.profile_id,
+        default_profile_id=default_profile.profile_id,
+        profile_applies=_profile_applies_to_round(selected_profile, manager_role=manager_role, constraints=constraints),
+    )
+    return _PhaseB1ProfileRoute(
+        profile=_phase_b1_provider_profile(decision.profile_id),
+        route_mode=decision.route_mode,
+        route_reason=decision.route_reason,
+        rule_id=decision.route_rule_id,
+        routing_scope=decision.route_scope,
+        artifact_basis=decision.artifact_basis,
+        uses_case_id_local_debt=decision.uses_case_id_local_debt,
+        should_migrate_post_b1=decision.should_migrate_post_b1,
+    )
 
 
 def _apply_profile_override(provider: Any, profile: _PhaseB1ProviderProfile) -> dict[str, Any]:
@@ -928,6 +889,8 @@ def _inject_provider_profile_trace_fields(
     trace["profile_routing_rule_id"] = route.rule_id
     trace["profile_routing_scope"] = route.routing_scope
     trace["profile_routing_artifact_basis"] = route.artifact_basis
+    trace["provider_profile_route_uses_case_id_local_debt"] = route.uses_case_id_local_debt
+    trace["provider_profile_should_migrate_post_b1"] = route.should_migrate_post_b1
 
 
 def _build_artifact_path(
@@ -951,67 +914,90 @@ def _hash(value: Any) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
-def _prompt_hash(*, manager_role: str, raw_user_input: str = "") -> str:
+def _prompt_hash(*, manager_role: str, case_family: str | None = None) -> str:
     if manager_role == "pass_1_tool_request":
-        _, task_payload = _pass_1_task_payload(FORCED_MODE, raw_user_input=raw_user_input)
+        _, task_payload = _pass_1_task_payload(FORCED_MODE, case_family=case_family)
     else:
-        _, task_payload = _pass_2_task_payload(raw_user_input=raw_user_input)
+        _, task_payload = _pass_2_task_payload(case_family=case_family)
     return _hash({"manager_role": manager_role, "system_prompt": SINGLE_MANAGER_SYSTEM_PROMPT, "task_payload": task_payload})
 
 
-def _pass_1_task_payload(pass1_mode: str, *, raw_user_input: str = "") -> tuple[str, str]:
-    if pass1_mode == NATURAL_MODE:
-        case_family = _phase_b1_case_family_for_message(raw_user_input)
-        if case_family == B1_COMMON_FOOD_ITEM_CASE_FAMILY:
-            return (
-                "phase_b1_pass_1_common_food_item_anti_final_v1",
-                PASS_1_NATURAL_TOOL_SELECTION_GUIDANCE + PASS_1_COMMON_FOOD_ITEM_ANTI_FINAL_FRAGMENT,
-            )
-        if case_family == B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY:
-            return (
-                "phase_b1_pass_1_common_commercial_drink_anti_final_v1",
-                PASS_1_NATURAL_TOOL_SELECTION_GUIDANCE + PASS_1_COMMON_COMMERCIAL_DRINK_ANTI_FINAL_FRAGMENT,
-            )
-        if case_family == B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY:
-            return (
-                "phase_b1_pass_1_common_commercial_meal_anti_final_v1",
-                PASS_1_NATURAL_TOOL_SELECTION_GUIDANCE + PASS_1_COMMON_COMMERCIAL_MEAL_ANTI_FINAL_FRAGMENT,
-            )
-        return "phase_b1_pass_1_natural_tool_selection_guidance_v5", PASS_1_NATURAL_TOOL_SELECTION_GUIDANCE
-    return "phase_b1_pass_1_forced_tool_request_v1", PASS_1_TOOL_REQUEST_PAYLOAD
+def _selector_inputs_trace(
+    *,
+    case_family: str | None,
+    manager_role: str,
+    probe_mode: str,
+    case_id: str | None = None,
+) -> dict[str, Any]:
+    return build_phase_b1_selector_inputs(
+        case_family=case_family,
+        manager_role=manager_role,
+        probe_mode=probe_mode,
+        case_id=case_id,
+    ).to_trace_dict()
 
 
-def _pass_2_task_payload(*, raw_user_input: str) -> tuple[str, str]:
-    case_family = _phase_b1_case_family_for_message(raw_user_input)
-    if case_family == B1_COMMON_FOOD_ITEM_CASE_FAMILY:
-        return "phase_b1_pass_2_common_food_item_compact_json_first_v1", PASS_2_COMMON_FOOD_ITEM_COMPACT_JSON_FIRST_PAYLOAD
-    if case_family == B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY:
-        return (
-            "phase_b1_pass_2_common_commercial_drink_compact_json_first_v1",
-            PASS_2_COMMON_COMMERCIAL_DRINK_COMPACT_JSON_FIRST_PAYLOAD,
-        )
-    if case_family == B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY:
-        return (
-            "phase_b1_pass_2_common_commercial_meal_compact_json_first_v1",
-            PASS_2_COMMON_COMMERCIAL_MEAL_COMPACT_JSON_FIRST_PAYLOAD,
-        )
-    if case_family == B1_LISTED_INGREDIENT_CASE_FAMILY:
-        return "phase_b1_pass_2_listed_ingredient_compact_json_first_v1", PASS_2_LISTED_INGREDIENT_COMPACT_JSON_FIRST_PAYLOAD
-    return "phase_b1_pass_2_synthesis_v1", PASS_2_SYNTHESIS_PAYLOAD
+def _manager_contract_selection_trace(
+    *,
+    manager_role: str,
+    probe_mode: str,
+    case_family: str | None,
+) -> dict[str, Any]:
+    return select_phase_b1_task_payload(
+        manager_role=manager_role,
+        probe_mode=probe_mode,
+        case_family=case_family,
+    ).to_trace_dict()
 
 
-def _task_payload_for_round(*, round_index: int, pass1_mode: str, raw_user_input: str) -> tuple[str, str]:
+def _pass_1_task_payload(pass1_mode: str, *, case_family: str | None = None) -> tuple[str, str]:
+    selection = select_phase_b1_task_payload(
+        manager_role="pass_1_tool_request",
+        probe_mode=pass1_mode,
+        case_family=case_family,
+    )
+    return selection.task_payload_id, PHASE_B1_TASK_PAYLOADS[selection.task_payload_id]
+
+
+def _pass_2_task_payload(*, case_family: str | None) -> tuple[str, str]:
+    selection = select_phase_b1_task_payload(
+        manager_role="pass_2_synthesis",
+        probe_mode=NATURAL_MODE,
+        case_family=case_family,
+    )
+    return selection.task_payload_id, PHASE_B1_TASK_PAYLOADS[selection.task_payload_id]
+
+
+def _task_payload_for_round(*, round_index: int, pass1_mode: str, case_family: str | None) -> tuple[str, str]:
     if round_index == 0:
-        return _pass_1_task_payload(pass1_mode, raw_user_input=raw_user_input)
-    return _pass_2_task_payload(raw_user_input=raw_user_input)
+        return _pass_1_task_payload(pass1_mode, case_family=case_family)
+    return _pass_2_task_payload(case_family=case_family)
 
 
-def _case_prompt_hash(*, manager_role: str, pass1_mode: str, raw_user_input: str = "") -> str:
+def _case_prompt_hash(*, manager_role: str, pass1_mode: str, case_family: str | None = None) -> str:
     if manager_role == "pass_1_tool_request":
-        _, task_payload = _pass_1_task_payload(pass1_mode, raw_user_input=raw_user_input)
+        _, task_payload = _pass_1_task_payload(pass1_mode, case_family=case_family)
     else:
-        _, task_payload = _pass_2_task_payload(raw_user_input=raw_user_input)
+        _, task_payload = _pass_2_task_payload(case_family=case_family)
     return _hash({"manager_role": manager_role, "system_prompt": SINGLE_MANAGER_SYSTEM_PROMPT, "task_payload": task_payload})
+
+
+def _provider_profile_selection_trace(route: _PhaseB1ProfileRoute) -> dict[str, Any]:
+    return {
+        "provider_profile_id": route.profile.profile_id,
+        "route_mode": route.route_mode,
+        "route_reason": route.route_reason,
+        "route_rule_id": route.rule_id,
+        "route_scope": route.routing_scope,
+        "artifact_basis": route.artifact_basis,
+        "uses_case_id_local_debt": route.uses_case_id_local_debt,
+        "should_migrate_post_b1": route.should_migrate_post_b1,
+    }
+
+
+def _selector_trace_dict(trace: dict[str, Any], key: str) -> dict[str, Any]:
+    value = trace.get(key)
+    return _json_safe(value) if isinstance(value, dict) else {}
 
 
 def _provider_params(trace: dict[str, Any]) -> dict[str, Any]:
@@ -1164,10 +1150,14 @@ class _PhaseB1ManagerProvider:
         round_index = int(user_payload.get("round_index") or 0)
         manager_role = "pass_1_tool_request" if round_index == 0 else "pass_2_synthesis"
         raw_user_input = str(user_payload.get("raw_user_input") or "")
+        case_family = str(user_payload.get("constraints", {}).get("phase_b1_case_family") or "") or None
+        if case_family is None:
+            derived_case_family = _phase_b1_case_family_for_message(raw_user_input)
+            case_family = derived_case_family or None
         task_payload_id, task_payload = _task_payload_for_round(
             round_index=round_index,
             pass1_mode=self.pass1_mode,
-            raw_user_input=raw_user_input,
+            case_family=case_family,
         )
         constraints = dict(user_payload.get("constraints") or {})
         constraints.update(
@@ -1177,12 +1167,21 @@ class _PhaseB1ManagerProvider:
                 "phase_b1_task_payload_id": task_payload_id,
             }
         )
-        if self.pass1_mode == NATURAL_MODE:
-            case_family = _phase_b1_case_family_for_message(raw_user_input)
-            if case_family:
-                constraints["phase_b1_case_family"] = case_family
+        if case_family:
+            constraints["phase_b1_case_family"] = case_family
         user_payload["constraints"] = constraints
         kwargs["user_payload"] = user_payload
+        selector_inputs_trace = _selector_inputs_trace(
+            case_family=case_family,
+            manager_role=manager_role,
+            probe_mode=self.pass1_mode,
+            case_id=str(constraints.get("phase_b1_case_id") or "") or None,
+        )
+        manager_contract_selection = _manager_contract_selection_trace(
+            manager_role=manager_role,
+            probe_mode=self.pass1_mode if round_index == 0 else NATURAL_MODE,
+            case_family=case_family,
+        )
         route = _resolve_round_phase_b1_profile_route(
             selected_profile=self.provider_profile,
             requested_profile_id=self.requested_profile_id,
@@ -1191,6 +1190,7 @@ class _PhaseB1ManagerProvider:
             manager_role=manager_role,
             constraints=constraints,
         )
+        provider_profile_selection = _provider_profile_selection_trace(route)
         active_profile = route.profile
         if round_index == 0 and self.pass1_mode == NATURAL_MODE:
             kwargs["system_prompt"] = f"{task_payload}\n\n{str(kwargs.get('system_prompt') or '')}"
@@ -1210,6 +1210,7 @@ class _PhaseB1ManagerProvider:
             _restore_profile_override(self._provider, original_provider_state)
             provider_trace = dict(getattr(exc, "trace", {}) or {}) if isinstance(getattr(exc, "trace", {}), dict) else {}
             _inject_provider_profile_trace_fields(provider_trace, route=route)
+            setattr(exc, "trace", provider_trace)
             failure_family = provider_trace.get("failure_family") or provider_trace.get("request_failure_family")
             if round_index == 0 and failure_family == MANAGER_OUTPUT_CONTRACT_VIOLATION:
                 normalized_trace = _normalize_provider_trace(provider_trace, manager_role=manager_role, user_payload=user_payload)
@@ -1220,6 +1221,9 @@ class _PhaseB1ManagerProvider:
                 normalized_trace["latency_ms"] = _elapsed_ms(started_perf)
                 normalized_trace["phase_b1_task_payload_id"] = constraints["phase_b1_task_payload_id"]
                 normalized_trace["phase_b1_task_payload_hash"] = _hash(task_payload)
+                normalized_trace["selector_inputs"] = selector_inputs_trace
+                normalized_trace["manager_contract_selection"] = manager_contract_selection
+                normalized_trace["provider_profile_selection"] = provider_profile_selection
                 parsed_payload = provider_trace.get("parsed_object") if isinstance(provider_trace.get("parsed_object"), dict) else {}
                 partial_trace = _provider_contract_violation_trace(
                     case_id=str(user_payload.get("constraints", {}).get("phase_b1_case_id") or ""),
@@ -1251,6 +1255,9 @@ class _PhaseB1ManagerProvider:
         trace["latency_ms"] = latency_ms
         trace["phase_b1_task_payload_id"] = constraints["phase_b1_task_payload_id"]
         trace["phase_b1_task_payload_hash"] = _hash(task_payload)
+        trace["selector_inputs"] = selector_inputs_trace
+        trace["manager_contract_selection"] = manager_contract_selection
+        trace["provider_profile_selection"] = provider_profile_selection
         self._current_case_rounds.append(
             {
                 "round_index": round_index,
@@ -1666,6 +1673,16 @@ def _item_results_from_payload(
     return results, bool(results), ("runner_packet_fallback" if results else "none"), None, []
 
 
+def _item_results_owner_class(*, item_results_source: str, runner_derived_item_results: bool) -> str:
+    if runner_derived_item_results or item_results_source == "runner_packet_fallback":
+        return "runner_fallback"
+    if item_results_source == "manager_pass_2_payload":
+        return "runtime_payload"
+    if item_results_source == "answer_contract_bridge":
+        return "compatibility_bridge"
+    return "none"
+
+
 def _item_results_from_answer_contract_root(
     payload: dict[str, Any], packets: list[dict[str, Any]]
 ) -> tuple[list[dict[str, Any]], list[str]]:
@@ -1788,6 +1805,7 @@ def _normalize_item_level_food_name(raw_name: str) -> str:
 async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: str) -> dict[str, Any]:
     case_started_at_utc = _utc_now()
     case_started_perf = time.perf_counter()
+    case_family = _phase_b1_case_family_for_message(message)
     resolved_state = SimpleNamespace(onboarding_ready=True)
     resolved_state_payload = _json_safe(resolved_state)
     constraints = {
@@ -1897,7 +1915,11 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
                 "manager_pass_1": {
                     "manager_round": 0,
                     "manager_role": "pass_1_tool_request",
-                    "prompt_hash": _case_prompt_hash(manager_role="pass_1_tool_request", pass1_mode=pass1_mode, raw_user_input=message),
+                    "prompt_hash": _case_prompt_hash(
+                        manager_role="pass_1_tool_request",
+                        pass1_mode=pass1_mode,
+                        case_family=case_family,
+                    ),
                     "started_at_utc": pass1_trace.get("started_at_utc"),
                     "ended_at_utc": pass1_trace.get("ended_at_utc"),
                     "latency_ms": pass1_trace.get("latency_ms"),
@@ -1905,6 +1927,9 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
                     "provider_params": _provider_params(pass1_trace),
                     "phase_b1_task_payload_id": pass1_trace.get("phase_b1_task_payload_id"),
                     "phase_b1_task_payload_hash": pass1_trace.get("phase_b1_task_payload_hash"),
+                    "selector_inputs": _selector_trace_dict(pass1_trace, "selector_inputs"),
+                    "manager_contract_selection": _selector_trace_dict(pass1_trace, "manager_contract_selection"),
+                    "provider_profile_selection": _selector_trace_dict(pass1_trace, "provider_profile_selection"),
                     "requested_read_tools": requested_tools,
                     "forbidden_final_truth_fields_present": _contains_any_key(pass1_decision, PASS_1_FORBIDDEN_FIELDS),
                     **pass1_shape,
@@ -1918,7 +1943,11 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
                 "manager_pass_2": {
                     "manager_round": 1,
                     "manager_role": "pass_2_synthesis",
-                    "prompt_hash": _case_prompt_hash(manager_role="pass_2_synthesis", pass1_mode=pass1_mode, raw_user_input=message),
+                    "prompt_hash": _case_prompt_hash(
+                        manager_role="pass_2_synthesis",
+                        pass1_mode=pass1_mode,
+                        case_family=case_family,
+                    ),
                     "started_at_utc": None,
                     "ended_at_utc": None,
                     "latency_ms": None,
@@ -1926,6 +1955,18 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
                     "provider_params": {"provider": None, "model": None, "request_id": None},
                     "phase_b1_task_payload_id": None,
                     "phase_b1_task_payload_hash": None,
+                    "selector_inputs": _selector_inputs_trace(
+                        case_family=case_family,
+                        manager_role="pass_2_synthesis",
+                        probe_mode=pass1_mode,
+                        case_id=case_id,
+                    ),
+                    "manager_contract_selection": _manager_contract_selection_trace(
+                        manager_role="pass_2_synthesis",
+                        probe_mode=NATURAL_MODE,
+                        case_family=case_family,
+                    ),
+                    "provider_profile_selection": {},
                     "item_results": [],
                     "mutation_attempted": False,
                     "forbidden_mutation_fields_present": [],
@@ -1968,7 +2009,11 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
                 "manager_pass_1": {
                     "manager_round": 0,
                     "manager_role": "pass_1_tool_request",
-                    "prompt_hash": _case_prompt_hash(manager_role="pass_1_tool_request", pass1_mode=pass1_mode, raw_user_input=message),
+                    "prompt_hash": _case_prompt_hash(
+                        manager_role="pass_1_tool_request",
+                        pass1_mode=pass1_mode,
+                        case_family=case_family,
+                    ),
                     "started_at_utc": pass1_trace.get("started_at_utc"),
                     "ended_at_utc": pass1_trace.get("ended_at_utc"),
                     "latency_ms": pass1_trace.get("latency_ms"),
@@ -1976,6 +2021,9 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
                     "provider_params": _provider_params(pass1_trace),
                     "phase_b1_task_payload_id": pass1_trace.get("phase_b1_task_payload_id"),
                     "phase_b1_task_payload_hash": pass1_trace.get("phase_b1_task_payload_hash"),
+                    "selector_inputs": _selector_trace_dict(pass1_trace, "selector_inputs"),
+                    "manager_contract_selection": _selector_trace_dict(pass1_trace, "manager_contract_selection"),
+                    "provider_profile_selection": _selector_trace_dict(pass1_trace, "provider_profile_selection"),
                     "requested_read_tools": router_trace["requested_read_tools"],
                     "forbidden_final_truth_fields_present": _contains_any_key(pass1_decision, PASS_1_FORBIDDEN_FIELDS),
                     **pass1_shape,
@@ -1989,7 +2037,11 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
                 "manager_pass_2": {
                     "manager_round": 1,
                     "manager_role": "pass_2_synthesis",
-                    "prompt_hash": _case_prompt_hash(manager_role="pass_2_synthesis", pass1_mode=pass1_mode, raw_user_input=message),
+                    "prompt_hash": _case_prompt_hash(
+                        manager_role="pass_2_synthesis",
+                        pass1_mode=pass1_mode,
+                        case_family=case_family,
+                    ),
                     "started_at_utc": pass2_trace.get("started_at_utc"),
                     "ended_at_utc": pass2_trace.get("ended_at_utc"),
                     "latency_ms": pass2_trace.get("latency_ms"),
@@ -1997,6 +2049,9 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
                     "provider_params": _provider_params(pass2_trace),
                     "phase_b1_task_payload_id": pass2_trace.get("phase_b1_task_payload_id"),
                     "phase_b1_task_payload_hash": pass2_trace.get("phase_b1_task_payload_hash"),
+                    "selector_inputs": _selector_trace_dict(pass2_trace, "selector_inputs"),
+                    "manager_contract_selection": _selector_trace_dict(pass2_trace, "manager_contract_selection"),
+                    "provider_profile_selection": _selector_trace_dict(pass2_trace, "provider_profile_selection"),
                     "item_results": [],
                     "mutation_attempted": False,
                     "forbidden_mutation_fields_present": [],
@@ -2070,7 +2125,11 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
         "manager_pass_1": {
             "manager_round": 0,
             "manager_role": "pass_1_tool_request",
-            "prompt_hash": _case_prompt_hash(manager_role="pass_1_tool_request", pass1_mode=pass1_mode, raw_user_input=message),
+            "prompt_hash": _case_prompt_hash(
+                manager_role="pass_1_tool_request",
+                pass1_mode=pass1_mode,
+                case_family=case_family,
+            ),
             "started_at_utc": pass1_trace.get("started_at_utc"),
             "ended_at_utc": pass1_trace.get("ended_at_utc"),
             "latency_ms": pass1_trace.get("latency_ms"),
@@ -2078,6 +2137,9 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
             "provider_params": _provider_params(pass1_trace),
             "phase_b1_task_payload_id": pass1_trace.get("phase_b1_task_payload_id"),
             "phase_b1_task_payload_hash": pass1_trace.get("phase_b1_task_payload_hash"),
+            "selector_inputs": _selector_trace_dict(pass1_trace, "selector_inputs"),
+            "manager_contract_selection": _selector_trace_dict(pass1_trace, "manager_contract_selection"),
+            "provider_profile_selection": _selector_trace_dict(pass1_trace, "provider_profile_selection"),
             "requested_read_tools": router_trace["requested_read_tools"],
             "forbidden_final_truth_fields_present": _contains_any_key(pass1_decision, PASS_1_FORBIDDEN_FIELDS),
             **pass1_shape,
@@ -2098,7 +2160,11 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
                 "manager_pass_2": {
                     "manager_round": 1,
                     "manager_role": "pass_2_synthesis",
-                    "prompt_hash": _case_prompt_hash(manager_role="pass_2_synthesis", pass1_mode=pass1_mode, raw_user_input=message),
+                    "prompt_hash": _case_prompt_hash(
+                        manager_role="pass_2_synthesis",
+                        pass1_mode=pass1_mode,
+                        case_family=case_family,
+                    ),
                     "started_at_utc": pass2_trace.get("started_at_utc"),
                     "ended_at_utc": pass2_trace.get("ended_at_utc"),
                     "latency_ms": pass2_trace.get("latency_ms"),
@@ -2106,6 +2172,9 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
                     "provider_params": _provider_params(pass2_trace),
                     "phase_b1_task_payload_id": pass2_trace.get("phase_b1_task_payload_id"),
                     "phase_b1_task_payload_hash": pass2_trace.get("phase_b1_task_payload_hash"),
+                    "selector_inputs": _selector_trace_dict(pass2_trace, "selector_inputs"),
+                    "manager_contract_selection": _selector_trace_dict(pass2_trace, "manager_contract_selection"),
+                    "provider_profile_selection": _selector_trace_dict(pass2_trace, "provider_profile_selection"),
                     "item_results": [],
                     "mutation_attempted": False,
                     "forbidden_mutation_fields_present": [],
@@ -2158,7 +2227,11 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
         "manager_pass_1": {
             "manager_round": 0,
             "manager_role": "pass_1_tool_request",
-            "prompt_hash": _case_prompt_hash(manager_role="pass_1_tool_request", pass1_mode=pass1_mode, raw_user_input=message),
+            "prompt_hash": _case_prompt_hash(
+                manager_role="pass_1_tool_request",
+                pass1_mode=pass1_mode,
+                case_family=case_family,
+            ),
             "started_at_utc": pass1_trace.get("started_at_utc"),
             "ended_at_utc": pass1_trace.get("ended_at_utc"),
             "latency_ms": pass1_trace.get("latency_ms"),
@@ -2166,6 +2239,9 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
             "provider_params": _provider_params(pass1_trace),
             "phase_b1_task_payload_id": pass1_trace.get("phase_b1_task_payload_id"),
             "phase_b1_task_payload_hash": pass1_trace.get("phase_b1_task_payload_hash"),
+            "selector_inputs": _selector_trace_dict(pass1_trace, "selector_inputs"),
+            "manager_contract_selection": _selector_trace_dict(pass1_trace, "manager_contract_selection"),
+            "provider_profile_selection": _selector_trace_dict(pass1_trace, "provider_profile_selection"),
             "requested_read_tools": router_trace["requested_read_tools"],
             "forbidden_final_truth_fields_present": _contains_any_key(pass1_decision, PASS_1_FORBIDDEN_FIELDS),
             **pass1_shape,
@@ -2176,7 +2252,11 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
         "manager_pass_2": {
             "manager_round": 1,
             "manager_role": "pass_2_synthesis",
-            "prompt_hash": _case_prompt_hash(manager_role="pass_2_synthesis", pass1_mode=pass1_mode, raw_user_input=message),
+            "prompt_hash": _case_prompt_hash(
+                manager_role="pass_2_synthesis",
+                pass1_mode=pass1_mode,
+                case_family=case_family,
+            ),
             "started_at_utc": pass2_trace.get("started_at_utc"),
             "ended_at_utc": pass2_trace.get("ended_at_utc"),
             "latency_ms": pass2_trace.get("latency_ms"),
@@ -2184,8 +2264,15 @@ async def _run_case(*, case_id: str, message: str, provider: Any, pass1_mode: st
             "provider_params": _provider_params(pass2_trace),
             "phase_b1_task_payload_id": pass2_trace.get("phase_b1_task_payload_id"),
             "phase_b1_task_payload_hash": pass2_trace.get("phase_b1_task_payload_hash"),
+            "selector_inputs": _selector_trace_dict(pass2_trace, "selector_inputs"),
+            "manager_contract_selection": _selector_trace_dict(pass2_trace, "manager_contract_selection"),
+            "provider_profile_selection": _selector_trace_dict(pass2_trace, "provider_profile_selection"),
             "item_results": item_results,
             "item_results_source": item_results_source,
+            "item_results_owner_class": _item_results_owner_class(
+                item_results_source=item_results_source,
+                runner_derived_item_results=runner_derived_item_results,
+            ),
             "item_results_bridge_shape": item_results_bridge_shape,
             "item_results_bridge_parent_fallback_fields": item_results_bridge_parent_fallback_fields,
             "mutation_attempted": False,
@@ -2300,14 +2387,24 @@ def _provider_runtime_summary_for_error(
     error: Exception,
     smoke_cases: list[str] | tuple[str, ...],
     provider_timeout_ms: int,
+    runner_case_attempt_count: int | None = None,
 ) -> dict[str, Any]:
     raw_provider_trace = getattr(error, "trace", {})
     provider_trace = dict(raw_provider_trace) if isinstance(raw_provider_trace, dict) else {}
     transport_attempts = (
         provider_trace.get("transport_attempts") if isinstance(provider_trace.get("transport_attempts"), list) else []
     )
+    latest_transport_attempt = next(
+        (
+            attempt
+            for attempt in reversed(transport_attempts)
+            if isinstance(attempt, dict) and attempt.get("error_type")
+        ),
+        None,
+    )
     timeout_error_types = {"TimeoutError", "ReadTimeout", "ConnectTimeout", "WriteTimeout", "PoolTimeout"}
     transient_statuses = {429, 500, 503}
+    transient_transport_error_types = timeout_error_types | {"ConnectError"}
     transport_timeout = any(
         isinstance(attempt, dict) and str(attempt.get("error_type") or "") in timeout_error_types
         for attempt in transport_attempts
@@ -2332,6 +2429,17 @@ def _provider_runtime_summary_for_error(
     model = provider_trace.get("model") or readiness.get("manager_model") or readiness.get("model")
     base_url = provider_trace.get("base_url") or readiness.get("base_url")
     retry_count = readiness.get("transport_retry_count")
+    compact_transport_attempts = [
+        _compact_transport_attempt(
+            attempt=attempt,
+            timeout_error_types=timeout_error_types,
+            transient_transport_error_types=transient_transport_error_types,
+            transient_statuses=transient_statuses,
+            parent_error_message=str(error),
+        )
+        for attempt in transport_attempts
+        if isinstance(attempt, dict)
+    ]
     failing_component = getattr(error, "failing_component", None) or provider_trace.get("failing_component")
     if failing_component is None and isinstance(error, BuilderSpaceResponseError):
         failing_component = "builderspace_adapter.complete_with_trace"
@@ -2347,7 +2455,7 @@ def _provider_runtime_summary_for_error(
         "configured": bool(readiness.get("configured")),
         "blocker": True,
         "reason": "provider_timeout" if is_timeout else "provider_runtime_error",
-        "error_type": type(error).__name__,
+        "error_type": str(latest_transport_attempt.get("error_type")) if latest_transport_attempt is not None else type(error).__name__,
         "error": str(error),
         "provider": provider_trace.get("provider") or readiness.get("provider"),
         "model": model,
@@ -2357,9 +2465,13 @@ def _provider_runtime_summary_for_error(
         "timeout_layer": timeout_layer,
         "attempt_count": len(transport_attempts) if transport_attempts else 1,
         "retry_count": retry_count,
+        "configured_transport_retry_count": retry_count,
+        "transport_attempt_count": len(compact_transport_attempts),
+        "runner_case_attempt_count": runner_case_attempt_count or 1,
         "completed_trace_count": len(traces),
         "expected_case_count": len(smoke_cases),
         "base_url": base_url,
+        "transport_attempts": compact_transport_attempts,
         "failing_component": failing_component,
         "failure_family": provider_trace.get("failure_family") or provider_trace.get("request_failure_family"),
         "observed_type": provider_trace.get("observed_type"),
@@ -2398,6 +2510,11 @@ def _provider_runtime_summary_for_error(
         "provider_profile_role": provider_trace.get("provider_profile_role"),
         "provider_profile_transport_mode": provider_trace.get("provider_profile_transport_mode"),
         "provider_profile_selection_reason": provider_trace.get("provider_profile_selection_reason"),
+        "provider_profile_route_mode": provider_trace.get("provider_profile_route_mode"),
+        "provider_profile_route_reason": provider_trace.get("provider_profile_route_reason"),
+        "profile_routing_rule_id": provider_trace.get("profile_routing_rule_id"),
+        "profile_routing_scope": provider_trace.get("profile_routing_scope"),
+        "profile_routing_artifact_basis": provider_trace.get("profile_routing_artifact_basis"),
         "manager_candidate_status": provider_trace.get("manager_candidate_status"),
         "documented_reasoning_status": provider_trace.get("documented_reasoning_status"),
         "documented_tool_call_support": provider_trace.get("documented_tool_call_support"),
@@ -2414,6 +2531,46 @@ def _provider_runtime_summary_for_error(
     return provider_runtime
 
 
+def _compact_transport_attempt(
+    *,
+    attempt: dict[str, Any],
+    timeout_error_types: set[str],
+    transient_transport_error_types: set[str],
+    transient_statuses: set[int],
+    parent_error_message: str,
+) -> dict[str, Any]:
+    error_type = str(attempt.get("error_type") or "") or None
+    status_code = int(attempt.get("http_status") or 0) or None
+    timeout_layer = "adapter_http_timeout" if error_type in timeout_error_types else None
+    if error_type in timeout_error_types:
+        exception_family = "timeout"
+    elif error_type == "ConnectError":
+        exception_family = "network"
+    elif status_code in transient_statuses:
+        exception_family = "http_status"
+    else:
+        exception_family = "transport"
+    message_source = str(attempt.get("error") or parent_error_message or "")
+    message_excerpt = _truncate_text(message_source, limit=240) if message_source else None
+    return {
+        "attempt_index": attempt.get("attempt_index"),
+        "started_at_utc": attempt.get("started_at_utc"),
+        "ended_at_utc": attempt.get("ended_at_utc"),
+        "error_type": error_type,
+        "retryable": bool(error_type in transient_transport_error_types or status_code in transient_statuses),
+        "status_code": status_code,
+        "timeout_layer": timeout_layer,
+        "exception_family": exception_family,
+        "message_excerpt": message_excerpt,
+    }
+
+
+def _truncate_text(value: str, *, limit: int) -> str:
+    if len(value) <= limit:
+        return value
+    return value[: max(0, limit - 3)] + "..."
+
+
 def _is_retryable_provider_error(error: Exception) -> bool:
     if isinstance(error, TimeoutError):
         return True
@@ -2421,15 +2578,20 @@ def _is_retryable_provider_error(error: Exception) -> bool:
         return False
     trace = getattr(error, "trace", {})
     if not isinstance(trace, dict):
-        return "timeout" in str(error).lower()
+        lowered = str(error).lower()
+        return "timeout" in lowered or "connecterror" in lowered or "connection attempts failed" in lowered
     transport_attempts = trace.get("transport_attempts") if isinstance(trace.get("transport_attempts"), list) else []
     timeout_error_types = {"TimeoutError", "ReadTimeout", "ConnectTimeout", "WriteTimeout", "PoolTimeout"}
+    transient_transport_error_types = timeout_error_types | {"ConnectError"}
     if "timeout" in str(error).lower():
+        return True
+    lowered = str(error).lower()
+    if "connecterror" in lowered or "connection attempts failed" in lowered:
         return True
     for attempt in transport_attempts:
         if not isinstance(attempt, dict):
             continue
-        if str(attempt.get("error_type") or "") in timeout_error_types:
+        if str(attempt.get("error_type") or "") in transient_transport_error_types:
             return True
         if int(attempt.get("http_status") or 0) in {429, 500, 503}:
             return True
@@ -2445,6 +2607,36 @@ async def _sleep_backoff(*, delay_seconds: float, sleep_func: Any) -> None:
     if delay_seconds <= 0:
         return
     await sleep_func(delay_seconds)
+
+
+def _resolve_cli_targeted_case_ids(*, cases: str | None, case_set: str | None, case_id: str | None) -> list[str] | None:
+    if cases:
+        targeted = _resolve_targeted_smoke_cases(cases)
+        return targeted["requested_case_ids"]
+    if case_set is None and case_id is None:
+        return None
+    normalized_case_set = (case_set or "targeted").strip().lower()
+    if normalized_case_set != "targeted":
+        raise ValueError("Only targeted case-set overrides are supported by this smoke CLI.")
+    if not case_id:
+        raise ValueError("A targeted case-set override requires --case-id.")
+    targeted = _resolve_targeted_smoke_cases(case_id)
+    return targeted["requested_case_ids"]
+
+
+def _legacy_cli_defaults_for_targeted_case(
+    *,
+    requested_case_ids: list[str] | None,
+    mode: str,
+    provider_profile_id: str | None,
+    used_legacy_targeting: bool,
+) -> tuple[str, str | None]:
+    return resolve_phase_b1_local_diagnostic_cli_defaults(
+        requested_case_ids=requested_case_ids,
+        mode=mode,
+        provider_profile_id=provider_profile_id,
+        used_legacy_targeting=used_legacy_targeting,
+    )
 
 
 def _provider_unavailable_report(
@@ -2668,6 +2860,7 @@ async def _run_targeted_case_with_retries(
                 error=exc,
                 smoke_cases=[message],
                 provider_timeout_ms=provider_timeout_ms,
+                runner_case_attempt_count=attempt_index,
             )
             retryable = _is_retryable_provider_error(exc)
             attempts[-1]["provider_runtime_reason"] = provider_runtime["reason"]
@@ -2707,6 +2900,40 @@ async def _run_targeted_case_with_retries(
             "trace": trace,
         }
     raise AssertionError("unreachable targeted case execution path")
+
+
+async def _run_full_case_with_retries(
+    *,
+    case_id: str,
+    message: str,
+    provider: Any,
+    pass1_mode: str,
+    max_attempts: int,
+    retry_backoff_seconds: float,
+    sleep_func: Any,
+    jitter_func: Any,
+) -> dict[str, Any]:
+    last_error: Exception | None = None
+    for attempt_index in range(1, max_attempts + 1):
+        try:
+            return await _run_case(
+                case_id=case_id,
+                message=message,
+                provider=provider,
+                pass1_mode=pass1_mode,
+            )
+        except Exception as exc:
+            last_error = exc
+            if _is_retryable_provider_error(exc) and attempt_index < max_attempts:
+                delay = _runner_retry_delay_seconds(
+                    attempt_index=attempt_index,
+                    base_seconds=retry_backoff_seconds,
+                    jitter_func=jitter_func,
+                )
+                await _sleep_backoff(delay_seconds=delay, sleep_func=sleep_func)
+                continue
+            raise
+    raise last_error or AssertionError("unreachable full case execution path")
 
 
 async def run_phase_b_minimal_tool_loop_smoke(
@@ -2821,11 +3048,15 @@ async def run_phase_b_minimal_tool_loop_smoke(
             try:
                 for case_id, message in zip(canonical_case_ids, smoke_cases):
                     traces.append(
-                        await _run_case(
+                        await _run_full_case_with_retries(
                             case_id=case_id,
                             message=message,
                             provider=phase_b_provider,
                             pass1_mode=pass1_mode,
+                            max_attempts=_retry_max_attempts,
+                            retry_backoff_seconds=_retry_backoff_seconds,
+                            sleep_func=_sleep_func,
+                            jitter_func=jitter_func,
                         )
                     )
             except _ManagerPayloadShapeError as exc:
@@ -2907,24 +3138,33 @@ async def _async_main() -> int:
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--mode", choices=sorted(CLI_MODES), default="forced")
     parser.add_argument("--cases", default=None)
+    parser.add_argument("--case-set", choices=("targeted",), default=None)
+    parser.add_argument("--case-id", default=None)
     parser.add_argument("--provider-timeout-ms", type=int, default=DEFAULT_PROVIDER_TIMEOUT_MS)
     parser.add_argument("--provider-profile-id", default=None)
     parser.add_argument("--allow-expensive-model-probe", action="store_true")
     args = parser.parse_args()
     from app.runtime.interface.provider_runtime import manager_provider
 
-    requested_case_ids = None
-    if args.cases:
-        targeted = _resolve_targeted_smoke_cases(args.cases)
-        requested_case_ids = targeted["requested_case_ids"]
+    requested_case_ids = _resolve_cli_targeted_case_ids(
+        cases=args.cases,
+        case_set=args.case_set,
+        case_id=args.case_id,
+    )
+    mode, provider_profile_id = _legacy_cli_defaults_for_targeted_case(
+        requested_case_ids=requested_case_ids,
+        mode=args.mode,
+        provider_profile_id=args.provider_profile_id,
+        used_legacy_targeting=bool(args.case_set or args.case_id),
+    )
 
     report = await run_phase_b_minimal_tool_loop_smoke(
         provider=manager_provider,
         output_dir=Path(args.output_dir),
-        mode=args.mode,
+        mode=mode,
         requested_case_ids=requested_case_ids,
         provider_timeout_ms=args.provider_timeout_ms,
-        provider_profile_id=args.provider_profile_id,
+        provider_profile_id=provider_profile_id,
         allow_expensive_model_probe=args.allow_expensive_model_probe,
     )
     print(

@@ -1,12 +1,12 @@
 ﻿# Wave 1 Phase B-2 P0 Execution Plan
 
-> **For agentic workers:** REQUIRED EXECUTION SHAPE: use the bounded planner -> evaluator -> worker -> verifier loop from [docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md). Tasks use checkbox syntax for tracking.
+> Default execution mode for this plan is interactive implementation. Overnight / approval-light execution is optional and, when intentionally used, should follow [docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md).
 
 **Goal:** Build the minimum product-intelligence foundation for Wave 1 Phase B-2 without prematurely committing to live search, a giant nutrition DB, or a full ReAct retrieval agent.
 
 **Architecture:** Start with contract correctness, packet safety, and retrieval intent. Add a small test-aligned anchor store and structured DB lookup first. Defer RAG or hybrid retrieval until contract, packet, and mismatch behavior are stable and corpus scale or recall failure justifies the extra complexity.
 
-**Tech Stack:** Python runtime, existing Wave 1 smoke or readiness harnesses, synthetic packet tests, structured retrieval intent objects, small anchor fixtures, bounded Codex CLI worker or reviewer runs when useful.
+**Tech Stack:** Python runtime, existing Wave 1 smoke or readiness harnesses, synthetic packet tests, structured retrieval intent objects, small anchor fixtures, and optional bounded CLI/autonomy tooling only when explicitly chosen.
 
 ---
 
@@ -21,6 +21,19 @@ It does not include:
 - giant nutrition DB ingestion
 - production accuracy claims
 - full multi-hop ReAct retrieval
+
+## Pre-step - B-1 Green Handoff Snapshot
+
+Before `B2-001`, record the handoff snapshot as:
+
+```yaml
+b1_gate_scope: Phase B-1 minimal tool-loop full natural-probe
+smoke_artifact:
+readiness_artifact:
+ready_for_phase_b1_implementation: true
+blockers: []
+not_claiming: whole Wave 1 completion
+```
 
 ## Build Order Summary
 
@@ -80,11 +93,22 @@ Do not jump directly to blind vector similarity without the existing packet and 
   - inference contract
   - packet usage classes
   - follow-up severity
+- terminology diff table must be emitted with:
+  - `term`
+  - `canonical meaning`
+  - `docs touched`
+  - `old conflict`
+  - `final wording`
 
-- [ ] planner confirms contract gaps still exist
-- [ ] evaluator confirms no product-semantic contradiction remains across the three docs
-- [ ] worker applies only additive or explicit alignment edits
-- [ ] verifier confirms docs remain encoding-clean and semantically consistent
+**Completion criteria:**
+
+- contract gaps are explicitly identified before edits
+- no product-semantic contradiction remains across the three docs
+- edits stay additive or explicit alignment only
+
+**Verification expectation:**
+
+- docs remain encoding-clean and semantically consistent
 
 ## Task B2-002 - Lock Synthetic Packet And Mismatch Oracles
 
@@ -103,11 +127,19 @@ Do not jump directly to blind vector similarity without the existing packet and 
   - wrong modifier
   - insufficient evidence
   - snippet cannot become truth
+- official producer writes both:
+  - `artifacts/wave1_phase_b2_evidence_synthesis_smoke_<timestamp>.json`
+  - `artifacts/wave1_phase_b2_evidence_synthesis_smoke.json`
 
-- [ ] planner defines the smallest set of oracle scenarios
-- [ ] evaluator checks that the tests enforce product truth instead of fixture accidents
-- [ ] worker implements or updates synthetic cases only
-- [ ] verifier proves fake-green paths are blocked
+**Completion criteria:**
+
+- the smallest useful oracle scenario set is explicitly frozen
+- tests enforce product truth instead of fixture accidents
+- the slice stays limited to synthetic readiness cases and related docs or tests
+
+**Verification expectation:**
+
+- fake-green exact or packet paths are blocked
 
 ## Task B2-003 - Add Retrieval Intent Object
 
@@ -126,11 +158,18 @@ Do not jump directly to blind vector similarity without the existing packet and 
   - `modifier_hints`
   - `listed_items`
   - `retrieval_goal`
+- `retrieval_goal` must stay an enum, not free-form natural language
+- retrieval intent is not evidence verdict, not synthesis, and not mutation decision
 
-- [ ] planner freezes the minimal retrieval-intent field set
-- [ ] evaluator checks that this layer is inference support, not hidden semantic rewriting
-- [ ] worker implements the intent object and tests
-- [ ] verifier proves the object covers the agreed case-law examples
+**Completion criteria:**
+
+- the minimal retrieval-intent field set is frozen
+- this layer remains inference support, not hidden semantic rewriting
+- implementation remains limited to the intent object and its tests
+
+**Verification expectation:**
+
+- the object covers the agreed case-law examples
 
 ## Task B2-004 - Add Small Test-Aligned Anchor Store
 
@@ -149,10 +188,15 @@ Do not jump directly to blind vector similarity without the existing packet and 
   - stable-base variable dishes
   - listed-ingredient item anchors
 
-- [ ] planner locks the initial anchor list
-- [ ] evaluator checks that P0 is still test-aligned and not drifting toward giant DB ambition
-- [ ] worker adds the anchors and modifier or composition metadata
-- [ ] verifier proves no anchor silently becomes product truth outside its role
+**Completion criteria:**
+
+- the initial anchor list is explicitly locked
+- P0 stays test-aligned and does not drift toward giant DB ambition
+- anchors carry only the needed modifier or composition metadata for this slice
+
+**Verification expectation:**
+
+- no anchor silently becomes product truth outside its role
 
 ## Task B2-005 - Add Structured DB Lookup
 
@@ -170,10 +214,15 @@ Do not jump directly to blind vector similarity without the existing packet and 
   - metadata filters
   - candidate-list trace
 
-- [ ] planner confirms this is still a structured lookup task, not a search-engine task
-- [ ] evaluator checks that wrong-item risk is reduced rather than hidden
-- [ ] worker implements retrieval plus tests
-- [ ] verifier proves candidate traces remain inspectable
+**Completion criteria:**
+
+- the slice remains a structured lookup task, not a search-engine task
+- wrong-item risk is reduced rather than hidden
+- retrieval changes remain paired with candidate-trace tests
+
+**Verification expectation:**
+
+- candidate traces remain inspectable
 
 ## Task B2-006 - Add Packet Compression And Deterministic Hard Recheck
 
@@ -192,10 +241,15 @@ Do not jump directly to blind vector similarity without the existing packet and 
   - snippet blocking
   - serving-basis or mismatch checks
 
-- [ ] planner names the exact guardrails this layer may own
-- [ ] evaluator checks that semantic judgment is not leaking into deterministic policy
-- [ ] worker implements compression and hard recheck
-- [ ] verifier proves rejected or downgraded candidates remain trace-visible
+**Completion criteria:**
+
+- the exact deterministic guardrails for this layer are named and preserved
+- semantic judgment does not leak into deterministic policy
+- compression and hard recheck stay bounded to packet safety behavior
+
+**Verification expectation:**
+
+- rejected or downgraded candidates remain trace-visible
 
 ## Task B2-007 - Add Pass 2 Packet-Based Synthesis
 
@@ -214,10 +268,15 @@ Do not jump directly to blind vector similarity without the existing packet and 
   - uncertainty reason
   - follow-up targets
 
-- [ ] planner confirms the input contract is packet-based, not raw result prose
-- [ ] evaluator checks that synthesis remains product-aligned and does not overclaim evidence
-- [ ] worker adds or updates the synthesis path
-- [ ] verifier proves packet refs, posture, and follow-up outputs are trace-clean
+**Completion criteria:**
+
+- the input contract remains packet-based, not raw result prose
+- synthesis stays product-aligned and does not overclaim evidence
+- the synthesis path remains trace-visible and packet-referenced
+
+**Verification expectation:**
+
+- packet refs, posture, and follow-up outputs are trace-clean
 
 ## Task B2-008 - Add Final Logged Or Draft And Follow-up Mapping
 
@@ -234,10 +293,15 @@ Do not jump directly to blind vector similarity without the existing packet and 
   - `unresolved -> draft`
   - follow-up is not a commit gate
 
-- [ ] planner freezes the thin mapping rule
-- [ ] evaluator checks that no third status leaks into product behavior
-- [ ] worker implements the minimal mapping path
-- [ ] verifier proves logged vs draft behavior matches the agreed rule
+**Completion criteria:**
+
+- the thin logged-vs-draft mapping rule is frozen
+- no third status leaks into product behavior
+- implementation stays minimal and mapping-focused
+
+**Verification expectation:**
+
+- logged vs draft behavior matches the agreed rule
 
 ## Task B2-009 - Decide Whether A Live Search Seam Is Worth Adding
 
@@ -252,10 +316,15 @@ Do not jump directly to blind vector similarity without the existing packet and 
   - defer live search
   - or proceed to a bounded selected-search seam
 
-- [ ] planner collects the evidence for or against live search
-- [ ] evaluator checks that search is solving a real bottleneck rather than replacing missing contract clarity
-- [ ] worker only writes docs or contract updates in this slice
-- [ ] verifier confirms no live search runtime was silently introduced
+**Completion criteria:**
+
+- evidence for or against live search is explicitly collected
+- search is justified only as a real bottleneck fix, not as a substitute for missing contract clarity
+- this slice remains docs or contract shaping only
+
+**Verification expectation:**
+
+- no live search runtime is silently introduced
 
 ## Task B2-010 - Reassess Large-DB RAG Or Hybrid Retrieval
 
@@ -272,28 +341,25 @@ Do not jump directly to blind vector similarity without the existing packet and 
   - add hybrid retrieval
   - add metadata-aware semantic retrieval
 
-- [ ] planner gathers corpus and recall evidence
-- [ ] evaluator checks that the system is not vectorizing unresolved semantics
-- [ ] worker records the decision and next-phase shape
-- [ ] verifier confirms the trigger evidence is explicit
+**Completion criteria:**
 
-## Overnight Execution Pattern
+- corpus and recall evidence is explicitly gathered
+- the system does not vectorize unresolved semantics by default
+- the decision and next-phase shape are recorded explicitly
 
-When this plan runs overnight:
+**Verification expectation:**
 
-- planner remains the control plane
-- evaluator must review architecture trajectory, not only code shape
-- worker and reviewer may run through:
-  - [scripts/run_codex_exec_with_prompt.py](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/scripts/run_codex_exec_with_prompt.py)
+- the trigger evidence for any retrieval expansion is explicit
 
-Recommended role pattern:
+## Optional Overnight / Approval-Light Mode
 
-1. planner writes a prompt file for one bounded task
-2. CLI worker executes the task
-3. CLI reviewer checks spec or quality
-4. planner decides whether another task is still safe
+This plan may be executed interactively by default.
 
-Do not run an infinite unattended chain across unresolved semantics.
+If the work is intentionally run overnight or with approval-light autonomy:
+
+- use the bounded protocol from [docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md)
+- keep continuation bounded and trace-backed
+- do not run free-form unattended chains across unresolved semantics
 
 ## Stop Conditions
 

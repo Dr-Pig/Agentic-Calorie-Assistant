@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from ...intake.application import manager_tools as tools
+from ...nutrition.application.web_search_port import WebSearchPort
+from ...nutrition.application.web_extract_port import WebExtractPort
 from ...nutrition.application.evidence_eligibility import classify_query_family, summarize_eligibility_results
 from ...runtime.application.execution_guard import evaluate_macro_display
 
@@ -192,7 +194,8 @@ async def execute_manager_tool_calls(
     allow_search: bool,
     manager_provider: Any | None,
     provider: Any | None,
-    search_adapter: Any | None,
+    search_port: WebSearchPort | None,
+    extract_port: WebExtractPort | None,
     state_before: Any,
     correction_target: dict[str, Any],
     tool_calls: list[dict[str, Any]],
@@ -238,7 +241,8 @@ async def execute_manager_tool_calls(
                     local_date=local_date,
                     manager_provider=manager_provider,
                     provider=provider,
-                    search_adapter=search_adapter,
+                    search_port=search_port,
+                    extract_port=extract_port,
                     allow_search=allow_search,
                     force_new_meal_context=not bool(((state_before.injected_context or {}).get("PENDING_FOLLOWUP") or {}).get("is_open")),
                     contextualized_query=contextualized_query_for_estimation(raw_user_input=raw_user_input, state_before=state_before),

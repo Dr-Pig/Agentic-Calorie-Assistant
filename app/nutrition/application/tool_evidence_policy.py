@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any
 from ...schemas import EstimateRequest
+from .web_search_port import WebSearchPort
 from .evidence_normalizer import (
     infer_variant_type, _evidence_id_for_item, source_tier_for_item,
     infer_brand_hint, infer_query_alignment, infer_candidate_relationship,
@@ -109,9 +110,9 @@ def build_attested_evidence_blocks(items: list[dict[str, Any]], *, query: str = 
         )
     return blocks
 
-def tool_availability(request: EstimateRequest, *, search_adapter: Any | None) -> list[str]:
+def tool_availability(request: EstimateRequest, *, search_port: WebSearchPort | None) -> list[str]:
     tools = ["resolve_exact_item", "get_meal_calibration", "resolve_ingredient_anchors"]
-    if request.allow_search and search_adapter is not None:
+    if request.allow_search and search_port is not None:
         tools.extend(["search_official_nutrition", "read_official_doc_fragment"])
     return tools
 
@@ -276,4 +277,3 @@ def classify_retrieval_query(*, query: str, identity_target: str = "") -> str:
 
 def retrieval_attempt_budget(*, query: str, identity_target: str = "") -> int:
     return 4 if classify_retrieval_query(query=query, identity_target=identity_target) == "branded_exact_like" else 3
-

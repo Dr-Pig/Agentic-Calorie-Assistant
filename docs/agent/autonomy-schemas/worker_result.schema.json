@@ -38,6 +38,19 @@
       "type": "array",
       "items": { "type": "string" }
     },
+    "repair_scope": {
+      "type": "string",
+      "enum": ["none", "local_runtime_repair", "global_runtime_policy_repair"]
+    },
+    "blocker_family": { "type": "string" },
+    "evidence_tier": {
+      "type": "integer",
+      "enum": [1, 2, 3]
+    },
+    "evidence_basis": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
     "out_of_scope_changes_avoided": { "type": "boolean" },
     "notes": { "type": "string" }
   }

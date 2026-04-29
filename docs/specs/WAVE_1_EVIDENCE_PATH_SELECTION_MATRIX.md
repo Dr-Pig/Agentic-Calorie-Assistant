@@ -8,7 +8,7 @@ This document defines the selection boundary between:
 - exact DB
 - web search candidate discovery
 - web extract
-- Taiwan semantic skill
+- Taiwan semantic case-law metadata
 - `llm_prior`
 - clarify boundary final
 
@@ -31,9 +31,22 @@ The same food may use a different evidence path depending on whether the interac
 
 Tavily search is web candidate discovery, not generic food lookup.
 
-Tavily extract is deferred and should remain behind a future `WebExtractPort`.
+Broader Tavily extract is deferred and should remain behind `WebExtractPort`.
+
+A narrow exact-brand exact-DB-miss live diagnostic canary may use `WebExtractPort` for selected extract trace verification only. That canary does not activate general web extraction or user-facing exact-result mapping.
 
 `llm_prior` is an allowed traceable hint or fallback path. It is not silent ledger truth.
+
+## P0 Contract Freeze Alignment
+
+For `B2-001`, interpret the Wave 1 product contract as:
+
+- estimable cases may become `logged`
+- unresolved composition cases must remain `draft`
+- `provisional` is an internal estimation posture, not a permission to hide uncertainty
+- packet usage classes must stay explicit and trace-visible
+- follow-up severity is a precision-upgrade tool, not a hidden commit gate
+- retrieval intent stays a typed raw-state object; it is not evidence verdict, synthesis, or mutation decision
 
 ## Evidence Path Matrix
 
@@ -122,7 +135,8 @@ Policy:
 
 - exact DB first
 - web search candidate second if exact DB misses
-- Tavily extract deferred behind future `WebExtractPort`
+- broader Tavily extract remains deferred behind `WebExtractPort`
+- a narrow exact-brand exact-DB-miss diagnostic canary may use selected extract through `WebExtractPort`, but it remains trace-only and not user-facing activation
 - `llm_prior` only as fallback, never as exact truth
 
 Brand/store-specific does not imply immediate extract.
@@ -211,5 +225,11 @@ This matrix aligns with the B-2 packet contract:
 
 - `source_type: exact_db | generic_db | web_search | web_extract | taiwan_skill | llm_prior`
 - `source_quality_label` remains distinct from exactness posture
+
+Interpretation note:
+
+- `taiwan_skill` remains a synthetic-gate compatibility label only
+- target runtime architecture should attach Taiwan semantics to generic food knowledge metadata
+- clarify-only semantic support must stay outside the `GenericDbCandidatePacket` lane
 
 `llm_prior` is allowed only as weak traced evidence and cannot justify exact claims, strong evidence confidence, or silent ledger truth.

@@ -117,6 +117,25 @@ Extracted modules:
 Trigger to revisit:
 - new registry types or global estimation policies are added to the shim
 
+## app/runtime/application/phase_a_context.py
+
+Status: **thin facade remains**
+
+Execution guidance:
+
+- active meal-first callers should not import this facade directly
+- acceptable contents:
+  - re-export
+  - delegation
+  - compatibility wrapper
+  - deprecation note
+- forbidden growth:
+  - new meal-first logic
+  - new history-expansion logic
+  - new shadow-hypothesis logic
+  - new context-injection logic
+  - new fallback semantics
+
 ## Execution Rule
 
 When a freeze-growth file is touched:

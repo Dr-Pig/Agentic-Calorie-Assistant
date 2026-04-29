@@ -194,6 +194,11 @@ def retrieve_planner_context(
                     "title": record.title,
                     "status": record.status,
                     "pending_question": record.pending_question,
+                    "meal_thread_id": record.meal_thread_id,
+                    "meal_version_id": record.meal_version_id,
+                    "local_date": record.local_date,
+                    "relative_time_label": record.relative_time_label,
+                    "resolved_food_items": list(record.resolved_food_items or []),
                     "score_breakdown": {
                         "lexical_overlap": lexical * 3.0,
                         "pending_overlap": pending_overlap * 2.0,

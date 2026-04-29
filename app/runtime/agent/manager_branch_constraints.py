@@ -50,6 +50,10 @@ def is_b1_generic_pass2_constraint(constraints: dict[str, Any] | None) -> bool:
     )
 
 
+def is_b1_clarification_pass2_constraint(constraints: dict[str, Any] | None) -> bool:
+    return _is_phase_case(constraints, role="pass_2_synthesis", case_families={B1_COMPOSITION_UNKNOWN_CASE_FAMILY})
+
+
 def is_b1_common_commercial_meal_pass2_constraint(constraints: dict[str, Any] | None) -> bool:
     return _is_phase_case(constraints, role="pass_2_synthesis", case_families={B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY})
 

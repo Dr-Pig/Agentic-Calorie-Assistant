@@ -1,8 +1,8 @@
-﻿# Agent Entry
-
-`AGENTS.md` is the only bootstrap file in this repository.
+﻿`AGENTS.md` is the only bootstrap file in this repository.
 
 Use it as a map, not a handbook. Load the minimum path first, then retrieve deeper docs only when the task shape requires them.
+
+[docs/V2_DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/V2_DOC_INDEX.md) owns document taxonomy, file-role mapping, and longer navigation guidance. [docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md) owns the product-wide anti-drift operating layer. `AGENTS.md` only owns bootstrap order, always-on repo rules, and conditional-read triggers.
 
 ## Truth Hierarchy
 
@@ -33,99 +33,100 @@ Hard rules:
 - when eval assets and intended product behavior diverge, resolve the product invariant first, then realign eval governance and oracles explicitly
 - manager, tool, and guard design must be justified in terms of user-visible behavior, truth ownership, latency, and honesty, not merely by making a fixture pass
 
+## Capability Dependency Build Order
+
+Do not use product journey order or local slice momentum as implementation order.
+
+Implementation order must follow the product capability dependency pyramid:
+
+- `L0 Product Operating Rules`
+- `L1 InteractionEvent / CurrentTurnContext`
+- `L2 AttachmentDecision / TransitionGuardResult`
+- `L3 MealThread / Draft / Commit Boundary`
+- `L4 RetrievalIntent / Source Selection`
+- `L5 Evidence / Packet Layer`
+- `L6 Nutrition Synthesis`
+- `L7 Final Mapping Boundary`
+- `L8 Mutation / Ledger / Version`
+- `L9 Same-Truth / UI / Memory / Proactive`
+
+Before implementing any non-trivial slice, the planner must state:
+
+1. which pyramid layer the slice belongs to
+2. which upstream layers it depends on
+3. whether each required upstream layer has a contract-backed baseline
+4. whether the slice changes user-facing behavior, runtime truth, or mutation
+5. whether the slice is diagnostic-only, fixture-only, producer-honesty-only, offline-runtime, user-facing, or mutation-bearing
+6. why the slice is safe to do now instead of being a local next-step trap
+
+Required slice dependency check:
+
+```yaml
+capability_layer:
+upstream_dependencies:
+  - layer:
+    contract_status: missing | draft | contract_backed | tested
+    risk_if_missing:
+slice_mode:
+  - diagnostic_only
+user_facing_behavior_changed: true | false
+runtime_truth_changed: true | false
+mutation_changed: true | false
+safe_to_proceed_now: true | false
+why_not_local_next_step_trap:
+```
+
+`slice_mode` is a list, not a single enum. A slice may legitimately be more than one thing at once, for example `diagnostic_only + offline_runtime` or `fixture_only + producer_honesty`.
+
+Hard rule:
+
+- downstream diagnostic-only work may proceed before every upstream layer is fully closed
+- downstream user-facing behavior, runtime truth, or mutation must not proceed before required upstream context, ownership, and transition boundaries are contract-backed
+- if a local next step conflicts with the capability dependency pyramid, stop and re-plan
+
 ## Read First
 
 1. [docs/V2_DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/V2_DOC_INDEX.md)
-2. [docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md)
+2. [docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md)
+3. [docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md)
 
 If the task needs architecture context or eval gate status, read next:
 
-3. [docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md)
-4. [docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md)
-5. task-specific canonical spec
-6. task-specific micro-suite / eval gate
+4. [docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md)
+5. [docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md)
+6. task-specific canonical spec
+7. task-specific micro-suite / eval gate
 
-Default planner path is:
+Bootstrap read path is:
 
-`AGENTS.md -> docs/V2_DOC_INDEX.md -> docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md -> docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md -> docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md -> task-specific canonical spec -> task-specific micro-suite / eval gate`
+`AGENTS.md -> docs/V2_DOC_INDEX.md -> docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md -> docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md -> docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md -> docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md -> task-specific canonical spec -> task-specific micro-suite / eval gate`
 
-## EvoMap Operating Rule
+Default workflow is repo-truth-first interactive implementation. Unattended / overnight autonomy is optional and should only be loaded when the task is intentionally using an approval-light continuation protocol.
 
-EvoMap usage is a conditional repo operating policy, not a mandatory per-slice ritual.
+## Operating Triggers
 
-Use EvoMap when the current slice introduces a reusable capability need, a generic workflow gap, or a problem likely to recur across models, providers, or repos. For repo-local blocker work already explained by current docs, artifacts, readiness reports, and tests, start from repo truth first and skip EvoMap unless reuse value is likely.
+Use deeper process docs only when the task shape requires them:
 
-When EvoMap is relevant:
-
-- use local recall (`gep_recall`) first
-- use external Skills or community GEP assets only when the need is generic enough to justify capability lookup
-- record reusable lessons (`gep_record_outcome`) only when the slice produced durable guidance worth reusing
-
-Read:
-
-- [docs/agent/EVOMAP_WORKFLOW.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/EVOMAP_WORKFLOW.md)
-- [docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md) for bounded autonomy, planner/evaluator/worker workflow, and stop-gate rules
-- [docs/specs/WAVE_1_ARCHITECTURE_TRANSITION_LADDER.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/WAVE_1_ARCHITECTURE_TRANSITION_LADDER.md) for staged dependency inversion, seam timing, and migration boundaries
-
-Hard rules:
-
-- EvoMap is not a patch log
-- EvoMap records reusable lessons, workflow guides, and durable architecture rules
-- do not read or search EvoMap mechanically on every slice
-- external Skills and GEP assets are capability aids, not canonical repo truth
-- EvoMap does not replace current repo docs, code, or artifacts as source of truth
-- if EvoMap is unavailable, say so explicitly and continue with repo truth
-
-## Best Practice Search
-
-Before implementing high-impact code, you MUST search for current best practices.
-
-A steering file is auto-loaded for all Python work: `.kiro/steering/best-practice-search.md`
-
-This file is automatically included in context when editing `.py` files. It requires you to search for best practices before implementing:
-
-- Agent runtime (manager, tools, orchestration)
-- Retrieval (RAG, knowledge lookup)
-- Database patterns (ORM, migrations)
-- API design
-- Testing patterns
-- Security
-
-Use `remote_web_search` to find current best practices. Apply what you find to your implementation.
-
-When the task is architecture-sensitive and a human is not expected to approve every micro-slice manually, the planner and evaluator must also follow:
-
-- [docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md)
-
-The evaluator should prioritize long-term architecture benefit, ownership boundaries, and future build quality, not only local implementation correctness.
-
-## BuilderSpace Provider Contract
-
-The BuilderSpace provider surface is part of the runtime contract. Before changing provider adapters, structured transport, tool/function calling transport, `response_format`, `tools` / `tool_choice`, model-specific token or temperature handling, or provider capability attribution, agents must read:
-
-- [docs/provider/builderspace_openapi.txt](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/provider/builderspace_openapi.txt)
-- [docs/provider/BUILDERSPACE_PROVIDER_PROFILE.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/provider/BUILDERSPACE_PROVIDER_PROFILE.md)
-- [docs/provider/MANAGER_MODEL_CANDIDATE_MATRIX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/provider/MANAGER_MODEL_CANDIDATE_MATRIX.md)
-
-Important known facts from the current OpenAPI:
-
-- `/v1/chat/completions` is OpenAI-compatible.
-- `ChatCompletionRequest` includes `tools`.
-- `ChatCompletionRequest` includes `tool_choice`.
-- `ChatCompletionRequest` has `additionalProperties: true`, so provider-specific OpenAI-compatible fields may be accepted, but support must be proven by artifacts.
-- `gpt-5` uses `max_completion_tokens` handling instead of raw `max_tokens`; the backend may convert automatically.
-- `kimi-k2.5` and `gpt-5` have enforced `temperature=1.0` constraints.
-- `response_format.type=json_schema` support must be artifact-proven, not assumed from compatibility claims.
-- Forced `tool_choice` obedience must be artifact-proven, not assumed from schema shape alone.
-
-Hard rules:
-
-- treat BuilderSpace structured output support as a capability probe, not assumed truth
-- if a request is accepted but the provider returns prose instead of the expected structured payload, classify it as a transport/capability issue when appropriate; do not silently widen parser recovery
-- if `tools/tool_choice` is used for synthetic decision transport, the synthetic tool arguments schema must come from shared branch-contract helpers, not an adapter-local schema copy
-- adapter code may choose transport mode, but must not own product semantics
-- any fallback from `json_schema` or tool-call transport must be trace-visible
-- artifacts must preserve transport attribution fields such as `structured_output_transport_*` and `decision_transport_*`
+- EvoMap:
+  - conditional only
+  - use [docs/agent/EVOMAP_WORKFLOW.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/EVOMAP_WORKFLOW.md) when the slice introduces reusable capability or cross-repo workflow value
+  - start from repo truth first for repo-local blockers
+- Best practice search:
+  - before high-impact code, follow `.kiro/steering/best-practice-search.md`
+  - check current best practice for runtime, retrieval, database, API, testing, or security work
+- Product-wide anti-drift entry:
+  - read [docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md) before high-impact provider, retrieval, DB, packet, mutation, or architecture-boundary slices
+  - use it to identify owner docs, required planning fields, and forbidden shortcut patterns before editing
+- Provider/runtime transport:
+  - BuilderSpace transport is a runtime contract
+  - before touching adapters, structured transport, or provider capability attribution, read the provider docs listed in Conditional Reads
+  - treat model capability as artifact-proven, not assumed from endpoint compatibility
+- Legacy bundle / E2E claims:
+  - only then load [docs/specs/APP_V2_IMPLEMENTATION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_IMPLEMENTATION_PLAN.md) and the corresponding bundle pack
+  - bundle order is not build order
+- Ownership / debt / reviewer triage:
+  - architecture-sensitive slices must make selector ownership, debt triage, and reviewer `proceed / narrow / stop` framing explicit
+  - use [docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md) only for unattended / overnight / approval-light execution
 
 ## Encoding Evidence Contract
 
@@ -141,62 +142,6 @@ Hard rules:
 - do not use PowerShell inline non-ASCII probes as formal evidence; use UTF-8 files or Python byte reads
 
 This contract exists because CJK mojibake can happen before the agent sees command output. The repo truth is bytes and JSON artifacts, not terminal rendering.
-
-## Eval Bootstrap Contract
-
-This section applies only when claiming a legacy bundle / E2E acceptance verdict. It is not the default implementation start path for Wave 1 work.
-
-Before claiming any bundle eval result, you MUST execute the bootstrap order below:
-
-1. load owner truth
-   - [docs/specs/APP_V2_IMPLEMENTATION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_IMPLEMENTATION_PLAN.md)
-   - the corresponding bundle eval pack
-2. run spec-to-runner parity audit
-3. run the bundle eval runner
-4. verify trace roundtrip and text integrity
-5. run or explicitly classify founder realism status
-
-Hard rules:
-
-- if parity audit is incomplete or has blocking gaps, do not claim bundle pass
-- if founder realism status is unknown, only report `founder_realism_status = not_run`
-- do not collapse these verdicts into a single assistant judgment
-- pass / fail claims must be backed by:
-  - full bundle report
-  - parity audit report
-  - founder realism report or explicit `not_run`
-
-Required bundle verdict fields:
-
-- `runner_case_status`
-- `coverage_status`
-- `founder_realism_status`
-- `bundle_ready_for_human_e2e`
-
-Assistant claim policy:
-
-- do not say `全部通過`, `可以人工 E2E`, `bundle 完成`, or `可以切下一階段`
-  unless coverage is complete, blocking gaps are zero, and founder realism is not failing
-- when official runner is green but parity/founder checks are not, say so explicitly
-
-## Planner Default
-
-- `APP_V2_IMPLEMENTATION_PLAN.md` is a legacy / historical implementation plan unless reconciled
-- `V2_EVAL_BUNDLE_X_CASES.md` are acceptance / regression reference, not build order
-- `app_v2_ideal_architecture_final.md` is the canonical architecture truth (replaces APP_V2_TARGET_ARCHITECTURE_SPEC.md)
-- governance docs are exception tools, not default routing
-
-V2 uses **eval-first** execution model:
-- system capabilities determine implementation order
-- product capabilities determine acceptance scope
-- eval-first ≠ schema-first
-- bundle-first ≠ implementation order
-- synthetic readiness gate ≠ runtime product pass
-- Phase B gates do not complete Wave 1 unless Phase C mutation / ledger / same-truth integration passes
-- Eval bundles are acceptance / regression references, not build order
-- Bundle pass does not imply Wave 1 completion unless the relevant Wave 1 product closure and trace-backed runtime integration gates are also satisfied
-
-When claiming a legacy bundle / E2E acceptance result, run the Eval Bootstrap Contract. When implementing Wave 1, start from the Read First planner path and task-specific canonical specs, not from bundle order.
 
 ## Destructive Git Command Ban
 
@@ -222,6 +167,7 @@ When claiming a legacy bundle / E2E acceptance result, run the Eval Bootstrap Co
 ## Hard Rules Summary
 
 - source-of-truth sync is mandatory when canonical understanding changes
+- Wave 1 default is repo-truth-first interactive implementation, not detached autorun
 - product truth is higher-order than eval shape
   - do not design architecture, manager contracts, tool surfaces, or guards around the incidental shape of benchmark fixtures, replay packs, or runner payloads
   - first decide the intended user-visible behavior and truth ownership, then use evals to verify that behavior
@@ -246,6 +192,9 @@ When claiming a legacy bundle / E2E acceptance result, run the Eval Bootstrap Co
   - for agent runtime, retrieval, tool orchestration, and structured extraction work, check current official best-practice guidance before constraining the design
   - when official guidance and current repo habits conflict, build the strongest reasonable baseline first, then use eval / latency / cost traces to converge
   - do not prematurely hard-cap iteration budgets, retrieval budgets, or model capability before an eval-backed baseline exists
+- legacy bundle / E2E claims must use the bundle bootstrap workflow and parity evidence; do not use bundle order as implementation order
+- ownership-sensitive slices must make selector ownership and debt triage explicit before editing
+- reviewer steering remains `proceed / narrow / stop` for architecture-sensitive work
 - chat is the primary interaction surface for the product
   - rescue, proposal, and calibration interactions should default to chat-first behavior unless a canonical spec explicitly defines a different primary surface
   - UI should default to mirror / inbox behavior rather than becoming the primary interaction path
@@ -278,7 +227,7 @@ Default deterministic guardrails include:
   - [docs/provider/MANAGER_MODEL_CANDIDATE_MATRIX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/provider/MANAGER_MODEL_CANDIDATE_MATRIX.md)
 - agent memory / reusable-lesson workflow:
   - [docs/agent/EVOMAP_WORKFLOW.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/EVOMAP_WORKFLOW.md)
-- bounded autonomy / planner-evaluator-worker workflow:
+- optional unattended / overnight autonomy protocol:
   - [docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md)
 - spec or architecture work:
   - [docs/specs/](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs)
@@ -293,6 +242,9 @@ Default deterministic guardrails include:
   - [docs/specs/app_v2_ideal_architecture_final.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/app_v2_ideal_architecture_final.md)
   - task-specific canonical spec
   - task-specific micro-suite / eval gate
+- legacy bundle / E2E regression claims:
+  - [docs/specs/APP_V2_IMPLEMENTATION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_IMPLEMENTATION_PLAN.md)
+  - corresponding parity audit / bundle runner / founder realism artifacts
 - Legacy bundle / E2E regression work only:
   - [docs/specs/APP_V2_IMPLEMENTATION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_IMPLEMENTATION_PLAN.md)
   - [docs/quality/V2_EVAL_BUNDLE_1_CASES.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/V2_EVAL_BUNDLE_1_CASES.md)

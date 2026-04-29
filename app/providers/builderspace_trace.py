@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def new_transport_attempt(attempt_index: int, base_url: str, model: str, stage: str) -> dict[str, Any]:
     return {
         "attempt_index": attempt_index,
+        "started_at_utc": _utc_now_iso(),
         "base_url": base_url,
         "endpoint": f"{base_url}/chat/completions",
         "model": model,

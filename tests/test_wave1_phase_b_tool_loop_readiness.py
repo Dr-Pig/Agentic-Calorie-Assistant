@@ -133,7 +133,7 @@ def valid_phase_b_trace_fixture(
         packet = {
             "packet_type": "SearchCandidatePacket",
             "truth_level": "candidate",
-            "query": "matsusaka beef bowl calories",
+            "query": "統一超級抹茶歐蕾",
             "source_quality_label": "brand_menu",
         }
 
@@ -235,16 +235,22 @@ def valid_phase_b_trace_fixture(
             "invented_facts": [],
         },
         "tavily_canary": {
-            "query": "matsusaka beef bowl calories",
-            "search_depth": "advanced",
-            "max_results": 3,
-            "chunks_per_source": 2,
+            "lane_id": "live_exact_brand_web_canary_v1",
+            "query": "統一超級抹茶歐蕾",
+            "search_depth": "basic",
+            "max_results": 5,
+            "chunks_per_source": 3,
             "provider_params": {"provider": "tavily", "request_id": "tav_123"},
             "raw_results_ref": f"artifacts/raw/{case_id}_tavily.json",
             "latency_ms": 321,
-            "call_count": 1,
+            "call_count": 2,
             "packetized_candidate_present": True,
             "manager_pass_2_saw_search_packet": True,
+            "exact_db_miss_confirmed": True,
+            "extract_attempted": True,
+            "selected_url": "https://president.example/products/matcha-latte",
+            "accepted_extract_packet_id": "pkt_web_extract_abc123",
+            "mutation_attempted": False,
         }
         if canary
         else None,
@@ -259,7 +265,7 @@ def valid_phase_b_report_fixture(tmp_path: Path) -> Path:
         valid_phase_b_trace_fixture("B1-004", prompt="我吃了滷味", self_selected_without_ingredients=True),
         valid_phase_b_trace_fixture("B1-005", prompt="我吃了豆干、海帶、貢丸的滷味", listed_luwei=True),
         valid_phase_b_trace_fixture("B1-006", prompt="珍珠奶茶大概多少熱量？", no_mutation=True),
-        valid_phase_b_trace_fixture("B1-CANARY-001", prompt="松屋特盛牛丼", canary=True),
+        valid_phase_b_trace_fixture("B1-CANARY-001", prompt="統一超級抹茶歐蕾", canary=True),
     ]
     return _write_json(
         tmp_path / "phase_b_report.json",
@@ -914,6 +920,17 @@ def test_tavily_canary_mutation_blocks_readiness(tmp_path: Path) -> None:
     report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
 
     assert any(item["code"] == "tavily_canary_mutated_ledger" for item in report["blockers"])
+
+
+def test_tavily_canary_missing_extract_trace_blocks_readiness(tmp_path: Path) -> None:
+    phase_b = invalid_phase_b_report_fixture(
+        tmp_path,
+        lambda data: data["tool_loop_traces"][-1]["tavily_canary"].pop("accepted_extract_packet_id"),
+    )
+
+    report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
+
+    assert any(item["code"] == "tavily_canary_trace_incomplete" for item in report["blockers"])
 
 
 def test_llm_generated_stub_blocks_readiness(tmp_path: Path) -> None:
@@ -1916,7 +1933,7 @@ def test_natural_probe_listed_ingredients_item_level_lookup_is_valid_decision_sh
     assert case_report["pass1_decision_shape"]["violation_family"] is None
 
 
-def test_natural_probe_listed_ingredients_answer_contract_bridge_counts_as_pass2_item_results(tmp_path: Path) -> None:
+def test_natural_probe_answer_contract_bridge_fails_loop_completion(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
         data["pass1_mode"] = "natural_tool_selection_probe"
         data["forced_tool_request_contract"] = False
@@ -1951,15 +1968,18 @@ def test_natural_probe_listed_ingredients_answer_contract_bridge_counts_as_pass2
             },
         ]
         trace["manager_pass_2"]["item_results_source"] = "answer_contract_bridge"
+        trace["manager_pass_2"]["item_results_owner_class"] = "compatibility_bridge"
         trace["runner_derived_item_results"] = False
 
     phase_b = invalid_phase_b_report_fixture(tmp_path, mutate)
     report = verify_phase_b_readiness(phase_b_report_path=phase_b, active_paths=[])
 
     case_report = report["natural_probe_failure_report"]["cases"][4]
-    assert case_report["failure_family"] == "none"
+    assert case_report["failure_family"] == "answer_contract_bridge_item_results"
     assert case_report["item_results_source"] == "answer_contract_bridge"
-    assert report["natural_probe_failure_report"]["failure_family_counts"]["pass2_no_item_results"] == 0
+    assert case_report["item_results_owner_class"] == "compatibility_bridge"
+    assert report["natural_tool_loop_completion_pass"] is False
+    assert any(item["code"] == "natural_probe_answer_contract_bridge_item_results" for item in report["blockers"])
 
 
 def test_natural_probe_missing_pass2_item_results_fails_loop_completion_not_selection(tmp_path: Path) -> None:

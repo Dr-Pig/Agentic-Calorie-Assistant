@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the bounded-autonomy workflow for long-running implementation sessions, especially overnight runs where a human does not want to approve every micro-slice manually.
+This document defines an optional bounded-autonomy workflow for long-running implementation sessions, especially overnight runs where a human does not want to approve every micro-slice manually.
 
 It exists to preserve three things at the same time:
 
@@ -10,7 +10,7 @@ It exists to preserve three things at the same time:
 - explicit use of current best practice and strong external references
 - safe stop conditions when product-semantics ambiguity or architecture risk appears
 
-This protocol is operational guidance. It is not a product spec.
+This protocol is operational guidance. It is not a product spec, and it is not the default interactive workflow for this repo.
 
 ## Core Principle
 
@@ -28,7 +28,7 @@ Repo truth is the baseline. Best practice and external references are required i
 
 ## Required Workflow
 
-Every important implementation slice must flow through:
+When this protocol is intentionally used, every important implementation slice must flow through:
 
 1. planner
 2. evaluator
@@ -139,6 +139,27 @@ Allowed result classes:
 
 The Verifier must not treat "different failure" as success unless the slice objective was to move the blocker deeper and that movement actually happened.
 
+## Trace-First Evidence Rule
+
+For detached auto-run, trace-backed artifacts outrank prose.
+
+If any of the following disagree:
+
+- a role's natural-language claim
+- a stale written plan
+- a previous checkpoint summary
+- current trace or artifact evidence
+
+the agent must treat current trace-backed artifact evidence as primary.
+
+In practice:
+
+- the Planner must choose slices from the latest readiness and full-smoke truth, not from yesterday's queue
+- the Evaluator must trust artifact-backed blocker state over optimistic implementation summaries
+- the Verifier must close a blocker only when artifact movement is visible, not because a role claims success
+
+This rule exists to keep detached loops aligned with the real repo state instead of the most plausible narrative.
+
 ## External Reference Policy
 
 For important work, external references are mandatory.
@@ -210,7 +231,7 @@ Detached roles are bounded runtime actors. They do not replace canonical repo tr
 
 ## Planner-Local vs CLI-Worker
 
-Default mode remains `planner-local`.
+Within this optional protocol, default mode remains `planner-local`.
 
 Use `planner-local` when:
 
@@ -247,6 +268,20 @@ For overnight continuation, prefer a role split that mirrors the same idea opera
 
 The important rule is role separation, not whether the role runs through an in-thread sub-agent or a detached CLI process.
 
+Desktop sub-agents and detached CLI loops should not be treated as the same execution surface.
+
+- `desktop subagent`
+  - best for same-session sidecar work
+  - may use lighter handoff structure because the parent session still holds the active context
+  - should optimize for focused role prompts, limited tools, and context isolation
+- `detached CLI autorun role`
+  - best for long-running, recoverable, unattended work
+  - requires explicit contracts, artifact handoff, checkpointing, and stop-gate enforcement
+  - should optimize for resumability, auditability, and trace-backed continuation
+
+Use the lighter desktop-subagent pattern when a human remains in the loop during the same interactive session.
+Use the heavier detached-loop pattern when the role must survive across time, process boundaries, or next-morning inspection.
+
 Do not promote autonomous nutrition subagents into product runtime just because detached implementation workers are convenient.
 
 ## CLI Runner Pattern
@@ -273,6 +308,109 @@ Recommended overnight use:
 6. control plane inspects whether the next slice is still safe
 
 This is intentionally not a free-running infinite loop. It is a bounded continuation loop with explicit checkpoints.
+
+## Useful B-1 Overnight Profile
+
+When this protocol is used for B-1 overnight runs, a useful default mode for this repo is:
+
+- `run_profile_id = overnight_useful_b1`
+- phase boundary: `B-1 only`
+- max slices per run: `4`
+- max autonomous repair attempts per blocker family: `3`
+- planner timeout: `180s`
+- evaluator timeout: `180s`
+- worker timeout:
+  - ordinary implementation slice: `300s`
+  - provider/runtime repair slice: `600s`
+- verifier timeout: `240s`
+
+These defaults live in the control plane, not in freeform role prose.
+
+## Runtime Self-Heal Gate
+
+For runtime/provider/transport blockers, useful overnight mode may continue beyond probe-only behavior.
+
+Evidence tiers:
+
+- `Tier 1`
+  - one fresh trace-backed blocker observation
+  - allows bounded local runtime repair
+- `Tier 2`
+  - corroborated runtime evidence
+  - allows broader runtime/provider/profile/timeout/transport policy repair
+- `Tier 3`
+  - blocker moved or cleared
+  - allows continuation to the next slice
+
+Allowed blocker families for unattended self-heal:
+
+- `provider_connectivity`
+- `model_profile_mismatch`
+- `structured_transport_incompatibility`
+- `timeout_retry_miscalibration`
+- `targeted_probe_routing_gap`
+- `artifact_attribution_gap`
+
+Disallowed blocker families for unattended self-heal:
+
+- product semantics ambiguity
+- logged/draft behavior
+- no-mutation behavior
+- clarification vs estimate policy
+- B-2 evidence / packet / retrieval design
+- user-visible workflow meaning
+
+Repair envelopes:
+
+- `local_runtime_repair`
+  - first repair mode
+  - narrow code/config repair inside the current runtime/provider seam
+- `global_runtime_policy_repair`
+  - allowed only after corroborated runtime evidence
+  - may change runtime-only policy such as profile routing, retry, timeout, or transport choice
+  - must remain non-semantic
+
+Control-plane-owned verification bundles:
+
+- for the first `provider_connectivity` live repair lane, the verification command bundle should be owned by the auto-run control plane
+- planner, worker, and verifier should reuse that bundle rather than inventing command variants independently
+- the current canonical readiness verification form is:
+  - `python scripts/verify_wave1_phase_b_tool_loop_readiness.py --phase-b-report <report>`
+- do not emit the obsolete `--report` form inside overnight repair lanes
+
+Hard boundary:
+
+- do not use runtime self-heal to mutate product semantics
+- do not cross into B-2 retrieval/evidence policy
+- do not reframe user-visible workflow meaning as a runtime fix
+
+## Morning Summary Artifact
+
+Each completed or terminal slice should produce a compact summary artifact that states:
+
+- targeted blocker
+- blocker family
+- evidence tier
+- repair scope
+- repair attempts used
+- repair budget remaining
+- blocker movement status
+- normalized stop class
+- whether another unattended attempt is allowed
+
+Morning inspection should prefer this summary over raw ledger archaeology.
+
+Normalized operator-facing stop classes:
+
+- `completed_slice_continue_allowed`
+- `human_review_required`
+- `runtime_blocker_unchanged`
+- `runtime_blocker_stalled`
+- `runtime_budget_exhausted`
+- `role_timeout`
+- `malformed_role_output`
+- `dirty_tree_stop`
+- `semantic_boundary_touched`
 
 ## Prompt File Discipline
 
@@ -322,6 +460,19 @@ Fallback form when a commit is intentionally deferred:
 - diff snapshot
 - status snapshot
 - checkpoint markdown artifact
+
+## Recovery And Resume Path
+
+Detached auto-run must prefer resume over replay when earlier role artifacts are already valid.
+
+Rules:
+
+- if planner and evaluator artifacts already exist for the current slice, do not re-run them just because worker timed out
+- resume from the first missing role in the current round whenever the existing role outputs are still valid and schema-clean
+- treat completed role outputs as the handoff contract for the next role; do not reconstruct prior reasoning from transcript memory
+- record resume as an explicit ledger event, not as an invisible retry
+
+This keeps detached runs durable without turning the ledger into a scheduler or silently changing the approved slice boundary.
 
 Minimum checkpoint fields:
 

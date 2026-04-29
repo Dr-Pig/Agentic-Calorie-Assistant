@@ -58,6 +58,16 @@ context packing 不應隨意在語意或狀態依附關係中間切斷。
 
 若只保留其中一半，模型很容易失去語意依附關係。
 
+### 2.6 Structured state first
+
+對 Phase A current-turn context 而言：
+
+- structured state is truth
+- transcript is evidence
+- active object / pending follow-up / explicit target identity 應優先於 raw transcript 解讀
+- whole history 可作為 retrieval source，但不應預設整包注入 prompt
+- staged history expansion 預設應先回傳 structured candidates / atomic blocks，而不是長篇 transcript
+
 ---
 
 ## 3. Standard Context Pack Shape
@@ -88,6 +98,15 @@ context packing 不應隨意在語意或狀態依附關係中間切斷。
 
 - 長篇 transcript
 - 無關 proposal history
+
+Phase A intake context policy:
+
+- 先注入 current-turn structured context
+- 若 current-turn context 不足，再做 bounded history expansion
+- history expansion 預設優先回傳：
+  - `meal_thread` / committed meal candidates
+  - conversation atomic blocks，例如 clarification answer、correction request、confirm / reject、topic reset
+- raw transcript snippet 只作 support / trace evidence，不作 primary state truth
 
 ---
 

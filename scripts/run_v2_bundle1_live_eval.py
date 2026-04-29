@@ -18,10 +18,15 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.eval_bootstrap import build_bootstrap_checklist, build_bundle_verdict
+from scripts.live_eval_readiness import (
+    DEFAULT_LOCAL_LIVE_BASE_URL,
+    build_live_preflight_report,
+    fetch_server_ping,
+)
 from scripts.runner_timeout_contract import apply_runner_timeout_contract
 
 
-DEFAULT_BASE_URL = "http://127.0.0.1:8010"
+DEFAULT_BASE_URL = DEFAULT_LOCAL_LIVE_BASE_URL
 OUTPUT_DIR = ROOT / "runtime" / "evals" / "v2_bundle1_live"
 
 
@@ -361,10 +366,19 @@ CASE_RUNNERS = [
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run Bundle 1 live E2E eval cases against /v2/estimate.")
-    parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
+    parser.add_argument("--base-url", default=None)
     parser.add_argument("--local-date", default=datetime.now().date().isoformat())
     parser.add_argument("--output", default=None)
     args = parser.parse_args()
+    base_url = args.base_url or DEFAULT_BASE_URL
+    base_url_explicit = args.base_url is not None
+    ping_payload, ping_error = fetch_server_ping(base_url)
+    live_preflight = build_live_preflight_report(
+        base_url=base_url,
+        base_url_explicit=base_url_explicit,
+        ping_payload=ping_payload,
+        ping_error=ping_error,
+    )
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_path = Path(args.output) if args.output else OUTPUT_DIR / f"bundle1_live_eval_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
@@ -372,7 +386,7 @@ def main() -> int:
     results: list[dict[str, Any]] = []
     for runner in CASE_RUNNERS:
         try:
-            case_result = runner(args.base_url, args.local_date)
+            case_result = runner(base_url, args.local_date)
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
             case_result = {
@@ -411,10 +425,20 @@ def main() -> int:
         "failed_cases": [result["case_id"] for result in results if not result["passed"]],
         "p0_pass": p0_pass,
         "all_cases_pass": all_cases_pass,
+        "live_test_mode": live_preflight["live_test_mode"],
+        "server_ping_status": live_preflight["server_ping_status"],
+        "phase_c_gate_status": "not_applicable",
+        "readiness_claim_scope": live_preflight["readiness_claim_scope"],
         **verdict,
     }
     report = {
-        "base_url": args.base_url,
+        "base_url": base_url,
+        "live_test_mode": live_preflight["live_test_mode"],
+        "server_ping_status": live_preflight["server_ping_status"],
+        "provider_readiness": live_preflight["provider_readiness"],
+        "readiness_claim_scope": live_preflight["readiness_claim_scope"],
+        "phase_c_gate_status": "not_applicable",
+        "live_preflight": live_preflight,
         "local_date": args.local_date,
         "bootstrap_checklist": bootstrap,
         "summary": summary,

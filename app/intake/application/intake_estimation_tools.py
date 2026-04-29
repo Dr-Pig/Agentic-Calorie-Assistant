@@ -6,6 +6,10 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from ...nutrition.application.evidence_eligibility import classify_query_family, is_high_variance_family
+from ...nutrition.application.exact_brand_web_canary import LANE_ID as WEB_CANARY_LANE_ID
+from ...nutrition.application.exact_brand_web_canary import run_exact_brand_web_canary
+from ...nutrition.application.web_extract_port import WebExtractPort
+from ...nutrition.application.web_search_port import WebSearchPort
 from ...nutrition.application.estimate_artifacts import (
     EstimatedNutritionArtifact,
     build_exact_item_artifact,
@@ -52,12 +56,13 @@ async def estimate_nutrition_tool(
     local_date: str,
     manager_provider: Any | None = None,
     provider: Any | None = None,
-    search_adapter: Any | None = None,
+    search_port: WebSearchPort | None = None,
+    extract_port: WebExtractPort | None = None,
     allow_search: bool = True,
     force_new_meal_context: bool = False,
     contextualized_query: str | None = None,
 ) -> EstimatedNutritionArtifact:
-    del request_id, search_adapter, allow_search, contextualized_query
+    del request_id
     active_provider = manager_provider or provider
     exact_packet = build_exact_item_lane_packet(raw_user_input, limit=3)
     top_exact_candidate = exact_packet.get("top_exact_candidate")
@@ -70,15 +75,32 @@ async def estimate_nutrition_tool(
             exact_candidate=top_exact_candidate,
         )
         normalize_live_payload(artifact.payload, raw_user_input=raw_user_input)
+        _attach_web_runtime_trace(
+            artifact.payload,
+            {
+                **_default_web_runtime_trace(),
+                "skip_reason": "exact_db_hit",
+            },
+        )
         return artifact
 
+    canary_outcome = await run_exact_brand_web_canary(
+        raw_user_input=raw_user_input,
+        search_port=search_port,
+        extract_port=extract_port,
+        allow_search=allow_search,
+        contextualized_query=contextualized_query,
+    )
+
     if shadow_stub_estimate_enabled(provider=active_provider):
-        return build_shadow_stub_artifact(
+        artifact = build_shadow_stub_artifact(
             db,
             user_external_id=user_external_id,
             raw_user_input=raw_user_input,
             local_date=local_date or datetime.now().date().isoformat(),
         )
+        _attach_web_runtime_trace(artifact.payload, canary_outcome.trace)
+        return artifact
 
     artifact = build_shadow_stub_artifact(
         db,
@@ -102,4 +124,40 @@ async def estimate_nutrition_tool(
         family_rule=classify_query_family(raw_user_input),
         high_variance=is_high_variance_family(raw_user_input),
     )
+    _attach_web_runtime_trace(artifact.payload, canary_outcome.trace)
     return artifact
+
+
+def _default_web_runtime_trace() -> dict[str, Any]:
+    return {
+        "lane_id": WEB_CANARY_LANE_ID,
+        "attempted": False,
+        "skip_reason": None,
+        "failure_reason": None,
+        "search_query": None,
+        "selected_search_packet_id": None,
+        "accepted_extract_packet_id": None,
+        "selected_url": None,
+        "search_attempt_count": 0,
+        "extract_attempt_count": 0,
+        "search_latency_ms": 0,
+        "extract_latency_ms": 0,
+        "total_latency_ms": 0,
+        "cost": None,
+        "packetized_candidate_present": False,
+        "manager_pass_2_saw_search_packet": False,
+        "extract_attempted": False,
+        "retrieval_goal": None,
+        "exact_db_miss_confirmed": False,
+    }
+
+
+def _attach_web_runtime_trace(payload: EstimatePayload, trace: dict[str, Any]) -> None:
+    trace_contract = dict(payload.trace_contract or {})
+    trace_contract["web_runtime_trace"] = dict(trace)
+    trace_contract["search_attempt_count"] = int(trace.get("search_attempt_count") or 0)
+    trace_contract["search_query"] = trace.get("search_query")
+    reasoning_state = dict(trace_contract.get("reasoning_state") or {})
+    reasoning_state["search_attempt_count"] = int(trace.get("search_attempt_count") or 0)
+    trace_contract["reasoning_state"] = reasoning_state
+    payload.trace_contract = trace_contract

@@ -68,6 +68,27 @@ class _RecordingAsyncClient:
         return self._responses.pop(0)
 
 
+class _RecordingAsyncClientWithFailures:
+    def __init__(self, *, outcomes: list[object], recorder: list[dict[str, object]], **_: object) -> None:
+        self._outcomes = list(outcomes)
+        self._recorder = recorder
+
+    async def __aenter__(self) -> "_RecordingAsyncClientWithFailures":
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        return None
+
+    async def post(self, *args: object, **kwargs: object) -> _FakeResponse:
+        self._recorder.append(dict(kwargs))
+        if not self._outcomes:
+            raise AssertionError("No fake outcomes remaining.")
+        outcome = self._outcomes.pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+
 def _configure_adapter(monkeypatch: pytest.MonkeyPatch, response: _FakeResponse) -> BuilderSpaceAdapter:
     monkeypatch.setenv("AI_BUILDER_TOKEN", "test-token")
     monkeypatch.setenv("AI_BUILDER_BASE_URL", "https://example.test/backend/v1")
@@ -294,6 +315,37 @@ async def test_complete_with_trace_long_synthesis_prose_plus_single_fenced_json_
     assert trace["parse_recovery_used"] is True
     assert trace["parse_recovery_strategy"] == "fenced_json"
     assert trace["parse_recovery_ambiguous"] is False
+
+
+@pytest.mark.asyncio
+async def test_complete_with_trace_recovered_json_validation_failure_preserves_contract_attribution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = _json_envelope(
+        "Now I have comprehensive evidence. Let me synthesize the final answer.\n\n"
+        "```json\n"
+        "{\"manager_action\":\"final\",\"intent\":\"estimate_calories\",\"workflow_effect\":\"complete\","
+        "\"target_attachment\":\"food_log\",\"answer_contract\":{\"items\":[]}}\n"
+        "```\n"
+        "Finalized."
+    )
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=payload, text=json.dumps(payload)))
+
+    with pytest.raises(BuilderSpaceResponseError) as exc_info:
+        await adapter.complete_with_trace(
+            system_prompt="Return JSON.",
+            user_payload={"foo": "bar"},
+            stage="intake_manager_round",
+        )
+
+    trace = exc_info.value.trace
+    assert trace["failure_family"] == "manager_output_contract_violation"
+    assert trace["failing_component"] == "builderspace_runtime_contract.validate_manager_payload"
+    assert trace["parse_contract_status"] == "fenced_json_recovered"
+    assert trace["parse_recovery_used"] is True
+    assert trace["parse_recovery_strategy"] == "fenced_json"
+    assert trace["parse_recovery_ambiguous"] is False
+    assert trace["parsed_object"]["manager_action"] == "final"
 
 
 @pytest.mark.asyncio
@@ -570,6 +622,46 @@ async def test_complete_with_trace_b1_common_commercial_meal_tool_call_transport
     assert trace["decision_transport_fallback_reason"] is None
     assert trace["failure_family"] == "tool_call_transport_contract_breach"
     assert trace["failing_component"] == "builderspace_adapter.extract_tool_call_decision"
+
+
+@pytest.mark.asyncio
+async def test_complete_with_trace_retries_connect_error_and_preserves_attempt_trace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    posted_payloads: list[dict[str, object]] = []
+    request = builderspace_adapter_module.httpx.Request("POST", "https://example.test/backend/v1/chat/completions")
+    connect_error = builderspace_adapter_module.httpx.ConnectError("All connection attempts failed", request=request)
+    response = _FakeResponse(
+        payload=_json_envelope(
+            "{\"manager_action\":\"final\",\"intent\":\"log_meal\",\"workflow_effect\":\"none\",\"target_attachment\":{},\"exactness\":\"unknown\",\"confidence\":\"unknown\",\"evidence_posture\":\"unknown\",\"repair_ack\":false}"
+        ),
+        text="ok",
+    )
+    monkeypatch.setenv("AI_BUILDER_TOKEN", "test-token")
+    monkeypatch.setenv("AI_BUILDER_BASE_URL", "https://example.test/backend/v1")
+    monkeypatch.setenv("AI_BUILDER_TRANSPORT_RETRY_COUNT", "1")
+    monkeypatch.setattr(
+        builderspace_adapter_module.httpx,
+        "AsyncClient",
+        lambda **kwargs: _RecordingAsyncClientWithFailures(
+            outcomes=[connect_error, response],
+            recorder=posted_payloads,
+            **kwargs,
+        ),
+    )
+    adapter = BuilderSpaceAdapter(manager_model_override="deepseek")
+
+    parsed, trace = await adapter.complete_with_trace(
+        system_prompt="Return JSON.",
+        user_payload={"foo": "bar"},
+        stage="intake_manager_round",
+    )
+
+    assert parsed["manager_action"] == "final"
+    assert len(posted_payloads) == 2
+    assert trace["transport_attempts"][0]["error_type"] == "ConnectError"
+    assert trace["transport_attempts"][0]["status"] == "error"
+    assert trace["transport_attempts"][1]["status"] == "success"
 
 
 def test_format_user_message_serializes_pydantic_objects() -> None:

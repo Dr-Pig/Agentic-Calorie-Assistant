@@ -26,9 +26,15 @@ class LoadedConversationContext:
     state: ConversationState
 
 
-def load_conversation_state(db: Session, *, user_id: str, incoming_user_text: str | None = None) -> LoadedConversationContext:
+def load_conversation_state(
+    db: Session,
+    *,
+    user_id: str,
+    incoming_user_text: str | None = None,
+    persist_incoming_user_text: bool = True,
+) -> LoadedConversationContext:
     user = get_or_create_user(db, user_id)
-    if incoming_user_text:
+    if incoming_user_text and persist_incoming_user_text:
         append_message(db, user, "user", incoming_user_text)
 
     latest_log = get_latest_log(db, user)

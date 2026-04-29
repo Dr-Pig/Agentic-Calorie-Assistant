@@ -4,7 +4,9 @@ import argparse
 from datetime import UTC, datetime
 import json
 from pathlib import Path
+import re
 import subprocess
+import sys
 from typing import Any, Sequence
 
 
@@ -15,6 +17,73 @@ DEFAULT_RUN_ROOT = ROOT / "artifacts" / "recovery" / "b1_autorun"
 DEFAULT_NEXT_LIVE_TARGET = "B1-004 real Pass 2 trace/provider contract completeness"
 LATEST_READINESS_PATH = ROOT / "artifacts" / "wave1_phase_b_minimal_tool_loop_readiness.json"
 LATEST_FULL_SMOKE_GLOB = "wave1_phase_b_minimal_tool_loop_smoke_*.json"
+ROLE_WRAPPER_PATH = ROOT / "scripts" / "run_codex_exec_with_prompt.py"
+PYTHON_BIN = sys.executable
+DEFAULT_RUN_PROFILE_ID = "overnight_useful_b1"
+DEFAULT_ROLE_TIMEOUT_SECONDS_BY_ROLE = {
+    "planner": 180,
+    "evaluator": 180,
+    "worker": 300,
+    "verifier": 240,
+}
+RUN_PROFILES = {
+    DEFAULT_RUN_PROFILE_ID: {
+        "phase_boundary": "B-1 only",
+        "max_slices": 4,
+        "max_autonomous_repair_attempts_per_family": 3,
+        "planner_timeout_seconds": 180,
+        "evaluator_timeout_seconds": 180,
+        "worker_timeout_seconds": {
+            "ordinary_implementation_slice": 300,
+            "provider_runtime_repair_slice": 600,
+        },
+        "verifier_timeout_seconds": 240,
+    }
+}
+PROVIDER_CONNECTIVITY_LANE_ID = "provider_connectivity_local_runtime_repair_v1"
+PROVIDER_CONNECTIVITY_VERIFICATION_COMMANDS = (
+    "$env:PYTHONPATH='.'; pytest tests/test_builderspace_adapter.py -q -k \"connect_error or timeout or retry\"",
+    "$env:PYTHONPATH='.'; pytest tests/test_wave1_phase_b_minimal_tool_loop_smoke.py -q -k \"targeted_connect_error or persistent_connect_error or full_connect_error\"",
+    "python scripts/run_wave1_phase_b_minimal_tool_loop_smoke.py --mode natural-probe --cases B1-004 --provider-profile-id builderspace-grok-4-fast-b1004-probe",
+    "python scripts/verify_wave1_phase_b_tool_loop_readiness.py --phase-b-report artifacts/wave1_phase_b_minimal_tool_loop_smoke.json",
+)
+PROVIDER_CONNECTIVITY_LANE_IN_SCOPE_FILES = (
+    "app/providers/builderspace_adapter.py",
+    "app/providers/builderspace_session.py",
+    "app/providers/builderspace_parsing.py",
+    "scripts/run_wave1_phase_b_minimal_tool_loop_smoke.py",
+    "tests/test_builderspace_adapter.py",
+    "tests/test_wave1_phase_b_minimal_tool_loop_smoke.py",
+)
+PROVIDER_CONNECTIVITY_LANE_FORBIDDEN_CHANGES = (
+    "logged/draft changes",
+    "clarification vs estimate policy changes",
+    "prompt-semantic workarounds",
+    "parser recovery widening that hides transport failure",
+    "global model/provider default switch",
+    "B-2 retrieval/evidence changes",
+    "app/runtime/**",
+)
+SELF_HEALABLE_BLOCKER_FAMILIES = {
+    "provider_connectivity",
+    "model_profile_mismatch",
+    "structured_transport_incompatibility",
+    "timeout_retry_miscalibration",
+    "targeted_probe_routing_gap",
+    "artifact_attribution_gap",
+}
+STOP_CLASS_VALUES = {
+    "completed_slice_continue_allowed",
+    "human_review_required",
+    "runtime_blocker_unchanged",
+    "runtime_blocker_stalled",
+    "runtime_budget_exhausted",
+    "role_timeout",
+    "malformed_role_output",
+    "dirty_tree_stop",
+    "semantic_boundary_touched",
+    "generic_stop",
+}
 
 ROLE_ORDER = ("planner", "evaluator", "worker", "verifier")
 PROMPT_FILES = {
@@ -30,10 +99,31 @@ SCHEMA_FILES = {
     "verifier": "verifier_result.schema.json",
     "checkpoint": "checkpoint.schema.json",
 }
+ROLE_OUTPUT_FILENAME_RE = re.compile(r"^(?P<round>\d{2})_(?P<role>planner|evaluator|worker|verifier)\.json$")
 
 
 class RoleOutputValidationError(ValueError):
     pass
+
+
+class RoleExecutionTimeoutError(TimeoutError):
+    pass
+
+
+def _build_role_timeout_overrides_from_args(args: argparse.Namespace) -> dict[str, int]:
+    overrides: dict[str, int] = {}
+    for role in ROLE_ORDER:
+        value = getattr(args, f"{role}_timeout_seconds", None)
+        if value is not None:
+            overrides[role] = value
+    return overrides
+
+
+def _get_run_profile(run_profile_id: str | None) -> dict[str, Any]:
+    resolved = run_profile_id or DEFAULT_RUN_PROFILE_ID
+    if resolved not in RUN_PROFILES:
+        raise RoleOutputValidationError(f"Unsupported run profile: {resolved}")
+    return {"run_profile_id": resolved, **RUN_PROFILES[resolved]}
 
 
 def _utc_now() -> str:
@@ -53,9 +143,69 @@ def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def extract_json_object_from_cli_output(text: str) -> dict[str, Any]:
+    stripped = text.strip()
+    if not stripped:
+        raise RoleOutputValidationError("CLI role output was empty.")
+
+    decoder = json.JSONDecoder()
+
+    def _decode_object(candidate: str) -> dict[str, Any] | None:
+        try:
+            value, _end = decoder.raw_decode(candidate)
+        except json.JSONDecodeError:
+            return None
+        if isinstance(value, dict):
+            return value
+        raise RoleOutputValidationError("CLI role output must decode to a JSON object.")
+
+    if stripped.startswith("{"):
+        value = _decode_object(stripped)
+        if value is not None:
+            return value
+    fenced_match = re.search(r"```json\s*(\{.*\})\s*```", stripped, flags=re.DOTALL)
+    if fenced_match:
+        value = _decode_object(fenced_match.group(1))
+        if value is not None:
+            return value
+    brace_index = stripped.find("{")
+    if brace_index != -1:
+        value = _decode_object(stripped[brace_index:])
+        if value is not None:
+            return value
+    raise RoleOutputValidationError("CLI role output did not contain a parseable JSON object.")
+
+
 def _latest_full_smoke_path() -> Path | None:
     matches = sorted((ROOT / "artifacts").glob(LATEST_FULL_SMOKE_GLOB), key=lambda item: item.stat().st_mtime, reverse=True)
     return matches[0] if matches else None
+
+
+def _merge_unique_items(*groups: Sequence[str]) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for group in groups:
+        for item in group:
+            if item not in seen:
+                merged.append(item)
+                seen.add(item)
+    return merged
+
+
+def _provider_connectivity_lane_bundle() -> dict[str, Any]:
+    return {
+        "repair_lane_id": PROVIDER_CONNECTIVITY_LANE_ID,
+        "verification_commands": list(PROVIDER_CONNECTIVITY_VERIFICATION_COMMANDS),
+        "in_scope_files": list(PROVIDER_CONNECTIVITY_LANE_IN_SCOPE_FILES),
+        "forbidden_changes": list(PROVIDER_CONNECTIVITY_LANE_FORBIDDEN_CHANGES),
+    }
+
+
+def _canonical_lane_bundle(*, blocker_family: str, repair_scope: str) -> dict[str, Any] | None:
+    normalized_family = _normalize_blocker_family_name(blocker_family)
+    if normalized_family == "provider_connectivity" and repair_scope == "local_runtime_repair":
+        return _provider_connectivity_lane_bundle()
+    return None
 
 
 def _json_type_matches(expected: str, value: Any) -> bool:
@@ -322,6 +472,38 @@ def _load_mock_role_output(mock_scenario: dict[str, Any], *, round_index: int, r
     return dict(round_payload[role])
 
 
+def invoke_live_cli_role(*, role: str, prompt_path: Path, workspace: Path, timeout_seconds: int) -> dict[str, Any]:
+    cmd = [
+        PYTHON_BIN,
+        str(ROLE_WRAPPER_PATH),
+        "--prompt-file",
+        str(prompt_path),
+        "--cd",
+        str(workspace),
+        "--mode",
+        role,
+    ]
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RoleExecutionTimeoutError(f"CLI role {role} timed out after {timeout_seconds}s") from exc
+    if proc.returncode != 0:
+        stderr = proc.stderr.strip()
+        stdout = proc.stdout.strip()
+        detail = stderr or stdout or f"wrapper exited {proc.returncode}"
+        raise RoleOutputValidationError(f"CLI role {role} failed: {detail}")
+    return extract_json_object_from_cli_output(proc.stdout)
+
+
 def _render_prompt_snapshot(role: str, *, context: dict[str, Any]) -> str:
     template_text = _read_text(PROMPT_TEMPLATE_DIR / PROMPT_FILES[role])
     context_block = json.dumps(context, ensure_ascii=False, indent=2)
@@ -347,11 +529,326 @@ def _write_role_output(outputs_dir: Path, *, round_index: int, role: str, payloa
     return path
 
 
+def _read_existing_run_state(*, run_dir: Path) -> dict[str, Any]:
+    manifest_path = run_dir / "manifest.json"
+    ledger_path = run_dir / "ledger.json"
+    outputs_dir = run_dir / "outputs"
+
+    if not manifest_path.exists():
+        raise RoleOutputValidationError(f"resume requested but manifest is missing: {manifest_path}")
+    if not ledger_path.exists():
+        raise RoleOutputValidationError(f"resume requested but ledger is missing: {ledger_path}")
+
+    manifest = _json_load(manifest_path)
+    ledger = _json_load(ledger_path)
+
+    outputs_by_round: dict[int, dict[str, Path]] = {}
+    if outputs_dir.exists():
+        for path in sorted(outputs_dir.glob("*.json")):
+            match = ROLE_OUTPUT_FILENAME_RE.match(path.name)
+            if not match:
+                continue
+            round_index = int(match.group("round"))
+            role = match.group("role")
+            outputs_by_round.setdefault(round_index, {})[role] = path
+
+    if not outputs_by_round:
+        return {
+            "manifest": manifest,
+            "ledger": ledger,
+            "round_index": 0,
+            "slice_id": None,
+            "next_role": "planner",
+            "checkpoint_pending": False,
+            "role_outputs": {},
+            "output_paths": {},
+            "previous_artifact_path": None,
+            "planner_scope": {
+                "in_scope_files": [],
+                "verification_commands": [],
+                "stop_conditions": [],
+                "out_of_scope": [],
+            },
+            "narrowed_boundary": "",
+            "evaluator_conditions": [],
+        }
+
+    round_index = max(outputs_by_round)
+    round_outputs = outputs_by_round[round_index]
+    role_outputs: dict[str, dict[str, Any]] = {}
+    output_paths: dict[str, str] = {}
+
+    for role in ROLE_ORDER:
+        if role not in round_outputs:
+            continue
+        payload = _json_load(round_outputs[role])
+        validate_role_output(role, payload)
+        role_outputs[role] = payload
+        output_paths[role] = str(round_outputs[role])
+
+    completed_roles = [role for role in ROLE_ORDER if role in role_outputs]
+    next_role = next((role for role in ROLE_ORDER if role not in role_outputs), None)
+    last_completed_role = completed_roles[-1] if completed_roles else None
+    planner_result = role_outputs.get("planner", {})
+    evaluator_result = role_outputs.get("evaluator", {})
+    slice_id = planner_result.get("slice_id")
+
+    return {
+        "manifest": manifest,
+        "ledger": ledger,
+        "round_index": round_index,
+        "slice_id": slice_id,
+        "next_role": next_role,
+        "checkpoint_pending": next_role is None,
+        "role_outputs": role_outputs,
+        "output_paths": output_paths,
+        "previous_artifact_path": output_paths.get(last_completed_role) if last_completed_role else None,
+        "planner_scope": {
+            "in_scope_files": list(planner_result.get("in_scope_files", [])),
+            "verification_commands": list(planner_result.get("verification_commands", [])),
+            "stop_conditions": list(planner_result.get("stop_conditions", [])),
+            "out_of_scope": list(planner_result.get("out_of_scope", [])),
+        },
+        "narrowed_boundary": evaluator_result.get("narrowed_boundary") or "",
+        "evaluator_conditions": list(evaluator_result.get("conditions") or []),
+    }
+
+
 def _load_latest_truth() -> dict[str, Any]:
     return {
         "latest_readiness_path": str(LATEST_READINESS_PATH) if LATEST_READINESS_PATH.exists() else None,
         "latest_full_smoke_path": str(_latest_full_smoke_path()) if _latest_full_smoke_path() else None,
     }
+
+
+def _load_existing_summaries(summaries_dir: Path) -> list[dict[str, Any]]:
+    if not summaries_dir.exists():
+        return []
+    summaries: list[dict[str, Any]] = []
+    for path in sorted(summaries_dir.glob("*.json")):
+        if path.name == "latest_summary.json":
+            continue
+        summaries.append(_json_load(path))
+    return summaries
+
+
+def _classify_blocker_family(*payloads: dict[str, Any] | None) -> str:
+    explicit_hints: list[str] = []
+    text_parts: list[str] = []
+    for payload in payloads:
+        if not payload:
+            continue
+        blocker_family = payload.get("blocker_family")
+        if blocker_family is not None:
+            explicit_hints.append(str(blocker_family))
+        repair_lane_id = payload.get("repair_lane_id")
+        if repair_lane_id is not None:
+            explicit_hints.append(str(repair_lane_id))
+        blocker = payload.get("first_blocker") or payload.get("blocker_found")
+        if isinstance(blocker, dict):
+            blocker_code = str(blocker.get("code", ""))
+            explicit_hints.append(blocker_code)
+            text_parts.append(blocker_code)
+            text_parts.append(str(blocker.get("detail", "")))
+        text_parts.append(str(payload.get("readiness_delta", "")))
+        text_parts.append(str(payload.get("notes", "")))
+
+    explicit_stack = " ".join(explicit_hints).lower()
+    if any(token in explicit_stack for token in ["provider_connectivity", "provider_runtime", "connecterror", "connect_error", "connectivity"]):
+        return "provider_connectivity"
+    if any(token in explicit_stack for token in ["model_profile_mismatch", "profile_mismatch", "candidate_matrix"]):
+        return "model_profile_mismatch"
+    if any(token in explicit_stack for token in ["structured_transport", "structured_output", "json_schema", "tool_choice", "transport_incompatibility"]):
+        return "structured_transport_incompatibility"
+    if any(token in explicit_stack for token in ["timeout_retry", "timeout", "retry", "backoff"]):
+        return "timeout_retry_miscalibration"
+    if any(token in explicit_stack for token in ["probe_routing", "targeted_probe_routing", "profile_routing"]):
+        return "targeted_probe_routing_gap"
+    if any(token in explicit_stack for token in ["artifact_attribution", "trace_attribution", "trace_missing"]):
+        return "artifact_attribution_gap"
+    if any(token in explicit_stack for token in ["product_semantics", "semantic_boundary", "clarification_vs_estimate", "logged_draft", "b-2"]):
+        return "product_semantics"
+
+    haystack = " ".join(text_parts).lower()
+
+    if any(token in haystack for token in ["connecterror", "connect error", "provider_runtime", "provider runtime", "connectivity", "network", "transport instability"]):
+        return "provider_connectivity"
+    if any(token in haystack for token in ["profile mismatch", "model profile", "candidate matrix"]):
+        return "model_profile_mismatch"
+    if any(token in haystack for token in ["structured output", "json_schema", "tool_choice", "structured transport", "transport incompatibility", "parser recovery"]):
+        return "structured_transport_incompatibility"
+    if any(token in haystack for token in ["timeout", "retry", "backoff"]):
+        return "timeout_retry_miscalibration"
+    if any(token in haystack for token in ["routing", "targeted probe", "probe route", "profile route"]):
+        return "targeted_probe_routing_gap"
+    if any(token in haystack for token in ["attribution", "trace missing", "trace attribution", "completed trace"]):
+        return "artifact_attribution_gap"
+    if any(token in haystack for token in ["semantic", "logged", "draft", "no-mutation", "mutation", "clarification", "estimate", "b-2", "retrieval", "packet"]):
+        return "product_semantics"
+    return "unknown"
+
+
+def _normalize_blocker_family_name(value: str | None) -> str:
+    normalized = (value or "").strip().lower()
+    if not normalized:
+        return "unknown"
+    if normalized in SELF_HEALABLE_BLOCKER_FAMILIES:
+        return normalized
+    if normalized in {"provider_runtime", "provider_runtime_blocker", "provider_runtime_connect_error", "provider_connect_error"}:
+        return "provider_connectivity"
+    if normalized in {"structured_transport", "transport_incompatibility"}:
+        return "structured_transport_incompatibility"
+    if normalized in {"timeout_retry", "timeout_retry_runtime"}:
+        return "timeout_retry_miscalibration"
+    if normalized in {"profile_routing", "probe_routing", "targeted_probe_routing"}:
+        return "targeted_probe_routing_gap"
+    if normalized in {"artifact_attribution", "trace_attribution"}:
+        return "artifact_attribution_gap"
+    if normalized in {"product_semantics", "semantics"}:
+        return "product_semantics"
+    return normalized
+
+
+def _derive_evidence_tier(
+    *,
+    attempt_index: int,
+    planner_result: dict[str, Any],
+    worker_result: dict[str, Any],
+    verifier_result: dict[str, Any],
+) -> int:
+    if verifier_result.get("blocker_status") in {"moved", "cleared"} or verifier_result.get("result_class") == "fixed":
+        return 3
+
+    corroborating_signals = 0
+    if planner_result.get("first_blocker"):
+        corroborating_signals += 1
+    if worker_result.get("blocker_found"):
+        corroborating_signals += 1
+    if list(verifier_result.get("artifact_paths") or []):
+        corroborating_signals += 1
+    elif list(verifier_result.get("tests_run") or []):
+        corroborating_signals += 1
+    if attempt_index > 1:
+        corroborating_signals += 1
+
+    return 2 if corroborating_signals >= 2 else 1
+
+
+def _derive_repair_scope(*, blocker_family: str, attempt_index: int, evidence_tier: int) -> str:
+    if blocker_family not in SELF_HEALABLE_BLOCKER_FAMILIES:
+        return "none"
+    if attempt_index <= 1:
+        return "local_runtime_repair"
+    if evidence_tier >= 2:
+        return "global_runtime_policy_repair"
+    return "local_runtime_repair"
+
+
+def _count_attempts_for_family(summaries: list[dict[str, Any]], blocker_family: str) -> int:
+    return sum(1 for summary in summaries if summary.get("blocker_family") == blocker_family)
+
+
+def _last_blocker_status_for_family(summaries: list[dict[str, Any]], blocker_family: str) -> str | None:
+    for summary in reversed(summaries):
+        if summary.get("blocker_family") == blocker_family:
+            return summary.get("last_blocker_status")
+    return None
+
+
+def _normalize_stop_class(
+    *,
+    blocker_family: str,
+    attempt_index: int,
+    repair_budget_remaining: int,
+    last_blocker_status: str | None,
+    verifier_result: dict[str, Any],
+) -> str:
+    blocker_status = str(verifier_result.get("blocker_status") or "")
+    next_safe_action = str(verifier_result.get("next_safe_action") or "stop")
+    human_review_required = bool(verifier_result.get("human_review_required"))
+    result_class = str(verifier_result.get("result_class") or "")
+
+    if blocker_status == "semantic_boundary_touched" or result_class == "semantic_ambiguity_reached":
+        return "semantic_boundary_touched"
+    if human_review_required or next_safe_action == "human_review":
+        return "human_review_required"
+    if blocker_status in {"moved", "cleared"} and next_safe_action == "continue":
+        return "completed_slice_continue_allowed"
+    if blocker_family in SELF_HEALABLE_BLOCKER_FAMILIES and blocker_status == "unchanged":
+        if last_blocker_status == "unchanged" and attempt_index >= 2:
+            return "runtime_blocker_stalled"
+        if repair_budget_remaining <= 0:
+            return "runtime_budget_exhausted"
+        return "runtime_blocker_unchanged"
+    if next_safe_action == "continue":
+        return "completed_slice_continue_allowed"
+    return "generic_stop"
+
+
+def _make_run_summary(
+    *,
+    run_id: str,
+    slice_id: str,
+    run_profile_id: str,
+    planner_result: dict[str, Any],
+    worker_result: dict[str, Any],
+    verifier_result: dict[str, Any],
+    blocker_family: str,
+    evidence_tier: int,
+    attempt_index: int,
+    repair_scope: str,
+    repair_budget_remaining: int,
+    last_blocker_status: str | None,
+    stop_class: str,
+) -> dict[str, Any]:
+    blocker = planner_result.get("first_blocker") or worker_result.get("blocker_found") or {}
+    blocker_status = str(verifier_result.get("blocker_status") or "not_evaluable")
+    tests_run = list(verifier_result.get("tests_run") or [])
+    evidence_artifacts = list(verifier_result.get("artifact_paths") or [])
+
+    return {
+        "run_id": run_id,
+        "slice_id": slice_id,
+        "run_profile_id": run_profile_id,
+        "targeted_blocker": blocker,
+        "blocker_family": blocker_family,
+        "evidence_tier": evidence_tier,
+        "attempt_index": attempt_index,
+        "repair_scope": repair_scope,
+        "repairs_attempted": attempt_index,
+        "repair_budget_remaining": repair_budget_remaining,
+        "last_blocker_status": blocker_status,
+        "previous_blocker_status": last_blocker_status,
+        "blocker_moved": blocker_status in {"moved", "cleared"},
+        "stop_class": stop_class,
+        "another_unattended_attempt_allowed": stop_class in {"completed_slice_continue_allowed", "runtime_blocker_unchanged"},
+        "tests_run": tests_run,
+        "artifacts": evidence_artifacts,
+        "evidence_basis": list(worker_result.get("evidence_basis") or evidence_artifacts),
+    }
+
+
+def _apply_canonical_lane_bundle_to_planner_result(
+    planner_result: dict[str, Any],
+    *,
+    blocker_family: str,
+    repair_scope: str,
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    lane_bundle = _canonical_lane_bundle(blocker_family=blocker_family, repair_scope=repair_scope)
+    if lane_bundle is None:
+        return planner_result, None
+
+    normalized = dict(planner_result)
+    normalized["verification_commands"] = list(lane_bundle["verification_commands"])
+    normalized["in_scope_files"] = _merge_unique_items(
+        lane_bundle["in_scope_files"],
+        list(planner_result.get("in_scope_files") or []),
+    )
+    normalized["out_of_scope"] = _merge_unique_items(
+        list(planner_result.get("out_of_scope") or []),
+        lane_bundle["forbidden_changes"],
+    )
+    return normalized, lane_bundle
 
 
 def _make_checkpoint(
@@ -409,43 +906,204 @@ def _make_checkpoint(
     return checkpoint
 
 
+def _finalize_round_after_verifier(
+    *,
+    run_id: str,
+    run_profile_id: str,
+    slice_id: str,
+    workspace: Path,
+    planner_result: dict[str, Any],
+    evaluator_result: dict[str, Any],
+    worker_result: dict[str, Any],
+    verifier_result: dict[str, Any],
+    preflight: dict[str, Any],
+    output_paths: dict[str, str],
+    checkpoints_dir: Path,
+    summaries_dir: Path,
+    existing_summaries: list[dict[str, Any]],
+    max_autonomous_repair_attempts_per_family: int,
+) -> dict[str, Any]:
+    missing_conditions: list[str] = []
+    evaluator_conditions = list(evaluator_result.get("conditions") or [])
+    if evaluator_conditions:
+        verified = set(verifier_result.get("conditions_verified") or [])
+        missing_conditions = [condition for condition in evaluator_conditions if condition not in verified]
+
+    derived_blocker_family = _classify_blocker_family(
+        planner_result,
+        worker_result,
+        verifier_result,
+    )
+    blocker_family = _normalize_blocker_family_name(
+        worker_result.get("blocker_family") or verifier_result.get("blocker_family") or derived_blocker_family
+    )
+    attempt_index = _count_attempts_for_family(existing_summaries, blocker_family) + 1
+    derived_evidence_tier = _derive_evidence_tier(
+        attempt_index=attempt_index,
+        planner_result=planner_result,
+        worker_result=worker_result,
+        verifier_result=verifier_result,
+    )
+    verifier_evidence_tier = verifier_result.get("evidence_tier")
+    evidence_tier = max(
+        int(verifier_evidence_tier) if verifier_evidence_tier is not None else 0,
+        derived_evidence_tier,
+    )
+    repair_scope = worker_result.get("repair_scope") or _derive_repair_scope(
+        blocker_family=blocker_family,
+        attempt_index=attempt_index,
+        evidence_tier=evidence_tier,
+    )
+    last_blocker_status = _last_blocker_status_for_family(existing_summaries, blocker_family)
+    repair_budget_remaining = max(0, max_autonomous_repair_attempts_per_family - attempt_index)
+    stop_class = str(
+        verifier_result.get("stop_class")
+        or _normalize_stop_class(
+            blocker_family=blocker_family,
+            attempt_index=attempt_index,
+            repair_budget_remaining=repair_budget_remaining,
+            last_blocker_status=last_blocker_status,
+            verifier_result=verifier_result,
+        )
+    )
+
+    checkpoint = _make_checkpoint(
+        run_id=run_id,
+        slice_id=slice_id,
+        workspace=workspace,
+        planner_result=planner_result,
+        evaluator_result=evaluator_result,
+        worker_result=worker_result,
+        verifier_result=verifier_result,
+        preflight=preflight,
+        output_paths=output_paths,
+    )
+    checkpoint_path = checkpoints_dir / f"{slice_id}.json"
+    _json_dump(checkpoint_path, checkpoint)
+    summary = _make_run_summary(
+        run_id=run_id,
+        slice_id=slice_id,
+        run_profile_id=run_profile_id,
+        planner_result=planner_result,
+        worker_result=worker_result,
+        verifier_result=verifier_result,
+        blocker_family=blocker_family,
+        evidence_tier=evidence_tier,
+        attempt_index=attempt_index,
+        repair_scope=repair_scope,
+        repair_budget_remaining=repair_budget_remaining,
+        last_blocker_status=last_blocker_status,
+        stop_class=stop_class,
+    )
+    summary_path = summaries_dir / f"{slice_id}.json"
+    _json_dump(summary_path, summary)
+    _json_dump(summaries_dir / "latest_summary.json", summary)
+
+    if missing_conditions and checkpoint["next_safe_action"] == "continue" and not checkpoint["human_review_required"]:
+        return {
+            "status": "blocked",
+            "stop_reason": "verifier_conditions_not_verified",
+            "run_dir": str(checkpoints_dir.parent),
+            "missing_conditions": missing_conditions,
+        }
+
+    if stop_class == "human_review_required" or checkpoint["human_review_required"]:
+        return {
+            "status": "stopped",
+            "stop_reason": "human_review_required",
+            "run_dir": str(checkpoints_dir.parent),
+        }
+
+    next_safe_action = checkpoint["next_safe_action"]
+    if stop_class != "completed_slice_continue_allowed" and next_safe_action != "continue":
+        return {
+            "status": "stopped",
+            "stop_reason": stop_class if stop_class in STOP_CLASS_VALUES else next_safe_action,
+            "run_dir": str(checkpoints_dir.parent),
+        }
+
+    return {
+        "status": "continue",
+        "checkpoint_path": str(checkpoint_path),
+        "summary_path": str(summary_path),
+        "stop_class": stop_class,
+    }
+
+
 def run_autorun(
     *,
     workspace: Path,
     run_root: Path,
     role_execution_mode: str,
     dirty_policy: str,
-    max_slices: int,
+    max_slices: int | None,
+    role_timeout_seconds: int | None,
+    role_timeout_overrides: dict[str, int] | None = None,
     mock_scenario_path: Path | None = None,
     run_id: str | None = None,
+    resume_run_id: str | None = None,
+    run_profile_id: str | None = None,
 ) -> dict[str, Any]:
-    resolved_run_id = run_id or f"b1-dry-run-{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
+    run_profile = _get_run_profile(run_profile_id)
+    resolved_run_id = resume_run_id or run_id or f"b1-dry-run-{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
     run_dir = run_root / "runs" / resolved_run_id
     prompts_dir = run_dir / "prompts"
     outputs_dir = run_dir / "outputs"
     checkpoints_dir = run_dir / "checkpoints"
+    summaries_dir = run_dir / "summaries"
     preflight_dir = run_dir / "preflight"
     run_dir.mkdir(parents=True, exist_ok=True)
+    summaries_dir.mkdir(parents=True, exist_ok=True)
+    resolved_max_slices = max_slices if max_slices is not None else int(run_profile["max_slices"])
 
     truth = _load_latest_truth()
-    manifest = {
-        "run_id": resolved_run_id,
-        "phase": "B-1",
-        "slice_mode": "dry_run_only",
-        "role_execution_mode": role_execution_mode,
-        "dirty_policy": dirty_policy,
-        "max_slices": max_slices,
-        "workspace": str(workspace),
-        "prompt_template_dir": str(PROMPT_TEMPLATE_DIR),
-        "schema_dir": str(SCHEMA_DIR),
-        "next_live_target": DEFAULT_NEXT_LIVE_TARGET,
-        "latest_readiness_path": truth["latest_readiness_path"],
-        "latest_full_smoke_path": truth["latest_full_smoke_path"],
-        "started_at_utc": _utc_now(),
-    }
+    if resume_run_id:
+        resume_state = _read_existing_run_state(run_dir=run_dir)
+        manifest = dict(resume_state["manifest"])
+        manifest["role_execution_mode"] = role_execution_mode
+        manifest["dirty_policy"] = dirty_policy
+        manifest["max_slices"] = resolved_max_slices
+        manifest["role_timeout_seconds"] = role_timeout_seconds
+        manifest["role_timeout_overrides"] = role_timeout_overrides or {}
+        manifest["default_role_timeout_seconds_by_role"] = DEFAULT_ROLE_TIMEOUT_SECONDS_BY_ROLE
+        manifest["run_profile_id"] = run_profile["run_profile_id"]
+        manifest["run_profile"] = run_profile
+        manifest["latest_readiness_path"] = truth["latest_readiness_path"]
+        manifest["latest_full_smoke_path"] = truth["latest_full_smoke_path"]
+        manifest["resume_count"] = int(manifest.get("resume_count", 0)) + 1
+        manifest["last_resumed_at_utc"] = _utc_now()
+        manifest["last_resume_state"] = {
+            "round_index": resume_state["round_index"],
+            "next_role": resume_state["next_role"],
+            "slice_id": resume_state["slice_id"],
+            "checkpoint_pending": bool(resume_state["checkpoint_pending"]),
+        }
+        ledger: dict[str, Any] = dict(resume_state["ledger"])
+    else:
+        resume_state = None
+        manifest = {
+            "run_id": resolved_run_id,
+            "phase": "B-1",
+            "slice_mode": "dry_run_only",
+            "run_profile_id": run_profile["run_profile_id"],
+            "run_profile": run_profile,
+            "role_execution_mode": role_execution_mode,
+            "dirty_policy": dirty_policy,
+            "max_slices": resolved_max_slices,
+            "role_timeout_seconds": role_timeout_seconds,
+            "role_timeout_overrides": role_timeout_overrides or {},
+            "default_role_timeout_seconds_by_role": DEFAULT_ROLE_TIMEOUT_SECONDS_BY_ROLE,
+            "workspace": str(workspace),
+            "prompt_template_dir": str(PROMPT_TEMPLATE_DIR),
+            "schema_dir": str(SCHEMA_DIR),
+            "next_live_target": DEFAULT_NEXT_LIVE_TARGET,
+            "latest_readiness_path": truth["latest_readiness_path"],
+            "latest_full_smoke_path": truth["latest_full_smoke_path"],
+            "started_at_utc": _utc_now(),
+        }
+        ledger = {"run_id": resolved_run_id, "events": []}
     _json_dump(run_dir / "manifest.json", manifest)
 
-    ledger: dict[str, Any] = {"run_id": resolved_run_id, "events": []}
     mock_scenario = _json_load(mock_scenario_path) if mock_scenario_path else None
 
     preflight = perform_preflight(workspace=workspace, preflight_dir=preflight_dir, dirty_policy=dirty_policy)
@@ -466,25 +1124,110 @@ def run_autorun(
             "run_dir": str(run_dir),
         }
 
-    round_index = 0
-    final_result = {"status": "stopped", "stop_reason": "max_slices_reached", "run_dir": str(run_dir)}
-    while round_index < max_slices:
-        slice_id = f"B1-dry-run-{round_index + 1:03d}"
-        previous_artifact_path: str | None = None
-        role_outputs: dict[str, dict[str, Any]] = {}
-        output_paths: dict[str, str] = {}
-        planner_scope: dict[str, Any] = {
-            "in_scope_files": [],
-            "verification_commands": [],
-            "stop_conditions": [],
-            "out_of_scope": [],
-        }
-        narrowed_boundary = ""
-        evaluator_conditions: list[str] = []
+    if resume_state is not None:
+        ledger["events"].append(
+            {
+                "role": "resume",
+                "status": "continue",
+                "artifact": str(run_dir / "manifest.json"),
+                "timestamp_utc": _utc_now(),
+                "round_index": resume_state["round_index"],
+                "next_role": resume_state["next_role"],
+                "slice_id": resume_state["slice_id"],
+                "checkpoint_pending": bool(resume_state["checkpoint_pending"]),
+            }
+        )
+        _json_dump(run_dir / "ledger.json", ledger)
 
-        for role in ROLE_ORDER:
+    round_index = int(resume_state["round_index"]) if resume_state is not None else 0
+    final_result = {"status": "stopped", "stop_reason": "max_slices_reached", "run_dir": str(run_dir)}
+    while round_index < resolved_max_slices:
+        if resume_state is not None and round_index == int(resume_state["round_index"]):
+            slice_id = resume_state["slice_id"] or f"B1-dry-run-{round_index + 1:03d}"
+            previous_artifact_path = resume_state["previous_artifact_path"]
+            role_outputs = dict(resume_state["role_outputs"])
+            output_paths = dict(resume_state["output_paths"])
+            planner_scope = dict(resume_state["planner_scope"])
+            narrowed_boundary = str(resume_state["narrowed_boundary"])
+            evaluator_conditions = list(resume_state["evaluator_conditions"])
+            if resume_state["checkpoint_pending"]:
+                roles_to_run = ()
+            else:
+                start_role_index = ROLE_ORDER.index(str(resume_state["next_role"]))
+                roles_to_run = ROLE_ORDER[start_role_index:]
+        else:
+            slice_id = f"B1-dry-run-{round_index + 1:03d}"
+            previous_artifact_path = None
+            role_outputs = {}
+            output_paths = {}
+            planner_scope = {
+                "in_scope_files": [],
+                "verification_commands": [],
+                "stop_conditions": [],
+                "out_of_scope": [],
+            }
+            narrowed_boundary = ""
+            evaluator_conditions = []
+            roles_to_run = ROLE_ORDER
+
+        existing_summaries = _load_existing_summaries(summaries_dir)
+        current_blocker_family = _normalize_blocker_family_name(_classify_blocker_family(role_outputs.get("planner")))
+        current_attempt_index = _count_attempts_for_family(existing_summaries, current_blocker_family) + 1
+        current_evidence_tier = _derive_evidence_tier(
+            attempt_index=current_attempt_index,
+            planner_result=role_outputs.get("planner", {}),
+            worker_result=role_outputs.get("worker", {}),
+            verifier_result=role_outputs.get("verifier", {}),
+        )
+        current_repair_scope = _derive_repair_scope(
+            blocker_family=current_blocker_family,
+            attempt_index=current_attempt_index,
+            evidence_tier=current_evidence_tier,
+        )
+        current_lane_bundle = _canonical_lane_bundle(
+            blocker_family=current_blocker_family,
+            repair_scope=current_repair_scope,
+        )
+        current_last_blocker_status = _last_blocker_status_for_family(existing_summaries, current_blocker_family)
+        current_repair_budget_remaining = max(
+            0,
+            int(run_profile["max_autonomous_repair_attempts_per_family"]) - current_attempt_index,
+        )
+
+        if (
+            resume_state is not None
+            and round_index == int(resume_state["round_index"])
+            and resume_state["checkpoint_pending"]
+        ):
+            existing_summaries = _load_existing_summaries(summaries_dir)
+            finalize_result = _finalize_round_after_verifier(
+                run_id=resolved_run_id,
+                run_profile_id=run_profile["run_profile_id"],
+                slice_id=slice_id,
+                workspace=workspace,
+                planner_result=role_outputs["planner"],
+                evaluator_result=role_outputs["evaluator"],
+                worker_result=role_outputs["worker"],
+                verifier_result=role_outputs["verifier"],
+                preflight=preflight,
+                output_paths=output_paths,
+                checkpoints_dir=checkpoints_dir,
+                summaries_dir=summaries_dir,
+                existing_summaries=existing_summaries,
+                max_autonomous_repair_attempts_per_family=int(run_profile["max_autonomous_repair_attempts_per_family"]),
+            )
+            if finalize_result["status"] != "continue":
+                return finalize_result
+            output_paths["checkpoint"] = str(checkpoints_dir / f"{slice_id}.json")
+            previous_artifact_path = output_paths["checkpoint"]
+            round_index += 1
+            resume_state = None
+            continue
+
+        for role in roles_to_run:
             role_context = {
                 "run_id": resolved_run_id,
+                "run_profile_id": run_profile["run_profile_id"],
                 "slice_id": slice_id,
                 "latest_readiness_path": truth["latest_readiness_path"],
                 "latest_full_smoke_path": truth["latest_full_smoke_path"],
@@ -496,6 +1239,17 @@ def run_autorun(
                 "narrowed_boundary": narrowed_boundary,
                 "conditions": evaluator_conditions,
                 "next_live_target": DEFAULT_NEXT_LIVE_TARGET,
+                "attempt_index": current_attempt_index,
+                "blocker_family": current_blocker_family,
+                "evidence_tier": current_evidence_tier,
+                "repair_scope": current_repair_scope,
+                "repair_budget_remaining": current_repair_budget_remaining,
+                "last_blocker_status": current_last_blocker_status,
+                "max_autonomous_repair_attempts_per_family": run_profile["max_autonomous_repair_attempts_per_family"],
+                "repair_lane_id": (current_lane_bundle or {}).get("repair_lane_id"),
+                "canonical_verification_bundle": (current_lane_bundle or {}).get("verification_commands", []),
+                "runtime_repair_in_scope_files": (current_lane_bundle or {}).get("in_scope_files", []),
+                "runtime_repair_forbidden_changes": (current_lane_bundle or {}).get("forbidden_changes", []),
             }
             prompt_text = _render_prompt_snapshot(role, context=role_context)
             prompt_path = _write_prompt_snapshot(prompts_dir, round_index=round_index, role=role, prompt_text=prompt_text)
@@ -503,6 +1257,50 @@ def run_autorun(
             if role_execution_mode == "mock":
                 assert mock_scenario is not None
                 payload = _load_mock_role_output(mock_scenario, round_index=round_index, role=role)
+            elif role_execution_mode == "live_cli":
+                if role == "worker":
+                    profile_timeout_default = int(
+                        run_profile["worker_timeout_seconds"]["provider_runtime_repair_slice"]
+                        if current_repair_scope in {"local_runtime_repair", "global_runtime_policy_repair"}
+                        else run_profile["worker_timeout_seconds"]["ordinary_implementation_slice"]
+                    )
+                elif role in {"planner", "evaluator", "verifier"}:
+                    profile_timeout_default = int(run_profile[f"{role}_timeout_seconds"])
+                else:
+                    profile_timeout_default = DEFAULT_ROLE_TIMEOUT_SECONDS_BY_ROLE[role]
+                current_role_timeout_seconds = (
+                    (role_timeout_overrides or {}).get(role)
+                    or role_timeout_seconds
+                    or profile_timeout_default
+                )
+                try:
+                    payload = invoke_live_cli_role(
+                        role=role,
+                        prompt_path=prompt_path,
+                        workspace=workspace,
+                        timeout_seconds=current_role_timeout_seconds,
+                    )
+                except RoleExecutionTimeoutError as exc:
+                    ledger["events"].append(
+                        {
+                            "role": role,
+                            "status": "timed_out",
+                            "input_prompt_file": str(prompt_path),
+                            "output_artifact": None,
+                            "started_at_utc": _utc_now(),
+                            "ended_at_utc": _utc_now(),
+                            "next_action": "stop",
+                            "error": str(exc),
+                        }
+                    )
+                    _json_dump(run_dir / "ledger.json", ledger)
+                    return {
+                        "status": "blocked",
+                        "stop_reason": "role_timeout",
+                        "run_dir": str(run_dir),
+                        "role": role,
+                        "error": str(exc),
+                    }
             else:
                 payload = _default_noop_role_output(
                     role,
@@ -553,6 +1351,30 @@ def run_autorun(
             _json_dump(run_dir / "ledger.json", ledger)
 
             if role == "planner":
+                planner_blocker_family = _normalize_blocker_family_name(_classify_blocker_family(validated))
+                planner_attempt_index = _count_attempts_for_family(existing_summaries, planner_blocker_family) + 1
+                planner_evidence_tier = _derive_evidence_tier(
+                    attempt_index=planner_attempt_index,
+                    planner_result=validated,
+                    worker_result=role_outputs.get("worker", {}),
+                    verifier_result=role_outputs.get("verifier", {}),
+                )
+                planner_repair_scope = _derive_repair_scope(
+                    blocker_family=planner_blocker_family,
+                    attempt_index=planner_attempt_index,
+                    evidence_tier=planner_evidence_tier,
+                )
+                normalized_planner_result, normalized_lane_bundle = _apply_canonical_lane_bundle_to_planner_result(
+                    validated,
+                    blocker_family=planner_blocker_family,
+                    repair_scope=planner_repair_scope,
+                )
+                if normalized_planner_result is not validated:
+                    validated = normalized_planner_result
+                    role_outputs[role] = validated
+                    _write_role_output(outputs_dir, round_index=round_index, role=role, payload=validated)
+                    output_paths[role] = str(outputs_dir / f"{round_index:02d}_{role}.json")
+                    previous_artifact_path = output_paths[role]
                 planner_scope = {
                     "in_scope_files": validated.get("in_scope_files", []),
                     "verification_commands": validated.get("verification_commands", []),
@@ -560,6 +1382,19 @@ def run_autorun(
                     "out_of_scope": validated.get("out_of_scope", []),
                 }
                 slice_id = validated["slice_id"]
+                current_blocker_family = planner_blocker_family
+                current_attempt_index = planner_attempt_index
+                current_evidence_tier = planner_evidence_tier
+                current_repair_scope = planner_repair_scope
+                current_lane_bundle = normalized_lane_bundle or _canonical_lane_bundle(
+                    blocker_family=current_blocker_family,
+                    repair_scope=current_repair_scope,
+                )
+                current_last_blocker_status = _last_blocker_status_for_family(existing_summaries, current_blocker_family)
+                current_repair_budget_remaining = max(
+                    0,
+                    int(run_profile["max_autonomous_repair_attempts_per_family"]) - current_attempt_index,
+                )
 
             if role == "evaluator":
                 narrowed_boundary = validated.get("narrowed_boundary") or ""
@@ -573,30 +1408,10 @@ def run_autorun(
                     }
                     return final_result
 
-            if role == "worker" and evaluator_conditions:
-                followed = set(validated.get("conditions_followed") or [])
-                missing_conditions = [condition for condition in evaluator_conditions if condition not in followed]
-                if missing_conditions:
-                    return {
-                        "status": "blocked",
-                        "stop_reason": "worker_conditions_not_followed",
-                        "run_dir": str(run_dir),
-                        "missing_conditions": missing_conditions,
-                    }
-
             if role == "verifier":
-                if evaluator_conditions:
-                    verified = set(validated.get("conditions_verified") or [])
-                    missing_conditions = [condition for condition in evaluator_conditions if condition not in verified]
-                    if missing_conditions:
-                        return {
-                            "status": "blocked",
-                            "stop_reason": "verifier_conditions_not_verified",
-                            "run_dir": str(run_dir),
-                            "missing_conditions": missing_conditions,
-                        }
-                checkpoint = _make_checkpoint(
+                finalize_result = _finalize_round_after_verifier(
                     run_id=resolved_run_id,
+                    run_profile_id=run_profile["run_profile_id"],
                     slice_id=slice_id,
                     workspace=workspace,
                     planner_result=role_outputs["planner"],
@@ -605,28 +1420,19 @@ def run_autorun(
                     verifier_result=role_outputs["verifier"],
                     preflight=preflight,
                     output_paths=output_paths,
+                    checkpoints_dir=checkpoints_dir,
+                    summaries_dir=summaries_dir,
+                    existing_summaries=existing_summaries,
+                    max_autonomous_repair_attempts_per_family=int(run_profile["max_autonomous_repair_attempts_per_family"]),
                 )
-                checkpoint_path = checkpoints_dir / f"{slice_id}.json"
-                _json_dump(checkpoint_path, checkpoint)
-                output_paths["checkpoint"] = str(checkpoint_path)
-                previous_artifact_path = str(checkpoint_path)
-
-                if checkpoint["human_review_required"]:
-                    return {
-                        "status": "stopped",
-                        "stop_reason": "human_review_required",
-                        "run_dir": str(run_dir),
-                    }
-
-                next_safe_action = checkpoint["next_safe_action"]
-                if next_safe_action != "continue":
-                    return {
-                        "status": "stopped",
-                        "stop_reason": next_safe_action,
-                        "run_dir": str(run_dir),
-                    }
+                output_paths["checkpoint"] = str(checkpoints_dir / f"{slice_id}.json")
+                previous_artifact_path = output_paths["checkpoint"]
+                if finalize_result["status"] != "continue":
+                    return finalize_result
 
         round_index += 1
+        if resume_state is not None and round_index > int(resume_state["round_index"]):
+            resume_state = None
 
     return final_result
 
@@ -635,12 +1441,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspace", default=str(ROOT))
     parser.add_argument("--run-root", default=str(DEFAULT_RUN_ROOT))
-    parser.add_argument("--role-execution-mode", choices=["mock", "noop_cli"], default="noop_cli")
+    parser.add_argument("--run-profile", default=DEFAULT_RUN_PROFILE_ID)
+    parser.add_argument("--role-execution-mode", choices=["mock", "noop_cli", "live_cli"], default="noop_cli")
     parser.add_argument("--mock-scenario-path")
     parser.add_argument("--dirty-policy", choices=["stop", "snapshot"], default="stop")
-    parser.add_argument("--max-slices", type=int, default=1)
+    parser.add_argument("--max-slices", type=int, default=None)
+    parser.add_argument("--role-timeout-seconds", type=int, default=None)
+    parser.add_argument("--planner-timeout-seconds", type=int, default=None)
+    parser.add_argument("--evaluator-timeout-seconds", type=int, default=None)
+    parser.add_argument("--worker-timeout-seconds", type=int, default=None)
+    parser.add_argument("--verifier-timeout-seconds", type=int, default=None)
     parser.add_argument("--run-id")
+    parser.add_argument("--resume-run-id")
     args = parser.parse_args(argv)
+    role_timeout_overrides = _build_role_timeout_overrides_from_args(args)
 
     result = run_autorun(
         workspace=Path(args.workspace),
@@ -648,8 +1462,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         role_execution_mode=args.role_execution_mode,
         dirty_policy=args.dirty_policy,
         max_slices=args.max_slices,
+        role_timeout_seconds=args.role_timeout_seconds,
+        role_timeout_overrides=role_timeout_overrides or None,
         mock_scenario_path=Path(args.mock_scenario_path) if args.mock_scenario_path else None,
         run_id=args.run_id,
+        resume_run_id=args.resume_run_id,
+        run_profile_id=args.run_profile,
     )
     sys_out = json.dumps(result, ensure_ascii=False, indent=2)
     print(sys_out)

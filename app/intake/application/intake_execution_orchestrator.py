@@ -6,17 +6,35 @@ guard, persistence support, and deterministic sidecar builders.
 
 from __future__ import annotations
 
+from dataclasses import replace
 import time
 from typing import Any
 
 from sqlalchemy.orm import Session
 
+from ...runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 from ...runtime.application.bundle2_response import build_bundle2_response, finalized_budget_summary
 from ...runtime.application.bundle2_tool_batch import apply_final_action_to_payload, execute_manager_tool_calls
 from ...runtime.application.manager_service import run_intake_manager
 from ...runtime.application.state_resolver import resolve_v2_bundle1_state
+from ...nutrition.application.web_extract_port import WebExtractPort
+from ...nutrition.application.web_search_port import WebSearchPort
 from . import manager_tools as tools
+from .attachment_resolver import resolve_attachment_decision
+from .commit_boundary_preflight import run_commit_boundary_preflight
+from .context_injection_policy import build_manager_context_pack
+from .current_turn_context_assembler import build_current_turn_context_v1
+from .history_expansion_manager_runtime import (
+    PHASE_A_EXPAND_HISTORY_TOOL,
+    activate_manager_triggered_history_expansion,
+    manager_history_expansion_eligibility,
+)
+from .history_expansion_runtime import activate_pre_manager_history_expansion
+from .final_action_mutation_classifier import classify_final_action_mutation
 from .intake_execution_persistence import initial_state_mutation_summary, persist_bundle2_artifact
+from .phase_a_trace import build_phase_a_trace
+from .shadow_hypothesis_runtime import build_shadow_hypothesis_runtime
+from .transition_guard import resolve_transition_guard
 
 
 def _now_ms() -> int:
@@ -36,15 +54,59 @@ async def process_bundle2_intake(
     allow_search: bool,
     manager_provider: Any | None = None,
     provider: Any | None = None,
-    search_adapter: Any | None = None,
+    search_port: WebSearchPort | None = None,
+    extract_port: WebExtractPort | None = None,
     state_before: Any,
     manager_decision: Any,
     request_id: str,
     stage_timings: list[dict[str, Any]],
+    current_turn_context: CurrentTurnContextV1 | None = None,
+    manager_context_pack: ManagerContextPack | None = None,
+    phase_a_trace: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     active_manager_provider = manager_provider or provider
     state_mutation_summary = initial_state_mutation_summary()
     correction_target = tools.resolve_correction_target_tool(resolved_state=state_before)
+    if current_turn_context is None:
+        current_turn_context = build_current_turn_context_v1(
+            raw_user_input=raw_user_input,
+            resolved_state=state_before,
+        )
+    pre_attachment_decision = resolve_attachment_decision(current_turn_context)
+    pre_transition_guard_result = resolve_transition_guard(current_turn_context, pre_attachment_decision)
+    activation = activate_pre_manager_history_expansion(
+        current_turn_context=current_turn_context,
+        resolved_state=state_before,
+        pre_attachment_decision=pre_attachment_decision,
+        pre_transition_guard_result=pre_transition_guard_result,
+    )
+    current_turn_context = activation.enriched_current_turn_context
+    latest_attachment_decision = activation.post_attachment_decision
+    latest_transition_guard_result = activation.post_transition_guard_result
+    if phase_a_trace is None or activation.applied:
+        phase_a_trace = build_phase_a_trace(
+            current_turn_context=current_turn_context,
+            attachment_decision=latest_attachment_decision,
+            transition_guard_result=latest_transition_guard_result,
+            history_expansion_activation=activation.trace_payload() if activation.applied else None,
+        )
+    shadow_runtime = build_shadow_hypothesis_runtime(
+        current_turn_context=current_turn_context,
+        attachment_decision=latest_attachment_decision,
+        transition_guard_result=latest_transition_guard_result,
+    )
+    phase_a_trace = dict(phase_a_trace or {})
+    phase_a_trace["shadow_hypothesis_runtime"] = shadow_runtime.trace_payload()
+    if manager_context_pack is None and current_turn_context is not None:
+        manager_context_pack = build_manager_context_pack(current_turn_context=current_turn_context)
+    manager_history_eligibility = manager_history_expansion_eligibility(
+        current_turn_context=current_turn_context,
+        attachment_decision=latest_attachment_decision,
+        transition_guard_result=latest_transition_guard_result,
+    )
+    phase_a_history_expansion_enabled = manager_history_eligibility.eligible
+    manager_triggered_history_attempted = False
+    manager_triggered_history_trace: dict[str, Any] | None = None
     tool_state: dict[str, Any] = {
         "correction_target": correction_target,
         "nutrition_artifact": None,
@@ -55,7 +117,48 @@ async def process_bundle2_intake(
         _append_stage_timing(stage_timings, stage, duration_ms)
 
     async def tool_executor(**kwargs: Any) -> list[dict[str, Any]]:
+        nonlocal current_turn_context
+        nonlocal latest_attachment_decision
+        nonlocal latest_transition_guard_result
+        nonlocal manager_context_pack
+        nonlocal phase_a_history_expansion_enabled
+        nonlocal manager_triggered_history_attempted
+        nonlocal manager_triggered_history_trace
         stage_start = _now_ms()
+        tool_calls = list(kwargs.get("tool_calls") or [])
+        if any(str(call.get("name") or call.get("tool_name") or "").strip() == PHASE_A_EXPAND_HISTORY_TOOL for call in tool_calls):
+            if manager_triggered_history_attempted:
+                result = {
+                    "tool_name": PHASE_A_EXPAND_HISTORY_TOOL,
+                    "evidence": {},
+                    "mutation_result": {},
+                    "provenance": {"phase_a_owner": "intake/application", "primary_truth": "structured_candidates"},
+                    "confidence": "none",
+                    "failure_family": "phase_a_history_expansion_budget_exhausted",
+                }
+            else:
+                manager_triggered_history_attempted = True
+                expansion = activate_manager_triggered_history_expansion(
+                    current_turn_context=current_turn_context,
+                    resolved_state=state_before,
+                    pre_attachment_decision=latest_attachment_decision,
+                    pre_transition_guard_result=latest_transition_guard_result,
+                )
+                current_turn_context = expansion.enriched_current_turn_context
+                latest_attachment_decision = expansion.post_attachment_decision
+                latest_transition_guard_result = expansion.post_transition_guard_result
+                manager_context_pack = build_manager_context_pack(current_turn_context=current_turn_context)
+                phase_a_history_expansion_enabled = False
+                manager_triggered_history_trace = expansion.trace_payload()
+                result = expansion.tool_result()
+            record_timing("phase_a_history_expansion", _now_ms() - stage_start)
+            tools.append_trace_event_tool(
+                request_id=request_id,
+                stage="phase_a_expand_history",
+                status="ok",
+                summary={"tool_results": [result]},
+            )
+            return [result]
         results = await execute_manager_tool_calls(
             db=db,
             user_external_id=user_external_id,
@@ -65,10 +168,11 @@ async def process_bundle2_intake(
             allow_search=allow_search,
             manager_provider=active_manager_provider,
             provider=provider,
-            search_adapter=search_adapter,
+            search_port=search_port,
+            extract_port=extract_port,
             state_before=state_before,
             correction_target=tool_state["correction_target"],
-            tool_calls=list(kwargs.get("tool_calls") or []),
+            tool_calls=tool_calls,
             tool_state=tool_state,
         )
         record_timing("tool_batch", _now_ms() - stage_start)
@@ -80,9 +184,28 @@ async def process_bundle2_intake(
         )
         return results
 
+    async def manager_context_refresher(**_: Any) -> dict[str, Any]:
+        return {
+            "current_turn_context": current_turn_context,
+            "manager_context_pack": manager_context_pack,
+            "phase_a_history_expansion_enabled": phase_a_history_expansion_enabled,
+        }
+
     async def guard_checker(**kwargs: Any) -> dict[str, Any]:
         manager_payload = dict(kwargs.get("manager_payload") or {})
         final_action = str(manager_payload.get("final_action") or "")
+        transition_preflight = classify_final_action_mutation(
+            manager_payload=manager_payload,
+            transition_guard_result=latest_transition_guard_result,
+        )
+        preflight_trace = transition_preflight.trace_payload()
+        if transition_preflight.blocked:
+            return {
+                "ok": False,
+                "repair_request": True,
+                "failure_family": transition_preflight.failure_family,
+                "phase_a_transition_guard_preflight": preflight_trace,
+            }
         artifact = tool_state.get("nutrition_artifact")
         payload = getattr(artifact, "payload", None) if artifact is not None else None
         if final_action in {"commit", "correction_applied", "overshoot_note"} and payload is None:
@@ -90,16 +213,28 @@ async def process_bundle2_intake(
                 "ok": False,
                 "repair_request": False,
                 "failure_family": "commit_without_evidence",
+                "phase_a_transition_guard_preflight": preflight_trace,
             }
-        return {"ok": True}
+        return {"ok": True, "phase_a_transition_guard_preflight": preflight_trace}
 
     stage_start = _now_ms()
     manager_result = await run_intake_manager(
         provider=active_manager_provider,
         raw_user_input=raw_user_input,
         resolved_state=state_before,
-        available_tools=("resolve_correction_target", "estimate_nutrition", "compare_against_budget"),
+        available_tools=(
+            "resolve_correction_target",
+            "estimate_nutrition",
+            "compare_against_budget",
+            *([PHASE_A_EXPAND_HISTORY_TOOL] if phase_a_history_expansion_enabled else []),
+        ),
+        current_turn_context=current_turn_context,
+        manager_context_pack=manager_context_pack,
+        history_expansion_policy=HistoryExpansionPolicy(),
+        phase_a_shadow_hypothesis=shadow_runtime.manager_payload,
+        phase_a_history_expansion_enabled=phase_a_history_expansion_enabled,
         tool_executor=tool_executor,
+        manager_context_refresher=manager_context_refresher,
         guard_checker=guard_checker,
         constraints={"request_id": request_id},
         max_rounds=3,
@@ -125,16 +260,42 @@ async def process_bundle2_intake(
         raw_user_input=raw_user_input,
         final_action=manager_result.final_action,
     )
-
-    persistence_result = persist_bundle2_artifact(
-        db,
-        nutrition_artifact=nutrition_artifact,
-        final_action=manager_result.final_action,
-        request_id=request_id,
-        record_timing=record_timing,
-        now_ms=_now_ms,
-        state_mutation_summary=state_mutation_summary,
+    commit_boundary_preflight = run_commit_boundary_preflight(
+        payload=payload,
+        manager_final_action=manager_result.final_action,
+        active_body_plan_present=bool(getattr(state_before, "onboarding_ready", False)),
+        correction_target=tool_state["correction_target"],
     )
+    phase_a_trace = dict(phase_a_trace or {})
+    if manager_triggered_history_trace is not None:
+        phase_a_trace["manager_triggered_history_expansion"] = manager_triggered_history_trace
+    phase_a_trace["phase_a_commit_boundary_preflight"] = commit_boundary_preflight.trace_payload()
+    if commit_boundary_preflight.blocked:
+        manager_trace = dict(getattr(manager_result, "trace", {}) or {})
+        manager_trace["phase_a_commit_boundary_preflight"] = commit_boundary_preflight.trace_payload()
+        manager_result = replace(
+            manager_result,
+            final_action="no_commit",
+            workflow_effect="safe_failure",
+            request_failure_family="phase_a_commit_boundary_blocked",
+            guard_outcome={
+                **dict(getattr(manager_result, "guard_outcome", {}) or {}),
+                "phase_a_commit_boundary_preflight": commit_boundary_preflight.trace_payload(),
+            },
+            trace=manager_trace,
+        )
+
+    persistence_result = None
+    if not commit_boundary_preflight.blocked:
+        persistence_result = persist_bundle2_artifact(
+            db,
+            nutrition_artifact=nutrition_artifact,
+            final_action=manager_result.final_action,
+            request_id=request_id,
+            record_timing=record_timing,
+            now_ms=_now_ms,
+            state_mutation_summary=state_mutation_summary,
+        )
 
     state_after = resolve_v2_bundle1_state(
         db,
@@ -167,4 +328,5 @@ async def process_bundle2_intake(
         tool_outputs=tool_outputs,
         state_mutation_summary=state_mutation_summary,
         stage_timings=stage_timings,
+        phase_a_trace=phase_a_trace,
     )

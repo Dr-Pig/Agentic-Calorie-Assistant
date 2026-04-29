@@ -1,12 +1,16 @@
 ﻿from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 from pathlib import Path
+import sys
+from types import SimpleNamespace
 
 from app.providers.builderspace_adapter import BuilderSpaceResponseError
 import pytest
 
+import scripts.run_wave1_phase_b_minimal_tool_loop_smoke as smoke_module
 from scripts.run_wave1_phase_b_minimal_tool_loop_smoke import (
     _build_artifact_path,
     _resolve_targeted_smoke_cases,
@@ -235,6 +239,71 @@ class AdapterParseAttributedErrorPhaseBProvider(FakePhaseBProvider):
         )
 
 
+class AdapterRecoveredJsonContractBreachPhaseBProvider(FakePhaseBProvider):
+    def _trace(self, *, call_index: int, kwargs: dict[str, object]) -> dict[str, object]:
+        trace = dict(super()._trace(call_index=call_index, kwargs=kwargs))
+        trace["usage"] = {"prompt_tokens": 12, "completion_tokens": 8, "total_tokens": 20}
+        return trace
+
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        user_payload = kwargs["user_payload"]
+        round_index = user_payload["round_index"]
+        message = str(user_payload["raw_user_input"])
+        if round_index == 0 and message == CASE_LUWEI_UNKNOWN:
+            self.calls.append(dict(kwargs))
+            return (
+                {
+                    "manager_action": "final",
+                    "interaction_family": "food_logging",
+                    "response_mode": "clarification",
+                    "final_action": "request_clarification",
+                    "operations": [],
+                    "answer_contract": {"text": "Please list the specific items in the basket so I can estimate accurately."},
+                },
+                self._trace(call_index=len(self.calls), kwargs=kwargs),
+            )
+        if round_index == 1 and message == CASE_LUWEI_UNKNOWN:
+            self.calls.append(dict(kwargs))
+            raise BuilderSpaceResponseError(
+                "BuilderSpace manager error at stage=intake_manager_round: RuntimeError: manager payload missing required fields.",
+                trace={
+                    "stage": "intake_manager_round",
+                    "provider": "builderspace",
+                    "model": "deepseek",
+                    "base_url": "https://space.ai-builders.com/backend/v1",
+                    "timeout_seconds": 45,
+                    "failure_family": "manager_output_contract_violation",
+                    "failing_component": "builderspace_runtime_contract.validate_manager_payload",
+                    "parse_contract_status": "fenced_json_recovered",
+                    "parse_recovery_used": True,
+                    "parse_recovery_strategy": "fenced_json",
+                    "parse_recovery_ambiguous": False,
+                    "raw_content_excerpt": "Now I have comprehensive evidence.\n```json\n{\"manager_action\":\"final\"}",
+                    "structured_output_transport_attempted": True,
+                    "structured_output_transport_mode": "json_object",
+                    "structured_output_transport_accepted": False,
+                    "structured_output_transport_fallback": None,
+                    "fallback_reason": None,
+                    "structured_output_transport_constraint_snapshot": {
+                        "phase_b1_manager_role": "pass_2_synthesis",
+                        "phase_b1_pass1_mode": "natural_tool_selection_probe",
+                        "phase_b1_case_family": "composition_unknown_self_selected_basket",
+                    },
+                    "effective_response_format_type": "json_object",
+                    "transport_attempts": [],
+                    "parse_attempts": [
+                        {
+                            "attempt_index": 1,
+                            "stage": "intake_manager_round",
+                            "status": "failed",
+                            "failure_family": "manager_output_contract_violation",
+                        }
+                    ],
+                },
+            )
+        return await super().complete_with_trace(**kwargs)
+
+
 class ToolCallDecisionBreachPhaseBProvider(FakePhaseBProvider):
     async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
         raise BuilderSpaceResponseError(
@@ -381,6 +450,27 @@ class ClarificationPass2CompletionPhaseBProvider(FakePhaseBProvider):
                 self._trace(call_index=len(self.calls), kwargs=kwargs),
             )
         return await super().complete_with_trace(**kwargs)
+
+
+class ProfileAwareClarificationPass2CompletionPhaseBProvider(ClarificationPass2CompletionPhaseBProvider):
+    def __init__(self) -> None:
+        super().__init__()
+        self.manager_model = "deepseek"
+        self.manager_temperature = 0.0
+
+    def readiness(self) -> dict[str, object]:
+        return {
+            "configured": True,
+            "provider": "builderspace",
+            "manager_model": self.manager_model,
+        }
+
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        payload, trace = await super().complete_with_trace(**kwargs)
+        trace = dict(trace)
+        trace["model"] = self.manager_model
+        trace["temperature"] = self.manager_temperature
+        return payload, trace
 
 
 class MixedBranchSelfSelectedBasketPhaseBProvider(FakePhaseBProvider):
@@ -758,6 +848,87 @@ class TargetedTimeoutThenSuccessPhaseBProvider(FakePhaseBProvider):
         return await super().complete_with_trace(**kwargs)
 
 
+class ConnectErrorThenSuccessPhaseBProvider(ClarificationPass2CompletionPhaseBProvider):
+    def __init__(self) -> None:
+        super().__init__()
+        self.failed_once = False
+
+    def readiness(self) -> dict[str, object]:
+        readiness = dict(super().readiness())
+        readiness.update(
+            {
+                "timeout_seconds": 45,
+                "transport_retry_count": 0,
+                "transport_retry_backoff_seconds": 0.75,
+                "base_url": "https://space.ai-builders.com/backend/v1",
+            }
+        )
+        return readiness
+
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        self.calls.append(dict(kwargs))
+        user_payload = kwargs["user_payload"]
+        message = str(user_payload["raw_user_input"])
+        round_index = user_payload["round_index"]
+        if message == CASE_LUWEI_UNKNOWN and round_index == 0 and not self.failed_once:
+            self.failed_once = True
+            raise BuilderSpaceResponseError(
+                "BuilderSpace manager error at stage=intake_manager_round: ConnectError: All connection attempts failed",
+                trace={
+                    "stage": "intake_manager_round",
+                    "provider": "builderspace",
+                    "model": "deepseek",
+                    "base_url": "https://space.ai-builders.com/backend/v1",
+                    "timeout_seconds": 45,
+                    "transport_attempts": [
+                        {
+                            "attempt_index": 1,
+                            "stage": "intake_manager_round",
+                            "model": "deepseek",
+                            "error_type": "ConnectError",
+                        }
+                    ],
+                    "failing_component": "builderspace_adapter.complete_with_trace",
+                },
+            )
+        return await super().complete_with_trace(**kwargs)
+
+
+class PersistentConnectErrorPhaseBProvider(FakePhaseBProvider):
+    def readiness(self) -> dict[str, object]:
+        readiness = dict(super().readiness())
+        readiness.update(
+            {
+                "timeout_seconds": 45,
+                "transport_retry_count": 1,
+                "transport_retry_backoff_seconds": 0.75,
+                "base_url": "https://space.ai-builders.com/backend/v1",
+            }
+        )
+        return readiness
+
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        raise BuilderSpaceResponseError(
+            "BuilderSpace manager error at stage=intake_manager_round: ConnectError: All connection attempts failed",
+            trace={
+                "stage": "intake_manager_round",
+                "provider": "builderspace",
+                "model": "deepseek",
+                "base_url": "https://space.ai-builders.com/backend/v1",
+                "timeout_seconds": 45,
+                "transport_attempts": [
+                    {
+                        "attempt_index": 1,
+                        "stage": "intake_manager_round",
+                        "model": "deepseek",
+                        "error_type": "ConnectError",
+                    }
+                ],
+                "failing_component": "builderspace_adapter.complete_with_trace",
+            },
+        )
+
+
 class MixedCanonicalAndAliasPhaseBProvider(FakePhaseBProvider):
     async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
         self.calls.append(dict(kwargs))
@@ -971,7 +1142,7 @@ async def test_phase_b1_runtime_smoke_wrapped_read_timeout_has_timeout_diagnosti
     runtime = report["provider_runtime"]
     assert runtime["blocker"] is True
     assert runtime["reason"] == "provider_timeout"
-    assert runtime["error_type"] == "BuilderSpaceResponseError"
+    assert runtime["error_type"] == "ReadTimeout"
     assert runtime["provider"] == "builderspace"
     assert runtime["model"] == "deepseek"
     assert runtime["stage"] == "intake_manager_round"
@@ -979,21 +1150,40 @@ async def test_phase_b1_runtime_smoke_wrapped_read_timeout_has_timeout_diagnosti
     assert runtime["outer_provider_timeout_ms"] == 240000
     assert runtime["timeout_layer"] == "adapter_http_timeout"
     assert runtime["attempt_count"] == 1
+    assert runtime["configured_transport_retry_count"] == 0
+    assert runtime["transport_attempt_count"] == 1
+    assert runtime["runner_case_attempt_count"] == 1
     assert runtime["retry_count"] == 0
     assert runtime["completed_trace_count"] == 0
     assert runtime["expected_case_count"] == 1
     assert runtime["base_url"] == "https://space.ai-builders.com/backend/v1"
+    assert runtime["transport_attempts"] == [
+        {
+            "attempt_index": 1,
+            "started_at_utc": None,
+            "ended_at_utc": None,
+            "error_type": "ReadTimeout",
+            "retryable": True,
+            "status_code": None,
+            "timeout_layer": "adapter_http_timeout",
+            "exception_family": "timeout",
+            "message_excerpt": runtime["transport_attempts"][0]["message_excerpt"],
+        }
+    ]
+    assert runtime["transport_attempts"][0]["message_excerpt"] is not None
+    assert "ReadTimeout" in runtime["transport_attempts"][0]["message_excerpt"]
     assert report["tool_loop_traces"] == []
 
 
 @pytest.mark.asyncio
-async def test_phase_b1_runtime_smoke_preserves_adapter_parse_attribution_in_provider_runtime(tmp_path: Path) -> None:
+async def test_phase_b1_runtime_smoke_preserves_adapter_parse_attribution_in_provider_runtime() -> None:
     provider = AdapterParseAttributedErrorPhaseBProvider()
+    output_dir = Path("artifacts") / "tmp_b1_worker_runtime_provider_attr"
 
     report = await run_phase_b_minimal_tool_loop_smoke(
         provider=provider,
         smoke_cases=["我吃了一顆茶葉蛋"],
-        output_dir=tmp_path,
+        output_dir=output_dir,
         write_latest=False,
     )
 
@@ -1014,6 +1204,29 @@ async def test_phase_b1_runtime_smoke_preserves_adapter_parse_attribution_in_pro
     assert runtime["fallback_reason"] == "provider_rejected_response_format"
     assert runtime["structured_output_transport_constraint_snapshot"]["phase_b1_case_family"] == "common_food_item"
     assert runtime["effective_response_format_type"] == "json_object"
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_runtime_smoke_preserves_recovered_json_contract_breach_attribution(tmp_path: Path) -> None:
+    provider = AdapterRecoveredJsonContractBreachPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=["我吃了滷味"],
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="natural-probe",
+    )
+
+    runtime = report["provider_runtime"]
+    assert runtime["reason"] == "provider_runtime_error"
+    assert runtime["failure_family"] == "manager_output_contract_violation"
+    assert runtime["failing_component"] == "builderspace_runtime_contract.validate_manager_payload"
+    assert runtime["parse_contract_status"] == "fenced_json_recovered"
+    assert runtime["parse_recovery_used"] is True
+    assert runtime["parse_recovery_strategy"] == "fenced_json"
+    assert runtime["parse_recovery_ambiguous"] is False
+    assert runtime["structured_output_transport_constraint_snapshot"]["phase_b1_case_family"] == "composition_unknown_self_selected_basket"
 
 
 @pytest.mark.asyncio
@@ -1409,6 +1622,29 @@ async def test_phase_b1_natural_probe_b1_005_pass2_uses_compact_json_first_promp
     assert "\"evidence_posture\":\"packetized_generic_db\"" in pass2_prompt
     assert constraints["phase_b1_manager_role"] == "pass_2_synthesis"
     assert constraints["phase_b1_case_family"] == "listed_ingredient_basket"
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_natural_probe_b1_004_pass2_uses_clarify_only_prompt_and_case_family(tmp_path: Path) -> None:
+    provider = ClarificationPass2CompletionPhaseBProvider()
+
+    await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="natural-probe",
+        requested_case_ids=["B1-004"],
+    )
+
+    pass2_prompt = str(provider.calls[1]["system_prompt"])
+    constraints = provider.calls[1]["user_payload"]["constraints"]
+
+    assert "clarify-only Pass 2 boundary-preservation mode" in pass2_prompt
+    assert "Keep request_clarification as the canonical outcome." in pass2_prompt
+    assert "Trace-only item_results may appear in the raw model payload" in pass2_prompt
+    assert constraints["phase_b1_manager_role"] == "pass_2_synthesis"
+    assert constraints["phase_b1_case_family"] == "composition_unknown_self_selected_basket"
+    assert constraints["phase_b1_task_payload_id"] == "phase_b1_pass_2_b1_004_clarify_only_v1"
 
 
 @pytest.mark.asyncio
@@ -1848,6 +2084,13 @@ def test_build_artifact_path_is_unique_for_same_second_targeted_runs(tmp_path: P
     assert "B1-004-B1-005" in path_one.name
 
 
+def test_phase_b1_selection_helpers_do_not_accept_raw_user_input() -> None:
+    assert "raw_user_input" not in inspect.signature(smoke_module._pass_1_task_payload).parameters
+    assert "raw_user_input" not in inspect.signature(smoke_module._pass_2_task_payload).parameters
+    assert "raw_user_input" not in inspect.signature(smoke_module._task_payload_for_round).parameters
+    assert "raw_user_input" not in inspect.signature(smoke_module._case_prompt_hash).parameters
+
+
 @pytest.mark.asyncio
 async def test_phase_b1_smoke_targeted_cases_only_runs_requested_cases(tmp_path: Path) -> None:
     provider = EchoInputLookupPhaseBProvider()
@@ -1903,6 +2146,94 @@ async def test_phase_b1_smoke_targeted_case_timeout_does_not_hide_other_case_res
     assert success_case["case_execution_status"] == "completed"
     assert success_case["trace_present"] is True
     assert [trace["case_id"] for trace in report["tool_loop_traces"]] == ["B1-005"]
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_smoke_targeted_connect_error_is_retried_and_yields_trace() -> None:
+    provider = ConnectErrorThenSuccessPhaseBProvider()
+    output_dir = Path("artifacts") / "tmp_b1_worker_connect_error_targeted"
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        output_dir=output_dir,
+        write_latest=False,
+        mode="natural-probe",
+        requested_case_ids=["B1-004"],
+        _retry_backoff_seconds=0.0,
+    )
+
+    assert len(report["case_results"]) == 1
+    case_result = report["case_results"][0]
+    assert case_result["case_id"] == "B1-004"
+    assert case_result["case_execution_status"] == "completed"
+    assert case_result["attempt_count"] == 2
+    assert case_result["trace_present"] is True
+    assert [trace["case_id"] for trace in report["tool_loop_traces"]] == ["B1-004"]
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_smoke_targeted_persistent_connect_error_preserves_provider_runtime_profile_attribution(
+) -> None:
+    provider = PersistentConnectErrorPhaseBProvider()
+    output_dir = Path("artifacts") / "tmp_b1_worker_connect_error_attr"
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        output_dir=output_dir,
+        write_latest=False,
+        mode="natural-probe",
+        requested_case_ids=["B1-004"],
+        _retry_backoff_seconds=0.0,
+    )
+
+    runtime = report["case_results"][0]["provider_runtime"]
+    assert runtime["reason"] == "provider_runtime_error"
+    assert runtime["error_type"] == "ConnectError"
+    assert runtime["configured_transport_retry_count"] == 1
+    assert runtime["transport_attempt_count"] == 1
+    assert runtime["runner_case_attempt_count"] == 2
+    assert runtime["transport_attempts"] == [
+        {
+            "attempt_index": 1,
+            "started_at_utc": None,
+            "ended_at_utc": None,
+            "error_type": "ConnectError",
+            "retryable": True,
+            "status_code": None,
+            "timeout_layer": None,
+            "exception_family": "network",
+            "message_excerpt": runtime["transport_attempts"][0]["message_excerpt"],
+        }
+    ]
+    assert runtime["transport_attempts"][0]["message_excerpt"] is not None
+    assert "ConnectError" in runtime["transport_attempts"][0]["message_excerpt"]
+    assert runtime["provider_profile_id"] == "builderspace-deepseek-default"
+    assert runtime["provider_profile_model"] == "deepseek"
+    assert runtime["provider_profile_role"] == "default_build_loop"
+    assert runtime["provider_profile_route_mode"] == "default_build_loop"
+    assert runtime["provider_profile_route_reason"] == "no_branch_specific_override"
+    assert runtime["profile_routing_rule_id"] == "phase_b1_default_build_loop_v1"
+    assert runtime["profile_routing_scope"] == "b1_local_diagnostic"
+    assert runtime["profile_routing_artifact_basis"] is None
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_smoke_full_connect_error_is_retried_and_does_not_end_pre_trace() -> None:
+    provider = ConnectErrorThenSuccessPhaseBProvider()
+    output_dir = Path("artifacts") / "tmp_b1_worker_connect_error_full"
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=[CASE_LUWEI_UNKNOWN],
+        output_dir=output_dir,
+        write_latest=False,
+        mode="natural-probe",
+        _retry_backoff_seconds=0.0,
+    )
+
+    assert report.get("provider_runtime") is None
+    assert len(report["tool_loop_traces"]) == 1
+    assert report["tool_loop_traces"][0]["case_id"] == "B1-004"
 
 
 @pytest.mark.asyncio
@@ -1994,6 +2325,7 @@ async def test_phase_b1_b1_005_answer_contract_bridge_populates_canonical_item_r
     trace = report["tool_loop_traces"][0]
     item_results = trace["manager_pass_2"]["item_results"]
     assert trace["manager_pass_2"]["item_results_source"] == "answer_contract_bridge"
+    assert trace["manager_pass_2"]["item_results_owner_class"] == "compatibility_bridge"
     assert trace["runner_derived_item_results"] is False
     assert [item["food_name"] for item in item_results] == ["豆干", "海帶", "貢丸"]
     assert item_results[0]["evidence_used"] == ["B1-005_lookup_generic_food_75f53b5e47261724"]
@@ -2016,6 +2348,7 @@ async def test_phase_b1_b1_003_meal_root_answer_contract_bridge_populates_canoni
     trace = report["tool_loop_traces"][0]
     item_results = trace["manager_pass_2"]["item_results"]
     assert trace["manager_pass_2"]["item_results_source"] == "answer_contract_bridge"
+    assert trace["manager_pass_2"]["item_results_owner_class"] == "compatibility_bridge"
     assert trace["runner_derived_item_results"] is False
     assert trace["manager_pass_2"]["item_results_bridge_shape"] == "answer_contract.item_results"
     assert set(trace["manager_pass_2"]["item_results_bridge_parent_fallback_fields"]) == {
@@ -2049,6 +2382,7 @@ async def test_phase_b1_answer_contract_item_results_bridge_is_locked_outside_me
 
     trace = report["tool_loop_traces"][0]
     assert trace["manager_pass_2"]["item_results_source"] == "none"
+    assert trace["manager_pass_2"]["item_results_owner_class"] == "none"
     assert trace["manager_pass_2"]["item_results"] == []
     assert trace["manager_pass_2"]["item_results_bridge_shape"] is None
     assert trace["manager_pass_2"]["item_results_bridge_parent_fallback_fields"] == []
@@ -2068,6 +2402,7 @@ async def test_phase_b1_b1_005_top_level_item_results_take_precedence_over_bridg
 
     trace = report["tool_loop_traces"][0]
     assert trace["manager_pass_2"]["item_results_source"] == "manager_pass_2_payload"
+    assert trace["manager_pass_2"]["item_results_owner_class"] == "runtime_payload"
     assert trace["runner_derived_item_results"] is False
     assert trace["manager_pass_2"]["item_results"] == [
         {
@@ -2198,6 +2533,113 @@ async def test_phase_b1_targeted_b1003_can_select_grok_fast_profile_and_trace_at
     assert trace["manager_pass_1"]["provider_params"]["profile_routing_artifact_basis"] is None
     assert trace["manager_pass_2"]["provider_params"]["provider_profile_id"] == "builderspace-deepseek-default"
     assert trace["manager_pass_2"]["provider_params"]["provider_profile_route_mode"] == "default_build_loop"
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_targeted_b1004_can_select_grok_fast_probe_profile_and_trace_attribution(tmp_path: Path) -> None:
+    provider = ProfileAwareClarificationPass2CompletionPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="natural-probe",
+        requested_case_ids=["B1-004"],
+        provider_profile_id="builderspace-grok-4-fast-b1004-probe",
+    )
+
+    trace = report["tool_loop_traces"][0]
+    pass1_params = trace["manager_pass_1"]["provider_params"]
+    pass2_params = trace["manager_pass_2"]["provider_params"]
+
+    assert pass1_params["provider_profile_id"] == "builderspace-grok-4-fast-b1004-probe"
+    assert pass1_params["provider_profile_model"] == "grok-4-fast"
+    assert pass1_params["provider_profile_role"] == "low_cost_transport_probe"
+    assert pass1_params["provider_profile_cost_tier"] == "low"
+    assert pass1_params["artifact_tool_call_reliability"] == "B1-004_probe_pending"
+    assert pass1_params["model"] == "grok-4-fast"
+    assert pass1_params["provider_profile_route_mode"] == "explicit_targeted_override"
+    assert pass1_params["provider_profile_route_reason"] == "requested_targeted_profile_override"
+    assert pass1_params["profile_routing_rule_id"] == "phase_b1_targeted_profile_override_v1"
+    assert pass1_params["profile_routing_scope"] == "b1_local_diagnostic"
+    assert pass2_params["provider_profile_id"] == "builderspace-deepseek-default"
+    assert pass2_params["provider_profile_route_mode"] == "default_build_loop"
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_trace_adds_selector_state_without_removing_existing_payload_fields(tmp_path: Path) -> None:
+    provider = ProfileAwareClarificationPass2CompletionPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="natural-probe",
+        requested_case_ids=["B1-004"],
+        provider_profile_id="builderspace-grok-4-fast-b1004-probe",
+    )
+
+    trace = report["tool_loop_traces"][0]
+    pass1 = trace["manager_pass_1"]
+    pass2 = trace["manager_pass_2"]
+
+    assert pass1["phase_b1_task_payload_id"] is not None
+    assert pass1["phase_b1_task_payload_hash"] is not None
+    assert pass1["selector_inputs"] == {
+        "case_family": "composition_unknown_self_selected_basket",
+        "manager_role": "pass_1_tool_request",
+        "probe_mode": "natural_tool_selection_probe",
+        "case_id": "B1-004",
+    }
+    assert pass1["manager_contract_selection"]["constraint_id"] == "phase_b1_pass1_clarification_contract_v1"
+    assert pass1["manager_contract_selection"]["schema_branch"] == "pass1_clarification"
+    assert pass1["provider_profile_selection"]["provider_profile_id"] == "builderspace-grok-4-fast-b1004-probe"
+    assert pass1["provider_profile_selection"]["route_mode"] == "explicit_targeted_override"
+    assert pass1["provider_profile_selection"]["should_migrate_post_b1"] is True
+
+    assert pass2["phase_b1_task_payload_id"] == "phase_b1_pass_2_b1_004_clarify_only_v1"
+    assert pass2["phase_b1_task_payload_hash"] is not None
+    assert pass2["selector_inputs"] == {
+        "case_family": "composition_unknown_self_selected_basket",
+        "manager_role": "pass_2_synthesis",
+        "probe_mode": "natural_tool_selection_probe",
+        "case_id": "B1-004",
+    }
+    assert pass2["manager_contract_selection"]["constraint_id"] == "phase_b1_pass2_clarify_only_contract_v1"
+    assert pass2["manager_contract_selection"]["schema_branch"] == "pass2_clarify_only"
+    assert pass2["provider_profile_selection"]["provider_profile_id"] == "builderspace-deepseek-default"
+    assert pass2["provider_profile_selection"]["route_mode"] == "default_build_loop"
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_full_smoke_b1005_trace_keeps_local_route_debt_visible(tmp_path: Path) -> None:
+    provider = ProfileAwarePhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=[CASE_LUWEI_LISTED],
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="natural-probe",
+    )
+
+    pass1 = report["tool_loop_traces"][0]["manager_pass_1"]
+
+    assert pass1["selector_inputs"] == {
+        "case_family": "listed_ingredient_basket",
+        "manager_role": "pass_1_tool_request",
+        "probe_mode": "natural_tool_selection_probe",
+        "case_id": "B1-005",
+    }
+    assert pass1["manager_contract_selection"]["constraint_id"] == "phase_b1_pass1_listed_ingredient_tool_call_contract_v1"
+    assert pass1["provider_profile_selection"]["provider_profile_id"] == "builderspace-grok-4-fast-b1005-probe"
+    assert pass1["provider_profile_selection"]["uses_case_id_local_debt"] is True
+    assert pass1["provider_profile_selection"]["should_migrate_post_b1"] is True
+    assert pass1["provider_profile_selection"]["artifact_basis"] == {
+        "artifact_path": "artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T180042.469158Z_natural-probe_targeted_B1-005_b176c8.json",
+        "observed_result": "B1-005_pass1_grok_item_level_lookup_generic_food",
+        "prior_default_failure": "B1-005_pass1_deepseek_search_tool_policy_mismatch",
+    }
 
 
 @pytest.mark.asyncio
@@ -2553,3 +2995,46 @@ async def test_phase_b1_expensive_profile_is_disabled_by_default(tmp_path: Path)
             requested_case_ids=["B1-003"],
             provider_profile_id="builderspace-gpt-5-manual",
         )
+
+
+def test_cli_accepts_targeted_case_flags_and_applies_b1004_probe_defaults(monkeypatch, capsys) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_run_phase_b_minimal_tool_loop_smoke(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {
+            "phase": "B-1",
+            "scope": "minimal_tool_loop_smoke",
+            "artifact_path": "artifacts/fake.json",
+            "tool_loop_traces": [],
+            "provider_runtime": None,
+        }
+
+    monkeypatch.setattr(smoke_module, "run_phase_b_minimal_tool_loop_smoke", _fake_run_phase_b_minimal_tool_loop_smoke)
+    monkeypatch.setitem(
+        sys.modules,
+        "app.runtime.interface.provider_runtime",
+        SimpleNamespace(manager_provider=object()),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_wave1_phase_b_minimal_tool_loop_smoke.py",
+            "--case-set",
+            "targeted",
+            "--case-id",
+            "B1-004",
+        ],
+    )
+
+    exit_code = smoke_module.main()
+
+    assert exit_code == 0
+    assert captured["requested_case_ids"] == ["B1-004"]
+    assert captured["mode"] == "natural-probe"
+    assert captured["provider_profile_id"] == "builderspace-grok-4-fast-b1004-probe"
+
+    output = json.loads(capsys.readouterr().out)
+    assert output["phase"] == "B-1"
+    assert output["artifact_path"] == "artifacts/fake.json"
