@@ -663,6 +663,21 @@ def _item_results_source(trace: dict[str, Any]) -> str:
     return "none"
 
 
+def _item_results_owner_class(trace: dict[str, Any]) -> str:
+    manager_pass_2 = trace.get("manager_pass_2") if isinstance(trace.get("manager_pass_2"), dict) else {}
+    explicit_owner = str(manager_pass_2.get("item_results_owner_class") or "") if isinstance(manager_pass_2, dict) else ""
+    if explicit_owner in {"runtime_payload", "compatibility_bridge", "runner_fallback", "none"}:
+        return explicit_owner
+    if bool(trace.get("runner_derived_item_results")):
+        return "runner_fallback"
+    source = _item_results_source(trace)
+    if source == "answer_contract_bridge":
+        return "compatibility_bridge"
+    if source == "manager_pass_2_payload":
+        return "runtime_payload"
+    return "none"
+
+
 def _unsupported_tool_names(trace: dict[str, Any]) -> list[str]:
     router = trace.get("runtime_tool_router") if isinstance(trace.get("runtime_tool_router"), dict) else {}
     block_reasons = router.get("block_reasons") if isinstance(router, dict) else []
@@ -858,6 +873,8 @@ def _natural_failure_family(
     pass2_ran = isinstance(pass2_params, dict) and all(pass2_params.get(key) not in (None, "") for key in ("provider", "model", "request_id"))
     if not pass2_ran:
         return "pass2_not_run"
+    if _item_results_owner_class(trace) == "compatibility_bridge":
+        return "answer_contract_bridge_item_results"
     if _item_results_source(trace) == "none":
         return "pass2_no_item_results"
     return "none"
@@ -874,6 +891,7 @@ def _build_natural_probe_failure_report(
         "wrong_tool_request": 0,
         "router_policy_failure": 0,
         "pass2_not_run": 0,
+        "answer_contract_bridge_item_results": 0,
         "pass2_no_item_results": 0,
         "blocking_boundary_ok": 0,
         "composition_unknown_invalid_estimate_or_log": 0,
@@ -932,6 +950,7 @@ def _build_natural_probe_failure_report(
                 "unsupported_tool_names": _unsupported_tool_names(trace),
                 "pass2_ran": pass2_ran,
                 "item_results_source": _item_results_source(trace),
+                "item_results_owner_class": _item_results_owner_class(trace),
                 "failure_family": family,
                 "manager_blocking_semantics": manager_blocking_semantics,
                 "pass1_decision_shape": pass1_decision_shape,
@@ -1155,6 +1174,8 @@ def _check_mode_verdicts(
             loop_failures.append({"case_id": trace.get("case_id"), "input_message": input_message, "reason": "pass2_provider_trace_missing", "missing": missing_pass2_values})
         if bool(trace.get("runner_derived_item_results")):
             loop_failures.append({"case_id": trace.get("case_id"), "input_message": input_message, "reason": "natural_probe_runner_derived_item_results"})
+        if _item_results_owner_class(trace) == "compatibility_bridge":
+            loop_failures.append({"case_id": trace.get("case_id"), "input_message": input_message, "reason": "natural_probe_answer_contract_bridge_item_results"})
 
     if selection_failures:
         if any(
@@ -1180,6 +1201,12 @@ def _check_mode_verdicts(
             quality_blockers,
             "natural_probe_runner_derived_item_results",
             "Natural-probe item_results must come from Manager Pass 2, not runner packet fallback.",
+        )
+    if any(item.get("reason") == "natural_probe_answer_contract_bridge_item_results" for item in loop_failures):
+        _quality_add(
+            quality_blockers,
+            "natural_probe_answer_contract_bridge_item_results",
+            "Natural-probe item_results must be runtime-owned Manager Pass 2 payloads, not answer-contract compatibility bridge output.",
         )
 
     natural_selection_pass: bool | str = not mode_failures and not selection_failures
@@ -1280,14 +1307,27 @@ def _check_tavily_canary(trace: dict[str, Any], blockers: list[dict[str, str]]) 
         "raw_results_ref",
         "latency_ms",
         "call_count",
+        "lane_id",
     )
     missing = [key for key in required if key not in canary]
     if not bool(canary.get("packetized_candidate_present")):
         missing.append("packetized_candidate_present")
     if not bool(canary.get("manager_pass_2_saw_search_packet")):
         missing.append("manager_pass_2_saw_search_packet")
+    if not bool(canary.get("exact_db_miss_confirmed")):
+        missing.append("exact_db_miss_confirmed")
+    if not bool(canary.get("extract_attempted")):
+        missing.append("extract_attempted")
+    if not str(canary.get("selected_url") or "").strip():
+        missing.append("selected_url")
+    if not str(canary.get("accepted_extract_packet_id") or "").strip():
+        missing.append("accepted_extract_packet_id")
     if missing:
-        _add(blockers, "tavily_canary_trace_incomplete", "Live Tavily canary must trace query, params, raw output ref, packet, latency, and Pass 2 usage.")
+        _add(
+            blockers,
+            "tavily_canary_trace_incomplete",
+            "Live Tavily canary must trace exact-db miss, search/extract activity, selected URL, accepted extract packet, latency, and Pass 2 packet visibility.",
+        )
     mutated = bool(mutation.get("mutation_attempted"))
     if mutated:
         _add(blockers, "tavily_canary_mutated_ledger", "Live Tavily canary must not create ledger mutation in Phase B-1.")

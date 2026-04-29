@@ -40,6 +40,10 @@ def validate_b1_clarification_branch(payload: dict[str, Any]) -> None:
     final_action = str(payload.get("final_action") or "")
     workflow_effect = str(payload.get("workflow_effect") or "")
     uncertainty_posture = str(payload.get("uncertainty_posture") or "")
+    normalized_workflow_effect = "" if _is_none_sentinel(workflow_effect) else workflow_effect
+    normalized_uncertainty_posture = (
+        "" if _is_allowed_clarification_uncertainty_posture(uncertainty_posture) else uncertainty_posture
+    )
     names = tool_call_names(payload)
     conflicting_fields: list[str] = []
     if manager_action != "final":
@@ -50,10 +54,10 @@ def validate_b1_clarification_branch(payload: dict[str, Any]) -> None:
         conflicting_fields.append(f"final_action={final_action or 'missing'}")
     if names:
         conflicting_fields.extend(f"tool_call={name}" for name in names)
-    if workflow_effect:
-        conflicting_fields.append(f"workflow_effect={workflow_effect}")
-    if uncertainty_posture:
-        conflicting_fields.append(f"uncertainty_posture={uncertainty_posture}")
+    if normalized_workflow_effect:
+        conflicting_fields.append(f"workflow_effect={normalized_workflow_effect}")
+    if normalized_uncertainty_posture:
+        conflicting_fields.append(f"uncertainty_posture={normalized_uncertainty_posture}")
     if contains_any_key(payload, {"item_results", "kcal_range", "likely_kcal"}):
         conflicting_fields.append("estimate_fields_present")
     if bool(payload.get("mutation_intent")):
@@ -66,6 +70,51 @@ def validate_b1_clarification_branch(payload: dict[str, Any]) -> None:
             conflicting_fields=conflicting_fields,
             observed_value=payload,
         )
+
+
+def validate_b1_clarification_pass2_branch(payload: dict[str, Any]) -> None:
+    manager_action = str(payload.get("manager_action") or "")
+    response_mode = str(payload.get("response_mode") or "")
+    final_action = str(payload.get("final_action") or "")
+    workflow_effect = str(payload.get("workflow_effect") or "")
+    uncertainty_posture = str(payload.get("uncertainty_posture") or "")
+    normalized_workflow_effect = "" if _is_none_sentinel(workflow_effect) else workflow_effect
+    normalized_uncertainty_posture = (
+        "" if _is_allowed_clarification_uncertainty_posture(uncertainty_posture) else uncertainty_posture
+    )
+    names = tool_call_names(payload)
+    conflicting_fields: list[str] = []
+    if manager_action != "final":
+        conflicting_fields.append(f"manager_action={manager_action or 'missing'}")
+    if response_mode != "clarification":
+        conflicting_fields.append(f"response_mode={response_mode or 'missing'}")
+    if final_action != "request_clarification":
+        conflicting_fields.append(f"final_action={final_action or 'missing'}")
+    if names:
+        conflicting_fields.extend(f"tool_call={name}" for name in names)
+    if normalized_workflow_effect in {"pass_to_next_round", "commit", "log_food", "log_consumption"}:
+        conflicting_fields.append(f"workflow_effect={normalized_workflow_effect}")
+    if normalized_uncertainty_posture:
+        conflicting_fields.append(f"uncertainty_posture={normalized_uncertainty_posture}")
+    if bool(payload.get("mutation_intent")):
+        conflicting_fields.append("mutation_intent=true")
+    if conflicting_fields:
+        raise ManagerPass1BranchContractError(
+            message="Manager Pass 2 clarification branch emitted conflicting fields.",
+            violation_family=CLARIFICATION_BRANCH_CONFLICTING_FIELDS,
+            actual_shape=actual_shape(payload),
+            conflicting_fields=conflicting_fields,
+            observed_value=payload,
+        )
+
+
+def _is_none_sentinel(value: str) -> bool:
+    return value.strip().lower() == "none"
+
+
+def _is_allowed_clarification_uncertainty_posture(value: str) -> bool:
+    normalized = value.strip().lower()
+    return normalized in {"", "none", "composition_unknown_basket"}
 
 
 def validate_b1_listed_ingredient_tool_call_branch(payload: dict[str, Any]) -> None:
@@ -133,6 +182,7 @@ __all__ = [
     "manager_item_results_schema",
     "tool_call_names",
     "validate_b1_clarification_branch",
+    "validate_b1_clarification_pass2_branch",
     "validate_b1_generic_tool_call_branch",
     "validate_b1_listed_ingredient_tool_call_branch",
 ]

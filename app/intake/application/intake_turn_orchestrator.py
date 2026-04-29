@@ -10,14 +10,24 @@ from sqlalchemy.orm import Session
 from ...budget.application.current_budget_answer import build_remaining_budget_answer_contract
 from ...body.application.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from ...runtime.agent.manager import IntakeManagerResult
+from ...runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 from ...runtime.application.execution_guard import validate_onboarding_seed
 from ...runtime.application.manager_service import run_intake_manager
 from ...runtime.application.reply_renderer import render_bundle1_reply
 from ...runtime.application.request_trace_artifacts import build_trace_refs, write_bundle1_request_trace_artifact
 from ...runtime.application.sidecar_service import build_deterministic_sidecar
 from ...runtime.application.state_resolver import resolve_v2_bundle1_state
+from ...nutrition.application.web_extract_port import WebExtractPort
+from ...nutrition.application.web_search_port import WebSearchPort
 from . import manager_tools as tools
+from .attachment_resolver import resolve_attachment_decision
+from .context_injection_policy import build_manager_context_pack
+from .current_turn_context_assembler import build_current_turn_context_v1
+from .history_expansion_runtime import activate_pre_manager_history_expansion
 from .intake_turn_support import normalized_activity_level, resolve_local_date
+from .phase_a_trace import build_phase_a_trace
+from .shadow_hypothesis_runtime import build_shadow_hypothesis_runtime
+from .transition_guard import resolve_transition_guard
 
 
 @dataclass(frozen=True)
@@ -49,7 +59,12 @@ async def execute_bundle1_turn(
     allow_search: bool,
     manager_provider: Any | None = None,
     provider: Any | None = None,
-    search_adapter: Any | None = None,
+    search_port: WebSearchPort | None = None,
+    extract_port: WebExtractPort | None = None,
+    state_before: Any | None = None,
+    current_turn_context: CurrentTurnContextV1 | None = None,
+    manager_context_pack: ManagerContextPack | None = None,
+    phase_a_trace: dict[str, Any] | None = None,
     _timing_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     request_id = uuid4().hex
@@ -57,13 +72,51 @@ async def execute_bundle1_turn(
     resolved_local_date = resolve_local_date(local_date)
     active_manager_provider = manager_provider or provider
 
-    stage_start = int(time.time() * 1000)
-    state_before = resolve_v2_bundle1_state(
-        db,
-        user_external_id=user_external_id,
-        local_date=resolved_local_date,
-    )
-    _record_timing(stage_timings, "state_resolution", int(time.time() * 1000) - stage_start)
+    if state_before is None:
+        stage_start = int(time.time() * 1000)
+        state_before = resolve_v2_bundle1_state(
+            db,
+            user_external_id=user_external_id,
+            local_date=resolved_local_date,
+            incoming_user_text=raw_user_input,
+        )
+        _record_timing(stage_timings, "state_resolution", int(time.time() * 1000) - stage_start)
+    else:
+        _record_timing(stage_timings, "state_resolution", 0)
+
+    if current_turn_context is None and raw_user_input:
+        current_turn_context = build_current_turn_context_v1(
+            raw_user_input=raw_user_input,
+            resolved_state=state_before,
+        )
+    if current_turn_context is not None:
+        pre_attachment_decision = resolve_attachment_decision(current_turn_context)
+        pre_transition_guard_result = resolve_transition_guard(current_turn_context, pre_attachment_decision)
+        activation = activate_pre_manager_history_expansion(
+            current_turn_context=current_turn_context,
+            resolved_state=state_before,
+            pre_attachment_decision=pre_attachment_decision,
+            pre_transition_guard_result=pre_transition_guard_result,
+        )
+        current_turn_context = activation.enriched_current_turn_context
+        if phase_a_trace is None or activation.applied:
+            phase_a_trace = build_phase_a_trace(
+                current_turn_context=current_turn_context,
+                attachment_decision=activation.post_attachment_decision,
+                transition_guard_result=activation.post_transition_guard_result,
+                history_expansion_activation=activation.trace_payload() if activation.applied else None,
+            )
+        shadow_runtime = build_shadow_hypothesis_runtime(
+            current_turn_context=current_turn_context,
+            attachment_decision=activation.post_attachment_decision,
+            transition_guard_result=activation.post_transition_guard_result,
+        )
+        phase_a_trace = dict(phase_a_trace or {})
+        phase_a_trace["shadow_hypothesis_runtime"] = shadow_runtime.trace_payload()
+    else:
+        shadow_runtime = None
+    if manager_context_pack is None and current_turn_context is not None:
+        manager_context_pack = build_manager_context_pack(current_turn_context=current_turn_context)
 
     stage_start = int(time.time() * 1000)
     manager_decision: IntakeManagerResult = await run_intake_manager(
@@ -72,6 +125,10 @@ async def execute_bundle1_turn(
         onboarding_payload=onboarding_payload.__dict__ if onboarding_payload is not None else None,
         resolved_state=state_before,
         available_tools=("read_body_plan", "read_day_budget"),
+        current_turn_context=current_turn_context,
+        manager_context_pack=manager_context_pack,
+        history_expansion_policy=HistoryExpansionPolicy(),
+        phase_a_shadow_hypothesis=shadow_runtime.manager_payload if shadow_runtime is not None else None,
     )
     manager_decision_ms = int(time.time() * 1000) - stage_start
     _record_timing(stage_timings, "manager_decision", manager_decision_ms)
@@ -187,11 +244,15 @@ async def execute_bundle1_turn(
             allow_search=allow_search,
             manager_provider=manager_provider,
             provider=provider,
-            search_adapter=search_adapter,
+            search_port=search_port,
+            extract_port=extract_port,
             state_before=state_before,
             manager_decision=manager_decision,
             request_id=request_id,
             stage_timings=stage_timings,
+            current_turn_context=current_turn_context,
+            manager_context_pack=manager_context_pack,
+            phase_a_trace=phase_a_trace,
         )
     else:
         raise ValueError(f"Unsupported Bundle 1 intent_type: {manager_decision.intent_type}")
@@ -270,6 +331,7 @@ async def execute_bundle1_turn(
         assistant_message=assistant_message,
         sidecar=sidecar,
         state_delta=state_mutation_summary,
+        phase_a_trace=phase_a_trace,
         latency_tracking=latency_tracking,
     )
     trace_refs = build_trace_refs(request_id=request_id)

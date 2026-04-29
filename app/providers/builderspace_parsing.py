@@ -23,6 +23,7 @@ class BuilderSpaceParseError(RuntimeError):
         super().__init__(message)
         self.failure_family = failure_family
         self.failing_component = failing_component
+        self.observed_value = observed_value
         self.observed_type = observed_type_name(observed_value)
         self.value_excerpt, self.value_truncated = value_excerpt(observed_value)
         self.raw_content_excerpt, self.raw_content_truncated = value_excerpt(raw_content)

@@ -42,9 +42,37 @@
       "type": "array",
       "items": { "type": "string" }
     },
+    "blocker_family": { "type": "string" },
+    "evidence_tier": {
+      "type": "integer",
+      "enum": [1, 2, 3]
+    },
+    "repair_scope": {
+      "type": "string",
+      "enum": ["none", "local_runtime_repair", "global_runtime_policy_repair"]
+    },
+    "repair_budget_remaining": {
+      "type": "integer",
+      "minimum": 0
+    },
     "blocker_status": {
       "type": "string",
-      "enum": ["cleared", "moved", "unchanged", "not_evaluable"]
+      "enum": ["cleared", "moved", "unchanged", "stalled", "semantic_boundary_touched", "not_evaluable"]
+    },
+    "stop_class": {
+      "type": "string",
+      "enum": [
+        "completed_slice_continue_allowed",
+        "human_review_required",
+        "runtime_blocker_unchanged",
+        "runtime_blocker_stalled",
+        "runtime_budget_exhausted",
+        "role_timeout",
+        "malformed_role_output",
+        "dirty_tree_stop",
+        "semantic_boundary_touched",
+        "generic_stop"
+      ]
     },
     "next_safe_action": {
       "type": "string",

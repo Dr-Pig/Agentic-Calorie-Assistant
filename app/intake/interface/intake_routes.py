@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime
 from typing import Any
 from uuid import uuid4
@@ -10,7 +11,9 @@ from fastapi.responses import JSONResponse
 from ...body.application import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from ...database import get_db, get_or_create_user
 from ...logging import append_audit_event, now_iso, write_request_trace_artifact
-from ...runtime.interface.provider_runtime import manager_provider, search_provider
+from ...runtime.application.request_trace_artifacts import write_general_chat_request_trace_artifact
+from ...runtime.application.state_resolver import resolve_v2_bundle1_state
+from ...runtime.interface.provider_runtime import extract_provider, manager_provider, search_provider
 from ...schemas import EstimateRequest
 from ...shared.contracts.audit import AuditEvent
 from ..application import execute_bundle1_turn
@@ -20,7 +23,10 @@ from ..application.canonical_commit_bridge import (
     record_budget_adjustment_to_canonical,
 )
 from ..application.chat_intents import parse_weight_or_budget_intent
+from ..application.boundary_output_honesty import enforce_budget_output_honesty
+from ..application.current_turn_context_assembler import build_current_turn_context_v1
 from ..application.general_chat_service import build_general_chat_response_pass
+from ..application.phase_a_boundary_projection import attach_boundary_projection, build_budget_boundary_projection
 from ..application.workflow_routing import build_workflow_routing_decision
 
 router = APIRouter()
@@ -34,7 +40,21 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
         user_id = request.user_id if getattr(request, "user_id", None) else "default_user"
         local_date = datetime.now().date().isoformat()
 
-        routing_result = build_workflow_routing_decision(raw_user_input=request.text)
+        state_before = resolve_v2_bundle1_state(
+            db,
+            user_external_id=user_id,
+            local_date=local_date,
+            incoming_user_text=request.text,
+        )
+        current_turn_context = build_current_turn_context_v1(
+            raw_user_input=request.text,
+            resolved_state=state_before,
+        )
+        routing_result = build_workflow_routing_decision(
+            raw_user_input=request.text,
+            current_turn_context=current_turn_context,
+            resolved_state=state_before,
+        )
         if routing_result.target_workflow_family == "general_chat":
             general_chat_result = build_general_chat_response_pass(
                 db,
@@ -43,6 +63,35 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                 local_date=local_date,
             )
             if general_chat_result.disposition != "open_new_workflow":
+                phase_a_trace = routing_result.phase_a_trace
+                if general_chat_result.remaining_budget_contract is not None:
+                    output_honesty = enforce_budget_output_honesty(
+                        reply_text=general_chat_result.reply_text,
+                        remaining_budget=general_chat_result.remaining_budget_contract,
+                        active_body_plan_present=bool(general_chat_result.active_body_plan_present),
+                        phase_a_trace=phase_a_trace,
+                    )
+                    if output_honesty.reply_text != general_chat_result.reply_text:
+                        general_chat_result = replace(general_chat_result, reply_text=output_honesty.reply_text)
+                    phase_a_trace = output_honesty.phase_a_trace
+                    phase_a_trace = attach_boundary_projection(
+                        phase_a_trace,
+                        build_budget_boundary_projection(
+                            remaining_budget=general_chat_result.remaining_budget_contract,
+                            active_body_plan_present=bool(general_chat_result.active_body_plan_present),
+                            observed_reply_text=general_chat_result.reply_text,
+                        ),
+                    )
+                write_general_chat_request_trace_artifact(
+                    request_id=request_id,
+                    user_external_id=user_id,
+                    local_date=local_date,
+                    raw_user_input=request.text,
+                    state_before=state_before,
+                    general_chat_result=general_chat_result,
+                    assistant_message=general_chat_result.reply_text,
+                    phase_a_trace=phase_a_trace,
+                )
                 return {
                     "request_id": request_id,
                     "coach_message": general_chat_result.reply_text,
@@ -110,7 +159,11 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
             allow_search=request.allow_search,
             manager_provider=manager_provider,
             provider=manager_provider,
-            search_adapter=search_provider,
+            search_port=search_provider,
+            extract_port=extract_provider,
+            state_before=state_before,
+            current_turn_context=current_turn_context,
+            phase_a_trace=routing_result.phase_a_trace,
         )
         return {
             "request_id": result["request_id"],

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -15,6 +16,18 @@ from .builderspace_transport import (
 )
 
 MAX_PARSE_RETRIES = 1
+RETRYABLE_TRANSPORT_ERROR_TYPES = (
+    httpx.ConnectError,
+    httpx.ConnectTimeout,
+    httpx.ReadTimeout,
+    httpx.WriteTimeout,
+    httpx.PoolTimeout,
+)
+RETRYABLE_HTTP_STATUS_CODES = {429, 500, 503}
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 async def complete_builderspace_with_trace(
@@ -51,103 +64,113 @@ async def complete_builderspace_with_trace(
         async with async_client_factory(timeout=timeout_seconds) as client:
             for attempt_index in range(1, transport_retry_count + 2):
                 attempt_trace = new_transport_attempt(attempt_index, base_url, model, stage)
-                if decision_transport_request is not None:
-                    request_payload = dict(base_request_payload)
-                    request_payload["tools"] = decision_transport_request["tools"]
-                    request_payload["tool_choice"] = decision_transport_request["tool_choice"]
-                    attempt_trace["decision_transport_mode"] = decision_transport_request["mode"]
-                    try:
-                        response = await _post_chat_completion(client, base_url, token, request_payload)
-                        attempt_trace["http_status"] = response.status_code
-                        response.raise_for_status()
-                        data = response.json()
-                        if not isinstance(data, dict):
-                            raise BuilderSpaceParseError(
-                                "BuilderSpace response JSON must be an object.",
-                                failure_family="response_json_shape_error",
-                                failing_component="builderspace_adapter.response_json",
-                                observed_value=data,
+                try:
+                    if decision_transport_request is not None:
+                        request_payload = dict(base_request_payload)
+                        request_payload["tools"] = decision_transport_request["tools"]
+                        request_payload["tool_choice"] = decision_transport_request["tool_choice"]
+                        attempt_trace["decision_transport_mode"] = decision_transport_request["mode"]
+                        try:
+                            response = await _post_chat_completion(client, base_url, token, request_payload)
+                            attempt_trace["http_status"] = response.status_code
+                            response.raise_for_status()
+                            data = response.json()
+                            if not isinstance(data, dict):
+                                raise BuilderSpaceParseError(
+                                    "BuilderSpace response JSON must be an object.",
+                                    failure_family="response_json_shape_error",
+                                    failing_component="builderspace_adapter.response_json",
+                                    observed_value=data,
+                                )
+                            parsed = extract_tool_call_decision(data, tool_name=DECISION_TRANSPORT_TOOL_NAME)
+                            decision_transport_meta["decision_transport_accepted"] = True
+                            decision_transport_meta["decision_transport_contract_breach"] = False
+                            validate_manager_payload(stage, parsed, constraints=constraints)
+                            _mark_attempt_completed(attempt_trace, status="success")
+                            transport_attempts.append(attempt_trace)
+                            return parsed, build_success_trace(
+                                stage=stage,
+                                provider="builderspace",
+                                model=model,
+                                request_payload=request_payload,
+                                response_text=response.text,
+                                parsed=parsed,
+                                data=data,
+                                transport_attempts=transport_attempts,
+                                parse_attempts=parse_attempts,
+                                transport_meta=transport_meta,
+                                decision_transport_meta=decision_transport_meta,
+                                finish_reason=extract_finish_reason(data),
+                                response_status=response.status_code,
+                                raw_content=None,
+                                parse_meta=_empty_parse_meta(),
+                                effective_response_format_type=None,
                             )
-                        parsed = extract_tool_call_decision(data, tool_name=DECISION_TRANSPORT_TOOL_NAME)
-                        decision_transport_meta["decision_transport_accepted"] = True
-                        decision_transport_meta["decision_transport_contract_breach"] = False
-                        validate_manager_payload(stage, parsed, constraints=constraints)
-                        attempt_trace["status"] = "success"
-                        transport_attempts.append(attempt_trace)
-                        return parsed, build_success_trace(
-                            stage=stage,
-                            provider="builderspace",
-                            model=model,
-                            request_payload=request_payload,
-                            response_text=response.text,
-                            parsed=parsed,
-                            data=data,
-                            transport_attempts=transport_attempts,
-                            parse_attempts=parse_attempts,
-                            transport_meta=transport_meta,
-                            decision_transport_meta=decision_transport_meta,
-                            finish_reason=extract_finish_reason(data),
-                            response_status=response.status_code,
-                            raw_content=None,
-                            parse_meta=_empty_parse_meta(),
-                            effective_response_format_type=None,
-                        )
-                    except httpx.HTTPStatusError as exc:
-                        if is_tool_call_transport_rejection(exc):
-                            decision_transport_meta["decision_transport_accepted"] = False
-                            decision_transport_meta["decision_transport_fallback"] = "json_schema"
-                            decision_transport_meta["decision_transport_fallback_reason"] = "provider_rejected_tool_call_transport"
-                            decision_transport_request = None
-                        else:
+                        except httpx.HTTPStatusError as exc:
+                            if is_tool_call_transport_rejection(exc):
+                                decision_transport_meta["decision_transport_accepted"] = False
+                                decision_transport_meta["decision_transport_fallback"] = "json_schema"
+                                decision_transport_meta["decision_transport_fallback_reason"] = "provider_rejected_tool_call_transport"
+                                decision_transport_request = None
+                            else:
+                                raise
+                        except BuilderSpaceParseError:
+                            decision_transport_meta["decision_transport_accepted"] = True
+                            decision_transport_meta["decision_transport_contract_breach"] = True
                             raise
-                    except BuilderSpaceParseError:
-                        decision_transport_meta["decision_transport_accepted"] = True
-                        decision_transport_meta["decision_transport_contract_breach"] = True
-                        raise
-                request_payload, parsed, response, data, effective_response_format_type = await _run_structured_attempt(
-                    client=client,
-                    base_url=base_url,
-                    token=token,
-                    base_request_payload=base_request_payload,
-                    response_format=response_format,
-                    transport_meta=transport_meta,
-                    attempt_trace=attempt_trace,
-                    constraints=constraints,
-                    stage=stage,
-                    attempt_index=attempt_index,
-                    parse_attempts=parse_attempts,
-                    parse_retry_budget_ref={"value": parse_retry_budget},
-                    validate_manager_payload=validate_manager_payload,
-                )
-                parse_retry_budget = _remaining_retry_budget(parse_attempts, MAX_PARSE_RETRIES)
-                if parsed is None:
-                    last_error = _last_parse_error(parse_attempts)
+                    request_payload, parsed, response, data, effective_response_format_type = await _run_structured_attempt(
+                        client=client,
+                        base_url=base_url,
+                        token=token,
+                        base_request_payload=base_request_payload,
+                        response_format=response_format,
+                        transport_meta=transport_meta,
+                        attempt_trace=attempt_trace,
+                        constraints=constraints,
+                        stage=stage,
+                        attempt_index=attempt_index,
+                        parse_attempts=parse_attempts,
+                        parse_retry_budget_ref={"value": parse_retry_budget},
+                        validate_manager_payload=validate_manager_payload,
+                    )
+                    parse_retry_budget = _remaining_retry_budget(parse_attempts, MAX_PARSE_RETRIES)
+                    if parsed is None:
+                        last_error = _last_parse_error(parse_attempts)
+                        _mark_attempt_completed(attempt_trace, status="parse_retry")
+                        transport_attempts.append(attempt_trace)
+                        if attempt_index < transport_retry_count + 1:
+                            await asyncio.sleep(transport_retry_backoff_seconds * attempt_index)
+                        continue
+                    _mark_attempt_completed(attempt_trace, status="success")
                     transport_attempts.append(attempt_trace)
-                    if attempt_index < transport_retry_count + 1:
+                    raw_content = extract_text_content(data)
+                    parsed_object, parse_meta = extract_json_object(raw_content)
+                    return parsed_object, build_success_trace(
+                        stage=stage,
+                        provider="builderspace",
+                        model=model,
+                        request_payload=request_payload,
+                        response_text=response.text,
+                        parsed=parsed_object,
+                        data=data,
+                        transport_attempts=transport_attempts,
+                        parse_attempts=parse_attempts,
+                        transport_meta=transport_meta,
+                        decision_transport_meta=decision_transport_meta,
+                        finish_reason=extract_finish_reason(data),
+                        response_status=response.status_code,
+                        raw_content=raw_content,
+                        parse_meta=parse_meta,
+                        effective_response_format_type=effective_response_format_type,
+                    )
+                except Exception as exc:
+                    last_error = exc
+                    _record_attempt_failure(attempt_trace, exc=exc, response=response)
+                    transport_attempts.append(attempt_trace)
+                    if _should_retry_transport_error(exc) and attempt_index < transport_retry_count + 1:
                         await asyncio.sleep(transport_retry_backoff_seconds * attempt_index)
-                    continue
-                attempt_trace["status"] = "success"
-                transport_attempts.append(attempt_trace)
-                raw_content = extract_text_content(data)
-                parsed_object, parse_meta = extract_json_object(raw_content)
-                return parsed_object, build_success_trace(
-                    stage=stage,
-                    provider="builderspace",
-                    model=model,
-                    request_payload=request_payload,
-                    response_text=response.text,
-                    parsed=parsed_object,
-                    data=data,
-                    transport_attempts=transport_attempts,
-                    parse_attempts=parse_attempts,
-                    transport_meta=transport_meta,
-                    decision_transport_meta=decision_transport_meta,
-                    finish_reason=extract_finish_reason(data),
-                    response_status=response.status_code,
-                    raw_content=raw_content,
-                    parse_meta=parse_meta,
-                    effective_response_format_type=effective_response_format_type,
-                )
+                        continue
+                    raise
             raise last_error or RuntimeError("BuilderSpace transport failed without a captured exception.")
     except Exception as exc:
         raise build_error(
@@ -213,7 +236,7 @@ async def _run_structured_attempt(
     data = _response_json_object(response, attempt_index=attempt_index, stage=stage)
     raw_content = extract_text_content(data)
     try:
-        parsed, _ = extract_json_object(raw_content)
+        parsed, parse_meta = extract_json_object(raw_content)
     except Exception as exc:
         parse_attempt = {
             "attempt_index": attempt_index,
@@ -222,11 +245,14 @@ async def _run_structured_attempt(
             "error": str(exc),
             "raw_content_excerpt": raw_content[:600],
             "failure_family": getattr(exc, "failure_family", "malformed_json"),
+            "failing_component": getattr(exc, "failing_component", "builderspace_adapter.extract_json_object"),
         }
         if isinstance(exc, BuilderSpaceParseError):
             parse_attempt["parse_recovery_used"] = exc.parse_recovery_used
             parse_attempt["parse_recovery_strategy"] = exc.parse_recovery_strategy
             parse_attempt["parse_recovery_ambiguous"] = exc.parse_recovery_ambiguous
+            parse_attempt["parse_contract_status"] = exc.parse_contract_status
+            parse_attempt["observed_value"] = exc.observed_value
             parse_attempt["raw_content_excerpt"] = exc.raw_content_excerpt or raw_content[:600]
         parse_attempts.append(parse_attempt)
         if parse_retry_budget_ref["value"] > 0:
@@ -253,19 +279,34 @@ async def _run_structured_attempt(
     except Exception as exc:
         if exc.__class__.__name__ == "ManagerPass1BranchContractError":
             raise
+        failure_family = getattr(exc, "failure_family", "manager_output_contract_violation")
+        failing_component = getattr(exc, "failing_component", "builderspace_runtime_contract.validate_manager_payload")
         parse_attempts.append(
             {
                 "attempt_index": attempt_index,
                 "stage": stage,
                 "error_type": type(exc).__name__,
                 "error": str(exc),
-                "failure_family": getattr(exc, "failure_family", "malformed_json"),
+                "failure_family": failure_family,
+                "failing_component": failing_component,
+                "parse_contract_status": parse_meta.get("parse_contract_status"),
+                "parse_recovery_used": parse_meta.get("parse_recovery_used"),
+                "parse_recovery_strategy": parse_meta.get("parse_recovery_strategy"),
+                "parse_recovery_ambiguous": parse_meta.get("parse_recovery_ambiguous"),
+                "raw_content_excerpt": parse_meta.get("raw_content_excerpt") or raw_content[:600],
+                "observed_value": parsed,
             }
         )
         if parse_retry_budget_ref["value"] > 0:
             parse_retry_budget_ref["value"] -= 1
             return request_payload, None, response, data, effective_type
-        raise
+        raise _manager_payload_contract_error(
+            exc=exc,
+            parsed=parsed,
+            raw_content=raw_content,
+            parse_meta=parse_meta,
+            parse_attempt=parse_attempts[-1],
+        ) from exc
     return request_payload, parsed, response, data, effective_type
 
 
@@ -323,12 +364,66 @@ def _last_parse_error(parse_attempts: list[dict[str, Any]]) -> Exception | None:
     if not parse_attempts:
         return None
     last = parse_attempts[-1]
-    error = RuntimeError(str(last.get("error") or last.get("failure_family") or "parse failure"))
-    setattr(error, "failure_family", last.get("failure_family"))
-    setattr(error, "failing_component", "builderspace_adapter.extract_json_object")
-    setattr(error, "raw_response_excerpt", last.get("raw_content_excerpt"))
-    setattr(error, "raw_content_excerpt", last.get("raw_content_excerpt"))
-    setattr(error, "parse_recovery_used", bool(last.get("parse_recovery_used")))
-    setattr(error, "parse_recovery_strategy", last.get("parse_recovery_strategy"))
-    setattr(error, "parse_recovery_ambiguous", bool(last.get("parse_recovery_ambiguous")))
-    return error
+    return BuilderSpaceParseError(
+        str(last.get("error") or last.get("failure_family") or "parse failure"),
+        failure_family=str(last.get("failure_family") or "malformed_json"),
+        failing_component=str(last.get("failing_component") or "builderspace_adapter.extract_json_object"),
+        observed_value=last.get("observed_value"),
+        raw_content=last.get("raw_content_excerpt"),
+        parse_attempts=[last],
+        parse_contract_status=last.get("parse_contract_status"),
+        parse_recovery_used=bool(last.get("parse_recovery_used")),
+        parse_recovery_strategy=last.get("parse_recovery_strategy"),
+        parse_recovery_ambiguous=bool(last.get("parse_recovery_ambiguous")),
+    )
+
+
+def _manager_payload_contract_error(
+    *,
+    exc: Exception,
+    parsed: dict[str, Any],
+    raw_content: str,
+    parse_meta: dict[str, Any],
+    parse_attempt: dict[str, Any],
+) -> BuilderSpaceParseError:
+    return BuilderSpaceParseError(
+        str(exc),
+        failure_family=str(parse_attempt.get("failure_family") or "manager_output_contract_violation"),
+        failing_component=str(parse_attempt.get("failing_component") or "builderspace_runtime_contract.validate_manager_payload"),
+        observed_value=parsed,
+        raw_content=raw_content,
+        parse_attempts=[parse_attempt],
+        parse_contract_status=parse_meta.get("parse_contract_status"),
+        parse_recovery_used=bool(parse_meta.get("parse_recovery_used")),
+        parse_recovery_strategy=parse_meta.get("parse_recovery_strategy"),
+        parse_recovery_ambiguous=bool(parse_meta.get("parse_recovery_ambiguous")),
+    )
+
+
+def _record_attempt_failure(
+    attempt_trace: dict[str, Any],
+    *,
+    exc: Exception,
+    response: httpx.Response | Any | None,
+) -> None:
+    attempt_trace["status"] = "error"
+    attempt_trace["ended_at_utc"] = _utc_now_iso()
+    attempt_trace["error_type"] = type(exc).__name__
+    attempt_trace["error"] = str(exc)
+    if isinstance(exc, httpx.HTTPStatusError):
+        attempt_trace["http_status"] = exc.response.status_code
+    elif response is not None:
+        attempt_trace["http_status"] = getattr(response, "status_code", None)
+
+
+def _mark_attempt_completed(attempt_trace: dict[str, Any], *, status: str) -> None:
+    attempt_trace["status"] = status
+    attempt_trace["ended_at_utc"] = _utc_now_iso()
+
+
+def _should_retry_transport_error(exc: Exception) -> bool:
+    if isinstance(exc, RETRYABLE_TRANSPORT_ERROR_TYPES):
+        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code in RETRYABLE_HTTP_STATUS_CODES
+    return False

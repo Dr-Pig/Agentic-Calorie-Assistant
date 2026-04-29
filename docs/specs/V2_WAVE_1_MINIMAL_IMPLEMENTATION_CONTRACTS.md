@@ -66,6 +66,11 @@ manager_decision:
 
 ## Contract 2 — Intake / Thread Result
 
+Compatibility note:
+- `AttachmentDecision` is the canonical Phase A attachment surface for active runtime ownership.
+- `thread_result` remains legacy / compatibility vocabulary for existing Phase A docs, trace presence checks, and older test oracles.
+- new runtime logic should not be authored under the `thread_result` name; if emitted, it should be a projection from `AttachmentDecision`.
+
 ```yaml
 thread_result:
   request_id: string
@@ -176,6 +181,11 @@ macro_visibility:
 
 ## Contract 7 — Guard Result
 
+Compatibility note:
+- `TransitionGuardResult` is the canonical Phase A guard surface for active runtime ownership.
+- `guard_result` remains legacy / compatibility vocabulary for existing Phase A docs, trace presence checks, and older test oracles.
+- new runtime logic should not be authored under the `guard_result` name; if emitted, it should be a projection from `TransitionGuardResult`.
+
 All hard guards should return structured results.
 
 ```yaml
@@ -237,7 +247,129 @@ For Phase A, coding agent should implement or expose enough structure for:
 - `guard_result`
 - `trace_artifact`
 
+Active runtime canonical Phase A baseline names are:
+
+- `CurrentTurnContextV1`
+- `InteractionEvent`
+- `AttachmentDecision`
+- `TransitionGuardResult`
+
+These are current-turn/runtime diagnostics only. They are not durable memory, cross-session conversation summary, recommendation memory, renderer truth, or Phase C mutation truth.
+
 Phase A does not require full Tavily or full evidence synthesis, but it must not block future Phase B.
+
+---
+
+## Phase A Context Direction Lock
+
+Wave 1 Phase A context engineering should stay `structured-state-first`, `meal-first`, and `staged-retrieval`.
+
+Canonical Phase A context rules:
+
+- Structured state is truth. Transcript is evidence.
+- `CurrentTurnContextV1` is short-term, thread-scoped, current-run state only.
+- `CurrentTurnContextV1` must not auto-promote into long-term memory.
+- transcript may support language interpretation, but it must not override explicit structured target identity or mutation authority
+- whole history may be retrievable, but it must not be default prompt injection
+
+Wave 1 Phase A should formalize:
+
+- `chat_freeform` and `ui_anchored_action` as first-class surface modes
+- `ContextInjectionPolicy` as the manager-input allowlist / exclusion contract
+- `HistoryExpansionRequest` / `HistoryExpansionResult` as typed, bounded retrieval contracts
+- `ShadowHypothesis` as tentative runtime-only interpretation
+
+Hard rules:
+
+- `ShadowHypothesis` may guide dialogue, but it must not authorize canonical write
+- history expansion should return structured meal candidates and conversation atomic blocks first
+- raw transcript snippets are support evidence only, not primary state truth
+- no automatic memory promotion inside the Phase A resolver
+- explicit UI target identity overrides text-only guessing
+- during manager-input rewiring, `phase_a_manager_context_pack` is the forward structured manager-input path
+- during the same cutover, `resolved_state` may remain in provider payload for compatibility only, but it must be explicitly marked as compatibility and must not continue as primary structured context truth
+
+Wave 1 remains meal-first:
+
+- primary target objects are `meal_thread`, `meal_item`, and intake pending-followup targets
+- budget / body / proposal inputs may remain secondary read-model context or handoff-oriented inputs
+- do not turn Phase A into a universal workflow resolver
+
+### Phase A Boundary Lock
+
+Wave 1 Phase A meal-first behavior owner is `intake/application`.
+
+Current type-home posture may remain split for now:
+
+- `runtime/contracts/phase_a.py` may remain the current type home
+- `InteractionEvent` / `CurrentTurnContextV1` contracts may remain in runtime contracts during this stage
+- meal-first behavior ownership belongs to intake-owned modules
+
+Intake-owned behavior boundaries:
+
+- `current_turn_context_assembler`
+  - assembles owner read-model outputs only
+  - must not decide attachment
+- `attachment_resolver`
+  - decides attachment only
+  - must not retrieve full history
+  - must not mutate state
+- `transition_guard`
+  - decides transition posture only
+  - must not perform persistence
+- `context_injection_policy`
+  - builds manager context pack only
+  - must not decide attachment or mutation
+
+Legacy facade rule:
+
+- `runtime/application/phase_a_context.py` may re-export, delegate, or wrap for compatibility
+- it must not gain new meal-first semantics
+- it must not gain new context injection policy logic
+- it must not gain new history-expansion behavior
+- it must not gain new shadow-hypothesis behavior
+- it must not gain new fallback semantics
+
+Sequencing gate for the next split:
+
+- `Slice 1`: active caller reroute + facade shrink
+- `Gate`: reroute tests green, active caller import boundary verified, diff review confirms facade shrink
+- `Slice 2`: history expansion / shadow hypothesis ownership split
+- `Slice 2` must not be mixed into the same slice or PR as `Slice 1`
+
+### Phase A Runtime Enforcement Lock
+
+Runtime enforcement is now active through the Phase A output-honesty boundary. Future slices must treat these as current baseline behavior, not optional diagnostics.
+
+Implemented runtime posture:
+
+- `Slice 3`: pre-manager history expansion is live for bounded meal-first target resolution. It may run at most one expansion before manager. Manager-triggered history expansion remains disabled.
+- `Slice 4`: `TransitionGuardResult` is an active pre-persistence mutation gate. Manager final actions must not bypass `answer_only` or `clarify_required` guard verdicts.
+- `Slice 5`: final-action persistence effect mapping is intake-owned and centralized in `final_action_mutation_classifier`.
+- `Slice 6`: `CommitBoundaryDecision` is an active narrow persistence preflight. It blocks contradictions before persistence and must not rewrite payload or persistence logic.
+- `Slice 7`: output honesty is active for structured state, sidecar state summaries, and budget fallback output.
+- `Slice 10A`: `ShadowHypothesis` is active as non-authoritative manager payload and trace evidence only. It must use candidate-target vocabulary, carry `mutation_authority=false`, and must not upgrade attachment, guard, final-action, persistence, or memory state.
+- `Slice 10B`: chat-visible tentative-understanding dialogue cues are active only for medium-uncertainty, uncertainty-visible shadow hypotheses. They are reply cues only and must not create mutation authority or state truth.
+- `Slice 11`: manager-triggered history expansion is active as one bounded local manager tool, `phase_a_expand_history`. Manager may request expansion, but intake owns execution, structured candidate normalization, attachment/guard rerun, trace, and payload refresh.
+
+Owner boundaries:
+
+- `history_expansion_runtime` may activate one bounded pre-manager expansion; `history_expansion_policy` remains policy-only and must not perform retrieval.
+- `final_action_mutation_classifier` owns final-action effect semantics. Persistence and guard paths must consume this owner rather than duplicating action sets.
+- `commit_boundary_preflight` only blocks persistence contradictions. It must not become a commit engine, renderer, payload rewriter, or persistence owner.
+- `boundary_output_honesty` validates normalized structured surfaces first: `state_delta`, sidecar state summary, preflight trace, boundary projection, budget answer contract, and persistence result.
+- reply text inspection in `boundary_output_honesty` is fallback safety only for clear forbidden claims. It is not the primary truth mechanism.
+- `boundary_output_honesty` is not a renderer. It must reuse existing safe no-commit or degraded-budget wording and must not generate new product copy.
+- `shadow_hypothesis_runtime` may create at most one tentative, non-authoritative shadow for manager payload and trace. It must not mutate context, attachment, guard, persistence, reply rendering, or memory.
+- `shadow_hypothesis_dialogue` may add a lightweight tentative-understanding cue after output honesty. It is not a mutation gate, not a persistence owner, and not a replacement renderer.
+- `history_expansion_manager_runtime` may execute one manager-requested expansion using existing resolved-state surfaces only. It must return structured candidates / atomic blocks first and keep transcript support trace-only.
+- `run_intake_manager` may refresh structured Phase A payload fields between rounds after `phase_a_expand_history`, but it must not become a Phase A resolver or own attachment semantics.
+
+Deferred runtime capabilities:
+
+- provider-side history tools and provider/tool-loop protocol redesign remain deferred. Current manager-triggered history expansion is local-only through `phase_a_expand_history`.
+- manager-authorized or mutation-bearing `ShadowHypothesis` usage remains deferred. Current live usage is limited to non-authoritative manager context, trace evidence, and guarded dialogue cues.
+- full same-truth UI / ledger / Phase C enforcement remains outside this Phase A lock.
 
 ---
 
@@ -261,6 +393,84 @@ For Phase C, coding agent should implement or expose:
 - macro visibility result
 - same-truth read result
 - full case-level trace artifact
+
+### Phase C Mutation Projection Baseline
+
+`phase_c_trace` is the active diagnostic surface for Phase C mutation outcome and same-truth read projection.
+
+Current active baseline:
+
+- `mutation_outcome` projects existing persistence, state-delta, sidecar, boundary-projection, budget, and macro surfaces into canonical commit, draft, meal-version, ledger-mutation, and macro-visibility statuses.
+- `same_truth_read_result` compares structured surfaces and reports `aligned`, `contradictory`, or `not_applicable`.
+- missing Phase C values must be emitted as `not_available`, not coerced to `false`.
+- contradictions must be reported through consistency flags, not fixed by the projection helper.
+
+Hard boundaries:
+
+- Phase C projection must not rewrite persistence, ledger state, sidecar output, reply text, manager final action, or Phase A guards.
+- Phase C projection must not compute new ledger or macro truth; it may only read existing structured owner outputs.
+- Phase C projection must keep `phase_c_trace` separate from `phase_a_trace`.
+- Phase C enforcement and UI same-truth remain deferred.
+
+### Phase C Structured Same-Truth Closure Gate
+
+`same_truth_closure_gate` is active as hard-fail evidence inside `phase_c_trace`.
+
+Gate output shape:
+
+```yaml
+same_truth_closure_gate:
+  checked: true
+  status: pass | flagged | hard_fail
+  failure_family: phase_c_same_truth_contradiction | null
+  consistency_flags:
+    - string
+  compared_surfaces:
+    - string
+```
+
+Current active baseline:
+
+- the gate compares structured runtime surfaces only: `persistence_result`, `state_delta`, sidecar state summary, `phase_c_trace`, and already-available `state_after.current_budget_view`
+- contradictions may add `phase_c_same_truth_contradiction` to `hard_fail_conditions`
+- the gate must not rewrite, repair, or block runtime output
+- missing values remain `not_available` or trace flags; the gate must not invent ledger, macro, or read-model truth
+
+Still deferred:
+
+- full UI same-truth
+- later-query same-truth
+- runtime repair / output blocking based on Phase C contradictions
+- owner-resolution when two canonical owners disagree
+
+### Live Eval Readiness Harness Lock
+
+Slice 14 aligns live eval harnesses with the active Phase C trace surface before formal live readiness claims.
+
+Live testing ladder:
+
+- L0 deterministic regression: local unit / integration / closure gates only.
+- L1 local diagnostic live smoke: server `/ping` is healthy and live scripts may run for evidence, but this is not a bundle or Wave 1 readiness claim.
+- L2 bundle live readiness: Bundle live runners must use an explicit `--base-url`, record server ping / provider readiness, and verify Phase C same-truth closure evidence where Bundle 2 mutation occurs.
+- L3 founder / human E2E: allowed only when bootstrap verdict inputs are complete, including runner pass, coverage complete, founder realism pass, architecture purity pass, encoding pass, text integrity healthy, and trace roundtrip.
+- L4 provider / Tavily / B2 canary: remains a separate trace-first canary path, not a reason to bypass Phase A / Phase C closure.
+
+Bundle 2 mutating live cases must check structured Phase C evidence:
+
+- `phase_c_trace` exists.
+- `same_truth_closure_gate.checked=true`.
+- `same_truth_closure_gate.status` is not `hard_fail`.
+- `hard_fail_conditions` does not contain `phase_c_same_truth_contradiction`.
+- `mutation_outcome` and `same_truth_read_result` are present or explicitly `not_available`.
+
+Hard boundaries:
+
+- `Bundle 1` / `Bundle 2` names in live runner files remain acceptance-package compatibility vocabulary, not implementation order or capability owner truth.
+- live eval readiness must prefer structured trace / response surfaces over reply-text assertions.
+- a hard-fail Phase C gate may be reported as diagnostic evidence, but it must fail bundle readiness.
+- live scripts must report `live_test_mode`, `base_url`, `server_ping_status`, `provider_readiness`, `phase_c_gate_status`, and `readiness_claim_scope`.
+- default localhost script settings are diagnostic unless `--base-url` is explicitly provided for readiness.
+- Slice 14 does not change runtime behavior, provider adapters, Phase C enforcement, UI same-truth, B2 rollout, or `ShadowHypothesis` authority.
 
 ---
 

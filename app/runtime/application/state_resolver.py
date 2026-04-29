@@ -153,12 +153,18 @@ def resolve_v2_bundle1_state(
     *,
     user_external_id: str,
     local_date: str,
+    incoming_user_text: str | None = None,
 ) -> V2ResolvedState:
     user = get_or_create_user(db, user_external_id)
     active_body_plan_view = build_active_body_plan_view(db, user_id=user.id)
     current_budget_view = build_current_budget_view(db, user_id=user.id, local_date=local_date)
     active_meal = _active_meal_summary(current_budget_view)
-    loaded_context = load_conversation_state(db, user_id=user_external_id, incoming_user_text=None)
+    loaded_context = load_conversation_state(
+        db,
+        user_id=user_external_id,
+        incoming_user_text=incoming_user_text,
+        persist_incoming_user_text=False,
+    )
     conversation_state = loaded_context.state
     injected_context = _injected_context(
         active_body_plan_view=active_body_plan_view,

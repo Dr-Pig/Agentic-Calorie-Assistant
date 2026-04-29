@@ -2,11 +2,15 @@
 
 ## 目的
 
-本文件是 coding agent 執行 **V2 Wave 1** 工作時的唯一入口文件。
+本文件是 coding agent 執行 **V2 Wave 1** 工作時的 phase-specific bootstrap。
 
 使用方式：
 
 > Start here. Do not begin implementation from Bundle 1 / Bundle 2 cases directly.
+
+進入本文件前，先讀：
+
+`docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md`
 
 本文件不是完整規格本身，而是：
 
@@ -16,7 +20,7 @@
 - Wave 1 implementation guardrails
 - micro-suite-first working protocol
 
-coding agent 應先讀本文件，再依本文件列出的順序閱讀必要文件。
+coding agent 應先讀 product-wide operating entry，再讀本文件，之後依本文件列出的順序閱讀必要文件。
 
 ---
 
@@ -35,6 +39,11 @@ Wave 1 的目標是建立：
 ## 必讀文件順序
 
 請按順序閱讀，不要跳過。
+
+### 0. Product-wide operating entry
+`docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md`
+
+目的：在進入 Wave 1 phase-specific build order 前，先鎖定 product-wide anti-drift rules、owner docs、required planning fields、forbidden shortcut patterns。
 
 ### 1. Execution overview
 `docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md`
@@ -103,6 +112,111 @@ Wave 1 的目標是建立：
 - 不要先 patch Bundle 2 response wording
 - 至少暴露 `manager_decision`、`thread_result`、`commit_result`、`guard_result`、`trace_artifact` 的必要欄位
 
+Phase A naming note:
+- active runtime canonical names may use `CurrentTurnContextV1`、`InteractionEvent`、`AttachmentDecision`、`TransitionGuardResult`
+- `thread_result` / `guard_result` may remain only as legacy Phase A compatibility vocabulary in docs, traces, or older test expectations
+- do not create new runtime owner logic under the old `thread_result` / `guard_result` names
+
+Phase A context direction note:
+- keep Phase A `structured-state-first`, not transcript-first
+- treat structured current-turn state as truth and transcript as support evidence
+- `chat_freeform` and `ui_anchored_action` should be treated as different surface modes
+- whole history may be retrievable through a bounded typed seam, but it must not become default prompt injection
+- tentative interpretation may guide dialogue, but it must not authorize canonical write
+
+Phase A runtime enforcement status:
+- runtime enforcement through output honesty is now active
+- pre-manager history expansion, transition-guard preflight, final-action effect ownership, commit-boundary preflight, and output-honesty guard are the current Phase A baseline
+- `ShadowHypothesis` payload/trace activation is active as non-authoritative manager context only
+- `ShadowHypothesis` dialogue cues are active only as medium-uncertainty tentative-understanding reply cues
+- manager-triggered history expansion is active only as the bounded local `phase_a_expand_history` manager tool; intake owns execution, normalization, attachment/guard rerun, and trace
+- Phase C projection baseline is active through `phase_c_trace` for mutation outcome and same-truth diagnostic reads
+- Phase C structured same-truth closure gate is active as trace / `hard_fail_conditions` evidence, not runtime repair
+- next runtime work must not bypass these guards or duplicate their ownership
+- provider-side history tools and provider/tool-loop protocol redesign remain deferred
+- mutation-authoritative or manager-triggered `ShadowHypothesis` usage remains deferred
+
+Phase A closure evidence gate:
+- before planning provider-side history tools, mutation-authoritative `ShadowHypothesis`, or deeper B2 rollout, run `tests/test_phase_a_runtime_closure_gate.py`
+- this gate is capability evidence only; it is not a Bundle 1, Bundle 2, or Wave 1 readiness claim
+- prefer structured output assertions; reply-text assertions should only check forbidden concrete claims
+
+Live eval readiness ladder:
+- local diagnostic live smoke may start after server `/ping` is healthy, but it is not a readiness claim
+- Bundle 1 / Bundle 2 live readiness requires explicit `--base-url`, server ping / provider readiness metadata, and deterministic runner reports
+- Bundle 2 mutating live cases must verify `phase_c_trace.same_truth_closure_gate` and fail readiness on `phase_c_same_truth_contradiction`
+- founder / human E2E readiness requires the bootstrap verdict inputs, including runner pass, coverage complete, founder realism pass, architecture purity pass, encoding pass, text integrity healthy, and trace roundtrip
+- provider / Tavily / B2 live canaries remain trace-first diagnostics and must not bypass Phase A / Phase C closure
+
+Slice 14 live harness status:
+- live scripts report `live_test_mode`, `base_url`, `server_ping_status`, `provider_readiness`, `phase_c_gate_status`, and `readiness_claim_scope`
+- default localhost script runs are diagnostic unless `--base-url` is explicitly supplied
+- `Bundle 1` / `Bundle 2` names in live runner files remain acceptance-package compatibility vocabulary, not implementation order or capability owner truth
+- hard-fail Phase C evidence may be recorded for diagnosis, but it blocks bundle readiness
+- this status does not change runtime behavior, provider adapters, Phase C enforcement, UI same-truth, B2 rollout, or `ShadowHypothesis` authority
+
+### Phase A extra boundary: ownership selection
+
+Before Phase B evidence-stack work grows, keep manager contract selection and provider/profile selection behind a single trace-visible ownership surface.
+
+At minimum, selection state must identify:
+
+- `case_family`
+- `manager_role`
+- `probe_mode`
+- `payload_id / constraint_id / schema_branch`
+- `provider_profile_id` when model routing is involved
+
+Selection must be driven by raw state, not prompt wording. B-1 `case_id` usage is allowed only when it is explicitly marked as local diagnostic debt.
+
+### Pre-slice architecture triage
+
+Before any Wave 1 task proceeds, planning and review for the slice must inspect:
+
+- current task architecture impact
+- dependency-direction impact
+- whether a thin infrastructure seam should be built first
+- whether existing local helper or policy code would become accidental ownership if reused directly
+
+Slice framing must identify:
+
+- `slice_goal`
+- `mainline_gate_protected`
+- `owners_touched`
+- `dependency_direction_changed: true|false`
+- `observed_debt_or_optimization`
+- `required_infrastructure_gap`
+- `decision: build_now | thin_seam_now | defer_with_reason`
+- `forbidden_promotions`
+- `verification_gate`
+
+For B-2 work:
+
+- if `B2-004` would make old lookup/scoring code become the new ownership surface, stop and build a thin seam first
+- if a task can reuse static records but not policy logic, reuse data only
+- if a task would force product semantics into retrieval or provider layers, stop and re-scope
+
+### B-2 retrieval / provider dependency inversion rule
+
+For B-2 retrieval, evidence, web/search, and Pass 2 work:
+
+- application-layer code must depend on app-owned ports and contracts, not concrete provider adapters
+- Tavily, BuilderSpace, OpenAI-compatible transports, and model/provider quirks are infrastructure details, not product semantics
+- provider-specific knobs such as `search_depth`, `extract_depth`, `chunks_per_source`, `include_raw_content`, transport retries, or JSON recovery behavior must stay in provider/profile policy, not B-2 product contracts
+- `WebSearchCandidateProducer`-style normalization must consume provider-agnostic search hits and emit candidate-only app objects
+- search candidates must not carry final truth, exactness posture, packet acceptance, source-priority verdict, or mutation authority before packetization / hard recheck / packet consumption
+
+For high-impact B-2 slices that touch retrieval, packetization, provider seams, or evidence ownership, planning and review must also record:
+
+- `repo_truth_used`
+- `external_references_checked`
+- `adopted_guidance`
+- `rejected_guidance`
+- `why_this_slice_is_still_narrow`
+- `stop_conditions`
+
+If a high-impact B-2 slice skips current best-practice / official-reference review, it is not ready for worker implementation.
+
 ---
 
 ## Phase B — Evidence Stack
@@ -139,6 +253,14 @@ Wave 1 的目標是建立：
 - Chat / UI / later query must reflect the same truth
 - No pass claim without artifacts
 - 至少暴露 correction version delta、ledger mutation result、macro visibility result、same-truth read result
+
+Current baseline:
+- `phase_c_trace` now exposes diagnostic `mutation_outcome` and `same_truth_read_result`
+- `same_truth_closure_gate` now checks structured surface alignment and emits `status: pass | flagged | hard_fail`
+- missing mutation / ledger / macro values stay `not_available`
+- contradictions are trace-visible only; Phase C enforcement and UI same-truth remain deferred
+- projection must read structured surfaces only and must not parse reply text as same-truth source
+- same-truth closure must not rewrite, repair, or block runtime output
 
 ---
 

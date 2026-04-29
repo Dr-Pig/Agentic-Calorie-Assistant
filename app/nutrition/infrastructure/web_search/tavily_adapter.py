@@ -6,14 +6,28 @@ from urllib.parse import urlparse
 
 import httpx
 
+from .tavily_profile_policy import (
+    TavilyRuntimeSearchProfile,
+    TavilySelectedExtractProfile,
+    runtime_search_profile,
+    selected_extract_profile,
+)
+
 
 PLACEHOLDER_API_KEYS = {"", "replace-me"}
 
 
 class TavilyAdapter:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        search_profile: TavilyRuntimeSearchProfile | None = None,
+        extract_profile: TavilySelectedExtractProfile | None = None,
+    ) -> None:
         self.api_key = os.getenv("TAVILY_API_KEY", "")
         self.timeout_seconds = min(int(os.getenv("TAVILY_TIMEOUT_SECONDS", "15")), 15)
+        self._search_profile = search_profile or runtime_search_profile()
+        self._extract_profile = extract_profile or selected_extract_profile()
 
     def readiness(self) -> dict[str, Any]:
         return {"provider": "tavily", "configured": self._is_configured(), "timeout_seconds": self.timeout_seconds}
@@ -23,7 +37,6 @@ class TavilyAdapter:
         query: str,
         *,
         max_results: int = 5,
-        include_raw_content: bool = False,
     ) -> list[dict[str, Any]]:
         if not self._is_configured():
             raise RuntimeError("Tavily is not configured.")
@@ -33,9 +46,9 @@ class TavilyAdapter:
                 json={
                     "api_key": self.api_key,
                     "query": query,
-                    "search_depth": "basic",
+                    "search_depth": self._search_profile.search_depth,
                     "max_results": max_results,
-                    "include_raw_content": include_raw_content,
+                    "include_raw_content": self._search_profile.include_raw_content,
                 },
             )
             response.raise_for_status()
@@ -52,7 +65,7 @@ class TavilyAdapter:
                     "score": item.get("score"),
                     "domain": domain,
                     "officialness": self._infer_officialness(domain=domain, title=item.get("title", ""), snippet=item.get("content", "")),
-                    "raw_content": item.get("raw_content", "") if include_raw_content else "",
+                    "raw_content": item.get("raw_content", "") if self._search_profile.include_raw_content else "",
                 }
             )
         return results
@@ -62,8 +75,6 @@ class TavilyAdapter:
         *,
         urls: list[str],
         query: str,
-        chunks_per_source: int = 3,
-        extract_depth: str = "advanced",
     ) -> list[dict[str, Any]]:
         if not self._is_configured():
             raise RuntimeError("Tavily is not configured.")
@@ -76,8 +87,8 @@ class TavilyAdapter:
                     "api_key": self.api_key,
                     "urls": urls,
                     "query": query,
-                    "chunks_per_source": max(1, min(chunks_per_source, 5)),
-                    "extract_depth": extract_depth,
+                    "chunks_per_source": max(1, min(self._extract_profile.chunks_per_source, 5)),
+                    "extract_depth": self._extract_profile.extract_depth,
                 },
             )
             response.raise_for_status()
@@ -112,7 +123,7 @@ class TavilyAdapter:
 
     async def search(self, query: str, *, max_results: int = 5, limit: int | None = None) -> list[dict[str, Any]]:
         result_limit = int(limit or max_results)
-        candidates = await self.search_candidates(query, max_results=result_limit, include_raw_content=False)
+        candidates = await self.search_candidates(query, max_results=result_limit)
         urls = [str(item.get("url") or "") for item in candidates if str(item.get("url") or "").strip()]
         extracted_by_url: dict[str, dict[str, Any]] = {}
         if urls:

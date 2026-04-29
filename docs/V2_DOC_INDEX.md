@@ -16,9 +16,27 @@
 
 ## Coding Agent Entry Point
 
-### Wave 1 唯一入口
+### Product-wide anti-drift entry
 
-所有 V2 Wave 1 implementation 工作，都應從以下文件開始：
+所有高影響 implementation slice，先讀：
+
+`docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md`
+
+它的角色是：
+
+- product-wide operating layer
+- anti-drift entrypoint
+- owner docs / phase bootstrap 的讀取橋樑
+- high-impact slice 的 planning checklist 與 forbidden shortcuts
+- capability dependency build order guardrail for future slice selection
+
+它不是 phase build order，也不是完整產品規格。
+
+`AGENTS.md` and `APP_V2_ENGINEERING_OPERATING_ENTRY.md` now jointly enforce the rule that implementation order follows capability dependency order, not bundle order, benchmark order, product journey order, or local slice momentum.
+
+### Wave 1 phase bootstrap
+
+所有 V2 Wave 1 implementation 工作，在讀完 product-wide operating entry 後，再進入以下 phase bootstrap：
 
 `docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md`
 
@@ -35,24 +53,33 @@
 
 - Bundle / benchmark 是 acceptance 或 regression，不是 build order
 - whole-product lattice 是 product capability map，不是施工指令
-- bootstrap 會引導 coding agent 依正確順序閱讀必要文件
+- operating entry 會先鎖定 anti-drift operating rules
+- phase bootstrap 會再引導 coding agent 依正確順序閱讀 Wave 1 必要文件
 
 ---
 
 ## Current Active V2 Files
 
-## 1. Execution / Build Planning
+## 1. Product-Wide Operating Entry
 
 | File | Status | Purpose | Coding Agent Use |
 |---|---|---|---|
-| `docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md` | Active entrypoint | Wave 1 coding agent 唯一入口 | Start here |
+| `docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md` | Active operating entry | Product-wide anti-drift operating layer | Read before high-impact slices |
+
+---
+
+## 2. Execution / Build Planning
+
+| File | Status | Purpose | Coding Agent Use |
+|---|---|---|---|
+| `docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md` | Active phase bootstrap | Wave 1 coding agent phase-specific entrypoint | Read after operating entry |
 | `docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md` | Active overview | manager/workflow/tool stance, wave plan, test layering | Required via bootstrap |
 | `docs/specs/V2_WAVE_1_DEEP_CAPABILITY_SPEC.md` | Active Wave 1 spec | Wave 1 closure, state transitions, guards, harness | Required via bootstrap |
 | `docs/specs/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md` | Active implementation contract | 最小 structured outputs / tool contracts / guard outputs | Required via bootstrap |
 
 ---
 
-## 2. Whole-Product Foundation
+## 3. Whole-Product Foundation
 
 | File | Status | Purpose | Coding Agent Use |
 |---|---|---|---|
@@ -63,7 +90,7 @@
 
 ---
 
-## 3. Wave 1 Eval / Micro-Suite Layer
+## 4. Wave 1 Eval / Micro-Suite Layer
 
 | File | Status | Purpose | Coding Agent Use |
 |---|---|---|---|
@@ -74,7 +101,7 @@
 
 ---
 
-## 4. Existing Benchmark / Replay Assets
+## 5. Existing Benchmark / Replay Assets
 
 | Asset | Status | Purpose | Coding Agent Use |
 |---|---|---|---|
@@ -167,16 +194,17 @@ For the current repo-level archive policy, see `docs/archive/ARCHIVE_GOVERNANCE_
 
 For Wave 1:
 
-1. Start with `V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md`
-2. Read execution overview
-3. Read Wave 1 deep spec
-4. Read micro-suite design
-5. Read micro-suite cases
-6. Read minimal implementation contracts
-7. Use failure taxonomy / rubric / patch addendum for evaluation and fixes
-8. Run relevant micro-suites
-9. Only then run Bundle 1 / Bundle 2 acceptance cases
-10. Use benchmark / replay for regression and realism
+1. Start with `APP_V2_ENGINEERING_OPERATING_ENTRY.md`
+2. Enter `V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md`
+3. Read execution overview
+4. Read Wave 1 deep spec
+5. Read micro-suite design
+6. Read micro-suite cases
+7. Read minimal implementation contracts
+8. Use failure taxonomy / rubric / patch addendum for evaluation and fixes
+9. Run relevant micro-suites
+10. Only then run Bundle 1 / Bundle 2 acceptance cases
+11. Use benchmark / replay for regression and realism
 
 ---
 
@@ -207,11 +235,11 @@ Bad reasons:
 
 As of 2026-04-24, Wave 1 has enough documents to begin implementation.
 
-Do not add more large planning docs before starting Phase A unless a concrete implementation blocker appears.
+Do not add more large planning docs before starting Phase A unless a concrete implementation blocker appears. Thin operating-entry or governance-linking docs are acceptable when they reduce repeated architecture drift and do not duplicate existing owner semantics.
 
 Next recommended action:
 
-- run coding agent from `V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md`
+- run coding agent from `APP_V2_ENGINEERING_OPERATING_ENTRY.md`, then `V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md`
 - ask it to inspect repo and propose Phase A implementation plan
 - do not ask it to implement all Wave 1 at once
 

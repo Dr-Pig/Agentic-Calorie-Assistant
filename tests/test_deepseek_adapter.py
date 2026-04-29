@@ -224,6 +224,62 @@ def test_validate_manager_payload_accepts_b1_clarification_branch() -> None:
     )
 
 
+def test_validate_manager_payload_accepts_b1_clarification_branch_none_sentinels() -> None:
+    adapter = DeepSeekAdapter()
+
+    adapter._validate_manager_payload(
+        "intake_manager_round",
+        {
+            "manager_action": "final",
+            "interaction_family": "food_logging",
+            "response_mode": "clarification",
+            "final_action": "request_clarification",
+            "workflow_effect": "none",
+            "uncertainty_posture": "none",
+            "operations": [],
+            "answer_contract": {"text": "Please list the specific items in the basket."},
+            "exactness": "none",
+            "confidence": "none",
+            "evidence_posture": "no_evidence",
+            "evidence_honesty_posture": "none",
+            "repair_ack": None,
+        },
+        constraints={
+            "phase_b1_manager_role": "pass_1_tool_request",
+            "phase_b1_pass1_mode": "natural_tool_selection_probe",
+            "phase_b1_case_family": B1_COMPOSITION_UNKNOWN_CASE_FAMILY,
+        },
+    )
+
+
+def test_validate_manager_payload_accepts_b1_clarification_branch_composition_unknown_posture() -> None:
+    adapter = DeepSeekAdapter()
+
+    adapter._validate_manager_payload(
+        "intake_manager_round",
+        {
+            "manager_action": "final",
+            "interaction_family": "food_logging",
+            "response_mode": "clarification",
+            "final_action": "request_clarification",
+            "operations": [],
+            "answer_contract": {"text": "Please list the specific items in the basket."},
+            "exactness": "low",
+            "confidence": "low",
+            "evidence_posture": "no_evidence",
+            "repair_ack": None,
+            "workflow_effect": "none",
+            "uncertainty_posture": "composition_unknown_basket",
+            "evidence_honesty_posture": "honest",
+        },
+        constraints={
+            "phase_b1_manager_role": "pass_1_tool_request",
+            "phase_b1_pass1_mode": "natural_tool_selection_probe",
+            "phase_b1_case_family": B1_COMPOSITION_UNKNOWN_CASE_FAMILY,
+        },
+    )
+
+
 def test_response_schema_narrows_for_b1_listed_ingredient_tool_call_branch() -> None:
     adapter = DeepSeekAdapter()
 

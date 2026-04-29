@@ -26,6 +26,12 @@ Phase B-2 verifies contracts for:
 - renderer exactness wording
 - no-mutation queries that may use read tools but must not mutate
 
+Runtime architecture note:
+
+- `taiwan_skill` remains a synthetic-gate compatibility lane only
+- target runtime architecture should attach Taiwan-specific semantics to generic food knowledge metadata
+- clarify-only semantic records must not become independent runtime evidence packets
+
 Phase B-2 does not implement:
 
 - autonomous nutrition subagents
@@ -56,6 +62,17 @@ Packet contracts separate three concepts:
 
 Exact claims require both same-item match and enough evidence quality. Source authority alone is not enough. An official or brand source for the wrong item must be rejected or downgraded to anchor-only.
 
+Current runtime slice clarification:
+
+- official wrong-item `web_search` candidates are reject-only
+- web `anchor-only` downgrade is deferred to a later richer web-evidence slice
+
+Compatibility note:
+
+- `source_type=taiwan_skill` remains allowed in the synthetic gate for readiness compatibility
+- runtime implementation should not introduce a standalone Taiwan semantic packet source
+- clarify-only generic semantic support must stay outside the `GenericDbCandidatePacket` lane
+
 ## Candidate Same-Item Dimensions
 
 Candidate packets from exact DB, generic DB, web search, or web extract must include:
@@ -76,9 +93,22 @@ sibling_variant_risk:
 Rules:
 
 - Generic DB packets may provide ranges or likely kcal, but must not claim `match_type=exact` or `source_quality_label=internal_exact`.
+- Generic semantic-only clarify support must not be emitted as `GenericDbCandidatePacket`.
 - SearchCandidatePacket may carry snippet, URL, score, query, and matched terms, but must not carry `final_kcal`, `final_truth`, or `primary_source`.
 - TaiwanSkillPacket may carry semantic posture hints, DB/web policy hints, and contrast rules. It must not contain kcal, macro, or portion truth.
 - LLM prior is last resort, must be weak, and cannot support exact claims.
+
+### P0 Mismatch Oracle Freeze
+
+For `B2-002`, the synthetic mismatch oracle must explicitly cover:
+
+- `wrong_item`
+- `sibling_variant`
+- `wrong_size`
+- `wrong_modifier`
+- `insufficient_evidence`
+
+The readiness gate should block fake-green exact claims whenever one of these mismatch families is present in the supporting packet set.
 
 ## Manager Pass 2 Contract
 
@@ -123,6 +153,8 @@ Pass 2 may produce synthesis candidates. It must not mutate the ledger.
 
 B-2 may define selected extract policy, but it forbids all-web extract. Extract is only allowed for a selected search packet when the source appears official or brand/menu, the query is an exact or brand item, and the snippet is insufficient for synthesis.
 
+For the current official B-2 offline producer lane, selected extract remains a narrow `B2-006` exact-positive runtime-honesty path only. It is not a general web extraction framework and does not imply live Tavily activation or active runtime extract threading.
+
 Trace fields:
 
 ```yaml
@@ -135,6 +167,8 @@ extract_count: number
 
 `extract_count` must not exceed `max_extract_urls`. `selected_search_packet_id="*"` is forbidden.
 
+Selected extract policy chooses what to inspect, not what to believe. A selected search packet does not become final nutrition truth by itself. When selected extract is used, the final exact item result must be backed by an accepted `web_extract` packet produced by the B2 local runtime synthesis path.
+
 ## Exactness Guard
 
 The exactness guard binds evidence posture to ledger and renderer behavior:
@@ -144,6 +178,8 @@ The exactness guard binds evidence posture to ledger and renderer behavior:
 - `provisional` allows stable commercial range when composition is incomplete but estimable.
 - `unresolved` forbids ledger inclusion and must ask for missing composition.
 - sibling variants, wrong-size variants, wrong-brand variants, and wrong-item official pages block exact claims.
+- follow-up severity is a precision-upgrade tool, not a hidden commit gate.
+- search snippet presence does not authorize final truth by itself; snippet-as-truth must be blocked explicitly by the readiness gate.
 
 No-mutation query rule:
 
@@ -179,7 +215,7 @@ The B-2 synthetic gate must include:
 | `松屋特盛牛丼` | exact or official web candidate |
 | `珍珠奶茶多少熱量？` | read tools allowed, no mutation |
 | sibling negative | `迷客夏珍珠紅茶拿鐵` matched to `迷客夏珍珠鮮奶茶`; exact claim forbidden |
-| official wrong-item negative | official or brand source exists but wrong item; reject or anchor-only |
+| official wrong-item negative | official or brand source exists but wrong item; reject-only in the current runtime slice, with anchor-only deferred |
 
 ## Anti-Fake-Pass Checks
 
@@ -189,7 +225,7 @@ The readiness verifier must fail when:
 - Generic DB is marked exact.
 - sibling variant is used as exact.
 - `evidence_used` lacks `packet_id`.
-- rejected sibling candidate is missing from `rejected_candidates` or not downgraded to anchor-only.
+- rejected sibling candidate is missing from `rejected_candidates` or silently promoted despite mismatch.
 - Taiwan Skill contains kcal, macro, or portion truth.
 - extract is called for every search result.
 - renderer exactness wording exceeds RendererInput.
@@ -250,6 +286,12 @@ runtime_trace_parity:
 ```
 
 Runtime traces may add implementation metadata, but they must preserve canonical packet, Manager Pass 2, mutation, and renderer field names. Synthetic-only artifacts may use `status=not_applicable` until runtime traces exist.
+
+Official B-2 producer artifacts may also include a report-only provenance diagnostic such as `producer_trace` to distinguish runtime-backed cases from deferred compatibility cases. This field is for report and readiness honesty only. It must not become nutrition-domain truth, renderer truth, exactness policy, or Phase C mapping input.
+
+When the official producer uses listed-item runtime fanout, it may also emit a report-only `listed_item_fanout` trace with one resolution entry per listed item. This trace is for per-item runtime honesty and readiness diagnostics only. It must not decide estimate vs unresolved, evidence confidence, renderer wording, or Phase C mapping.
+
+When the official producer uses selected extract for the exact-positive web lane, `extract_policy` remains a report/readiness diagnostic only, and `web_extract` packets remain exact-support candidates rather than final truth objects.
 
 ## Readiness Artifact
 

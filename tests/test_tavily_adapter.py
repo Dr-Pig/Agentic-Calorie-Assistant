@@ -10,19 +10,20 @@ async def test_search_merges_extracted_metadata(monkeypatch: pytest.MonkeyPatch)
     adapter = TavilyAdapter()
     monkeypatch.setattr(adapter, "_is_configured", lambda: True)
 
-    async def _stub_candidates(query: str, *, max_results: int = 5, include_raw_content: bool = False):
-        assert query == "珍珠奶茶"
+    async def _stub_candidates(query: str, *, max_results: int = 5):
+        assert query == "coco pearl milk tea"
         return [
             {
-                "title": "CoCo 珍珠奶茶",
+                "title": "CoCo pearl milk tea",
                 "url": "https://coco.example/menu",
-                "snippet": "菜單頁",
+                "snippet": "official menu",
                 "officialness": "official",
             }
         ]
 
-    async def _stub_extract(*, urls: list[str], query: str, chunks_per_source: int = 3, extract_depth: str = "advanced"):
+    async def _stub_extract(*, urls: list[str], query: str):
         assert urls == ["https://coco.example/menu"]
+        assert query == "coco pearl milk tea"
         return [
             {
                 "url": "https://coco.example/menu",
@@ -37,14 +38,14 @@ async def test_search_merges_extracted_metadata(monkeypatch: pytest.MonkeyPatch)
                 "nutrition_fields_present": ["kcal"],
                 "evidence_tier_candidate": "near-exact",
                 "applicability_notes": "contains drink customization cues",
-                "raw_content": "每杯 熱量",
+                "raw_content": "per cup 400 kcal",
             }
         ]
 
     monkeypatch.setattr(adapter, "search_candidates", _stub_candidates)
     monkeypatch.setattr(adapter, "extract_structured_page_data", _stub_extract)
 
-    rows = await adapter.search("珍珠奶茶")
+    rows = await adapter.search("coco pearl milk tea")
     assert len(rows) == 1
     row = rows[0]
     assert row["source_type"] == "official"
@@ -55,9 +56,9 @@ async def test_search_merges_extracted_metadata(monkeypatch: pytest.MonkeyPatch)
 
 def test_extract_helpers_classify_fields() -> None:
     adapter = TavilyAdapter()
-    raw = "每杯 熱量 400 kcal 半糖 少冰 蛋白質 3g"
+    raw = "per cup 400 kcal sugar ice protein 3g"
     assert adapter._infer_serving_basis(raw) == "per_cup"
     assert "sugar" in adapter._detect_customization_slots(raw)
     assert "ice" in adapter._detect_customization_slots(raw)
     assert "kcal" in adapter._detect_nutrition_fields(raw)
-    assert adapter._detect_channel("手搖飲 menu") == "handmade_foodservice"
+    assert adapter._detect_channel("menu page") == "handmade_foodservice"

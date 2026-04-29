@@ -96,6 +96,7 @@ def write_bundle1_request_trace_artifact(
     assistant_message: str,
     sidecar: dict[str, Any],
     state_delta: dict[str, Any],
+    phase_a_trace: dict[str, Any] | None = None,
     latency_tracking: dict[str, Any] | None = None,
 ) -> Path:
     payload = {
@@ -125,6 +126,7 @@ def write_bundle1_request_trace_artifact(
         "renderer_output": {"assistant_message": assistant_message},
         "sidecar_output": _json_safe(sidecar),
         "state_delta": _json_safe(state_delta),
+        "phase_a_trace": _json_safe(phase_a_trace or {}),
         "latency_tracking": latency_tracking or {},
         "trace_refs": build_trace_refs(request_id=request_id),
     }
@@ -148,6 +150,8 @@ def write_bundle2_request_trace_artifact(
     assistant_message: str,
     sidecar: dict[str, Any],
     state_delta: dict[str, Any],
+    phase_a_trace: dict[str, Any] | None = None,
+    phase_c_trace: dict[str, Any] | None = None,
     latency_tracking: dict[str, Any] | None = None,
 ) -> Path:
     serialized_round_1 = _json_safe(manager_round_1)
@@ -181,7 +185,42 @@ def write_bundle2_request_trace_artifact(
         "renderer_output": {"assistant_message": assistant_message},
         "sidecar_output": _json_safe(sidecar),
         "state_delta": _json_safe(state_delta),
+        "phase_a_trace": _json_safe(phase_a_trace or {}),
+        "phase_c_trace": _json_safe(phase_c_trace or {}),
         "latency_tracking": latency_tracking or {},
+        "trace_refs": build_trace_refs(request_id=request_id),
+    }
+    return write_request_trace_artifact(request_id, payload)
+
+
+def write_general_chat_request_trace_artifact(
+    *,
+    request_id: str,
+    user_external_id: str,
+    local_date: str,
+    raw_user_input: str | None,
+    state_before: Any,
+    general_chat_result: Any,
+    assistant_message: str,
+    phase_a_trace: dict[str, Any] | None = None,
+) -> Path:
+    payload = {
+        "request_id": request_id,
+        "trace_meta": {
+            "request_id": request_id,
+            "user_id": user_external_id,
+            "bundle": "v2_general_chat",
+            "local_date": local_date,
+        },
+        "request": {
+            "user_id": user_external_id,
+            "local_date": local_date,
+            "text": raw_user_input,
+        },
+        "state_before": _json_safe(state_before),
+        "general_chat_result": _json_safe(general_chat_result),
+        "renderer_output": {"assistant_message": assistant_message},
+        "phase_a_trace": _json_safe(phase_a_trace or {}),
         "trace_refs": build_trace_refs(request_id=request_id),
     }
     return write_request_trace_artifact(request_id, payload)

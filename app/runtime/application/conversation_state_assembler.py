@@ -279,6 +279,8 @@ def assemble_conversation_state(
         durable_memory_hits=durable_memory_hits,
         retrieved_transcript_chunks=file_transcript_hits,
         retrieved_meal_records=file_meal_hits,
+        transcript_chunks=file_transcript_hits,
+        historical_meal_chunks=file_meal_hits,
         recent_relevant_turns=recent_relevant_turns,
         retrieval_diagnostics=retrieval_diagnostics,
         active_meal_time_gap_seconds=active_meal_time_gap_seconds,

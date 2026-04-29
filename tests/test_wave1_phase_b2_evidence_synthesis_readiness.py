@@ -4,6 +4,10 @@ import copy
 import json
 from pathlib import Path
 
+from scripts.build_wave1_phase_b2_evidence_synthesis_smoke import (
+    build_phase_b2_synthetic_smoke_report,
+    write_phase_b2_synthetic_smoke_report,
+)
 from scripts.verify_wave1_phase_b2_evidence_synthesis_readiness import verify_phase_b2_readiness
 
 
@@ -24,6 +28,17 @@ SMOKE_CASES = [
 def _write_json(path: Path, payload: dict[str, object]) -> Path:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
+
+
+def _b1_green_handoff_snapshot() -> dict[str, object]:
+    return {
+        "b1_gate_scope": "Phase B-1 minimal tool-loop full natural-probe",
+        "smoke_artifact": "artifacts/phase_b1_full_smoke.json",
+        "readiness_artifact": "artifacts/phase_b1_readiness.json",
+        "ready_for_phase_b1_implementation": True,
+        "blockers": [],
+        "not_claiming": "whole Wave 1 completion",
+    }
 
 
 def _cache() -> dict[str, object]:
@@ -189,222 +204,9 @@ def _case(
 
 
 def valid_phase_b2_report_fixture(tmp_path: Path) -> Path:
-    tea_egg = _generic_packet("pkt_generic_tea_egg", "茶葉蛋")
-    boba = _generic_packet("pkt_generic_boba", "珍珠奶茶")
-    bento = _generic_packet("pkt_generic_bento", "便當")
-    luwei_skill = _taiwan_skill_packet("pkt_skill_luwei")
-    dougan = _generic_packet("pkt_generic_dougan", "豆干")
-    haidai = _generic_packet("pkt_generic_haidai", "海帶")
-    gongwan = _generic_packet("pkt_generic_gongwan", "貢丸")
-    milkshop_search = _search_packet(
-        "pkt_search_milkshop_black_tea_latte",
-        matched_name="迷客夏珍珠紅茶拿鐵",
-        canonical_name="迷客夏珍珠紅茶拿鐵",
-        source_quality_label="brand_menu",
-        match_type="exact",
-    )
-    matsuya = _search_packet(
-        "pkt_search_matsuya_tokumori",
-        matched_name="松屋特盛牛丼",
-        canonical_name="松屋特盛牛丼",
-        source_quality_label="official",
-        match_type="exact",
-    )
-    sibling = _search_packet(
-        "pkt_sibling_milkshop_fresh_milk_tea",
-        matched_name="迷客夏珍珠紅茶拿鐵",
-        canonical_name="迷客夏珍珠鮮奶茶",
-        source_quality_label="brand_menu",
-        match_type="related",
-        sibling_risk=True,
-    )
-    wrong_official = _search_packet(
-        "pkt_official_wrong_item",
-        matched_name="迷客夏珍珠紅茶拿鐵",
-        canonical_name="迷客夏伯爵紅茶拿鐵",
-        source_quality_label="official",
-        match_type="related",
-        sibling_risk=True,
-    )
-
-    cases = [
-        _case("B2-001", "我吃了一顆茶葉蛋", [tea_egg], [_item_result("茶葉蛋", tea_egg, exactness_posture="estimated", evidence_confidence="moderate")], final_response="這是一筆估算。"),
-        _case("B2-002", "我喝了一杯珍珠奶茶", [boba], [_item_result("珍珠奶茶", boba, exactness_posture="estimated", evidence_confidence="moderate")], final_response="這是一筆估算，糖度與杯型可再補。"),
-        _case("B2-003", "我吃了一個便當", [bento], [_item_result("便當", bento, exactness_posture="provisional", evidence_confidence="weak")], final_response="先記一筆粗估。"),
-        _case(
-            "B2-004",
-            "我吃了滷味",
-            [luwei_skill],
-            [_item_result("滷味", None, exactness_posture="unresolved", evidence_confidence="insufficient", ledger_status="excluded_pending_info")],
-            mutation=_mutation(attempted=False, reason="needs_info_guard", result=None),
-            final_response="缺少滷味品項，請列出組成。",
-        ),
-        _case(
-            "B2-005",
-            "我吃了豆干、海帶、貢丸的滷味",
-            [dougan, haidai, gongwan],
-            [
-                _item_result("豆干", dougan, exactness_posture="estimated", evidence_confidence="moderate"),
-                _item_result("海帶", haidai, exactness_posture="estimated", evidence_confidence="moderate"),
-                _item_result("貢丸", gongwan, exactness_posture="estimated", evidence_confidence="moderate"),
-            ],
-            final_response="已拆成豆干、海帶、貢丸並估算。",
-        ),
-        _case(
-            "B2-006",
-            "迷客夏珍珠紅茶拿鐵",
-            [milkshop_search],
-            [_item_result("迷客夏珍珠紅茶拿鐵", milkshop_search, exactness_posture="exact", evidence_confidence="strong", usage="exact")],
-            final_response="資料顯示這是同品項品牌候選。",
-            extract_policy={
-                "selected_search_packet_id": "pkt_search_milkshop_black_tea_latte",
-                "extract_reason": "selected brand-menu same-item candidate",
-                "extract_allowed_by_policy": True,
-                "max_extract_urls": 1,
-                "extract_count": 1,
-            },
-        ),
-        _case(
-            "B2-007",
-            "松屋特盛牛丼",
-            [matsuya],
-            [_item_result("松屋特盛牛丼", matsuya, exactness_posture="exact", evidence_confidence="strong", usage="exact")],
-            final_response="資料顯示這是官方同品項候選。",
-        ),
-        _case(
-            "B2-008",
-            "珍珠奶茶多少熱量？",
-            [boba],
-            [_item_result("珍珠奶茶", boba, exactness_posture="estimated", evidence_confidence="moderate")],
-            mutation=_mutation(attempted=False, reason="no_mutation_intent", result=None),
-            final_response="這是估算查詢，不會記帳。",
-        ),
-        _case(
-            "B2-009",
-            "sibling_negative_milkshop_black_tea_latte_matched_fresh_milk_tea",
-            [sibling],
-            [
-                _item_result(
-                    "迷客夏珍珠紅茶拿鐵",
-                    None,
-                    exactness_posture="estimated",
-                    evidence_confidence="weak",
-                    rejected=[
-                        {
-                            "packet_id": "pkt_sibling_milkshop_fresh_milk_tea",
-                            "risk_type": "sibling_variant",
-                            "reason": "candidate is 珍珠鮮奶茶, not 珍珠紅茶拿鐵",
-                        }
-                    ],
-                )
-            ],
-            final_response="候選是相近品項，只能作參考。",
-        ),
-        _case(
-            "B2-010",
-            "official_wrong_item_negative",
-            [wrong_official],
-            [
-                _item_result(
-                    "迷客夏珍珠紅茶拿鐵",
-                    wrong_official,
-                    exactness_posture="estimated",
-                    evidence_confidence="weak",
-                    usage="anchor",
-                    rejected=[
-                        {
-                            "packet_id": "pkt_official_wrong_item",
-                            "risk_type": "wrong_item",
-                            "reason": "official source is authoritative but item name differs",
-                        }
-                    ],
-                )
-            ],
-            final_response="官方來源品項不同，只能作參考。",
-        ),
-    ]
     return _write_json(
         tmp_path / "phase_b2_report.json",
-        {
-            "phase": "B2",
-            "mode": "evidence_synthesis_gate",
-            "smoke_cases_run": SMOKE_CASES,
-            "cases": cases,
-            "trusted_source_manifest": {
-                "entries": [
-                    {
-                        "source_id": "taiwan_food_trusted_reference",
-                        "source_quality_label": "trusted_database",
-                        "approved": True,
-                        "scope": "B-2 synthetic trusted database fixture",
-                    }
-                ]
-            },
-            "trusted_database_policy": {
-                "allowlist": ["taiwan_food_trusted_reference"],
-                "approved": True,
-            },
-            "minimal_db_seed_manifest": {
-                "seeds": [
-                    {
-                        "food_name": "茶葉蛋",
-                        "seed_type": "generic",
-                        "used_by_smoke_case": "我吃了一顆茶葉蛋",
-                        "fixture_only": False,
-                        "allowed_fields": ["kcal_range", "likely_kcal", "macro_candidate"],
-                    },
-                    {
-                        "food_name": "珍珠奶茶",
-                        "seed_type": "generic",
-                        "used_by_smoke_case": "我喝了一杯珍珠奶茶",
-                        "fixture_only": False,
-                        "allowed_fields": ["kcal_range", "likely_kcal", "macro_candidate"],
-                    },
-                    {
-                        "food_name": "便當",
-                        "seed_type": "generic",
-                        "used_by_smoke_case": "我吃了一個便當",
-                        "fixture_only": False,
-                        "allowed_fields": ["kcal_range", "likely_kcal", "macro_candidate"],
-                    },
-                    {
-                        "food_name": "豆干",
-                        "seed_type": "generic",
-                        "used_by_smoke_case": "我吃了豆干、海帶、貢丸的滷味",
-                        "fixture_only": False,
-                        "allowed_fields": ["kcal_range", "likely_kcal", "macro_candidate"],
-                    },
-                    {
-                        "food_name": "海帶",
-                        "seed_type": "generic",
-                        "used_by_smoke_case": "我吃了豆干、海帶、貢丸的滷味",
-                        "fixture_only": False,
-                        "allowed_fields": ["kcal_range", "likely_kcal", "macro_candidate"],
-                    },
-                    {
-                        "food_name": "貢丸",
-                        "seed_type": "generic",
-                        "used_by_smoke_case": "我吃了豆干、海帶、貢丸的滷味",
-                        "fixture_only": False,
-                        "allowed_fields": ["kcal_range", "likely_kcal", "macro_candidate"],
-                    },
-                ],
-                "exact_seed_policy": "empty_for_real_runtime_in_this_slice",
-            },
-            "runtime_trace_parity": {
-                "status": "not_applicable",
-                "required_core_fields_match": True,
-                "extra_fields_allowed": True,
-                "renamed_core_fields_allowed": False,
-                "missing_core_fields_allowed": False,
-            },
-            "non_scope": {
-                "autonomous_nutrition_subagent": False,
-                "independent_llm_evidence_normalizer": False,
-                "full_macro_engine": False,
-                "nutrition_accuracy_production_ready_claim": False,
-            },
-        },
+        build_phase_b2_synthetic_smoke_report(b1_green_handoff_snapshot=_b1_green_handoff_snapshot()),
     )
 
 
@@ -416,16 +218,212 @@ def invalid_phase_b2_report_fixture(tmp_path: Path, mutator) -> Path:
     return path
 
 
+def _case_by_id(report: dict[str, object], case_id: str) -> dict[str, object]:
+    return next(case for case in report["cases"] if case["case_id"] == case_id)
+
+
 def test_valid_phase_b2_evidence_synthesis_fixture_is_ready(tmp_path: Path) -> None:
     report = verify_phase_b2_readiness(phase_b2_report_path=valid_phase_b2_report_fixture(tmp_path))
 
     assert report["ready_for_phase_b2_implementation"] is True
     assert report["blockers"] == []
     assert report["recommended_next_steps_ordered"] == ["proceed_to_phase_b2_evidence_synthesis_implementation"]
+    assert report["honesty_gate_status"] == {
+        "snippet_final_truth_blocked": True,
+        "wrong_item_blocked": True,
+        "sibling_variant_blocked": True,
+        "wrong_size_blocked": True,
+        "wrong_modifier_blocked": True,
+        "insufficient_evidence_blocked": True,
+    }
+    assert report["b1_green_handoff_check"]["passed"] is True
+
+
+def test_official_b2_producer_uses_runtime_path_for_runtime_backed_generic_cases() -> None:
+    report = build_phase_b2_synthetic_smoke_report(b1_green_handoff_snapshot=_b1_green_handoff_snapshot())
+
+    tea_egg = _case_by_id(report, "B2-001")
+    assert tea_egg["producer_trace"] == {
+        "backing_class": "runtime_backed",
+        "support_basis": "generic_anchor",
+        "compatibility_reason": None,
+    }
+    assert tea_egg["packets"][0]["raw_ref"].startswith("app/knowledge/small_anchor_store_tw.json#")
+    assert tea_egg["packets"][0]["packet_id"].startswith("pkt_generic_anchor_")
+    tea_egg_item = tea_egg["manager_pass_2"]["item_results"][0]
+    assert tea_egg_item["food_name"] == "茶葉蛋"
+    assert tea_egg_item["exactness_posture"] == "estimated"
+    assert tea_egg_item["evidence_confidence"] == "strong"
+    assert tea_egg_item["evidence_used"][0]["packet_id"] == tea_egg["packets"][0]["packet_id"]
+
+    boba_query = _case_by_id(report, "B2-008")
+    assert boba_query["producer_trace"] == {
+        "backing_class": "runtime_backed",
+        "support_basis": "generic_anchor",
+        "compatibility_reason": None,
+    }
+    assert boba_query["packets"][0]["raw_ref"].startswith("app/knowledge/small_anchor_store_tw.json#")
+    assert boba_query["mutation"]["mutation_attempted"] is False
+    boba_query_item = boba_query["manager_pass_2"]["item_results"][0]
+    assert boba_query_item["food_name"] == "珍珠奶茶"
+    assert boba_query_item["exactness_posture"] == "estimated"
+    assert boba_query_item["evidence_confidence"] == "moderate"
+    assert boba_query_item["evidence_used"][0]["packet_id"] == boba_query["packets"][0]["packet_id"]
+
+
+def test_official_b2_producer_keeps_taiwan_skill_compatibility_but_uses_runtime_clarify_output() -> None:
+    report = build_phase_b2_synthetic_smoke_report(b1_green_handoff_snapshot=_b1_green_handoff_snapshot())
+
+    luwei = _case_by_id(report, "B2-004")
+    assert luwei["producer_trace"] == {
+        "backing_class": "runtime_backed",
+        "support_basis": "clarify_support",
+        "compatibility_reason": None,
+    }
+    assert luwei["packets"][0]["source_type"] == "taiwan_skill"
+    item = luwei["manager_pass_2"]["item_results"][0]
+    assert item["food_name"] == "滷味"
+    assert item["exactness_posture"] == "unresolved"
+    assert item["evidence_confidence"] == "insufficient"
+    assert item["kcal_range"] is None
+    assert item["likely_kcal"] is None
+    assert item["evidence_used"] == []
+    assert item["ledger_status"] == "excluded_pending_info"
+
+
+def test_official_b2_producer_uses_runtime_listed_item_fanout_for_b2_005() -> None:
+    report = build_phase_b2_synthetic_smoke_report(b1_green_handoff_snapshot=_b1_green_handoff_snapshot())
+
+    listed_items = _case_by_id(report, "B2-005")
+    assert listed_items["producer_trace"] == {
+        "backing_class": "runtime_backed",
+        "support_basis": "listed_item_runtime_fanout",
+        "compatibility_reason": None,
+    }
+    assert [item["food_name"] for item in listed_items["manager_pass_2"]["item_results"]] == ["豆干", "海帶", "貢丸"]
+    assert all(str(packet["raw_ref"]).startswith("app/knowledge/small_anchor_store_tw.json#") for packet in listed_items["packets"])
+    assert all(
+        item["evidence_used"][0]["packet_id"] in {packet["packet_id"] for packet in listed_items["packets"]}
+        for item in listed_items["manager_pass_2"]["item_results"]
+    )
+    assert listed_items["listed_item_fanout"]["resolutions"] == [
+        {
+            "listed_item": "豆干",
+            "resolution_status": "resolved",
+            "defer_reason": None,
+            "clarify_support_present": False,
+            "packet_ids": ["pkt_generic_anchor_listed_item_tofu_dried"],
+        },
+        {
+            "listed_item": "海帶",
+            "resolution_status": "resolved",
+            "defer_reason": None,
+            "clarify_support_present": False,
+            "packet_ids": ["pkt_generic_anchor_listed_item_kelp"],
+        },
+        {
+            "listed_item": "貢丸",
+            "resolution_status": "resolved",
+            "defer_reason": None,
+            "clarify_support_present": False,
+            "packet_ids": ["pkt_generic_anchor_listed_item_meatball"],
+        },
+    ]
+
+
+def test_official_b2_producer_uses_runtime_selected_extract_lane_for_web_exact_positive_case() -> None:
+    report = build_phase_b2_synthetic_smoke_report(b1_green_handoff_snapshot=_b1_green_handoff_snapshot())
+
+    milkshop = _case_by_id(report, "B2-006")
+    assert milkshop["producer_trace"] == {
+        "backing_class": "runtime_backed",
+        "support_basis": "selected_extract_exact_positive",
+        "compatibility_reason": None,
+    }
+    search_packets = [packet for packet in milkshop["packets"] if packet["source_type"] == "web_search"]
+    extract_packets = [packet for packet in milkshop["packets"] if packet["source_type"] == "web_extract"]
+    assert len(search_packets) == 1
+    assert len(extract_packets) == 1
+    assert milkshop["extract_policy"] == {
+        "selected_search_packet_id": search_packets[0]["packet_id"],
+        "extract_reason": "selected_same_item_official_candidate",
+        "extract_allowed_by_policy": True,
+        "max_extract_urls": 1,
+        "extract_count": 1,
+    }
+    item = milkshop["manager_pass_2"]["item_results"][0]
+    assert item["food_name"] == "迷客夏 珍珠紅茶拿鐵"
+    assert item["exactness_posture"] == "exact"
+    assert item["evidence_used"][0]["usage"] == "exact"
+    assert item["evidence_used"][0]["packet_id"] == extract_packets[0]["packet_id"]
+    assert item["likely_kcal"] == 400.0
+    assert item["rejected_candidates"] == []
+
+
+def test_official_b2_producer_uses_exact_item_runtime_lane_for_matsuya_case() -> None:
+    report = build_phase_b2_synthetic_smoke_report(b1_green_handoff_snapshot=_b1_green_handoff_snapshot())
+
+    matsuya = _case_by_id(report, "B2-007")
+    assert matsuya["producer_trace"] == {
+        "backing_class": "runtime_backed",
+        "support_basis": "exact_item_card",
+        "compatibility_reason": None,
+    }
+    packet = matsuya["packets"][0]
+    assert packet["raw_ref"].startswith("app/knowledge/exact_item_cards_tw.json#")
+    assert packet["packet_id"].startswith("pkt_exact_item_")
+    item = matsuya["manager_pass_2"]["item_results"][0]
+    assert item["food_name"] == "松屋特盛牛丼"
+    assert item["exactness_posture"] == "exact"
+    assert item["evidence_used"][0]["usage"] == "exact"
+    assert item["evidence_used"][0]["packet_id"] == packet["packet_id"]
+
+
+def test_official_b2_producer_uses_runtime_web_rejection_for_sibling_case() -> None:
+    report = build_phase_b2_synthetic_smoke_report(b1_green_handoff_snapshot=_b1_green_handoff_snapshot())
+
+    sibling = _case_by_id(report, "B2-009")
+    assert sibling["producer_trace"] == {
+        "backing_class": "runtime_backed",
+        "support_basis": "web_search_rejection",
+        "compatibility_reason": None,
+    }
+    packet = sibling["packets"][0]
+    assert packet["packet_id"].startswith("pkt_web_search_")
+    item = sibling["manager_pass_2"]["item_results"][0]
+    assert item["food_name"] == "迷客夏珍珠紅茶拿鐵"
+    assert item["exactness_posture"] == "unresolved"
+    assert item["likely_kcal"] is None
+    assert item["evidence_used"] == []
+    assert item["rejected_candidates"][0]["packet_id"] == packet["packet_id"]
+    assert item["rejected_candidates"][0]["risk_type"] == "sibling_variant"
+
+
+def test_official_b2_producer_uses_runtime_web_rejection_for_wrong_item_case() -> None:
+    report = build_phase_b2_synthetic_smoke_report(b1_green_handoff_snapshot=_b1_green_handoff_snapshot())
+
+    wrong_item = _case_by_id(report, "B2-010")
+    assert wrong_item["producer_trace"] == {
+        "backing_class": "runtime_backed",
+        "support_basis": "web_search_rejection",
+        "compatibility_reason": None,
+    }
+    packet = wrong_item["packets"][0]
+    assert packet["packet_id"].startswith("pkt_web_search_")
+    item = wrong_item["manager_pass_2"]["item_results"][0]
+    assert item["food_name"] == "迷客夏珍珠紅茶拿鐵"
+    assert item["exactness_posture"] == "unresolved"
+    assert item["likely_kcal"] is None
+    assert item["evidence_used"] == []
+    assert item["rejected_candidates"][0]["packet_id"] == packet["packet_id"]
+    assert item["rejected_candidates"][0]["risk_type"] == "wrong_item"
 
 
 def test_packet_missing_packet_id_blocks_readiness(tmp_path: Path) -> None:
-    phase_b2 = invalid_phase_b2_report_fixture(tmp_path, lambda data: data["cases"][0]["packets"][0].pop("packet_id"))
+    phase_b2 = invalid_phase_b2_report_fixture(
+        tmp_path,
+        lambda data: _case_by_id(data, "B2-001")["packets"][0].pop("packet_id"),
+    )
 
     report = verify_phase_b2_readiness(phase_b2_report_path=phase_b2)
 
@@ -434,7 +432,7 @@ def test_packet_missing_packet_id_blocks_readiness(tmp_path: Path) -> None:
 
 def test_generic_db_marked_exact_blocks_readiness(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
-        data["cases"][0]["packets"][0]["match_type"] = "exact"
+        _case_by_id(data, "B2-001")["packets"][0]["match_type"] = "exact"
 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
@@ -443,7 +441,7 @@ def test_generic_db_marked_exact_blocks_readiness(tmp_path: Path) -> None:
 
 def test_tavily_snippet_used_as_final_truth_blocks_readiness(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
-        data["cases"][5]["packets"][0]["final_kcal"] = 650
+        _case_by_id(data, "B2-006")["packets"][0]["final_kcal"] = 650
 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
@@ -452,8 +450,9 @@ def test_tavily_snippet_used_as_final_truth_blocks_readiness(tmp_path: Path) -> 
 
 def test_sibling_variant_used_as_exact_blocks_readiness(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
-        item = data["cases"][8]["manager_pass_2"]["item_results"][0]
-        packet = data["cases"][8]["packets"][0]
+        case = _case_by_id(data, "B2-009")
+        item = case["manager_pass_2"]["item_results"][0]
+        packet = case["packets"][0]
         item["exactness_posture"] = "exact"
         item["evidence_confidence"] = "strong"
         item["evidence_used"] = [_evidence(packet, usage="exact")]
@@ -464,9 +463,69 @@ def test_sibling_variant_used_as_exact_blocks_readiness(tmp_path: Path) -> None:
     assert any(item["code"] == "sibling_variant_used_as_exact" for item in report["blockers"])
 
 
+def test_wrong_item_used_as_exact_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        case = _case_by_id(data, "B2-010")
+        item = case["manager_pass_2"]["item_results"][0]
+        packet = case["packets"][0]
+        item["exactness_posture"] = "exact"
+        item["evidence_confidence"] = "strong"
+        item["evidence_used"] = [_evidence(packet, usage="exact")]
+        item["rejected_candidates"] = []
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "wrong_item_used_as_exact" for item in report["blockers"])
+
+
+def test_wrong_size_used_as_exact_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        case = _case_by_id(data, "B2-007")
+        item = case["manager_pass_2"]["item_results"][0]
+        packet = case["packets"][0]
+        packet["size_or_serving_match"] = "different"
+        item["exactness_posture"] = "exact"
+        item["evidence_confidence"] = "strong"
+        item["evidence_used"] = [_evidence(packet, usage="exact")]
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "wrong_size_used_as_exact" for item in report["blockers"])
+
+
+def test_wrong_modifier_used_as_exact_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        case = _case_by_id(data, "B2-006")
+        item = case["manager_pass_2"]["item_results"][0]
+        packet = case["packets"][0]
+        packet["modifier_match"] = "different"
+        item["exactness_posture"] = "exact"
+        item["evidence_confidence"] = "strong"
+        item["evidence_used"] = [_evidence(packet, usage="exact")]
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "wrong_modifier_used_as_exact" for item in report["blockers"])
+
+
+def test_insufficient_evidence_used_as_exact_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        case = _case_by_id(data, "B2-007")
+        item = case["manager_pass_2"]["item_results"][0]
+        packet = case["packets"][0]
+        packet["serving_basis"] = ""
+        item["exactness_posture"] = "exact"
+        item["evidence_confidence"] = "strong"
+        item["evidence_used"] = [_evidence(packet, usage="exact")]
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "insufficient_evidence_used_as_exact" for item in report["blockers"])
+
+
 def test_evidence_used_missing_packet_id_blocks_readiness(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
-        data["cases"][0]["manager_pass_2"]["item_results"][0]["evidence_used"][0].pop("packet_id")
+        _case_by_id(data, "B2-001")["manager_pass_2"]["item_results"][0]["evidence_used"][0].pop("packet_id")
 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
@@ -475,16 +534,116 @@ def test_evidence_used_missing_packet_id_blocks_readiness(tmp_path: Path) -> Non
 
 def test_rejected_sibling_candidate_missing_blocks_readiness(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
-        data["cases"][8]["manager_pass_2"]["item_results"][0]["rejected_candidates"] = []
+        _case_by_id(data, "B2-009")["manager_pass_2"]["item_results"][0]["rejected_candidates"] = []
 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
     assert any(item["code"] == "sibling_candidate_not_rejected_or_downgraded" for item in report["blockers"])
 
 
+def test_missing_producer_trace_blocks_readiness(tmp_path: Path) -> None:
+    report = verify_phase_b2_readiness(
+        phase_b2_report_path=invalid_phase_b2_report_fixture(
+            tmp_path,
+            lambda data: _case_by_id(data, "B2-001").pop("producer_trace"),
+        )
+    )
+
+    assert any(item["code"] == "producer_trace_missing" for item in report["blockers"])
+
+
+def test_synthetic_producer_trace_without_reason_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        case = _case_by_id(data, "B2-001")
+        case["producer_trace"]["backing_class"] = "synthetic_compatibility"
+        case["producer_trace"]["compatibility_reason"] = None
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "producer_trace_synthetic_missing_reason" for item in report["blockers"])
+
+
+def test_runtime_backed_producer_trace_with_reason_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        _case_by_id(data, "B2-001")["producer_trace"]["compatibility_reason"] = "should_not_exist"
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "producer_trace_runtime_backed_has_reason" for item in report["blockers"])
+
+
+def test_listed_item_runtime_fanout_trace_missing_resolutions_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        _case_by_id(data, "B2-005")["listed_item_fanout"] = {"resolutions": []}
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "listed_item_fanout_trace_incomplete" for item in report["blockers"])
+
+
+def test_listed_item_runtime_fanout_resolved_entry_without_packets_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        _case_by_id(data, "B2-005")["listed_item_fanout"]["resolutions"][0]["packet_ids"] = []
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "listed_item_fanout_trace_incomplete" for item in report["blockers"])
+
+
+def test_web_search_mismatch_used_as_anchor_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        case = _case_by_id(data, "B2-010")
+        packet = case["packets"][0]
+        item = case["manager_pass_2"]["item_results"][0]
+        item["exactness_posture"] = "estimated"
+        item["evidence_confidence"] = "weak"
+        item["evidence_used"] = [_evidence(packet, usage="anchor")]
+        item["rejected_candidates"] = []
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "web_search_mismatch_used_as_anchor" for item in report["blockers"])
+
+
+def test_runtime_selected_extract_case_missing_extract_policy_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        _case_by_id(data, "B2-006").pop("extract_policy")
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "extract_policy_trace_incomplete" for item in report["blockers"])
+
+
+def test_runtime_selected_extract_case_citing_web_search_packet_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        case = _case_by_id(data, "B2-006")
+        web_search_packet = next(packet for packet in case["packets"] if packet["source_type"] == "web_search")
+        item = case["manager_pass_2"]["item_results"][0]
+        item["evidence_used"][0]["packet_id"] = web_search_packet["packet_id"]
+        item["evidence_used"][0]["source_type"] = "web_search"
+        item["evidence_used"][0]["source_quality_label"] = web_search_packet["source_quality_label"]
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "selected_extract_exact_result_not_backed_by_web_extract" for item in report["blockers"])
+
+
+def test_runtime_selected_extract_case_without_web_extract_packet_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        case = _case_by_id(data, "B2-006")
+        case["packets"] = [packet for packet in case["packets"] if packet["source_type"] != "web_extract"]
+        item = case["manager_pass_2"]["item_results"][0]
+        item["evidence_used"] = []
+        item["rejected_candidates"] = []
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "selected_extract_exact_positive_missing_web_extract_packet" for item in report["blockers"])
+
+
 def test_taiwan_skill_kcal_macro_portion_blocks_readiness(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
-        data["cases"][3]["packets"][0]["kcal_range"] = [300, 900]
+        _case_by_id(data, "B2-004")["packets"][0]["kcal_range"] = [300, 900]
 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
@@ -493,7 +652,7 @@ def test_taiwan_skill_kcal_macro_portion_blocks_readiness(tmp_path: Path) -> Non
 
 def test_all_web_extract_blocks_readiness(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
-        data["cases"][5]["extract_policy"] = {
+        _case_by_id(data, "B2-006")["extract_policy"] = {
             "selected_search_packet_id": "*",
             "extract_reason": "extract all search results",
             "extract_allowed_by_policy": True,
@@ -508,8 +667,9 @@ def test_all_web_extract_blocks_readiness(tmp_path: Path) -> None:
 
 def test_renderer_exactness_wording_exceeds_renderer_input_blocks_readiness(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
-        data["cases"][1]["renderer"]["input"]["allowed_facts"] = ["估算"]
-        data["cases"][1]["renderer"]["final_response"] = "資料顯示這杯是 999 大卡。"
+        case = _case_by_id(data, "B2-002")
+        case["renderer"]["input"]["allowed_facts"] = ["估算"]
+        case["renderer"]["final_response"] = "資料顯示這杯是 999 大卡。"
 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
@@ -533,7 +693,7 @@ def test_spec_declares_b2_not_accuracy_ready() -> None:
 
 def test_trusted_database_without_resolvable_source_or_justification_blocks_readiness(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
-        packet = data["cases"][0]["packets"][0]
+        packet = _case_by_id(data, "B2-001")["packets"][0]
         packet["source_quality_label"] = "trusted_database"
         packet["source_id"] = "unresolved_trusted_source"
         data["trusted_database_policy"] = {"allowlist": [], "approved": True}
@@ -545,7 +705,7 @@ def test_trusted_database_without_resolvable_source_or_justification_blocks_read
 
 def test_trusted_database_with_approved_manifest_entry_passes(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
-        packet = data["cases"][0]["packets"][0]
+        packet = _case_by_id(data, "B2-001")["packets"][0]
         packet["source_quality_label"] = "trusted_database"
         packet["source_id"] = "taiwan_food_trusted_reference"
 
@@ -565,8 +725,9 @@ def test_llm_prior_without_last_resort_rationale_blocks_readiness(tmp_path: Path
             "source_quality_label": "llm_prior",
             "raw_ref": "artifacts/raw/llm_prior_boba.json",
         }
-        data["cases"][1]["packets"].append(llm_packet)
-        data["cases"][1]["manager_pass_2"]["item_results"][0]["evidence_used"].append(_evidence(llm_packet, usage="fallback"))
+        case = _case_by_id(data, "B2-002")
+        case["packets"].append(llm_packet)
+        case["manager_pass_2"]["item_results"][0]["evidence_used"].append(_evidence(llm_packet, usage="fallback"))
 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
@@ -589,8 +750,9 @@ def test_llm_prior_supporting_exact_claim_blocks_readiness(tmp_path: Path) -> No
             "exact_claim_allowed": True,
             "evidence_confidence": "strong",
         }
-        data["cases"][1]["packets"].append(llm_packet)
-        item = data["cases"][1]["manager_pass_2"]["item_results"][0]
+        case = _case_by_id(data, "B2-002")
+        case["packets"].append(llm_packet)
+        item = case["manager_pass_2"]["item_results"][0]
         item["exactness_posture"] = "exact"
         item["evidence_confidence"] = "strong"
         item["evidence_used"] = [_evidence(llm_packet, usage="exact")]
@@ -664,3 +826,28 @@ def test_runtime_trace_parity_renamed_or_missing_core_fields_blocks_readiness(tm
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
     assert any(item["code"] == "runtime_trace_parity_failed" for item in report["blockers"])
+
+
+def test_b1_green_handoff_snapshot_missing_blocks_readiness(tmp_path: Path) -> None:
+    report = verify_phase_b2_readiness(
+        phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, lambda data: data.pop("b1_green_handoff_snapshot"))
+    )
+
+    assert any(item["code"] == "b1_green_handoff_snapshot_missing" for item in report["blockers"])
+
+
+def test_official_phase_b2_synthetic_producer_writes_latest_and_timestamped_artifacts(tmp_path: Path) -> None:
+    outputs = write_phase_b2_synthetic_smoke_report(
+        output_dir=tmp_path,
+        stable_output_path=tmp_path / "wave1_phase_b2_evidence_synthesis_smoke.json",
+        b1_readiness_artifact_path=Path("artifacts/wave1_phase_b_minimal_tool_loop_readiness.json"),
+    )
+
+    stable_path = Path(outputs["stable_output_path"])
+    timestamped_path = Path(outputs["timestamped_output_path"])
+    assert stable_path.exists()
+    assert timestamped_path.exists()
+    assert stable_path.read_text(encoding="utf-8") == timestamped_path.read_text(encoding="utf-8")
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=stable_path)
+    assert report["ready_for_phase_b2_implementation"] is True

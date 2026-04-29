@@ -4,7 +4,8 @@ import os
 
 from ...providers.builderspace_adapter import BuilderSpaceAdapter
 from ...providers.deepseek_adapter import DeepSeekAdapter
-from ...nutrition.infrastructure.web_search.tavily_adapter import TavilyAdapter
+from ...nutrition.infrastructure.web_search.tavily_extract_port import TavilyExtractPort
+from ...nutrition.infrastructure.web_search.tavily_search_port import TavilySearchPort
 
 
 def _create_provider(
@@ -27,10 +28,12 @@ manager_provider = _create_provider(
     role_label="manager",
 )
 provider = manager_provider
-search_provider = TavilyAdapter()
+search_provider = TavilySearchPort()
+extract_provider = TavilyExtractPort()
 
 __all__ = [
     "manager_provider",
     "provider",
     "search_provider",
+    "extract_provider",
 ]

@@ -6,7 +6,7 @@ from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 
 from ... import CANARY_VERSION, SCHEMA_SIGNATURE
-from .provider_runtime import manager_provider, search_provider
+from .provider_runtime import extract_provider, manager_provider, search_provider
 
 router = APIRouter()
 
@@ -19,6 +19,7 @@ async def ping() -> dict:
         "provider": manager_provider.readiness(),
         "manager_provider": manager_provider.readiness(),
         "search": search_provider.readiness(),
+        "extract": extract_provider.readiness(),
     }
 
 

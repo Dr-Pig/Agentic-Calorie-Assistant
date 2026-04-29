@@ -1,0 +1,304 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+from ...runtime.agent.manager_fallback_policy import looks_like_budget_query, looks_like_correction
+from ...runtime.contracts.phase_a import (
+    AttachmentDecision,
+    CurrentTurnContextV1,
+    HistoryExpansionRequest,
+    HistoryExpansionResult,
+    TransitionGuardResult,
+)
+from .attachment_resolver import resolve_attachment_decision
+from .history_expansion_policy import build_history_expansion_request, build_history_expansion_result
+from .history_expansion_runtime import (
+    _candidate_temporal_match,
+    _candidate_lexical_match,
+    _enrich_current_turn_context,
+    _historical_candidates_from_state,
+    _recent_candidates_from_context,
+    _transcript_support_inventory,
+)
+from .transition_guard import resolve_transition_guard
+
+_BACK_REFERENCE_TOKENS = (
+    "that",
+    "this",
+    "same",
+    "previous",
+    "earlier",
+    "just",
+    "剛剛",
+    "剛才",
+    "那杯",
+    "這杯",
+    "那份",
+    "這份",
+    "那個",
+    "這個",
+)
+PHASE_A_EXPAND_HISTORY_TOOL = "phase_a_expand_history"
+
+
+@dataclass(frozen=True)
+class ManagerHistoryExpansionEligibility:
+    eligible: bool
+    reason: str
+    request_reason: str | None = None
+    request_scope: str | None = None
+
+
+@dataclass(frozen=True)
+class ManagerTriggeredHistoryExpansionResult:
+    attempted: bool
+    request: HistoryExpansionRequest | None
+    result: HistoryExpansionResult | None
+    atomic_blocks_status: str
+    pre_attachment_decision: AttachmentDecision
+    pre_transition_guard_result: TransitionGuardResult
+    post_attachment_decision: AttachmentDecision
+    post_transition_guard_result: TransitionGuardResult
+    enriched_current_turn_context: CurrentTurnContextV1
+    resolution_gain: bool
+    selected_candidate_ids: tuple[str, ...] = ()
+    ambiguity_detected: bool = False
+    transcript_support_inventory: tuple[str, ...] = ()
+    failure_family: str | None = None
+
+    def tool_result(self) -> dict[str, Any]:
+        return {
+            "tool_name": PHASE_A_EXPAND_HISTORY_TOOL,
+            "evidence": {
+                "history_expansion_request": self.request.model_dump(mode="json") if self.request is not None else None,
+                "history_expansion_result": self.result.model_dump(mode="json") if self.result is not None else None,
+                "post_attachment_decision": self.post_attachment_decision.model_dump(mode="json"),
+                "post_transition_guard_result": self.post_transition_guard_result.model_dump(mode="json"),
+                "resolution_gain": self.resolution_gain,
+            },
+            "mutation_result": {},
+            "provenance": {
+                "phase_a_owner": "intake/application",
+                "primary_truth": "structured_candidates",
+                "transcript_support_inventory": list(self.transcript_support_inventory),
+            },
+            "confidence": "available" if self.attempted and self.result is not None else "none",
+            "failure_family": self.failure_family,
+        }
+
+    def trace_payload(self) -> dict[str, Any]:
+        summary = None
+        if self.result is not None:
+            summary = {
+                "meal_candidate_count": len(self.result.meal_candidates),
+                "atomic_block_count": len(self.result.atomic_blocks),
+                "transcript_support_count": len(self.result.transcript_snippets),
+            }
+        return {
+            "triggered": self.attempted,
+            "reason": self.request.reason if self.request is not None else None,
+            "scope": self.request.scope if self.request is not None else None,
+            "request": self.request.model_dump(mode="json") if self.request is not None else None,
+            "result_summary": summary,
+            "atomic_blocks_status": self.atomic_blocks_status,
+            "pre_decision": self.pre_attachment_decision.model_dump(mode="json"),
+            "post_decision": self.post_attachment_decision.model_dump(mode="json"),
+            "post_transition_guard_result": self.post_transition_guard_result.model_dump(mode="json"),
+            "resolution_gain": self.resolution_gain,
+            "selected_candidate_ids": list(self.selected_candidate_ids),
+            "ambiguity_detected": self.ambiguity_detected,
+            "transcript_support_inventory": list(self.transcript_support_inventory),
+            "failure_family": self.failure_family,
+        }
+
+
+def _normalized_text(text: str) -> str:
+    return str(text or "").strip().lower()
+
+
+def _looks_like_back_reference(text: str) -> bool:
+    normalized = _normalized_text(text)
+    return any(token in normalized for token in _BACK_REFERENCE_TOKENS)
+
+
+def _looks_like_older_reference(text: str) -> bool:
+    normalized = _normalized_text(text)
+    return any(token in normalized for token in ("yesterday", "last night", "earlier", "before", "previous"))
+
+
+def _request_kind(current_turn_context: CurrentTurnContextV1) -> tuple[str, str] | None:
+    utterance = current_turn_context.user_utterance
+    if _looks_like_older_reference(utterance):
+        return "older_meal_reference", "committed_meals"
+    if looks_like_correction(utterance):
+        return "correction_reference", "recent_meals"
+    if current_turn_context.pending_followup is not None:
+        return "unresolved_followup", "active_thread"
+    if _looks_like_back_reference(utterance):
+        return "target_ambiguity", "recent_meals"
+    return None
+
+
+def manager_history_expansion_eligibility(
+    *,
+    current_turn_context: CurrentTurnContextV1,
+    attachment_decision: AttachmentDecision,
+    transition_guard_result: TransitionGuardResult,
+) -> ManagerHistoryExpansionEligibility:
+    event = current_turn_context.current_interaction_event
+    if event.surface_mode != "chat_freeform":
+        return ManagerHistoryExpansionEligibility(False, "explicit_ui_target")
+    if event.target_object_id:
+        return ManagerHistoryExpansionEligibility(False, "explicit_ui_target")
+    if event.target_object_type == "proposal" or current_turn_context.open_workflow_type == "proposal":
+        return ManagerHistoryExpansionEligibility(False, "non_meal_primary_route")
+    if looks_like_budget_query(current_turn_context.user_utterance):
+        return ManagerHistoryExpansionEligibility(False, "budget_route")
+    if current_turn_context.pending_followup is not None and attachment_decision.target_object_id is not None:
+        return ManagerHistoryExpansionEligibility(False, "resolved_pending_followup")
+    if transition_guard_result.verdict == "pass":
+        return ManagerHistoryExpansionEligibility(False, "already_safe_pass")
+    unresolved_enough = attachment_decision.disposition == "answer_only" or transition_guard_result.verdict == "clarify_required"
+    if not unresolved_enough:
+        return ManagerHistoryExpansionEligibility(False, "not_unresolved")
+    request_kind = _request_kind(current_turn_context)
+    if request_kind is None:
+        return ManagerHistoryExpansionEligibility(False, "no_meal_reference_signal")
+    return ManagerHistoryExpansionEligibility(True, "eligible", request_kind[0], request_kind[1])
+
+
+def _dedupe(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        target_id = str(candidate.get("meal_thread_id") or "")
+        if not target_id or target_id in seen:
+            continue
+        seen.add(target_id)
+        deduped.append(candidate)
+    return deduped
+
+
+def _strong_candidates(
+    candidates: list[dict[str, Any]],
+    *,
+    request: HistoryExpansionRequest,
+    raw_user_input: str,
+    current_turn_context: CurrentTurnContextV1,
+    local_date: str | None,
+) -> list[dict[str, Any]]:
+    strong: list[dict[str, Any]] = []
+    temporal_reason = "correction_reference" if request.reason == "target_ambiguity" else request.reason
+    for candidate in candidates:
+        if not _candidate_temporal_match(
+            candidate,
+            reason=temporal_reason,
+            raw_user_input=raw_user_input,
+            local_date=local_date,
+        ):
+            continue
+        if not _candidate_lexical_match(
+            candidate,
+            raw_user_input=raw_user_input,
+            current_turn_context=current_turn_context,
+        ):
+            continue
+        strong.append(candidate)
+    return strong
+
+
+def activate_manager_triggered_history_expansion(
+    *,
+    current_turn_context: CurrentTurnContextV1,
+    resolved_state: Any,
+    pre_attachment_decision: AttachmentDecision | None = None,
+    pre_transition_guard_result: TransitionGuardResult | None = None,
+) -> ManagerTriggeredHistoryExpansionResult:
+    pre_attachment = pre_attachment_decision or resolve_attachment_decision(current_turn_context)
+    pre_guard = pre_transition_guard_result or resolve_transition_guard(current_turn_context, pre_attachment)
+    eligibility = manager_history_expansion_eligibility(
+        current_turn_context=current_turn_context,
+        attachment_decision=pre_attachment,
+        transition_guard_result=pre_guard,
+    )
+    if not eligibility.eligible:
+        return ManagerTriggeredHistoryExpansionResult(
+            attempted=False,
+            request=None,
+            result=None,
+            atomic_blocks_status="not_requested",
+            pre_attachment_decision=pre_attachment,
+            pre_transition_guard_result=pre_guard,
+            post_attachment_decision=pre_attachment,
+            post_transition_guard_result=pre_guard,
+            enriched_current_turn_context=current_turn_context,
+            resolution_gain=False,
+            failure_family=f"phase_a_history_expansion_not_eligible:{eligibility.reason}",
+        )
+
+    request = build_history_expansion_request(
+        reason=str(eligibility.request_reason),
+        scope=str(eligibility.request_scope),
+    )
+    candidates = _dedupe(
+        _historical_candidates_from_state(resolved_state)
+        + _recent_candidates_from_context(current_turn_context)
+    )
+    result = build_history_expansion_result(
+        meal_candidates=[
+            {
+                "meal_thread_id": candidate["meal_thread_id"],
+                "meal_version_id": candidate.get("meal_version_id"),
+                "label": candidate.get("label") or "",
+                "occurred_at": candidate.get("occurred_at"),
+                "reason": candidate.get("source") or request.reason,
+            }
+            for candidate in candidates
+        ],
+        atomic_blocks=[],
+        transcript_snippets=[],
+    )
+    strong = _strong_candidates(
+        candidates,
+        request=request,
+        raw_user_input=current_turn_context.user_utterance,
+        current_turn_context=current_turn_context,
+        local_date=getattr(resolved_state, "local_date", None),
+    )
+    selected = strong[0] if len(strong) == 1 else None
+    enriched = _enrich_current_turn_context(
+        current_turn_context=current_turn_context,
+        selected_candidate=selected,
+        activation_result=result,
+    )
+    post_attachment = resolve_attachment_decision(enriched)
+    post_guard = resolve_transition_guard(enriched, post_attachment)
+    resolution_gain = (
+        pre_attachment.disposition == "answer_only"
+        and post_attachment.disposition in {"attach_existing_thread", "target_committed_thread"}
+    )
+    return ManagerTriggeredHistoryExpansionResult(
+        attempted=True,
+        request=request,
+        result=result,
+        atomic_blocks_status="not_supplied",
+        pre_attachment_decision=pre_attachment,
+        pre_transition_guard_result=pre_guard,
+        post_attachment_decision=post_attachment,
+        post_transition_guard_result=post_guard,
+        enriched_current_turn_context=enriched,
+        resolution_gain=resolution_gain,
+        selected_candidate_ids=(str(selected["meal_thread_id"]),) if selected is not None else (),
+        ambiguity_detected=len(strong) > 1,
+        transcript_support_inventory=_transcript_support_inventory(resolved_state),
+    )
+
+
+__all__ = [
+    "ManagerHistoryExpansionEligibility",
+    "ManagerTriggeredHistoryExpansionResult",
+    "PHASE_A_EXPAND_HISTORY_TOOL",
+    "activate_manager_triggered_history_expansion",
+    "manager_history_expansion_eligibility",
+]

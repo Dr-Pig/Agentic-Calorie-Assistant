@@ -55,6 +55,16 @@ Hard alignment rule:
 
 Follow-up does not block logging.
 
+### B2-001 terminology bridge
+
+| term | canonical meaning | docs touched | old conflict | final wording |
+|---|---|---|---|---|
+| `estimable -> logged` | estimable items may commit even when follow-up remains useful | architecture draft, evidence gate, path matrix | follow-up could be misread as a hidden commit gate | estimable cases may become `logged`; follow-up does not block logging |
+| `unresolved -> draft` | unresolved composition cannot enter ledger truth | architecture draft, evidence gate, path matrix | unresolved could drift into soft-logged wording | unresolved composition cases must remain `draft` |
+| `provisional` | internal exactness or evidence posture only | architecture draft, evidence gate, path matrix | provisional could sound like a third persisted state | `provisional` is an internal posture, not a third user-facing or persistence state |
+| `packet usage class` | packet refs must remain explicit and trace-visible in synthesis | architecture draft, evidence gate, path matrix | renderer wording or prose labels could hide packet usage | packet usage classes stay explicit and trace-visible |
+| `follow-up severity` | precision-upgrade signal, not commit gating | architecture draft, evidence gate, path matrix | strong follow-up could be misread as unresolved by default | follow-up severity is a precision-upgrade tool, not a hidden commit gate |
+
 ## Section 3 - Estimability Rule
 
 Estimability is not a deterministic food-name rule.
@@ -197,6 +207,42 @@ Current agreed product examples:
 - if the utterance implies a mixed stall basket, treat it like a composition-unknown basket and keep it `draft`
 - if the utterance clearly specifies a single item such as `一份鹽酥雞` or `五十元鹽酥雞`, it may become estimable and loggable
 
+### Taiwan semantics ownership freeze
+
+Taiwan food semantics is product-semantic case law. It is not:
+
+- lookup truth
+- calorie truth
+- evidence truth
+- mutation authority
+
+Operationally, Taiwan semantics should live in:
+
+- generic food knowledge metadata
+- a small system/developer few-shot set for the highest-risk cases only
+- eval cases
+
+It should not be implemented as:
+
+- a runtime Markdown loader
+- an always-on semantic trigger
+- an independent runtime packet source
+
+Generic food knowledge may carry two different families:
+
+- `generic_anchor`
+  - estimable
+  - may become `GenericDbCandidatePacket`
+- `generic_semantic_only`
+  - clarify-only or unresolved support
+  - must never become an evidence candidate packet
+  - must flow only into clarify/unresolved synthesis behavior
+
+Few-shot usage must stay intentionally small:
+
+- 5 to 8 Taiwan-specific examples maximum
+- do not paste this whole case-law section into runtime prompt context
+
 ## Section 8 - Small Anchor Store Scope
 
 The small anchor store is an inference-support layer, not an inference-replacement layer.
@@ -206,6 +252,22 @@ Each anchor should capture:
 - a stable estimable dish anchor
 - major calorie-driving modifier schema
 - common composition hints
+- semantic support metadata such as `dish_type`, `composition_posture`, `variance_level`, `semantic_hints`, and `followup_hints`
+
+Phase-1 naming rule:
+
+- family labels such as `dish_type` remain bootstrap, eval, and indexing aids
+- runtime behavior should be driven first by semantic metadata such as `clarify_required`, `composition_posture`, `variance_level`, and `followup_hints`
+- `dish_type` remains compatibility fallback only
+- `semantic_hints` are non-owning in current runtime unless a later slice explicitly promotes them
+
+The same generic food knowledge family may also include clarify-only semantic records.
+
+These records:
+
+- carry semantic support only
+- do not carry kcal anchor payload
+- must not be converted into `GenericDbCandidatePacket`
 
 Minimum anchor shape:
 
@@ -441,8 +503,24 @@ modifier_hints:
   - string
 listed_items:
   - string
-retrieval_goal: exact_lookup | anchor_lookup | brand_lookup | semantic_hint
+retrieval_goal: generic_anchor_lookup | exact_brand_lookup | listed_item_lookup | composition_clarification | query_only_answer
 ```
+
+### P0 Retrieval Intent Freeze
+
+For `B2-003`, freeze only this minimal retrieval-intent field set:
+
+- `base_dish`
+- `aliases`
+- `brand_hint`
+- `size_hint`
+- `modifier_hints`
+- `listed_items`
+- `retrieval_goal`
+
+This object is inference support, not hidden semantic rewriting. It may normalize obvious retrieval cues, but it must not silently convert an unresolved composition-unknown case into an estimable logged case.
+
+Retrieval intent is not evidence verdict, not synthesis, and not mutation decision.
 
 P0 guidance:
 

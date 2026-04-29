@@ -21,6 +21,8 @@ class GeneralChatPassResult:
     reply_text: str
     asked_follow_up: bool
     ui_hints: dict[str, Any]
+    remaining_budget_contract: Any | None = None
+    active_body_plan_present: bool | None = None
 
 
 def _looks_like_remaining_budget_query(text: str) -> bool:
@@ -79,6 +81,8 @@ def build_general_chat_response_pass(
                 reply_text="你現在還沒有可用的 body plan，所以我還不能回答剩餘熱量。先把基本資料補齊後，我就能直接告訴你今天還剩多少。",
                 asked_follow_up=False,
                 ui_hints={"mode": "general_chat_onboarding_required", "delivery": "chat_only"},
+                remaining_budget_contract=answer,
+                active_body_plan_present=False,
             )
         return GeneralChatPassResult(
             target_workflow_family="general_chat",
@@ -96,6 +100,8 @@ def build_general_chat_response_pass(
                 "delivery": "chat_only",
                 "meal_count": answer.meal_count,
             },
+            remaining_budget_contract=answer,
+            active_body_plan_present=True,
         )
 
     if _looks_like_goal_query(text):
@@ -109,6 +115,7 @@ def build_general_chat_response_pass(
                 reply_text="你現在還沒有 active body plan，所以我還沒有正式的每日目標可以回答。先完成基本資料設定後再來看會比較準。",
                 asked_follow_up=False,
                 ui_hints={"mode": "general_chat_goal_unavailable", "delivery": "chat_only"},
+                active_body_plan_present=False,
             )
         goal_type = active_plan.goal_type or "unknown"
         plan_source = active_plan.plan_source or "unknown"
@@ -127,6 +134,7 @@ def build_general_chat_response_pass(
                 "delivery": "chat_only",
                 "plan_source": plan_source,
             },
+            active_body_plan_present=True,
         )
 
     if _looks_like_open_workflow_request(text):

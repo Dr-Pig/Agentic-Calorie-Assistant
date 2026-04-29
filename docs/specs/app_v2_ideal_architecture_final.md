@@ -759,6 +759,15 @@ Before placing new code, answer:
 3. Does this introduce a new cross-domain dependency?
 4. Should this be a contract, read model, event, or runtime tool interaction?
 5. Is this code truly shared, or just currently convenient to share?
+6. If this code selects a prompt, payload, schema, constraint, provider profile, tool path, workflow branch, or repair strategy:
+   - where is the selector?
+   - what raw state does it consume?
+   - what trace-visible output does it produce?
+   - is any `case_id` / model / provider-specific logic explicitly marked as local diagnostic debt?
+7. If this slice exposes architecture or dependency risk:
+   - should a missing thin seam or infrastructure hook be built first?
+   - if not, why is deferral safe?
+   - is any reuse borrowing only data, or also borrowing policy ownership?
 
 ---
 
