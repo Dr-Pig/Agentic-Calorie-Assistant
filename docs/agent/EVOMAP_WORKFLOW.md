@@ -23,6 +23,22 @@ Do not use EvoMap mechanically on every slice. If the current blocker is already
 
 If EvoMap is unavailable, say so explicitly and continue with repo truth. Do not fabricate recall or recorded memory.
 
+## Local Fallback
+
+When remote EvoMap recall or record fails because of credits, network, MCP, or service availability, use
+[EVOMAP_LOCAL_MEMORY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/EVOMAP_LOCAL_MEMORY.md)
+as the repo-local fallback.
+
+Local EvoMap memory is still a reusable lesson log, not source truth. It may guide future planning only after checking current repo docs, code, and artifacts.
+
+Record locally when:
+
+- the lesson would normally qualify for remote EvoMap
+- remote EvoMap is unavailable or too costly for the current slice
+- the lesson is durable enough to prevent repeated architecture, runtime, provider, evaluation, or Windows encoding mistakes
+
+Do not record local patch details, test counts, temporary artifact names, secrets, provider keys, or one-off noise.
+
 ## Before a Slice
 
 Run EvoMap recall (`gep_recall`) before planning or implementation only when the slice touches reusable architecture, runtime behavior, provider/model strategy, transport, evaluation design, debugging workflow, or another capability pattern likely to generalize.
