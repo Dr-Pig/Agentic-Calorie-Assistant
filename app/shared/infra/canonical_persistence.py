@@ -111,7 +111,7 @@ def upsert_budget_adjustment_skeleton(
     db.commit()
     db.refresh(entry)
     recompute_day_budget_ledger(db, user_id=user.id, local_date=local_date)
-    return record
+    return entry
 
 
 def commit_meal_payload_to_canonical(

@@ -7,7 +7,6 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
 
-from ...body.application import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from ...database import get_db, get_or_create_user
 from ...runtime.application.request_trace_artifacts import write_general_chat_request_trace_artifact
 from ...runtime.application.state_resolver import resolve_v2_bundle1_state
@@ -15,7 +14,6 @@ from ...runtime.interface.provider_runtime import extract_provider, manager_prov
 from ...schemas import EstimateRequest
 from ..application import execute_bundle1_turn
 from ..application.canonical_commit_bridge import (
-    get_active_body_profile_record,
     record_body_observation_to_canonical,
     record_budget_adjustment_to_canonical,
 )
@@ -113,27 +111,9 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                     value=parsed["weight_kg"],
                     local_date=local_date,
                 )
-                profile = get_active_body_profile_record(db, user_id=user.id)
-                if profile:
-                    profile_meta = dict(profile.metadata_json or {})
-                    bootstrap_body_plan_for_date(
-                        db,
-                        user=user,
-                        inputs=OnboardingBootstrapInput(
-                            sex=profile.sex,
-                            age_years=profile.age_years,
-                            height_cm=profile.height_cm,
-                            current_weight_kg=parsed["weight_kg"],
-                            activity_level=profile.activity_level,
-                            goal_type=profile.goal_type,
-                            weekly_target_rate_kg=profile_meta.get("weekly_target_rate_kg", 0.5),
-                            local_date=local_date,
-                            timezone="UTC",
-                        ),
-                    )
                 return {
                     "request_id": request_id,
-                    "coach_message": f"已記錄體重 {parsed['weight_kg']} kg，並依最新數據重新整理 body plan。",
+                    "coach_message": f"Recorded weight {parsed['weight_kg']} kg. Body plan was not changed.",
                     "payload": None,
                 }
 

@@ -38,11 +38,17 @@ onboarding 應只收集讓系統可以安全運作的最小資訊集合。
 
 系統應在資訊不足時降級運作，而不是拒絕服務。
 
-### 2.3 Proposal-First 的 plan 初始化
+### 2.3 Explicit-Completion 的 plan 初始化
 
 onboarding 收集到足夠資訊後，系統應先產生一個初始 `BodyPlan` proposal，讓使用者確認後才正式生效。
 
 不應在使用者未確認的情況下直接寫入 active `BodyPlan`。
+
+Wave 1 implementation cap:
+
+- 使用者在 onboarding 表單或 chat onboarding flow 中明確提交最小必要資訊時，可走 `plan_source: onboarding_bootstrap` 的 direct bootstrap，直接建立 active `BodyPlan` 與當日 `DayBudgetLedger`。
+- 這個 direct bootstrap 只適用於初次 onboarding explicit completion，不適用於一般 weight observation、calibration preview、rescue discussion、或背景 recompute。
+- 未來若導入正式 onboarding proposal card，仍應保持同一組 deterministic calculation / BodyPlan / DayBudgetLedger owner，不新增第二套 truth path。
 
 ---
 
@@ -142,9 +148,9 @@ onboarding 資訊收集完成後，系統依以下順序計算初始值：
 5. 套用 safety floor：
    - `recommended_target_kcal = max(safety_floor_kcal, raw_target_kcal)`
 
-### 5.2 初始 `BodyPlan` proposal
+### 5.2 初始 `BodyPlan` bootstrap / proposal posture
 
-計算完成後，系統產生一個 `BodyPlan` proposal，包含：
+計算完成後，系統產生一個 `BodyPlan` bootstrap payload，或在未來 proposal-first onboarding 中包成 `BodyPlan` proposal。兩者都必須包含：
 
 - `estimated_tdee`：步驟 2 的結果
 - `safety_floor_kcal`：依 sex 決定
@@ -154,11 +160,11 @@ onboarding 資訊收集完成後，系統依以下順序計算初始值：
 - `plan_source`：`onboarding_bootstrap`
 - `calibration_confidence`：`initial_estimate`
 
-使用者確認後，才正式寫入 active `BodyPlan`。
+Wave 1 direct bootstrap 可在使用者明確完成 onboarding 後正式寫入 active `BodyPlan`。若使用正式 proposal UI/card，則必須等使用者接受 proposal 後才寫入。
 
 ### 5.3 初始 `DayBudgetLedger` 建立
 
-`BodyPlan` 被接受後，系統為當日建立初始 `DayBudgetLedger`：
+`BodyPlan` 生效後，系統為當日建立初始 `DayBudgetLedger`：
 
 - `base_budget_kcal`：`recommended_target_kcal`
 - `base_budget_source`：`body_plan_initial`
@@ -228,7 +234,7 @@ onboarding 的主要互動面是 UI 表單。Chat 是補充和確認的管道。
 
 ## 8. Onboarding 完成後的系統狀態
 
-onboarding 完成且使用者確認 `BodyPlan` proposal 後，系統應達到以下狀態：
+onboarding 完成且使用者明確提交 onboarding 或接受 `BodyPlan` proposal 後，系統應達到以下狀態：
 
 - active `BodyPlan` 存在，`status: active`
 - 當日 `DayBudgetLedger` 存在
@@ -257,8 +263,8 @@ onboarding 完成且使用者確認 `BodyPlan` proposal 後，系統應達到以
 
 ### 對 L3.3B
 
-- onboarding 的 `BodyPlan` proposal 走 proposal-first 流程，但不走 calibration proposal gate
-- 這是 `plan_source: onboarding_bootstrap` 的特殊路徑
+- onboarding 的 `BodyPlan` direct bootstrap / proposal 都不走 calibration proposal gate
+- 這是 `plan_source: onboarding_bootstrap` 的特殊路徑，且只由 explicit onboarding completion 啟動
 
 ---
 
@@ -270,7 +276,7 @@ onboarding 完成且使用者確認 `BodyPlan` proposal 後，系統應達到以
 - `sex: prefer_not_to_say` 時，`safety_floor_kcal` 採 `1500`
 - 跳過 `activity_level` 時，TDEE 採 `sedentary` multiplier
 - `raw_target_kcal` 低於 `safety_floor_kcal` 時，`recommended_target_kcal` 被 floor 截斷
-- 使用者確認 proposal 後，`BodyPlan` 正確寫入 active state
+- 使用者明確完成 onboarding 或確認 proposal 後，`BodyPlan` 正確寫入 active state
 - 使用者跳過 onboarding，intake 仍可運作但不顯示預算
 - 跳過 onboarding 後問「我今天還能吃多少」，系統引導進入 onboarding
 
@@ -281,5 +287,5 @@ onboarding 完成且使用者確認 `BodyPlan` proposal 後，系統應達到以
 1. `activity_level` 跳過時預設 `sedentary`（× 1.2）
 2. `weekly_target_rate_kg` 跳過時預設 `0.5 kg/week`
 3. `sex: prefer_not_to_say` 時 `safety_floor_kcal` 採 `1500 kcal/day`
-4. onboarding proposal 不走 calibration proposal gate，直接走 `plan_source: onboarding_bootstrap` 路徑
+4. Wave 1 onboarding explicit completion 不走 calibration proposal gate，直接走 `plan_source: onboarding_bootstrap` 路徑
 5. onboarding 完成後，當日 `DayBudgetLedger` 立即建立，不等到隔日

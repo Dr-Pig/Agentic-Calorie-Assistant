@@ -68,3 +68,29 @@ def test_read_model_does_not_project_non_rescue_proposals_into_rescue_views() ->
 
     assert build_active_rescue_proposal_inbox([proposal]).items == []
     assert build_rescue_proposal_history([proposal]).items == []
+
+
+def test_active_inbox_accepts_presented_and_negotiating_and_sorts_newest_first() -> None:
+    older = ProposalRecordSnapshot(
+        proposal_id="p4",
+        proposal_type="rescue",
+        proposal_status="presented",
+        title="Recover over 4 days",
+        summary="Smaller daily adjustment.",
+        explanation="Presented to the user.",
+        created_at=datetime(2026, 4, 28, 12, 0, tzinfo=timezone.utc),
+    )
+    newer = ProposalRecordSnapshot(
+        proposal_id="p5",
+        proposal_type="rescue",
+        proposal_status="negotiating",
+        title="Recover over 3 days",
+        summary="Negotiation in progress.",
+        explanation="User asked for a lighter plan.",
+        created_at=datetime(2026, 4, 30, 12, 0, tzinfo=timezone.utc),
+    )
+
+    inbox = build_active_rescue_proposal_inbox([older, newer])
+
+    assert [item.proposal_id for item in inbox.items] == ["p5", "p4"]
+    assert all(item.primary_actions == ["accept_rescue_plan", "dismiss_rescue_plan"] for item in inbox.items)

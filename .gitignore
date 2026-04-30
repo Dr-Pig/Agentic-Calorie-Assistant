@@ -46,6 +46,7 @@ canary_persistence.db
 .tmp_*.pdf
 
 # Generated build / eval output
+docs/_spec_snapshots/
 artifacts/session_records/
 artifacts/refs/
 data_build/

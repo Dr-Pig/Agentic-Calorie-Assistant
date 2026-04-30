@@ -68,6 +68,20 @@ def test_minimum_evidence_gate_blocks_without_calling_llm() -> None:
     assert result.trace["llm_called"] is False
 
 
+def test_minimum_quality_gate_blocks_without_scheduler_or_message_send() -> None:
+    result = evaluate_proactive_deterministic_gate(
+        ProactiveGateInput(
+            trigger_type="dinner_recommendation",
+            minimum_quality_ready=False,
+        )
+    )
+
+    assert result.allowed is False
+    assert result.skip_reason == "minimum_quality_missing"
+    assert result.trace["scheduler_started"] is False
+    assert result.trace["message_sent"] is False
+
+
 def test_trigger_is_allowed_when_all_deterministic_checks_pass() -> None:
     result = evaluate_proactive_deterministic_gate(
         ProactiveGateInput(

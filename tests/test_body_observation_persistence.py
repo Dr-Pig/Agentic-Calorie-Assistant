@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.intake.application.canonical_commit_bridge import (
+from app.body.application.body_observation_service import (
     load_body_observation_history,
     record_body_observation_to_canonical,
 )
@@ -101,3 +102,19 @@ def test_body_observation_preserves_explicit_local_date_and_orders_history() -> 
     ]
     assert all_history[0].source == "scale"
     assert all_history[1].source == "scale"
+
+
+@pytest.mark.parametrize("value", [0.0, -10.0, float("inf")])
+def test_weight_observation_rejects_non_positive_or_non_finite_values(value: float) -> None:
+    db = _session()
+    user = _user(db)
+
+    with pytest.raises(ValueError, match="positive finite"):
+        record_body_observation_to_canonical(
+            db,
+            user=user,
+            value=value,
+            unit="kg",
+            observation_type="weight",
+            local_date="2026-04-13",
+        )

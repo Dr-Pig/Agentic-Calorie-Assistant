@@ -26,6 +26,12 @@ def evaluate_recommendation_candidate_quality(
         disqualifiers.append("unavailable")
     if candidate.estimated_kcal is None and candidate.kcal_range_max is None:
         disqualifiers.append("missing_kcal_estimate")
+    if candidate.estimated_kcal is not None and candidate.estimated_kcal <= 0:
+        disqualifiers.append("invalid_kcal_estimate")
+    if candidate.kcal_range_min is not None and candidate.kcal_range_min <= 0:
+        disqualifiers.append("invalid_kcal_estimate")
+    if candidate.kcal_range_max is not None and candidate.kcal_range_max <= 0:
+        disqualifiers.append("invalid_kcal_estimate")
     if candidate.evidence_posture in {"generic", "unknown"}:
         disqualifiers.append(f"{candidate.evidence_posture}_evidence_not_proactive")
     if _over_budget(candidate):

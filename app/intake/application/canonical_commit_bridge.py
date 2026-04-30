@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from sqlalchemy.orm import Session
 
-from ...shared.domain import BodyObservation
+from ...body.application.body_observation_service import (
+    get_active_body_profile_record,
+    load_body_observation_history,
+    record_body_observation_skeleton,
+    record_body_observation_to_canonical,
+)
 from app.shared.infra.canonical_persistence import (
     CanonicalMealCommitResult,
     CanonicalCommitTarget,
     commit_meal_payload_to_canonical,
-    load_body_observations,
     resolve_canonical_commit_target,
-    upsert_observation_skeleton,
     upsert_budget_adjustment_skeleton,
-    load_active_body_profile_record,
 )
-from ...models import BodyProfileRecord, LedgerEntryRecord, User
+from ...models import LedgerEntryRecord, User
 from ...schemas import CommitRequestCandidate, CommitVersionReason, EstimatePayload, MealItemPayload
 
 
@@ -120,83 +120,6 @@ def resolve_commit_candidate_target(
     )
 
 
-def record_body_observation_skeleton(
-    db: Session,
-    *,
-    user: User,
-    value: float,
-    unit: str = "kg",
-    observation_type: str = "weight",
-    source: str = "manual",
-    observed_at: datetime | None = None,
-    local_date: str | None = None,
-    metadata: dict[str, object] | None = None,
-) -> int:
-    observation = upsert_observation_skeleton(
-        db,
-        user=user,
-        value=value,
-        unit=unit,
-        observation_type=observation_type,
-        source=source,
-        observed_at=observed_at,
-        local_date=local_date,
-        metadata=metadata,
-    )
-    return observation.id
-
-
-def record_body_observation_to_canonical(
-    db: Session,
-    *,
-    user: User,
-    value: float,
-    unit: str = "kg",
-    observation_type: str = "weight",
-    source: str = "manual",
-    observed_at: datetime | None = None,
-    local_date: str | None = None,
-    metadata: dict[str, object] | None = None,
-) -> BodyObservation:
-    observation = upsert_observation_skeleton(
-        db,
-        user=user,
-        value=value,
-        unit=unit,
-        observation_type=observation_type,
-        source=source,
-        observed_at=observed_at,
-        local_date=local_date,
-        metadata=metadata,
-    )
-    return BodyObservation(
-        observation_id=observation.id,
-        user_id=observation.user_id,
-        observation_type=observation.observation_type,
-        value=observation.value,
-        unit=observation.unit,
-        observed_at=observation.observed_at,
-        local_date=observation.local_date,
-        source=observation.source,
-        metadata=dict(observation.metadata_json or {}),
-    )
-
-
-def load_body_observation_history(
-    db: Session,
-    *,
-    user_id: int,
-    local_date: str | None = None,
-    observation_type: str | None = "weight",
-) -> list[BodyObservation]:
-    return load_body_observations(
-        db,
-        user_id=user_id,
-        local_date=local_date,
-        observation_type=observation_type,
-    )
-
-
 def record_budget_adjustment_to_canonical(
     db: Session,
     *,
@@ -212,11 +135,3 @@ def record_budget_adjustment_to_canonical(
         local_date=local_date,
         metadata=metadata,
     )
-
-
-def get_active_body_profile_record(
-    db: Session,
-    *,
-    user_id: int,
-) -> BodyProfileRecord | None:
-    return load_active_body_profile_record(db, user_id=user_id)

@@ -55,3 +55,48 @@ def test_pending_meal_intent_rejects_canonical_write_authority() -> None:
             expires_at=created_at + timedelta(hours=6),
             canonical_write_authorized=True,
         )
+
+
+def test_pending_meal_intent_requires_future_expiration_and_supports_time_check() -> None:
+    created_at = datetime(2026, 4, 30, 18, 0, tzinfo=timezone.utc)
+    intent = PendingMealIntent(
+        intent_id="intent-3",
+        user_id="user-1",
+        candidate_title="Maybe eat chicken bento tonight",
+        source_surface="chat",
+        status="created",
+        created_at=created_at,
+        expires_at=created_at + timedelta(hours=2),
+    )
+
+    assert intent.is_active_at(created_at + timedelta(hours=1)) is True
+    assert intent.is_active_at(created_at + timedelta(hours=3)) is False
+
+    with pytest.raises(ValidationError):
+        PendingMealIntent(
+            intent_id="intent-4",
+            user_id="user-1",
+            candidate_title="Expired at creation",
+            source_surface="chat",
+            status="created",
+            created_at=created_at,
+            expires_at=created_at,
+        )
+
+
+def test_pending_meal_intent_is_active_property_respects_expiry() -> None:
+    now = datetime.now(timezone.utc)
+    created_at = now - timedelta(hours=2)
+    intent = PendingMealIntent(
+        intent_id="intent-5",
+        user_id="user-1",
+        candidate_title="Maybe eat noodles tonight",
+        source_surface="chat",
+        status="created",
+        created_at=created_at,
+        expires_at=now + timedelta(hours=2),
+    )
+
+    intent = intent.model_copy(update={"expires_at": now - timedelta(minutes=1)})
+
+    assert intent.is_active is False

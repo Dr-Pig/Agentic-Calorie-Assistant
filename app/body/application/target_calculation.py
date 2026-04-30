@@ -120,7 +120,7 @@ def calculate_recommended_target_kcal(
     safety_floor_kcal = int(_normalize_positive_number(inputs.safety_floor_kcal))
     weekly_loss_target_kg = max(0.0, float(inputs.weekly_loss_target_kg))
     activity_multiplier = (
-        float(inputs.activity_multiplier_override)
+        _normalize_positive_number(inputs.activity_multiplier_override)
         if inputs.activity_multiplier_override is not None
         else _resolve_activity_multiplier(inputs.activity_level)
     )
