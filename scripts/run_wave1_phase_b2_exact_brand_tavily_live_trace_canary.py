@@ -213,7 +213,26 @@ def _utc_stamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
 
 
+def _load_local_env(path: Path) -> None:
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(path, override=False)
+        return
+    except ModuleNotFoundError:
+        pass
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
+
+
 async def _main_async(args: argparse.Namespace) -> int:
+    _load_local_env(ROOT / ".env")
     path = await run_tavily_live_trace_canary(
         case_ids=tuple(args.cases),
         output_dir=Path(args.output_dir),
