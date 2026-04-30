@@ -32,7 +32,7 @@ def compute_token_usage(llm_traces: list[dict[str, Any]]) -> dict[str, Any]:
 def build_multi_turn_context(
     *,
     state: ConversationState,
-    planner_intent: str,
+    manager_intent: str,
     context_snapshot: str,
     retrieval_query_rewritten: bool,
     original_retrieval_query: str | None,
@@ -40,7 +40,7 @@ def build_multi_turn_context(
 ) -> dict[str, Any]:
     is_multi_turn = bool(
         state.latest_log_id
-        and (planner_intent in ["clarification", "modification"] or state.pending_question)
+        and (manager_intent in ["clarification", "modification"] or state.pending_question)
     )
     state_source = "none"
     if state.latest_log_id:
@@ -62,7 +62,7 @@ def build_multi_turn_context(
     }
     return {
         "is_multi_turn": is_multi_turn,
-        "turn_intent": planner_intent,
+        "turn_intent": manager_intent,
         "latest_log_id": state.latest_log_id,
         "latest_log_title": state.latest_meal_title,
         "latest_log_status": state.latest_log_status,
@@ -77,8 +77,8 @@ def build_multi_turn_context(
         "conversation_archive_count": state.conversation_archive_count,
         "conversation_archive_hit_count": len(state.conversation_archive_hits),
         "conversation_digest": state.conversation_digest.model_dump(mode="json"),
-        "conversation_hit_refs": [hit.message_id for hit in state.conversation_archive_hits],
-        "planner_state_digest": state.planner_state_digest.model_dump(mode="json"),
+        "conversation_hit_refs": [hit.record_id for hit in state.conversation_archive_hits],
+        "manager_state_digest": state.manager_state_digest.model_dump(mode="json"),
         "active_meal_summary": state.active_meal_summary.model_dump(mode="json"),
         "active_meal_state": state.active_meal_state.model_dump(mode="json"),
         "pending_followup_state": state.pending_followup_state.model_dump(mode="json"),
@@ -96,12 +96,12 @@ def build_multi_turn_context(
         "retrieval_query_rewritten": retrieval_query_rewritten,
         "original_retrieval_query": original_retrieval_query,
         "effective_retrieval_query": effective_retrieval_query if retrieval_query_rewritten else None,
-        "resolved_query_origin": "planner" if retrieval_query_rewritten else "raw_or_local",
+        "resolved_query_origin": "manager" if retrieval_query_rewritten else "raw_or_local",
     }
 
 
 def _repairability_for_layer(failed_layer: str | None) -> str:
-    if failed_layer in {"planner", "normalizer", "grounding", "repair_rescue"}:
+    if failed_layer in {"manager", "normalizer", "grounding", "repair_rescue"}:
         return "high"
     if failed_layer in {"risk_validator", "layer3_primary_llm"}:
         return "medium"
@@ -110,7 +110,7 @@ def _repairability_for_layer(failed_layer: str | None) -> str:
 
 def _suggested_next_action(failed_layer: str | None) -> str:
     return {
-        "planner": "inspect_planner_context_and_intent_routing",
+        "manager": "inspect_manager_context_and_intent_routing",
         "normalizer": "inspect_normalizer_side_effects",
         "risk_validator": "inspect_required_checks_and_followup_policy",
         "layer3_primary_llm": "inspect_primary_prompt_and_uncertainty_modeling",
@@ -193,7 +193,7 @@ def _build_span_timeline(
                 trigger_reason=persistence.get("action"),
                 input_ref="trace_contract.persistence_decision",
                 output_ref="multi_turn_context",
-                stage_input_summary={"planner_intent": persistence.get("planner_intent")},
+                stage_input_summary={"manager_intent": persistence.get("manager_intent")},
                 stage_output_summary={
                     "action": persistence.get("action"),
                     "status": persistence.get("status"),
@@ -212,15 +212,21 @@ def _build_decision_journal(
     best_answer_source: str | None,
     retry_triggered: bool,
 ) -> dict[str, Any]:
-    planner_output = trace_contract.get("planner_output", {}) or {}
+    manager_output = trace_contract.get("manager_output", {}) or {}
     return DecisionJournal(
-        planner_intent=planner_output.get("intent"),
-        route_family=trace_contract.get("route_family"),
-        followup_policy_decision=trace_contract.get("followup_policy_decision"),
-        followup_decision=trace_contract.get("followup_decision"),
-        best_answer_source=best_answer_source,
-        retry_triggered=retry_triggered,
-        retry_reason=trace_contract.get("retry_reason"),
+        routing_decision={
+            "manager_intent": manager_output.get("intent"),
+            "route_family": trace_contract.get("route_family"),
+        },
+        action_decision={
+            "followup_policy_decision": trace_contract.get("followup_policy_decision"),
+            "followup_decision": trace_contract.get("followup_decision"),
+        },
+        final_response_decision={
+            "best_answer_source": best_answer_source,
+            "retry_triggered": retry_triggered,
+            "retry_reason": trace_contract.get("retry_reason"),
+        },
     ).model_dump(mode="json")
 
 

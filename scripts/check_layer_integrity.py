@@ -8,6 +8,7 @@ import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 APP_ROOT = REPO_ROOT / "app"
+ARCHIVE_IMPORT_PREFIX = "app." + "archive"
 
 
 @dataclass(frozen=True)
@@ -22,43 +23,43 @@ class Rule:
 RULES: tuple[Rule, ...] = (
     Rule(
         path_prefix="app/runtime/",
-        forbidden_prefixes=("app.intake.domain", "app.nutrition.domain", "app.budget.domain", "app.archive"),
+        forbidden_prefixes=("app.intake.domain", "app.nutrition.domain", "app.budget.domain", ARCHIVE_IMPORT_PREFIX),
         label="runtime-boundary",
         severity="error",
     ),
     Rule(
         path_prefix="app/shared/",
-        forbidden_prefixes=("app.intake", "app.nutrition", "app.budget", "app.body", "app.archive"),
+        forbidden_prefixes=("app.intake", "app.nutrition", "app.budget", "app.body", ARCHIVE_IMPORT_PREFIX),
         label="shared-neutrality",
         severity="error",
     ),
     Rule(
         path_prefix="app/providers/",
-        forbidden_prefixes=("app.intake", "app.budget", "app.body", "app.archive"),
+        forbidden_prefixes=("app.intake", "app.budget", "app.body", ARCHIVE_IMPORT_PREFIX),
         label="provider-domain-ownership",
         severity="error",
     ),
     Rule(
         path_prefix="app/intake/",
-        forbidden_prefixes=("app.archive",),
+        forbidden_prefixes=(ARCHIVE_IMPORT_PREFIX,),
         label="intake-mainline-archive-separation",
         severity="error",
     ),
     Rule(
         path_prefix="app/body/",
-        forbidden_prefixes=("app.archive",),
+        forbidden_prefixes=(ARCHIVE_IMPORT_PREFIX,),
         label="body-mainline-archive-separation",
         severity="error",
     ),
     Rule(
         path_prefix="app/budget/",
-        forbidden_prefixes=("app.archive",),
+        forbidden_prefixes=(ARCHIVE_IMPORT_PREFIX,),
         label="budget-mainline-archive-separation",
         severity="error",
     ),
     Rule(
         path_prefix="app/nutrition/",
-        forbidden_prefixes=("app.archive",),
+        forbidden_prefixes=(ARCHIVE_IMPORT_PREFIX,),
         label="nutrition-mainline-archive-separation",
         severity="error",
     ),

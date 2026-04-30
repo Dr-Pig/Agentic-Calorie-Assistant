@@ -191,8 +191,8 @@ async def test_process_bundle2_intake_blocks_answer_only_commit_before_persisten
     )
     persisted: list[object] = []
 
-    monkeypatch.setattr(module.tools, "resolve_correction_target_tool", lambda **_: {})
-    monkeypatch.setattr(module.tools, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
     monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
     monkeypatch.setattr(
         module,
@@ -254,8 +254,8 @@ async def test_process_bundle2_intake_records_successful_repair_after_guard_bloc
         ]
     )
 
-    monkeypatch.setattr(module.tools, "resolve_correction_target_tool", lambda **_: {})
-    monkeypatch.setattr(module.tools, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
     monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
     monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *_, **__: None)
     monkeypatch.setattr(

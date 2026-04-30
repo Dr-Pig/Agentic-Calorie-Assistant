@@ -33,24 +33,8 @@ def test_runtime_manager_does_not_assemble_phase_a_context() -> None:
     assert "runtime.application.phase_a_context" not in content
 
 
-def test_runtime_phase_a_context_is_a_facade_for_active_core_symbols() -> None:
-    content = _read("app/runtime/application/phase_a_context.py")
-
-    assert "from ...intake.application.current_turn_context_assembler import" in content
-    assert "from ...intake.application.attachment_resolver import" in content
-    assert "from ...intake.application.transition_guard import" in content
-    assert "from ...intake.application.context_injection_policy import" in content
-    assert "from ...intake.application.history_expansion_policy import" in content
-    assert "from ...intake.application.phase_a_trace import" in content
-    assert "from ...intake.application.shadow_hypothesis import" in content
-    assert "def build_current_turn_context_v1(" not in content
-    assert "def resolve_attachment_decision(" not in content
-    assert "def resolve_transition_guard(" not in content
-    assert "def build_manager_context_pack(" not in content
-    assert "def build_history_expansion_request(" not in content
-    assert "def build_history_expansion_result(" not in content
-    assert "def build_shadow_hypothesis(" not in content
-    assert "def advance_shadow_hypothesis(" not in content
+def test_runtime_phase_a_context_facade_is_deleted() -> None:
+    assert not (REPO_ROOT / "app/runtime/application" / ("phase_a_" + "context.py")).exists()
 
 
 def test_history_expansion_policy_is_policy_only() -> None:
@@ -73,7 +57,7 @@ def test_shadow_hypothesis_is_lifecycle_only() -> None:
     assert "tentative phrasing" not in content.lower()
 
 
-def test_only_one_dedicated_compatibility_shim_test_imports_runtime_phase_a_facade() -> None:
+def test_no_tests_import_runtime_phase_a_facade() -> None:
     importing_tests = []
     for path in (REPO_ROOT / "tests").glob("test_*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
@@ -90,4 +74,4 @@ def test_only_one_dedicated_compatibility_shim_test_imports_runtime_phase_a_faca
         if imports_runtime_facade:
             importing_tests.append(path.name)
 
-    assert importing_tests == ["test_phase_a_compatibility_shim.py"]
+    assert importing_tests == []

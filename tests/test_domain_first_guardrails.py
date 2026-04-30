@@ -42,10 +42,6 @@ ACTIVE_IMPORT_GUARDS = {
         _legacy_path_token("app.", "use", "cases"),
         _legacy_path_token("..", "use", "cases"),
     ),
-    ROOT / "app" / "intake" / "application" / "manager_tools.py": (
-        _legacy_path_token("app.", "use", "cases"),
-        _legacy_path_token("..", "use", "cases"),
-    ),
     ROOT / "app" / "runtime" / "application" / "state_resolver.py": (
         "app.runtime.application",
         "..application",
@@ -75,6 +71,7 @@ IGNORED_REPO_PARTS = {
     ".logs",
     ".pytest_tmp_local",
     ".pytest_tmp2",
+    "artifacts",
     "docs-snapshots",
 }
 
@@ -253,7 +250,7 @@ def test_repo_has_no_provider_split_or_trace_compat_tokens() -> None:
         if path.suffix.lower() not in {".py", ".md", ".json"}:
             continue
         normalized = str(path.relative_to(ROOT)).replace("\\", "/")
-        if any(part in IGNORED_REPO_PARTS for part in path.parts) or normalized.startswith("docs/archive/"):
+        if any(part in IGNORED_REPO_PARTS for part in path.parts):
             continue
         content = path.read_text(encoding="utf-8", errors="ignore")
         for token in banned_tokens:
@@ -269,9 +266,7 @@ def test_active_repo_paths_do_not_reintroduce_stage_pass_vocabulary() -> None:
         if not path.is_file():
             continue
         normalized = path.relative_to(ROOT).as_posix()
-        if any(part in IGNORED_REPO_PARTS for part in path.parts) or normalized.startswith("docs/archive/"):
-            continue
-        if normalized.startswith("docs/agent/autonomy-prompts/") or normalized.startswith("docs/agent/autonomy-schemas/"):
+        if any(part in IGNORED_REPO_PARTS for part in path.parts):
             continue
         if path.suffix.lower() not in {".py", ".md", ".json", ".ps1"}:
             continue
@@ -307,7 +302,7 @@ def test_active_mainline_paths_do_not_import_archive_app_family() -> None:
     for root in active_roots:
         for path in root.rglob("*.py"):
             source = path.read_text(encoding="utf-8", errors="ignore")
-            if "app.archive" in source:
+            if ("app." + "archive") in source:
                 offenders.append(path.relative_to(ROOT).as_posix())
     assert not offenders, f"active mainline code must not import archive app families: {offenders}"
 

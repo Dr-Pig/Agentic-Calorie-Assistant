@@ -37,6 +37,8 @@ def render_bundle1_reply(
         )
     if intent_type == "onboarding_required":
         return "Please complete onboarding first so I can seed your body plan and daily budget."
+    if intent_type == "manager_unavailable":
+        return "I could not safely complete that turn because the manager provider is unavailable. Nothing was committed."
     if intent_type == "log_meal" and nutrition_payload is not None:
         if manager_final_action == "no_commit":
             return "I could not safely complete that turn, so nothing was committed."

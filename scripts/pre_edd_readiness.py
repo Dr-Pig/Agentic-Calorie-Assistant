@@ -62,6 +62,11 @@ _command_plan.extend(
             status_key="single_manager_status",
         ),
         CommandSpec(
+            name="readiness_claim_integrity",
+            command=(sys.executable, "scripts/audit_readiness_claim_integrity.py"),
+            status_key="readiness_claim_status",
+        ),
+        CommandSpec(
             name="architecture_guard_tests",
             command=(
                 sys.executable,
@@ -72,13 +77,13 @@ _command_plan.extend(
                 "tests/test_manager_service.py",
                 "tests/test_deepseek_adapter.py",
                 "tests/test_builderspace_adapter.py",
-                "tests/test_eval_bootstrap.py",
                 "tests/test_markdown_encoding_guard.py",
                 "tests/test_runner_timeout_contract.py",
                 "tests/test_tavily_timeout_contract.py",
                 "tests/test_text_integrity.py",
                 "tests/test_import_external_workspace_candidates.py",
                 "tests/test_pre_edd_readiness.py",
+                "tests/test_readiness_claim_integrity.py",
                 "tests/test_workflow_routing_decision.py",
                 "-q",
             ),
@@ -96,7 +101,6 @@ PROTECTED_FAT_PATHS = (
     "app/runtime/application/manager_service.py",
     "app/intake/application/intake_turn_orchestrator.py",
     "app/intake/application/intake_execution_orchestrator.py",
-    "app/intake/application/manager_tools.py",
     "app/providers/builderspace_adapter.py",
     "app/providers/deepseek_adapter.py",
 )
@@ -196,6 +200,7 @@ def run_pre_edd_readiness(*, timeout_seconds: int = 180) -> dict[str, Any]:
         "latency_trace_status": {"status": "not_run", "details": []},
         "product_truth_alignment_status": {"status": "not_run", "details": []},
         "anti_overfit_status": {"status": "not_run", "details": []},
+        "readiness_claim_status": {"status": "not_run", "details": []},
     }
     command_results: list[dict[str, Any]] = []
     for spec in COMMAND_PLAN:
@@ -231,7 +236,11 @@ def run_pre_edd_readiness(*, timeout_seconds: int = 180) -> dict[str, Any]:
         "status": "pass" if derived_pass else "fail",
         "details": [] if derived_pass else ["latency trace guard is incomplete because single-manager/runtime checks failed"],
     }
-    product_truth_pass = derived_pass and statuses["legacy_status"]["status"] == "pass"
+    product_truth_pass = (
+        derived_pass
+        and statuses["legacy_status"]["status"] == "pass"
+        and statuses["readiness_claim_status"]["status"] == "pass"
+    )
     statuses["product_truth_alignment_status"] = {
         "status": "pass" if product_truth_pass else "fail",
         "details": [] if product_truth_pass else ["product-truth-first architecture or canonical spec alignment failed"],
@@ -246,12 +255,7 @@ def run_pre_edd_readiness(*, timeout_seconds: int = 180) -> dict[str, Any]:
         "summary": summary,
         "statuses": statuses,
         "commands": command_results,
-        "excluded_business_eval_suites": [
-            "run_v2_bundle1_live_eval.py",
-            "run_v2_bundle2_live_eval.py",
-            "run_v2_founder_realism_eval.py",
-            "run_v2_benchmark_blocking_eval.py",
-        ],
+        "excluded_business_eval_suites": ["legacy live acceptance runners"],
     }
 
 

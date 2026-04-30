@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.nutrition.application.exact_brand_web_canary import run_exact_brand_web_canary
+from app.shared.contracts.readiness_claim import build_readiness_claim
 
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
 DEFAULT_CASE_IDS = ("starbucks_latte_positive", "starbucks_latte_sibling_negative")
@@ -40,6 +41,7 @@ def build_missing_token_report(*, case_ids: tuple[str, ...]) -> dict[str, Any]:
         "live_invoked": False,
         "failure_family": "missing_tavily_api_key",
         "readiness_claimed": False,
+        "readiness_claim": _build_tavily_readiness_claim(live_invoked=False),
         "trace_only": True,
         "case_ids": list(case_ids),
         "cases": [],
@@ -86,6 +88,7 @@ async def run_tavily_live_trace_canary(
         "provider_mode": "live",
         "live_invoked": True,
         "readiness_claimed": False,
+        "readiness_claim": _build_tavily_readiness_claim(live_invoked=True),
         "trace_only": True,
         "case_ids": list(case_ids),
         "cases": cases,
@@ -121,6 +124,35 @@ def _product_decision_required(trace: dict[str, Any]) -> bool:
         if candidate.get("rejected_risk") is None and str(candidate.get("source_url") or ""):
             return True
     return False
+
+
+def _build_tavily_readiness_claim(*, live_invoked: bool) -> dict[str, Any]:
+    return build_readiness_claim(
+        claim_scope="live_diagnostic" if live_invoked else "unit_contract",
+        activation_stage="live_diagnostic" if live_invoked else "contract",
+        semantic_authority_source="deterministic_validator",
+        producer_honesty={
+            "runner_inferred_semantics": False,
+            "fake_provider_simulated_manager": False,
+            "final_mapping_fabricated": False,
+            "mutation_fabricated": False,
+        },
+        evidence_lineage={
+            "artifacts": [],
+            "producers": ["scripts/run_wave1_phase_b2_exact_brand_tavily_live_trace_canary.py"],
+            "live_invoked": live_invoked,
+            "trace_only": True,
+            "legacy_oracle_used": False,
+        },
+        allowed_next_stage="shadow" if live_invoked else None,
+        forbidden_claims=[
+            "product_ready",
+            "user_facing_ready",
+            "mutation_ready",
+            "production_ready",
+        ],
+        readiness_claimed=False,
+    )
 
 
 def _write_report(output_dir: Path, report: dict[str, Any]) -> Path:

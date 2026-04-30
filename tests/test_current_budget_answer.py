@@ -51,7 +51,7 @@ def test_remaining_budget_answer_reads_bootstrap_target_and_two_meals() -> None:
         user=user,
         candidate=CommitRequestCandidate(
             request_id="meal-1",
-            planner_intent="food_estimation",
+            manager_intent="food_estimation",
             version_reason="new_intake",
             meal_title="breakfast sandwich",
             raw_input="breakfast sandwich",
@@ -68,7 +68,7 @@ def test_remaining_budget_answer_reads_bootstrap_target_and_two_meals() -> None:
         user=user,
         candidate=CommitRequestCandidate(
             request_id="meal-2",
-            planner_intent="food_estimation",
+            manager_intent="food_estimation",
             version_reason="new_intake",
             meal_title="chicken rice",
             raw_input="chicken rice",

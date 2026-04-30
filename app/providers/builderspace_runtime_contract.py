@@ -7,6 +7,7 @@ from ..runtime.agent.manager_branch_contract import (
     manager_pass1_schema_for_constraints,
     validate_manager_pass1_branch,
 )
+from ..runtime.agent.manager_branch_shapes import manager_semantic_decision_schema
 from ..runtime.contracts.trace import MANAGER_LOOP_STAGE
 
 
@@ -44,6 +45,7 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
             "answer_contract": {"type": "object"},
             "uncertainty_posture": {"type": "string"},
             "evidence_honesty_posture": {"type": "string"},
+            "semantic_decision": manager_semantic_decision_schema(),
         },
         "required": [
             "manager_action",

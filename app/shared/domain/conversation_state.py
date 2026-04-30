@@ -17,7 +17,7 @@ from .session_state_models import (
     DurableMemoryHit,
     GroundingBundle,
     PendingFollowupState,
-    PlannerStateDigest,
+    ManagerStateDigest,
     SessionContextPayload,
     SessionStateDigest,
     RecentTurnSummary,
@@ -26,7 +26,6 @@ from .session_state_models import (
 )
 from .trace_models import DecisionJournal, EvidenceJournal, TraceDiagnosis, TraceEnvelope, TraceMeta, TraceSpan, TraceSummary
 
-PlannerContextPayload = SessionContextPayload
 
 __all__ = [
     "ActiveMealState",
@@ -43,8 +42,7 @@ __all__ = [
     "GroundingBundle",
     "MealRecord",
     "PendingFollowupState",
-    "PlannerContextPayload",
-    "PlannerStateDigest",
+    "ManagerStateDigest",
     "SessionContextPayload",
     "SessionStateDigest",
     "RecentTurnSummary",

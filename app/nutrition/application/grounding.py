@@ -13,10 +13,10 @@ from app.nutrition.application.evidence_selector import summarize_selected_evide
 def build_partial_grounding_packet(
     *,
     user_input: str,
-    planner_foods: list[str] | None,
+    manager_foods: list[str] | None,
     selected_evidence: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    expected_components = infer_expected_components(user_input=user_input, planner_foods=planner_foods)
+    expected_components = infer_expected_components(user_input=user_input, manager_foods=manager_foods)
     store_hint = infer_store_hint(user_input)
     anchored_components: list[dict[str, Any]] = []
     missing_components: list[dict[str, Any]] = []

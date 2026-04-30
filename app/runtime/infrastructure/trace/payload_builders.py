@@ -2,13 +2,50 @@ from __future__ import annotations
 
 from typing import Any
 
-from ...nutrition.agent.nutrition_resolution_normalizer import build_component_estimates
-from ...nutrition.application.evidence_assembly import db_hit_type, split_evidence_lanes, summarize_retrieved_evidence
-from ..schemas import EstimatePayload, EstimateRequest
+from ....nutrition.application.evidence_normalizer import split_evidence_lanes
+from ....nutrition.application.evidence_selector import db_hit_type, summarize_retrieved_evidence
+from ....schemas import ComponentEstimate, EstimatePayload, EstimateRequest
 
 
 def unicode_escape(text: str) -> str:
     return text.encode("unicode_escape", errors="backslashreplace").decode("ascii")
+
+
+def _build_component_estimates(
+    components: list[str],
+    *,
+    source: str,
+    component_breakdown: list[dict[str, Any]] | None = None,
+) -> list[ComponentEstimate]:
+    by_name = {
+        str(item.get("name") or item.get("title") or "").strip(): item
+        for item in (component_breakdown or [])
+        if str(item.get("name") or item.get("title") or "").strip()
+    }
+    return [
+        ComponentEstimate(
+            name=str(component),
+            source=source,  # type: ignore[arg-type]
+            quantity_hint=str(
+                by_name.get(str(component), {}).get("quantity_hint")
+                or by_name.get(str(component), {}).get("portion_hint")
+                or ""
+            ).strip()
+            or None,
+            reason=str(by_name.get(str(component), {}).get("reason") or "").strip(),
+            evidence_ids=[
+                str(item)
+                for item in by_name.get(str(component), {}).get("evidence_ids", [])
+                if str(item).strip()
+            ],
+            estimated_kcal=int(by_name.get(str(component), {}).get("estimated_kcal") or 0),
+            protein_g=int(by_name.get(str(component), {}).get("protein_g") or 0),
+            carb_g=int(by_name.get(str(component), {}).get("carb_g") or 0),
+            fat_g=int(by_name.get(str(component), {}).get("fat_g") or 0),
+        )
+        for component in components
+        if str(component).strip()
+    ]
 
 
 def _trace_followup_decision(best_parsed: dict[str, Any]) -> str:
@@ -26,8 +63,8 @@ def build_trace_contract(
     *,
     request: EstimateRequest,
     effective_request: EstimateRequest,
-    planner_result: Any,
-    planner_enabled: bool,
+    manager_result: Any,
+    manager_enabled: bool,
     normalization: dict[str, Any],
     risk_packet: dict[str, Any],
     meal_template: dict[str, Any] | None,
@@ -50,19 +87,19 @@ def build_trace_contract(
     evidence_resolution_trace: dict[str, Any] | None = None,
     memory_trace: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    planner_mode = (
+    manager_mode = (
         "llm"
-        if planner_enabled and not str(planner_result.route_hints.get("planner_source", "")).startswith("fallback")
+        if manager_enabled and not str(manager_result.route_hints.get("manager_source", "")).startswith("fallback")
         else "fallback"
-        if planner_enabled
+        if manager_enabled
         else "disabled"
     )
     normalizer_mode = "off"
-    if not planner_enabled:
-        normalizer_mode = "planner_off_fallback"
+    if not manager_enabled:
+        normalizer_mode = "manager_off_fallback"
     elif normalization.get("normalizer_applied"):
-        normalizer_mode = "post_planner_estimation_cleanup"
-    planner_input_view = request.text if planner_enabled else effective_request.text
+        normalizer_mode = "post_manager_estimation_cleanup"
+    manager_input_view = request.text if manager_enabled else effective_request.text
     grounding_attempts: list[dict[str, Any]] = []
     if retrieval_query:
         grounding_attempts.append({"kind": "local_retrieval", "query": retrieval_query, "hit_count": len(retrieved_knowledge), "used": bool(retrieved_knowledge)})
@@ -70,23 +107,23 @@ def build_trace_contract(
         grounding_attempts.append({"kind": "search", "query": search_query, "hit_count": len(sources), "used": True})
     return {
         "raw_input_bundle": {"text": request.text, "modalities": ["text"]},
-        "planner_used": planner_enabled,
-        "planner_input_view": planner_input_view,
-        "planner_output": {
-            "intent": planner_result.intent,
-            "meal_boundary": planner_result.meal_boundary,
-            "active_meal_reference": planner_result.active_meal_reference,
-            "boundary_confidence": planner_result.boundary_confidence,
-            "planner_self_reported_boundary_confidence": planner_result.route_hints.get("planner_self_reported_boundary_confidence"),
-            "resolved_query": planner_result.resolved_query,
-            "resolution_mode": planner_result.resolution_mode,
-            "planning_brief": planner_result.planning_brief.model_dump(mode="json"),
-            "route_hints": planner_result.route_hints,
-            "missing_context": planner_result.missing_info,
-            "contextual_cues": planner_result.input_signals,
-            "normalized_user_input": planner_result.normalized_user_input,
-            "planner_mode": planner_mode,
-            "planner_source": planner_result.route_hints.get("planner_source"),
+        "manager_used": manager_enabled,
+        "manager_input_view": manager_input_view,
+        "manager_output": {
+            "intent": manager_result.intent,
+            "meal_boundary": manager_result.meal_boundary,
+            "active_meal_reference": manager_result.active_meal_reference,
+            "boundary_confidence": manager_result.boundary_confidence,
+            "manager_self_reported_boundary_confidence": manager_result.route_hints.get("manager_self_reported_boundary_confidence"),
+            "resolved_query": manager_result.resolved_query,
+            "resolution_mode": manager_result.resolution_mode,
+            "manager_brief": manager_result.manager_brief.model_dump(mode="json"),
+            "route_hints": manager_result.route_hints,
+            "missing_context": manager_result.missing_info,
+            "contextual_cues": manager_result.input_signals,
+            "normalized_user_input": manager_result.normalized_user_input,
+            "manager_mode": manager_mode,
+            "manager_source": manager_result.route_hints.get("manager_source"),
         },
         "normalizer_mode": normalizer_mode,
         "normalizer_diff": {
@@ -220,9 +257,9 @@ def build_payload(
     del private_only
     response_mode_hint = str(parsed.get("response_mode_hint") or "")
     unresolved_info = [str(item) for item in parsed.get("unresolved_info") or [] if str(item).strip()]
-    follow_up_needed = bool(parsed.get("follow_up_needed"))
+    blocking_slots = [str(item) for item in parsed.get("blocking_slots") or [] if str(item).strip()]
     source_decision: str
-    if response_mode_hint == "clarify_first" or follow_up_needed or unresolved_info:
+    if response_mode_hint == "clarify_first" or blocking_slots or unresolved_info:
         source_decision = "ask_user"
     else:
         source_decision = "retrieve" if retrieval_triggered or used_search else "ready"
@@ -237,7 +274,11 @@ def build_payload(
         carb = int(display_macro_breakdown.get("carb_g") or 0)
         fat = int(display_macro_breakdown.get("fat_g") or 0)
     source_label = "retrieval" if retrieved_knowledge else "llm"
-    component_estimates = parsed.get("deterministic_component_estimates") or build_component_estimates(parsed["components"], source=source_label)
+    component_estimates = parsed.get("deterministic_component_estimates") or _build_component_estimates(
+        parsed["components"],
+        source=source_label,
+        component_breakdown=list(parsed.get("component_breakdown") or []),
+    )
     evidence_summary = summarize_retrieved_evidence(retrieved_knowledge or sources)
     normalized_search_quality = search_quality.get("quality") if isinstance(search_quality, dict) else search_quality
     fallback_reply_text = (reply_text or "").strip()

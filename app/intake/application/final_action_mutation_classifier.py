@@ -8,6 +8,13 @@ from ...runtime.contracts.phase_a import TransitionGuardResult
 
 
 _BLOCKING_GUARD_VERDICTS = {"answer_only", "clarify_required", "block"}
+_AUTHORITATIVE_SEMANTIC_SOURCES = {"manager_llm", "deterministic_fake_provider"}
+_MUTATION_INTENT_BY_EFFECT = {
+    "canonical_write": {"canonical_write"},
+    "correction_persistence": {"correction_write"},
+    "ledger_mutation": {"ledger_read"},
+    "draft_pending_persistence": {"draft_write"},
+}
 FINAL_ACTION_EFFECT_CLASSES: dict[str, str] = {
     "commit": "canonical_write",
     "correction_applied": "correction_persistence",
@@ -71,6 +78,27 @@ def final_action_has_persistence_effect(final_action: str) -> bool:
     return final_action_effect_class(final_action) != "none"
 
 
+def _manager_semantic_decision_authorizes_mutation(
+    *,
+    manager_payload: Mapping[str, Any],
+    effect_class: str,
+    transition_guard_result: TransitionGuardResult,
+) -> bool:
+    if transition_guard_result.verdict != "answer_only":
+        return False
+    semantic_decision = manager_payload.get("semantic_decision")
+    if not isinstance(semantic_decision, Mapping):
+        return False
+    if str(semantic_decision.get("semantic_authority") or "") not in _AUTHORITATIVE_SEMANTIC_SOURCES:
+        return False
+    if str(semantic_decision.get("current_turn_intent") or "") not in {"log_meal", "correct_meal"}:
+        return False
+    if str(semantic_decision.get("final_action_candidate") or "") != str(manager_payload.get("final_action") or ""):
+        return False
+    mutation_candidate = str(semantic_decision.get("mutation_intent_candidate") or "")
+    return mutation_candidate in _MUTATION_INTENT_BY_EFFECT.get(effect_class, set())
+
+
 def classify_final_action_mutation(
     *,
     manager_payload: Mapping[str, Any],
@@ -83,7 +111,18 @@ def classify_final_action_mutation(
         persistence_effect_actions=persistence_effect_actions,
     )
     mutation_like = effect_class != "none"
-    blocked = mutation_like and transition_guard_result.verdict in _BLOCKING_GUARD_VERDICTS
+    semantic_override = mutation_like and _manager_semantic_decision_authorizes_mutation(
+        manager_payload=manager_payload,
+        effect_class=effect_class,
+        transition_guard_result=transition_guard_result,
+    )
+    effective_verdict = "pass" if semantic_override else transition_guard_result.verdict
+    effective_reason = (
+        "manager_semantic_decision_authorized_mutation"
+        if semantic_override
+        else transition_guard_result.reason
+    )
+    blocked = mutation_like and effective_verdict in _BLOCKING_GUARD_VERDICTS
     return FinalActionMutationClassification(
         checked=True,
         manager_final_action=final_action,
@@ -91,9 +130,9 @@ def classify_final_action_mutation(
         mutation_effect_class=effect_class,
         blocked=blocked,
         failure_family="phase_a_transition_guard_blocked" if blocked else None,
-        transition_guard_verdict=transition_guard_result.verdict,
-        transition_guard_reason=transition_guard_result.reason,
-        blocked_mutation=transition_guard_result.blocked_mutation,
+        transition_guard_verdict=effective_verdict,
+        transition_guard_reason=effective_reason,
+        blocked_mutation=None if semantic_override else transition_guard_result.blocked_mutation,
         affected_object_type=transition_guard_result.affected_object_type,
         affected_object_id=transition_guard_result.affected_object_id,
     )

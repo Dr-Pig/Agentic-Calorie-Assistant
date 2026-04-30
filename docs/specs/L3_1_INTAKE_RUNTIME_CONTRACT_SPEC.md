@@ -393,10 +393,10 @@ Mechanical implementation：
 
 Runner integration：
 
-- `scripts/run_v2_bundle1_live_eval.py`
-- `scripts/run_v2_bundle2_live_eval.py`
+- current Manager-style intake-entry diagnostic runner
+- current Manager-style intake-depth diagnostic runner
 - `scripts/run_v2_founder_realism_eval.py`
-- `scripts/run_v2_benchmark_blocking_eval.py`
+- current promoted benchmark / Founder diagnostic runner
 
 Guard tests：
 
@@ -466,9 +466,4 @@ Terminal 顯示亂碼但 byte-level verifier 通過時，不得宣稱 file corru
 
 任何舊多階段 intake runtime 的 vocabulary、schema、triage、tests、bootstrap path 都不得再成為 V2 canonical truth。
 
-允許保留的只有：
-
-- `docs/archive/` 中的歷史文件
-- 明確標示為 legacy/archive 的 artifacts
-
-但它們不得被 active code、runners、tests 或 bootstrap path 引用。
+舊多階段文件與 artifacts 不得留在 active repo truth path，也不得被 active code、runners、tests 或 bootstrap path 引用。

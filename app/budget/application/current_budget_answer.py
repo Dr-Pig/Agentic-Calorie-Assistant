@@ -6,6 +6,7 @@ from typing import Literal
 from sqlalchemy.orm import Session
 
 from ...body.application.active_body_plan_read_model import build_active_body_plan_view
+from ...shared.domain import ActiveBodyPlanView, CurrentBudgetView
 from .current_budget_read_model import build_current_budget_view
 
 BudgetAnswerStatus = Literal["ready", "onboarding_required"]
@@ -22,6 +23,19 @@ class RemainingBudgetAnswerContract:
     meal_count: int
 
 
+def _view_field(view: object, field_name: str, default: object = None) -> object:
+    if hasattr(view, field_name):
+        return getattr(view, field_name)
+    if hasattr(view, "model_dump"):
+        try:
+            payload = view.model_dump(mode="json")
+        except TypeError:
+            payload = view.model_dump()
+        if isinstance(payload, dict):
+            return payload.get(field_name, default)
+    return default
+
+
 def build_remaining_budget_answer_contract(
     db: Session,
     *,
@@ -30,24 +44,39 @@ def build_remaining_budget_answer_contract(
 ) -> RemainingBudgetAnswerContract:
     current_budget = build_current_budget_view(db, user_id=user_id, local_date=local_date)
     active_plan = build_active_body_plan_view(db, user_id=user_id)
+    return build_remaining_budget_answer_contract_from_views(
+        current_budget=current_budget,
+        active_plan=active_plan,
+    )
 
-    if active_plan.body_plan_id is None:
+
+def build_remaining_budget_answer_contract_from_views(
+    *,
+    current_budget: CurrentBudgetView,
+    active_plan: ActiveBodyPlanView,
+) -> RemainingBudgetAnswerContract:
+    user_id = int(_view_field(current_budget, "user_id", 0) or 0)
+    local_date = str(_view_field(current_budget, "local_date", "") or "")
+    consumed_kcal = int(_view_field(current_budget, "consumed_kcal", 0) or 0)
+    remaining_kcal = int(_view_field(current_budget, "remaining_kcal", 0) or 0)
+    meal_count = int(_view_field(current_budget, "active_meal_count", 0) or 0)
+    if _view_field(active_plan, "body_plan_id") is None:
         return RemainingBudgetAnswerContract(
             status="onboarding_required",
             user_id=user_id,
             local_date=local_date,
             daily_target_kcal=0,
-            consumed_kcal=current_budget.consumed_kcal,
-            remaining_kcal=current_budget.remaining_kcal,
-            meal_count=current_budget.active_meal_count,
+            consumed_kcal=consumed_kcal,
+            remaining_kcal=remaining_kcal,
+            meal_count=meal_count,
         )
 
     return RemainingBudgetAnswerContract(
         status="ready",
         user_id=user_id,
         local_date=local_date,
-        daily_target_kcal=current_budget.budget_kcal,
-        consumed_kcal=current_budget.consumed_kcal,
-        remaining_kcal=current_budget.remaining_kcal,
-        meal_count=current_budget.active_meal_count,
+        daily_target_kcal=int(_view_field(current_budget, "budget_kcal", 0) or 0),
+        consumed_kcal=consumed_kcal,
+        remaining_kcal=remaining_kcal,
+        meal_count=meal_count,
     )

@@ -68,7 +68,7 @@ def _answer_only_guard() -> TransitionGuardResult:
     )
 
 
-def test_shadow_runtime_builds_non_authoritative_payload_for_single_plausible_chat_candidate() -> None:
+def test_shadow_runtime_builds_trace_only_payload_without_raw_text_intent() -> None:
     context = build_current_turn_context_v1(
         raw_user_input="that milk tea half sugar",
         resolved_state=_state(),
@@ -85,7 +85,7 @@ def test_shadow_runtime_builds_non_authoritative_payload_for_single_plausible_ch
     assert result.manager_payload["role"] == "tentative_non_authoritative"
     assert result.manager_payload["mutation_authority"] is False
     assert result.manager_payload["candidate_target_object_id"] == "77"
-    assert result.manager_payload["candidate_intent"] == "back_reference"
+    assert result.manager_payload["candidate_intent"] == "manager_review_required"
     assert "target_object_id" not in result.manager_payload
     assert result.trace_payload()["created"] is True
     assert result.trace_payload()["candidate_target_object_id"] == "77"
@@ -199,3 +199,13 @@ def test_shadow_runtime_does_not_change_attachment_or_guard_verdicts() -> None:
     assert attachment.model_dump(mode="json") == attachment_before
     assert guard.model_dump(mode="json") == guard_before
     assert result.current_turn_context.model_dump(mode="json") == context.model_dump(mode="json")
+
+
+def test_shadow_runtime_has_no_keyword_semantic_imports() -> None:
+    from pathlib import Path
+
+    source = Path("app/intake/application/shadow_hypothesis_runtime.py").read_text(encoding="utf-8")
+
+    assert "manager_fallback_policy" not in source
+    assert "looks_like_correction" not in source
+    assert "looks_like_budget_query" not in source

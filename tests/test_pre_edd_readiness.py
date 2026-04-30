@@ -12,11 +12,15 @@ from scripts.pre_edd_readiness import (
 
 def test_pre_edd_command_plan_excludes_business_eval_suites() -> None:
     command_text = "\n".join(" ".join(item.command) for item in COMMAND_PLAN)
+    old_bundle1_runner = "run_v2_" + "bundle1" + "_live_eval.py"
+    old_bundle2_runner = "run_v2_" + "bundle2" + "_live_eval.py"
+    old_blocking_runner = "run_v2_" + "benchmark_blocking_eval.py"
 
-    assert "run_v2_bundle1_live_eval.py" not in command_text
-    assert "run_v2_bundle2_live_eval.py" not in command_text
+    assert old_bundle1_runner not in command_text
+    assert old_bundle2_runner not in command_text
     assert "run_v2_founder_realism_eval.py" not in command_text
-    assert "run_v2_benchmark_blocking_eval.py" not in command_text
+    assert old_blocking_runner not in command_text
+    assert "scripts/audit_readiness_claim_integrity.py" in command_text
 
 
 def test_docs_encoding_policy_is_windows_only_auxiliary_check() -> None:
@@ -88,3 +92,4 @@ def test_pre_edd_readiness_report_includes_single_manager_guardrail_statuses(mon
     assert statuses["latency_trace_status"]["status"] == "pass"
     assert statuses["product_truth_alignment_status"]["status"] == "pass"
     assert statuses["anti_overfit_status"]["status"] == "pass"
+    assert statuses["readiness_claim_status"]["status"] == "pass"

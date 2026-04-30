@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Literal
 
 from .context_normalizer import lookup_key
@@ -195,6 +196,7 @@ def _match_semantic_only_support(query_texts: tuple[str, ...]) -> GenericClarify
     return None
 
 
+@lru_cache(maxsize=1)
 def _load_anchor_records() -> tuple[AnchorRecord, ...]:
     records: list[AnchorRecord] = []
     for item in load_small_anchor_seed_records():

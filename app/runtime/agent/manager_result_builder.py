@@ -10,6 +10,7 @@ from app.runtime.agent.manager_payload_utils import (
     tool_names,
     value_excerpt,
 )
+from app.runtime.contracts.phase_a import ManagerSemanticDecision
 
 
 @dataclass(frozen=True)
@@ -26,6 +27,7 @@ class IntakeManagerResult:
     answer_contract: dict[str, Any] = field(default_factory=dict)
     uncertainty_posture: str = "unknown"
     evidence_honesty_posture: str = "unknown"
+    semantic_decision: dict[str, Any] = field(default_factory=dict)
     intent_type: str = "log_meal"
     response_summary: str = ""
     pending_followup: str | None = None
@@ -48,30 +50,89 @@ class ManagerFinalPayloadShapeError(RuntimeError):
         super().__init__(f"manager final payload field {field_name} expected object, got {self.observed_type}")
 
 
+def _non_authoritative_semantic_decision(*, semantic_authority: str, source: str) -> dict[str, Any]:
+    return ManagerSemanticDecision(
+        semantic_authority=semantic_authority,  # type: ignore[arg-type]
+        current_turn_intent="unknown",
+        target_attachment={},
+        workflow_effect="none",
+        final_action_candidate="no_commit",
+        estimation_posture="unknown",
+        followup_posture="none",
+        mutation_intent_candidate="unknown",
+        uncertainty_posture="unknown",
+        source=source,
+    ).model_dump(mode="json")
+
+
+def _semantic_decision_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    raw_decision = payload.get("semantic_decision")
+    if not isinstance(raw_decision, dict):
+        return _non_authoritative_semantic_decision(
+            semantic_authority="missing",
+            source="missing_manager_semantic_decision",
+        )
+    try:
+        return ManagerSemanticDecision.model_validate(raw_decision).model_dump(mode="json")
+    except Exception:
+        return _non_authoritative_semantic_decision(
+            semantic_authority="missing",
+            source="invalid_manager_semantic_decision",
+        )
+
+
 def fallback_result(*, raw_user_input: str, onboarding_payload: dict[str, Any] | None, resolved_state: Any) -> IntakeManagerResult:
-    fallback = fallback_decision(
-        raw_user_input=raw_user_input,
-        onboarding_payload=onboarding_payload,
-        onboarding_ready=bool(getattr(resolved_state, "onboarding_ready", False)),
-    )
-    final_action = "commit" if fallback.intent_type in {"complete_onboarding", "log_meal"} else "answer_only"
+    if onboarding_payload is not None:
+        fallback = fallback_decision(
+            raw_user_input=raw_user_input,
+            onboarding_payload=onboarding_payload,
+            onboarding_ready=bool(getattr(resolved_state, "onboarding_ready", False)),
+        )
+        return IntakeManagerResult(
+            intent=str(getattr(fallback, "intent_type", "complete_onboarding") or "complete_onboarding"),
+            manager_action="final",
+            final_action="commit",
+            workflow_effect=fallback.workflow_effect,
+            target_attachment={},
+            exactness="unknown",
+            confidence="fallback",
+            evidence_posture="fallback",
+            repair_ack=False,
+            answer_contract={"response_summary": fallback.response_summary},
+            uncertainty_posture="fallback",
+            evidence_honesty_posture="fallback",
+            semantic_decision=_non_authoritative_semantic_decision(
+                semantic_authority="degraded_fallback",
+                source="fallback_structured_onboarding_degraded_mode",
+            ),
+            intent_type=fallback.intent_type,
+            response_summary=fallback.response_summary,
+            pending_followup=fallback.pending_followup,
+            tool_calls=fallback.tool_calls,
+            llm_used=False,
+            trace={"decision_source": "fallback_structured_onboarding_degraded_mode"},
+        )
     return IntakeManagerResult(
-        intent=str(getattr(fallback, "intent_type", "log_meal") or "log_meal"),
+        intent="manager_unavailable",
         manager_action="final",
-        final_action=final_action,
-        workflow_effect=fallback.workflow_effect,
+        final_action="no_commit",
+        workflow_effect="safe_failure",
         target_attachment={},
         exactness="unknown",
         confidence="fallback",
         evidence_posture="fallback",
         repair_ack=False,
-        answer_contract={"response_summary": fallback.response_summary},
+        answer_contract={"response_summary": "Manager provider is unavailable; no semantic decision was made."},
         uncertainty_posture="fallback",
         evidence_honesty_posture="fallback",
-        intent_type=fallback.intent_type,
-        response_summary=fallback.response_summary,
-        pending_followup=fallback.pending_followup,
-        tool_calls=fallback.tool_calls,
+        semantic_decision=_non_authoritative_semantic_decision(
+            semantic_authority="degraded_fallback",
+            source="fallback_single_manager_degraded_mode",
+        ),
+        intent_type="manager_unavailable",
+        response_summary="Manager provider is unavailable; no semantic decision was made.",
+        pending_followup=None,
+        tool_calls=(),
         llm_used=False,
         trace={"decision_source": "fallback_single_manager_degraded_mode"},
     )
@@ -104,6 +165,7 @@ def result_from_payload(
         answer_contract=dict(answer_contract or {}),
         uncertainty_posture=str(payload.get("uncertainty_posture") or "unknown"),
         evidence_honesty_posture=str(payload.get("evidence_honesty_posture") or "unknown"),
+        semantic_decision=_semantic_decision_from_payload(payload),
         intent_type=str(payload.get("intent_type") or "log_meal"),
         response_summary=str(payload.get("response_summary") or answer_contract.get("reply_text") or ""),
         pending_followup=payload.get("pending_followup") if payload.get("pending_followup") is not None else None,
@@ -121,6 +183,7 @@ def result_from_payload(
             "guard_outcome": json_safe(guard_outcome or {}),
             "repair_round_used": repair_round_used,
             "request_failure_family": failure_family,
+            "semantic_decision": _semantic_decision_from_payload(payload),
         },
     )
 
@@ -147,6 +210,10 @@ def payload_shape_failure_result(
         answer_contract={},
         uncertainty_posture="unknown",
         evidence_honesty_posture="unknown",
+        semantic_decision=_non_authoritative_semantic_decision(
+            semantic_authority="missing",
+            source="final_payload_shape_error",
+        ),
         intent_type=str(payload.get("intent_type") or "log_meal"),
         response_summary="",
         pending_followup=None,
@@ -164,6 +231,10 @@ def payload_shape_failure_result(
             "guard_outcome": json_safe(guard_outcome or {}),
             "repair_round_used": repair_round_used,
             "request_failure_family": "final_payload_shape_error",
+            "semantic_decision": _non_authoritative_semantic_decision(
+                semantic_authority="missing",
+                source="final_payload_shape_error",
+            ),
             "payload_shape_error": {
                 "field_name": field_error.field_name,
                 "observed_type": field_error.observed_type,

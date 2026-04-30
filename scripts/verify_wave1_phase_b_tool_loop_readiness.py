@@ -4,10 +4,19 @@ import argparse
 from datetime import UTC, datetime
 import json
 from pathlib import Path
+import sys
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from app.shared.contracts.readiness_claim import (
+    build_readiness_claim,
+    validate_readiness_claim_integrity,
+)
+
+
 DEFAULT_OUTPUT = ROOT / "artifacts" / "wave1_phase_b_minimal_tool_loop_readiness.json"
 DEFAULT_PHASE_B_REPORT = ROOT / "artifacts" / "wave1_phase_b_minimal_tool_loop_smoke.json"
 
@@ -115,6 +124,14 @@ def _add(blockers: list[dict[str, str]], code: str, detail: str) -> None:
 
 def _warn(warnings: list[dict[str, str]], code: str, detail: str) -> None:
     warnings.append({"code": code, "detail": detail})
+
+
+def _add_claim_blockers(
+    blockers: list[dict[str, str]],
+    claim_integrity: dict[str, Any],
+) -> None:
+    for item in claim_integrity.get("blockers") or []:
+        _add(blockers, str(item.get("code")), str(item.get("detail")))
 
 
 def _has_value(mapping: dict[str, Any], key: str) -> bool:
@@ -1537,6 +1554,25 @@ def verify_phase_b_readiness(
         "tool_selection_status": "not_proven" if provider_state["provider_blocked_before_all_cases_completed"] else "evaluated",
         "loop_completion_status": "blocked" if provider_state["provider_blocked_before_all_cases_completed"] else "evaluated",
     }
+    provisional_blockers = blockers + quality_blockers + latency_blockers
+    provisional_ready = not provisional_blockers
+    readiness_claim = _build_b1_readiness_claim(
+        phase_b_report_path=phase_b_report_path,
+        pass1_mode=mode_verdicts["pass1_mode"],
+        case_set=core_smoke_cases["case_set"],
+        full_readiness_claimed=bool(core_smoke_cases["full_readiness_claimed"]),
+        provisional_ready=provisional_ready,
+    )
+    claim_integrity = validate_readiness_claim_integrity(
+        {
+            "artifact_type": "wave1_phase_b_minimal_tool_loop_readiness",
+            "ready_for_phase_b1_implementation": provisional_ready,
+            "readiness_claim": readiness_claim,
+        }
+    )
+    if not claim_integrity["passed"]:
+        _add_claim_blockers(quality_blockers, claim_integrity)
+
     all_blockers = blockers + quality_blockers + latency_blockers
     ready = not all_blockers
     blocker_codes = {item["code"] for item in all_blockers}
@@ -1566,6 +1602,8 @@ def verify_phase_b_readiness(
         "provider_runtime_attribution": provider_runtime_attribution,
         "provider_trace_blocker": provider_trace_blocker,
         "runtime_blocker": runtime_blocker,
+        "readiness_claim": readiness_claim,
+        "readiness_claim_integrity": claim_integrity,
         "ready_for_phase_b1_implementation": ready,
         "blockers": all_blockers,
         "scaffold_blockers": blockers,
@@ -1585,6 +1623,60 @@ def verify_phase_b_readiness(
         ),
     }
     return _json_safe(report)
+
+
+def _build_b1_readiness_claim(
+    *,
+    phase_b_report_path: Path,
+    pass1_mode: str,
+    case_set: str,
+    full_readiness_claimed: bool,
+    provisional_ready: bool,
+) -> dict[str, Any]:
+    if pass1_mode == FORCED_MODE:
+        claim_scope = "fixture_scaffold"
+        activation_stage = "fake"
+        semantic_authority_source = "deterministic_validator"
+        allowed_next_stage = "deterministic"
+    elif provisional_ready:
+        claim_scope = "eligible_for_live_diagnostic"
+        activation_stage = "live_diagnostic"
+        semantic_authority_source = "live_manager_structured_output"
+        allowed_next_stage = "live_diagnostic"
+    else:
+        claim_scope = "deterministic_runtime"
+        activation_stage = "deterministic"
+        semantic_authority_source = "deterministic_validator"
+        allowed_next_stage = None
+    return build_readiness_claim(
+        claim_scope=claim_scope,
+        activation_stage=activation_stage,
+        semantic_authority_source=semantic_authority_source,
+        producer_honesty={
+            "runner_inferred_semantics": False,
+            "fake_provider_simulated_manager": pass1_mode == FORCED_MODE,
+            "forced_tool_request_contract": pass1_mode == FORCED_MODE,
+            "natural_tool_selection_evaluated": pass1_mode == NATURAL_MODE,
+            "final_mapping_fabricated": False,
+            "mutation_fabricated": False,
+        },
+        evidence_lineage={
+            "artifacts": [_project_relative(phase_b_report_path)],
+            "producers": ["scripts/verify_wave1_phase_b_tool_loop_readiness.py"],
+            "case_set": case_set,
+            "pass1_mode": pass1_mode,
+            "full_readiness_claimed": full_readiness_claimed,
+            "legacy_oracle_used": False,
+        },
+        allowed_next_stage=allowed_next_stage,
+        forbidden_claims=[
+            "manager_semantics_ready" if pass1_mode == FORCED_MODE else "user_facing_ready",
+            "live_ready",
+            "mutation_ready",
+            "product_ready",
+        ],
+        readiness_claimed=False,
+    )
 
 
 def main() -> int:

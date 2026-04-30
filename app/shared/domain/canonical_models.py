@@ -31,7 +31,7 @@ class MealVersion(BaseModel):
     meal_title: str = ""
     raw_input: str = ""
     source_request_id: str | None = None
-    planner_intent: str | None = None
+    manager_intent: str | None = None
     resolution_status: str = "completed_meal"
     total_kcal: int = 0
     protein_g: int = 0
@@ -85,7 +85,7 @@ class CurrentBudgetMealSummary(BaseModel):
     total_kcal: int = 0
     occurred_at: datetime | None = None
     resolution_status: str = "completed_meal"
-    planner_intent: str | None = None
+    manager_intent: str | None = None
     source_request_id: str | None = None
 
 

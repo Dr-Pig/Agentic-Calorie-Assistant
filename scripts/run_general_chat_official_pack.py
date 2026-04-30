@@ -163,7 +163,7 @@ def _seed_completed_meals(
             version_reason="new_intake",
             meal_title=f"seeded meal {index + 1}",
             raw_input=f"seeded meal {index + 1}",
-            planner_intent="food_estimation",
+            manager_intent="food_estimation",
             resolution_status="completed_meal",
             total_kcal=meal_kcal,
             occurred_at=start + timedelta(hours=index * 4),

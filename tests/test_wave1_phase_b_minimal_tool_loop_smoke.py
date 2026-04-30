@@ -127,6 +127,14 @@ class ProfileAwarePhaseBProvider(FakePhaseBProvider):
         return payload, trace
 
 
+class DeepSeekReadinessPhaseBProvider(ProfileAwarePhaseBProvider):
+    def readiness(self) -> dict[str, object]:
+        readiness = dict(super().readiness())
+        readiness["provider"] = "deepseek"
+        readiness["configured"] = True
+        return readiness
+
+
 class FailingPhaseBProvider(FakePhaseBProvider):
     async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
         raise TimeoutError("simulated provider timeout")
@@ -141,6 +149,34 @@ class Pass1MalformedPayloadPhaseBProvider(FakePhaseBProvider):
     async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
         self.calls.append(dict(kwargs))
         return ["call_tools", "lookup_generic_food"], self._trace(call_index=len(self.calls), kwargs=kwargs)
+
+
+class GenericProviderContractViolationNoFamilyPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        self.calls.append(dict(kwargs))
+        raise BuilderSpaceResponseError(
+            "BuilderSpace manager error at stage=intake_manager_round: generic schema validation failed",
+            trace={
+                "stage": "intake_manager_round",
+                "provider": "builderspace",
+                "model": "deepseek",
+                "request_payload": kwargs.get("user_payload"),
+                "transport_attempts": [],
+                "parse_attempts": [],
+                "request_failure_family": "manager_output_contract_violation",
+                "failure_family": "manager_output_contract_violation",
+                "failing_component": "builderspace_runtime_contract.validate_manager_payload",
+                "actual_shape": "call_tools.lookup_generic_food.response_mode=intake_result",
+                "parsed_object": {
+                    "manager_action": "call_tools",
+                    "interaction_family": "food_logging",
+                    "response_mode": "intake_result",
+                    "operations": [],
+                    "answer_contract": {},
+                    "tool_calls": [{"name": "lookup_generic_food", "arguments": {"food_name": "茶葉蛋"}}],
+                },
+            },
+        )
 
 
 class Pass2MalformedPayloadPhaseBProvider(FakePhaseBProvider):
@@ -2311,6 +2347,27 @@ async def test_phase_b1_smoke_targeted_provider_side_branch_violation_becomes_ru
 
 
 @pytest.mark.asyncio
+async def test_phase_b1_smoke_generic_provider_contract_error_is_not_labeled_clarification(
+    tmp_path: Path,
+) -> None:
+    provider = GenericProviderContractViolationNoFamilyPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="forced",
+        requested_case_ids=["B1-001"],
+        _retry_backoff_seconds=0.0,
+    )
+
+    case_result = report["case_results"][0]
+    assert case_result["case_execution_status"] == "runtime_blocker"
+    assert case_result["runtime_blocker"]["reason"] == "manager_output_contract_violation"
+    assert case_result["runtime_blocker"]["violation_family"] == "manager_contract_validation_error"
+
+
+@pytest.mark.asyncio
 async def test_phase_b1_b1_005_answer_contract_bridge_populates_canonical_item_results(tmp_path: Path) -> None:
     provider = AnswerContractBridgePhaseBProvider()
 
@@ -2995,6 +3052,26 @@ async def test_phase_b1_expensive_profile_is_disabled_by_default(tmp_path: Path)
             requested_case_ids=["B1-003"],
             provider_profile_id="builderspace-gpt-5-manual",
         )
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_live_preflight_blocks_provider_profile_mismatch(tmp_path: Path) -> None:
+    provider = DeepSeekReadinessPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="natural-probe",
+        requested_case_ids=["B1-001"],
+    )
+
+    assert report["tool_loop_traces"] == []
+    assert provider.calls == []
+    assert report["provider_runtime"]["blocker"] is True
+    assert report["provider_runtime"]["reason"] == "provider_profile_mismatch"
+    assert report["provider_runtime"]["readiness_provider"] == "deepseek"
+    assert report["provider_runtime"]["selected_profile_provider"] == "builderspace"
 
 
 def test_cli_accepts_targeted_case_flags_and_applies_b1004_probe_defaults(monkeypatch, capsys) -> None:

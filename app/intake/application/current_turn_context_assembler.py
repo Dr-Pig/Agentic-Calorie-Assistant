@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from ...runtime.agent.manager_fallback_policy import looks_like_correction
 from ...runtime.contracts.phase_a import (
     ContextSourceView,
     CurrentTurnContextV1,
@@ -165,7 +164,7 @@ def build_current_turn_context_v1(
 
     if pending_followup is not None:
         open_workflow_type = "meal_followup"
-    elif target_meal_reference.get("meal_thread_id") is not None and looks_like_correction(raw_user_input):
+    elif target_meal_reference.get("meal_thread_id") is not None:
         open_workflow_type = "meal_correction"
     elif current_event.target_object_type == "proposal":
         open_workflow_type = "proposal"

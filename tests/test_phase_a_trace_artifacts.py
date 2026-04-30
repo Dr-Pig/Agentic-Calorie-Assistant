@@ -196,3 +196,38 @@ def test_write_general_chat_request_trace_artifact_includes_phase_a_boundary_pro
     assert payload["phase_a_trace"]["boundary_projection"]["fallback_honesty_decision"]["budget_answer_mode"] == (
         "degraded"
     )
+
+
+def test_write_bundle2_request_trace_artifact_bounds_large_sections(monkeypatch, tmp_path: Path) -> None:
+    captured = _capture_writer(monkeypatch, tmp_path)
+    tool_outputs = {
+        "long_text": "x" * 1205,
+        "items": [{"index": idx} for idx in range(30)],
+    }
+
+    trace_artifacts.write_bundle2_request_trace_artifact(
+        request_id="bundle2-bounded-trace",
+        user_external_id="user-4",
+        local_date="2026-04-29",
+        raw_user_input="hello",
+        allow_search=False,
+        state_before={},
+        manager_round_1={},
+        injected_context_summary={},
+        tool_plan=[],
+        tool_outputs=tool_outputs,
+        manager_final_decision={},
+        state_after={},
+        assistant_message="ok",
+        sidecar={},
+        state_delta={},
+        phase_a_trace={},
+        phase_c_trace={},
+        latency_tracking={},
+    )
+
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    bounded_outputs = payload["tool_outputs"]
+    assert bounded_outputs["long_text"].endswith("...[truncated]")
+    assert bounded_outputs["items"][-1] == {"_truncated_item_count": 6}

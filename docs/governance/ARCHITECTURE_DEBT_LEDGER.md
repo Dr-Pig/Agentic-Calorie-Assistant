@@ -78,14 +78,16 @@ phase: Phase A
 owner_surface: shared manager branch contract and validation layer
 found_in_slice: Wave 1 decoupling debt audit
 current_location: app/runtime/agent/manager_branch_contract.py and app/runtime/agent/manager_branch_validation.py
-path_classification: active_product_path
+path_classification: narrowed_compatibility_surface
 debt_type: fat_file_boundary_risk
 severity_class: P3
-risk: Shared runtime contract files currently embed B-1-specific branch constraint logic, which increases the chance that local Wave 1 diagnostic policy gets copied forward as canonical manager architecture.
-why_not_fixed_now: The current audit slice does not change runtime behavior, and no immediate next slice requires broad manager-branch reuse beyond the current Wave 1 scope.
-retirement_gate: before generalizing shared manager branch selection or validation beyond current Wave 1 local contract usage
+risk: retired
+why_not_fixed_now: retired
+retirement_gate: completed by moving B-1-specific branch contract implementation into app/runtime/agent/phase_b1_manager_branch_contract.py while keeping app/runtime/agent/manager_branch_contract.py as a thin compatibility re-export.
 target_cleanup_slice: Shared manager branch boundary cleanup
-blocking_level: advisory
+blocking_level: retired
+resolution_status: retired
+resolved_in_slice: B1 manager branch local contract narrowing
 ```
 
 ### B-1
@@ -126,14 +128,16 @@ phase: B-1/B-2 shared retrieval dispatch
 owner_surface: shared web search and extract tool dispatch
 found_in_slice: B2 web/search governance prep
 current_location: app/nutrition/application/tool_dispatch.py
-path_classification: compatibility_surface
+path_classification: deleted_compatibility_surface
 debt_type: concrete_shape_leak
 severity_class: P3
-risk: This module still branches on concrete adapter capabilities such as search_candidates and extract_structured_page_data, so it remains a risky compatibility surface if future work rewires it into runtime or copies its pattern forward.
-why_not_fixed_now: Current Wave 1 intake runtime no longer routes active estimation through this module, so it should be treated as dormant compatibility debt rather than an active-path blocker.
-retirement_gate: before any future runtime rewiring that reactivates this dispatch surface or copies its concrete branching pattern into new product-owned code
+risk: retired
+why_not_fixed_now: retired
+retirement_gate: completed by deleting dormant tool dispatch compatibility code after confirming no active imports.
 target_cleanup_slice: Dormant tool dispatch quarantine or removal
-blocking_level: advisory
+blocking_level: retired
+resolution_status: retired
+resolved_in_slice: Dormant tool dispatch removal
 ```
 
 ### B-2
@@ -170,9 +174,9 @@ Resolution note:
 ```yaml
 debt_id: B2-DEBT-003
 phase: B-2
-owner_surface: Pass 2 provider seam, fake provider, and oracle parity gate
+owner_surface: manager provider seam, fake provider, and contract parity gate
 found_in_slice: B2 pass2 seam audit
-current_location: app/nutrition/application/b2_pass2_provider_bridge.py and tests/test_wave1_phase_b2_pass2_oracle_parity.py
+current_location: app/nutrition/application/b2_manager_provider_bridge.py and tests/test_wave1_phase_b2_manager_contract_parity.py
 path_classification: compatibility_surface
 debt_type: test_oracle_risk
 severity_class: P1
@@ -225,11 +229,12 @@ Progress note:
 ## Severity Summary
 
 - `P3`
-  - `B2-DEBT-001` is now dormant compatibility debt because the active Wave 1 intake runtime no longer routes through `tool_dispatch.py`, but the concrete branching pattern must not be copied forward.
-  - `PA-DEBT-001` is real but does not block the current next slice if no new work copies B-1-specific branch logic into broader shared runtime policy.
+  - no current P3 item blocks the B1/B2 re-entry slice.
 
 - `Resolved`
   - `B1-DEBT-001` is retired. Phase B-1 provider/profile auto-route policy is now registry-owned and stays explicitly scoped to `b1_local_diagnostic`.
+  - `PA-DEBT-001` is retired. B-1-specific manager branch contract implementation now lives in a B1-local module; the old shared import remains a thin re-export surface.
+  - `B2-DEBT-001` is retired. The dormant concrete tool dispatch compatibility module has been deleted.
   - `B2-DEBT-002` is retired. Tavily request knobs now live behind infra-local profile policy while the active app/runtime contract stays unchanged.
   - `B2-DEBT-003` is retired. Pass 2 ownership is now explicit in trace/readiness, and answer-contract bridge output no longer satisfies runtime-owner readiness.
   - `B2-DEBT-004` is retired as the official B-2 producer honesty debt. This does not imply live Tavily rollout, full web extraction runtime completion, or broader source-priority completion.

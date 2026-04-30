@@ -4,13 +4,9 @@ from scripts.active_code_inventory import build_active_code_inventory
 from scripts.truth_alignment_audit import build_truth_alignment_audit
 
 
-def test_truth_alignment_audit_flags_rescue_proposal_as_premature_active() -> None:
+def test_truth_alignment_audit_has_no_archive_focus_modules() -> None:
     report = build_truth_alignment_audit()
-    rescue = report["short_audit_notes"]["app/archive/rescue/application/proposal.py"]
-
-    assert rescue is not None
-    assert rescue["classification"] == "legacy_archive"
-    assert rescue["recommended_action"] == "archive_hard_keep_out_of_mainline"
+    assert report["short_audit_notes"]["archive_surface_count"] == 0
 
 
 def test_truth_alignment_audit_flags_builderspace_as_workaround_residue() -> None:

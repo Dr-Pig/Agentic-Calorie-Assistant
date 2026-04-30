@@ -169,7 +169,7 @@ Pre-EDD readiness 至少必須輸出：
 
 若任一欄位不是 `pass`，狀態只能是 `not_ready_for_edd`。
 
-### Bundle 0：Truth Cleanup（開工前必做）
+### Stage 0：Truth Cleanup（開工前必做）
 
 **目標：** 確認 V2 docs 正確，可以開始 build。
 
@@ -177,15 +177,15 @@ Pre-EDD readiness 至少必須輸出：
 1. 確認 `app_v2_ideal_architecture_final.md` 的 single-manager + Execution Guard 設計正確
 2. 確認 L4 integration 已寫進 target spec
 3. 確認 schema reduction policy 已寫進本文件
-4. 確認 `V2_EVAL_BUNDLE_1_CASES.md` 可直接作為 Bundle 1 gate
-5. 同步 active execution truth 到 `Bundle 0 -> Bundle 1`
+4. 確認 Manager-style capability gates 可作為 intake-entry acceptance evidence
+5. 同步 active execution truth 到 current Manager-style stage plan
 
-**Bundle 0 不做：**
-- Bundle 1 runtime widening
+**Stage 0 不做：**
+- intake-entry runtime widening
 - rescue / recommendation / calibration / proactive 遷移
 - 任何以 truth cleanup 名義偷渡的 manager/tool/renderer scope 擴張
 
-### Bundle 1：Core Manager Trunk
+### Stage 1：Core Manager Trunk
 
 **目標：** 打通 onboarding、single-turn intake、`/today`、`/body-plan`、remaining-budget answer。
 
@@ -198,12 +198,12 @@ Pre-EDD readiness 至少必須輸出：
 6. `Deterministic Sidecar`（no LLM）
 7. **Response Policy**（Section 4.2A in target spec）
 8. **Evidence Policy / Eligibility Gate**（Section 5.2B, 5.5.1 in target spec）
-9. **Eval Runner**（`scripts/run_bundle1_eval.py`）— 必須建立，這是 Bundle 1 完成的必要條件
+9. **Manager-style diagnostic runner** — 必須使用 active runtime trace，不得復用 legacy Bundle oracle
 
 **驗證旅程：** A, B, J
 
-**Bundle 1 完成的定義（三個條件全部成立）：**
-1. `scripts/run_bundle1_eval.py` 執行後，`summary.bundle_gate == "pass"`
+**Intake-entry completion must be proven by current Manager-style diagnostics（三個條件全部成立）：**
+1. Manager-style diagnostic runner reports pass
 2. `summary.p0_failed == 0`（4 個 P0 cases 全過）
 3. 每個 case 的 `request_id` 都有對應的 trace artifact（`audit.request_trace_exists == true`）
 
@@ -212,14 +212,14 @@ Pre-EDD readiness 至少必須輸出：
 - Unit tests 通過但沒有 eval runner 輸出
 - Eval runner 輸出但沒有 trace artifact
 
-**Eval runner 輸出格式：** `.logs/bundle1_eval_{timestamp}.json`（見 `V2_EVAL_BUNDLE_1_CASES.md` Eval Execution Contract）
+**Diagnostic runner 輸出格式：** use current artifacts under `artifacts/` or `runtime/evals/`, with case-level trace refs.
 
 **中層測試：**
 - tool contract tests
 - onboarding / ledger / remaining-budget state tests
 - renderer / deterministic sidecar contract tests
 
-### Bundle 2：Intake Depth
+### Stage 2：Intake Depth
 
 **目標：** clarify lane、item-level correction、overshoot sync、macro sync。
 
@@ -231,7 +231,7 @@ Pre-EDD readiness 至少必須輸出：
 5. `remove_meal_thread` tool（刪除整個餐點記錄）
 6. Sidecar 的 overshoot 欄位
 7. Sidecar 的 macro 欄位（protein, carbs, fat）
-8. **Eval Runner**（`scripts/run_v2_bundle2_live_eval.py`）— 必須建立
+8. **Manager-style intake-depth diagnostic runner** — 必須使用 manager structured output and active runtime traces
 
 **Macro 計算機制**：
 - 由於 Grok 4 Fast 有 2M token context，模型可以直接一次估出 kcal + macro
@@ -249,12 +249,12 @@ Pre-EDD readiness 至少必須輸出：
 
 **驗證旅程：** C, D, E, K
 
-**Bundle 2 完成的定義（三個條件全部成立）：**
-1. `scripts/run_v2_bundle2_live_eval.py` 執行後，`summary.bundle_gate == "pass"`
+**Intake-depth completion must be proven by current Manager-style diagnostics（三個條件全部成立）：**
+1. Manager-style intake-depth diagnostic runner reports pass
 2. `summary.p0_failed == 0`（5 個 P0 cases 全過）
 3. 每個 case 的 `request_id` 都有對應的 trace artifact
 
-**Eval cases：** `docs/quality/V2_EVAL_BUNDLE_2_CASES.md`
+**Eval cases：** current Wave 1 micro-suites and Founder E2E diagnostics
 
 ### Bundle 3：Body + Calibration
 
@@ -523,7 +523,7 @@ Pre-EDD readiness 至少必須輸出：
 ```bash
 # 使用範例
 python scripts/pre_edd_readiness.py \
-  --stage bundle2 \
+  --stage intake-depth \
   --allowed-write-surface '{"app/intake": ["application/*"], "app/nutrition": ["application/*"]}' \
   --latency-policy '{"simple_drink": 3000, "branded_item": 5000, "followup": 8000, "correction": 10000}'
 ```
@@ -539,7 +539,7 @@ python scripts/pre_edd_readiness.py \
 
 ---
 
-## 8. Bundle 2 專屬 Architecture Readiness
+## 8. Intake-Depth Architecture Readiness
 
 ### 8.1 Stage Intake
 

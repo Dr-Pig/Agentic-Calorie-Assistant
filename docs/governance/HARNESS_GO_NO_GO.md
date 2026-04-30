@@ -19,7 +19,33 @@ Use this before starting a new build wave. It should take about 30 seconds.
 - any protected legacy file is growing
 - any freeze-growth file exceeds its frozen line count
 - `python scripts/pre_edd_readiness.py --timeout-seconds 180` returns `not_ready_for_edd`
+- any fixture, fake-provider, deterministic, live-diagnostic, shadow, or canary artifact claims a broader readiness stage than its evidence supports
 - the retained CI jobs require ignored local-only assets such as `data_build/`
+
+## False-Green Claim Boundary
+
+Fixture-first remains valid, but each stage may only claim the evidence it actually proves.
+
+| Stage | Can prove | Must not claim |
+| --- | --- | --- |
+| `fixture / fake provider` | schema, tool-loop, guard, trace, and persistence scaffold can run | Manager truly understands user intent or food semantics |
+| `deterministic runtime` | active path is repeatable, no live LLM is invoked, and no runtime crash occurs | live provider readiness or product semantics are verified |
+| `live diagnostic` | real Manager/LLM tool selection and semantic judgment can be observed | production, user-facing, or mutation-bearing readiness |
+| `shadow / canary` | stability under real traffic can be compared or sampled | whole-product completion |
+
+Hard rules:
+
+- `fixture_scaffold_pass` may unlock deterministic checks only; it cannot claim B1/B2 handoff readiness, live readiness, user-facing readiness, or mutation readiness.
+- `deterministic_runtime_pass` may unlock live diagnostic only when upstream contract gates are green.
+- `live_diagnostic_pass` may unlock shadow evaluation only; it cannot write canonical state or claim production readiness.
+- readiness artifacts must expose `readiness_claim` and pass `python scripts/audit_readiness_claim_integrity.py`.
+- legacy Bundle Version 1 / Bundle Version 2 artifacts, archived artifacts, obsolete eval oracles, or completed handoff docs must not be evidence lineage for readiness.
+
+## Windows Pytest Isolation
+
+Do not run multiple pytest processes in parallel in this repo on Windows. The test suite uses `.pytest_tmp_local`; parallel pytest runs can race on cleanup and produce `PermissionError` or missing-path failures unrelated to product behavior.
+
+If broad verification is needed, run pytest groups sequentially or give each process an isolated base temp directory before treating a failure as real evidence.
 
 ## Fast Decision
 

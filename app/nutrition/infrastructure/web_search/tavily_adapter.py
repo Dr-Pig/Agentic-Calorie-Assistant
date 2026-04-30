@@ -40,19 +40,41 @@ class TavilyAdapter:
     ) -> list[dict[str, Any]]:
         if not self._is_configured():
             raise RuntimeError("Tavily is not configured.")
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-            response = await client.post(
-                "https://api.tavily.com/search",
-                json={
-                    "api_key": self.api_key,
-                    "query": query,
-                    "search_depth": self._search_profile.search_depth,
-                    "max_results": max_results,
-                    "include_raw_content": self._search_profile.include_raw_content,
-                },
-            )
-            response.raise_for_status()
-            data = response.json()
+        async with self._client() as client:
+            return await self._search_candidates_with_client(client, query, max_results=max_results)
+
+    async def extract_structured_page_data(
+        self,
+        *,
+        urls: list[str],
+        query: str,
+    ) -> list[dict[str, Any]]:
+        if not self._is_configured():
+            raise RuntimeError("Tavily is not configured.")
+        if not urls:
+            return []
+        async with self._client() as client:
+            return await self._extract_structured_page_data_with_client(client, urls=urls, query=query)
+
+    async def _search_candidates_with_client(
+        self,
+        client: httpx.AsyncClient,
+        query: str,
+        *,
+        max_results: int,
+    ) -> list[dict[str, Any]]:
+        response = await client.post(
+            "https://api.tavily.com/search",
+            json={
+                "api_key": self.api_key,
+                "query": query,
+                "search_depth": self._search_profile.search_depth,
+                "max_results": max_results,
+                "include_raw_content": self._search_profile.include_raw_content,
+            },
+        )
+        response.raise_for_status()
+        data = response.json()
         results = []
         for item in data.get("results", []):
             url = item.get("url", "")
@@ -70,29 +92,25 @@ class TavilyAdapter:
             )
         return results
 
-    async def extract_structured_page_data(
+    async def _extract_structured_page_data_with_client(
         self,
+        client: httpx.AsyncClient,
         *,
         urls: list[str],
         query: str,
     ) -> list[dict[str, Any]]:
-        if not self._is_configured():
-            raise RuntimeError("Tavily is not configured.")
-        if not urls:
-            return []
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-            response = await client.post(
-                "https://api.tavily.com/extract",
-                json={
-                    "api_key": self.api_key,
-                    "urls": urls,
-                    "query": query,
-                    "chunks_per_source": max(1, min(self._extract_profile.chunks_per_source, 5)),
-                    "extract_depth": self._extract_profile.extract_depth,
-                },
-            )
-            response.raise_for_status()
-            data = response.json()
+        response = await client.post(
+            "https://api.tavily.com/extract",
+            json={
+                "api_key": self.api_key,
+                "urls": urls,
+                "query": query,
+                "chunks_per_source": max(1, min(self._extract_profile.chunks_per_source, 5)),
+                "extract_depth": self._extract_profile.extract_depth,
+            },
+        )
+        response.raise_for_status()
+        data = response.json()
         extracted: list[dict[str, Any]] = []
         for item in data.get("results", []) or data.get("data", []) or []:
             url = str(item.get("url") or "")
@@ -123,15 +141,29 @@ class TavilyAdapter:
 
     async def search(self, query: str, *, max_results: int = 5, limit: int | None = None) -> list[dict[str, Any]]:
         result_limit = int(limit or max_results)
-        candidates = await self.search_candidates(query, max_results=result_limit)
-        urls = [str(item.get("url") or "") for item in candidates if str(item.get("url") or "").strip()]
-        extracted_by_url: dict[str, dict[str, Any]] = {}
-        if urls:
-            try:
-                extracted = await self.extract_structured_page_data(urls=urls[: min(len(urls), 5)], query=query)
-                extracted_by_url = {str(item.get("url") or ""): item for item in extracted}
-            except Exception:
+        if not self._is_configured():
+            raise RuntimeError("Tavily is not configured.")
+        if self._uses_overridden_search_steps():
+            candidates = await self.search_candidates(query, max_results=result_limit)
+            urls = [str(item.get("url") or "") for item in candidates if str(item.get("url") or "").strip()]
+            extracted_by_url: dict[str, dict[str, Any]] = {}
+            if urls:
+                try:
+                    extracted = await self.extract_structured_page_data(urls=urls[: min(len(urls), 5)], query=query)
+                    extracted_by_url = {str(item.get("url") or ""): item for item in extracted}
+                except Exception:
+                    extracted_by_url = {}
+        else:
+            async with self._client() as client:
+                candidates = await self._search_candidates_with_client(client, query, max_results=result_limit)
+                urls = [str(item.get("url") or "") for item in candidates if str(item.get("url") or "").strip()]
                 extracted_by_url = {}
+                if urls:
+                    try:
+                        extracted = await self._extract_structured_page_data_with_client(client, urls=urls[: min(len(urls), 5)], query=query)
+                        extracted_by_url = {str(item.get("url") or ""): item for item in extracted}
+                    except Exception:
+                        extracted_by_url = {}
         merged: list[dict[str, Any]] = []
         for item in candidates:
             extracted = extracted_by_url.get(str(item.get("url") or ""), {})
@@ -156,6 +188,17 @@ class TavilyAdapter:
                 }
             )
         return merged
+
+    def _client(self) -> httpx.AsyncClient:
+        return httpx.AsyncClient(timeout=self.timeout_seconds)
+
+    def _uses_overridden_search_steps(self) -> bool:
+        return (
+            "search_candidates" in self.__dict__
+            or "extract_structured_page_data" in self.__dict__
+            or type(self).search_candidates is not TavilyAdapter.search_candidates
+            or type(self).extract_structured_page_data is not TavilyAdapter.extract_structured_page_data
+        )
 
     def _is_configured(self) -> bool:
         return self.api_key.strip() not in PLACEHOLDER_API_KEYS

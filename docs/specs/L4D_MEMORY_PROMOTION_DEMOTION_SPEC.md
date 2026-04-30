@@ -416,4 +416,4 @@ L4A Memory Model Spec 的以下章節應引用本文檔：
 - L4A_MEMORY_MODEL_SPEC.md
 - L4B_RETRIEVAL_POLICY_SPEC.md
 - L4C_CONTEXT_PACKING_SPEC.md
-- docs/archive/specs/L4_MEMORY_MODEL_SPEC_REFERENCE.md
+- Superseded memory reference material has been removed from the active repo truth path.

@@ -11,6 +11,11 @@ def _tokenize(text: str) -> list[str]:
     return [token for token in re.findall(r"[a-z0-9\u4e00-\u9fff]+", normalized) if len(token) > 1]
 
 
+def _record_text(record: ConversationArchiveRecord) -> str:
+    excerpt_text = " ".join(str(message.content or "") for message in record.transcript_excerpt)
+    return " ".join([record.summary_text, excerpt_text]).strip()
+
+
 class ConversationArchiveRetriever:
     def retrieve(
         self,
@@ -29,7 +34,7 @@ class ConversationArchiveRetriever:
         archive_list = list(archive)
         total = len(archive_list)
         for index, record in enumerate(archive_list):
-            content_terms = set(_tokenize(record.content))
+            content_terms = set(_tokenize(_record_text(record)))
             lexical_overlap = query_terms.intersection(content_terms)
             meal_overlap = meal_terms.intersection(content_terms)
             question_overlap = question_terms.intersection(content_terms)
@@ -45,13 +50,12 @@ class ConversationArchiveRetriever:
                 continue
             scored.append(
                 ConversationRetrievalHit(
-                    message_id=record.id,
-                    role=record.role,
-                    content=record.content,
-                    created_at=record.created_at,
+                    record_id=record.record_id,
+                    summary_text=record.summary_text,
+                    local_date=record.local_date,
                     score=round(score, 3),
                     matched_terms=sorted(lexical_overlap.union(meal_overlap).union(question_overlap)),
-                    linked_meal_log_id=record.linked_meal_log_id,
+                    rationale="archive_summary",
                 )
             )
 

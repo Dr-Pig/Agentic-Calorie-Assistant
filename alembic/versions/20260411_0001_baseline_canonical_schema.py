@@ -90,7 +90,7 @@ def upgrade() -> None:
         sa.Column("meal_title", sa.String(length=512), nullable=False),
         sa.Column("raw_input", sa.Text(), nullable=False),
         sa.Column("source_request_id", sa.String(length=64), nullable=True),
-        sa.Column("planner_intent", sa.String(length=64), nullable=True),
+        sa.Column("manager_intent", sa.String(length=64), nullable=True),
         sa.Column("resolution_status", sa.String(length=32), nullable=False),
         sa.Column("total_kcal", sa.Integer(), nullable=False),
         sa.Column("protein_g", sa.Integer(), nullable=False),
@@ -105,7 +105,7 @@ def upgrade() -> None:
     op.create_index("ix_meal_versions_parent_version_id", "meal_versions", ["parent_version_id"], unique=False)
     op.create_index("ix_meal_versions_version_status", "meal_versions", ["version_status"], unique=False)
     op.create_index("ix_meal_versions_source_request_id", "meal_versions", ["source_request_id"], unique=False)
-    op.create_index("ix_meal_versions_planner_intent", "meal_versions", ["planner_intent"], unique=False)
+    op.create_index("ix_meal_versions_manager_intent", "meal_versions", ["manager_intent"], unique=False)
     op.create_index("ix_meal_versions_resolution_status", "meal_versions", ["resolution_status"], unique=False)
     op.create_index("ix_meal_versions_occurred_at", "meal_versions", ["occurred_at"], unique=False)
     op.create_index("ix_meal_versions_local_date", "meal_versions", ["local_date"], unique=False)

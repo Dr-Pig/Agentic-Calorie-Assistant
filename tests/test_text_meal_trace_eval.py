@@ -5,8 +5,8 @@ from app.runtime.infrastructure.trace.trace_eval import evaluate_trace_contract
 
 def test_trace_eval_attributes_missing_required_checks_to_risk_validator() -> None:
     trace_contract = {
-        'planner_used': True,
-        'planner_output': {'intent': 'food_estimation'},
+        'manager_used': True,
+        'manager_output': {'intent': 'food_estimation'},
         'normalizer_mode': 'off',
         'normalizer_diff': {'changed': False, 'normalized_text': 'ramen'},
         'template_match': {'blocked': False},
@@ -31,8 +31,8 @@ def test_trace_eval_attributes_missing_required_checks_to_risk_validator() -> No
 
 def test_trace_eval_attributes_missing_followup_modeling_to_layer3() -> None:
     trace_contract = {
-        'planner_used': True,
-        'planner_output': {'intent': 'food_estimation'},
+        'manager_used': True,
+        'manager_output': {'intent': 'food_estimation'},
         'normalizer_mode': 'off',
         'normalizer_diff': {'changed': False, 'normalized_text': 'buffet plate'},
         'template_match': {'blocked': False},
@@ -61,9 +61,9 @@ def test_trace_eval_attributes_missing_followup_modeling_to_layer3() -> None:
 
 def test_trace_eval_attributes_clarify_before_estimate_violation_to_layer3() -> None:
     trace_contract = {
-        'planner_used': False,
-        'planner_output': {'intent': 'food_estimation'},
-        'normalizer_mode': 'planner_off_fallback',
+        'manager_used': False,
+        'manager_output': {'intent': 'food_estimation'},
+        'normalizer_mode': 'manager_off_fallback',
         'normalizer_diff': {'changed': False, 'normalized_text': 'shared meal'},
         'template_match': {'blocked': False},
         'rescue_applied': {'rescue_layer': None},
@@ -93,9 +93,9 @@ def test_trace_eval_attributes_clarify_before_estimate_violation_to_layer3() -> 
 
 def test_trace_eval_marks_successful_clarify_before_estimate_as_win() -> None:
     trace_contract = {
-        'planner_used': False,
-        'planner_output': {'intent': 'food_estimation'},
-        'normalizer_mode': 'planner_off_fallback',
+        'manager_used': False,
+        'manager_output': {'intent': 'food_estimation'},
+        'normalizer_mode': 'manager_off_fallback',
         'normalizer_diff': {'changed': False, 'normalized_text': 'shared meal'},
         'template_match': {'blocked': False},
         'rescue_applied': {'rescue_layer': None},
@@ -126,9 +126,9 @@ def test_trace_eval_marks_successful_clarify_before_estimate_as_win() -> None:
 
 def test_trace_eval_attributes_grounding_contradiction_to_grounding_layer() -> None:
     trace_contract = {
-        'planner_used': False,
-        'planner_output': {'intent': 'food_estimation'},
-        'normalizer_mode': 'planner_off_fallback',
+        'manager_used': False,
+        'manager_output': {'intent': 'food_estimation'},
+        'normalizer_mode': 'manager_off_fallback',
         'normalizer_diff': {'changed': False, 'normalized_text': 'brand drink'},
         'template_match': {'blocked': False},
         'rescue_applied': {'rescue_layer': None},
@@ -159,9 +159,9 @@ def test_trace_eval_attributes_grounding_contradiction_to_grounding_layer() -> N
 
 def test_trace_eval_marks_high_confidence_exact_truth_as_win_even_with_followup_gaps() -> None:
     trace_contract = {
-        'planner_used': False,
-        'planner_output': {'intent': 'food_estimation'},
-        'normalizer_mode': 'planner_off_fallback',
+        'manager_used': False,
+        'manager_output': {'intent': 'food_estimation'},
+        'normalizer_mode': 'manager_off_fallback',
         'normalizer_diff': {'changed': False, 'normalized_text': 'brand drink exact hit'},
         'template_match': {'blocked': False},
         'rescue_applied': {'rescue_layer': None},

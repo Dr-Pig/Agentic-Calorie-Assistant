@@ -133,7 +133,7 @@ class EstimatePayload(BaseModel):
     stage_map_version: str = "text_meal_trace.v1"
     trace_contract: dict[str, Any] = Field(default_factory=dict)
     failed_layer: Literal[
-        "planner",
+        "manager",
         "normalizer",
         "risk_validator",
         "layer3_primary_llm",

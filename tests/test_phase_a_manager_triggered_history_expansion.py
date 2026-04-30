@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -14,6 +15,18 @@ from app.intake.application.attachment_resolver import resolve_attachment_decisi
 from app.intake.application.transition_guard import resolve_transition_guard
 from app.runtime.application.manager_service import run_intake_manager
 from app.runtime.contracts.phase_a import InteractionEvent
+
+
+def test_manager_history_expansion_runtime_uses_public_shared_boundaries() -> None:
+    source = Path("app/intake/application/history_expansion_manager_runtime.py").read_text(encoding="utf-8")
+
+    assert "from .history_expansion_runtime import" not in source
+    assert "_candidate_temporal_match" not in source
+    assert "_candidate_lexical_match" not in source
+    assert "_enrich_current_turn_context" not in source
+    assert "manager_fallback_policy" not in source
+    assert "looks_like_correction" not in source
+    assert "looks_like_budget_query" not in source
 
 
 def _meal_chunk(
@@ -104,7 +117,12 @@ class _HistoryRequestProvider:
             return (
                 {
                     "manager_action": "call_tools",
-                    "tool_calls": [{"name": "phase_a_expand_history"}],
+                    "tool_calls": [
+                        {
+                            "name": "phase_a_expand_history",
+                            "arguments": {"reason": "target_ambiguity", "scope": "recent_meals"},
+                        }
+                    ],
                 },
                 {"round": 1},
             )
@@ -141,7 +159,12 @@ class _RepeatedHistoryRequestProvider(_HistoryRequestProvider):
             return (
                 {
                     "manager_action": "call_tools",
-                    "tool_calls": [{"name": "phase_a_expand_history"}],
+                    "tool_calls": [
+                        {
+                            "name": "phase_a_expand_history",
+                            "arguments": {"reason": "target_ambiguity", "scope": "recent_meals"},
+                        }
+                    ],
                 },
                 {"round": len(self.calls)},
             )
@@ -179,6 +202,7 @@ def test_manager_triggered_runtime_uses_existing_surfaces_and_reruns_attachment_
         resolved_state=state,
         pre_attachment_decision=pre_attachment,
         pre_transition_guard_result=pre_guard,
+        manager_tool_arguments={"reason": "target_ambiguity", "scope": "recent_meals"},
     )
 
     assert result.attempted is True
@@ -196,7 +220,7 @@ def test_manager_triggered_runtime_uses_existing_surfaces_and_reruns_attachment_
     assert tool_result["evidence"]["history_expansion_result"]["transcript_snippets"] == []
 
 
-def test_manager_triggered_history_eligibility_skips_resolved_and_non_chat_cases() -> None:
+def test_manager_triggered_history_eligibility_is_surface_only_and_does_not_classify_budget_text() -> None:
     state = _resolved_state(retrieved_meal_records=[_meal_chunk()], pending_followup=True)
     resolved_context = build_current_turn_context_v1(
         raw_user_input="half sugar",
@@ -223,8 +247,10 @@ def test_manager_triggered_history_eligibility_skips_resolved_and_non_chat_cases
 
     assert resolved.eligible is False
     assert resolved.reason == "resolved_pending_followup"
-    assert budget.eligible is False
-    assert budget.reason == "budget_route"
+    assert budget.eligible is True
+    assert budget.reason == "manager_scope_required"
+    assert budget.request_reason is None
+    assert budget.request_scope is None
 
 
 def test_manager_triggered_history_eligibility_skips_explicit_ui_target() -> None:
@@ -269,12 +295,33 @@ def test_manager_triggered_history_keeps_multi_candidate_ambiguity_conservative(
     result = activate_manager_triggered_history_expansion(
         current_turn_context=context,
         resolved_state=state,
+        manager_tool_arguments={"reason": "target_ambiguity", "scope": "recent_meals"},
     )
 
     assert result.attempted is True
     assert result.ambiguity_detected is True
     assert result.selected_candidate_ids == ()
     assert result.post_attachment_decision.disposition == "answer_only"
+
+
+def test_manager_triggered_history_rejects_missing_manager_reason_scope() -> None:
+    state = _resolved_state(retrieved_meal_records=[_meal_chunk()])
+    context = build_current_turn_context_v1(
+        raw_user_input="that milk tea half sugar",
+        resolved_state=state,
+    )
+
+    result = activate_manager_triggered_history_expansion(
+        current_turn_context=context,
+        resolved_state=state,
+        manager_tool_arguments={},
+    )
+
+    assert result.attempted is False
+    assert result.request is None
+    assert result.result is None
+    assert result.failure_family == "phase_a_history_expansion_manager_scope_missing"
+    assert result.enriched_current_turn_context == context
 
 
 @pytest.mark.asyncio
@@ -343,8 +390,8 @@ async def test_process_bundle2_intake_handles_manager_triggered_history_expansio
     state = _resolved_state(retrieved_meal_records=[_meal_chunk()])
     provider = _HistoryRequestProvider()
 
-    monkeypatch.setattr(module.tools, "resolve_correction_target_tool", lambda **_: {})
-    monkeypatch.setattr(module.tools, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
     monkeypatch.setattr(module, "apply_final_action_to_payload", lambda **_: None)
     monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *_, **__: None)
     monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: state)
@@ -379,8 +426,8 @@ async def test_process_bundle2_intake_enforces_one_manager_triggered_history_att
     state = _resolved_state(retrieved_meal_records=[_meal_chunk()])
     provider = _RepeatedHistoryRequestProvider()
 
-    monkeypatch.setattr(module.tools, "resolve_correction_target_tool", lambda **_: {})
-    monkeypatch.setattr(module.tools, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
     monkeypatch.setattr(module, "apply_final_action_to_payload", lambda **_: None)
     monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *_, **__: None)
     monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: state)

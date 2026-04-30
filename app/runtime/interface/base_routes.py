@@ -9,6 +9,15 @@ from ... import CANARY_VERSION, SCHEMA_SIGNATURE
 from .provider_runtime import extract_provider, manager_provider, search_provider
 
 router = APIRouter()
+_INDEX_HTML_PATH = Path(__file__).resolve().parent.parent.parent.parent / "static" / "test-chat.html"
+_INDEX_HTML_CACHE: str | None = None
+
+
+def _load_index_html() -> str:
+    global _INDEX_HTML_CACHE
+    if _INDEX_HTML_CACHE is None:
+        _INDEX_HTML_CACHE = _INDEX_HTML_PATH.read_text(encoding="utf-8")
+    return _INDEX_HTML_CACHE
 
 
 @router.get("/ping")
@@ -25,5 +34,4 @@ async def ping() -> dict:
 
 @router.get("/")
 async def index() -> HTMLResponse:
-    html = (Path(__file__).resolve().parent.parent.parent.parent / "static" / "test-chat.html").read_text(encoding="utf-8")
-    return HTMLResponse(content=html, media_type="text/html; charset=utf-8")
+    return HTMLResponse(content=_load_index_html(), media_type="text/html; charset=utf-8")

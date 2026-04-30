@@ -8,6 +8,7 @@ from ..runtime.agent.manager_branch_contract import (
     should_attempt_b1_generic_pass1_structured_output_transport,
     validate_manager_pass1_branch,
 )
+from ..runtime.agent.manager_branch_shapes import manager_semantic_decision_schema
 from ..runtime.contracts.trace import MANAGER_LOOP_STAGE
 
 
@@ -31,6 +32,7 @@ def response_schema_for_stage(stage: str, constraints: dict[str, Any] | None = N
                 "answer_contract": {"type": "object"},
                 "uncertainty_posture": {"type": "string"},
                 "evidence_honesty_posture": {"type": "string"},
+                "semantic_decision": manager_semantic_decision_schema(),
                 "response_summary": {"anyOf": [{"type": "string"}, {"type": "null"}]},
                 "pending_followup": {"anyOf": [{"type": "string"}, {"type": "null"}]},
                 "tool_calls": {

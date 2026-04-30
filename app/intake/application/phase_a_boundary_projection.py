@@ -63,15 +63,30 @@ def _build_commit_projection(
     *,
     persistence_result: Any | None,
 ) -> tuple[CommitBoundaryDecision, str, list[str], dict[str, Any]]:
+    trace_contract = dict(payload.trace_contract or {})
+    response_mode_hint = str(trace_contract.get("response_mode_hint") or "")
+    blocking_slots = [str(item) for item in trace_contract.get("blocking_slots", []) if str(item).strip()]
+    canonical_write_decision = dict(trace_contract.get("canonical_write_decision") or {})
+    if "can_write_canonical" not in canonical_write_decision:
+        canonical_write_decision["can_write_canonical"] = (
+            int(payload.estimated_kcal or 0) > 0
+            and not blocking_slots
+            and response_mode_hint != "clarify_first"
+        )
+        canonical_write_decision["source"] = "phase_a_legality_projection"
+    elif blocking_slots or response_mode_hint == "clarify_first":
+        canonical_write_decision["can_write_canonical"] = False
+        canonical_write_decision["source"] = "phase_a_legality_blocker"
+    trace_contract["canonical_write_decision"] = canonical_write_decision
+
     predicted_status = determine_meal_status(
         payload_action_taken=payload.action_taken,
         payload_route_target=payload.route_target,
         estimated_kcal=payload.estimated_kcal,
-        trace_contract=payload.trace_contract,
+        trace_contract=trace_contract,
         quality_signals=payload.quality_signals,
     )
     predicted_status_value = str(predicted_status or "none")
-    canonical_write_decision = dict(payload.trace_contract.get("canonical_write_decision") or {})
     canonical_write_allowed = canonical_write_decision.get("can_write_canonical", predicted_status_value == "completed_meal") is not False
 
     if predicted_status_value == "completed_meal" and canonical_write_allowed:

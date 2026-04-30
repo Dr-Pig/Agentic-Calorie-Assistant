@@ -85,7 +85,7 @@ def _resolved_state(
     )
 
 
-def test_recent_correction_history_activation_upgrades_to_target_committed_thread() -> None:
+def test_pre_manager_history_expansion_is_trace_only_and_does_not_upgrade_correction_target() -> None:
     resolved_state = _resolved_state(
         recent_committed_meals=[],
         retrieved_meal_records=[
@@ -117,21 +117,19 @@ def test_recent_correction_history_activation_upgrades_to_target_committed_threa
     )
 
     assert pre_attachment.disposition == "answer_only"
-    assert pre_guard.verdict == "clarify_required"
-    assert result.applied is True
-    assert result.request is not None
-    assert result.request.reason == "correction_reference"
-    assert result.request.scope == "recent_meals"
-    assert result.atomic_blocks_status == "not_supplied"
-    assert result.resolution_gain is True
-    assert result.post_attachment_decision.disposition == "target_committed_thread"
-    assert result.post_attachment_decision.target_object_id == "77"
-    assert result.post_transition_guard_result.verdict == "pass"
-    assert result.selected_candidate_ids == ("77",)
-    assert result.enriched_current_turn_context.candidate_attachment_targets[0]["target_object_id"] == "77"
+    assert pre_guard.verdict == "answer_only"
+    assert result.applied is False
+    assert result.request is None
+    assert result.result is None
+    assert result.atomic_blocks_status == "trace_only_disabled"
+    assert result.resolution_gain is False
+    assert result.post_attachment_decision == pre_attachment
+    assert result.post_transition_guard_result == pre_guard
+    assert result.selected_candidate_ids == ()
+    assert result.enriched_current_turn_context == current_turn_context
 
 
-def test_older_meal_history_activation_upgrades_single_historical_target() -> None:
+def test_pre_manager_history_expansion_does_not_infer_older_meal_scope_from_raw_text() -> None:
     resolved_state = _resolved_state(
         local_date="2026-04-29",
         retrieved_meal_records=[
@@ -158,16 +156,15 @@ def test_older_meal_history_activation_upgrades_single_historical_target() -> No
         resolved_state=resolved_state,
     )
 
-    assert result.applied is True
-    assert result.request is not None
-    assert result.request.reason == "older_meal_reference"
-    assert result.request.scope == "committed_meals"
-    assert result.resolution_gain is True
-    assert result.post_attachment_decision.disposition == "target_committed_thread"
-    assert result.post_attachment_decision.target_object_id == "99"
+    assert result.applied is False
+    assert result.request is None
+    assert result.result is None
+    assert result.atomic_blocks_status == "trace_only_disabled"
+    assert result.resolution_gain is False
+    assert result.post_attachment_decision.disposition == "answer_only"
 
 
-def test_multiple_history_candidates_remain_conservative_and_trace_ambiguity() -> None:
+def test_pre_manager_history_expansion_does_not_run_candidate_matching_before_manager_scope() -> None:
     resolved_state = _resolved_state(
         local_date="2026-04-29",
         retrieved_meal_records=[
@@ -205,9 +202,19 @@ def test_multiple_history_candidates_remain_conservative_and_trace_ambiguity() -
         resolved_state=resolved_state,
     )
 
-    assert result.applied is True
+    assert result.applied is False
     assert result.resolution_gain is False
     assert result.post_attachment_decision.disposition == "answer_only"
-    assert result.post_transition_guard_result.verdict == "clarify_required"
-    assert result.ambiguity_detected is True
+    assert result.post_transition_guard_result.verdict == "answer_only"
+    assert result.ambiguity_detected is False
     assert result.selected_candidate_ids == ()
+
+
+def test_pre_manager_history_expansion_runtime_has_no_keyword_semantic_imports() -> None:
+    from pathlib import Path
+
+    source = Path("app/intake/application/history_expansion_runtime.py").read_text(encoding="utf-8")
+
+    assert "manager_fallback_policy" not in source
+    assert "looks_like_correction" not in source
+    assert "looks_like_budget_query" not in source

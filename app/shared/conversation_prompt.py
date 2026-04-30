@@ -21,8 +21,8 @@ def render_conversation_state_prompt(state: ConversationState) -> str:
     turn_state = build_turn_state(state)
     state_json = turn_state.model_dump(mode="json")
     parts: list[str] = [f"[Current TurnState]\n{json.dumps(state_json, ensure_ascii=False, indent=2)}"]
-    if state.planner_state_digest:
-        parts.append("[Planner State Digest]\n" + json.dumps(state.planner_state_digest.model_dump(mode="json"), ensure_ascii=False, indent=2))
+    if state.manager_state_digest:
+        parts.append("[Manager State Digest]\n" + json.dumps(state.manager_state_digest.model_dump(mode="json"), ensure_ascii=False, indent=2))
     if state.active_meal_summary:
         parts.append("[Active Meal Summary]\n" + json.dumps(state.active_meal_summary.model_dump(mode="json"), ensure_ascii=False, indent=2))
     if state.active_meal_state:
@@ -48,8 +48,13 @@ def render_conversation_state_prompt(state: ConversationState) -> str:
     if state.conversation_archive_hits:
         hit_lines = []
         for hit in state.conversation_archive_hits[:4]:
-            prefix = "USER" if hit.role == "user" else "ASSISTANT"
-            hit_lines.append(f"[{prefix}#{hit.message_id}] {hit.content}")
+            details = [hit.local_date]
+            if hit.matched_terms:
+                details.append("matched=" + ", ".join(hit.matched_terms[:5]))
+            if hit.rationale:
+                details.append(hit.rationale)
+            suffix = f" ({'; '.join(details)})" if details else ""
+            hit_lines.append(f"[ARCHIVE#{hit.record_id}]{suffix} {hit.summary_text}")
         parts.append("[Retrieved Conversation Hits]\n" + "\n".join(hit_lines))
     if state.retrieved_meal_records:
         meal_lines = []

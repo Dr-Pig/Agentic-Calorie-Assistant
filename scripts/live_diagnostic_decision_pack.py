@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from app.shared.contracts.readiness_claim import build_readiness_claim
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "artifacts" / "live_diagnostic_product_semantic_decision_pack.json"
@@ -155,7 +157,7 @@ _APPROVED_PRODUCT_DECISIONS: dict[str, dict[str, Any]] = {
         "selected_policy": "logged_estimate_with_followup",
         "approval_source": "user_approved_product_semantics",
         "supersedes_stale_expectations": [
-            "old_c001_draft_first_oracle",
+            "superseded_c001_draft_expectation",
             "pending_decision_pack_status",
         ],
     }
@@ -249,6 +251,10 @@ def build_b2_live_llm_diagnostic_contract_report(
         for case_id in selected_case_ids
     ]
     verdict_category = _contract_report_verdict(case_results)
+    readiness_claim = build_live_diagnostic_readiness_claim(
+        provider_mode=provider_mode,
+        live_invoked=False,
+    )
     return {
         "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "diagnostic_lane": B2_DIAGNOSTIC_LANE,
@@ -256,6 +262,7 @@ def build_b2_live_llm_diagnostic_contract_report(
         "provider_mode": provider_mode,
         "live_invoked": False,
         "readiness_claimed": False,
+        "readiness_claim": readiness_claim,
         "live_provider_diagnostic_complete": False,
         "payload_artifact_id": payload_artifact_id,
         "schema_mode": schema_mode,
@@ -286,6 +293,45 @@ def build_b2_live_llm_diagnostic_contract_report(
         "mutation_changed": False,
         "tavily_or_web_activated": False,
     }
+
+
+def build_live_diagnostic_readiness_claim(
+    *,
+    provider_mode: str,
+    live_invoked: bool,
+) -> dict[str, Any]:
+    live_mode = live_invoked or provider_mode == "live"
+    return build_readiness_claim(
+        claim_scope="live_diagnostic" if live_mode else "fixture_scaffold",
+        activation_stage="live_diagnostic" if live_mode else "fake",
+        semantic_authority_source=(
+            "live_manager_structured_output" if live_mode else "fake_manager_structured_output"
+        ),
+        producer_honesty={
+            "runner_inferred_semantics": False,
+            "fake_provider_simulated_manager": not live_mode,
+            "final_mapping_fabricated": False,
+            "mutation_fabricated": False,
+        },
+        evidence_lineage={
+            "artifacts": [],
+            "producers": ["scripts/live_diagnostic_decision_pack.py"],
+            "provider_mode": provider_mode,
+            "live_invoked": live_invoked,
+            "legacy_oracle_used": False,
+        },
+        allowed_next_stage="shadow" if live_mode else "deterministic",
+        forbidden_claims=[
+            "product_ready",
+            "user_facing_ready",
+            "mutation_ready",
+            "production_ready",
+        ],
+        readiness_claimed=False,
+    )
+
+
+_build_live_diagnostic_readiness_claim = build_live_diagnostic_readiness_claim
 
 
 def _case_by_id(report: dict[str, Any], case_id: str) -> dict[str, Any]:

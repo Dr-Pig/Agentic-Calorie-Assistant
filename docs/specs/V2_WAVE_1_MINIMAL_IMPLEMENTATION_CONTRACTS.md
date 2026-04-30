@@ -321,14 +321,11 @@ Intake-owned behavior boundaries:
   - builds manager context pack only
   - must not decide attachment or mutation
 
-Legacy facade rule:
+Deleted facade rule:
 
-- `runtime/application/phase_a_context.py` may re-export, delegate, or wrap for compatibility
-- it must not gain new meal-first semantics
-- it must not gain new context injection policy logic
-- it must not gain new history-expansion behavior
-- it must not gain new shadow-hypothesis behavior
-- it must not gain new fallback semantics
+- the Phase A compatibility facade has been removed
+- active callers must import intake-owned Phase A runtime modules directly
+- no new compatibility facade may own meal-first semantics, context injection policy, history expansion, shadow hypothesis, or fallback semantics
 
 Sequencing gate for the next split:
 

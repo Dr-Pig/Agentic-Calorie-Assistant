@@ -198,8 +198,8 @@ def _looks_like_store_header(component: str, remaining: list[str]) -> bool:
     if not cleaned or len(remaining) < 2:
         return False
     return any(cleaned.endswith(suffix) for suffix in _STORE_HINT_SUFFIXES)
-def infer_expected_components(*, user_input: str, planner_foods: list[str] | None = None) -> list[str]:
-    expected = _dedupe_texts([_sanitize_component_phrase(item) for item in (planner_foods or [])])
+def infer_expected_components(*, user_input: str, manager_foods: list[str] | None = None) -> list[str]:
+    expected = _dedupe_texts([_sanitize_component_phrase(item) for item in (manager_foods or [])])
     if expected:
         return expected
     text = normalize_text(user_input)
@@ -237,7 +237,7 @@ def infer_expected_components(*, user_input: str, planner_foods: list[str] | Non
         raw_components = raw_components[1:]
     return _dedupe_texts([_sanitize_component_phrase(part) for part in raw_components if _sanitize_component_phrase(part)])
 def infer_store_hint(user_input: str) -> str:
-    components = infer_expected_components(user_input=user_input, planner_foods=None)
+    components = infer_expected_components(user_input=user_input, manager_foods=None)
     if components:
         return ""
     text = normalize_text(user_input)
