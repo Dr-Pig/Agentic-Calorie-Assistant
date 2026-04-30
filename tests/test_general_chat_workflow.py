@@ -8,7 +8,7 @@ from app.database import get_or_create_user
 from app.intake.application.general_chat_service import build_general_chat_response_pass
 from app.models import Base, BodyPlanRecord, DayBudgetLedgerRecord, MealThreadRecord
 from app.schemas import CommitRequestCandidate
-from app.shared.infra.canonical_persistence import commit_meal_payload_to_canonical
+from app.composition.canonical_persistence import commit_meal_payload_to_canonical
 
 
 def _session() -> Session:

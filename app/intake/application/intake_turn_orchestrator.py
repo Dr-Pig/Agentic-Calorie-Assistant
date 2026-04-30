@@ -17,7 +17,7 @@ from ...runtime.application.manager_service import run_intake_manager
 from ...runtime.application.reply_renderer import render_bundle1_reply
 from ...runtime.application.request_trace_artifacts import build_trace_refs, write_bundle1_request_trace_artifact
 from ...runtime.application.sidecar_service import build_deterministic_sidecar
-from ...runtime.application.state_resolver import resolve_v2_bundle1_state
+from ...composition.state_resolver import resolve_v2_bundle1_state
 from ...nutrition.application.web_extract_port import WebExtractPort
 from ...nutrition.application.web_search_port import WebSearchPort
 from .intake_trace_tools import append_trace_event_tool

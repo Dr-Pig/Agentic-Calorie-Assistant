@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 import app.nutrition.application.small_anchor_store as small_anchor_store
 import app.nutrition.infrastructure.exact_item_search as exact_item_search
 import app.runtime.interface.base_routes as base_routes
-import app.runtime.infrastructure.conversation_state_loader as conversation_state_loader
+import app.composition.conversation_state_loader as conversation_state_loader
 from app.database import get_meal_log_history
 
 
@@ -202,7 +202,7 @@ def test_get_meal_log_history_does_not_count_before_limited_fetch() -> None:
 
 
 def test_bundle2_response_uses_preloaded_budget_views(monkeypatch: pytest.MonkeyPatch) -> None:
-    from app.runtime.application import bundle2_response as module
+    from app.composition import bundle2_response as module
 
     class _PlanView:
         body_plan_id = 10

@@ -8,7 +8,7 @@ from ...body.application.body_observation_service import (
     record_body_observation_skeleton,
     record_body_observation_to_canonical,
 )
-from app.shared.infra.canonical_persistence import (
+from app.composition.canonical_persistence import (
     CanonicalMealCommitResult,
     CanonicalCommitTarget,
     commit_meal_payload_to_canonical,

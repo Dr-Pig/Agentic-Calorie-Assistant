@@ -13,14 +13,14 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from ...runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
-from ...runtime.application.bundle2_response import build_bundle2_response, finalized_budget_summary
-from ...runtime.application.bundle2_tool_batch import (
+from ...composition.bundle2_response import build_bundle2_response, finalized_budget_summary
+from ...composition.bundle2_tool_batch import (
     apply_final_action_to_payload,
     execute_manager_tool_calls,
     nutrition_tool_output,
 )
 from ...runtime.application.manager_service import run_intake_manager
-from ...runtime.application.state_resolver import resolve_v2_bundle1_state
+from ...composition.state_resolver import resolve_v2_bundle1_state
 from ...nutrition.application.b2_active_runtime_owner_lineage import attach_b2_owner_lineage_trace
 from ...nutrition.application.web_extract_port import WebExtractPort
 from ...nutrition.application.web_search_port import WebSearchPort
