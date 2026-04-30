@@ -78,8 +78,9 @@ rescue 預設先處理短期 horizon，不直接跳成長期計畫重設。
 
 正式規則：
 
-- intake reply 完成後，不可在同一則回覆裡附加 rescue 內容
-- 不允許在 intake 訊息的第二段夾帶 rescue proposal
+- intake reply 可呈現 overshoot awareness 與低壓 coaching hook
+- intake reply 不可附加 mutation-bearing rescue proposal
+- 不允許在 intake 訊息的第二段夾帶正式 rescue proposal card
 - rescue 訊息必須是獨立的一則 chat 訊息
 - `trigger_and_viability_assessment` 不可讀 `current intake event context` 作為觸發依據；rescue trigger 只依賴 ledger state 與 history，不依賴當前 intake 事件
 
@@ -90,8 +91,8 @@ rescue 預設先處理短期 horizon，不直接跳成長期計畫重設。
 
 不允許：
 
-- intake reply 裡順手夾帶 rescue
-- 系統在使用者沒有問的情況下，在 intake 回覆後自動附加 rescue 建議
+- intake reply 裡順手夾帶正式 rescue proposal
+- 系統在使用者沒有問的情況下，在 intake 回覆後自動附加正式 rescue 建議或 proposal
 
 ### 4.1 主流程最小輸入
 
@@ -148,7 +149,7 @@ rescue 預設先處理短期 horizon，不直接跳成長期計畫重設。
 
 - Node 1 + 2 是純數學：overshoot math、spread horizon、safety floor、recovery viability、分攤天數計算——全部 deterministic，不需要 LLM
 - Node 3 是 LLM 的工作：把合法的數學選項轉成真正像 assistant 的 proposal（coaching tone、framing、個人化說明）
-- Node 4 是 LLM 的工作：對話呈現、quick actions、使用者可理解的說明
+- Node 4 是 LLM 的工作：對話呈現、primary actions、使用者可理解的說明
 
 不這樣分的話，你會得到一個數學上正確、但很像 NPC 的 rescue。
 
@@ -179,7 +180,7 @@ rescue 預設先處理短期 horizon，不直接跳成長期計畫重設。
 
 4. `response_presentation`（LLM，response_writer_model）
    - 對話呈現
-   - 輸出：reply_text、quick_actions、ui_hints
+   - 輸出：reply_text、primary_actions、negotiation_affordance、ui_hints
 
 ---
 
@@ -379,7 +380,8 @@ Node 3 不重新計算數學。
 - `recommended_days`
 - `daily_kcal_adjustment`
 - `overshoot_kcal`
-- `quick_actions`
+- `primary_actions`
+- `negotiation_affordance`
 - `ui_hints`
 
 ### 9.3 對外呈現原則
@@ -389,15 +391,20 @@ Node 3 不重新計算數學。
 - 用語應偏未來導向，不責備
 - 說明超出多少、建議幾天攤回、每天大約少吃多少
 
-### 9.4 quick actions
+### 9.4 primary actions and chat negotiation
 
-v1 標準 quick actions：
+v1 標準 proposal card 只呈現 lifecycle primary actions：
 
 - `{ "action_id": "accept_rescue_plan", "label": "接受這個方案" }`
-- `{ "action_id": "shorten_rescue_plan", "label": "更短更積極" }`
-- `{ "action_id": "extend_rescue_plan", "label": "更長更緩和" }`
-- `{ "action_id": "reject_rescue_plan", "label": "不要這個方案" }`
-- `{ "action_id": "explain_rescue_plan", "label": "為什麼這樣建議" }`
+- `{ "action_id": "dismiss_rescue_plan", "label": "先不要" }`
+
+以下語意能力仍保留，但不作為 proposal card primary actions：
+
+- `更短更積極`
+- `更長更緩和`
+- `為什麼這樣建議`
+
+這些應透過 chat negotiation 或 App/Web 的次級調整入口處理。原因是 v1 rescue 是 chat-first；proposal card 的主按鈕只負責接受或先不要，強度調整與說明屬於對話協商。
 
 若 `special_posture = logging_first`，改為：
 
@@ -410,28 +417,32 @@ v1 標準 quick actions：
 - `{ "action_id": "see_calibration", "label": "看看計畫重啟" }`
 - `{ "action_id": "skip_rescue", "label": "先不管" }`
 
-### 9.5 `reject_rescue_plan` 的行為
+### 9.5 `dismiss_rescue_plan` 的行為
 
-使用者點擊 `不要這個方案` 後：
+使用者點擊 `先不要` 或明確說「不要」「算了」後：
 
-- 系統在 chat 中問原因（例如「好的，可以告訴我為什麼嗎？太嚴格了，還是現在不想管？」）
+- 系統標記當前 proposal instance 為 `dismissed`
 - 不自動切換成另一個 backup proposal
-- 不自動關閉 open rescue proposal
-- 使用者回答後，系統可依原因決定：
-  - 若「太嚴格」→ 提示可用 `更長更緩和`
-  - 若「現在不想管」→ 標記 proposal 為 `dismissed`，不再主動推送
+- 不追問原因作為完成 dismiss 的必要條件
+- 不再主動推送同一個 rescue proposal
+- 這不是永久關閉 rescue，也不是定時 snooze
+- 只有情境重大改變（例如超標量改變、日期接近、使用者主動重新詢問）時，系統才可重新生成新的 rescue proposal
+- App/Web active proposal inbox 不再顯示 dismissed proposal；user-facing history / audit 仍應可見
+- history / audit 預設顯示簡短摘要，並可展開 user-facing explanation（例如超標量、建議天數、每日回收量、為什麼不是更短）；不得把 raw trace、sidecar diagnostic、或內部推理原樣呈現為產品 UI
+- LINE 或其他 channel adapter 不得重推同一個 dismissed proposal instance
+- 使用者日後仍可主動重新開啟 rescue discussion
 
-### 9.5A 抱怨語氣 ≠ Reject
+### 9.5A 抱怨語氣 ≠ Dismiss
 
 **正式規則：表達不滿或抱怨的語氣，不等於明確拒絕 rescue proposal。**
 
 例子：
 
-- 「這樣也太硬了吧」→ **不是 reject**，是對方案強度的抱怨或疑問，應路由為 `answer_only`（disposition: answer_only）
-- 「這樣我做得到嗎」→ **不是 reject**，是詢問可行性
-- 「有點難耶」→ **不是 reject**，是表達猶豫
+- 「這樣也太硬了吧」→ **不是 dismiss**，是對方案強度的抱怨或疑問，應路由為 `answer_only`（disposition: answer_only）
+- 「這樣我做得到嗎」→ **不是 dismiss**，是詢問可行性
+- 「有點難耶」→ **不是 dismiss**，是表達猶豫
 
-以下才算明確 reject：
+以下才算明確 dismiss：
 
 - 「不要」「不用了」「算了」「取消」「我不要這個方案」
 - 明確說「我不接受」「不照這個做」
@@ -439,12 +450,12 @@ v1 標準 quick actions：
 規則：
 
 - 若 utterance 只表達抱怨、疑問、或猶豫，應路由為 `answer_only`，不改變 proposal state
-- 若 utterance 含有明確拒絕語意，才路由為 `reject`
+- 若 utterance 含有明確「先不要此 proposal」語意，才路由為 `dismiss_rescue_plan`
 - 邊界模糊時，應優先保守路由為 `answer_only`，讓使用者在 response 中有機會明確表態
 
 ### 9.6 `explain_rescue_plan` 的行為
 
-使用者點擊 `為什麼這樣建議` 後，系統應說明：
+使用者在 chat 詢問「為什麼這樣建議」，或從 App/Web 次級說明入口觸發 explain 後，系統應說明：
 
 - 這次超出多少 kcal
 - 為什麼建議這個天數（以 15% 每日上限為基準）
@@ -453,12 +464,13 @@ v1 標準 quick actions：
 
 ### 9.7 Chat Delivery 形狀
 
-rescue 訊息必須是獨立的一則訊息，不可夾帶在 intake reply 裡。
+正式 rescue proposal 訊息必須是獨立的一則訊息，不可夾帶在 intake reply 裡。
 
 規則：
 
 - intake reply 完成後，rescue 若需要送出，應作為獨立的下一則訊息
-- 不允許在同一則 intake 回覆裡附加 rescue 第二段
+- 不允許在同一則 intake 回覆裡附加正式 rescue proposal 第二段
+- intake reply 可包含 overshoot awareness 與低壓 coaching hook，但不得建立 rescue proposal 或 ledger overlay
 - proactive rescue 由 `ProactiveScheduler` 觸發，作為獨立訊息送出
 - reactive rescue（使用者主動問）作為獨立回覆送出
 
@@ -657,9 +669,10 @@ v1 採單一分攤模型，card 結構對應如下：
 - `headline`：對外顯示的短標題，例如「超出約 400 大卡，建議分 3 天補回來」
 - `summary`：一到兩句說明效果與每日大約少吃多少
 - `guardrail_note`：若有 safety floor 限制相關說明
-- `quick_actions`：此 card 對應的 quick action 列表（見 Section 9.4）
+- `primary_actions`：此 card 對應的接受 / 先不要 actions（見 Section 9.4）
+- `negotiation_affordance`：提示使用者可用 chat 說「緩一點」「短一點」或「為什麼」來調整或詢問
 
-### 14B. Rescue Accept / Reject API Contract
+### 14B. Rescue Accept / Dismiss API Contract
 
 **Accept 觸發來源**：
 
@@ -689,17 +702,21 @@ v1 採單一分攤模型，card 結構對應如下：
 6. refresh recommendation posture
 7. 回傳 `RescueCommitEffect`
 
-**Reject 觸發來源**：
+**Dismiss 觸發來源**：
 
-- 使用者點擊 `reject_rescue_plan` 或說「不要」「算了」等明確拒絕語意
+- 使用者點擊 `dismiss_rescue_plan` 或說「不要」「算了」等明確拒絕語意
 
-**Reject 後行為**：
+**Dismiss 後行為**：
 
-- 系統在 chat 中問原因（不自動關閉 proposal）
+- 標記當前 `ProposalContainer.status = dismissed`
 - 不自動切換成另一個方案
-- 依使用者回答決定後續：
-  - 「太嚴格」→ 提示可用 `extend_rescue_plan`
-  - 「現在不想管」→ 標記 `ProposalContainer.status = dismissed`
+- 不追問原因作為 dismiss 的必要條件
+- 不將 dismiss 解讀為永久關閉 rescue 或定時 snooze
+- 若後續情境重大改變，或使用者主動重新詢問，可重新生成新的 proposal instance
+- Active proposal inbox 應移除 dismissed proposal；history / audit view 應保留可見紀錄
+- history / audit view 應提供 concise summary + expandable explanation，不直接暴露 raw trace 或 sidecar diagnostic vocabulary
+- Channel adapter 不得將同一個 dismissed proposal instance 再次推送給使用者
+- 若使用者是說「太嚴格」或「有點難」而非明確拒絕，應視為 chat negotiation，不進 dismiss
 
 **`RescueCommitEffect` 最小欄位**：
 
@@ -762,9 +779,10 @@ rescue accept 後，recommendation 需讀新的短期 caloric posture。
 - rescue 不提出低於 safety floor 的方案
 - accept 後正確建立多筆 `LedgerEntry(rescue_overlay)`
 - recommendation 正確讀到 rescue 後的 caloric posture
-- rescue 訊息不出現在 intake reply 裡（獨立訊息）
-- `reject_rescue_plan` 後系統問原因，不自動切換方案
-- proactive rescue 作為獨立訊息送出，不夾帶在 intake 回覆裡
+- 正式 rescue proposal 不出現在 intake reply 裡（獨立訊息）
+- intake reply 可包含 overshoot awareness 與低壓 coaching hook，但不建立 proposal 或 overlay
+- `dismiss_rescue_plan` 後標記當前 proposal instance 為 dismissed，不自動切換方案，不永久關閉 rescue，也不建立 snooze
+- proactive rescue proposal 作為獨立訊息送出，不夾帶在 intake 回覆裡
 
 ---
 
@@ -837,7 +855,7 @@ rescue flow 的前兩個 nodes（`trigger_and_viability_assessment`、`option_ge
 | Pass | Degraded 行為 |
 |------|-------------|
 | `proposal_shaping` | 若 deterministic option math 已完成，可使用最小 proposal template 組出 headline / summary，但不得重算 rescue math |
-| `response_presentation` | 使用 deterministic template 組出最小合法 response；不顯示 coaching tone，只顯示方案摘要與 quick actions |
+| `response_presentation` | 使用 deterministic template 組出最小合法 response；不顯示 coaching tone，只顯示方案摘要與 primary actions |
 
 ### 18.3 Required View 無法取得
 

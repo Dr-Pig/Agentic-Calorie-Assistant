@@ -229,6 +229,12 @@ Operationally, Taiwan semantics should live in:
 - a small system/developer few-shot set for the highest-risk cases only
 - eval cases
 
+Canonical metadata owner note:
+
+- the concrete Wave 1 Phase B-2 food knowledge metadata contract lives in `WAVE_1_PHASE_B2_FOOD_KNOWLEDGE_METADATA_SPEC.md`
+- this draft remains architecture framing and case-law reference
+- this draft must not become the owner of metadata schema, packet truth levels, final mapping behavior, or mutation authority
+
 It should not be implemented as:
 
 - a runtime Markdown loader

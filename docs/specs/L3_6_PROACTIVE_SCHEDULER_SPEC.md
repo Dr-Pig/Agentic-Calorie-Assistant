@@ -197,8 +197,10 @@ Deterministic gate:
 
 Formal boundary:
 
-- rescue proactive messages must be independent messages
-- intake reply must not inline rescue content
+- formal rescue proactive messages must be independent messages
+- intake reply must not inline mutation-bearing rescue proposal content
+- if a just-committed intake causes overshoot, the intake reply may include overshoot awareness plus a low-pressure coaching hook
+- that hook may invite reflection or rescue discussion, but it must not create a rescue proposal, future overlay, or ledger mutation
 
 LLM dispatch decision:
 
@@ -230,6 +232,13 @@ LLM dispatch decision:
 Downstream posture:
 
 - hand off into `recommendation`
+
+Intensity rule:
+
+- high-quality prepared or cheap-to-verify candidate context may send one primary recommendation plus one backup
+- medium-quality context should send only a low-friction offer to help find dinner
+- low-quality context should skip silently
+- proactive recommendation should not run expensive live web/menu/blog search by default; live enrichment is user-engaged unless a later spec defines a cache-backed exception
 
 ### 5.5 `recommendation_nudge_nearby`
 
