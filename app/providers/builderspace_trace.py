@@ -65,6 +65,12 @@ def build_success_trace(
         "structured_output_transport_fallback": transport_meta["structured_output_transport_fallback"],
         "fallback_reason": transport_meta["fallback_reason"],
         "structured_output_transport_constraint_snapshot": transport_meta["structured_output_transport_constraint_snapshot"],
+        "schema_name": decision_transport_meta.get("schema_name") or transport_meta.get("schema_name"),
+        "schema_version": decision_transport_meta.get("schema_version") or transport_meta.get("schema_version"),
+        "forbidden_as_success": transport_meta.get("forbidden_as_success", []),
+        "repair_attempted": bool(transport_meta.get("repair_attempted")),
+        "repair_result": transport_meta.get("repair_result") or "not_needed",
+        "repair_attempt_count": int(transport_meta.get("repair_attempt_count") or 0),
         "effective_response_format_type": effective_response_format_type,
         "decision_transport_attempted": decision_transport_meta["decision_transport_attempted"],
         "decision_transport_mode": decision_transport_meta["decision_transport_mode"],
@@ -73,6 +79,8 @@ def build_success_trace(
         "decision_transport_fallback_reason": decision_transport_meta["decision_transport_fallback_reason"],
         "decision_transport_contract_breach": decision_transport_meta["decision_transport_contract_breach"],
         "decision_transport_constraint_snapshot": decision_transport_meta["decision_transport_constraint_snapshot"],
+        "decision_transport_schema_name": decision_transport_meta.get("schema_name"),
+        "decision_transport_schema_version": decision_transport_meta.get("schema_version"),
     }
 
 
@@ -137,6 +145,12 @@ def build_failure_trace(
         "structured_output_transport_fallback": transport_meta["structured_output_transport_fallback"],
         "fallback_reason": transport_meta["fallback_reason"],
         "structured_output_transport_constraint_snapshot": transport_meta["structured_output_transport_constraint_snapshot"],
+        "schema_name": decision_transport_meta.get("schema_name") or transport_meta.get("schema_name"),
+        "schema_version": decision_transport_meta.get("schema_version") or transport_meta.get("schema_version"),
+        "forbidden_as_success": transport_meta.get("forbidden_as_success", []),
+        "repair_attempted": bool(transport_meta.get("repair_attempted")),
+        "repair_result": transport_meta.get("repair_result") or ("failed" if transport_meta.get("repair_attempted") else "not_needed"),
+        "repair_attempt_count": int(transport_meta.get("repair_attempt_count") or 0),
         "decision_transport_attempted": decision_transport_meta["decision_transport_attempted"],
         "decision_transport_mode": decision_transport_meta["decision_transport_mode"],
         "decision_transport_accepted": decision_transport_meta["decision_transport_accepted"],
@@ -144,6 +158,8 @@ def build_failure_trace(
         "decision_transport_fallback_reason": decision_transport_meta["decision_transport_fallback_reason"],
         "decision_transport_contract_breach": decision_transport_meta["decision_transport_contract_breach"],
         "decision_transport_constraint_snapshot": decision_transport_meta["decision_transport_constraint_snapshot"],
+        "decision_transport_schema_name": decision_transport_meta.get("schema_name"),
+        "decision_transport_schema_version": decision_transport_meta.get("schema_version"),
         "effective_response_format_type": effective_response_format_type,
     }
 

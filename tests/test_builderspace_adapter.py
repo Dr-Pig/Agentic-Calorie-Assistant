@@ -119,6 +119,67 @@ def _http_error_response(status_code: int, payload: object) -> _FakeResponse:
     return _FakeResponse(payload=payload, text=json.dumps(payload), status_code=status_code)
 
 
+def _tool_call_envelope(*, tool_name: str, arguments: dict[str, object]) -> dict[str, object]:
+    return {
+        "choices": [
+            {
+                "message": {
+                    "tool_calls": [
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": tool_name,
+                                "arguments": json.dumps(arguments),
+                            },
+                        }
+                    ],
+                },
+                "finish_reason": "tool_calls",
+            }
+        ],
+        "status": "ok",
+        "usage": {"prompt_tokens": 10, "completion_tokens": 12},
+    }
+
+
+def _founder_live_constraints() -> dict[str, str]:
+    return {
+        "manager_contract_profile_id": "founder_live_contract",
+        "manager_contract_provider_profile_id": "builderspace-grok-4-fast-founder-live-contract",
+        "manager_contract_schema_name": "founder_live_manager_contract",
+        "manager_contract_schema_version": "v1",
+        "manager_contract_transport_policy": "synthetic_tool_transport",
+    }
+
+
+def _founder_live_payload(**overrides: object) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "manager_action": "final",
+        "intent": "log_meal",
+        "intent_type": "log_meal",
+        "workflow_effect": "estimate_with_followup",
+        "target_attachment": {"mode": "new_meal"},
+        "exactness": "estimated",
+        "confidence": "medium",
+        "evidence_posture": "bounded_estimate",
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {"mode": "new_meal"},
+            "workflow_effect": "estimate_with_followup",
+            "final_action_candidate": "logged_estimate",
+            "estimation_posture": "estimable_with_optional_refinement",
+            "followup_posture": "refinement_optional",
+            "mutation_intent_candidate": "canonical_write",
+            "uncertainty_posture": "bounded",
+            "source": "live_manager_structured_output",
+        },
+        "answer_contract": {"reply_text": "Estimated and logged."},
+    }
+    payload.update(overrides)
+    return payload
+
+
 class _JsonObjectOnlyBuilderSpaceAdapter(BuilderSpaceAdapter):
     def _response_format_request_for_stage(
         self,
@@ -671,6 +732,239 @@ def test_builderspace_decision_transport_profile_mode_does_not_apply_to_pass2(
 
     assert transport_request is None
     assert transport_meta["decision_transport_attempted"] is False
+
+
+def test_founder_live_manager_contract_schema_uses_consumer_backed_required_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        "manager_contract_profile_id": "founder_live_contract",
+        "manager_contract_schema_name": "founder_live_manager_contract",
+        "manager_contract_schema_version": "v1",
+        "manager_contract_transport_policy": "synthetic_tool_transport",
+    }
+
+    schema = adapter._response_schema_for_stage("intake_manager_round", constraints=constraints)
+
+    assert schema is not None
+    assert schema["required"] == [
+        "manager_action",
+        "intent",
+        "intent_type",
+        "workflow_effect",
+        "target_attachment",
+        "exactness",
+        "confidence",
+        "evidence_posture",
+        "semantic_decision",
+        "answer_contract",
+    ]
+    assert "repair_ack" in schema["properties"]
+    assert "repair_ack" not in schema["required"]
+    assert schema["properties"]["intent_type"]["enum"] == [
+        "complete_onboarding",
+        "answer_remaining_budget",
+        "onboarding_required",
+        "manager_unavailable",
+        "log_meal",
+    ]
+    assert schema["x-field-consumers"]["workflow_effect"] == "transition_guard_and_mutation_boundary"
+    assert schema["x-field-consumers"]["answer_contract"] == "renderer_boundary"
+
+
+def test_founder_live_manager_contract_payload_accepts_trace_repair_ack_outside_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        "manager_contract_profile_id": "founder_live_contract",
+        "manager_contract_schema_name": "founder_live_manager_contract",
+        "manager_contract_schema_version": "v1",
+        "manager_contract_transport_policy": "synthetic_tool_transport",
+    }
+    payload = {
+        "manager_action": "final",
+        "intent": "log_meal",
+        "intent_type": "log_meal",
+        "workflow_effect": "estimate_with_followup",
+        "target_attachment": {"mode": "new_meal"},
+        "exactness": "estimated",
+        "confidence": "medium",
+        "evidence_posture": "bounded_estimate",
+        "semantic_decision": {
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {"mode": "new_meal"},
+            "workflow_effect": "estimate_with_followup",
+            "final_action_candidate": "logged_estimate",
+            "estimation_posture": "estimable_with_optional_refinement",
+            "followup_posture": "refinement_optional",
+            "mutation_intent_candidate": "canonical_write",
+            "uncertainty_posture": "bounded",
+            "source": "live_manager_structured_output",
+        },
+        "answer_contract": {"reply_text": "Estimated and logged."},
+    }
+
+    adapter._validate_manager_payload("intake_manager_round", payload, constraints=constraints)
+
+    missing_semantic_decision = dict(payload)
+    missing_semantic_decision.pop("semantic_decision")
+    with pytest.raises(RuntimeError, match="semantic_decision"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            missing_semantic_decision,
+            constraints=constraints,
+        )
+
+    unsupported_intent = dict(payload)
+    unsupported_intent["intent_type"] = "user_initiated"
+    with pytest.raises(RuntimeError, match="intent_type"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            unsupported_intent,
+            constraints=constraints,
+        )
+
+    mismatched_router_intent = dict(payload)
+    mismatched_router_intent["intent_type"] = "complete_onboarding"
+    mismatched_router_intent["semantic_decision"] = dict(payload["semantic_decision"])
+    mismatched_router_intent["semantic_decision"]["current_turn_intent"] = "correct_meal"
+    with pytest.raises(RuntimeError, match="intent_type mismatch"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            mismatched_router_intent,
+            constraints=constraints,
+        )
+
+
+def test_founder_live_manager_contract_uses_synthetic_tool_transport_with_schema_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        "manager_contract_profile_id": "founder_live_contract",
+        "manager_contract_schema_name": "founder_live_manager_contract",
+        "manager_contract_schema_version": "v1",
+        "manager_contract_transport_policy": "synthetic_tool_transport",
+    }
+
+    transport_request, transport_meta = adapter._decision_transport_request_for_stage(
+        "intake_manager_round",
+        constraints=constraints,
+    )
+    response_format, response_meta = adapter._response_format_request_for_stage(
+        "intake_manager_round",
+        constraints=constraints,
+    )
+
+    assert transport_request is not None
+    assert transport_request["mode"] == "synthetic_tool_transport"
+    assert transport_request["tool_name"] == "manager_structured_decision"
+    assert transport_request["tool_choice"]["function"]["name"] == "manager_structured_decision"
+    assert transport_request["tools"][0]["function"]["strict"] is True
+    assert transport_request["tools"][0]["function"]["parameters"]["required"] == [
+        "manager_action",
+        "intent",
+        "intent_type",
+        "workflow_effect",
+        "target_attachment",
+        "exactness",
+        "confidence",
+        "evidence_posture",
+        "semantic_decision",
+        "answer_contract",
+    ]
+    assert transport_meta["decision_transport_mode"] == "synthetic_tool_transport"
+    assert transport_meta["schema_name"] == "founder_live_manager_contract"
+    assert transport_meta["schema_version"] == "v1"
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["name"] == "founder_live_manager_contract"
+    assert response_meta["schema_version"] == "v1"
+
+
+@pytest.mark.asyncio
+async def test_complete_with_trace_uses_founder_live_synthetic_tool_transport(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    posted_payloads: list[dict[str, object]] = []
+    response = _FakeResponse(
+        payload=_tool_call_envelope(
+            tool_name="manager_structured_decision",
+            arguments=_founder_live_payload(),
+        ),
+        text="ok",
+    )
+    monkeypatch.setenv("AI_BUILDER_TOKEN", "test-token")
+    monkeypatch.setenv("AI_BUILDER_BASE_URL", "https://example.test/backend/v1")
+    monkeypatch.setattr(
+        builderspace_adapter_module.httpx,
+        "AsyncClient",
+        lambda **kwargs: _RecordingAsyncClient(responses=[response], recorder=posted_payloads, **kwargs),
+    )
+    adapter = BuilderSpaceAdapter(manager_model_override="grok-4-fast")
+
+    parsed, trace = await adapter.complete_with_trace(
+        system_prompt="Return structured manager payload.",
+        user_payload={"constraints": _founder_live_constraints()},
+        stage="intake_manager_round",
+    )
+
+    assert parsed["intent_type"] == "log_meal"
+    assert posted_payloads[0]["json"]["tool_choice"]["function"]["name"] == "manager_structured_decision"
+    assert posted_payloads[0]["json"]["parallel_tool_calls"] is False
+    assert "response_format" not in posted_payloads[0]["json"]
+    assert trace["decision_transport_mode"] == "synthetic_tool_transport"
+    assert trace["schema_name"] == "founder_live_manager_contract"
+    assert trace["schema_version"] == "v1"
+    assert trace["repair_attempted"] is False
+    assert trace["repair_result"] == "not_needed"
+    assert trace["repair_attempt_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_complete_with_trace_repairs_founder_live_contract_shape_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    posted_payloads: list[dict[str, object]] = []
+    incomplete = _founder_live_payload()
+    incomplete.pop("evidence_posture")
+    first = _FakeResponse(
+        payload=_tool_call_envelope(tool_name="manager_structured_decision", arguments=incomplete),
+        text="first",
+    )
+    second = _FakeResponse(
+        payload=_tool_call_envelope(
+            tool_name="manager_structured_decision",
+            arguments=_founder_live_payload(),
+        ),
+        text="second",
+    )
+    monkeypatch.setenv("AI_BUILDER_TOKEN", "test-token")
+    monkeypatch.setenv("AI_BUILDER_BASE_URL", "https://example.test/backend/v1")
+    monkeypatch.setenv("AI_BUILDER_TRANSPORT_RETRY_COUNT", "0")
+    monkeypatch.setattr(
+        builderspace_adapter_module.httpx,
+        "AsyncClient",
+        lambda **kwargs: _RecordingAsyncClient(responses=[first, second], recorder=posted_payloads, **kwargs),
+    )
+    adapter = BuilderSpaceAdapter(manager_model_override="grok-4-fast")
+
+    parsed, trace = await adapter.complete_with_trace(
+        system_prompt="Return structured manager payload.",
+        user_payload={"constraints": _founder_live_constraints()},
+        stage="intake_manager_round",
+    )
+
+    assert parsed["evidence_posture"] == "bounded_estimate"
+    assert len(posted_payloads) == 2
+    assert "CONTRACT_REPAIR" in posted_payloads[1]["json"]["messages"][-1]["content"]
+    assert trace["repair_attempted"] is True
+    assert trace["repair_result"] == "passed_after_repair"
+    assert trace["repair_attempt_count"] == 1
+    assert trace["transport_attempts"][0]["status"] == "parse_retry"
+    assert trace["transport_attempts"][1]["status"] == "success"
 
 
 @pytest.mark.asyncio

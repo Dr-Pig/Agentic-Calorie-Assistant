@@ -28,12 +28,17 @@ def test_founder_live_provider_profile_is_diagnostic_only() -> None:
 
     profile = module.provider_profile(module.DEFAULT_FOUNDER_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID)
 
-    assert profile["provider_profile_id"] == "builderspace-grok-4-fast-founder-live-diagnostic"
+    assert profile["provider_profile_id"] == "builderspace-grok-4-fast-founder-live-contract"
     assert profile["model"] == "grok-4-fast"
-    assert profile["provider_profile_role"] == "founder_live_diagnostic_primary"
+    assert profile["provider_profile_role"] == "founder_live_contract_diagnostic"
     assert profile["production_selected"] is False
     assert profile["not_production_selection"] is True
     assert profile["readiness_owner"] is False
+    assert profile["transport_policy"]["primary"] == "synthetic_tool_transport"
+    assert profile["transport_policy"]["fallback"] == "json_schema"
+    assert "plain_json_object_without_schema_validation" in profile["transport_policy"]["forbidden_as_success"]
+    assert profile["schema_name"] == "founder_live_manager_contract"
+    assert profile["schema_version"] == "v1"
 
 
 def test_founder_live_diagnostic_artifact_contract_with_fake_provider(tmp_path: Path) -> None:
@@ -82,10 +87,14 @@ def test_founder_live_diagnostic_artifact_contract_with_fake_provider(tmp_path: 
     ]
     assert all(case["provider_profile_id"] == report["provider_profile_id"] for case in report["cases"])
     assert all(case["provider_profile_model"] == "grok-4-fast" for case in report["cases"])
+    assert all(case["case_contract_status"] in {"strict_pass", "repaired_pass", "fail"} for case in report["cases"])
     assert all(case["failure_layer"] != "legacy_dependency" for case in report["cases"])
     assert report["summary"]["pass_count"] + report["summary"]["fail_count"] + report["summary"][
         "product_decision_required_count"
     ] + report["summary"]["deferred_count"] == len(report["cases"])
+    assert report["summary"]["strict_pass_count"] + report["summary"]["repaired_pass_count"] + report["summary"][
+        "contract_fail_count"
+    ] == len(report["cases"])
 
 
 def test_founder_live_missing_provider_token_report_is_not_live_readiness() -> None:
@@ -127,3 +136,49 @@ def test_founder_live_classifies_manager_contract_parse_error() -> None:
 
     assert decorated["failure_layer"] == "provider_contract_non_adherence"
     assert decorated["failure_family"] == "provider_contract_non_adherence"
+    assert decorated["case_contract_status"] == "fail"
+
+
+def test_founder_live_classifies_repaired_pass_as_diagnostic_only() -> None:
+    module = importlib.import_module("scripts.run_wave1_founder_e2e_live_diagnostic")
+    profile = module.provider_profile(module.DEFAULT_FOUNDER_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID)
+    case = {
+        "case_id": "pearl_milk_tea_logged_followup",
+        "verdict": "pass",
+        "actual_behavior": {
+            "manager_rounds": [
+                {
+                    "trace": {
+                        "repair_attempted": True,
+                        "repair_result": "passed_after_repair",
+                    }
+                }
+            ]
+        },
+    }
+
+    decorated = module._decorate_case(case, profile=profile)  # noqa: SLF001 - diagnostic taxonomy is runner contract.
+
+    assert decorated["case_contract_status"] == "repaired_pass"
+    assert decorated["readiness_claimed"] is False
+    assert decorated["production_selected"] is False
+
+
+def test_founder_live_contract_status_is_strict_when_runtime_consumed_manager_payload() -> None:
+    module = importlib.import_module("scripts.run_wave1_founder_e2e_live_diagnostic")
+    profile = module.provider_profile(module.DEFAULT_FOUNDER_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID)
+    case = {
+        "case_id": "pearl_milk_tea_logged_followup",
+        "verdict": "fail",
+        "failure_layer": "mutation",
+        "actual_behavior": {
+            "runtime_error": None,
+            "manager_intent": "log_meal",
+            "manager_semantic_decision": {"semantic_authority": "manager_llm"},
+        },
+    }
+
+    decorated = module._decorate_case(case, profile=profile)  # noqa: SLF001 - diagnostic taxonomy is runner contract.
+
+    assert decorated["failure_layer"] == "mutation"
+    assert decorated["case_contract_status"] == "strict_pass"
