@@ -9,6 +9,7 @@ import pytest
 from scripts.run_wave1_phase_b2_exact_brand_tavily_live_trace_canary import (
     DEFAULT_CASE_IDS,
     build_missing_token_report,
+    _load_local_env,
     run_tavily_live_trace_canary,
 )
 
@@ -43,6 +44,24 @@ def test_missing_token_report_is_not_live_and_never_claims_readiness() -> None:
     assert report["failure_family"] == "environment_or_provider_blocker"
     assert report["failure_detail"] == "missing_tavily_api_key"
     assert report["readiness_claimed"] is False
+
+
+def test_tavily_runner_loads_ignored_local_env_without_overwriting_session_env(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    env_path = tmp_path / ".env"
+    env_path.write_text("TAVILY_API_KEY=tvly-test-secret\n", encoding="utf-8")
+    monkeypatch.delenv("TAVILY_API_KEY", raising=False)
+
+    _load_local_env(env_path)
+
+    assert os.environ["TAVILY_API_KEY"] == "tvly-test-secret"
+
+    monkeypatch.setenv("TAVILY_API_KEY", "session-secret")
+    _load_local_env(env_path)
+
+    assert os.environ["TAVILY_API_KEY"] == "session-secret"
 
 
 @pytest.mark.asyncio
