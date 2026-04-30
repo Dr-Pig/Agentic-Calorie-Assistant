@@ -4,6 +4,42 @@ from app.nutrition.application.exact_item_card_lookup import lookup_exact_item_c
 from app.nutrition.application.retrieval_intent import RetrievalIntent, build_retrieval_intent
 
 
+class _FakeEvidenceStore:
+    def load_small_anchor_records(self) -> list[dict[str, object]]:
+        return []
+
+    def load_exact_item_card_records(self) -> list[dict[str, object]]:
+        return [
+            {
+                "item_id": "exact_test_food_large",
+                "title": "Test Brand Food Large",
+                "aliases": ["Test Brand Food Large"],
+                "brand": "Test Brand",
+                "serving_basis": "large serving",
+                "kcal": 123,
+            }
+        ]
+
+
+def test_exact_item_lookup_accepts_injected_evidence_store_port() -> None:
+    result = lookup_exact_item_card_candidates(
+        RetrievalIntent(
+            base_dish="Food",
+            aliases=["Test Brand Food Large"],
+            brand_hint="Test Brand",
+            size_hint="Large",
+            modifier_hints=[],
+            listed_items=[],
+            retrieval_goal="exact_brand_lookup",
+        ),
+        evidence_store=_FakeEvidenceStore(),
+    )
+
+    assert result.defer_reason is None
+    assert [candidate.item_id for candidate in result.candidates] == ["exact_test_food_large"]
+    assert result.candidates[0].kcal == 123
+
+
 def test_exact_item_lookup_resolves_unified_chocolate_milk_400ml() -> None:
     result = lookup_exact_item_card_candidates(
         RetrievalIntent(

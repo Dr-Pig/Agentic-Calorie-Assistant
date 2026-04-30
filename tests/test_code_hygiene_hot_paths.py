@@ -3,6 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from sqlalchemy import create_engine
 
 import app.nutrition.application.small_anchor_store as small_anchor_store
 import app.nutrition.infrastructure.exact_item_search as exact_item_search
@@ -38,8 +39,41 @@ def test_exact_item_search_card_index_is_cached(monkeypatch) -> None:
         exact_item_search._cards_by_id.cache_clear()
 
 
+def test_exact_item_search_accepts_injected_engine(monkeypatch) -> None:
+    exact_item_search._load_cards.cache_clear()
+    exact_item_search._cards_by_id.cache_clear()
+    engine = create_engine("sqlite:///:memory:")
+
+    def _fake_loader() -> list[dict[str, object]]:
+        return [
+            {
+                "card_id": "card-1",
+                "title": "Test Drink",
+                "aliases": ["Test Drink"],
+                "brand": "Test Brand",
+                "kcal": 123,
+                "protein_g": 1,
+                "carb_g": 2,
+                "fat_g": 3,
+                "serving_basis": "one bottle",
+            }
+        ]
+
+    monkeypatch.setattr(exact_item_search, "load_exact_item_card_seed_records", _fake_loader)
+
+    try:
+        rows = exact_item_search.resolve_exact_item_fts("Test Drink", engine=engine)
+
+        assert rows[0]["item_id"] == "card-1"
+        assert rows[0]["source_class"] == "exact_item_db"
+        assert rows[0]["kcal"] == 123
+    finally:
+        exact_item_search._load_cards.cache_clear()
+        exact_item_search._cards_by_id.cache_clear()
+
+
 def test_small_anchor_store_anchor_record_conversion_is_cached(monkeypatch) -> None:
-    small_anchor_store._load_anchor_records.cache_clear()
+    small_anchor_store._load_default_anchor_records.cache_clear()
     calls = {"count": 0}
 
     def _fake_loader() -> list[dict[str, object]]:
@@ -61,17 +95,24 @@ def test_small_anchor_store_anchor_record_conversion_is_cached(monkeypatch) -> N
             }
         ]
 
-    monkeypatch.setattr(small_anchor_store, "load_small_anchor_seed_records", _fake_loader)
+    class _FakeEvidenceStore:
+        def load_small_anchor_records(self) -> list[dict[str, object]]:
+            return _fake_loader()
+
+        def load_exact_item_card_records(self) -> list[dict[str, object]]:
+            return []
+
+    monkeypatch.setattr(small_anchor_store, "default_nutrition_evidence_store", lambda: _FakeEvidenceStore())
 
     try:
-        first = small_anchor_store._load_anchor_records()
-        second = small_anchor_store._load_anchor_records()
+        first = small_anchor_store._load_default_anchor_records()
+        second = small_anchor_store._load_default_anchor_records()
 
         assert first == second
         assert first[0].canonical_name == "茶葉蛋"
         assert calls["count"] == 1
     finally:
-        small_anchor_store._load_anchor_records.cache_clear()
+        small_anchor_store._load_default_anchor_records.cache_clear()
 
 
 def test_load_conversation_state_uses_bounded_in_memory_retrieval_without_request_sidecar_sync(monkeypatch) -> None:
