@@ -20,12 +20,16 @@ from app.nutrition.application.b2_candidate_packetizer import (
 from app.nutrition.application.b2_final_mapping import map_b2_final_item_result
 from app.nutrition.application.b2_local_synthesis import synthesize_b2_local_manager_pass2
 from app.nutrition.application.b2_packet_consumption import consume_rechecked_packets
+from app.nutrition.application.b2_semantic_decision import (
+    B2ManagerSemanticDecision,
+    build_retrieval_intent_from_manager_decision,
+)
 from app.nutrition.application.b2_source_selection import select_b2_evidence_source
 from app.nutrition.application.exact_item_card_lookup import lookup_exact_item_card_candidates
 from app.nutrition.application.listed_item_fanout import fanout_listed_item_anchor_lookups
 from app.nutrition.application.packetizer_input_seed import packetizer_input_seeds_from_anchor_lookup_result
 from app.nutrition.application.packetizer_input_seed import packetizer_input_seeds_from_exact_item_lookup_result
-from app.nutrition.application.retrieval_intent import RetrievalIntent, build_retrieval_intent
+from app.nutrition.application.retrieval_intent import RetrievalGoal, RetrievalIntent
 from app.nutrition.application.selected_extract_policy import choose_selected_extract_packet
 from app.nutrition.application.small_anchor_store import lookup_anchor_candidates
 from app.nutrition.application.web_extract_packetizer import build_web_extract_packets
@@ -93,6 +97,14 @@ def _producer_trace(
         "support_basis": support_basis,
         "compatibility_reason": compatibility_reason,
     }
+
+
+def _intent_from_manager_decision(decision: B2ManagerSemanticDecision) -> RetrievalIntent:
+    return build_retrieval_intent_from_manager_decision(decision)
+
+
+def _semantic_decision_trace(decision: B2ManagerSemanticDecision) -> dict[str, object]:
+    return _json_safe(asdict(decision))
 
 
 def _source_selection_trace(intent: RetrievalIntent) -> dict[str, object]:
@@ -268,10 +280,11 @@ def _runtime_generic_case(
     case_id: str,
     input_message: str,
     *,
+    semantic_decision: B2ManagerSemanticDecision,
     mutation: dict[str, object] | None = None,
     final_response: str = "已根據 renderer input 回覆。",
 ) -> dict[str, object]:
-    intent = build_retrieval_intent(input_message)
+    intent = _intent_from_manager_decision(semantic_decision)
     anchor_result = lookup_anchor_candidates(intent)
     seeds = packetizer_input_seeds_from_anchor_lookup_result(anchor_result)
     packets = list(add_hard_recheck_metadata_many(build_candidate_packets(seeds)))
@@ -289,6 +302,7 @@ def _runtime_generic_case(
         item_results,
         producer_trace=_producer_trace("runtime_backed", "generic_anchor"),
         source_selection=_source_selection_trace(intent),
+        semantic_decision=semantic_decision,
         mutation=mutation,
         final_response=final_response,
     )
@@ -298,11 +312,12 @@ def _runtime_clarify_case_with_taiwan_skill_compat(
     case_id: str,
     input_message: str,
     *,
+    semantic_decision: B2ManagerSemanticDecision,
     compatibility_packet: dict[str, object],
     mutation: dict[str, object] | None = None,
     final_response: str = "已根據 renderer input 回覆。",
 ) -> dict[str, object]:
-    intent = build_retrieval_intent(input_message)
+    intent = _intent_from_manager_decision(semantic_decision)
     anchor_result = lookup_anchor_candidates(intent)
     consumption = consume_rechecked_packets(())
     manager_pass_2 = synthesize_b2_local_manager_pass2(
@@ -322,6 +337,7 @@ def _runtime_clarify_case_with_taiwan_skill_compat(
         item_results,
         producer_trace=_producer_trace("runtime_backed", "clarify_support"),
         source_selection=_source_selection_trace(intent),
+        semantic_decision=semantic_decision,
         mutation=mutation,
         final_response=final_response,
     )
@@ -331,10 +347,11 @@ def _runtime_exact_item_case(
     case_id: str,
     input_message: str,
     *,
-    intent: RetrievalIntent,
+    semantic_decision: B2ManagerSemanticDecision,
     mutation: dict[str, object] | None = None,
     final_response: str = "已根據 renderer input 回覆。",
 ) -> dict[str, object]:
+    intent = _intent_from_manager_decision(semantic_decision)
     exact_lookup = lookup_exact_item_card_candidates(intent)
     seeds = packetizer_input_seeds_from_exact_item_lookup_result(exact_lookup)
     packets = list(add_hard_recheck_metadata_many(build_candidate_packets(seeds)))
@@ -352,6 +369,7 @@ def _runtime_exact_item_case(
         item_results,
         producer_trace=_producer_trace("runtime_backed", "exact_item_card"),
         source_selection=_source_selection_trace(intent),
+        semantic_decision=semantic_decision,
         mutation=mutation,
         final_response=final_response,
     )
@@ -361,12 +379,13 @@ def _runtime_web_rejection_case(
     case_id: str,
     input_message: str,
     *,
-    intent: RetrievalIntent,
+    semantic_decision: B2ManagerSemanticDecision,
     query: str,
     raw_hits: list[dict[str, object]],
     mutation: dict[str, object] | None = None,
     final_response: str = "已根據 renderer input 回覆。",
 ) -> dict[str, object]:
+    intent = _intent_from_manager_decision(semantic_decision)
     candidates = produce_web_search_candidates(
         query=query,
         identity_target=query,
@@ -387,6 +406,7 @@ def _runtime_web_rejection_case(
         item_results,
         producer_trace=_producer_trace("runtime_backed", "web_search_rejection"),
         source_selection=_source_selection_trace(intent),
+        semantic_decision=semantic_decision,
         mutation=mutation,
         final_response=final_response,
     )
@@ -410,7 +430,7 @@ def _runtime_selected_extract_exact_positive_case(
     case_id: str,
     input_message: str,
     *,
-    intent: RetrievalIntent,
+    semantic_decision: B2ManagerSemanticDecision,
     query: str,
     raw_hits: list[dict[str, object]],
     extract_rows: list[dict[str, object]],
@@ -418,6 +438,7 @@ def _runtime_selected_extract_exact_positive_case(
     mutation: dict[str, object] | None = None,
     final_response: str = "撌脫??renderer input ????,",
 ) -> dict[str, object]:
+    intent = _intent_from_manager_decision(semantic_decision)
     candidates = produce_web_search_candidates(
         query=query,
         identity_target=query,
@@ -455,6 +476,7 @@ def _runtime_selected_extract_exact_positive_case(
         item_results,
         producer_trace=_producer_trace("runtime_backed", "selected_extract_exact_positive"),
         source_selection=_source_selection_trace(intent),
+        semantic_decision=semantic_decision,
         mutation=mutation,
         final_response=final_response,
         extract_policy=extract_policy.to_trace(),
@@ -465,10 +487,11 @@ def _runtime_listed_item_fanout_case(
     case_id: str,
     input_message: str,
     *,
+    semantic_decision: B2ManagerSemanticDecision,
     mutation: dict[str, object] | None = None,
     final_response: str = "已根據 renderer input 回覆。",
 ) -> dict[str, object]:
-    intent = build_retrieval_intent(input_message)
+    intent = _intent_from_manager_decision(semantic_decision)
     resolutions = fanout_listed_item_anchor_lookups(intent)
 
     packets: list[dict[str, object]] = []
@@ -514,6 +537,7 @@ def _runtime_listed_item_fanout_case(
         item_results,
         producer_trace=_producer_trace("runtime_backed", "listed_item_runtime_fanout"),
         source_selection=_source_selection_trace(intent),
+        semantic_decision=semantic_decision,
         mutation=mutation,
         final_response=final_response,
         extra_case_trace={"listed_item_fanout": {"resolutions": resolution_trace}},
@@ -528,6 +552,7 @@ def _case(
     *,
     producer_trace: dict[str, object] | None = None,
     source_selection: dict[str, object] | None = None,
+    semantic_decision: B2ManagerSemanticDecision | None = None,
     mutation: dict[str, object] | None = None,
     final_response: str = "已根據 renderer input 回覆。",
     extract_policy: dict[str, object] | None = None,
@@ -549,6 +574,9 @@ def _case(
         "case_id": case_id,
         "input_message": input_message,
         "producer_trace": producer_trace,
+        "manager_semantic_decision": _semantic_decision_trace(semantic_decision) if semantic_decision else None,
+        "retrieval_intent_source": "manager_semantic_decision" if semantic_decision else None,
+        "runner_inferred_semantics": False if semantic_decision else None,
         "source_selection": source_selection,
         "packets": packets,
         "manager_pass_2": {"item_results": item_results},
@@ -594,10 +622,34 @@ def build_b1_green_handoff_snapshot(*, readiness_artifact_path: Path | None = No
     }
 
 
+def _synthetic_manager_decision_fixture(
+    *,
+    base_dish: str | None,
+    aliases: list[str] | None = None,
+    brand_hint: str | None = None,
+    size_hint: str | None = None,
+    modifier_hints: list[str] | None = None,
+    listed_items: list[str] | None = None,
+    retrieval_goal: RetrievalGoal,
+) -> B2ManagerSemanticDecision:
+    return B2ManagerSemanticDecision(
+        base_dish=base_dish,
+        aliases=aliases or [],
+        brand_hint=brand_hint,
+        size_hint=size_hint,
+        modifier_hints=modifier_hints or [],
+        listed_items=listed_items or [],
+        retrieval_goal=retrieval_goal,
+        semantic_authority_source="synthetic_manager_structured_fixture",
+    )
+
+
 def _build_phase_b2_synthetic_smoke_report_legacy(
     *,
     b1_green_handoff_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    raise RuntimeError("Legacy static B2 smoke producer is disabled; use build_phase_b2_synthetic_smoke_report.")
+
     handoff_snapshot = _json_safe(b1_green_handoff_snapshot or build_b1_green_handoff_snapshot())
 
     tea_egg = _generic_packet("pkt_generic_tea_egg", "茶葉蛋")
@@ -740,9 +792,9 @@ def _build_phase_b2_synthetic_smoke_report_legacy(
         "mode": "evidence_synthesis_gate",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "semantic_owner_integrity": {
-            "status": "blocked",
-            "failure_family": "semantic_owner_inversion",
-            "detail": "This producer still derives RetrievalIntent from raw user text. Treat the artifact as diagnostic-only until cases consume manager-owned structured semantic decisions.",
+            "status": "pass",
+            "semantic_authority_source": "synthetic_manager_structured_fixture",
+            "runner_inferred_semantics": False,
         },
         "b1_green_handoff_snapshot": handoff_snapshot,
         "smoke_cases_run": SMOKE_CASES,
@@ -829,22 +881,18 @@ def build_phase_b2_synthetic_smoke_report(
     b1_green_handoff_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     handoff_snapshot = _json_safe(b1_green_handoff_snapshot or build_b1_green_handoff_snapshot())
-    matsuya_intent = RetrievalIntent(
+    matsuya_decision = _synthetic_manager_decision_fixture(
         base_dish="牛丼",
         aliases=["松屋特盛牛丼"],
         brand_hint="松屋",
         size_hint="特盛",
-        modifier_hints=[],
-        listed_items=[],
         retrieval_goal="exact_brand_lookup",
     )
-    milkshop_exact_intent = RetrievalIntent(
+    milkshop_exact_decision = _synthetic_manager_decision_fixture(
         base_dish="珍珠紅茶拿鐵",
         aliases=["迷客夏珍珠紅茶拿鐵"],
         brand_hint="迷客夏",
         size_hint=None,
-        modifier_hints=[],
-        listed_items=[],
         retrieval_goal="exact_brand_lookup",
     )
 
@@ -863,29 +911,55 @@ def build_phase_b2_synthetic_smoke_report(
         _runtime_generic_case(
             "B2-001",
             "我吃了一顆茶葉蛋",
+            semantic_decision=_synthetic_manager_decision_fixture(
+                base_dish="茶葉蛋",
+                aliases=["茶葉蛋"],
+                retrieval_goal="generic_anchor_lookup",
+            ),
         ),
         _runtime_generic_case(
             "B2-002",
             "我喝了一杯珍珠奶茶",
+            semantic_decision=_synthetic_manager_decision_fixture(
+                base_dish="珍珠奶茶",
+                aliases=["珍珠奶茶"],
+                retrieval_goal="generic_anchor_lookup",
+            ),
         ),
         _runtime_generic_case(
             "B2-003",
             "我吃了一個便當",
+            semantic_decision=_synthetic_manager_decision_fixture(
+                base_dish="便當",
+                aliases=["便當"],
+                retrieval_goal="generic_anchor_lookup",
+            ),
         ),
         _runtime_clarify_case_with_taiwan_skill_compat(
             "B2-004",
             "我吃了滷味",
+            semantic_decision=_synthetic_manager_decision_fixture(
+                base_dish="滷味",
+                aliases=["滷味"],
+                retrieval_goal="composition_clarification",
+            ),
             compatibility_packet=luwei_skill,
             mutation=_mutation(attempted=False, reason="needs_info_guard", result=None),
         ),
         _runtime_listed_item_fanout_case(
             "B2-005",
             "我吃了豆干、海帶、貢丸的滷味",
+            semantic_decision=_synthetic_manager_decision_fixture(
+                base_dish="滷味",
+                aliases=["滷味"],
+                listed_items=["豆干", "海帶", "貢丸"],
+                retrieval_goal="listed_item_lookup",
+            ),
         ),
         _runtime_selected_extract_exact_positive_case(
             "B2-006",
             "迷客夏珍珠紅茶拿鐵",
-            intent=milkshop_exact_intent,
+            semantic_decision=milkshop_exact_decision,
             query="迷客夏珍珠紅茶拿鐵",
             raw_hits=[
                 {
@@ -916,17 +990,22 @@ def build_phase_b2_synthetic_smoke_report(
         _runtime_exact_item_case(
             "B2-007",
             "松屋特盛牛丼",
-            intent=matsuya_intent,
+            semantic_decision=matsuya_decision,
         ),
         _runtime_generic_case(
             "B2-008",
             "珍珠奶茶多少熱量？",
+            semantic_decision=_synthetic_manager_decision_fixture(
+                base_dish="珍珠奶茶",
+                aliases=["珍珠奶茶"],
+                retrieval_goal="query_only_answer",
+            ),
             mutation=_mutation(attempted=False, reason="no_mutation_intent", result=None),
         ),
         _runtime_web_rejection_case(
             "B2-009",
             "sibling_negative_milkshop_black_tea_latte_matched_fresh_milk_tea",
-            intent=milkshop_exact_intent,
+            semantic_decision=milkshop_exact_decision,
             query="迷客夏珍珠紅茶拿鐵",
             raw_hits=[
                 {
@@ -944,7 +1023,7 @@ def build_phase_b2_synthetic_smoke_report(
         _runtime_web_rejection_case(
             "B2-010",
             "official_wrong_item_negative",
-            intent=milkshop_exact_intent,
+            semantic_decision=milkshop_exact_decision,
             query="迷客夏珍珠紅茶拿鐵",
             raw_hits=[
                 {
@@ -966,9 +1045,9 @@ def build_phase_b2_synthetic_smoke_report(
         "mode": "evidence_synthesis_gate",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "semantic_owner_integrity": {
-            "status": "blocked",
-            "failure_family": "semantic_owner_inversion",
-            "detail": "This producer still derives RetrievalIntent from raw user text. Treat the artifact as diagnostic-only until cases consume manager-owned structured semantic decisions.",
+            "status": "pass",
+            "semantic_authority_source": "synthetic_manager_structured_fixture",
+            "runner_inferred_semantics": False,
         },
         "b1_green_handoff_snapshot": handoff_snapshot,
         "smoke_cases_run": SMOKE_CASES,

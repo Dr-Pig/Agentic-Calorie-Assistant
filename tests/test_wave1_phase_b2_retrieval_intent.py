@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import pytest
+
+from app.nutrition.application.b2_semantic_decision import (
+    B2ManagerSemanticDecision,
+    build_retrieval_intent_from_manager_decision,
+)
 from app.nutrition.application.retrieval_intent import build_retrieval_intent
 
 
@@ -68,3 +74,174 @@ def test_retrieval_intent_strips_simple_quantity_prefixes_for_generic_anchor_cas
     assert bento.base_dish == "\u4fbf\u7576"
     assert bento.aliases == ["\u4fbf\u7576"]
     assert bento.retrieval_goal == "generic_anchor_lookup"
+
+
+@pytest.mark.parametrize(
+    ("decision", "expected"),
+    [
+        (
+            B2ManagerSemanticDecision(
+                base_dish="\u8336\u8449\u86cb",
+                aliases=["\u8336\u8449\u86cb"],
+                brand_hint=None,
+                size_hint=None,
+                modifier_hints=[],
+                listed_items=[],
+                retrieval_goal="generic_anchor_lookup",
+                semantic_authority_source="synthetic_manager_structured_fixture",
+            ),
+            {
+                "base_dish": "\u8336\u8449\u86cb",
+                "aliases": ["\u8336\u8449\u86cb"],
+                "brand_hint": None,
+                "size_hint": None,
+                "listed_items": [],
+                "retrieval_goal": "generic_anchor_lookup",
+            },
+        ),
+        (
+            B2ManagerSemanticDecision(
+                base_dish="\u73cd\u73e0\u5976\u8336",
+                aliases=["\u73cd\u73e0\u5976\u8336"],
+                brand_hint=None,
+                size_hint=None,
+                modifier_hints=[],
+                listed_items=[],
+                retrieval_goal="generic_anchor_lookup",
+                semantic_authority_source="synthetic_manager_structured_fixture",
+            ),
+            {
+                "base_dish": "\u73cd\u73e0\u5976\u8336",
+                "aliases": ["\u73cd\u73e0\u5976\u8336"],
+                "brand_hint": None,
+                "size_hint": None,
+                "listed_items": [],
+                "retrieval_goal": "generic_anchor_lookup",
+            },
+        ),
+        (
+            B2ManagerSemanticDecision(
+                base_dish="\u6ef7\u5473",
+                aliases=["\u6ef7\u5473"],
+                brand_hint=None,
+                size_hint=None,
+                modifier_hints=[],
+                listed_items=[],
+                retrieval_goal="composition_clarification",
+                semantic_authority_source="synthetic_manager_structured_fixture",
+            ),
+            {
+                "base_dish": "\u6ef7\u5473",
+                "aliases": ["\u6ef7\u5473"],
+                "brand_hint": None,
+                "size_hint": None,
+                "listed_items": [],
+                "retrieval_goal": "composition_clarification",
+            },
+        ),
+        (
+            B2ManagerSemanticDecision(
+                base_dish="\u6ef7\u5473",
+                aliases=["\u6ef7\u5473"],
+                brand_hint=None,
+                size_hint=None,
+                modifier_hints=[],
+                listed_items=["\u8c46\u5e72", "\u6d77\u5e36", "\u8ca2\u4e38"],
+                retrieval_goal="listed_item_lookup",
+                semantic_authority_source="synthetic_manager_structured_fixture",
+            ),
+            {
+                "base_dish": "\u6ef7\u5473",
+                "aliases": ["\u6ef7\u5473"],
+                "brand_hint": None,
+                "size_hint": None,
+                "listed_items": ["\u8c46\u5e72", "\u6d77\u5e36", "\u8ca2\u4e38"],
+                "retrieval_goal": "listed_item_lookup",
+            },
+        ),
+        (
+            B2ManagerSemanticDecision(
+                base_dish="\u725b\u4e3c",
+                aliases=["\u677e\u5c4b\u7279\u76db\u725b\u4e3c"],
+                brand_hint="\u677e\u5c4b",
+                size_hint="\u7279\u76db",
+                modifier_hints=[],
+                listed_items=[],
+                retrieval_goal="exact_brand_lookup",
+                semantic_authority_source="synthetic_manager_structured_fixture",
+            ),
+            {
+                "base_dish": "\u725b\u4e3c",
+                "aliases": ["\u677e\u5c4b\u7279\u76db\u725b\u4e3c"],
+                "brand_hint": "\u677e\u5c4b",
+                "size_hint": "\u7279\u76db",
+                "listed_items": [],
+                "retrieval_goal": "exact_brand_lookup",
+            },
+        ),
+        (
+            B2ManagerSemanticDecision(
+                base_dish="\u73cd\u73e0\u5976\u8336",
+                aliases=["\u73cd\u73e0\u5976\u8336"],
+                brand_hint=None,
+                size_hint=None,
+                modifier_hints=[],
+                listed_items=[],
+                retrieval_goal="query_only_answer",
+                semantic_authority_source="synthetic_manager_structured_fixture",
+            ),
+            {
+                "base_dish": "\u73cd\u73e0\u5976\u8336",
+                "aliases": ["\u73cd\u73e0\u5976\u8336"],
+                "brand_hint": None,
+                "size_hint": None,
+                "listed_items": [],
+                "retrieval_goal": "query_only_answer",
+            },
+        ),
+    ],
+)
+def test_manager_semantic_decision_maps_to_retrieval_intent_without_raw_text(
+    decision: B2ManagerSemanticDecision,
+    expected: dict[str, object],
+) -> None:
+    intent = build_retrieval_intent_from_manager_decision(decision)
+
+    assert intent.base_dish == expected["base_dish"]
+    assert intent.aliases == expected["aliases"]
+    assert intent.brand_hint == expected["brand_hint"]
+    assert intent.size_hint == expected["size_hint"]
+    assert intent.listed_items == expected["listed_items"]
+    assert intent.retrieval_goal == expected["retrieval_goal"]
+
+
+def test_manager_semantic_decision_rejects_non_manager_authority() -> None:
+    decision = B2ManagerSemanticDecision(
+        base_dish="\u8336\u8449\u86cb",
+        aliases=["\u8336\u8449\u86cb"],
+        brand_hint=None,
+        size_hint=None,
+        modifier_hints=[],
+        listed_items=[],
+        retrieval_goal="generic_anchor_lookup",
+        semantic_authority_source="deterministic_validator",
+    )
+
+    with pytest.raises(ValueError, match="semantic_authority_source"):
+        build_retrieval_intent_from_manager_decision(decision)
+
+
+def test_manager_semantic_decision_rejects_unknown_retrieval_goal() -> None:
+    decision = B2ManagerSemanticDecision(
+        base_dish="\u8336\u8449\u86cb",
+        aliases=["\u8336\u8449\u86cb"],
+        brand_hint=None,
+        size_hint=None,
+        modifier_hints=[],
+        listed_items=[],
+        retrieval_goal="raw_text_guess",
+        semantic_authority_source="synthetic_manager_structured_fixture",
+    )
+
+    with pytest.raises(ValueError, match="retrieval_goal"):
+        build_retrieval_intent_from_manager_decision(decision)
