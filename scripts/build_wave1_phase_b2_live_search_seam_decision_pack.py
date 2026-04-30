@@ -29,6 +29,18 @@ def build_live_search_seam_decision_pack(tavily_artifact: dict[str, Any]) -> dic
     cases = [case for case in tavily_artifact.get("cases") or [] if isinstance(case, dict)]
     input_integrity = _input_integrity(tavily_artifact, cases)
     failure_families = _failure_families(tavily_artifact, cases)
+    evidence_summary = {
+        "provider_mode": tavily_artifact.get("provider_mode"),
+        "live_invoked": tavily_artifact.get("live_invoked") is True,
+        "trace_only": tavily_artifact.get("trace_only") is True,
+        "case_count": len(cases),
+        "trace_blocker_count": sum(1 for case in cases if case.get("verdict_category") == "trace_canary_blocker"),
+        "failure_families": failure_families,
+    }
+    selected_option, selection_reason = _select_safe_option(
+        input_integrity=input_integrity,
+        evidence_summary=evidence_summary,
+    )
     return _json_safe(
         {
             "artifact_type": "wave1_phase_b2_live_search_seam_decision_pack",
@@ -37,19 +49,13 @@ def build_live_search_seam_decision_pack(tavily_artifact: dict[str, Any]) -> dic
             "readiness_claimed": False,
             "readiness_claim": _readiness_claim(),
             "input_integrity": input_integrity,
-            "evidence_summary": {
-                "provider_mode": tavily_artifact.get("provider_mode"),
-                "live_invoked": tavily_artifact.get("live_invoked") is True,
-                "trace_only": tavily_artifact.get("trace_only") is True,
-                "case_count": len(cases),
-                "trace_blocker_count": sum(1 for case in cases if case.get("verdict_category") == "trace_canary_blocker"),
-                "failure_families": failure_families,
-            },
+            "evidence_summary": evidence_summary,
             "decision_options_ordered": list(DECISION_OPTION_IDS),
             "decision_options": _decision_options(),
             "recommended_safe_default": "no_live_search_seam",
-            "selected_option": None,
-            "requires_human_decision": True,
+            "selected_option": selected_option,
+            "selection_reason": selection_reason,
+            "requires_human_decision": selected_option == "narrow_exact_brand_web_seam",
             "runtime_web_activation_approved": False,
             "runtime_web_activation_recommended": False,
             "decision_boundary": {
@@ -61,6 +67,20 @@ def build_live_search_seam_decision_pack(tavily_artifact: dict[str, Any]) -> dic
             },
         }
     )
+
+
+def _select_safe_option(
+    *,
+    input_integrity: dict[str, Any],
+    evidence_summary: dict[str, Any],
+) -> tuple[str, str]:
+    if evidence_summary.get("live_invoked") is not True:
+        return "no_live_search_seam", "tavily_live_not_invoked"
+    if input_integrity.get("passed") is not True:
+        return "no_live_search_seam", "input_integrity_blocked"
+    if evidence_summary.get("trace_blocker_count", 0) or evidence_summary.get("failure_families"):
+        return "no_live_search_seam", "trace_canary_has_blockers"
+    return "trace_only_canary_continues", "trace_canary_clean_but_runtime_activation_not_approved"
 
 
 def write_live_search_seam_decision_pack(
