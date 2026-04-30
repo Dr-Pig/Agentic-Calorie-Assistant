@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from .active_body_plan_read_model import build_active_body_plan_view
 from ...budget.application import build_current_budget_view
 from ...shared.domain import ActiveBodyPlanView, CurrentBudgetView
-from app.shared.infra.canonical_persistence import (
+from app.composition.canonical_persistence import (
     ensure_proposal_artifact_skeleton,
     load_active_body_plan_record,
     recompute_day_budget_ledger,

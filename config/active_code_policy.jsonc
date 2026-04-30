@@ -86,6 +86,10 @@
       "category": "adapter_infrastructure"
     },
     {
+      "pattern": "app/composition/*.py",
+      "category": "application_orchestration"
+    },
+    {
       "pattern": "app/**/interface/*.py",
       "category": "boundary_surface"
     },
@@ -141,6 +145,7 @@
   "domain_status": {
     "body": "active_wave1_implementation",
     "budget": "active_wave1_implementation",
+    "composition": "active_wave1_wiring",
     "intake": "active_wave1_implementation",
     "knowledge": "thin_future_skeleton",
     "memory": "offline_sidecar_scaffold",
@@ -171,7 +176,7 @@
       "note": "Wave 1 contract helpers are active, but the file needs schema and validation seams split out."
     },
     {
-      "path": "app/shared/infra/canonical_persistence.py",
+      "path": "app/composition/canonical_persistence.py",
       "classification": "wave1_canonical_active",
       "recommended_action": "keep_and_deflate",
       "note": "Canonical persistence is active Wave 1 infrastructure, but proposal persistence and serializer helpers need extraction."

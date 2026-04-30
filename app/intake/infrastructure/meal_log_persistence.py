@@ -10,7 +10,7 @@ from app.intake.application.canonical_commit_bridge import (
     resolve_commit_candidate_target,
 )
 from app.intake.application.state_transition import determine_meal_status
-from app.shared.infra.canonical_persistence import get_legacy_mapping_for_meal_log
+from app.composition.canonical_persistence import get_legacy_mapping_for_meal_log
 from app.database import append_message, save_meal_log, supersede_log, update_message_linkage
 from app.models import MealLog, User
 from app.schemas import EstimatePayload

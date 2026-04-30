@@ -111,7 +111,7 @@ def test_bundle2_response_exposes_phase_c_trace_in_response_and_trace_artifact(
     monkeypatch,
 ) -> None:
     from app.budget.application.current_budget_answer import RemainingBudgetAnswerContract
-    from app.runtime.application import bundle2_response as module
+    from app.composition import bundle2_response as module
 
     class _View:
         user_id = 1
@@ -207,7 +207,7 @@ def test_bundle2_response_reports_same_truth_hard_fail_without_rewriting_output(
     monkeypatch,
 ) -> None:
     from app.budget.application.current_budget_answer import RemainingBudgetAnswerContract
-    from app.runtime.application import bundle2_response as module
+    from app.composition import bundle2_response as module
 
     class _View:
         user_id = 1

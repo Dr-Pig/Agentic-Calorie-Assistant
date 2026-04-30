@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from ...models import LedgerEntryRecord, User
-from app.shared.infra.canonical_persistence import (
+from app.composition.canonical_persistence import (
     ensure_body_plan_skeleton,
     ensure_proactive_trigger_skeleton,
     ensure_proposal_artifact_skeleton,

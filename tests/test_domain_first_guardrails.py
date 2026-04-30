@@ -13,9 +13,9 @@ from scripts.repo_policy import (
 ROOT = Path(__file__).resolve().parents[1]
 ACTIVE_CODE_POLICY = load_active_code_policy()
 ALLOWED_SUPPORT_HELPER_SEAMS = {
-    "app/shared/infra/canonical_body_support.py",
-    "app/shared/infra/canonical_commit_support.py",
-    "app/shared/infra/canonical_proposal_support.py",
+    "app/composition/canonical_body_support.py",
+    "app/composition/canonical_commit_support.py",
+    "app/composition/canonical_proposal_support.py",
     "app/intake/application/intake_turn_support.py",
     "app/runtime/agent/manager_support_prompts.py",
     "app/runtime/infrastructure/session_archive_query_support.py",
@@ -42,7 +42,7 @@ ACTIVE_IMPORT_GUARDS = {
         _legacy_path_token("app.", "use", "cases"),
         _legacy_path_token("..", "use", "cases"),
     ),
-    ROOT / "app" / "runtime" / "application" / "state_resolver.py": (
+    ROOT / "app" / "composition" / "state_resolver.py": (
         "app.runtime.application",
         "..application",
     ),

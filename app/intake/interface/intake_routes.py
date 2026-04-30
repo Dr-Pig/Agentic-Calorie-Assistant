@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request
 
 from ...database import get_db, get_or_create_user
 from ...runtime.application.request_trace_artifacts import write_general_chat_request_trace_artifact
-from ...runtime.application.state_resolver import resolve_v2_bundle1_state
+from ...composition.state_resolver import resolve_v2_bundle1_state
 from ...runtime.interface.provider_runtime import extract_provider, manager_provider, search_provider
 from ...schemas import EstimateRequest
 from ..application import execute_bundle1_turn

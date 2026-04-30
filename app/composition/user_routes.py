@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 
-from ...database import get_db, get_meal_log_history, get_or_create_user
+from app.database import get_db, get_meal_log_history, get_or_create_user
 
 router = APIRouter()
 
@@ -38,7 +38,7 @@ async def get_user_logs(user_id: str, include_superseded: bool = False, db: Any 
 @router.post("/user/{user_id}/context/reset")
 async def reset_user_context(user_id: str, db: Any = Depends(get_db)) -> dict:
     user = get_or_create_user(db, user_id)
-    from ...models import MealLog
+    from app.models import MealLog
 
     drafts = db.query(MealLog).filter(MealLog.user_id == user.id, MealLog.status == "draft").all()
     for draft in drafts:

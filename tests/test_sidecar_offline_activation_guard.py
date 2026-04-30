@@ -36,7 +36,7 @@ ACTIVE_RUNTIME_SURFACES = [
     "app/intake/application/intake_turn_orchestrator.py",
     "app/intake/application/intake_execution_orchestrator.py",
     "app/runtime/application/manager_service.py",
-    "app/runtime/application/bundle2_tool_batch.py",
+    "app/composition/bundle2_tool_batch.py",
     "app/runtime/interface/provider_runtime.py",
 ]
 
