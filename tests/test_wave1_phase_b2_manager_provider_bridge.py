@@ -4,14 +4,14 @@ from typing import Any
 
 import pytest
 
-from app.nutrition.application.b2_candidate_packetizer import (
+from app.nutrition.application.evidence_candidate_packetizer import (
     add_hard_recheck_metadata,
     build_candidate_packet,
 )
-from app.nutrition.application.b2_packet_consumption import consume_rechecked_packets
-from app.nutrition.application.b2_manager_provider_bridge import (
-    build_b2_manager_pass2_request_payload,
-    run_b2_manager_pass2_with_provider,
+from app.nutrition.application.evidence_packet_consumption import consume_rechecked_packets
+from app.nutrition.application.synthesis_provider_bridge import (
+    build_synthesis_manager_request_payload,
+    run_synthesis_manager_with_provider,
 )
 from app.nutrition.application.packetizer_input_seed import (
     packetizer_input_seeds_from_anchor_lookup_result,
@@ -72,11 +72,11 @@ async def test_b2_manager_provider_bridge_uses_explicit_provider_item_results_wi
     ]
     provider = DeterministicFakePass2Provider(payload={"item_results": explicit_item_results})
 
-    manager_pass_2 = await run_b2_manager_pass2_with_provider(provider, intent, consumption)
+    manager_pass_2 = await run_synthesis_manager_with_provider(provider, intent, consumption)
 
     assert provider.calls[0]["stage"] == "intake_manager_round"
     request_payload = provider.calls[0]["user_payload"]
-    assert request_payload["constraints"]["phase_b2_manager_role"] == "pass_2_synthesis"
+    assert request_payload["constraints"]["synthesis_manager_role"] == "pass_2_synthesis"
     assert request_payload["accepted_packets"][0]["canonical_name"] == "茶葉蛋"
     assert manager_pass_2["manager_role"] == "pass_2_synthesis"
     assert manager_pass_2["item_results"] == explicit_item_results
@@ -113,7 +113,7 @@ async def test_b2_manager_provider_bridge_passes_clarify_support_outside_packet_
     ]
     provider = DeterministicFakePass2Provider(payload={"item_results": explicit_item_results})
 
-    manager_pass_2 = await run_b2_manager_pass2_with_provider(
+    manager_pass_2 = await run_synthesis_manager_with_provider(
         provider,
         intent,
         consumption,
@@ -134,7 +134,7 @@ async def test_b2_manager_provider_bridge_does_not_author_item_results_when_prov
     intent, consumption = _tea_egg_packet_consumption()
     provider = DeterministicFakePass2Provider(payload={"response_summary": "no item results"})
 
-    manager_pass_2 = await run_b2_manager_pass2_with_provider(provider, intent, consumption)
+    manager_pass_2 = await run_synthesis_manager_with_provider(provider, intent, consumption)
 
     assert manager_pass_2["item_results"] == []
     assert manager_pass_2["item_results_source"] == "none"
@@ -166,7 +166,7 @@ async def test_b2_manager_provider_bridge_flags_forbidden_mutation_fields_withou
         }
     )
 
-    manager_pass_2 = await run_b2_manager_pass2_with_provider(provider, intent, consumption)
+    manager_pass_2 = await run_synthesis_manager_with_provider(provider, intent, consumption)
 
     assert manager_pass_2["item_results"] == explicit_item_results
     assert manager_pass_2["forbidden_mutation_fields_present"] == ["mutation_result"]
@@ -176,11 +176,11 @@ async def test_b2_manager_provider_bridge_flags_forbidden_mutation_fields_withou
 
 def test_b2_pass2_request_payload_keeps_packet_results_and_clarify_support_explicit() -> None:
     intent, consumption = _tea_egg_packet_consumption()
-    payload = build_b2_manager_pass2_request_payload(intent, consumption)
+    payload = build_synthesis_manager_request_payload(intent, consumption)
 
     assert payload["intent"]["base_dish"] == "茶葉蛋"
     assert payload["accepted_packets"][0]["canonical_name"] == "茶葉蛋"
     assert payload["rejected_candidates"] == []
     assert payload["clarify_support"] is None
     assert payload["mutation_forbidden"] is True
-    assert payload["constraints"]["phase_b2_manager_role"] == "pass_2_synthesis"
+    assert payload["constraints"]["synthesis_manager_role"] == "pass_2_synthesis"

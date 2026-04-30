@@ -122,8 +122,8 @@ def test_diagnostic_reports_missing_policy_as_contributing_after_payload_alignme
         "selected_policy": None,
     }
     assert report["phase_a_b1"]["status"] == "pass"
-    assert report["b2_source_selection"]["status"] == "pass"
-    assert report["b2_packet_gate"]["status"] == "pass"
+    assert report["evidence_source_selection"]["status"] == "pass"
+    assert report["evidence_packet_gate"]["status"] == "pass"
     assert report["live_payload"]["status"] == "pass"
     assert report["validator"]["actual_verdict"] == "product_decision_required"
     assert report["validator"]["expected_verdict"] == "product_decision_required"
@@ -143,7 +143,7 @@ def test_diagnostic_flags_phase_a_gap_when_b1_requests_lookup_for_bare_luwei() -
     assert "lookup_generic_food" in report["phase_a_b1"]["requested_read_tools"]
 
 
-def test_diagnostic_flags_b2_source_selection_gap() -> None:
+def test_diagnostic_flags_evidence_source_selection_gap() -> None:
     phase_b2 = _phase_b2_report()
     b2_case = _case_by_id(phase_b2, "B2-004")
     b2_case["source_selection"]["source_path"] = "generic_anchor"
@@ -156,11 +156,11 @@ def test_diagnostic_flags_b2_source_selection_gap() -> None:
         semantic_register_text=_register_text(),
     )
 
-    assert report["primary_root_cause"] == "b2_source_selection_gap"
-    assert report["b2_source_selection"]["status"] == "gap"
+    assert report["primary_root_cause"] == "evidence_source_selection_gap"
+    assert report["evidence_source_selection"]["status"] == "gap"
 
 
-def test_diagnostic_flags_b2_packet_gate_gap_when_deterministic_artifact_estimates_luwei() -> None:
+def test_diagnostic_flags_evidence_packet_gate_gap_when_deterministic_artifact_estimates_luwei() -> None:
     phase_b2 = _phase_b2_report()
     item = _case_by_id(phase_b2, "B2-004")["manager_pass_2"]["item_results"][0]
     item["likely_kcal"] = 520
@@ -174,8 +174,8 @@ def test_diagnostic_flags_b2_packet_gate_gap_when_deterministic_artifact_estimat
         semantic_register_text=_register_text(),
     )
 
-    assert report["primary_root_cause"] == "b2_packet_gate_gap"
-    assert report["b2_packet_gate"]["status"] == "gap"
+    assert report["primary_root_cause"] == "evidence_packet_gate_gap"
+    assert report["evidence_packet_gate"]["status"] == "gap"
 
 
 def test_diagnostic_approved_policy_changes_validator_expectation_to_blocker() -> None:

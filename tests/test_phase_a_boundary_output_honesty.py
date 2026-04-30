@@ -112,8 +112,8 @@ def test_budget_output_honesty_keeps_ready_budget_answer_unchanged() -> None:
     assert trace["reasons"] == []
 
 
-def test_bundle2_response_applies_output_honesty_to_structured_surfaces(monkeypatch: pytest.MonkeyPatch) -> None:
-    from app.composition import bundle2_response as module
+def test_intake_execution_response_applies_output_honesty_to_structured_surfaces(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.composition import intake_execution_response as module
 
     class _View:
         user_id = 1
@@ -145,11 +145,11 @@ def test_bundle2_response_applies_output_honesty_to_structured_surfaces(monkeypa
             meal_count=1,
         ),
     )
-    monkeypatch.setattr(module, "render_bundle1_reply", lambda **_: "Logged. milk tea 420 kcal.")
-    monkeypatch.setattr(module, "write_bundle2_request_trace_artifact", lambda **_: None)
+    monkeypatch.setattr(module, "render_intake_reply", lambda **_: "Logged. milk tea 420 kcal.")
+    monkeypatch.setattr(module, "write_intake_execution_trace_artifact", lambda **_: None)
     monkeypatch.setattr(module, "build_trace_refs", lambda **_: {"request_id": "req-output-honesty"})
 
-    result = module.build_bundle2_response(
+    result = module.build_intake_execution_response(
         None,
         request_id="req-output-honesty",
         user_external_id="user-1",
@@ -219,7 +219,7 @@ async def test_general_chat_route_applies_degraded_budget_output_honesty(
     )
     captured_trace: dict[str, object] = {}
 
-    monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: SimpleNamespace())
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: SimpleNamespace())
     monkeypatch.setattr(module, "build_current_turn_context_v1", lambda **_: SimpleNamespace())
     monkeypatch.setattr(
         module,

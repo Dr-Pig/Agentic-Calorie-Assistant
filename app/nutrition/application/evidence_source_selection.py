@@ -27,7 +27,7 @@ class B2EvidenceSourceSelection:
     product_policy_status: B2ProductPolicyStatus
 
 
-def select_b2_evidence_source(intent: RetrievalIntent) -> B2EvidenceSourceSelection:
+def select_evidence_source(intent: RetrievalIntent) -> B2EvidenceSourceSelection:
     read_only = intent.retrieval_goal == "query_only_answer"
 
     if intent.retrieval_goal == "exact_brand_lookup" or (read_only and intent.brand_hint):
@@ -83,4 +83,4 @@ def _selection(
     )
 
 
-__all__ = ["B2EvidenceSourceSelection", "select_b2_evidence_source"]
+__all__ = ["B2EvidenceSourceSelection", "select_evidence_source"]

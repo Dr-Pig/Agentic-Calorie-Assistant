@@ -13,7 +13,7 @@ class SidecarActivationContract(BaseModel):
     not_runtime_authority: Literal[True] = True
     user_facing_activation: Literal[False] = False
     mutation_authority: Literal[False] = False
-    b2_readiness_participant: Literal[False] = False
+    product_intelligence_readiness_participant: Literal[False] = False
 
 
 def offline_sidecar_contract(module_name: str) -> SidecarActivationContract:

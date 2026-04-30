@@ -382,7 +382,7 @@ async def test_run_intake_manager_refreshes_phase_a_payload_after_history_tool()
 
 
 @pytest.mark.asyncio
-async def test_process_bundle2_intake_handles_manager_triggered_history_expansion(
+async def test_process_intake_execution_turn_handles_manager_triggered_history_expansion(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.composition import intake_execution_orchestrator as module
@@ -393,11 +393,11 @@ async def test_process_bundle2_intake_handles_manager_triggered_history_expansio
     monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
     monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
     monkeypatch.setattr(module, "apply_final_action_to_payload", lambda **_: None)
-    monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *_, **__: None)
-    monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: state)
-    monkeypatch.setattr(module, "build_bundle2_response", lambda *_, **kwargs: {"captured_phase_a_trace": kwargs["phase_a_trace"]})
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", lambda *_, **__: None)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: state)
+    monkeypatch.setattr(module, "build_intake_execution_response", lambda *_, **kwargs: {"captured_phase_a_trace": kwargs["phase_a_trace"]})
 
-    result = await module.process_bundle2_intake(
+    result = await module.process_intake_execution_turn(
         None,
         user_external_id="user-1",
         raw_user_input="that milk tea half sugar",
@@ -418,7 +418,7 @@ async def test_process_bundle2_intake_handles_manager_triggered_history_expansio
 
 
 @pytest.mark.asyncio
-async def test_process_bundle2_intake_enforces_one_manager_triggered_history_attempt(
+async def test_process_intake_execution_turn_enforces_one_manager_triggered_history_attempt(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.composition import intake_execution_orchestrator as module
@@ -429,11 +429,11 @@ async def test_process_bundle2_intake_enforces_one_manager_triggered_history_att
     monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
     monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
     monkeypatch.setattr(module, "apply_final_action_to_payload", lambda **_: None)
-    monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *_, **__: None)
-    monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: state)
-    monkeypatch.setattr(module, "build_bundle2_response", lambda *_, **kwargs: {"captured_phase_a_trace": kwargs["phase_a_trace"]})
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", lambda *_, **__: None)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: state)
+    monkeypatch.setattr(module, "build_intake_execution_response", lambda *_, **kwargs: {"captured_phase_a_trace": kwargs["phase_a_trace"]})
 
-    result = await module.process_bundle2_intake(
+    result = await module.process_intake_execution_turn(
         None,
         user_external_id="user-1",
         raw_user_input="that milk tea half sugar",

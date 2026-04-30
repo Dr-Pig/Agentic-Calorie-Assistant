@@ -7,14 +7,14 @@ from typing import Any, Protocol
 
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 
-from .b2_packet_consumption import B2PacketConsumptionResult
+from .evidence_packet_consumption import EvidencePacketConsumptionResult
 from .retrieval_intent import RetrievalIntent
 from .small_anchor_store import GenericClarifySupport
 
-B2_MANAGER_PASS_2_ROLE = "pass_2_synthesis"
-B2_PASS2_TASK_PAYLOAD_ID = "phase_b2_pass_2_provider_seam_audit_v1"
-B2_PASS2_INPUT_CONTRACT_VERSION = "phase_b2_packet_consumption_v1"
-B2_PASS2_PROMPT_MARKER = "phase_b2_pass_2_provider_seam_audit_v1"
+SYNTHESIS_MANAGER_PASS_ROLE = "pass_2_synthesis"
+SYNTHESIS_TASK_PAYLOAD_ID = "nutrition_synthesis_provider_seam_audit_v1"
+SYNTHESIS_INPUT_CONTRACT_VERSION = "evidence_packet_consumption_v1"
+SYNTHESIS_PROMPT_MARKER = "nutrition_synthesis_provider_seam_audit_v1"
 PASS_2_FORBIDDEN_MUTATION_FIELDS = (
     "mutation_result",
     "ledger_delta",
@@ -33,13 +33,13 @@ PROVIDER_PARAM_KEYS = (
 )
 
 
-class B2Pass2Provider(Protocol):
+class SynthesisPassProvider(Protocol):
     async def complete_with_trace(self, **kwargs: Any) -> tuple[object, dict[str, object]]: ...
 
 
-def build_b2_manager_pass2_request_payload(
+def build_synthesis_manager_request_payload(
     intent: RetrievalIntent,
-    consumption: B2PacketConsumptionResult,
+    consumption: EvidencePacketConsumptionResult,
     *,
     clarify_support: GenericClarifySupport | None = None,
 ) -> dict[str, object]:
@@ -52,29 +52,29 @@ def build_b2_manager_pass2_request_payload(
         "mutation_forbidden": True,
         "round_index": 1,
         "constraints": {
-            "phase_b2_manager_role": B2_MANAGER_PASS_2_ROLE,
-            "phase_b2_retrieval_goal": intent.retrieval_goal,
-            "phase_b2_task_payload_id": B2_PASS2_TASK_PAYLOAD_ID,
-            "phase_b2_input_contract_version": B2_PASS2_INPUT_CONTRACT_VERSION,
+            "synthesis_manager_role": SYNTHESIS_MANAGER_PASS_ROLE,
+            "synthesis_retrieval_goal": intent.retrieval_goal,
+            "synthesis_task_payload_id": SYNTHESIS_TASK_PAYLOAD_ID,
+            "synthesis_input_contract_version": SYNTHESIS_INPUT_CONTRACT_VERSION,
         },
     }
 
 
-async def run_b2_manager_pass2_with_provider(
-    provider: B2Pass2Provider,
+async def run_synthesis_manager_with_provider(
+    provider: SynthesisPassProvider,
     intent: RetrievalIntent,
-    consumption: B2PacketConsumptionResult,
+    consumption: EvidencePacketConsumptionResult,
     *,
     clarify_support: GenericClarifySupport | None = None,
     max_tokens: int = 900,
 ) -> dict[str, object]:
-    request_payload = build_b2_manager_pass2_request_payload(
+    request_payload = build_synthesis_manager_request_payload(
         intent,
         consumption,
         clarify_support=clarify_support,
     )
     payload, trace = await provider.complete_with_trace(
-        system_prompt=B2_PASS2_PROMPT_MARKER,
+        system_prompt=SYNTHESIS_PROMPT_MARKER,
         user_payload=request_payload,
         stage=MANAGER_LOOP_STAGE,
         max_tokens=max_tokens,
@@ -85,14 +85,14 @@ async def run_b2_manager_pass2_with_provider(
     item_results = _item_results_from_provider_payload(payload_dict)
     return {
         "manager_round": 1,
-        "manager_role": B2_MANAGER_PASS_2_ROLE,
-        "prompt_hash": hashlib.sha256(B2_PASS2_PROMPT_MARKER.encode("utf-8")).hexdigest(),
+        "manager_role": SYNTHESIS_MANAGER_PASS_ROLE,
+        "prompt_hash": hashlib.sha256(SYNTHESIS_PROMPT_MARKER.encode("utf-8")).hexdigest(),
         "started_at_utc": trace_dict.get("started_at_utc"),
         "ended_at_utc": trace_dict.get("ended_at_utc"),
         "latency_ms": trace_dict.get("latency_ms"),
         "usage": _json_safe(trace_dict.get("usage")) if trace_dict.get("usage") is not None else None,
         "provider_params": _provider_params(trace_dict),
-        "phase_b2_task_payload_id": B2_PASS2_TASK_PAYLOAD_ID,
+        "synthesis_task_payload_id": SYNTHESIS_TASK_PAYLOAD_ID,
         "decision_payload_type": _observed_type_name(payload),
         "payload_shape_valid": payload_shape_valid,
         "payload_shape_error": None if payload_shape_valid else "manager_pass_2_payload_must_be_object",
@@ -146,10 +146,10 @@ def _provider_params(trace: dict[str, object]) -> dict[str, object]:
 
 
 __all__ = [
-    "B2_MANAGER_PASS_2_ROLE",
-    "B2_PASS2_INPUT_CONTRACT_VERSION",
-    "B2_PASS2_TASK_PAYLOAD_ID",
-    "B2Pass2Provider",
-    "build_b2_manager_pass2_request_payload",
-    "run_b2_manager_pass2_with_provider",
+    "SYNTHESIS_MANAGER_PASS_ROLE",
+    "SYNTHESIS_INPUT_CONTRACT_VERSION",
+    "SYNTHESIS_TASK_PAYLOAD_ID",
+    "SynthesisPassProvider",
+    "build_synthesis_manager_request_payload",
+    "run_synthesis_manager_with_provider",
 ]

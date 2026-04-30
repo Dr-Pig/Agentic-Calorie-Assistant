@@ -27,7 +27,7 @@ FORBIDDEN_TRACKED_PATH_PATTERNS = (
     _join("docs/quality/V2_EVAL_", "BUNDLE_", "1_CASES.md"),
     _join("docs/quality/V2_EVAL_", "BUNDLE_", "2_CASES.md"),
     _join("docs/quality/", "BUNDLE_V2_", "EVAL_STABILITY_ANALYSIS"),
-    _join("static/v2-", "bundle1", "-dashboard.html"),
+    _join("static/v2-", "intake_turn", "-dashboard.html"),
 )
 
 FORBIDDEN_TEXT_MARKERS = (
@@ -50,8 +50,8 @@ FORBIDDEN_TEXT_MARKERS = (
     _join("stale ", "oracle"),
     _join("V2_EVAL_", "BUNDLE_", "1_CASES"),
     _join("V2_EVAL_", "BUNDLE_", "2_CASES"),
-    _join("run_v2_", "bundle1", "_live_eval"),
-    _join("run_v2_", "bundle2", "_live_eval"),
+    _join("run_v2_", "bundle", "1_live_eval"),
+    _join("run_v2_", "bundle", "2_live_eval"),
     _join("run_v2_", "benchmark_blocking_eval"),
     _join("eval_", "parity_audit"),
     _join("eval_", "bootstrap"),
@@ -63,12 +63,66 @@ FORBIDDEN_TEXT_MARKERS = (
     _join("official ", "bundle ", "runner"),
     _join("bundle ", "eval packs"),
     _join("bundle ", "reports"),
-    _join("--stage ", "bundle2"),
+    _join("--stage ", "bundle", "2"),
     _join("BUNDLE_V2_", "EVAL_STABILITY_ANALYSIS"),
 )
 
 FORBIDDEN_TEXT_PATTERNS = (
     re.compile(_join("draft", r"[-_ ]first")),
+)
+
+ACTIVE_LEGACY_NAMING_MARKERS = (
+    {
+        "classification": "blocked_active_code",
+        "marker": _join("app.composition.", "bundle", "2_"),
+    },
+    {
+        "classification": "blocked_active_code",
+        "marker": _join("app.nutrition.application.", "b2_"),
+    },
+    {
+        "classification": "blocked_active_code",
+        "marker": _join("from .", "b2_"),
+    },
+    {
+        "classification": "blocked_active_code",
+        "marker": _join("execute_", "bundle", "1_turn"),
+    },
+    {
+        "classification": "blocked_active_code",
+        "marker": _join("process_", "bundle", "2_intake"),
+    },
+    {
+        "classification": "blocked_active_code",
+        "marker": _join("resolve_v2_", "bundle", "1_state"),
+    },
+    {
+        "classification": "blocked_active_code",
+        "marker": _join("render_", "bundle", "1_reply"),
+    },
+    {
+        "classification": "blocked_active_code",
+        "marker": _join("write_", "bundle", "1_request_trace_artifact"),
+    },
+    {
+        "classification": "blocked_active_code",
+        "marker": _join("write_", "bundle", "2_request_trace_artifact"),
+    },
+    {
+        "classification": "allowed_compatibility",
+        "marker": _join("v2_", "bundle", "1"),
+        "allowed_paths": ("app/budget/interface/today_trace_debug.py",),
+    },
+    {
+        "classification": "allowed_compatibility",
+        "marker": _join("v2_", "bundle", "2"),
+        "allowed_paths": ("app/budget/interface/today_trace_debug.py",),
+    },
+    {
+        "classification": "blocked_active_code",
+        "marker": "phase_b2",
+        "path_prefixes": ("app/",),
+    },
 )
 
 
@@ -144,6 +198,32 @@ def _scan_text(root: Path) -> list[dict[str, Any]]:
     return findings
 
 
+def _scan_legacy_naming(root: Path) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    for path in _iter_text_files(root):
+        repo_path = _repo_path(root, path)
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for rule in ACTIVE_LEGACY_NAMING_MARKERS:
+            marker = str(rule["marker"])
+            if marker not in text:
+                continue
+            path_prefixes = tuple(rule.get("path_prefixes") or ("app/", "tests/", "scripts/"))
+            if not repo_path.startswith(path_prefixes):
+                continue
+            allowed_paths = set(rule.get("allowed_paths") or ())
+            if repo_path in allowed_paths:
+                continue
+            findings.append(
+                {
+                    "kind": "legacy_naming",
+                    "classification": rule["classification"],
+                    "path": repo_path,
+                    "marker": marker,
+                }
+            )
+    return findings
+
+
 def build_report(
     *,
     root: Path = ROOT,
@@ -152,7 +232,8 @@ def build_report(
     root = root.resolve()
     tracked_findings = _scan_tracked_paths(root, tracked_paths=tracked_paths)
     text_findings = _scan_text(root)
-    findings = [*tracked_findings, *text_findings]
+    legacy_naming_findings = _scan_legacy_naming(root)
+    findings = [*tracked_findings, *text_findings, *legacy_naming_findings]
     return {
         "artifact_type": "repo_legacy_surface_audit",
         "checked_root": str(root),
@@ -160,6 +241,7 @@ def build_report(
         "finding_count": len(findings),
         "tracked_path_finding_count": len(tracked_findings),
         "text_finding_count": len(text_findings),
+        "legacy_naming_finding_count": len(legacy_naming_findings),
         "findings": findings,
     }
 

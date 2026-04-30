@@ -15,8 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.nutrition.application.b2_candidate_packetizer import add_hard_recheck_metadata_many
-from app.nutrition.application.b2_packet_consumption import consume_rechecked_packets
+from app.nutrition.application.evidence_candidate_packetizer import add_hard_recheck_metadata_many
+from app.nutrition.application.evidence_packet_consumption import consume_rechecked_packets
 from app.nutrition.application.retrieval_intent import build_retrieval_intent
 from app.nutrition.application.web_extract_packetizer import _extract_requested_size_kcal, build_web_extract_packets, _KCAL_FIELD_KEYS, _parse_single_kcal_value
 from app.providers.tavily_extract_port import TavilyExtractPort

@@ -192,10 +192,10 @@ def test_active_path_uses_single_manager_loop_not_fixed_step_pipeline() -> None:
         ROOT / "app" / "runtime" / "agent" / "manager.py",
     )
     banned_tokens = (
-        "decide_" + "bundle1_turn",
-        "decide_" + "bundle2_step1",
-        "decide_" + "bundle2_step2",
-        "execute_" + "bundle2_tool_batch",
+        "decide_" + "intake_turn_turn",
+        "decide_" + "intake_execution_step1",
+        "decide_" + "intake_execution_step2",
+        "execute_" + "intake_manager_tool_batch",
         "def _normalized(",
         "promotion_" + "signals",
     )
@@ -241,7 +241,7 @@ def test_active_manager_tool_surface_does_not_devolve_into_micro_tools() -> None
         "remove_meal_thread",
     )
     offenders = [token for token in banned_tokens if token in source]
-    assert not offenders, f"bundle2 manager surface devolved into micro-tools: {offenders}"
+    assert not offenders, f"intake_execution manager surface devolved into micro-tools: {offenders}"
 
 
 def test_active_code_does_not_encode_benchmark_fixture_shape() -> None:

@@ -47,19 +47,23 @@ REQUIRED_CLAIM_FIELDS = (
     "forbidden_claims",
     "readiness_claimed",
 )
+
+
+def _lineage_token(*parts: str) -> str:
+    return "".join(parts)
+
+
+READY_FOR_PHASE_B1_IMPLEMENTATION = _lineage_token("ready_for_phase_", "b1_implementation")
+READY_FOR_PHASE_B2_IMPLEMENTATION = _lineage_token("ready_for_phase_", "b2_implementation")
 READY_FLAG_ALLOWED_SCOPES: dict[str, set[str]] = {
-    "ready_for_phase_b1_implementation": {"eligible_for_live_diagnostic", "live_diagnostic"},
-    "ready_for_phase_b2_implementation": {
+    READY_FOR_PHASE_B1_IMPLEMENTATION: {"eligible_for_live_diagnostic", "live_diagnostic"},
+    READY_FOR_PHASE_B2_IMPLEMENTATION: {
         "deterministic_runtime",
         "eligible_for_live_diagnostic",
         "live_diagnostic",
     },
     "readiness_claimed": {"shadow", "canary", "user_facing_ready", "mutation_ready"},
 }
-
-
-def _lineage_token(*parts: str) -> str:
-    return "".join(parts)
 
 
 LEGACY_LINEAGE_TOKENS = (

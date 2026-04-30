@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.nutrition.application.b2_candidate_packetizer import (
+from app.nutrition.application.evidence_candidate_packetizer import (
     add_hard_recheck_metadata,
     add_hard_recheck_metadata_many,
     build_candidate_packet,

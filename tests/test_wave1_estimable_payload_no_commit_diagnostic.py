@@ -24,7 +24,7 @@ def test_estimable_payload_no_commit_diagnostic_artifact_contract(tmp_path: Path
     assert json.loads(output_path.read_text(encoding="utf-8")) == report
     assert report["artifact_type"] == "wave1_founder_e2e_estimable_payload_no_commit_diagnostic"
     assert report["provider_mode"] == "deterministic"
-    assert report["active_entrypoint"] == "app.composition.intake_turn_orchestrator.execute_bundle1_turn"
+    assert report["active_entrypoint"] == "app.composition.intake_turn_orchestrator.execute_intake_turn"
     assert report["active_entrypoint_verified"] is True
     assert report["live_llm_invoked"] is False
     assert report["tavily_live_invoked"] is False

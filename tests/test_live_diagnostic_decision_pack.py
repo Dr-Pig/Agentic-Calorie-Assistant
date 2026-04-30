@@ -457,7 +457,7 @@ def test_b2_live_contract_harness_blocks_query_only_mutation_intent() -> None:
 def test_b2_live_contract_harness_does_not_import_final_mapping_or_semantic_register() -> None:
     source = (ROOT / "scripts/live_diagnostic_decision_pack.py").read_text(encoding="utf-8")
 
-    assert "b2_final_mapping" not in source
+    assert "nutrition_final_mapping" not in source
     assert "WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER" not in source
 
 

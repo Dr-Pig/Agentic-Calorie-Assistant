@@ -5,13 +5,13 @@ from typing import Sequence
 
 
 @dataclass(frozen=True)
-class B2PacketConsumptionResult:
+class EvidencePacketConsumptionResult:
     accepted_packets: tuple[dict[str, object], ...]
     rejected_candidates: tuple[dict[str, object], ...]
     consumed_packet_ids: tuple[str, ...]
 
 
-def consume_rechecked_packets(packets: Sequence[dict[str, object]]) -> B2PacketConsumptionResult:
+def consume_rechecked_packets(packets: Sequence[dict[str, object]]) -> EvidencePacketConsumptionResult:
     accepted_packets: list[dict[str, object]] = []
     rejected_candidates: list[dict[str, object]] = []
     consumed_packet_ids: list[str] = []
@@ -42,7 +42,7 @@ def consume_rechecked_packets(packets: Sequence[dict[str, object]]) -> B2PacketC
 
         rejected_candidates.append(_build_rejected_candidate(packet, ("insufficient_evidence",)))
 
-    return B2PacketConsumptionResult(
+    return EvidencePacketConsumptionResult(
         accepted_packets=tuple(accepted_packets),
         rejected_candidates=tuple(rejected_candidates),
         consumed_packet_ids=tuple(consumed_packet_ids),
@@ -70,4 +70,4 @@ def _build_rejected_candidate(
     }
 
 
-__all__ = ["B2PacketConsumptionResult", "consume_rechecked_packets"]
+__all__ = ["EvidencePacketConsumptionResult", "consume_rechecked_packets"]

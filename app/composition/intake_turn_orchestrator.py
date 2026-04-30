@@ -8,16 +8,16 @@ from uuid import uuid4
 from sqlalchemy.orm import Session
 
 from app.composition.current_budget_answer import build_remaining_budget_answer_contract
-from app.composition.intake_execution_orchestrator import process_bundle2_intake
+from app.composition.intake_execution_orchestrator import process_intake_execution_turn
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
-from app.composition.state_resolver import resolve_v2_bundle1_state
+from app.composition.state_resolver import resolve_intake_state
 from app.database import get_or_create_user
 from app.intake.application.intake_trace_tools import append_trace_event_tool
 from app.intake.application.intake_turn_support import (
-    bundle1_latency_tracking,
-    bundle1_manager_decision_payload,
-    bundle1_trace_summary,
-    initial_bundle1_state_mutation_summary,
+    intake_turn_latency_tracking,
+    intake_turn_manager_decision_payload,
+    intake_turn_trace_summary,
+    initial_intake_turn_state_mutation_summary,
     normalized_activity_level,
     resolve_local_date,
 )
@@ -27,14 +27,14 @@ from app.nutrition.application.web_search_port import WebSearchPort
 from app.runtime.agent.manager import IntakeManagerResult
 from app.runtime.application.execution_guard import validate_onboarding_seed
 from app.runtime.application.manager_service import run_intake_manager
-from app.runtime.application.reply_renderer import render_bundle1_reply
-from app.runtime.application.request_trace_artifacts import build_trace_refs, write_bundle1_request_trace_artifact
+from app.runtime.application.reply_renderer import render_intake_reply
+from app.runtime.application.request_trace_artifacts import build_trace_refs, write_intake_turn_trace_artifact
 from app.runtime.application.sidecar_service import build_deterministic_sidecar
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 
 
 @dataclass(frozen=True)
-class V2Bundle1OnboardingPayload:
+class IntakeOnboardingPayload:
     sex: str
     age_years: int
     height_cm: float
@@ -52,12 +52,12 @@ def _record_timing(stage_timings: list[dict[str, Any]], stage: str, duration_ms:
     stage_timings.append({"stage": stage, "duration_ms": duration_ms})
 
 
-async def execute_bundle1_turn(
+async def execute_intake_turn(
     db: Session,
     *,
     user_external_id: str,
     raw_user_input: str | None,
-    onboarding_payload: V2Bundle1OnboardingPayload | None,
+    onboarding_payload: IntakeOnboardingPayload | None,
     local_date: str | None,
     allow_search: bool,
     manager_provider: Any | None = None,
@@ -77,7 +77,7 @@ async def execute_bundle1_turn(
 
     if state_before is None:
         stage_start = int(time.time() * 1000)
-        state_before = resolve_v2_bundle1_state(
+        state_before = resolve_intake_state(
             db,
             user_external_id=user_external_id,
             local_date=resolved_local_date,
@@ -130,7 +130,7 @@ async def execute_bundle1_turn(
     remaining_budget = None
     nutrition_artifact = None
     persistence_result = None
-    state_mutation_summary = initial_bundle1_state_mutation_summary()
+    state_mutation_summary = initial_intake_turn_state_mutation_summary()
 
     if manager_decision.intent_type == "complete_onboarding":
         if onboarding_payload is None:
@@ -217,7 +217,7 @@ async def execute_bundle1_turn(
     elif manager_decision.intent_type == "log_meal":
         if not raw_user_input or not raw_user_input.strip():
             raise ValueError("raw_user_input is required for intake logging.")
-        return await process_bundle2_intake(
+        return await process_intake_execution_turn(
             db=db,
             user_external_id=user_external_id,
             raw_user_input=raw_user_input,
@@ -238,7 +238,7 @@ async def execute_bundle1_turn(
     else:
         raise ValueError(f"Unsupported intake intent_type: {manager_decision.intent_type}")
 
-    state_after = resolve_v2_bundle1_state(
+    state_after = resolve_intake_state(
         db,
         user_external_id=user_external_id,
         local_date=resolved_local_date,
@@ -250,7 +250,7 @@ async def execute_bundle1_turn(
             local_date=resolved_local_date,
         )
 
-    assistant_message = render_bundle1_reply(
+    assistant_message = render_intake_reply(
         intent_type=manager_decision.intent_type,
         onboarding_result=onboarding_result,
         remaining_budget=remaining_budget,
@@ -260,7 +260,7 @@ async def execute_bundle1_turn(
         manager_final_action=None,
         budget_summary=None,
     )
-    trace_summary = bundle1_trace_summary(request_id=request_id, manager_decision=manager_decision)
+    trace_summary = intake_turn_trace_summary(request_id=request_id, manager_decision=manager_decision)
     sidecar = build_deterministic_sidecar(
         active_body_plan_view=state_after.active_body_plan_view,
         current_budget_view=state_after.current_budget_view,
@@ -278,9 +278,9 @@ async def execute_bundle1_turn(
         },
     )
 
-    latency_tracking = bundle1_latency_tracking(manager_decision=manager_decision, stage_timings=stage_timings)
+    latency_tracking = intake_turn_latency_tracking(manager_decision=manager_decision, stage_timings=stage_timings)
 
-    write_bundle1_request_trace_artifact(
+    write_intake_turn_trace_artifact(
         request_id=request_id,
         user_external_id=user_external_id,
         local_date=resolved_local_date,
@@ -305,8 +305,8 @@ async def execute_bundle1_turn(
     return {
         "request_id": request_id,
         "assistant_message": assistant_message,
-        "manager_decision": bundle1_manager_decision_payload(manager_decision),
-        "bundle2_manager": {
+        "manager_decision": intake_turn_manager_decision_payload(manager_decision),
+        "intake_execution_manager": {
             "decision_1": None,
             "decision_2": None,
         },

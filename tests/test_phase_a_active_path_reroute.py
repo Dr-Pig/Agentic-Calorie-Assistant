@@ -40,7 +40,7 @@ def test_runtime_phase_a_context_facade_is_deleted() -> None:
 def test_history_expansion_policy_is_policy_only() -> None:
     content = _read("app/intake/application/history_expansion_policy.py")
 
-    assert "resolve_v2_bundle1_state" not in content
+    assert "resolve_intake_state" not in content
     assert "search_port" not in content
     assert "extract_port" not in content
     assert "tool_executor" not in content
@@ -53,7 +53,7 @@ def test_shadow_hypothesis_is_lifecycle_only() -> None:
 
     assert "reply_text" not in content
     assert "assistant_message" not in content
-    assert "render_bundle1_reply" not in content
+    assert "render_intake_reply" not in content
     assert "tentative phrasing" not in content.lower()
 
 

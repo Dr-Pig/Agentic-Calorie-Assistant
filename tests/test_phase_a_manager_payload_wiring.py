@@ -245,7 +245,7 @@ async def test_shadow_payload_does_not_bypass_existing_manager_guard() -> None:
 
 
 @pytest.mark.asyncio
-async def test_execute_bundle1_turn_passes_current_turn_context_to_manager(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_execute_intake_turn_passes_current_turn_context_to_manager(monkeypatch: pytest.MonkeyPatch) -> None:
     from app.composition import intake_turn_orchestrator as module
 
     resolved_state = _resolved_state()
@@ -279,14 +279,14 @@ async def test_execute_bundle1_turn_passes_current_turn_context_to_manager(monke
             meal_count=1,
         ),
     )
-    monkeypatch.setattr(module, "render_bundle1_reply", lambda **_: "ok")
+    monkeypatch.setattr(module, "render_intake_reply", lambda **_: "ok")
     monkeypatch.setattr(module, "build_deterministic_sidecar", lambda **_: {})
-    monkeypatch.setattr(module, "write_bundle1_request_trace_artifact", lambda **_: None)
+    monkeypatch.setattr(module, "write_intake_turn_trace_artifact", lambda **_: None)
     monkeypatch.setattr(module, "build_trace_refs", lambda **_: {})
-    monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
     monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
 
-    result = await module.execute_bundle1_turn(
+    result = await module.execute_intake_turn(
         None,
         user_external_id="user-1",
         raw_user_input="what's left today?",
@@ -305,7 +305,7 @@ async def test_execute_bundle1_turn_passes_current_turn_context_to_manager(monke
 
 
 @pytest.mark.asyncio
-async def test_process_bundle2_intake_passes_current_turn_context_to_manager(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_process_intake_execution_turn_passes_current_turn_context_to_manager(monkeypatch: pytest.MonkeyPatch) -> None:
     from app.composition import intake_execution_orchestrator as module
 
     resolved_state = _resolved_state()
@@ -329,11 +329,11 @@ async def test_process_bundle2_intake_passes_current_turn_context_to_manager(mon
     monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
     monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
     monkeypatch.setattr(module, "apply_final_action_to_payload", lambda **_: None)
-    monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *_, **__: None)
-    monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
-    monkeypatch.setattr(module, "build_bundle2_response", lambda *_, **kwargs: {"captured_phase_a_trace": kwargs["phase_a_trace"]})
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", lambda *_, **__: None)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(module, "build_intake_execution_response", lambda *_, **kwargs: {"captured_phase_a_trace": kwargs["phase_a_trace"]})
 
-    result = await module.process_bundle2_intake(
+    result = await module.process_intake_execution_turn(
         None,
         user_external_id="user-1",
         raw_user_input="half sugar",
@@ -358,7 +358,7 @@ async def test_process_bundle2_intake_passes_current_turn_context_to_manager(mon
 
 
 @pytest.mark.asyncio
-async def test_process_bundle2_intake_skips_shadow_when_back_reference_resolves_before_manager(
+async def test_process_intake_execution_turn_skips_shadow_when_back_reference_resolves_before_manager(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.composition import intake_execution_orchestrator as module
@@ -413,11 +413,11 @@ async def test_process_bundle2_intake_skips_shadow_when_back_reference_resolves_
     monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
     monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
     monkeypatch.setattr(module, "apply_final_action_to_payload", lambda **_: None)
-    monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *_, **__: None)
-    monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
-    monkeypatch.setattr(module, "build_bundle2_response", lambda *_, **kwargs: {"captured_phase_a_trace": kwargs["phase_a_trace"]})
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", lambda *_, **__: None)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(module, "build_intake_execution_response", lambda *_, **kwargs: {"captured_phase_a_trace": kwargs["phase_a_trace"]})
 
-    result = await module.process_bundle2_intake(
+    result = await module.process_intake_execution_turn(
         None,
         user_external_id="user-1",
         raw_user_input="that milk tea half sugar",
@@ -440,7 +440,7 @@ async def test_process_bundle2_intake_skips_shadow_when_back_reference_resolves_
 
 
 @pytest.mark.asyncio
-async def test_execute_bundle1_turn_does_not_pre_manager_enrich_history_without_manager_scope(
+async def test_execute_intake_turn_does_not_pre_manager_enrich_history_without_manager_scope(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.composition import intake_turn_orchestrator as module
@@ -509,7 +509,7 @@ async def test_execute_bundle1_turn_does_not_pre_manager_enrich_history_without_
         )
 
     monkeypatch.setattr(module, "run_intake_manager", _fake_run_intake_manager)
-    monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
     monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
     monkeypatch.setattr(
         module,
@@ -522,12 +522,12 @@ async def test_execute_bundle1_turn_does_not_pre_manager_enrich_history_without_
             meal_count=1,
         ),
     )
-    monkeypatch.setattr(module, "render_bundle1_reply", lambda **_: "ok")
+    monkeypatch.setattr(module, "render_intake_reply", lambda **_: "ok")
     monkeypatch.setattr(module, "build_deterministic_sidecar", lambda **_: {})
-    monkeypatch.setattr(module, "write_bundle1_request_trace_artifact", lambda **_: None)
+    monkeypatch.setattr(module, "write_intake_turn_trace_artifact", lambda **_: None)
     monkeypatch.setattr(module, "build_trace_refs", lambda **_: {})
 
-    result = await module.execute_bundle1_turn(
+    result = await module.execute_intake_turn(
         None,
         user_external_id="user-1",
         raw_user_input="actually change that milk tea to half sugar",

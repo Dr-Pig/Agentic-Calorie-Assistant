@@ -17,7 +17,7 @@ from app.shared.contracts.readiness_claim import build_readiness_claim
 
 DEFAULT_FOUNDER_LIVE_ARTIFACT = ROOT / "artifacts" / "wave1_founder_e2e_live_diagnostic.json"
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
-ACTIVE_ENTRYPOINT = "app.composition.intake_turn_orchestrator.execute_bundle1_turn"
+ACTIVE_ENTRYPOINT = "app.composition.intake_turn_orchestrator.execute_intake_turn"
 
 
 def build_founder_live_failure_layer_diagnostic(founder_live_artifact: dict[str, Any]) -> dict[str, Any]:

@@ -289,5 +289,5 @@ def test_provider_trace_redacts_authorization_secrets() -> None:
 def test_live_canary_runner_source_does_not_import_final_mapping_or_semantic_register() -> None:
     source = Path("scripts/run_wave1_phase_b2_live_llm_diagnostic_canary.py").read_text(encoding="utf-8")
 
-    assert "b2_final_mapping" not in source
+    assert "nutrition_final_mapping" not in source
     assert "WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER" not in source

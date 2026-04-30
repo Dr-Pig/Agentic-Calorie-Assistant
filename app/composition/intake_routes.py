@@ -12,9 +12,9 @@ from app.composition.canonical_commit_bridge import (
     record_budget_adjustment_to_canonical,
 )
 from app.composition.general_chat_service import build_general_chat_response_pass
-from app.composition.intake_turn_orchestrator import execute_bundle1_turn
+from app.composition.intake_turn_orchestrator import execute_intake_turn
 from app.composition.phase_a_boundary_projection import attach_boundary_projection, build_budget_boundary_projection
-from app.composition.state_resolver import resolve_v2_bundle1_state
+from app.composition.state_resolver import resolve_intake_state
 from app.database import get_db, get_or_create_user
 from app.intake.application.boundary_output_honesty import enforce_budget_output_honesty
 from app.intake.application.chat_intents import parse_weight_or_budget_intent
@@ -36,7 +36,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
         user_id = request.user_id if getattr(request, "user_id", None) else "default_user"
         local_date = datetime.now().date().isoformat()
 
-        state_before = resolve_v2_bundle1_state(
+        state_before = resolve_intake_state(
             db,
             user_external_id=user_id,
             local_date=local_date,
@@ -135,7 +135,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                     "payload": None,
                 }
 
-        result = await execute_bundle1_turn(
+        result = await execute_intake_turn(
             db,
             user_external_id=user_id,
             raw_user_input=request.text,

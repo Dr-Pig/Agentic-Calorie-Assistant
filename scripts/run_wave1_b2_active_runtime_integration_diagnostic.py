@@ -13,7 +13,7 @@ if str(ROOT) not in sys.path:
 from app.shared.contracts.readiness_claim import build_readiness_claim
 from scripts import run_wave1_founder_e2e_deterministic_diagnostic as founder_diagnostic
 
-ACTIVE_ENTRYPOINT = "app.composition.intake_turn_orchestrator.execute_bundle1_turn"
+ACTIVE_ENTRYPOINT = "app.composition.intake_turn_orchestrator.execute_intake_turn"
 ARTIFACT_PATH = ROOT / "artifacts" / "wave1_b2_active_runtime_integration_diagnostic.json"
 FOUNDER_ARTIFACT_PATH = ROOT / "artifacts" / "wave1_founder_e2e_deterministic_diagnostic.json"
 DEFAULT_DB_PATH = ROOT / "artifacts" / "wave1_b2_active_runtime_integration_diagnostic.sqlite3"
@@ -75,9 +75,9 @@ def _has_phase_c_trace(founder_report: dict[str, Any]) -> bool:
     return False
 
 
-def _has_b2_final_mapping(founder_report: dict[str, Any]) -> bool:
+def _has_nutrition_final_mapping(founder_report: dict[str, Any]) -> bool:
     serialized = json.dumps(founder_report, ensure_ascii=False)
-    return '"final_mapping_owner": "b2_final_mapping"' in serialized
+    return '"final_mapping_owner": "nutrition_final_mapping"' in serialized
 
 
 def _has_runtime_key(traces: list[dict[str, Any]], key: str) -> bool:
@@ -97,7 +97,7 @@ def _active_runtime_observability(founder_report: dict[str, Any]) -> dict[str, b
         "retrieval_intent_source_present": _has_runtime_key(trace_contracts, "retrieval_intent_source"),
         "source_selection_object_present": _has_runtime_key(trace_contracts, "source_selection"),
         "packet_consumption_trace_present": _has_runtime_key(trace_contracts, "packet_consumption_trace"),
-        "b2_final_mapping_first_class_present": _has_b2_final_mapping(founder_report),
+        "nutrition_final_mapping_first_class_present": _has_nutrition_final_mapping(founder_report),
         "state_delta_present": _has_case_state_delta(founder_report),
         "ledger_read_present": _has_ledger_read(founder_report),
         "phase_c_trace_present": _has_phase_c_trace(founder_report),
@@ -110,8 +110,8 @@ def _missing_surfaces(observability: dict[str, bool]) -> list[str]:
         missing.append("retrieval_intent_source_surface_missing")
     if not observability.get("source_selection_object_present"):
         missing.append("source_selection_surface_missing")
-    if not observability.get("b2_final_mapping_first_class_present"):
-        missing.append("b2_final_mapping_first_class_surface_missing")
+    if not observability.get("nutrition_final_mapping_first_class_present"):
+        missing.append("nutrition_final_mapping_first_class_surface_missing")
     return missing
 
 
