@@ -87,6 +87,7 @@ def test_founder_live_diagnostic_artifact_contract_with_fake_provider(tmp_path: 
     ]
     assert all(case["provider_profile_id"] == report["provider_profile_id"] for case in report["cases"])
     assert all(case["provider_profile_model"] == "grok-4-fast" for case in report["cases"])
+    assert all(isinstance(case["actual_behavior"].get("manager_rounds"), list) for case in report["cases"])
     assert all(case["case_contract_status"] in {"strict_pass", "repaired_pass", "fail"} for case in report["cases"])
     assert all(case["failure_layer"] != "legacy_dependency" for case in report["cases"])
     assert report["summary"]["pass_count"] + report["summary"]["fail_count"] + report["summary"][
