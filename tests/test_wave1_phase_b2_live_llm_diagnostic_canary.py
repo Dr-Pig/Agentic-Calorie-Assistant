@@ -52,7 +52,15 @@ class _FakeAsyncClient:
                     "exactness_posture": "estimated",
                     "likely_kcal": 450,
                     "kcal_range": [350, 550],
-                    "evidence_used": [{"packet_id": "pkt_generic_anchor_custom_drink_boba_milk_tea"}],
+                    "evidence_used": [
+                        {
+                            "packet_id": "pkt_generic_anchor_custom_drink_boba_milk_tea",
+                            "source_type": "generic_anchor",
+                            "source_quality_label": "internal_anchor",
+                            "usage": "anchor",
+                            "reason": "accepted packet supports estimate",
+                        }
+                    ],
                     "uncertainty_reason": "fake live diagnostic response",
                     "suggested_followup_question": "請補充糖度和杯型。",
                 }
@@ -137,6 +145,36 @@ def test_provider_request_payload_uses_deterministic_packet_contract_without_map
     assert payload["final_mapping"] == "not_provided_to_live_diagnostic"
 
 
+def test_no_accepted_packet_payload_uses_insufficiency_contract() -> None:
+    phase_b2_report = _phase_b2_report()
+    payload = build_provider_request_payload_for_case(_case_by_id(phase_b2_report, "B2-009"))
+
+    assert payload["contract_type"] == "no_accepted_packet_insufficiency"
+    assert payload["synthesis_allowed"] is False
+    assert payload["item_results_allowed"] is False
+    assert payload["item_results_required"] is False
+    assert payload["estimate_allowed"] is False
+    assert payload["kcal_range_allowed"] is False
+    assert payload["evidence_used_allowed"] is False
+    assert payload["allowed_evidence_refs"] == []
+    assert payload["rejected_candidate_refs"] == [
+        {
+            "packet_id": payload["rejected_candidates"][0]["packet_id"],
+            "source_type": payload["rejected_candidates"][0]["source_type"],
+            "source_quality_label": payload["rejected_candidates"][0]["source_quality_label"],
+            "reason": "rejected_candidate_available_for_explanation_only",
+        }
+    ]
+    assert payload["required_output"]["top_level_key"] == "insufficiency"
+    assert payload["required_output"]["item_results_allowed"] is False
+    assert payload["required_output"]["evidence_used_allowed"] is False
+    assert payload["required_output"]["required_fields"] == [
+        "insufficiency_reason",
+        "uncertainty_reason",
+        "followup_question_or_clarification_question",
+    ]
+
+
 def test_ordinary_synthesis_payload_declares_required_items_and_packet_ceiling() -> None:
     phase_b2_report = _phase_b2_report()
 
@@ -157,6 +195,25 @@ def test_ordinary_synthesis_payload_declares_required_items_and_packet_ceiling()
         assert payload["allowed_exactness"] == allowed_exactness
         assert payload["required_output"]["item_results_required"] is True
         assert payload["required_output"]["min_item_results"] == 1
+        assert payload["required_output"]["evidence_used_schema"] == {
+            "type": "array",
+            "items": "packet_ref_object",
+            "required_fields": [
+                "packet_id",
+                "source_type",
+                "source_quality_label",
+                "usage",
+                "reason",
+            ],
+            "allowed_usage": ["exact", "anchor", "fallback", "semantic_hint", "rejected"],
+            "string_entries_allowed": False,
+        }
+        assert payload["allowed_evidence_refs"]
+        assert all(isinstance(ref, dict) for ref in payload["allowed_evidence_refs"])
+        assert all(
+            {"packet_id", "source_type", "source_quality_label", "usage", "reason"}.issubset(ref)
+            for ref in payload["allowed_evidence_refs"]
+        )
 
 
 def test_provider_request_payload_uses_clarify_only_contract_for_bare_self_selected_basket() -> None:
@@ -208,6 +265,8 @@ def test_live_canary_fake_http_response_is_validated_by_contract_harness(tmp_pat
     assert report["case_results"][0]["raw_top_level_keys"] == ["item_results"]
     assert report["case_results"][0]["raw_item_results_count"] == 1
     assert report["case_results"][0]["normalized_item_results_count"] == 1
+    assert report["case_results"][0]["provider_mode"] == "live"
+    assert report["case_results"][0]["live_invoked"] is True
     assert report["case_results"][0]["usage"] == {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
     assert report["verdict_category"] == VERDICT_DIAGNOSTIC_OBSERVATION
 

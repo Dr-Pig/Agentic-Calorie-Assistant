@@ -29,6 +29,26 @@ DEFAULT_STABLE_B2_ARTIFACT = DEFAULT_OUTPUT_DIR / "wave1_phase_b2_evidence_synth
 DEFAULT_LATEST_REPORT = DEFAULT_OUTPUT_DIR / "wave1_phase_b2_live_llm_diagnostic_canary.json"
 DEFAULT_B2_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID = "builderspace-grok-4-fast-b2-diagnostic"
 APPROVED_ASK_FIRST_POLICY_IDS = ("self_selected_basket_without_listed_items",)
+EVIDENCE_USED_SCHEMA: dict[str, Any] = {
+    "type": "array",
+    "items": "packet_ref_object",
+    "required_fields": [
+        "packet_id",
+        "source_type",
+        "source_quality_label",
+        "usage",
+        "reason",
+    ],
+    "allowed_usage": ["exact", "anchor", "fallback", "semantic_hint", "rejected"],
+    "string_entries_allowed": False,
+}
+REJECTED_CANDIDATE_REFS_SCHEMA: dict[str, Any] = {
+    "type": "array",
+    "items": "rejected_candidate_ref_object",
+    "required_fields": ["packet_id", "reason"],
+    "evidence_authority": False,
+    "string_entries_allowed": False,
+}
 
 _PROVIDER_PROFILES: dict[str, dict[str, Any]] = {
     DEFAULT_B2_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID: {
@@ -146,6 +166,7 @@ def build_provider_request_payload_for_case(deterministic_case: dict[str, Any]) 
             "product_semantic_authority": False,
             "source_priority_authority": False,
         },
+        "allowed_evidence_refs": _allowed_evidence_refs(accepted_packets),
         "final_mapping": "not_provided_to_live_diagnostic",
     }
     if _is_ask_first_deterministic_case(deterministic_case):
@@ -191,6 +212,59 @@ def build_provider_request_payload_for_case(deterministic_case: dict[str, Any]) 
             }
         )
         return base_payload
+    if not accepted_packets:
+        base_payload.update(
+            {
+                "contract_type": "no_accepted_packet_insufficiency",
+                "ask_first_required": False,
+                "synthesis_allowed": False,
+                "item_results_allowed": False,
+                "item_results_required": False,
+                "min_item_results": 0,
+                "accepted_packets_count": 0,
+                "accepted_usage": "none",
+                "allowed_exactness": "none",
+                "estimate_allowed": False,
+                "kcal_range_allowed": False,
+                "evidence_used_allowed": False,
+                "expected_output": "explain_insufficient_accepted_evidence_and_request_clarification",
+                "rejected_candidate_refs": _rejected_candidate_refs(rejected_candidates),
+                "required_output": {
+                    "top_level_key": "insufficiency",
+                    "item_results_allowed": False,
+                    "estimate_allowed": False,
+                    "kcal_range_allowed": False,
+                    "evidence_used_allowed": False,
+                    "required_fields": [
+                        "insufficiency_reason",
+                        "uncertainty_reason",
+                        "followup_question_or_clarification_question",
+                    ],
+                    "allowed_fields": [
+                        "insufficiency_reason",
+                        "uncertainty_reason",
+                        "followup_question",
+                        "clarification_question",
+                        "rejected_candidate_refs",
+                    ],
+                    "rejected_candidate_refs_schema": REJECTED_CANDIDATE_REFS_SCHEMA,
+                    "forbidden_fields": [
+                        "item_results",
+                        "likely_kcal",
+                        "kcal_range",
+                        "evidence_used",
+                        "evidence_refs",
+                        "logged",
+                        "draft",
+                        "ledger_update",
+                        "mutation_result",
+                        "source_priority_decision",
+                        "product_semantic_decision",
+                    ],
+                },
+            }
+        )
+        return base_payload
     base_payload.update(
         {
             "contract_type": "item_results_synthesis",
@@ -217,6 +291,7 @@ def build_provider_request_payload_for_case(deterministic_case: dict[str, Any]) 
                     "uncertainty_reason",
                     "suggested_followup_question",
                 ],
+                "evidence_used_schema": EVIDENCE_USED_SCHEMA,
                 "forbidden_fields": [
                     "logged",
                     "draft",
@@ -309,6 +384,10 @@ async def _invoke_builderspace_case(
                     "content": (
                         "You are a B2 packet synthesis diagnostic model. Return only JSON that follows the request contract. "
                         "For item_results_synthesis contracts, return at least one item_result using accepted_packets. "
+                        "Every item_results[*].evidence_used entry must be an object copied from allowed_evidence_refs; "
+                        "never return evidence_used as strings. "
+                        "For no_accepted_packet_insufficiency contracts, do not return item_results, kcal, or evidence_used; "
+                        "explain insufficient accepted evidence and ask for clarification. "
                         "For clarify_only contracts, ask for the missing items or portions and do not return item_results. "
                         "Do not return logged, draft, ledger, mutation, source-priority, or product-semantic decisions."
                     ),
@@ -471,6 +550,42 @@ def _accepted_usage(accepted_packets: list[dict[str, Any]]) -> str:
     if "anchor" in usages or "fallback" in usages:
         return "anchor"
     return "none"
+
+
+def _allowed_evidence_refs(accepted_packets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    refs: list[dict[str, Any]] = []
+    for packet in accepted_packets:
+        packet_id = str(packet.get("packet_id") or "")
+        if not packet_id:
+            continue
+        usage = str(packet.get("accepted_usage") or "")
+        refs.append(
+            {
+                "packet_id": packet_id,
+                "source_type": packet.get("source_type"),
+                "source_quality_label": packet.get("source_quality_label"),
+                "usage": usage,
+                "reason": f"accepted_{usage}_packet_available_to_live_diagnostic",
+            }
+        )
+    return refs
+
+
+def _rejected_candidate_refs(rejected_candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    refs: list[dict[str, Any]] = []
+    for candidate in rejected_candidates:
+        packet_id = str(candidate.get("packet_id") or "")
+        if not packet_id:
+            continue
+        refs.append(
+            {
+                "packet_id": packet_id,
+                "source_type": candidate.get("source_type"),
+                "source_quality_label": candidate.get("source_quality_label"),
+                "reason": "rejected_candidate_available_for_explanation_only",
+            }
+        )
+    return refs
 
 
 def _normalize_provider_payload(parsed: dict[str, Any]) -> dict[str, Any]:
