@@ -59,6 +59,14 @@ def default_trace() -> dict[str, object]:
         "extract_attempted": False,
         "retrieval_goal": None,
         "exact_db_miss_confirmed": False,
+        "truth_boundary": {
+            "trace_only": True,
+            "web_candidate_truth_authority": False,
+            "accepted_extract_packet_truth_authority": False,
+            "requires_packetizer_hard_recheck_consumption": True,
+            "requires_synthesis_verifier": True,
+            "runtime_web_activation_recommended": False,
+        },
     }
 
 

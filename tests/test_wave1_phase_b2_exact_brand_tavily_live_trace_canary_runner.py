@@ -40,7 +40,8 @@ def test_missing_token_report_is_not_live_and_never_claims_readiness() -> None:
 
     assert report["provider_mode"] == "not_invoked"
     assert report["live_invoked"] is False
-    assert report["failure_family"] == "missing_tavily_api_key"
+    assert report["failure_family"] == "environment_or_provider_blocker"
+    assert report["failure_detail"] == "missing_tavily_api_key"
     assert report["readiness_claimed"] is False
 
 
@@ -89,5 +90,16 @@ async def test_runner_writes_live_trace_report_without_secret_or_readiness_claim
     assert report["provider_mode"] == "live"
     assert report["live_invoked"] is True
     assert report["readiness_claimed"] is False
+    assert report["runtime_web_activation_recommended"] is False
+    assert report["decision_pack_options"] == [
+        "no_live_search_seam",
+        "trace_only_canary_continues",
+        "narrow_exact_brand_web_seam",
+        "defer_web_and_continue_B2_local",
+    ]
+    assert report["readiness_claim"]["allowed_next_stage"] == "live_search_seam_decision_pack"
     assert report["cases"][0]["trace"]["provider_profile"]["provider"] == "tavily"
     assert report["cases"][0]["trace"]["provider_profile"]["search_port"] == "_FakeSearchPort"
+    assert report["cases"][0]["verdict_category"] == "diagnostic_observation"
+    assert report["cases"][0]["failure_family"] is None
+    assert report["cases"][0]["runtime_web_activation_recommended"] is False
