@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models import BodyProfileRecord, User
 from app.shared.domain import BodyObservation
-from app.shared.infra.canonical_persistence import (
+from app.composition.canonical_persistence import (
     load_active_body_profile_record,
     load_body_observations,
     upsert_observation_skeleton,

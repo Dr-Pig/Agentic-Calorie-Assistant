@@ -113,7 +113,7 @@ def test_budget_output_honesty_keeps_ready_budget_answer_unchanged() -> None:
 
 
 def test_bundle2_response_applies_output_honesty_to_structured_surfaces(monkeypatch: pytest.MonkeyPatch) -> None:
-    from app.runtime.application import bundle2_response as module
+    from app.composition import bundle2_response as module
 
     class _View:
         user_id = 1

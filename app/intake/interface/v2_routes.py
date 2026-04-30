@@ -13,7 +13,7 @@ from ..application.current_turn_context_assembler import build_current_turn_cont
 from ..application.phase_a_trace import build_phase_a_trace
 from ..application.transition_guard import resolve_transition_guard
 from ...database import get_db
-from ...runtime.application.state_resolver import resolve_v2_bundle1_state
+from ...composition.state_resolver import resolve_v2_bundle1_state
 from ...runtime.interface.provider_runtime import extract_provider, manager_provider, search_provider
 
 router = APIRouter()

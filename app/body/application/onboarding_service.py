@@ -16,7 +16,7 @@ from ..infrastructure.body_plan_persistence import (
     upsert_active_body_plan_from_bootstrap,
     upsert_active_body_profile,
 )
-from app.shared.infra.canonical_persistence import recompute_day_budget_ledger
+from app.composition.canonical_persistence import recompute_day_budget_ledger
 
 GoalType = Literal["lose_weight", "maintain", "gain_weight"]
 ProfileSex = Literal["female", "male"]

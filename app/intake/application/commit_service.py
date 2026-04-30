@@ -4,7 +4,7 @@ from typing import Any
 
 from .canonical_commit_bridge import build_commit_request_candidate, resolve_commit_candidate_target
 from ...schemas import EstimatePayload
-from app.shared.infra.canonical_persistence import get_legacy_mapping_for_meal_log
+from app.composition.canonical_persistence import get_legacy_mapping_for_meal_log
 from ..infrastructure.meal_log_persistence import persist_text_meal_result
 
 

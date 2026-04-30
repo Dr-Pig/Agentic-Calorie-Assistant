@@ -73,7 +73,7 @@ async def test_bundle2_response_applies_shadow_dialogue_cue_without_state_change
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.budget.application.current_budget_answer import RemainingBudgetAnswerContract
-    from app.runtime.application import bundle2_response as module
+    from app.composition import bundle2_response as module
 
     class _View:
         user_id = 1
