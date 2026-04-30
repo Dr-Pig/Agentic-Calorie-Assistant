@@ -186,3 +186,26 @@ future_use:
   - do not promote a live diagnostic pass or fail into product readiness by itself
 source_of_truth_boundary: wave1_founder_e2e_live_diagnostic artifact and activation ladder
 ```
+
+### local-2026-05-01-powershell-json-cjk-artifact-validation
+
+```yaml
+status: active
+signals:
+  - powershell_convertfrom_json_parse_error
+  - cjk_mojibake_risk
+  - artifact_json_validation
+  - terminal_rendering_issue
+summary: >
+  When PowerShell `ConvertFrom-Json` reports a parse error on a large artifact
+  that also renders CJK as mojibake, do not treat that as proof of artifact
+  corruption. Cross-check with byte-level UTF-8 decode and a second parser such
+  as Python `json.loads` before changing files or classifying the artifact as
+  invalid.
+future_use:
+  - treat PowerShell terminal output and copied transcripts as tooling evidence only
+  - use Python byte reads plus json.loads for parser-sensitive JSON artifact evidence
+  - if UTF-8 decode and Python JSON parse pass, classify the symptom as tooling/parser/rendering issue
+  - do not rewrite artifacts or docs based only on mojibake or ConvertFrom-Json output
+source_of_truth_boundary: AGENTS.md Encoding Evidence Contract
+```
