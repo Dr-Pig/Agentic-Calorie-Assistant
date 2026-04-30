@@ -4,6 +4,49 @@ from app.nutrition.application.retrieval_intent import RetrievalIntent, build_re
 from app.nutrition.application.small_anchor_store import lookup_anchor_candidates
 
 
+class _FakeEvidenceStore:
+    def load_small_anchor_records(self) -> list[dict[str, object]]:
+        return [
+            {
+                "record_kind": "generic_anchor",
+                "anchor_id": "anchor_test_food",
+                "canonical_name": "test food",
+                "aliases": ["tf"],
+                "dish_type": "single_item",
+                "composition_posture": "single_item",
+                "variance_level": "low",
+                "semantic_hints": ["test_only"],
+                "followup_hints": [],
+                "clarify_required": False,
+                "baseline_kcal_range": [10, 20],
+                "baseline_likely_kcal": 15,
+                "major_modifiers": [],
+                "composition_hints": [],
+            }
+        ]
+
+    def load_exact_item_card_records(self) -> list[dict[str, object]]:
+        return []
+
+
+def test_small_anchor_lookup_accepts_injected_evidence_store_port() -> None:
+    result = lookup_anchor_candidates(
+        RetrievalIntent(
+            base_dish="test food",
+            aliases=[],
+            brand_hint=None,
+            size_hint=None,
+            modifier_hints=[],
+            listed_items=[],
+            retrieval_goal="generic_anchor_lookup",
+        ),
+        evidence_store=_FakeEvidenceStore(),
+    )
+
+    assert [candidate.anchor_id for candidate in result.candidates] == ["anchor_test_food"]
+    assert result.candidates[0].baseline_likely_kcal == 15
+
+
 def test_small_anchor_store_matches_generic_single_item_anchor() -> None:
     result = lookup_anchor_candidates(build_retrieval_intent("\u6211\u5403\u4e86\u8336\u8449\u86cb"))
 

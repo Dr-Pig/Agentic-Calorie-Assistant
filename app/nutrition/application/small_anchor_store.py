@@ -5,8 +5,8 @@ from functools import lru_cache
 from typing import Literal
 
 from .context_normalizer import lookup_key
+from .nutrition_evidence_store import NutritionEvidenceStorePort, default_nutrition_evidence_store
 from .retrieval_intent import RetrievalIntent
-from ..infrastructure.small_anchor_store_loader import load_small_anchor_seed_records
 
 AnchorTruthLevel = Literal["anchor"]
 AnchorSourcePosture = Literal["generic_anchor_seed"]
@@ -97,7 +97,9 @@ def lookup_anchor_candidates(
     intent: RetrievalIntent,
     *,
     limit: int = 4,
+    evidence_store: NutritionEvidenceStorePort | None = None,
 ) -> AnchorLookupResult:
+    store = evidence_store or default_nutrition_evidence_store()
     retrieval_context: AnchorLookupContext = (
         "query_only_support" if intent.retrieval_goal == "query_only_answer" else "logging_support"
     )
@@ -110,14 +112,14 @@ def lookup_anchor_candidates(
             return AnchorLookupResult((), retrieval_context, "none", "listed_item_fanout_deferred", None)
         query_texts = (intent.listed_items[0],)
 
-    clarify_support = _match_semantic_only_support(query_texts)
+    clarify_support = _match_semantic_only_support(query_texts, evidence_store=store)
     if clarify_support is not None:
         return AnchorLookupResult((), retrieval_context, "none", None, clarify_support)
 
     if intent.retrieval_goal == "composition_clarification":
         return AnchorLookupResult((), retrieval_context, "none", "composition_clarification_deferred", None)
 
-    candidates = tuple(_match_anchor_candidates(query_texts, limit=limit))
+    candidates = tuple(_match_anchor_candidates(query_texts, limit=limit, evidence_store=store))
     if not candidates:
         return AnchorLookupResult((), retrieval_context, "none", "no_anchor_match", None)
     return AnchorLookupResult(candidates, retrieval_context, "none", None, None)
@@ -131,13 +133,18 @@ def _query_texts_for_intent(intent: RetrievalIntent) -> tuple[str, ...]:
     return tuple(values)
 
 
-def _match_anchor_candidates(query_texts: tuple[str, ...], *, limit: int) -> list[AnchorCandidate]:
+def _match_anchor_candidates(
+    query_texts: tuple[str, ...],
+    *,
+    limit: int,
+    evidence_store: NutritionEvidenceStorePort,
+) -> list[AnchorCandidate]:
     query_keys = {lookup_key(text) for text in query_texts if lookup_key(text)}
     if not query_keys:
         return []
 
     matched: list[tuple[int, AnchorCandidate]] = []
-    for record in _load_anchor_records():
+    for record in _load_anchor_records(evidence_store):
         canonical_key = lookup_key(record.canonical_name)
         if canonical_key in query_keys:
             matched.append(
@@ -169,12 +176,16 @@ def _match_anchor_candidates(query_texts: tuple[str, ...], *, limit: int) -> lis
     return [candidate for _, candidate in matched[:limit]]
 
 
-def _match_semantic_only_support(query_texts: tuple[str, ...]) -> GenericClarifySupport | None:
+def _match_semantic_only_support(
+    query_texts: tuple[str, ...],
+    *,
+    evidence_store: NutritionEvidenceStorePort,
+) -> GenericClarifySupport | None:
     query_keys = {lookup_key(text) for text in query_texts if lookup_key(text)}
     if not query_keys:
         return None
 
-    for item in load_small_anchor_seed_records():
+    for item in evidence_store.load_small_anchor_records():
         if str(item.get("record_kind") or "").strip() != "generic_semantic_only":
             continue
         canonical_name = str(item.get("canonical_name") or "").strip()
@@ -197,9 +208,19 @@ def _match_semantic_only_support(query_texts: tuple[str, ...]) -> GenericClarify
 
 
 @lru_cache(maxsize=1)
-def _load_anchor_records() -> tuple[AnchorRecord, ...]:
+def _load_default_anchor_records() -> tuple[AnchorRecord, ...]:
+    return _anchor_records_from_items(default_nutrition_evidence_store().load_small_anchor_records())
+
+
+def _load_anchor_records(evidence_store: NutritionEvidenceStorePort) -> tuple[AnchorRecord, ...]:
+    if evidence_store is default_nutrition_evidence_store():
+        return _load_default_anchor_records()
+    return _anchor_records_from_items(evidence_store.load_small_anchor_records())
+
+
+def _anchor_records_from_items(items: object) -> tuple[AnchorRecord, ...]:
     records: list[AnchorRecord] = []
-    for item in load_small_anchor_seed_records():
+    for item in items or []:
         if str(item.get("record_kind") or "generic_anchor").strip() != "generic_anchor":
             continue
         modifiers = tuple(

@@ -74,6 +74,9 @@ async def run_exact_brand_web_canary(
         return ExactBrandWebCanaryOutcome(result=None, trace=trace)
 
     trace["attempted"] = True
+    truth_boundary = trace.get("truth_boundary")
+    if isinstance(truth_boundary, dict):
+        truth_boundary["runtime_web_diagnostic_enabled"] = True
     query = _exact_brand_query(intent, contextualized_query=contextualized_query)
     trace["search_query"] = query
     trace["web_query"] = query
