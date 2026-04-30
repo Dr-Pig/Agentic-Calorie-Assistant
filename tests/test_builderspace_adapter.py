@@ -794,7 +794,7 @@ def test_founder_live_commit_without_evidence_repair_schema_requires_tool_call(
     assert schema is not None
     assert schema["properties"]["manager_action"]["enum"] == ["call_tools"]
     assert "tool_calls" in schema["required"]
-    assert schema["properties"]["tool_calls"]["minItems"] == 1
+    assert "minItems" not in schema["properties"]["tool_calls"]
     assert schema["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
         "resolve_correction_target",
         "estimate_nutrition",
@@ -891,7 +891,7 @@ def test_founder_live_manager_contract_payload_accepts_trace_repair_ack_outside_
 
     missing_followup_question = dict(payload)
     missing_followup_question["semantic_decision"] = dict(payload["semantic_decision"])
-    missing_followup_question["semantic_decision"]["followup_posture"] = "precision_refinement"
+    missing_followup_question["semantic_decision"]["followup_posture"] = "refinement_not_commit_gate"
     with pytest.raises(RuntimeError, match="followup question missing"):
         adapter._validate_manager_payload(
             "intake_manager_round",
@@ -909,6 +909,39 @@ def test_founder_live_manager_contract_payload_accepts_trace_repair_ack_outside_
         answer_contract_followup,
         constraints=constraints,
     )
+
+    answer_query_without_top_level_final_action = dict(payload)
+    answer_query_without_top_level_final_action.pop("final_action", None)
+    answer_query_without_top_level_final_action["workflow_effect"] = "answer_only"
+    answer_query_without_top_level_final_action["semantic_decision"] = {
+        **dict(payload["semantic_decision"]),
+        "current_turn_intent": "answer_query",
+        "workflow_effect": "answer_only",
+        "final_action_candidate": "answer_only",
+        "mutation_intent_candidate": "no_mutation",
+        "followup_posture": "none",
+    }
+    adapter._validate_manager_payload(
+        "intake_manager_round",
+        answer_query_without_top_level_final_action,
+        constraints=constraints,
+    )
+
+    correction_as_new_commit = dict(payload)
+    correction_as_new_commit["final_action"] = "commit"
+    correction_as_new_commit["semantic_decision"] = {
+        **dict(payload["semantic_decision"]),
+        "current_turn_intent": "correct_meal",
+        "workflow_effect": "canonical_write",
+        "final_action_candidate": "commit",
+        "mutation_intent_candidate": "canonical_write",
+    }
+    with pytest.raises(RuntimeError, match="correct_meal requires correction"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            correction_as_new_commit,
+            constraints=constraints,
+        )
 
 
 def test_founder_live_commit_without_evidence_repair_payload_must_call_estimate_tool(
@@ -939,6 +972,342 @@ def test_founder_live_commit_without_evidence_repair_payload_must_call_estimate_
         adapter._validate_manager_payload("intake_manager_round", missing_estimate, constraints=constraints)
 
 
+def test_founder_live_initial_contract_rejects_final_commit_without_current_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        **_founder_live_constraints(),
+        "manager_contract_evidence_state": {
+            "nutrition_evidence_present": False,
+            "tool_result_names": [],
+        },
+    }
+
+    final_without_evidence = _founder_live_payload(final_action="commit")
+
+    with pytest.raises(RuntimeError, match="final_action invalid"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            final_without_evidence,
+            constraints=constraints,
+        )
+
+    call_tools_without_evidence = _founder_live_payload(
+        manager_action="call_tools",
+        tool_calls=[{"name": "estimate_nutrition", "arguments": {}}],
+    )
+    adapter._validate_manager_payload(
+        "intake_manager_round",
+        call_tools_without_evidence,
+        constraints=constraints,
+    )
+
+    with_evidence_constraints = {
+        **_founder_live_constraints(),
+        "manager_contract_evidence_state": {
+            "nutrition_evidence_present": True,
+            "tool_result_names": ["estimate_nutrition"],
+        },
+    }
+    adapter._validate_manager_payload(
+        "intake_manager_round",
+        final_without_evidence,
+        constraints=with_evidence_constraints,
+    )
+
+
+def test_founder_live_contract_rejects_substitute_final_action_for_evidence_required_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        **_founder_live_constraints(),
+        "manager_contract_evidence_state": {
+            "nutrition_evidence_present": False,
+            "tool_result_names": [],
+        },
+    }
+
+    substitute_followup = _founder_live_payload(
+        final_action="ask_followup",
+        workflow_effect="correction_applied",
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": {"mode": "active_meal"},
+            "workflow_effect": "correction_applied",
+            "final_action_candidate": "correction_applied",
+            "estimation_posture": "refinement_pending",
+            "followup_posture": "refinement_not_commit_gate",
+            "mutation_intent_candidate": "correction_write",
+            "uncertainty_posture": "low",
+            "source": "live_manager_structured_output",
+        },
+        answer_contract={"response_mode": "correction_update"},
+    )
+
+    with pytest.raises(RuntimeError, match="substituting another final_action"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            substitute_followup,
+            constraints=constraints,
+        )
+
+    composition_unknown_followup = _founder_live_payload(
+        final_action="ask_followup",
+        workflow_effect="ask_followup",
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {"mode": "none"},
+            "workflow_effect": "ask_followup",
+            "final_action_candidate": "ask_followup",
+            "estimation_posture": "composition_unknown_basket",
+            "followup_posture": "composition_clarification",
+            "mutation_intent_candidate": "no_mutation",
+            "uncertainty_posture": "composition_unknown",
+            "source": "live_manager_structured_output",
+        },
+        answer_contract={"response_mode": "followup"},
+    )
+    adapter._validate_manager_payload(
+        "intake_manager_round",
+        composition_unknown_followup,
+        constraints=constraints,
+    )
+
+
+def test_founder_live_contract_requires_tool_calls_for_call_tools_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = _founder_live_constraints()
+
+    missing_tool_calls = _founder_live_payload(
+        manager_action="call_tools",
+        workflow_effect="pending_evidence",
+        evidence_posture="evidence_pending",
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {"mode": "new_meal"},
+            "workflow_effect": "pending_evidence",
+            "final_action_candidate": "commit",
+            "estimation_posture": "pending_tool_call",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "canonical_write",
+            "uncertainty_posture": "bounded",
+            "source": "live_manager_structured_output",
+        },
+    )
+    with pytest.raises(RuntimeError, match="non-empty tool_calls"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            missing_tool_calls,
+            constraints=constraints,
+        )
+
+    unsupported_tool = _founder_live_payload(
+        manager_action="call_tools",
+        workflow_effect="pending_evidence",
+        evidence_posture="evidence_pending",
+        tool_calls=[{"name": "web_search", "arguments": {}}],
+        semantic_decision=missing_tool_calls["semantic_decision"],
+    )
+    with pytest.raises(RuntimeError, match="unsupported tool names"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            unsupported_tool,
+            constraints=constraints,
+        )
+
+    valid_tool_call = _founder_live_payload(
+        manager_action="call_tools",
+        workflow_effect="pending_evidence",
+        evidence_posture="evidence_pending",
+        tool_calls=[{"name": "estimate_nutrition", "arguments": {}}],
+        semantic_decision=missing_tool_calls["semantic_decision"],
+    )
+    adapter._validate_manager_payload(
+        "intake_manager_round",
+        valid_tool_call,
+        constraints=constraints,
+    )
+
+
+def test_founder_live_schema_excludes_commit_actions_until_evidence_exists(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints_without_evidence = {
+        **_founder_live_constraints(),
+        "manager_contract_evidence_state": {
+            "nutrition_evidence_present": False,
+            "tool_result_names": [],
+        },
+    }
+    schema_without_evidence = adapter._response_schema_for_stage(
+        "intake_manager_round",
+        constraints=constraints_without_evidence,
+    )
+
+    final_action_enum = schema_without_evidence["properties"]["final_action"]["enum"]
+    assert "answer_only" in final_action_enum
+    assert "ask_followup" in final_action_enum
+    assert "commit" not in final_action_enum
+    assert "correction_applied" not in final_action_enum
+    assert "overshoot_note" not in final_action_enum
+
+    constraints_with_evidence = {
+        **_founder_live_constraints(),
+        "manager_contract_evidence_state": {
+            "nutrition_evidence_present": True,
+            "tool_result_names": ["estimate_nutrition"],
+        },
+    }
+    schema_with_evidence = adapter._response_schema_for_stage(
+        "intake_manager_round",
+        constraints=constraints_with_evidence,
+    )
+
+    final_action_enum = schema_with_evidence["properties"]["final_action"]["enum"]
+    assert "commit" in final_action_enum
+    assert "correction_applied" in final_action_enum
+    assert schema_with_evidence["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
+        "resolve_correction_target",
+        "estimate_nutrition",
+        "compare_against_budget",
+    ]
+
+
+def test_founder_live_contract_does_not_count_failed_tool_result_as_evidence() -> None:
+    from app.runtime.agent.founder_live_manager_contract import founder_live_manager_contract_constraints
+
+    constraints = founder_live_manager_contract_constraints(
+        "builderspace-grok-4-fast-founder-live-contract",
+        tool_results=[
+            {
+                "tool_name": "estimate_nutrition",
+                "evidence": {"nutrition_payload": None},
+                "failure_family": "composition_unknown_estimate_blocked",
+            }
+        ],
+    )
+
+    assert constraints["manager_contract_evidence_state"] == {
+        "tool_result_names": ["estimate_nutrition"],
+        "nutrition_evidence_present": False,
+    }
+
+
+def test_founder_live_contract_blocks_composition_unknown_estimate_tool_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    payload = _founder_live_payload(
+        manager_action="call_tools",
+        workflow_effect="ask_followup",
+        tool_calls=[{"name": "estimate_nutrition", "arguments": {}}],
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {"mode": "none"},
+            "workflow_effect": "ask_followup",
+            "final_action_candidate": "ask_followup",
+            "estimation_posture": "composition_unknown_basket",
+            "followup_posture": "composition_clarification",
+            "mutation_intent_candidate": "no_mutation",
+            "uncertainty_posture": "composition_unknown",
+            "source": "live_manager_structured_output",
+        },
+        answer_contract={"response_mode": "followup"},
+    )
+
+    with pytest.raises(RuntimeError, match="composition-unknown.*must not call estimate_nutrition"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            payload,
+            constraints=_founder_live_constraints(),
+        )
+
+
+def test_founder_live_contract_policy_names_existing_query_only_and_followup_invariants() -> None:
+    from app.runtime.agent.founder_live_manager_contract import (
+        FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES,
+        FOUNDER_LIVE_MANAGER_CONTRACT_POLICY,
+        founder_live_manager_tool_description,
+    )
+
+    policy = FOUNDER_LIVE_MANAGER_CONTRACT_POLICY
+
+    assert policy["query_only_rule"]["semantic_intent"] == "answer_query"
+    assert policy["query_only_rule"]["final_action"] == "answer_only"
+    assert policy["query_only_rule"]["mutation_intent_candidate"] == "no_mutation"
+    assert policy["correction_rule"]["final_action"] == "correction_applied"
+    assert policy["composition_unknown_rule"]["mutation_intent_candidate"] == "no_mutation"
+    assert policy["composition_unknown_rule"]["estimate_tool_allowed"] is False
+    assert policy["followup_question_rule"]["fallback_postures_when_no_question"] == [
+        "none",
+        "refinement_optional",
+        "closed",
+    ]
+    assert "precision_refinement" not in policy["followup_question_required_postures"]
+    assert "refinement_not_commit_gate" in policy["followup_question_required_postures"]
+    description = founder_live_manager_tool_description()
+    assert "query-only" in description
+    assert "answer_only" in description
+    assert "correct_meal" in description
+    assert "self-selected basket" in description
+    assert "return final ask_followup directly" in description
+    assert "do not call estimate_nutrition for composition-unknown baskets" in description
+    assert "evidence_posture to requires_tool" in description
+    assert "invalid evidence-required candidate pattern" in description
+    assert "If you do not have a concrete follow-up question" in description
+    assert "case_id" not in description
+    assert FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES[0]["invalid"]["manager_action"] == "final"
+    assert FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES[0]["valid"]["manager_action"] == "call_tools"
+    assert "case_id" not in str(FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES)
+
+
+def test_founder_live_shared_contract_examples_are_provider_and_case_agnostic() -> None:
+    from app.runtime.agent.founder_live_manager_contract import (
+        FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES,
+        FOUNDER_LIVE_MANAGER_CONTRACT_POLICY_SUMMARY,
+    )
+
+    contract_text = json.dumps(
+        {
+            "summary": FOUNDER_LIVE_MANAGER_CONTRACT_POLICY_SUMMARY,
+            "examples": FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES,
+        },
+        ensure_ascii=False,
+    ).lower()
+
+    forbidden_markers = [
+        "grok",
+        "deepseek",
+        "builderspace",
+        "kimi",
+        "minimax",
+        "gemini",
+        "gpt",
+        "case_id",
+        "b2-",
+        "pearl",
+        "milk tea",
+        "tea egg",
+        "luwei",
+        "bento",
+        "滷味",
+        "珍奶",
+        "茶葉蛋",
+        "便當",
+    ]
+    for marker in forbidden_markers:
+        assert marker not in contract_text
+
+
 def test_founder_live_manager_contract_uses_synthetic_tool_transport_with_schema_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -964,6 +1333,8 @@ def test_founder_live_manager_contract_uses_synthetic_tool_transport_with_schema
     assert transport_request["tool_name"] == "manager_structured_decision"
     assert transport_request["tool_choice"]["function"]["name"] == "manager_structured_decision"
     assert transport_request["tools"][0]["function"]["strict"] is True
+    assert "correct_meal -> log_meal" in transport_request["tools"][0]["function"]["description"]
+    assert "estimate_nutrition" in transport_request["tools"][0]["function"]["description"]
     assert transport_request["tools"][0]["function"]["parameters"]["required"] == [
         "manager_action",
         "intent",
@@ -982,6 +1353,14 @@ def test_founder_live_manager_contract_uses_synthetic_tool_transport_with_schema
     assert response_format["type"] == "json_schema"
     assert response_format["json_schema"]["name"] == "founder_live_manager_contract"
     assert response_meta["schema_version"] == "v1"
+
+    semantic_schema = transport_request["tools"][0]["function"]["parameters"]["properties"]["semantic_decision"]
+    semantic_properties = semantic_schema["properties"]
+    assert "not a final ask_followup" in semantic_properties["final_action_candidate"]["description"]
+    assert "pending_tool_call or tool_pending" in semantic_properties["estimation_posture"]["description"]
+    assert "concrete user-facing followup_question" in semantic_properties["followup_posture"]["description"]
+    top_level_properties = transport_request["tools"][0]["function"]["parameters"]["properties"]
+    assert "requires_tool" in top_level_properties["evidence_posture"]["description"]
 
 
 @pytest.mark.asyncio

@@ -145,6 +145,14 @@ Live eval readiness ladder:
 - founder / human E2E readiness requires the bootstrap verdict inputs, including runner pass, coverage complete, founder realism pass, architecture purity pass, encoding pass, text integrity healthy, and trace roundtrip
 - provider / Tavily / B2 live canaries remain trace-first diagnostics and must not bypass Phase A / Phase C closure
 
+Founder live strictness / model inversion note:
+- first-pass strictness must target invariant compliance, not provider-specific trace imitation
+- 3 serialized GrokFast strict live runs prove single-profile diagnostic stability only; they do not prove model-inverted shadow readiness
+- model diversity evidence is required before a live diagnostic can become a pre-shadow candidate
+- pre-shadow candidate planning requires repeated strict evidence plus provider robustness evidence from at least one alternate capable model/profile, or an explicit `model_diversity_missing` blocker
+- shared manager contracts may define schema and invariant requirements; provider profiles own transport and prompt rendering adaptation
+- if an alternate model regresses because the shared prompt/contract is GrokFast-shaped, classify `contract_overfit_risk` and split shared invariant policy from provider-specific rendering
+
 Slice 14 live harness status:
 - live scripts report `live_test_mode`, `base_url`, `server_ping_status`, `provider_readiness`, `phase_c_gate_status`, and `readiness_claim_scope`
 - default localhost script runs are diagnostic unless `--base-url` is explicitly supplied

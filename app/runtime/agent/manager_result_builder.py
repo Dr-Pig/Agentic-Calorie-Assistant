@@ -152,10 +152,17 @@ def result_from_payload(
     raw_target_attachment = payload.get("target_attachment")
     if raw_target_attachment not in (None, "") and not isinstance(raw_target_attachment, dict):
         raise ManagerFinalPayloadShapeError(field_name="target_attachment", observed_value=raw_target_attachment)
+    semantic_decision = _semantic_decision_from_payload(payload)
+    explicit_final_action = str(payload.get("final_action") or "")
+    semantic_final_action = str(semantic_decision.get("final_action_candidate") or "")
+    final_action = explicit_final_action or semantic_final_action or "no_commit"
+    final_action_source = "payload.final_action" if explicit_final_action else (
+        "semantic_decision.final_action_candidate" if semantic_final_action else "default_no_commit"
+    )
     return IntakeManagerResult(
         intent=str(payload.get("intent") or payload.get("intent_type") or "log_meal"),
         manager_action=str(payload.get("manager_action") or "final"),
-        final_action=str(payload.get("final_action") or "no_commit"),
+        final_action=final_action,
         workflow_effect=str(payload.get("workflow_effect") or "none"),
         target_attachment=dict(payload.get("target_attachment") or {}),
         exactness=str(payload.get("exactness") or "unknown"),
@@ -165,7 +172,7 @@ def result_from_payload(
         answer_contract=dict(answer_contract or {}),
         uncertainty_posture=str(payload.get("uncertainty_posture") or "unknown"),
         evidence_honesty_posture=str(payload.get("evidence_honesty_posture") or "unknown"),
-        semantic_decision=_semantic_decision_from_payload(payload),
+        semantic_decision=semantic_decision,
         intent_type=str(payload.get("intent_type") or "log_meal"),
         response_summary=str(payload.get("response_summary") or answer_contract.get("reply_text") or ""),
         pending_followup=payload.get("pending_followup") if payload.get("pending_followup") is not None else None,
@@ -183,7 +190,8 @@ def result_from_payload(
             "guard_outcome": json_safe(guard_outcome or {}),
             "repair_round_used": repair_round_used,
             "request_failure_family": failure_family,
-            "semantic_decision": _semantic_decision_from_payload(payload),
+            "semantic_decision": semantic_decision,
+            "final_action_source": final_action_source,
         },
     )
 

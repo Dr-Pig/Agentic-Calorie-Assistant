@@ -590,7 +590,14 @@ def _evaluate_today(case: dict[str, Any]) -> dict[str, Any]:
     return _set_verdict(case, verdict="fail", failure_layer="ledger_read")
 
 
-async def _run_cases(db: Any, provider: DeterministicFounderProvider, *, local_date: str) -> list[dict[str, Any]]:
+async def _run_cases(
+    db: Any,
+    provider: DeterministicFounderProvider,
+    *,
+    local_date: str,
+    correction_seed_provider: Any | None = None,
+    correction_seed_mode: str = "case_provider",
+) -> list[dict[str, Any]]:
     cases: list[dict[str, Any]] = []
 
     result, trace = await _run_runtime_turn(
@@ -689,12 +696,20 @@ async def _run_cases(db: Any, provider: DeterministicFounderProvider, *, local_d
     )
 
     correction_user = f"founder-correction-{uuid4().hex[:8]}"
-    await _run_runtime_turn(
+    seed_provider = correction_seed_provider or provider
+    seed_result, seed_trace = await _run_runtime_turn(
         db,
-        provider,
+        seed_provider,
         user_id=correction_user,
         text="我喝了一杯珍珠奶茶",
         local_date=local_date,
+    )
+    seed_case = _case_shell(
+        case_id="correction_seed_pearl_milk_tea",
+        input_text="我喝了一杯珍珠奶茶",
+        expected_behavior="seed one prior committed drink before correction",
+        result=seed_result,
+        trace=seed_trace,
     )
     result, trace = await _run_runtime_turn(
         db,
@@ -704,17 +719,29 @@ async def _run_cases(db: Any, provider: DeterministicFounderProvider, *, local_d
         local_date=local_date,
         seed_onboarding=False,
     )
-    cases.append(
-        _evaluate_correction(
-            _case_shell(
-                case_id="correction_prior_pearl_milk_tea_half_sugar",
-                input_text="剛剛那杯珍奶改成半糖",
-                expected_behavior="attach to exactly one prior drink and mutate only if transition guard and commit boundary allow",
-                result=result,
-                trace=trace,
-            )
+    correction_case = _evaluate_correction(
+        _case_shell(
+            case_id="correction_prior_pearl_milk_tea_half_sugar",
+            input_text="剛剛那杯珍奶改成半糖",
+            expected_behavior="attach to exactly one prior drink and mutate only if transition guard and commit boundary allow",
+            result=result,
+            trace=trace,
         )
     )
+    correction_case["precondition"] = {
+        "seed_case_id": "correction_seed_pearl_milk_tea",
+        "seed_mode": correction_seed_mode,
+        "seed_canonical_commit": bool(
+            _dict(_dict(seed_case.get("mutation")).get("state_delta")).get("canonical_commit")
+        ),
+        "seed_old_version_superseded": bool(
+            _dict(_dict(seed_case.get("mutation")).get("state_delta")).get("old_version_superseded")
+        ),
+        "seed_failure_layer": seed_case.get("failure_layer"),
+        "seed_runtime_error": _dict(_dict(seed_case.get("actual_behavior")).get("runtime_error")),
+        "precondition_role": "target_fixture_for_correction_diagnostic",
+    }
+    cases.append(correction_case)
 
     result, trace = await _run_runtime_turn(
         db,
