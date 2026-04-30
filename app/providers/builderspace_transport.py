@@ -13,6 +13,13 @@ from ..runtime.agent.manager_branch_contract import (
     should_attempt_b1_pass2_structured_output_transport,
     should_attempt_b1_profile_pass1_decision_transport,
 )
+from ..runtime.agent.founder_live_manager_contract import (
+    FOUNDER_LIVE_MANAGER_SCHEMA_NAME,
+    FOUNDER_LIVE_MANAGER_SCHEMA_VERSION,
+    FOUNDER_LIVE_MANAGER_TOOL_NAME,
+    FOUNDER_LIVE_MANAGER_TRANSPORT_POLICY,
+    is_founder_live_manager_contract,
+)
 from ..runtime.contracts.trace import MANAGER_LOOP_STAGE
 
 
@@ -26,6 +33,30 @@ def response_format_request_for_stage(
     schema: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     constraint_snapshot = _constraint_snapshot(constraints)
+    if stage == MANAGER_LOOP_STAGE and is_founder_live_manager_contract(constraints):
+        schema_name = _schema_name(constraints)
+        schema_version = _schema_version(constraints)
+        return (
+            {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": schema_name,
+                    "strict": True,
+                    "schema": schema,
+                },
+            },
+            {
+                "structured_output_transport_attempted": True,
+                "structured_output_transport_mode": "json_schema",
+                "structured_output_transport_accepted": None,
+                "structured_output_transport_fallback": None,
+                "fallback_reason": None,
+                "structured_output_transport_constraint_snapshot": constraint_snapshot,
+                "schema_name": schema_name,
+                "schema_version": schema_version,
+                "forbidden_as_success": ["plain_json_object_without_schema_validation"],
+            },
+        )
     if stage == MANAGER_LOOP_STAGE and (
         should_attempt_b1_pass1_structured_output_transport(constraints)
         or should_attempt_b1_pass2_structured_output_transport(constraints)
@@ -46,6 +77,9 @@ def response_format_request_for_stage(
                 "structured_output_transport_fallback": None,
                 "fallback_reason": None,
                 "structured_output_transport_constraint_snapshot": constraint_snapshot,
+                "schema_name": _phase_b1_schema_name(constraints),
+                "schema_version": None,
+                "forbidden_as_success": [],
             },
         )
     return (
@@ -57,6 +91,9 @@ def response_format_request_for_stage(
             "structured_output_transport_fallback": None,
             "fallback_reason": None,
             "structured_output_transport_constraint_snapshot": constraint_snapshot,
+            "schema_name": None,
+            "schema_version": None,
+            "forbidden_as_success": [],
         },
     )
 
@@ -82,7 +119,35 @@ def decision_transport_request_for_stage(
         "decision_transport_fallback_reason": None,
         "decision_transport_contract_breach": False,
         "decision_transport_constraint_snapshot": constraint_snapshot,
+        "schema_name": _schema_name(constraints) if is_founder_live_manager_contract(constraints) else None,
+        "schema_version": _schema_version(constraints) if is_founder_live_manager_contract(constraints) else None,
     }
+    if stage == MANAGER_LOOP_STAGE and is_founder_live_manager_contract(constraints):
+        schema = manager_loop_schema
+        meta["decision_transport_attempted"] = True
+        meta["decision_transport_mode"] = FOUNDER_LIVE_MANAGER_TRANSPORT_POLICY
+        return (
+            {
+                "mode": FOUNDER_LIVE_MANAGER_TRANSPORT_POLICY,
+                "tool_name": FOUNDER_LIVE_MANAGER_TOOL_NAME,
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": FOUNDER_LIVE_MANAGER_TOOL_NAME,
+                            "description": "Return the manager structured decision payload.",
+                            "parameters": schema,
+                            "strict": True,
+                        },
+                    }
+                ],
+                "tool_choice": {
+                    "type": "function",
+                    "function": {"name": FOUNDER_LIVE_MANAGER_TOOL_NAME},
+                },
+            },
+            meta,
+        )
     if stage != MANAGER_LOOP_STAGE or not (
         should_attempt_b1_common_commercial_meal_pass1_decision_transport(constraints)
         or should_attempt_b1_profile_pass1_decision_transport(constraints)
@@ -94,6 +159,7 @@ def decision_transport_request_for_stage(
     return (
         {
             "mode": "tool_call_decision_transport",
+            "tool_name": DECISION_TRANSPORT_TOOL_NAME,
             "tools": [
                 {
                     "type": "function",
@@ -214,4 +280,19 @@ def _constraint_snapshot(constraints: dict[str, Any] | None) -> dict[str, str]:
         "phase_b1_provider_profile_transport_mode": str(
             (constraints or {}).get("phase_b1_provider_profile_transport_mode") or ""
         ),
+        "manager_contract_profile_id": str((constraints or {}).get("manager_contract_profile_id") or ""),
+        "manager_contract_provider_profile_id": str(
+            (constraints or {}).get("manager_contract_provider_profile_id") or ""
+        ),
+        "manager_contract_transport_policy": str((constraints or {}).get("manager_contract_transport_policy") or ""),
+        "manager_contract_schema_name": str((constraints or {}).get("manager_contract_schema_name") or ""),
+        "manager_contract_schema_version": str((constraints or {}).get("manager_contract_schema_version") or ""),
     }
+
+
+def _schema_name(constraints: dict[str, Any] | None) -> str:
+    return str((constraints or {}).get("manager_contract_schema_name") or FOUNDER_LIVE_MANAGER_SCHEMA_NAME)
+
+
+def _schema_version(constraints: dict[str, Any] | None) -> str:
+    return str((constraints or {}).get("manager_contract_schema_version") or FOUNDER_LIVE_MANAGER_SCHEMA_VERSION)
