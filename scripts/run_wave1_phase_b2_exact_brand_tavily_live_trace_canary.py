@@ -18,6 +18,12 @@ from app.shared.contracts.readiness_claim import build_readiness_claim
 
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
 DEFAULT_CASE_IDS = ("starbucks_latte_positive", "starbucks_latte_sibling_negative")
+DECISION_PACK_OPTIONS = [
+    "no_live_search_seam",
+    "trace_only_canary_continues",
+    "narrow_exact_brand_web_seam",
+    "defer_web_and_continue_B2_local",
+]
 
 _CASES: dict[str, dict[str, str]] = {
     "starbucks_latte_positive": {
@@ -39,10 +45,13 @@ def build_missing_token_report(*, case_ids: tuple[str, ...]) -> dict[str, Any]:
         "created_at": _utc_stamp(),
         "provider_mode": "not_invoked",
         "live_invoked": False,
-        "failure_family": "missing_tavily_api_key",
+        "failure_family": "environment_or_provider_blocker",
+        "failure_detail": "missing_tavily_api_key",
         "readiness_claimed": False,
         "readiness_claim": _build_tavily_readiness_claim(live_invoked=False),
         "trace_only": True,
+        "runtime_web_activation_recommended": False,
+        "decision_pack_options": DECISION_PACK_OPTIONS,
         "case_ids": list(case_ids),
         "cases": [],
     }
@@ -71,6 +80,7 @@ async def run_tavily_live_trace_canary(
             allow_search=True,
             exact_db_hit_present=False,
         )
+        case_result = _classify_trace(trace=_json_safe(outcome.trace))
         cases.append(
             {
                 "case_id": case_id,
@@ -79,6 +89,9 @@ async def run_tavily_live_trace_canary(
                 "web_query": case["web_query"],
                 "trace": _json_safe(outcome.trace),
                 "product_decision_required": _product_decision_required(outcome.trace),
+                "verdict_category": case_result["verdict_category"],
+                "failure_family": case_result["failure_family"],
+                "runtime_web_activation_recommended": False,
             }
         )
 
@@ -90,6 +103,8 @@ async def run_tavily_live_trace_canary(
         "readiness_claimed": False,
         "readiness_claim": _build_tavily_readiness_claim(live_invoked=True),
         "trace_only": True,
+        "runtime_web_activation_recommended": False,
+        "decision_pack_options": DECISION_PACK_OPTIONS,
         "case_ids": list(case_ids),
         "cases": cases,
     }
@@ -126,6 +141,32 @@ def _product_decision_required(trace: dict[str, Any]) -> bool:
     return False
 
 
+def _classify_trace(*, trace: dict[str, Any]) -> dict[str, str | None]:
+    failure_reason = str(trace.get("failure_reason") or "").strip()
+    if trace.get("rejected_web_candidates_used_as_evidence") is True:
+        return {
+            "verdict_category": "trace_canary_blocker",
+            "failure_family": "synthesis_contract_failure",
+        }
+    if not failure_reason:
+        return {
+            "verdict_category": "diagnostic_observation",
+            "failure_family": None,
+        }
+    if failure_reason.startswith(("search_error:", "extract_error:")):
+        family = "provider_runtime_error"
+    elif failure_reason in {"selected_extract_policy_blocked", "selected_search_packet_missing"}:
+        family = "candidate_insufficient"
+    elif failure_reason == "no_accepted_web_extract_packet":
+        family = "extract_mismatch"
+    else:
+        family = "candidate_insufficient"
+    return {
+        "verdict_category": "trace_canary_blocker",
+        "failure_family": family,
+    }
+
+
 def _build_tavily_readiness_claim(*, live_invoked: bool) -> dict[str, Any]:
     return build_readiness_claim(
         claim_scope="live_diagnostic" if live_invoked else "unit_contract",
@@ -144,7 +185,7 @@ def _build_tavily_readiness_claim(*, live_invoked: bool) -> dict[str, Any]:
             "trace_only": True,
             "legacy_oracle_used": False,
         },
-        allowed_next_stage="shadow" if live_invoked else None,
+        allowed_next_stage="live_search_seam_decision_pack" if live_invoked else None,
         forbidden_claims=[
             "product_ready",
             "user_facing_ready",

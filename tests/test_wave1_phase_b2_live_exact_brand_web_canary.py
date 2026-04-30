@@ -91,6 +91,18 @@ async def test_live_exact_brand_web_canary_returns_lane_result_when_extract_pack
     assert outcome.trace["packet_consumption_trace"]["accepted_packets"][0]["accepted_usage"] == "exact"
     assert outcome.trace["packet_consumption_trace"]["rejected_candidates"] == []
     assert outcome.trace["synthesis_evidence_refs"] == [outcome.trace["accepted_extract_packet_id"]]
+    assert outcome.trace["truth_boundary"] == {
+        "trace_only": True,
+        "web_candidate_truth_authority": False,
+        "accepted_extract_packet_truth_authority": False,
+        "requires_packetizer_hard_recheck_consumption": True,
+        "requires_synthesis_verifier": True,
+        "runtime_web_activation_recommended": False,
+    }
+    accepted_packet_ids = {
+        packet["packet_id"] for packet in outcome.trace["packet_consumption_trace"]["accepted_packets"]
+    }
+    assert set(outcome.trace["synthesis_evidence_refs"]).issubset(accepted_packet_ids)
     assert outcome.trace["search_attempt_count"] == 1
     assert outcome.trace["extract_attempt_count"] == 1
     assert outcome.result.manager_pass_2["item_results"][0]["exactness_posture"] == "exact"
