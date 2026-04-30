@@ -247,6 +247,8 @@ def test_valid_phase_b2_evidence_synthesis_fixture_is_ready_with_manager_semanti
     assert audit["passed"] is True
     assert audit["chain_complete"] is True
     assert audit["required_chain_nodes"] == [
+        "manager_semantic_fixture",
+        "retrieval_intent_source",
         "source_selection",
         "candidate_packets",
         "exact_hard_recheck",
@@ -302,6 +304,30 @@ def test_official_b2_producer_does_not_use_raw_text_retrieval_intent(monkeypatch
         set(case["packet_consumption"]["consumed_packet_ids"]).issubset({packet["packet_id"] for packet in case["packets"]})
         for case in report["cases"]
     )
+
+
+def test_missing_manager_semantic_fixture_blocks_handoff_audit(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        _case_by_id(data, "B2-001").pop("manager_semantic_decision")
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "artifact_completeness_audit_failed" for item in report["blockers"])
+    assert {"case_id": "B2-001", "node": "manager_semantic_fixture"} in report["artifact_completeness_audit"][
+        "missing_chain_nodes"
+    ]
+
+
+def test_raw_text_retrieval_intent_source_blocks_handoff_audit(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        _case_by_id(data, "B2-001")["retrieval_intent_source"] = "raw_text"
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "artifact_completeness_audit_failed" for item in report["blockers"])
+    assert {"case_id": "B2-001", "node": "retrieval_intent_source"} in report["artifact_completeness_audit"][
+        "missing_chain_nodes"
+    ]
 
 
 def test_raw_text_retrieval_intent_builder_is_not_official_b2_readiness_truth() -> None:
