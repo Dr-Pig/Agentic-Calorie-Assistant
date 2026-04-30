@@ -143,8 +143,11 @@
     "budget": "active_wave1_implementation",
     "intake": "active_wave1_implementation",
     "knowledge": "thin_future_skeleton",
+    "memory": "offline_sidecar_scaffold",
     "nutrition": "active_wave1_implementation",
     "providers": "active_wave1_implementation",
+    "recommendation": "offline_sidecar_scaffold",
+    "rescue": "offline_sidecar_scaffold",
     "runtime": "active_wave1_implementation",
     "shared": "active_wave1_implementation"
   },

@@ -12,6 +12,9 @@ forbidden_modules =
     app.nutrition
     app.budget
     app.body
+    app.memory
+    app.recommendation
+    app.rescue
     app.archive
 
 [importlinter:contract:runtime-shared-business-independence]
@@ -24,7 +27,22 @@ forbidden_modules =
     app.intake
     app.budget
     app.body
+    app.memory
+    app.recommendation
+    app.rescue
     app.archive
+
+[importlinter:contract:later-wave-sidecars-stay-out-of-runtime-platform]
+name = Runtime, shared, and providers cannot import offline sidecar packages before activation
+type = forbidden
+source_modules =
+    app.runtime
+    app.shared
+    app.providers
+forbidden_modules =
+    app.memory
+    app.recommendation
+    app.rescue
 
 [importlinter:contract:active-mainline-cannot-import-archive]
 name = Active mainline packages must not import archive app families
@@ -37,6 +55,9 @@ source_modules =
     app.nutrition
     app.budget
     app.body
+    app.memory
+    app.recommendation
+    app.rescue
 forbidden_modules =
     app.archive
 
@@ -48,3 +69,6 @@ modules =
     app.nutrition
     app.budget
     app.body
+    app.memory
+    app.recommendation
+    app.rescue

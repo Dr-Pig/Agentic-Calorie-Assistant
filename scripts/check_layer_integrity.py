@@ -9,6 +9,15 @@ import sys
 REPO_ROOT = Path(__file__).resolve().parents[1]
 APP_ROOT = REPO_ROOT / "app"
 ARCHIVE_IMPORT_PREFIX = "app." + "archive"
+ACTIVE_DOMAIN_PREFIXES = (
+    "app.intake",
+    "app.nutrition",
+    "app.budget",
+    "app.body",
+    "app.memory",
+    "app.recommendation",
+    "app.rescue",
+)
 
 
 @dataclass(frozen=True)
@@ -23,19 +32,27 @@ class Rule:
 RULES: tuple[Rule, ...] = (
     Rule(
         path_prefix="app/runtime/",
-        forbidden_prefixes=("app.intake.domain", "app.nutrition.domain", "app.budget.domain", ARCHIVE_IMPORT_PREFIX),
+        forbidden_prefixes=(
+            "app.intake.domain",
+            "app.nutrition.domain",
+            "app.budget.domain",
+            "app.memory",
+            "app.recommendation",
+            "app.rescue",
+            ARCHIVE_IMPORT_PREFIX,
+        ),
         label="runtime-boundary",
         severity="error",
     ),
     Rule(
         path_prefix="app/shared/",
-        forbidden_prefixes=("app.intake", "app.nutrition", "app.budget", "app.body", ARCHIVE_IMPORT_PREFIX),
+        forbidden_prefixes=(*ACTIVE_DOMAIN_PREFIXES, ARCHIVE_IMPORT_PREFIX),
         label="shared-neutrality",
         severity="error",
     ),
     Rule(
         path_prefix="app/providers/",
-        forbidden_prefixes=("app.intake", "app.budget", "app.body", ARCHIVE_IMPORT_PREFIX),
+        forbidden_prefixes=(*ACTIVE_DOMAIN_PREFIXES, ARCHIVE_IMPORT_PREFIX),
         label="provider-domain-ownership",
         severity="error",
     ),
@@ -61,6 +78,24 @@ RULES: tuple[Rule, ...] = (
         path_prefix="app/nutrition/",
         forbidden_prefixes=(ARCHIVE_IMPORT_PREFIX,),
         label="nutrition-mainline-archive-separation",
+        severity="error",
+    ),
+    Rule(
+        path_prefix="app/memory/",
+        forbidden_prefixes=(ARCHIVE_IMPORT_PREFIX,),
+        label="memory-sidecar-archive-separation",
+        severity="error",
+    ),
+    Rule(
+        path_prefix="app/recommendation/",
+        forbidden_prefixes=(ARCHIVE_IMPORT_PREFIX,),
+        label="recommendation-sidecar-archive-separation",
+        severity="error",
+    ),
+    Rule(
+        path_prefix="app/rescue/",
+        forbidden_prefixes=(ARCHIVE_IMPORT_PREFIX,),
+        label="rescue-sidecar-archive-separation",
         severity="error",
     ),
     Rule(
