@@ -155,12 +155,39 @@ def nutrition_tool_output(
     }
 
 
-def apply_final_action_to_payload(*, payload: Any | None, raw_user_input: str, final_action: str) -> None:
+def apply_final_action_to_payload(
+    *,
+    payload: Any | None,
+    raw_user_input: str,
+    final_action: str,
+    manager_answer_contract: dict[str, Any] | None = None,
+    manager_semantic_decision: dict[str, Any] | None = None,
+) -> None:
     if payload is None:
         return
     trace_contract = payload_trace_contract(payload)
     trace_contract["manager_final_action"] = str(final_action or "")
     trace_contract["manager_final_action_role"] = "trace_only_no_semantic_rewrite"
+    existing_followup = str(getattr(payload, "followup_question", None) or "").strip()
+    answer_contract = dict(manager_answer_contract or {})
+    semantic_decision = dict(manager_semantic_decision or {})
+    manager_followup = str(
+        answer_contract.get("followup_question")
+        or semantic_decision.get("followup_question")
+        or ""
+    ).strip()
+    if manager_followup and not existing_followup:
+        payload.followup_question = manager_followup
+        payload.follow_up_needed = True
+        trace_contract["manager_followup_projection"] = {
+            "source": (
+                "manager_answer_contract"
+                if answer_contract.get("followup_question")
+                else "manager_semantic_decision"
+            ),
+            "role": "manager_owned_renderer_projection",
+            "deterministic_role": "projection_only_no_followup_creation",
+        }
     payload.trace_contract = trace_contract
 
 

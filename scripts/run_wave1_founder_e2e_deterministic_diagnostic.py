@@ -441,6 +441,7 @@ def _case_shell(
         "boundary_projection": _dict(phase_a.get("boundary_projection")),
         "persistence_result_observable": bool(_dict(result.get("bundle2_manager")).get("persistence_result")),
     }
+    manager_rounds = _list(_dict(result.get("bundle2_manager")).get("manager_rounds"))
     return {
         "case_id": case_id,
         "input": input_text,
@@ -455,6 +456,7 @@ def _case_shell(
             "evidence_summary": evidence,
             "state_delta": state_delta,
             "hard_fail_conditions": list(result.get("hard_fail_conditions") or []),
+            "manager_rounds": manager_rounds,
         },
         "verdict": "fail",
         "failure_layer": "test_harness_gap",
