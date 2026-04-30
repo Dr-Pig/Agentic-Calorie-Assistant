@@ -246,6 +246,9 @@ trusted_source_manifest:
       source_quality_label: trusted_database
       approved: boolean
       scope: string
+      evidence_authority: local_app_owned_store
+      semantic_authority: none
+      runtime_web_activation: false
 ```
 
 `trusted_database` is not a generic label for good-looking third-party pages. A packet with `source_quality_label=trusted_database` must either resolve `source_id` to an approved manifest entry that is also present in the policy allowlist, or carry explicit artifact-level justification. Otherwise it must remain `third_party`.
@@ -262,6 +265,9 @@ LLM prior is last resort only. It cannot support exact claims, strong evidence c
 
 ```yaml
 minimal_db_seed_manifest:
+  store_backing: local_app_owned_test_aligned_store
+  semantic_authority: none
+  provenance_note: seeds exercise local lookup / packetizer paths, not semantic ownership
   seeds:
     - food_name: string
       seed_type: generic | exact
@@ -275,6 +281,8 @@ minimal_db_seed_manifest:
 ```
 
 The default generic seed set is `茶葉蛋`, `珍珠奶茶`, `便當`, `豆干`, `海帶`, and `貢丸`. Generic seeds may include `kcal_range`, `likely_kcal`, and optional `macro_candidate`; they must not contain brand exact truth. Real exact DB seeds remain empty in this slice. Synthetic exact-positive packets are allowed only when marked `fixture_only=true`.
+
+The B-2 deterministic producer may use a synthetic manager structured fixture as semantic input, but local evidence provenance must remain separate: `trusted_source_manifest` and `minimal_db_seed_manifest` describe app-owned local lookup / packetizer evidence stores, not a fake Manager, not live DB readiness, and not runtime web activation.
 
 ```yaml
 runtime_trace_parity:

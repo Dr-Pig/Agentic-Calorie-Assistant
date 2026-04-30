@@ -853,7 +853,10 @@ def _build_phase_b2_synthetic_smoke_report_legacy(
                     "source_id": "taiwan_food_trusted_reference",
                     "source_quality_label": "trusted_database",
                     "approved": True,
-                    "scope": "B-2 synthetic trusted database fixture",
+                    "scope": "B-2 local app-owned fixture/store evidence",
+                    "evidence_authority": "local_app_owned_store",
+                    "semantic_authority": "none",
+                    "runtime_web_activation": False,
                 }
             ]
         },
@@ -862,6 +865,9 @@ def _build_phase_b2_synthetic_smoke_report_legacy(
             "approved": True,
         },
         "minimal_db_seed_manifest": {
+            "store_backing": "local_app_owned_test_aligned_store",
+            "semantic_authority": "none",
+            "provenance_note": "Seeds exercise app-owned local lookup and packetizer paths; manager semantics come from the synthetic manager structured fixture.",
             "seeds": [
                 {
                     "food_name": "茶葉蛋",
@@ -1106,7 +1112,10 @@ def build_phase_b2_synthetic_smoke_report(
                     "source_id": "taiwan_food_trusted_reference",
                     "source_quality_label": "trusted_database",
                     "approved": True,
-                    "scope": "B-2 synthetic trusted database fixture",
+                    "scope": "B-2 local app-owned fixture/store evidence",
+                    "evidence_authority": "local_app_owned_store",
+                    "semantic_authority": "none",
+                    "runtime_web_activation": False,
                 }
             ]
         },
@@ -1115,6 +1124,9 @@ def build_phase_b2_synthetic_smoke_report(
             "approved": True,
         },
         "minimal_db_seed_manifest": {
+            "store_backing": "local_app_owned_test_aligned_store",
+            "semantic_authority": "none",
+            "provenance_note": "Seeds exercise app-owned local lookup and packetizer paths; manager semantics come from the synthetic manager structured fixture.",
             "seeds": [
                 {
                     "food_name": "茶葉蛋",
