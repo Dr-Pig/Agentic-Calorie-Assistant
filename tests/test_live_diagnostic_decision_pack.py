@@ -40,7 +40,7 @@ def _case_by_id(report: dict[str, object], case_id: str) -> dict[str, object]:
 
 def _item_result(
     *,
-    packet_id: str = "pkt_generic_anchor_boba_tea",
+    packet_id: str = "pkt_generic_anchor_custom_drink_boba_milk_tea",
     exactness_posture: str = "estimated",
     likely_kcal: int | None = 420,
 ) -> dict[str, object]:
@@ -50,7 +50,15 @@ def _item_result(
         "likely_kcal": likely_kcal,
         "kcal_range": [360, 480] if likely_kcal is not None else None,
         "uncertainty_reason": "fake provider contract output",
-        "evidence_used": [{"packet_id": packet_id, "usage": "anchor"}],
+        "evidence_used": [
+            {
+                "packet_id": packet_id,
+                "source_type": "generic_anchor",
+                "source_quality_label": "synthetic_test_packet",
+                "usage": "anchor",
+                "reason": "test packet reference",
+            }
+        ],
         "suggested_followup_question": "補充份量可以提高精度。",
     }
 
@@ -243,6 +251,63 @@ def test_b2_live_contract_harness_blocks_rejected_packet_used_as_evidence() -> N
     assert case["rejected_packet_evidence_refs"] == [rejected_packet_id]
 
 
+def test_b2_live_contract_harness_allows_no_accepted_packet_insufficiency_output() -> None:
+    phase_b2_report = _phase_b2_report()
+    rejected_packet_id = _case_by_id(phase_b2_report, "B2-009")["packets"][0]["packet_id"]
+
+    report = build_b2_live_llm_diagnostic_contract_report(
+        phase_b2_report=phase_b2_report,
+        provider_outputs_by_case_id={
+            "B2-009": {
+                "insufficiency_reason": "no_accepted_packet_after_hard_recheck",
+                "uncertainty_reason": "the only candidate was rejected as a sibling variant",
+                "followup_question": "請確認具體品項、尺寸或份量。",
+                "rejected_candidate_refs": [
+                    {
+                        "packet_id": rejected_packet_id,
+                        "reason": "sibling_variant_risk_present",
+                    }
+                ],
+            }
+        },
+        selected_case_ids=("B2-009",),
+    )
+
+    case = report["case_results"][0]
+    assert report["verdict_category"] == VERDICT_DIAGNOSTIC_OBSERVATION
+    assert case["contract_type"] == "no_accepted_packet_insufficiency"
+    assert case["blockers"] == []
+    assert case["item_result_count"] == 0
+    assert case["evidence_refs"] == []
+    assert case["rejected_packet_evidence_refs"] == []
+    assert case["rejected_candidate_refs"] == [rejected_packet_id]
+
+
+def test_b2_live_contract_harness_blocks_no_accepted_packet_estimate_without_evidence() -> None:
+    report = build_b2_live_llm_diagnostic_contract_report(
+        phase_b2_report=_phase_b2_report(),
+        provider_outputs_by_case_id={"B2-009": {"likely_kcal": 450, "insufficiency_reason": "none"}},
+        selected_case_ids=("B2-009",),
+    )
+
+    case = report["case_results"][0]
+    assert report["verdict_category"] == VERDICT_READINESS_BLOCKER
+    assert case["failure_family"] == "b2_live_no_accepted_packet_contract_violation"
+    assert "no_accepted_packet_estimate_present" in case["blockers"]
+
+
+def test_b2_live_contract_harness_blocks_unknown_packet_used_as_evidence() -> None:
+    report = build_b2_live_llm_diagnostic_contract_report(
+        phase_b2_report=_phase_b2_report(),
+        provider_outputs_by_case_id={"B2-002": _provider_output(_item_result(packet_id="pkt_unknown_live_ref"))},
+    )
+
+    case = next(item for item in report["case_results"] if item["case_id"] == "B2-002")
+    assert report["verdict_category"] == VERDICT_READINESS_BLOCKER
+    assert "unknown_packet_used_as_evidence" in case["blockers"]
+    assert case["unknown_packet_evidence_refs"] == ["pkt_unknown_live_ref"]
+
+
 def test_b2_live_contract_harness_blocks_exactness_above_packet_permission() -> None:
     phase_b2_report = _phase_b2_report()
     generic_packet_id = _case_by_id(phase_b2_report, "B2-001")["packets"][0]["packet_id"]
@@ -258,6 +323,61 @@ def test_b2_live_contract_harness_blocks_exactness_above_packet_permission() -> 
     assert report["verdict_category"] == VERDICT_READINESS_BLOCKER
     assert "generic_anchor_returned_exact" in case["blockers"]
     assert "exactness_exceeds_packet_permission" in case["blockers"]
+
+
+def test_b2_live_contract_harness_rejects_string_evidence_refs_as_shape_invalid() -> None:
+    phase_b2_report = _phase_b2_report()
+    exact_packet_id = _case_by_id(phase_b2_report, "B2-007")["packets"][0]["packet_id"]
+    item = _item_result(packet_id=exact_packet_id, exactness_posture="exact", likely_kcal=1350)
+    item["kcal_range"] = [1350, 1350]
+    item["evidence_used"] = [exact_packet_id]
+
+    report = build_b2_live_llm_diagnostic_contract_report(
+        phase_b2_report=phase_b2_report,
+        provider_outputs_by_case_id={"B2-007": _provider_output(item)},
+    )
+
+    case = next(item for item in report["case_results"] if item["case_id"] == "B2-007")
+    assert report["verdict_category"] == VERDICT_READINESS_BLOCKER
+    assert "evidence_ref_shape_invalid" in case["blockers"]
+    assert "exactness_exceeds_packet_permission" not in case["blockers"]
+    assert case["invalid_evidence_ref_shapes"] == [
+        {
+            "item_index": 0,
+            "evidence_index": 0,
+            "reason": "not_object",
+            "string_evidence_ref_id": exact_packet_id,
+        }
+    ]
+    assert case["string_evidence_ref_ids"] == [exact_packet_id]
+
+
+def test_b2_live_contract_harness_allows_exact_item_with_packet_ref_object() -> None:
+    phase_b2_report = _phase_b2_report()
+    exact_packet = _case_by_id(phase_b2_report, "B2-007")["packets"][0]
+    item = _item_result(packet_id=exact_packet["packet_id"], exactness_posture="exact", likely_kcal=1350)
+    item["kcal_range"] = [1350, 1350]
+    item["evidence_used"] = [
+        {
+            "packet_id": exact_packet["packet_id"],
+            "source_type": exact_packet["source_type"],
+            "source_quality_label": exact_packet["source_quality_label"],
+            "usage": "exact",
+            "reason": "exact DB packet supports exact kcal",
+        }
+    ]
+
+    report = build_b2_live_llm_diagnostic_contract_report(
+        phase_b2_report=phase_b2_report,
+        provider_outputs_by_case_id={"B2-007": _provider_output(item)},
+        selected_case_ids=("B2-007",),
+    )
+
+    case = report["case_results"][0]
+    assert report["verdict_category"] == VERDICT_DIAGNOSTIC_OBSERVATION
+    assert case["blockers"] == []
+    assert case["evidence_refs"] == [exact_packet["packet_id"]]
+    assert case["invalid_evidence_ref_shapes"] == []
 
 
 def test_b2_live_contract_harness_marks_unknown_composition_estimate_as_product_decision_required() -> None:
