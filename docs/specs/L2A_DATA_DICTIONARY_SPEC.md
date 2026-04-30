@@ -56,6 +56,8 @@
 
 不是 canonical enum，不得反向寫回 canonical object。
 
+Food knowledge mention-sense labels are evidence metadata, not canonical `MealItem` enum values. They must not be written into `item_kind`, `item_role`, `cuisine_family`, or `preference_tags` unless explicitly mapped through existing L2A values.
+
 ---
 
 ## 3. Global Primitive Conventions
@@ -520,7 +522,13 @@ rules：
 - `open`
 - `accepted`
 - `rejected`
+- `dismissed`
 - `expired`
+
+語意：
+
+- `rejected` = 使用者明確拒絕此 proposal 或其核心方案語意。
+- `dismissed` = 使用者先不要當前 proposal instance；它不是 permanent opt-out，不是 snooze，也不得被寫成長期偏好或 suppression truth。
 
 ### 9.5 `option_type`
 

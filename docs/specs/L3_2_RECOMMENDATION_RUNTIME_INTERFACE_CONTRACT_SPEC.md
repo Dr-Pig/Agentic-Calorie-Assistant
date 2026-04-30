@@ -752,6 +752,44 @@ recommendation proactive 必須受：
 
 仍不建立 recommendation intent state。
 
+### 14.4 proactive recommendation quality
+
+Proactive recommendation uses adaptive intensity instead of a fixed send / no-send policy.
+
+Formal rule:
+
+- `high_quality_context` may send one primary recommendation plus one backup
+- `medium_quality_context` should send only a low-friction offer
+- `low_quality_context` should skip silently
+
+Hard gates:
+
+- calorie target / budget fit must pass
+- confirmed negative preferences must not be violated
+- the candidate must be realistically executable as recommended
+- quiet hours, cooldown, suppression, and recent-send caps must pass
+
+Quality signals:
+
+- availability or likely availability
+- frequent choice / golden order
+- meal-time pattern match
+- budget fit
+- evidence quality
+- interaction tolerance
+
+Evidence rule:
+
+- proactive recommendations may use exact or narrow anchored item evidence
+- generic category-only suggestions are not proactive recommendations
+- if no concrete candidate can pass the calorie and evidence gates, the system should not proactively recommend
+
+Live enrichment rule:
+
+- proactive recommendation should use prepared or cheap-to-verify candidates by default
+- Google Places, web search, menu lookup, blog evidence, or photo/menu enrichment should be user-engaged by default
+- cache-backed enrichment may be introduced later as a separate capability
+
 ---
 
 ## 15. Important Types / Interfaces

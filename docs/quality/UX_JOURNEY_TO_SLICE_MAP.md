@@ -534,7 +534,7 @@
 
 3\. 系統提出救援方案（例如「建議分 3 天補回來，每天少吃約 183 kcal」）
 
-4\. 系統提供 quick actions：接受方案 / 更短更積極 / 更長更緩和 / 不要這個方案
+4\. 系統提供 proposal primary actions：接受方案 / 先不要；若想調整強度，使用者可在 chat 說「緩一點」或「短一點」
 
 5\. 使用者點擊「接受這個方案」
 
@@ -552,7 +552,7 @@
 
 - 應包含：超標量、建議天數、每日回收量
 
-- 應提供 quick actions
+- 應提供 proposal primary actions，且不把所有調整選項攤平成同級按鈕
 
 - 接受後應回覆確認，說明接下來幾天的每日目標
 
@@ -570,7 +570,11 @@
 
 - 使用者說「這樣也太硬了吧」：系統應視為抱怨而非拒絕，回覆說明方案，不改變 proposal state
 
-- 使用者說「不要這個方案」：系統應問原因，不自動切換方案
+- 使用者說「不要這個方案」或按「先不要」：系統應 dismiss 當前 proposal instance，不自動切換方案、不永久關閉 rescue、不建立定時 snooze；若使用者只是說「太硬了」，應視為協商而非拒絕
+
+- Dismissed proposal 不應留在 active proposal inbox，但應保留在使用者可見的 history / audit；LINE 不應重推同一個 proposal instance
+
+- History / audit 應顯示簡短摘要，並可展開 explanation；不應直接顯示 raw trace、sidecar diagnostic、或內部推理字彙
 
 
 
@@ -1294,7 +1298,7 @@
 
 2\. 系統在適當時機（非用餐時段）主動發送 rescue 提案
 
-3\. 使用者可接受、調整或忽略
+3\. 使用者可接受、用 chat 協商調整，或先不要
 
 
 
@@ -1303,6 +1307,12 @@
 - Rescue nudge 應是獨立訊息
 
 - 不應在使用者剛記錄完餐點時立即發送（intake reply 與 rescue 分離）
+
+- 使用者按「先不要」後，應只 dismiss 當前 proposal instance；若後續情境重大改變或使用者主動重開討論，系統才可生成新的 proposal
+
+- Dismissed proposal 應離開 active inbox，但仍可在 history / audit 中被使用者看到
+
+- History / audit 應提供 concise summary + expandable explanation，不直接暴露 raw trace 或 sidecar diagnostic vocabulary
 
 - 使用者忽略後，系統不應在同一天重複發送
 

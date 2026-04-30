@@ -84,6 +84,8 @@
 |---|---|---|---|
 | `docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md` | Active foundation | Whole-product capability map | Reference, not entrypoint |
 | `docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md` | Active L9 governance matrix | UI-visible facts/actions mapped to canonical truth owners and read models | Required before UI same-truth, renderer, smart-chip, proposal inbox, or proactive UI work |
+| `docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md` | Active product-semantics matrix | UX moments mapped to system state categories, owner boundaries, guardrails, and open gaps | Required before implementing later-wave recommendation, memory, proactive, rescue, proposal, smart-chip, or interaction-preference behavior |
+| `docs/specs/CAPABILITY_TO_MODULE_OWNERSHIP_MAP.md` | Active placement governance map | Product capability families mapped to owner modules, forbidden placement, and activation caps | Required before adding new `app/*` packages, later-wave sidecars, or import/ownership guard changes |
 | `docs/quality/V2_FAILURE_TAXONOMY.md` | Active foundation | Failure family vocabulary | Required for fixes |
 | `docs/quality/V2_GRADING_RUBRIC.md` | Active foundation | Pass/fail, soft-pass, quality grading | Required for eval interpretation |
 | `docs/quality/V2_FOUNDATION_DOCS_EXECUTION_PATCH.md` | Active patch addendum | Evidence-path / fake-pass / Tavily patch queue | Required until merged into foundation docs |
@@ -248,3 +250,5 @@ Next recommended action:
 - 2026-04-24: v1 初始版本，建立 V2 文件索引、Wave 1 entrypoint、L0–L6 legacy handling policy
 - 2026-04-24: v1.1 補入已定位 L-series 文件的具體保留 / superseded 判斷
 - 2026-04-30: v1.2 補入 UI canonical truth surface matrix，作為 L9 UI same-truth 的 read-only governance map
+- 2026-04-30: v1.3 補入 UX-to-system capability gap matrix，承載 later-wave UX moment 到 system capability 的產品語意轉譯
+- 2026-04-30: v1.4 補入 capability-to-module ownership map，將產品能力邊界落到 owner module / forbidden placement / activation cap

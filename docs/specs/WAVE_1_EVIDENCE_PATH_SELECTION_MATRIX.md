@@ -16,6 +16,8 @@ It exists to prevent accidental collapse of all nutrition evidence paths into on
 
 This matrix does not change the Wave 1 Phase B-1 runtime contract by itself. It clarifies how evidence path selection should be interpreted across B-1 and B-2.
 
+Evidence path decisions may be implemented through food knowledge metadata and mention/sense resolution defined in `WAVE_1_PHASE_B2_FOOD_KNOWLEDGE_METADATA_SPEC.md`. This matrix owns route policy; the food metadata spec owns how surface food terms map to generic anchors, exact item cards, meal templates, or listed-basket itemization metadata.
+
 ## Core Policy
 
 Mutation intent changes evidence threshold.
