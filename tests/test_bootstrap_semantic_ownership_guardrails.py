@@ -50,6 +50,17 @@ def test_best_practice_steering_uses_available_search_and_requires_evidence() ->
     assert "missing `best_practice_evidence` is a planning failure" in steering
 
 
+def test_bootstrap_records_founder_live_strictness_model_inversion_policy() -> None:
+    bootstrap = _read("docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md")
+    local_memory = _read("docs/agent/EVOMAP_LOCAL_MEMORY.md")
+
+    assert "first-pass strictness must target invariant compliance" in bootstrap
+    assert "not provider-specific trace imitation" in bootstrap
+    assert "single-profile diagnostic stability" in bootstrap
+    assert "model diversity evidence" in bootstrap
+    assert "local-2026-05-01-founder-live-strictness-model-inversion" in local_memory
+
+
 def test_deterministic_semantic_ownership_audit_is_report_only() -> None:
     module = importlib.import_module("scripts.audit_deterministic_semantic_ownership")
     report = module.build_report()

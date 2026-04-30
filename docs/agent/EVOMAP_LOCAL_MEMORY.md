@@ -209,3 +209,52 @@ future_use:
   - do not rewrite artifacts or docs based only on mojibake or ConvertFrom-Json output
 source_of_truth_boundary: AGENTS.md Encoding Evidence Contract
 ```
+
+### local-2026-05-01-live-provider-timeout-is-incomplete-evidence
+
+```yaml
+status: active
+signals:
+  - live_provider_timeout
+  - shell_command_timeout
+  - interrupted_live_diagnostic
+  - provider_runtime_error
+  - evidence_claim_integrity
+summary: >
+  Live provider diagnostics can exceed the shell command budget or hit adapter
+  ReadTimeout even when the product/runtime logic is not the failing layer.
+  Treat provider timeout, shell timeout, and interrupted live runs as incomplete
+  provider-runtime evidence. They must not be counted as strict pass, product
+  readiness, mutation readiness, or product semantic failure.
+future_use:
+  - set both per-request provider timeout and total live-run budget before live evals
+  - classify adapter_http_timeout, outer_provider_timeout, and shell_timeout separately
+  - write partial artifacts with completed case count and timeout layer when possible
+  - retry only the failed provider request or case with bounded backoff, not the whole workflow by default
+  - keep live provider runs serialized and never use timeout recovery to hide repaired or failed cases
+  - require repeated all-strict runs without timeout before preparing shadow/canary candidates
+source_of_truth_boundary: agent-fallback-eval live LLM eval discipline and evidence-claim integrity
+```
+
+### local-2026-05-01-founder-live-strictness-model-inversion
+
+```yaml
+status: active
+signals:
+  - founder_live_strictness
+  - model_inversion
+  - contract_overfit_risk
+  - shadow_candidate_gate
+summary: >
+  Repeated 7/7 strict passes on one low-cost diagnostic model prove only
+  single-profile diagnostic stability. They must not be promoted into
+  model-inverted shadow readiness or production readiness. First-pass strictness
+  should target invariant compliance, not provider-specific trace imitation.
+future_use:
+  - keep shared manager contracts focused on schema and runtime invariants
+  - keep transport mode, prompt rendering, timeout, and model quirks in provider/profile policy
+  - track strict_pass_rate, repaired_pass_rate, fail_rate, and timeout_rate per provider/profile
+  - require alternate capable model/profile evidence before preparing shadow candidates
+  - classify weaker alternate-model results as contract_overfit_risk before tightening shared prompts
+source_of_truth_boundary: Founder live decision pack, offline replay, provider robustness matrix, and activation ladder
+```
