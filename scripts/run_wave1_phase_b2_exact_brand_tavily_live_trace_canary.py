@@ -217,13 +217,13 @@ def _load_local_env(path: Path) -> None:
     try:
         from dotenv import load_dotenv
 
-        load_dotenv(path, override=False)
+        load_dotenv(path, override=False, encoding="utf-8-sig")
         return
     except ModuleNotFoundError:
         pass
     if not path.exists():
         return
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in path.read_text(encoding="utf-8-sig").splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("#") or "=" not in stripped:
             continue

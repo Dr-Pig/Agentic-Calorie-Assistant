@@ -64,6 +64,19 @@ def test_tavily_runner_loads_ignored_local_env_without_overwriting_session_env(
     assert os.environ["TAVILY_API_KEY"] == "session-secret"
 
 
+def test_tavily_runner_loads_windows_utf8_bom_local_env(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    env_path = tmp_path / ".env"
+    env_path.write_text("TAVILY_API_KEY=tvly-test-secret\n", encoding="utf-8-sig")
+    monkeypatch.delenv("TAVILY_API_KEY", raising=False)
+
+    _load_local_env(env_path)
+
+    assert os.environ["TAVILY_API_KEY"] == "tvly-test-secret"
+
+
 @pytest.mark.asyncio
 async def test_runner_writes_live_trace_report_without_secret_or_readiness_claim(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TAVILY_API_KEY", "tvly-test-secret")
