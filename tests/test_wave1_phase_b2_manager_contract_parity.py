@@ -18,14 +18,14 @@ from typing import Any
 
 import pytest
 
-from app.nutrition.application.b2_candidate_packetizer import (
+from app.nutrition.application.evidence_candidate_packetizer import (
     add_hard_recheck_metadata,
     build_candidate_packet,
 )
-from app.nutrition.application.b2_local_synthesis import synthesize_b2_local_manager_pass2
-from app.nutrition.application.b2_packet_consumption import consume_rechecked_packets
-from app.nutrition.application.b2_manager_provider_bridge import (
-    run_b2_manager_pass2_with_provider,
+from app.nutrition.application.local_synthesis import synthesize_local_manager_pass
+from app.nutrition.application.evidence_packet_consumption import consume_rechecked_packets
+from app.nutrition.application.synthesis_provider_bridge import (
+    run_synthesis_manager_with_provider,
 )
 from app.nutrition.application.exact_item_card_lookup import lookup_exact_item_card_candidates
 from app.nutrition.application.packetizer_input_seed import (
@@ -159,14 +159,14 @@ async def _provider_result_from_local_reference(
     clarify_support: Any = None,
     provider_payload: dict[str, object] | None = None,
 ) -> tuple[dict[str, object], dict[str, object]]:
-    local_result = synthesize_b2_local_manager_pass2(
+    local_result = synthesize_local_manager_pass(
         intent,
         consumption,
         clarify_support=clarify_support,
     )
     payload = provider_payload or {"item_results": local_result["item_results"]}
     provider = DeterministicFixturePass2Provider(payload=payload)
-    provider_result = await run_b2_manager_pass2_with_provider(
+    provider_result = await run_synthesis_manager_with_provider(
         provider,
         intent,
         consumption,
@@ -200,7 +200,7 @@ async def test_b2_manager_contract_parity_matches_local_reference(case_factory) 
 @pytest.mark.asyncio
 async def test_b2_manager_contract_parity_fails_on_wrong_exactness_posture() -> None:
     intent, consumption, clarify_support = _generic_anchor_case("\u6211\u5403\u4e86\u8336\u8449\u86cb")
-    local_result = synthesize_b2_local_manager_pass2(intent, consumption, clarify_support=clarify_support)
+    local_result = synthesize_local_manager_pass(intent, consumption, clarify_support=clarify_support)
     bad_payload = {"item_results": [dict(local_result["item_results"][0], exactness_posture="provisional")]}
     _, provider_result = await _provider_result_from_local_reference(
         intent,
@@ -216,7 +216,7 @@ async def test_b2_manager_contract_parity_fails_on_wrong_exactness_posture() -> 
 @pytest.mark.asyncio
 async def test_b2_manager_contract_parity_fails_on_wrong_likely_kcal() -> None:
     intent, consumption, clarify_support = _generic_anchor_case("\u6211\u559d\u4e86\u73cd\u73e0\u5976\u8336")
-    local_result = synthesize_b2_local_manager_pass2(intent, consumption, clarify_support=clarify_support)
+    local_result = synthesize_local_manager_pass(intent, consumption, clarify_support=clarify_support)
     bad_payload = {"item_results": [dict(local_result["item_results"][0], likely_kcal=999)]}
     _, provider_result = await _provider_result_from_local_reference(
         intent,
@@ -232,7 +232,7 @@ async def test_b2_manager_contract_parity_fails_on_wrong_likely_kcal() -> None:
 @pytest.mark.asyncio
 async def test_b2_manager_contract_parity_fails_on_wrong_followup_output() -> None:
     intent, consumption, clarify_support = _clarify_only_case()
-    local_result = synthesize_b2_local_manager_pass2(intent, consumption, clarify_support=clarify_support)
+    local_result = synthesize_local_manager_pass(intent, consumption, clarify_support=clarify_support)
     bad_payload = {
         "item_results": [dict(local_result["item_results"][0], suggested_followup_question="\u4e0d\u6b63\u78ba\u7684\u8ffd\u554f")]
     }
@@ -250,7 +250,7 @@ async def test_b2_manager_contract_parity_fails_on_wrong_followup_output() -> No
 @pytest.mark.asyncio
 async def test_b2_manager_contract_parity_fails_when_forbidden_mutation_field_is_present() -> None:
     intent, consumption, clarify_support = _generic_anchor_case("\u6211\u5403\u4e86\u8336\u8449\u86cb")
-    local_result = synthesize_b2_local_manager_pass2(intent, consumption, clarify_support=clarify_support)
+    local_result = synthesize_local_manager_pass(intent, consumption, clarify_support=clarify_support)
     bad_payload = {
         "item_results": local_result["item_results"],
         "mutation_result": {"ledger_item_ids": ["should-not-run"]},

@@ -12,8 +12,8 @@ def test_founder_live_diagnostic_source_avoids_legacy_and_activation_shortcuts()
     forbidden_markers = (
         "app.runtime.application.phase_a_context",
         "old_" + "c001_" + "draft" + "_first_oracle",
-        "run_v2_" + "bundle1" + "_live_eval",
-        "run_v2_" + "bundle2" + "_live_eval",
+        "run_v2_" + "intake_turn" + "_live_eval",
+        "run_v2_" + "intake_execution" + "_live_eval",
         "docs/" + "archive",
         "allow_search=True",
         "readiness_claimed=True",

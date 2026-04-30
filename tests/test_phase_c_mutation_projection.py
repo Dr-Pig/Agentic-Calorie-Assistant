@@ -107,11 +107,11 @@ def test_phase_c_projection_reports_structured_surface_contradictions_without_fi
     assert "macro_visible_without_commit" in trace["same_truth_read_result"]["consistency_flags"]
 
 
-def test_bundle2_response_exposes_phase_c_trace_in_response_and_trace_artifact(
+def test_intake_execution_response_exposes_phase_c_trace_in_response_and_trace_artifact(
     monkeypatch,
 ) -> None:
     from app.composition.current_budget_answer import RemainingBudgetAnswerContract
-    from app.composition import bundle2_response as module
+    from app.composition import intake_execution_response as module
 
     class _View:
         user_id = 1
@@ -146,11 +146,11 @@ def test_bundle2_response_exposes_phase_c_trace_in_response_and_trace_artifact(
             meal_count=1,
         ),
     )
-    monkeypatch.setattr(module, "render_bundle1_reply", lambda **_: "Logged. milk tea 420 kcal.")
-    monkeypatch.setattr(module, "write_bundle2_request_trace_artifact", lambda **kwargs: captured_trace_kwargs.update(kwargs))
+    monkeypatch.setattr(module, "render_intake_reply", lambda **_: "Logged. milk tea 420 kcal.")
+    monkeypatch.setattr(module, "write_intake_execution_trace_artifact", lambda **kwargs: captured_trace_kwargs.update(kwargs))
     monkeypatch.setattr(module, "build_trace_refs", lambda **_: {"request_id": "req-phase-c"})
 
-    result = module.build_bundle2_response(
+    result = module.build_intake_execution_response(
         None,
         request_id="req-phase-c",
         user_external_id="user-1",
@@ -203,11 +203,11 @@ def test_bundle2_response_exposes_phase_c_trace_in_response_and_trace_artifact(
     assert captured_trace_kwargs["phase_c_trace"] == result["phase_c_trace"]
 
 
-def test_bundle2_response_reports_same_truth_hard_fail_without_rewriting_output(
+def test_intake_execution_response_reports_same_truth_hard_fail_without_rewriting_output(
     monkeypatch,
 ) -> None:
     from app.composition.current_budget_answer import RemainingBudgetAnswerContract
-    from app.composition import bundle2_response as module
+    from app.composition import intake_execution_response as module
 
     class _View:
         user_id = 1
@@ -244,11 +244,11 @@ def test_bundle2_response_reports_same_truth_hard_fail_without_rewriting_output(
             meal_count=1,
         ),
     )
-    monkeypatch.setattr(module, "render_bundle1_reply", lambda **_: "Logged. milk tea 420 kcal.")
-    monkeypatch.setattr(module, "write_bundle2_request_trace_artifact", lambda **kwargs: captured_trace_kwargs.update(kwargs))
+    monkeypatch.setattr(module, "render_intake_reply", lambda **_: "Logged. milk tea 420 kcal.")
+    monkeypatch.setattr(module, "write_intake_execution_trace_artifact", lambda **kwargs: captured_trace_kwargs.update(kwargs))
     monkeypatch.setattr(module, "build_trace_refs", lambda **_: {"request_id": "req-phase-c-hard-fail"})
 
-    result = module.build_bundle2_response(
+    result = module.build_intake_execution_response(
         None,
         request_id="req-phase-c-hard-fail",
         user_external_id="user-1",

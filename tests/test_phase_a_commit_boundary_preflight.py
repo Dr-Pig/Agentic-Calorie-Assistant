@@ -289,7 +289,7 @@ class _Provider:
 
 
 @pytest.mark.asyncio
-async def test_process_bundle2_intake_blocks_commit_boundary_contradiction_before_persistence(
+async def test_process_intake_execution_turn_blocks_commit_boundary_contradiction_before_persistence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.composition import intake_execution_orchestrator as module
@@ -318,11 +318,11 @@ async def test_process_bundle2_intake_blocks_commit_boundary_contradiction_befor
     monkeypatch.setattr(module, "execute_manager_tool_calls", _fake_execute_manager_tool_calls)
     monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
     monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
-    monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
-    monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *args, **kwargs: persisted.append((args, kwargs)))
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", lambda *args, **kwargs: persisted.append((args, kwargs)))
     monkeypatch.setattr(
         module,
-        "build_bundle2_response",
+        "build_intake_execution_response",
         lambda *_, **kwargs: {
             "persistence_result": kwargs["persistence_result"],
             "phase_a_trace": kwargs["phase_a_trace"],
@@ -330,7 +330,7 @@ async def test_process_bundle2_intake_blocks_commit_boundary_contradiction_befor
         },
     )
 
-    result = await module.process_bundle2_intake(
+    result = await module.process_intake_execution_turn(
         None,
         user_external_id="user-1",
         raw_user_input="I ate milk tea meal",

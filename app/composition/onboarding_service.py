@@ -110,7 +110,7 @@ def _resolved_activity_policy(inputs: OnboardingBootstrapInput) -> tuple[float, 
             resolved_multiplier,
             coarse_level,
             {
-                "activity_policy_version": "bundle1_conservative_v1",
+                "activity_policy_version": "intake_turn_conservative_v1",
                 "daily_lifestyle": lifestyle,
                 "weekly_exercise_days_band": weekly_band,
                 "base_multiplier": base_multiplier,

@@ -15,7 +15,7 @@ def resolve_local_date(local_date: str | None) -> str:
     return datetime.now().date().isoformat()
 
 
-def initial_bundle1_state_mutation_summary() -> dict[str, Any]:
+def initial_intake_turn_state_mutation_summary() -> dict[str, Any]:
     return {
         "body_plan_seeded": False,
         "meal_logged": False,
@@ -27,7 +27,7 @@ def initial_bundle1_state_mutation_summary() -> dict[str, Any]:
     }
 
 
-def bundle1_latency_tracking(
+def intake_turn_latency_tracking(
     *,
     manager_decision: Any,
     stage_timings: list[dict[str, Any]],
@@ -45,7 +45,7 @@ def bundle1_latency_tracking(
     }
 
 
-def bundle1_trace_summary(*, request_id: str, manager_decision: Any) -> dict[str, Any]:
+def intake_turn_trace_summary(*, request_id: str, manager_decision: Any) -> dict[str, Any]:
     return {
         "request_id": request_id,
         "manager_intent": manager_decision.intent_type,
@@ -54,7 +54,7 @@ def bundle1_trace_summary(*, request_id: str, manager_decision: Any) -> dict[str
     }
 
 
-def bundle1_manager_decision_payload(manager_decision: Any) -> dict[str, Any]:
+def intake_turn_manager_decision_payload(manager_decision: Any) -> dict[str, Any]:
     return {
         "intent_type": manager_decision.intent_type,
         "workflow_effect": manager_decision.workflow_effect,

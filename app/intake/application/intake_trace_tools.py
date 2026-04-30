@@ -6,7 +6,7 @@ from ...logging import now_iso
 from ...runtime.infrastructure.trace.stage_trace_store import append_stage_trace_event
 from .intake_tool_runtime import conversation_pending_followup, json_safe, normalize_live_payload
 
-_normalize_bundle1_live_payload = normalize_live_payload
+_normalize_intake_live_payload = normalize_live_payload
 
 
 def append_trace_event_tool(

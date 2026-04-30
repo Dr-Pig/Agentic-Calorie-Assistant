@@ -299,7 +299,7 @@ def test_official_b2_producer_does_not_use_raw_text_retrieval_intent(monkeypatch
         case["manager_semantic_decision"]["semantic_authority_source"] == "synthetic_manager_structured_fixture"
         for case in report["cases"]
     )
-    assert all(case["packet_consumption"]["owner"] == "b2_packet_consumption" for case in report["cases"])
+    assert all(case["packet_consumption"]["owner"] == "evidence_packet_consumption" for case in report["cases"])
     assert all(
         set(case["packet_consumption"]["consumed_packet_ids"]).issubset({packet["packet_id"] for packet in case["packets"]})
         for case in report["cases"]
@@ -441,7 +441,7 @@ def test_official_b2_producer_consumes_final_mapping_owner_for_ledger_status() -
     report = build_phase_b2_synthetic_smoke_report(b1_green_handoff_snapshot=_b1_green_handoff_snapshot())
 
     boba = _case_by_id(report, "B2-002")["manager_pass_2"]["item_results"][0]
-    assert boba["final_mapping"]["final_mapping_owner"] == "b2_final_mapping"
+    assert boba["final_mapping"]["final_mapping_owner"] == "nutrition_final_mapping"
     assert boba["final_mapping"]["external_outcome"] == "logged"
     assert boba["final_mapping"]["followup_role"] == "precision_refinement"
     assert boba["ledger_status"] == boba["final_mapping"]["ledger_status"] == "included"
@@ -719,25 +719,25 @@ def test_evidence_used_missing_packet_id_blocks_readiness(tmp_path: Path) -> Non
     assert any(item["code"] == "evidence_used_missing_packet_ref" for item in report["blockers"])
 
 
-def test_missing_b2_final_mapping_blocks_readiness(tmp_path: Path) -> None:
+def test_missing_nutrition_final_mapping_blocks_readiness(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
         _case_by_id(data, "B2-002")["manager_pass_2"]["item_results"][0].pop("final_mapping")
 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
-    assert any(item["code"] == "b2_final_mapping_missing" for item in report["blockers"])
+    assert any(item["code"] == "nutrition_final_mapping_missing" for item in report["blockers"])
 
 
-def test_ledger_status_not_owned_by_b2_final_mapping_blocks_readiness(tmp_path: Path) -> None:
+def test_ledger_status_not_owned_by_nutrition_final_mapping_blocks_readiness(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
         _case_by_id(data, "B2-002")["manager_pass_2"]["item_results"][0]["ledger_status"] = "excluded_pending_info"
 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
-    assert any(item["code"] == "b2_final_mapping_ledger_status_mismatch" for item in report["blockers"])
+    assert any(item["code"] == "nutrition_final_mapping_ledger_status_mismatch" for item in report["blockers"])
 
 
-def test_unsupported_b2_final_mapping_external_outcome_blocks_readiness(tmp_path: Path) -> None:
+def test_unsupported_nutrition_final_mapping_external_outcome_blocks_readiness(tmp_path: Path) -> None:
     def mutate(data: dict[str, object]) -> None:
         _case_by_id(data, "B2-004")["manager_pass_2"]["item_results"][0]["final_mapping"][
             "external_outcome"
@@ -745,7 +745,7 @@ def test_unsupported_b2_final_mapping_external_outcome_blocks_readiness(tmp_path
 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
-    assert any(item["code"] == "b2_final_mapping_external_outcome_invalid" for item in report["blockers"])
+    assert any(item["code"] == "nutrition_final_mapping_external_outcome_invalid" for item in report["blockers"])
 
 
 def test_rejected_sibling_candidate_missing_blocks_readiness(tmp_path: Path) -> None:

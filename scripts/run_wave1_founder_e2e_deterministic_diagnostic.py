@@ -17,7 +17,7 @@ if str(ROOT) not in sys.path:
 
 from app.shared.contracts.readiness_claim import build_readiness_claim
 
-ACTIVE_ENTRYPOINT = "app.composition.intake_turn_orchestrator.execute_bundle1_turn"
+ACTIVE_ENTRYPOINT = "app.composition.intake_turn_orchestrator.execute_intake_turn"
 ARTIFACT_PATH = ROOT / "artifacts" / "wave1_founder_e2e_deterministic_diagnostic.json"
 DEFAULT_DB_PATH = ROOT / "artifacts" / "wave1_founder_e2e_deterministic_diagnostic.sqlite3"
 LOCAL_DATE = "2026-04-30"
@@ -72,7 +72,7 @@ def _configure_database(db_path: Path) -> Any:
 
 def _active_entrypoint() -> Any:
     module = importlib.import_module("app.composition.intake_turn_orchestrator")
-    return getattr(module, "execute_bundle1_turn")
+    return getattr(module, "execute_intake_turn")
 
 
 def _active_entrypoint_verified() -> bool:
@@ -86,8 +86,8 @@ def _legacy_dependency_reason() -> str | None:
         "app.runtime.application." + "phase_a_context",
         "old_" + "c001_" + "draft" + "_first_oracle",
         "C-001 " + "draft" + "-first",
-        "run_v2_" + "bundle1_live_eval",
-        "run_v2_" + "bundle2_live_eval",
+        "run_v2_" + "intake_turn_live_eval",
+        "run_v2_" + "intake_execution_live_eval",
         "run_wave1_" + "phase_b_minimal_tool_loop_smoke",
         "docs/" + "archive",
     )
@@ -130,8 +130,8 @@ class DeterministicFounderProvider:
         self.calls.append({"raw_user_input": raw, "available_tools": sorted(available_tools), "round_index": round_index})
 
         if {"read_body_plan", "read_day_budget"}.intersection(available_tools):
-            return self._bundle1_decision(user_payload), self._trace("bundle1_intent")
-        return self._bundle2_decision(raw=raw, available_tools=available_tools, round_index=round_index), self._trace("bundle2_manager")
+            return self._intake_turn_decision(user_payload), self._trace("intake_entry_intent")
+        return self._intake_execution_decision(raw=raw, available_tools=available_tools, round_index=round_index), self._trace("intake_execution_manager")
 
     def _trace(self, stage: str) -> dict[str, Any]:
         return {
@@ -140,7 +140,7 @@ class DeterministicFounderProvider:
             "live_llm_invoked": False,
         }
 
-    def _bundle1_decision(self, user_payload: dict[str, Any]) -> dict[str, Any]:
+    def _intake_turn_decision(self, user_payload: dict[str, Any]) -> dict[str, Any]:
         raw = str(user_payload.get("raw_user_input") or "")
         if not raw.strip():
             return self._final(intent_type="complete_onboarding", final_action="commit", workflow_effect="commit")
@@ -152,7 +152,7 @@ class DeterministicFounderProvider:
             )
         return self._final(intent_type="log_meal", final_action="commit", workflow_effect="route_to_intake")
 
-    def _bundle2_decision(self, *, raw: str, available_tools: set[str], round_index: int) -> dict[str, Any]:
+    def _intake_execution_decision(self, *, raw: str, available_tools: set[str], round_index: int) -> dict[str, Any]:
         if "滷味" in raw:
             return self._final(
                 intent_type="log_meal",
@@ -400,7 +400,7 @@ def _evidence_summary(trace: dict[str, Any]) -> dict[str, Any]:
 
 
 def _manager_final_action(result: dict[str, Any], trace: dict[str, Any]) -> str | None:
-    final = _dict(_dict(result.get("bundle2_manager")).get("final")).get("final_action")
+    final = _dict(_dict(result.get("intake_execution_manager")).get("final")).get("final_action")
     if final:
         return str(final)
     decision = _dict(trace.get("manager_final_decision"))
@@ -411,9 +411,9 @@ def _manager_final_action(result: dict[str, Any], trace: dict[str, Any]) -> str 
 
 
 def _manager_semantic_decision(result: dict[str, Any], trace: dict[str, Any]) -> dict[str, Any]:
-    bundle2_final = _dict(_dict(result.get("bundle2_manager")).get("final"))
-    if _dict(bundle2_final.get("semantic_decision")):
-        return _dict(bundle2_final.get("semantic_decision"))
+    intake_execution_final = _dict(_dict(result.get("intake_execution_manager")).get("final"))
+    if _dict(intake_execution_final.get("semantic_decision")):
+        return _dict(intake_execution_final.get("semantic_decision"))
     manager_decision = _dict(result.get("manager_decision"))
     if _dict(manager_decision.get("semantic_decision")):
         return _dict(manager_decision.get("semantic_decision"))
@@ -435,11 +435,11 @@ def _case_shell(
     phase_a = _dict(result.get("phase_a_trace")) or _dict(trace.get("phase_a_trace"))
     phase_c = _dict(result.get("phase_c_trace")) or _dict(trace.get("phase_c_trace"))
     final_mapping = {
-        "observable": bool(phase_a.get("boundary_projection") or _dict(result.get("bundle2_manager")).get("final")),
+        "observable": bool(phase_a.get("boundary_projection") or _dict(result.get("intake_execution_manager")).get("final")),
         "manager_final_action": _manager_final_action(result, trace),
         "manager_semantic_decision": _manager_semantic_decision(result, trace),
         "boundary_projection": _dict(phase_a.get("boundary_projection")),
-        "persistence_result_observable": bool(_dict(result.get("bundle2_manager")).get("persistence_result")),
+        "persistence_result_observable": bool(_dict(result.get("intake_execution_manager")).get("persistence_result")),
     }
     return {
         "case_id": case_id,
@@ -467,7 +467,7 @@ def _case_shell(
         "final_mapping": final_mapping,
         "mutation": {
             "state_delta": state_delta,
-            "persistence_result": _json_safe(_dict(result.get("bundle2_manager")).get("persistence_result")),
+            "persistence_result": _json_safe(_dict(result.get("intake_execution_manager")).get("persistence_result")),
         },
         "ledger_read": _dict(result.get("remaining_budget")),
         "same_truth": {

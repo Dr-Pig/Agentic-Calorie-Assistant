@@ -17,7 +17,7 @@ def _capture_writer(monkeypatch, tmp_path: Path) -> dict[str, object]:
     return captured
 
 
-def test_write_bundle1_request_trace_artifact_includes_phase_a_trace(monkeypatch, tmp_path: Path) -> None:
+def test_write_intake_turn_trace_artifact_includes_phase_a_trace(monkeypatch, tmp_path: Path) -> None:
     captured = _capture_writer(monkeypatch, tmp_path)
     phase_a_trace = {
         "current_turn_context": {"user_utterance": "I ate oatmeal"},
@@ -26,8 +26,8 @@ def test_write_bundle1_request_trace_artifact_includes_phase_a_trace(monkeypatch
         "transition_guard_result": {"verdict": "pass"},
     }
 
-    trace_artifacts.write_bundle1_request_trace_artifact(
-        request_id="bundle1-phase-a",
+    trace_artifacts.write_intake_turn_trace_artifact(
+        request_id="intake_turn-phase-a",
         user_external_id="user-1",
         local_date="2026-04-29",
         raw_user_input="I ate oatmeal",
@@ -47,13 +47,13 @@ def test_write_bundle1_request_trace_artifact_includes_phase_a_trace(monkeypatch
         latency_tracking={},
     )
 
-    assert captured["request_id"] == "bundle1-phase-a"
+    assert captured["request_id"] == "intake_turn-phase-a"
     payload = captured["payload"]
     assert isinstance(payload, dict)
     assert payload["phase_a_trace"] == phase_a_trace
 
 
-def test_write_bundle2_request_trace_artifact_includes_phase_a_trace(monkeypatch, tmp_path: Path) -> None:
+def test_write_intake_execution_trace_artifact_includes_phase_a_trace(monkeypatch, tmp_path: Path) -> None:
     captured = _capture_writer(monkeypatch, tmp_path)
     phase_a_trace = {
         "current_turn_context": {"user_utterance": "half bowl of rice"},
@@ -62,8 +62,8 @@ def test_write_bundle2_request_trace_artifact_includes_phase_a_trace(monkeypatch
         "transition_guard_result": {"verdict": "pass"},
     }
 
-    trace_artifacts.write_bundle2_request_trace_artifact(
-        request_id="bundle2-phase-a",
+    trace_artifacts.write_intake_execution_trace_artifact(
+        request_id="intake_execution-phase-a",
         user_external_id="user-2",
         local_date="2026-04-29",
         raw_user_input="half bowl of rice",
@@ -82,21 +82,21 @@ def test_write_bundle2_request_trace_artifact_includes_phase_a_trace(monkeypatch
         latency_tracking={},
     )
 
-    assert captured["request_id"] == "bundle2-phase-a"
+    assert captured["request_id"] == "intake_execution-phase-a"
     payload = captured["payload"]
     assert isinstance(payload, dict)
     assert payload["phase_a_trace"] == phase_a_trace
 
 
-def test_write_bundle2_request_trace_artifact_includes_separate_phase_c_trace(monkeypatch, tmp_path: Path) -> None:
+def test_write_intake_execution_trace_artifact_includes_separate_phase_c_trace(monkeypatch, tmp_path: Path) -> None:
     captured = _capture_writer(monkeypatch, tmp_path)
     phase_c_trace = {
         "mutation_outcome": {"canonical_commit_status": "committed"},
         "same_truth_read_result": {"owner_alignment": "aligned"},
     }
 
-    trace_artifacts.write_bundle2_request_trace_artifact(
-        request_id="bundle2-phase-c",
+    trace_artifacts.write_intake_execution_trace_artifact(
+        request_id="intake_execution-phase-c",
         user_external_id="user-2",
         local_date="2026-04-29",
         raw_user_input="half bowl of rice",
@@ -122,7 +122,7 @@ def test_write_bundle2_request_trace_artifact_includes_separate_phase_c_trace(mo
     assert payload["phase_c_trace"] == phase_c_trace
 
 
-def test_write_bundle1_request_trace_artifact_preserves_history_expansion_activation(monkeypatch, tmp_path: Path) -> None:
+def test_write_intake_turn_trace_artifact_preserves_history_expansion_activation(monkeypatch, tmp_path: Path) -> None:
     captured = _capture_writer(monkeypatch, tmp_path)
     phase_a_trace = {
         "current_turn_context": {"user_utterance": "actually change that milk tea to half sugar"},
@@ -138,8 +138,8 @@ def test_write_bundle1_request_trace_artifact_preserves_history_expansion_activa
         },
     }
 
-    trace_artifacts.write_bundle1_request_trace_artifact(
-        request_id="bundle1-history-phase-a",
+    trace_artifacts.write_intake_turn_trace_artifact(
+        request_id="intake_turn-history-phase-a",
         user_external_id="user-1",
         local_date="2026-04-29",
         raw_user_input="actually change that milk tea to half sugar",
@@ -198,15 +198,15 @@ def test_write_general_chat_request_trace_artifact_includes_phase_a_boundary_pro
     )
 
 
-def test_write_bundle2_request_trace_artifact_bounds_large_sections(monkeypatch, tmp_path: Path) -> None:
+def test_write_intake_execution_trace_artifact_bounds_large_sections(monkeypatch, tmp_path: Path) -> None:
     captured = _capture_writer(monkeypatch, tmp_path)
     tool_outputs = {
         "long_text": "x" * 1205,
         "items": [{"index": idx} for idx in range(30)],
     }
 
-    trace_artifacts.write_bundle2_request_trace_artifact(
-        request_id="bundle2-bounded-trace",
+    trace_artifacts.write_intake_execution_trace_artifact(
+        request_id="intake_execution-bounded-trace",
         user_external_id="user-4",
         local_date="2026-04-29",
         raw_user_input="hello",

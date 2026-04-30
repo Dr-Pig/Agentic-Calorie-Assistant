@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from app.nutrition.application.b2_final_mapping import (
-    map_b2_final_item_result,
-    map_b2_final_item_results,
+from app.nutrition.application.final_mapping import (
+    map_final_item_result,
+    map_final_item_results,
 )
 
 
@@ -28,13 +28,13 @@ def _item_result(
 
 
 def test_estimate_with_followup_maps_to_logged_when_write_owner_allows() -> None:
-    mapping = map_b2_final_item_result(
+    mapping = map_final_item_result(
         _item_result(),
         canonical_write_decision={"can_write_canonical": True},
         interaction_type="food_logging",
     )
 
-    assert mapping["final_mapping_owner"] == "b2_final_mapping"
+    assert mapping["final_mapping_owner"] == "nutrition_final_mapping"
     assert mapping["external_outcome"] == "logged"
     assert mapping["ledger_status"] == "included"
     assert mapping["mutation_allowed"] is True
@@ -42,7 +42,7 @@ def test_estimate_with_followup_maps_to_logged_when_write_owner_allows() -> None
 
 
 def test_estimate_with_followup_maps_to_draft_when_write_owner_blocks() -> None:
-    mapping = map_b2_final_item_result(
+    mapping = map_final_item_result(
         _item_result(),
         canonical_write_decision={"can_write_canonical": False},
         interaction_type="food_logging",
@@ -56,7 +56,7 @@ def test_estimate_with_followup_maps_to_draft_when_write_owner_blocks() -> None:
 
 
 def test_unresolved_item_maps_to_draft_even_when_write_owner_allows() -> None:
-    mapping = map_b2_final_item_result(
+    mapping = map_final_item_result(
         _item_result(exactness_posture="unresolved", likely_kcal=None, kcal_range=None),
         canonical_write_decision={"can_write_canonical": True},
         interaction_type="food_logging",
@@ -69,7 +69,7 @@ def test_unresolved_item_maps_to_draft_even_when_write_owner_allows() -> None:
 
 
 def test_query_only_estimable_item_maps_to_no_mutation_query() -> None:
-    mapping = map_b2_final_item_result(
+    mapping = map_final_item_result(
         _item_result(suggested_followup_question=None),
         canonical_write_decision={"can_write_canonical": True},
         interaction_type="nutrition_info_query",
@@ -82,11 +82,11 @@ def test_query_only_estimable_item_maps_to_no_mutation_query() -> None:
 
 
 def test_final_mapping_many_preserves_order_and_marks_owner() -> None:
-    results = map_b2_final_item_results(
+    results = map_final_item_results(
         [_item_result(), _item_result(exactness_posture="unresolved", likely_kcal=None, kcal_range=None)],
         canonical_write_decision={"can_write_canonical": True},
         interaction_type="food_logging",
     )
 
     assert [item["external_outcome"] for item in results] == ["logged", "draft"]
-    assert all(item["final_mapping_owner"] == "b2_final_mapping" for item in results)
+    assert all(item["final_mapping_owner"] == "nutrition_final_mapping" for item in results)

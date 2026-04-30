@@ -12,12 +12,12 @@ from scripts.pre_edd_readiness import (
 
 def test_pre_edd_command_plan_excludes_business_eval_suites() -> None:
     command_text = "\n".join(" ".join(item.command) for item in COMMAND_PLAN)
-    old_bundle1_runner = "run_v2_" + "bundle1" + "_live_eval.py"
-    old_bundle2_runner = "run_v2_" + "bundle2" + "_live_eval.py"
+    old_intake_turn_runner = "run_v2_" + "intake_turn" + "_live_eval.py"
+    old_intake_execution_runner = "run_v2_" + "intake_execution" + "_live_eval.py"
     old_blocking_runner = "run_v2_" + "benchmark_blocking_eval.py"
 
-    assert old_bundle1_runner not in command_text
-    assert old_bundle2_runner not in command_text
+    assert old_intake_turn_runner not in command_text
+    assert old_intake_execution_runner not in command_text
     assert "run_v2_founder_realism_eval.py" not in command_text
     assert old_blocking_runner not in command_text
     assert "scripts/audit_readiness_claim_integrity.py" in command_text

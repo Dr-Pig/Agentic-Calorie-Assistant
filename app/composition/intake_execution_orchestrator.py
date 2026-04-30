@@ -12,13 +12,13 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.composition.bundle2_response import build_bundle2_response, finalized_budget_summary
-from app.composition.bundle2_tool_batch import (
+from app.composition.intake_execution_response import build_intake_execution_response, finalized_budget_summary
+from app.composition.intake_manager_tool_batch import (
     apply_final_action_to_payload,
     execute_manager_tool_calls,
     nutrition_tool_output,
 )
-from app.composition.state_resolver import resolve_v2_bundle1_state
+from app.composition.state_resolver import resolve_intake_state
 from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
 from app.intake.application.context_injection_policy import build_manager_context_pack
 from app.intake.application.final_action_mutation_classifier import classify_final_action_mutation
@@ -27,10 +27,10 @@ from app.intake.application.history_expansion_manager_runtime import (
     activate_manager_triggered_history_expansion,
     manager_history_expansion_eligibility,
 )
-from app.composition.intake_execution_persistence import initial_state_mutation_summary, persist_bundle2_artifact
+from app.composition.intake_execution_persistence import initial_state_mutation_summary, persist_intake_execution_artifact
 from app.intake.application.intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool
 from app.intake.application.phase_a_runtime_context import prepare_phase_a_runtime_context
-from app.nutrition.application.b2_active_runtime_owner_lineage import attach_b2_owner_lineage_trace
+from app.nutrition.application.owner_lineage_trace import attach_owner_lineage_trace
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
 from app.runtime.application.manager_service import run_intake_manager
@@ -45,7 +45,7 @@ def _append_stage_timing(stage_timings: list[dict[str, Any]], stage: str, durati
     stage_timings.append({"stage": stage, "duration_ms": duration_ms})
 
 
-async def process_bundle2_intake(
+async def process_intake_execution_turn(
     db: Session,
     *,
     user_external_id: str,
@@ -259,7 +259,7 @@ async def process_bundle2_intake(
         correction_target=tool_state["correction_target"],
         manager_semantic_decision=dict(getattr(manager_result, "semantic_decision", {}) or {}),
     )
-    attach_b2_owner_lineage_trace(
+    attach_owner_lineage_trace(
         payload=payload,
         manager_semantic_decision=dict(getattr(manager_result, "semantic_decision", {}) or {}),
         manager_final_action=manager_result.final_action,
@@ -285,7 +285,7 @@ async def process_bundle2_intake(
 
     persistence_result = None
     if not commit_boundary_preflight.blocked:
-        persistence_result = persist_bundle2_artifact(
+        persistence_result = persist_intake_execution_artifact(
             db,
             nutrition_artifact=nutrition_artifact,
             final_action=manager_result.final_action,
@@ -296,7 +296,7 @@ async def process_bundle2_intake(
             state_mutation_summary=state_mutation_summary,
         )
 
-    state_after = resolve_v2_bundle1_state(
+    state_after = resolve_intake_state(
         db,
         user_external_id=user_external_id,
         local_date=local_date,
@@ -322,7 +322,7 @@ async def process_bundle2_intake(
         )
         tool_outputs["budget_summary"] = budget_summary
 
-    return build_bundle2_response(
+    return build_intake_execution_response(
         db,
         request_id=request_id,
         user_external_id=user_external_id,

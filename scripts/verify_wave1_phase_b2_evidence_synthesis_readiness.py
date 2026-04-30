@@ -807,15 +807,15 @@ def _check_manager_pass_2(case: dict[str, Any], blockers: list[dict[str, str]]) 
             continue
         final_mapping = item.get("final_mapping")
         if not isinstance(final_mapping, dict):
-            _add(blockers, "b2_final_mapping_missing", "Manager Pass 2 item_results must carry B2 final_mapping from the B2 final mapping owner.")
+            _add(blockers, "nutrition_final_mapping_missing", "Manager Pass 2 item_results must carry B2 final_mapping from the B2 final mapping owner.")
             final_mapping_violations.append({"item_index": item_index, "reason": "missing"})
-        elif final_mapping.get("final_mapping_owner") != "b2_final_mapping":
-            _add(blockers, "b2_final_mapping_owner_invalid", "final_mapping must be owned by b2_final_mapping.")
+        elif final_mapping.get("final_mapping_owner") != "nutrition_final_mapping":
+            _add(blockers, "nutrition_final_mapping_owner_invalid", "final_mapping must be owned by nutrition_final_mapping.")
             final_mapping_violations.append({"item_index": item_index, "owner": final_mapping.get("final_mapping_owner")})
         elif final_mapping.get("external_outcome") not in FINAL_MAPPING_EXTERNAL_OUTCOMES:
             _add(
                 blockers,
-                "b2_final_mapping_external_outcome_invalid",
+                "nutrition_final_mapping_external_outcome_invalid",
                 "B2 final_mapping.external_outcome must stay within logged, draft, or no_mutation_query.",
             )
             final_mapping_violations.append(
@@ -825,7 +825,7 @@ def _check_manager_pass_2(case: dict[str, Any], blockers: list[dict[str, str]]) 
                 }
             )
         elif item.get("ledger_status") != final_mapping.get("ledger_status"):
-            _add(blockers, "b2_final_mapping_ledger_status_mismatch", "ledger_status must be derived from B2 final_mapping, not compatibility helper logic.")
+            _add(blockers, "nutrition_final_mapping_ledger_status_mismatch", "ledger_status must be derived from B2 final_mapping, not compatibility helper logic.")
             final_mapping_violations.append(
                 {
                     "item_index": item_index,
@@ -1145,7 +1145,7 @@ def _artifact_completeness_audit(
             if not isinstance(final_mapping, dict):
                 missing_chain_nodes.append({"case_id": case_id, "node": "final_mapping", "item_index": item_index})
                 continue
-            if final_mapping.get("final_mapping_owner") != "b2_final_mapping" or item.get("ledger_status") != final_mapping.get("ledger_status"):
+            if final_mapping.get("final_mapping_owner") != "nutrition_final_mapping" or item.get("ledger_status") != final_mapping.get("ledger_status"):
                 producer_final_mapping_owner_violations.append({"case_id": case_id, "item_index": item_index})
             for rejected in item.get("rejected_candidates") or []:
                 if not isinstance(rejected, dict):
@@ -1198,7 +1198,7 @@ def _check_packet_consumption_trace(
         }
     violations: list[dict[str, Any]] = []
     missing_chain_nodes: list[dict[str, Any]] = []
-    if packet_consumption.get("owner") != "b2_packet_consumption":
+    if packet_consumption.get("owner") != "evidence_packet_consumption":
         violations.append({"case_id": case_id, "reason": "owner_invalid"})
     if not isinstance(packet_consumption.get("consumed_packet_ids"), list):
         violations.append({"case_id": case_id, "reason": "consumed_packet_ids_missing"})

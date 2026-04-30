@@ -42,7 +42,7 @@ def test_estimate_body_observation_route_does_not_silently_rebootstrap_body_plan
     )
     before = build_active_body_plan_view(db, user_id=user.id)
 
-    monkeypatch.setattr(intake_routes, "resolve_v2_bundle1_state", lambda *_, **__: SimpleNamespace())
+    monkeypatch.setattr(intake_routes, "resolve_intake_state", lambda *_, **__: SimpleNamespace())
     monkeypatch.setattr(intake_routes, "build_current_turn_context_v1", lambda *_, **__: SimpleNamespace())
     monkeypatch.setattr(
         intake_routes,

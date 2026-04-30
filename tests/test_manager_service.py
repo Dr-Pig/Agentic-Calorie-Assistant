@@ -16,9 +16,9 @@ def test_manager_service_has_no_step_specific_entrypoints() -> None:
     with open(source, "r", encoding="utf-8") as handle:
         content = handle.read()
 
-    assert "decide_" + "bundle1_turn" not in content
-    assert "decide_" + "bundle2_step1" not in content
-    assert "decide_" + "bundle2_step2" not in content
+    assert "decide_" + "intake_turn_turn" not in content
+    assert "decide_" + "intake_execution_step1" not in content
+    assert "decide_" + "intake_execution_step2" not in content
 
 
 def test_single_manager_entrypoint_has_no_bundle_specific_modes() -> None:
@@ -26,8 +26,8 @@ def test_single_manager_entrypoint_has_no_bundle_specific_modes() -> None:
     with open(source, "r", encoding="utf-8") as handle:
         content = handle.read()
 
-    assert "bundle2" + "_round_1" not in content
-    assert "bundle2" + "_final" not in content
+    assert "intake_execution" + "_round_1" not in content
+    assert "intake_execution" + "_final" not in content
 
 
 def test_single_manager_system_prompt_requires_semantic_contract_not_reasoning_dump() -> None:

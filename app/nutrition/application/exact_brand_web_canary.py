@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import time
 
-from .b2_candidate_packetizer import add_hard_recheck_metadata_many
+from .evidence_candidate_packetizer import add_hard_recheck_metadata_many
 from .exact_brand_web_canary_trace import (
     LANE_ID,
     default_trace,
@@ -13,8 +13,8 @@ from .exact_brand_web_canary_trace import (
     search_candidate_trace,
     synthesis_evidence_refs,
 )
-from .b2_local_synthesis import synthesize_b2_local_manager_pass2
-from .b2_packet_consumption import B2PacketConsumptionResult, consume_rechecked_packets
+from .local_synthesis import synthesize_local_manager_pass
+from .evidence_packet_consumption import EvidencePacketConsumptionResult, consume_rechecked_packets
 from .retrieval_intent import RetrievalIntent, build_retrieval_intent
 from .selected_extract_policy import SelectedExtractDecision, choose_selected_extract_packet
 from .web_extract_packetizer import build_web_extract_packets
@@ -33,7 +33,7 @@ class ExactBrandWebLaneResult:
     search_packets: tuple[dict[str, object], ...]
     extract_packets: tuple[dict[str, object], ...]
     extract_policy: SelectedExtractDecision
-    consumption: B2PacketConsumptionResult
+    consumption: EvidencePacketConsumptionResult
     manager_pass_2: dict[str, object]
 
 
@@ -172,7 +172,7 @@ async def run_exact_brand_web_canary(
         trace["rejected_web_candidates_used_as_evidence"] = False
         return ExactBrandWebCanaryOutcome(result=None, trace=trace)
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
     trace["synthesis_evidence_refs"] = synthesis_evidence_refs(manager_pass_2)
     rejected_ids = {
         str(candidate.get("packet_id") or "").strip()

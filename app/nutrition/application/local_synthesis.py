@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from .b2_packet_consumption import B2PacketConsumptionResult
-from .b2_local_synthesis_rules import (
+from .evidence_packet_consumption import EvidencePacketConsumptionResult
+from .local_synthesis_rules import (
     anchor_rule_for_dish_type,
     anchor_rule_from_packet,
     question_from_followup_hints,
@@ -10,9 +10,9 @@ from .retrieval_intent import RetrievalIntent
 from .small_anchor_store import GenericClarifySupport
 
 
-def synthesize_b2_local_manager_pass2(
+def synthesize_local_manager_pass(
     intent: RetrievalIntent,
-    consumption: B2PacketConsumptionResult,
+    consumption: EvidencePacketConsumptionResult,
     *,
     clarify_support: GenericClarifySupport | None = None,
 ) -> dict[str, object]:
@@ -169,4 +169,4 @@ def _evidence_used(packet: dict[str, object], *, usage: str, reason: str) -> dic
     }
 
 
-__all__ = ["synthesize_b2_local_manager_pass2"]
+__all__ = ["synthesize_local_manager_pass"]

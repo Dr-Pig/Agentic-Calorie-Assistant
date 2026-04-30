@@ -69,11 +69,11 @@ def test_dialogue_cue_never_applies_when_shadow_has_mutation_authority() -> None
 
 
 @pytest.mark.asyncio
-async def test_bundle2_response_applies_shadow_dialogue_cue_without_state_changes(
+async def test_intake_execution_response_applies_shadow_dialogue_cue_without_state_changes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.composition.current_budget_answer import RemainingBudgetAnswerContract
-    from app.composition import bundle2_response as module
+    from app.composition import intake_execution_response as module
 
     class _View:
         user_id = 1
@@ -113,11 +113,11 @@ async def test_bundle2_response_applies_shadow_dialogue_cue_without_state_change
             meal_count=1,
         ),
     )
-    monkeypatch.setattr(module, "render_bundle1_reply", lambda **_: "Base reply.")
-    monkeypatch.setattr(module, "write_bundle2_request_trace_artifact", lambda **_: None)
+    monkeypatch.setattr(module, "render_intake_reply", lambda **_: "Base reply.")
+    monkeypatch.setattr(module, "write_intake_execution_trace_artifact", lambda **_: None)
     monkeypatch.setattr(module, "build_trace_refs", lambda **_: {"request_id": "req-shadow-dialogue"})
 
-    result = module.build_bundle2_response(
+    result = module.build_intake_execution_response(
         None,
         request_id="req-shadow-dialogue",
         user_external_id="user-1",

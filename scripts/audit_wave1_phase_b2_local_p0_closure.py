@@ -150,7 +150,7 @@ def _check_runtime_owner_lineage(report_data: dict[str, Any], blockers: list[dic
                 missing.append({"case_id": case_id, "field": f"manager_pass_2.item_results[{item_index}]"})
                 continue
             final_mapping = item.get("final_mapping")
-            if not isinstance(final_mapping, dict) or final_mapping.get("final_mapping_owner") != "b2_final_mapping":
+            if not isinstance(final_mapping, dict) or final_mapping.get("final_mapping_owner") != "nutrition_final_mapping":
                 final_mapping_violations.append({"case_id": case_id, "item_index": item_index})
 
     if missing:
@@ -164,7 +164,7 @@ def _check_runtime_owner_lineage(report_data: dict[str, Any], blockers: list[dic
         _add(
             blockers,
             "final_mapping_owner_missing",
-            "B2 local P0 closure requires b2_final_mapping ownership on item results.",
+            "B2 local P0 closure requires nutrition_final_mapping ownership on item results.",
             violations=final_mapping_violations,
         )
     if runtime_backed_case_count == 0:

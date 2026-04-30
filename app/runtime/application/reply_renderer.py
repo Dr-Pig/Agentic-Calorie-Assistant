@@ -9,7 +9,7 @@ def _followup_range_text(*, estimated_kcal: int) -> str:
     return f"約 {lower}-{upper} kcal。"
 
 
-def render_bundle1_reply(
+def render_intake_reply(
     *,
     intent_type: str,
     onboarding_result: Any | None = None,
@@ -104,4 +104,4 @@ def render_bundle1_reply(
             return str(nutrition_payload.reply_text)
         meal_title = nutrition_payload.meal_title or "meal"
         return f"Logged {meal_title}. Estimated {nutrition_payload.estimated_kcal} kcal."
-    return "Bundle 1 manager completed without a renderable response."
+    return "Intake manager completed without a renderable response."

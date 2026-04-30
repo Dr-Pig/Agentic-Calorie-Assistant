@@ -201,8 +201,8 @@ def test_get_meal_log_history_does_not_count_before_limited_fetch() -> None:
     assert fake_query.limit_value == 30
 
 
-def test_bundle2_response_uses_preloaded_budget_views(monkeypatch: pytest.MonkeyPatch) -> None:
-    from app.composition import bundle2_response as module
+def test_intake_execution_response_uses_preloaded_budget_views(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.composition import intake_execution_response as module
 
     class _PlanView:
         body_plan_id = 10
@@ -241,7 +241,7 @@ def test_bundle2_response_uses_preloaded_budget_views(monkeypatch: pytest.Monkey
         raise AssertionError("Bundle 2 response should use preloaded state views, not re-query budget views")
 
     monkeypatch.setattr(module, "build_remaining_budget_answer_contract", _raise_requery)
-    monkeypatch.setattr(module, "render_bundle1_reply", lambda **kwargs: f"remaining {kwargs['remaining_budget'].remaining_kcal}")
+    monkeypatch.setattr(module, "render_intake_reply", lambda **kwargs: f"remaining {kwargs['remaining_budget'].remaining_kcal}")
     monkeypatch.setattr(module, "build_deterministic_sidecar", lambda **kwargs: {"state_mutation_summary": kwargs["state_mutation_summary"]})
     monkeypatch.setattr(
         module,
@@ -264,10 +264,10 @@ def test_bundle2_response_uses_preloaded_budget_views(monkeypatch: pytest.Monkey
     monkeypatch.setattr(module, "build_phase_c_trace", lambda **kwargs: {})
     monkeypatch.setattr(module, "build_phase_c_same_truth_gate", lambda **kwargs: {"status": "ok"})
     monkeypatch.setattr(module, "append_trace_event_tool", lambda **kwargs: None)
-    monkeypatch.setattr(module, "write_bundle2_request_trace_artifact", lambda **kwargs: None)
+    monkeypatch.setattr(module, "write_intake_execution_trace_artifact", lambda **kwargs: None)
     monkeypatch.setattr(module, "build_trace_refs", lambda **kwargs: {"request_id": kwargs["request_id"]})
 
-    result = module.build_bundle2_response(
+    result = module.build_intake_execution_response(
         object(),
         request_id="req-hot-path",
         user_external_id="user-1",
@@ -352,13 +352,13 @@ def test_render_latest_trace_debug_uses_single_trace_lookup(monkeypatch: pytest.
     def _fake_batch_lookup(*, user_id: str, local_date: str, bundles):
         calls.append((user_id, local_date, tuple(bundles)))
         return {
-            "v2_bundle2": {
+            "intake_execution": {
                 "request_id": "req-1",
                 "trace_meta": {"request_id": "req-1"},
                 "request": {"text": "milk tea"},
                 "tool_outputs": {"nutrition_artifact": {"payload": {"estimated_kcal": 400}}},
             },
-            "v2_bundle1": None,
+            "intake_turn": None,
         }
 
     monkeypatch.setattr(module, "find_latest_traces_for_user_date", _fake_batch_lookup, raising=False)
@@ -371,7 +371,9 @@ def test_render_latest_trace_debug_uses_single_trace_lookup(monkeypatch: pytest.
     html = module.render_latest_trace_debug(user_id="user-1", local_date="2026-04-29")
 
     assert "req-1" in html
-    assert calls == [("user-1", "2026-04-29", ("v2_bundle2", "v2_bundle1"))]
+    legacy_execution_trace = "v2_" + "bundle2"
+    legacy_turn_trace = "v2_" + "bundle1"
+    assert calls == [("user-1", "2026-04-29", ("intake_execution", "intake_turn", legacy_execution_trace, legacy_turn_trace))]
 
 
 def test_index_html_loader_caches_disk_read(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:

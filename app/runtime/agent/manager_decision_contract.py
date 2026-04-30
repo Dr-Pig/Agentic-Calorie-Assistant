@@ -16,7 +16,7 @@ class PrimaryManagerDecision:
 
 
 @dataclass(frozen=True)
-class Bundle2ManagerDecision1:
+class IntakeExecutionManagerDecision1:
     intent_type: str
     clarify_posture: str
     tool_plan: tuple[str, ...]
@@ -28,7 +28,7 @@ class Bundle2ManagerDecision1:
 
 
 @dataclass(frozen=True)
-class Bundle2ManagerDecision2:
+class IntakeExecutionManagerDecision2:
     final_action: str
     workflow_effect: str
     llm_used: bool = False
@@ -37,6 +37,6 @@ class Bundle2ManagerDecision2:
 
 __all__ = [
     "PrimaryManagerDecision",
-    "Bundle2ManagerDecision1",
-    "Bundle2ManagerDecision2",
+    "IntakeExecutionManagerDecision1",
+    "IntakeExecutionManagerDecision2",
 ]

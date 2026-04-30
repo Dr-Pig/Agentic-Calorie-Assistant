@@ -88,7 +88,7 @@ def build_trace_refs(*, request_id: str) -> dict[str, Any]:
     }
 
 
-def write_bundle1_request_trace_artifact(
+def write_intake_turn_trace_artifact(
     *,
     request_id: str,
     user_external_id: str,
@@ -114,7 +114,7 @@ def write_bundle1_request_trace_artifact(
         "trace_meta": {
             "request_id": request_id,
             "user_id": user_external_id,
-            "bundle": "v2_bundle1",
+            "bundle": "intake_turn",
             "local_date": local_date,
         },
         "request": {
@@ -143,7 +143,7 @@ def write_bundle1_request_trace_artifact(
     return write_request_trace_artifact(request_id, payload)
 
 
-def write_bundle2_request_trace_artifact(
+def write_intake_execution_trace_artifact(
     *,
     request_id: str,
     user_external_id: str,
@@ -171,7 +171,7 @@ def write_bundle2_request_trace_artifact(
         "trace_meta": {
             "request_id": request_id,
             "user_id": user_external_id,
-            "bundle": "v2_bundle2",
+            "bundle": "intake_execution",
             "local_date": local_date,
         },
         "request": {

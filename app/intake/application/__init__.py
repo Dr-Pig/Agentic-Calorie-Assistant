@@ -3,12 +3,12 @@ from importlib import import_module
 from typing import Any
 
 __all__ = [
-    "_normalize_bundle1_live_payload",
+    "_normalize_intake_live_payload",
     "parse_weight_or_budget_intent",
 ]
 
 _EXPORT_MAP = {
-    "_normalize_bundle1_live_payload": (".intake_trace_tools", "_normalize_bundle1_live_payload"),
+    "_normalize_intake_live_payload": (".intake_trace_tools", "_normalize_intake_live_payload"),
     "parse_weight_or_budget_intent": (".chat_intents", "parse_weight_or_budget_intent"),
 }
 

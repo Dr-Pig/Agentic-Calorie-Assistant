@@ -13,18 +13,18 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.nutrition.application.b2_candidate_packetizer import (
+from app.nutrition.application.evidence_candidate_packetizer import (
     add_hard_recheck_metadata_many,
     build_candidate_packets,
 )
-from app.nutrition.application.b2_final_mapping import map_b2_final_item_result
-from app.nutrition.application.b2_local_synthesis import synthesize_b2_local_manager_pass2
-from app.nutrition.application.b2_packet_consumption import B2PacketConsumptionResult, consume_rechecked_packets
-from app.nutrition.application.b2_semantic_decision import (
+from app.nutrition.application.final_mapping import map_final_item_result
+from app.nutrition.application.local_synthesis import synthesize_local_manager_pass
+from app.nutrition.application.evidence_packet_consumption import EvidencePacketConsumptionResult, consume_rechecked_packets
+from app.nutrition.application.retrieval_semantic_decision import (
     B2ManagerSemanticDecision,
     build_retrieval_intent_from_manager_decision,
 )
-from app.nutrition.application.b2_source_selection import select_b2_evidence_source
+from app.nutrition.application.evidence_source_selection import select_evidence_source
 from app.nutrition.application.exact_item_card_lookup import lookup_exact_item_card_candidates
 from app.nutrition.application.listed_item_fanout import fanout_listed_item_anchor_lookups
 from app.nutrition.application.packetizer_input_seed import packetizer_input_seeds_from_anchor_lookup_result
@@ -108,12 +108,12 @@ def _semantic_decision_trace(decision: B2ManagerSemanticDecision) -> dict[str, o
 
 
 def _source_selection_trace(intent: RetrievalIntent) -> dict[str, object]:
-    return _json_safe(asdict(select_b2_evidence_source(intent)))
+    return _json_safe(asdict(select_evidence_source(intent)))
 
 
-def _packet_consumption_trace(consumption: B2PacketConsumptionResult) -> dict[str, object]:
+def _packet_consumption_trace(consumption: EvidencePacketConsumptionResult) -> dict[str, object]:
     return {
-        "owner": "b2_packet_consumption",
+        "owner": "evidence_packet_consumption",
         "consumed_packet_ids": list(consumption.consumed_packet_ids),
         "accepted_packet_ids": [
             str(packet.get("packet_id"))
@@ -139,7 +139,7 @@ def _combine_packet_consumption_traces(traces: list[dict[str, object]]) -> dict[
         accepted.extend(str(item) for item in trace.get("accepted_packet_ids", []) if str(item).strip())
         rejected.extend(str(item) for item in trace.get("rejected_candidate_packet_ids", []) if str(item).strip())
     return {
-        "owner": "b2_packet_consumption",
+        "owner": "evidence_packet_consumption",
         "consumed_packet_ids": consumed,
         "accepted_packet_ids": accepted,
         "rejected_candidate_packet_ids": rejected,
@@ -296,7 +296,7 @@ def _apply_final_mapping(
     mapped_results: list[dict[str, object]] = []
     for item in item_results:
         mapped = dict(item)
-        final_mapping = map_b2_final_item_result(
+        final_mapping = map_final_item_result(
             mapped,
             canonical_write_decision=canonical_write_decision,
             interaction_type=interaction_type,
@@ -326,7 +326,7 @@ def _runtime_generic_case(
     seeds = packetizer_input_seeds_from_anchor_lookup_result(anchor_result)
     packets = list(add_hard_recheck_metadata_many(build_candidate_packets(seeds)))
     consumption = consume_rechecked_packets(packets)
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
     item_results = [
         _bridge_runtime_item_result_for_readiness(item)
         for item in manager_pass_2.get("item_results", [])
@@ -359,7 +359,7 @@ def _runtime_clarify_case_with_taiwan_skill_compat(
     anchor_result = lookup_anchor_candidates(intent)
     consumption = consume_rechecked_packets((compatibility_packet,))
     synthesis_consumption = consume_rechecked_packets(())
-    manager_pass_2 = synthesize_b2_local_manager_pass2(
+    manager_pass_2 = synthesize_local_manager_pass(
         intent,
         synthesis_consumption,
         clarify_support=anchor_result.clarify_support,
@@ -396,7 +396,7 @@ def _runtime_exact_item_case(
     seeds = packetizer_input_seeds_from_exact_item_lookup_result(exact_lookup)
     packets = list(add_hard_recheck_metadata_many(build_candidate_packets(seeds)))
     consumption = consume_rechecked_packets(packets)
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
     item_results = [
         _bridge_runtime_item_result_for_readiness(item)
         for item in manager_pass_2.get("item_results", [])
@@ -434,7 +434,7 @@ def _runtime_web_rejection_case(
     )
     packets = list(add_hard_recheck_metadata_many(build_web_search_candidate_packets(intent, candidates)))
     consumption = consume_rechecked_packets(packets)
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
     item_results = [
         _bridge_runtime_item_result_for_readiness(item)
         for item in manager_pass_2.get("item_results", [])
@@ -505,7 +505,7 @@ def _runtime_selected_extract_exact_positive_case(
             )
         )
     consumption = consume_rechecked_packets(extract_packets)
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
     item_results = [
         _bridge_runtime_item_result_for_readiness(item)
         for item in manager_pass_2.get("item_results", [])
@@ -558,7 +558,7 @@ def _runtime_listed_item_fanout_case(
         sub_packets = list(add_hard_recheck_metadata_many(build_candidate_packets(seeds)))
         consumption = consume_rechecked_packets(sub_packets)
         consumption_traces.append(_packet_consumption_trace(consumption))
-        manager_pass_2 = synthesize_b2_local_manager_pass2(resolution.sub_intent, consumption)
+        manager_pass_2 = synthesize_local_manager_pass(resolution.sub_intent, consumption)
         resolution_trace.append(
             {
                 "listed_item": resolution.listed_item,

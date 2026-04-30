@@ -32,7 +32,7 @@ ROOT_CAUSE_ENUM = (
     "route_target_clarify_blocks_commit",
     "action_taken_uncertainty_blocks_commit",
     "fake_provider_final_action_gap",
-    "b2_final_mapping_denies_write",
+    "nutrition_final_mapping_denies_write",
     "commit_boundary_blocked",
     "payload_missing_required_commit_fields",
     "persistence_gap",
@@ -126,7 +126,7 @@ def _manager_round_summary(trace: dict[str, Any]) -> dict[str, Any]:
 
 
 def _persistence_result(result: dict[str, Any]) -> Any:
-    return _dict(_dict(result.get("bundle2_manager")).get("persistence_result"))
+    return _dict(_dict(result.get("intake_execution_manager")).get("persistence_result"))
 
 
 def _classify_root_cause(
@@ -174,7 +174,7 @@ def _classify_root_cause(
             return "route_target_clarify_blocks_commit", contributing
         if payload.get("followup_question") or payload.get("follow_up_needed"):
             return "legacy_followup_blocks_commit", contributing
-        return "b2_final_mapping_denies_write", contributing
+        return "nutrition_final_mapping_denies_write", contributing
 
     if preflight.get("blocked") is True:
         return "commit_boundary_blocked", contributing

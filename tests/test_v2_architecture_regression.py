@@ -59,22 +59,22 @@ def test_v2_schemas_no_longer_exports_archived_recommendation_contracts() -> Non
 
 
 def test_v2_services_import_intake_domain_tools_and_ignore_legacy_provider_split() -> None:
-    bundle1 = (ROOT / "app" / "composition" / "intake_turn_orchestrator.py").read_text(encoding="utf-8")
-    bundle2 = (ROOT / "app" / "composition" / "intake_execution_orchestrator.py").read_text(encoding="utf-8")
-    bundle2_tools = (ROOT / "app" / "composition" / "bundle2_tool_batch.py").read_text(encoding="utf-8")
+    intake_turn = (ROOT / "app" / "composition" / "intake_turn_orchestrator.py").read_text(encoding="utf-8")
+    intake_execution = (ROOT / "app" / "composition" / "intake_execution_orchestrator.py").read_text(encoding="utf-8")
+    intake_execution_tools = (ROOT / "app" / "composition" / "intake_manager_tool_batch.py").read_text(encoding="utf-8")
     estimation = (ROOT / "app" / "composition" / "intake_estimation_tools.py").read_text(encoding="utf-8")
 
-    assert "manager_tools" not in bundle1
-    assert "manager_tools" not in bundle2
-    assert "from app.intake.application.intake_trace_tools import append_trace_event_tool" in bundle1
-    assert "from app.intake.application.intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool" in bundle2
-    assert _legacy_provider_token("planner") not in bundle1
-    assert _legacy_provider_token("primary") not in bundle1
-    assert _legacy_provider_token("planner") not in bundle2
-    assert _legacy_provider_token("primary") not in bundle2
-    assert "search_adapter" not in bundle1
-    assert "search_adapter" not in bundle2
-    assert "search_adapter" not in bundle2_tools
+    assert "manager_tools" not in intake_turn
+    assert "manager_tools" not in intake_execution
+    assert "from app.intake.application.intake_trace_tools import append_trace_event_tool" in intake_turn
+    assert "from app.intake.application.intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool" in intake_execution
+    assert _legacy_provider_token("planner") not in intake_turn
+    assert _legacy_provider_token("primary") not in intake_turn
+    assert _legacy_provider_token("planner") not in intake_execution
+    assert _legacy_provider_token("primary") not in intake_execution
+    assert "search_adapter" not in intake_turn
+    assert "search_adapter" not in intake_execution
+    assert "search_adapter" not in intake_execution_tools
     assert "search_adapter" not in estimation
 
 
@@ -89,8 +89,8 @@ def test_offline_sidecar_stack_is_not_imported_by_active_runtime_entrypoints() -
         ROOT / "app" / "composition" / "today_routes.py",
         ROOT / "app" / "composition" / "body_plan_routes.py",
         ROOT / "app" / "runtime" / "application" / "manager_service.py",
-        ROOT / "app" / "composition" / "bundle2_tool_batch.py",
-        ROOT / "app" / "composition" / "bundle2_response.py",
+        ROOT / "app" / "composition" / "intake_manager_tool_batch.py",
+        ROOT / "app" / "composition" / "intake_execution_response.py",
         ROOT / "app" / "runtime" / "application" / "sidecar_service.py",
     ]
     forbidden_prefixes = (
