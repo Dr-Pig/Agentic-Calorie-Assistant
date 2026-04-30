@@ -88,7 +88,7 @@ def evidence_summary(*, raw_user_input: str, payload: Any | None) -> dict[str, A
         "high_variance_family": bool(eligibility.get("high_variance_family")),
         "family_rule": eligibility.get("family_rule"),
         "why_not_exact": list(eligibility.get("why_not_exact") or []),
-        "bundle2_guard_family": trace_contract.get("bundle2_guard_family"),
+        "intake_execution_guard_family": trace_contract.get("intake_execution_guard_family"),
         "search_attempt_count": int(trace_contract.get("search_attempt_count") or 0),
         "search_query": trace_contract.get("search_query"),
         "db_hit_type": db_hit_type or None,

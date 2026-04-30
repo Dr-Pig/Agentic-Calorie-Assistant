@@ -27,8 +27,8 @@ SEMANTIC_DECISION_ID = "self_selected_basket_without_listed_items"
 ROOT_CAUSES = (
     "phase_a_gap",
     "b1_b2_boundary_gap",
-    "b2_source_selection_gap",
-    "b2_packet_gate_gap",
+    "evidence_source_selection_gap",
+    "evidence_packet_gate_gap",
     "live_payload_gap",
     "validator_classification_gap",
     "none",
@@ -44,9 +44,9 @@ def diagnose_b1_b2_ask_first_boundary(
 ) -> dict[str, Any]:
     b1 = _diagnose_phase_a_b1(phase_b_report)
     b2_case = _case_by_id(phase_b2_report, CASE_ID)
-    source_selection = _diagnose_b2_source_selection(b2_case)
+    source_selection = _diagnose_evidence_source_selection(b2_case)
     boundary = _diagnose_b1_b2_boundary(b2_case)
-    packet_gate = _diagnose_b2_packet_gate(b2_case)
+    packet_gate = _diagnose_evidence_packet_gate(b2_case)
     semantic_policy = _semantic_policy(semantic_register_text)
     live_payload = _diagnose_live_payload(b2_case)
     validator = _diagnose_validator(live_report, semantic_policy)
@@ -71,8 +71,8 @@ def diagnose_b1_b2_ask_first_boundary(
         "semantic_policy": semantic_policy,
         "phase_a_b1": b1,
         "b1_b2_boundary": boundary,
-        "b2_source_selection": source_selection,
-        "b2_packet_gate": packet_gate,
+        "evidence_source_selection": source_selection,
+        "evidence_packet_gate": packet_gate,
         "live_payload": live_payload,
         "validator": validator,
         "fixes_attempted": False,
@@ -137,7 +137,7 @@ def _diagnose_b1_b2_boundary(b2_case: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _diagnose_b2_source_selection(b2_case: dict[str, Any]) -> dict[str, Any]:
+def _diagnose_evidence_source_selection(b2_case: dict[str, Any]) -> dict[str, Any]:
     source_selection = _dict(b2_case.get("source_selection"))
     expected = source_selection.get("source_path") == "ask_user" and source_selection.get("evidence_required") == "clarify_support"
     return {
@@ -152,7 +152,7 @@ def _diagnose_b2_source_selection(b2_case: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _diagnose_b2_packet_gate(b2_case: dict[str, Any]) -> dict[str, Any]:
+def _diagnose_evidence_packet_gate(b2_case: dict[str, Any]) -> dict[str, Any]:
     item_results = [_dict(item) for item in _list(_dict(b2_case.get("manager_pass_2")).get("item_results"))]
     packets = [_dict(packet) for packet in _list(b2_case.get("packets"))]
     has_estimate = any(_has_estimate(item) for item in item_results)
@@ -241,8 +241,8 @@ def _primary_root_cause(
     checks = (
         ("phase_a_gap", b1),
         ("b1_b2_boundary_gap", boundary),
-        ("b2_source_selection_gap", source_selection),
-        ("b2_packet_gate_gap", packet_gate),
+        ("evidence_source_selection_gap", source_selection),
+        ("evidence_packet_gate_gap", packet_gate),
         ("live_payload_gap", live_payload),
         ("validator_classification_gap", validator),
     )

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.composition.bundle2_tool_batch import apply_final_action_to_payload
+from app.composition.intake_manager_tool_batch import apply_final_action_to_payload
 from app.shared.contracts.intake_results import EstimatePayload
 
 

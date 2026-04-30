@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.nutrition.application.b2_candidate_packetizer import add_hard_recheck_metadata
+from app.nutrition.application.evidence_candidate_packetizer import add_hard_recheck_metadata
 from app.nutrition.application.selected_extract_policy import choose_selected_extract_packet
 
 

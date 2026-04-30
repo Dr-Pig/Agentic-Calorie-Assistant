@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from app.nutrition.application.b2_candidate_packetizer import (
+from app.nutrition.application.evidence_candidate_packetizer import (
     add_hard_recheck_metadata,
     add_hard_recheck_metadata_many,
     build_candidate_packet,
 )
-from app.nutrition.application.b2_local_synthesis import synthesize_b2_local_manager_pass2
-from app.nutrition.application.b2_packet_consumption import consume_rechecked_packets
+from app.nutrition.application.local_synthesis import synthesize_local_manager_pass
+from app.nutrition.application.evidence_packet_consumption import consume_rechecked_packets
 from app.nutrition.application.exact_item_card_lookup import lookup_exact_item_card_candidates
 from app.nutrition.application.packetizer_input_seed import (
     packetizer_input_seeds_from_anchor_lookup_result,
@@ -25,7 +25,7 @@ def test_local_synthesis_turns_exact_item_into_exact_item_result() -> None:
     packet = add_hard_recheck_metadata(build_candidate_packet(seed))
     consumption = consume_rechecked_packets((packet,))
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
 
     item = manager_pass_2["item_results"][0]
     assert item["interpreted_food_identity"] == "\u661f\u5df4\u514b \u90a3\u5802(\u51b0) \u5927\u676f"
@@ -46,7 +46,7 @@ def test_local_synthesis_turns_generic_single_item_into_estimated_item_result() 
     packet = add_hard_recheck_metadata(build_candidate_packet(seed))
     consumption = consume_rechecked_packets((packet,))
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
 
     item = manager_pass_2["item_results"][0]
     assert item["interpreted_food_identity"] == "\u8336\u8449\u86cb"
@@ -66,7 +66,7 @@ def test_local_synthesis_metadata_first_clarify_required_overrides_estimable_dis
     packet["followup_hints"] = ["ask_listed_items", "ask_portion"]
     consumption = consume_rechecked_packets((packet,))
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
 
     item = manager_pass_2["item_results"][0]
     assert item["exactness_posture"] == "unresolved"
@@ -87,7 +87,7 @@ def test_local_synthesis_metadata_first_uses_composition_posture_over_dish_type(
     packet["followup_hints"] = ["ask_main_style", "ask_rice_portion"]
     consumption = consume_rechecked_packets((packet,))
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
 
     item = manager_pass_2["item_results"][0]
     assert item["assumed_composition"] == "generic meal"
@@ -104,7 +104,7 @@ def test_local_synthesis_metadata_first_uses_variance_level_for_single_item_conf
     packet["variance_level"] = "moderate"
     consumption = consume_rechecked_packets((packet,))
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
 
     item = manager_pass_2["item_results"][0]
     assert item["exactness_posture"] == "estimated"
@@ -118,7 +118,7 @@ def test_local_synthesis_metadata_first_turns_listed_item_component_into_strong_
     packet = add_hard_recheck_metadata(build_candidate_packet(seed))
     consumption = consume_rechecked_packets((packet,))
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
 
     item = manager_pass_2["item_results"][0]
     assert item["assumed_composition"] == "listed item"
@@ -133,7 +133,7 @@ def test_local_synthesis_turns_generic_meal_into_provisional_item_result() -> No
     packet = add_hard_recheck_metadata(build_candidate_packet(seed))
     consumption = consume_rechecked_packets((packet,))
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
 
     item = manager_pass_2["item_results"][0]
     assert item["exactness_posture"] == "provisional"
@@ -148,7 +148,7 @@ def test_local_synthesis_metadata_first_turns_refinement_anchor_into_estimated_m
     packet = add_hard_recheck_metadata(build_candidate_packet(seed))
     consumption = consume_rechecked_packets((packet,))
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
 
     item = manager_pass_2["item_results"][0]
     assert item["assumed_composition"] == "stable-base dish"
@@ -164,7 +164,7 @@ def test_local_synthesis_turns_customizable_drink_into_estimated_item_result_wit
     packet = add_hard_recheck_metadata(build_candidate_packet(seed))
     consumption = consume_rechecked_packets((packet,))
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
 
     item = manager_pass_2["item_results"][0]
     assert item["exactness_posture"] == "estimated"
@@ -183,7 +183,7 @@ def test_local_synthesis_missing_metadata_falls_back_to_dish_type_behavior() -> 
     packet.pop("clarify_required", None)
     consumption = consume_rechecked_packets((packet,))
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
 
     item = manager_pass_2["item_results"][0]
     assert item["exactness_posture"] == "estimated"
@@ -200,7 +200,7 @@ def test_local_synthesis_turns_rejected_exact_item_into_unresolved_item_result()
     rechecked = add_hard_recheck_metadata(packet)
     consumption = consume_rechecked_packets((rechecked,))
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
 
     item = manager_pass_2["item_results"][0]
     assert item["interpreted_food_identity"] == "\u661f\u5df4\u514b \u90a3\u5802(\u51b0) \u5927\u676f"
@@ -216,7 +216,7 @@ def test_local_synthesis_turns_semantic_only_luwei_into_clarify_output_without_p
     anchor_result = lookup_anchor_candidates(intent)
     consumption = consume_rechecked_packets(())
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(
+    manager_pass_2 = synthesize_local_manager_pass(
         intent,
         consumption,
         clarify_support=anchor_result.clarify_support,
@@ -264,7 +264,7 @@ def test_local_synthesis_rejected_web_search_keeps_requested_identity_in_unresol
     rechecked = add_hard_recheck_metadata_many(packets)
     consumption = consume_rechecked_packets(rechecked)
 
-    manager_pass_2 = synthesize_b2_local_manager_pass2(intent, consumption)
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
 
     item = manager_pass_2["item_results"][0]
     assert item["interpreted_food_identity"] == "迷客夏珍珠紅茶拿鐵"

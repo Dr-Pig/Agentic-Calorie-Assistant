@@ -22,7 +22,7 @@ def initial_state_mutation_summary() -> dict[str, bool]:
     }
 
 
-def persist_bundle2_artifact(
+def persist_intake_execution_artifact(
     db: Session,
     *,
     nutrition_artifact: Any | None,

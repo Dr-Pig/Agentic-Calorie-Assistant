@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from app.shared.contracts.readiness_claim import build_readiness_claim
 
-from .b2_packet_consumption import B2PacketConsumptionResult
+from .evidence_packet_consumption import EvidencePacketConsumptionResult
 from .web_search_port import WebSearchPort
 
 LANE_ID = "live_exact_brand_web_canary_v1"
@@ -99,7 +99,7 @@ def search_candidate_trace(packet: dict[str, object]) -> dict[str, object]:
     }
 
 
-def packet_consumption_trace(consumption: B2PacketConsumptionResult) -> dict[str, object]:
+def packet_consumption_trace(consumption: EvidencePacketConsumptionResult) -> dict[str, object]:
     return {
         "accepted_packets": [
             {

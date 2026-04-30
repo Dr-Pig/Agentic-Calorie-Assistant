@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.nutrition.application.b2_semantic_decision import (
+from app.nutrition.application.retrieval_semantic_decision import (
     B2ManagerSemanticDecision,
     build_retrieval_intent_from_manager_decision,
 )

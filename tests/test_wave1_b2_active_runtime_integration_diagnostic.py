@@ -11,8 +11,8 @@ def test_b2_active_runtime_integration_runner_source_avoids_legacy_truth() -> No
 
     forbidden_markers = (
         "app.runtime.application.phase_a_context",
-        "run_v2_" + "bundle1" + "_live_eval",
-        "run_v2_" + "bundle2" + "_live_eval",
+        "run_v2_" + "intake_turn" + "_live_eval",
+        "run_v2_" + "intake_execution" + "_live_eval",
         "docs/" + "archive",
         "V2_EVAL_" + "BUNDLE",
         "stale " + "oracle",
@@ -37,7 +37,7 @@ def test_b2_active_runtime_integration_diagnostic_observes_owner_lineage(tmp_pat
     assert output_path.exists()
     assert json.loads(output_path.read_text(encoding="utf-8")) == report
     assert report["artifact_type"] == "wave1_b2_active_runtime_integration_diagnostic"
-    assert report["active_entrypoint"] == "app.composition.intake_turn_orchestrator.execute_bundle1_turn"
+    assert report["active_entrypoint"] == "app.composition.intake_turn_orchestrator.execute_intake_turn"
     assert report["active_entrypoint_verified"] is True
     assert report["provider_mode"] == "deterministic"
     assert report["live_llm_invoked"] is False
@@ -55,7 +55,7 @@ def test_b2_active_runtime_integration_diagnostic_observes_owner_lineage(tmp_pat
     assert report["active_runtime_observability"]["state_delta_present"] is True
     assert report["active_runtime_observability"]["ledger_read_present"] is True
     assert report["active_runtime_observability"]["phase_c_trace_present"] is True
-    assert report["active_runtime_observability"]["b2_final_mapping_first_class_present"] is True
+    assert report["active_runtime_observability"]["nutrition_final_mapping_first_class_present"] is True
     assert report["verdict"] == "diagnostic_observation"
     assert report["failure_layer"] is None
     assert report["missing_first_class_surfaces"] == []

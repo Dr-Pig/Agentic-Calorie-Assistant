@@ -13,10 +13,10 @@ from app.intake.application.intake_trace_tools import append_trace_event_tool
 from app.intake.application.phase_c_mutation_projection import build_phase_c_trace
 from app.intake.application.phase_c_same_truth_gate import build_phase_c_same_truth_gate
 from app.intake.application.shadow_hypothesis_dialogue import apply_shadow_hypothesis_dialogue_cue
-from app.runtime.application.reply_renderer import render_bundle1_reply
-from app.runtime.application.request_trace_artifacts import build_trace_refs, write_bundle2_request_trace_artifact
+from app.runtime.application.reply_renderer import render_intake_reply
+from app.runtime.application.request_trace_artifacts import build_trace_refs, write_intake_execution_trace_artifact
 from app.runtime.application.sidecar_service import build_deterministic_sidecar
-from .bundle2_tool_batch import evidence_summary, macro_summary
+from .intake_manager_tool_batch import evidence_summary, macro_summary
 
 
 def finalized_budget_summary(*, budget_summary: dict[str, Any] | None, state_before: Any, state_after: Any) -> dict[str, Any]:
@@ -46,7 +46,7 @@ def build_latency_tracking(*, manager_decision: Any, stage_timings: list[dict[st
     }
 
 
-def build_bundle2_response(
+def build_intake_execution_response(
     db: Any,
     *,
     request_id: str,
@@ -80,7 +80,7 @@ def build_bundle2_response(
                 active_body_plan_present=bool(getattr(state_before, "onboarding_ready", False)),
             ),
         )
-    assistant_message = render_bundle1_reply(
+    assistant_message = render_intake_reply(
         intent_type=manager_decision.intent_type,
         onboarding_result=None,
         remaining_budget=remaining_budget_contract,
@@ -158,7 +158,7 @@ def build_bundle2_response(
         summary={"assistant_message": assistant_message, "state_delta": state_mutation_summary},
     )
     latency_tracking = build_latency_tracking(manager_decision=manager_decision, stage_timings=stage_timings)
-    write_bundle2_request_trace_artifact(
+    write_intake_execution_trace_artifact(
         request_id=request_id,
         user_external_id=user_external_id,
         local_date=local_date,
@@ -190,7 +190,7 @@ def build_bundle2_response(
             "llm_used": manager_decision.llm_used,
             "trace": manager_decision.trace,
         },
-        "bundle2_manager": {
+        "intake_execution_manager": {
             "manager_rounds": [dict(item) for item in manager_result.manager_rounds],
             "final": {"final_action": manager_result.final_action, "workflow_effect": manager_result.workflow_effect},
             "persistence_result": persistence_result,

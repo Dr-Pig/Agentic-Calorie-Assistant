@@ -37,7 +37,7 @@ FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS = {
     "intent_type": "active_runtime_router",
     "workflow_effect": "transition_guard_and_mutation_boundary",
     "target_attachment": "meal_thread_attachment_and_correction_path",
-    "exactness": "b2_final_mapping_and_renderer_exactness_guard",
+    "exactness": "nutrition_final_mapping_and_renderer_exactness_guard",
     "confidence": "uncertainty_and_evidence_honesty_trace",
     "evidence_posture": "b2_evidence_and_final_mapping_guard",
     "semantic_decision": "semantic_owner_trace_and_final_mapping_alignment",

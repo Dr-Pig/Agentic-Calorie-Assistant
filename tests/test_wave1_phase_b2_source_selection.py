@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from app.nutrition.application.b2_source_selection import select_b2_evidence_source
+from app.nutrition.application.evidence_source_selection import select_evidence_source
 from app.nutrition.application.retrieval_intent import build_retrieval_intent
 
 
 def test_source_selection_uses_exact_db_first_for_exact_brand_intent_without_web_activation() -> None:
-    selection = select_b2_evidence_source(build_retrieval_intent("我吃了松屋特盛牛丼"))
+    selection = select_evidence_source(build_retrieval_intent("我吃了松屋特盛牛丼"))
 
     assert selection.source_path == "exact_db"
     assert selection.evidence_required == "exact_item_card"
@@ -15,7 +15,7 @@ def test_source_selection_uses_exact_db_first_for_exact_brand_intent_without_web
 
 
 def test_source_selection_uses_generic_anchor_for_generic_intent_without_deciding_semantics() -> None:
-    selection = select_b2_evidence_source(build_retrieval_intent("我喝了一杯珍珠奶茶"))
+    selection = select_evidence_source(build_retrieval_intent("我喝了一杯珍珠奶茶"))
 
     assert selection.source_path == "generic_anchor"
     assert selection.evidence_required == "generic_anchor_packet"
@@ -25,7 +25,7 @@ def test_source_selection_uses_generic_anchor_for_generic_intent_without_decidin
 
 
 def test_source_selection_routes_listed_item_luwei_to_fanout() -> None:
-    selection = select_b2_evidence_source(build_retrieval_intent("我吃了豆干、海帶、貢丸的滷味"))
+    selection = select_evidence_source(build_retrieval_intent("我吃了豆干、海帶、貢丸的滷味"))
 
     assert selection.source_path == "listed_item_fanout"
     assert selection.evidence_required == "generic_anchor_packet_per_listed_item"
@@ -33,7 +33,7 @@ def test_source_selection_routes_listed_item_luwei_to_fanout() -> None:
 
 
 def test_source_selection_routes_unknown_composition_to_ask_user_without_canonicalizing_policy() -> None:
-    selection = select_b2_evidence_source(build_retrieval_intent("我吃了滷味"))
+    selection = select_evidence_source(build_retrieval_intent("我吃了滷味"))
 
     assert selection.source_path == "ask_user"
     assert selection.evidence_required == "clarify_support"
@@ -43,7 +43,7 @@ def test_source_selection_routes_unknown_composition_to_ask_user_without_canonic
 
 
 def test_source_selection_keeps_query_only_read_only() -> None:
-    selection = select_b2_evidence_source(build_retrieval_intent("統一巧克力牛乳 400ml多少熱量？"))
+    selection = select_evidence_source(build_retrieval_intent("統一巧克力牛乳 400ml多少熱量？"))
 
     assert selection.source_path == "exact_db"
     assert selection.read_only is True

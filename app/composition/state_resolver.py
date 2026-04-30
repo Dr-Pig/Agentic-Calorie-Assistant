@@ -148,7 +148,7 @@ def _injected_context(
     }
 
 
-def resolve_v2_bundle1_state(
+def resolve_intake_state(
     db: Session,
     *,
     user_external_id: str,

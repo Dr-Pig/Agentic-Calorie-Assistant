@@ -19,7 +19,7 @@ class EstimatedNutritionArtifact:
 
 
 def shadow_stub_estimate_enabled(*, provider: Any) -> bool:
-    if os.getenv("V2_BUNDLE1_ALLOW_STUB_ESTIMATE", "").strip() == "1":
+    if os.getenv("V2_INTAKE_TURN_ALLOW_STUB_ESTIMATE", "").strip() == "1":
         return True
     readiness = provider.readiness() if hasattr(provider, "readiness") else {}
     return readiness.get("configured") is not True
@@ -96,7 +96,7 @@ def build_shadow_stub_artifact(
     fat_g = sum(int(component.fat_g or 0) for component in component_estimates)
     reply_text = "; ".join(f"{component.name} {int(component.estimated_kcal or 0)} kcal" for component in component_estimates)
     payload = EstimatePayload(
-        request_id="bundle1-shadow-stub",
+        request_id="intake_turn-shadow-stub",
         meal_title=meal_title,
         components=[component.name for component in component_estimates],
         component_estimates=component_estimates,
@@ -161,7 +161,7 @@ def build_exact_item_artifact(
         fat_g=fat_g,
     )
     payload = EstimatePayload(
-        request_id="bundle2-exact-item",
+        request_id="intake_execution-exact-item",
         meal_title=title,
         components=[title],
         component_estimates=[component],

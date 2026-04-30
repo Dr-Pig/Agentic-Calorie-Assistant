@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.nutrition.application.b2_candidate_packetizer import (
+from app.nutrition.application.evidence_candidate_packetizer import (
     add_hard_recheck_metadata,
     build_candidate_packet,
 )
@@ -11,7 +11,7 @@ from app.nutrition.application.packetizer_input_seed import (
 )
 from app.nutrition.application.retrieval_intent import RetrievalIntent, build_retrieval_intent
 from app.nutrition.application.small_anchor_store import lookup_anchor_candidates
-from app.nutrition.application.b2_packet_consumption import consume_rechecked_packets
+from app.nutrition.application.evidence_packet_consumption import consume_rechecked_packets
 
 
 def test_packet_consumption_accepts_generic_anchor_as_anchor_evidence_only() -> None:

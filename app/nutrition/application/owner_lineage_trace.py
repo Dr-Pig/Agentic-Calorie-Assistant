@@ -3,12 +3,12 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any
 
-from app.nutrition.application.b2_final_mapping import map_b2_final_item_result
-from app.nutrition.application.b2_source_selection import select_b2_evidence_source
+from app.nutrition.application.final_mapping import map_final_item_result
+from app.nutrition.application.evidence_source_selection import select_evidence_source
 from app.nutrition.application.retrieval_intent import RetrievalGoal, RetrievalIntent
 
 
-def attach_b2_owner_lineage_trace(
+def attach_owner_lineage_trace(
     *,
     payload: Any | None,
     manager_semantic_decision: dict[str, Any],
@@ -33,9 +33,9 @@ def attach_b2_owner_lineage_trace(
         listed_items=[],
         retrieval_goal=retrieval_goal,
     )
-    source_selection = asdict(select_b2_evidence_source(intent))
+    source_selection = asdict(select_evidence_source(intent))
     packet_consumption_trace = _packet_consumption_trace(trace_contract)
-    final_mapping = map_b2_final_item_result(
+    final_mapping = map_final_item_result(
         _item_result_from_payload(payload, trace_contract=trace_contract, manager_semantic_decision=manager_semantic_decision),
         canonical_write_decision=trace_contract.get("canonical_write_decision"),
         interaction_type=_interaction_type(manager_semantic_decision=manager_semantic_decision, manager_final_action=manager_final_action),
@@ -51,8 +51,8 @@ def attach_b2_owner_lineage_trace(
     }
     trace_contract["source_selection"] = source_selection
     trace_contract["packet_consumption_trace"] = packet_consumption_trace
-    trace_contract["b2_final_mapping"] = final_mapping
-    trace_contract["b2_owner_lineage_role"] = "trace_only_no_runtime_authority_change"
+    trace_contract["nutrition_final_mapping"] = final_mapping
+    trace_contract["nutrition_owner_lineage_role"] = "trace_only_no_runtime_authority_change"
     payload.trace_contract = trace_contract
 
 
@@ -121,4 +121,4 @@ def _interaction_type(*, manager_semantic_decision: dict[str, Any], manager_fina
     return "food_logging"
 
 
-__all__ = ["attach_b2_owner_lineage_trace"]
+__all__ = ["attach_owner_lineage_trace"]

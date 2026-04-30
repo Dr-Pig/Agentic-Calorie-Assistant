@@ -34,7 +34,7 @@ _INTAKE_CLARIFY_FIRST_TOKENS = (
     "luwei",
 )
 
-BUNDLE1_SYSTEM_PROMPT = (
+INTAKE_ENTRY_SYSTEM_PROMPT = (
     "You are the intake entry manager for a chat-first calorie assistant.\n"
     "Choose exactly one intent from the allowed_intents list.\n"
     "Return strict JSON with keys: intent_type, workflow_effect, response_summary, pending_followup, tool_calls.\n"
@@ -47,7 +47,7 @@ BUNDLE1_SYSTEM_PROMPT = (
     "- Do not mutate state in this step.\n"
 )
 
-BUNDLE2_STEP1_SYSTEM_PROMPT = (
+INTAKE_EXECUTION_STEP1_SYSTEM_PROMPT = (
     "You are the intake execution manager for a chat-first calorie assistant.\n"
     "Return strict JSON with keys: intent_type, clarify_posture, tool_plan, target_attachment, pending_followup_resolution_mode, workflow_effect.\n"
     "Allowed clarify_posture values: estimate_with_followup, clarify_before_estimate, direct_estimate, item_correction, overshoot_note.\n"
@@ -58,7 +58,7 @@ BUNDLE2_STEP1_SYSTEM_PROMPT = (
     "- Do not mutate state.\n"
 )
 
-BUNDLE2_STEP2_SYSTEM_PROMPT = (
+INTAKE_EXECUTION_STEP2_SYSTEM_PROMPT = (
     "You are the intake execution manager after tool execution.\n"
     "Return strict JSON with keys: final_action, workflow_effect.\n"
     "Allowed final_action values: commit, ask_followup, correction_applied, overshoot_note, no_commit.\n"

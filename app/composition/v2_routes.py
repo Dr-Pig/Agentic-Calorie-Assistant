@@ -7,8 +7,8 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from app.composition.intake_turn_orchestrator import V2Bundle1OnboardingPayload, execute_bundle1_turn
-from app.composition.state_resolver import resolve_v2_bundle1_state
+from app.composition.intake_turn_orchestrator import IntakeOnboardingPayload, execute_intake_turn
+from app.composition.state_resolver import resolve_intake_state
 from app.database import get_db
 from app.intake.application.attachment_resolver import resolve_attachment_decision
 from app.intake.application.current_turn_context_assembler import build_current_turn_context_v1
@@ -61,7 +61,7 @@ async def v2_estimate(req: V2EstimateRequest, db: Any = Depends(get_db)) -> dict
     
     try:
         onboarding_payload = (
-            V2Bundle1OnboardingPayload(**req.onboarding.model_dump())
+            IntakeOnboardingPayload(**req.onboarding.model_dump())
             if req.onboarding is not None
             else None
         )
@@ -69,7 +69,7 @@ async def v2_estimate(req: V2EstimateRequest, db: Any = Depends(get_db)) -> dict
         phase_a_trace = None
         if req.text:
             resolved_local_date = req.local_date or datetime.now().date().isoformat()
-            state_before = resolve_v2_bundle1_state(
+            state_before = resolve_intake_state(
                 db,
                 user_external_id=req.user_id,
                 local_date=resolved_local_date,
@@ -98,7 +98,7 @@ async def v2_estimate(req: V2EstimateRequest, db: Any = Depends(get_db)) -> dict
                 transition_guard_result=transition_guard_result,
                 history_expansion_activation=activation.trace_payload() if activation.applied else None,
             )
-        result = await execute_bundle1_turn(
+        result = await execute_intake_turn(
         db,
         user_external_id=req.user_id,
         raw_user_input=req.text,

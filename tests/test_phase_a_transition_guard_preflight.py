@@ -181,7 +181,7 @@ def _manager_final_payload(final_action: str) -> dict[str, object]:
 
 
 @pytest.mark.asyncio
-async def test_process_bundle2_intake_blocks_answer_only_commit_before_persistence(
+async def test_process_intake_execution_turn_blocks_answer_only_commit_before_persistence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.composition import intake_execution_orchestrator as module
@@ -201,15 +201,15 @@ async def test_process_bundle2_intake_blocks_answer_only_commit_before_persisten
 
     monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
     monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
-    monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
     monkeypatch.setattr(
         module,
-        "persist_bundle2_artifact",
+        "persist_intake_execution_artifact",
         lambda *args, **kwargs: persisted.append((args, kwargs)) if kwargs["final_action"] != "no_commit" else None,
     )
     monkeypatch.setattr(
         module,
-        "build_bundle2_response",
+        "build_intake_execution_response",
         lambda *_, **kwargs: {
             "manager_result": kwargs["manager_result"],
             "phase_a_trace": kwargs["phase_a_trace"],
@@ -217,7 +217,7 @@ async def test_process_bundle2_intake_blocks_answer_only_commit_before_persisten
         },
     )
 
-    result = await module.process_bundle2_intake(
+    result = await module.process_intake_execution_turn(
         None,
         user_external_id="user-1",
         raw_user_input="what is left today?",
@@ -245,7 +245,7 @@ async def test_process_bundle2_intake_blocks_answer_only_commit_before_persisten
 
 
 @pytest.mark.asyncio
-async def test_process_bundle2_intake_records_successful_repair_after_guard_block(
+async def test_process_intake_execution_turn_records_successful_repair_after_guard_block(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.composition import intake_execution_orchestrator as module
@@ -264,15 +264,15 @@ async def test_process_bundle2_intake_records_successful_repair_after_guard_bloc
 
     monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
     monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
-    monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
-    monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *_, **__: None)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", lambda *_, **__: None)
     monkeypatch.setattr(
         module,
-        "build_bundle2_response",
+        "build_intake_execution_response",
         lambda *_, **kwargs: {"manager_result": kwargs["manager_result"]},
     )
 
-    result = await module.process_bundle2_intake(
+    result = await module.process_intake_execution_turn(
         None,
         user_external_id="user-1",
         raw_user_input="what is left today?",
@@ -298,7 +298,7 @@ async def test_process_bundle2_intake_records_successful_repair_after_guard_bloc
 
 
 @pytest.mark.asyncio
-async def test_process_bundle2_intake_repairs_commit_without_evidence(
+async def test_process_intake_execution_turn_repairs_commit_without_evidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.composition import intake_execution_orchestrator as module
@@ -330,15 +330,15 @@ async def test_process_bundle2_intake_repairs_commit_without_evidence(
 
     monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
     monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
-    monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
-    monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *_, **__: None)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", lambda *_, **__: None)
     monkeypatch.setattr(
         module,
-        "build_bundle2_response",
+        "build_intake_execution_response",
         lambda *_, **kwargs: {"manager_result": kwargs["manager_result"]},
     )
 
-    result = await module.process_bundle2_intake(
+    result = await module.process_intake_execution_turn(
         None,
         user_external_id="user-1",
         raw_user_input="我吃了一顆茶葉蛋",

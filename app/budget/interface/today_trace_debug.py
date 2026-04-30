@@ -35,12 +35,12 @@ def render_latest_trace_debug(*, user_id: str, local_date: str) -> str:
     latest_by_bundle = find_latest_traces_for_user_date(
         user_id=user_id,
         local_date=local_date,
-        bundles=("v2_bundle2", "v2_bundle1"),
+        bundles=("intake_execution", "intake_turn", "v2_bundle2", "v2_bundle1"),
     )
-    latest_bundle2_trace = latest_by_bundle.get("v2_bundle2")
-    latest_bundle1_trace = latest_by_bundle.get("v2_bundle1")
-    latest_trace = latest_bundle2_trace or latest_bundle1_trace
-    latest_trace_label = "Latest Intake Execution Trace" if latest_bundle2_trace is not None else "Latest Intake Entry Trace"
+    latest_intake_execution_trace = latest_by_bundle.get("intake_execution") or latest_by_bundle.get("v2_bundle2")
+    latest_intake_turn_trace = latest_by_bundle.get("intake_turn") or latest_by_bundle.get("v2_bundle1")
+    latest_trace = latest_intake_execution_trace or latest_intake_turn_trace
+    latest_trace_label = "Latest Intake Execution Trace" if latest_intake_execution_trace is not None else "Latest Intake Entry Trace"
     if latest_trace is None:
         return ""
     trace_meta = latest_trace.get("trace_meta", {}) or {}

@@ -36,7 +36,7 @@ ACTIVE_RUNTIME_SURFACES = [
     "app/composition/intake_turn_orchestrator.py",
     "app/composition/intake_execution_orchestrator.py",
     "app/runtime/application/manager_service.py",
-    "app/composition/bundle2_tool_batch.py",
+    "app/composition/intake_manager_tool_batch.py",
     "app/runtime/interface/provider_runtime.py",
 ]
 
@@ -57,7 +57,7 @@ def test_sidecar_modules_declare_offline_activation_block() -> None:
         assert contract.not_runtime_authority is True, module_name
         assert contract.user_facing_activation is False, module_name
         assert contract.mutation_authority is False, module_name
-        assert contract.b2_readiness_participant is False, module_name
+        assert contract.product_intelligence_readiness_participant is False, module_name
 
 
 def test_sidecar_modules_are_not_imported_by_active_runtime_surfaces() -> None:

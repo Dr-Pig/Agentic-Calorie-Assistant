@@ -3,15 +3,15 @@ from __future__ import annotations
 from typing import Any
 
 
-def b2_manager_policy_hints() -> dict[str, Any]:
-    """Approved B2 food-semantics hints for live manager diagnostics.
+def nutrition_manager_policy_hints() -> dict[str, Any]:
+    """Approved food-semantics hints for live manager diagnostics.
 
     These hints are product policy context for the Manager LLM. They are not
     deterministic classifiers and must not be used by runtime code to infer
     semantics from raw text.
     """
     return {
-        "policy_source": "approved_b2_case_law",
+        "policy_source": "approved_nutrition_case_law",
         "policy_role": "manager_context_hint_not_deterministic_classifier",
         "rules": [
             {
@@ -34,4 +34,4 @@ def b2_manager_policy_hints() -> dict[str, Any]:
     }
 
 
-__all__ = ["b2_manager_policy_hints"]
+__all__ = ["nutrition_manager_policy_hints"]

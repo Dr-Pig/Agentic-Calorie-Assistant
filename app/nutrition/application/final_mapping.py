@@ -7,7 +7,7 @@ from typing import Any
 ESTIMABLE_EXACTNESS_POSTURES = {"exact", "estimated", "provisional"}
 
 
-def map_b2_final_item_result(
+def map_final_item_result(
     item_result: Mapping[str, Any],
     *,
     canonical_write_decision: Mapping[str, Any] | None = None,
@@ -54,14 +54,14 @@ def map_b2_final_item_result(
     )
 
 
-def map_b2_final_item_results(
+def map_final_item_results(
     item_results: Iterable[Mapping[str, Any]],
     *,
     canonical_write_decision: Mapping[str, Any] | None = None,
     interaction_type: str = "food_logging",
 ) -> list[dict[str, object]]:
     return [
-        map_b2_final_item_result(
+        map_final_item_result(
             item,
             canonical_write_decision=canonical_write_decision,
             interaction_type=interaction_type,
@@ -93,7 +93,7 @@ def _mapping(
     reason: str,
 ) -> dict[str, object]:
     return {
-        "final_mapping_owner": "b2_final_mapping",
+        "final_mapping_owner": "nutrition_final_mapping",
         "external_outcome": external_outcome,
         "ledger_status": ledger_status,
         "mutation_allowed": mutation_allowed,
@@ -102,4 +102,4 @@ def _mapping(
     }
 
 
-__all__ = ["map_b2_final_item_result", "map_b2_final_item_results"]
+__all__ = ["map_final_item_result", "map_final_item_results"]
