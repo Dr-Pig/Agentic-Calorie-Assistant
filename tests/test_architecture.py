@@ -44,8 +44,8 @@ def test_architecture_shared_does_not_depend_on_business_domains():
     shared_dir = Path("app/shared")
     violations = []
     
-    # Shared should not import from intake, nutrition, body, budget, rescue, etc.
-    business_domains = ["intake", "nutrition", "body", "budget", "rescue", "recommendation"]
+    # Shared should not import from intake, nutrition, body, budget, rescue, memory, etc.
+    business_domains = ["intake", "nutrition", "body", "budget", "rescue", "recommendation", "memory"]
     
     for py_file in shared_dir.rglob("*.py"):
         imports = get_all_imports_in_module(py_file)

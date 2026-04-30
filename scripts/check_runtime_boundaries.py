@@ -13,6 +13,15 @@ CONCRETE_PROVIDER_PREFIX = "app.providers"
 TAVILY_ADAPTER_PREFIX = "app.nutrition.infrastructure.web_search.tavily_adapter"
 PROVIDER_RUNTIME_COMPOSITION_ROOT = "app/runtime/interface/provider_runtime.py"
 TAVILY_INFRA_PREFIX = "app/nutrition/infrastructure/web_search/"
+ACTIVE_DOMAIN_PREFIXES = (
+    "app.intake",
+    "app.nutrition",
+    "app.budget",
+    "app.body",
+    "app.memory",
+    "app.recommendation",
+    "app.rescue",
+)
 
 
 @dataclass(frozen=True)
@@ -25,12 +34,20 @@ class Rule:
 RUNTIME_RULES: tuple[Rule, ...] = (
     Rule(
         importer_prefix="app/runtime/",
-        forbidden_import_prefixes=("app.intake.domain", "app.nutrition.domain", "app.budget.domain", ARCHIVE_IMPORT_PREFIX),
+        forbidden_import_prefixes=(
+            "app.intake.domain",
+            "app.nutrition.domain",
+            "app.budget.domain",
+            "app.memory",
+            "app.recommendation",
+            "app.rescue",
+            ARCHIVE_IMPORT_PREFIX,
+        ),
         label="runtime-must-not-own-domain-semantics",
     ),
     Rule(
         importer_prefix="app/shared/",
-        forbidden_import_prefixes=("app.intake", "app.nutrition", "app.budget", "app.body", ARCHIVE_IMPORT_PREFIX),
+        forbidden_import_prefixes=(*ACTIVE_DOMAIN_PREFIXES, ARCHIVE_IMPORT_PREFIX),
         label="shared-must-remain-neutral",
     ),
 )
