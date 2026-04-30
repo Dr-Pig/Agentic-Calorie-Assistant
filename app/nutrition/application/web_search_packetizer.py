@@ -12,6 +12,7 @@ _SIZE_ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
     "\u4e2d\u676f": ("\u4e2d\u676f", "medium", "grande"),
     "\u5c0f\u676f": ("\u5c0f\u676f", "small", "tall"),
 }
+_VARIANT_TOKENS = ("抹茶", "摩卡", "可可", "焦糖", "香草", "榛果", "醇濃")
 
 
 def build_web_search_candidate_packet(
@@ -154,6 +155,13 @@ def _match_type(
 
     if requested_key and candidate_key and requested_key == candidate_key:
         return "exact"
+    if (
+        brand_match == "same"
+        and requested_key
+        and requested_key in candidate_key
+        and not _has_unrequested_variant_token(candidate_core, requested_core)
+    ):
+        return "exact"
 
     overlap = _has_substantial_overlap(requested_core, candidate_core)
     if brand_match == "same" and overlap and identity_confidence in {"high", "medium"}:
@@ -259,6 +267,12 @@ def _has_substantial_overlap(left: str, right: str) -> bool:
         return False
     overlap = _longest_common_substring(left, right)
     return len(overlap) >= 2
+
+
+def _has_unrequested_variant_token(candidate_core: str, requested_core: str) -> bool:
+    candidate_key = lookup_key(candidate_core)
+    requested_key = lookup_key(requested_core)
+    return any(lookup_key(token) in candidate_key and lookup_key(token) not in requested_key for token in _VARIANT_TOKENS)
 
 
 def _longest_common_substring(left: str, right: str) -> str:

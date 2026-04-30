@@ -198,6 +198,31 @@ def test_explicit_conflicting_size_is_rejected_as_wrong_size() -> None:
     assert result.rejected_candidates[0]["risk_type"] == "wrong_size"
 
 
+def test_official_title_with_requested_core_item_is_identity_safe_for_extract() -> None:
+    intent = _intent(
+        base_dish="那堤",
+        alias="那堤",
+        brand_hint="星巴克",
+        size_hint="大杯",
+    )
+    candidate = _candidate(
+        candidate_id="web_search_candidate:starbucks_latte_official",
+        title="熱濃縮咖啡飲料-那堤|星巴克| Starbucks Taiwan",
+        url="https://www.starbucks.com.tw/products/drinks/product.jspx?id=1",
+        query="星巴克大杯那堤",
+        brand_detected="星巴克",
+        identity_confidence="medium",
+        raw_ref="raw/tavily/starbucks_latte_official.json#0",
+    )
+
+    packet = build_web_search_candidate_packet(intent, candidate)
+    rechecked = add_hard_recheck_metadata(packet)
+
+    assert packet["match_type"] == "exact"
+    assert rechecked["supports_exact_claim"] is True
+    assert rechecked["hard_recheck_risks"] == []
+
+
 def test_weak_third_party_candidate_is_rejected_not_accepted_as_anchor() -> None:
     intent = _intent(
         base_dish="珍珠紅茶拿鐵",

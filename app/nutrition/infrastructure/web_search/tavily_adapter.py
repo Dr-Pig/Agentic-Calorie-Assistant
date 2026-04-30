@@ -214,7 +214,7 @@ class TavilyAdapter:
             ("7-11", "7-11"),
             ("familymart", "familymart"),
             ("mcdonald", "mcdonalds"),
-            ("starbucks", "starbucks"),
+            ("starbucks", "星巴克"),
             ("coco", "coco"),
             ("50嵐", "50lan"),
             ("八方雲集", "bafang"),

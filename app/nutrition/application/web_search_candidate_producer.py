@@ -8,6 +8,13 @@ from .web_search_port import WebSearchPort
 
 _ALLOWED_CONFIDENCE = {"high", "medium", "low", "unknown"}
 _ALLOWED_QUALITY_HINTS = {"high", "medium", "low", "unknown"}
+_BRAND_ALIASES = {
+    "starbucks": "星巴克",
+}
+_KNOWN_BRAND_MARKERS = (
+    ("starbucks", "星巴克"),
+    ("星巴克", "星巴克"),
+)
 
 
 async def collect_web_search_candidates(
@@ -36,7 +43,7 @@ def produce_web_search_candidates(
         source_url = _text(hit.get("source_url") or hit.get("url"))
         source_domain = _text(hit.get("source_domain") or hit.get("domain")) or _domain_from_url(source_url)
         source_title = _text(hit.get("source_title") or hit.get("title"))
-        snippet = _text(hit.get("snippet"))
+        snippet = _text(hit.get("snippet") or hit.get("content"))
         score = _number_or_none(hit.get("score"))
         source_quality_hint = _quality_hint(hit.get("source_quality_hint") or hit.get("source_quality_label"))
         officialness_hint = _officialness_hint(hit.get("officialness_hint") or hit.get("officialness"))
@@ -55,7 +62,10 @@ def produce_web_search_candidates(
                 "score": score,
                 "source_quality_hint": source_quality_hint,
                 "officialness_hint": officialness_hint,
-                "brand_detected": _text(hit.get("brand_detected")),
+                "brand_detected": _brand_identity(
+                    _text(hit.get("brand_detected"))
+                    or _infer_brand_identity(" ".join([source_title, snippet, source_domain]))
+                ),
                 "channel_detected": _text(hit.get("channel_detected")),
                 "serving_basis_candidate": _serving_basis_candidate(
                     hit.get("serving_basis_candidate") or hit.get("serving_basis")
@@ -87,6 +97,18 @@ def _domain_from_url(source_url: str) -> str:
 
 def _text(value: object) -> str:
     return value.strip() if isinstance(value, str) else ""
+
+
+def _brand_identity(value: str) -> str:
+    return _BRAND_ALIASES.get(value.strip().lower(), value.strip())
+
+
+def _infer_brand_identity(text: str) -> str:
+    haystack = text.lower()
+    for marker, label in _KNOWN_BRAND_MARKERS:
+        if marker.lower() in haystack:
+            return label
+    return ""
 
 
 def _number_or_none(value: object) -> float | None:

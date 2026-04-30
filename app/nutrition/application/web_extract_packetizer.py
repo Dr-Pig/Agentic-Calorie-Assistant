@@ -11,6 +11,7 @@ _KCAL_FIELD_KEYS = ("kcal", "label_kcal", "kcal_band")
 _EXPLICIT_KCAL_PATTERNS = (
     re.compile(r"(?<![\d.])(\d+(?:\.\d+)?)\s*(?:kcal|calories?)\b", re.IGNORECASE),
     re.compile(r"熱量[:：]?\s*(\d+(?:\.\d+)?)\s*(?:大卡|卡|kcal)?", re.IGNORECASE),
+    re.compile(r"熱量[^\d]{0,12}(\d+(?:\.\d+)?)\s*(?:大卡|卡|kcal)?", re.IGNORECASE),
 )
 
 
@@ -41,13 +42,17 @@ def _build_web_extract_packet(
     if serving_basis is None:
         return None
 
-    kcal = _extract_exact_kcal(row)
+    kcal = _extract_exact_kcal(row, intent=intent)
     if kcal is None:
         return None
 
     title = _text(row.get("title")) or _text(selected_search_packet.get("title"))
     requested_name = _requested_identity(intent, selected_search_packet)
-    if lookup_key(title) != lookup_key(_text(selected_search_packet.get("canonical_name"))):
+    if not _title_identity_matches(
+        title,
+        selected_search_packet=selected_search_packet,
+        requested_name=requested_name,
+    ):
         return None
     if lookup_key(requested_name) and lookup_key(requested_name) != lookup_key(_text(selected_search_packet.get("matched_name"))):
         return None
@@ -85,7 +90,11 @@ def _build_web_extract_packet(
     return packet
 
 
-def _extract_exact_kcal(row: Mapping[str, object]) -> float | None:
+def _extract_exact_kcal(row: Mapping[str, object], *, intent: RetrievalIntent) -> float | None:
+    requested_size_value = _extract_requested_size_kcal(row, intent=intent)
+    if requested_size_value is not None:
+        return requested_size_value
+
     field_values = [_parse_single_kcal_value(row.get(key)) for key in _KCAL_FIELD_KEYS]
     parsed_field_values = [value for value in field_values if value is not None]
     if len(set(parsed_field_values)) > 1:
@@ -105,6 +114,58 @@ def _extract_exact_kcal(row: Mapping[str, object]) -> float | None:
     if len(deduped) != 1:
         return None
     return deduped[0]
+
+
+def _extract_requested_size_kcal(row: Mapping[str, object], *, intent: RetrievalIntent) -> float | None:
+    size_hint = _text(intent.size_hint)
+    if not size_hint:
+        return None
+    raw_content = _text(row.get("raw_content"))
+    if not raw_content:
+        return None
+    size_aliases = {
+        "大杯": ("大杯", "grande", "large"),
+        "中杯": ("中杯", "tall", "medium"),
+        "小杯": ("小杯", "short", "small"),
+        "特大杯": ("特大杯", "venti"),
+    }
+    aliases = size_aliases.get(size_hint, (size_hint,))
+    matches: list[float] = []
+    for alias in aliases:
+        pattern = re.compile(
+            rf"{re.escape(alias)}[^\d]{{0,80}}(?:熱量[^\d]{{0,20}})?(\d+(?:\.\d+)?)\s*(?:大卡|卡|kcal)?",
+            re.IGNORECASE,
+        )
+        for matched in pattern.findall(raw_content):
+            try:
+                matches.append(float(matched))
+            except ValueError:
+                continue
+    deduped = list(dict.fromkeys(matches))
+    if len(deduped) == 1:
+        return deduped[0]
+    return None
+
+
+def _title_identity_matches(
+    title: str,
+    *,
+    selected_search_packet: Mapping[str, object],
+    requested_name: str,
+) -> bool:
+    title_key = lookup_key(title)
+    if not title_key:
+        return False
+    candidates = (
+        selected_search_packet.get("canonical_name"),
+        selected_search_packet.get("matched_name"),
+        requested_name,
+    )
+    for candidate in candidates:
+        candidate_key = lookup_key(_text(candidate))
+        if candidate_key and (title_key == candidate_key or title_key in candidate_key or candidate_key in title_key):
+            return True
+    return False
 
 
 def _parse_single_kcal_value(value: object) -> float | None:

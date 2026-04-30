@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from scripts.live_diagnostic_decision_pack import (
     B2_ASK_FIRST_POLICY_VIOLATION,
+    B2_EMPTY_ITEM_RESULTS,
     VERDICT_DIAGNOSTIC_OBSERVATION,
     VERDICT_PRODUCT_DECISION_REQUIRED,
     VERDICT_READINESS_BLOCKER,
@@ -166,6 +167,42 @@ def test_b2_live_contract_harness_blocks_missing_item_results() -> None:
     assert report["verdict_category"] == VERDICT_READINESS_BLOCKER
     assert case["verdict_category"] == VERDICT_READINESS_BLOCKER
     assert "missing_item_results" in case["blockers"]
+    assert case["failure_family"] == B2_EMPTY_ITEM_RESULTS
+    assert case["empty_item_results_root_cause"] == "prompt_contract_under_specified"
+
+
+def test_b2_live_contract_harness_classifies_bridge_dropped_items() -> None:
+    report = build_b2_live_llm_diagnostic_contract_report(
+        phase_b2_report=_phase_b2_report(),
+        provider_outputs_by_case_id={"B2-002": {"item_results": []}},
+        provider_traces_by_case_id={
+            "B2-002": {
+                "raw_item_results_count": 1,
+                "normalized_item_results_count": 0,
+                "raw_top_level_keys": ["item_results"],
+            }
+        },
+    )
+
+    case = next(item for item in report["case_results"] if item["case_id"] == "B2-002")
+    assert case["failure_family"] == B2_EMPTY_ITEM_RESULTS
+    assert case["empty_item_results_root_cause"] == "provider_bridge_dropped_items"
+    assert case["raw_provider_output_has_items"] is True
+    assert case["normalized_output_has_items"] is False
+
+
+def test_b2_live_contract_harness_classifies_payload_missing_evidence() -> None:
+    phase_b2_report = _phase_b2_report()
+    _case_by_id(phase_b2_report, "B2-002")["manager_pass_2"]["item_results"][0]["evidence_used"] = []
+
+    report = build_b2_live_llm_diagnostic_contract_report(
+        phase_b2_report=phase_b2_report,
+        provider_outputs_by_case_id={"B2-002": {"item_results": []}},
+    )
+
+    case = next(item for item in report["case_results"] if item["case_id"] == "B2-002")
+    assert case["failure_family"] == B2_EMPTY_ITEM_RESULTS
+    assert case["empty_item_results_root_cause"] == "payload_missing_evidence"
 
 
 def test_b2_live_contract_harness_blocks_forbidden_authority_fields() -> None:
