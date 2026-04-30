@@ -28,6 +28,9 @@ FORBIDDEN_TRACKED_PATH_PATTERNS = (
     _join("docs/quality/V2_EVAL_", "BUNDLE_", "2_CASES.md"),
     _join("docs/quality/", "BUNDLE_V2_", "EVAL_STABILITY_ANALYSIS"),
     _join("static/v2-", "intake_turn", "-dashboard.html"),
+    _join("v2_", "bundle", "3"),
+    _join("test_", "bundle", "2_tool_batch"),
+    _join("app/nutrition/application/", "b2_"),
 )
 
 FORBIDDEN_TEXT_MARKERS = (
@@ -122,6 +125,26 @@ ACTIVE_LEGACY_NAMING_MARKERS = (
         "classification": "blocked_active_code",
         "marker": "phase_b2",
         "path_prefixes": ("app/",),
+    },
+    {
+        "classification": "blocked_active_code",
+        "marker": _join("v2_", "bundle", "3"),
+        "path_prefixes": ("app/", "tests/", "scripts/", "config/", "docs/specs/APP_V2_IMPLEMENTATION_PLAN.md"),
+    },
+    {
+        "classification": "blocked_active_code",
+        "marker": _join("process_", "bundle", "3"),
+        "path_prefixes": ("app/", "tests/", "scripts/"),
+    },
+    {
+        "classification": "blocked_active_code",
+        "marker": _join("Bundle ", "3"),
+        "path_prefixes": ("app/", "tests/", "scripts/", "docs/specs/APP_V2_IMPLEMENTATION_PLAN.md"),
+    },
+    {
+        "classification": "blocked_active_code",
+        "marker": _join("app/nutrition/application/", "b2_"),
+        "path_prefixes": ("app/", "tests/", "scripts/", "config/", "docs/"),
     },
 )
 

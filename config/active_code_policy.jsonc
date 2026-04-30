@@ -182,7 +182,7 @@
       "note": "Canonical persistence is active Wave 1 infrastructure, but proposal persistence and serializer helpers need extraction."
     },
     {
-      "path": "app/nutrition/application/b2_local_synthesis.py",
+      "path": "app/nutrition/application/local_synthesis.py",
       "classification": "wave1_canonical_active",
       "recommended_action": "keep_and_deflate",
       "note": "B2 local synthesis is active Wave 1 product-intelligence code; keep manager-owned semantics and split policy helpers when it grows."

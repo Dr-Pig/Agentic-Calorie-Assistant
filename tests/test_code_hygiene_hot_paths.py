@@ -238,7 +238,7 @@ def test_intake_execution_response_uses_preloaded_budget_views(monkeypatch: pyte
             self.current_budget_view = _BudgetView()
 
     def _raise_requery(*args, **kwargs):
-        raise AssertionError("Bundle 2 response should use preloaded state views, not re-query budget views")
+        raise AssertionError("Intake execution response should use preloaded state views, not re-query budget views")
 
     monkeypatch.setattr(module, "build_remaining_budget_answer_contract", _raise_requery)
     monkeypatch.setattr(module, "render_intake_reply", lambda **kwargs: f"remaining {kwargs['remaining_budget'].remaining_kcal}")
