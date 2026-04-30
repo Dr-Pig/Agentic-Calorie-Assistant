@@ -1,9 +1,21 @@
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _absolute_imports(path: Path) -> list[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    imports: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imports.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imports.append(node.module)
+    return imports
 
 
 def _legacy_provider_token(prefix: str) -> str:
@@ -65,3 +77,71 @@ def test_v2_services_import_intake_domain_tools_and_ignore_legacy_provider_split
     assert "search_adapter" not in bundle2
     assert "search_adapter" not in bundle2_tools
     assert "search_adapter" not in estimation
+
+
+def test_offline_sidecar_stack_is_not_imported_by_active_runtime_entrypoints() -> None:
+    active_entrypoints = [
+        ROOT / "app" / "main.py",
+        ROOT / "app" / "routes.py",
+        ROOT / "app" / "schemas.py",
+        ROOT / "app" / "models.py",
+        ROOT / "app" / "intake" / "interface" / "v2_routes.py",
+        ROOT / "app" / "intake" / "interface" / "intake_routes.py",
+        ROOT / "app" / "budget" / "interface" / "today_routes.py",
+        ROOT / "app" / "body" / "interface" / "body_plan_routes.py",
+        ROOT / "app" / "runtime" / "application" / "manager_service.py",
+        ROOT / "app" / "runtime" / "application" / "bundle2_tool_batch.py",
+        ROOT / "app" / "runtime" / "application" / "bundle2_response.py",
+        ROOT / "app" / "runtime" / "application" / "sidecar_service.py",
+    ]
+    forbidden_prefixes = (
+        "app.memory",
+        "app.recommendation",
+        "app.rescue",
+        "app.runtime.application.proactive_deterministic_gate",
+        "app.runtime.contracts.pending_meal_intent",
+        "app.runtime.contracts.proactive_gate",
+    )
+
+    violations: list[str] = []
+    for path in active_entrypoints:
+        for imported in _absolute_imports(path):
+            if imported.startswith(forbidden_prefixes):
+                violations.append(f"{path.relative_to(ROOT)} imports {imported}")
+
+    assert not violations, "Offline sidecar modules must stay out of active runtime entrypoints: " + ", ".join(violations)
+
+
+def test_root_compatibility_files_do_not_absorb_sidecar_stack() -> None:
+    protected_files = [
+        ROOT / "app" / "routes.py",
+        ROOT / "app" / "schemas.py",
+        ROOT / "app" / "models.py",
+    ]
+    forbidden_import_prefixes = (
+        "app.memory",
+        "app.recommendation",
+        "app.rescue",
+    )
+    forbidden_tokens = [
+        "PendingMealIntent",
+        "ProactiveGateInput",
+        "RecommendationCandidateQuality",
+        "PreferenceProfileSummary",
+        "GoldenOrderSummary",
+        "SuppressionSummary",
+        "RescueProposalRead",
+        "dismiss_rescue_plan",
+    ]
+
+    violations: list[str] = []
+    for path in protected_files:
+        source = path.read_text(encoding="utf-8")
+        for imported in _absolute_imports(path):
+            if imported.startswith(forbidden_import_prefixes):
+                violations.append(f"{path.relative_to(ROOT)} imports {imported}")
+        for token in forbidden_tokens:
+            if token in source:
+                violations.append(f"{path.relative_to(ROOT)} contains {token}")
+
+    assert not violations, "Protected root files must not absorb sidecar contracts: " + ", ".join(violations)

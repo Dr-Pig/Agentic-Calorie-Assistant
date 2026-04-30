@@ -113,6 +113,43 @@ def test_active_app_python_files_are_mapped_to_categories() -> None:
     assert not unmapped, f"active app python files are unmapped in the active code policy: {unmapped[:20]}"
 
 
+def test_top_level_app_packages_have_domain_status() -> None:
+    excluded_packages = {"__pycache__"}
+    known_domains = set(ACTIVE_CODE_POLICY["domain_status"])
+    top_level_packages = {
+        path.name
+        for path in (ROOT / "app").iterdir()
+        if path.is_dir() and path.name not in excluded_packages
+    }
+    missing = sorted(top_level_packages - known_domains)
+
+    assert not missing, f"top-level app packages need domain_status ownership entries: {missing}"
+
+
+def test_no_empty_symmetry_files_under_active_app_packages() -> None:
+    owned_layer_dirs = {"agent", "application", "contracts", "domain", "infrastructure", "interface"}
+    offenders: list[str] = []
+
+    for path in iter_active_python_files(ACTIVE_CODE_POLICY):
+        repo_path = normalize_repo_path(path)
+        if path.name == "__init__.py":
+            continue
+        if not any(part in owned_layer_dirs for part in path.parts):
+            continue
+
+        meaningful_lines = [
+            line.strip()
+            for line in path.read_text(encoding="utf-8", errors="ignore").splitlines()
+            if line.strip()
+            and not line.strip().startswith("#")
+            and line.strip() != "from __future__ import annotations"
+        ]
+        if not meaningful_lines or meaningful_lines == ["pass"]:
+            offenders.append(repo_path)
+
+    assert not offenders, f"empty symmetry files are not allowed in active app packages: {offenders}"
+
+
 def test_transition_override_paths_have_effective_caps() -> None:
     missing: list[str] = []
     for path_str in ACTIVE_CODE_POLICY["transition_overrides"]:
