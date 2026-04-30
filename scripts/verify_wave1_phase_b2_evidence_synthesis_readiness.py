@@ -71,6 +71,7 @@ MATCH_TYPES = {"exact", "alias_exact", "generic", "related", "no_match"}
 EVIDENCE_USAGE = {"exact", "anchor", "fallback", "semantic_hint", "rejected"}
 EVIDENCE_CONFIDENCE = {"exact", "strong", "moderate", "weak", "insufficient"}
 EXACTNESS_POSTURES = {"exact", "estimated", "provisional", "unresolved"}
+FINAL_MAPPING_EXTERNAL_OUTCOMES = {"logged", "draft", "no_mutation_query"}
 SAME_ITEM_MATCH_TYPES = {"exact", "alias_exact"}
 EXACT_SOURCE_QUALITY = {"internal_exact", "official", "brand_menu"}
 EXACT_SOURCE_TYPES = {"exact_db", "web_search", "web_extract"}
@@ -811,6 +812,18 @@ def _check_manager_pass_2(case: dict[str, Any], blockers: list[dict[str, str]]) 
         elif final_mapping.get("final_mapping_owner") != "b2_final_mapping":
             _add(blockers, "b2_final_mapping_owner_invalid", "final_mapping must be owned by b2_final_mapping.")
             final_mapping_violations.append({"item_index": item_index, "owner": final_mapping.get("final_mapping_owner")})
+        elif final_mapping.get("external_outcome") not in FINAL_MAPPING_EXTERNAL_OUTCOMES:
+            _add(
+                blockers,
+                "b2_final_mapping_external_outcome_invalid",
+                "B2 final_mapping.external_outcome must stay within logged, draft, or no_mutation_query.",
+            )
+            final_mapping_violations.append(
+                {
+                    "item_index": item_index,
+                    "external_outcome": final_mapping.get("external_outcome"),
+                }
+            )
         elif item.get("ledger_status") != final_mapping.get("ledger_status"):
             _add(blockers, "b2_final_mapping_ledger_status_mismatch", "ledger_status must be derived from B2 final_mapping, not compatibility helper logic.")
             final_mapping_violations.append(

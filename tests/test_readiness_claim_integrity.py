@@ -7,7 +7,7 @@ from app.shared.contracts.readiness_claim import (
     build_readiness_claim,
     validate_readiness_claim_integrity,
 )
-from scripts.audit_readiness_claim_integrity import audit_readiness_claim_integrity
+from scripts.audit_readiness_claim_integrity import DEFAULT_ARTIFACT_PATHS, audit_readiness_claim_integrity
 
 
 def _claim(**overrides: object) -> dict[str, object]:
@@ -85,6 +85,12 @@ def test_founder_deterministic_pass_does_not_claim_readiness() -> None:
 
     assert result["passed"] is True
     assert result["readiness_flags"] == {}
+
+
+def test_default_readiness_audit_includes_b2_active_runtime_diagnostic() -> None:
+    artifact_paths = {path.as_posix() for path in DEFAULT_ARTIFACT_PATHS}
+
+    assert any("wave1_b2_active_runtime_integration_diagnostic.json" in path for path in artifact_paths)
 
 
 def test_b2_semantic_owner_inversion_blocks_ready_flag() -> None:
