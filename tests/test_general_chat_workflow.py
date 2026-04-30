@@ -3,12 +3,12 @@ from __future__ import annotations
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.intake.application.general_chat_service import build_general_chat_response_pass
 from app.body.application import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_or_create_user
-from app.shared.infra.canonical_persistence import commit_meal_payload_to_canonical
+from app.intake.application.general_chat_service import build_general_chat_response_pass
 from app.models import Base, BodyPlanRecord, DayBudgetLedgerRecord, MealThreadRecord
 from app.schemas import CommitRequestCandidate
+from app.shared.infra.canonical_persistence import commit_meal_payload_to_canonical
 
 
 def _session() -> Session:
@@ -18,9 +18,8 @@ def _session() -> Session:
     return testing_session()
 
 
-def test_general_chat_budget_query_reads_shared_budget_views() -> None:
-    db = _session()
-    user = get_or_create_user(db, "general-chat-budget")
+def _bootstrap_user(db: Session, external_id: str):
+    user = get_or_create_user(db, external_id)
     bootstrap = bootstrap_body_plan_for_date(
         db,
         user=user,
@@ -35,12 +34,18 @@ def test_general_chat_budget_query_reads_shared_budget_views() -> None:
             local_date="2026-04-18",
         ),
     )
+    return user, bootstrap
+
+
+def test_general_chat_budget_mode_reads_shared_budget_views() -> None:
+    db = _session()
+    user, bootstrap = _bootstrap_user(db, "general-chat-budget")
     commit_meal_payload_to_canonical(
         db,
         user=user,
         candidate=CommitRequestCandidate(
             request_id="general-chat-meal-1",
-            planner_intent="food_estimation",
+            manager_intent="food_estimation",
             version_reason="new_intake",
             meal_title="breakfast sandwich",
             raw_input="breakfast sandwich",
@@ -57,7 +62,7 @@ def test_general_chat_budget_query_reads_shared_budget_views() -> None:
         user=user,
         candidate=CommitRequestCandidate(
             request_id="general-chat-meal-2",
-            planner_intent="food_estimation",
+            manager_intent="food_estimation",
             version_reason="new_intake",
             meal_title="chicken rice",
             raw_input="chicken rice",
@@ -73,7 +78,8 @@ def test_general_chat_budget_query_reads_shared_budget_views() -> None:
     result = build_general_chat_response_pass(
         db,
         user_external_id="general-chat-budget",
-        raw_user_input="我今天還剩多少熱量？",
+        raw_user_input="log chicken rice",
+        mode="budget_summary",
         local_date="2026-04-18",
     )
 
@@ -86,28 +92,15 @@ def test_general_chat_budget_query_reads_shared_budget_views() -> None:
     assert str(bootstrap.target_result.recommended_target_kcal - 1030) in result.reply_text
 
 
-def test_general_chat_goal_query_reads_active_body_plan_view() -> None:
+def test_general_chat_goal_mode_reads_active_body_plan_view() -> None:
     db = _session()
-    user = get_or_create_user(db, "general-chat-goal")
-    bootstrap_body_plan_for_date(
-        db,
-        user=user,
-        inputs=OnboardingBootstrapInput(
-            sex="female",
-            age_years=30,
-            height_cm=165.0,
-            current_weight_kg=58.0,
-            activity_level="sedentary",
-            goal_type="lose_weight",
-            weekly_target_rate_kg=0.5,
-            local_date="2026-04-18",
-        ),
-    )
+    _bootstrap_user(db, "general-chat-goal")
 
     result = build_general_chat_response_pass(
         db,
         user_external_id="general-chat-goal",
-        raw_user_input="我現在的目標是什麼？",
+        raw_user_input="how many calories are left?",
+        mode="goal_summary",
         local_date="2026-04-18",
     )
 
@@ -118,23 +111,26 @@ def test_general_chat_goal_query_reads_active_body_plan_view() -> None:
     assert "lose_weight" in result.reply_text
 
 
+def test_general_chat_mode_not_raw_text_selects_read_surface() -> None:
+    db = _session()
+    _bootstrap_user(db, "general-chat-explicit-mode")
+
+    result = build_general_chat_response_pass(
+        db,
+        user_external_id="general-chat-explicit-mode",
+        raw_user_input="how many calories are left?",
+        mode="fallback_answer",
+        local_date="2026-04-18",
+    )
+
+    assert result.disposition == "answer_only"
+    assert result.workflow_effect == "answer_general_product_question_without_state_mutation"
+    assert result.required_read_surfaces == []
+
+
 def test_general_chat_has_no_state_mutation_side_effects() -> None:
     db = _session()
-    user = get_or_create_user(db, "general-chat-no-mutation")
-    bootstrap_body_plan_for_date(
-        db,
-        user=user,
-        inputs=OnboardingBootstrapInput(
-            sex="female",
-            age_years=30,
-            height_cm=165.0,
-            current_weight_kg=58.0,
-            activity_level="sedentary",
-            goal_type="lose_weight",
-            weekly_target_rate_kg=0.5,
-            local_date="2026-04-18",
-        ),
-    )
+    _bootstrap_user(db, "general-chat-no-mutation")
     before_body_plan_count = db.query(BodyPlanRecord).count()
     before_ledger_count = db.query(DayBudgetLedgerRecord).count()
     before_meal_thread_count = db.query(MealThreadRecord).count()
@@ -142,7 +138,8 @@ def test_general_chat_has_no_state_mutation_side_effects() -> None:
     result = build_general_chat_response_pass(
         db,
         user_external_id="general-chat-no-mutation",
-        raw_user_input="我今天還剩多少熱量？",
+        raw_user_input="any text",
+        mode="budget_summary",
         local_date="2026-04-18",
     )
 
@@ -159,7 +156,8 @@ def test_general_chat_open_workflow_boundary_does_not_silently_enter_intake() ->
     result = build_general_chat_response_pass(
         db,
         user_external_id="general-chat-open-workflow",
-        raw_user_input="晚餐我吃牛肉麵",
+        raw_user_input="log chicken rice",
+        mode="workflow_handoff",
         local_date="2026-04-18",
     )
 

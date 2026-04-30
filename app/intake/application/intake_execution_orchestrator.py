@@ -1,4 +1,4 @@
-"""Thin Bundle 2 intake entrypoint.
+"""Thin intake execution entrypoint.
 
 Semantic ownership lives in the single-manager runtime, domain tools, execution
 guard, persistence support, and deterministic sidecar builders.
@@ -19,22 +19,17 @@ from ...runtime.application.manager_service import run_intake_manager
 from ...runtime.application.state_resolver import resolve_v2_bundle1_state
 from ...nutrition.application.web_extract_port import WebExtractPort
 from ...nutrition.application.web_search_port import WebSearchPort
-from . import manager_tools as tools
-from .attachment_resolver import resolve_attachment_decision
 from .commit_boundary_preflight import run_commit_boundary_preflight
 from .context_injection_policy import build_manager_context_pack
-from .current_turn_context_assembler import build_current_turn_context_v1
 from .history_expansion_manager_runtime import (
     PHASE_A_EXPAND_HISTORY_TOOL,
     activate_manager_triggered_history_expansion,
     manager_history_expansion_eligibility,
 )
-from .history_expansion_runtime import activate_pre_manager_history_expansion
 from .final_action_mutation_classifier import classify_final_action_mutation
 from .intake_execution_persistence import initial_state_mutation_summary, persist_bundle2_artifact
-from .phase_a_trace import build_phase_a_trace
-from .shadow_hypothesis_runtime import build_shadow_hypothesis_runtime
-from .transition_guard import resolve_transition_guard
+from .intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool
+from .phase_a_runtime_context import prepare_phase_a_runtime_context
 
 
 def _now_ms() -> int:
@@ -66,39 +61,22 @@ async def process_bundle2_intake(
 ) -> dict[str, Any]:
     active_manager_provider = manager_provider or provider
     state_mutation_summary = initial_state_mutation_summary()
-    correction_target = tools.resolve_correction_target_tool(resolved_state=state_before)
-    if current_turn_context is None:
-        current_turn_context = build_current_turn_context_v1(
-            raw_user_input=raw_user_input,
-            resolved_state=state_before,
-        )
-    pre_attachment_decision = resolve_attachment_decision(current_turn_context)
-    pre_transition_guard_result = resolve_transition_guard(current_turn_context, pre_attachment_decision)
-    activation = activate_pre_manager_history_expansion(
-        current_turn_context=current_turn_context,
+    correction_target = resolve_correction_target_tool(resolved_state=state_before)
+    phase_a_runtime = prepare_phase_a_runtime_context(
+        raw_user_input=raw_user_input,
         resolved_state=state_before,
-        pre_attachment_decision=pre_attachment_decision,
-        pre_transition_guard_result=pre_transition_guard_result,
-    )
-    current_turn_context = activation.enriched_current_turn_context
-    latest_attachment_decision = activation.post_attachment_decision
-    latest_transition_guard_result = activation.post_transition_guard_result
-    if phase_a_trace is None or activation.applied:
-        phase_a_trace = build_phase_a_trace(
-            current_turn_context=current_turn_context,
-            attachment_decision=latest_attachment_decision,
-            transition_guard_result=latest_transition_guard_result,
-            history_expansion_activation=activation.trace_payload() if activation.applied else None,
-        )
-    shadow_runtime = build_shadow_hypothesis_runtime(
         current_turn_context=current_turn_context,
-        attachment_decision=latest_attachment_decision,
-        transition_guard_result=latest_transition_guard_result,
+        manager_context_pack=manager_context_pack,
+        phase_a_trace=phase_a_trace,
     )
-    phase_a_trace = dict(phase_a_trace or {})
-    phase_a_trace["shadow_hypothesis_runtime"] = shadow_runtime.trace_payload()
-    if manager_context_pack is None and current_turn_context is not None:
-        manager_context_pack = build_manager_context_pack(current_turn_context=current_turn_context)
+    current_turn_context = phase_a_runtime.current_turn_context
+    manager_context_pack = phase_a_runtime.manager_context_pack
+    phase_a_trace = phase_a_runtime.phase_a_trace
+    latest_attachment_decision = phase_a_runtime.attachment_decision
+    latest_transition_guard_result = phase_a_runtime.transition_guard_result
+    shadow_runtime = phase_a_runtime.shadow_runtime
+    if current_turn_context is None or latest_attachment_decision is None or latest_transition_guard_result is None:
+        raise ValueError("Phase A runtime context is required for intake execution.")
     manager_history_eligibility = manager_history_expansion_eligibility(
         current_turn_context=current_turn_context,
         attachment_decision=latest_attachment_decision,
@@ -126,7 +104,15 @@ async def process_bundle2_intake(
         nonlocal manager_triggered_history_trace
         stage_start = _now_ms()
         tool_calls = list(kwargs.get("tool_calls") or [])
-        if any(str(call.get("name") or call.get("tool_name") or "").strip() == PHASE_A_EXPAND_HISTORY_TOOL for call in tool_calls):
+        history_tool_call = next(
+            (
+                call
+                for call in tool_calls
+                if str(call.get("name") or call.get("tool_name") or "").strip() == PHASE_A_EXPAND_HISTORY_TOOL
+            ),
+            None,
+        )
+        if history_tool_call is not None:
             if manager_triggered_history_attempted:
                 result = {
                     "tool_name": PHASE_A_EXPAND_HISTORY_TOOL,
@@ -143,6 +129,7 @@ async def process_bundle2_intake(
                     resolved_state=state_before,
                     pre_attachment_decision=latest_attachment_decision,
                     pre_transition_guard_result=latest_transition_guard_result,
+                    manager_tool_arguments=dict(history_tool_call.get("arguments") or {}),
                 )
                 current_turn_context = expansion.enriched_current_turn_context
                 latest_attachment_decision = expansion.post_attachment_decision
@@ -152,7 +139,7 @@ async def process_bundle2_intake(
                 manager_triggered_history_trace = expansion.trace_payload()
                 result = expansion.tool_result()
             record_timing("phase_a_history_expansion", _now_ms() - stage_start)
-            tools.append_trace_event_tool(
+            append_trace_event_tool(
                 request_id=request_id,
                 stage="phase_a_expand_history",
                 status="ok",
@@ -176,7 +163,7 @@ async def process_bundle2_intake(
             tool_state=tool_state,
         )
         record_timing("tool_batch", _now_ms() - stage_start)
-        tools.append_trace_event_tool(
+        append_trace_event_tool(
             request_id=request_id,
             stage="v2_tool_batch",
             status="ok",
@@ -231,7 +218,7 @@ async def process_bundle2_intake(
         current_turn_context=current_turn_context,
         manager_context_pack=manager_context_pack,
         history_expansion_policy=HistoryExpansionPolicy(),
-        phase_a_shadow_hypothesis=shadow_runtime.manager_payload,
+        phase_a_shadow_hypothesis=shadow_runtime.manager_payload if shadow_runtime is not None else None,
         phase_a_history_expansion_enabled=phase_a_history_expansion_enabled,
         tool_executor=tool_executor,
         manager_context_refresher=manager_context_refresher,
@@ -240,7 +227,7 @@ async def process_bundle2_intake(
         max_rounds=3,
     )
     record_timing("manager_loop", _now_ms() - stage_start)
-    tools.append_trace_event_tool(
+    append_trace_event_tool(
         request_id=request_id,
         stage="v2_manager_loop",
         status="ok",
@@ -265,6 +252,7 @@ async def process_bundle2_intake(
         manager_final_action=manager_result.final_action,
         active_body_plan_present=bool(getattr(state_before, "onboarding_ready", False)),
         correction_target=tool_state["correction_target"],
+        manager_semantic_decision=dict(getattr(manager_result, "semantic_decision", {}) or {}),
     )
     phase_a_trace = dict(phase_a_trace or {})
     if manager_triggered_history_trace is not None:
@@ -291,6 +279,7 @@ async def process_bundle2_intake(
             db,
             nutrition_artifact=nutrition_artifact,
             final_action=manager_result.final_action,
+            manager_semantic_decision=dict(getattr(manager_result, "semantic_decision", {}) or {}),
             request_id=request_id,
             record_timing=record_timing,
             now_ms=_now_ms,

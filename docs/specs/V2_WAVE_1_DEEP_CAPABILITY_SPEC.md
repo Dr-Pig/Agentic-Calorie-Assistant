@@ -10,7 +10,7 @@ Wave 1 不是單一 bundle，也不是整個產品的永久總規格。
 本文件直接服務於：
 
 - current-wave implementation
-- Bundle 1 / Bundle 2 execution
+- Manager-style intake-entry / intake-depth execution
 - benchmark v1 / benchmark v2 / turn2 replay 的重整與對位
 - 後續 capability micro-suites 設計
 - 防止 agent 以 fake pass、hardcoded patch、架構失真、延遲失控的方式把案例「弄綠」
@@ -34,8 +34,8 @@ Wave 1 不是單一 bundle，也不是整個產品的永久總規格。
 
 本文件應被以下文件引用：
 
-- `docs/quality/V2_EVAL_BUNDLE_1_CASES.md`
-- `docs/quality/V2_EVAL_BUNDLE_2_CASES.md`
+- Manager-style Founder E2E diagnostics
+- Wave 1 B1/B2 capability harnesses
 - Wave 1 capability micro-suites
 - benchmark v1 / v2 mapping docs
 - turn2 hybrid replay mapping docs

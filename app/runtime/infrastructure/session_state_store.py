@@ -64,7 +64,42 @@ def load_meal_records(session_id: str) -> list[MealRecord]:
     return load_jsonl_records(meal_path(SESSION_RECORD_ROOT, session_id), MealRecord)  # type: ignore[return-value]
 
 
-def retrieve_planner_context(
+def retrieve_manager_context_from_records(
+    *,
+    transcript_records: Iterable[dict[str, object] | SessionTranscriptRecord],
+    meal_records: Iterable[dict[str, object] | MealRecord],
+    query: str,
+    active_meal_id: int | None,
+    pending_question: str | None,
+    limit_transcript: int = 4,
+    limit_meals: int = 3,
+    historical_limit: int = 2,
+) -> tuple[list[RetrievedContextChunk], list[RetrievedContextChunk], float | None, dict[str, object]]:
+    normalized_transcript_records = [
+        record
+        if isinstance(record, SessionTranscriptRecord)
+        else SessionTranscriptRecord.model_validate(record)
+        for record in transcript_records
+    ]
+    normalized_meal_records = [
+        record
+        if isinstance(record, MealRecord)
+        else MealRecord.model_validate(record)
+        for record in meal_records
+    ]
+    return _retrieve_manager_context(
+        transcript_records=normalized_transcript_records,
+        meal_records=normalized_meal_records,
+        query=query,
+        active_meal_id=active_meal_id,
+        pending_question=pending_question,
+        limit_transcript=limit_transcript,
+        limit_meals=limit_meals,
+        historical_limit=historical_limit,
+    )
+
+
+def retrieve_manager_context(
     *,
     session_id: str,
     query: str,
@@ -76,6 +111,29 @@ def retrieve_planner_context(
 ) -> tuple[list[RetrievedContextChunk], list[RetrievedContextChunk], float | None, dict[str, object]]:
     transcript_records = load_transcript_records(session_id)
     meal_records = load_meal_records(session_id)
+    return _retrieve_manager_context(
+        transcript_records=transcript_records,
+        meal_records=meal_records,
+        query=query,
+        active_meal_id=active_meal_id,
+        pending_question=pending_question,
+        limit_transcript=limit_transcript,
+        limit_meals=limit_meals,
+        historical_limit=historical_limit,
+    )
+
+
+def _retrieve_manager_context(
+    *,
+    transcript_records: list[SessionTranscriptRecord],
+    meal_records: list[MealRecord],
+    query: str,
+    active_meal_id: int | None,
+    pending_question: str | None,
+    limit_transcript: int,
+    limit_meals: int,
+    historical_limit: int,
+) -> tuple[list[RetrievedContextChunk], list[RetrievedContextChunk], float | None, dict[str, object]]:
     now = datetime.now(timezone.utc)
     query_terms, relative_date_target, requested_meal_type, requested_brands = query_context_requirements(query, now=now)
     pending_terms = set(tokenize(pending_question or ""))

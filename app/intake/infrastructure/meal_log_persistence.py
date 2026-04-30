@@ -25,7 +25,7 @@ def persist_text_meal_result(
     *,
     user: User,
     latest_log: MealLog | None,
-    planner_intent: str,
+    manager_intent: str,
     payload: EstimatePayload,
     raw_input: str,
     request_id: str | None = None,
@@ -56,7 +56,7 @@ def persist_text_meal_result(
         and str((payload.boundary_trace or {}).get("meal_boundary") or "") == "continue_active_meal"
     )
     should_attach_to_latest = latest_log is not None and (
-        planner_intent in ["clarification", "modification"] or boundary_continuation
+        manager_intent in ["clarification", "modification"] or boundary_continuation
     )
 
     if should_attach_to_latest:
@@ -70,7 +70,6 @@ def persist_text_meal_result(
     elif (
         canonical_write_allowed
         and payload.estimated_kcal > 0
-        and payload.route_target != "clarify_user_private"
         and resolved_meal_status == "completed_meal"
     ):
         persisted_log = save_meal_log(
@@ -90,7 +89,7 @@ def persist_text_meal_result(
         )
         action = "save_completed_log"
         persisted_status = "completed_meal"
-    elif payload.route_target == "clarify_user_private" or resolved_meal_status in {"candidate_meal", "draft_unresolved"}:
+    elif resolved_meal_status in {"candidate_meal", "draft_unresolved"}:
         persisted_log = save_meal_log(
             db,
             user,
@@ -152,7 +151,6 @@ def persist_text_meal_result(
     if (
         persisted_log is not None
         and persisted_status == "completed_meal"
-        and payload.route_target != "clarify_user_private"
         and canonical_write_allowed
     ):
         parent_version_id = None
@@ -165,7 +163,7 @@ def persist_text_meal_result(
         commit_candidate = build_commit_request_candidate(
             payload=payload,
             raw_input=raw_input,
-            planner_intent=planner_intent,
+            manager_intent=manager_intent,
             request_id=request_id,
             meal_thread_id=meal_thread_id,
             parent_version_id=parent_version_id,
@@ -199,7 +197,7 @@ def persist_text_meal_result(
         "status": persisted_status,
         "parent_log_id": parent_id,
         "superseded_log_id": superseded_log_id,
-        "planner_intent": planner_intent,
+        "manager_intent": manager_intent,
         "assistant_message_appended": assistant_message_appended,
         "persisted_log_id": persisted_log.id if persisted_log else None,
         "incoming_user_message_id": incoming_user_message_id,

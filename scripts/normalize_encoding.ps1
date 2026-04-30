@@ -44,10 +44,6 @@ function Test-IsPolicyPath {
         return $true
     }
 
-    if ($normalized.StartsWith('docs/archive/')) {
-        return $false
-    }
-
     if ($normalized.StartsWith('docs/') -and $normalized.EndsWith('.md')) {
         return $true
     }
@@ -96,7 +92,6 @@ function Get-PolicyFiles {
     $files = @()
     if (Test-Path -LiteralPath $docRoot -PathType Container) {
         $files += Get-ChildItem -Path $docRoot -Recurse -File -Filter '*.md' -ErrorAction SilentlyContinue |
-            Where-Object { -not ((Get-RelativePathCompat -BasePath $RepoRoot -TargetPath $_.FullName).Replace('\', '/').StartsWith('docs/archive/')) } |
             ForEach-Object { $_.FullName }
     }
 

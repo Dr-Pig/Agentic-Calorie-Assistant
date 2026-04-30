@@ -121,7 +121,7 @@ def commit_meal_payload_to_canonical(
     candidate: CommitRequestCandidate | None = None,
     payload: EstimatePayload | None = None,
     raw_input: str | None = None,
-    planner_intent: str | None = None,
+    manager_intent: str | None = None,
     request_id: str | None = None,
     latest_log_id: int | None = None,
     persisted_log_id: int | None = None,
@@ -130,11 +130,11 @@ def commit_meal_payload_to_canonical(
     if candidate is None:
         assert payload is not None
         assert raw_input is not None
-        assert planner_intent is not None
+        assert manager_intent is not None
         candidate = _commit_candidate_from_payload(
             payload=payload,
             raw_input=raw_input,
-            planner_intent=planner_intent,
+            manager_intent=manager_intent,
             request_id=request_id,
         )
     if payload is None:
@@ -180,7 +180,7 @@ def commit_meal_payload_to_canonical(
         parent_version_id=target.parent_version_id,
         version_reason=candidate.version_reason,
         reason_payload_json={
-            "planner_intent": candidate.planner_intent,
+            "manager_intent": candidate.manager_intent,
             "route_target": (source_payload.route_target if source_payload is not None else None),
             "request_id": candidate.request_id,
             "version_reason": candidate.version_reason,
@@ -191,7 +191,7 @@ def commit_meal_payload_to_canonical(
         meal_title=candidate.meal_title or candidate.raw_input,
         raw_input=candidate.raw_input,
         source_request_id=candidate.request_id,
-        planner_intent=candidate.planner_intent,
+        manager_intent=candidate.manager_intent,
         resolution_status=candidate.resolution_status,
         total_kcal=candidate.estimated_kcal,
         protein_g=candidate.protein_g,

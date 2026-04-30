@@ -169,7 +169,7 @@ Approved semantic decision:
 - missing sugar level or cup size does not make pearl milk tea unresolved
 - first turn may be a logged estimate with strong follow-up
 - follow-up is a precision/refinement request, not a commit gate
-- stale case/oracle expectations that require draft-first behavior must be realigned to this product decision
+- stale case/oracle expectations that require old draft-before-log behavior must be realigned to this product decision
 
 ### `我吃了一個茶葉蛋`
 

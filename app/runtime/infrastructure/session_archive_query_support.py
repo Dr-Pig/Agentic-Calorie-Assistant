@@ -4,7 +4,7 @@ import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 from app.shared.domain import MealRecord, RetrievedContextChunk, SessionTranscriptRecord
 from app.shared.time_labels import DEFAULT_TIMEZONE, describe_time_fields, infer_relative_date_target
@@ -26,9 +26,11 @@ def meal_path(session_record_root: Path, session_id: str) -> Path:
     return session_dir(session_record_root, session_id) / "meal_records.jsonl"
 
 
-def json_default(value: object) -> str:
+def json_default(value: object) -> Any:
     if isinstance(value, datetime):
         return value.astimezone(timezone.utc).isoformat()
+    if hasattr(value, "model_dump"):
+        return value.model_dump(mode="json")
     raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
 
 
@@ -43,20 +45,32 @@ def tokenize(text: str) -> list[str]:
 
 def infer_meal_type(text: str) -> str:
     normalized = normalize_text(text)
-    if any(token in normalized for token in ("???", "breakfast", "???")):
+    if any(token in normalized for token in ("早餐", "早飯", "breakfast")):
         return "breakfast"
-    if any(token in normalized for token in ("???", "lunch", "???")):
+    if any(token in normalized for token in ("午餐", "午飯", "lunch")):
         return "lunch"
-    if any(token in normalized for token in ("?謍?", "dinner", "?謍?")):
+    if any(token in normalized for token in ("晚餐", "晚飯", "dinner")):
         return "dinner"
-    if any(token in normalized for token in ("?綜竣?", "?啗??", "snack")):
+    if any(token in normalized for token in ("點心", "零食", "snack")):
         return "snack"
     return "unknown"
 
 
 def extract_brand_tokens(text: str) -> list[str]:
     normalized = normalize_text(text)
-    brand_hints = ["7-11", "??豢", "familymart", "mos", "???", "starbucks", "?颱漲???", "mcdonald", "subway", "?????"]
+    brand_hints = [
+        "7-11",
+        "全家",
+        "familymart",
+        "mos",
+        "摩斯",
+        "starbucks",
+        "星巴克",
+        "mcdonald",
+        "麥當勞",
+        "subway",
+        "爭鮮",
+    ]
     return [brand for brand in brand_hints if brand.lower() in normalized]
 
 

@@ -27,6 +27,59 @@ def manager_item_results_schema() -> dict[str, Any]:
     }
 
 
+def manager_semantic_decision_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": {
+            "semantic_authority": {
+                "type": "string",
+                "enum": ["manager_llm", "deterministic_fake_provider", "degraded_fallback", "missing"],
+            },
+            "current_turn_intent": {
+                "type": "string",
+                "enum": [
+                    "log_meal",
+                    "answer_query",
+                    "correct_meal",
+                    "complete_onboarding",
+                    "answer_remaining_budget",
+                    "onboarding_required",
+                    "general_chat",
+                    "unknown",
+                ],
+            },
+            "target_attachment": {"type": "object"},
+            "workflow_effect": {"type": "string"},
+            "final_action_candidate": {"type": "string"},
+            "estimation_posture": {"type": "string"},
+            "followup_posture": {"type": "string"},
+            "followup_question": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+            "followup_targets": {"type": "array", "items": {"type": "string"}},
+            "mutation_intent_candidate": {
+                "type": "string",
+                "enum": ["canonical_write", "draft_write", "correction_write", "ledger_read", "no_mutation", "unknown"],
+            },
+            "uncertainty_posture": {"type": "string"},
+            "source": {"type": "string"},
+            "semantic_owner": {"type": "string"},
+            "deterministic_role": {"type": "string"},
+        },
+        "required": [
+            "semantic_authority",
+            "current_turn_intent",
+            "target_attachment",
+            "workflow_effect",
+            "final_action_candidate",
+            "estimation_posture",
+            "followup_posture",
+            "mutation_intent_candidate",
+            "uncertainty_posture",
+            "source",
+        ],
+        "additionalProperties": False,
+    }
+
+
 def tool_call_names(payload: dict[str, Any]) -> list[str]:
     tool_calls = payload.get("tool_calls")
     if not isinstance(tool_calls, list):

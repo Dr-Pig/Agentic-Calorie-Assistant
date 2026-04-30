@@ -32,8 +32,8 @@ def determine_meal_status(
     ) == "exact_item"
     response_mode_hint = str(trace_contract.get("response_mode_hint") or "")
 
-    if payload_route_target == "clarify_user_private":
-        return "draft_unresolved"
+    if canonical_write_allowed and estimated_kcal > 0 and not blocking_slots and response_mode_hint != "clarify_first":
+        return "completed_meal"
     if blocking_slots:
         return "draft_unresolved"
     if response_mode_hint == "clarify_first":
@@ -101,8 +101,8 @@ def canonical_meal_state_from_runtime(
         pending.append(str(latest_log.pending_question))
     elif state.pending_question:
         pending.append(str(state.pending_question))
-    elif state.planner_state_digest.pending_question:
-        pending.append(str(state.planner_state_digest.pending_question))
+    elif state.manager_state_digest.pending_question:
+        pending.append(str(state.manager_state_digest.pending_question))
     unresolved_info = [
         str(item) for item in state.active_meal_summary.unresolved_slots if str(item).strip()
     ]

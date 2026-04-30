@@ -8,6 +8,11 @@ import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 APP_ROOT = REPO_ROOT / "app"
+ARCHIVE_IMPORT_PREFIX = "app." + "archive"
+CONCRETE_PROVIDER_PREFIX = "app.providers"
+TAVILY_ADAPTER_PREFIX = "app.nutrition.infrastructure.web_search.tavily_adapter"
+PROVIDER_RUNTIME_COMPOSITION_ROOT = "app/runtime/interface/provider_runtime.py"
+TAVILY_INFRA_PREFIX = "app/nutrition/infrastructure/web_search/"
 
 
 @dataclass(frozen=True)
@@ -20,12 +25,12 @@ class Rule:
 RUNTIME_RULES: tuple[Rule, ...] = (
     Rule(
         importer_prefix="app/runtime/",
-        forbidden_import_prefixes=("app.intake.domain", "app.nutrition.domain", "app.budget.domain", "app.archive"),
+        forbidden_import_prefixes=("app.intake.domain", "app.nutrition.domain", "app.budget.domain", ARCHIVE_IMPORT_PREFIX),
         label="runtime-must-not-own-domain-semantics",
     ),
     Rule(
         importer_prefix="app/shared/",
-        forbidden_import_prefixes=("app.intake", "app.nutrition", "app.budget", "app.body", "app.archive"),
+        forbidden_import_prefixes=("app.intake", "app.nutrition", "app.budget", "app.body", ARCHIVE_IMPORT_PREFIX),
         label="shared-must-remain-neutral",
     ),
 )
@@ -82,8 +87,6 @@ def import_blocked(import_name: str, rule: Rule) -> bool:
 def collect_findings(py_file: Path) -> list[Finding]:
     rel_path = py_file.relative_to(REPO_ROOT).as_posix()
     active_rules = [rule for rule in RUNTIME_RULES if matches_rule(rel_path, rule)]
-    if not active_rules:
-        return []
 
     source = py_file.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(py_file))
@@ -101,7 +104,39 @@ def collect_findings(py_file: Path) -> list[Finding]:
                             message=f"{rule.label} violation: {rel_path} must not import {import_name}",
                         )
                     )
+            if _concrete_provider_import_blocked(rel_path, import_name):
+                findings.append(
+                    Finding(
+                        path=rel_path,
+                        line=lineno,
+                        import_name=import_name,
+                        message=f"provider-inversion violation: {rel_path} must not import concrete provider adapter {import_name}",
+                    )
+                )
+            if _tavily_adapter_import_blocked(rel_path, import_name):
+                findings.append(
+                    Finding(
+                        path=rel_path,
+                        line=lineno,
+                        import_name=import_name,
+                        message=f"tavily-inversion violation: {rel_path} must not import concrete Tavily adapter {import_name}",
+                    )
+                )
     return findings
+
+
+def _concrete_provider_import_blocked(rel_path: str, import_name: str) -> bool:
+    if not (import_name == CONCRETE_PROVIDER_PREFIX or import_name.startswith(CONCRETE_PROVIDER_PREFIX + ".")):
+        return False
+    if rel_path.startswith("app/providers/"):
+        return False
+    return rel_path != PROVIDER_RUNTIME_COMPOSITION_ROOT
+
+
+def _tavily_adapter_import_blocked(rel_path: str, import_name: str) -> bool:
+    if not (import_name == TAVILY_ADAPTER_PREFIX or import_name.startswith(TAVILY_ADAPTER_PREFIX + ".")):
+        return False
+    return not rel_path.startswith(TAVILY_INFRA_PREFIX)
 
 
 def main() -> int:

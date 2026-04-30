@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
+from ...database import get_or_create_user
 from ...budget.application.current_budget_answer import build_remaining_budget_answer_contract
 from ...body.application.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from ...runtime.agent.manager import IntakeManagerResult
@@ -19,15 +20,16 @@ from ...runtime.application.sidecar_service import build_deterministic_sidecar
 from ...runtime.application.state_resolver import resolve_v2_bundle1_state
 from ...nutrition.application.web_extract_port import WebExtractPort
 from ...nutrition.application.web_search_port import WebSearchPort
-from . import manager_tools as tools
-from .attachment_resolver import resolve_attachment_decision
-from .context_injection_policy import build_manager_context_pack
-from .current_turn_context_assembler import build_current_turn_context_v1
-from .history_expansion_runtime import activate_pre_manager_history_expansion
-from .intake_turn_support import normalized_activity_level, resolve_local_date
-from .phase_a_trace import build_phase_a_trace
-from .shadow_hypothesis_runtime import build_shadow_hypothesis_runtime
-from .transition_guard import resolve_transition_guard
+from .intake_trace_tools import append_trace_event_tool
+from .intake_turn_support import (
+    bundle1_latency_tracking,
+    bundle1_manager_decision_payload,
+    bundle1_trace_summary,
+    initial_bundle1_state_mutation_summary,
+    normalized_activity_level,
+    resolve_local_date,
+)
+from .phase_a_runtime_context import prepare_phase_a_runtime_context
 
 
 @dataclass(frozen=True)
@@ -84,39 +86,17 @@ async def execute_bundle1_turn(
     else:
         _record_timing(stage_timings, "state_resolution", 0)
 
-    if current_turn_context is None and raw_user_input:
-        current_turn_context = build_current_turn_context_v1(
-            raw_user_input=raw_user_input,
-            resolved_state=state_before,
-        )
-    if current_turn_context is not None:
-        pre_attachment_decision = resolve_attachment_decision(current_turn_context)
-        pre_transition_guard_result = resolve_transition_guard(current_turn_context, pre_attachment_decision)
-        activation = activate_pre_manager_history_expansion(
-            current_turn_context=current_turn_context,
-            resolved_state=state_before,
-            pre_attachment_decision=pre_attachment_decision,
-            pre_transition_guard_result=pre_transition_guard_result,
-        )
-        current_turn_context = activation.enriched_current_turn_context
-        if phase_a_trace is None or activation.applied:
-            phase_a_trace = build_phase_a_trace(
-                current_turn_context=current_turn_context,
-                attachment_decision=activation.post_attachment_decision,
-                transition_guard_result=activation.post_transition_guard_result,
-                history_expansion_activation=activation.trace_payload() if activation.applied else None,
-            )
-        shadow_runtime = build_shadow_hypothesis_runtime(
-            current_turn_context=current_turn_context,
-            attachment_decision=activation.post_attachment_decision,
-            transition_guard_result=activation.post_transition_guard_result,
-        )
-        phase_a_trace = dict(phase_a_trace or {})
-        phase_a_trace["shadow_hypothesis_runtime"] = shadow_runtime.trace_payload()
-    else:
-        shadow_runtime = None
-    if manager_context_pack is None and current_turn_context is not None:
-        manager_context_pack = build_manager_context_pack(current_turn_context=current_turn_context)
+    phase_a_runtime = prepare_phase_a_runtime_context(
+        raw_user_input=raw_user_input,
+        resolved_state=state_before,
+        current_turn_context=current_turn_context,
+        manager_context_pack=manager_context_pack,
+        phase_a_trace=phase_a_trace,
+    )
+    current_turn_context = phase_a_runtime.current_turn_context
+    manager_context_pack = phase_a_runtime.manager_context_pack
+    phase_a_trace = phase_a_runtime.phase_a_trace
+    shadow_runtime = phase_a_runtime.shadow_runtime
 
     stage_start = int(time.time() * 1000)
     manager_decision: IntakeManagerResult = await run_intake_manager(
@@ -132,7 +112,7 @@ async def execute_bundle1_turn(
     )
     manager_decision_ms = int(time.time() * 1000) - stage_start
     _record_timing(stage_timings, "manager_decision", manager_decision_ms)
-    tools.append_trace_event_tool(
+    append_trace_event_tool(
         request_id=request_id,
         stage="v2_manager_decision",
         status="ok",
@@ -149,20 +129,12 @@ async def execute_bundle1_turn(
     remaining_budget = None
     nutrition_artifact = None
     persistence_result = None
-    state_mutation_summary: dict[str, Any] = {
-        "body_plan_seeded": False,
-        "meal_logged": False,
-        "canonical_commit": False,
-        "draft_saved": False,
-        "new_meal_version_created": False,
-        "old_version_superseded": False,
-        "ledger_updated": False,
-    }
+    state_mutation_summary = initial_bundle1_state_mutation_summary()
 
     if manager_decision.intent_type == "complete_onboarding":
         if onboarding_payload is None:
             raise ValueError("Structured onboarding payload is required for complete_onboarding.")
-        user = tools.get_or_create_user(db, user_external_id)
+        user = get_or_create_user(db, user_external_id)
         onboarding_result = bootstrap_body_plan_for_date(
             db,
             user=user,
@@ -186,9 +158,9 @@ async def execute_bundle1_turn(
             safety_floor_kcal=onboarding_result.target_result.safety_floor_kcal,
         )
         if not guard.ok:
-            raise ValueError(f"Bundle 1 onboarding guard failed: {', '.join(guard.violations)}")
+            raise ValueError(f"Intake onboarding guard failed: {', '.join(guard.violations)}")
         state_mutation_summary["body_plan_seeded"] = True
-        tools.append_trace_event_tool(
+        append_trace_event_tool(
             request_id=request_id,
             stage="v2_onboarding_seed",
             status="ok",
@@ -204,7 +176,7 @@ async def execute_bundle1_turn(
             user_id=state_before.user_id,
             local_date=resolved_local_date,
         )
-        tools.append_trace_event_tool(
+        append_trace_event_tool(
             request_id=request_id,
             stage="v2_remaining_budget_read",
             status="ok",
@@ -222,7 +194,7 @@ async def execute_bundle1_turn(
             user_id=state_before.user_id,
             local_date=resolved_local_date,
         )
-        tools.append_trace_event_tool(
+        append_trace_event_tool(
             request_id=request_id,
             stage="v2_onboarding_required",
             status="ok",
@@ -231,9 +203,19 @@ async def execute_bundle1_turn(
                 "reason": "budget_query_without_active_plan",
             },
         )
+    elif manager_decision.intent_type == "manager_unavailable":
+        append_trace_event_tool(
+            request_id=request_id,
+            stage="v2_manager_unavailable",
+            status="safe_failure",
+            summary={
+                "reason": "manager_provider_unavailable",
+                "state_mutation": "none",
+            },
+        )
     elif manager_decision.intent_type == "log_meal":
         if not raw_user_input or not raw_user_input.strip():
-            raise ValueError("raw_user_input is required for Bundle 1 intake logging.")
+            raise ValueError("raw_user_input is required for intake logging.")
         from .intake_execution_orchestrator import process_bundle2_intake
 
         return await process_bundle2_intake(
@@ -255,7 +237,7 @@ async def execute_bundle1_turn(
             phase_a_trace=phase_a_trace,
         )
     else:
-        raise ValueError(f"Unsupported Bundle 1 intent_type: {manager_decision.intent_type}")
+        raise ValueError(f"Unsupported intake intent_type: {manager_decision.intent_type}")
 
     state_after = resolve_v2_bundle1_state(
         db,
@@ -279,12 +261,7 @@ async def execute_bundle1_turn(
         manager_final_action=None,
         budget_summary=None,
     )
-    trace_summary = {
-        "request_id": request_id,
-        "manager_intent": manager_decision.intent_type,
-        "tool_calls": list(manager_decision.tool_calls),
-        "llm_used": manager_decision.llm_used,
-    }
+    trace_summary = bundle1_trace_summary(request_id=request_id, manager_decision=manager_decision)
     sidecar = build_deterministic_sidecar(
         active_body_plan_view=state_after.active_body_plan_view,
         current_budget_view=state_after.current_budget_view,
@@ -292,7 +269,7 @@ async def execute_bundle1_turn(
         trace_summary=trace_summary,
         overshoot_summary=None,
     )
-    tools.append_trace_event_tool(
+    append_trace_event_tool(
         request_id=request_id,
         stage="v2_renderer_sidecar",
         status="ok",
@@ -302,17 +279,7 @@ async def execute_bundle1_turn(
         },
     )
 
-    latency_tracking = {
-        "intent_type": manager_decision.intent_type,
-        "tools_used": [
-            (tc.get("tool_name") or tc.get("name", "unknown")) if isinstance(tc, dict) else str(tc)
-            for tc in manager_decision.tool_calls
-        ],
-        "total_duration_ms": sum(st["duration_ms"] for st in stage_timings),
-        "slowest_step_ms": max((st["duration_ms"] for st in stage_timings), default=0),
-        "slowest_step_name": max(stage_timings, key=lambda x: x["duration_ms"])["stage"] if stage_timings else "none",
-        "stage_timings": stage_timings,
-    }
+    latency_tracking = bundle1_latency_tracking(manager_decision=manager_decision, stage_timings=stage_timings)
 
     write_bundle1_request_trace_artifact(
         request_id=request_id,
@@ -339,15 +306,7 @@ async def execute_bundle1_turn(
     return {
         "request_id": request_id,
         "assistant_message": assistant_message,
-        "manager_decision": {
-            "intent_type": manager_decision.intent_type,
-            "workflow_effect": manager_decision.workflow_effect,
-            "response_summary": manager_decision.response_summary,
-            "pending_followup": manager_decision.pending_followup,
-            "tool_calls": list(manager_decision.tool_calls),
-            "llm_used": manager_decision.llm_used,
-            "trace": manager_decision.trace,
-        },
+        "manager_decision": bundle1_manager_decision_payload(manager_decision),
         "bundle2_manager": {
             "decision_1": None,
             "decision_2": None,

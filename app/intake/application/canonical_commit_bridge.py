@@ -23,7 +23,7 @@ def build_commit_request_candidate(
     *,
     payload: EstimatePayload,
     raw_input: str,
-    planner_intent: str,
+    manager_intent: str,
     request_id: str | None,
     meal_thread_id: int | None = None,
     parent_version_id: int | None = None,
@@ -66,7 +66,7 @@ def build_commit_request_candidate(
     trace_contract = payload.trace_contract or {}
     return CommitRequestCandidate(
         request_id=request_id or payload.request_id,
-        planner_intent=planner_intent,
+        manager_intent=manager_intent,
         meal_thread_id=meal_thread_id,
         parent_version_id=parent_version_id,
         version_reason=version_reason or ("correction" if parent_version_id is not None else "new_intake"),

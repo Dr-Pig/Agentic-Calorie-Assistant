@@ -97,7 +97,7 @@ class SessionStateDigest(BaseModel):
     digest: ConversationDigest = Field(default_factory=ConversationDigest)
 
 
-class PlannerStateDigest(BaseModel):
+class ManagerStateDigest(BaseModel):
     active_meal_log_id: int | None = None
     active_meal_title: str | None = None
     active_parent_log_id: int | None = None
@@ -125,7 +125,7 @@ class ConversationState(BaseModel):
     conversation_window_size: int = 0
     conversation_archive_hits: list[ConversationRetrievalHit] = Field(default_factory=list)
     conversation_digest: ConversationDigest = Field(default_factory=ConversationDigest)
-    planner_state_digest: PlannerStateDigest = Field(default_factory=PlannerStateDigest)
+    manager_state_digest: ManagerStateDigest = Field(default_factory=ManagerStateDigest)
     active_meal_summary: ActiveMealSummary = Field(default_factory=ActiveMealSummary)
     active_meal_state: ActiveMealState = Field(default_factory=ActiveMealState)
     pending_followup_state: PendingFollowupState = Field(default_factory=PendingFollowupState)

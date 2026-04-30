@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ...runtime.agent.manager_fallback_policy import looks_like_budget_query, looks_like_correction
 from ...runtime.contracts.phase_a import (
     AttachmentDecision,
     CurrentTurnContextV1,
@@ -11,23 +10,6 @@ from ...runtime.contracts.phase_a import (
     TransitionGuardResult,
 )
 from .shadow_hypothesis import build_shadow_hypothesis
-
-_BACK_REFERENCE_TOKENS = (
-    "that",
-    "this",
-    "same",
-    "previous",
-    "earlier",
-    "just",
-    "剛剛",
-    "剛才",
-    "那杯",
-    "這杯",
-    "那份",
-    "這份",
-    "那個",
-    "這個",
-)
 
 
 @dataclass(frozen=True)
@@ -55,15 +37,6 @@ class ShadowHypothesisRuntimeResult:
         }
 
 
-def _normalized_text(text: str) -> str:
-    return str(text or "").strip().lower()
-
-
-def _looks_like_back_reference(text: str) -> bool:
-    normalized = _normalized_text(text)
-    return any(token in normalized for token in _BACK_REFERENCE_TOKENS)
-
-
 def _candidate_targets(current_turn_context: CurrentTurnContextV1) -> list[dict[str, Any]]:
     deduped: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -79,24 +52,12 @@ def _candidate_targets(current_turn_context: CurrentTurnContextV1) -> list[dict[
     return deduped
 
 
-def _shadow_intent(current_turn_context: CurrentTurnContextV1) -> str | None:
-    utterance = current_turn_context.user_utterance
-    if looks_like_correction(utterance):
-        return "correction_reference"
-    if current_turn_context.pending_followup is not None:
-        return "followup_answer"
-    if _looks_like_back_reference(utterance):
-        return "back_reference"
-    return None
-
-
 def _skip_reason(
     *,
     current_turn_context: CurrentTurnContextV1,
     attachment_decision: AttachmentDecision,
     transition_guard_result: TransitionGuardResult,
     candidates: list[dict[str, Any]],
-    intent: str | None,
 ) -> str | None:
     event = current_turn_context.current_interaction_event
     if event.surface_mode != "chat_freeform":
@@ -105,8 +66,6 @@ def _skip_reason(
         return "explicit_ui_target"
     if event.target_object_type == "proposal" or current_turn_context.open_workflow_type == "proposal":
         return "non_meal_primary_route"
-    if looks_like_budget_query(current_turn_context.user_utterance):
-        return "budget_route"
     if (
         current_turn_context.pending_followup is not None
         and attachment_decision.target_object_id is not None
@@ -115,8 +74,6 @@ def _skip_reason(
         return "resolved_pending_followup"
     if transition_guard_result.verdict == "pass":
         return "already_safe_pass"
-    if intent is None:
-        return "no_shadow_intent"
     if not candidates:
         return "no_plausible_target"
     if len(candidates) > 1:
@@ -147,13 +104,11 @@ def build_shadow_hypothesis_runtime(
     transition_guard_result: TransitionGuardResult,
 ) -> ShadowHypothesisRuntimeResult:
     candidates = _candidate_targets(current_turn_context)
-    intent = _shadow_intent(current_turn_context)
     skip_reason = _skip_reason(
         current_turn_context=current_turn_context,
         attachment_decision=attachment_decision,
         transition_guard_result=transition_guard_result,
         candidates=candidates,
-        intent=intent,
     )
     if skip_reason is not None:
         return ShadowHypothesisRuntimeResult(
@@ -169,6 +124,7 @@ def build_shadow_hypothesis_runtime(
     selected = candidates[0]
     selected_id = str(selected["target_object_id"])
     selected_type = str(selected.get("target_object_type") or "meal_thread")
+    intent = "manager_review_required"
     hypothesis = build_shadow_hypothesis(
         hypothesis_id=f"phase_a_shadow:{selected_type}:{selected_id}:{intent}",
         target_object_type=selected_type,

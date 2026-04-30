@@ -313,19 +313,24 @@ def _active_spec(tmp_path: Path, text: str = "Phase B active spec uses canonical
     return spec
 
 
-def test_valid_phase_b_trace_fixture_is_ready(tmp_path: Path) -> None:
+def test_valid_phase_b_trace_fixture_is_scaffold_only_not_readiness(tmp_path: Path) -> None:
     report = verify_phase_b_readiness(
         phase_b_report_path=valid_phase_b_report_fixture(tmp_path),
         active_paths=[_active_spec(tmp_path)],
     )
 
-    assert report["ready_for_phase_b1_implementation"] is True
-    assert report["blockers"] == []
+    assert report["ready_for_phase_b1_implementation"] is False
+    assert any(item["code"] == "readiness_claim_overreach" for item in report["blockers"])
     assert report["forced_loop_scaffold_pass"] is True
     assert report["runtime_latency_status"] == "pass"
     assert report["runtime_latency_pass"] is True
     assert report["mode_verdicts"]["forced_loop_scaffold_pass"] is True
-    assert report["recommended_next_steps_ordered"] == ["proceed_to_phase_b1_minimal_tool_loop_implementation"]
+    assert report["readiness_claim"]["claim_scope"] == "fixture_scaffold"
+    assert report["readiness_claim_integrity"]["passed"] is False
+    assert report["recommended_next_steps_ordered"] == [
+        "rerun_phase_b1_runtime_smoke",
+        "rerun_phase_b1_readiness_gate",
+    ]
 
 
 def test_missing_provider_params_blocks_readiness(tmp_path: Path) -> None:

@@ -6,9 +6,8 @@ This manifest governs how archived benchmark suites are admitted into the active
 
 Current sources:
 
-- [benchmark_test_set_v1.txt](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/archive/quality/benchmark_test_set_v1.txt)
-- [benchmark_test_set_v2.txt](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/archive/quality/benchmark_test_set_v2.txt)
-- [turn2_hybrid_replay_pack_v1.json](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/archive/quality/benchmarks_v1/intake/multi_turn/turn2_hybrid_replay_pack_v1.json)
+- active normalized benchmark registries under the current quality/runtime eval folders
+- external historical canary packs only after explicit normalization and semantic review
 
 These sources are not default truth. They enter the active loop through normalization, dedupe, and shadow governance.
 

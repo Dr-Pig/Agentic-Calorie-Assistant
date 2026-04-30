@@ -100,7 +100,7 @@ def build_truth_alignment_audit() -> dict[str, Any]:
         "suspicious_residue": suspicious_residue,
         "domain_skeleton_inventory": skeleton_inventory,
         "short_audit_notes": {
-            "app/archive/rescue/application/proposal.py": note_map.get("app/archive/rescue/application/proposal.py"),
+            "archive_surface_count": sum(1 for item in modules if str(item["path"]).startswith("app/" + "archive/")),
             "app/providers/builderspace_adapter.py": note_map.get("app/providers/builderspace_adapter.py"),
         },
     }

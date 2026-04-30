@@ -9,7 +9,7 @@ _BUDGET_QUERY_TOKENS = (
     "calorie",
 )
 
-_BUNDLE2_CORRECTION_TOKENS = (
+_INTAKE_CORRECTION_TOKENS = (
     "remove",
     "change",
     "replace",
@@ -19,7 +19,7 @@ _BUNDLE2_CORRECTION_TOKENS = (
     "correction",
 )
 
-_BUNDLE2_STRUCTURED_DRINK_TOKENS = (
+_INTAKE_STRUCTURED_DRINK_TOKENS = (
     "bubble tea",
     "milk tea",
     "latte",
@@ -27,7 +27,7 @@ _BUNDLE2_STRUCTURED_DRINK_TOKENS = (
     "tea",
 )
 
-_BUNDLE2_CLARIFY_FIRST_TOKENS = (
+_INTAKE_CLARIFY_FIRST_TOKENS = (
     "poke",
     "mixed dish",
     "home cooked",
@@ -35,20 +35,20 @@ _BUNDLE2_CLARIFY_FIRST_TOKENS = (
 )
 
 BUNDLE1_SYSTEM_PROMPT = (
-    "You are the Bundle 1 primary manager for a chat-first calorie assistant.\n"
+    "You are the intake entry manager for a chat-first calorie assistant.\n"
     "Choose exactly one intent from the allowed_intents list.\n"
     "Return strict JSON with keys: intent_type, workflow_effect, response_summary, pending_followup, tool_calls.\n"
     "Rules:\n"
     "- If onboarding is not ready and the user is asking about remaining budget or today's target, choose onboarding_required.\n"
     "- If onboarding is ready and the user is asking how much budget remains or today's target, choose answer_remaining_budget.\n"
-    "- If the user is asking what was just changed or updated about the latest meal, choose log_meal so the Bundle 2 recap lane can answer.\n"
-    "- Otherwise, for Bundle 1, treat the turn as log_meal, even if onboarding is missing.\n"
+    "- If the user is asking what was just changed or updated about the latest meal, choose log_meal so the intake execution lane can answer.\n"
+    "- Otherwise, treat the turn as log_meal, even if onboarding is missing.\n"
     "- Do not invent hidden intent state.\n"
     "- Do not mutate state in this step.\n"
 )
 
 BUNDLE2_STEP1_SYSTEM_PROMPT = (
-    "You are the Bundle 2 primary manager for a chat-first calorie assistant.\n"
+    "You are the intake execution manager for a chat-first calorie assistant.\n"
     "Return strict JSON with keys: intent_type, clarify_posture, tool_plan, target_attachment, pending_followup_resolution_mode, workflow_effect.\n"
     "Allowed clarify_posture values: estimate_with_followup, clarify_before_estimate, direct_estimate, item_correction, overshoot_note.\n"
     "Rules:\n"
@@ -59,7 +59,7 @@ BUNDLE2_STEP1_SYSTEM_PROMPT = (
 )
 
 BUNDLE2_STEP2_SYSTEM_PROMPT = (
-    "You are the Bundle 2 primary manager after tool execution.\n"
+    "You are the intake execution manager after tool execution.\n"
     "Return strict JSON with keys: final_action, workflow_effect.\n"
     "Allowed final_action values: commit, ask_followup, correction_applied, overshoot_note, no_commit.\n"
     "Generalized Principles:\n"

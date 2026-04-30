@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This file defines founder-driven realism checks that complement the official Bundle 1 and Bundle 2 eval packs.
+This file defines founder-driven realism checks that complement the current Manager-style diagnostic and regression gates.
 
-These cases are not a replacement for bundle eval packs. They exist to prevent assistant claims that rely on narrow runner coverage while real interactive quality is still failing.
+These cases are not a replacement for manager/runtime gates. They exist to prevent assistant claims that rely on narrow runner coverage while real interactive quality is still failing.
 
 Governance mode: `Hybrid`
 
@@ -25,7 +25,7 @@ Governance mode: `Hybrid`
   - `assistant_messages`
   - `today_snapshot`
   - `trace_refs`
-- if founder realism is not run, bundle reports must surface `founder_realism_status = not_run`
+- if founder realism is not run, Manager-style diagnostic reports must surface `founder_realism_status = not_run`
 
 ---
 
@@ -108,4 +108,4 @@ Blocking failures:
 - `fail`: one or more blocking checks failed
 - `shadow_quality_gap`: blocking checks passed but realism quality differs from desired GPT-like answer quality
 
-Founder realism is part of the acceptance truth. An official bundle runner cannot be used as a substitute for this suite.
+Founder realism is part of the acceptance truth. Historical acceptance-package runners cannot be used as substitutes for this suite.

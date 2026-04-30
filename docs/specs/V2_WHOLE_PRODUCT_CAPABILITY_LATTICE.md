@@ -26,9 +26,9 @@
 - runner 實作
 - benchmark oracle 常數
 - database schema 細節
-- 單一 bundle 的完整 case list
+- 單一 diagnostic package 的完整 case list
 
-這些分別由 implementation plan、bundle eval packs、runner、quality docs 負責。
+這些分別由 implementation plan、current diagnostic packs、runner、quality docs 負責。
 
 ---
 
@@ -84,10 +84,10 @@ V2 的目標執行樣貌是：
 
 - product capabilities 決定 build scope 與 acceptance targets
 - system capabilities 決定 implementation order 與 micro-suites
-- bundles 是 acceptance gates，不是施工順序本身
+- diagnostic packages 是 acceptance gates，不是施工順序本身
 - current-wave deep specs 才負責把 whole-product families 展開成可建置、可測的 system capabilities
 
-因此，不應直接以 journey 或 bundle 名稱作為 coding agent 的施工順序。coding agent 應先看 current-wave deep capability spec 與 capability micro-suites，再回到 bundle eval packs 做 acceptance。
+因此，不應直接以 journey 或 diagnostic package 名稱作為 coding agent 的施工順序。coding agent 應先看 current-wave deep capability spec 與 capability micro-suites，再回到 Manager-style diagnostic packs 做 acceptance。
 
 ---
 

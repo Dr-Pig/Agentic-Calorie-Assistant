@@ -26,7 +26,7 @@ class MealItemPayload(BaseModel):
 class CommitRequestCandidate(BaseModel):
     commit_kind: Literal["meal_commit"] = "meal_commit"
     request_id: str
-    planner_intent: str
+    manager_intent: str
     meal_thread_id: int | None = None
     parent_version_id: int | None = None
     version_reason: CommitVersionReason

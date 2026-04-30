@@ -222,12 +222,12 @@ def _case_by_id(report: dict[str, object], case_id: str) -> dict[str, object]:
     return next(case for case in report["cases"] if case["case_id"] == case_id)
 
 
-def test_valid_phase_b2_evidence_synthesis_fixture_is_ready(tmp_path: Path) -> None:
+def test_valid_phase_b2_evidence_synthesis_fixture_blocks_readiness_until_manager_semantics(tmp_path: Path) -> None:
     report = verify_phase_b2_readiness(phase_b2_report_path=valid_phase_b2_report_fixture(tmp_path))
 
-    assert report["ready_for_phase_b2_implementation"] is True
-    assert report["blockers"] == []
-    assert report["recommended_next_steps_ordered"] == ["proceed_to_phase_b2_evidence_synthesis_implementation"]
+    assert report["ready_for_phase_b2_implementation"] is False
+    assert any(item["code"] == "semantic_owner_inversion" for item in report["blockers"])
+    assert report["recommended_next_steps_ordered"] == ["fix_phase_b2_gate_blockers", "rerun_phase_b2_evidence_synthesis_readiness_gate"]
     assert report["honesty_gate_status"] == {
         "snippet_final_truth_blocked": True,
         "wrong_item_blocked": True,
@@ -237,6 +237,7 @@ def test_valid_phase_b2_evidence_synthesis_fixture_is_ready(tmp_path: Path) -> N
         "insufficient_evidence_blocked": True,
     }
     assert report["b1_green_handoff_check"]["passed"] is True
+    assert report["semantic_owner_integrity"]["passed"] is False
     audit = report["artifact_completeness_audit"]
     assert audit["passed"] is True
     assert audit["chain_complete"] is True
@@ -829,8 +830,9 @@ def test_trusted_database_with_approved_manifest_entry_passes(tmp_path: Path) ->
 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
-    assert report["ready_for_phase_b2_implementation"] is True
+    assert report["ready_for_phase_b2_implementation"] is False
     assert not any(item["code"] == "trusted_database_source_unresolved" for item in report["blockers"])
+    assert any(item["code"] == "semantic_owner_inversion" for item in report["blockers"])
 
 
 def test_llm_prior_without_last_resort_rationale_blocks_readiness(tmp_path: Path) -> None:
@@ -928,7 +930,9 @@ def test_runtime_trace_parity_allows_extra_metadata_fields(tmp_path: Path) -> No
 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
-    assert report["ready_for_phase_b2_implementation"] is True
+    assert report["runtime_trace_parity"]["passed"] is True
+    assert report["ready_for_phase_b2_implementation"] is False
+    assert any(item["code"] == "semantic_owner_inversion" for item in report["blockers"])
 
 
 def test_runtime_trace_parity_renamed_or_missing_core_fields_blocks_readiness(tmp_path: Path) -> None:
@@ -976,4 +980,5 @@ def test_official_phase_b2_synthetic_producer_writes_latest_and_timestamped_arti
     assert stable_path.read_text(encoding="utf-8") == timestamped_path.read_text(encoding="utf-8")
 
     report = verify_phase_b2_readiness(phase_b2_report_path=stable_path)
-    assert report["ready_for_phase_b2_implementation"] is True
+    assert report["ready_for_phase_b2_implementation"] is False
+    assert any(item["code"] == "semantic_owner_inversion" for item in report["blockers"])

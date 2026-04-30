@@ -23,7 +23,12 @@ def evaluate_trace_contract(
     best_answer_source: str | None,
     retry_triggered: bool,
 ) -> dict[str, Any]:
-    planner_output = trace_contract.get("planner_output", {}) or {}
+    manager_output = trace_contract.get("manager_output", {}) or {}
+    semantic_decision = (
+        trace_contract.get("semantic_decision")
+        or manager_output.get("semantic_decision")
+        or {}
+    )
     normalizer_diff = trace_contract.get("normalizer_diff", {}) or {}
     template_match = trace_contract.get("template_match", {}) or {}
     final_answer = trace_contract.get("final_answer_summary", {}) or {}
@@ -31,7 +36,11 @@ def evaluate_trace_contract(
     is_multi_turn = multi_turn.get("is_multi_turn", False)
 
     metrics = {
-        "is_intent_food_estimation_correct": planner_output.get("intent") in {"food_estimation", "", None},
+        "is_manager_intent_food_estimation_correct": (
+            semantic_decision.get("current_turn_intent")
+            or manager_output.get("intent")
+            or manager_output.get("intent_type")
+        ) in {"log_meal", "food_estimation", "", None},
         "core_identity_tokens_preserved": not (
             trace_contract.get("normalizer_mode") != "off"
             and normalizer_diff.get("changed")
@@ -77,7 +86,7 @@ def evaluate_trace_contract(
     }
 
     attribution_map = [
-        (not metrics["is_intent_food_estimation_correct"], "planner", "Planner intent drifted."),
+        (not metrics["is_manager_intent_food_estimation_correct"], "manager", "Manager intent drifted."),
         (not metrics["core_identity_tokens_preserved"], "normalizer", "Normalizer erased core input."),
         (metrics["template_activation_appropriateness"] == "falsely_activated_for_specific_item", "grounding", "Template overrode specific item."),
         (quality_signals.get("missing_top_uncertainty_drivers"), "layer3_primary_llm", "Missing uncertainty drivers for follow-up case."),
@@ -87,8 +96,8 @@ def evaluate_trace_contract(
         (quality_signals.get("reference_kcal_mismatch"), "grounding", "Grounded truth not preserved in final answer."),
         (metrics["blocking_slots_coverage"] == "missing" and best_answer_source not in {"with_local_knowledge", "exact_truth", "primary"}, "risk_validator", "Required risk checks were ignored."),
         (metrics["LLM_followup_decision_quality"] == "blindly_guessed", "layer3_primary_llm", "clarification before estimation was required but skipped."),
-        (is_multi_turn and not metrics["multi_turn_intent_correct"], "planner", f"Multi-turn intent misclassified as {multi_turn.get('turn_intent')}."),
-        (is_multi_turn and not metrics["context_injection_present"], "planner", "Multi-turn context injection failed."),
+        (is_multi_turn and not metrics["multi_turn_intent_correct"], "manager", f"Multi-turn intent misclassified as {multi_turn.get('turn_intent')}."),
+        (is_multi_turn and not metrics["context_injection_present"], "manager", "Multi-turn context injection failed."),
         (is_multi_turn and not metrics["retrieval_query_contextual"], "grounding", "Retrieval query not contextualized in Turn 2+."),
     ]
 

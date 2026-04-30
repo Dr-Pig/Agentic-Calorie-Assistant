@@ -9,7 +9,7 @@
 - 把失敗從零散 bug list，整理成可追蹤、可分群、可映射到 capability families 與 product objects 的 taxonomy
 - 為下游文件提供穩定結構：
   - `V2_GRADING_RUBRIC.md`
-  - bundle eval packs
+  - Manager-style diagnostic and regression packs
   - replay packs
   - regression suites
   - founder human review 標記
@@ -26,7 +26,7 @@
 它不回答：
 
 - 每個 case 的具體 pass/fail 分數（見 `V2_GRADING_RUBRIC.md`）
-- 單一 journey 的完整劇本與 oracle 常數（見 `docs/quality/` bundle eval docs）
+- 單一 journey 的完整劇本與 oracle 常數（見 `docs/quality/` current diagnostic and regression docs）
 - root cause 的最終技術實作細節
 
 ---
@@ -748,7 +748,7 @@ current-wave deep spec 應明確列出每個子 capability 最常見的 failure 
 本文件完成，不表示：
 
 - 每一個 subfamily 都已有完整 automated detector
-- bundle eval 已全部覆蓋所有 failure families
+- diagnostic and regression gates 已全部覆蓋所有 failure families
 - production replay taxonomy 已凍結
 
 ---
@@ -757,10 +757,10 @@ current-wave deep spec 應明確列出每個子 capability 最常見的 failure 
 
 1. 建立 `V2_GRADING_RUBRIC.md`
 2. 在 current-wave deep capability spec 中，為 F1/F2/F3 列出對應常見 failure families
-3. 在 bundle eval packs 中加入 failure-family coverage 欄位
+3. 在 Manager-style diagnostic packs 中加入 failure-family coverage 欄位
 
 ---
 
 ## 歷史
 
-- 2026-04-24: v1 初始版本，建立 whole-product failure taxonomy，供 rubric、bundle eval、replay triage 使用
+- 2026-04-24: v1 初始版本，建立 whole-product failure taxonomy，供 rubric、diagnostic gates、replay triage 使用

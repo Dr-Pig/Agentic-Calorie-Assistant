@@ -284,7 +284,7 @@ async def test_execute_bundle1_turn_passes_current_turn_context_to_manager(monke
     monkeypatch.setattr(module, "write_bundle1_request_trace_artifact", lambda **_: None)
     monkeypatch.setattr(module, "build_trace_refs", lambda **_: {})
     monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
-    monkeypatch.setattr(module.tools, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
 
     result = await module.execute_bundle1_turn(
         None,
@@ -326,8 +326,8 @@ async def test_process_bundle2_intake_passes_current_turn_context_to_manager(mon
         )
 
     monkeypatch.setattr(module, "run_intake_manager", _fake_run_intake_manager)
-    monkeypatch.setattr(module.tools, "resolve_correction_target_tool", lambda **_: {})
-    monkeypatch.setattr(module.tools, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
     monkeypatch.setattr(module, "apply_final_action_to_payload", lambda **_: None)
     monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *_, **__: None)
     monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
@@ -410,8 +410,8 @@ async def test_process_bundle2_intake_skips_shadow_when_back_reference_resolves_
         )
 
     monkeypatch.setattr(module, "run_intake_manager", _fake_run_intake_manager)
-    monkeypatch.setattr(module.tools, "resolve_correction_target_tool", lambda **_: {})
-    monkeypatch.setattr(module.tools, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
     monkeypatch.setattr(module, "apply_final_action_to_payload", lambda **_: None)
     monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *_, **__: None)
     monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
@@ -440,7 +440,7 @@ async def test_process_bundle2_intake_skips_shadow_when_back_reference_resolves_
 
 
 @pytest.mark.asyncio
-async def test_execute_bundle1_turn_enriches_manager_payload_with_history_activation_context(
+async def test_execute_bundle1_turn_does_not_pre_manager_enrich_history_without_manager_scope(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.intake.application import intake_turn_orchestrator as module
@@ -510,7 +510,7 @@ async def test_execute_bundle1_turn_enriches_manager_payload_with_history_activa
 
     monkeypatch.setattr(module, "run_intake_manager", _fake_run_intake_manager)
     monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
-    monkeypatch.setattr(module.tools, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
     monkeypatch.setattr(
         module,
         "build_remaining_budget_answer_contract",
@@ -542,9 +542,9 @@ async def test_execute_bundle1_turn_enriches_manager_payload_with_history_activa
 
     current_turn_context = captured["current_turn_context"]
     assert current_turn_context is not None
-    assert current_turn_context.candidate_attachment_targets[0]["target_object_id"] == "77"
+    assert current_turn_context.candidate_attachment_targets == []
     manager_context_pack = captured["manager_context_pack"]
     assert manager_context_pack is not None
-    assert manager_context_pack.manager_context["candidate_attachment_targets"][0]["target_object_id"] == "77"
+    assert manager_context_pack.manager_context["candidate_attachment_targets"] == []
     assert captured["history_expansion_policy"] is not None
     assert result["assistant_message"] == "ok"

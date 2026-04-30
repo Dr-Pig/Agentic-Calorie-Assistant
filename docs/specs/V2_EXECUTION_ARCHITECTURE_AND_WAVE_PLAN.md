@@ -8,7 +8,7 @@
 
 - 說明最終系統應長成什麼樣
 - 說明 `manager style` 與 `domain workflows / tools` 如何共存
-- 說明產品能力、系統能力、bundle、wave 之間的關係
+- 說明產品能力、系統能力、diagnostic packages、wave 之間的關係
 - 為建置順序提供可執行的總覽，而不是只提供產品能力地圖
 - 為 coding agent 提供一份「做事前先看懂整體系統」的執行參考
 
@@ -16,15 +16,15 @@
 
 - 最終系統應採取什麼 execution stance
 - manager、domain workflows、truth owners、guards、trace 各自負責什麼
-- 為什麼 bundle 不等於 build order
+- 為什麼 package-level diagnostics 不等於 build order
 - Wave 1 / Wave 2 / Wave 3 各自的產品閉環與建置焦點是什麼
 - coding agent 在每個 wave 應閱讀哪些文件
-- micro-suites、bundle acceptance、benchmark/replay、quality review 應如何分層
+- micro-suites、Manager-style diagnostics、benchmark/replay、quality review 應如何分層
 
 它不回答：
 
 - 單一 wave 的完整 deep capability 細節（由各 wave deep spec 定義）
-- 單一 bundle 的完整 case 清單（由 bundle eval packs 定義）
+- 單一 diagnostic package 的完整 case 清單（由 current diagnostic docs 定義）
 - 單一 tool 的程式實作方式
 - prompt 逐字稿
 
@@ -54,7 +54,7 @@
 
 ### 與 eval docs 的關係
 
-- bundle eval packs = acceptance gates
+- Manager-style diagnostic packs = acceptance gates
 - micro-suites = system-capability contracts
 - replay / benchmark packs = regression / realism layer
 
@@ -101,12 +101,12 @@
 - 定義 micro-suites
 - 定義 implementation dependency graph
 
-### 3. Bundles
+### 3. Diagnostic Packages
 外層驗收分包。
 
 例如：
-- Bundle 1
-- Bundle 2
+- intake-entry diagnostic
+- intake-depth diagnostic
 
 用途：
 - 作為 acceptance gate
@@ -225,7 +225,7 @@
 - execution guards
 - trace / artifact linkage
 - sidecar truth mirror
-- bundle pass evidence
+- diagnostic pass evidence
 
 這一層的目的：
 - 防 fake pass
@@ -309,8 +309,8 @@
 - `V2_WAVE_1_DEEP_CAPABILITY_SPEC.md`
 
 ### Acceptance gates
-- Bundle 1
-- Bundle 2
+- intake-entry diagnostic
+- intake-depth diagnostic
 - Wave 1 micro-suites
 - benchmark v1 / v2 remap
 - turn2 replay remap
@@ -345,7 +345,7 @@
 
 ### Acceptance gates
 - Wave 2 micro-suites
-- rescue / calibration bundle(s)
+- rescue / calibration diagnostic packages
 - replay / founder review
 
 ---
@@ -376,7 +376,7 @@
 
 ### Acceptance gates
 - Wave 3 micro-suites
-- recommendation / proactive bundle(s)
+- recommendation / proactive diagnostic packages
 - replay / founder review
 
 ---
@@ -419,12 +419,11 @@ coding agent 在開始 Wave 1 implementation 前，應至少閱讀：
 
 ## Wave 1 Eval Pack
 
-1. `V2_EVAL_BUNDLE_1_CASES.md`
-2. `V2_EVAL_BUNDLE_2_CASES.md`
+1. Wave 1 micro-suites
+2. Manager-style Founder E2E diagnostics
 3. benchmark v1
 4. benchmark v2
 5. turn2 replay
-6. Wave 1 micro-suites
 
 ---
 
@@ -451,22 +450,22 @@ Wave 1 例子：
 
 ---
 
-## Layer 2 — Bundle Acceptance Gates
+## Layer 2 — Manager-Style Diagnostic Acceptance Gates
 
 角色：
 - 驗收 product journeys 的 current-wave closure
-- Bundle 不是 build order，而是 acceptance packaging
+- Diagnostic package 不是 build order，而是 acceptance packaging
 
 Wave 1 例子：
-- Bundle 1
-- Bundle 2
+- intake-entry diagnostic
+- intake-depth diagnostic
 
 ---
 
 ## Layer 3 — Replay / Benchmark Functional Layer
 
 角色：
-- 驗證現實感、覆蓋邊界、避免只對 bundle patch
+- 驗證現實感、覆蓋邊界、避免只對 package-level diagnostics patch
 
 例子：
 - benchmark v1
@@ -554,7 +553,7 @@ single manager + selected domain subagents + guards + strong traces
 - manager style 與 domain workflow decomposition 的關係已清楚定義
 - wave-by-wave build plan 已明確
 - coding agent 的 reading pack 與 test layering 已明確
-- foundation pack、wave docs、bundle eval docs 的分工已更清楚
+- foundation pack、wave docs、diagnostic docs 的分工已更清楚
 
 本文件完成，不表示：
 

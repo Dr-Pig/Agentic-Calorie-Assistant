@@ -98,9 +98,9 @@ def bootstrap_contract_check() -> list[Finding]:
                 Finding("bootstrap-contract", "error", f"missing bootstrap file: {relative}")
             )
     agents = read_text(REPO_ROOT / "AGENTS.md")
-    if "Default planner path is:" not in agents:
+    if "Bootstrap read path is:" not in agents:
         findings.append(
-            Finding("bootstrap-contract", "warning", "AGENTS.md no longer states the default planner path.")
+            Finding("bootstrap-contract", "warning", "AGENTS.md no longer states the bootstrap read path.")
         )
     current_plan = read_text(REPO_ROOT / "docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md")
     if "Global Build Ladder" not in current_plan or "Selection State" not in current_plan:
@@ -212,8 +212,6 @@ def snapshot_isolation_check() -> list[Finding]:
     seen: set[str] = set()
     for path in files:
         relative = normalize(path)
-        if relative.startswith("docs/archive/"):
-            continue
         if relative.startswith("docs/exec-plans/completed/"):
             continue
         if relative.startswith("artifacts/docs-snapshots/"):

@@ -64,6 +64,7 @@ FULL_READINESS_SCOPE = "full_actual_smoke"
 DIAGNOSTIC_READINESS_SCOPE = "diagnostic"
 RUNNER_RETRY_MAX_ATTEMPTS = 2
 RUNNER_RETRY_BASE_BACKOFF_SECONDS = 0.25
+MANAGER_CONTRACT_VALIDATION_ERROR = "manager_contract_validation_error"
 
 CORE_SMOKE_CASES = (
     "我吃了一顆茶葉蛋",
@@ -1239,7 +1240,7 @@ class _PhaseB1ManagerProvider:
                     partial_trace=partial_trace,
                     reason=MANAGER_OUTPUT_CONTRACT_VIOLATION,
                     failing_component=str(provider_trace.get("failing_component") or "provider_adapter.branch_validation"),
-                    violation_family=str(provider_trace.get("violation_family") or CLARIFICATION_BRANCH_CONFLICTING_FIELDS),
+                    violation_family=str(provider_trace.get("violation_family") or MANAGER_CONTRACT_VALIDATION_ERROR),
                     actual_shape=str(provider_trace.get("actual_shape") or _pass1_actual_shape(payload=parsed_payload, requested_tools=_tool_call_names(parsed_payload))),
                 ) from exc
             raise
@@ -2679,6 +2680,55 @@ def _provider_unavailable_report(
     }
 
 
+def _provider_profile_mismatch_report(
+    *,
+    readiness: dict[str, Any],
+    selected_profile: _PhaseB1ProviderProfile,
+    artifact_path: Path,
+    pass1_mode: str,
+    started_perf: float,
+    smoke_cases: list[str] | tuple[str, ...],
+    case_set: str,
+    requested_case_ids: list[str],
+) -> dict[str, Any]:
+    return {
+        "phase": "B-1",
+        "scope": "minimal_tool_loop_smoke",
+        "b2_evidence_runtime_started": False,
+        "nutrition_accuracy_claimed": False,
+        "provider": readiness.get("provider"),
+        "manager_model": readiness.get("manager_model"),
+        "mode": "hybrid_canary",
+        "pass1_mode": pass1_mode,
+        "forced_tool_request_contract": pass1_mode == FORCED_MODE,
+        "manager_tool_selection_claimed": pass1_mode == NATURAL_MODE,
+        "natural_tool_selection_pass": "not_applicable" if pass1_mode == FORCED_MODE else False,
+        "provider_runtime": {
+            "configured": bool(readiness.get("configured")),
+            "blocker": True,
+            "reason": "provider_profile_mismatch",
+            "readiness_provider": readiness.get("provider"),
+            "selected_profile_provider": selected_profile.provider,
+            "provider_profile_id": selected_profile.profile_id,
+            "provider_profile_model": selected_profile.model,
+        },
+        "runtime_latency": _runtime_latency_summary(
+            started_perf=started_perf,
+            traces=[],
+            pass1_mode=pass1_mode,
+            readiness_claim_scope=FULL_READINESS_SCOPE if case_set == "full" else DIAGNOSTIC_READINESS_SCOPE,
+        ),
+        **_report_case_metadata(
+            smoke_cases=smoke_cases,
+            traces=[],
+            case_set=case_set,
+            requested_case_ids=requested_case_ids,
+        ),
+        "tool_loop_traces": [],
+        "artifact_path": str(artifact_path),
+    }
+
+
 def _provider_runtime_error_report(
     *,
     readiness: dict[str, Any],
@@ -2989,6 +3039,17 @@ async def run_phase_b_minimal_tool_loop_smoke(
     if not readiness.get("configured"):
         report = _provider_unavailable_report(
             readiness=dict(readiness),
+            artifact_path=artifact_path,
+            pass1_mode=pass1_mode,
+            started_perf=run_started_perf,
+            smoke_cases=smoke_cases,
+            case_set=case_set,
+            requested_case_ids=canonical_case_ids,
+        )
+    elif readiness.get("provider") and readiness.get("provider") != selected_provider_profile.provider:
+        report = _provider_profile_mismatch_report(
+            readiness=dict(readiness),
+            selected_profile=selected_provider_profile,
             artifact_path=artifact_path,
             pass1_mode=pass1_mode,
             started_perf=run_started_perf,

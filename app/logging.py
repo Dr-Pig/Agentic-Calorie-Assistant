@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -87,6 +88,12 @@ def get_trace_summaries(limit: int = 100) -> dict[str, Any]:
             # Metadata extraction
             req_data = data.get("request", {}) or {}
             mt_context = data.get("multi_turn_context", {}) or {}
+            manager_decision = data.get("manager_decision", {}) or {}
+            semantic_decision = (
+                data.get("semantic_decision")
+                or manager_decision.get("semantic_decision")
+                or {}
+            )
             eval_data = data.get("north_star_evaluation", {}) or {}
             diagnosis = data.get("diagnosis", {}) or {}
             trace_contract = data.get("trace_contract", {}) or {}
@@ -114,7 +121,7 @@ def get_trace_summaries(limit: int = 100) -> dict[str, Any]:
                 all_summaries.append({
                     "id": path.stem,
                     "timestamp": trace_meta.get("timestamp") or data.get("timestamp") or datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(),
-                    "intent": mt_context.get("turn_intent") or data.get("planner_result", {}).get("intent") or "unknown",
+                    "intent": mt_context.get("turn_intent") or semantic_decision.get("current_turn_intent") or manager_decision.get("intent_type") or "unknown",
                     "verdict": verdict,
                     "tokens": tokens,
                     "user_id": trace_meta.get("user_id") or req_data.get("user_id") or "anonymous",
@@ -123,7 +130,7 @@ def get_trace_summaries(limit: int = 100) -> dict[str, Any]:
                     "failed_layer": diagnosis.get("failed_layer"),
                     "repairability": diagnosis.get("repairability", "unknown"),
                     "trace_health": diagnosis.get("trace_health", "healthy"),
-                    "planner_mode": (trace_contract.get("planner_output") or {}).get("planner_mode"),
+                    "manager_mode": (trace_contract.get("manager_output") or {}).get("manager_mode"),
                     "best_answer_source": trace_contract.get("best_answer_source"),
                     "retry_triggered": trace_contract.get("retry_triggered", False),
                     "request_failure_family": triage.get("request_failure_family"),
@@ -157,6 +164,12 @@ def get_full_trace(request_id: str) -> dict | None:
 
 def find_latest_trace_for_user_date(*, user_id: str, local_date: str, bundle: str | None = None) -> dict | None:
     """Return the newest request trace artifact for the given user/date pair."""
+    if bundle is not None:
+        return find_latest_traces_for_user_date(
+            user_id=user_id,
+            local_date=local_date,
+            bundles=(bundle,),
+        ).get(bundle)
     if not REQUEST_TRACE_DIR.exists():
         return None
     files = sorted(REQUEST_TRACE_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
@@ -177,3 +190,38 @@ def find_latest_trace_for_user_date(*, user_id: str, local_date: str, bundle: st
             data["live_trace_triage"] = build_live_trace_triage(data)
         return data
     return None
+
+
+def find_latest_traces_for_user_date(
+    *,
+    user_id: str,
+    local_date: str,
+    bundles: Iterable[str],
+) -> dict[str, dict | None]:
+    """Return newest request trace artifacts for several bundles in a single artifact scan."""
+    bundle_order = tuple(str(bundle) for bundle in bundles)
+    wanted = set(bundle_order)
+    found: dict[str, dict] = {}
+    if not wanted or not REQUEST_TRACE_DIR.exists():
+        return {bundle: None for bundle in bundle_order}
+    files = sorted(REQUEST_TRACE_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    for path in files:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        trace_meta = data.get("trace_meta", {}) or {}
+        request = data.get("request", {}) or {}
+        if str(trace_meta.get("user_id") or request.get("user_id") or "") != user_id:
+            continue
+        if str(trace_meta.get("local_date") or request.get("local_date") or "") != local_date:
+            continue
+        trace_bundle = str(trace_meta.get("bundle") or "")
+        if trace_bundle not in wanted or trace_bundle in found:
+            continue
+        if not isinstance(data.get("live_trace_triage"), dict):
+            data["live_trace_triage"] = build_live_trace_triage(data)
+        found[trace_bundle] = data
+        if len(found) == len(wanted):
+            break
+    return {bundle: found.get(bundle) for bundle in bundle_order}

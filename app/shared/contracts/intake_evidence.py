@@ -43,7 +43,7 @@ class EvidenceBundle(BaseModel):
 class JudgeRequest(BaseModel):
     user_input: str
     resolved_query: str = ""
-    planning_brief: dict[str, Any] = Field(default_factory=dict)
+    manager_brief: dict[str, Any] = Field(default_factory=dict)
     active_meal_summary: dict[str, Any] = Field(default_factory=dict)
     session_summary: dict[str, Any] = Field(default_factory=dict)
     top_local_candidates: list[dict[str, Any]] = Field(default_factory=list)

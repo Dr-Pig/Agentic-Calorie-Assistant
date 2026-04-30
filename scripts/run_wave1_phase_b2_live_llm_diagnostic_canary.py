@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 from scripts.live_diagnostic_decision_pack import (
     B2_LIVE_CONTRACT_CASE_IDS,
     VERDICT_READINESS_BLOCKER,
+    build_live_diagnostic_readiness_claim,
     build_b2_live_llm_diagnostic_contract_report,
 )
 
@@ -392,6 +393,10 @@ def _decorate_report(
             "diagnostic_scope": "b2_packet_synthesis_only",
             "readiness_scope": "none",
             "readiness_claimed": False,
+            "readiness_claim": build_live_diagnostic_readiness_claim(
+                provider_mode=provider_mode,
+                live_invoked=live_invoked,
+            ),
             "user_facing_enabled": False,
             "mutation_enabled": False,
             "failure_family": failure_family,

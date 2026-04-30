@@ -3,9 +3,10 @@ import sys
 
 from .logger import logger
 
-REQUIRED_ENV_VARS = [
-    "AI_BUILDER_TOKEN",
-]
+PROVIDER_TOKEN_ENV_VARS = {
+    "builderspace": ("AI_BUILDER_TOKEN",),
+    "deepseek": ("DEEPSEEK_API_KEY",),
+}
 
 PLACEHOLDER_VALUES = {"replace-me", "", "null"}
 
@@ -14,8 +15,11 @@ def validate_config() -> None:
     """Check required configuration on startup to fail fast."""
     missing = []
     placeholders = []
-    
-    for var in REQUIRED_ENV_VARS:
+
+    provider_name = os.getenv("AI_MANAGER_PROVIDER", os.getenv("AI_PROVIDER", "deepseek")).strip().lower()
+    required_vars = PROVIDER_TOKEN_ENV_VARS.get(provider_name, ("AI_BUILDER_TOKEN",))
+
+    for var in required_vars:
         val = os.getenv(var, "").strip()
         if not val:
             missing.append(var)

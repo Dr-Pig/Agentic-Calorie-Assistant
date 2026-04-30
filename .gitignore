@@ -4,6 +4,8 @@ __pycache__/
 .pytest_cache/
 .pytest_tmp/
 .pytest_tmp_local/
+.pytest_tmp*/
+tmp_pytest*/
 *.pyc
 *.pyo
 *.pyd
@@ -16,12 +18,13 @@ __pycache__/
 runtime/
 !app/runtime/
 !app/runtime/**
+app/runtime/**/__pycache__/
+app/runtime/**/*.pyc
 .server.out.log
 .server.err.log
 *.log
 *.jsonl
 *.json
-!docs/agent/autonomy-schemas/*.schema.json
 !docs/quality/benchmarks/semantic_routing/semantic_routing_founder_fit_pack_v1.json
 !docs/quality/benchmarks/intake/intake_candidate_review_queue_v1.json
 !docs/quality/benchmarks/intake/intake_official_canonical_pack_v1.json

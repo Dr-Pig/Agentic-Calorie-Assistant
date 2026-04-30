@@ -39,7 +39,7 @@ class MealVersionRecord(Base):
     meal_title: Mapped[str] = mapped_column(String(512), default="")
     raw_input: Mapped[str] = mapped_column(Text, default="")
     source_request_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
-    planner_intent: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    manager_intent: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
     resolution_status: Mapped[str] = mapped_column(String(32), default="completed_meal", index=True)
     total_kcal: Mapped[int] = mapped_column(Integer, default=0)
     protein_g: Mapped[int] = mapped_column(Integer, default=0)

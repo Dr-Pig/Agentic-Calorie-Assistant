@@ -361,7 +361,7 @@ def test_product_semantic_decision_pack_marks_approved_pearl_milk_tea_policy() -
     assert first["requires_user_approval"] is False
     assert first["observed_system_behavior"] == "logged_estimate_with_followup"
     assert first["observed_live_llm_behavior"] == "logged_estimate_with_followup"
-    assert "old_c001_draft_first_oracle" in first["supersedes_stale_expectations"]
+    assert "superseded_c001_draft_expectation" in first["supersedes_stale_expectations"]
     assert any(decision["status"] == "pending" for decision in decision_pack["decisions"][1:])
 
 

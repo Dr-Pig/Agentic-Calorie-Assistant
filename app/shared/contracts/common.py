@@ -18,7 +18,7 @@ MealBoundary = Literal["continue_active_meal", "start_new_meal", "boundary_clari
 MealStatus = Literal["candidate_meal", "draft_unresolved", "completed_meal"]
 TaskScope = Literal["meal_specific", "food_general", "non_food"]
 MealLinkAction = Literal["attach_to_existing_meal", "create_new_meal", "boundary_ambiguous", "none"]
-DecisionNextAction = Literal["run_tool_lookup", "run_clarify", "run_nutrition_resolution"]
+DecisionNextAction = Literal["run_tool_lookup", "run_clarify"]
 ResolutionMode = Literal[
     "exact_label_finalize",
     "near_exact_finalize",

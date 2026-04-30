@@ -90,7 +90,7 @@ jobs:
             tests/test_manager_service.py \
             tests/test_deepseek_adapter.py \
             tests/test_builderspace_adapter.py \
-            tests/test_eval_bootstrap.py \
+            tests/test_bootstrap_semantic_ownership_guardrails.py \
             tests/test_pre_edd_readiness.py \
             tests/test_runner_timeout_contract.py \
             tests/test_tavily_timeout_contract.py \

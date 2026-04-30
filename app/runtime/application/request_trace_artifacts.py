@@ -8,16 +8,31 @@ from typing import Any
 from ...logging import REQUEST_TRACE_DIR, write_request_trace_artifact
 from ..infrastructure.trace.stage_trace_store import stage_trace_path
 
+_TRACE_MAX_ITEMS = 24
+_TRACE_MAX_DICT_KEYS = 40
+_TRACE_MAX_STRING_CHARS = 1000
+
 
 def _json_safe(value: Any) -> Any:
+    if value is None or isinstance(value, (bool, int, float, str)):
+        if isinstance(value, str) and len(value) > _TRACE_MAX_STRING_CHARS:
+            return value[:_TRACE_MAX_STRING_CHARS] + "...[truncated]"
+        return value
     if is_dataclass(value):
         return _json_safe(asdict(value))
     if hasattr(value, "model_dump"):
         return _json_safe(value.model_dump(mode="json"))
     if isinstance(value, dict):
-        return {str(key): _json_safe(item) for key, item in value.items()}
+        items = list(value.items())
+        serialized = {str(key): _json_safe(item) for key, item in items[:_TRACE_MAX_DICT_KEYS]}
+        if len(items) > _TRACE_MAX_DICT_KEYS:
+            serialized["_truncated_key_count"] = len(items) - _TRACE_MAX_DICT_KEYS
+        return serialized
     if isinstance(value, (list, tuple)):
-        return [_json_safe(item) for item in value]
+        serialized = [_json_safe(item) for item in value[:_TRACE_MAX_ITEMS]]
+        if len(value) > _TRACE_MAX_ITEMS:
+            serialized.append({"_truncated_item_count": len(value) - _TRACE_MAX_ITEMS})
+        return serialized
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
 
 
@@ -25,7 +40,6 @@ def _summarize_estimated_nutrition_artifact(artifact: Any) -> dict[str, Any] | N
     if artifact is None:
         return None
     payload = getattr(artifact, "payload", None)
-    planner_result = getattr(artifact, "planner_result", None)
     request = getattr(artifact, "request", None)
     runtime_context = getattr(artifact, "runtime_context", None)
     user = getattr(runtime_context, "user", None) if runtime_context is not None else None
@@ -36,10 +50,6 @@ def _summarize_estimated_nutrition_artifact(artifact: Any) -> dict[str, Any] | N
             "user_id": getattr(request, "user_id", None),
             "text": getattr(request, "text", None),
             "allow_search": getattr(request, "allow_search", None),
-        },
-        "planner_result": {
-            "intent": getattr(planner_result, "intent", None),
-            "meal_boundary": getattr(planner_result, "meal_boundary", None),
         },
         "runtime_context": {
             "user_id": getattr(user, "id", None),

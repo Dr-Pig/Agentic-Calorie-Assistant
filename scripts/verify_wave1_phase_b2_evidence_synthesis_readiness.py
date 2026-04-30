@@ -16,6 +16,10 @@ from app.nutrition.application.packet_mismatch_oracles import (
     packet_supports_exact_claim as _oracle_packet_supports_exact_claim,
     sibling_variant_risk_present as _oracle_sibling_variant_risk_present,
 )
+from app.shared.contracts.readiness_claim import (
+    build_readiness_claim,
+    validate_readiness_claim_integrity,
+)
 
 DEFAULT_PHASE_B2_REPORT = ROOT / "artifacts" / "wave1_phase_b2_evidence_synthesis_smoke.json"
 DEFAULT_OUTPUT = ROOT / "artifacts" / "wave1_phase_b2_evidence_synthesis_readiness.json"
@@ -134,6 +138,11 @@ def _add(blockers: list[dict[str, str]], code: str, detail: str) -> None:
 
 def _warn(warnings: list[dict[str, str]], code: str, detail: str) -> None:
     warnings.append({"code": code, "detail": detail})
+
+
+def _add_claim_blockers(blockers: list[dict[str, str]], claim_integrity: dict[str, Any]) -> None:
+    for item in claim_integrity.get("blockers") or []:
+        _add(blockers, str(item.get("code")), str(item.get("detail")))
 
 
 def _contains_key(value: Any, key_name: str) -> bool:
@@ -394,6 +403,29 @@ def _check_b1_green_handoff_snapshot(report: dict[str, Any], blockers: list[dict
         "readiness_artifact_ok": readiness_artifact_ok,
         "passed": not missing and gate_scope_ok and ready_ok and blockers_empty and not_claiming_ok and smoke_artifact_ok and readiness_artifact_ok,
     }
+
+
+def _check_semantic_owner_integrity(report: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
+    integrity = report.get("semantic_owner_integrity")
+    if not isinstance(integrity, dict):
+        _add(
+            blockers,
+            "semantic_owner_integrity_missing",
+            "B-2 readiness requires semantic_owner_integrity; deterministic diagnostics must not infer user intent or food semantics from raw text.",
+        )
+        return {"missing": True, "passed": False}
+
+    passed = integrity.get("status") == "pass"
+    if not passed:
+        _add(
+            blockers,
+            str(integrity.get("failure_family") or "semantic_owner_integrity_blocked"),
+            str(
+                integrity.get("detail")
+                or "B-2 readiness is blocked until manager-owned structured semantic decisions feed retrieval/evidence synthesis."
+            ),
+        )
+    return _json_safe({**integrity, "passed": passed})
 
 
 def _check_packet_contract(case: dict[str, Any], blockers: list[dict[str, str]]) -> dict[str, Any]:
@@ -1145,6 +1177,7 @@ def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
     minimal_db_seed_manifest = _check_minimal_db_seed_manifest(report_data, blockers)
     runtime_trace_parity = _check_runtime_trace_parity(report_data, blockers)
     b1_green_handoff_check = _check_b1_green_handoff_snapshot(report_data, blockers)
+    semantic_owner_integrity = _check_semantic_owner_integrity(report_data, blockers)
     case_checks: list[dict[str, Any]] = []
     for case in report_data.get("cases") or []:
         if not isinstance(case, dict):
@@ -1172,10 +1205,29 @@ def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
     if not artifact_completeness_audit["passed"]:
         _add(blockers, "artifact_completeness_audit_failed", "B2 artifact completeness audit must pass before live LLM diagnostic.")
 
+    provisional_ready = not blockers
+    readiness_claim = _build_b2_readiness_claim(
+        phase_b2_report_path=phase_b2_report_path,
+        semantic_owner_integrity=semantic_owner_integrity,
+        provisional_ready=provisional_ready,
+    )
+    claim_integrity = validate_readiness_claim_integrity(
+        {
+            "artifact_type": "wave1_phase_b2_evidence_synthesis_readiness",
+            "ready_for_phase_b2_implementation": provisional_ready,
+            "semantic_owner_integrity": semantic_owner_integrity,
+            "readiness_claim": readiness_claim,
+        }
+    )
+    if not claim_integrity["passed"]:
+        _add_claim_blockers(blockers, claim_integrity)
+
     ready = not blockers
     report = {
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "phase_b2_report_path": _project_relative(phase_b2_report_path),
+        "readiness_claim": readiness_claim,
+        "readiness_claim_integrity": claim_integrity,
         "ready_for_phase_b2_implementation": ready,
         "blockers": blockers,
         "warnings": warnings,
@@ -1187,6 +1239,7 @@ def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
         "runtime_trace_parity": runtime_trace_parity,
         "b1_green_handoff_snapshot": _json_safe(report_data.get("b1_green_handoff_snapshot")),
         "b1_green_handoff_check": b1_green_handoff_check,
+        "semantic_owner_integrity": semantic_owner_integrity,
         "honesty_gate_status": _honesty_gate_status(),
         "artifact_completeness_audit": artifact_completeness_audit,
         "case_checks": case_checks,
@@ -1197,6 +1250,48 @@ def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
         ),
     }
     return _json_safe(report)
+
+
+def _build_b2_readiness_claim(
+    *,
+    phase_b2_report_path: Path,
+    semantic_owner_integrity: dict[str, Any],
+    provisional_ready: bool,
+) -> dict[str, Any]:
+    semantic_owner_passed = semantic_owner_integrity.get("passed") is True
+    if semantic_owner_passed:
+        claim_scope = "deterministic_runtime"
+        semantic_authority_source = "fake_manager_structured_output"
+        allowed_next_stage = "live_diagnostic" if provisional_ready else None
+    else:
+        claim_scope = "deterministic_runtime"
+        semantic_authority_source = "deterministic_validator"
+        allowed_next_stage = None
+    return build_readiness_claim(
+        claim_scope=claim_scope,
+        activation_stage="deterministic",
+        semantic_authority_source=semantic_authority_source,
+        producer_honesty={
+            "runner_inferred_semantics": not semantic_owner_passed,
+            "fake_provider_simulated_manager": semantic_owner_passed,
+            "final_mapping_fabricated": False,
+            "mutation_fabricated": False,
+        },
+        evidence_lineage={
+            "artifacts": [_project_relative(phase_b2_report_path)],
+            "producers": ["scripts/verify_wave1_phase_b2_evidence_synthesis_readiness.py"],
+            "semantic_owner_integrity_passed": semantic_owner_passed,
+            "legacy_oracle_used": False,
+        },
+        allowed_next_stage=allowed_next_stage,
+        forbidden_claims=[
+            "manager_semantics_ready" if not semantic_owner_passed else "user_facing_ready",
+            "live_ready",
+            "mutation_ready",
+            "product_ready",
+        ],
+        readiness_claimed=False,
+    )
 
 
 def main() -> int:
