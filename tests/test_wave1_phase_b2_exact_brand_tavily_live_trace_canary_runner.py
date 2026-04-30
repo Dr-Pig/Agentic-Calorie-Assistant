@@ -121,6 +121,7 @@ async def test_runner_writes_live_trace_report_without_secret_or_readiness_claim
     report = __import__("json").loads(text)
     assert report["provider_mode"] == "live"
     assert report["live_invoked"] is True
+    assert report["runtime_web_diagnostic_enabled"] is True
     assert report["readiness_claimed"] is False
     assert report["runtime_web_activation_recommended"] is False
     assert report["decision_pack_options"] == [
@@ -132,6 +133,8 @@ async def test_runner_writes_live_trace_report_without_secret_or_readiness_claim
     assert report["readiness_claim"]["allowed_next_stage"] == "live_search_seam_decision_pack"
     assert report["cases"][0]["trace"]["provider_profile"]["provider"] == "tavily"
     assert report["cases"][0]["trace"]["provider_profile"]["search_port"] == "_FakeSearchPort"
+    assert report["cases"][0]["runtime_web_diagnostic_enabled"] is True
+    assert report["cases"][0]["trace"]["truth_boundary"]["runtime_web_diagnostic_enabled"] is True
     assert report["cases"][0]["verdict_category"] == "diagnostic_observation"
     assert report["cases"][0]["failure_family"] is None
     assert report["cases"][0]["runtime_web_activation_recommended"] is False
