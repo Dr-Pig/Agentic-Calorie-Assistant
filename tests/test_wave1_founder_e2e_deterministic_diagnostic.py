@@ -16,6 +16,7 @@ def test_founder_e2e_runner_source_avoids_legacy_surfaces() -> None:
         "run_v2_" + "intake_turn" + "_live_eval",
         "run_v2_" + "intake_execution" + "_live_eval",
         "run_wave1_phase_b_minimal_tool_loop_smoke",
+        "bundle2_" + "manager",
         "docs/" + "archive",
     )
     for marker in forbidden_markers:
@@ -97,6 +98,7 @@ def test_founder_e2e_deterministic_diagnostic_artifact_contract(tmp_path: Path) 
     assert all(case["expected_behavior"] for case in cases)
     assert all("manager_semantic_decision" in case["actual_behavior"] for case in cases)
     assert all("manager_semantic_decision" in case["final_mapping"] for case in cases)
+    assert all(case["actual_behavior"]["manager_rounds"] for case in cases if case["case_id"] != "today_ledger_read_model")
     assert all(case["verdict"] in {"pass", "fail", "product_decision_required", "deferred"} for case in cases)
     assert all(
         set(
