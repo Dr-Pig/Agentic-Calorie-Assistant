@@ -47,6 +47,53 @@ BuilderSpace exposes an OpenAI-compatible `/v1/chat/completions` surface, but ru
 
 Treat `json_schema` and synthetic decision tool transport as separate capability probes. Acceptance of the request surface alone is not proof that the model/provider will return the required structured payload.
 
+## B1 Provider Transport Contract Diagnostic 2026-04-30
+
+Artifact:
+
+- [artifacts/b1_provider_transport_contract_diagnostic.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/b1_provider_transport_contract_diagnostic.json)
+
+Current interpretation from the B1 transport canary:
+
+- `deepseek` is not a reliable B1 Pass 1 manager-contract carrier on the tested canary set.
+- `deepseek + json_schema` can be HTTP-accepted while still producing prose/fenced JSON and unsupported `search` tool names, so `json_schema` acceptance is not schema enforcement evidence for this profile.
+- `deepseek + tool_choice` remained non-adherent on the tested canary set.
+- `grok-4-fast` produced canonical B1 Pass 1 tool decisions for `B1-001`, `B1-002`, and `B1-004` across `json_schema`, `tool_choice`, and `json_object` canary modes.
+- This is transport-contract evidence only. It is not B1 readiness evidence, product readiness evidence, or production manager selection.
+
+## B1 GrokFast Pass 1 Full Diagnostic 2026-04-30
+
+Artifacts:
+
+- [artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260430T105302.700951Z_forced_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_fd8b48.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260430T105302.700951Z_forced_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_fd8b48.json)
+- [artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260430T105625.767486Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_2e4a58.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260430T105625.767486Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_2e4a58.json)
+- [artifacts/wave1_phase_b_minimal_tool_loop_readiness.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_readiness.json)
+
+Current interpretation:
+
+- Explicit profile `builderspace-grok-4-fast-b1-pass1-tool-choice` can carry B1 Pass 1 full-diagnostic tool decisions with canonical tool names across the six core cases.
+- The forced full smoke is a fixture scaffold pass only; the readiness gate correctly prevents it from claiming B1 implementation readiness.
+- The natural full smoke has Pass 1 tool-selection success and no provider runtime crash.
+- B1 readiness remains blocked by `B1-003` Pass 2 contract output: item results are only observable through the answer-contract compatibility bridge instead of runtime-owned Manager Pass 2 top-level `item_results`.
+- Next task should be a B1 Pass 2 manager-contract diagnostic. Do not route this around by broad model switching or compatibility extraction.
+
+## B1 Pass 2 Manager Contract Diagnostic 2026-04-30
+
+Artifacts:
+
+- [artifacts/b1_pass2_manager_contract_diagnostic.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/b1_pass2_manager_contract_diagnostic.json)
+- [artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260430T110919.670837Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_137685.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260430T110919.670837Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_137685.json)
+- [artifacts/wave1_phase_b_minimal_tool_loop_readiness.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_readiness.json)
+
+Current interpretation:
+
+- The active B1 natural smoke still routes `B1-003` Pass 2 through `deepseek`.
+- `deepseek + current B1-003 Pass 2 prompt/schema` returns item results through `answer_contract.item_results`, so the verifier correctly blocks readiness with `natural_probe_answer_contract_bridge_item_results`.
+- `grok-4-fast + current B1-003 Pass 2 prompt/schema` returns runtime-owned top-level `item_results`.
+- `deepseek + tightened top-level item_results prompt/schema` also returns top-level `item_results`.
+- Current root cause is `deepseek_pass2_contract_non_adherence`, with prompt/schema tightening as supporting evidence. The next repair should be narrow: add an explicit B1 Pass 2 GrokFast diagnostic route or tighten the common-commercial-meal Pass 2 contract, then rerun B1 readiness.
+- This remains B1 diagnostic evidence only. It is not B2 readiness, production manager selection, mutation readiness, or product readiness.
+
 ## Manager Strategy Split
 
 Provider capability and manager-model suitability are tracked separately.

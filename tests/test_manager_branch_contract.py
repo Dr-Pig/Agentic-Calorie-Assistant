@@ -58,7 +58,14 @@ def test_b1_clarification_pass2_constraint_allows_trace_only_item_results() -> N
         "manager_action": "final",
         "interaction_family": "food_logging",
         "response_mode": "clarification",
+        "intent": "log_meal",
+        "workflow_effect": "pause_for_clarification",
+        "target_attachment": {},
         "final_action": "request_clarification",
+        "exactness": "none",
+        "confidence": "low",
+        "evidence_posture": "insufficient",
+        "repair_ack": False,
         "operations": [],
         "item_results": [
             {
@@ -69,6 +76,7 @@ def test_b1_clarification_pass2_constraint_allows_trace_only_item_results() -> N
                 "evidence_used": ["trace_only_candidate"],
             }
         ],
+        "uncertainty_posture": "composition_unknown_basket",
         "answer_contract": {"text": "Please list the specific items in the basket so I can estimate accurately."},
     }
     constraints = {

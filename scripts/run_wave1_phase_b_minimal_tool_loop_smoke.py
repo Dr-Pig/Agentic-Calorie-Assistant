@@ -65,6 +65,17 @@ DIAGNOSTIC_READINESS_SCOPE = "diagnostic"
 RUNNER_RETRY_MAX_ATTEMPTS = 2
 RUNNER_RETRY_BASE_BACKOFF_SECONDS = 0.25
 MANAGER_CONTRACT_VALIDATION_ERROR = "manager_contract_validation_error"
+PROVIDER_CONTRACT_NON_ADHERENCE = "provider_contract_non_adherence"
+MANAGER_CONTRACT_REQUIRED_TRACE_FIELDS = (
+    "manager_action",
+    "intent",
+    "workflow_effect",
+    "target_attachment",
+    "confidence",
+    "evidence_posture",
+    "exactness",
+    "repair_ack",
+)
 
 CORE_SMOKE_CASES = (
     "我吃了一顆茶葉蛋",
@@ -111,6 +122,7 @@ PROVIDER_PARAM_KEYS = (
     "profile_routing_rule_id",
     "profile_routing_scope",
     "profile_routing_artifact_basis",
+    "provider_profile_readiness_scope",
 )
 
 
@@ -133,6 +145,7 @@ class _PhaseB1ProviderProfile:
     default_for_build_loop: bool = False
     branch_scope: str | None = None
     manager_role_scope: str | None = None
+    readiness_scope: str = "not_applicable"
     temperature: float | None = None
 
 
@@ -185,6 +198,45 @@ PHASE_B1_PROVIDER_PROFILES: dict[str, dict[str, Any]] = {
         "default_for_build_loop": False,
         "branch_scope": B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
         "manager_role_scope": "pass_1_tool_request",
+        "temperature": 0.0,
+    },
+    "builderspace-grok-4-fast-b1-pass1-tool-choice": {
+        "provider": "builderspace",
+        "model": "grok-4-fast",
+        "cost_tier": "low",
+        "manual_only": False,
+        "provider_profile_role": "low_cost_transport_probe",
+        "allow_expensive_model_probe": False,
+        "transport_mode": "tool_call_decision_transport",
+        "selection_reason": "explicit B1 Pass 1 full-diagnostic profile backed by 2026-04-30 transport canary",
+        "documented_tool_call_support": "documented_at_endpoint_surface",
+        "documented_reasoning_status": "documented",
+        "artifact_tool_call_reliability": "B1_transport_canary_passed",
+        "manager_candidate_status": "diagnostic_only",
+        "production_selected": False,
+        "default_for_build_loop": False,
+        "branch_scope": None,
+        "manager_role_scope": "pass_1_tool_request",
+        "temperature": 0.0,
+    },
+    "builderspace-grok-4-fast-b1-full-tool-loop-diagnostic": {
+        "provider": "builderspace",
+        "model": "grok-4-fast",
+        "cost_tier": "low",
+        "manual_only": False,
+        "provider_profile_role": "low_cost_full_tool_loop_diagnostic",
+        "allow_expensive_model_probe": False,
+        "transport_mode": "tool_call_decision_transport",
+        "selection_reason": "explicit B1 full tool-loop diagnostic profile backed by 2026-04-30 Pass 1 and Pass 2 evidence",
+        "documented_tool_call_support": "documented_at_endpoint_surface",
+        "documented_reasoning_status": "documented",
+        "artifact_tool_call_reliability": "B1_transport_and_pass2_contract_canaries_passed",
+        "manager_candidate_status": "diagnostic_only",
+        "production_selected": False,
+        "default_for_build_loop": False,
+        "branch_scope": None,
+        "manager_role_scope": None,
+        "readiness_scope": "b1_live_diagnostic",
         "temperature": 0.0,
     },
     "builderspace-grok-4-fast-b1004-probe": {
@@ -242,6 +294,25 @@ PHASE_B1_PROVIDER_PROFILES: dict[str, dict[str, Any]] = {
         "default_for_build_loop": False,
         "branch_scope": B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY,
         "manager_role_scope": "pass_1_tool_request",
+        "temperature": 0.0,
+    },
+    "builderspace-grok-4-fast-b1-pass2-probe": {
+        "provider": "builderspace",
+        "model": "grok-4-fast",
+        "cost_tier": "low",
+        "manual_only": False,
+        "provider_profile_role": "low_cost_contract_probe",
+        "allow_expensive_model_probe": False,
+        "transport_mode": "structured_output_contract_probe",
+        "selection_reason": "lowest-cost alternate candidate for B1 Pass 2 manager contract probe",
+        "documented_tool_call_support": "documented_at_endpoint_surface",
+        "documented_reasoning_status": "documented",
+        "artifact_tool_call_reliability": "B1_pass2_probe_pending",
+        "manager_candidate_status": "not_applicable",
+        "production_selected": False,
+        "default_for_build_loop": False,
+        "branch_scope": None,
+        "manager_role_scope": "pass_2_synthesis",
         "temperature": 0.0,
     },
     "builderspace-kimi-k2.5-candidate": {
@@ -467,13 +538,13 @@ PASS_2_COMMON_FOOD_ITEM_COMPACT_JSON_FIRST_PAYLOAD = (
     "Do not write evidence essay, long source recap, markdown bullets, fenced code blocks, or reasoning text before JSON.\n"
     "Do not replay the runner payload envelope like {\"stage\": ..., \"payload\": ...}.\n"
     "Prefer direct top-level item_results as the canonical output surface.\n"
-    "Retain the active wrapper fields required by the current branch: response_mode, intent, workflow_effect, target_attachment, operations, and answer_contract.\n"
+    "Retain the active wrapper fields required by the current branch: response_mode, intent, workflow_effect, target_attachment, exactness, confidence, evidence_posture, repair_ack, operations, and answer_contract.\n"
     "Use operations=[].\n"
     "Use answer_contract={} unless a minimal compatibility wrapper is strictly required.\n"
     "You may produce compact item_results-oriented synthesis only.\n"
     "Do not output mutation_result, ledger_delta, canonical_ledger_entry, or renderer final response.\n"
     "Compact JSON example:\n"
-    "{\"manager_action\":\"final\",\"interaction_family\":\"food_logging\",\"response_mode\":\"intake_result\",\"intent\":\"log_food_item\",\"workflow_effect\":\"item_logged\",\"target_attachment\":\"茶葉蛋\",\"item_results\":[{\"food_name\":\"茶葉蛋\",\"kcal_range\":[70,90],\"likely_kcal\":80,\"uncertainty\":\"medium\",\"evidence_used\":[\"generic_food_db:茶葉蛋\"]}],\"operations\":[],\"answer_contract\":{}}"
+    "{\"manager_action\":\"final\",\"interaction_family\":\"food_logging\",\"response_mode\":\"intake_result\",\"intent\":\"log_food_item\",\"workflow_effect\":\"item_logged\",\"target_attachment\":\"茶葉蛋\",\"exactness\":\"approximate\",\"confidence\":\"medium\",\"evidence_posture\":\"packetized_generic_db\",\"repair_ack\":false,\"item_results\":[{\"food_name\":\"茶葉蛋\",\"kcal_range\":[70,90],\"likely_kcal\":80,\"uncertainty\":\"medium\",\"evidence_used\":[\"generic_food_db:茶葉蛋\"]}],\"operations\":[],\"answer_contract\":{}}"
 )
 PASS_2_COMMON_COMMERCIAL_DRINK_COMPACT_JSON_FIRST_PAYLOAD = (
     "Phase B-1 common-commercial-drink Pass 2 compact synthesis mode.\n"
@@ -481,14 +552,14 @@ PASS_2_COMMON_COMMERCIAL_DRINK_COMPACT_JSON_FIRST_PAYLOAD = (
     "Output exactly one compact JSON object.\n"
     "The first non-whitespace character of your response must be '{'.\n"
     "Do not write evidence essay, source recap, markdown bullets, fenced code blocks, or reasoning text before JSON.\n"
-    "You must retain response_mode.\n"
+    "You must retain response_mode, intent, workflow_effect, target_attachment, exactness, confidence, evidence_posture, repair_ack, operations, and answer_contract.\n"
     "You must retain operations=[].\n"
     "You must retain answer_contract.\n"
     "You may use canonical item_results and evidence_used as the result surface.\n"
     "Do not emit final synthesis while dropping required wrapper fields.\n"
     "Do not output mutation_result, ledger_delta, canonical_ledger_entry, or renderer final response.\n"
     "Compact JSON example:\n"
-    "{\"manager_action\":\"final\",\"interaction_family\":\"nutrition_info_query\",\"response_mode\":\"info_answer\",\"intent\":\"query_food_calories\",\"workflow_effect\":\"complete\",\"target_attachment\":\"food_item\",\"item_results\":[{\"food_name\":\"珍珠奶茶\",\"kcal_range\":[350,450],\"likely_kcal\":400,\"uncertainty\":\"medium\",\"evidence_used\":[\"generic_food_db:珍珠奶茶\"]}],\"evidence_used\":[\"generic_food_db:珍珠奶茶\"],\"operations\":[],\"answer_contract\":{}}"
+    "{\"manager_action\":\"final\",\"interaction_family\":\"nutrition_info_query\",\"response_mode\":\"info_answer\",\"intent\":\"query_food_calories\",\"workflow_effect\":\"complete\",\"target_attachment\":\"food_item\",\"exactness\":\"approximate\",\"confidence\":\"medium\",\"evidence_posture\":\"packetized_generic_db\",\"repair_ack\":false,\"item_results\":[{\"food_name\":\"珍珠奶茶\",\"kcal_range\":[350,450],\"likely_kcal\":400,\"uncertainty\":\"medium\",\"evidence_used\":[\"generic_food_db:珍珠奶茶\"]}],\"evidence_used\":[\"generic_food_db:珍珠奶茶\"],\"operations\":[],\"answer_contract\":{}}"
 )
 PASS_2_COMMON_COMMERCIAL_MEAL_COMPACT_JSON_FIRST_PAYLOAD = (
     "Phase B-1 common-commercial-meal Pass 2 compact synthesis mode.\n"
@@ -497,13 +568,15 @@ PASS_2_COMMON_COMMERCIAL_MEAL_COMPACT_JSON_FIRST_PAYLOAD = (
     "The first non-whitespace character of your response must be '{'.\n"
     "Do not write evidence essay, long source recap, markdown bullets, fenced code blocks, or reasoning text before JSON.\n"
     "Do not replay the runner payload envelope like {\"stage\": ..., \"payload\": ...}.\n"
-    "You must retain response_mode.\n"
+    "You must retain response_mode, intent, workflow_effect, target_attachment, exactness, confidence, evidence_posture, repair_ack, operations, and answer_contract.\n"
     "You must retain operations=[].\n"
     "You must retain answer_contract.\n"
+    "Required result surface: top-level item_results.\n"
+    "Do not put canonical item estimates under answer_contract.item_results.\n"
     "Do not emit final synthesis while dropping required wrapper fields.\n"
     "Do not output mutation_result, ledger_delta, canonical_ledger_entry, or renderer final response.\n"
     "Compact JSON example:\n"
-    "{\"manager_action\":\"final\",\"interaction_family\":\"food_logging\",\"response_mode\":\"intake_result\",\"intent\":\"estimate_calories\",\"workflow_effect\":\"complete\",\"target_attachment\":\"generic_taiwanese_bento\",\"answer_contract\":{\"item_results\":[{\"item_name\":\"靘輻\",\"item_quantity\":1,\"item_unit\":\"serving\"}],\"kcal_range\":[550,960],\"likely_kcal\":750,\"uncertainty\":\"medium\",\"evidence_used\":[\"generic_food_db:靘輻\"]},\"operations\":[]}"
+    "{\"manager_action\":\"final\",\"interaction_family\":\"food_logging\",\"response_mode\":\"intake_result\",\"intent\":\"estimate_calories\",\"workflow_effect\":\"complete\",\"target_attachment\":\"generic_taiwanese_bento\",\"exactness\":\"approximate\",\"confidence\":\"medium\",\"evidence_posture\":\"packetized_generic_db\",\"repair_ack\":false,\"item_results\":[{\"food_name\":\"taiwanese_bento\",\"kcal_range\":[550,960],\"likely_kcal\":750,\"uncertainty\":\"medium\",\"evidence_used\":[\"generic_food_db:taiwanese_bento\"]}],\"evidence_used\":[\"generic_food_db:taiwanese_bento\"],\"operations\":[],\"answer_contract\":{}}"
 )
 PASS_2_LISTED_INGREDIENT_COMPACT_JSON_FIRST_PAYLOAD = (
     "Phase B-1 listed-ingredient Pass 2 compact synthesis mode.\n"
@@ -530,12 +603,14 @@ PASS_2_B1_004_CLARIFY_ONLY_PAYLOAD = (
     "The first non-whitespace character of your response must be '{'.\n"
     "Keep request_clarification as the canonical outcome.\n"
     "Retain response_mode='clarification', final_action='request_clarification', operations=[], and answer_contract.\n"
+    "Retain the manager wrapper fields for clarification: intent='log_meal', workflow_effect='pause_for_clarification', target_attachment={}, exactness='none', confidence='low', evidence_posture='insufficient', repair_ack=false.\n"
+    "Use uncertainty_posture='composition_unknown_basket' if you include uncertainty_posture.\n"
     "Do not turn this case into a logged estimate, final calorie answer, mutation, or tool request.\n"
     "Trace-only item_results may appear in the raw model payload, but they must not replace the clarification outcome.\n"
     "Do not replay the runner payload envelope like {\"stage\": ..., \"payload\": ...}.\n"
     "Do not output mutation_result, ledger_delta, canonical_ledger_entry, or renderer final response.\n"
     "Compact JSON example:\n"
-    "{\"manager_action\":\"final\",\"interaction_family\":\"food_logging\",\"response_mode\":\"clarification\",\"final_action\":\"request_clarification\",\"operations\":[],\"answer_contract\":{\"text\":\"Please list the specific items in the basket so I can estimate accurately.\"}}"
+    "{\"manager_action\":\"final\",\"interaction_family\":\"food_logging\",\"response_mode\":\"clarification\",\"intent\":\"log_meal\",\"workflow_effect\":\"pause_for_clarification\",\"target_attachment\":{},\"final_action\":\"request_clarification\",\"exactness\":\"none\",\"confidence\":\"low\",\"evidence_posture\":\"insufficient\",\"repair_ack\":false,\"uncertainty_posture\":\"composition_unknown_basket\",\"evidence_honesty_posture\":\"honest\",\"operations\":[],\"answer_contract\":{\"text\":\"Please list the specific items in the basket so I can estimate accurately.\"}}"
 )
 
 PHASE_B1_TASK_PAYLOADS: dict[str, str] = {
@@ -890,6 +965,7 @@ def _inject_provider_profile_trace_fields(
     trace["profile_routing_rule_id"] = route.rule_id
     trace["profile_routing_scope"] = route.routing_scope
     trace["profile_routing_artifact_basis"] = route.artifact_basis
+    trace["provider_profile_readiness_scope"] = profile.readiness_scope
     trace["provider_profile_route_uses_case_id_local_debt"] = route.uses_case_id_local_debt
     trace["provider_profile_should_migrate_post_b1"] = route.should_migrate_post_b1
 
@@ -1193,6 +1269,15 @@ class _PhaseB1ManagerProvider:
         )
         provider_profile_selection = _provider_profile_selection_trace(route)
         active_profile = route.profile
+        if (
+            manager_role == "pass_1_tool_request"
+            and not active_profile.default_for_build_loop
+            and active_profile.transport_mode == "tool_call_decision_transport"
+        ):
+            constraints["phase_b1_provider_profile_id"] = active_profile.profile_id
+            constraints["phase_b1_provider_profile_transport_mode"] = active_profile.transport_mode
+            user_payload["constraints"] = constraints
+            kwargs["user_payload"] = user_payload
         if round_index == 0 and self.pass1_mode == NATURAL_MODE:
             kwargs["system_prompt"] = f"{task_payload}\n\n{str(kwargs.get('system_prompt') or '')}"
         elif round_index == 0 and self.pass1_mode == FORCED_MODE:
@@ -1509,10 +1594,12 @@ def _route_tools(*, message: str, requested_tools: list[str]) -> dict[str, Any]:
     supported_tools = list(AVAILABLE_READ_TOOLS)
     supported_tool_set = set(supported_tools)
     blocked_tools: list[str] = []
+    unsupported_tool_names: list[str] = []
     block_reasons: list[dict[str, Any]] = []
     for tool_name in requested_tools:
         if tool_name not in supported_tool_set:
             blocked_tools.append(tool_name)
+            unsupported_tool_names.append(tool_name)
             block_reasons.append(
                 {
                     "tool_name": tool_name,
@@ -1544,6 +1631,10 @@ def _route_tools(*, message: str, requested_tools: list[str]) -> dict[str, Any]:
         "filtered_tool_plan": list(allowed_tools),
         "blocked_tools": blocked_tools,
         "block_reasons": block_reasons,
+        "unsupported_tool_names": unsupported_tool_names,
+        "unsupported_tool_contract_failure_family": (
+            "model_contract_non_adherence" if unsupported_tool_names else None
+        ),
     }
 
 
@@ -2395,6 +2486,27 @@ def _provider_runtime_summary_for_error(
     transport_attempts = (
         provider_trace.get("transport_attempts") if isinstance(provider_trace.get("transport_attempts"), list) else []
     )
+    parse_attempts = provider_trace.get("parse_attempts") if isinstance(provider_trace.get("parse_attempts"), list) else []
+    parsed_object = provider_trace.get("parsed_object") if isinstance(provider_trace.get("parsed_object"), dict) else None
+    missing_required_fields = _provider_contract_missing_required_fields(
+        provider_trace=provider_trace,
+        parsed_object=parsed_object,
+    )
+    provider_contract_failure_family = provider_trace.get("provider_contract_failure_family")
+    if provider_contract_failure_family in (None, "") and missing_required_fields:
+        provider_contract_failure_family = PROVIDER_CONTRACT_NON_ADHERENCE
+    parsed_object_excerpt = (
+        _truncate_text(json.dumps(parsed_object, ensure_ascii=False, default=str), limit=800)
+        if parsed_object is not None
+        else None
+    )
+    repair_attempt_count = provider_trace.get("repair_attempt_count")
+    if repair_attempt_count is None:
+        repair_attempt_count = sum(
+            1
+            for attempt in parse_attempts
+            if isinstance(attempt, dict) and str(attempt.get("result") or "").lower() in {"repair", "repair_attempted"}
+        )
     latest_transport_attempt = next(
         (
             attempt
@@ -2475,6 +2587,11 @@ def _provider_runtime_summary_for_error(
         "transport_attempts": compact_transport_attempts,
         "failing_component": failing_component,
         "failure_family": provider_trace.get("failure_family") or provider_trace.get("request_failure_family"),
+        "provider_contract_failure_family": provider_contract_failure_family,
+        "missing_required_fields": missing_required_fields,
+        "parser_result": provider_trace.get("parser_result") or provider_trace.get("parse_contract_status"),
+        "repair_attempt_count": repair_attempt_count,
+        "parsed_object_excerpt": parsed_object_excerpt,
         "observed_type": provider_trace.get("observed_type"),
         "value_excerpt": provider_trace.get("value_excerpt"),
         "value_truncated": provider_trace.get("value_truncated"),
@@ -2777,6 +2894,23 @@ def _provider_runtime_error_report(
         "tool_loop_traces": _json_safe(traces),
         "artifact_path": str(artifact_path),
     }
+
+
+def _provider_contract_missing_required_fields(
+    *,
+    provider_trace: dict[str, Any],
+    parsed_object: dict[str, Any] | None,
+) -> list[str]:
+    raw_missing = provider_trace.get("missing_required_fields")
+    if isinstance(raw_missing, list):
+        return [str(item) for item in raw_missing if isinstance(item, str)]
+    if parsed_object is None:
+        return []
+    failure_family = provider_trace.get("failure_family") or provider_trace.get("request_failure_family")
+    if failure_family != MANAGER_OUTPUT_CONTRACT_VIOLATION:
+        return []
+    missing = [field for field in MANAGER_CONTRACT_REQUIRED_TRACE_FIELDS if field not in parsed_object]
+    return missing
 
 
 def _provider_trace_blocker_report(

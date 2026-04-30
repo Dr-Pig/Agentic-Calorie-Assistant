@@ -9,7 +9,9 @@ from .builderspace_parsing import BuilderSpaceParseError
 from ..runtime.agent.manager_branch_contract import (
     manager_pass1_decision_tool_arguments_schema_for_constraints,
     should_attempt_b1_common_commercial_meal_pass1_decision_transport,
-    should_attempt_b1_generic_pass1_structured_output_transport,
+    should_attempt_b1_pass1_structured_output_transport,
+    should_attempt_b1_pass2_structured_output_transport,
+    should_attempt_b1_profile_pass1_decision_transport,
 )
 from ..runtime.contracts.trace import MANAGER_LOOP_STAGE
 
@@ -24,12 +26,15 @@ def response_format_request_for_stage(
     schema: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     constraint_snapshot = _constraint_snapshot(constraints)
-    if stage == MANAGER_LOOP_STAGE and should_attempt_b1_generic_pass1_structured_output_transport(constraints):
+    if stage == MANAGER_LOOP_STAGE and (
+        should_attempt_b1_pass1_structured_output_transport(constraints)
+        or should_attempt_b1_pass2_structured_output_transport(constraints)
+    ):
         return (
             {
                 "type": "json_schema",
                 "json_schema": {
-                    "name": "phase_b1_generic_pass1_call_tools",
+                    "name": _phase_b1_schema_name(constraints),
                     "strict": True,
                     "schema": schema,
                 },
@@ -56,6 +61,12 @@ def response_format_request_for_stage(
     )
 
 
+def _phase_b1_schema_name(constraints: dict[str, Any] | None) -> str:
+    if should_attempt_b1_pass2_structured_output_transport(constraints):
+        return "phase_b1_pass2_manager_contract"
+    return "phase_b1_pass1_manager_contract"
+
+
 def decision_transport_request_for_stage(
     stage: str,
     *,
@@ -72,7 +83,10 @@ def decision_transport_request_for_stage(
         "decision_transport_contract_breach": False,
         "decision_transport_constraint_snapshot": constraint_snapshot,
     }
-    if stage != MANAGER_LOOP_STAGE or not should_attempt_b1_common_commercial_meal_pass1_decision_transport(constraints):
+    if stage != MANAGER_LOOP_STAGE or not (
+        should_attempt_b1_common_commercial_meal_pass1_decision_transport(constraints)
+        or should_attempt_b1_profile_pass1_decision_transport(constraints)
+    ):
         return None, meta
     schema = manager_pass1_decision_tool_arguments_schema_for_constraints(manager_loop_schema, constraints)
     meta["decision_transport_attempted"] = True
@@ -196,4 +210,8 @@ def _constraint_snapshot(constraints: dict[str, Any] | None) -> dict[str, str]:
         "phase_b1_manager_role": str((constraints or {}).get("phase_b1_manager_role") or ""),
         "phase_b1_pass1_mode": str((constraints or {}).get("phase_b1_pass1_mode") or ""),
         "phase_b1_case_family": str((constraints or {}).get("phase_b1_case_family") or ""),
+        "phase_b1_provider_profile_id": str((constraints or {}).get("phase_b1_provider_profile_id") or ""),
+        "phase_b1_provider_profile_transport_mode": str(
+            (constraints or {}).get("phase_b1_provider_profile_transport_mode") or ""
+        ),
     }
