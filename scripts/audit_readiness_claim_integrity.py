@@ -19,6 +19,7 @@ DEFAULT_ARTIFACT_PATHS = (
     ROOT / "artifacts" / "wave1_phase_b_minimal_tool_loop_readiness.json",
     ROOT / "artifacts" / "wave1_phase_b2_evidence_synthesis_readiness.json",
     ROOT / "artifacts" / "wave1_founder_e2e_deterministic_diagnostic.json",
+    ROOT / "artifacts" / "wave1_b2_active_runtime_integration_diagnostic.json",
     ROOT / "artifacts" / "wave1_phase_b2_live_llm_diagnostic_canary.json",
     ROOT / "artifacts" / "wave1_phase_b2_exact_brand_tavily_live_trace_canary.json",
 )

@@ -55,14 +55,14 @@ def test_estimate_with_followup_maps_to_draft_when_write_owner_blocks() -> None:
     assert mapping["reason"] == "canonical_write_owner_blocked"
 
 
-def test_unresolved_item_maps_to_unresolved_draft_even_when_write_owner_allows() -> None:
+def test_unresolved_item_maps_to_draft_even_when_write_owner_allows() -> None:
     mapping = map_b2_final_item_result(
         _item_result(exactness_posture="unresolved", likely_kcal=None, kcal_range=None),
         canonical_write_decision={"can_write_canonical": True},
         interaction_type="food_logging",
     )
 
-    assert mapping["external_outcome"] == "unresolved"
+    assert mapping["external_outcome"] == "draft"
     assert mapping["ledger_status"] == "excluded_pending_info"
     assert mapping["mutation_allowed"] is False
     assert mapping["followup_role"] == "clarification_required"
@@ -88,5 +88,5 @@ def test_final_mapping_many_preserves_order_and_marks_owner() -> None:
         interaction_type="food_logging",
     )
 
-    assert [item["external_outcome"] for item in results] == ["logged", "unresolved"]
+    assert [item["external_outcome"] for item in results] == ["logged", "draft"]
     assert all(item["final_mapping_owner"] == "b2_final_mapping" for item in results)

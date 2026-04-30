@@ -447,7 +447,7 @@ def test_official_b2_producer_consumes_final_mapping_owner_for_ledger_status() -
     assert boba["ledger_status"] == boba["final_mapping"]["ledger_status"] == "included"
 
     luwei = _case_by_id(report, "B2-004")["manager_pass_2"]["item_results"][0]
-    assert luwei["final_mapping"]["external_outcome"] == "unresolved"
+    assert luwei["final_mapping"]["external_outcome"] == "draft"
     assert luwei["ledger_status"] == luwei["final_mapping"]["ledger_status"] == "excluded_pending_info"
 
     boba_query = _case_by_id(report, "B2-008")["manager_pass_2"]["item_results"][0]
@@ -735,6 +735,17 @@ def test_ledger_status_not_owned_by_b2_final_mapping_blocks_readiness(tmp_path: 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
     assert any(item["code"] == "b2_final_mapping_ledger_status_mismatch" for item in report["blockers"])
+
+
+def test_unsupported_b2_final_mapping_external_outcome_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        _case_by_id(data, "B2-004")["manager_pass_2"]["item_results"][0]["final_mapping"][
+            "external_outcome"
+        ] = "unresolved"
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert any(item["code"] == "b2_final_mapping_external_outcome_invalid" for item in report["blockers"])
 
 
 def test_rejected_sibling_candidate_missing_blocks_readiness(tmp_path: Path) -> None:
