@@ -181,7 +181,7 @@
 - candidate options
 - presentation policy
 - negotiation status
-- accepted / rejected option
+- accepted / dismissed / rejected option state
 - commit source
 - expiry / invalidation state
 
@@ -445,7 +445,7 @@ class ProactiveScheduler:
 - **Chat**：說「不要再提醒我吃飯了」→ 寫入 `muted_trigger_types: [meal_reminder]`
 - **Chat**：說「晚上 10 點後不要打擾我」→ 寫入 `quiet_hours_start: "22:00"`
 - **UI 設定頁**：直接修改 `UserProactivePreference`
-- **Dismiss 行為**：連續 3 次 dismiss 同類 trigger → 系統提示是否要關閉該類型
+- **Proactive notification dismiss 行為**：連續 3 次 dismiss 同類 trigger → 系統可提示是否要關閉該類型；這不是 `ProposalContainer.status = dismissed`，且不得自動寫入 suppression / preference
 
 當使用者透過 chat 修改 proactive 設定時：
 
@@ -503,7 +503,7 @@ Session 結束後（ACTIVE → EXPIRED）：
 #### 預設 priority 順序
 
 1. **明確 topic reset 語意**（最高優先）：若使用者明確說「先不管」「那個之後再說」，應開新 workflow，不 attach 任何現有 object
-2. **明確 action 語意**：若 utterance 含有明確的 accept / reject / defer / adjust 語意，應 attach 到對應的 proposal object
+2. **明確 action 語意**：若 utterance 含有明確的 accept / dismiss / reject / defer / adjust 語意，應 attach 到對應的 proposal object
 3. **明確 followup 回答語意**：若 utterance 明顯是在回答 pending followup question，應 attach 到對應的 meal_thread
 4. **模糊語意（ambiguous）**：若無法判斷，應路由為 `answer_only`（disposition: answer_only），不改變任何 object state，讓 response layer 在回覆中自然釐清
 
@@ -513,7 +513,7 @@ Session 結束後（ACTIVE → EXPIRED）：
 
 例子：
 
-- 「先這樣吧」（同時有 open rescue proposal 和 pending intake followup）→ `answer_only`，不 accept / reject / defer 任何 proposal，不 attach 到任何 thread
+- 「先這樣吧」（同時有 open rescue proposal 和 pending intake followup）→ `answer_only`，不 accept / dismiss / reject / defer 任何 proposal，不 attach 到任何 thread
 - 「好」（context 不清楚）→ `answer_only`，讓 response layer 確認使用者意圖
 
 規則：
@@ -526,7 +526,7 @@ Session 結束後（ACTIVE → EXPIRED）：
 
 當 rescue proposal 和 intake followup 同時存在時：
 
-- 明確 rescue action 語意（accept / reject / defer / adjust / explain）→ attach 到 rescue proposal
+- 明確 rescue action 語意（accept / dismiss / adjust / explain；或明確 reject proposal semantics）→ attach 到 rescue proposal
 - 明確 followup 回答語意（直接回答 pending question 的內容）→ attach 到 intake followup
 - 模糊語意 → `answer_only`，不 attach 任何 object
 
@@ -741,7 +741,9 @@ proposal 預設支援多方案並列，而不是只有單一 yes/no。
 
 - rescue `ProposalContainer` 對外只呈現一個建議方案（建議天數 + 每日回收量）
 - 不呈現 backup options，不做多策略選單
-- 使用者可透過 `shorten_rescue_plan` / `extend_rescue_plan` 調整同一方案的強度
+- proposal card 的 primary actions 是 `accept_rescue_plan` / `dismiss_rescue_plan`
+- 使用者可透過 chat negotiation 說「緩一點」「短一點」或「為什麼」來調整或理解同一方案
+- `shorten_rescue_plan` / `extend_rescue_plan` / `explain_rescue_plan` 可作為 chat-derived intent 或 App/Web secondary affordance，但不是 rescue proposal card 的同級 primary actions
 - 內部 `ProposalContainer` 可保留計算過程，但 surface contract 只輸出單一方案
 - 這是 rescue 的 v1 product stance，不影響 calibration / recommendation 等其他 proposal 類型的多方案呈現
 

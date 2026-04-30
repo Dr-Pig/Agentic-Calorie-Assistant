@@ -42,7 +42,7 @@ Chat is the primary surface for:
 - clarification
 - corrections
 - negotiation
-- proposal acceptance or rejection
+- proposal acceptance, dismissal, or rejection
 
 Chat is the **sole primary interaction surface** for all agent-driven flows including rescue, calibration proposals, and recommendations. All agent reasoning, proposal negotiation, and user decisions happen in chat first.
 
@@ -145,6 +145,8 @@ Product rules:
 - proposals are separate from committed state
 - proposals may be discussed in chat and confirmed in chat, UI, or smart chips
 - only accepted proposals may become committed state
+- dismissed proposals leave the active proposal surface for the current instance without creating a permanent opt-out or snooze
+- rejected proposals mean the user explicitly rejects the proposal or its core option semantics
 
 ### 5. `proactive_trigger`
 
@@ -276,7 +278,7 @@ Product requirements:
 - confirmation may happen in chat, UI, or smart chips
 - accepted rescue plans must affect future budget views and downstream recommendations
 - rescue is delivered as an independent chat message, never embedded inside an intake reply
-- rescue interaction in chat is a single-spread model: the system proposes a number of days to spread the recovery, and the user can adjust intensity (shorter/more aggressive or longer/gentler)
+- rescue interaction in chat is a single-spread model: the system proposes a number of days to spread the recovery, the primary proposal actions are accept / dismiss, and intensity changes happen through chat negotiation or secondary affordances
 - UI acts as a proposal inbox mirror for rescue; it does not host the primary rescue interaction
 
 ---
@@ -300,8 +302,11 @@ These are product-semantic states, not low-level runtime states.
 - `presented`
 - `negotiating`
 - `accepted`
+- `dismissed`
 - `rejected`
 - `expired`
+
+`dismissed` hides the current proposal instance from active proposal surfaces while preserving user-visible history / audit. It is not a permanent opt-out, snooze, or durable preference. `rejected` is stronger: the user explicitly rejects the proposal or option semantics.
 
 ### `proactive_trigger` states
 

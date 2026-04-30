@@ -58,6 +58,38 @@ approved:
       - follow-up policy
       - renderer honesty wording
 
+  salt_crispy_chicken_surface_term_resolution:
+    status: approved
+    selected_policy: context_sensitive_multi_sense_resolution
+    scope:
+      - Taiwan food mention semantics
+      - surface term 鹽酥雞
+      - Wave 1 Phase B-2 evidence metadata placement
+    decision:
+      - surface term 鹽酥雞 must not be modeled as a one-way alias
+      - portion cue present generally resolves toward a generic estimable item
+      - meal or vendor context without listed items generally resolves toward self-selected basket ask-first
+      - listed components resolve toward listed basket item-level lookup
+    cue_examples:
+      status: illustrative_not_exhaustive
+      generic_item_examples:
+        - 一份鹽酥雞
+        - 一包鹽酥雞
+        - 小份鹽酥雞
+      self_selected_basket_examples:
+        - 晚餐吃鹽酥雞
+        - 買鹽酥雞
+        - 宵夜吃鹽酥雞
+      listed_basket_examples:
+        - 鹽酥雞，有甜不辣、米血、四季豆
+    affected_runtime_surfaces:
+      - food knowledge metadata
+      - evidence path selection
+      - B2 packetizer inputs
+      - Manager Pass 2 synthesis inputs
+    downstream_observed_by:
+      - B2 final mapping boundary
+
   self_selected_basket_without_listed_items:
     status: approved
     selected_policy: ask_first_unresolved_no_logged_estimate
@@ -66,7 +98,7 @@ approved:
       - composition-unknown mixed foods where the user has not named ingredients
     examples:
       - 滷味
-      - 鹽酥雞
+      - 鹽酥雞 as vendor or self-selected-basket sense
       - 麻辣燙
       - 自助餐
       - 鹹水雞

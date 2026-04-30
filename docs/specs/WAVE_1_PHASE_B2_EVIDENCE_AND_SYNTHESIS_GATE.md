@@ -32,6 +32,10 @@ Runtime architecture note:
 - target runtime architecture should attach Taiwan-specific semantics to generic food knowledge metadata
 - clarify-only semantic records must not become independent runtime evidence packets
 
+Food knowledge metadata, including generic anchors, exact item card seed metadata, meal templates, food mention/sense resolution, and portion cue semantics, is defined in `WAVE_1_PHASE_B2_FOOD_KNOWLEDGE_METADATA_SPEC.md`.
+
+This gate owns packet-level invariants. The food metadata spec must not redefine packet truth levels, source quality labels, exactness guard behavior, product mutation semantics, or final mapping ownership.
+
 Phase B-2 does not implement:
 
 - autonomous nutrition subagents
