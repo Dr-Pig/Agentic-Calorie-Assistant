@@ -19,7 +19,7 @@ from app.nutrition.application.b2_candidate_packetizer import (
 )
 from app.nutrition.application.b2_final_mapping import map_b2_final_item_result
 from app.nutrition.application.b2_local_synthesis import synthesize_b2_local_manager_pass2
-from app.nutrition.application.b2_packet_consumption import consume_rechecked_packets
+from app.nutrition.application.b2_packet_consumption import B2PacketConsumptionResult, consume_rechecked_packets
 from app.nutrition.application.b2_semantic_decision import (
     B2ManagerSemanticDecision,
     build_retrieval_intent_from_manager_decision,
@@ -109,6 +109,43 @@ def _semantic_decision_trace(decision: B2ManagerSemanticDecision) -> dict[str, o
 
 def _source_selection_trace(intent: RetrievalIntent) -> dict[str, object]:
     return _json_safe(asdict(select_b2_evidence_source(intent)))
+
+
+def _packet_consumption_trace(consumption: B2PacketConsumptionResult) -> dict[str, object]:
+    return {
+        "owner": "b2_packet_consumption",
+        "consumed_packet_ids": list(consumption.consumed_packet_ids),
+        "accepted_packet_ids": [
+            str(packet.get("packet_id"))
+            for packet in consumption.accepted_packets
+            if packet.get("packet_id")
+        ],
+        "rejected_candidate_packet_ids": [
+            str(candidate.get("packet_id"))
+            for candidate in consumption.rejected_candidates
+            if candidate.get("packet_id")
+        ],
+        "accepted_packets_count": len(consumption.accepted_packets),
+        "rejected_candidates_count": len(consumption.rejected_candidates),
+    }
+
+
+def _combine_packet_consumption_traces(traces: list[dict[str, object]]) -> dict[str, object]:
+    consumed: list[str] = []
+    accepted: list[str] = []
+    rejected: list[str] = []
+    for trace in traces:
+        consumed.extend(str(item) for item in trace.get("consumed_packet_ids", []) if str(item).strip())
+        accepted.extend(str(item) for item in trace.get("accepted_packet_ids", []) if str(item).strip())
+        rejected.extend(str(item) for item in trace.get("rejected_candidate_packet_ids", []) if str(item).strip())
+    return {
+        "owner": "b2_packet_consumption",
+        "consumed_packet_ids": consumed,
+        "accepted_packet_ids": accepted,
+        "rejected_candidate_packet_ids": rejected,
+        "accepted_packets_count": len(accepted),
+        "rejected_candidates_count": len(rejected),
+    }
 
 
 def _mutation(*, attempted: bool, reason: str, result: dict[str, object] | None = None) -> dict[str, object]:
@@ -302,6 +339,7 @@ def _runtime_generic_case(
         item_results,
         producer_trace=_producer_trace("runtime_backed", "generic_anchor"),
         source_selection=_source_selection_trace(intent),
+        packet_consumption=_packet_consumption_trace(consumption),
         semantic_decision=semantic_decision,
         mutation=mutation,
         final_response=final_response,
@@ -319,10 +357,11 @@ def _runtime_clarify_case_with_taiwan_skill_compat(
 ) -> dict[str, object]:
     intent = _intent_from_manager_decision(semantic_decision)
     anchor_result = lookup_anchor_candidates(intent)
-    consumption = consume_rechecked_packets(())
+    consumption = consume_rechecked_packets((compatibility_packet,))
+    synthesis_consumption = consume_rechecked_packets(())
     manager_pass_2 = synthesize_b2_local_manager_pass2(
         intent,
-        consumption,
+        synthesis_consumption,
         clarify_support=anchor_result.clarify_support,
     )
     item_results = [
@@ -337,6 +376,7 @@ def _runtime_clarify_case_with_taiwan_skill_compat(
         item_results,
         producer_trace=_producer_trace("runtime_backed", "clarify_support"),
         source_selection=_source_selection_trace(intent),
+        packet_consumption=_packet_consumption_trace(consumption),
         semantic_decision=semantic_decision,
         mutation=mutation,
         final_response=final_response,
@@ -369,6 +409,7 @@ def _runtime_exact_item_case(
         item_results,
         producer_trace=_producer_trace("runtime_backed", "exact_item_card"),
         source_selection=_source_selection_trace(intent),
+        packet_consumption=_packet_consumption_trace(consumption),
         semantic_decision=semantic_decision,
         mutation=mutation,
         final_response=final_response,
@@ -406,6 +447,7 @@ def _runtime_web_rejection_case(
         item_results,
         producer_trace=_producer_trace("runtime_backed", "web_search_rejection"),
         source_selection=_source_selection_trace(intent),
+        packet_consumption=_packet_consumption_trace(consumption),
         semantic_decision=semantic_decision,
         mutation=mutation,
         final_response=final_response,
@@ -476,6 +518,7 @@ def _runtime_selected_extract_exact_positive_case(
         item_results,
         producer_trace=_producer_trace("runtime_backed", "selected_extract_exact_positive"),
         source_selection=_source_selection_trace(intent),
+        packet_consumption=_packet_consumption_trace(consumption),
         semantic_decision=semantic_decision,
         mutation=mutation,
         final_response=final_response,
@@ -497,6 +540,7 @@ def _runtime_listed_item_fanout_case(
     packets: list[dict[str, object]] = []
     item_results: list[dict[str, object]] = []
     resolution_trace: list[dict[str, object]] = []
+    consumption_traces: list[dict[str, object]] = []
 
     for resolution in resolutions:
         seeds = packetizer_input_seeds_from_anchor_lookup_result(resolution.lookup_result)
@@ -513,6 +557,7 @@ def _runtime_listed_item_fanout_case(
             continue
         sub_packets = list(add_hard_recheck_metadata_many(build_candidate_packets(seeds)))
         consumption = consume_rechecked_packets(sub_packets)
+        consumption_traces.append(_packet_consumption_trace(consumption))
         manager_pass_2 = synthesize_b2_local_manager_pass2(resolution.sub_intent, consumption)
         resolution_trace.append(
             {
@@ -537,6 +582,7 @@ def _runtime_listed_item_fanout_case(
         item_results,
         producer_trace=_producer_trace("runtime_backed", "listed_item_runtime_fanout"),
         source_selection=_source_selection_trace(intent),
+        packet_consumption=_combine_packet_consumption_traces(consumption_traces),
         semantic_decision=semantic_decision,
         mutation=mutation,
         final_response=final_response,
@@ -552,6 +598,7 @@ def _case(
     *,
     producer_trace: dict[str, object] | None = None,
     source_selection: dict[str, object] | None = None,
+    packet_consumption: dict[str, object] | None = None,
     semantic_decision: B2ManagerSemanticDecision | None = None,
     mutation: dict[str, object] | None = None,
     final_response: str = "已根據 renderer input 回覆。",
@@ -578,6 +625,7 @@ def _case(
         "retrieval_intent_source": "manager_semantic_decision" if semantic_decision else None,
         "runner_inferred_semantics": False if semantic_decision else None,
         "source_selection": source_selection,
+        "packet_consumption": packet_consumption,
         "packets": packets,
         "manager_pass_2": {"item_results": item_results},
         "extract_policy": extract_policy

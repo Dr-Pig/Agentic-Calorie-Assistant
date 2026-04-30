@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 from pathlib import Path
 
 import scripts.build_wave1_phase_b2_evidence_synthesis_smoke as phase_b2_builder
@@ -256,6 +257,7 @@ def test_valid_phase_b2_evidence_synthesis_fixture_is_ready_with_manager_semanti
     ]
     assert audit["rejected_packet_evidence_ref_violations"] == []
     assert audit["source_selection_semantic_owner_violations"] == []
+    assert audit["packet_consumption_trace_violations"] == []
     assert audit["producer_final_mapping_owner_violations"] == []
     assert audit["strict_exact_estimability_violations"] == []
     assert audit["pending_policy_promotions"] == []
@@ -295,6 +297,47 @@ def test_official_b2_producer_does_not_use_raw_text_retrieval_intent(monkeypatch
         case["manager_semantic_decision"]["semantic_authority_source"] == "synthetic_manager_structured_fixture"
         for case in report["cases"]
     )
+    assert all(case["packet_consumption"]["owner"] == "b2_packet_consumption" for case in report["cases"])
+    assert all(
+        set(case["packet_consumption"]["consumed_packet_ids"]).issubset({packet["packet_id"] for packet in case["packets"]})
+        for case in report["cases"]
+    )
+
+
+def test_raw_text_retrieval_intent_builder_is_not_official_b2_readiness_truth() -> None:
+    root = Path(__file__).resolve().parents[1]
+    allowed_paths = {
+        Path("app/nutrition/application/exact_brand_web_canary.py"),
+        Path("app/nutrition/application/retrieval_intent.py"),
+        Path("scripts/diagnose_wave1_phase_b2_exact_brand_positive_acceptance.py"),
+    }
+    raw_builder_call = re.compile(r"\bbuild_retrieval_intent\(")
+    findings: list[str] = []
+    for folder in (root / "app", root / "scripts"):
+        for path in folder.rglob("*.py"):
+            relative = path.relative_to(root)
+            if relative in allowed_paths:
+                continue
+            text = path.read_text(encoding="utf-8")
+            for line_number, line in enumerate(text.splitlines(), start=1):
+                if raw_builder_call.search(line):
+                    findings.append(f"{relative.as_posix()}:{line_number}")
+
+    assert findings == []
+
+
+def test_missing_packet_consumption_trace_blocks_handoff_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        _case_by_id(data, "B2-001").pop("packet_consumption")
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert report["ready_for_phase_b2_implementation"] is False
+    assert any(item["code"] == "packet_consumption_trace_missing" for item in report["blockers"])
+    assert report["artifact_completeness_audit"]["packet_consumption_trace_violations"][0] == {
+        "case_id": "B2-001",
+        "reason": "missing",
+    }
 
 
 def test_artifact_completeness_audit_flags_rejected_packet_used_as_evidence(tmp_path: Path) -> None:
