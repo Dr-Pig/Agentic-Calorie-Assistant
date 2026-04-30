@@ -1034,6 +1034,8 @@ def _honesty_gate_status() -> dict[str, bool]:
 
 
 REQUIRED_ARTIFACT_CHAIN_NODES = [
+    "manager_semantic_fixture",
+    "retrieval_intent_source",
     "source_selection",
     "candidate_packets",
     "exact_hard_recheck",
@@ -1068,8 +1070,15 @@ def _artifact_completeness_audit(
         case_id = case.get("case_id")
         packets = _packets_by_id(case)
         item_results = ((case.get("manager_pass_2") or {}).get("item_results") or [])
+        manager_semantic_decision = case.get("manager_semantic_decision")
+        retrieval_intent_source = case.get("retrieval_intent_source")
         source_selection = case.get("source_selection")
         packet_consumption = case.get("packet_consumption")
+
+        if not isinstance(manager_semantic_decision, dict) or manager_semantic_decision.get("semantic_authority_source") != "synthetic_manager_structured_fixture":
+            missing_chain_nodes.append({"case_id": case_id, "node": "manager_semantic_fixture"})
+        if retrieval_intent_source != "manager_semantic_decision" or case.get("runner_inferred_semantics") is not False:
+            missing_chain_nodes.append({"case_id": case_id, "node": "retrieval_intent_source"})
 
         if not isinstance(source_selection, dict):
             missing_chain_nodes.append({"case_id": case_id, "node": "source_selection"})
