@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import Literal
 
 from .context_normalizer import lookup_key
+from .nutrition_evidence_store import NutritionEvidenceStorePort, default_nutrition_evidence_store
 from .retrieval_intent import RetrievalIntent
-from ..infrastructure.exact_item_card_loader import load_exact_item_card_seed_records
 
 ExactItemCardDeferReason = Literal[
     "unsupported_retrieval_goal",
@@ -41,13 +41,15 @@ def lookup_exact_item_card_candidates(
     intent: RetrievalIntent,
     *,
     limit: int = 5,
+    evidence_store: NutritionEvidenceStorePort | None = None,
 ) -> ExactItemCardLookupResult:
+    store = evidence_store or default_nutrition_evidence_store()
     if intent.retrieval_goal not in {"exact_brand_lookup", "query_only_answer"}:
         return ExactItemCardLookupResult((), "unsupported_retrieval_goal")
     if intent.retrieval_goal == "query_only_answer" and not intent.brand_hint:
         return ExactItemCardLookupResult((), "unsupported_retrieval_goal")
 
-    raw_matches = _find_raw_matches(intent)
+    raw_matches = _find_raw_matches(intent, evidence_store=store)
     if not raw_matches:
         return ExactItemCardLookupResult((), "no_exact_item_match")
 
@@ -61,11 +63,15 @@ def lookup_exact_item_card_candidates(
     return ExactItemCardLookupResult(candidates, None)
 
 
-def _find_raw_matches(intent: RetrievalIntent) -> list[dict[str, object]]:
+def _find_raw_matches(
+    intent: RetrievalIntent,
+    *,
+    evidence_store: NutritionEvidenceStorePort,
+) -> list[dict[str, object]]:
     query_texts = _query_texts_for_intent(intent)
     query_keys = [(text, lookup_key(text)) for text in query_texts if lookup_key(text)]
     matches: list[dict[str, object]] = []
-    for record in load_exact_item_card_seed_records():
+    for record in evidence_store.load_exact_item_card_records():
         title = str(record.get("title") or "").strip()
         title_key = lookup_key(title)
         aliases = [str(alias).strip() for alias in record.get("aliases", []) if str(alias).strip()]

@@ -93,6 +93,7 @@ async def test_live_exact_brand_web_canary_returns_lane_result_when_extract_pack
     assert outcome.trace["synthesis_evidence_refs"] == [outcome.trace["accepted_extract_packet_id"]]
     assert outcome.trace["truth_boundary"] == {
         "trace_only": True,
+        "runtime_web_diagnostic_enabled": True,
         "web_candidate_truth_authority": False,
         "accepted_extract_packet_truth_authority": False,
         "requires_packetizer_hard_recheck_consumption": True,

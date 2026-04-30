@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Any
 
+from sqlalchemy.engine import Engine
 from sqlalchemy import text
 
 from .exact_item_card_loader import load_exact_item_card_seed_records
@@ -22,11 +23,17 @@ def _cards_by_id() -> dict[str, dict[str, Any]]:
     }
 
 
-def ensure_exact_item_fts() -> None:
+def _default_engine() -> Engine:
     from app.database import engine
 
+    return engine
+
+
+def ensure_exact_item_fts(*, engine: Engine | None = None) -> None:
+    active_engine = engine or _default_engine()
+
     cards = _load_cards()
-    with engine.begin() as conn:
+    with active_engine.begin() as conn:
         conn.execute(
             text(
                 """
@@ -63,10 +70,10 @@ def ensure_exact_item_fts() -> None:
             )
 
 
-def resolve_exact_item_fts(query: str, *, limit: int = 3) -> list[dict[str, Any]]:
-    from app.database import engine
+def resolve_exact_item_fts(query: str, *, limit: int = 3, engine: Engine | None = None) -> list[dict[str, Any]]:
+    active_engine = engine or _default_engine()
 
-    ensure_exact_item_fts()
+    ensure_exact_item_fts(engine=active_engine)
     query = str(query or "").strip()
     if not query:
         return []
@@ -78,7 +85,7 @@ def resolve_exact_item_fts(query: str, *, limit: int = 3) -> list[dict[str, Any]
         match_query = " AND ".join(f'"{term}"' for term in escaped_terms)
     else:
         match_query = " OR ".join(f'"{term}"' for term in escaped_terms) or query
-    with engine.begin() as conn:
+    with active_engine.begin() as conn:
         rows = conn.execute(
             text(
                 """

@@ -61,6 +61,7 @@ def default_trace() -> dict[str, object]:
         "exact_db_miss_confirmed": False,
         "truth_boundary": {
             "trace_only": True,
+            "runtime_web_diagnostic_enabled": False,
             "web_candidate_truth_authority": False,
             "accepted_extract_packet_truth_authority": False,
             "requires_packetizer_hard_recheck_consumption": True,

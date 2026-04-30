@@ -50,6 +50,7 @@ def build_missing_token_report(*, case_ids: tuple[str, ...]) -> dict[str, Any]:
         "readiness_claimed": False,
         "readiness_claim": _build_tavily_readiness_claim(live_invoked=False),
         "trace_only": True,
+        "runtime_web_diagnostic_enabled": False,
         "runtime_web_activation_recommended": False,
         "decision_pack_options": DECISION_PACK_OPTIONS,
         "case_ids": list(case_ids),
@@ -91,6 +92,9 @@ async def run_tavily_live_trace_canary(
                 "product_decision_required": _product_decision_required(outcome.trace),
                 "verdict_category": case_result["verdict_category"],
                 "failure_family": case_result["failure_family"],
+                "runtime_web_diagnostic_enabled": bool(
+                    _json_safe(outcome.trace).get("truth_boundary", {}).get("runtime_web_diagnostic_enabled")
+                ),
                 "runtime_web_activation_recommended": False,
             }
         )
@@ -103,6 +107,7 @@ async def run_tavily_live_trace_canary(
         "readiness_claimed": False,
         "readiness_claim": _build_tavily_readiness_claim(live_invoked=True),
         "trace_only": True,
+        "runtime_web_diagnostic_enabled": any(case.get("runtime_web_diagnostic_enabled") is True for case in cases),
         "runtime_web_activation_recommended": False,
         "decision_pack_options": DECISION_PACK_OPTIONS,
         "case_ids": list(case_ids),
