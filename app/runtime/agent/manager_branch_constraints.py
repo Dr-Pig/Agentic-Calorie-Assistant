@@ -10,10 +10,26 @@ B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY = "common_commercial_meal"
 B1_LISTED_INGREDIENT_CASE_FAMILY = "listed_ingredient_basket"
 FORCED_TOOL_REQUEST_MODE = "forced_tool_request_smoke"
 NATURAL_TOOL_SELECTION_MODE = "natural_tool_selection_probe"
+B1_TOOL_CALL_DECISION_TRANSPORT_MODE = "tool_call_decision_transport"
 
 
 def is_b1_clarification_branch_constraint(constraints: dict[str, Any] | None) -> bool:
     return _is_phase_case(constraints, role="pass_1_tool_request", case_families={B1_COMPOSITION_UNKNOWN_CASE_FAMILY})
+
+
+def is_b1_forced_tool_request_constraint(constraints: dict[str, Any] | None) -> bool:
+    return _is_phase_case(
+        constraints,
+        role="pass_1_tool_request",
+        case_families={
+            B1_COMMON_FOOD_ITEM_CASE_FAMILY,
+            B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY,
+            B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
+            B1_COMPOSITION_UNKNOWN_CASE_FAMILY,
+            B1_LISTED_INGREDIENT_CASE_FAMILY,
+        },
+        pass1_modes={FORCED_TOOL_REQUEST_MODE},
+    )
 
 
 def is_b1_listed_ingredient_tool_call_constraint(constraints: dict[str, Any] | None) -> bool:
@@ -39,10 +55,21 @@ def is_b1_generic_tool_call_constraint(constraints: dict[str, Any] | None) -> bo
 
 
 def should_attempt_b1_generic_pass1_structured_output_transport(constraints: dict[str, Any] | None) -> bool:
+    return should_attempt_b1_pass1_structured_output_transport(constraints)
+
+
+def should_attempt_b1_pass1_structured_output_transport(constraints: dict[str, Any] | None) -> bool:
     return _is_phase_case(
         constraints,
         role="pass_1_tool_request",
-        case_families={B1_COMMON_FOOD_ITEM_CASE_FAMILY, B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY},
+        case_families={
+            B1_COMMON_FOOD_ITEM_CASE_FAMILY,
+            B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY,
+            B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
+            B1_COMPOSITION_UNKNOWN_CASE_FAMILY,
+            B1_LISTED_INGREDIENT_CASE_FAMILY,
+        },
+        pass1_modes={FORCED_TOOL_REQUEST_MODE, NATURAL_TOOL_SELECTION_MODE},
     )
 
 
@@ -50,24 +77,72 @@ def should_attempt_b1_common_commercial_meal_pass1_decision_transport(constraint
     return _is_phase_case(constraints, role="pass_1_tool_request", case_families={B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY})
 
 
+def should_attempt_b1_profile_pass1_decision_transport(constraints: dict[str, Any] | None) -> bool:
+    if not _is_phase_case(
+        constraints,
+        role="pass_1_tool_request",
+        case_families={
+            B1_COMMON_FOOD_ITEM_CASE_FAMILY,
+            B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY,
+            B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
+            B1_COMPOSITION_UNKNOWN_CASE_FAMILY,
+            B1_LISTED_INGREDIENT_CASE_FAMILY,
+        },
+        pass1_modes={FORCED_TOOL_REQUEST_MODE, NATURAL_TOOL_SELECTION_MODE},
+    ):
+        return False
+    return str((constraints or {}).get("phase_b1_provider_profile_transport_mode") or "") == B1_TOOL_CALL_DECISION_TRANSPORT_MODE
+
+
+def should_attempt_b1_pass2_structured_output_transport(constraints: dict[str, Any] | None) -> bool:
+    return _is_phase_case(
+        constraints,
+        role="pass_2_synthesis",
+        case_families={
+            B1_COMMON_FOOD_ITEM_CASE_FAMILY,
+            B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY,
+            B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
+            B1_COMPOSITION_UNKNOWN_CASE_FAMILY,
+            B1_LISTED_INGREDIENT_CASE_FAMILY,
+        },
+        pass1_modes={FORCED_TOOL_REQUEST_MODE, NATURAL_TOOL_SELECTION_MODE},
+    )
+
+
 def is_b1_generic_pass2_constraint(constraints: dict[str, Any] | None) -> bool:
     return _is_phase_case(
         constraints,
         role="pass_2_synthesis",
         case_families={B1_COMMON_FOOD_ITEM_CASE_FAMILY, B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY},
+        pass1_modes={FORCED_TOOL_REQUEST_MODE, NATURAL_TOOL_SELECTION_MODE},
     )
 
 
 def is_b1_clarification_pass2_constraint(constraints: dict[str, Any] | None) -> bool:
-    return _is_phase_case(constraints, role="pass_2_synthesis", case_families={B1_COMPOSITION_UNKNOWN_CASE_FAMILY})
+    return _is_phase_case(
+        constraints,
+        role="pass_2_synthesis",
+        case_families={B1_COMPOSITION_UNKNOWN_CASE_FAMILY},
+        pass1_modes={FORCED_TOOL_REQUEST_MODE, NATURAL_TOOL_SELECTION_MODE},
+    )
 
 
 def is_b1_common_commercial_meal_pass2_constraint(constraints: dict[str, Any] | None) -> bool:
-    return _is_phase_case(constraints, role="pass_2_synthesis", case_families={B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY})
+    return _is_phase_case(
+        constraints,
+        role="pass_2_synthesis",
+        case_families={B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY},
+        pass1_modes={FORCED_TOOL_REQUEST_MODE, NATURAL_TOOL_SELECTION_MODE},
+    )
 
 
 def is_b1_listed_ingredient_pass2_constraint(constraints: dict[str, Any] | None) -> bool:
-    return _is_phase_case(constraints, role="pass_2_synthesis", case_families={B1_LISTED_INGREDIENT_CASE_FAMILY})
+    return _is_phase_case(
+        constraints,
+        role="pass_2_synthesis",
+        case_families={B1_LISTED_INGREDIENT_CASE_FAMILY},
+        pass1_modes={FORCED_TOOL_REQUEST_MODE, NATURAL_TOOL_SELECTION_MODE},
+    )
 
 
 def _is_phase_case(

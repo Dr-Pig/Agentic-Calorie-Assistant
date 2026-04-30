@@ -119,6 +119,29 @@ def _http_error_response(status_code: int, payload: object) -> _FakeResponse:
     return _FakeResponse(payload=payload, text=json.dumps(payload), status_code=status_code)
 
 
+class _JsonObjectOnlyBuilderSpaceAdapter(BuilderSpaceAdapter):
+    def _response_format_request_for_stage(
+        self,
+        stage: str,
+        constraints: dict[str, object] | None = None,
+    ) -> tuple[dict[str, object], dict[str, object]]:
+        return (
+            {"type": "json_object"},
+            {
+                "structured_output_transport_attempted": False,
+                "structured_output_transport_mode": "json_object",
+                "structured_output_transport_accepted": False,
+                "structured_output_transport_fallback": None,
+                "fallback_reason": None,
+                "structured_output_transport_constraint_snapshot": {
+                    "phase_b1_manager_role": str((constraints or {}).get("phase_b1_manager_role") or ""),
+                    "phase_b1_pass1_mode": str((constraints or {}).get("phase_b1_pass1_mode") or ""),
+                    "phase_b1_case_family": str((constraints or {}).get("phase_b1_case_family") or ""),
+                },
+            },
+        )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("payload", "text", "observed_type"),
@@ -480,7 +503,7 @@ def test_builderspace_response_format_uses_json_schema_for_b1_common_food_item(m
     assert transport_meta["structured_output_transport_constraint_snapshot"]["phase_b1_case_family"] == "common_food_item"
 
 
-def test_builderspace_response_format_keeps_json_object_for_b1_common_commercial_drink(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_builderspace_response_format_uses_json_schema_for_b1_common_commercial_drink(monkeypatch: pytest.MonkeyPatch) -> None:
     adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
 
     response_format, transport_meta = adapter._response_format_request_for_stage(
@@ -492,10 +515,81 @@ def test_builderspace_response_format_keeps_json_object_for_b1_common_commercial
         },
     )
 
-    assert response_format == {"type": "json_object"}
-    assert transport_meta["structured_output_transport_attempted"] is False
-    assert transport_meta["structured_output_transport_mode"] == "json_object"
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["strict"] is True
+    assert response_format["json_schema"]["schema"]["required"] == [
+        "manager_action",
+        "response_mode",
+        "operations",
+        "answer_contract",
+        "tool_calls",
+    ]
+    assert transport_meta["structured_output_transport_attempted"] is True
+    assert transport_meta["structured_output_transport_mode"] == "json_schema"
     assert transport_meta["structured_output_transport_constraint_snapshot"]["phase_b1_case_family"] == "common_commercial_drink"
+
+
+def test_builderspace_response_schema_forced_composition_unknown_is_tool_call_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+
+    schema = adapter._response_schema_for_stage(
+        "intake_manager_round",
+        constraints={
+            "phase_b1_manager_role": "pass_1_tool_request",
+            "phase_b1_pass1_mode": "forced_tool_request_smoke",
+            "phase_b1_case_family": B1_COMPOSITION_UNKNOWN_CASE_FAMILY,
+        },
+    )
+
+    assert schema is not None
+    assert schema["properties"]["manager_action"]["enum"] == ["call_tools"]
+    assert schema["properties"]["tool_calls"]["minItems"] == 1
+    assert schema["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
+        "lookup_generic_food",
+        "retrieve_web_food_evidence",
+        "load_taiwan_food_semantics_skill",
+    ]
+    assert schema["required"] == [
+        "manager_action",
+        "response_mode",
+        "operations",
+        "answer_contract",
+        "tool_calls",
+    ]
+
+
+def test_builderspace_response_format_uses_json_schema_for_b1_pass2_contract(monkeypatch: pytest.MonkeyPatch) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+
+    response_format, transport_meta = adapter._response_format_request_for_stage(
+        "intake_manager_round",
+        constraints={
+            "phase_b1_manager_role": "pass_2_synthesis",
+            "phase_b1_pass1_mode": "forced_tool_request_smoke",
+            "phase_b1_case_family": B1_COMMON_FOOD_ITEM_CASE_FAMILY,
+        },
+    )
+
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["strict"] is True
+    assert response_format["json_schema"]["schema"]["required"] == [
+        "manager_action",
+        "response_mode",
+        "intent",
+        "workflow_effect",
+        "target_attachment",
+        "exactness",
+        "confidence",
+        "evidence_posture",
+        "repair_ack",
+        "operations",
+        "answer_contract",
+    ]
+    assert transport_meta["structured_output_transport_attempted"] is True
+    assert transport_meta["structured_output_transport_mode"] == "json_schema"
+    assert transport_meta["structured_output_transport_constraint_snapshot"]["phase_b1_manager_role"] == "pass_2_synthesis"
 
 
 def test_builderspace_decision_transport_request_for_b1_common_commercial_meal(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -528,6 +622,55 @@ def test_builderspace_decision_transport_request_for_b1_common_commercial_meal(m
     assert transport_meta["decision_transport_attempted"] is True
     assert transport_meta["decision_transport_mode"] == "tool_call_decision_transport"
     assert transport_meta["decision_transport_constraint_snapshot"]["phase_b1_case_family"] == "common_commercial_meal"
+
+
+def test_builderspace_decision_transport_request_honors_b1_profile_transport_mode_for_pass1(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+
+    transport_request, transport_meta = adapter._decision_transport_request_for_stage(
+        "intake_manager_round",
+        constraints={
+            "phase_b1_manager_role": "pass_1_tool_request",
+            "phase_b1_pass1_mode": "forced_tool_request_smoke",
+            "phase_b1_case_family": B1_COMMON_FOOD_ITEM_CASE_FAMILY,
+            "phase_b1_provider_profile_id": "builderspace-grok-4-fast-b1-pass1-tool-choice",
+            "phase_b1_provider_profile_transport_mode": "tool_call_decision_transport",
+        },
+    )
+
+    assert transport_request is not None
+    assert transport_request["mode"] == "tool_call_decision_transport"
+    assert transport_request["tool_choice"]["function"]["name"] == "manager_call_tools_decision"
+    assert transport_meta["decision_transport_attempted"] is True
+    assert transport_meta["decision_transport_mode"] == "tool_call_decision_transport"
+    assert transport_meta["decision_transport_constraint_snapshot"]["phase_b1_provider_profile_id"] == (
+        "builderspace-grok-4-fast-b1-pass1-tool-choice"
+    )
+    assert transport_meta["decision_transport_constraint_snapshot"]["phase_b1_provider_profile_transport_mode"] == (
+        "tool_call_decision_transport"
+    )
+
+
+def test_builderspace_decision_transport_profile_mode_does_not_apply_to_pass2(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+
+    transport_request, transport_meta = adapter._decision_transport_request_for_stage(
+        "intake_manager_round",
+        constraints={
+            "phase_b1_manager_role": "pass_2_synthesis",
+            "phase_b1_pass1_mode": "forced_tool_request_smoke",
+            "phase_b1_case_family": B1_COMMON_FOOD_ITEM_CASE_FAMILY,
+            "phase_b1_provider_profile_id": "builderspace-grok-4-fast-b1-pass1-tool-choice",
+            "phase_b1_provider_profile_transport_mode": "tool_call_decision_transport",
+        },
+    )
+
+    assert transport_request is None
+    assert transport_meta["decision_transport_attempted"] is False
 
 
 @pytest.mark.asyncio
@@ -575,6 +718,87 @@ async def test_complete_with_trace_falls_back_from_json_schema_to_json_object_fo
     assert trace["structured_output_transport_fallback"] == "json_object"
     assert trace["fallback_reason"] == "provider_rejected_response_format"
     assert trace["structured_output_transport_constraint_snapshot"]["phase_b1_case_family"] == "common_food_item"
+
+
+@pytest.mark.asyncio
+async def test_complete_with_trace_uses_adapter_transport_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    posted_payloads: list[dict[str, object]] = []
+    response = _FakeResponse(
+        payload=_json_envelope(
+            "{\"manager_action\":\"call_tools\",\"interaction_family\":\"food_logging\",\"response_mode\":\"intake_result\",\"operations\":[],\"answer_contract\":{},\"tool_calls\":[{\"name\":\"lookup_generic_food\",\"arguments\":{\"food_name\":\"tea egg\"}}]}"
+        ),
+        text="ok",
+    )
+    monkeypatch.setenv("AI_BUILDER_TOKEN", "test-token")
+    monkeypatch.setenv("AI_BUILDER_BASE_URL", "https://example.test/backend/v1")
+    monkeypatch.setattr(
+        builderspace_adapter_module.httpx,
+        "AsyncClient",
+        lambda **kwargs: _RecordingAsyncClient(responses=[response], recorder=posted_payloads, **kwargs),
+    )
+    adapter = _JsonObjectOnlyBuilderSpaceAdapter(manager_model_override="deepseek")
+
+    _, trace = await adapter.complete_with_trace(
+        system_prompt="Return JSON.",
+        user_payload={
+            "constraints": {
+                "phase_b1_manager_role": "pass_1_tool_request",
+                "phase_b1_pass1_mode": "forced_tool_request_smoke",
+                "phase_b1_case_family": B1_COMMON_FOOD_ITEM_CASE_FAMILY,
+            }
+        },
+        stage="intake_manager_round",
+    )
+
+    assert posted_payloads[0]["json"]["response_format"]["type"] == "json_object"
+    assert trace["structured_output_transport_mode"] == "json_object"
+
+
+@pytest.mark.asyncio
+async def test_complete_with_trace_preserves_json_schema_http_error_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    posted_payloads: list[dict[str, object]] = []
+    response = _http_error_response(
+        400,
+        {
+            "error": {
+                "message": "provider rejected structured contract: nested enum not accepted",
+            }
+        },
+    )
+    monkeypatch.setenv("AI_BUILDER_TOKEN", "test-token")
+    monkeypatch.setenv("AI_BUILDER_BASE_URL", "https://example.test/backend/v1")
+    monkeypatch.setattr(
+        builderspace_adapter_module.httpx,
+        "AsyncClient",
+        lambda **kwargs: _RecordingAsyncClient(responses=[response], recorder=posted_payloads, **kwargs),
+    )
+    adapter = BuilderSpaceAdapter(manager_model_override="deepseek")
+
+    with pytest.raises(BuilderSpaceResponseError) as exc_info:
+        await adapter.complete_with_trace(
+            system_prompt="Return JSON.",
+            user_payload={
+                "constraints": {
+                    "phase_b1_manager_role": "pass_1_tool_request",
+                    "phase_b1_pass1_mode": "forced_tool_request_smoke",
+                    "phase_b1_case_family": B1_COMPOSITION_UNKNOWN_CASE_FAMILY,
+                }
+            },
+            stage="intake_manager_round",
+        )
+
+    trace = exc_info.value.trace
+    assert posted_payloads[0]["json"]["response_format"]["type"] == "json_schema"
+    assert trace["response_status"] == 400
+    assert trace["failure_family"] == "schema_transport_rejected"
+    assert trace["request_failure_family"] == "schema_transport_rejected"
+    assert trace["structured_output_transport_attempted"] is True
+    assert trace["structured_output_transport_mode"] == "json_schema"
+    assert trace["effective_response_format_type"] == "json_schema"
+    assert "nested enum not accepted" in trace["raw_response_excerpt"]
+    assert "nested enum not accepted" in trace["transport_attempts"][0]["response_body_excerpt"]
 
 
 @pytest.mark.asyncio
@@ -858,6 +1082,39 @@ def test_builderspace_schema_narrows_for_b1_clarification_branch() -> None:
     assert schema["properties"]["final_action"]["enum"] == ["request_clarification"]
 
 
+def test_builderspace_schema_narrows_for_b1_clarification_pass2_branch() -> None:
+    adapter = BuilderSpaceAdapter(manager_model_override="deepseek")
+
+    schema = adapter._response_schema_for_stage(
+        "intake_manager_round",
+        constraints={
+            "phase_b1_manager_role": "pass_2_synthesis",
+            "phase_b1_pass1_mode": "natural_tool_selection_probe",
+            "phase_b1_case_family": B1_COMPOSITION_UNKNOWN_CASE_FAMILY,
+        },
+    )
+
+    assert schema is not None
+    assert schema["required"] == [
+        "manager_action",
+        "response_mode",
+        "intent",
+        "workflow_effect",
+        "target_attachment",
+        "final_action",
+        "exactness",
+        "confidence",
+        "evidence_posture",
+        "repair_ack",
+        "operations",
+        "answer_contract",
+    ]
+    assert schema["properties"]["response_mode"]["enum"] == ["clarification"]
+    assert schema["properties"]["final_action"]["enum"] == ["request_clarification"]
+    assert schema["properties"]["workflow_effect"]["enum"] == ["pause_for_clarification", "none"]
+    assert schema["properties"]["uncertainty_posture"]["enum"] == ["composition_unknown_basket", "none"]
+
+
 def test_builderspace_validate_manager_payload_rejects_b1_mixed_branch_contract() -> None:
     adapter = BuilderSpaceAdapter(manager_model_override="deepseek")
 
@@ -960,6 +1217,10 @@ def test_builderspace_validate_manager_payload_accepts_b1_listed_ingredient_pass
                 "intent",
                 "workflow_effect",
                 "target_attachment",
+                "exactness",
+                "confidence",
+                "evidence_posture",
+                "repair_ack",
                 "operations",
                 "answer_contract",
             ],
@@ -972,6 +1233,10 @@ def test_builderspace_validate_manager_payload_accepts_b1_listed_ingredient_pass
                 "intent",
                 "workflow_effect",
                 "target_attachment",
+                "exactness",
+                "confidence",
+                "evidence_posture",
+                "repair_ack",
                 "operations",
                 "answer_contract",
             ],
@@ -984,6 +1249,11 @@ def test_builderspace_validate_manager_payload_accepts_b1_listed_ingredient_pass
                 "intent",
                 "workflow_effect",
                 "target_attachment",
+                "exactness",
+                "confidence",
+                "evidence_posture",
+                "repair_ack",
+                "item_results",
                 "operations",
                 "answer_contract",
             ],
@@ -1024,6 +1294,10 @@ def test_builderspace_validate_manager_payload_accepts_b1_generic_common_food_pa
             "intent": "log_food_item",
             "workflow_effect": "item_logged",
             "target_attachment": "茶葉蛋",
+            "exactness": "approximate",
+            "confidence": "medium",
+            "evidence_posture": "packetized_generic_db",
+            "repair_ack": False,
             "operations": [],
             "answer_contract": {
                 "item_results": [
@@ -1055,6 +1329,10 @@ def test_builderspace_validate_manager_payload_accepts_b1_generic_common_drink_p
             "intent": "query_food_calories",
             "workflow_effect": "complete",
             "target_attachment": "food_item",
+            "exactness": "approximate",
+            "confidence": "medium",
+            "evidence_posture": "packetized_generic_db",
+            "repair_ack": False,
             "item_results": [
                 {
                     "food_name": "珍珠奶茶",
@@ -1076,7 +1354,7 @@ def test_builderspace_validate_manager_payload_accepts_b1_generic_common_drink_p
     )
 
 
-def test_builderspace_validate_manager_payload_accepts_b1_common_commercial_meal_pass2_without_broad_wrapper_fields() -> None:
+def test_builderspace_validate_manager_payload_accepts_b1_common_commercial_meal_pass2_with_top_level_item_results() -> None:
     adapter = BuilderSpaceAdapter(manager_model_override="deepseek")
 
     adapter._validate_manager_payload(
@@ -1088,20 +1366,22 @@ def test_builderspace_validate_manager_payload_accepts_b1_common_commercial_meal
             "intent": "estimate_calories",
             "workflow_effect": "complete",
             "target_attachment": "generic_taiwanese_bento",
-            "answer_contract": {
-                "item_results": [
-                    {
-                        "item_name": "taiwanese_bento",
-                        "item_quantity": 1,
-                        "item_unit": "serving",
-                    }
-                ],
-                "kcal_range": [550, 960],
-                "likely_kcal": 750,
-                "uncertainty": "medium",
-                "evidence_used": ["generic_food_db:taiwanese_bento"],
-            },
+            "exactness": "approximate",
+            "confidence": "medium",
+            "evidence_posture": "packetized_generic_db",
+            "repair_ack": False,
+            "item_results": [
+                {
+                    "food_name": "taiwanese_bento",
+                    "kcal_range": [550, 960],
+                    "likely_kcal": 750,
+                    "uncertainty": "medium",
+                    "evidence_used": ["generic_food_db:taiwanese_bento"],
+                }
+            ],
+            "evidence_used": ["generic_food_db:taiwanese_bento"],
             "operations": [],
+            "answer_contract": {},
         },
         constraints={
             "phase_b1_manager_role": "pass_2_synthesis",
@@ -1109,6 +1389,46 @@ def test_builderspace_validate_manager_payload_accepts_b1_common_commercial_meal
             "phase_b1_case_family": B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
         },
     )
+
+
+def test_builderspace_validate_manager_payload_rejects_b1_common_commercial_meal_pass2_bridge_only_item_results() -> None:
+    adapter = BuilderSpaceAdapter(manager_model_override="deepseek")
+
+    with pytest.raises(RuntimeError, match="item_results"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            {
+                "manager_action": "final",
+                "interaction_family": "food_logging",
+                "response_mode": "intake_result",
+                "intent": "estimate_calories",
+                "workflow_effect": "complete",
+                "target_attachment": "generic_taiwanese_bento",
+                "exactness": "approximate",
+                "confidence": "medium",
+                "evidence_posture": "packetized_generic_db",
+                "repair_ack": False,
+                "answer_contract": {
+                    "item_results": [
+                        {
+                            "item_name": "taiwanese_bento",
+                            "item_quantity": 1,
+                            "item_unit": "serving",
+                        }
+                    ],
+                    "kcal_range": [550, 960],
+                    "likely_kcal": 750,
+                    "uncertainty": "medium",
+                    "evidence_used": ["generic_food_db:taiwanese_bento"],
+                },
+                "operations": [],
+            },
+            constraints={
+                "phase_b1_manager_role": "pass_2_synthesis",
+                "phase_b1_pass1_mode": "natural_tool_selection_probe",
+                "phase_b1_case_family": B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
+            },
+        )
 
 
 def test_builderspace_validate_manager_payload_rejects_pass1_item_results_even_for_listed_ingredient_case() -> None:

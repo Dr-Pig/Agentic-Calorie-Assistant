@@ -13,6 +13,9 @@ from .phase_b1_manager_branch_contract import (
     manager_pass1_decision_tool_arguments_schema_for_constraints,
     manager_pass1_schema_for_constraints,
     should_attempt_b1_common_commercial_meal_pass1_decision_transport,
+    should_attempt_b1_pass1_structured_output_transport,
+    should_attempt_b1_pass2_structured_output_transport,
+    should_attempt_b1_profile_pass1_decision_transport,
     should_attempt_b1_generic_pass1_structured_output_transport,
     validate_manager_pass1_branch,
 )
@@ -30,6 +33,9 @@ __all__ = [
     "manager_pass1_decision_tool_arguments_schema_for_constraints",
     "manager_pass1_schema_for_constraints",
     "should_attempt_b1_common_commercial_meal_pass1_decision_transport",
+    "should_attempt_b1_pass1_structured_output_transport",
+    "should_attempt_b1_pass2_structured_output_transport",
+    "should_attempt_b1_profile_pass1_decision_transport",
     "should_attempt_b1_generic_pass1_structured_output_transport",
     "validate_manager_pass1_branch",
 ]

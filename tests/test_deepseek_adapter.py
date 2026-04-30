@@ -130,7 +130,7 @@ def test_deepseek_response_format_uses_json_schema_for_b1_common_food_item() -> 
     assert transport_meta["structured_output_transport_constraint_snapshot"]["phase_b1_case_family"] == "common_food_item"
 
 
-def test_deepseek_response_format_keeps_json_object_for_b1_common_commercial_drink() -> None:
+def test_deepseek_response_format_uses_json_schema_for_b1_common_commercial_drink() -> None:
     adapter = DeepSeekAdapter()
 
     response_format, transport_meta = adapter._response_format_request_for_stage(
@@ -142,10 +142,79 @@ def test_deepseek_response_format_keeps_json_object_for_b1_common_commercial_dri
         },
     )
 
-    assert response_format == {"type": "json_object"}
-    assert transport_meta["structured_output_transport_attempted"] is False
-    assert transport_meta["structured_output_transport_mode"] == "json_object"
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["strict"] is True
+    assert response_format["json_schema"]["schema"]["required"] == [
+        "manager_action",
+        "response_mode",
+        "operations",
+        "answer_contract",
+        "tool_calls",
+    ]
+    assert transport_meta["structured_output_transport_attempted"] is True
+    assert transport_meta["structured_output_transport_mode"] == "json_schema"
     assert transport_meta["structured_output_transport_constraint_snapshot"]["phase_b1_case_family"] == "common_commercial_drink"
+
+
+def test_deepseek_response_schema_forced_composition_unknown_is_tool_call_contract() -> None:
+    adapter = DeepSeekAdapter()
+
+    schema = adapter._response_schema_for_stage(
+        "intake_manager_round",
+        constraints={
+            "phase_b1_manager_role": "pass_1_tool_request",
+            "phase_b1_pass1_mode": "forced_tool_request_smoke",
+            "phase_b1_case_family": B1_COMPOSITION_UNKNOWN_CASE_FAMILY,
+        },
+    )
+
+    assert schema is not None
+    assert schema["properties"]["manager_action"]["enum"] == ["call_tools"]
+    assert schema["properties"]["tool_calls"]["minItems"] == 1
+    assert schema["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
+        "lookup_generic_food",
+        "retrieve_web_food_evidence",
+        "load_taiwan_food_semantics_skill",
+    ]
+    assert schema["required"] == [
+        "manager_action",
+        "response_mode",
+        "operations",
+        "answer_contract",
+        "tool_calls",
+    ]
+
+
+def test_deepseek_response_format_uses_json_schema_for_b1_pass2_contract() -> None:
+    adapter = DeepSeekAdapter()
+
+    response_format, transport_meta = adapter._response_format_request_for_stage(
+        "intake_manager_round",
+        constraints={
+            "phase_b1_manager_role": "pass_2_synthesis",
+            "phase_b1_pass1_mode": "forced_tool_request_smoke",
+            "phase_b1_case_family": B1_COMMON_FOOD_ITEM_CASE_FAMILY,
+        },
+    )
+
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["strict"] is True
+    assert response_format["json_schema"]["schema"]["required"] == [
+        "manager_action",
+        "response_mode",
+        "intent",
+        "workflow_effect",
+        "target_attachment",
+        "exactness",
+        "confidence",
+        "evidence_posture",
+        "repair_ack",
+        "operations",
+        "answer_contract",
+    ]
+    assert transport_meta["structured_output_transport_attempted"] is True
+    assert transport_meta["structured_output_transport_mode"] == "json_schema"
+    assert transport_meta["structured_output_transport_constraint_snapshot"]["phase_b1_manager_role"] == "pass_2_synthesis"
 
 
 def test_deepseek_decision_transport_request_for_b1_common_commercial_meal() -> None:
@@ -429,6 +498,10 @@ def test_validate_manager_payload_accepts_b1_listed_ingredient_pass2_branch() ->
                 "intent",
                 "workflow_effect",
                 "target_attachment",
+                "exactness",
+                "confidence",
+                "evidence_posture",
+                "repair_ack",
                 "operations",
                 "answer_contract",
             ],
@@ -441,6 +514,10 @@ def test_validate_manager_payload_accepts_b1_listed_ingredient_pass2_branch() ->
                 "intent",
                 "workflow_effect",
                 "target_attachment",
+                "exactness",
+                "confidence",
+                "evidence_posture",
+                "repair_ack",
                 "operations",
                 "answer_contract",
             ],
@@ -453,6 +530,11 @@ def test_validate_manager_payload_accepts_b1_listed_ingredient_pass2_branch() ->
                 "intent",
                 "workflow_effect",
                 "target_attachment",
+                "exactness",
+                "confidence",
+                "evidence_posture",
+                "repair_ack",
+                "item_results",
                 "operations",
                 "answer_contract",
             ],
@@ -493,6 +575,10 @@ def test_validate_manager_payload_accepts_b1_generic_common_food_pass2_without_b
             "intent": "log_food_item",
             "workflow_effect": "item_logged",
             "target_attachment": "茶葉蛋",
+            "exactness": "approximate",
+            "confidence": "medium",
+            "evidence_posture": "packetized_generic_db",
+            "repair_ack": False,
             "operations": [],
             "answer_contract": {
                 "item_results": [
@@ -524,6 +610,10 @@ def test_validate_manager_payload_accepts_b1_generic_common_drink_pass2_with_top
             "intent": "query_food_calories",
             "workflow_effect": "complete",
             "target_attachment": "food_item",
+            "exactness": "approximate",
+            "confidence": "medium",
+            "evidence_posture": "packetized_generic_db",
+            "repair_ack": False,
             "item_results": [
                 {
                     "food_name": "珍珠奶茶",
@@ -545,7 +635,7 @@ def test_validate_manager_payload_accepts_b1_generic_common_drink_pass2_with_top
     )
 
 
-def test_validate_manager_payload_accepts_b1_common_commercial_meal_pass2_without_broad_wrapper_fields() -> None:
+def test_validate_manager_payload_accepts_b1_common_commercial_meal_pass2_with_top_level_item_results() -> None:
     adapter = DeepSeekAdapter()
 
     adapter._validate_manager_payload(
@@ -557,20 +647,22 @@ def test_validate_manager_payload_accepts_b1_common_commercial_meal_pass2_withou
             "intent": "estimate_calories",
             "workflow_effect": "complete",
             "target_attachment": "generic_taiwanese_bento",
-            "answer_contract": {
-                "item_results": [
-                    {
-                        "item_name": "taiwanese_bento",
-                        "item_quantity": 1,
-                        "item_unit": "serving",
-                    }
-                ],
-                "kcal_range": [550, 960],
-                "likely_kcal": 750,
-                "uncertainty": "medium",
-                "evidence_used": ["generic_food_db:taiwanese_bento"],
-            },
+            "exactness": "approximate",
+            "confidence": "medium",
+            "evidence_posture": "packetized_generic_db",
+            "repair_ack": False,
+            "item_results": [
+                {
+                    "food_name": "taiwanese_bento",
+                    "kcal_range": [550, 960],
+                    "likely_kcal": 750,
+                    "uncertainty": "medium",
+                    "evidence_used": ["generic_food_db:taiwanese_bento"],
+                }
+            ],
+            "evidence_used": ["generic_food_db:taiwanese_bento"],
             "operations": [],
+            "answer_contract": {},
         },
         constraints={
             "phase_b1_manager_role": "pass_2_synthesis",
@@ -578,6 +670,46 @@ def test_validate_manager_payload_accepts_b1_common_commercial_meal_pass2_withou
             "phase_b1_case_family": B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
         },
     )
+
+
+def test_validate_manager_payload_rejects_b1_common_commercial_meal_pass2_bridge_only_item_results() -> None:
+    adapter = DeepSeekAdapter()
+
+    with pytest.raises(RuntimeError, match="item_results"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            {
+                "manager_action": "final",
+                "interaction_family": "food_logging",
+                "response_mode": "intake_result",
+                "intent": "estimate_calories",
+                "workflow_effect": "complete",
+                "target_attachment": "generic_taiwanese_bento",
+                "exactness": "approximate",
+                "confidence": "medium",
+                "evidence_posture": "packetized_generic_db",
+                "repair_ack": False,
+                "answer_contract": {
+                    "item_results": [
+                        {
+                            "item_name": "taiwanese_bento",
+                            "item_quantity": 1,
+                            "item_unit": "serving",
+                        }
+                    ],
+                    "kcal_range": [550, 960],
+                    "likely_kcal": 750,
+                    "uncertainty": "medium",
+                    "evidence_used": ["generic_food_db:taiwanese_bento"],
+                },
+                "operations": [],
+            },
+            constraints={
+                "phase_b1_manager_role": "pass_2_synthesis",
+                "phase_b1_pass1_mode": "natural_tool_selection_probe",
+                "phase_b1_case_family": B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
+            },
+        )
 
 
 def test_validate_manager_payload_rejects_pass1_item_results_even_for_listed_ingredient_case() -> None:

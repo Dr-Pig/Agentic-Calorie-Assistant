@@ -94,6 +94,13 @@ def build_failure_trace(
     decision_transport_meta: dict[str, Any],
     effective_response_format_type: str | None,
 ) -> dict[str, Any]:
+    failure_family = _failure_family(
+        exc=exc,
+        response_status=response_status,
+        transport_meta=transport_meta,
+        decision_transport_meta=decision_transport_meta,
+        effective_response_format_type=effective_response_format_type,
+    )
     return {
         "stage": stage,
         "provider": provider,
@@ -103,8 +110,8 @@ def build_failure_trace(
         "parse_attempts": list(parse_attempts) + list(getattr(exc, "parse_attempts", []) or []),
         "base_url": base_url,
         "timeout_seconds": timeout_seconds,
-        "request_failure_family": getattr(exc, "failure_family", None),
-        "failure_family": getattr(exc, "failure_family", None),
+        "request_failure_family": failure_family,
+        "failure_family": failure_family,
         "failing_component": getattr(exc, "failing_component", "builderspace_adapter.complete_with_trace"),
         "violation_family": getattr(exc, "violation_family", None),
         "actual_shape": getattr(exc, "actual_shape", None),
@@ -152,3 +159,28 @@ def _extract_finish_reason(data: dict[str, Any] | None) -> str | None:
         return None
     finish_reason = first_choice.get("finish_reason")
     return finish_reason if isinstance(finish_reason, str) else None
+
+
+def _failure_family(
+    *,
+    exc: Exception,
+    response_status: int | None,
+    transport_meta: dict[str, Any],
+    decision_transport_meta: dict[str, Any],
+    effective_response_format_type: str | None,
+) -> str | None:
+    explicit = getattr(exc, "failure_family", None)
+    if explicit:
+        return explicit
+    if response_status not in {400, 404, 415, 422}:
+        return None
+    if decision_transport_meta.get("decision_transport_attempted") and not decision_transport_meta.get(
+        "decision_transport_accepted"
+    ):
+        return "tool_choice_rejected"
+    if (
+        transport_meta.get("structured_output_transport_attempted")
+        and effective_response_format_type == "json_schema"
+    ):
+        return "schema_transport_rejected"
+    return "provider_runtime_error"

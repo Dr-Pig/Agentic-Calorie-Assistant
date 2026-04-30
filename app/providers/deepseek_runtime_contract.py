@@ -5,7 +5,8 @@ from typing import Any
 from ..runtime.agent.manager_branch_contract import (
     ManagerPass1BranchContractError,
     manager_pass1_schema_for_constraints,
-    should_attempt_b1_generic_pass1_structured_output_transport,
+    should_attempt_b1_pass1_structured_output_transport,
+    should_attempt_b1_pass2_structured_output_transport,
     validate_manager_pass1_branch,
 )
 from ..runtime.agent.manager_branch_shapes import manager_semantic_decision_schema
@@ -54,10 +55,13 @@ def response_format_request_for_stage(stage: str, *, constraints: dict[str, Any]
         "phase_b1_pass1_mode": str((constraints or {}).get("phase_b1_pass1_mode") or ""),
         "phase_b1_case_family": str((constraints or {}).get("phase_b1_case_family") or ""),
     }
-    if stage == MANAGER_LOOP_STAGE and should_attempt_b1_generic_pass1_structured_output_transport(constraints):
+    if stage == MANAGER_LOOP_STAGE and (
+        should_attempt_b1_pass1_structured_output_transport(constraints)
+        or should_attempt_b1_pass2_structured_output_transport(constraints)
+    ):
         schema = response_schema_for_stage(stage, constraints)
         return (
-            {"type": "json_schema", "json_schema": {"name": "phase_b1_generic_pass1_call_tools", "strict": True, "schema": schema}},
+            {"type": "json_schema", "json_schema": {"name": _phase_b1_schema_name(constraints), "strict": True, "schema": schema}},
             {
                 "structured_output_transport_attempted": True,
                 "structured_output_transport_mode": "json_schema",
@@ -78,6 +82,12 @@ def response_format_request_for_stage(stage: str, *, constraints: dict[str, Any]
             "structured_output_transport_constraint_snapshot": constraint_snapshot,
         },
     )
+
+
+def _phase_b1_schema_name(constraints: dict[str, Any] | None) -> str:
+    if should_attempt_b1_pass2_structured_output_transport(constraints):
+        return "phase_b1_pass2_manager_contract"
+    return "phase_b1_pass1_manager_contract"
 
 
 def validate_manager_payload(stage: str, payload: dict[str, Any], *, constraints: dict[str, Any] | None = None) -> None:

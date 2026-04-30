@@ -17,6 +17,7 @@ from .phase_b1_selection_specs import (
     PASS2_DEFAULT_SELECTION_SPEC,
     PASS2_SELECTION_SPECS,
     PHASE_B1_DEFAULT_ROUTE_RULE_ID,
+    PHASE_B1_FULL_DIAGNOSTIC_OVERRIDE_RULE_ID,
     PHASE_B1_PASS_1_COMMON_COMMERCIAL_DRINK_ID,
     PHASE_B1_PASS_1_COMMON_COMMERCIAL_MEAL_ID,
     PHASE_B1_PASS_1_COMMON_FOOD_ITEM_ID,
@@ -163,6 +164,15 @@ def select_phase_b1_profile_route(
             should_migrate_post_b1=local_rule.should_migrate_post_b1,
         )
     if requested_profile_id and selected_profile_id != default_profile_id and profile_applies:
+        if case_set == "full":
+            return PhaseB1ProfileRouteSelection(
+                selected_profile_id,
+                "explicit_full_diagnostic_override",
+                "requested_full_diagnostic_profile_override",
+                PHASE_B1_FULL_DIAGNOSTIC_OVERRIDE_RULE_ID,
+                PHASE_B1_ROUTE_SCOPE,
+                should_migrate_post_b1=True,
+            )
         return PhaseB1ProfileRouteSelection(
             selected_profile_id,
             "explicit_targeted_override",
