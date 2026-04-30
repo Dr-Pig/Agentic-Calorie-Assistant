@@ -98,3 +98,77 @@ def test_uncertain_but_valid_candidate_is_offer_only() -> None:
     assert result.passed is True
     assert result.quality_tier == "medium"
     assert result.proactive_intensity == "offer"
+
+
+def test_unavailable_candidate_is_rejected_before_any_proactive_use() -> None:
+    result = evaluate_recommendation_candidate_quality(
+        RecommendationCandidateQualityInput(
+            candidate_id="c6",
+            title="Known chicken bento",
+            estimated_kcal=520,
+            remaining_budget_kcal=700,
+            evidence_posture="anchored",
+            availability_posture="unavailable",
+            realistic_executable=True,
+            violates_negative_preference=False,
+            user_accessible=True,
+        )
+    )
+
+    assert result.passed is False
+    assert result.proactive_intensity == "none"
+    assert "unavailable" in result.disqualifier_flags
+
+
+def test_missing_or_range_over_budget_candidate_is_rejected() -> None:
+    missing_kcal = evaluate_recommendation_candidate_quality(
+        RecommendationCandidateQualityInput(
+            candidate_id="c7",
+            title="Specific but unestimated meal",
+            remaining_budget_kcal=700,
+            evidence_posture="anchored",
+            availability_posture="available",
+            realistic_executable=True,
+            violates_negative_preference=False,
+            user_accessible=True,
+        )
+    )
+    range_over_budget = evaluate_recommendation_candidate_quality(
+        RecommendationCandidateQualityInput(
+            candidate_id="c8",
+            title="Narrow menu estimate",
+            kcal_range_min=580,
+            kcal_range_max=760,
+            remaining_budget_kcal=700,
+            evidence_posture="anchored",
+            availability_posture="available",
+            realistic_executable=True,
+            violates_negative_preference=False,
+            user_accessible=True,
+        )
+    )
+
+    assert missing_kcal.passed is False
+    assert "missing_kcal_estimate" in missing_kcal.disqualifier_flags
+    assert range_over_budget.passed is False
+    assert "budget_mismatch" in range_over_budget.disqualifier_flags
+
+
+def test_non_positive_kcal_candidate_is_rejected() -> None:
+    result = evaluate_recommendation_candidate_quality(
+        RecommendationCandidateQualityInput(
+            candidate_id="c9",
+            title="Impossible zero kcal dinner",
+            estimated_kcal=0,
+            remaining_budget_kcal=700,
+            evidence_posture="anchored",
+            availability_posture="available",
+            realistic_executable=True,
+            violates_negative_preference=False,
+            user_accessible=True,
+        )
+    )
+
+    assert result.passed is False
+    assert result.proactive_intensity == "none"
+    assert "invalid_kcal_estimate" in result.disqualifier_flags

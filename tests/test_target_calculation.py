@@ -1,3 +1,5 @@
+import pytest
+
 from app.body.application import TargetCalculationInputs, calculate_recommended_target_kcal
 
 
@@ -51,3 +53,19 @@ def test_recommended_target_scales_for_larger_body_and_stays_above_floor() -> No
     assert larger_body.recommended_target_kcal > small_body.recommended_target_kcal
     assert larger_body.estimated_tdee_kcal > small_body.estimated_tdee_kcal
     assert larger_body.clamped_to_floor is False
+
+
+def test_activity_multiplier_override_must_be_positive() -> None:
+    with pytest.raises(ValueError, match="positive"):
+        calculate_recommended_target_kcal(
+            inputs=TargetCalculationInputs(
+                age_years=35,
+                sex="male",
+                height_cm=175.0,
+                weight_kg=75.0,
+                activity_level="moderate",
+                weekly_loss_target_kg=0.5,
+                safety_floor_kcal=1500,
+                activity_multiplier_override=0,
+            )
+        )

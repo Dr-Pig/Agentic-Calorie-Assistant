@@ -252,3 +252,4 @@ Next recommended action:
 - 2026-04-30: v1.2 補入 UI canonical truth surface matrix，作為 L9 UI same-truth 的 read-only governance map
 - 2026-04-30: v1.3 補入 UX-to-system capability gap matrix，承載 later-wave UX moment 到 system capability 的產品語意轉譯
 - 2026-04-30: v1.4 補入 capability-to-module ownership map，將產品能力邊界落到 owner module / forbidden placement / activation cap
+- 2026-04-30: v1.5 在 capability ownership map 補入 B2-safe parallel readiness，標記 `safe_now` / `contract_only` / `offline_only` / `blocked_activation`

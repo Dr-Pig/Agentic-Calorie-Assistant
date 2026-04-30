@@ -14,6 +14,7 @@ ACTIVE_DOMAIN_PREFIXES = (
     "app.nutrition",
     "app.budget",
     "app.body",
+    "app.knowledge",
     "app.memory",
     "app.recommendation",
     "app.rescue",
@@ -36,6 +37,7 @@ RULES: tuple[Rule, ...] = (
             "app.intake.domain",
             "app.nutrition.domain",
             "app.budget.domain",
+            "app.knowledge",
             "app.memory",
             "app.recommendation",
             "app.rescue",
@@ -78,6 +80,12 @@ RULES: tuple[Rule, ...] = (
         path_prefix="app/nutrition/",
         forbidden_prefixes=(ARCHIVE_IMPORT_PREFIX,),
         label="nutrition-mainline-archive-separation",
+        severity="error",
+    ),
+    Rule(
+        path_prefix="app/knowledge/",
+        forbidden_prefixes=(ARCHIVE_IMPORT_PREFIX,),
+        label="knowledge-mainline-archive-separation",
         severity="error",
     ),
     Rule(
