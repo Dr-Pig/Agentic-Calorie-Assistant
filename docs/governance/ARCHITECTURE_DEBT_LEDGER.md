@@ -176,7 +176,7 @@ debt_id: B2-DEBT-003
 phase: B-2
 owner_surface: manager provider seam, fake provider, and contract parity gate
 found_in_slice: B2 pass2 seam audit
-current_location: app/nutrition/application/b2_manager_provider_bridge.py and tests/test_wave1_phase_b2_manager_contract_parity.py
+current_location: app/nutrition/application/synthesis_provider_bridge.py and tests/test_wave1_phase_b2_manager_contract_parity.py
 path_classification: compatibility_surface
 debt_type: test_oracle_risk
 severity_class: P1
