@@ -47,6 +47,7 @@ def test_classify_no_raw_content():
         hard_recheck_too_strict=False,
         packet_consumption_rejected=False,
         raw_content_present=False,
+        requested_item_present=False,
         requested_size_present=False,
         kcal_candidates_found=False,
     )
@@ -60,20 +61,36 @@ def test_classify_raw_content_item_but_no_size():
         hard_recheck_too_strict=False,
         packet_consumption_rejected=False,
         raw_content_present=True,
+        requested_item_present=True,
         requested_size_present=False,
         kcal_candidates_found=True,
     )
     assert cause == "extract_missing_requested_size"
 
 def test_classify_raw_content_item_and_size_no_kcal():
-    # If size is present but no kcals are found at all, we don't have isolation either
+    # raw_content has item and size but no parseable kcal -> extract_missing_parseable_kcal
     cause = classify_primary_root_cause(
         reason_if_missing=None,
         hard_recheck_rejected=False,
         hard_recheck_too_strict=False,
         packet_consumption_rejected=False,
         raw_content_present=True,
+        requested_item_present=True,
         requested_size_present=True,
+        kcal_candidates_found=False,
+    )
+    assert cause == "extract_missing_parseable_kcal"
+
+def test_classify_raw_content_no_size_no_kcal():
+    # raw_content has item but no size -> extract_missing_requested_size (unchanged)
+    cause = classify_primary_root_cause(
+        reason_if_missing=None,
+        hard_recheck_rejected=False,
+        hard_recheck_too_strict=False,
+        packet_consumption_rejected=False,
+        raw_content_present=True,
+        requested_item_present=True,
+        requested_size_present=False,
         kcal_candidates_found=False,
     )
     assert cause == "extract_missing_requested_size"
@@ -86,6 +103,7 @@ def test_classify_raw_content_size_kcal_no_packet():
         hard_recheck_too_strict=False,
         packet_consumption_rejected=False,
         raw_content_present=True,
+        requested_item_present=True,
         requested_size_present=True,
         kcal_candidates_found=True,
     )
@@ -99,6 +117,7 @@ def test_classify_packet_exists_hard_recheck_rejects():
         hard_recheck_too_strict=False,
         packet_consumption_rejected=False,
         raw_content_present=True,
+        requested_item_present=True,
         requested_size_present=True,
         kcal_candidates_found=True,
     )
@@ -112,6 +131,7 @@ def test_classify_packet_accepted_but_consumption_gap():
         hard_recheck_too_strict=False,
         packet_consumption_rejected=True,
         raw_content_present=True,
+        requested_item_present=True,
         requested_size_present=True,
         kcal_candidates_found=True,
     )
@@ -176,9 +196,9 @@ async def test_diagnose_positive_case_missing_size(dummy_canary_json):
 
 
 @pytest.mark.asyncio
-async def test_diagnose_positive_case_packetization_gap(dummy_canary_json):
+async def test_diagnose_positive_case_has_item_size_but_no_kcal(dummy_canary_json):
     mock_port = AsyncMock()
-    # Content has large size alias & item, but no kcal is successfully parsed by _extract_requested_size_kcal
+    # Content has item + size but no parseable kcal (the real Starbucks scenario)
     mock_port.extract_rows.return_value = [{"url": "https://example.com/starbucks", "raw_content": "那堤 大杯 很香很好喝，沒有寫熱量", "title": "熱濃縮咖啡飲料-那堤", "serving_basis": "1杯"}]
     
     result = await diagnose_positive_case(
@@ -187,5 +207,9 @@ async def test_diagnose_positive_case_packetization_gap(dummy_canary_json):
         extract_port=mock_port,
     )
     
-    assert result["primary_root_cause"] == "extract_missing_requested_size"
+    assert result["primary_root_cause"] == "extract_missing_parseable_kcal"
+    assert result["extract"]["requested_item_present"] is True
+    assert result["extract"]["requested_size_present"] is True
+    assert result["extract"]["kcal_candidates_found"] is False
     assert result["extract_packet"]["created"] is False
+    assert result["recommended_next_step"] == "defer_exact_brand_positive_acceptance"

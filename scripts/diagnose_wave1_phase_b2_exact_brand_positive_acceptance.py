@@ -41,6 +41,7 @@ def classify_primary_root_cause(
     hard_recheck_too_strict: bool,
     packet_consumption_rejected: bool,
     raw_content_present: bool,
+    requested_item_present: bool = False,
     requested_size_present: bool,
     kcal_candidates_found: bool,
 ) -> str:
@@ -48,6 +49,8 @@ def classify_primary_root_cause(
         return "official_source_missing_nutrition"
     if not requested_size_present:
         return "extract_missing_requested_size"
+    if requested_item_present and requested_size_present and not kcal_candidates_found:
+        return "extract_missing_parseable_kcal"
     if not kcal_candidates_found:
         return "extract_missing_requested_size"
     if reason_if_missing:
@@ -180,18 +183,22 @@ async def diagnose_positive_case(
         hard_recheck_too_strict=False, # We don't have a heuristic for this yet
         packet_consumption_rejected=packet_consumption_rejected,
         raw_content_present=raw_content_present,
+        requested_item_present=requested_item_present,
         requested_size_present=requested_size_present,
         kcal_candidates_found=kcal_candidates_found,
     )
     
     contributing_factors = []
-    if not requested_size_kcal_isolated:
+    if not requested_size_kcal_isolated and kcal_candidates_found:
         contributing_factors.append("size_alias_normalization_gap")
     if reason_if_missing:
         contributing_factors.append(reason_if_missing)
+    if primary_root_cause == "extract_missing_parseable_kcal":
+        contributing_factors.append("official_source_dynamic_nutrition_not_extractable")
         
     recommended_next_step = (
         "defer_to_manual_product_decision" if primary_root_cause == "official_source_missing_nutrition"
+        else "defer_exact_brand_positive_acceptance" if primary_root_cause == "extract_missing_parseable_kcal"
         else "improve_size_alias_normalization_in_extractor" if primary_root_cause == "extract_missing_requested_size"
         else "investigate_hard_recheck_rules" if "hard_recheck" in primary_root_cause
         else "review_packetization_logic"
