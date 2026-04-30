@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Any
 
+from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy import text
 
@@ -23,14 +24,13 @@ def _cards_by_id() -> dict[str, dict[str, Any]]:
     }
 
 
-def _default_engine() -> Engine:
-    from app.database import engine
-
-    return engine
+@lru_cache(maxsize=1)
+def _local_seed_engine() -> Engine:
+    return create_engine("sqlite:///:memory:")
 
 
 def ensure_exact_item_fts(*, engine: Engine | None = None) -> None:
-    active_engine = engine or _default_engine()
+    active_engine = engine or _local_seed_engine()
 
     cards = _load_cards()
     with active_engine.begin() as conn:
@@ -71,7 +71,7 @@ def ensure_exact_item_fts(*, engine: Engine | None = None) -> None:
 
 
 def resolve_exact_item_fts(query: str, *, limit: int = 3, engine: Engine | None = None) -> list[dict[str, Any]]:
-    active_engine = engine or _default_engine()
+    active_engine = engine or _local_seed_engine()
 
     ensure_exact_item_fts(engine=active_engine)
     query = str(query or "").strip()

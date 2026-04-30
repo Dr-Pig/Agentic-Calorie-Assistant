@@ -62,6 +62,11 @@ _command_plan.extend(
             status_key="single_manager_status",
         ),
         CommandSpec(
+            name="architecture_dependency_debt",
+            command=(sys.executable, "scripts/audit_architecture_dependency_debt.py"),
+            status_key="architecture_dependency_debt_status",
+        ),
+        CommandSpec(
             name="readiness_claim_integrity",
             command=(sys.executable, "scripts/audit_readiness_claim_integrity.py"),
             status_key="readiness_claim_status",
@@ -201,6 +206,7 @@ def run_pre_edd_readiness(*, timeout_seconds: int = 180) -> dict[str, Any]:
         "product_truth_alignment_status": {"status": "not_run", "details": []},
         "anti_overfit_status": {"status": "not_run", "details": []},
         "readiness_claim_status": {"status": "not_run", "details": []},
+        "architecture_dependency_debt_status": {"status": "not_run", "details": []},
     }
     command_results: list[dict[str, Any]] = []
     for spec in COMMAND_PLAN:

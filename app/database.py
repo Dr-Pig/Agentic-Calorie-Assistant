@@ -8,7 +8,6 @@ from alembic.config import Config
 from sqlalchemy import create_engine, desc, inspect
 from sqlalchemy.orm import sessionmaker, Session
 
-from .nutrition.infrastructure.exact_item_search import ensure_exact_item_fts
 from .logger import logger
 from .models import User, MealLog, MessageBuffer
 from .paths import DEFAULT_DB_PATH, LEGACY_DB_PATH, REPO_ROOT, ensure_runtime_dirs
@@ -45,7 +44,6 @@ MANAGED_TABLES = {
 
 def init_db():
     _run_database_migrations()
-    ensure_exact_item_fts()
 
 
 def _alembic_config() -> Config:
