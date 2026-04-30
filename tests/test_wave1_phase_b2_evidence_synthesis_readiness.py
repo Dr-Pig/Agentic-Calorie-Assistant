@@ -4,6 +4,7 @@ import copy
 import json
 from pathlib import Path
 
+import scripts.build_wave1_phase_b2_evidence_synthesis_smoke as phase_b2_builder
 from scripts.build_wave1_phase_b2_evidence_synthesis_smoke import (
     build_phase_b2_synthetic_smoke_report,
     write_phase_b2_synthetic_smoke_report,
@@ -222,12 +223,12 @@ def _case_by_id(report: dict[str, object], case_id: str) -> dict[str, object]:
     return next(case for case in report["cases"] if case["case_id"] == case_id)
 
 
-def test_valid_phase_b2_evidence_synthesis_fixture_blocks_readiness_until_manager_semantics(tmp_path: Path) -> None:
+def test_valid_phase_b2_evidence_synthesis_fixture_is_ready_with_manager_semantics(tmp_path: Path) -> None:
     report = verify_phase_b2_readiness(phase_b2_report_path=valid_phase_b2_report_fixture(tmp_path))
 
-    assert report["ready_for_phase_b2_implementation"] is False
-    assert any(item["code"] == "semantic_owner_inversion" for item in report["blockers"])
-    assert report["recommended_next_steps_ordered"] == ["fix_phase_b2_gate_blockers", "rerun_phase_b2_evidence_synthesis_readiness_gate"]
+    assert report["ready_for_phase_b2_implementation"] is True
+    assert report["blockers"] == []
+    assert report["recommended_next_steps_ordered"] == ["proceed_to_phase_b2_evidence_synthesis_implementation"]
     assert report["honesty_gate_status"] == {
         "snippet_final_truth_blocked": True,
         "wrong_item_blocked": True,
@@ -237,7 +238,10 @@ def test_valid_phase_b2_evidence_synthesis_fixture_blocks_readiness_until_manage
         "insufficient_evidence_blocked": True,
     }
     assert report["b1_green_handoff_check"]["passed"] is True
-    assert report["semantic_owner_integrity"]["passed"] is False
+    assert report["semantic_owner_integrity"]["passed"] is True
+    assert report["readiness_claim"]["producer_honesty"]["runner_inferred_semantics"] is False
+    assert report["readiness_claim"]["semantic_authority_source"] == "synthetic_manager_structured_fixture"
+    assert report["readiness_claim"]["producer_honesty"]["fake_provider_simulated_manager"] is False
     audit = report["artifact_completeness_audit"]
     assert audit["passed"] is True
     assert audit["chain_complete"] is True
@@ -255,6 +259,42 @@ def test_valid_phase_b2_evidence_synthesis_fixture_blocks_readiness_until_manage
     assert audit["producer_final_mapping_owner_violations"] == []
     assert audit["strict_exact_estimability_violations"] == []
     assert audit["pending_policy_promotions"] == []
+
+
+def test_semantic_owner_inversion_still_blocks_readiness(tmp_path: Path) -> None:
+    def mutate(data: dict[str, object]) -> None:
+        data["semantic_owner_integrity"] = {
+            "status": "blocked",
+            "failure_family": "semantic_owner_inversion",
+            "detail": "raw user text drove retrieval intent",
+        }
+
+    report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
+
+    assert report["ready_for_phase_b2_implementation"] is False
+    assert any(item["code"] == "semantic_owner_inversion" for item in report["blockers"])
+
+
+def test_official_b2_producer_does_not_use_raw_text_retrieval_intent(monkeypatch) -> None:
+    def fail_raw_builder(*args: object, **kwargs: object) -> None:
+        raise AssertionError("official B2 producer must consume manager semantic decisions")
+
+    if hasattr(phase_b2_builder, "build_retrieval_intent"):
+        monkeypatch.setattr(phase_b2_builder, "build_retrieval_intent", fail_raw_builder)
+
+    report = build_phase_b2_synthetic_smoke_report(b1_green_handoff_snapshot=_b1_green_handoff_snapshot())
+
+    assert report["semantic_owner_integrity"] == {
+        "status": "pass",
+        "semantic_authority_source": "synthetic_manager_structured_fixture",
+        "runner_inferred_semantics": False,
+    }
+    assert all(case["retrieval_intent_source"] == "manager_semantic_decision" for case in report["cases"])
+    assert all(case["runner_inferred_semantics"] is False for case in report["cases"])
+    assert all(
+        case["manager_semantic_decision"]["semantic_authority_source"] == "synthetic_manager_structured_fixture"
+        for case in report["cases"]
+    )
 
 
 def test_artifact_completeness_audit_flags_rejected_packet_used_as_evidence(tmp_path: Path) -> None:
@@ -830,9 +870,9 @@ def test_trusted_database_with_approved_manifest_entry_passes(tmp_path: Path) ->
 
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
-    assert report["ready_for_phase_b2_implementation"] is False
+    assert report["ready_for_phase_b2_implementation"] is True
     assert not any(item["code"] == "trusted_database_source_unresolved" for item in report["blockers"])
-    assert any(item["code"] == "semantic_owner_inversion" for item in report["blockers"])
+    assert not any(item["code"] == "semantic_owner_inversion" for item in report["blockers"])
 
 
 def test_llm_prior_without_last_resort_rationale_blocks_readiness(tmp_path: Path) -> None:
@@ -931,8 +971,8 @@ def test_runtime_trace_parity_allows_extra_metadata_fields(tmp_path: Path) -> No
     report = verify_phase_b2_readiness(phase_b2_report_path=invalid_phase_b2_report_fixture(tmp_path, mutate))
 
     assert report["runtime_trace_parity"]["passed"] is True
-    assert report["ready_for_phase_b2_implementation"] is False
-    assert any(item["code"] == "semantic_owner_inversion" for item in report["blockers"])
+    assert report["ready_for_phase_b2_implementation"] is True
+    assert not any(item["code"] == "semantic_owner_inversion" for item in report["blockers"])
 
 
 def test_runtime_trace_parity_renamed_or_missing_core_fields_blocks_readiness(tmp_path: Path) -> None:
@@ -980,5 +1020,5 @@ def test_official_phase_b2_synthetic_producer_writes_latest_and_timestamped_arti
     assert stable_path.read_text(encoding="utf-8") == timestamped_path.read_text(encoding="utf-8")
 
     report = verify_phase_b2_readiness(phase_b2_report_path=stable_path)
-    assert report["ready_for_phase_b2_implementation"] is False
-    assert any(item["code"] == "semantic_owner_inversion" for item in report["blockers"])
+    assert report["ready_for_phase_b2_implementation"] is True
+    assert report["blockers"] == []

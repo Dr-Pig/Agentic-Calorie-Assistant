@@ -1261,7 +1261,7 @@ def _build_b2_readiness_claim(
     semantic_owner_passed = semantic_owner_integrity.get("passed") is True
     if semantic_owner_passed:
         claim_scope = "deterministic_runtime"
-        semantic_authority_source = "fake_manager_structured_output"
+        semantic_authority_source = "synthetic_manager_structured_fixture"
         allowed_next_stage = "live_diagnostic" if provisional_ready else None
     else:
         claim_scope = "deterministic_runtime"
@@ -1273,7 +1273,7 @@ def _build_b2_readiness_claim(
         semantic_authority_source=semantic_authority_source,
         producer_honesty={
             "runner_inferred_semantics": not semantic_owner_passed,
-            "fake_provider_simulated_manager": semantic_owner_passed,
+            "fake_provider_simulated_manager": False,
             "final_mapping_fabricated": False,
             "mutation_fabricated": False,
         },

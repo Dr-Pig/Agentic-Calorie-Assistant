@@ -29,6 +29,7 @@ ActivationStage = Literal[
 SemanticAuthoritySource = Literal[
     "none",
     "live_manager_structured_output",
+    "synthetic_manager_structured_fixture",
     "fake_manager_structured_output",
     "human_approved_semantic_register",
     "deterministic_validator",
