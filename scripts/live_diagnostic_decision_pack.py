@@ -17,6 +17,7 @@ VERDICT_PRODUCT_DECISION_REQUIRED = "product_decision_required"
 B2_DIAGNOSTIC_LANE = "b2_packet_synthesis"
 B2_DIAGNOSTIC_FAILURE = "b2_live_llm_diagnostic_contract_violation"
 B2_ASK_FIRST_POLICY_VIOLATION = "b2_ask_first_policy_violation"
+B2_EMPTY_ITEM_RESULTS = "b2_empty_item_results"
 B2_LIVE_CONTRACT_CASE_IDS = ("B2-002", "B2-007", "B2-001", "B2-009", "B2-004", "B2-008")
 ASK_FIRST_SELF_SELECTED_BASKET_DECISION_ID = "self_selected_basket_without_listed_items"
 
@@ -228,6 +229,7 @@ def build_b2_live_llm_diagnostic_contract_report(
     schema_mode: str = "json_schema",
     selected_case_ids: tuple[str, ...] = B2_LIVE_CONTRACT_CASE_IDS,
     approved_ask_first_policy_ids: tuple[str, ...] = (),
+    provider_traces_by_case_id: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Validate fake Pass 2 outputs against deterministic B2 packet contracts.
 
@@ -236,10 +238,12 @@ def build_b2_live_llm_diagnostic_contract_report(
     """
 
     provider_outputs = provider_outputs_by_case_id or {}
+    provider_traces = provider_traces_by_case_id or {}
     case_results = [
         _validate_b2_live_contract_case(
             _case_by_id(phase_b2_report, case_id),
             provider_outputs.get(case_id),
+            provider_trace=provider_traces.get(case_id),
             approved_ask_first_policy_ids=approved_ask_first_policy_ids,
         )
         for case_id in selected_case_ids
@@ -296,6 +300,7 @@ def _validate_b2_live_contract_case(
     deterministic_case: dict[str, Any],
     provider_output: dict[str, Any] | None,
     *,
+    provider_trace: dict[str, Any] | None = None,
     approved_ask_first_policy_ids: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     case_id = str(deterministic_case.get("case_id") or "")
@@ -305,6 +310,9 @@ def _validate_b2_live_contract_case(
     rejected_packet_ids = _rejected_packet_ids(deterministic_case)
     evidence_refs = _evidence_refs(item_results)
     forbidden_fields = _forbidden_output_fields(payload, item_results)
+    trace = _dict(provider_trace)
+    output_diagnostics = _output_diagnostics(payload, item_results, trace)
+    accepted_packets_count = _accepted_packets_count(deterministic_case)
     blockers: list[str] = []
     product_decisions_required: list[str] = []
     failure_family = B2_DIAGNOSTIC_FAILURE
@@ -378,6 +386,8 @@ def _validate_b2_live_contract_case(
         if product_decisions_required
         else VERDICT_DIAGNOSTIC_OBSERVATION
     )
+    if "missing_item_results" in blockers:
+        failure_family = B2_EMPTY_ITEM_RESULTS
     return {
         "case_id": case_id,
         "case_label_only": True,
@@ -385,6 +395,12 @@ def _validate_b2_live_contract_case(
         "provider_mode": "fake",
         "live_invoked": False,
         "source_path": _dict(deterministic_case.get("source_selection")).get("source_path"),
+        "contract_type": "item_results_synthesis",
+        "item_results_required": True,
+        "min_item_results": 1,
+        "accepted_packets_count": accepted_packets_count,
+        "accepted_usage": packet_permissions["accepted_usage"],
+        "allowed_exactness": _allowed_exactness(packet_permissions),
         "packet_permissions": packet_permissions,
         "rejected_packet_ids": sorted(rejected_packet_ids),
         "evidence_refs": sorted(evidence_refs),
@@ -393,7 +409,13 @@ def _validate_b2_live_contract_case(
         "forbidden_fields_present": forbidden_fields,
         "blockers": _dedupe(blockers),
         "product_decisions_required": _dedupe(product_decisions_required),
-        "failure_family": B2_DIAGNOSTIC_FAILURE if blockers else None,
+        "failure_family": failure_family if blockers else None,
+        "empty_item_results_root_cause": _empty_item_results_root_cause(
+            blockers=blockers,
+            accepted_packets_count=accepted_packets_count,
+            output_diagnostics=output_diagnostics,
+        ),
+        **output_diagnostics,
         "verdict_category": verdict_category,
         "verdict": _verdict(verdict_category, _case_verdict_reason(verdict_category)),
     }
@@ -435,6 +457,19 @@ def _packet_permissions(deterministic_case: dict[str, Any]) -> dict[str, Any]:
         "anchor_packet_ids": sorted(anchor_packet_ids),
         "accepted_usage": "exact" if exact_packet_ids else "anchor" if anchor_packet_ids else "none",
     }
+
+
+def _accepted_packets_count(deterministic_case: dict[str, Any]) -> int:
+    permissions = _packet_permissions(deterministic_case)
+    return len(permissions["exact_packet_ids"]) + len(permissions["anchor_packet_ids"])
+
+
+def _allowed_exactness(packet_permissions: dict[str, Any]) -> str:
+    if packet_permissions["accepted_usage"] == "exact":
+        return "exact"
+    if packet_permissions["accepted_usage"] == "anchor":
+        return "estimated"
+    return "none"
 
 
 def _rejected_packet_ids(deterministic_case: dict[str, Any]) -> set[str]:
@@ -535,6 +570,52 @@ def _has_top_level_estimate(payload: dict[str, Any]) -> bool:
 
 def _has_top_level_evidence_refs(payload: dict[str, Any]) -> bool:
     return bool(_list(payload.get("evidence_used")) or _list(payload.get("evidence_refs")))
+
+
+def _output_diagnostics(
+    payload: dict[str, Any],
+    item_results: list[dict[str, Any]],
+    trace: dict[str, Any],
+) -> dict[str, Any]:
+    raw_item_results_count = _int_or_default(trace.get("raw_item_results_count"), len(item_results))
+    normalized_item_results_count = _int_or_default(trace.get("normalized_item_results_count"), len(item_results))
+    raw_keys = [str(item) for item in _list(trace.get("raw_top_level_keys"))] or sorted(str(key) for key in payload)
+    normalized_keys = sorted(str(key) for key in payload)
+    return {
+        "raw_provider_output_has_items": raw_item_results_count > 0,
+        "normalized_output_has_items": normalized_item_results_count > 0,
+        "raw_item_results_count": raw_item_results_count,
+        "normalized_item_results_count": normalized_item_results_count,
+        "raw_top_level_keys": raw_keys,
+        "normalized_top_level_keys": normalized_keys,
+        "raw_provider_output_excerpt": str(trace.get("raw_provider_output_excerpt") or ""),
+        "normalized_provider_output_summary": {
+            "top_level_keys": normalized_keys,
+            "item_results_count": normalized_item_results_count,
+            "payload_shape_valid": payload.get("payload_shape_valid") is not False,
+        },
+    }
+
+
+def _empty_item_results_root_cause(
+    *,
+    blockers: list[str],
+    accepted_packets_count: int,
+    output_diagnostics: dict[str, Any],
+) -> str | None:
+    if "missing_item_results" not in blockers:
+        return None
+    if accepted_packets_count < 1:
+        return "payload_missing_evidence"
+    if output_diagnostics["raw_provider_output_has_items"] and not output_diagnostics["normalized_output_has_items"]:
+        return "provider_bridge_dropped_items"
+    if "item_results" in output_diagnostics["raw_top_level_keys"]:
+        return "model_returned_empty_items"
+    return "prompt_contract_under_specified"
+
+
+def _int_or_default(value: Any, default: int) -> int:
+    return value if isinstance(value, int) else default
 
 
 def _exactness_permitted(item_results: list[dict[str, Any]], exact_packet_ids: list[str]) -> bool:
@@ -713,6 +794,7 @@ __all__ = [
     "ASK_FIRST_SELF_SELECTED_BASKET_DECISION_ID",
     "B2_ASK_FIRST_POLICY_VIOLATION",
     "B2_DIAGNOSTIC_FAILURE",
+    "B2_EMPTY_ITEM_RESULTS",
     "B2_DIAGNOSTIC_LANE",
     "VERDICT_DIAGNOSTIC_OBSERVATION",
     "VERDICT_PRODUCT_DECISION_REQUIRED",

@@ -127,6 +127,8 @@ def build_missing_token_report(
 
 def build_provider_request_payload_for_case(deterministic_case: dict[str, Any]) -> dict[str, Any]:
     accepted_packets, rejected_candidates = _packet_lanes(deterministic_case)
+    accepted_usage = _accepted_usage(accepted_packets)
+    allowed_exactness = "exact" if accepted_usage == "exact" else "estimated" if accepted_usage == "anchor" else "none"
     base_payload: dict[str, Any] = {
         "diagnostic_scope": "b2_packet_synthesis_only",
         "case_id": deterministic_case.get("case_id"),
@@ -152,6 +154,11 @@ def build_provider_request_payload_for_case(deterministic_case: dict[str, Any]) 
                 "ask_first_required": True,
                 "synthesis_allowed": False,
                 "item_results_allowed": False,
+                "item_results_required": False,
+                "min_item_results": 0,
+                "accepted_packets_count": len(accepted_packets),
+                "accepted_usage": accepted_usage,
+                "allowed_exactness": "none",
                 "estimate_allowed": False,
                 "kcal_range_allowed": False,
                 "expected_output": "ask_followup_for_items_and_portions",
@@ -189,10 +196,17 @@ def build_provider_request_payload_for_case(deterministic_case: dict[str, Any]) 
             "ask_first_required": False,
             "synthesis_allowed": True,
             "item_results_allowed": True,
+            "item_results_required": True,
+            "min_item_results": 1,
+            "accepted_packets_count": len(accepted_packets),
+            "accepted_usage": accepted_usage,
+            "allowed_exactness": allowed_exactness,
             "estimate_allowed": True,
             "kcal_range_allowed": True,
             "required_output": {
                 "top_level_key": "item_results",
+                "item_results_required": True,
+                "min_item_results": 1,
                 "item_result_fields": [
                     "interpreted_food_identity",
                     "exactness_posture",
@@ -258,6 +272,7 @@ async def run_b2_live_llm_diagnostic_canary(
         schema_mode=str(profile["schema_mode"]),
         selected_case_ids=selected_case_ids,
         approved_ask_first_policy_ids=APPROVED_ASK_FIRST_POLICY_IDS,
+        provider_traces_by_case_id=provider_case_traces,
     )
     report = _decorate_report(
         report,
@@ -292,6 +307,8 @@ async def _invoke_builderspace_case(
                     "role": "system",
                     "content": (
                         "You are a B2 packet synthesis diagnostic model. Return only JSON that follows the request contract. "
+                        "For item_results_synthesis contracts, return at least one item_result using accepted_packets. "
+                        "For clarify_only contracts, ask for the missing items or portions and do not return item_results. "
                         "Do not return logged, draft, ledger, mutation, source-priority, or product-semantic decisions."
                     ),
                 },
@@ -302,7 +319,7 @@ async def _invoke_builderspace_case(
     latency_ms = int((time.perf_counter() - started) * 1000)
     response.raise_for_status()
     data = response.json()
-    parsed, schema_status = _parse_provider_json(data)
+    parsed, schema_status, parse_trace = _parse_provider_json(data)
     return (
         parsed,
         {
@@ -315,19 +332,30 @@ async def _invoke_builderspace_case(
             "usage": _dict(data.get("usage")),
             "response_status": getattr(response, "status_code", None),
             "failure_family": None,
+            **parse_trace,
         },
     )
 
 
-def _parse_provider_json(data: dict[str, Any]) -> tuple[dict[str, Any], str]:
+def _parse_provider_json(data: dict[str, Any]) -> tuple[dict[str, Any], str, dict[str, Any]]:
     content = _extract_content(data)
+    trace: dict[str, Any] = {
+        "raw_provider_output_excerpt": _redacted_excerpt(content),
+        "raw_top_level_keys": [],
+        "raw_item_results_count": 0,
+        "normalized_item_results_count": 0,
+    }
     try:
         parsed = json.loads(content)
     except json.JSONDecodeError:
-        return {"item_results": [], "payload_shape_valid": False}, "fail"
+        return {"item_results": [], "payload_shape_valid": False}, "fail", trace
     if isinstance(parsed, dict):
-        return parsed, "strict_pass"
-    return {"item_results": [], "payload_shape_valid": False}, "fail"
+        normalized = _normalize_provider_payload(parsed)
+        trace["raw_top_level_keys"] = sorted(str(key) for key in parsed)
+        trace["raw_item_results_count"] = len(_list(parsed.get("item_results")))
+        trace["normalized_item_results_count"] = len(_list(normalized.get("item_results")))
+        return normalized, "strict_pass", trace
+    return {"item_results": [], "payload_shape_valid": False}, "fail", trace
 
 
 def _extract_content(data: dict[str, Any]) -> str:
@@ -390,6 +418,10 @@ def _attach_provider_traces(report: dict[str, Any], traces: dict[str, dict[str, 
         case["raw_failure_family"] = trace.get("failure_family")
         case["provider_profile_id"] = trace.get("provider_profile_id")
         case["provider_profile_model"] = trace.get("model")
+        case["raw_provider_output_excerpt"] = trace.get("raw_provider_output_excerpt", "")
+        case["raw_top_level_keys"] = trace.get("raw_top_level_keys", [])
+        case["raw_item_results_count"] = trace.get("raw_item_results_count", 0)
+        case["normalized_item_results_count"] = trace.get("normalized_item_results_count", case.get("item_result_count", 0))
 
 
 def _packet_lanes(deterministic_case: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -425,6 +457,26 @@ def _packet_lanes(deterministic_case: dict[str, Any]) -> tuple[list[dict[str, An
             if isinstance(candidate, dict)
         ]
     return accepted, rejected
+
+
+def _accepted_usage(accepted_packets: list[dict[str, Any]]) -> str:
+    usages = {str(packet.get("accepted_usage") or "") for packet in accepted_packets}
+    if "exact" in usages:
+        return "exact"
+    if "anchor" in usages or "fallback" in usages:
+        return "anchor"
+    return "none"
+
+
+def _normalize_provider_payload(parsed: dict[str, Any]) -> dict[str, Any]:
+    return dict(parsed)
+
+
+def _redacted_excerpt(content: str, limit: int = 500) -> str:
+    excerpt = content[:limit]
+    for marker in ("Authorization", "Bearer", "AI_BUILDER_TOKEN"):
+        excerpt = excerpt.replace(marker, "[redacted]")
+    return excerpt
 
 
 def _is_ask_first_deterministic_case(deterministic_case: dict[str, Any]) -> bool:

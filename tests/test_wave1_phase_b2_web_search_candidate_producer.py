@@ -112,6 +112,24 @@ def test_produce_web_search_candidates_keeps_official_wrong_item_as_candidate_on
     assert candidate["applicability_notes"] == "official result but likely wrong item"
 
 
+def test_produce_web_search_candidates_infers_known_brand_identity_from_title_when_provider_omits_brand() -> None:
+    candidates = produce_web_search_candidates(
+        query="星巴克大杯那堤",
+        identity_target="星巴克大杯那堤",
+        raw_hits=[
+            {
+                "url": "https://www.starbucks.com.tw/products/drinks/product.jspx?id=1",
+                "title": "熱濃縮咖啡飲料-那堤|星巴克| Starbucks Taiwan",
+                "snippet": "大杯 熱量(大卡) 295",
+                "score": 0.95,
+                "officialness": "official",
+            }
+        ],
+    )
+
+    assert candidates[0]["brand_detected"] == "星巴克"
+
+
 def test_produce_web_search_candidates_keeps_sibling_candidate_as_candidate_only() -> None:
     candidates = produce_web_search_candidates(
         query="\u8ff7\u5ba2\u590f\u73cd\u73e0\u7d05\u8336\u62ff\u9435",

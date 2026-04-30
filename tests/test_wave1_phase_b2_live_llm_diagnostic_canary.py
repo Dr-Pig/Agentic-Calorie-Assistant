@@ -137,6 +137,28 @@ def test_provider_request_payload_uses_deterministic_packet_contract_without_map
     assert payload["final_mapping"] == "not_provided_to_live_diagnostic"
 
 
+def test_ordinary_synthesis_payload_declares_required_items_and_packet_ceiling() -> None:
+    phase_b2_report = _phase_b2_report()
+
+    expected = {
+        "B2-002": ("anchor", "estimated"),
+        "B2-007": ("exact", "exact"),
+        "B2-001": ("anchor", "estimated"),
+        "B2-008": ("anchor", "estimated"),
+    }
+    for case_id, (accepted_usage, allowed_exactness) in expected.items():
+        payload = build_provider_request_payload_for_case(_case_by_id(phase_b2_report, case_id))
+
+        assert payload["contract_type"] == "item_results_synthesis"
+        assert payload["item_results_required"] is True
+        assert payload["min_item_results"] == 1
+        assert payload["accepted_packets_count"] >= 1
+        assert payload["accepted_usage"] == accepted_usage
+        assert payload["allowed_exactness"] == allowed_exactness
+        assert payload["required_output"]["item_results_required"] is True
+        assert payload["required_output"]["min_item_results"] == 1
+
+
 def test_provider_request_payload_uses_clarify_only_contract_for_bare_self_selected_basket() -> None:
     phase_b2_report = _phase_b2_report()
     payload = build_provider_request_payload_for_case(_case_by_id(phase_b2_report, "B2-004"))
@@ -146,6 +168,8 @@ def test_provider_request_payload_uses_clarify_only_contract_for_bare_self_selec
     assert payload["ask_first_required"] is True
     assert payload["synthesis_allowed"] is False
     assert payload["item_results_allowed"] is False
+    assert payload["item_results_required"] is False
+    assert payload["min_item_results"] == 0
     assert payload["estimate_allowed"] is False
     assert payload["kcal_range_allowed"] is False
     assert payload["expected_output"] == "ask_followup_for_items_and_portions"
@@ -178,8 +202,29 @@ def test_live_canary_fake_http_response_is_validated_by_contract_harness(tmp_pat
     assert report["user_facing_enabled"] is False
     assert report["mutation_enabled"] is False
     assert report["case_results"][0]["schema_status"] == "strict_pass"
+    assert report["case_results"][0]["raw_provider_output_has_items"] is True
+    assert report["case_results"][0]["normalized_output_has_items"] is True
+    assert report["case_results"][0]["raw_provider_output_excerpt"]
+    assert report["case_results"][0]["raw_top_level_keys"] == ["item_results"]
+    assert report["case_results"][0]["raw_item_results_count"] == 1
+    assert report["case_results"][0]["normalized_item_results_count"] == 1
     assert report["case_results"][0]["usage"] == {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
     assert report["verdict_category"] == VERDICT_DIAGNOSTIC_OBSERVATION
+
+
+def test_provider_trace_redacts_authorization_secrets() -> None:
+    report = asyncio.run(run_b2_live_llm_diagnostic_canary(
+        phase_b2_report=_phase_b2_report(),
+        token="secret-test-token",
+        provider_profile_id=DEFAULT_B2_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID,
+        async_client_factory=_FakeAsyncClient,
+        selected_case_ids=("B2-002",),
+        payload_artifact_id="artifact-y",
+    ))
+
+    excerpt = report["case_results"][0]["raw_provider_output_excerpt"]
+    assert "secret-test-token" not in excerpt
+    assert "Authorization" not in excerpt
 
 
 def test_live_canary_runner_source_does_not_import_final_mapping_or_semantic_register() -> None:

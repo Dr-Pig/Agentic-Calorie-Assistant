@@ -80,13 +80,23 @@ def test_selected_extract_policy_rejects_sibling_and_modifier_or_size_mismatch()
         assert decision.selected_urls == []
 
 
-def test_selected_extract_policy_rejects_non_official_or_non_exact_claim_packets() -> None:
+def test_selected_extract_policy_rejects_non_official_or_identity_unsafe_packets() -> None:
     third_party = _search_packet(packet_id="pkt_web_search_third_party", source_quality_label="third_party")
-    unsupported = _search_packet(
-        packet_id="pkt_web_search_unsupported",
-        hard_recheck_risks=[],
+    wrong_item = _search_packet(packet_id="pkt_web_search_wrong_item", match_type="no_match")
+
+    assert choose_selected_extract_packet((third_party,)).extract_allowed_by_policy is False
+    assert choose_selected_extract_packet((wrong_item,)).extract_allowed_by_policy is False
+
+
+def test_selected_extract_policy_allows_identity_safe_official_candidate_for_extract_even_before_serving_evidence() -> None:
+    official_search_only = _search_packet(
+        packet_id="pkt_web_search_identity_safe",
+        hard_recheck_risks=["insufficient_evidence"],
         supports_exact_claim=False,
     )
 
-    assert choose_selected_extract_packet((third_party,)).extract_allowed_by_policy is False
-    assert choose_selected_extract_packet((unsupported,)).extract_allowed_by_policy is False
+    decision = choose_selected_extract_packet((official_search_only,))
+
+    assert decision.extract_allowed_by_policy is True
+    assert decision.selected_search_packet_id == "pkt_web_search_identity_safe"
+    assert decision.extract_reason == "selected_same_item_official_candidate"
