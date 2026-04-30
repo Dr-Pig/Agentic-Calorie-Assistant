@@ -256,7 +256,7 @@ Pre-EDD readiness 至少必須輸出：
 
 **Eval cases：** current Wave 1 micro-suites and Founder E2E diagnostics
 
-### Bundle 3：Body + Calibration
+### Body + Calibration
 
 **目標：** body observation、exercise event、calibration check。
 
@@ -554,8 +554,8 @@ python scripts/pre_edd_readiness.py \
 
 | 功能 | 負責 domain | 檔案 |
 |------|-------------|------|
-| clarify lane | `app/intake/application/` | `onboarding_service.py`, `v2_bundle3_service.py` |
-| item correction | `app/intake/application/` | `v2_bundle3_service.py` |
+| clarify lane | `app/intake/application/` | `onboarding_service.py`, `body_calibration_service.py` |
+| item correction | `app/intake/application/` | `body_calibration_service.py` |
 | macro sync | `app/nutrition/application/` | `target_calculation.py` |
 | overshoot sync | `app/budget/application/` | `budget_sync_service.py` |
 
@@ -566,7 +566,7 @@ python scripts/pre_edd_readiness.py \
 - `app/runtime/application/manager_service.py`（僅新增 tool calls）
 
 **不允許：**
-- 在 `v2_bundle3_service.py` 新增 retrieval logic
+- 在 `body_calibration_service.py` 新增 retrieval logic
 - 在 `manager_service.py` 新增 domain semantics
 - 把所有邏輯塞進單一檔案
 
@@ -574,7 +574,7 @@ python scripts/pre_edd_readiness.py \
 
 | 檔案 | 最大行數 |
 |------|----------|
-| `v2_bundle3_service.py` | 300 行 |
+| `body_calibration_service.py` | 300 行 |
 | `manager_service.py` | 500 行 |
 | 任何新增 service 檔案 | 200 行 |
 
