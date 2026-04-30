@@ -223,6 +223,11 @@ Required outputs:
 
 ### 4.4 Deterministic Downstream Writeback
 
+Wave 1 activation cap:
+
+- the current implementation may add deterministic MET / user-asserted estimator contracts and tests
+- it must not create `ExerciseEvent` persistence, `LedgerEntry(exercise_bonus)`, or `DayBudgetLedger.exercise_bonus_total` writes until the exercise writeback activation plan is approved
+
 After a valid `ExerciseEvent` write, the application layer deterministically:
 
 1. persists the canonical exercise event
@@ -285,6 +290,7 @@ using the existing read models and canonical state.
 
 Formal rule:
 
-- `body_observation` and `exercise` may trigger downstream deterministic recompute
+- `body_observation` and `exercise` may trigger downstream deterministic recompute only after the relevant activation plan is approved
+- Wave 1 body observation writes are observation-only and must not silently rewrite active `BodyPlan`
 - they do not own long-horizon plan changes
 - any proposal to change plan/budget belongs to `calibration`

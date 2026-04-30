@@ -47,6 +47,30 @@ Downstream enforcement:
 | Pending meal intent | `app/runtime/contracts` until semantics close | Contract only | intake handoff, recommendation acceptance, MealThread creation | Contract only | pending meal intent Pydantic contract |
 | UI same-truth surfaces | UI/read-model owner per canonical matrix | Spec/read-model only | truth recomputation, mutation path, root schema growth | Spec only | UI canonical truth surface matrix |
 
+## B2-Safe Parallel Readiness
+
+This table records the current activation cap for parallel capability work while Wave 1 B2 semantic closure is the mainline. It is an implementation sequencing guard, not permission to activate product behavior.
+
+| Slice | Capability | Current status | Owner | Allowed now | Blocked until activation plan |
+|---|---|---|---|---|---|
+| S0 | Spec/readiness alignment | `safe_now` | docs/governance | targeted spec alignment and ownership maps | large rewrites or new product semantics |
+| S1 | Body target math | `safe_now` | `app/body` | deterministic formula tests and validators | LLM target calculation or persistence expansion |
+| S2 | Onboarding bootstrap | `safe_now_with_existing_path` | `app/body`, `app/budget` | explicit onboarding completion -> BodyPlan -> DayBudgetLedger | silent bootstrap from observations, Manager integration, fixture rewrites |
+| S3 | Budget same-truth read models | `safe_now_read_model` | `app/budget` | no-plan, overshoot, macro, and meal-summary consistency | read model food recomputation or ledger writes |
+| S4 | BodyObservation ownership | `safe_now_existing_model` | `app/body` | body-owned write/read service and compatibility re-export | migration or automatic BodyPlan mutation |
+| S5 | Exercise estimator | `contract_only` | `app/body` | MET/user-asserted estimate contract and deterministic tests | `ExerciseEvent` persistence, ledger bonus write |
+| S6 | Calibration activation cap | `offline_only` | `app/body` | preview/model/gate tests and root-router non-activation guard | action route mounting, BodyPlan/ledger mutation activation |
+| S7 | Recommendation quality gate | `offline_only` | `app/recommendation` | prepared-candidate quality gate | live search, Google Places, ranking LLM, B2 evidence object dependency |
+| S8 | Memory derived summaries | `derived_summary_only` | `app/memory` | read-only preference/golden-order/suppression summaries | durable memory write, promotion service, LLM extraction |
+| S9 | Proactive deterministic gate | `deterministic_brake_only` | `app/runtime` | quiet hours, cooldown, caps, suppression, evidence/quality thresholds | scheduler, push, LLM, route activation |
+| S10 | Rescue read model | `read_model_only` | `app/rescue` | inbox/history projection and no raw trace leakage | accept/dismiss mutation, ledger overlay |
+| S11 | Pending meal intent | `contract_only` | `app/runtime/contracts` | short-term context contract and status/expiry tests | service flow, intake handoff, recommendation acceptance |
+| S12 | Architecture guard pack | `safe_now` | tests/scripts | root facade, import direction, non-activation, empty-file guards | weakening B2 architecture to fit sidecars |
+
 ## Guardrail
 
 If a capability needs a field, state transition, mutation, live provider, scheduler, UI renderer, or manager-visible tool that is not already owned by its canonical module, stop and promote the decision through the relevant spec before adding code.
+
+## Non-Blocking Architecture Debt
+
+For the B2-safe parallel sidecar checkpoint, `lint-imports --config .importlinter` is diagnostic only. The expected current posture is that the sidecar and archive contracts stay kept, while broad runtime/shared and business-domain independence contracts may remain broken until a separate architecture refactor slice is approved.

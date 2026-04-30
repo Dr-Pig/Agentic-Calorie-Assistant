@@ -39,6 +39,9 @@ def evaluate_proactive_deterministic_gate(gate_input: ProactiveGateInput) -> Pro
     if not gate_input.minimum_evidence_ready:
         return _suppressed("minimum_evidence_missing", trace)
 
+    if not gate_input.minimum_quality_ready:
+        return _suppressed("minimum_quality_missing", trace)
+
     return ProactiveGateResult(
         allowed=True,
         status="allowed",

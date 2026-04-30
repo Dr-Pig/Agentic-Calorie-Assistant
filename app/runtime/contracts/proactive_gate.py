@@ -22,6 +22,7 @@ class ProactiveGateInput(BaseModel):
     recent_send_count: int = 0
     max_recent_send_count: int | None = None
     minimum_evidence_ready: bool = True
+    minimum_quality_ready: bool = True
     user_allows_proactive: bool = True
 
 

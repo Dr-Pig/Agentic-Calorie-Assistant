@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
@@ -28,7 +28,16 @@ class PendingMealIntent(BaseModel):
 
     @property
     def is_active(self) -> bool:
-        return self.status == "created"
+        return self.is_active_at(datetime.now(tz=self.expires_at.tzinfo))
+
+    @model_validator(mode="after")
+    def _expires_after_creation(self) -> "PendingMealIntent":
+        if self.expires_at <= self.created_at:
+            raise ValueError("expires_at must be after created_at")
+        return self
+
+    def is_active_at(self, now: datetime) -> bool:
+        return self.status == "created" and now < self.expires_at
 
     def to_trace_payload(self) -> dict[str, Any]:
         return {
