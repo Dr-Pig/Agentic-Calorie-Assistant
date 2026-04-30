@@ -11,5 +11,5 @@ psycopg2-binary==2.9.11
 ruff==0.15.10
 pre-commit==4.6.0
 pylint==4.0.3
-import-linter==2.7
+import-linter==2.11
 xenon==0.9.3
