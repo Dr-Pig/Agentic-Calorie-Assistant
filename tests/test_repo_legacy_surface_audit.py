@@ -107,6 +107,18 @@ def test_repo_legacy_surface_audit_detects_stale_body_calibration_plan_reference
     assert report["legacy_naming_finding_count"] >= 1
 
 
+def test_repo_legacy_surface_audit_detects_legacy_intake_execution_manager_key(tmp_path: Path) -> None:
+    target = tmp_path / "scripts" / "example.py"
+    target.parent.mkdir(parents=True)
+    marker = "bundle" + "2_manager"
+    target.write_text(f"manager_rounds = result.get('{marker}')\n", encoding="utf-8")
+
+    report = build_report(root=tmp_path, tracked_paths=[])
+
+    assert report["fails_build"] is True
+    assert report["legacy_naming_finding_count"] >= 1
+
+
 def test_repo_legacy_surface_audit_allows_trace_fallback_path(tmp_path: Path) -> None:
     target = tmp_path / "app" / "budget" / "interface" / "today_trace_debug.py"
     target.parent.mkdir(parents=True)
