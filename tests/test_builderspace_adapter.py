@@ -152,6 +152,14 @@ def _founder_live_constraints() -> dict[str, str]:
     }
 
 
+def _founder_live_commit_without_evidence_repair_constraints() -> dict[str, object]:
+    return {
+        **_founder_live_constraints(),
+        "guard_feedback_repair_request": True,
+        "guard_feedback_failure_family": "commit_without_evidence",
+    }
+
+
 def _founder_live_payload(**overrides: object) -> dict[str, object]:
     payload: dict[str, object] = {
         "manager_action": "final",
@@ -773,6 +781,31 @@ def test_founder_live_manager_contract_schema_uses_consumer_backed_required_fiel
     assert schema["x-field-consumers"]["answer_contract"] == "renderer_boundary"
 
 
+def test_founder_live_commit_without_evidence_repair_schema_requires_tool_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+
+    schema = adapter._response_schema_for_stage(
+        "intake_manager_round",
+        constraints=_founder_live_commit_without_evidence_repair_constraints(),
+    )
+
+    assert schema is not None
+    assert schema["properties"]["manager_action"]["enum"] == ["call_tools"]
+    assert "tool_calls" in schema["required"]
+    assert schema["properties"]["tool_calls"]["minItems"] == 1
+    assert schema["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
+        "resolve_correction_target",
+        "estimate_nutrition",
+        "compare_against_budget",
+    ]
+    assert schema["x-repair-contract"] == {
+        "failure_family": "commit_without_evidence",
+        "required_tool": "estimate_nutrition",
+    }
+
+
 def test_founder_live_manager_contract_payload_accepts_trace_repair_ack_outside_payload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -827,6 +860,24 @@ def test_founder_live_manager_contract_payload_accepts_trace_repair_ack_outside_
             constraints=constraints,
         )
 
+    unsupported_final_action = dict(payload)
+    unsupported_final_action["final_action"] = "begin_meal_logging"
+    with pytest.raises(RuntimeError, match="final_action"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            unsupported_final_action,
+            constraints=constraints,
+        )
+
+    contradictory_no_commit = dict(payload)
+    contradictory_no_commit["final_action"] = "no_commit"
+    with pytest.raises(RuntimeError, match="mutation intent"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            contradictory_no_commit,
+            constraints=constraints,
+        )
+
     mismatched_router_intent = dict(payload)
     mismatched_router_intent["intent_type"] = "complete_onboarding"
     mismatched_router_intent["semantic_decision"] = dict(payload["semantic_decision"])
@@ -837,6 +888,55 @@ def test_founder_live_manager_contract_payload_accepts_trace_repair_ack_outside_
             mismatched_router_intent,
             constraints=constraints,
         )
+
+    missing_followup_question = dict(payload)
+    missing_followup_question["semantic_decision"] = dict(payload["semantic_decision"])
+    missing_followup_question["semantic_decision"]["followup_posture"] = "precision_refinement"
+    with pytest.raises(RuntimeError, match="followup question missing"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            missing_followup_question,
+            constraints=constraints,
+        )
+
+    answer_contract_followup = dict(missing_followup_question)
+    answer_contract_followup["answer_contract"] = {
+        "reply_text": "Estimated and logged.",
+        "followup_question": "What size and sugar level was it?",
+    }
+    adapter._validate_manager_payload(
+        "intake_manager_round",
+        answer_contract_followup,
+        constraints=constraints,
+    )
+
+
+def test_founder_live_commit_without_evidence_repair_payload_must_call_estimate_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = _founder_live_commit_without_evidence_repair_constraints()
+
+    valid = _founder_live_payload(
+        manager_action="call_tools",
+        tool_calls=[{"name": "estimate_nutrition", "arguments": {}}],
+    )
+    adapter._validate_manager_payload("intake_manager_round", valid, constraints=constraints)
+
+    final_payload = _founder_live_payload(
+        manager_action="final",
+        final_action="commit",
+        tool_calls=[{"name": "estimate_nutrition", "arguments": {}}],
+    )
+    with pytest.raises(RuntimeError, match="manager_action"):
+        adapter._validate_manager_payload("intake_manager_round", final_payload, constraints=constraints)
+
+    missing_estimate = _founder_live_payload(
+        manager_action="call_tools",
+        tool_calls=[{"name": "compare_against_budget", "arguments": {}}],
+    )
+    with pytest.raises(RuntimeError, match="requires tool_calls to include 'estimate_nutrition'"):
+        adapter._validate_manager_payload("intake_manager_round", missing_estimate, constraints=constraints)
 
 
 def test_founder_live_manager_contract_uses_synthetic_tool_transport_with_schema_metadata(

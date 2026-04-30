@@ -31,6 +31,7 @@ from app.composition.intake_execution_persistence import initial_state_mutation_
 from app.intake.application.intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool
 from app.intake.application.phase_a_runtime_context import prepare_phase_a_runtime_context
 from app.nutrition.application.b2_active_runtime_owner_lineage import attach_b2_owner_lineage_trace
+from app.nutrition.application.b2_manager_policy_hints import b2_manager_policy_hints
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
 from app.runtime.application.manager_service import run_intake_manager
@@ -203,7 +204,7 @@ async def process_bundle2_intake(
         if final_action in {"commit", "correction_applied", "overshoot_note"} and payload is None:
             return {
                 "ok": False,
-                "repair_request": False,
+                "repair_request": True,
                 "failure_family": "commit_without_evidence",
                 "phase_a_transition_guard_preflight": preflight_trace,
             }
@@ -228,7 +229,10 @@ async def process_bundle2_intake(
         tool_executor=tool_executor,
         manager_context_refresher=manager_context_refresher,
         guard_checker=guard_checker,
-        constraints={"request_id": request_id},
+        constraints={
+            "request_id": request_id,
+            "manager_product_policy_hints": b2_manager_policy_hints(),
+        },
         max_rounds=3,
     )
     record_timing("manager_loop", _now_ms() - stage_start)
@@ -251,6 +255,8 @@ async def process_bundle2_intake(
         payload=payload,
         raw_user_input=raw_user_input,
         final_action=manager_result.final_action,
+        manager_answer_contract=dict(getattr(manager_result, "answer_contract", {}) or {}),
+        manager_semantic_decision=dict(getattr(manager_result, "semantic_decision", {}) or {}),
     )
     commit_boundary_preflight = run_commit_boundary_preflight(
         payload=payload,
