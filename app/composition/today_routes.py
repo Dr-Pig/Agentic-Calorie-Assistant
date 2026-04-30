@@ -6,10 +6,10 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 
 from pydantic import BaseModel
-from ..application import build_current_budget_view
-from ...intake.application.canonical_commit_bridge import record_budget_adjustment_to_canonical
-from ...database import get_db, get_or_create_user
-from .today_surface import render_today_surface, resolve_today_local_date
+from app.budget.interface.today_surface import render_today_surface, resolve_today_local_date
+from app.composition.canonical_commit_bridge import record_budget_adjustment_to_canonical
+from app.composition.current_budget_read_model import build_current_budget_view
+from app.database import get_db, get_or_create_user
 
 router = APIRouter()
 

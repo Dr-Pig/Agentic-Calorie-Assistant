@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.body.application import OnboardingBootstrapInput, bootstrap_body_plan_for_date
+from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_or_create_user
 from app.models import Base
 

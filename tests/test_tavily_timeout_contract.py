@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.nutrition.infrastructure.web_search.tavily_adapter import TavilyAdapter
+from app.providers.tavily_adapter import TavilyAdapter
 
 
 def test_tavily_timeout_is_capped_by_foreground_ceiling(monkeypatch) -> None:

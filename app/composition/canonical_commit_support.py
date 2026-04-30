@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import LegacyMealLogMapRecord, MealThreadRecord, MealVersionRecord
+from app.intake.infrastructure.models import LegacyMealLogMapRecord, MealThreadRecord, MealVersionRecord
 from app.schemas import CommitRequestCandidate, CommitVersionReason, EstimatePayload
 
 

@@ -6,9 +6,9 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 
-from ..application import build_active_body_plan_view
-from ...database import get_db, get_or_create_user
-from ...shared.domain import ActiveBodyPlanView
+from app.body.application import build_active_body_plan_view
+from app.database import get_db, get_or_create_user
+from app.shared.domain import ActiveBodyPlanView
 
 router = APIRouter()
 

@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from app.nutrition.infrastructure.web_search.tavily_adapter import TavilyAdapter
+from app.providers.tavily_adapter import TavilyAdapter
 
 
 class _FakeResponse:
@@ -39,7 +39,7 @@ class _FakeAsyncClient:
 async def test_runtime_search_profile_owns_basic_search_payload(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: list[dict[str, Any]] = []
     monkeypatch.setattr(
-        "app.nutrition.infrastructure.web_search.tavily_adapter.httpx.AsyncClient",
+        "app.providers.tavily_adapter.httpx.AsyncClient",
         lambda timeout: _FakeAsyncClient(timeout=timeout, captured=captured, response_payload={"results": []}),
     )
 
@@ -61,7 +61,7 @@ async def test_runtime_search_profile_owns_basic_search_payload(monkeypatch: pyt
 async def test_selected_extract_profile_owns_advanced_extract_payload(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: list[dict[str, Any]] = []
     monkeypatch.setattr(
-        "app.nutrition.infrastructure.web_search.tavily_adapter.httpx.AsyncClient",
+        "app.providers.tavily_adapter.httpx.AsyncClient",
         lambda timeout: _FakeAsyncClient(timeout=timeout, captured=captured, response_payload={"results": []}),
     )
 

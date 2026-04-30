@@ -5,8 +5,8 @@ from typing import Literal
 
 from sqlalchemy.orm import Session
 
-from ...body.application.active_body_plan_read_model import build_active_body_plan_view
-from ...shared.domain import ActiveBodyPlanView, CurrentBudgetView
+from app.body.application.active_body_plan_read_model import build_active_body_plan_view
+from app.shared.domain import ActiveBodyPlanView, CurrentBudgetView
 from .current_budget_read_model import build_current_budget_view
 
 BudgetAnswerStatus = Literal["ready", "onboarding_required"]

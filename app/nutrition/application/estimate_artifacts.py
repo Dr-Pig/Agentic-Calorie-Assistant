@@ -6,7 +6,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from ...intake.application.request_runtime_context import RequestRuntimeContext, load_request_runtime_context
+from app.composition.request_runtime_context import RequestRuntimeContext, load_request_runtime_context
 from ...shared.contracts.common import EstimateRequest
 from ...shared.contracts.intake import ComponentEstimate, EstimatePayload
 

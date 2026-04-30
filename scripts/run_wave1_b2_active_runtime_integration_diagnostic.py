@@ -13,7 +13,7 @@ if str(ROOT) not in sys.path:
 from app.shared.contracts.readiness_claim import build_readiness_claim
 from scripts import run_wave1_founder_e2e_deterministic_diagnostic as founder_diagnostic
 
-ACTIVE_ENTRYPOINT = "app.intake.application.intake_turn_orchestrator.execute_bundle1_turn"
+ACTIVE_ENTRYPOINT = "app.composition.intake_turn_orchestrator.execute_bundle1_turn"
 ARTIFACT_PATH = ROOT / "artifacts" / "wave1_b2_active_runtime_integration_diagnostic.json"
 FOUNDER_ARTIFACT_PATH = ROOT / "artifacts" / "wave1_founder_e2e_deterministic_diagnostic.json"
 DEFAULT_DB_PATH = ROOT / "artifacts" / "wave1_b2_active_runtime_integration_diagnostic.sqlite3"

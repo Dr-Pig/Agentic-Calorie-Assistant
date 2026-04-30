@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..intake.application.intake_estimation_tools import estimate_nutrition_tool
-from ..intake.application.intake_read_tools import compare_against_budget_tool
-from ..nutrition.application.web_search_port import WebSearchPort
-from ..nutrition.application.web_extract_port import WebExtractPort
-from ..nutrition.application.evidence_eligibility import classify_query_family, summarize_eligibility_results
-from ..runtime.application.execution_guard import evaluate_macro_display
+from app.composition.intake_estimation_tools import estimate_nutrition_tool
+from app.composition.intake_read_tools import compare_against_budget_tool
+from app.nutrition.application.evidence_eligibility import classify_query_family, summarize_eligibility_results
+from app.nutrition.application.web_extract_port import WebExtractPort
+from app.nutrition.application.web_search_port import WebSearchPort
+from app.runtime.application.execution_guard import evaluate_macro_display
 
 
 def payload_trace_contract(payload: Any) -> dict[str, Any]:

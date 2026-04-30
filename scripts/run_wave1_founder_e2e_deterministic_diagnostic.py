@@ -17,7 +17,7 @@ if str(ROOT) not in sys.path:
 
 from app.shared.contracts.readiness_claim import build_readiness_claim
 
-ACTIVE_ENTRYPOINT = "app.intake.application.intake_turn_orchestrator.execute_bundle1_turn"
+ACTIVE_ENTRYPOINT = "app.composition.intake_turn_orchestrator.execute_bundle1_turn"
 ARTIFACT_PATH = ROOT / "artifacts" / "wave1_founder_e2e_deterministic_diagnostic.json"
 DEFAULT_DB_PATH = ROOT / "artifacts" / "wave1_founder_e2e_deterministic_diagnostic.sqlite3"
 LOCAL_DATE = "2026-04-30"
@@ -71,7 +71,7 @@ def _configure_database(db_path: Path) -> Any:
 
 
 def _active_entrypoint() -> Any:
-    module = importlib.import_module("app.intake.application.intake_turn_orchestrator")
+    module = importlib.import_module("app.composition.intake_turn_orchestrator")
     return getattr(module, "execute_bundle1_turn")
 
 
@@ -319,7 +319,7 @@ async def _execute_turn(
 
 async def _seed_onboarding(db: Any, provider: DeterministicFounderProvider, *, user_id: str, local_date: str) -> None:
     del provider
-    from app.body.application.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
+    from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
     from app.database import get_or_create_user
 
     user = get_or_create_user(db, user_id)

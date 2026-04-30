@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
+import sys
 
 import pytest
 
@@ -22,6 +23,7 @@ def test_provider_runtime_import_does_not_reference_gemini_adapter() -> None:
 def test_provider_runtime_import_succeeds_without_gemini_adapter(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("AI_MANAGER_PROVIDER", raising=False)
     monkeypatch.delenv("AI_PROVIDER", raising=False)
+    sys.modules.pop("app.runtime.interface.provider_runtime", None)
 
     module = importlib.import_module("app.runtime.interface.provider_runtime")
 

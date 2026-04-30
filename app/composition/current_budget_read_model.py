@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from ...shared.domain import CurrentBudgetView
-from ..infrastructure.current_budget_read_model import load_current_budget_view
+from app.composition.current_budget_loader import load_current_budget_view
+from app.shared.domain import CurrentBudgetView
 
 
 def build_current_budget_view(

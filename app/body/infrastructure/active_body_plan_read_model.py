@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.shared.domain import ActiveBodyPlanView
-from app.models import BodyPlanRecord, BodyProfileRecord
+from app.body.infrastructure.models import BodyPlanRecord, BodyProfileRecord
 
 
 def load_active_body_plan_view(

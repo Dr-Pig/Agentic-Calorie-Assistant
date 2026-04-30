@@ -4,12 +4,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.budget.application.current_budget_answer import RemainingBudgetAnswerContract
+from app.composition.current_budget_answer import RemainingBudgetAnswerContract
 from app.intake.application.boundary_output_honesty import (
     enforce_budget_output_honesty,
     enforce_intake_output_honesty,
 )
-from app.intake.application.general_chat_service import GeneralChatPassResult
+from app.composition.general_chat_service import GeneralChatPassResult
 
 
 def test_intake_output_honesty_normalizes_blocked_commit_structured_surfaces() -> None:
@@ -206,7 +206,7 @@ def test_bundle2_response_applies_output_honesty_to_structured_surfaces(monkeypa
 async def test_general_chat_route_applies_degraded_budget_output_honesty(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from app.intake.interface import intake_routes as module
+    from app.composition import intake_routes as module
 
     answer = RemainingBudgetAnswerContract(
         status="onboarding_required",

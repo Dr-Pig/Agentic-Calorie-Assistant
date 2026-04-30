@@ -12,29 +12,29 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from ...runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
-from ...composition.bundle2_response import build_bundle2_response, finalized_budget_summary
-from ...composition.bundle2_tool_batch import (
+from app.composition.bundle2_response import build_bundle2_response, finalized_budget_summary
+from app.composition.bundle2_tool_batch import (
     apply_final_action_to_payload,
     execute_manager_tool_calls,
     nutrition_tool_output,
 )
-from ...runtime.application.manager_service import run_intake_manager
-from ...composition.state_resolver import resolve_v2_bundle1_state
-from ...nutrition.application.b2_active_runtime_owner_lineage import attach_b2_owner_lineage_trace
-from ...nutrition.application.web_extract_port import WebExtractPort
-from ...nutrition.application.web_search_port import WebSearchPort
-from .commit_boundary_preflight import run_commit_boundary_preflight
-from .context_injection_policy import build_manager_context_pack
-from .history_expansion_manager_runtime import (
+from app.composition.state_resolver import resolve_v2_bundle1_state
+from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
+from app.intake.application.context_injection_policy import build_manager_context_pack
+from app.intake.application.final_action_mutation_classifier import classify_final_action_mutation
+from app.intake.application.history_expansion_manager_runtime import (
     PHASE_A_EXPAND_HISTORY_TOOL,
     activate_manager_triggered_history_expansion,
     manager_history_expansion_eligibility,
 )
-from .final_action_mutation_classifier import classify_final_action_mutation
-from .intake_execution_persistence import initial_state_mutation_summary, persist_bundle2_artifact
-from .intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool
-from .phase_a_runtime_context import prepare_phase_a_runtime_context
+from app.composition.intake_execution_persistence import initial_state_mutation_summary, persist_bundle2_artifact
+from app.intake.application.intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool
+from app.intake.application.phase_a_runtime_context import prepare_phase_a_runtime_context
+from app.nutrition.application.b2_active_runtime_owner_lineage import attach_b2_owner_lineage_trace
+from app.nutrition.application.web_extract_port import WebExtractPort
+from app.nutrition.application.web_search_port import WebSearchPort
+from app.runtime.application.manager_service import run_intake_manager
+from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 
 
 def _now_ms() -> int:

@@ -6,7 +6,8 @@ from types import SimpleNamespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.body.application import OnboardingBootstrapInput, bootstrap_body_plan_for_date, build_active_body_plan_view
+from app.body.application import build_active_body_plan_view
+from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_or_create_user
 from app.models import Base
 from app.schemas import EstimateRequest
@@ -20,7 +21,7 @@ def _session() -> Session:
 
 
 def test_estimate_body_observation_route_does_not_silently_rebootstrap_body_plan(monkeypatch) -> None:
-    from app.intake.interface import intake_routes
+    from app.composition import intake_routes
 
     db = _session()
     user = get_or_create_user(db, "estimate-body-observation-user")

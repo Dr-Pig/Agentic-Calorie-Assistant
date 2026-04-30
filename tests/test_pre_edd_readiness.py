@@ -36,14 +36,14 @@ def test_docs_encoding_policy_is_windows_only_auxiliary_check() -> None:
 def test_fat_audit_classifier_blocks_protected_overage_but_not_watchlist_overage() -> None:
     stdout = "\n".join(
         [
-            "[OK] app/intake/application/intake_execution_orchestrator.py lines=162 threshold=400 kind=application-service",
+            "[OK] app/composition/intake_execution_orchestrator.py lines=162 threshold=400 kind=application-service",
             "[OVER] app/nutrition/agent/exact_item_packets.py lines=254 watch=186 kind=nutrition-agent-watchlist",
         ]
     )
 
     assert classify_fat_audit(stdout=stdout, exit_code=0)["status"] == "pass"
 
-    protected_stdout = "[OVER] app/intake/application/intake_execution_orchestrator.py lines=450 threshold=400 kind=application-service"
+    protected_stdout = "[OVER] app/composition/intake_execution_orchestrator.py lines=450 threshold=400 kind=application-service"
     result = classify_fat_audit(stdout=protected_stdout, exit_code=0)
 
     assert result["status"] == "fail"

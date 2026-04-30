@@ -7,13 +7,13 @@ from typing import Literal
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from ..application import build_active_body_plan_view
-from ..application.calibration_commit_bridge import apply_calibration_proposal_commit
-from ..application.calibration_model import CalibrationModelInputs, build_calibration_model
-from ..application.calibration_proposal_gate import CalibrationProposalGateInputs, build_calibration_proposal_gate
-from ..application.calibration_proposal_response import build_calibration_proposal_response
-from ...budget.application import build_current_budget_view
-from ...database import get_db, get_or_create_user
+from app.body.application import build_active_body_plan_view
+from app.body.application.calibration_model import CalibrationModelInputs, build_calibration_model
+from app.body.application.calibration_proposal_gate import CalibrationProposalGateInputs, build_calibration_proposal_gate
+from app.body.application.calibration_proposal_response import build_calibration_proposal_response
+from app.composition.calibration_commit_bridge import apply_calibration_proposal_commit
+from app.composition.current_budget_read_model import build_current_budget_view
+from app.database import get_db, get_or_create_user
 
 router = APIRouter()
 

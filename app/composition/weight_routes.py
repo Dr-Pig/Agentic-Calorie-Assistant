@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 
 from pydantic import BaseModel
-from ..application.body_observation_service import load_body_observation_history, record_body_observation_to_canonical
-from ...database import get_db, get_or_create_user
-from .weight_surface import render_weight_surface
+from app.body.application.body_observation_service import load_body_observation_history, record_body_observation_to_canonical
+from app.body.interface.weight_surface import render_weight_surface
+from app.database import get_db, get_or_create_user
 
 router = APIRouter()
 

@@ -305,7 +305,7 @@ def test_bundle2_response_uses_preloaded_budget_views(monkeypatch: pytest.Monkey
 
 @pytest.mark.asyncio
 async def test_tavily_search_reuses_one_client_for_search_and_extract(monkeypatch: pytest.MonkeyPatch) -> None:
-    from app.nutrition.infrastructure.web_search import tavily_adapter
+    from app.providers import tavily_adapter
 
     created_clients: list[object] = []
 

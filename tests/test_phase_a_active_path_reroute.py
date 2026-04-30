@@ -13,10 +13,10 @@ def _read(rel_path: str) -> str:
 
 def test_active_intake_callers_do_not_import_runtime_phase_a_facade() -> None:
     active_callers = [
-        "app/intake/interface/intake_routes.py",
-        "app/intake/interface/v2_routes.py",
-        "app/intake/application/intake_turn_orchestrator.py",
-        "app/intake/application/intake_execution_orchestrator.py",
+        "app/composition/intake_routes.py",
+        "app/composition/v2_routes.py",
+        "app/composition/intake_turn_orchestrator.py",
+        "app/composition/intake_execution_orchestrator.py",
         "app/intake/application/workflow_routing.py",
     ]
 

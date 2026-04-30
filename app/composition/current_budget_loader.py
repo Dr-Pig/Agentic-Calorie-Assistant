@@ -4,7 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.shared.domain import CurrentBudgetMealSummary, CurrentBudgetView
-from app.models import DayBudgetLedgerRecord, MealThreadRecord, MealVersionRecord
+from app.budget.infrastructure.models import DayBudgetLedgerRecord
+from app.intake.infrastructure.models import MealThreadRecord, MealVersionRecord
 from app.runtime.application.execution_guard import evaluate_macro_display
 
 

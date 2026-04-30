@@ -34,11 +34,11 @@ ACTIVE_FILE_LINE_LIMITS = {
 }
 
 ACTIVE_IMPORT_GUARDS = {
-    ROOT / "app" / "intake" / "application" / "intake_turn_orchestrator.py": (
+    ROOT / "app" / "composition" / "intake_turn_orchestrator.py": (
         _legacy_path_token("app.", "use", "cases"),
         _legacy_path_token("..", "use", "cases"),
     ),
-    ROOT / "app" / "intake" / "application" / "intake_execution_orchestrator.py": (
+    ROOT / "app" / "composition" / "intake_execution_orchestrator.py": (
         _legacy_path_token("app.", "use", "cases"),
         _legacy_path_token("..", "use", "cases"),
     ),
@@ -46,19 +46,19 @@ ACTIVE_IMPORT_GUARDS = {
         "app.runtime.application",
         "..application",
     ),
-    ROOT / "app" / "body" / "application" / "onboarding_service.py": (
+    ROOT / "app" / "composition" / "onboarding_service.py": (
         "app.runtime.application",
         "..application",
     ),
-    ROOT / "app" / "budget" / "application" / "current_budget_answer.py": (
+    ROOT / "app" / "composition" / "current_budget_answer.py": (
         "app.runtime.application",
         "..application",
     ),
-    ROOT / "app" / "body" / "application" / "calibration_commit_bridge.py": (
+    ROOT / "app" / "composition" / "calibration_commit_bridge.py": (
         "app.runtime.application",
         "..application",
     ),
-    ROOT / "app" / "intake" / "interface" / "intake_routes.py": (
+    ROOT / "app" / "composition" / "intake_routes.py": (
         _legacy_path_token("app.", "use", "cases"),
         _legacy_path_token("..", "use", "cases"),
     ),
@@ -169,7 +169,7 @@ def test_active_domain_files_do_not_reimport_legacy_usecases() -> None:
 
 
 def test_intake_execution_orchestrator_stays_thin_and_does_not_own_domain_semantics() -> None:
-    source = (ROOT / "app" / "intake" / "application" / "intake_execution_orchestrator.py").read_text(encoding="utf-8")
+    source = (ROOT / "app" / "composition" / "intake_execution_orchestrator.py").read_text(encoding="utf-8")
     banned_tokens = (
         "_CORRECTION_STOP_TOKENS",
         "_REMOVAL_CUE_TOKENS",
@@ -186,8 +186,8 @@ def test_intake_execution_orchestrator_stays_thin_and_does_not_own_domain_semant
 
 def test_active_path_uses_single_manager_loop_not_fixed_step_pipeline() -> None:
     active_paths = (
-        ROOT / "app" / "intake" / "application" / "intake_turn_orchestrator.py",
-        ROOT / "app" / "intake" / "application" / "intake_execution_orchestrator.py",
+        ROOT / "app" / "composition" / "intake_turn_orchestrator.py",
+        ROOT / "app" / "composition" / "intake_execution_orchestrator.py",
         ROOT / "app" / "runtime" / "application" / "manager_service.py",
         ROOT / "app" / "runtime" / "agent" / "manager.py",
     )
@@ -231,7 +231,7 @@ def test_active_manager_contract_does_not_expose_reasoning_fields() -> None:
 
 
 def test_active_manager_tool_surface_does_not_devolve_into_micro_tools() -> None:
-    source = (ROOT / "app" / "intake" / "application" / "intake_execution_orchestrator.py").read_text(encoding="utf-8", errors="ignore")
+    source = (ROOT / "app" / "composition" / "intake_execution_orchestrator.py").read_text(encoding="utf-8", errors="ignore")
     banned_tokens = (
         "lookup_nutrition_db",
         "search_official_nutrition",
@@ -256,6 +256,7 @@ def test_active_code_does_not_encode_benchmark_fixture_shape() -> None:
         "same_intake_thread",
     )
     active_roots = (
+        ROOT / "app" / "composition",
         ROOT / "app" / "intake",
         ROOT / "app" / "runtime",
         ROOT / "app" / "providers",
