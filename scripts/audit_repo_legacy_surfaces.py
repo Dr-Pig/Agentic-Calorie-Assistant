@@ -143,6 +143,11 @@ ACTIVE_LEGACY_NAMING_MARKERS = (
     },
     {
         "classification": "blocked_active_code",
+        "marker": _join("bundle", "2_manager"),
+        "path_prefixes": ("app/", "tests/", "scripts/"),
+    },
+    {
+        "classification": "blocked_active_code",
         "marker": _join("app/nutrition/application/", "b2_"),
         "path_prefixes": ("app/", "tests/", "scripts/", "config/", "docs/"),
     },
