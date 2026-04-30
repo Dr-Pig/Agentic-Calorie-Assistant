@@ -87,6 +87,10 @@ async def run_intake_manager(
     effective_history_expansion_policy = history_expansion_policy or HistoryExpansionPolicy()
 
     for round_index in range(max_rounds):
+        effective_constraints = dict(constraints or {})
+        if isinstance(guard_feedback, dict):
+            effective_constraints["guard_feedback_failure_family"] = str(guard_feedback.get("failure_family") or "")
+            effective_constraints["guard_feedback_repair_request"] = bool(guard_feedback.get("repair_request"))
         phase_a_surface_mode = (
             current_turn_context.current_interaction_event.surface_mode
             if current_turn_context is not None
@@ -122,7 +126,8 @@ async def run_intake_manager(
             "available_tools": list(available_tools),
             "tool_results": json_safe(tool_results),
             "round_index": round_index,
-            "constraints": dict(constraints or {}),
+            "constraints": effective_constraints,
+            "manager_product_policy_hints": json_safe(effective_constraints.get("manager_product_policy_hints")),
             "guard_feedback": guard_feedback,
         }
         payload, trace = await provider.complete_with_trace(
@@ -195,6 +200,7 @@ async def run_intake_manager(
                         manager_context_pack = refreshed_pack
                     if "phase_a_history_expansion_enabled" in refresh:
                         phase_a_history_expansion_enabled = bool(refresh["phase_a_history_expansion_enabled"])
+            guard_feedback = None
             continue
 
         if manager_action == "final":

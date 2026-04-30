@@ -8,9 +8,13 @@ from ..runtime.agent.manager_branch_contract import (
     validate_manager_pass1_branch,
 )
 from ..runtime.agent.founder_live_manager_contract import (
+    FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS,
     FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES,
     FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS,
     FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS,
+    FOUNDER_LIVE_MANAGER_REPAIR_ALLOWED_TOOL_NAMES,
+    FOUNDER_LIVE_MANAGER_REPAIR_REQUIRED_TOOL_BY_FAMILY,
+    founder_live_manager_repair_failure_family,
     is_founder_live_manager_contract,
     validate_founder_live_manager_contract_consistency,
 )
@@ -67,10 +71,38 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
         "additionalProperties": False,
     }
     if is_founder_live_manager_contract(constraints):
+        repair_failure_family = founder_live_manager_repair_failure_family(constraints)
+        required_repair_tool = FOUNDER_LIVE_MANAGER_REPAIR_REQUIRED_TOOL_BY_FAMILY.get(repair_failure_family)
         base_schema["properties"]["intent_type"] = {
             "type": "string",
             "enum": list(FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES),
         }
+        base_schema["properties"]["final_action"] = {
+            "type": "string",
+            "enum": list(FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS),
+        }
+        if required_repair_tool:
+            base_schema["properties"]["manager_action"] = {"type": "string", "enum": ["call_tools"]}
+            base_schema["properties"]["tool_calls"] = {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string", "enum": list(FOUNDER_LIVE_MANAGER_REPAIR_ALLOWED_TOOL_NAMES)},
+                        "arguments": {"type": "object"},
+                    },
+                    "required": ["name"],
+                    "additionalProperties": False,
+                },
+            }
+            base_schema["x-repair-contract"] = {
+                "failure_family": repair_failure_family,
+                "required_tool": required_repair_tool,
+            }
+            base_schema["required"] = [*FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS, "tool_calls"]
+            base_schema["x-field-consumers"] = dict(FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS)
+            return base_schema
         base_schema["required"] = list(FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS)
         base_schema["x-field-consumers"] = dict(FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS)
         return base_schema
@@ -106,7 +138,7 @@ def validate_manager_payload(stage: str, payload: dict[str, Any], *, constraints
         if payload.get(key) not in allowed_values:
             raise RuntimeError(f"manager payload field {key} invalid for {stage}: {payload.get(key)!r}")
     if is_founder_live_manager_contract(constraints):
-        validate_founder_live_manager_contract_consistency(payload)
+        validate_founder_live_manager_contract_consistency(payload, constraints=constraints)
 
 
 __all__ = [

@@ -81,6 +81,14 @@ def test_final_action_effect_policy_is_the_canonical_persistence_owner() -> None
     )
 
 
+def test_single_manager_prompt_names_commit_without_evidence_repair_tool() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+
+    assert "commit_without_evidence" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "manager_action='call_tools'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "estimate_nutrition" in SINGLE_MANAGER_SYSTEM_PROMPT
+
+
 def test_intake_persistence_consumes_effect_policy_instead_of_owning_action_set() -> None:
     from app.composition import intake_execution_persistence
 
@@ -287,3 +295,68 @@ async def test_process_bundle2_intake_records_successful_repair_after_guard_bloc
     assert preflight["blocked"] is False
     assert preflight["repair_attempted"] is True
     assert preflight["repair_result"] == "passed_after_repair"
+
+
+@pytest.mark.asyncio
+async def test_process_bundle2_intake_repairs_commit_without_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.composition import intake_execution_orchestrator as module
+
+    resolved_state = _resolved_state()
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="我吃了一顆茶葉蛋",
+        resolved_state=resolved_state,
+    )
+    commit_payload = _manager_final_payload("commit")
+    commit_payload["semantic_decision"] = {
+        "semantic_authority": "manager_llm",
+        "current_turn_intent": "log_meal",
+        "target_attachment": {},
+        "workflow_effect": "commit",
+        "final_action_candidate": "commit",
+        "estimation_posture": "requires_nutrition_estimate",
+        "followup_posture": "closed",
+        "mutation_intent_candidate": "canonical_write",
+        "uncertainty_posture": "low",
+        "source": "test",
+    }
+    provider = _SequenceProvider(
+        [
+            commit_payload,
+            _manager_final_payload("no_commit"),
+        ]
+    )
+
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *_, **__: None)
+    monkeypatch.setattr(
+        module,
+        "build_bundle2_response",
+        lambda *_, **kwargs: {"manager_result": kwargs["manager_result"]},
+    )
+
+    result = await module.process_bundle2_intake(
+        None,
+        user_external_id="user-1",
+        raw_user_input="我吃了一顆茶葉蛋",
+        local_date="2026-04-29",
+        allow_search=False,
+        provider=provider,
+        state_before=resolved_state,
+        manager_decision=SimpleNamespace(intent_type="log_meal"),
+        request_id="req-commit-without-evidence",
+        stage_timings=[],
+        current_turn_context=current_turn_context,
+        phase_a_trace={},
+    )
+
+    manager_result = result["manager_result"]
+    assert len(provider.calls) == 2
+    assert provider.calls[1]["user_payload"]["guard_feedback"]["failure_family"] == "commit_without_evidence"
+    assert provider.calls[1]["user_payload"]["constraints"]["guard_feedback_repair_request"] is True
+    assert provider.calls[1]["user_payload"]["constraints"]["guard_feedback_failure_family"] == "commit_without_evidence"
+    assert manager_result.repair_round_used is True
+    assert manager_result.final_action == "no_commit"
