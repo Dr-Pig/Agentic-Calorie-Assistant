@@ -108,6 +108,15 @@ PHASE_B1_LOCAL_DIAGNOSTIC_TARGETED_PROFILE_CASE_ALLOWLIST: dict[str, list[str]] 
     "builderspace-grok-4-fast-b1006-probe": ["B1-006"],
 }
 
+PHASE_B1_LOCAL_DIAGNOSTIC_TARGETED_PROFILE_SUBSET_ALLOWLIST: dict[str, list[str]] = {
+    "builderspace-grok-4-fast-b1-pass2-probe": ["B1-001", "B1-002", "B1-004", "B1-005"],
+}
+
+PHASE_B1_LOCAL_DIAGNOSTIC_FULL_PROFILE_ALLOWLIST: set[str] = {
+    "builderspace-grok-4-fast-b1-pass1-tool-choice",
+    "builderspace-grok-4-fast-b1-full-tool-loop-diagnostic",
+}
+
 
 def select_phase_b1_local_diagnostic_route_rule(
     *,
@@ -140,6 +149,11 @@ def phase_b1_local_diagnostic_requested_profile_allowed(
 ) -> bool:
     if not requested_profile_id:
         return False
+    if case_set == "full" and requested_profile_id in PHASE_B1_LOCAL_DIAGNOSTIC_FULL_PROFILE_ALLOWLIST:
+        return True
+    subset_allowed_case_ids = PHASE_B1_LOCAL_DIAGNOSTIC_TARGETED_PROFILE_SUBSET_ALLOWLIST.get(requested_profile_id)
+    if case_set == "targeted" and subset_allowed_case_ids is not None:
+        return bool(requested_case_ids) and set(requested_case_ids).issubset(set(subset_allowed_case_ids))
     allowed_case_ids = PHASE_B1_LOCAL_DIAGNOSTIC_TARGETED_PROFILE_CASE_ALLOWLIST.get(requested_profile_id)
     if case_set != "targeted" or allowed_case_ids is None:
         return False
@@ -161,7 +175,9 @@ def resolve_phase_b1_local_diagnostic_cli_defaults(
 
 
 __all__ = [
+    "PHASE_B1_LOCAL_DIAGNOSTIC_FULL_PROFILE_ALLOWLIST",
     "PHASE_B1_LOCAL_DIAGNOSTIC_TARGETED_PROFILE_CASE_ALLOWLIST",
+    "PHASE_B1_LOCAL_DIAGNOSTIC_TARGETED_PROFILE_SUBSET_ALLOWLIST",
     "PHASE_B1_LOCAL_DIAGNOSTIC_ROUTE_RULES",
     "PhaseB1LocalDiagnosticRouteRule",
     "phase_b1_local_diagnostic_requested_profile_allowed",

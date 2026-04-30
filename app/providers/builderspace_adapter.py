@@ -147,13 +147,13 @@ class BuilderSpaceAdapter:
         check_encoding_safety(formatted_user_message)
         constraints = dict(user_payload.get("constraints") or {})
 
-        decision_transport_request, decision_transport_meta = decision_transport_request_for_stage(
-            stage, constraints=constraints, manager_loop_schema=manager_loop_schema(constraints)
-        )
-        response_format, transport_meta = response_format_request_for_stage(
+        decision_transport_request, decision_transport_meta = self._decision_transport_request_for_stage(
             stage,
             constraints=constraints,
-            schema=response_schema_for_stage(stage, constraints),
+        )
+        response_format, transport_meta = self._response_format_request_for_stage(
+            stage,
+            constraints=constraints,
         )
         base_request_payload: dict[str, Any] = {
             "model": model,

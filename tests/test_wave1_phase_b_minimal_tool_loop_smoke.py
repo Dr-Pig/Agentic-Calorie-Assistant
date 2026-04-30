@@ -197,6 +197,53 @@ class Pass2MalformedPayloadPhaseBProvider(FakePhaseBProvider):
         return "final", self._trace(call_index=len(self.calls), kwargs=kwargs)
 
 
+class Pass2MissingManagerContractFieldsPhaseBProvider(FakePhaseBProvider):
+    async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+        self.calls.append(dict(kwargs))
+        user_payload = kwargs["user_payload"]
+        round_index = user_payload["round_index"]
+        if round_index == 0:
+            return (
+                {
+                    "manager_action": "call_tools",
+                    "tool_calls": [
+                        {"name": "lookup_generic_food", "arguments": {"food_name": "茶葉蛋"}},
+                    ],
+                },
+                self._trace(call_index=len(self.calls), kwargs=kwargs),
+            )
+        parsed_object = {
+            "manager_action": "final",
+            "intent": "log_meal",
+            "workflow_effect": "create_new_workflow",
+            "target_attachment": {"target_type": "new_meal"},
+            "operations": [],
+            "answer_contract": {"text": "ok"},
+        }
+        raise BuilderSpaceResponseError(
+            "BuilderSpace manager error at stage=intake_manager_round: "
+            "manager payload missing required fields for intake_manager_round: "
+            "['confidence', 'evidence_posture', 'exactness', 'repair_ack']",
+            trace={
+                "stage": "intake_manager_round",
+                "provider": "builderspace",
+                "model": "deepseek",
+                "request_payload": user_payload,
+                "transport_attempts": [],
+                "parse_attempts": [{"attempt_index": 1, "result": "schema_contract_error"}],
+                "request_failure_family": "manager_output_contract_violation",
+                "failure_family": "manager_output_contract_violation",
+                "provider_contract_failure_family": "provider_contract_non_adherence",
+                "failing_component": "builderspace_runtime_contract.validate_manager_payload",
+                "missing_required_fields": ["confidence", "evidence_posture", "exactness", "repair_ack"],
+                "parsed_object": parsed_object,
+                "raw_content_excerpt": json.dumps(parsed_object, ensure_ascii=False),
+                "parser_result": "json_parsed_schema_invalid",
+                "repair_attempt_count": 1,
+            },
+        )
+
+
 class WrappedReadTimeoutPhaseBProvider(FakePhaseBProvider):
     def readiness(self) -> dict[str, object]:
         readiness = dict(super().readiness())
@@ -1266,6 +1313,36 @@ async def test_phase_b1_runtime_smoke_preserves_recovered_json_contract_breach_a
 
 
 @pytest.mark.asyncio
+async def test_phase_b1_pass2_missing_manager_contract_fields_are_provider_contract_non_adherence(
+    tmp_path: Path,
+) -> None:
+    provider = Pass2MissingManagerContractFieldsPhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=[CASE_TEA_EGG],
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="natural-probe",
+        _retry_backoff_seconds=0.0,
+    )
+
+    runtime = report["provider_runtime"]
+    assert runtime["reason"] == "provider_runtime_error"
+    assert runtime["failure_family"] == "manager_output_contract_violation"
+    assert runtime["provider_contract_failure_family"] == "provider_contract_non_adherence"
+    assert runtime["failing_component"] == "builderspace_runtime_contract.validate_manager_payload"
+    assert runtime["missing_required_fields"] == ["confidence", "evidence_posture", "exactness", "repair_ack"]
+    assert runtime["parser_result"] == "json_parsed_schema_invalid"
+    assert runtime["repair_attempt_count"] == 1
+    parsed_payload = runtime["parsed_object_excerpt"]
+    assert "confidence" not in parsed_payload
+    assert "evidence_posture" not in parsed_payload
+    assert "exactness" not in parsed_payload
+    assert "repair_ack" not in parsed_payload
+
+
+@pytest.mark.asyncio
 async def test_phase_b1_runtime_smoke_marks_length_truncated_json_attempts_separately(tmp_path: Path) -> None:
     provider = LengthTruncatedJsonAttemptPhaseBProvider()
 
@@ -1677,6 +1754,9 @@ async def test_phase_b1_natural_probe_b1_004_pass2_uses_clarify_only_prompt_and_
 
     assert "clarify-only Pass 2 boundary-preservation mode" in pass2_prompt
     assert "Keep request_clarification as the canonical outcome." in pass2_prompt
+    assert "Retain the manager wrapper fields for clarification" in pass2_prompt
+    assert "\"workflow_effect\":\"pause_for_clarification\"" in pass2_prompt
+    assert "\"uncertainty_posture\":\"composition_unknown_basket\"" in pass2_prompt
     assert "Trace-only item_results may appear in the raw model payload" in pass2_prompt
     assert constraints["phase_b1_manager_role"] == "pass_2_synthesis"
     assert constraints["phase_b1_case_family"] == "composition_unknown_self_selected_basket"
@@ -1729,11 +1809,15 @@ async def test_phase_b1_natural_probe_b1_002_pass2_preserves_required_wrapper_fi
 
     assert "common-commercial-drink Pass 2 compact synthesis mode" in pass2_prompt
     assert "Output exactly one compact JSON object." in pass2_prompt
-    assert "You must retain response_mode." in pass2_prompt
+    assert "You must retain response_mode, intent, workflow_effect, target_attachment, exactness, confidence, evidence_posture, repair_ack, operations, and answer_contract." in pass2_prompt
     assert "You must retain operations=[]" in pass2_prompt
     assert "You must retain answer_contract." in pass2_prompt
     assert "Do not emit final synthesis while dropping required wrapper fields." in pass2_prompt
     assert "\"response_mode\":\"info_answer\"" in pass2_prompt
+    assert "\"exactness\":\"approximate\"" in pass2_prompt
+    assert "\"confidence\":\"medium\"" in pass2_prompt
+    assert "\"evidence_posture\":\"packetized_generic_db\"" in pass2_prompt
+    assert "\"repair_ack\":false" in pass2_prompt
     assert "\"operations\":[]" in pass2_prompt
     assert "\"answer_contract\":{" in pass2_prompt
     assert constraints["phase_b1_manager_role"] == "pass_2_synthesis"
@@ -1758,13 +1842,21 @@ async def test_phase_b1_natural_probe_b1_003_pass2_preserves_required_wrapper_fi
 
     assert "common-commercial-meal Pass 2 compact synthesis mode" in pass2_prompt
     assert "Output exactly one compact JSON object." in pass2_prompt
-    assert "You must retain response_mode." in pass2_prompt
+    assert "You must retain response_mode, intent, workflow_effect, target_attachment, exactness, confidence, evidence_posture, repair_ack, operations, and answer_contract." in pass2_prompt
     assert "You must retain operations=[]" in pass2_prompt
     assert "You must retain answer_contract." in pass2_prompt
+    assert "Required result surface: top-level item_results." in pass2_prompt
+    assert "Do not put canonical item estimates under answer_contract.item_results." in pass2_prompt
     assert "Do not emit final synthesis while dropping required wrapper fields." in pass2_prompt
     assert "\"response_mode\":\"intake_result\"" in pass2_prompt
+    assert "\"exactness\":\"approximate\"" in pass2_prompt
+    assert "\"confidence\":\"medium\"" in pass2_prompt
+    assert "\"evidence_posture\":\"packetized_generic_db\"" in pass2_prompt
+    assert "\"repair_ack\":false" in pass2_prompt
+    assert "\"item_results\":[" in pass2_prompt
     assert "\"operations\":[]" in pass2_prompt
-    assert "\"answer_contract\":{" in pass2_prompt
+    assert "\"answer_contract\":{}" in pass2_prompt
+    assert "\"answer_contract\":{\"item_results\"" not in pass2_prompt
     assert constraints["phase_b1_manager_role"] == "pass_2_synthesis"
     assert constraints["phase_b1_case_family"] == "common_commercial_meal"
     assert constraints["phase_b1_task_payload_id"] == "phase_b1_pass_2_common_commercial_meal_compact_json_first_v1"
@@ -1833,6 +1925,8 @@ async def test_phase_b1_smoke_blocks_search_alias_without_execution_or_packet(tm
     assert router["allowed_tools"] == []
     assert router["filtered_tool_plan"] == []
     assert router["blocked_tools"] == ["search"]
+    assert router["unsupported_tool_contract_failure_family"] == "model_contract_non_adherence"
+    assert router["unsupported_tool_names"] == ["search"]
     assert router["available_read_tools"] == [
         "lookup_generic_food",
         "retrieve_web_food_evidence",
@@ -2496,6 +2590,9 @@ def test_phase_b1_provider_profile_registry_exposes_build_loop_probe_candidate_a
 
     deepseek = PHASE_B1_PROVIDER_PROFILES["builderspace-deepseek-default"]
     grok = PHASE_B1_PROVIDER_PROFILES["builderspace-grok-4-fast-b1003-probe"]
+    grok_pass1_full = PHASE_B1_PROVIDER_PROFILES["builderspace-grok-4-fast-b1-pass1-tool-choice"]
+    grok_full = PHASE_B1_PROVIDER_PROFILES["builderspace-grok-4-fast-b1-full-tool-loop-diagnostic"]
+    grok_pass2 = PHASE_B1_PROVIDER_PROFILES["builderspace-grok-4-fast-b1-pass2-probe"]
     grok_b1005 = PHASE_B1_PROVIDER_PROFILES["builderspace-grok-4-fast-b1005-probe"]
     grok_b1006 = PHASE_B1_PROVIDER_PROFILES["builderspace-grok-4-fast-b1006-probe"]
     kimi = PHASE_B1_PROVIDER_PROFILES["builderspace-kimi-k2.5-candidate"]
@@ -2516,6 +2613,39 @@ def test_phase_b1_provider_profile_registry_exposes_build_loop_probe_candidate_a
     assert grok["manual_only"] is False
     assert grok["artifact_tool_call_reliability"] == "B1-003_passed"
     assert grok["production_selected"] is False
+
+    assert grok_pass1_full["model"] == "grok-4-fast"
+    assert grok_pass1_full["provider_profile_role"] == "low_cost_transport_probe"
+    assert grok_pass1_full["cost_tier"] == "low"
+    assert grok_pass1_full["manual_only"] is False
+    assert grok_pass1_full["default_for_build_loop"] is False
+    assert grok_pass1_full["branch_scope"] is None
+    assert grok_pass1_full["manager_role_scope"] == "pass_1_tool_request"
+    assert grok_pass1_full["transport_mode"] == "tool_call_decision_transport"
+    assert grok_pass1_full["artifact_tool_call_reliability"] == "B1_transport_canary_passed"
+    assert grok_pass1_full["production_selected"] is False
+
+    assert grok_full["model"] == "grok-4-fast"
+    assert grok_full["provider_profile_role"] == "low_cost_full_tool_loop_diagnostic"
+    assert grok_full["cost_tier"] == "low"
+    assert grok_full["manual_only"] is False
+    assert grok_full["default_for_build_loop"] is False
+    assert grok_full["branch_scope"] is None
+    assert grok_full["manager_role_scope"] is None
+    assert grok_full["transport_mode"] == "tool_call_decision_transport"
+    assert grok_full["artifact_tool_call_reliability"] == "B1_transport_and_pass2_contract_canaries_passed"
+    assert grok_full["manager_candidate_status"] == "diagnostic_only"
+    assert grok_full["production_selected"] is False
+    assert grok_full["readiness_scope"] == "b1_live_diagnostic"
+
+    assert grok_pass2["model"] == "grok-4-fast"
+    assert grok_pass2["provider_profile_role"] == "low_cost_contract_probe"
+    assert grok_pass2["cost_tier"] == "low"
+    assert grok_pass2["manual_only"] is False
+    assert grok_pass2["artifact_tool_call_reliability"] == "B1_pass2_probe_pending"
+    assert grok_pass2["manager_role_scope"] == "pass_2_synthesis"
+    assert grok_pass2["branch_scope"] is None
+    assert grok_pass2["production_selected"] is False
 
     assert grok_b1005["model"] == "grok-4-fast"
     assert grok_b1005["provider_profile_role"] == "low_cost_transport_probe"
@@ -2556,6 +2686,26 @@ def test_phase_b1_provider_profile_registry_exposes_build_loop_probe_candidate_a
     assert gpt5["production_selected"] is False
 
 
+def test_phase_b1_full_grokfast_pass1_tool_choice_profile_is_explicitly_allowlisted() -> None:
+    from app.runtime.agent.phase_b1_profile_route_rules import phase_b1_local_diagnostic_requested_profile_allowed
+
+    assert phase_b1_local_diagnostic_requested_profile_allowed(
+        requested_profile_id="builderspace-grok-4-fast-b1-pass1-tool-choice",
+        case_set="full",
+        requested_case_ids=["B1-001", "B1-002", "B1-003", "B1-004", "B1-005", "B1-006"],
+    )
+    assert phase_b1_local_diagnostic_requested_profile_allowed(
+        requested_profile_id="builderspace-grok-4-fast-b1-full-tool-loop-diagnostic",
+        case_set="full",
+        requested_case_ids=["B1-001", "B1-002", "B1-003", "B1-004", "B1-005", "B1-006"],
+    )
+    assert not phase_b1_local_diagnostic_requested_profile_allowed(
+        requested_profile_id="builderspace-kimi-k2.5-candidate",
+        case_set="full",
+        requested_case_ids=["B1-001", "B1-002", "B1-003", "B1-004", "B1-005", "B1-006"],
+    )
+
+
 @pytest.mark.asyncio
 async def test_phase_b1_targeted_b1003_can_select_grok_fast_profile_and_trace_attribution(tmp_path: Path) -> None:
     provider = ProfileAwarePhaseBProvider()
@@ -2590,6 +2740,37 @@ async def test_phase_b1_targeted_b1003_can_select_grok_fast_profile_and_trace_at
     assert trace["manager_pass_1"]["provider_params"]["profile_routing_artifact_basis"] is None
     assert trace["manager_pass_2"]["provider_params"]["provider_profile_id"] == "builderspace-deepseek-default"
     assert trace["manager_pass_2"]["provider_params"]["provider_profile_route_mode"] == "default_build_loop"
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_targeted_pass2_probe_uses_grok_only_for_pass2(tmp_path: Path) -> None:
+    provider = ProfileAwarePhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="natural-probe",
+        requested_case_ids=["B1-001"],
+        provider_profile_id="builderspace-grok-4-fast-b1-pass2-probe",
+    )
+
+    trace = report["tool_loop_traces"][0]
+    pass1_params = trace["manager_pass_1"]["provider_params"]
+    pass2_params = trace["manager_pass_2"]["provider_params"]
+
+    assert pass1_params["provider_profile_id"] == "builderspace-deepseek-default"
+    assert pass1_params["provider_profile_model"] == "deepseek"
+    assert pass1_params["provider_profile_route_mode"] == "default_build_loop"
+    assert pass2_params["provider_profile_id"] == "builderspace-grok-4-fast-b1-pass2-probe"
+    assert pass2_params["provider_profile_model"] == "grok-4-fast"
+    assert pass2_params["provider_profile_role"] == "low_cost_contract_probe"
+    assert pass2_params["provider_profile_route_mode"] == "explicit_targeted_override"
+    assert pass2_params["provider_profile_route_reason"] == "requested_targeted_profile_override"
+    assert pass2_params["profile_routing_rule_id"] == "phase_b1_targeted_profile_override_v1"
+    assert pass2_params["profile_routing_scope"] == "b1_local_diagnostic"
+    assert pass2_params["artifact_tool_call_reliability"] == "B1_pass2_probe_pending"
+    assert pass2_params["production_selected"] is False
 
 
 @pytest.mark.asyncio
@@ -2716,6 +2897,115 @@ async def test_phase_b1_full_smoke_does_not_silently_switch_to_grok_profile(tmp_
     assert trace["manager_pass_1"]["provider_params"]["provider_profile_model"] == "deepseek"
     assert trace["manager_pass_1"]["provider_params"]["provider_profile_role"] == "default_build_loop"
     assert trace["manager_pass_1"]["provider_params"]["provider_profile_route_mode"] == "default_build_loop"
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_full_smoke_can_explicitly_route_pass1_to_grokfast_tool_choice_profile(tmp_path: Path) -> None:
+    provider = ProfileAwarePhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=[CASE_TEA_EGG, CASE_BUBBLE_TEA],
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="forced",
+        provider_profile_id="builderspace-grok-4-fast-b1-pass1-tool-choice",
+    )
+
+    traces = report["tool_loop_traces"]
+    assert report["case_set"] == "full"
+    assert [trace["case_id"] for trace in traces] == ["B1-001", "B1-002"]
+
+    for trace in traces:
+        pass1_params = trace["manager_pass_1"]["provider_params"]
+        pass2_params = trace["manager_pass_2"]["provider_params"]
+
+        assert pass1_params["provider_profile_id"] == "builderspace-grok-4-fast-b1-pass1-tool-choice"
+        assert pass1_params["provider_profile_model"] == "grok-4-fast"
+        assert pass1_params["provider_profile_transport_mode"] == "tool_call_decision_transport"
+        assert pass1_params["provider_profile_route_mode"] == "explicit_full_diagnostic_override"
+        assert pass1_params["provider_profile_route_reason"] == "requested_full_diagnostic_profile_override"
+        assert pass1_params["profile_routing_rule_id"] == "phase_b1_full_diagnostic_profile_override_v1"
+        assert pass1_params["profile_routing_scope"] == "b1_local_diagnostic"
+        assert pass1_params["production_selected"] is False
+        assert pass1_params["model"] == "grok-4-fast"
+
+        assert pass2_params["provider_profile_id"] == "builderspace-deepseek-default"
+        assert pass2_params["provider_profile_model"] == "deepseek"
+        assert pass2_params["provider_profile_route_mode"] == "default_build_loop"
+
+    pass1_constraints = [
+        call["user_payload"]["constraints"]
+        for call in provider.calls
+        if call["user_payload"]["round_index"] == 0
+    ]
+    pass2_constraints = [
+        call["user_payload"]["constraints"]
+        for call in provider.calls
+        if call["user_payload"]["round_index"] == 1
+    ]
+    assert all(
+        item["phase_b1_provider_profile_id"] == "builderspace-grok-4-fast-b1-pass1-tool-choice"
+        for item in pass1_constraints
+    )
+    assert all(item["phase_b1_provider_profile_transport_mode"] == "tool_call_decision_transport" for item in pass1_constraints)
+    assert all("phase_b1_provider_profile_transport_mode" not in item for item in pass2_constraints)
+
+
+@pytest.mark.asyncio
+async def test_phase_b1_full_smoke_can_explicitly_route_full_tool_loop_to_grokfast_diagnostic_profile(tmp_path: Path) -> None:
+    provider = ProfileAwarePhaseBProvider()
+
+    report = await run_phase_b_minimal_tool_loop_smoke(
+        provider=provider,
+        smoke_cases=[CASE_TEA_EGG, CASE_BENTO],
+        output_dir=tmp_path,
+        write_latest=False,
+        mode="natural-probe",
+        provider_profile_id="builderspace-grok-4-fast-b1-full-tool-loop-diagnostic",
+    )
+
+    traces = report["tool_loop_traces"]
+    assert report["case_set"] == "full"
+    assert [trace["case_id"] for trace in traces] == ["B1-001", "B1-003"]
+
+    for trace in traces:
+        pass1_params = trace["manager_pass_1"]["provider_params"]
+        pass2_params = trace["manager_pass_2"]["provider_params"]
+
+        assert pass1_params["provider_profile_id"] == "builderspace-grok-4-fast-b1-full-tool-loop-diagnostic"
+        assert pass1_params["provider_profile_model"] == "grok-4-fast"
+        assert pass1_params["provider_profile_role"] == "low_cost_full_tool_loop_diagnostic"
+        assert pass1_params["provider_profile_transport_mode"] == "tool_call_decision_transport"
+        assert pass1_params["provider_profile_readiness_scope"] == "b1_live_diagnostic"
+        assert pass1_params["provider_profile_route_mode"] == "explicit_full_diagnostic_override"
+        assert pass1_params["production_selected"] is False
+        assert pass1_params["model"] == "grok-4-fast"
+
+        assert pass2_params["provider_profile_id"] == "builderspace-grok-4-fast-b1-full-tool-loop-diagnostic"
+        assert pass2_params["provider_profile_model"] == "grok-4-fast"
+        assert pass2_params["provider_profile_role"] == "low_cost_full_tool_loop_diagnostic"
+        assert pass2_params["provider_profile_readiness_scope"] == "b1_live_diagnostic"
+        assert pass2_params["provider_profile_route_mode"] == "explicit_full_diagnostic_override"
+        assert pass2_params["production_selected"] is False
+        assert pass2_params["model"] == "grok-4-fast"
+
+    pass1_constraints = [
+        call["user_payload"]["constraints"]
+        for call in provider.calls
+        if call["user_payload"]["round_index"] == 0
+    ]
+    pass2_constraints = [
+        call["user_payload"]["constraints"]
+        for call in provider.calls
+        if call["user_payload"]["round_index"] == 1
+    ]
+    assert all(
+        item["phase_b1_provider_profile_id"] == "builderspace-grok-4-fast-b1-full-tool-loop-diagnostic"
+        for item in pass1_constraints
+    )
+    assert all(item["phase_b1_provider_profile_transport_mode"] == "tool_call_decision_transport" for item in pass1_constraints)
+    assert all("phase_b1_provider_profile_transport_mode" not in item for item in pass2_constraints)
 
 
 @pytest.mark.asyncio

@@ -179,6 +179,8 @@ async def complete_builderspace_with_trace(
                     raise
             raise last_error or RuntimeError("BuilderSpace transport failed without a captured exception.")
     except Exception as exc:
+        if response is None and isinstance(exc, httpx.HTTPStatusError):
+            response = exc.response
         raise build_error(
             exc=exc,
             request_payload=request_payload,
@@ -205,6 +207,8 @@ def _record_attempt_failure(
     attempt_trace["error"] = str(exc)
     if isinstance(exc, httpx.HTTPStatusError):
         attempt_trace["http_status"] = exc.response.status_code
+        attempt_trace["response_body_excerpt"] = (exc.response.text or "")[:1200]
+        attempt_trace["response_body_truncated"] = len(exc.response.text or "") > 1200
     elif response is not None:
         attempt_trace["http_status"] = getattr(response, "status_code", None)
 
