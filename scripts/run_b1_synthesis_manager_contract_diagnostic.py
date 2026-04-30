@@ -182,7 +182,7 @@ def build_pass2_contract_artifact(
             },
             evidence_lineage={
                 "artifacts": ["artifacts/b1_pass2_manager_contract_diagnostic.json"],
-                "producers": ["scripts/run_b1_pass2_manager_contract_diagnostic.py"],
+                "producers": ["scripts/run_b1_synthesis_manager_contract_diagnostic.py"],
                 "not_b1_readiness_evidence": True,
             },
             allowed_next_stage=None,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scripts.run_b1_pass2_manager_contract_diagnostic import (
+from scripts.run_b1_synthesis_manager_contract_diagnostic import (
     build_pass2_contract_artifact,
     classify_pass2_probe_result,
 )
