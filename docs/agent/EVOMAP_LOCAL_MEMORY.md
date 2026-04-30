@@ -164,3 +164,25 @@ future_use:
   - do not add unrelated optional dependencies to make a focused PR look green
 source_of_truth_boundary: CI workflow and targeted gate definitions
 ```
+
+### local-2026-05-01-founder-live-contract-diagnostic-before-readiness
+
+```yaml
+status: active
+signals:
+  - founder_live_diagnostic
+  - manager_contract_non_adherence
+  - provider_profile_scope
+  - activation_ladder
+summary: >
+  Founder deterministic E2E can be green while Founder live E2E still fails at
+  provider/model manager-contract adherence. Treat live diagnostic failures such
+  as missing required manager fields as provider_contract_non_adherence, not as
+  product readiness or mutation blockers.
+future_use:
+  - run Founder live diagnostic only after deterministic and B2 local gates are green
+  - keep GrokFast or other live models scoped to diagnostic profiles until shadow/canary evidence exists
+  - record missing required structured fields as provider/model contract evidence
+  - do not promote a live diagnostic pass or fail into product readiness by itself
+source_of_truth_boundary: wave1_founder_e2e_live_diagnostic artifact and activation ladder
+```

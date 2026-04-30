@@ -93,6 +93,12 @@ def test_default_readiness_audit_includes_b2_active_runtime_diagnostic() -> None
     assert any("wave1_b2_active_runtime_integration_diagnostic.json" in path for path in artifact_paths)
 
 
+def test_default_readiness_audit_includes_founder_live_diagnostic() -> None:
+    artifact_paths = {path.as_posix() for path in DEFAULT_ARTIFACT_PATHS}
+
+    assert any("wave1_founder_e2e_live_diagnostic.json" in path for path in artifact_paths)
+
+
 def test_b2_semantic_owner_inversion_blocks_ready_flag() -> None:
     result = validate_readiness_claim_integrity(
         {
