@@ -246,7 +246,7 @@ async def test_shadow_payload_does_not_bypass_existing_manager_guard() -> None:
 
 @pytest.mark.asyncio
 async def test_execute_bundle1_turn_passes_current_turn_context_to_manager(monkeypatch: pytest.MonkeyPatch) -> None:
-    from app.intake.application import intake_turn_orchestrator as module
+    from app.composition import intake_turn_orchestrator as module
 
     resolved_state = _resolved_state()
     current_turn_context = build_current_turn_context_v1(
@@ -306,7 +306,7 @@ async def test_execute_bundle1_turn_passes_current_turn_context_to_manager(monke
 
 @pytest.mark.asyncio
 async def test_process_bundle2_intake_passes_current_turn_context_to_manager(monkeypatch: pytest.MonkeyPatch) -> None:
-    from app.intake.application import intake_execution_orchestrator as module
+    from app.composition import intake_execution_orchestrator as module
 
     resolved_state = _resolved_state()
     current_turn_context = build_current_turn_context_v1(
@@ -361,7 +361,7 @@ async def test_process_bundle2_intake_passes_current_turn_context_to_manager(mon
 async def test_process_bundle2_intake_skips_shadow_when_back_reference_resolves_before_manager(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from app.intake.application import intake_execution_orchestrator as module
+    from app.composition import intake_execution_orchestrator as module
 
     resolved_state = SimpleNamespace(
         onboarding_ready=True,
@@ -443,7 +443,7 @@ async def test_process_bundle2_intake_skips_shadow_when_back_reference_resolves_
 async def test_execute_bundle1_turn_does_not_pre_manager_enrich_history_without_manager_scope(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from app.intake.application import intake_turn_orchestrator as module
+    from app.composition import intake_turn_orchestrator as module
 
     resolved_state = SimpleNamespace(
         onboarding_ready=True,

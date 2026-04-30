@@ -5,8 +5,9 @@ import asyncio
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.body.application import OnboardingBootstrapInput, bootstrap_body_plan_for_date, build_active_body_plan_view
-from app.body.interface.weight_routes import WeightObservationRequest, post_weight_observation
+from app.body.application import build_active_body_plan_view
+from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
+from app.composition.weight_routes import WeightObservationRequest, post_weight_observation
 from app.database import get_or_create_user
 from app.models import Base
 

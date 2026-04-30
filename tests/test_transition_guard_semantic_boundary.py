@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.intake.application.commit_boundary_preflight import run_commit_boundary_preflight
+from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
 from app.intake.application.transition_guard import resolve_transition_guard
 from app.runtime.contracts.phase_a import AttachmentDecision, CurrentTurnContextV1, InteractionEvent
 from app.shared.contracts.intake_results import EstimatePayload

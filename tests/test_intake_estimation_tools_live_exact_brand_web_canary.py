@@ -18,7 +18,7 @@ sys.modules.setdefault(
     _conversation_state_summaries,
 )
 
-from app.intake.application.intake_estimation_tools import estimate_nutrition_tool
+from app.composition.intake_estimation_tools import estimate_nutrition_tool
 import app.nutrition.application.estimate_artifacts as estimate_artifacts_module
 
 

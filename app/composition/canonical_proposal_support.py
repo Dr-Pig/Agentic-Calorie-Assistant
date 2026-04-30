@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models import ProactiveTriggerRecord, ProposalContainerRecord, ProposalOptionRecord, User
+from app.shared.infra.models import ProactiveTriggerRecord, ProposalContainerRecord, ProposalOptionRecord, User
 
 
 def ensure_proposal_skeleton(

@@ -4,7 +4,7 @@ import json
 
 from sqlalchemy.orm import Session
 
-from app.intake.application.canonical_commit_bridge import (
+from app.composition.canonical_commit_bridge import (
     build_commit_request_candidate,
     commit_request_candidate_to_canonical,
     resolve_commit_candidate_target,
@@ -12,7 +12,7 @@ from app.intake.application.canonical_commit_bridge import (
 from app.intake.application.state_transition import determine_meal_status
 from app.composition.canonical_persistence import get_legacy_mapping_for_meal_log
 from app.database import append_message, save_meal_log, supersede_log, update_message_linkage
-from app.models import MealLog, User
+from app.shared.infra.models import MealLog, User
 from app.schemas import EstimatePayload
 
 

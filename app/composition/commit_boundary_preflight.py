@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ...runtime.contracts.phase_a import PhaseABoundaryProjection
-from ...shared.contracts.intake_results import EstimatePayload
-from .final_action_mutation_classifier import final_action_effect_class
-from .phase_a_boundary_projection import build_intake_boundary_projection
+from app.composition.phase_a_boundary_projection import build_intake_boundary_projection
+from app.intake.application.final_action_mutation_classifier import final_action_effect_class
+from app.runtime.contracts.phase_a import PhaseABoundaryProjection
+from app.shared.contracts.intake_results import EstimatePayload
 
 
 @dataclass(frozen=True)

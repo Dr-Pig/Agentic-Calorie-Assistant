@@ -98,12 +98,12 @@ ALLOWLIST: tuple[AllowlistEntry, ...] = (
         reason="Trace artifact projection records manager output for auditability without rewriting product truth.",
     ),
     AllowlistEntry(
-        path="app/runtime/infrastructure/trace/payload_builders.py",
+        path="app/composition/payload_builders.py",
         markers=("follow_up_needed",),
         reason="Trace payload builders record manager follow-up posture for observability without owning ambiguous semantics.",
     ),
     AllowlistEntry(
-        path="app/intake/application/phase_a_boundary_projection.py",
+        path="app/composition/phase_a_boundary_projection.py",
         markers=("follow_up_needed",),
         reason="Phase A boundary projection validates and traces manager output without mutating product truth.",
     ),

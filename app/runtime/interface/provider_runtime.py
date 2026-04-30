@@ -4,8 +4,8 @@ import os
 
 from ...providers.builderspace_adapter import BuilderSpaceAdapter
 from ...providers.deepseek_adapter import DeepSeekAdapter
-from ...nutrition.infrastructure.web_search.tavily_extract_port import TavilyExtractPort
-from ...nutrition.infrastructure.web_search.tavily_search_port import TavilySearchPort
+from ...providers.tavily_extract_port import TavilyExtractPort
+from ...providers.tavily_search_port import TavilySearchPort
 
 
 def _create_provider(

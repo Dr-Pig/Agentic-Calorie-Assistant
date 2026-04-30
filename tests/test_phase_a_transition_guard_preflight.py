@@ -82,7 +82,7 @@ def test_final_action_effect_policy_is_the_canonical_persistence_owner() -> None
 
 
 def test_intake_persistence_consumes_effect_policy_instead_of_owning_action_set() -> None:
-    from app.intake.application import intake_execution_persistence
+    from app.composition import intake_execution_persistence
 
     source = inspect.getsource(intake_execution_persistence)
     assert "COMMITTING_ACTIONS" not in source
@@ -176,7 +176,7 @@ def _manager_final_payload(final_action: str) -> dict[str, object]:
 async def test_process_bundle2_intake_blocks_answer_only_commit_before_persistence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from app.intake.application import intake_execution_orchestrator as module
+    from app.composition import intake_execution_orchestrator as module
 
     resolved_state = _resolved_state()
     current_turn_context = build_current_turn_context_v1(
@@ -240,7 +240,7 @@ async def test_process_bundle2_intake_blocks_answer_only_commit_before_persisten
 async def test_process_bundle2_intake_records_successful_repair_after_guard_block(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from app.intake.application import intake_execution_orchestrator as module
+    from app.composition import intake_execution_orchestrator as module
 
     resolved_state = _resolved_state()
     current_turn_context = build_current_turn_context_v1(

@@ -7,7 +7,8 @@ from typing import Literal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import BodyPlanRecord, BodyProfileRecord, User
+from app.body.infrastructure.models import BodyPlanRecord, BodyProfileRecord
+from app.shared.infra.models import User
 
 ProfileSex = Literal["female", "male"]
 ProfileActivityLevel = Literal["sedentary", "light", "moderate", "active", "very_active"]

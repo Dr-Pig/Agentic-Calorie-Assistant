@@ -72,7 +72,7 @@ def test_dialogue_cue_never_applies_when_shadow_has_mutation_authority() -> None
 async def test_bundle2_response_applies_shadow_dialogue_cue_without_state_changes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from app.budget.application.current_budget_answer import RemainingBudgetAnswerContract
+    from app.composition.current_budget_answer import RemainingBudgetAnswerContract
     from app.composition import bundle2_response as module
 
     class _View:

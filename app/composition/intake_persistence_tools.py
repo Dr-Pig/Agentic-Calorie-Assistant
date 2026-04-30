@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from ...database import get_or_create_user
-from ...nutrition.application.estimate_artifacts import EstimatedNutritionArtifact
+from app.database import get_or_create_user
+from app.intake.application.intake_tool_runtime import PersistMealLogResult
+from app.nutrition.application.estimate_artifacts import EstimatedNutritionArtifact
 from .commit_service import persist_text_meal_payload
-from .intake_tool_runtime import PersistMealLogResult
 
 
 def _manager_intent_from_semantic_decision(

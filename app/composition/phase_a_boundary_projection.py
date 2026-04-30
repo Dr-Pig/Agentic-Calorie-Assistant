@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from ...budget.application.current_budget_answer import RemainingBudgetAnswerContract
-from ...nutrition.application.followup_policy import annotate_followup_policy
-from ...runtime.application.execution_guard import evaluate_macro_display
-from ...runtime.contracts.phase_a import (
+from app.composition.current_budget_answer import RemainingBudgetAnswerContract
+from app.intake.application.state_transition import determine_meal_status
+from app.nutrition.application.followup_policy import annotate_followup_policy
+from app.runtime.application.execution_guard import evaluate_macro_display
+from app.runtime.contracts.phase_a import (
     ClarificationDecision,
     CommitBoundaryDecision,
     FallbackHonestyDecision,
     PhaseABoundaryProjection,
 )
-from ...shared.contracts.intake_results import EstimatePayload
-from .state_transition import determine_meal_status
+from app.shared.contracts.intake_results import EstimatePayload
 
 
 def _result_field(result: Any | None, field_name: str) -> Any:

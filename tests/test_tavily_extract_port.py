@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from app.nutrition.infrastructure.web_search.tavily_extract_port import TavilyExtractPort
+from app.providers.tavily_extract_port import TavilyExtractPort
 
 
 class _FakeTavilyAdapter:

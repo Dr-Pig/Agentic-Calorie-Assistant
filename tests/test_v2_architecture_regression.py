@@ -27,8 +27,7 @@ def _legacy_request_support_token() -> str:
 
 
 def test_v2_routes_use_manager_provider_entrypoint() -> None:
-    # Phase 6d: canonical location is app/intake/interface/v2_routes.py;
-    canonical = ROOT / "app" / "intake" / "interface" / "v2_routes.py"
+    canonical = ROOT / "app" / "composition" / "v2_routes.py"
     source = canonical.read_text(encoding="utf-8")
 
     assert "manager_provider" in source
@@ -60,15 +59,15 @@ def test_v2_schemas_no_longer_exports_archived_recommendation_contracts() -> Non
 
 
 def test_v2_services_import_intake_domain_tools_and_ignore_legacy_provider_split() -> None:
-    bundle1 = (ROOT / "app" / "intake" / "application" / "intake_turn_orchestrator.py").read_text(encoding="utf-8")
-    bundle2 = (ROOT / "app" / "intake" / "application" / "intake_execution_orchestrator.py").read_text(encoding="utf-8")
+    bundle1 = (ROOT / "app" / "composition" / "intake_turn_orchestrator.py").read_text(encoding="utf-8")
+    bundle2 = (ROOT / "app" / "composition" / "intake_execution_orchestrator.py").read_text(encoding="utf-8")
     bundle2_tools = (ROOT / "app" / "composition" / "bundle2_tool_batch.py").read_text(encoding="utf-8")
-    estimation = (ROOT / "app" / "intake" / "application" / "intake_estimation_tools.py").read_text(encoding="utf-8")
+    estimation = (ROOT / "app" / "composition" / "intake_estimation_tools.py").read_text(encoding="utf-8")
 
     assert "manager_tools" not in bundle1
     assert "manager_tools" not in bundle2
-    assert "from .intake_trace_tools import append_trace_event_tool" in bundle1
-    assert "from .intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool" in bundle2
+    assert "from app.intake.application.intake_trace_tools import append_trace_event_tool" in bundle1
+    assert "from app.intake.application.intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool" in bundle2
     assert _legacy_provider_token("planner") not in bundle1
     assert _legacy_provider_token("primary") not in bundle1
     assert _legacy_provider_token("planner") not in bundle2
@@ -85,10 +84,10 @@ def test_offline_sidecar_stack_is_not_imported_by_active_runtime_entrypoints() -
         ROOT / "app" / "routes.py",
         ROOT / "app" / "schemas.py",
         ROOT / "app" / "models.py",
-        ROOT / "app" / "intake" / "interface" / "v2_routes.py",
-        ROOT / "app" / "intake" / "interface" / "intake_routes.py",
-        ROOT / "app" / "budget" / "interface" / "today_routes.py",
-        ROOT / "app" / "body" / "interface" / "body_plan_routes.py",
+        ROOT / "app" / "composition" / "v2_routes.py",
+        ROOT / "app" / "composition" / "intake_routes.py",
+        ROOT / "app" / "composition" / "today_routes.py",
+        ROOT / "app" / "composition" / "body_plan_routes.py",
         ROOT / "app" / "runtime" / "application" / "manager_service.py",
         ROOT / "app" / "composition" / "bundle2_tool_batch.py",
         ROOT / "app" / "composition" / "bundle2_response.py",

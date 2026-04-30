@@ -6,15 +6,16 @@ from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
-from .active_body_plan_read_model import build_active_body_plan_view
-from ...budget.application import build_current_budget_view
-from ...shared.domain import ActiveBodyPlanView, CurrentBudgetView
 from app.composition.canonical_persistence import (
     ensure_proposal_artifact_skeleton,
     load_active_body_plan_record,
     recompute_day_budget_ledger,
 )
-from ...models import BodyPlanRecord, User
+from app.body.application.active_body_plan_read_model import build_active_body_plan_view
+from app.body.infrastructure.models import BodyPlanRecord
+from app.composition.current_budget_read_model import build_current_budget_view
+from app.shared.domain import ActiveBodyPlanView, CurrentBudgetView
+from app.shared.infra.models import User
 
 CalibrationCommitDecision = Literal["accepted", "rejected", "deferred_pending_reminder"]
 

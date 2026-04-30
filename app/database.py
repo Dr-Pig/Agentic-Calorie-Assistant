@@ -9,7 +9,7 @@ from sqlalchemy import create_engine, desc, inspect
 from sqlalchemy.orm import sessionmaker, Session
 
 from .logger import logger
-from .models import User, MealLog, MessageBuffer
+from .shared.infra.models import User, MealLog, MessageBuffer
 from .paths import DEFAULT_DB_PATH, LEGACY_DB_PATH, REPO_ROOT, ensure_runtime_dirs
 
 ensure_runtime_dirs()

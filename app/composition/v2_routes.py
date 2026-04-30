@@ -7,14 +7,14 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from ..application import V2Bundle1OnboardingPayload, execute_bundle1_turn
-from ..application.attachment_resolver import resolve_attachment_decision
-from ..application.current_turn_context_assembler import build_current_turn_context_v1
-from ..application.phase_a_trace import build_phase_a_trace
-from ..application.transition_guard import resolve_transition_guard
-from ...database import get_db
-from ...composition.state_resolver import resolve_v2_bundle1_state
-from ...runtime.interface.provider_runtime import extract_provider, manager_provider, search_provider
+from app.composition.intake_turn_orchestrator import V2Bundle1OnboardingPayload, execute_bundle1_turn
+from app.composition.state_resolver import resolve_v2_bundle1_state
+from app.database import get_db
+from app.intake.application.attachment_resolver import resolve_attachment_decision
+from app.intake.application.current_turn_context_assembler import build_current_turn_context_v1
+from app.intake.application.phase_a_trace import build_phase_a_trace
+from app.intake.application.transition_guard import resolve_transition_guard
+from app.runtime.interface.provider_runtime import extract_provider, manager_provider, search_provider
 
 router = APIRouter()
 
@@ -79,7 +79,7 @@ async def v2_estimate(req: V2EstimateRequest, db: Any = Depends(get_db)) -> dict
                 raw_user_input=req.text,
                 resolved_state=state_before,
             )
-            from ..application.history_expansion_runtime import activate_pre_manager_history_expansion
+            from app.intake.application.history_expansion_runtime import activate_pre_manager_history_expansion
 
             attachment_decision = resolve_attachment_decision(current_turn_context)
             transition_guard_result = resolve_transition_guard(current_turn_context, attachment_decision)
