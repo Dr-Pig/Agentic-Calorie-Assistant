@@ -20,6 +20,7 @@ B2_DIAGNOSTIC_LANE = "b2_packet_synthesis"
 B2_DIAGNOSTIC_FAILURE = "b2_live_llm_diagnostic_contract_violation"
 B2_ASK_FIRST_POLICY_VIOLATION = "b2_ask_first_policy_violation"
 B2_EMPTY_ITEM_RESULTS = "b2_empty_item_results"
+B2_NO_ACCEPTED_PACKET_CONTRACT_VIOLATION = "b2_live_no_accepted_packet_contract_violation"
 B2_LIVE_CONTRACT_CASE_IDS = ("B2-002", "B2-007", "B2-001", "B2-009", "B2-004", "B2-008")
 ASK_FIRST_SELF_SELECTED_BASKET_DECISION_ID = "self_selected_basket_without_listed_items"
 
@@ -37,6 +38,15 @@ _B2_LIVE_FORBIDDEN_OUTPUT_FIELDS = (
     "source_priority_decision",
     "product_semantic_decision",
 )
+
+_EVIDENCE_REF_REQUIRED_FIELDS = (
+    "packet_id",
+    "source_type",
+    "source_quality_label",
+    "usage",
+    "reason",
+)
+_EVIDENCE_REF_ALLOWED_USAGE = ("exact", "anchor", "fallback", "semantic_hint", "rejected")
 
 _PRODUCT_DECISION_TEMPLATES: tuple[dict[str, Any], ...] = (
     {
@@ -245,25 +255,28 @@ def build_b2_live_llm_diagnostic_contract_report(
         _validate_b2_live_contract_case(
             _case_by_id(phase_b2_report, case_id),
             provider_outputs.get(case_id),
+            provider_mode=provider_mode,
+            live_invoked=provider_mode == "live",
             provider_trace=provider_traces.get(case_id),
             approved_ask_first_policy_ids=approved_ask_first_policy_ids,
         )
         for case_id in selected_case_ids
     ]
     verdict_category = _contract_report_verdict(case_results)
+    live_invoked = provider_mode == "live"
     readiness_claim = build_live_diagnostic_readiness_claim(
         provider_mode=provider_mode,
-        live_invoked=False,
+        live_invoked=live_invoked,
     )
     return {
         "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "diagnostic_lane": B2_DIAGNOSTIC_LANE,
         "harness": "b2_live_llm_diagnostic_contract",
         "provider_mode": provider_mode,
-        "live_invoked": False,
+        "live_invoked": live_invoked,
         "readiness_claimed": False,
         "readiness_claim": readiness_claim,
-        "live_provider_diagnostic_complete": False,
+        "live_provider_diagnostic_complete": live_invoked,
         "payload_artifact_id": payload_artifact_id,
         "schema_mode": schema_mode,
         "model_profile": model_profile,
@@ -346,6 +359,8 @@ def _validate_b2_live_contract_case(
     deterministic_case: dict[str, Any],
     provider_output: dict[str, Any] | None,
     *,
+    provider_mode: str = "fake",
+    live_invoked: bool = False,
     provider_trace: dict[str, Any] | None = None,
     approved_ask_first_policy_ids: tuple[str, ...] = (),
 ) -> dict[str, Any]:
@@ -355,10 +370,24 @@ def _validate_b2_live_contract_case(
     packet_permissions = _packet_permissions(deterministic_case)
     rejected_packet_ids = _rejected_packet_ids(deterministic_case)
     evidence_refs = _evidence_refs(item_results)
+    evidence_shape_diagnostics = _evidence_ref_shape_diagnostics(item_results)
+    invalid_evidence_shapes = _list(evidence_shape_diagnostics.get("invalid_evidence_ref_shapes"))
+    string_evidence_ref_ids = sorted(str(item) for item in _list(evidence_shape_diagnostics.get("string_evidence_ref_ids")))
     forbidden_fields = _forbidden_output_fields(payload, item_results)
     trace = _dict(provider_trace)
     output_diagnostics = _output_diagnostics(payload, item_results, trace)
     accepted_packets_count = _accepted_packets_count(deterministic_case)
+    rejected_evidence_refs = sorted(ref for ref in evidence_refs if ref in rejected_packet_ids)
+    known_packet_ids = _known_packet_ids(deterministic_case)
+    unknown_evidence_refs = sorted(ref for ref in evidence_refs if ref not in known_packet_ids)
+    rejected_ref_diagnostics = _rejected_candidate_ref_diagnostics(payload, rejected_packet_ids)
+    rejected_candidate_refs = sorted(str(item) for item in _list(rejected_ref_diagnostics.get("rejected_candidate_refs")))
+    invalid_rejected_candidate_ref_shapes = _list(
+        rejected_ref_diagnostics.get("invalid_rejected_candidate_ref_shapes")
+    )
+    unknown_rejected_candidate_refs = sorted(
+        str(item) for item in _list(rejected_ref_diagnostics.get("unknown_rejected_candidate_refs"))
+    )
     blockers: list[str] = []
     product_decisions_required: list[str] = []
     failure_family = B2_DIAGNOSTIC_FAILURE
@@ -373,6 +402,8 @@ def _validate_b2_live_contract_case(
             blockers.append("ask_first_estimate_present")
         if evidence_refs or _has_top_level_evidence_refs(payload):
             blockers.append("ask_first_evidence_refs_present")
+        if invalid_evidence_shapes:
+            blockers.append("evidence_ref_shape_invalid")
         if forbidden_fields or _has_mutation_intent(payload, item_results):
             blockers.append("forbidden_authority_fields")
         if payload.get("payload_shape_valid") is False:
@@ -384,8 +415,8 @@ def _validate_b2_live_contract_case(
             "case_id": case_id,
             "case_label_only": True,
             "input_message": deterministic_case.get("input_message"),
-            "provider_mode": "fake",
-            "live_invoked": False,
+            "provider_mode": provider_mode,
+            "live_invoked": live_invoked,
             "source_path": _dict(deterministic_case.get("source_selection")).get("source_path"),
             "contract_type": "clarify_only",
             "ask_first_policy_id": ASK_FIRST_SELF_SELECTED_BASKET_DECISION_ID,
@@ -393,6 +424,12 @@ def _validate_b2_live_contract_case(
             "rejected_packet_ids": sorted(rejected_packet_ids),
             "evidence_refs": sorted(evidence_refs),
             "rejected_packet_evidence_refs": [],
+            "unknown_packet_evidence_refs": [],
+            "invalid_evidence_ref_shapes": invalid_evidence_shapes,
+            "string_evidence_ref_ids": string_evidence_ref_ids,
+            "rejected_candidate_refs": rejected_candidate_refs,
+            "invalid_rejected_candidate_ref_shapes": invalid_rejected_candidate_ref_shapes,
+            "unknown_rejected_candidate_refs": unknown_rejected_candidate_refs,
             "item_result_count": len(item_results),
             "forbidden_fields_present": forbidden_fields,
             "blockers": _dedupe(blockers),
@@ -402,21 +439,93 @@ def _validate_b2_live_contract_case(
             "verdict": _verdict(verdict_category, failure_family if blockers else _case_verdict_reason(verdict_category)),
         }
 
+    if accepted_packets_count < 1 and rejected_packet_ids:
+        if "item_results" in payload:
+            blockers.append("no_accepted_packet_item_results_present")
+        if _has_estimate(item_results) or _has_top_level_estimate(payload):
+            blockers.append("no_accepted_packet_estimate_present")
+        if evidence_refs or _has_top_level_evidence_refs(payload):
+            blockers.append("no_accepted_packet_evidence_refs_present")
+        if rejected_evidence_refs:
+            blockers.append("rejected_packet_used_as_evidence")
+        if unknown_evidence_refs:
+            blockers.append("unknown_packet_used_as_evidence")
+        if invalid_evidence_shapes:
+            blockers.append("evidence_ref_shape_invalid")
+        if invalid_rejected_candidate_ref_shapes:
+            blockers.append("rejected_candidate_ref_shape_invalid")
+        if unknown_rejected_candidate_refs:
+            blockers.append("unknown_rejected_candidate_ref")
+        if not payload.get("insufficiency_reason"):
+            blockers.append("missing_insufficiency_reason")
+        if not payload.get("uncertainty_reason"):
+            blockers.append("missing_uncertainty_reason")
+        if not (payload.get("followup_question") or payload.get("clarification_question")):
+            blockers.append("missing_followup_or_clarification")
+        if forbidden_fields or _has_mutation_intent(payload, item_results):
+            blockers.append("forbidden_authority_fields")
+        if payload.get("payload_shape_valid") is False:
+            blockers.append("provider_schema_invalid")
+        verdict_category = VERDICT_READINESS_BLOCKER if blockers else VERDICT_DIAGNOSTIC_OBSERVATION
+        return {
+            "case_id": case_id,
+            "case_label_only": True,
+            "input_message": deterministic_case.get("input_message"),
+            "provider_mode": provider_mode,
+            "live_invoked": live_invoked,
+            "source_path": _dict(deterministic_case.get("source_selection")).get("source_path"),
+            "contract_type": "no_accepted_packet_insufficiency",
+            "item_results_required": False,
+            "min_item_results": 0,
+            "accepted_packets_count": accepted_packets_count,
+            "accepted_usage": packet_permissions["accepted_usage"],
+            "allowed_exactness": "none",
+            "packet_permissions": packet_permissions,
+            "rejected_packet_ids": sorted(rejected_packet_ids),
+            "evidence_refs": sorted(evidence_refs),
+            "rejected_packet_evidence_refs": rejected_evidence_refs,
+            "unknown_packet_evidence_refs": unknown_evidence_refs,
+            "invalid_evidence_ref_shapes": invalid_evidence_shapes,
+            "string_evidence_ref_ids": string_evidence_ref_ids,
+            "rejected_candidate_refs": rejected_candidate_refs,
+            "invalid_rejected_candidate_ref_shapes": invalid_rejected_candidate_ref_shapes,
+            "unknown_rejected_candidate_refs": unknown_rejected_candidate_refs,
+            "item_result_count": len(item_results),
+            "forbidden_fields_present": forbidden_fields,
+            "blockers": _dedupe(blockers),
+            "product_decisions_required": [],
+            "failure_family": B2_NO_ACCEPTED_PACKET_CONTRACT_VIOLATION if blockers else None,
+            "empty_item_results_root_cause": None,
+            **output_diagnostics,
+            "verdict_category": verdict_category,
+            "verdict": _verdict(
+                verdict_category,
+                B2_NO_ACCEPTED_PACKET_CONTRACT_VIOLATION if blockers else _case_verdict_reason(verdict_category),
+            ),
+        }
+
     if not item_results:
         blockers.append("missing_item_results")
     if forbidden_fields:
         blockers.append("forbidden_authority_fields")
     if payload.get("payload_shape_valid") is False:
         blockers.append("provider_schema_invalid")
+    if invalid_evidence_shapes:
+        blockers.append("evidence_ref_shape_invalid")
 
-    rejected_evidence_refs = sorted(ref for ref in evidence_refs if ref in rejected_packet_ids)
     if rejected_evidence_refs:
         blockers.append("rejected_packet_used_as_evidence")
+    if unknown_evidence_refs:
+        blockers.append("unknown_packet_used_as_evidence")
 
     exact_item_results = [item for item in item_results if str(item.get("exactness_posture") or "") == "exact"]
     if _is_generic_anchor_case(deterministic_case) and exact_item_results:
         blockers.append("generic_anchor_returned_exact")
-    if exact_item_results and not _exactness_permitted(exact_item_results, packet_permissions["exact_packet_ids"]):
+    if (
+        exact_item_results
+        and not invalid_evidence_shapes
+        and not _exactness_permitted(exact_item_results, packet_permissions["exact_packet_ids"])
+    ):
         blockers.append("exactness_exceeds_packet_permission")
 
     if _is_query_only_case(deterministic_case) and _has_mutation_intent(payload, item_results):
@@ -438,8 +547,8 @@ def _validate_b2_live_contract_case(
         "case_id": case_id,
         "case_label_only": True,
         "input_message": deterministic_case.get("input_message"),
-        "provider_mode": "fake",
-        "live_invoked": False,
+        "provider_mode": provider_mode,
+        "live_invoked": live_invoked,
         "source_path": _dict(deterministic_case.get("source_selection")).get("source_path"),
         "contract_type": "item_results_synthesis",
         "item_results_required": True,
@@ -451,6 +560,12 @@ def _validate_b2_live_contract_case(
         "rejected_packet_ids": sorted(rejected_packet_ids),
         "evidence_refs": sorted(evidence_refs),
         "rejected_packet_evidence_refs": rejected_evidence_refs,
+        "unknown_packet_evidence_refs": unknown_evidence_refs,
+        "invalid_evidence_ref_shapes": invalid_evidence_shapes,
+        "string_evidence_ref_ids": string_evidence_ref_ids,
+        "rejected_candidate_refs": rejected_candidate_refs,
+        "invalid_rejected_candidate_ref_shapes": invalid_rejected_candidate_ref_shapes,
+        "unknown_rejected_candidate_refs": unknown_rejected_candidate_refs,
         "item_result_count": len(item_results),
         "forbidden_fields_present": forbidden_fields,
         "blockers": _dedupe(blockers),
@@ -468,6 +583,22 @@ def _validate_b2_live_contract_case(
 
 
 def _default_fake_provider_output(deterministic_case: dict[str, Any]) -> dict[str, Any]:
+    if _accepted_packets_count(deterministic_case) < 1 and _rejected_packet_ids(deterministic_case):
+        return {
+            "payload_shape_valid": True,
+            "insufficiency_reason": "no_accepted_packet_after_hard_recheck",
+            "uncertainty_reason": "deterministic fake output observed only rejected candidates",
+            "followup_question": "Please confirm the exact item, size, or portion.",
+            "rejected_candidate_refs": [
+                {
+                    "packet_id": packet_id,
+                    "reason": "rejected_candidate_available_for_explanation_only",
+                }
+                for packet_id in sorted(_rejected_packet_ids(deterministic_case))
+            ],
+            "provider_params": {"provider": "fake", "model_profile": "fake-contract-provider"},
+            "mutation_attempted": False,
+        }
     manager_pass_2 = _dict(deterministic_case.get("manager_pass_2"))
     return {
         "payload_shape_valid": True,
@@ -538,6 +669,94 @@ def _evidence_refs(item_results: list[dict[str, Any]]) -> set[str]:
             if packet_id:
                 refs.add(packet_id)
     return refs
+
+
+def _evidence_ref_shape_diagnostics(item_results: list[dict[str, Any]]) -> dict[str, Any]:
+    invalid_shapes: list[dict[str, Any]] = []
+    string_ids: set[str] = set()
+    for item_index, item in enumerate(item_results):
+        for evidence_index, evidence in enumerate(_list(item.get("evidence_used"))):
+            if not isinstance(evidence, dict):
+                invalid = {
+                    "item_index": item_index,
+                    "evidence_index": evidence_index,
+                    "reason": "not_object",
+                }
+                if isinstance(evidence, str) and evidence:
+                    invalid["string_evidence_ref_id"] = evidence
+                    string_ids.add(evidence)
+                invalid_shapes.append(invalid)
+                continue
+            missing = [field for field in _EVIDENCE_REF_REQUIRED_FIELDS if field not in evidence]
+            if missing:
+                invalid_shapes.append(
+                    {
+                        "item_index": item_index,
+                        "evidence_index": evidence_index,
+                        "reason": "missing_required_fields",
+                        "missing": missing,
+                        "packet_id": evidence.get("packet_id"),
+                    }
+                )
+            usage = evidence.get("usage")
+            if usage is not None and usage not in _EVIDENCE_REF_ALLOWED_USAGE:
+                invalid_shapes.append(
+                    {
+                        "item_index": item_index,
+                        "evidence_index": evidence_index,
+                        "reason": "invalid_usage",
+                        "usage": usage,
+                        "packet_id": evidence.get("packet_id"),
+                    }
+                )
+    return {
+        "invalid_evidence_ref_shapes": invalid_shapes,
+        "string_evidence_ref_ids": sorted(string_ids),
+    }
+
+
+def _known_packet_ids(deterministic_case: dict[str, Any]) -> set[str]:
+    known: set[str] = set()
+    for packet in _list(deterministic_case.get("packets")):
+        packet_id = str(_dict(packet).get("packet_id") or "")
+        if packet_id:
+            known.add(packet_id)
+    known.update(_rejected_packet_ids(deterministic_case))
+    return known
+
+
+def _rejected_candidate_ref_diagnostics(payload: dict[str, Any], rejected_packet_ids: set[str]) -> dict[str, Any]:
+    refs: set[str] = set()
+    invalid_shapes: list[dict[str, Any]] = []
+    unknown_refs: set[str] = set()
+    for index, ref in enumerate(_list(payload.get("rejected_candidate_refs"))):
+        if not isinstance(ref, dict):
+            invalid = {
+                "index": index,
+                "reason": "not_object",
+            }
+            if isinstance(ref, str) and ref:
+                invalid["string_rejected_candidate_ref_id"] = ref
+                refs.add(ref)
+            invalid_shapes.append(invalid)
+            continue
+        packet_id = str(ref.get("packet_id") or "")
+        if not packet_id:
+            invalid_shapes.append(
+                {
+                    "index": index,
+                    "reason": "missing_packet_id",
+                }
+            )
+            continue
+        refs.add(packet_id)
+        if packet_id not in rejected_packet_ids:
+            unknown_refs.add(packet_id)
+    return {
+        "rejected_candidate_refs": sorted(refs),
+        "invalid_rejected_candidate_ref_shapes": invalid_shapes,
+        "unknown_rejected_candidate_refs": sorted(unknown_refs),
+    }
 
 
 def _forbidden_output_fields(payload: dict[str, Any], item_results: list[dict[str, Any]]) -> list[str]:
