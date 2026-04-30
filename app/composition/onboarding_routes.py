@@ -4,8 +4,8 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from ..application import OnboardingBootstrapInput, bootstrap_body_plan_for_date
-from ...database import get_db, get_or_create_user
+from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
+from app.database import get_db, get_or_create_user
 
 router = APIRouter()
 

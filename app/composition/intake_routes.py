@@ -7,23 +7,23 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
 
-from ...database import get_db, get_or_create_user
-from ...runtime.application.request_trace_artifacts import write_general_chat_request_trace_artifact
-from ...composition.state_resolver import resolve_v2_bundle1_state
-from ...runtime.interface.provider_runtime import extract_provider, manager_provider, search_provider
-from ...schemas import EstimateRequest
-from ..application import execute_bundle1_turn
-from ..application.canonical_commit_bridge import (
+from app.composition.canonical_commit_bridge import (
     record_body_observation_to_canonical,
     record_budget_adjustment_to_canonical,
 )
-from ..application.chat_intents import parse_weight_or_budget_intent
-from ..application.boundary_output_honesty import enforce_budget_output_honesty
-from ..application.current_turn_context_assembler import build_current_turn_context_v1
-from ..application.general_chat_service import build_general_chat_response_pass
-from ..application.phase_a_boundary_projection import attach_boundary_projection, build_budget_boundary_projection
-from ..application.workflow_routing import build_workflow_routing_decision
-from .intake_error_response import build_estimate_error_response
+from app.composition.general_chat_service import build_general_chat_response_pass
+from app.composition.intake_turn_orchestrator import execute_bundle1_turn
+from app.composition.phase_a_boundary_projection import attach_boundary_projection, build_budget_boundary_projection
+from app.composition.state_resolver import resolve_v2_bundle1_state
+from app.database import get_db, get_or_create_user
+from app.intake.application.boundary_output_honesty import enforce_budget_output_honesty
+from app.intake.application.chat_intents import parse_weight_or_budget_intent
+from app.intake.application.current_turn_context_assembler import build_current_turn_context_v1
+from app.intake.application.workflow_routing import build_workflow_routing_decision
+from app.intake.interface.intake_error_response import build_estimate_error_response
+from app.runtime.application.request_trace_artifacts import write_general_chat_request_trace_artifact
+from app.runtime.interface.provider_runtime import extract_provider, manager_provider, search_provider
+from app.schemas import EstimateRequest
 
 router = APIRouter()
 

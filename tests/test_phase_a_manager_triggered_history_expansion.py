@@ -385,7 +385,7 @@ async def test_run_intake_manager_refreshes_phase_a_payload_after_history_tool()
 async def test_process_bundle2_intake_handles_manager_triggered_history_expansion(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from app.intake.application import intake_execution_orchestrator as module
+    from app.composition import intake_execution_orchestrator as module
 
     state = _resolved_state(retrieved_meal_records=[_meal_chunk()])
     provider = _HistoryRequestProvider()
@@ -421,7 +421,7 @@ async def test_process_bundle2_intake_handles_manager_triggered_history_expansio
 async def test_process_bundle2_intake_enforces_one_manager_triggered_history_attempt(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from app.intake.application import intake_execution_orchestrator as module
+    from app.composition import intake_execution_orchestrator as module
 
     state = _resolved_state(retrieved_meal_records=[_meal_chunk()])
     provider = _RepeatedHistoryRequestProvider()

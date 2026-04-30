@@ -3,15 +3,70 @@ from __future__ import annotations
 from datetime import datetime
 from math import isfinite
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import BodyProfileRecord, User
+from app.body.infrastructure.models import BodyObservationRecord, BodyProfileRecord
+from app.shared.infra.models import User
 from app.shared.domain import BodyObservation
-from app.composition.canonical_persistence import (
-    load_active_body_profile_record,
-    load_body_observations,
-    upsert_observation_skeleton,
-)
+
+
+def _resolved_body_observation_time(
+    *,
+    observed_at: datetime | None = None,
+    local_date: str | None = None,
+) -> tuple[datetime, str]:
+    normalized_observed_at = observed_at or datetime.now()
+    normalized_local_date = (
+        local_date.strip() if isinstance(local_date, str) and local_date.strip() else normalized_observed_at.date().isoformat()
+    )
+    return normalized_observed_at, normalized_local_date
+
+
+def _body_observation_from_record(record: BodyObservationRecord) -> BodyObservation:
+    return BodyObservation(
+        observation_id=record.id,
+        user_id=record.user_id,
+        observation_type=record.observation_type,
+        value=record.value,
+        unit=record.unit,
+        observed_at=record.observed_at,
+        local_date=record.local_date,
+        source=record.source,
+        metadata=dict(record.metadata_json or {}),
+    )
+
+
+def _upsert_observation_skeleton(
+    db: Session,
+    *,
+    user: User,
+    value: float,
+    unit: str,
+    observation_type: str,
+    source: str,
+    observed_at: datetime | None,
+    local_date: str | None,
+    metadata: dict[str, object] | None,
+) -> BodyObservationRecord:
+    normalized_observed_at, normalized_local_date = _resolved_body_observation_time(
+        observed_at=observed_at,
+        local_date=local_date,
+    )
+    record = BodyObservationRecord(
+        user_id=user.id,
+        observation_type=observation_type,
+        value=value,
+        unit=unit,
+        observed_at=normalized_observed_at,
+        local_date=normalized_local_date,
+        source=source,
+        metadata_json=dict(metadata or {}),
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
 
 
 def record_body_observation_skeleton(
@@ -27,7 +82,7 @@ def record_body_observation_skeleton(
     metadata: dict[str, object] | None = None,
 ) -> int:
     _validate_body_observation_value(value=value, observation_type=observation_type)
-    observation = upsert_observation_skeleton(
+    observation = _upsert_observation_skeleton(
         db,
         user=user,
         value=value,
@@ -54,7 +109,7 @@ def record_body_observation_to_canonical(
     metadata: dict[str, object] | None = None,
 ) -> BodyObservation:
     _validate_body_observation_value(value=value, observation_type=observation_type)
-    observation = upsert_observation_skeleton(
+    observation = _upsert_observation_skeleton(
         db,
         user=user,
         value=value,
@@ -85,12 +140,15 @@ def load_body_observation_history(
     local_date: str | None = None,
     observation_type: str | None = "weight",
 ) -> list[BodyObservation]:
-    return load_body_observations(
-        db,
-        user_id=user_id,
-        local_date=local_date,
-        observation_type=observation_type,
-    )
+    stmt = select(BodyObservationRecord).where(BodyObservationRecord.user_id == user_id)
+    if isinstance(observation_type, str) and observation_type.strip():
+        stmt = stmt.where(BodyObservationRecord.observation_type == observation_type.strip())
+    if isinstance(local_date, str) and local_date.strip():
+        stmt = stmt.where(BodyObservationRecord.local_date == local_date.strip())
+    rows = db.execute(
+        stmt.order_by(BodyObservationRecord.observed_at.asc(), BodyObservationRecord.id.asc())
+    ).scalars().all()
+    return [_body_observation_from_record(record) for record in rows]
 
 
 def get_active_body_profile_record(
@@ -98,7 +156,11 @@ def get_active_body_profile_record(
     *,
     user_id: int,
 ) -> BodyProfileRecord | None:
-    return load_active_body_profile_record(db, user_id=user_id)
+    return db.execute(
+        select(BodyProfileRecord)
+        .where(BodyProfileRecord.user_id == user_id, BodyProfileRecord.profile_status == "active")
+        .order_by(BodyProfileRecord.id.desc())
+    ).scalars().first()
 
 
 def _validate_body_observation_value(*, value: float, observation_type: str) -> None:

@@ -5,21 +5,21 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from ...nutrition.application.evidence_eligibility import classify_query_family, is_high_variance_family
-from ...nutrition.application.exact_brand_web_canary import LANE_ID as WEB_CANARY_LANE_ID
-from ...nutrition.application.exact_brand_web_canary import run_exact_brand_web_canary
-from ...nutrition.application.web_extract_port import WebExtractPort
-from ...nutrition.application.web_search_port import WebSearchPort
-from ...nutrition.application.estimate_artifacts import (
+from app.intake.application.intake_tool_runtime import looks_like_multi_item_input, normalize_live_payload
+from app.nutrition.agent.exact_item_packets import build_exact_item_lane_packet
+from app.nutrition.application.estimate_artifacts import (
     EstimatedNutritionArtifact,
     build_exact_item_artifact,
     build_shadow_stub_artifact,
     shadow_stub_estimate_enabled,
 )
-from ...nutrition.agent.exact_item_packets import build_exact_item_lane_packet
-from ...shared.contracts.intake import EstimatePayload
-from ...shared.time_labels import resolve_local_attribution
-from .intake_tool_runtime import looks_like_multi_item_input, normalize_live_payload
+from app.nutrition.application.evidence_eligibility import classify_query_family, is_high_variance_family
+from app.nutrition.application.exact_brand_web_canary import LANE_ID as WEB_CANARY_LANE_ID
+from app.nutrition.application.exact_brand_web_canary import run_exact_brand_web_canary
+from app.nutrition.application.web_extract_port import WebExtractPort
+from app.nutrition.application.web_search_port import WebSearchPort
+from app.shared.contracts.intake import EstimatePayload
+from app.shared.time_labels import resolve_local_attribution
 
 
 def _fill_missing_trace_dates(payload: EstimatePayload) -> None:

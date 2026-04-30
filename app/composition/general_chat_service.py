@@ -5,9 +5,9 @@ from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
-from ...body.application import build_active_body_plan_view
-from ...budget.application import build_remaining_budget_answer_contract
-from ...database import get_or_create_user
+from app.body.application import build_active_body_plan_view
+from app.composition.current_budget_answer import build_remaining_budget_answer_contract
+from app.database import get_or_create_user
 
 GeneralChatDisposition = Literal["answer_only", "open_new_workflow"]
 GeneralChatMode = Literal["budget_summary", "goal_summary", "workflow_handoff", "fallback_answer"]

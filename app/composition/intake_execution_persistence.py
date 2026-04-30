@@ -4,10 +4,10 @@ from typing import Any, Callable
 
 from sqlalchemy.orm import Session
 
-from ...runtime.application.execution_guard import validate_intake_persistence
-from .final_action_mutation_classifier import final_action_has_persistence_effect
-from .intake_persistence_tools import persist_meal_log_tool
-from .intake_trace_tools import append_trace_event_tool
+from app.composition.intake_persistence_tools import persist_meal_log_tool
+from app.intake.application.final_action_mutation_classifier import final_action_has_persistence_effect
+from app.intake.application.intake_trace_tools import append_trace_event_tool
+from app.runtime.application.execution_guard import validate_intake_persistence
 
 
 def initial_state_mutation_summary() -> dict[str, bool]:

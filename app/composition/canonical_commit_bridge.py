@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from ...body.application.body_observation_service import (
+from app.body.application.body_observation_service import (
     get_active_body_profile_record,
     load_body_observation_history,
     record_body_observation_skeleton,
@@ -15,8 +15,9 @@ from app.composition.canonical_persistence import (
     resolve_canonical_commit_target,
     upsert_budget_adjustment_skeleton,
 )
-from ...models import LedgerEntryRecord, User
-from ...schemas import CommitRequestCandidate, CommitVersionReason, EstimatePayload, MealItemPayload
+from app.budget.infrastructure.models import LedgerEntryRecord
+from app.shared.infra.models import User
+from app.schemas import CommitRequestCandidate, CommitVersionReason, EstimatePayload, MealItemPayload
 
 
 def build_commit_request_candidate(

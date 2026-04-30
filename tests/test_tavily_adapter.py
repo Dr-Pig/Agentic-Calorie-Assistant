@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.nutrition.infrastructure.web_search.tavily_adapter import TavilyAdapter
+from app.providers.tavily_adapter import TavilyAdapter
 
 
 @pytest.mark.asyncio

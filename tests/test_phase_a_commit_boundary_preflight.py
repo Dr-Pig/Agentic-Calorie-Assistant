@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.intake.application.commit_boundary_preflight import run_commit_boundary_preflight
+from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
 from app.intake.application.current_turn_context_assembler import build_current_turn_context_v1
 from app.intake.application.final_action_mutation_classifier import classify_final_action_mutation
 from app.shared.contracts.intake_results import EstimatePayload
@@ -292,7 +292,7 @@ class _Provider:
 async def test_process_bundle2_intake_blocks_commit_boundary_contradiction_before_persistence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from app.intake.application import intake_execution_orchestrator as module
+    from app.composition import intake_execution_orchestrator as module
 
     resolved_state = _resolved_state()
     current_turn_context = build_current_turn_context_v1(

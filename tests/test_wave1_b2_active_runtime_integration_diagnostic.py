@@ -37,7 +37,7 @@ def test_b2_active_runtime_integration_diagnostic_observes_owner_lineage(tmp_pat
     assert output_path.exists()
     assert json.loads(output_path.read_text(encoding="utf-8")) == report
     assert report["artifact_type"] == "wave1_b2_active_runtime_integration_diagnostic"
-    assert report["active_entrypoint"] == "app.intake.application.intake_turn_orchestrator.execute_bundle1_turn"
+    assert report["active_entrypoint"] == "app.composition.intake_turn_orchestrator.execute_bundle1_turn"
     assert report["active_entrypoint_verified"] is True
     assert report["provider_mode"] == "deterministic"
     assert report["live_llm_invoked"] is False

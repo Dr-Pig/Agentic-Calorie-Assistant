@@ -104,8 +104,8 @@ PROTECTED_FAT_PATHS = (
     "app/schemas.py",
     "app/routes.py",
     "app/runtime/application/manager_service.py",
-    "app/intake/application/intake_turn_orchestrator.py",
-    "app/intake/application/intake_execution_orchestrator.py",
+    "app/composition/intake_turn_orchestrator.py",
+    "app/composition/intake_execution_orchestrator.py",
     "app/providers/builderspace_adapter.py",
     "app/providers/deepseek_adapter.py",
 )

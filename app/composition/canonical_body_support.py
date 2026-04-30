@@ -6,7 +6,10 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import BodyObservationRecord, BodyPlanRecord, BodyProfileRecord, DayBudgetLedgerRecord, LedgerEntryRecord, MealThreadRecord, MealVersionRecord, User
+from app.body.infrastructure.models import BodyObservationRecord, BodyPlanRecord, BodyProfileRecord
+from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord
+from app.intake.infrastructure.models import MealThreadRecord, MealVersionRecord
+from app.shared.infra.models import User
 from app.shared.domain import BodyObservation
 
 

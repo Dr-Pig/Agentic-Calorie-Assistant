@@ -10,9 +10,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 APP_ROOT = REPO_ROOT / "app"
 ARCHIVE_IMPORT_PREFIX = "app." + "archive"
 CONCRETE_PROVIDER_PREFIX = "app.providers"
-TAVILY_ADAPTER_PREFIX = "app.nutrition.infrastructure.web_search.tavily_adapter"
+TAVILY_ADAPTER_PREFIX = "app.providers.tavily_adapter"
 PROVIDER_RUNTIME_COMPOSITION_ROOT = "app/runtime/interface/provider_runtime.py"
-TAVILY_INFRA_PREFIX = "app/nutrition/infrastructure/web_search/"
+TAVILY_INFRA_PREFIX = "app/providers/"
 ACTIVE_DOMAIN_PREFIXES = (
     "app.intake",
     "app.nutrition",

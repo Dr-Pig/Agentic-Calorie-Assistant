@@ -4,7 +4,8 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from ...models import LedgerEntryRecord, User
+from app.budget.infrastructure.models import LedgerEntryRecord
+from app.shared.infra.models import User
 from app.composition.canonical_persistence import (
     ensure_body_plan_skeleton,
     ensure_proactive_trigger_skeleton,
@@ -110,7 +111,7 @@ def apply_proposal_decision_skeleton(
     decision: str,
     metadata_patch: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    from ...models import ProposalContainerRecord
+    from app.shared.infra.models import ProposalContainerRecord
 
     proposal = db.get(ProposalContainerRecord, proposal_container_id)
     if proposal is None:

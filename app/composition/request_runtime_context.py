@@ -5,9 +5,9 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from ...shared.domain import ConversationState
-from ...composition.conversation_state_loader import load_conversation_state
-from ...shared.conversation_prompt import render_conversation_state_prompt
+from app.composition.conversation_state_loader import load_conversation_state
+from app.shared.conversation_prompt import render_conversation_state_prompt
+from app.shared.domain import ConversationState
 
 
 @dataclass

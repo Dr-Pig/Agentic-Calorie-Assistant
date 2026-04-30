@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from ....nutrition.application.evidence_normalizer import split_evidence_lanes
-from ....nutrition.application.evidence_selector import db_hit_type, summarize_retrieved_evidence
-from ....schemas import ComponentEstimate, EstimatePayload, EstimateRequest
+from app.nutrition.application.evidence_normalizer import split_evidence_lanes
+from app.nutrition.application.evidence_selector import db_hit_type, summarize_retrieved_evidence
+from app.schemas import ComponentEstimate, EstimatePayload, EstimateRequest
 
 
 def unicode_escape(text: str) -> str:

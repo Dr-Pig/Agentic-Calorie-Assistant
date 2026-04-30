@@ -33,15 +33,15 @@ from .canonical_proposal_support import (
     ensure_proposal_artifact_skeleton,
     ensure_proposal_skeleton,
 )
-from app.models import (
-    BodyObservationRecord,
-    LedgerEntryRecord,
+from app.body.infrastructure.models import BodyObservationRecord
+from app.budget.infrastructure.models import LedgerEntryRecord
+from app.intake.infrastructure.models import (
     LegacyMealLogMapRecord,
     MealItemRecord,
     MealThreadRecord,
     MealVersionRecord,
-    User,
 )
+from app.shared.infra.models import User
 from app.schemas import CommitRequestCandidate, CommitVersionReason, EstimatePayload
 
 

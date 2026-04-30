@@ -19,7 +19,7 @@ from app.nutrition.application.b2_candidate_packetizer import add_hard_recheck_m
 from app.nutrition.application.b2_packet_consumption import consume_rechecked_packets
 from app.nutrition.application.retrieval_intent import build_retrieval_intent
 from app.nutrition.application.web_extract_packetizer import _extract_requested_size_kcal, build_web_extract_packets, _KCAL_FIELD_KEYS, _parse_single_kcal_value
-from app.nutrition.infrastructure.web_search.tavily_extract_port import TavilyExtractPort
+from app.providers.tavily_extract_port import TavilyExtractPort
 
 DEFAULT_ARTIFACT_DIR = ROOT / "artifacts"
 DEFAULT_OUTPUT = DEFAULT_ARTIFACT_DIR / "wave1_phase_b2_exact_brand_positive_acceptance_diagnostic.json"

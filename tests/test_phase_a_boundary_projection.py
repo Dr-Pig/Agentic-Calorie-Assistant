@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.budget.application.current_budget_answer import RemainingBudgetAnswerContract
-from app.intake.application.phase_a_boundary_projection import (
+from app.composition.current_budget_answer import RemainingBudgetAnswerContract
+from app.composition.phase_a_boundary_projection import (
     build_budget_boundary_projection,
     build_intake_boundary_projection,
 )

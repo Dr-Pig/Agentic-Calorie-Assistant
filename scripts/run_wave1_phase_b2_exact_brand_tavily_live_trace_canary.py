@@ -124,13 +124,13 @@ def _case(case_id: str) -> dict[str, str]:
 
 
 def _tavily_search_port() -> Any:
-    from app.nutrition.infrastructure.web_search.tavily_search_port import TavilySearchPort
+    from app.providers.tavily_search_port import TavilySearchPort
 
     return TavilySearchPort()
 
 
 def _tavily_extract_port() -> Any:
-    from app.nutrition.infrastructure.web_search.tavily_extract_port import TavilyExtractPort
+    from app.providers.tavily_extract_port import TavilyExtractPort
 
     return TavilyExtractPort()
 

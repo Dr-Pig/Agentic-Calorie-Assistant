@@ -6,13 +6,13 @@ from sqlalchemy.orm import Session
 
 
 def read_body_plan_tool(db: Session, *, user_id: int) -> Any:
-    from ...body.application import build_active_body_plan_view
+    from app.body.application import build_active_body_plan_view
 
     return build_active_body_plan_view(db, user_id=user_id)
 
 
 def read_day_budget_tool(db: Session, *, user_id: int, local_date: str) -> Any:
-    from ...budget.application import build_current_budget_view
+    from app.composition.current_budget_read_model import build_current_budget_view
 
     return build_current_budget_view(db, user_id=user_id, local_date=local_date)
 

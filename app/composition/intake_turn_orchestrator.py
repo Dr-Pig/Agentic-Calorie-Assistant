@@ -7,21 +7,13 @@ from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
-from ...database import get_or_create_user
-from ...budget.application.current_budget_answer import build_remaining_budget_answer_contract
-from ...body.application.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
-from ...runtime.agent.manager import IntakeManagerResult
-from ...runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
-from ...runtime.application.execution_guard import validate_onboarding_seed
-from ...runtime.application.manager_service import run_intake_manager
-from ...runtime.application.reply_renderer import render_bundle1_reply
-from ...runtime.application.request_trace_artifacts import build_trace_refs, write_bundle1_request_trace_artifact
-from ...runtime.application.sidecar_service import build_deterministic_sidecar
-from ...composition.state_resolver import resolve_v2_bundle1_state
-from ...nutrition.application.web_extract_port import WebExtractPort
-from ...nutrition.application.web_search_port import WebSearchPort
-from .intake_trace_tools import append_trace_event_tool
-from .intake_turn_support import (
+from app.composition.current_budget_answer import build_remaining_budget_answer_contract
+from app.composition.intake_execution_orchestrator import process_bundle2_intake
+from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
+from app.composition.state_resolver import resolve_v2_bundle1_state
+from app.database import get_or_create_user
+from app.intake.application.intake_trace_tools import append_trace_event_tool
+from app.intake.application.intake_turn_support import (
     bundle1_latency_tracking,
     bundle1_manager_decision_payload,
     bundle1_trace_summary,
@@ -29,7 +21,16 @@ from .intake_turn_support import (
     normalized_activity_level,
     resolve_local_date,
 )
-from .phase_a_runtime_context import prepare_phase_a_runtime_context
+from app.intake.application.phase_a_runtime_context import prepare_phase_a_runtime_context
+from app.nutrition.application.web_extract_port import WebExtractPort
+from app.nutrition.application.web_search_port import WebSearchPort
+from app.runtime.agent.manager import IntakeManagerResult
+from app.runtime.application.execution_guard import validate_onboarding_seed
+from app.runtime.application.manager_service import run_intake_manager
+from app.runtime.application.reply_renderer import render_bundle1_reply
+from app.runtime.application.request_trace_artifacts import build_trace_refs, write_bundle1_request_trace_artifact
+from app.runtime.application.sidecar_service import build_deterministic_sidecar
+from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 
 
 @dataclass(frozen=True)
@@ -216,8 +217,6 @@ async def execute_bundle1_turn(
     elif manager_decision.intent_type == "log_meal":
         if not raw_user_input or not raw_user_input.strip():
             raise ValueError("raw_user_input is required for intake logging.")
-        from .intake_execution_orchestrator import process_bundle2_intake
-
         return await process_bundle2_intake(
             db=db,
             user_external_id=user_external_id,

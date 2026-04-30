@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.nutrition.application.followup_policy import annotate_followup_policy
-from app.runtime.infrastructure.trace.payload_builders import build_payload
+from app.composition.payload_builders import build_payload
 from app.schemas import EstimateRequest
 
 

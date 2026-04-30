@@ -3,17 +3,13 @@ from importlib import import_module
 from typing import Any
 
 __all__ = [
-    "OnboardingBootstrapInput",
     "TargetCalculationInputs",
-    "bootstrap_body_plan_for_date",
     "build_active_body_plan_view",
     "calculate_recommended_target_kcal",
 ]
 
 _EXPORT_MAP = {
-    "OnboardingBootstrapInput": (".onboarding_service", "OnboardingBootstrapInput"),
     "TargetCalculationInputs": (".target_calculation", "TargetCalculationInputs"),
-    "bootstrap_body_plan_for_date": (".onboarding_service", "bootstrap_body_plan_for_date"),
     "build_active_body_plan_view": (".active_body_plan_read_model", "build_active_body_plan_view"),
     "calculate_recommended_target_kcal": (".target_calculation", "calculate_recommended_target_kcal"),
 }

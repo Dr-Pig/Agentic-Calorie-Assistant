@@ -6,13 +6,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.budget.application.current_budget_answer import RemainingBudgetAnswerContract
+from app.composition.current_budget_answer import RemainingBudgetAnswerContract
 from app.intake.application.attachment_resolver import resolve_attachment_decision
 from app.intake.application.boundary_output_honesty import (
     enforce_budget_output_honesty,
     enforce_intake_output_honesty,
 )
-from app.intake.application.commit_boundary_preflight import run_commit_boundary_preflight
+from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
 from app.intake.application.context_injection_policy import build_manager_context_pack
 from app.intake.application.current_turn_context_assembler import build_current_turn_context_v1
 from app.intake.application.history_expansion_runtime import activate_pre_manager_history_expansion
@@ -20,7 +20,7 @@ from app.intake.application.history_expansion_manager_runtime import (
     PHASE_A_EXPAND_HISTORY_TOOL,
     activate_manager_triggered_history_expansion,
 )
-from app.intake.application.phase_a_boundary_projection import (
+from app.composition.phase_a_boundary_projection import (
     build_budget_boundary_projection,
     build_intake_boundary_projection,
 )
