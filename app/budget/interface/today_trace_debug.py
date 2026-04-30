@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from html import escape
 
-from app.logging import find_latest_trace_for_user_date
+from app.logging import find_latest_trace_for_user_date, find_latest_traces_for_user_date
 from app.shared.domain import CurrentBudgetView
 
 
@@ -32,10 +32,15 @@ def render_latest_debug(*, view: CurrentBudgetView) -> str:
 
 
 def render_latest_trace_debug(*, user_id: str, local_date: str) -> str:
-    latest_bundle2_trace = find_latest_trace_for_user_date(user_id=user_id, local_date=local_date, bundle="v2_bundle2")
-    latest_bundle1_trace = find_latest_trace_for_user_date(user_id=user_id, local_date=local_date, bundle="v2_bundle1")
+    latest_by_bundle = find_latest_traces_for_user_date(
+        user_id=user_id,
+        local_date=local_date,
+        bundles=("v2_bundle2", "v2_bundle1"),
+    )
+    latest_bundle2_trace = latest_by_bundle.get("v2_bundle2")
+    latest_bundle1_trace = latest_by_bundle.get("v2_bundle1")
     latest_trace = latest_bundle2_trace or latest_bundle1_trace
-    latest_trace_label = "Latest Bundle 2 Trace" if latest_bundle2_trace is not None else "Latest Bundle 1 Trace"
+    latest_trace_label = "Latest Intake Execution Trace" if latest_bundle2_trace is not None else "Latest Intake Entry Trace"
     if latest_trace is None:
         return ""
     trace_meta = latest_trace.get("trace_meta", {}) or {}

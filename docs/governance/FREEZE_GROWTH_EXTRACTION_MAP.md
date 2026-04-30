@@ -117,22 +117,14 @@ Extracted modules:
 Trigger to revisit:
 - new registry types or global estimation policies are added to the shim
 
-## app/runtime/application/phase_a_context.py
+## Phase A Runtime Facade
 
-Status: **thin facade remains**
+Status: **deleted**
 
 Execution guidance:
 
-- active meal-first callers should not import this facade directly
-- acceptable contents:
-  - re-export
-  - delegation
-  - compatibility wrapper
-  - deprecation note
-- forbidden growth:
-  - new meal-first logic
-  - new history-expansion logic
-  - new shadow-hypothesis logic
+- active meal-first callers must use the intake-owned Phase A runtime modules directly
+- no compatibility wrapper may be reintroduced without a new architecture review
   - new context-injection logic
   - new fallback semantics
 

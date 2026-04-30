@@ -1,22 +1,25 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
+from functools import lru_cache
 from typing import Any
 
 from sqlalchemy import text
 
-
-def _knowledge_path() -> Path:
-    return Path(__file__).resolve().parents[1] / "knowledge" / "exact_item_cards_tw.json"
+from .exact_item_card_loader import load_exact_item_card_seed_records
 
 
+@lru_cache(maxsize=1)
 def _load_cards() -> list[dict[str, Any]]:
-    path = _knowledge_path()
-    if not path.exists():
-        return []
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    return list(payload.get("cards", []))
+    return list(load_exact_item_card_seed_records())
+
+
+@lru_cache(maxsize=1)
+def _cards_by_id() -> dict[str, dict[str, Any]]:
+    return {
+        str(card.get("card_id") or card.get("id") or card.get("item_id") or ""): card
+        for card in _load_cards()
+        if str(card.get("card_id") or card.get("id") or card.get("item_id") or "")
+    }
 
 
 def ensure_exact_item_fts() -> None:
@@ -67,12 +70,7 @@ def resolve_exact_item_fts(query: str, *, limit: int = 3) -> list[dict[str, Any]
     query = str(query or "").strip()
     if not query:
         return []
-    cards = _load_cards()
-    by_id = {
-        str(card.get("card_id") or card.get("id") or card.get("item_id") or ""): card
-        for card in cards
-        if str(card.get("card_id") or card.get("id") or card.get("item_id") or "")
-    }
+    by_id = _cards_by_id()
     escaped_terms = [term.replace('"', " ").strip() for term in query.split() if term.strip()]
     if len(escaped_terms) == 1 and escaped_terms[0].endswith("*"):
         match_query = escaped_terms[0]

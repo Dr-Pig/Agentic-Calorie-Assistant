@@ -36,6 +36,7 @@ def test_single_manager_system_prompt_requires_semantic_contract_not_reasoning_d
         content = handle.read()
 
     assert "intent, target_attachment" in content
+    assert "semantic_decision" in content
     assert "exactness, confidence, evidence_posture, repair_ack" in content
     assert "thoughts" not in content
 

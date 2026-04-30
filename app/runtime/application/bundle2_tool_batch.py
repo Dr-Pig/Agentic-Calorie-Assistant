@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from ...intake.application import manager_tools as tools
+from ...intake.application.intake_estimation_tools import estimate_nutrition_tool
+from ...intake.application.intake_read_tools import compare_against_budget_tool
 from ...nutrition.application.web_search_port import WebSearchPort
 from ...nutrition.application.web_extract_port import WebExtractPort
 from ...nutrition.application.evidence_eligibility import classify_query_family, summarize_eligibility_results
@@ -109,6 +110,13 @@ def contextualized_query_for_estimation(*, raw_user_input: str, state_before: An
     return f"Follow-up for {meal_title}: {answer}"
 
 
+def correction_target_resolved(correction_target: dict[str, Any]) -> bool:
+    return any(
+        correction_target.get(key) is not None
+        for key in ("meal_thread_id", "meal_version_id", "meal_id", "target_object_id")
+    )
+
+
 def nutrition_tool_output(
     *,
     raw_user_input: str,
@@ -150,38 +158,10 @@ def nutrition_tool_output(
 def apply_final_action_to_payload(*, payload: Any | None, raw_user_input: str, final_action: str) -> None:
     if payload is None:
         return
-    if final_action == "ask_followup":
-        question = str(getattr(payload, "followup_question", "") or "").strip() or default_followup_question(raw_user_input=raw_user_input)
-        payload.route_target = "clarify_user_private"
-        payload.follow_up_needed = True
-        payload.followup_question = question
-        payload.action_taken = "answer_with_uncertainty"
-        trace_contract = payload_trace_contract(payload)
-        trace_contract["followup_question"] = question
-        trace_contract["unresolved_info"] = list(trace_contract.get("unresolved_info") or []) or [question]
-        payload.trace_contract = trace_contract
-        return
-    if final_action not in {"commit", "correction_applied", "overshoot_note"}:
-        return
-    payload.route_target = "best_effort_answer"
-    payload.follow_up_needed = False
-    payload.followup_question = ""
-    if str(getattr(payload, "action_taken", "") or "") == "clarify_before_estimate":
-        payload.action_taken = "answer_with_uncertainty"
     trace_contract = payload_trace_contract(payload)
-    trace_contract["followup_question"] = ""
-    trace_contract["unresolved_info"] = []
-    trace_contract["blocking_slots"] = []
+    trace_contract["manager_final_action"] = str(final_action or "")
+    trace_contract["manager_final_action_role"] = "trace_only_no_semantic_rewrite"
     payload.trace_contract = trace_contract
-
-
-def default_followup_question(*, raw_user_input: str) -> str:
-    family_rule = classify_query_family(raw_user_input)
-    if family_rule == "generic_milk_tea":
-        return "請問這杯大約是什麼容量、甜度和配料？"
-    if family_rule == "dumpling_count_required":
-        return "請問蒸餃吃了幾顆？"
-    return "請補充主要食材或份量，我再幫你估算。"
 
 
 async def execute_manager_tool_calls(
@@ -223,7 +203,7 @@ async def execute_manager_tool_calls(
             if payload is None:
                 results.append({"tool_name": name, "evidence": {}, "mutation_result": {}, "provenance": {}, "confidence": "none", "failure_family": "missing_nutrition_payload"})
                 continue
-            budget_summary = tools.compare_against_budget_tool(
+            budget_summary = compare_against_budget_tool(
                 current_budget_view=state_before.current_budget_view,
                 estimated_kcal=int(getattr(payload, "estimated_kcal", 0) or 0),
                 replaced_kcal=0,
@@ -233,7 +213,7 @@ async def execute_manager_tool_calls(
             continue
         if name == "estimate_nutrition":
             try:
-                artifact = await tools.estimate_nutrition_tool(
+                artifact = await estimate_nutrition_tool(
                     db,
                     user_external_id=user_external_id,
                     raw_user_input=raw_user_input,
@@ -244,13 +224,16 @@ async def execute_manager_tool_calls(
                     search_port=search_port,
                     extract_port=extract_port,
                     allow_search=allow_search,
-                    force_new_meal_context=not bool(((state_before.injected_context or {}).get("PENDING_FOLLOWUP") or {}).get("is_open")),
+                    force_new_meal_context=(
+                        not bool(((state_before.injected_context or {}).get("PENDING_FOLLOWUP") or {}).get("is_open"))
+                        and not correction_target_resolved(correction_target)
+                    ),
                     contextualized_query=contextualized_query_for_estimation(raw_user_input=raw_user_input, state_before=state_before),
                 )
                 payload = getattr(artifact, "payload", None)
                 budget_summary = None
                 if payload is not None:
-                    budget_summary = tools.compare_against_budget_tool(
+                    budget_summary = compare_against_budget_tool(
                         current_budget_view=state_before.current_budget_view,
                         estimated_kcal=int(getattr(payload, "estimated_kcal", 0) or 0),
                         replaced_kcal=0,

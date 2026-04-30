@@ -49,13 +49,13 @@ def commit_candidate_from_payload(
     *,
     payload: EstimatePayload,
     raw_input: str,
-    planner_intent: str,
+    manager_intent: str,
     request_id: str | None,
 ) -> CommitRequestCandidate:
     trace_contract = payload.trace_contract or {}
     return CommitRequestCandidate(
         request_id=request_id or payload.request_id,
-        planner_intent=planner_intent,
+        manager_intent=manager_intent,
         version_reason="new_intake",
         meal_title=payload.meal_title or raw_input,
         raw_input=raw_input,

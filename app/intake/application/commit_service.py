@@ -13,13 +13,13 @@ def persist_text_meal_payload(
     db: Any,
     user: Any,
     latest_log: Any,
-    planner_intent: str,
+    manager_intent: str,
     payload: EstimatePayload,
     raw_input: str,
     request_id: str,
     incoming_user_message_id: int | None,
     conversation_state: Any,
-    planner_result: Any,
+    manager_semantic_decision: dict[str, Any] | None,
 ) -> dict[str, Any]:
     parent_version_id = None
     meal_thread_id = None
@@ -32,7 +32,7 @@ def persist_text_meal_payload(
     commit_candidate = build_commit_request_candidate(
         payload=payload,
         raw_input=raw_input,
-        planner_intent=planner_intent,
+        manager_intent=manager_intent,
         request_id=request_id,
         meal_thread_id=meal_thread_id,
         parent_version_id=parent_version_id,
@@ -59,17 +59,19 @@ def persist_text_meal_payload(
         db,
         user=user,
         latest_log=latest_log,
-        planner_intent=planner_intent,
+        manager_intent=manager_intent,
         payload=payload,
         raw_input=raw_input,
         request_id=request_id,
         incoming_user_message_id=incoming_user_message_id,
     )
     payload.trace_contract["persistence_decision"] = persistence_decision
-    if conversation_state.boundary_clarification_open and planner_result.meal_boundary != "boundary_clarification":
+    target_attachment = dict((manager_semantic_decision or {}).get("target_attachment") or {})
+    target_attachment_mode = str(target_attachment.get("mode") or "")
+    if conversation_state.boundary_clarification_open and target_attachment_mode != "boundary_clarification":
         payload.boundary_trace["boundary_resolution_state"] = "resolved"
         payload.boundary_trace["resolution_meal_id"] = persistence_decision.get("linked_meal_log_id")
-    elif planner_result.meal_boundary == "boundary_clarification":
+    elif target_attachment_mode == "boundary_clarification":
         payload.boundary_trace["boundary_resolution_state"] = "open"
     payload.span_timeline.append(
         {
@@ -82,7 +84,7 @@ def persist_text_meal_payload(
             "duration_ms": None,
             "input_ref": "trace_contract.persistence_decision",
             "output_ref": "multi_turn_context",
-            "stage_input_summary": {"planner_intent": persistence_decision.get("planner_intent")},
+            "stage_input_summary": {"manager_intent": persistence_decision.get("manager_intent")},
             "stage_output_summary": {
                 "action": persistence_decision.get("action"),
                 "status": persistence_decision.get("status"),

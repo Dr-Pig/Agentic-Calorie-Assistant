@@ -41,7 +41,7 @@ def load_current_budget_view(
             total_kcal=version.total_kcal,
             occurred_at=version.occurred_at,
             resolution_status=version.resolution_status,
-            planner_intent=version.planner_intent,
+            manager_intent=version.manager_intent,
             source_request_id=version.source_request_id,
         )
         for thread, version in meal_rows

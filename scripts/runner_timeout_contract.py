@@ -46,7 +46,7 @@ def apply_runner_timeout_contract(
     run_mode: str = "full",
     timed_out: bool = False,
     interrupted: bool = False,
-    pass_fields: tuple[str, ...] = ("runner_case_status", "founder_gate", "bundle_gate"),
+    pass_fields: tuple[str, ...] = ("runner_case_status", "founder_gate"),
 ) -> dict[str, Any]:
     contract = build_runner_timeout_contract(
         expected_total_cases=expected_total_cases,

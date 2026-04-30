@@ -5,8 +5,9 @@ from typing import Any, Callable
 from sqlalchemy.orm import Session
 
 from ...runtime.application.execution_guard import validate_intake_persistence
-from . import manager_tools as tools
 from .final_action_mutation_classifier import final_action_has_persistence_effect
+from .intake_persistence_tools import persist_meal_log_tool
+from .intake_trace_tools import append_trace_event_tool
 
 
 def initial_state_mutation_summary() -> dict[str, bool]:
@@ -26,6 +27,7 @@ def persist_bundle2_artifact(
     *,
     nutrition_artifact: Any | None,
     final_action: str,
+    manager_semantic_decision: dict[str, Any] | None,
     request_id: str,
     record_timing: Callable[[str, int], None],
     now_ms: Callable[[], int],
@@ -37,7 +39,13 @@ def persist_bundle2_artifact(
         return None
 
     start = now_ms()
-    persistence_result = tools.persist_meal_log_tool(db, artifact=nutrition_artifact, request_id=request_id)
+    persistence_result = persist_meal_log_tool(
+        db,
+        artifact=nutrition_artifact,
+        request_id=request_id,
+        final_action=final_action,
+        manager_semantic_decision=manager_semantic_decision,
+    )
     record_timing("tool_persist_meal_log", now_ms() - start)
     db.expire_all()
 
@@ -46,7 +54,7 @@ def persist_bundle2_artifact(
         canonical_commit_present=persistence_result.canonical_commit is not None,
     )
     if not guard.ok:
-        tools.append_trace_event_tool(
+        append_trace_event_tool(
             request_id=request_id,
             stage="v2_persist_meal_log",
             status="guard_failed",
@@ -73,7 +81,7 @@ def persist_bundle2_artifact(
     state_mutation_summary["new_meal_version_created"] = canonical_commit.get("meal_version_id") is not None
     state_mutation_summary["old_version_superseded"] = canonical_commit.get("superseded_version_id") is not None
 
-    tools.append_trace_event_tool(
+    append_trace_event_tool(
         request_id=request_id,
         stage="v2_persist_meal_log",
         status="ok",

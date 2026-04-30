@@ -6,7 +6,9 @@ import pytest
 
 from app.intake.application.commit_boundary_preflight import run_commit_boundary_preflight
 from app.intake.application.current_turn_context_assembler import build_current_turn_context_v1
+from app.intake.application.final_action_mutation_classifier import classify_final_action_mutation
 from app.shared.contracts.intake_results import EstimatePayload
+from app.runtime.contracts.phase_a import TransitionGuardResult
 
 
 def _payload(
@@ -94,6 +96,59 @@ def test_commit_boundary_preflight_blocks_canonical_write_when_projection_is_dra
     assert result.mutation_effect_class == "canonical_write"
     assert result.projected_commit_intent == "draft"
     assert result.canonical_write_allowed is False
+
+
+def test_commit_boundary_preflight_allows_manager_authorized_estimate_with_followup() -> None:
+    payload = _payload(
+        estimated_kcal=420,
+        action_taken="answer_with_uncertainty",
+        route_target="clarify_user_private",
+        canonical_write_allowed=False,
+        followup_question="What size was it?",
+    )
+
+    result = run_commit_boundary_preflight(
+        payload=payload,
+        manager_final_action="commit",
+        active_body_plan_present=True,
+        manager_semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "workflow_effect": "estimate_with_followup",
+            "final_action_candidate": "commit",
+            "mutation_intent_candidate": "canonical_write",
+        },
+    )
+
+    assert result.blocked is False
+    assert result.projected_commit_intent == "commit"
+    assert result.predicted_meal_status == "completed_meal"
+    assert result.canonical_write_allowed is True
+    assert payload.trace_contract["canonical_write_decision"]["source"] == "manager_semantic_decision"
+
+
+def test_manager_semantic_decision_can_supersede_pre_manager_answer_only_guard() -> None:
+    result = classify_final_action_mutation(
+        manager_payload={
+            "final_action": "commit",
+            "semantic_decision": {
+                "semantic_authority": "manager_llm",
+                "current_turn_intent": "log_meal",
+                "workflow_effect": "estimate_with_followup",
+                "final_action_candidate": "commit",
+                "mutation_intent_candidate": "canonical_write",
+            },
+        },
+        transition_guard_result=TransitionGuardResult(
+            verdict="answer_only",
+            reason="pre_manager_no_intake_signal",
+            blocked_mutation="meal_mutation",
+        ),
+    )
+
+    assert result.blocked is False
+    assert result.transition_guard_verdict == "pass"
+    assert result.transition_guard_reason == "manager_semantic_decision_authorized_mutation"
 
 
 def test_commit_boundary_preflight_allows_draft_pending_persistence_for_projected_draft() -> None:
@@ -216,6 +271,18 @@ class _Provider:
                 "answer_contract": {"reply_text": "ok"},
                 "uncertainty_posture": "bounded",
                 "evidence_honesty_posture": "generic_with_uncertainty",
+                "semantic_decision": {
+                    "semantic_authority": "manager_llm",
+                    "current_turn_intent": "log_meal",
+                    "target_attachment": {"mode": "new_workflow"},
+                    "workflow_effect": "commit",
+                    "final_action_candidate": "commit",
+                    "estimation_posture": "estimable",
+                    "followup_posture": "none",
+                    "mutation_intent_candidate": "canonical_write",
+                    "uncertainty_posture": "bounded_estimate",
+                    "source": "test_provider",
+                },
             },
             {"source": "fake"},
         )
@@ -241,6 +308,7 @@ async def test_process_bundle2_intake_blocks_commit_boundary_contradiction_befor
             followup_question="What size was it?",
         )
     )
+    nutrition_artifact.payload.trace_contract["blocking_slots"] = ["item_identity"]
     persisted: list[object] = []
 
     async def _fake_execute_manager_tool_calls(**kwargs: object) -> list[dict[str, object]]:
@@ -248,8 +316,8 @@ async def test_process_bundle2_intake_blocks_commit_boundary_contradiction_befor
         return [{"tool_name": "estimate_nutrition", "failure_family": None}]
 
     monkeypatch.setattr(module, "execute_manager_tool_calls", _fake_execute_manager_tool_calls)
-    monkeypatch.setattr(module.tools, "resolve_correction_target_tool", lambda **_: {})
-    monkeypatch.setattr(module.tools, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
     monkeypatch.setattr(module, "resolve_v2_bundle1_state", lambda *_, **__: resolved_state)
     monkeypatch.setattr(module, "persist_bundle2_artifact", lambda *args, **kwargs: persisted.append((args, kwargs)))
     monkeypatch.setattr(

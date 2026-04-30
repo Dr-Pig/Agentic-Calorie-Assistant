@@ -32,7 +32,7 @@ approved:
       - turn 1 may be a logged estimate with a strong follow-up
       - follow-up is a precision/refinement request, not a hidden commit gate
     supersedes:
-      - C-001 draft-first expectation
+      - C-001 old draft expectation
       - decision-pack pending status for this case
       - active oracle wording that requires canonical_commit=false on turn 1
       - active oracle wording that requires consumed_kcal==0 on turn 1

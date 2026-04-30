@@ -3,13 +3,16 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any
 
-from ...budget.application.current_budget_answer import build_remaining_budget_answer_contract
+from ...budget.application.current_budget_answer import (
+    build_remaining_budget_answer_contract,
+    build_remaining_budget_answer_contract_from_views,
+)
 from ...intake.application.boundary_output_honesty import enforce_intake_output_honesty
 from ...intake.application.phase_a_boundary_projection import attach_boundary_projection, build_intake_boundary_projection
 from ...intake.application.phase_c_mutation_projection import build_phase_c_trace
 from ...intake.application.phase_c_same_truth_gate import build_phase_c_same_truth_gate
 from ...intake.application.shadow_hypothesis_dialogue import apply_shadow_hypothesis_dialogue_cue
-from ...intake.application import manager_tools as tools
+from ...intake.application.intake_trace_tools import append_trace_event_tool
 from ...runtime.application.reply_renderer import render_bundle1_reply
 from ...runtime.application.request_trace_artifacts import build_trace_refs, write_bundle2_request_trace_artifact
 from ...runtime.application.sidecar_service import build_deterministic_sidecar
@@ -63,7 +66,10 @@ def build_bundle2_response(
     stage_timings: list[dict[str, Any]],
     phase_a_trace: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    remaining_budget_contract = build_remaining_budget_answer_contract(db, user_id=state_after.user_id, local_date=local_date)
+    remaining_budget_contract = build_remaining_budget_answer_contract_from_views(
+        current_budget=state_after.current_budget_view,
+        active_plan=state_after.active_body_plan_view,
+    )
     payload = getattr(nutrition_artifact, "payload", None) if nutrition_artifact is not None else None
     if payload is not None:
         phase_a_trace = attach_boundary_projection(
@@ -145,7 +151,7 @@ def build_bundle2_response(
     hard_fail_conditions = []
     if same_truth_gate.get("status") == "hard_fail" and same_truth_gate.get("failure_family"):
         hard_fail_conditions.append(str(same_truth_gate["failure_family"]))
-    tools.append_trace_event_tool(
+    append_trace_event_tool(
         request_id=request_id,
         stage="v2_renderer_sidecar",
         status="ok",

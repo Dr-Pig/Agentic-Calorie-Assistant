@@ -3,6 +3,11 @@ from __future__ import annotations
 from typing import Any, Awaitable, Callable
 
 from app.runtime.agent.manager_provider_readiness import provider_ready
+from app.runtime.agent.manager_context_payload import (
+    manager_context_pack_payload as serialize_manager_context_pack,
+    manager_context_trace_payload,
+    shadow_hypothesis_instruction,
+)
 from app.runtime.agent.manager_result_builder import (
     IntakeManagerResult,
     ManagerFinalPayloadShapeError,
@@ -28,6 +33,7 @@ ManagerContextRefresher = Callable[..., Awaitable[dict[str, Any]] | dict[str, An
 # semantic fields required by the single-manager final payload.
 SINGLE_MANAGER_PROMPT_CONTRACT_MARKER = (
     "intent, target_attachment; "
+    "semantic_decision; "
     "exactness, confidence, evidence_posture, repair_ack"
 )
 
@@ -47,74 +53,6 @@ def _with_phase_a_repair_trace(
             "repair_result": repair_result,
         }
     return updated
-
-
-def _shadow_hypothesis_instruction(phase_a_shadow_hypothesis: dict[str, Any] | None) -> dict[str, bool] | None:
-    if phase_a_shadow_hypothesis is None:
-        return None
-    return {
-        "not_confirmation": True,
-        "must_not_authorize_mutation": True,
-        "must_not_upgrade_final_action": True,
-        "must_not_upgrade_attachment_or_guard": True,
-    }
-
-
-def _shadow_hypothesis_role(phase_a_shadow_hypothesis: dict[str, Any] | None) -> str:
-    if phase_a_shadow_hypothesis is None:
-        return "not_supplied"
-    return str(phase_a_shadow_hypothesis.get("role") or "tentative_non_authoritative")
-
-
-def _manager_context_pack_payload(manager_context_pack: ManagerContextPack | None) -> dict[str, Any] | None:
-    if manager_context_pack is None:
-        return None
-    return {
-        "policy": manager_context_pack.policy.model_dump(mode="json"),
-        "manager_context": manager_context_pack.manager_context,
-        "available_if_needed": manager_context_pack.available_if_needed,
-    }
-
-
-def _manager_context_trace_payload(
-    *,
-    current_turn_context: CurrentTurnContextV1 | None,
-    manager_context_pack: ManagerContextPack | None,
-    manager_context_pack_payload: dict[str, Any] | None,
-    history_expansion_policy: HistoryExpansionPolicy,
-    phase_a_history_expansion_enabled: bool,
-    phase_a_shadow_hypothesis: dict[str, Any] | None,
-) -> dict[str, Any]:
-    phase_a_surface_mode = (
-        current_turn_context.current_interaction_event.surface_mode
-        if current_turn_context is not None
-        else None
-    )
-    trace: dict[str, Any] = {
-        "resolved_state_role": "compatibility_legacy",
-        "phase_a_manager_context_pack_role": "missing_structured_context",
-        "phase_a_shadow_hypothesis_role": _shadow_hypothesis_role(phase_a_shadow_hypothesis),
-        "phase_a_shadow_hypothesis": json_safe(phase_a_shadow_hypothesis),
-        "phase_a_shadow_hypothesis_instruction": _shadow_hypothesis_instruction(phase_a_shadow_hypothesis),
-        "surface_mode": phase_a_surface_mode,
-        "history_expansion_policy": history_expansion_policy.model_dump(mode="json"),
-        "history_expansion_enabled": phase_a_history_expansion_enabled,
-        "context_injection_policy": None,
-        "manager_context_pack": None,
-        "trace_only_inventory": [],
-        "not_for_manager_inventory": [],
-    }
-    if manager_context_pack is not None:
-        trace.update(
-            {
-                "phase_a_manager_context_pack_role": "primary_structured_context",
-                "context_injection_policy": manager_context_pack.policy.model_dump(mode="json"),
-                "manager_context_pack": json_safe(manager_context_pack_payload),
-                "trace_only_inventory": sorted(manager_context_pack.trace_only.keys()),
-                "not_for_manager_inventory": sorted(manager_context_pack.not_for_manager.keys()),
-            }
-        )
-    return trace
 
 
 async def run_intake_manager(
@@ -154,8 +92,8 @@ async def run_intake_manager(
             if current_turn_context is not None
             else None
         )
-        manager_context_pack_payload = _manager_context_pack_payload(manager_context_pack)
-        manager_context_trace = _manager_context_trace_payload(
+        manager_context_pack_payload = serialize_manager_context_pack(manager_context_pack)
+        manager_context_trace = manager_context_trace_payload(
             current_turn_context=current_turn_context,
             manager_context_pack=manager_context_pack,
             manager_context_pack_payload=manager_context_pack_payload,
@@ -180,7 +118,7 @@ async def run_intake_manager(
             "phase_a_history_expansion_enabled": phase_a_history_expansion_enabled,
             "phase_a_shadow_hypothesis": json_safe(phase_a_shadow_hypothesis),
             "phase_a_shadow_hypothesis_role": manager_context_trace["phase_a_shadow_hypothesis_role"],
-            "phase_a_shadow_hypothesis_instruction": _shadow_hypothesis_instruction(phase_a_shadow_hypothesis),
+            "phase_a_shadow_hypothesis_instruction": shadow_hypothesis_instruction(phase_a_shadow_hypothesis),
             "available_tools": list(available_tools),
             "tool_results": json_safe(tool_results),
             "round_index": round_index,

@@ -6,16 +6,13 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import JSONResponse
 
 from ...body.application import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from ...database import get_db, get_or_create_user
-from ...logging import append_audit_event, now_iso, write_request_trace_artifact
 from ...runtime.application.request_trace_artifacts import write_general_chat_request_trace_artifact
 from ...runtime.application.state_resolver import resolve_v2_bundle1_state
 from ...runtime.interface.provider_runtime import extract_provider, manager_provider, search_provider
 from ...schemas import EstimateRequest
-from ...shared.contracts.audit import AuditEvent
 from ..application import execute_bundle1_turn
 from ..application.canonical_commit_bridge import (
     get_active_body_profile_record,
@@ -28,6 +25,7 @@ from ..application.current_turn_context_assembler import build_current_turn_cont
 from ..application.general_chat_service import build_general_chat_response_pass
 from ..application.phase_a_boundary_projection import attach_boundary_projection, build_budget_boundary_projection
 from ..application.workflow_routing import build_workflow_routing_decision
+from .intake_error_response import build_estimate_error_response
 
 router = APIRouter()
 
@@ -55,11 +53,18 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
             current_turn_context=current_turn_context,
             resolved_state=state_before,
         )
-        if routing_result.target_workflow_family == "general_chat":
+        if routing_result.target_workflow_family == "general_chat" and routing_result.disposition == "answer_only":
+            if "CurrentBudgetView" in routing_result.required_read_surfaces:
+                general_chat_mode = "budget_summary"
+            elif "ActiveBodyPlanView" in routing_result.required_read_surfaces:
+                general_chat_mode = "goal_summary"
+            else:
+                general_chat_mode = "fallback_answer"
             general_chat_result = build_general_chat_response_pass(
                 db,
                 user_external_id=user_id,
                 raw_user_input=request.text,
+                mode=general_chat_mode,
                 local_date=local_date,
             )
             if general_chat_result.disposition != "open_new_workflow":
@@ -171,39 +176,9 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
             "payload": result,
         }
     except Exception as exc:
-        trace_path = write_request_trace_artifact(
-            request_id,
-            {
-                "request_id": request_id,
-                "timestamp": now_iso(),
-                "request": {
-                    "user_id": getattr(request, "user_id", "anonymous"),
-                    "text": request.text,
-                    "allow_search": request.allow_search,
-                },
-                "source_page_version": source_page_version,
-                "status": "error",
-                "error": str(exc),
-            },
-        )
-        append_audit_event(
-            AuditEvent(
-                request_id=request_id,
-                timestamp=now_iso(),
-                text=request.text,
-                allow_search=request.allow_search,
-                status="error",
-                error=str(exc),
-                source_page_version=source_page_version,
-                trace_artifact_path=str(trace_path),
-            )
-        )
-        return JSONResponse(
-            status_code=500,
-            content={
-                "request_id": request_id,
-                "error": str(exc) or "Internal Server Error",
-                "coach_message": "處理這則訊息時發生錯誤，請稍後再試。",
-                "payload": None,
-            },
+        return build_estimate_error_response(
+            request_id=request_id,
+            request=request,
+            source_page_version=source_page_version,
+            exc=exc,
         )

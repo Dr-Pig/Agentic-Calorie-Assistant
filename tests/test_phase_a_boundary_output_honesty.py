@@ -224,7 +224,12 @@ async def test_general_chat_route_applies_degraded_budget_output_honesty(
     monkeypatch.setattr(
         module,
         "build_workflow_routing_decision",
-        lambda **_: SimpleNamespace(target_workflow_family="general_chat", phase_a_trace={}),
+        lambda **_: SimpleNamespace(
+            target_workflow_family="general_chat",
+            disposition="answer_only",
+            required_read_surfaces=["CurrentBudgetView", "ActiveBodyPlanView"],
+            phase_a_trace={},
+        ),
     )
     monkeypatch.setattr(
         module,

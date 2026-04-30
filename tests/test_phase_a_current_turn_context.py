@@ -198,6 +198,23 @@ def test_resolve_attachment_decision_targets_recent_committed_meal_for_correctio
     assert decision.allowed_transition_class == "interpretation_update"
 
 
+def test_current_turn_context_uses_resolved_target_reference_not_correction_keywords() -> None:
+    context = build_current_turn_context_v1(
+        raw_user_input="half sugar",
+        resolved_state=_resolved_state(
+            target_meal_reference={
+                "meal_thread_id": 55,
+                "meal_version_id": 56,
+                "meal_title": "milk tea",
+                "target_resolution_source": "history_expansion",
+                "correction_confidence": "high",
+            },
+        ),
+    )
+
+    assert context.open_workflow_type == "meal_correction"
+
+
 def test_resolve_attachment_decision_routes_ambiguous_turns_to_answer_only() -> None:
     context = build_current_turn_context_v1(
         raw_user_input="ok",
@@ -212,26 +229,19 @@ def test_resolve_attachment_decision_routes_ambiguous_turns_to_answer_only() -> 
     assert guard.verdict == "answer_only"
 
 
-def test_resolve_attachment_decision_opens_new_workflow_on_explicit_topic_reset() -> None:
+def test_resolve_attachment_decision_does_not_keyword_route_new_workflows() -> None:
     context = build_current_turn_context_v1(
         raw_user_input="ignore that, I ate an egg",
-        resolved_state=_resolved_state(
-            pending_followup={
-                "is_open": True,
-                "meal_id": 10,
-                "meal_thread_id": 77,
-                "pending_question": "What portion was it?",
-            }
-        ),
+        resolved_state=_resolved_state(),
     )
 
     decision = resolve_attachment_decision(context)
     guard = resolve_transition_guard(context, decision)
 
-    assert decision.disposition == "create_new_workflow"
+    assert decision.disposition == "answer_only"
     assert decision.target_object_id is None
-    assert decision.reason == "explicit_topic_reset"
-    assert guard.verdict == "pass"
+    assert decision.reason == "no_attachment_signal"
+    assert guard.verdict == "answer_only"
 
 
 def test_resolve_attachment_decision_honors_explicit_ui_target_identity() -> None:

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
-from types import SimpleNamespace
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -16,7 +15,6 @@ from ...shared.contracts.intake import ComponentEstimate, EstimatePayload
 class EstimatedNutritionArtifact:
     request: EstimateRequest
     runtime_context: RequestRuntimeContext
-    planner_result: Any
     payload: EstimatePayload
 
 
@@ -118,15 +116,9 @@ def build_shadow_stub_artifact(
             "shadow_stub": True,
         },
     )
-    planner_result = type(
-        "StubPlannerResult",
-        (),
-        {"intent": "food_estimation", "meal_boundary": "start_new_meal"},
-    )()
     return EstimatedNutritionArtifact(
         request=request,
         runtime_context=runtime_context,
-        planner_result=planner_result,
         payload=payload,
     )
 
@@ -219,10 +211,8 @@ def build_exact_item_artifact(
             }
         ],
     )
-    planner_result = SimpleNamespace(intent="food_estimation", meal_boundary="start_new_meal")
     return EstimatedNutritionArtifact(
         request=request,
         runtime_context=runtime_context,
-        planner_result=planner_result,
         payload=payload,
     )

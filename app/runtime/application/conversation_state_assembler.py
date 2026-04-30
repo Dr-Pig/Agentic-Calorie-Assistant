@@ -11,7 +11,7 @@ from ...shared.domain import (
     ConversationState,
     DurableMemoryHit,
     MealRecord,
-    PlannerStateDigest,
+    ManagerStateDigest,
 )
 from ...shared.time_labels import describe_time_fields
 from .conversation_state_meal_state import build_active_meal_state, build_active_meal_summary
@@ -170,6 +170,21 @@ def _boundary_clarification_state(*, latest_log: Any | None, archive_messages: l
     return False, None
 
 
+def _chunk_record_id(chunk: Any) -> int:
+    try:
+        return int(getattr(chunk, "source_id", 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _chunk_local_date(chunk: Any) -> str:
+    metadata = getattr(chunk, "metadata", {}) or {}
+    if isinstance(metadata, dict) and metadata.get("local_date"):
+        return str(metadata["local_date"])
+    timestamp = str(getattr(chunk, "timestamp", "") or "")
+    return timestamp[:10]
+
+
 def assemble_conversation_state(
     *,
     user_id: str,
@@ -212,18 +227,17 @@ def assemble_conversation_state(
     )
     transcript_hits_for_archive = [
         ConversationRetrievalHit(
-            message_id=int(chunk.source_id or 0),
-            role=str(chunk.metadata.get("role") or "user"),
-            content=chunk.content,
-            created_at=chunk.timestamp or "",
+            record_id=_chunk_record_id(chunk),
+            summary_text=str(chunk.content or ""),
+            local_date=_chunk_local_date(chunk),
             score=chunk.score,
             matched_terms=chunk.matched_terms,
-            linked_meal_log_id=chunk.linked_meal_id,
+            rationale="session_transcript",
         )
         for chunk in file_transcript_hits
     ]
     combined_archive_hits = transcript_hits_for_archive or archive_hits
-    planner_state_digest = PlannerStateDigest(
+    manager_state_digest = ManagerStateDigest(
         active_meal_log_id=latest_log.id if latest_log else None,
         active_meal_title=latest_log.meal_title if latest_log else None,
         active_parent_log_id=latest_log.id if latest_log and latest_log.status != "superseded" else None,
@@ -270,7 +284,7 @@ def assemble_conversation_state(
         conversation_window_size=len(recent_messages),
         conversation_archive_hits=combined_archive_hits,
         conversation_digest=conversation_digest,
-        planner_state_digest=planner_state_digest,
+        manager_state_digest=manager_state_digest,
         active_meal_summary=active_meal_summary,
         active_meal_state=active_meal_state,
         pending_followup_state=pending_followup_state,

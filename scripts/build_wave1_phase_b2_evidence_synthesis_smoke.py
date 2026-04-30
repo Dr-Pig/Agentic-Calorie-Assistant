@@ -739,6 +739,11 @@ def _build_phase_b2_synthetic_smoke_report_legacy(
         "phase": "B2",
         "mode": "evidence_synthesis_gate",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "semantic_owner_integrity": {
+            "status": "blocked",
+            "failure_family": "semantic_owner_inversion",
+            "detail": "This producer still derives RetrievalIntent from raw user text. Treat the artifact as diagnostic-only until cases consume manager-owned structured semantic decisions.",
+        },
         "b1_green_handoff_snapshot": handoff_snapshot,
         "smoke_cases_run": SMOKE_CASES,
         "cases": cases,
@@ -960,6 +965,11 @@ def build_phase_b2_synthetic_smoke_report(
         "phase": "B2",
         "mode": "evidence_synthesis_gate",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "semantic_owner_integrity": {
+            "status": "blocked",
+            "failure_family": "semantic_owner_inversion",
+            "detail": "This producer still derives RetrievalIntent from raw user text. Treat the artifact as diagnostic-only until cases consume manager-owned structured semantic decisions.",
+        },
         "b1_green_handoff_snapshot": handoff_snapshot,
         "smoke_cases_run": SMOKE_CASES,
         "cases": cases,

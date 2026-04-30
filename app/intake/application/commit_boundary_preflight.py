@@ -66,13 +66,59 @@ def _effect_allowed(
     if mutation_effect_class == "canonical_write":
         return intent == "commit" and canonical_write_allowed
     if mutation_effect_class == "correction_persistence":
-        target_allowed = correction_target_resolved is not False
-        return intent == "commit" and canonical_write_allowed and target_allowed
+        return intent == "commit" and canonical_write_allowed and correction_target_resolved is True
     if mutation_effect_class == "ledger_mutation":
         return intent == "commit" and ledger_mutation_allowed
     if mutation_effect_class == "draft_pending_persistence":
         return intent == "draft" and not canonical_write_allowed and not ledger_mutation_allowed
     return False
+
+
+def _manager_semantic_decision_authorizes_canonical_write(
+    *,
+    manager_final_action: str,
+    manager_semantic_decision: dict[str, Any] | None,
+    payload: EstimatePayload,
+) -> bool:
+    if manager_final_action != "commit":
+        return False
+    decision = dict(manager_semantic_decision or {})
+    if decision.get("semantic_authority") not in {"manager_llm", "deterministic_fake_provider"}:
+        return False
+    if decision.get("current_turn_intent") != "log_meal":
+        return False
+    if decision.get("final_action_candidate") != "commit":
+        return False
+    if decision.get("mutation_intent_candidate") != "canonical_write":
+        return False
+    trace_contract = dict(payload.trace_contract or {})
+    if trace_contract.get("response_mode_hint") == "clarify_first":
+        return False
+    if [item for item in trace_contract.get("blocking_slots", []) if str(item).strip()]:
+        return False
+    return int(payload.estimated_kcal or 0) > 0
+
+
+def _apply_manager_semantic_canonical_write_decision(
+    *,
+    payload: EstimatePayload,
+    manager_final_action: str,
+    manager_semantic_decision: dict[str, Any] | None,
+) -> None:
+    if not _manager_semantic_decision_authorizes_canonical_write(
+        manager_final_action=manager_final_action,
+        manager_semantic_decision=manager_semantic_decision,
+        payload=payload,
+    ):
+        return
+    trace_contract = dict(payload.trace_contract or {})
+    trace_contract["canonical_write_decision"] = {
+        "can_write_canonical": True,
+        "source": "manager_semantic_decision",
+        "semantic_authority": str((manager_semantic_decision or {}).get("semantic_authority") or ""),
+        "mutation_intent_candidate": "canonical_write",
+    }
+    payload.trace_contract = trace_contract
 
 
 def run_commit_boundary_preflight(
@@ -81,6 +127,7 @@ def run_commit_boundary_preflight(
     manager_final_action: str,
     active_body_plan_present: bool,
     correction_target: Any | None = None,
+    manager_semantic_decision: dict[str, Any] | None = None,
 ) -> CommitBoundaryPreflightResult:
     effect_class = final_action_effect_class(manager_final_action)
     if effect_class == "none":
@@ -116,6 +163,11 @@ def run_commit_boundary_preflight(
             projection=None,
         )
 
+    _apply_manager_semantic_canonical_write_decision(
+        payload=payload,
+        manager_final_action=str(manager_final_action or ""),
+        manager_semantic_decision=manager_semantic_decision,
+    )
     projection = build_intake_boundary_projection(
         payload=payload,
         persistence_result=None,
@@ -123,6 +175,8 @@ def run_commit_boundary_preflight(
     )
     decision = projection.commit_boundary_decision
     target_resolved = _correction_target_resolved(correction_target)
+    if effect_class == "correction_persistence" and target_resolved is None:
+        target_resolved = False
     allowed = _effect_allowed(
         mutation_effect_class=effect_class,
         intent=decision.intent,

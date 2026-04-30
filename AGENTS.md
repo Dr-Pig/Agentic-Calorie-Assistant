@@ -15,7 +15,7 @@ Default truth families are:
 3. CI and harness output
 4. `git diff / commit history`
 
-Do not use [docs/archive/](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/archive), [artifacts/docs-snapshots/](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/docs-snapshots), completed task artifacts, or handoff docs as default truth.
+Do not use deleted archive paths, [artifacts/docs-snapshots/](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/docs-snapshots), completed task artifacts, or handoff docs as default truth.
 
 ## Product Truth Priority
 
@@ -101,6 +101,33 @@ safe_to_proceed_now: true | false
 why_not_local_next_step_trap:
 ```
 
+Required high-impact best-practice and semantic-owner check:
+
+```yaml
+best_practice_evidence:
+  required: true
+  sources_checked:
+    - official_or_primary_source:
+  adopted_guidance:
+  rejected_guidance:
+  conflict_with_repo_habits:
+  how_the_design_changed:
+llm_deterministic_boundary:
+  decision_surface:
+  truth_owner: LLM | deterministic | hybrid | human
+  deterministic_role: validate | derive | reject | downgrade | repair | none
+  llm_role: judge | synthesize | classify | explain | none
+  do_not_override:
+semantic_owner:
+  user_intent:
+  food_semantics:
+  routing_or_workflow_effect:
+  mutation_legality:
+  persistence_truth:
+```
+
+For any high-impact runtime, retrieval, tool orchestration, evaluation, semantic routing, mutation, provider seam, structured extraction, or architecture-boundary slice, missing `best_practice_evidence`, `llm_deterministic_boundary`, or `semantic_owner` is a stop condition before implementation.
+
 `slice_mode` is a list, not a single enum. A slice may legitimately be more than one thing at once, for example `diagnostic_only + offline_runtime` or `fixture_only + producer_honesty`.
 
 Hard rule:
@@ -146,9 +173,10 @@ Use deeper process docs only when the task shape requires them:
   - BuilderSpace transport is a runtime contract
   - before touching adapters, structured transport, or provider capability attribution, read the provider docs listed in Conditional Reads
   - treat model capability as artifact-proven, not assumed from endpoint compatibility
-- Legacy bundle / E2E claims:
-  - only then load [docs/specs/APP_V2_IMPLEMENTATION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_IMPLEMENTATION_PLAN.md) and the corresponding bundle pack
-  - bundle order is not build order
+- Legacy acceptance-package / E2E claims:
+  - legacy Bundle Version 1 / Bundle Version 2 packages are not repo truth, build order, semantic owners, or manager/runtime authority
+  - if an old acceptance runner or oracle conflicts with manager-style contracts, rebuild the harness around active runtime traces instead of adapting product architecture to the old package
+  - historical bundle naming in active runtime files is compatibility vocabulary only until the entrypoint rename lands
 - Ownership / debt / reviewer triage:
   - architecture-sensitive slices must make selector ownership, debt triage, and reviewer `proceed / narrow / stop` framing explicit
   - use [docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md) only for unattended / overnight / approval-light execution
@@ -198,8 +226,10 @@ This contract exists because CJK mojibake can happen before the agent sees comma
   - first decide the intended user-visible behavior and truth ownership, then use evals to verify that behavior
   - if a test asset is green but the resulting product behavior is wrong, treat the product behavior as the bug and the eval asset as incomplete or misaligned evidence
 - deterministic layers must not override completed LLM decision outputs
-  - do not deterministically rewrite `action_taken`, `response_mode_hint`, `follow_up_needed`, `followup_question`, `exactness`, or `resolution_mode` after a pass completes
+  - deterministic diagnostic mode means offline, reproducible, and no live provider call; it does not grant deterministic semantic ownership
+  - do not deterministically create, rewrite, or default semantic fields such as `intent`, `workflow_effect`, `action_taken`, `response_mode_hint`, `follow_up_needed`, `followup_question`, `route_target`, `exactness`, or `resolution_mode` after a pass completes
   - deterministic layers may validate, reject, downgrade, derive, or request one bounded repair round
+  - fake providers in deterministic diagnostics may simulate LLM / manager structured outputs, but the harness must not infer user intent, food semantics, workflow effect, or final mapping by keyword or obsolete oracle
 - unapproved product semantics must not enter eval truth
   - do not write unapproved product semantics into eval packs, benchmark oracles, semantic taxonomies, or pass/fail rubrics
   - evidence collection may record competing interpretations or ambiguity clusters, but it must not silently canonize unresolved product decisions
@@ -217,7 +247,7 @@ This contract exists because CJK mojibake can happen before the agent sees comma
   - for agent runtime, retrieval, tool orchestration, and structured extraction work, check current official best-practice guidance before constraining the design
   - when official guidance and current repo habits conflict, build the strongest reasonable baseline first, then use eval / latency / cost traces to converge
   - do not prematurely hard-cap iteration budgets, retrieval budgets, or model capability before an eval-backed baseline exists
-- legacy bundle / E2E claims must use the bundle bootstrap workflow and parity evidence; do not use bundle order as implementation order
+- legacy Bundle Version 1 / Bundle Version 2 artifacts, runners, and oracle vocabulary must not drive product semantics, build order, manager contracts, or readiness claims
 - ownership-sensitive slices must make selector ownership and debt triage explicit before editing
 - reviewer steering remains `proceed / narrow / stop` for architecture-sensitive work
 - chat is the primary interaction surface for the product
@@ -267,13 +297,9 @@ Default deterministic guardrails include:
   - [docs/specs/app_v2_ideal_architecture_final.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/app_v2_ideal_architecture_final.md)
   - task-specific canonical spec
   - task-specific micro-suite / eval gate
-- legacy bundle / E2E regression claims:
-  - [docs/specs/APP_V2_IMPLEMENTATION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_IMPLEMENTATION_PLAN.md)
-  - corresponding parity audit / bundle runner / founder realism artifacts
-- Legacy bundle / E2E regression work only:
-  - [docs/specs/APP_V2_IMPLEMENTATION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_IMPLEMENTATION_PLAN.md)
-  - [docs/quality/V2_EVAL_BUNDLE_1_CASES.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/V2_EVAL_BUNDLE_1_CASES.md)
-  - [docs/quality/V2_EVAL_BUNDLE_2_CASES.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/V2_EVAL_BUNDLE_2_CASES.md)
+- legacy acceptance-package / E2E regression work only:
+  - use current Manager-style Founder E2E diagnostics and Wave 1 capability micro-suites
+  - do not resurrect deleted Bundle Version 1 / Bundle Version 2 docs, runners, parity audits, or obsolete oracles
 - onboarding / budget / today-sync happy-path work:
   - [docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md)
   - [docs/specs/L2_DATA_STATE_SPEC.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/L2_DATA_STATE_SPEC.md)
@@ -283,9 +309,8 @@ Default deterministic guardrails include:
 - proactive scheduler, trigger conditions, suppression, or nudge design:
   - [docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md)
 - eval / benchmark / suite-governance work:
-  - [docs/archive/quality/L5A_EVAL_SPEC.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/archive/quality/L5A_EVAL_SPEC.md)
-  - [docs/archive/quality/L5B_BENCHMARK_SPEC.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/archive/quality/L5B_BENCHMARK_SPEC.md)
-  - [docs/archive/quality/L5D_SUITE_GOVERNANCE_SPEC.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/archive/quality/L5D_SUITE_GOVERNANCE_SPEC.md)
+  - [docs/quality/](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality)
+  - task-specific eval gate or benchmark manifest under the active quality docs
 - founder human gate testing or UX journey validation:
   - [docs/quality/UX_JOURNEY_TO_SLICE_MAP.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/UX_JOURNEY_TO_SLICE_MAP.md)
 - repo rules or file placement:

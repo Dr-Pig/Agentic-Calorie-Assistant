@@ -166,12 +166,13 @@ def get_meal_log_history(db: Session, user: User, limit: int = 10, include_super
     query = db.query(MealLog).filter(MealLog.user_id == user.id)
     if not include_superseded:
         query = query.filter(MealLog.status != "superseded")
-    logger.debug(f"get_meal_log_history include_superseded={include_superseded}, count found: {query.count()}")
-    return (
+    rows = (
         query.order_by(desc(MealLog.id))
         .limit(limit)
         .all()
     )
+    logger.debug(f"get_meal_log_history include_superseded={include_superseded}, returned={len(rows)} limit={limit}")
+    return rows
 
 
 # ── Message Buffer ────────────────────────────────────
@@ -241,11 +242,17 @@ def get_recent_messages(db: Session, user: User, limit: int = 10) -> list[Messag
 
 
 def get_conversation_archive(db: Session, user: User, limit: int | None = None) -> list[MessageBuffer]:
-    query = (
-        db.query(MessageBuffer)
-        .filter(MessageBuffer.user_id == user.id)
-        .order_by(MessageBuffer.created_at.asc(), MessageBuffer.id.asc())
+    base_query = db.query(MessageBuffer).filter(MessageBuffer.user_id == user.id)
+    if limit is None:
+        return (
+            base_query
+            .order_by(MessageBuffer.created_at.asc(), MessageBuffer.id.asc())
+            .all()
+        )
+    rows = (
+        base_query
+        .order_by(desc(MessageBuffer.created_at), desc(MessageBuffer.id))
+        .limit(limit)
+        .all()
     )
-    if limit is not None:
-        query = query.limit(limit)
-    return query.all()
+    return list(reversed(rows))

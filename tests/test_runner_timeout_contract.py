@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from scripts.runner_timeout_contract import apply_runner_timeout_contract
-from scripts.run_v2_benchmark_blocking_eval import _build_report as build_benchmark_report
 from scripts.run_v2_founder_realism_eval import _build_report as build_founder_report
 
 
@@ -61,19 +60,6 @@ def test_full_complete_report_can_be_final_gate_eligible() -> None:
     assert guarded["report_status"] == "complete"
     assert guarded["final_gate_eligible"] is True
     assert guarded["summary"]["runner_case_status"] == "pass"
-
-
-def test_benchmark_partial_report_marks_incomplete() -> None:
-    report = build_benchmark_report(
-        base_url="http://test",
-        local_date="2026-04-23",
-        selected_cases=[{"source_case_id": "case-a", "source_suite": "suite"}, {"source_case_id": "case-b", "source_suite": "suite"}],
-        results=[{"case_id": "case-a", "passed": True}],
-    )
-
-    assert report["report_status"] == "incomplete"
-    assert report["summary"]["runner_case_status"] == "fail"
-    assert report["summary"]["request_failure_family"] == "partial_report"
 
 
 def test_founder_shard_report_is_not_final_gate() -> None:

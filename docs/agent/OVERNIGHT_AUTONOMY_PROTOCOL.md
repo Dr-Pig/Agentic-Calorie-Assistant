@@ -286,16 +286,7 @@ Do not promote autonomous nutrition subagents into product runtime just because 
 
 ## CLI Runner Pattern
 
-This repo contains a bounded Codex CLI wrapper:
-
-- [scripts/run_codex_exec_with_prompt.py](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/scripts/run_codex_exec_with_prompt.py)
-
-Current confirmed shape:
-
-- accepts `--prompt-file`
-- accepts `--cd`
-- accepts `--mode planner|evaluator|worker|verifier`
-- resolves a local `codex` binary
+Detached role-loop wrappers were removed from this repo. Use interactive subagents in the current Codex session unless a new, reviewed autonomy runner is explicitly introduced.
 - executes `codex exec` with workspace-write sandbox
 
 Recommended overnight use:

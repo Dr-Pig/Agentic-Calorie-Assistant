@@ -405,12 +405,6 @@ $protectedRules = @(
         Rule = "protected: Wave 1 execution orchestration must stay thin; delegate tool execution and persistence seams"
     },
     @{
-        Path = "app/intake/application/manager_tools.py"
-        Threshold = 120
-        Kind = "application-tools"
-        Rule = "protected: manager_tools is now a compatibility facade; new ownership must live in dedicated intake support modules"
-    },
-    @{
         Path = "app/providers/builderspace_adapter.py"
         Threshold = 1100
         Kind = "provider-adapter"

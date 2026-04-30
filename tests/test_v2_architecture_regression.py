@@ -35,20 +35,8 @@ def test_runtime_trace_contract_exports_manager_stage_names() -> None:
     assert 'MANAGER_LOOP_STAGE = "intake_manager_round"' in source
 
 
-def test_v2_manager_tools_no_longer_imports_v1_orchestration_bridge() -> None:
-    source = (ROOT / "app" / "intake" / "application" / "manager_tools.py").read_text(encoding="utf-8")
-
-    assert "execute_text_meal_orchestration" not in source
-    assert "OrchestrationOutcome" not in source
-    assert _legacy_request_support_token() not in source
-
-
-def test_v2_manager_tools_remains_a_thin_compatibility_facade() -> None:
-    source = (ROOT / "app" / "intake" / "application" / "manager_tools.py").read_text(encoding="utf-8")
-
-    assert "def " not in source
-    assert "class " not in source
-    assert "if " not in source
+def test_v2_manager_tools_compatibility_facade_is_deleted() -> None:
+    assert not (ROOT / "app" / "intake" / "application" / ("manager_" + "tools.py")).exists()
 
 
 def test_v2_schemas_no_longer_exports_archived_recommendation_contracts() -> None:
@@ -65,8 +53,10 @@ def test_v2_services_import_intake_domain_tools_and_ignore_legacy_provider_split
     bundle2_tools = (ROOT / "app" / "runtime" / "application" / "bundle2_tool_batch.py").read_text(encoding="utf-8")
     estimation = (ROOT / "app" / "intake" / "application" / "intake_estimation_tools.py").read_text(encoding="utf-8")
 
-    assert "from . import manager_tools as tools" in bundle1
-    assert "from . import manager_tools as tools" in bundle2
+    assert "manager_tools" not in bundle1
+    assert "manager_tools" not in bundle2
+    assert "from .intake_trace_tools import append_trace_event_tool" in bundle1
+    assert "from .intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool" in bundle2
     assert _legacy_provider_token("planner") not in bundle1
     assert _legacy_provider_token("primary") not in bundle1
     assert _legacy_provider_token("planner") not in bundle2

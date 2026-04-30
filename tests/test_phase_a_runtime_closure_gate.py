@@ -227,7 +227,7 @@ def test_phase_a_ms7_blocks_false_commit_and_normalizes_structured_output() -> N
     assert output.phase_a_trace["phase_a_output_honesty"]["structured_sources"]
 
 
-def test_phase_a_ms7_history_activation_enriches_context_without_manager_trigger_capability() -> None:
+def test_phase_a_ms7_pre_manager_history_activation_is_trace_only_until_manager_scope() -> None:
     resolved_state = _resolved_state(
         retrieved_meal_records=[
             _meal_chunk(
@@ -258,11 +258,12 @@ def test_phase_a_ms7_history_activation_enriches_context_without_manager_trigger
     )
     manager_pack = build_manager_context_pack(current_turn_context=activation.enriched_current_turn_context)
 
-    assert activation.applied is True
-    assert activation.resolution_gain is True
-    assert activation.post_attachment_decision.disposition == "target_committed_thread"
-    assert activation.selected_candidate_ids == ("77",)
-    assert manager_pack.manager_context["candidate_attachment_targets"][0]["target_object_id"] == "77"
+    assert activation.applied is False
+    assert activation.resolution_gain is False
+    assert activation.atomic_blocks_status == "trace_only_disabled"
+    assert activation.post_attachment_decision == pre_attachment
+    assert activation.selected_candidate_ids == ()
+    assert manager_pack.manager_context["candidate_attachment_targets"] == []
 
 
 def test_phase_a_ms14_no_plan_fallback_uses_structured_honesty_not_reply_wording() -> None:
@@ -361,7 +362,7 @@ async def test_phase_a_manager_payload_keeps_history_manager_trigger_disabled_af
     assert isinstance(payload, dict)
     assert payload["phase_a_history_expansion_enabled"] is False
     assert "history_expansion_request" not in payload
-    assert payload["phase_a_manager_context_pack"]["manager_context"]["candidate_attachment_targets"][0]["target_object_id"] == "77"
+    assert payload["phase_a_manager_context_pack"]["manager_context"]["candidate_attachment_targets"] == []
 
 
 @pytest.mark.asyncio
@@ -444,6 +445,7 @@ def test_phase_a_manager_triggered_history_is_active_local_only_closure() -> Non
     expansion = activate_manager_triggered_history_expansion(
         current_turn_context=context,
         resolved_state=resolved_state,
+        manager_tool_arguments={"reason": "correction_reference", "scope": "recent_meals"},
     )
 
     assert PHASE_A_EXPAND_HISTORY_TOOL == "phase_a_expand_history"

@@ -8,7 +8,7 @@
 
 - 將 `V2_WAVE_1_CAPABILITY_MICRO_SUITES.md` 的 suite 骨架落成可實作 runner 的 case-level contracts
 - 先建立少量、高訊號、可腳本驗證的 capability cases
-- 幫助 coding agent 依 system-capability build order 分段建置，而不是直接 patch Bundle 1 / Bundle 2
+- 幫助 coding agent 依 system-capability build order 分段建置，而不是直接 patch historical acceptance packages
 
 本文件不是：
 
@@ -24,11 +24,11 @@
 ### 日常開發
 只跑與當前修改相關的 suite。
 
-### Bundle readiness
-跑 MVP micro-suites + Bundle 1 / Bundle 2。
+### Manager-style intake readiness
+跑 MVP micro-suites + current Manager-style intake diagnostics。
 
 ### Wave 1 readiness
-跑完整 micro-suites + Bundle 1 / Bundle 2 + benchmark v1/v2 + turn2 replay。
+跑完整 micro-suites + current Manager-style intake diagnostics + benchmark v1/v2 + turn2 replay。
 
 ---
 
@@ -919,15 +919,15 @@ verification_type: deterministic_plus_artifact
 notes: search-related case 必須可審計。
 ```
 
-### MS12-003 Bundle pass requires case-level verdicts
+### MS12-003 Manager diagnostic pass requires case-level verdicts
 ```yaml
 case_id: MS12-003
 suite_id: MS12
 primary_capability: T9.1 Request / Artifact Linkage
 primary_failure_family: FAM-TRACE
 setup_state:
-  bundle_run: Bundle 2
-input: claim_bundle_pass
+  diagnostic_run: intake_depth
+input: claim_manager_diagnostic_pass
 expected_contract:
   case_level_verdicts_present: true
   failed_cases_list_present_if_any: true
@@ -1023,9 +1023,9 @@ artifact_path:
 
 ---
 
-## 與 Bundle Gate 的使用關係
+## 與 Manager-Style Readiness 的使用關係
 
-### Declaring Bundle 1 ready
+### Declaring intake-entry ready
 至少應通過：
 - MS1
 - MS7
@@ -1034,7 +1034,7 @@ artifact_path:
 - MS12
 - MS14
 
-### Declaring Bundle 2 ready
+### Declaring intake-depth ready
 至少應通過：
 - MS2
 - MS3
@@ -1052,8 +1052,8 @@ artifact_path:
 ### Declaring Wave 1 ready
 應通過：
 - all MVP micro-suite cases
-- Bundle 1
-- Bundle 2
+- current Manager-style intake-entry diagnostic
+- current Manager-style intake-depth diagnostic
 - benchmark v1/v2 selected regression set
 - turn2 replay selected regression set
 

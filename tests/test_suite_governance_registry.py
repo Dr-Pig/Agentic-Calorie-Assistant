@@ -222,7 +222,6 @@ def test_workflow_official_packs_are_promoted_canonical_artifacts() -> None:
                 assert case["expected_decision_next_action"] in {
                     "run_clarify",
                     "run_tool_lookup",
-                    "run_nutrition_resolution",
                 }
             if "expected_commit_posture" in case:
                 assert case["expected_commit_posture"] in {"commit", "no_commit"}

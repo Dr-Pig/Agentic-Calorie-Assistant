@@ -40,10 +40,9 @@
 
 `docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md`
 
-不要直接從以下文件開始 implementation：
+不要直接從以下來源開始 implementation：
 
-- Bundle 1 cases
-- Bundle 2 cases
+- deleted legacy Bundle Version 1 / Bundle Version 2 cases
 - benchmark files
 - replay packs
 - old L0–L6 docs
@@ -51,7 +50,7 @@
 
 原因：
 
-- Bundle / benchmark 是 acceptance 或 regression，不是 build order
+- legacy Bundle / benchmark 是 historical acceptance 或 regression，不是 build order
 - whole-product lattice 是 product capability map，不是施工指令
 - operating entry 會先鎖定 anti-drift operating rules
 - phase bootstrap 會再引導 coding agent 依正確順序閱讀 Wave 1 必要文件
@@ -96,8 +95,8 @@
 |---|---|---|---|
 | `docs/quality/V2_WAVE_1_CAPABILITY_MICRO_SUITES.md` | Active eval design | Wave 1 system-capability micro-suite design | Required via bootstrap |
 | `docs/quality/V2_WAVE_1_MICRO_SUITE_CASES.md` | Active eval cases | First MVP micro-suite cases | Required via bootstrap |
-| `docs/quality/V2_EVAL_BUNDLE_1_CASES.md` | Active acceptance gate | Bundle 1 product journey acceptance | Use after micro-suite progress |
-| `docs/quality/V2_EVAL_BUNDLE_2_CASES.md` | Active acceptance gate | Bundle 2 intake-depth acceptance | Use after micro-suite progress |
+| Manager-style Founder E2E diagnostics | Active acceptance evidence | Active runtime / manager contract acceptance | Use after micro-suite progress |
+| Wave 1 B1/B2 capability harnesses | Active capability evidence | Manager/tool-loop and B2 evidence-stack checks | Use as capability gates, not legacy bundle truth |
 
 ---
 
@@ -105,9 +104,9 @@
 
 | Asset | Status | Purpose | Coding Agent Use |
 |---|---|---|---|
-| benchmark v1 | Active regression/reference | Realism / edge regression | Use after bundle readiness |
-| benchmark v2 | Active regression/reference | Expanded realism / edge regression | Use after bundle readiness |
-| turn2 hybrid replay | Active replay/regression | Multi-turn / same-meal / correction realism | Use after bundle readiness |
+| benchmark v1 | Active regression/reference | Realism / edge regression | Use after manager-style capability readiness |
+| benchmark v2 | Active regression/reference | Expanded realism / edge regression | Use after manager-style capability readiness |
+| turn2 hybrid replay | Active replay/regression | Multi-turn / same-meal / correction realism | Use after manager-style capability readiness |
 
 These should not be used as implementation order.
 They should be remapped to Wave 1 micro-suites and used as regression / anti-overfit gates.
@@ -136,8 +135,8 @@ The following files have been inspected or identified from existing canonical do
 | Legacy File | Status | New Role | Replacement / Reference | Action |
 |---|---|---|---|---|
 | `docs/specs/L0_PRODUCT_CAPABILITY_SPEC.md` | Active canonical reference | Product semantics, shared product objects, chat/UI product model | Referenced by V2 lattice and execution plan | Keep; do not archive |
-| `docs/specs/L0A_ONBOARDING_FLOW_SPEC.md` | Active canonical reference for onboarding | Onboarding fields, BodyPlan bootstrap, no-onboarding fallback | Referenced by Wave 1 F1 / Bundle 1 | Keep; do not archive |
-| `docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md` | Active canonical reference for budget happy path | BodyPlan → DayBudgetLedger → chat/UI shared truth | Referenced by Wave 1 F3 / Bundle 1-2 | Keep; do not archive |
+| `docs/specs/L0A_ONBOARDING_FLOW_SPEC.md` | Active canonical reference for onboarding | Onboarding fields, BodyPlan bootstrap, no-onboarding fallback | Referenced by Wave 1 F1 / intake-entry readiness | Keep; do not archive |
+| `docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md` | Active canonical reference for budget happy path | BodyPlan → DayBudgetLedger → chat/UI shared truth | Referenced by Wave 1 F3 / intake readiness | Keep; do not archive |
 | `docs/specs/app_v2_ideal_architecture_final.md` | Active canonical architecture truth | Business-domain-first modular monolith and layer rules | Required by bootstrap and implementation plan | Keep; do not archive |
 | `docs/specs/APP_V2_IMPLEMENTATION_PLAN.md` | Active repo-aware implementation plan, but partially older bundle framing | Repo reality, existing module evidence, bundle/tool history, EDD stage guardrails | Use as architecture/repo evidence, not as current Wave 1 build order | Keep; update only if actively misleading |
 | `docs/specs/L3_1_INTAKE_RUNTIME_CONTRACT_SPEC.md` | Active canonical intake runtime contract | Single-manager intake shape, tool batch, guard, sidecar, sync rules | Aligns strongly with Wave 1 specs and minimal contracts | Keep; do not archive |
@@ -169,24 +168,22 @@ Do not archive these until inspected.
 
 ---
 
-## Archive / Superseded Rule
+## Superseded Content Rule
 
-A file can be moved to `docs/archive/legacy/` only if all are true:
+Superseded material should not be kept as repo-visible agent truth. Remove it only if all are true:
 
 1. It no longer contains unique canonical product / architecture / data / eval truth
 2. Its responsibility is clearly replaced by a V2 file
 3. It is not required by tests, scripts, or active docs
-4. User / maintainer confirms the move
+4. User / maintainer confirms the deletion
 
-Recommended top notice before moving:
+If preservation is required, use an external snapshot outside the active repo truth path.
 
 ```md
-> SUPERSEDED / ARCHIVE CANDIDATE
+> SUPERSEDED / DELETION CANDIDATE
 > Do not use as implementation entrypoint.
 > Current replacement: <new V2 file>
 ```
-
-For the current repo-level archive policy, see `docs/archive/ARCHIVE_GOVERNANCE_INDEX.md`.
 
 ---
 
@@ -203,7 +200,7 @@ For Wave 1:
 7. Read minimal implementation contracts
 8. Use failure taxonomy / rubric / patch addendum for evaluation and fixes
 9. Run relevant micro-suites
-10. Only then run Bundle 1 / Bundle 2 acceptance cases
+10. Only then run Manager-style E2E diagnostics
 11. Use benchmark / replay for regression and realism
 
 ---

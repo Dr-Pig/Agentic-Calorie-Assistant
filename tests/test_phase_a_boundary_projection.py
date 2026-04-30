@@ -26,8 +26,14 @@ def _payload(
     response_mode_hint: str = "rough_estimate_ok",
     missing_slots: list[str] | None = None,
     unresolved_info: list[str] | None = None,
-    canonical_write_allowed: bool = True,
+    canonical_write_allowed: bool | None = True,
+    blocking_slots: list[str] | None = None,
 ) -> EstimatePayload:
+    canonical_write_decision = (
+        {"can_write_canonical": canonical_write_allowed}
+        if canonical_write_allowed is not None
+        else {}
+    )
     return EstimatePayload(
         request_id="req-1",
         meal_title=meal_title,
@@ -39,11 +45,10 @@ def _payload(
         trace_contract={
             "response_mode_hint": response_mode_hint,
             "missing_slots": list(missing_slots or []),
+            "blocking_slots": list(blocking_slots or []),
             "unresolved_info": list(unresolved_info or []),
             "followup_question": followup_question,
-            "canonical_write_decision": {
-                "can_write_canonical": canonical_write_allowed,
-            },
+            "canonical_write_decision": canonical_write_decision,
         },
         reasoning_state={
             "missing_high_impact_slots": list(missing_slots or []),
@@ -78,6 +83,33 @@ def test_estimate_with_followup_projects_draft_when_write_owner_blocks_it() -> N
     assert projection.commit_boundary_decision.ledger_mutation_allowed is False
     assert projection.owner_alignment == "aligned"
     assert projection.legacy_projection["clarify_mode"] == "estimate_with_followup"
+
+
+def test_followup_presence_alone_does_not_project_draft_without_write_owner_block() -> None:
+    payload = _payload(
+        meal_title="pearl milk tea",
+        estimated_kcal=450,
+        action_taken="answer_with_uncertainty",
+        follow_up_needed=True,
+        followup_question="What size and sugar level was it?",
+        response_mode_hint="rough_estimate_ok",
+        missing_slots=["size", "sugar_level"],
+        canonical_write_allowed=None,
+    )
+
+    projection = build_intake_boundary_projection(
+        payload=payload,
+        persistence_result=_PersistenceResult(
+            action="save_completed_log",
+            canonical_commit={"meal_thread_id": 10},
+        ),
+        active_body_plan_present=True,
+    )
+
+    assert projection.clarification_decision.mode == "estimate_with_followup"
+    assert projection.commit_boundary_decision.intent == "commit"
+    assert projection.commit_boundary_decision.predicted_meal_status == "completed_meal"
+    assert projection.commit_boundary_decision.canonical_write_allowed is True
 
 
 def test_estimate_with_followup_can_project_commit_when_write_owner_allows_it() -> None:
@@ -133,6 +165,30 @@ def test_homemade_dish_projects_clarify_before_estimate() -> None:
     assert projection.clarification_decision.provisional_range_allowed is False
     assert projection.commit_boundary_decision.intent == "draft"
     assert projection.commit_boundary_decision.predicted_meal_status == "draft_unresolved"
+
+
+def test_blocking_slots_project_draft_as_legality_blocker() -> None:
+    payload = _payload(
+        meal_title="self selected basket",
+        estimated_kcal=450,
+        action_taken="answer_with_uncertainty",
+        follow_up_needed=True,
+        followup_question="Which items and portions?",
+        response_mode_hint="rough_estimate_ok",
+        blocking_slots=["item_identity"],
+        canonical_write_allowed=None,
+    )
+
+    projection = build_intake_boundary_projection(
+        payload=payload,
+        persistence_result=_PersistenceResult(action="save_draft_log", canonical_commit=None),
+        active_body_plan_present=True,
+    )
+
+    assert projection.clarification_decision.mode == "estimate_with_followup"
+    assert projection.commit_boundary_decision.intent == "draft"
+    assert projection.commit_boundary_decision.predicted_meal_status == "draft_unresolved"
+    assert projection.commit_boundary_decision.canonical_write_allowed is False
 
 
 def test_simple_meal_projects_direct_commit() -> None:
