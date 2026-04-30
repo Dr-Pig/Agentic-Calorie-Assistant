@@ -1058,6 +1058,7 @@ def _artifact_completeness_audit(
     missing_chain_nodes: list[dict[str, Any]] = []
     rejected_packet_evidence_ref_violations: list[dict[str, Any]] = []
     source_selection_semantic_owner_violations: list[dict[str, Any]] = []
+    packet_consumption_trace_violations: list[dict[str, Any]] = []
     producer_final_mapping_owner_violations: list[dict[str, Any]] = []
     strict_exact_estimability_violations: list[dict[str, Any]] = []
 
@@ -1068,6 +1069,7 @@ def _artifact_completeness_audit(
         packets = _packets_by_id(case)
         item_results = ((case.get("manager_pass_2") or {}).get("item_results") or [])
         source_selection = case.get("source_selection")
+        packet_consumption = case.get("packet_consumption")
 
         if not isinstance(source_selection, dict):
             missing_chain_nodes.append({"case_id": case_id, "node": "source_selection"})
@@ -1078,6 +1080,11 @@ def _artifact_completeness_audit(
             missing_chain_nodes.append({"case_id": case_id, "node": "candidate_packets"})
         elif any("supports_exact_claim" not in packet for packet in packets.values() if packet.get("source_type") in {"exact_db", "web_search", "web_extract", "generic_db"}):
             missing_chain_nodes.append({"case_id": case_id, "node": "exact_hard_recheck"})
+
+        consumption_audit = _check_packet_consumption_trace(case_id, packet_consumption, packets)
+        if not consumption_audit["passed"]:
+            packet_consumption_trace_violations.extend(consumption_audit["violations"])
+            missing_chain_nodes.extend(consumption_audit["missing_chain_nodes"])
 
         if not item_results:
             missing_chain_nodes.append({"case_id": case_id, "node": "synthesis_item_results"})
@@ -1098,6 +1105,16 @@ def _artifact_completeness_audit(
         }
         for packet_id in sorted(rejected_ids.intersection(evidence_ids)):
             rejected_packet_evidence_ref_violations.append({"case_id": case_id, "packet_id": packet_id})
+        accepted_packet_ids = set(consumption_audit.get("accepted_packet_ids") or [])
+        rejected_candidate_packet_ids = set(consumption_audit.get("rejected_candidate_packet_ids") or [])
+        for packet_id in sorted(evidence_ids - accepted_packet_ids):
+            packet_consumption_trace_violations.append(
+                {"case_id": case_id, "packet_id": packet_id, "reason": "evidence_not_accepted_by_packet_consumption"}
+            )
+        for packet_id in sorted(rejected_ids - rejected_candidate_packet_ids):
+            packet_consumption_trace_violations.append(
+                {"case_id": case_id, "packet_id": packet_id, "reason": "rejection_not_traced_by_packet_consumption"}
+            )
 
         for item_index, item in enumerate(item_results):
             if not isinstance(item, dict):
@@ -1125,6 +1142,7 @@ def _artifact_completeness_audit(
         not missing_chain_nodes
         and not rejected_packet_evidence_ref_violations
         and not source_selection_semantic_owner_violations
+        and not packet_consumption_trace_violations
         and not producer_final_mapping_owner_violations
         and not strict_exact_estimability_violations
         and not pending_policy_promotions
@@ -1136,10 +1154,56 @@ def _artifact_completeness_audit(
         "missing_chain_nodes": missing_chain_nodes,
         "rejected_packet_evidence_ref_violations": rejected_packet_evidence_ref_violations,
         "source_selection_semantic_owner_violations": source_selection_semantic_owner_violations,
+        "packet_consumption_trace_violations": packet_consumption_trace_violations,
         "producer_final_mapping_owner_violations": producer_final_mapping_owner_violations,
         "strict_exact_estimability_violations": strict_exact_estimability_violations,
         "pending_policy_promotions": pending_policy_promotions,
     }
+
+
+def _check_packet_consumption_trace(
+    case_id: Any,
+    packet_consumption: Any,
+    packets: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    if not isinstance(packet_consumption, dict):
+        return {
+            "passed": False,
+            "accepted_packet_ids": [],
+            "rejected_candidate_packet_ids": [],
+            "missing_chain_nodes": [{"case_id": case_id, "node": "packet_consumption"}],
+            "violations": [{"case_id": case_id, "reason": "missing"}],
+        }
+    violations: list[dict[str, Any]] = []
+    missing_chain_nodes: list[dict[str, Any]] = []
+    if packet_consumption.get("owner") != "b2_packet_consumption":
+        violations.append({"case_id": case_id, "reason": "owner_invalid"})
+    if not isinstance(packet_consumption.get("consumed_packet_ids"), list):
+        violations.append({"case_id": case_id, "reason": "consumed_packet_ids_missing"})
+    consumed_packet_ids = _string_set(packet_consumption.get("consumed_packet_ids"))
+    accepted_packet_ids = _string_set(packet_consumption.get("accepted_packet_ids"))
+    rejected_candidate_packet_ids = _string_set(packet_consumption.get("rejected_candidate_packet_ids"))
+    if accepted_packet_ids - consumed_packet_ids:
+        violations.append({"case_id": case_id, "reason": "accepted_packet_not_consumed"})
+    if rejected_candidate_packet_ids - consumed_packet_ids:
+        violations.append({"case_id": case_id, "reason": "rejected_packet_not_consumed"})
+    for packet_id in sorted(consumed_packet_ids - set(packets)):
+        violations.append({"case_id": case_id, "packet_id": packet_id, "reason": "consumed_unknown_packet"})
+    if violations:
+        missing_chain_nodes.append({"case_id": case_id, "node": "packet_consumption"})
+    return {
+        "passed": not violations,
+        "accepted_packet_ids": sorted(accepted_packet_ids),
+        "rejected_candidate_packet_ids": sorted(rejected_candidate_packet_ids),
+        "missing_chain_nodes": missing_chain_nodes,
+        "violations": violations,
+    }
+
+
+def _string_set(value: Any) -> set[str]:
+    if not isinstance(value, list):
+        return set()
+    return {str(item) for item in value if str(item).strip()}
 
 
 def _pending_policy_promotions() -> list[dict[str, str]]:
@@ -1204,6 +1268,10 @@ def verify_phase_b2_readiness(*, phase_b2_report_path: Path) -> dict[str, Any]:
     artifact_completeness_audit = _artifact_completeness_audit(report_data, case_checks=case_checks)
     if not artifact_completeness_audit["passed"]:
         _add(blockers, "artifact_completeness_audit_failed", "B2 artifact completeness audit must pass before live LLM diagnostic.")
+        for violation in artifact_completeness_audit.get("packet_consumption_trace_violations") or []:
+            reason = str(violation.get("reason") or "invalid")
+            code = "packet_consumption_trace_missing" if reason == "missing" else "packet_consumption_trace_invalid"
+            _add(blockers, code, f"packet_consumption trace violation: {reason}.")
 
     provisional_ready = not blockers
     readiness_claim = _build_b2_readiness_claim(
