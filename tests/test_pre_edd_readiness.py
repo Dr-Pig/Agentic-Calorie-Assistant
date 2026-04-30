@@ -21,6 +21,7 @@ def test_pre_edd_command_plan_excludes_business_eval_suites() -> None:
     assert "run_v2_founder_realism_eval.py" not in command_text
     assert old_blocking_runner not in command_text
     assert "scripts/audit_readiness_claim_integrity.py" in command_text
+    assert "scripts/audit_architecture_dependency_debt.py" in command_text
 
 
 def test_docs_encoding_policy_is_windows_only_auxiliary_check() -> None:
