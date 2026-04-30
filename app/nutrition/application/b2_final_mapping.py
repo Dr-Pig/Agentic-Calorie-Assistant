@@ -29,7 +29,7 @@ def map_b2_final_item_result(
 
     if exactness_posture not in ESTIMABLE_EXACTNESS_POSTURES or not has_estimate:
         return _mapping(
-            external_outcome="unresolved",
+            external_outcome="draft",
             ledger_status="excluded_pending_info",
             mutation_allowed=False,
             followup_role="clarification_required",

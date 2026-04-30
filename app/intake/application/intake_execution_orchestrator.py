@@ -14,9 +14,14 @@ from sqlalchemy.orm import Session
 
 from ...runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 from ...runtime.application.bundle2_response import build_bundle2_response, finalized_budget_summary
-from ...runtime.application.bundle2_tool_batch import apply_final_action_to_payload, execute_manager_tool_calls
+from ...runtime.application.bundle2_tool_batch import (
+    apply_final_action_to_payload,
+    execute_manager_tool_calls,
+    nutrition_tool_output,
+)
 from ...runtime.application.manager_service import run_intake_manager
 from ...runtime.application.state_resolver import resolve_v2_bundle1_state
+from ...nutrition.application.b2_active_runtime_owner_lineage import attach_b2_owner_lineage_trace
 from ...nutrition.application.web_extract_port import WebExtractPort
 from ...nutrition.application.web_search_port import WebSearchPort
 from .commit_boundary_preflight import run_commit_boundary_preflight
@@ -254,6 +259,11 @@ async def process_bundle2_intake(
         correction_target=tool_state["correction_target"],
         manager_semantic_decision=dict(getattr(manager_result, "semantic_decision", {}) or {}),
     )
+    attach_b2_owner_lineage_trace(
+        payload=payload,
+        manager_semantic_decision=dict(getattr(manager_result, "semantic_decision", {}) or {}),
+        manager_final_action=manager_result.final_action,
+    )
     phase_a_trace = dict(phase_a_trace or {})
     if manager_triggered_history_trace is not None:
         phase_a_trace["manager_triggered_history_expansion"] = manager_triggered_history_trace
@@ -291,7 +301,19 @@ async def process_bundle2_intake(
         user_external_id=user_external_id,
         local_date=local_date,
     )
-    tool_outputs = {"tool_results": [dict(item) for item in manager_result.tool_results]}
+    refreshed_tool_results = [dict(item) for item in manager_result.tool_results]
+    if nutrition_artifact is not None:
+        refreshed_nutrition_output = nutrition_tool_output(
+            raw_user_input=raw_user_input,
+            nutrition_artifact=nutrition_artifact,
+            correction_target=tool_state["correction_target"],
+            budget_summary=budget_summary,
+        )
+        for index, item in enumerate(refreshed_tool_results):
+            if str(item.get("tool_name") or "").strip() == "estimate_nutrition":
+                refreshed_tool_results[index] = refreshed_nutrition_output
+                break
+    tool_outputs = {"tool_results": refreshed_tool_results}
     if state_mutation_summary.get("canonical_commit") and budget_summary is not None:
         budget_summary = finalized_budget_summary(
             budget_summary=budget_summary,
