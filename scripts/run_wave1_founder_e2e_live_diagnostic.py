@@ -78,6 +78,13 @@ _FORBIDDEN_CLAIMS = [
     "runtime_web_activation_ready",
 ]
 
+_FAILED_INVARIANT_BY_REPAIR_FAMILY = {
+    "commit_without_evidence": "commit_requires_evidence",
+    "correction_without_target": "correction_requires_valid_target",
+    "mutation_without_final_mapping": "mutation_requires_final_mapping",
+    "manager_output_contract_violation": "manager_contract_schema_adherence",
+}
+
 
 class FounderLiveDiagnosticProvider:
     """Profile wrapper that adds diagnostic trace metadata without changing provider behavior."""
@@ -189,7 +196,20 @@ def run_diagnostic(
     db = database.SessionLocal()
     try:
         legacy_guard = BASE_RUNNER.build_legacy_guard()
-        cases = asyncio.run(BASE_RUNNER._run_cases(db, provider, local_date=local_date))  # noqa: SLF001
+        correction_seed_provider = None
+        correction_seed_mode = "case_provider"
+        if provider_mode == "live" and live_invoked:
+            correction_seed_provider = BASE_RUNNER.DeterministicFounderProvider()
+            correction_seed_mode = "deterministic_active_runtime_seed"
+        cases = asyncio.run(  # noqa: SLF001
+            BASE_RUNNER._run_cases(
+                db,
+                provider,
+                local_date=local_date,
+                correction_seed_provider=correction_seed_provider,
+                correction_seed_mode=correction_seed_mode,
+            )
+        )
         cases = [_decorate_case(case, profile=profile) for case in cases]
         if legacy_guard["legacy_dependency_detected"]:
             for case in cases:
@@ -318,6 +338,10 @@ def _decorate_case(case: dict[str, Any], *, profile: dict[str, Any]) -> dict[str
     decorated["schema_name"] = profile["schema_name"]
     decorated["schema_version"] = profile["schema_version"]
     decorated["case_contract_status"] = _case_contract_status(decorated)
+    if decorated["case_contract_status"] == "repaired_pass":
+        repair_family = _case_repair_failure_family(decorated)
+        decorated["repair_failure_family"] = repair_family
+        decorated["failed_invariant"] = _FAILED_INVARIANT_BY_REPAIR_FAMILY.get(repair_family)
     decorated["readiness_claimed"] = False
     decorated["production_selected"] = False
     decorated["failure_family"] = failure_family
@@ -330,8 +354,30 @@ def _with_founder_live_contract_constraints(kwargs: dict[str, Any], *, profile: 
     updated = dict(kwargs)
     user_payload = dict(_dict(updated.get("user_payload")))
     constraints = dict(_dict(user_payload.get("constraints")))
-    constraints.update(founder_live_manager_contract_constraints(str(profile["provider_profile_id"])))
-    user_payload["constraints"] = constraints
+    tool_results = [
+        dict(item)
+        for item in (user_payload.get("tool_results") or [])
+        if isinstance(item, dict)
+    ]
+    constraints.update(
+        founder_live_manager_contract_constraints(
+            str(profile["provider_profile_id"]),
+            tool_results=tool_results,
+        )
+    )
+    contract_frontmatter = {
+        "manager_contract_policy_summary": constraints.get("manager_contract_policy_summary"),
+        "manager_contract_evidence_instruction": constraints.get("manager_contract_evidence_instruction"),
+        "manager_contract_followup_instruction": constraints.get("manager_contract_followup_instruction"),
+        "manager_contract_examples": constraints.get("manager_contract_examples"),
+        "constraints": constraints,
+    }
+    remaining_payload = {
+        key: value
+        for key, value in user_payload.items()
+        if key not in contract_frontmatter
+    }
+    user_payload = {**contract_frontmatter, **remaining_payload}
     updated["user_payload"] = user_payload
     return updated
 
@@ -363,14 +409,63 @@ def _case_manager_traces(case: dict[str, Any]) -> list[dict[str, Any]]:
     return traces
 
 
+def _case_repair_failure_family(case: dict[str, Any]) -> str:
+    traces = _case_manager_traces(case)
+    for trace in traces:
+        repair_contract = _find_nested_key(trace, "x-repair-contract")
+        if isinstance(repair_contract, dict):
+            repair_family = str(repair_contract.get("failure_family") or "")
+            if repair_family:
+                return repair_family
+        request_family = str(trace.get("request_failure_family") or "")
+        if request_family:
+            return request_family
+    for trace in traces:
+        family = _find_nested_key(trace, "failure_family")
+        if isinstance(family, str) and family in _FAILED_INVARIANT_BY_REPAIR_FAMILY:
+            return family
+    return ""
+
+
+def _find_nested_key(value: Any, key: str) -> Any:
+    if isinstance(value, dict):
+        if key in value:
+            return value[key]
+        for child in value.values():
+            found = _find_nested_key(child, key)
+            if found is not None:
+                return found
+    elif isinstance(value, list):
+        for child in value:
+            found = _find_nested_key(child, key)
+            if found is not None:
+                return found
+    return None
+
+
 def _summary(cases: list[dict[str, Any]]) -> dict[str, Any]:
     summary = dict(BASE_RUNNER._summary(cases))  # noqa: SLF001
     statuses = [str(case.get("case_contract_status") or "fail") for case in cases]
     summary["strict_pass_count"] = statuses.count("strict_pass")
     summary["repaired_pass_count"] = statuses.count("repaired_pass")
     summary["contract_fail_count"] = statuses.count("fail")
+    summary["provider_timeout_count"] = sum(1 for case in cases if _case_has_provider_timeout(case))
+    summary["repaired_case_ids"] = sorted(
+        str(case.get("case_id"))
+        for case in cases
+        if str(case.get("case_contract_status") or "") == "repaired_pass" and case.get("case_id")
+    )
     summary["shadow_or_canary_unlock_allowed"] = False
     return summary
+
+
+def _case_has_provider_timeout(case: dict[str, Any]) -> bool:
+    runtime_error = _dict(_dict(case.get("actual_behavior")).get("runtime_error"))
+    error_type = str(runtime_error.get("type") or "")
+    if error_type in {"ReadTimeout", "TimeoutException", "TimeoutError", "ConnectTimeout", "WriteTimeout", "PoolTimeout"}:
+        return True
+    message = str(runtime_error.get("message") or "")
+    return "timeout" in error_type.lower() or "timeout" in message.lower()
 
 
 def _classify_failure(case: dict[str, Any]) -> tuple[str | None, str | None]:

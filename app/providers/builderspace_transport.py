@@ -18,6 +18,7 @@ from ..runtime.agent.founder_live_manager_contract import (
     FOUNDER_LIVE_MANAGER_SCHEMA_VERSION,
     FOUNDER_LIVE_MANAGER_TOOL_NAME,
     FOUNDER_LIVE_MANAGER_TRANSPORT_POLICY,
+    founder_live_manager_tool_description,
     is_founder_live_manager_contract,
 )
 from ..runtime.contracts.trace import MANAGER_LOOP_STAGE
@@ -135,7 +136,7 @@ def decision_transport_request_for_stage(
                         "type": "function",
                         "function": {
                             "name": FOUNDER_LIVE_MANAGER_TOOL_NAME,
-                            "description": "Return the manager structured decision payload.",
+                            "description": founder_live_manager_tool_description(),
                             "parameters": schema,
                             "strict": True,
                         },

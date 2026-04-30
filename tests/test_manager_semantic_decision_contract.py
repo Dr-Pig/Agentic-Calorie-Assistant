@@ -64,6 +64,33 @@ def test_result_from_payload_consumes_explicit_semantic_decision_without_rewriti
     assert result.semantic_decision["workflow_effect"] == "answer_only"
 
 
+def test_result_from_payload_derives_missing_final_action_from_manager_semantic_candidate() -> None:
+    result = result_from_payload(
+        {
+            "intent": "log_meal",
+            "intent_type": "log_meal",
+            "workflow_effect": "commit",
+            "semantic_decision": {
+                "semantic_authority": "manager_llm",
+                "current_turn_intent": "log_meal",
+                "target_attachment": {"mode": "new_meal"},
+                "workflow_effect": "commit",
+                "final_action_candidate": "commit",
+                "estimation_posture": "tool_estimate",
+                "followup_posture": "none",
+                "mutation_intent_candidate": "canonical_write",
+                "uncertainty_posture": "bounded",
+                "source": "single_manager_loop",
+            },
+        },
+        manager_rounds=[],
+        tool_results=[],
+    )
+
+    assert result.final_action == "commit"
+    assert result.trace["final_action_source"] == "semantic_decision.final_action_candidate"
+
+
 def test_missing_semantic_decision_is_non_authoritative_not_derived_from_legacy_fields() -> None:
     result = result_from_payload(
         {

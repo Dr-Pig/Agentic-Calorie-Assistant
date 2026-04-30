@@ -41,6 +41,74 @@ def test_founder_live_provider_profile_is_diagnostic_only() -> None:
     assert profile["schema_version"] == "v1"
 
 
+def test_founder_live_diagnostic_injects_contract_policy_and_evidence_state() -> None:
+    module = importlib.import_module("scripts.run_wave1_founder_e2e_live_diagnostic")
+    profile = module.provider_profile(module.DEFAULT_FOUNDER_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID)
+
+    kwargs = module._with_founder_live_contract_constraints(  # noqa: SLF001 - diagnostic envelope contract.
+        {"user_payload": {"constraints": {}, "tool_results": []}},
+        profile=profile,
+    )
+
+    constraints = kwargs["user_payload"]["constraints"]
+    policy = constraints["manager_contract_policy"]
+    evidence_state = constraints["manager_contract_evidence_state"]
+
+    assert policy["intent_type_by_semantic_intent"]["log_meal"] == "log_meal"
+    assert policy["intent_type_by_semantic_intent"]["correct_meal"] == "log_meal"
+    assert policy["required_tool_when_evidence_missing"] == "estimate_nutrition"
+    assert "commit" in policy["final_actions_requiring_evidence"]
+    assert policy["query_only_rule"]["final_action"] == "answer_only"
+    assert policy["correction_rule"]["mutation_intent_candidate"] == "correction_write"
+    assert policy["composition_unknown_rule"]["final_action"] == "ask_followup"
+    assert policy["composition_unknown_rule"]["estimate_tool_allowed"] is False
+    assert "manager_contract_policy_summary" in kwargs["user_payload"]
+    assert "manager_contract_evidence_instruction" in kwargs["user_payload"]
+    assert "manager_contract_followup_instruction" in kwargs["user_payload"]
+    assert "manager_contract_examples" in kwargs["user_payload"]
+    assert list(kwargs["user_payload"].keys())[:5] == [
+        "manager_contract_policy_summary",
+        "manager_contract_evidence_instruction",
+        "manager_contract_followup_instruction",
+        "manager_contract_examples",
+        "constraints",
+    ]
+    assert "nutrition_evidence_present=true" in kwargs["user_payload"]["manager_contract_evidence_instruction"]
+    assert evidence_state["nutrition_evidence_present"] is False
+    assert evidence_state["tool_result_names"] == []
+
+    kwargs_with_evidence = module._with_founder_live_contract_constraints(  # noqa: SLF001
+        {
+            "user_payload": {
+                "constraints": {},
+                "tool_results": [{"tool_name": "estimate_nutrition", "evidence": {"nutrition_payload": {"estimated_kcal": 80}}}],
+            }
+        },
+        profile=profile,
+    )
+
+    evidence_state = kwargs_with_evidence["user_payload"]["constraints"]["manager_contract_evidence_state"]
+    assert evidence_state["nutrition_evidence_present"] is True
+    assert evidence_state["tool_result_names"] == ["estimate_nutrition"]
+
+
+def test_single_manager_prompt_mentions_contract_policy() -> None:
+    prompt_module = importlib.import_module("app.runtime.agent.manager_system_prompt")
+
+    prompt = prompt_module.SINGLE_MANAGER_SYSTEM_PROMPT
+
+    assert "manager_contract_policy" in prompt
+    assert "manager_contract_policy_summary" in prompt
+    assert "manager_contract_evidence_instruction" in prompt
+    assert "manager_contract_followup_instruction" in prompt
+    assert "manager_contract_examples" in prompt
+    assert "tool_results" in prompt
+    assert "final_action='commit'" in prompt
+    assert "estimate_nutrition" in prompt
+    assert "composition-unknown" in prompt
+    assert "manager_action='final'" in prompt
+
+
 def test_founder_live_diagnostic_artifact_contract_with_fake_provider(tmp_path: Path) -> None:
     module = importlib.import_module("scripts.run_wave1_founder_e2e_live_diagnostic")
     deterministic = importlib.import_module("scripts.run_wave1_founder_e2e_deterministic_diagnostic")
@@ -96,6 +164,7 @@ def test_founder_live_diagnostic_artifact_contract_with_fake_provider(tmp_path: 
     assert report["summary"]["strict_pass_count"] + report["summary"]["repaired_pass_count"] + report["summary"][
         "contract_fail_count"
     ] == len(report["cases"])
+    assert report["summary"]["provider_timeout_count"] == 0
 
 
 def test_founder_live_missing_provider_token_report_is_not_live_readiness() -> None:
@@ -140,6 +209,28 @@ def test_founder_live_classifies_manager_contract_parse_error() -> None:
     assert decorated["case_contract_status"] == "fail"
 
 
+def test_founder_live_summary_tracks_provider_timeout_count() -> None:
+    module = importlib.import_module("scripts.run_wave1_founder_e2e_live_diagnostic")
+
+    summary = module._summary(  # noqa: SLF001 - summary shape is artifact contract.
+        [
+            {
+                "case_id": "timeout-case",
+                "verdict": "fail",
+                "case_contract_status": "fail",
+                "actual_behavior": {"runtime_error": {"type": "ReadTimeout"}},
+            },
+            {
+                "case_id": "strict-case",
+                "verdict": "pass",
+                "case_contract_status": "strict_pass",
+            },
+        ]
+    )
+
+    assert summary["provider_timeout_count"] == 1
+
+
 def test_founder_live_classifies_repaired_pass_as_diagnostic_only() -> None:
     module = importlib.import_module("scripts.run_wave1_founder_e2e_live_diagnostic")
     profile = module.provider_profile(module.DEFAULT_FOUNDER_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID)
@@ -152,6 +243,20 @@ def test_founder_live_classifies_repaired_pass_as_diagnostic_only() -> None:
                     "trace": {
                         "repair_attempted": True,
                         "repair_result": "passed_after_repair",
+                        "request_payload": {
+                            "tools": [
+                                {
+                                    "function": {
+                                        "parameters": {
+                                            "x-repair-contract": {
+                                                "failure_family": "commit_without_evidence",
+                                                "required_tool": "estimate_nutrition",
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        },
                     }
                 }
             ]
@@ -161,6 +266,8 @@ def test_founder_live_classifies_repaired_pass_as_diagnostic_only() -> None:
     decorated = module._decorate_case(case, profile=profile)  # noqa: SLF001 - diagnostic taxonomy is runner contract.
 
     assert decorated["case_contract_status"] == "repaired_pass"
+    assert decorated["repair_failure_family"] == "commit_without_evidence"
+    assert decorated["failed_invariant"] == "commit_requires_evidence"
     assert decorated["readiness_claimed"] is False
     assert decorated["production_selected"] is False
 
@@ -183,3 +290,34 @@ def test_founder_live_contract_status_is_strict_when_runtime_consumed_manager_pa
 
     assert decorated["failure_layer"] == "mutation"
     assert decorated["case_contract_status"] == "strict_pass"
+
+
+def test_founder_live_schema_repair_records_failed_invariant() -> None:
+    module = importlib.import_module("scripts.run_wave1_founder_e2e_live_diagnostic")
+    profile = module.provider_profile(module.DEFAULT_FOUNDER_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID)
+    case = {
+        "case_id": "generic_stable_tea_egg",
+        "verdict": "pass",
+        "actual_behavior": {
+            "manager_rounds": [
+                {
+                    "trace": {
+                        "repair_attempted": True,
+                        "repair_result": "passed_after_repair",
+                        "parse_attempts": [
+                            {
+                                "failure_family": "manager_output_contract_violation",
+                                "failing_component": "builderspace_runtime_contract.validate_manager_payload",
+                            }
+                        ],
+                    }
+                }
+            ]
+        },
+    }
+
+    decorated = module._decorate_case(case, profile=profile)  # noqa: SLF001 - diagnostic taxonomy is runner contract.
+
+    assert decorated["case_contract_status"] == "repaired_pass"
+    assert decorated["repair_failure_family"] == "manager_output_contract_violation"
+    assert decorated["failed_invariant"] == "manager_contract_schema_adherence"

@@ -10,6 +10,7 @@ from ..runtime.agent.manager_branch_contract import (
 from ..runtime.agent.founder_live_manager_contract import (
     FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS,
     FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES,
+    FOUNDER_LIVE_MANAGER_EVIDENCE_REQUIRED_FINAL_ACTIONS,
     FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS,
     FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS,
     FOUNDER_LIVE_MANAGER_REPAIR_ALLOWED_TOOL_NAMES,
@@ -20,6 +21,80 @@ from ..runtime.agent.founder_live_manager_contract import (
 )
 from ..runtime.agent.manager_branch_shapes import manager_semantic_decision_schema
 from ..runtime.contracts.trace import MANAGER_LOOP_STAGE
+
+
+def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) -> None:
+    properties = base_schema.get("properties")
+    if not isinstance(properties, dict):
+        return
+    manager_action = properties.get("manager_action")
+    if isinstance(manager_action, dict):
+        manager_action["description"] = (
+            "Use call_tools when current-loop evidence is still required. If "
+            "semantic_decision.final_action_candidate is commit, correction_applied, or overshoot_note "
+            "and manager_contract_evidence_state.nutrition_evidence_present is false, this field must be "
+            "call_tools with estimate_nutrition; do not return final with ask_followup, answer_only, or no_commit "
+            "as a substitute. If evidence_posture says requires_tool/evidence_missing/evidence_pending or "
+            "semantic_decision.estimation_posture says pending_tool_call/tool_pending, this field must be call_tools."
+        )
+    evidence_posture = properties.get("evidence_posture")
+    if isinstance(evidence_posture, dict):
+        evidence_posture["description"] = (
+            "Evidence status for this manager round. Values like requires_tool, evidence_missing, or "
+            "evidence_pending mean manager_action must be call_tools with estimate_nutrition; do not pair those "
+            "values with manager_action=final."
+        )
+    final_action = properties.get("final_action")
+    if isinstance(final_action, dict):
+        final_action["description"] = (
+            "The top-level final action for this manager round. When evidence is missing, this cannot substitute "
+            "for an evidence-required semantic_decision.final_action_candidate; call estimate_nutrition first."
+        )
+    tool_calls = properties.get("tool_calls")
+    if isinstance(tool_calls, dict):
+        tool_calls["description"] = (
+            "Required when manager_action is call_tools. Use estimate_nutrition before commit, "
+            "correction_applied, or overshoot_note if current-loop nutrition evidence is missing."
+        )
+    answer_contract = properties.get("answer_contract")
+    if isinstance(answer_contract, dict):
+        answer_contract["description"] = (
+            "Renderer-facing response contract. If semantic_decision.followup_posture is "
+            "refinement_not_commit_gate or size_clarification, include a non-empty followup_question here "
+            "or in semantic_decision.followup_question."
+        )
+    semantic_decision = properties.get("semantic_decision")
+    if not isinstance(semantic_decision, dict):
+        return
+    semantic_properties = semantic_decision.get("properties")
+    if not isinstance(semantic_properties, dict):
+        return
+    final_action_candidate = semantic_properties.get("final_action_candidate")
+    if isinstance(final_action_candidate, dict):
+        final_action_candidate["description"] = (
+            "The manager's intended final action after required evidence exists. If this is commit, "
+            "correction_applied, or overshoot_note and evidence is missing, the current payload must be "
+            "manager_action=call_tools with estimate_nutrition, not a final ask_followup/no_commit/answer_only."
+        )
+    estimation_posture = semantic_properties.get("estimation_posture")
+    if isinstance(estimation_posture, dict):
+        estimation_posture["description"] = (
+            "Estimation state for this turn. pending_tool_call or tool_pending means the same payload must use "
+            "manager_action=call_tools with estimate_nutrition; do not return manager_action=final until tool "
+            "results provide current-loop nutrition evidence."
+        )
+    followup_posture = semantic_properties.get("followup_posture")
+    if isinstance(followup_posture, dict):
+        followup_posture["description"] = (
+            "Use refinement_not_commit_gate or size_clarification only with a concrete user-facing "
+            "followup_question. If no question is needed, use none, closed, or refinement_optional."
+        )
+    followup_question = semantic_properties.get("followup_question")
+    if isinstance(followup_question, dict):
+        followup_question["description"] = (
+            "Concrete user-facing follow-up question. Required to be non-empty when followup_posture is "
+            "refinement_not_commit_gate or size_clarification; otherwise use null or omit by using a non-question posture."
+        )
 
 
 def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -73,29 +148,34 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
     if is_founder_live_manager_contract(constraints):
         repair_failure_family = founder_live_manager_repair_failure_family(constraints)
         required_repair_tool = FOUNDER_LIVE_MANAGER_REPAIR_REQUIRED_TOOL_BY_FAMILY.get(repair_failure_family)
+        allowed_final_actions = list(FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS)
+        evidence_state = constraints.get("manager_contract_evidence_state") if isinstance(constraints, dict) else None
+        if isinstance(evidence_state, dict) and evidence_state.get("nutrition_evidence_present") is False:
+            evidence_required = set(FOUNDER_LIVE_MANAGER_EVIDENCE_REQUIRED_FINAL_ACTIONS)
+            allowed_final_actions = [action for action in allowed_final_actions if action not in evidence_required]
         base_schema["properties"]["intent_type"] = {
             "type": "string",
             "enum": list(FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES),
         }
         base_schema["properties"]["final_action"] = {
             "type": "string",
-            "enum": list(FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS),
+            "enum": allowed_final_actions,
         }
+        base_schema["properties"]["tool_calls"] = {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "enum": list(FOUNDER_LIVE_MANAGER_REPAIR_ALLOWED_TOOL_NAMES)},
+                    "arguments": {"type": "object"},
+                },
+                "required": ["name"],
+                "additionalProperties": False,
+            },
+        }
+        _apply_founder_live_contract_schema_guidance(base_schema)
         if required_repair_tool:
             base_schema["properties"]["manager_action"] = {"type": "string", "enum": ["call_tools"]}
-            base_schema["properties"]["tool_calls"] = {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "name": {"type": "string", "enum": list(FOUNDER_LIVE_MANAGER_REPAIR_ALLOWED_TOOL_NAMES)},
-                        "arguments": {"type": "object"},
-                    },
-                    "required": ["name"],
-                    "additionalProperties": False,
-                },
-            }
             base_schema["x-repair-contract"] = {
                 "failure_family": repair_failure_family,
                 "required_tool": required_repair_tool,

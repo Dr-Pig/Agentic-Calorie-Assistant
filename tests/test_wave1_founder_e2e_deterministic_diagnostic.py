@@ -140,4 +140,7 @@ def test_founder_e2e_deterministic_diagnostic_artifact_contract(tmp_path: Path) 
 
     correction = next(case for case in cases if case["case_id"] == "correction_prior_pearl_milk_tea_half_sugar")
     assert correction["verdict"] == "pass"
+    assert correction["precondition"]["seed_mode"] == "case_provider"
+    assert correction["precondition"]["seed_canonical_commit"] is True
+    assert correction["precondition"]["precondition_role"] == "target_fixture_for_correction_diagnostic"
     assert correction["mutation"]["state_delta"]["old_version_superseded"] is True
