@@ -9,6 +9,7 @@ import httpx
 from .builderspace_attempts import (
     empty_parse_meta,
     last_parse_error,
+    manager_payload_contract_error,
     post_chat_completion,
     remaining_retry_budget,
     run_structured_attempt,
@@ -65,16 +66,22 @@ async def complete_builderspace_with_trace(
     response: httpx.Response | Any | None = None
     data: dict[str, Any] | None = None
     request_payload: dict[str, Any] = dict(base_request_payload)
+    active_base_request_payload: dict[str, Any] = dict(base_request_payload)
+    transport_meta.setdefault("repair_attempted", False)
+    transport_meta.setdefault("repair_result", "not_needed")
+    transport_meta.setdefault("repair_attempt_count", 0)
+    max_attempt_count = transport_retry_count + MAX_PARSE_RETRIES + 1
 
     try:
         async with async_client_factory(timeout=timeout_seconds) as client:
-            for attempt_index in range(1, transport_retry_count + 2):
+            for attempt_index in range(1, max_attempt_count + 1):
                 attempt_trace = new_transport_attempt(attempt_index, base_url, model, stage)
                 try:
                     if decision_transport_request is not None:
-                        request_payload = dict(base_request_payload)
+                        request_payload = dict(active_base_request_payload)
                         request_payload["tools"] = decision_transport_request["tools"]
                         request_payload["tool_choice"] = decision_transport_request["tool_choice"]
+                        request_payload["parallel_tool_calls"] = False
                         attempt_trace["decision_transport_mode"] = decision_transport_request["mode"]
                         try:
                             response = await post_chat_completion(client, base_url, token, request_payload)
@@ -88,10 +95,45 @@ async def complete_builderspace_with_trace(
                                     failing_component="builderspace_adapter.response_json",
                                     observed_value=data,
                                 )
-                            parsed = extract_tool_call_decision(data, tool_name=DECISION_TRANSPORT_TOOL_NAME)
+                            parsed = extract_tool_call_decision(
+                                data,
+                                tool_name=str(decision_transport_request.get("tool_name") or DECISION_TRANSPORT_TOOL_NAME),
+                            )
                             decision_transport_meta["decision_transport_accepted"] = True
                             decision_transport_meta["decision_transport_contract_breach"] = False
-                            validate_manager_payload(stage, parsed, constraints=constraints)
+                            try:
+                                validate_manager_payload(stage, parsed, constraints=constraints)
+                            except Exception as exc:
+                                if exc.__class__.__name__ == "ManagerPass1BranchContractError":
+                                    raise
+                                decision_transport_meta["decision_transport_contract_breach"] = True
+                                parse_attempt = _manager_contract_parse_attempt(
+                                    attempt_index=attempt_index,
+                                    stage=stage,
+                                    exc=exc,
+                                    parsed=parsed,
+                                )
+                                parse_attempts.append(parse_attempt)
+                                if parse_retry_budget > 0:
+                                    parse_retry_budget -= 1
+                                    active_base_request_payload = _with_contract_repair_message(
+                                        active_base_request_payload,
+                                        parse_attempt=parse_attempt,
+                                    )
+                                    _mark_repair_requested(transport_meta)
+                                    _mark_attempt_completed(attempt_trace, status="parse_retry")
+                                    transport_attempts.append(attempt_trace)
+                                    if attempt_index < max_attempt_count:
+                                        await asyncio.sleep(transport_retry_backoff_seconds * attempt_index)
+                                    continue
+                                raise manager_payload_contract_error(
+                                    exc=exc,
+                                    parsed=parsed,
+                                    raw_content="",
+                                    parse_meta=empty_parse_meta(),
+                                    parse_attempt=parse_attempt,
+                                ) from exc
+                            _mark_repair_success_if_needed(transport_meta)
                             _mark_attempt_completed(attempt_trace, status="success")
                             transport_attempts.append(attempt_trace)
                             return parsed, build_success_trace(
@@ -128,7 +170,7 @@ async def complete_builderspace_with_trace(
                         client=client,
                         base_url=base_url,
                         token=token,
-                        base_request_payload=base_request_payload,
+                        base_request_payload=active_base_request_payload,
                         response_format=response_format,
                         transport_meta=transport_meta,
                         attempt_trace=attempt_trace,
@@ -142,12 +184,19 @@ async def complete_builderspace_with_trace(
                     parse_retry_budget = remaining_retry_budget(parse_attempts, MAX_PARSE_RETRIES)
                     if parsed is None:
                         last_error = last_parse_error(parse_attempts)
+                        if parse_attempts:
+                            active_base_request_payload = _with_contract_repair_message(
+                                active_base_request_payload,
+                                parse_attempt=parse_attempts[-1],
+                            )
+                            _mark_repair_requested(transport_meta)
                         _mark_attempt_completed(attempt_trace, status="parse_retry")
                         transport_attempts.append(attempt_trace)
-                        if attempt_index < transport_retry_count + 1:
+                        if attempt_index < max_attempt_count:
                             await asyncio.sleep(transport_retry_backoff_seconds * attempt_index)
                         continue
                     _mark_attempt_completed(attempt_trace, status="success")
+                    _mark_repair_success_if_needed(transport_meta)
                     transport_attempts.append(attempt_trace)
                     raw_content = extract_text_content(data)
                     parsed_object, parse_meta = extract_json_object(raw_content)
@@ -181,6 +230,7 @@ async def complete_builderspace_with_trace(
     except Exception as exc:
         if response is None and isinstance(exc, httpx.HTTPStatusError):
             response = exc.response
+        _mark_repair_failure_if_needed(transport_meta)
         raise build_error(
             exc=exc,
             request_payload=request_payload,
@@ -216,6 +266,66 @@ def _record_attempt_failure(
 def _mark_attempt_completed(attempt_trace: dict[str, Any], *, status: str) -> None:
     attempt_trace["status"] = status
     attempt_trace["ended_at_utc"] = _utc_now_iso()
+
+
+def _manager_contract_parse_attempt(
+    *,
+    attempt_index: int,
+    stage: str,
+    exc: Exception,
+    parsed: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "attempt_index": attempt_index,
+        "stage": stage,
+        "error_type": type(exc).__name__,
+        "error": str(exc),
+        "failure_family": getattr(exc, "failure_family", "manager_output_contract_violation"),
+        "failing_component": getattr(
+            exc,
+            "failing_component",
+            "builderspace_runtime_contract.validate_manager_payload",
+        ),
+        "observed_value": parsed,
+    }
+
+
+def _with_contract_repair_message(
+    base_request_payload: dict[str, Any],
+    *,
+    parse_attempt: dict[str, Any],
+) -> dict[str, Any]:
+    repaired = dict(base_request_payload)
+    messages = list(repaired.get("messages") or [])
+    messages.append(
+        {
+            "role": "user",
+            "content": (
+                "CONTRACT_REPAIR: Return the same manager decision using the required structured schema. "
+                "Do not change user intent, workflow_effect, target_attachment, exactness, confidence, "
+                "or evidence_posture. Fix only the contract shape. "
+                f"Previous validation error: {parse_attempt.get('error')}"
+            ),
+        }
+    )
+    repaired["messages"] = messages
+    return repaired
+
+
+def _mark_repair_requested(transport_meta: dict[str, Any]) -> None:
+    transport_meta["repair_attempted"] = True
+    transport_meta["repair_result"] = "requested"
+    transport_meta["repair_attempt_count"] = int(transport_meta.get("repair_attempt_count") or 0) + 1
+
+
+def _mark_repair_success_if_needed(transport_meta: dict[str, Any]) -> None:
+    if transport_meta.get("repair_attempted"):
+        transport_meta["repair_result"] = "passed_after_repair"
+
+
+def _mark_repair_failure_if_needed(transport_meta: dict[str, Any]) -> None:
+    if transport_meta.get("repair_attempted") and transport_meta.get("repair_result") == "requested":
+        transport_meta["repair_result"] = "failed"
 
 
 def _should_retry_transport_error(exc: Exception) -> bool:

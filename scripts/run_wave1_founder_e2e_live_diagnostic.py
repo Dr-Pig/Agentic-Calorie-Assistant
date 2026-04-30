@@ -15,6 +15,12 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.shared.contracts.readiness_claim import build_readiness_claim
+from app.runtime.agent.founder_live_manager_contract import (
+    FOUNDER_LIVE_MANAGER_SCHEMA_NAME,
+    FOUNDER_LIVE_MANAGER_SCHEMA_VERSION,
+    FOUNDER_LIVE_MANAGER_TRANSPORT_POLICY,
+    founder_live_manager_contract_constraints,
+)
 
 
 BASE_RUNNER = importlib.import_module("scripts.run_wave1_founder_e2e_deterministic_diagnostic")
@@ -22,20 +28,45 @@ BASE_RUNNER = importlib.import_module("scripts.run_wave1_founder_e2e_determinist
 ARTIFACT_PATH = ROOT / "artifacts" / "wave1_founder_e2e_live_diagnostic.json"
 DEFAULT_DB_PATH = ROOT / "artifacts" / "wave1_founder_e2e_live_diagnostic.sqlite3"
 DEFAULT_LOCAL_DATE = "2026-04-30"
-DEFAULT_FOUNDER_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID = "builderspace-grok-4-fast-founder-live-diagnostic"
+DEFAULT_FOUNDER_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID = "builderspace-grok-4-fast-founder-live-contract"
 
 _PROVIDER_PROFILES: dict[str, dict[str, Any]] = {
     DEFAULT_FOUNDER_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID: {
         "provider_profile_id": DEFAULT_FOUNDER_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID,
         "provider": "builderspace",
         "model": "grok-4-fast",
-        "provider_profile_role": "founder_live_diagnostic_primary",
+        "provider_profile_role": "founder_live_contract_diagnostic",
         "cost_tier": "low",
         "production_selected": False,
         "not_production_selection": True,
         "readiness_owner": False,
         "temperature": 0.0,
-    }
+        "schema_name": FOUNDER_LIVE_MANAGER_SCHEMA_NAME,
+        "schema_version": FOUNDER_LIVE_MANAGER_SCHEMA_VERSION,
+        "transport_policy": {
+            "primary": FOUNDER_LIVE_MANAGER_TRANSPORT_POLICY,
+            "fallback": "json_schema",
+            "forbidden_as_success": ["plain_json_object_without_schema_validation"],
+        },
+    },
+    "builderspace-grok-4-fast-founder-live-diagnostic": {
+        "provider_profile_id": "builderspace-grok-4-fast-founder-live-diagnostic",
+        "provider": "builderspace",
+        "model": "grok-4-fast",
+        "provider_profile_role": "founder_live_diagnostic_primary_legacy_alias",
+        "cost_tier": "low",
+        "production_selected": False,
+        "not_production_selection": True,
+        "readiness_owner": False,
+        "temperature": 0.0,
+        "schema_name": FOUNDER_LIVE_MANAGER_SCHEMA_NAME,
+        "schema_version": FOUNDER_LIVE_MANAGER_SCHEMA_VERSION,
+        "transport_policy": {
+            "primary": FOUNDER_LIVE_MANAGER_TRANSPORT_POLICY,
+            "fallback": "json_schema",
+            "forbidden_as_success": ["plain_json_object_without_schema_validation"],
+        },
+    },
 }
 
 _FORBIDDEN_CLAIMS = [
@@ -71,6 +102,7 @@ class FounderLiveDiagnosticProvider:
 
     async def complete_with_trace(self, **kwargs: Any) -> tuple[dict[str, Any], dict[str, Any]]:
         stage = str(kwargs.get("stage") or "")
+        kwargs = _with_founder_live_contract_constraints(kwargs, profile=self.profile)
         try:
             payload, trace = await self._provider.complete_with_trace(**kwargs)
         except Exception as exc:
@@ -82,6 +114,9 @@ class FounderLiveDiagnosticProvider:
             "provider_profile_id": self.profile["provider_profile_id"],
             "provider_profile_model": self.profile["model"],
             "provider_profile_role": self.profile["provider_profile_role"],
+            "transport_policy": self.profile["transport_policy"],
+            "schema_name": self.profile["schema_name"],
+            "schema_version": self.profile["schema_version"],
             "production_selected": False,
             "not_production_selection": True,
             "live_llm_invoked": self.live_invoked,
@@ -92,8 +127,12 @@ class FounderLiveDiagnosticProvider:
                 "provider_profile_id": self.profile["provider_profile_id"],
                 "provider_profile_model": self.profile["model"],
                 "provider_profile_role": self.profile["provider_profile_role"],
+                "transport_policy": self.profile["transport_policy"],
+                "schema_name": self.profile["schema_name"],
+                "schema_version": self.profile["schema_version"],
                 "live_llm_invoked": self.live_invoked,
                 "failure_family": None,
+                "provider_trace": enriched_trace,
             }
         )
         return payload, enriched_trace
@@ -215,6 +254,9 @@ def _report_shell(
             "provider_profile_id": profile["provider_profile_id"],
             "provider_profile_model": profile["model"],
             "provider_profile_role": profile["provider_profile_role"],
+            "transport_policy": profile["transport_policy"],
+            "schema_name": profile["schema_name"],
+            "schema_version": profile["schema_version"],
             "provider_readiness": provider_readiness,
             "provider_invocations": provider_invocations,
             "production_selected": False,
@@ -236,7 +278,7 @@ def _report_shell(
             "failure_layer": failure_layer,
             "failure_family": failure_family,
             "cases": cases,
-            "summary": BASE_RUNNER._summary(cases),  # noqa: SLF001
+            "summary": _summary(cases),
         }
     )
 
@@ -272,10 +314,63 @@ def _decorate_case(case: dict[str, Any], *, profile: dict[str, Any]) -> dict[str
     decorated["provider_profile_id"] = profile["provider_profile_id"]
     decorated["provider_profile_model"] = profile["model"]
     decorated["provider_profile_role"] = profile["provider_profile_role"]
+    decorated["transport_policy"] = profile["transport_policy"]
+    decorated["schema_name"] = profile["schema_name"]
+    decorated["schema_version"] = profile["schema_version"]
+    decorated["case_contract_status"] = _case_contract_status(decorated)
+    decorated["readiness_claimed"] = False
+    decorated["production_selected"] = False
     decorated["failure_family"] = failure_family
     if failure_layer is not None:
         decorated["failure_layer"] = failure_layer
     return decorated
+
+
+def _with_founder_live_contract_constraints(kwargs: dict[str, Any], *, profile: dict[str, Any]) -> dict[str, Any]:
+    updated = dict(kwargs)
+    user_payload = dict(_dict(updated.get("user_payload")))
+    constraints = dict(_dict(user_payload.get("constraints")))
+    constraints.update(founder_live_manager_contract_constraints(str(profile["provider_profile_id"])))
+    user_payload["constraints"] = constraints
+    updated["user_payload"] = user_payload
+    return updated
+
+
+def _case_contract_status(case: dict[str, Any]) -> str:
+    actual = _dict(case.get("actual_behavior"))
+    runtime_error = _dict(actual.get("runtime_error"))
+    if runtime_error:
+        return "fail"
+    for trace in _case_manager_traces(case):
+        if trace.get("repair_attempted") is True or str(trace.get("repair_result") or "") == "passed_after_repair":
+            return "repaired_pass"
+    if _dict(actual.get("manager_semantic_decision")) or actual.get("manager_intent"):
+        return "strict_pass"
+    if case.get("verdict") != "pass":
+        return "fail"
+    return "strict_pass"
+
+
+def _case_manager_traces(case: dict[str, Any]) -> list[dict[str, Any]]:
+    traces: list[dict[str, Any]] = []
+    actual = _dict(case.get("actual_behavior"))
+    for round_item in actual.get("manager_rounds") or []:
+        if isinstance(round_item, dict):
+            traces.append(_dict(round_item.get("trace")))
+    trace = _dict(actual.get("manager_trace"))
+    if trace:
+        traces.append(trace)
+    return traces
+
+
+def _summary(cases: list[dict[str, Any]]) -> dict[str, Any]:
+    summary = dict(BASE_RUNNER._summary(cases))  # noqa: SLF001
+    statuses = [str(case.get("case_contract_status") or "fail") for case in cases]
+    summary["strict_pass_count"] = statuses.count("strict_pass")
+    summary["repaired_pass_count"] = statuses.count("repaired_pass")
+    summary["contract_fail_count"] = statuses.count("fail")
+    summary["shadow_or_canary_unlock_allowed"] = False
+    return summary
 
 
 def _classify_failure(case: dict[str, Any]) -> tuple[str | None, str | None]:

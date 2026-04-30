@@ -7,6 +7,13 @@ from ..runtime.agent.manager_branch_contract import (
     manager_pass1_schema_for_constraints,
     validate_manager_pass1_branch,
 )
+from ..runtime.agent.founder_live_manager_contract import (
+    FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES,
+    FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS,
+    FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS,
+    is_founder_live_manager_contract,
+    validate_founder_live_manager_contract_consistency,
+)
 from ..runtime.agent.manager_branch_shapes import manager_semantic_decision_schema
 from ..runtime.contracts.trace import MANAGER_LOOP_STAGE
 
@@ -59,6 +66,14 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
         ],
         "additionalProperties": False,
     }
+    if is_founder_live_manager_contract(constraints):
+        base_schema["properties"]["intent_type"] = {
+            "type": "string",
+            "enum": list(FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES),
+        }
+        base_schema["required"] = list(FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS)
+        base_schema["x-field-consumers"] = dict(FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS)
+        return base_schema
     return manager_pass1_schema_for_constraints(base_schema, constraints)
 
 
@@ -83,6 +98,15 @@ def validate_manager_payload(stage: str, payload: dict[str, Any], *, constraints
             raise RuntimeError(f"manager payload has unknown fields for {stage}: {unknown}")
     if stage == MANAGER_LOOP_STAGE:
         validate_manager_pass1_branch(payload, constraints)
+    properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
+    for key, spec in properties.items():
+        if not isinstance(spec, dict) or "enum" not in spec or key not in payload:
+            continue
+        allowed_values = set(spec.get("enum") or [])
+        if payload.get(key) not in allowed_values:
+            raise RuntimeError(f"manager payload field {key} invalid for {stage}: {payload.get(key)!r}")
+    if is_founder_live_manager_contract(constraints):
+        validate_founder_live_manager_contract_consistency(payload)
 
 
 __all__ = [
