@@ -112,7 +112,9 @@ def lookup_anchor_candidates(
             return AnchorLookupResult((), retrieval_context, "none", "listed_item_fanout_deferred", None)
         query_texts = (intent.listed_items[0],)
 
-    clarify_support = _match_semantic_only_support(query_texts, evidence_store=store)
+    clarify_support = None
+    if intent.retrieval_goal in {"composition_clarification", "query_only_answer"}:
+        clarify_support = _match_semantic_only_support(query_texts, evidence_store=store)
     if clarify_support is not None:
         return AnchorLookupResult((), retrieval_context, "none", None, clarify_support)
 

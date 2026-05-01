@@ -53,6 +53,11 @@ SMOKE_CASES = [
     "珍珠奶茶多少熱量？",
     "sibling_negative_milkshop_black_tea_latte_matched_fresh_milk_tea",
     "official_wrong_item_negative",
+    "\u6211\u5403\u4e86\u5bb6\u5e38\u83dc",
+    "\u6211\u5403\u4e86\u9ebb\u8fa3\u71d9",
+    "\u6211\u5403\u4e86\u9ebb\u8fa3\u81ed\u8c46\u8150",
+    "\u6211\u5403\u4e86\u4e00\u4efd\u9e7d\u9165\u96de",
+    "\u6211\u5403\u4e86\u9e7d\u9165\u96de\uff0c\u6709\u751c\u4e0d\u8fa3\u3001\u7c73\u8840\u3001\u56db\u5b63\u8c46",
 ]
 
 
@@ -85,6 +90,60 @@ def _cache() -> dict[str, object]:
         "cache_policy": None,
         "unavailable_reason": "cache_not_implemented_in_b2_gate",
     }
+
+
+def _approved_local_case_law_seed_manifest_entries() -> list[dict[str, object]]:
+    return [
+        {
+            "food_name": "\u5bb6\u5e38\u83dc",
+            "seed_type": "semantic_only",
+            "used_by_smoke_case": "\u6211\u5403\u4e86\u5bb6\u5e38\u83dc",
+            "fixture_only": False,
+            "allowed_fields": ["semantic_hints", "followup_hints"],
+        },
+        {
+            "food_name": "\u9ebb\u8fa3\u71d9",
+            "seed_type": "semantic_only",
+            "used_by_smoke_case": "\u6211\u5403\u4e86\u9ebb\u8fa3\u71d9",
+            "fixture_only": False,
+            "allowed_fields": ["semantic_hints", "followup_hints"],
+        },
+        {
+            "food_name": "\u9ebb\u8fa3\u81ed\u8c46\u8150",
+            "seed_type": "generic_and_semantic_only",
+            "used_by_smoke_case": "\u6211\u5403\u4e86\u9ebb\u8fa3\u81ed\u8c46\u8150",
+            "fixture_only": False,
+            "allowed_fields": ["kcal_range", "likely_kcal", "macro_candidate", "followup_hints"],
+        },
+        {
+            "food_name": "\u9e7d\u9165\u96de",
+            "seed_type": "generic_and_semantic_only",
+            "used_by_smoke_case": "\u6211\u5403\u4e86\u4e00\u4efd\u9e7d\u9165\u96de",
+            "fixture_only": False,
+            "allowed_fields": ["kcal_range", "likely_kcal", "macro_candidate", "semantic_hints", "followup_hints"],
+        },
+        {
+            "food_name": "\u751c\u4e0d\u8fa3",
+            "seed_type": "generic",
+            "used_by_smoke_case": "\u6211\u5403\u4e86\u9e7d\u9165\u96de\uff0c\u6709\u751c\u4e0d\u8fa3\u3001\u7c73\u8840\u3001\u56db\u5b63\u8c46",
+            "fixture_only": False,
+            "allowed_fields": ["kcal_range", "likely_kcal", "macro_candidate"],
+        },
+        {
+            "food_name": "\u7c73\u8840",
+            "seed_type": "generic",
+            "used_by_smoke_case": "\u6211\u5403\u4e86\u9e7d\u9165\u96de\uff0c\u6709\u751c\u4e0d\u8fa3\u3001\u7c73\u8840\u3001\u56db\u5b63\u8c46",
+            "fixture_only": False,
+            "allowed_fields": ["kcal_range", "likely_kcal", "macro_candidate"],
+        },
+        {
+            "food_name": "\u56db\u5b63\u8c46",
+            "seed_type": "generic",
+            "used_by_smoke_case": "\u6211\u5403\u4e86\u9e7d\u9165\u96de\uff0c\u6709\u751c\u4e0d\u8fa3\u3001\u7c73\u8840\u3001\u56db\u5b63\u8c46",
+            "fixture_only": False,
+            "allowed_fields": ["kcal_range", "likely_kcal", "macro_candidate"],
+        },
+    ]
 
 
 def _producer_trace(
@@ -928,8 +987,6 @@ def _build_phase_b2_synthetic_smoke_report_legacy(
             "nutrition_accuracy_production_ready_claim": False,
         },
     }
-
-
 def build_phase_b2_synthetic_smoke_report(
     *,
     b1_green_handoff_snapshot: dict[str, Any] | None = None,
@@ -1092,9 +1149,59 @@ def build_phase_b2_synthetic_smoke_report(
                 }
             ],
         ),
+        _runtime_clarify_case_with_taiwan_skill_compat(
+            "B2-011",
+            "\u6211\u5403\u4e86\u5bb6\u5e38\u83dc",
+            semantic_decision=_synthetic_manager_decision_fixture(
+                base_dish="\u5bb6\u5e38\u83dc",
+                aliases=["\u5bb6\u5e38\u83dc"],
+                retrieval_goal="composition_clarification",
+            ),
+            compatibility_packet=_taiwan_skill_packet("pkt_skill_home_cooked_unspecified"),
+            mutation=_mutation(attempted=False, reason="needs_info_guard", result=None),
+        ),
+        _runtime_clarify_case_with_taiwan_skill_compat(
+            "B2-012",
+            "\u6211\u5403\u4e86\u9ebb\u8fa3\u71d9",
+            semantic_decision=_synthetic_manager_decision_fixture(
+                base_dish="\u9ebb\u8fa3\u71d9",
+                aliases=["\u9ebb\u8fa3\u71d9"],
+                retrieval_goal="composition_clarification",
+            ),
+            compatibility_packet=_taiwan_skill_packet("pkt_skill_spicy_hotpot_basket"),
+            mutation=_mutation(attempted=False, reason="needs_info_guard", result=None),
+        ),
+        _runtime_generic_case(
+            "B2-013",
+            "\u6211\u5403\u4e86\u9ebb\u8fa3\u81ed\u8c46\u8150",
+            semantic_decision=_synthetic_manager_decision_fixture(
+                base_dish="\u9ebb\u8fa3\u81ed\u8c46\u8150",
+                aliases=["\u9ebb\u8fa3\u81ed\u8c46\u8150"],
+                retrieval_goal="generic_anchor_lookup",
+            ),
+        ),
+        _runtime_generic_case(
+            "B2-014",
+            "\u6211\u5403\u4e86\u4e00\u4efd\u9e7d\u9165\u96de",
+            semantic_decision=_synthetic_manager_decision_fixture(
+                base_dish="\u9e7d\u9165\u96de",
+                aliases=["\u9e7d\u9165\u96de"],
+                retrieval_goal="generic_anchor_lookup",
+            ),
+        ),
+        _runtime_listed_item_fanout_case(
+            "B2-015",
+            "\u6211\u5403\u4e86\u9e7d\u9165\u96de\uff0c\u6709\u751c\u4e0d\u8fa3\u3001\u7c73\u8840\u3001\u56db\u5b63\u8c46",
+            semantic_decision=_synthetic_manager_decision_fixture(
+                base_dish="\u9e7d\u9165\u96de",
+                aliases=["\u9e7d\u9165\u96de"],
+                listed_items=["\u751c\u4e0d\u8fa3", "\u7c73\u8840", "\u56db\u5b63\u8c46"],
+                retrieval_goal="listed_item_lookup",
+            ),
+        ),
     ]
 
-    return {
+    report = {
         "phase": "B2",
         "mode": "evidence_synthesis_gate",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
@@ -1187,6 +1294,8 @@ def build_phase_b2_synthetic_smoke_report(
             "nutrition_accuracy_production_ready_claim": False,
         },
     }
+    report["minimal_db_seed_manifest"]["seeds"].extend(_approved_local_case_law_seed_manifest_entries())
+    return report
 
 
 def write_phase_b2_synthetic_smoke_report(

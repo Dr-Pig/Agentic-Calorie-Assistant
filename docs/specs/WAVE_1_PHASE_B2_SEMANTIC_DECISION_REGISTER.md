@@ -115,17 +115,86 @@ approved:
       - B2 source selection as ask-first selector
       - B2 live diagnostic payload contract
       - B2 live diagnostic validator
+
+  homemade_food_minimum_estimability:
+    status: approved
+    selected_policy: clarify_bare_home_cooked_food_estimate_listed_anchored_food
+    scope:
+      - bare 家常菜 / 媽媽煮的 references
+      - home-cooked listed dishes
+      - home-cooked listed dishes with portion detail
+    decision:
+      - bare 家常菜 or 媽媽煮的 remains clarify/draft
+      - listed dishes with portion anchors may become logged estimates
+      - listed dishes without portions may be estimated only with strong follow-up
+      - listed dishes without an approved local anchor remain clarify/draft
+    affected_runtime_owner:
+      - B2 retrieval intent from manager decision
+      - local evidence metadata seed
+      - B2 packetizer and synthesis inputs
+      - B2 final mapping boundary
+
+  taiwan_b2_case_law_narrow_set:
+    status: approved
+    selected_policy: formalize_existing_narrow_case_law_only
+    scope:
+      - 茶葉蛋
+      - 雞腿便當
+      - 麻辣燙
+      - 麻辣臭豆腐
+      - 松屋牛丼
+      - 鹽酥雞 multi-sense resolution
+      - self-selected basket rules already listed above
+    decision:
+      - this register formalizes the current narrow B2 case-law set
+      - no additional food semantics are approved by this closure slice
+      - seed metadata may support lookup and packetizer coverage but must not decide logged/draft/mutation
+
+  exact_item_cards_local_diagnostic_seed_only:
+    status: approved
+    selected_policy: local_app_owned_diagnostic_seed
+    scope:
+      - app/knowledge/exact_item_cards_tw.json
+      - exact lookup and packetizer tests
+    decision:
+      - exact item card seeds exercise local lookup and packetizer behavior only
+      - the seed file does not claim production database accuracy
+      - exact seed metadata must not become product semantic authority
+
+  tavily_web_candidate_evidence_only:
+    status: approved
+    selected_policy: candidate_evidence_requires_packetizer_and_hard_recheck
+    scope:
+      - Tavily search candidates
+      - selected web evidence
+    decision:
+      - web candidates must pass source selection, packetizer, and hard recheck before synthesis
+      - rejected candidates must remain unavailable to synthesis evidence_used
+      - web candidates do not become runtime truth or mutation authority by themselves
+
+  model_policy_single_profile_stability_only:
+    status: approved
+    selected_policy: hooks_and_gates_only_before_pre_shadow
+    scope:
+      - Founder live decision pack
+      - provider/profile matrix
+      - model diversity evidence
+    decision:
+      - single-model 3x strict live evidence may claim single_profile_stability only
+      - if no alternate profile was run, decision reason remains model_diversity_missing
+      - alternate model canary belongs to the pre-shadow activation train, not B2 local closure
 ```
+
+## Superseded Eval Expectations
+
+- MS7 pearl milk tea old draft expectation is superseded by `pearl_milk_tea_missing_sugar_size`.
+- Stale first-turn pearl milk tea draft fixtures must not override the approved logged-estimate-with-followup policy.
+- This supersession does not add UI, memory, proactive, rescue, production DB accuracy, or shadow-readiness semantics.
 
 ## Pending Decisions
 
 ```yaml
 pending:
-  homemade_dish_minimum_estimability:
-    status: pending
-    question: What minimum ingredient, dish, or portion detail makes homemade food estimable?
-    default_until_approved: composition-unknown food remains draft or clarify-first
-
   tavily_exact_brand_scope:
     status: pending
     question: Should first live web scope stay exact-brand trace-only or widen after anchor policy?

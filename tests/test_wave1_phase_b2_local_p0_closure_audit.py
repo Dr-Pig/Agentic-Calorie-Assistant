@@ -27,9 +27,51 @@ def test_b2_local_p0_closure_audit_passes_current_runtime_backed_report() -> Non
     assert audit["passed"] is True
     assert audit["blockers"] == []
     assert audit["runtime_web_activation_approved"] is False
-    assert audit["official_runtime_backed_case_count"] == 10
+    assert audit["official_runtime_backed_case_count"] >= 15
     assert audit["local_evidence_provenance"]["passed"] is True
     assert audit["owner_lineage"]["passed"] is True
+
+
+def test_b2_local_p0_closure_report_covers_approved_local_case_law() -> None:
+    report = _report()
+    case_ids = {case["case_id"] for case in report["cases"]}
+    seed_names = {seed["food_name"] for seed in report["minimal_db_seed_manifest"]["seeds"]}
+
+    assert {
+        "B2-011",
+        "B2-012",
+        "B2-013",
+        "B2-014",
+        "B2-015",
+    }.issubset(case_ids)
+    assert {
+        "\u5bb6\u5e38\u83dc",
+        "\u9ebb\u8fa3\u71d9",
+        "\u9ebb\u8fa3\u81ed\u8c46\u8150",
+        "\u9e7d\u9165\u96de",
+        "\u751c\u4e0d\u8fa3",
+        "\u7c73\u8840",
+        "\u56db\u5b63\u8c46",
+    }.issubset(seed_names)
+
+    home = next(case for case in report["cases"] if case["case_id"] == "B2-011")
+    hotpot = next(case for case in report["cases"] if case["case_id"] == "B2-012")
+    spicy_tofu = next(case for case in report["cases"] if case["case_id"] == "B2-013")
+    salty_item = next(case for case in report["cases"] if case["case_id"] == "B2-014")
+    salty_listed = next(case for case in report["cases"] if case["case_id"] == "B2-015")
+
+    assert home["manager_pass_2"]["item_results"][0]["final_mapping"]["external_outcome"] == "draft"
+    assert hotpot["manager_pass_2"]["item_results"][0]["final_mapping"]["external_outcome"] == "draft"
+    assert spicy_tofu["manager_pass_2"]["item_results"][0]["final_mapping"]["external_outcome"] == "logged"
+    assert salty_item["manager_pass_2"]["item_results"][0]["final_mapping"]["external_outcome"] == "logged"
+    assert all(
+        item["final_mapping"]["external_outcome"] == "logged"
+        for item in salty_listed["manager_pass_2"]["item_results"]
+    )
+    assert all(
+        item["evidence_used"]
+        for item in salty_listed["manager_pass_2"]["item_results"]
+    )
 
 
 def test_b2_local_p0_closure_audit_blocks_synthetic_trusted_database_wording() -> None:
