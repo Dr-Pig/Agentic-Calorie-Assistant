@@ -98,6 +98,62 @@ def test_small_anchor_store_returns_semantic_only_clarify_support_for_unlisted_l
     assert result.mutation_authority == "none"
 
 
+def test_small_anchor_store_covers_approved_b2_case_law_without_mutation_authority() -> None:
+    hotpot = lookup_anchor_candidates(build_retrieval_intent("\u6211\u5403\u4e86\u9ebb\u8fa3\u71d9"))
+    spicy_stinky_tofu = lookup_anchor_candidates(build_retrieval_intent("\u6211\u5403\u4e86\u9ebb\u8fa3\u81ed\u8c46\u8150"))
+    salty_item = lookup_anchor_candidates(build_retrieval_intent("\u6211\u5403\u4e86\u4e00\u4efd\u9e7d\u9165\u96de"))
+    salty_basket = lookup_anchor_candidates(build_retrieval_intent("\u6211\u8cb7\u4e86\u9e7d\u9165\u96de"))
+    homemade = lookup_anchor_candidates(build_retrieval_intent("\u6211\u5403\u4e86\u5bb6\u5e38\u83dc"))
+
+    assert hotpot.candidates == ()
+    assert hotpot.clarify_support is not None
+    assert hotpot.clarify_support.canonical_name == "\u9ebb\u8fa3\u71d9"
+    assert hotpot.mutation_authority == "none"
+
+    assert [candidate.canonical_name for candidate in spicy_stinky_tofu.candidates] == ["\u9ebb\u8fa3\u81ed\u8c46\u8150"]
+    assert spicy_stinky_tofu.candidates[0].followup_hints == (
+        "ask_noodle_portion",
+        "ask_add_ons",
+        "ask_portion",
+        "ask_broth_consumption",
+    )
+    assert spicy_stinky_tofu.mutation_authority == "none"
+
+    assert [candidate.canonical_name for candidate in salty_item.candidates] == ["\u9e7d\u9165\u96de"]
+    assert salty_item.candidates[0].semantic_hints == ("salt_crispy_chicken_single_item",)
+    assert salty_item.mutation_authority == "none"
+
+    assert salty_basket.candidates == ()
+    assert salty_basket.clarify_support is not None
+    assert salty_basket.clarify_support.canonical_name == "\u9e7d\u9165\u96de"
+    assert salty_basket.clarify_support.semantic_hints == ("self_selected_basket",)
+    assert salty_basket.mutation_authority == "none"
+
+    assert homemade.candidates == ()
+    assert homemade.clarify_support is not None
+    assert homemade.clarify_support.canonical_name == "\u5bb6\u5e38\u83dc"
+    assert homemade.mutation_authority == "none"
+
+
+def test_small_anchor_store_supports_approved_listed_basket_components() -> None:
+    result = lookup_anchor_candidates(
+        RetrievalIntent(
+            base_dish="\u9e7d\u9165\u96de",
+            aliases=[],
+            brand_hint=None,
+            size_hint=None,
+            modifier_hints=[],
+            listed_items=["\u751c\u4e0d\u8fa3"],
+            retrieval_goal="listed_item_lookup",
+        )
+    )
+
+    assert result.defer_reason is None
+    assert result.clarify_support is None
+    assert [candidate.canonical_name for candidate in result.candidates] == ["\u751c\u4e0d\u8fa3"]
+    assert result.mutation_authority == "none"
+
+
 def test_small_anchor_store_defers_exact_brand_lookup_to_b2_005() -> None:
     result = lookup_anchor_candidates(
         RetrievalIntent(

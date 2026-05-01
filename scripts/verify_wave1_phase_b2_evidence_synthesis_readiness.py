@@ -95,6 +95,7 @@ REQUIRED_CACHE_FIELDS = ("cache_key", "cache_hit", "cache_policy", "unavailable_
 REQUIRED_GENERIC_SEED_FOODS = {"茶葉蛋", "珍珠奶茶", "便當", "豆干", "海帶", "貢丸"}
 REQUIRED_SEED_FIELDS = ("food_name", "seed_type", "used_by_smoke_case", "fixture_only", "allowed_fields")
 GENERIC_SEED_ALLOWED_FIELDS = {"kcal_range", "likely_kcal", "macro_candidate"}
+SEMANTIC_SEED_ALLOWED_FIELDS = {"semantic_hints", "followup_hints"}
 LLM_PRIOR_ALLOWED_CONFIDENCE = {"weak", "insufficient"}
 PRODUCER_BACKING_CLASSES = {"runtime_backed", "synthetic_compatibility"}
 PRODUCER_SUPPORT_BASES = {
@@ -329,9 +330,19 @@ def _check_minimal_db_seed_manifest(report: dict[str, Any], blockers: list[dict[
             forbidden_allowed_fields = sorted(allowed_fields - GENERIC_SEED_ALLOWED_FIELDS)
             if forbidden_allowed_fields or seed.get("source_quality_label") == "internal_exact" or seed.get("match_type") in SAME_ITEM_MATCH_TYPES:
                 exact_truth.append({"index": index, "food_name": seed.get("food_name"), "forbidden": forbidden_allowed_fields})
+        elif seed_type == "semantic_only":
+            allowed_fields = set(str(item) for item in seed.get("allowed_fields") or [])
+            forbidden_allowed_fields = sorted(allowed_fields - SEMANTIC_SEED_ALLOWED_FIELDS)
+            if forbidden_allowed_fields:
+                exact_truth.append({"index": index, "food_name": seed.get("food_name"), "forbidden": forbidden_allowed_fields})
+        elif seed_type == "generic_and_semantic_only":
+            allowed_fields = set(str(item) for item in seed.get("allowed_fields") or [])
+            forbidden_allowed_fields = sorted(allowed_fields - (GENERIC_SEED_ALLOWED_FIELDS | SEMANTIC_SEED_ALLOWED_FIELDS))
+            if forbidden_allowed_fields or seed.get("source_quality_label") == "internal_exact" or seed.get("match_type") in SAME_ITEM_MATCH_TYPES:
+                exact_truth.append({"index": index, "food_name": seed.get("food_name"), "forbidden": forbidden_allowed_fields})
         elif seed_type == "exact" and not fixture_only:
             exact_runtime_seeds.append({"index": index, "food_name": seed.get("food_name")})
-        elif seed_type not in {"generic", "exact"}:
+        elif seed_type not in {"generic", "exact", "semantic_only", "generic_and_semantic_only"}:
             malformed.append({"index": index, "seed_type": seed_type})
         if used_by not in smoke_cases and not fixture_only and not bool(seed.get("out_of_scope")):
             outside_scope.append({"index": index, "food_name": seed.get("food_name"), "used_by_smoke_case": used_by})

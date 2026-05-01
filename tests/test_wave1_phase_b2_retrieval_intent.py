@@ -58,10 +58,32 @@ def test_retrieval_intent_marks_generic_item_as_generic_anchor_lookup() -> None:
     assert intent.retrieval_goal == "generic_anchor_lookup"
 
 
+def test_retrieval_intent_marks_approved_self_selected_baskets_as_clarification() -> None:
+    hotpot = build_retrieval_intent("\u6211\u5403\u4e86\u9ebb\u8fa3\u71d9")
+    salty_basket = build_retrieval_intent("\u6211\u8cb7\u4e86\u9e7d\u9165\u96de")
+
+    assert hotpot.base_dish == "\u9ebb\u8fa3\u71d9"
+    assert hotpot.retrieval_goal == "composition_clarification"
+
+    assert salty_basket.base_dish == "\u9e7d\u9165\u96de"
+    assert salty_basket.retrieval_goal == "composition_clarification"
+
+
+def test_retrieval_intent_resolves_salt_crispy_chicken_listed_basket() -> None:
+    intent = build_retrieval_intent(
+        "\u6211\u5403\u4e86\u9e7d\u9165\u96de\uff0c\u6709\u751c\u4e0d\u8fa3\u3001\u7c73\u8840\u3001\u56db\u5b63\u8c46"
+    )
+
+    assert intent.base_dish == "\u9e7d\u9165\u96de"
+    assert intent.listed_items == ["\u751c\u4e0d\u8fa3", "\u7c73\u8840", "\u56db\u5b63\u8c46"]
+    assert intent.retrieval_goal == "listed_item_lookup"
+
+
 def test_retrieval_intent_strips_simple_quantity_prefixes_for_generic_anchor_cases() -> None:
     tea_egg = build_retrieval_intent("\u6211\u5403\u4e86\u4e00\u9846\u8336\u8449\u86cb")
     boba = build_retrieval_intent("\u6211\u559d\u4e86\u4e00\u676f\u73cd\u73e0\u5976\u8336")
     bento = build_retrieval_intent("\u6211\u5403\u4e86\u4e00\u500b\u4fbf\u7576")
+    salty_item = build_retrieval_intent("\u6211\u5403\u4e86\u4e00\u4efd\u9e7d\u9165\u96de")
 
     assert tea_egg.base_dish == "\u8336\u8449\u86cb"
     assert tea_egg.aliases == ["\u8336\u8449\u86cb"]
@@ -74,6 +96,10 @@ def test_retrieval_intent_strips_simple_quantity_prefixes_for_generic_anchor_cas
     assert bento.base_dish == "\u4fbf\u7576"
     assert bento.aliases == ["\u4fbf\u7576"]
     assert bento.retrieval_goal == "generic_anchor_lookup"
+
+    assert salty_item.base_dish == "\u9e7d\u9165\u96de"
+    assert salty_item.aliases == ["\u9e7d\u9165\u96de"]
+    assert salty_item.retrieval_goal == "generic_anchor_lookup"
 
 
 @pytest.mark.parametrize(

@@ -172,6 +172,43 @@ def test_local_synthesis_turns_customizable_drink_into_estimated_item_result_wit
     assert item["suggested_followup_question"] == "\u8acb\u88dc\u5145\u7cd6\u5ea6\u548c\u676f\u578b\u3002"
 
 
+def test_local_synthesis_handles_approved_b2_case_law_from_accepted_packets_only() -> None:
+    intent = build_retrieval_intent("\u6211\u5403\u4e86\u9ebb\u8fa3\u81ed\u8c46\u8150")
+    anchor_result = lookup_anchor_candidates(intent)
+    seed = packetizer_input_seeds_from_anchor_lookup_result(anchor_result)[0]
+    packet = add_hard_recheck_metadata(build_candidate_packet(seed))
+    consumption = consume_rechecked_packets((packet,))
+
+    manager_pass_2 = synthesize_local_manager_pass(intent, consumption)
+
+    item = manager_pass_2["item_results"][0]
+    assert item["interpreted_food_identity"] == "\u9ebb\u8fa3\u81ed\u8c46\u8150"
+    assert item["exactness_posture"] == "estimated"
+    assert item["evidence_confidence"] == "moderate"
+    assert item["evidence_used"][0]["packet_id"] == packet["packet_id"]
+    assert item["suggested_followup_question"] == "\u8acb\u88dc\u5145\u9eb5\u91cf\u3001\u52a0\u6599\u6216\u4efd\u91cf\u3002"
+
+
+def test_local_synthesis_keeps_composition_unknown_cases_unresolved_without_packets() -> None:
+    intent = build_retrieval_intent("\u6211\u5403\u4e86\u9ebb\u8fa3\u71d9")
+    anchor_result = lookup_anchor_candidates(intent)
+    consumption = consume_rechecked_packets(())
+
+    manager_pass_2 = synthesize_local_manager_pass(
+        intent,
+        consumption,
+        clarify_support=anchor_result.clarify_support,
+    )
+
+    item = manager_pass_2["item_results"][0]
+    assert item["interpreted_food_identity"] == "\u9ebb\u8fa3\u71d9"
+    assert item["exactness_posture"] == "unresolved"
+    assert item["kcal_range"] is None
+    assert item["likely_kcal"] is None
+    assert item["evidence_used"] == []
+    assert item["suggested_followup_question"] == "\u8acb\u5217\u51fa\u54c1\u9805\u8207\u5927\u81f4\u4efd\u91cf\u3002"
+
+
 def test_local_synthesis_missing_metadata_falls_back_to_dish_type_behavior() -> None:
     intent = build_retrieval_intent("\u6211\u559d\u4e86\u73cd\u73e0\u5976\u8336")
     anchor_result = lookup_anchor_candidates(intent)

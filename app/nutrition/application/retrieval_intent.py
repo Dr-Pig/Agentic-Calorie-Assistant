@@ -37,10 +37,26 @@ _QUERY_MARKERS = (
 _LEADING_PREFIXES = (
     "\u6211\u5403\u4e86",
     "\u6211\u559d\u4e86",
+    "\u6211\u8cb7\u4e86",
+    "\u6211\u665a\u9910\u5403",
+    "\u665a\u9910\u5403",
+    "\u5bb5\u591c\u5403",
     "\u4eca\u5929\u5403\u4e86",
     "\u4eca\u5929\u559d\u4e86",
     "\u5403\u4e86",
     "\u559d\u4e86",
+)
+_COMPOSITION_UNKNOWN_BASKETS = (
+    "\u6ef7\u5473",
+    "\u9ebb\u8fa3\u71d9",
+    "\u81ea\u52a9\u9910",
+    "\u9e79\u6c34\u96de",
+    "\u95dc\u6771\u716e",
+)
+_SALT_CRISPY_CHICKEN = "\u9e7d\u9165\u96de"
+_HOMEMADE_BARE_TERMS = (
+    "\u5bb6\u5e38\u83dc",
+    "\u5abd\u5abd\u716e\u7684",
 )
 _SIMPLE_QUANTITY_PREFIX = re.compile(
     r"^(?P<prefix>(?:[12\u4e00\u5169\u4e8c])(?:\u9846|\u676f|\u500b|\u4efd|\u7897|\u689d|\u7247|\u584a|\u4e32|\u7403|\u5305|\u76d2|\u74f6))"
@@ -89,9 +105,13 @@ def build_retrieval_intent(user_input: str) -> RetrievalIntent:
 
 def _extract_listed_items(user_input: str) -> list[str]:
     match = re.search(r"(?P<items>.+?)\u7684\u6ef7\u5473", user_input)
-    if not match:
-        return []
-    items_blob = match.group("items").strip()
+    if match:
+        items_blob = match.group("items").strip()
+    else:
+        salt_match = re.search(r"\u9e7d\u9165\u96de[\uff0c,]\u6709(?P<items>.+)$", user_input)
+        if not salt_match:
+            return []
+        items_blob = salt_match.group("items").strip()
     items_blob = _strip_leading_prefix(items_blob)
     return [item.strip() for item in re.split(r"[\u3001,/\uff0c]", items_blob) if item.strip()]
 
@@ -118,6 +138,8 @@ def _extract_base_dish(
     listed_items: list[str],
 ) -> str | None:
     if listed_items:
+        if _SALT_CRISPY_CHICKEN in user_input:
+            return _SALT_CRISPY_CHICKEN
         return "\u6ef7\u5473"
 
     dish = user_input
@@ -132,6 +154,8 @@ def _extract_base_dish(
     for marker in _QUERY_MARKERS:
         dish = dish.replace(marker, "")
     cleaned = dish.strip(" ()\u3000\u300c\u300d\u300e\u300f\"'")
+    if cleaned.startswith(_SALT_CRISPY_CHICKEN):
+        return _SALT_CRISPY_CHICKEN
     return cleaned or None
 
 
@@ -146,7 +170,11 @@ def _select_retrieval_goal(
         return "listed_item_lookup"
     if _looks_like_query_only(user_input):
         return "query_only_answer"
-    if base_dish == "\u6ef7\u5473":
+    if base_dish in _COMPOSITION_UNKNOWN_BASKETS:
+        return "composition_clarification"
+    if base_dish == _SALT_CRISPY_CHICKEN and not _has_salt_crispy_chicken_portion_cue(user_input):
+        return "composition_clarification"
+    if base_dish in _HOMEMADE_BARE_TERMS:
         return "composition_clarification"
     if brand_hint:
         return "exact_brand_lookup"
@@ -179,6 +207,10 @@ def _strip_simple_quantity_prefix(text: str) -> str:
     if match is None:
         return stripped
     return stripped[match.end() :].strip()
+
+
+def _has_salt_crispy_chicken_portion_cue(user_input: str) -> bool:
+    return any(cue in user_input for cue in ("\u4e00\u4efd", "\u4e00\u5305", "\u5c0f\u4efd", "\u5927\u4efd", "50\u5143", "\u4e94\u5341\u5143"))
 
 
 __all__ = ["RetrievalIntent", "RetrievalGoal", "build_retrieval_intent"]
