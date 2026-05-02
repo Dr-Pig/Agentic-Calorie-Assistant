@@ -1,0 +1,29 @@
+{
+  "map_id": "turn2_mvp_ux_coverage_map_v1",
+  "source_suite_id": "turn2_hybrid_replay_pack_v1",
+  "fixture_role": "regression_coverage_only",
+  "mvp_gap_status": "requires_new_regression_wall",
+  "case_coverage": [
+    {"case_id": "turn2-001", "covered_ux_moments": ["same_meal_followup", "draft_completion"], "capability_layers": ["L1", "L3", "L5", "L6", "L7"]},
+    {"case_id": "turn2-002", "covered_ux_moments": ["same_meal_followup", "draft_completion"], "capability_layers": ["L1", "L3", "L5", "L6", "L7"]},
+    {"case_id": "turn2-003", "covered_ux_moments": ["same_meal_followup", "draft_completion"], "capability_layers": ["L1", "L3", "L5", "L6", "L7"]},
+    {"case_id": "turn2-004", "covered_ux_moments": ["same_meal_followup", "draft_completion"], "capability_layers": ["L1", "L3", "L5", "L6", "L7"]},
+    {"case_id": "turn2-005", "covered_ux_moments": ["same_item_refinement", "thread_continuity"], "capability_layers": ["L1", "L3", "L8"]},
+    {"case_id": "turn2-006", "covered_ux_moments": ["same_meal_refinement", "thread_continuity"], "capability_layers": ["L1", "L3", "L8"]},
+    {"case_id": "turn2-007", "covered_ux_moments": ["same_meal_refinement", "thread_continuity"], "capability_layers": ["L1", "L3", "L8"]},
+    {"case_id": "turn2-008", "covered_ux_moments": ["same_meal_refinement", "thread_continuity"], "capability_layers": ["L1", "L3", "L8"]},
+    {"case_id": "turn2-009", "covered_ux_moments": ["same_meal_refinement", "thread_continuity"], "capability_layers": ["L1", "L3", "L8"]}
+  ],
+  "mvp_ux_gaps": [
+    {"gap_id": "stable_correction_target_ref", "needed_test": "correction target must include meal_thread_id and meal_item_id"},
+    {"gap_id": "multi_item_ambiguity_no_autoselect", "needed_test": "multi-item correction exposes candidates and ambiguity only"},
+    {"gap_id": "no_plan_budget_honesty", "needed_test": "no active plan does not claim remaining budget"},
+    {"gap_id": "active_version_vs_superseded_truth", "needed_test": "current consumed truth excludes superseded versions"},
+    {"gap_id": "ledger_audit_not_current_truth", "needed_test": "ledger audit entry cannot own current consumed truth"},
+    {"gap_id": "context_promotion_trace", "needed_test": "promoted, available-if-needed, and trace-only fields are explicit"},
+    {"gap_id": "session_block_loses_to_canonical_state", "needed_test": "session atomic block is support evidence only"},
+    {"gap_id": "read_model_same_truth", "needed_test": "chat/debug/read model use the same current budget view"},
+    {"gap_id": "persistence_reload_same_truth", "needed_test": "commit and correction reload preserve canonical active truth"},
+    {"gap_id": "negative_authority_assertions", "needed_test": "context promotion does not grant mutation authority or final_action upgrade"}
+  ]
+}

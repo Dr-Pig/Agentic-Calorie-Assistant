@@ -1,0 +1,216 @@
+{
+  "suite_id": "turn2_hybrid_replay_pack_v1",
+  "role": "regression_coverage",
+  "truth_source_role": "validator_not_product_architecture",
+  "live_llm_required": false,
+  "mutation_authority": false,
+  "cases": [
+    {
+      "case_id": "turn2-001",
+      "title": "luwei followup completion",
+      "turn1_input": "我晚餐吃滷味",
+      "turn2_input": "高麗菜、豆皮、甜不辣、王子麵",
+      "input_shape": "multi_turn_text_pair",
+      "lane_family": "ask_followup_only_to_completion",
+      "capability_layer": "L1_L3_L5_L6_L7",
+      "mvp_ux_moment": "followup_completion",
+      "expected_turn1_lane": "ask_followup_only",
+      "expected_turn2_outcome": "completion_same_meal_thread",
+      "expected_attachment": {
+        "target_object_type": "meal_thread",
+        "target_resolution": "pending_followup_state",
+        "mutation_authority": false
+      },
+      "expected_persistence": {
+        "role": "expected_state_effect",
+        "canonical_commit_possible": true,
+        "requires_phase_c_uow": true
+      },
+      "forbidden_outcomes": ["create_unrelated_new_meal", "lose_turn1_context"]
+    },
+    {
+      "case_id": "turn2-002",
+      "title": "shared dishes followup completion",
+      "turn1_input": "我剛剛吃合菜",
+      "turn2_input": "三杯雞、高麗菜、白飯",
+      "input_shape": "multi_turn_text_pair",
+      "lane_family": "ask_followup_only_to_completion",
+      "capability_layer": "L1_L3_L5_L6_L7",
+      "mvp_ux_moment": "followup_completion",
+      "expected_turn1_lane": "ask_followup_only",
+      "expected_turn2_outcome": "completion_same_meal_thread",
+      "expected_attachment": {
+        "target_object_type": "meal_thread",
+        "target_resolution": "pending_followup_state",
+        "mutation_authority": false
+      },
+      "expected_persistence": {
+        "role": "expected_state_effect",
+        "canonical_commit_possible": true,
+        "requires_phase_c_uow": true
+      },
+      "forbidden_outcomes": ["create_unrelated_new_meal", "treat_family_meal_as_exact_item"]
+    },
+    {
+      "case_id": "turn2-003",
+      "title": "family meal followup completion",
+      "turn1_input": "我剛跟家裡吃",
+      "turn2_input": "白飯、鮭魚、高麗菜、滷豆腐",
+      "input_shape": "multi_turn_text_pair",
+      "lane_family": "ask_followup_only_to_completion",
+      "capability_layer": "L1_L3_L5_L6_L7",
+      "mvp_ux_moment": "followup_completion",
+      "expected_turn1_lane": "ask_followup_only",
+      "expected_turn2_outcome": "completion_same_meal_thread",
+      "expected_attachment": {
+        "target_object_type": "meal_thread",
+        "target_resolution": "pending_followup_state",
+        "mutation_authority": false
+      },
+      "expected_persistence": {
+        "role": "expected_state_effect",
+        "canonical_commit_possible": true,
+        "requires_phase_c_uow": true
+      },
+      "forbidden_outcomes": ["create_unrelated_new_meal", "drop_multi_item_context"]
+    },
+    {
+      "case_id": "turn2-004",
+      "title": "banquet followup completion",
+      "turn1_input": "我中午吃喜酒",
+      "turn2_input": "油飯、炸蝦、清蒸魚、烏骨雞湯",
+      "input_shape": "multi_turn_text_pair",
+      "lane_family": "ask_followup_only_to_completion",
+      "capability_layer": "L1_L3_L5_L6_L7",
+      "mvp_ux_moment": "followup_completion",
+      "expected_turn1_lane": "ask_followup_only",
+      "expected_turn2_outcome": "completion_same_meal_thread",
+      "expected_attachment": {
+        "target_object_type": "meal_thread",
+        "target_resolution": "pending_followup_state",
+        "mutation_authority": false
+      },
+      "expected_persistence": {
+        "role": "expected_state_effect",
+        "canonical_commit_possible": true,
+        "requires_phase_c_uow": true
+      },
+      "forbidden_outcomes": ["create_unrelated_new_meal", "invent_exact_banquet_menu_truth"]
+    },
+    {
+      "case_id": "turn2-005",
+      "title": "bubble milk tea refinement",
+      "turn1_input": "我剛剛喝珍珠奶茶",
+      "turn2_input": "大杯、半糖、正常冰",
+      "input_shape": "multi_turn_text_pair",
+      "lane_family": "estimate_with_followup_to_refinement",
+      "capability_layer": "L1_L3_L8",
+      "mvp_ux_moment": "estimate_refinement",
+      "expected_turn1_lane": "estimate_with_followup",
+      "expected_turn2_outcome": "refinement_same_item",
+      "expected_attachment": {
+        "target_object_type": "meal_thread",
+        "target_resolution": "single_active_item_or_pending_followup",
+        "mutation_authority": false
+      },
+      "expected_persistence": {
+        "role": "expected_state_effect",
+        "canonical_commit_possible": true,
+        "requires_phase_c_uow": true
+      },
+      "forbidden_outcomes": ["create_second_drink", "apply_refinement_to_unrelated_meal"]
+    },
+    {
+      "case_id": "turn2-006",
+      "title": "zhajiang noodle refinement",
+      "turn1_input": "我吃炸醬麵",
+      "turn2_input": "一般碗、醬正常、半顆滷蛋",
+      "input_shape": "multi_turn_text_pair",
+      "lane_family": "estimate_with_followup_to_refinement",
+      "capability_layer": "L1_L3_L8",
+      "mvp_ux_moment": "estimate_refinement",
+      "expected_turn1_lane": "estimate_with_followup",
+      "expected_turn2_outcome": "refinement_same_meal_thread",
+      "expected_attachment": {
+        "target_object_type": "meal_thread",
+        "target_resolution": "single_active_item_or_pending_followup",
+        "mutation_authority": false
+      },
+      "expected_persistence": {
+        "role": "expected_state_effect",
+        "canonical_commit_possible": true,
+        "requires_phase_c_uow": true
+      },
+      "forbidden_outcomes": ["create_unrelated_new_meal", "drop_turn1_noodle_context"]
+    },
+    {
+      "case_id": "turn2-007",
+      "title": "yoshinoya beef bowl refinement",
+      "turn1_input": "我吃牛丼",
+      "turn2_input": "吉野家並盛、溫泉蛋",
+      "input_shape": "multi_turn_text_pair",
+      "lane_family": "estimate_with_followup_to_refinement",
+      "capability_layer": "L1_L3_L8",
+      "mvp_ux_moment": "estimate_refinement",
+      "expected_turn1_lane": "estimate_with_followup",
+      "expected_turn2_outcome": "refinement_same_meal_thread",
+      "expected_attachment": {
+        "target_object_type": "meal_thread",
+        "target_resolution": "single_active_item_or_pending_followup",
+        "mutation_authority": false
+      },
+      "expected_persistence": {
+        "role": "expected_state_effect",
+        "canonical_commit_possible": true,
+        "requires_phase_c_uow": true
+      },
+      "forbidden_outcomes": ["create_unrelated_new_meal", "treat_brand_hint_as_web_requirement"]
+    },
+    {
+      "case_id": "turn2-008",
+      "title": "chicken bento refinement",
+      "turn1_input": "我吃雞腿便當",
+      "turn2_input": "炸雞腿、白飯、配菜",
+      "input_shape": "multi_turn_text_pair",
+      "lane_family": "estimate_with_followup_to_refinement",
+      "capability_layer": "L1_L3_L8",
+      "mvp_ux_moment": "estimate_refinement",
+      "expected_turn1_lane": "estimate_with_followup",
+      "expected_turn2_outcome": "refinement_same_meal_thread",
+      "expected_attachment": {
+        "target_object_type": "meal_thread",
+        "target_resolution": "single_active_item_or_pending_followup",
+        "mutation_authority": false
+      },
+      "expected_persistence": {
+        "role": "expected_state_effect",
+        "canonical_commit_possible": true,
+        "requires_phase_c_uow": true
+      },
+      "forbidden_outcomes": ["create_unrelated_new_meal", "drop_bento_item_breakdown"]
+    },
+    {
+      "case_id": "turn2-009",
+      "title": "fried noodle and fish refinement",
+      "turn1_input": "我中午吃炒麵跟魚",
+      "turn2_input": "炒麵一大盤、鱈魚一塊150克",
+      "input_shape": "multi_turn_text_pair",
+      "lane_family": "estimate_with_followup_to_refinement",
+      "capability_layer": "L1_L3_L8",
+      "mvp_ux_moment": "estimate_refinement",
+      "expected_turn1_lane": "estimate_with_followup",
+      "expected_turn2_outcome": "refinement_same_meal_thread",
+      "expected_attachment": {
+        "target_object_type": "meal_thread",
+        "target_resolution": "single_active_item_or_pending_followup",
+        "mutation_authority": false
+      },
+      "expected_persistence": {
+        "role": "expected_state_effect",
+        "canonical_commit_possible": true,
+        "requires_phase_c_uow": true
+      },
+      "forbidden_outcomes": ["create_unrelated_new_meal", "drop_multi_item_context"]
+    }
+  ]
+}
