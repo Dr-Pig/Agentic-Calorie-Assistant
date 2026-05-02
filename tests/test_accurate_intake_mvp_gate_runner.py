@@ -82,6 +82,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_wave1_phase_b2_source_selection.py",
         "tests/test_wave1_phase_b2_packetizer_input_seed.py",
         "tests/test_wave1_phase_b2_packet_consumption.py",
+        "tests/test_food_evidence_mvp_packet_guard.py",
         "tests/test_wave1_phase_b2_final_mapping.py",
         "tests/test_accurate_intake_mvp_manager_style_smoke.py",
         "tests/test_accurate_intake_mvp_ux_semantic_wall.py",
