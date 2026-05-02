@@ -8,7 +8,7 @@ It is a development verification note, not product truth and not a readiness cla
 - Repo target runtime: Python 3.12.
 - CI runtime: Python 3.12.
 - Dockerfile runtime: `python:3.12-slim`.
-- Compose verification service: `compose.yml` service `app`.
+- Compose verification services: `compose.yaml` services `app` and `test`.
 - Docker is preferred for local parity, but it is not mandatory for local Phase C verification.
 - Local Python 3.9 runs are not authoritative for active runtime, persistence, SQLAlchemy app paths, Phase C response assembly, or broader CI gates.
 - Contract-only isolated tests may run locally when they do not import active Python 3.12-only runtime.
@@ -86,6 +86,7 @@ The repo-owned Docker path is:
 
 ```bash
 docker compose run --rm app python --version
+docker compose run --rm test
 docker compose run --rm app python -m pytest \
   tests/test_phase_c_transaction_ports_contract.py \
   tests/test_phase_c_mutation_projection.py \
@@ -93,7 +94,7 @@ docker compose run --rm app python -m pytest \
   -q
 ```
 
-`compose.yml` mounts the repository into `/app` and sets `PYTHONPATH=/app` so tests, scripts, docs, and local gates run against the same checked-out tree.
+`compose.yaml` mounts the repository into `/app` and sets `PYTHONPATH=/app` so tests, scripts, docs, and local gates run against the same checked-out tree.
 
 If Docker is unavailable, this local fallback is allowed:
 
