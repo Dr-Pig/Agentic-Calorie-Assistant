@@ -150,6 +150,35 @@ def _is_item_removal_correction(candidate: CommitRequestCandidate) -> bool:
     return dict(candidate.trace_ref or {}).get("correction_operation") == "remove_item"
 
 
+def _candidate_with_item_removal_totals(db: Session, candidate: CommitRequestCandidate) -> CommitRequestCandidate:
+    if not _is_item_removal_correction(candidate):
+        return candidate
+    target_ref = _correction_target_ref(candidate)
+    target_item_id = target_ref.get("meal_item_id")
+    if target_item_id is None:
+        return candidate
+    target_item = db.get(MealItemRecord, target_item_id)
+    if target_item is None:
+        return candidate
+    old_items = db.execute(
+        select(MealItemRecord)
+        .where(MealItemRecord.meal_version_id == target_item.meal_version_id)
+        .order_by(MealItemRecord.item_index.asc())
+    ).scalars().all()
+    remaining_items = [old_item for old_item in old_items if old_item.id != target_item.id]
+    if not remaining_items:
+        return candidate
+    return candidate.model_copy(
+        update={
+            "estimated_kcal": sum(int(item.estimated_kcal or 0) for item in remaining_items),
+            "protein_g": sum(int(item.protein_g or 0) for item in remaining_items),
+            "carb_g": sum(int(item.carb_g or 0) for item in remaining_items),
+            "fat_g": sum(int(item.fat_g or 0) for item in remaining_items),
+            "items": [],
+        }
+    )
+
+
 def _item_records_for_candidate(
     db: Session,
     *,
@@ -284,6 +313,7 @@ def commit_meal_payload_to_canonical(
     if payload is None:
         assert raw_input is not None or candidate.raw_input
     source_payload = payload
+    candidate = _candidate_with_item_removal_totals(db, candidate)
 
     if candidate.estimated_kcal <= 0:
         return None

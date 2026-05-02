@@ -11,7 +11,7 @@ from pathlib import Path
 import sys
 from typing import Any
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,8 +19,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.composition.accurate_intake_debug_routes import build_accurate_intake_debug_payload
+from app.composition.canonical_persistence import commit_meal_payload_to_canonical
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_or_create_user
+from app.intake.infrastructure.models import MealItemRecord
 from app.models import Base
 from app.runtime.agent.founder_live_manager_contract import (
     FOUNDER_LIVE_MANAGER_SCHEMA_NAME,
@@ -31,6 +33,7 @@ from app.runtime.agent.founder_live_manager_contract import (
 )
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 from app.shared.contracts.readiness_claim import build_readiness_claim
+from app.shared.contracts.intake_payloads import CommitRequestCandidate, MealItemPayload
 
 
 ARTIFACT_PATH = ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic.json"
@@ -101,6 +104,7 @@ class LiveCase:
     user_external_id: str
     body_plan_seeded: bool
     steps: tuple[LiveStep, ...]
+    seed_kind: str | None = None
 
 
 class AccurateIntakeLiveDiagnosticProvider:
@@ -201,9 +205,11 @@ class ScriptedAccurateIntakeLiveProvider:
         )
         if {"read_body_plan", "read_day_budget"}.intersection(available_tools):
             return self._entry_decision(), self._trace("entry_decision")
-        return self._execution_decision(available_tools=available_tools, round_index=round_index), self._trace(
-            "execution_decision"
-        )
+        return self._execution_decision(
+            available_tools=available_tools,
+            round_index=round_index,
+            user_payload=user_payload,
+        ), self._trace("execution_decision")
 
     def _entry_decision(self) -> dict[str, Any]:
         entry_intent = str(self._current_step.get("entry_intent") or "log_meal")
@@ -238,7 +244,13 @@ class ScriptedAccurateIntakeLiveProvider:
             estimation_posture="estimable",
         )
 
-    def _execution_decision(self, *, available_tools: set[str], round_index: int) -> dict[str, Any]:
+    def _execution_decision(
+        self,
+        *,
+        available_tools: set[str],
+        round_index: int,
+        user_payload: dict[str, Any],
+    ) -> dict[str, Any]:
         final_action = str(self._current_step.get("final_action") or "commit")
         if final_action == "ask_followup":
             return self._final(
@@ -252,6 +264,45 @@ class ScriptedAccurateIntakeLiveProvider:
                 estimation_posture="composition_unknown_basket",
                 followup_question=str(self._current_step.get("followup_question") or "請補充品項。"),
             )
+        if (
+            self._current_step.get("correction_operation") == "remove_item"
+            and round_index == 0
+            and "resolve_correction_target" in available_tools
+        ):
+            return {
+                "manager_action": "call_tools",
+                "response_mode": "tool_call",
+                "tool_calls": [
+                    {
+                        "name": "resolve_correction_target",
+                        "arguments": self._target_proposal(user_payload=user_payload),
+                    }
+                ],
+                "evidence_posture": "target_resolution_pending",
+                "semantic_decision": {
+                    "current_turn_intent": "correct_meal",
+                    "final_action_candidate": final_action,
+                    "estimation_posture": "target_resolution_pending",
+                    "mutation_intent_candidate": "correction_write",
+                },
+            }
+        if (
+            self._current_step.get("correction_operation") == "remove_item"
+            and not _has_tool_result(user_payload, "estimate_nutrition")
+            and "estimate_nutrition" in available_tools
+        ):
+            return {
+                "manager_action": "call_tools",
+                "response_mode": "tool_call",
+                "tool_calls": [{"name": "estimate_nutrition"}],
+                "evidence_posture": "evidence_pending",
+                "semantic_decision": {
+                    "current_turn_intent": "correct_meal",
+                    "final_action_candidate": final_action,
+                    "estimation_posture": "pending_tool_call",
+                    "mutation_intent_candidate": "correction_write",
+                },
+            }
         if round_index == 0 and "estimate_nutrition" in available_tools:
             calls = [{"name": "estimate_nutrition"}]
             if self._current_step.get("compare_budget") and "compare_against_budget" in available_tools:
@@ -280,6 +331,28 @@ class ScriptedAccurateIntakeLiveProvider:
             followup_question=str(self._current_step.get("followup_question") or ""),
         )
 
+    def _target_proposal(self, *, user_payload: dict[str, Any]) -> dict[str, Any]:
+        target_name = str(self._current_step.get("target_canonical_name") or "").strip()
+        proposal: dict[str, Any] = {}
+        if target_name:
+            proposal["canonical_name"] = target_name
+        target_reference = (
+            _dict(_dict(_dict(user_payload.get("resolved_state")).get("injected_context")).get("TARGET_MEAL_REFERENCE"))
+        )
+        if target_reference.get("meal_thread_id") is not None:
+            proposal["meal_thread_id"] = target_reference.get("meal_thread_id")
+        for candidate in _list(target_reference.get("item_candidates")):
+            item = _dict(candidate)
+            if target_name and str(item.get("canonical_name") or "").casefold() != target_name.casefold():
+                continue
+            if item.get("meal_item_id") is not None:
+                proposal["meal_item_id"] = item.get("meal_item_id")
+            if item.get("canonical_name") is not None:
+                proposal["canonical_name"] = item.get("canonical_name")
+            break
+        proposal["target_proposal_source"] = "manager_structured_tool_arguments"
+        return proposal
+
     def _final(
         self,
         *,
@@ -294,7 +367,13 @@ class ScriptedAccurateIntakeLiveProvider:
         followup_question: str = "",
     ) -> dict[str, Any]:
         target = dict(target_attachment or {"mode": "none"})
+        if self._current_step.get("correction_operation"):
+            target["correction_operation"] = self._current_step.get("correction_operation")
+        if self._current_step.get("target_canonical_name"):
+            target["canonical_name"] = self._current_step.get("target_canonical_name")
         answer_contract = {"reply_text": workflow_effect}
+        if self._current_step.get("correction_operation"):
+            answer_contract["correction_operation"] = self._current_step.get("correction_operation")
         if followup_question:
             answer_contract["followup_question"] = followup_question
         return {
@@ -389,6 +468,7 @@ def run_diagnostic(
     provider_mode: str = "live",
     live_invoked: bool = True,
     stage: str = STAGE_ALL,
+    case_id: str | None = None,
 ) -> dict[str, Any]:
     profile = provider_profile(provider_profile_id)
     if provider_override is None:
@@ -490,7 +570,7 @@ def run_diagnostic(
                 break
             single_cases = _run_case_batch(
                 db_path=_stage_db_path(db_path, stage_id),
-                cases=_case_inventory()[:1],
+                cases=_single_case_probe_inventory(case_id=case_id),
                 provider=provider,
                 profile=profile,
                 local_date=local_date,
@@ -814,6 +894,7 @@ async def _run_case(
     with SessionLocal() as db:
         if case.body_plan_seeded:
             _seed_body_plan(db, user_external_id=case.user_external_id, local_date=local_date)
+        seeded_state = _seed_case_state(db, case=case, local_date=local_date)
         turns: list[dict[str, Any]] = []
         for step in case.steps:
             provider.begin_step({**dict(step.script), "kind": step.kind})
@@ -845,6 +926,7 @@ async def _run_case(
         "raw_text_routing_used": False,
         "turns": turns,
         "debug_surface": debug_surface,
+        "seeded_state": seeded_state,
         "state_delta": _case_state_delta(turns=turns, debug_surface=debug_surface),
     }
 
@@ -976,6 +1058,43 @@ def _case_inventory() -> list[LiveCase]:
             ),
         ),
     ]
+
+
+def _seeded_explicit_removal_case() -> LiveCase:
+    return LiveCase(
+        case_id="explicit_item_removal_seeded",
+        description="Seeded single-turn explicit item removal: canonical two-item meal exists before live turn.",
+        user_external_id="live-diag-explicit-removal-seeded",
+        body_plan_seeded=True,
+        seed_kind="canonical_two_item_meal",
+        steps=(
+            LiveStep(
+                1,
+                "explicit_item_removal",
+                "\u628a\u6e6f\u62ff\u6389",
+                {
+                    "entry_intent": "log_meal",
+                    "semantic_intent": "correct_meal",
+                    "final_action": "correction_applied",
+                    "workflow_effect": "correction",
+                    "mutation_intent": "correction_write",
+                    "target_mode": "target_committed_thread",
+                    "correction_operation": "remove_item",
+                    "target_canonical_name": "soup",
+                },
+            ),
+        ),
+    )
+
+
+def _single_case_probe_inventory(*, case_id: str | None = None) -> list[LiveCase]:
+    cases = [_seeded_explicit_removal_case(), *_case_inventory()]
+    selected = str(case_id or "explicit_item_removal_seeded")
+    for case in cases:
+        if case.case_id == selected:
+            return [case]
+    supported = ", ".join(case.case_id for case in cases)
+    raise ValueError(f"Unsupported Accurate Intake live diagnostic case_id: {selected}. Supported: {supported}")
 
 
 def _validate_case(
@@ -1316,6 +1435,61 @@ def _seed_body_plan(db: Session, *, user_external_id: str, local_date: str) -> N
     )
 
 
+def _seed_case_state(db: Session, *, case: LiveCase, local_date: str) -> dict[str, Any]:
+    if case.seed_kind != "canonical_two_item_meal":
+        return {}
+    user = get_or_create_user(db, case.user_external_id)
+    result = commit_meal_payload_to_canonical(
+        db,
+        user=user,
+        candidate=CommitRequestCandidate(
+            request_id=f"{case.case_id}-seed",
+            manager_intent="food_estimation",
+            version_reason="new_intake",
+            meal_title="chicken rice and soup",
+            raw_input="seeded canonical diagnostic state",
+            estimated_kcal=650,
+            protein_g=35,
+            carb_g=70,
+            fat_g=18,
+            resolution_status="completed_meal",
+            local_date=local_date,
+            items=[
+                MealItemPayload(name="chicken rice", estimated_kcal=500, protein_g=32, carb_g=65, fat_g=15),
+                MealItemPayload(name="soup", estimated_kcal=150, protein_g=3, carb_g=5, fat_g=3),
+            ],
+        ),
+        budget_kcal=1800,
+    )
+    if result is None:
+        raise RuntimeError("seeded_explicit_removal_initial_commit_failed")
+    items = (
+        db.execute(
+            select(MealItemRecord)
+            .where(MealItemRecord.meal_version_id == result.meal_version_id)
+            .order_by(MealItemRecord.item_index.asc())
+        )
+        .scalars()
+        .all()
+    )
+    return {
+        "seed_kind": case.seed_kind,
+        "meal_thread_id": result.meal_thread_id,
+        "meal_version_id": result.meal_version_id,
+        "active_item_count": len(items),
+        "active_items": [
+            {
+                "meal_item_id": item.id,
+                "canonical_name": item.name,
+                "estimated_kcal": int(item.estimated_kcal or 0),
+            }
+            for item in items
+        ],
+        "runner_inferred_semantics": False,
+        "raw_text_routing_used": False,
+    }
+
+
 def _case_state_delta(*, turns: list[dict[str, Any]], debug_surface: dict[str, Any]) -> dict[str, Any]:
     return {
         "turn_state_deltas": [_dict(turn.get("state_delta")) for turn in turns],
@@ -1359,8 +1533,12 @@ def _failure_family_for_error_dict(runtime_error: dict[str, Any]) -> str:
         return "environment_or_provider_blocker"
     if "BuilderSpace is not configured" in message:
         return "environment_or_provider_blocker"
-    if "missing required fields" in message or "validate_manager_payload" in message or "BuilderSpace" in message:
-        return "provider_contract_non_adherence"
+    if "did not return the synthetic decision tool call" in message:
+        return "synthetic_decision_tool_call_missing"
+    if "missing required fields" in message or "validate_manager_payload" in message:
+        return "schema_payload_invalid"
+    if "BuilderSpace" in message:
+        return "semantic_contract_violation"
     return "runtime_failure"
 
 
@@ -1385,6 +1563,14 @@ def _dict(value: Any) -> dict[str, Any]:
 
 def _list(value: Any) -> list[Any]:
     return list(value) if isinstance(value, list) else []
+
+
+def _has_tool_result(user_payload: dict[str, Any], tool_name: str) -> bool:
+    for item in _list(user_payload.get("tool_results")):
+        result = _dict(item)
+        if str(result.get("tool_name") or result.get("name") or "") == tool_name:
+            return True
+    return False
 
 
 def _optional_string(value: Any) -> str | None:
@@ -1429,6 +1615,7 @@ def main() -> int:
     parser.add_argument("--provider-timeout-ms", type=int, default=180000)
     parser.add_argument("--case-timeout-ms", type=int, default=None)
     parser.add_argument("--stage", choices=(STAGE_ALL, *ORDERED_STAGE_IDS), default=STAGE_ALL)
+    parser.add_argument("--case-id", default=None)
     args = parser.parse_args()
 
     report = run_diagnostic(
@@ -1439,6 +1626,7 @@ def main() -> int:
         provider_timeout_ms=int(args.provider_timeout_ms),
         case_timeout_ms=args.case_timeout_ms,
         stage=str(args.stage),
+        case_id=str(args.case_id) if args.case_id else None,
     )
     print(
         json.dumps(

@@ -119,6 +119,7 @@ def _target_meal_reference(*, active_meal: dict[str, Any] | None, conversation_s
     meal_item_id = active_meal.get("meal_item_id") if isinstance(active_meal, dict) else None
     canonical_name = active_meal.get("canonical_name") if isinstance(active_meal, dict) else None
     item_resolution_source = active_meal.get("item_resolution_source") if isinstance(active_meal, dict) else None
+    item_candidates = active_meal.get("item_candidates") if isinstance(active_meal, dict) else None
     source = "active_meal_view" if meal_thread_id is not None else "none"
     confidence = "medium" if meal_thread_id is not None else "low"
     if getattr(pending_state, "is_open", False):
@@ -139,6 +140,8 @@ def _target_meal_reference(*, active_meal: dict[str, Any] | None, conversation_s
         reference["canonical_name"] = sanitize_text_value(canonical_name)
     if item_resolution_source is not None:
         reference["item_resolution_source"] = item_resolution_source
+    if isinstance(item_candidates, list):
+        reference["item_candidates"] = sanitize_text_structure(item_candidates)
     return reference
 
 

@@ -147,6 +147,49 @@ def test_accurate_intake_live_decision_pack_requires_single_case_before_full_sui
     assert pack["selection_reason"] == "single_case_probe_missing"
 
 
+def test_accurate_intake_live_decision_pack_prefers_valid_stage_manifest() -> None:
+    live_artifact = _artifact(strict_pass_count=5, repaired_pass_count=0)
+    stage_manifest = {
+        "artifact_type": "accurate_intake_mvp_live_stage_manifest",
+        "input_integrity": {"passed": True, "blockers": []},
+        "stages": [
+            {"stage_id": "provider_health_smoke", "status": "pass"},
+            {"stage_id": "schema_contract_probe", "status": "pass"},
+            {"stage_id": "fake_provider_active_runtime_gate", "status": "pass"},
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "fail",
+                "failure_layer": "provider_contract_non_adherence",
+                "failure_family": "synthetic_decision_tool_call_missing",
+            },
+        ],
+    }
+
+    pack = build_accurate_intake_live_decision_pack(live_artifact, stage_manifest_artifact=stage_manifest)
+
+    assert pack["selected_option"] == "stay_diagnostic"
+    assert pack["selection_reason"] == "live_diagnostic_contract_failures"
+    assert pack["stage_summary"]["source"] == "stage_manifest"
+    assert pack["stage_summary"]["single_case_probe_status"] == "fail"
+    assert pack["private_self_use_candidate_prepared"] is False
+
+
+def test_accurate_intake_live_decision_pack_blocks_invalid_stage_manifest() -> None:
+    pack = build_accurate_intake_live_decision_pack(
+        _artifact(strict_pass_count=5, repaired_pass_count=0),
+        stage_manifest_artifact={
+            "artifact_type": "accurate_intake_mvp_live_stage_manifest",
+            "input_integrity": {"passed": False, "blockers": ["source_0_readiness_claimed"]},
+            "stages": [{"stage_id": "provider_health_smoke", "status": "pass"}],
+        },
+    )
+
+    assert pack["selected_option"] == "stay_diagnostic"
+    assert pack["selection_reason"] == "stage_manifest_integrity_blocked"
+    assert pack["input_integrity"]["passed"] is False
+    assert "stage_manifest_source_0_readiness_claimed" in pack["input_integrity"]["blockers"]
+
+
 def test_accurate_intake_live_decision_pack_stays_diagnostic_on_product_loop_contract_failure() -> None:
     pack = build_accurate_intake_live_decision_pack(
         _artifact(
@@ -243,3 +286,36 @@ def test_accurate_intake_live_decision_pack_writer_creates_artifact(tmp_path: Pa
     assert output.name == "accurate_intake_mvp_live_decision_pack.json"
     assert pack["artifact_type"] == "accurate_intake_mvp_live_decision_pack"
     assert pack["runtime_web_activation_approved"] is False
+
+
+def test_accurate_intake_live_decision_pack_writer_accepts_stage_manifest(tmp_path: Path) -> None:
+    source = tmp_path / "accurate_intake_mvp_live_diagnostic.json"
+    manifest = tmp_path / "accurate_intake_mvp_live_stage_manifest.json"
+    source.write_text(json.dumps(_artifact(strict_pass_count=5), ensure_ascii=False), encoding="utf-8")
+    manifest.write_text(
+        json.dumps(
+            {
+                "artifact_type": "accurate_intake_mvp_live_stage_manifest",
+                "input_integrity": {"passed": True, "blockers": []},
+                "stages": [
+                    {"stage_id": "provider_health_smoke", "status": "pass"},
+                    {"stage_id": "schema_contract_probe", "status": "pass"},
+                    {"stage_id": "fake_provider_active_runtime_gate", "status": "pass"},
+                    {"stage_id": "full_suite_live_diagnostic", "status": "pass"},
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    output = write_accurate_intake_live_decision_pack(
+        live_artifact_path=source,
+        stage_manifest_artifact_path=manifest,
+        output_dir=tmp_path,
+    )
+
+    pack = json.loads(output.read_text(encoding="utf-8"))
+    assert pack["selected_option"] == "single_case_probe_required"
+    assert pack["stage_summary"]["source"] == "stage_manifest"
+    assert pack["source_stage_manifest_type"] == "accurate_intake_mvp_live_stage_manifest"

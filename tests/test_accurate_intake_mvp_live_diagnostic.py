@@ -152,6 +152,29 @@ def test_accurate_intake_live_full_suite_is_blocked_without_single_case_probe(tm
     ]
 
 
+def test_accurate_intake_live_seeded_explicit_removal_single_turn_probe(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+        stage="single_case_live_probe",
+        case_id="explicit_item_removal_seeded",
+    )
+
+    assert report["stages"][-1]["stage_id"] == "single_case_live_probe"
+    assert report["stages"][-1]["case_ids"] == ["explicit_item_removal_seeded"]
+    assert report["stages"][-1]["status"] == "pass"
+    assert report["cases"][0]["case_id"] == "explicit_item_removal_seeded"
+    assert report["cases"][0]["seeded_state"]["seed_kind"] == "canonical_two_item_meal"
+    assert report["cases"][0]["runner_inferred_semantics"] is False
+    assert report["cases"][0]["raw_text_routing_used"] is False
+    assert report["cases"][0]["debug_surface"]["model"]["correction_history"][-1]["removed_item_names"] == ["soup"]
+
+
 def test_accurate_intake_live_schema_probe_blocks_product_loop_cases(tmp_path: Path) -> None:
     module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
 
@@ -188,6 +211,25 @@ def test_accurate_intake_live_schema_probe_blocks_product_loop_cases(tmp_path: P
     assert report["failure_family"] == "schema_contract_blocked"
 
 
+def test_accurate_intake_live_unknown_case_id_fails_fast(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    try:
+        module.run_diagnostic(
+            output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+            db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+            provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+            provider_mode="fake_provider_contract_test",
+            live_invoked=False,
+            stage="single_case_live_probe",
+            case_id="missing-case",
+        )
+    except ValueError as exc:
+        assert "Unsupported Accurate Intake live diagnostic case_id" in str(exc)
+    else:
+        raise AssertionError("unknown case_id should fail before running a diagnostic")
+
+
 def test_accurate_intake_live_missing_provider_report_is_environment_blocker() -> None:
     module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
     profile = module.provider_profile(module.DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID)
@@ -205,6 +247,29 @@ def test_accurate_intake_live_missing_provider_report_is_environment_blocker() -
     assert report["mutation_rollout_approved"] is False
     assert report["runtime_web_activation_approved"] is False
     assert report["cases"] == []
+
+
+def test_accurate_intake_live_provider_failure_taxonomy_splits_missing_synthetic_tool_call() -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    assert (
+        module._failure_family_for_error_dict(  # noqa: SLF001 - diagnostic taxonomy contract.
+            {
+                "type": "RuntimeError",
+                "message": "BuilderSpace did not return the synthetic decision tool call.",
+            }
+        )
+        == "synthetic_decision_tool_call_missing"
+    )
+    assert (
+        module._failure_family_for_error_dict(  # noqa: SLF001 - diagnostic taxonomy contract.
+            {
+                "type": "RuntimeError",
+                "message": "manager payload missing required fields for intake_manager_round: ['semantic_decision']",
+            }
+        )
+        == "schema_payload_invalid"
+    )
 
 
 def test_accurate_intake_live_repaired_pass_remains_diagnostic_only() -> None:
