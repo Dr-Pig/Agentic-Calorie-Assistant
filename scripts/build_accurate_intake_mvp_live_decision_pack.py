@@ -28,6 +28,7 @@ DECISION_OPTION_IDS = (
     "stay_diagnostic",
     "repeat_single_profile_diagnostic",
     "offline_shadow_replay",
+    "full_suite_blocked",
     "prepare_private_self_use_candidate",
     "defer_to_local_mvp",
 )
@@ -133,6 +134,9 @@ def _select_option(
         return "schema_contract_blocked", "schema_contract_blocked"
     if stage_summary.get("full_suite_without_single_case_probe") is True:
         return "single_case_probe_required", "single_case_probe_missing"
+    full_suite_blocker = _full_suite_blocker(stage_summary)
+    if full_suite_blocker:
+        return "full_suite_blocked", full_suite_blocker
     if stage_summary.get("has_timeout_stage") is True:
         return "stay_diagnostic", "timeout_evidence_incomplete"
     if stage_summary.get("has_failed_stage") is True:
@@ -396,6 +400,12 @@ def _decision_options() -> list[dict[str, Any]]:
             "blocked_claims": ["automatic_self_use", "product_ready", "mutation_ready"],
         },
         {
+            "option_id": "full_suite_blocked",
+            "description": "Full-suite diagnostic evidence is blocked by missing, incomplete, or retry/timeout-bearing replay evidence.",
+            "auto_activation_allowed": True,
+            "blocked_claims": ["private_self_use_ready", "product_ready", "live_ready"],
+        },
+        {
             "option_id": "prepare_private_self_use_candidate",
             "description": "Prepare a separate human-reviewable private self-use candidate; do not approve it here.",
             "auto_activation_allowed": False,
@@ -437,6 +447,17 @@ def _readiness_claim() -> dict[str, Any]:
         ],
         readiness_claimed=False,
     )
+
+
+def _full_suite_blocker(stage_summary: dict[str, Any]) -> str | None:
+    for item in _list(stage_summary.get("stage_failures")):
+        failure = _dict(item)
+        if failure.get("stage_id") != "full_suite_live_diagnostic":
+            continue
+        family = str(failure.get("failure_family") or "")
+        if family.startswith("offline_replay"):
+            return family
+    return None
 
 
 def _dict(value: Any) -> dict[str, Any]:

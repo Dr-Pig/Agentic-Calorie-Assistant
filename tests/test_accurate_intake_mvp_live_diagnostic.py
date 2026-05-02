@@ -5,6 +5,28 @@ import json
 from pathlib import Path
 
 
+def _write_strict_offline_replay(path: Path) -> Path:
+    path.write_text(
+        json.dumps(
+            {
+                "artifact_type": "accurate_intake_mvp_offline_shadow_replay",
+                "input_integrity": {"passed": True, "blockers": []},
+                "summary": {
+                    "sample_run_count": 3,
+                    "strict_replay_ready": True,
+                    "pass_after_retry_count": 0,
+                    "timeout_count": 0,
+                    "failed_stage_count": 0,
+                    "model_diversity_status": "model_diversity_missing",
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
 def test_accurate_intake_live_diagnostic_source_avoids_activation_shortcuts() -> None:
     runner_path = Path("scripts/run_accurate_intake_mvp_live_diagnostic.py")
     source = runner_path.read_text(encoding="utf-8")
@@ -57,6 +79,7 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
         provider_override=module.ScriptedAccurateIntakeLiveProvider(),
         provider_mode="fake_provider_contract_test",
         live_invoked=False,
+        offline_replay_artifact_path=_write_strict_offline_replay(tmp_path / "offline_replay.json"),
     )
 
     assert output_path.exists()
@@ -121,7 +144,7 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
     ] + report["summary"]["timeout_count"] == len(report["cases"])
 
 
-def test_accurate_intake_live_full_suite_is_blocked_without_single_case_probe(tmp_path: Path) -> None:
+def test_accurate_intake_live_full_suite_is_blocked_without_offline_replay(tmp_path: Path) -> None:
     module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
 
     report = module.run_diagnostic(
@@ -131,25 +154,47 @@ def test_accurate_intake_live_full_suite_is_blocked_without_single_case_probe(tm
         provider_mode="fake_provider_contract_test",
         live_invoked=False,
         stage="full_suite_live_diagnostic",
+        offline_replay_artifact_path=tmp_path / "missing_offline_replay.json",
     )
 
     assert report["cases"] == []
-    assert report["failure_family"] == "single_case_probe_required"
-    assert report["stages"] == [
-        {
-            "stage_id": "full_suite_live_diagnostic",
-            "status": "blocked",
-            "provider_profile_id": module.DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID,
-            "model": "grok-4-fast",
-            "transport_mode": "synthetic_tool_transport",
-            "attempt_count": 0,
-            "latency_ms": 0,
-            "timeout_budget_ms": 180000,
-            "failure_layer": "diagnostic_ordering",
-            "failure_family": "single_case_probe_required",
-            "retry_policy_applied": False,
-            "result_kind": "blocked",
-        }
+    assert report["failure_family"] == "offline_replay_required"
+    assert len(report["stages"]) == 1
+    stage = report["stages"][0]
+    assert stage["stage_id"] == "full_suite_live_diagnostic"
+    assert stage["status"] == "blocked"
+    assert stage["provider_profile_id"] == module.DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID
+    assert stage["model"] == "grok-4-fast"
+    assert stage["failure_layer"] == "diagnostic_ordering"
+    assert stage["failure_family"] == "offline_replay_required"
+    assert stage["result_kind"] == "blocked"
+    assert stage["summary"]["offline_replay_gate"]["allowed"] is False
+    assert stage["summary"]["offline_replay_gate"]["failure_family"] == "offline_replay_required"
+
+
+def test_accurate_intake_live_full_suite_can_run_after_strict_offline_replay(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+        stage="full_suite_live_diagnostic",
+        offline_replay_artifact_path=_write_strict_offline_replay(tmp_path / "offline_replay.json"),
+    )
+
+    assert report["failure_family"] is None
+    assert report["stages"][0]["stage_id"] == "full_suite_live_diagnostic"
+    assert report["stages"][0]["status"] == "pass"
+    assert report["stages"][0]["summary"]["offline_replay_gate"]["allowed"] is True
+    assert [case["case_id"] for case in report["cases"]] == [
+        "chinese_chicken_rice_correction_removal_debug",
+        "bubble_milk_tea_refinement",
+        "luwei_bare_to_listed_basket",
+        "today_consumed_query_only",
+        "no_plan_consumed_without_budget_target",
     ]
 
 
