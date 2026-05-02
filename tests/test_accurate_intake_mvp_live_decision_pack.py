@@ -215,6 +215,62 @@ def test_accurate_intake_live_decision_pack_repeats_on_retry_dependent_manifest(
     assert pack["private_self_use_candidate_prepared"] is False
 
 
+def test_accurate_intake_live_decision_pack_blocks_missing_required_stage_manifest() -> None:
+    live_artifact = _artifact(strict_pass_count=5, repaired_pass_count=0)
+    stage_manifest = {
+        "artifact_type": "accurate_intake_mvp_live_stage_manifest",
+        "input_integrity": {"passed": True, "blockers": []},
+        "stage_summary": {
+            "has_missing_required_stage": True,
+            "missing_required_stage_ids": ["fake_provider_active_runtime_gate"],
+            "missing_required_single_case_ids": [],
+        },
+        "stages": [
+            {"stage_id": "provider_health_smoke", "status": "pass", "result_kind": "strict_pass_first_attempt"},
+            {"stage_id": "schema_contract_probe", "status": "pass", "result_kind": "strict_pass_first_attempt"},
+            {"stage_id": "single_case_live_probe", "status": "pass", "result_kind": "strict_pass_first_attempt"},
+        ],
+    }
+
+    pack = build_accurate_intake_live_decision_pack(live_artifact, stage_manifest_artifact=stage_manifest)
+
+    assert pack["selected_option"] == "stay_diagnostic"
+    assert pack["selection_reason"] == "stage_evidence_missing"
+    assert pack["stage_summary"]["has_missing_required_stage"] is True
+    assert pack["private_self_use_candidate_prepared"] is False
+
+
+def test_accurate_intake_live_decision_pack_blocks_missing_required_single_case() -> None:
+    live_artifact = _artifact(strict_pass_count=5, repaired_pass_count=0)
+    stage_manifest = {
+        "artifact_type": "accurate_intake_mvp_live_stage_manifest",
+        "input_integrity": {"passed": True, "blockers": []},
+        "stage_summary": {
+            "has_missing_required_stage": True,
+            "missing_required_stage_ids": [],
+            "missing_required_single_case_ids": ["chinese_chicken_rice_correction_removal_debug"],
+        },
+        "stages": [
+            {"stage_id": "provider_health_smoke", "status": "pass", "result_kind": "strict_pass_first_attempt"},
+            {"stage_id": "schema_contract_probe", "status": "pass", "result_kind": "strict_pass_first_attempt"},
+            {"stage_id": "fake_provider_active_runtime_gate", "status": "pass", "result_kind": "strict_pass_first_attempt"},
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["explicit_item_removal_seeded"],
+            },
+        ],
+    }
+
+    pack = build_accurate_intake_live_decision_pack(live_artifact, stage_manifest_artifact=stage_manifest)
+
+    assert pack["selected_option"] == "single_case_probe_required"
+    assert pack["selection_reason"] == "single_case_probe_missing"
+    assert pack["stage_summary"]["missing_required_single_case_ids"] == ["chinese_chicken_rice_correction_removal_debug"]
+    assert pack["private_self_use_candidate_prepared"] is False
+
+
 def test_accurate_intake_live_decision_pack_stays_diagnostic_on_product_loop_contract_failure() -> None:
     pack = build_accurate_intake_live_decision_pack(
         _artifact(
@@ -299,6 +355,8 @@ def test_accurate_intake_live_decision_pack_can_prepare_private_candidate_but_no
     assert pack["private_self_use_approved"] is False
     assert pack["product_readiness_claimed"] is False
     assert pack["mutation_rollout_approved"] is False
+    assert pack["model_portability_claimed"] is False
+    assert pack["max_model_claim"] == "single_profile_live_diagnostic_observed"
 
 
 def test_accurate_intake_live_decision_pack_writer_creates_artifact(tmp_path: Path) -> None:

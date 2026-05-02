@@ -19,7 +19,18 @@ DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
 DEFAULT_STAGE_ARTIFACTS = (
     ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_provider_health.json",
     ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_schema_probe.json",
+    ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_fake_runtime_gate.json",
+    ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_seeded_removal.json",
     ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_single_case.json",
+)
+REQUIRED_STAGE_IDS = (
+    "provider_health_smoke",
+    "schema_contract_probe",
+    "fake_provider_active_runtime_gate",
+)
+REQUIRED_SINGLE_CASE_IDS = (
+    "explicit_item_removal_seeded",
+    "chinese_chicken_rice_correction_removal_debug",
 )
 
 _FORBIDDEN_TRUE_FLAGS = (
@@ -106,6 +117,27 @@ def stage_summary_from_stages(stages: list[dict[str, Any]]) -> dict[str, Any]:
         stage.get("retry_policy_applied") is True or str(stage.get("result_kind") or "") == "pass_after_retry"
         for stage in stages
     )
+    present_stage_ids = {str(stage.get("stage_id") or "") for stage in stages}
+    single_case_results = [
+        {
+            "case_ids": [str(item) for item in _list(stage.get("case_ids"))],
+            "status": str(stage.get("status") or ""),
+            "result_kind": _optional_string(stage.get("result_kind")),
+        }
+        for stage in stages
+        if stage.get("stage_id") == "single_case_live_probe"
+    ]
+    present_single_case_ids = {
+        case_id
+        for result in single_case_results
+        for case_id in [str(item) for item in _list(result.get("case_ids"))]
+    }
+    missing_required_stage_ids = [
+        stage_id for stage_id in REQUIRED_STAGE_IDS if stage_id not in present_stage_ids
+    ]
+    missing_required_single_case_ids = [
+        case_id for case_id in REQUIRED_SINGLE_CASE_IDS if case_id not in present_single_case_ids
+    ]
     return {
         "present": bool(stages),
         "stage_ids": [str(stage.get("stage_id") or "") for stage in stages],
@@ -117,6 +149,19 @@ def stage_summary_from_stages(stages: list[dict[str, Any]]) -> dict[str, Any]:
         "schema_contract_blocked": schema_contract_blocked,
         "full_suite_without_single_case_probe": full_suite_without_single_case_probe,
         "has_retry_dependent_stage": has_retry_dependent_stage,
+        "has_missing_required_stage": bool(missing_required_stage_ids or missing_required_single_case_ids),
+        "missing_required_stage_ids": missing_required_stage_ids,
+        "missing_required_single_case_ids": missing_required_single_case_ids,
+        "single_case_probe_results": single_case_results,
+        "result_kind_counts": _counts(
+            _optional_string(stage.get("result_kind")) for stage in stages if stage.get("result_kind")
+        ),
+        "failure_layer_counts": _counts(
+            _optional_string(stage.get("failure_layer")) for stage in stages if stage.get("failure_layer")
+        ),
+        "failure_family_counts": _counts(
+            _optional_string(stage.get("failure_family")) for stage in stages if stage.get("failure_family")
+        ),
         "stage_failures": [
             {
                 "stage_id": str(stage.get("stage_id") or ""),
@@ -177,6 +222,15 @@ def _list(value: Any) -> list[Any]:
 def _optional_string(value: Any) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _counts(values: Any) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for value in values:
+        if not value:
+            continue
+        counts[str(value)] = counts.get(str(value), 0) + 1
+    return counts
 
 
 def _json_safe(value: Any) -> Any:
