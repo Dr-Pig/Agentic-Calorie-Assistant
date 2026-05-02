@@ -1319,6 +1319,12 @@ def _decorate_case(case: dict[str, Any], *, profile: dict[str, Any]) -> dict[str
     decorated["result_kind"] = result_kind
     decorated["provider_request_attempt_count"] = _case_provider_attempt_count(decorated)
     decorated["retry_policy_applied"] = _case_retry_policy_applied(decorated)
+    repair_diagnostics = _case_repair_diagnostics(decorated)
+    if repair_diagnostics:
+        decorated["repair_diagnostics"] = repair_diagnostics
+        first_repair = repair_diagnostics[0]
+        decorated.setdefault("repair_failure_family", first_repair.get("repair_failure_family"))
+        decorated.setdefault("failed_invariant", first_repair.get("failed_invariant"))
     decorated["private_self_use_unlock_allowed"] = False
     decorated["readiness_claimed"] = False
     decorated["production_selected"] = False
@@ -1384,6 +1390,54 @@ def _case_manager_traces(case: dict[str, Any]) -> list[dict[str, Any]]:
             if isinstance(round_item, dict):
                 traces.append(_dict(round_item.get("trace")))
     return traces
+
+
+def _case_repair_diagnostics(case: dict[str, Any]) -> list[dict[str, Any]]:
+    diagnostics: list[dict[str, Any]] = []
+    for turn in _list(case.get("turns")):
+        turn_dict = _dict(turn)
+        for round_item in _list(turn_dict.get("manager_rounds")):
+            trace = _dict(_dict(round_item).get("trace"))
+            if trace.get("repair_attempted") is not True and trace.get("repair_result") != "passed_after_repair":
+                continue
+            repair_family, failed_invariant = _repair_failure_from_trace(trace)
+            diagnostics.append(
+                {
+                    "turn": int(turn_dict.get("turn") or 0),
+                    "repair_result": _optional_string(trace.get("repair_result")),
+                    "repair_attempt_count": int(trace.get("repair_attempt_count") or 0),
+                    "repair_failure_family": repair_family,
+                    "failed_invariant": failed_invariant,
+                }
+            )
+    return diagnostics
+
+
+def _repair_failure_from_trace(trace: dict[str, Any]) -> tuple[str | None, str | None]:
+    for parse_attempt in _list(trace.get("parse_attempts")):
+        attempt = _dict(parse_attempt)
+        family = _optional_string(attempt.get("failure_family"))
+        invariant = _failed_invariant_for_repair_attempt(attempt)
+        if family or invariant:
+            return family, invariant
+    family = _optional_string(trace.get("request_failure_family"))
+    return family, _failed_invariant_for_repair_attempt(trace)
+
+
+def _failed_invariant_for_repair_attempt(payload: dict[str, Any]) -> str | None:
+    message = " ".join(
+        str(payload.get(key) or "")
+        for key in ("error", "message", "request_failure_family", "failure_family")
+    ).lower()
+    if "non-empty tool_calls" in message and "manager_action='call_tools'" in message:
+        return "call_tools_requires_tool_calls"
+    if "commit_without_evidence" in message:
+        return "commit_requires_evidence"
+    if "correction_without_target" in message:
+        return "correction_requires_valid_target"
+    if "mutation_without_final_mapping" in message:
+        return "mutation_requires_final_mapping"
+    return None
 
 
 def _classify_failure(case: dict[str, Any]) -> tuple[str | None, str | None]:
