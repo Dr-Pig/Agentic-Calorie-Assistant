@@ -272,6 +272,62 @@ def _state_summary(debug_payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _operator_turn_summary(turn: dict[str, Any]) -> dict[str, Any]:
+    manager_decision = dict(turn.get("manager_decision") or {})
+    runtime_validation = dict(turn.get("runtime_validation") or {})
+    commit_result = dict(turn.get("commit_result") or {})
+    summary = {
+        "turn": turn.get("turn"),
+        "raw_user_input": turn.get("raw_user_input"),
+        "manager_intent": manager_decision.get("intent_type"),
+        "workflow_effect": manager_decision.get("workflow_effect"),
+        "final_action": manager_decision.get("final_action"),
+        "target_attachment": dict(manager_decision.get("target_attachment") or {}),
+        "deterministic_role": runtime_validation.get("deterministic_role"),
+        "runner_inferred_semantics": turn.get("runner_inferred_semantics"),
+        "mutation_applied": bool(commit_result.get("mutation_applied")),
+    }
+    if "consumed_kcal" in commit_result:
+        summary["consumed_kcal"] = commit_result["consumed_kcal"]
+    if "no_mutation_reason" in commit_result:
+        summary["no_mutation_reason"] = commit_result["no_mutation_reason"]
+    return summary
+
+
+def _operator_scenario_summary(scenario: dict[str, Any]) -> dict[str, Any]:
+    state_after = dict(scenario.get("state_after") or {})
+    summary = {
+        "scenario_id": scenario.get("scenario_id"),
+        "status": scenario.get("status"),
+        "turn_count": len(list(scenario.get("turns") or [])),
+        "same_truth_status": state_after.get("same_truth_status"),
+        "state_before": dict(scenario.get("state_before") or {}),
+        "state_after": state_after,
+        "turns": [_operator_turn_summary(dict(turn)) for turn in list(scenario.get("turns") or [])],
+    }
+    if "answer_contract" in scenario:
+        summary["answer_contract"] = dict(scenario.get("answer_contract") or {})
+    return summary
+
+
+def _operator_transcript(scenarios: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "view_id": "accurate_intake_mvp_operator_transcript_v1",
+        "read_only": True,
+        "truth_source": "scenario_wall_v2_existing_evidence",
+        "runner_inferred_semantics": False,
+        "scenario_count": len(scenarios),
+        "not_claiming": list(_NOT_CLAIMING),
+        "canonical_truth_surfaces": [
+            "scenario.state_before",
+            "scenario.state_after",
+            "scenario.final_debug_surface.model.today_summary",
+            "scenario.final_debug_surface.model.same_truth",
+        ],
+        "scenario_summaries": [_operator_scenario_summary(scenario) for scenario in scenarios],
+    }
+
+
 def _scenario_chicken_correction_removal(db: Session, *, local_date: str) -> dict[str, Any]:
     user_external_id = "self-use-v2-chicken"
     user = get_or_create_user(db, user_external_id)
@@ -673,6 +729,7 @@ def build_self_use_scenario_wall_report(
             "fail_count": sum(1 for scenario in scenarios if scenario.get("status") != "pass"),
             "runner_inferred_semantics": False,
         },
+        "operator_transcript": _operator_transcript(scenarios),
         "scenarios": scenarios,
     }
 

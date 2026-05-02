@@ -60,6 +60,46 @@ def test_self_use_scenario_wall_records_manager_owned_semantics_not_raw_text_rou
             }
 
 
+def test_self_use_scenario_wall_exposes_compact_operator_transcript_without_new_truth(tmp_path: Path) -> None:
+    report = build_self_use_scenario_wall_report(db_path=tmp_path / "self_use_wall.sqlite3")
+
+    transcript = report["operator_transcript"]
+    assert transcript["view_id"] == "accurate_intake_mvp_operator_transcript_v1"
+    assert transcript["read_only"] is True
+    assert transcript["truth_source"] == "scenario_wall_v2_existing_evidence"
+    assert transcript["runner_inferred_semantics"] is False
+    assert transcript["scenario_count"] == 5
+    assert transcript["not_claiming"] == report["not_claiming"]
+
+    summaries = {item["scenario_id"]: item for item in transcript["scenario_summaries"]}
+    chicken = summaries["chinese_chicken_rice_correction_removal_debug"]
+    assert chicken["turn_count"] == 4
+    assert chicken["same_truth_status"] == "pass"
+    assert chicken["state_before"]["meal_thread_count"] == 0
+    assert chicken["state_after"]["today_summary"]["consumed_kcal"] == 320
+    assert chicken["turns"][2] == {
+        "turn": 3,
+        "raw_user_input": "把湯拿掉",
+        "manager_intent": "correct_meal",
+        "workflow_effect": "correction_remove_item",
+        "final_action": "commit_correction",
+        "target_attachment": {"attachment_kind": "explicit_item_target", "canonical_name": "湯"},
+        "deterministic_role": "validate_reject_or_compute_state_truth",
+        "runner_inferred_semantics": False,
+        "mutation_applied": True,
+        "consumed_kcal": 320,
+    }
+
+    no_plan = summaries["no_plan_consumed_without_target_or_remaining"]
+    assert no_plan["answer_contract"] == {
+        "status": "onboarding_required",
+        "consumed_kcal": 420,
+        "daily_target_kcal": None,
+        "remaining_kcal": None,
+    }
+    assert "final_debug_surface" not in chicken
+
+
 def test_self_use_scenario_wall_preserves_same_truth_for_correction_removal_and_read_only_queries(
     tmp_path: Path,
 ) -> None:
