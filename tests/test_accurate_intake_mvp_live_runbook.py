@@ -28,9 +28,11 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage provider_health_smoke",
         "python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage schema_contract_probe",
         "python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage fake_provider_active_runtime_gate",
+        "tests/test_accurate_intake_mvp_offline_shadow_replay.py",
         "--stage single_case_live_probe --case-id explicit_item_removal_seeded",
         "--stage single_case_live_probe --case-id chinese_chicken_rice_correction_removal_debug",
         "python scripts/build_accurate_intake_mvp_live_stage_manifest.py",
+        "python scripts/build_accurate_intake_mvp_offline_shadow_replay.py",
         "python scripts/build_accurate_intake_mvp_live_decision_pack.py",
         "artifacts/accurate_intake_mvp_live_diagnostic_provider_health.json",
         "artifacts/accurate_intake_mvp_live_diagnostic_schema_probe.json",
@@ -38,6 +40,7 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "artifacts/accurate_intake_mvp_live_diagnostic_seeded_removal.json",
         "artifacts/accurate_intake_mvp_live_diagnostic_single_case.json",
         "artifacts/accurate_intake_mvp_live_stage_manifest.json",
+        "artifacts/accurate_intake_mvp_offline_shadow_replay.json",
         "artifacts/accurate_intake_mvp_live_decision_pack.json",
     ]
 

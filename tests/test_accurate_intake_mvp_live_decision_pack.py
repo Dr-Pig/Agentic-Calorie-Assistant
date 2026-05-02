@@ -406,6 +406,7 @@ def test_accurate_intake_live_decision_pack_can_prepare_private_candidate_but_no
                 "strict_replay_ready": True,
                 "repaired_pass_count": 0,
                 "timeout_count": 0,
+                "model_diversity_status": "provider_diversity_present",
             },
         },
     )
@@ -418,6 +419,28 @@ def test_accurate_intake_live_decision_pack_can_prepare_private_candidate_but_no
     assert pack["mutation_rollout_approved"] is False
     assert pack["model_portability_claimed"] is False
     assert pack["max_model_claim"] == "single_profile_live_diagnostic_observed"
+
+
+def test_accurate_intake_live_decision_pack_blocks_private_candidate_when_replay_is_single_profile_only() -> None:
+    pack = build_accurate_intake_live_decision_pack(
+        _artifact(strict_pass_count=5, repaired_pass_count=0),
+        offline_replay_artifact={
+            "artifact_type": "accurate_intake_mvp_offline_shadow_replay",
+            "input_integrity": {"passed": True, "blockers": []},
+            "summary": {
+                "sample_run_count": 3,
+                "strict_replay_ready": True,
+                "repaired_pass_count": 0,
+                "timeout_count": 0,
+                "model_diversity_status": "model_diversity_missing",
+            },
+        },
+    )
+
+    assert pack["selected_option"] == "offline_shadow_replay"
+    assert pack["selection_reason"] == "model_diversity_missing"
+    assert pack["private_self_use_candidate_prepared"] is False
+    assert pack["private_self_use_approved"] is False
 
 
 def test_accurate_intake_live_decision_pack_writer_creates_artifact(tmp_path: Path) -> None:
