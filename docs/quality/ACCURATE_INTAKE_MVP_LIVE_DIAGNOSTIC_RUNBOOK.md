@@ -41,6 +41,7 @@ python scripts/build_accurate_intake_mvp_live_stage_manifest.py
 python scripts/build_accurate_intake_mvp_offline_shadow_replay.py
 python scripts/build_accurate_intake_mvp_live_robustness_matrix.py
 python scripts/build_accurate_intake_mvp_live_decision_pack.py
+python scripts/build_accurate_intake_mvp_private_self_use_candidate.py
 ```
 
 The generated manifest, replay, and decision pack paths are:
@@ -49,6 +50,7 @@ The generated manifest, replay, and decision pack paths are:
 - `artifacts/accurate_intake_mvp_offline_shadow_replay.json`
 - `artifacts/accurate_intake_mvp_live_robustness_matrix.json`
 - `artifacts/accurate_intake_mvp_live_decision_pack.json`
+- `artifacts/accurate_intake_mvp_private_self_use_candidate.json`
 
 ## Full Suite Gate
 
@@ -96,6 +98,7 @@ Do not stage:
 - `artifacts/accurate_intake_mvp_offline_shadow_replay.json`
 - `artifacts/accurate_intake_mvp_live_robustness_matrix.json`
 - `artifacts/accurate_intake_mvp_live_decision_pack.json`
+- `artifacts/accurate_intake_mvp_private_self_use_candidate.json`
 - local SQLite files
 - provider raw traces
 

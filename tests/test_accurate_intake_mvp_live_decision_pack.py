@@ -515,6 +515,43 @@ def test_accurate_intake_live_decision_pack_blocks_candidate_on_contract_overfit
     assert pack["private_self_use_candidate_prepared"] is False
 
 
+def test_accurate_intake_live_decision_pack_requires_full_suite_evidence_before_private_candidate() -> None:
+    pack = build_accurate_intake_live_decision_pack(
+        _artifact(
+            strict_pass_count=5,
+            repaired_pass_count=0,
+            stages=[
+                {"stage_id": "provider_health_smoke", "status": "pass"},
+                {"stage_id": "schema_contract_probe", "status": "pass"},
+                {"stage_id": "fake_provider_active_runtime_gate", "status": "pass"},
+                {"stage_id": "single_case_live_probe", "status": "pass"},
+            ],
+        ),
+        offline_replay_artifact={
+            "artifact_type": "accurate_intake_mvp_offline_shadow_replay",
+            "input_integrity": {"passed": True, "blockers": []},
+            "summary": {
+                "sample_run_count": 3,
+                "strict_replay_ready": True,
+                "repaired_pass_count": 0,
+                "timeout_count": 0,
+                "model_diversity_status": "provider_diversity_present",
+            },
+        },
+        provider_robustness_artifact={
+            "artifact_type": "accurate_intake_mvp_live_robustness_matrix",
+            "input_integrity": {"passed": True, "blockers": []},
+            "model_inversion_evidence_passed": True,
+            "contract_overfit_risk": False,
+            "model_diversity_status": "provider_diversity_present",
+        },
+    )
+
+    assert pack["selected_option"] == "full_suite_blocked"
+    assert pack["selection_reason"] == "full_suite_diagnostic_required"
+    assert pack["private_self_use_candidate_prepared"] is False
+
+
 def test_accurate_intake_live_decision_pack_blocks_private_candidate_when_replay_is_single_profile_only() -> None:
     pack = build_accurate_intake_live_decision_pack(
         _artifact(strict_pass_count=5, repaired_pass_count=0),
