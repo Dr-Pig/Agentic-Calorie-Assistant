@@ -16,7 +16,7 @@ def test_accurate_intake_mvp_gate_manifest_declares_local_deterministic_scope() 
     manifest = verify_accurate_intake_mvp.load_gate_manifest(MANIFEST_PATH)
 
     assert manifest["gate_id"] == "accurate_intake_mvp_deterministic_v1"
-    assert manifest["gate_version"] == "1.8"
+    assert manifest["gate_version"] == "2.0"
     assert manifest["claim_scope"] == "local_deterministic_mvp_gate"
     assert manifest["evidence_scope"] == "deterministic_regression_evidence"
     assert manifest["live_llm_required"] is False
@@ -35,6 +35,7 @@ def test_accurate_intake_mvp_gate_manifest_declares_local_deterministic_scope() 
         "accurate_intake_mvp_gate_pass",
         "food_knowledge_required_group_pass",
         "local_persistence_debug_surface_required_group_pass",
+        "self_use_scenario_wall_v2_required_group_pass",
         "manager_style_active_runtime_smoke_required_group_pass",
         "ux_semantic_manager_decision_consumption_required_group_pass",
         "active_api_route_smoke_required_group_pass",
@@ -59,6 +60,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "food_knowledge_mvp",
         "local_persistence_and_debug_surface",
         "manager_style_active_runtime_smoke",
+        "self_use_scenario_wall_v2",
         "ux_semantic_manager_decision_consumption",
         "active_api_route_smoke",
     ]
@@ -75,6 +77,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_local_persistence_self_use.py",
         "tests/test_accurate_intake_debug_surface.py",
         "tests/test_accurate_intake_mvp_self_use_smoke.py",
+        "tests/test_accurate_intake_mvp_self_use_scenario_wall.py",
         "tests/test_wave1_phase_b2_source_selection.py",
         "tests/test_wave1_phase_b2_packetizer_input_seed.py",
         "tests/test_wave1_phase_b2_packet_consumption.py",
@@ -129,11 +132,12 @@ def test_gate_runner_returns_machine_readable_group_summary(monkeypatch, capsys)
         "food_knowledge_mvp",
         "local_persistence_and_debug_surface",
         "manager_style_active_runtime_smoke",
+        "self_use_scenario_wall_v2",
         "ux_semantic_manager_decision_consumption",
         "active_api_route_smoke",
     ]
     assert {group["requirement"] for group in output["groups"]} == {"required"}
-    assert len(calls) == 9
+    assert len(calls) == 10
 
 
 def test_gate_runner_writes_artifact_output(monkeypatch, tmp_path, capsys) -> None:
@@ -200,6 +204,8 @@ def test_self_use_runbook_records_portable_local_deterministic_scope() -> None:
     assert "claim scope: `local_deterministic_mvp_gate`" in runbook
     assert "python scripts/verify_accurate_intake_mvp.py --output artifacts/accurate_intake_mvp_gate.json" in runbook
     assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py" in runbook
+    assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py --scenario-wall-v2" in runbook
+    assert "Accurate Intake MVP v2.0 scenario wall" in runbook
     assert "Manager structured decision fixtures own intent/workflow/target proposal" in runbook
     assert "Food evidence seeds are support-only" in runbook
     assert "No live LLM" in runbook
