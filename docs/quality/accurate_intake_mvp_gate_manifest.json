@@ -99,6 +99,7 @@
       "pytest": [
         "tests/test_product_loop_mvp_read_model.py",
         "tests/test_local_persistence_self_use.py",
+        "tests/test_accurate_intake_mvp_reopen_continuity.py",
         "tests/test_accurate_intake_debug_surface.py",
         "tests/test_accurate_intake_mvp_self_use_smoke.py"
       ]

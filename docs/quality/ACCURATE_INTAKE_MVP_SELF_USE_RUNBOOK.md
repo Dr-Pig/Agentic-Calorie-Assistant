@@ -36,6 +36,7 @@ python -m pytest tests/test_food_knowledge_mvp_coverage.py tests/test_wave1_phas
 python scripts/verify_accurate_intake_mvp.py --output artifacts/accurate_intake_mvp_gate.json
 python scripts/run_accurate_intake_mvp_self_use_smoke.py
 python scripts/run_accurate_intake_mvp_self_use_smoke.py --scenario-wall-v2
+python scripts/run_accurate_intake_mvp_self_use_smoke.py --reopen-continuity
 ```
 
 Run pytest groups sequentially on Windows. If a temporary SQLite file is locked, rerun the affected group after the prior process exits; do not classify that as product behavior evidence until the rerun result is known.
@@ -82,10 +83,13 @@ The scenario wall remains local deterministic evidence. It uses Manager structur
 
 The scenario-wall JSON also includes an `operator_transcript` compact review view. This operator transcript is read-only and derived from existing scenario evidence: Manager decisions, runtime validation, state-before/state-after summaries, and canonical debug same-truth output. It is for human/operator review only and does not create a new truth surface.
 
+After running the scenario wall against a local SQLite DB, run `python scripts/run_accurate_intake_mvp_self_use_smoke.py --reopen-continuity` against the same DB path to verify reopen continuity. The continuity report is read-only: it checks reloaded canonical meal versions, ledger audit event counts, no-plan posture, and same-truth summaries without adding another meal, correction, or draft.
+
 Run it with:
 
 ```powershell
 python scripts/run_accurate_intake_mvp_self_use_smoke.py --scenario-wall-v2
+python scripts/run_accurate_intake_mvp_self_use_smoke.py --reopen-continuity
 ```
 
 ## Explicit Non-Goals

@@ -75,6 +75,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_food_knowledge_mvp_coverage.py",
         "tests/test_product_loop_mvp_read_model.py",
         "tests/test_local_persistence_self_use.py",
+        "tests/test_accurate_intake_mvp_reopen_continuity.py",
         "tests/test_accurate_intake_debug_surface.py",
         "tests/test_accurate_intake_mvp_self_use_smoke.py",
         "tests/test_accurate_intake_mvp_self_use_scenario_wall.py",
@@ -205,6 +206,7 @@ def test_self_use_runbook_records_portable_local_deterministic_scope() -> None:
     assert "python scripts/verify_accurate_intake_mvp.py --output artifacts/accurate_intake_mvp_gate.json" in runbook
     assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py" in runbook
     assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py --scenario-wall-v2" in runbook
+    assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py --reopen-continuity" in runbook
     assert "Accurate Intake MVP v2.0 scenario wall" in runbook
     assert "operator transcript" in runbook
     assert "Manager structured decision fixtures own intent/workflow/target proposal" in runbook
