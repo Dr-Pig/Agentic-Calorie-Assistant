@@ -48,13 +48,15 @@ run_local() {
   git diff --check
 }
 
-if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1 && [[ -f "compose.yml" ]]; then
+COMPOSE_FILE="${COMPOSE_FILE:-compose.yaml}"
+
+if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1 && [[ -f "$COMPOSE_FILE" ]]; then
   echo "Using Docker Compose verification runtime."
-  docker compose run --rm app python --version
-  docker compose run --rm app python -m pytest "${PHASE_C_TESTS[@]}" -q
-  docker compose run --rm app python scripts/run_wave1_founder_e2e_deterministic_diagnostic.py
+  docker compose -f "$COMPOSE_FILE" run --rm app python --version
+  docker compose -f "$COMPOSE_FILE" run --rm app python -m pytest "${PHASE_C_TESTS[@]}" -q
+  docker compose -f "$COMPOSE_FILE" run --rm app python scripts/run_wave1_founder_e2e_deterministic_diagnostic.py
   for command_text in "${GOVERNANCE_COMMANDS[@]}"; do
-    docker compose run --rm app ${command_text}
+    docker compose -f "$COMPOSE_FILE" run --rm app ${command_text}
   done
   exit 0
 fi

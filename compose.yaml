@@ -1,0 +1,41 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    working_dir: /app
+    environment:
+      PYTHONPATH: /app
+      PYTHONUTF8: "1"
+      PORT: "8000"
+      DATABASE_URL: ${DATABASE_URL:-sqlite:///runtime/db/canary_persistence.db}
+      AI_PROVIDER: ${AI_PROVIDER:-builderspace}
+      AI_BUILDER_BASE_URL: ${AI_BUILDER_BASE_URL:-}
+      AI_BUILDER_TOKEN: ${AI_BUILDER_TOKEN:-}
+      BUILDERSPACE_TASK_MEAL_LINK_MODEL: ${BUILDERSPACE_TASK_MEAL_LINK_MODEL:-grok-4-fast}
+      BUILDERSPACE_DECISION_MODEL: ${BUILDERSPACE_DECISION_MODEL:-grok-4-fast}
+      BUILDERSPACE_NUTRITION_MODEL: ${BUILDERSPACE_NUTRITION_MODEL:-grok-4-fast}
+      BUILDERSPACE_FINAL_RESPONSE_MODEL: ${BUILDERSPACE_FINAL_RESPONSE_MODEL:-grok-4-fast}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+    volumes:
+      - .:/app
+    ports:
+      - "${APP_PORT:-8011}:8000"
+    command: python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    working_dir: /app
+    environment:
+      PYTHONPATH: /app
+      PYTHONUTF8: "1"
+      DATABASE_URL: ${DATABASE_URL:-sqlite:///runtime/db/canary_persistence.db}
+    volumes:
+      - .:/app
+    profiles:
+      - test
+    command: python -m pytest tests/test_environment_verification.py tests/test_no_plan_ledger_policy.py -q
