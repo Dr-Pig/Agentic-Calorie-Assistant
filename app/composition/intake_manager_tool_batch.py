@@ -116,6 +116,56 @@ def correction_target_resolved(correction_target: dict[str, Any]) -> bool:
     return validate_correction_target_ref(correction_target).get("resolved") is True
 
 
+def validate_manager_target_proposal(
+    *,
+    correction_target: dict[str, Any],
+    proposal: dict[str, Any],
+) -> dict[str, Any]:
+    """Validate Manager-proposed correction target against deterministic state candidates."""
+    if not proposal:
+        return dict(correction_target)
+    candidates = [dict(item) for item in (correction_target.get("item_candidates") or []) if isinstance(item, dict)]
+    proposed_id = proposal.get("meal_item_id")
+    proposed_name = str(proposal.get("canonical_name") or proposal.get("item_name") or "").strip()
+    matched: dict[str, Any] | None = None
+    for candidate in candidates:
+        id_matches = proposed_id is not None and candidate.get("meal_item_id") == proposed_id
+        name_matches = proposed_name and str(candidate.get("canonical_name") or "").casefold() == proposed_name.casefold()
+        if id_matches or name_matches:
+            if matched is not None:
+                return {
+                    **dict(correction_target),
+                    "manager_target_proposal_validation": {
+                        "status": "rejected",
+                        "failure_family": "manager_target_proposal_ambiguous",
+                        "truth_owner": "deterministic_target_validator",
+                    },
+                }
+            matched = candidate
+    if matched is None:
+        return {
+            **dict(correction_target),
+            "manager_target_proposal_validation": {
+                "status": "rejected",
+                "failure_family": "manager_target_proposal_not_found",
+                "truth_owner": "deterministic_target_validator",
+            },
+        }
+    return {
+        **dict(correction_target),
+        "meal_item_id": matched.get("meal_item_id"),
+        "canonical_name": matched.get("canonical_name"),
+        "observed_canonical_name": matched.get("canonical_name"),
+        "target_resolution_source": "manager_target_proposal_validated",
+        "correction_confidence": "high",
+        "manager_target_proposal_validation": {
+            "status": "accepted",
+            "truth_owner": "deterministic_target_validator",
+            "proposal_source": str(proposal.get("target_proposal_source") or "manager_structured_output"),
+        },
+    }
+
+
 def attach_correction_target_ref_to_payload(*, payload: Any | None, correction_target: dict[str, Any]) -> None:
     if payload is None or not correction_target_resolved(correction_target):
         return
@@ -183,6 +233,13 @@ def apply_final_action_to_payload(
     existing_followup = str(getattr(payload, "followup_question", None) or "").strip()
     answer_contract = dict(manager_answer_contract or {})
     semantic_decision = dict(manager_semantic_decision or {})
+    target_attachment = dict(semantic_decision.get("target_attachment") or {})
+    correction_operation = str(
+        answer_contract.get("correction_operation") or target_attachment.get("correction_operation") or ""
+    ).strip()
+    if correction_operation:
+        trace_contract["correction_operation"] = correction_operation
+        trace_contract["correction_operation_source"] = "manager_structured_decision"
     manager_followup = str(
         answer_contract.get("followup_question")
         or semantic_decision.get("followup_question")
@@ -224,14 +281,19 @@ async def execute_manager_tool_calls(
     for call in tool_calls:
         name = str(call.get("name") or call.get("tool_name") or "").strip()
         if name == "resolve_correction_target":
-            tool_state["correction_target"] = correction_target
+            proposed_target = dict(call.get("arguments") or {}) if isinstance(call.get("arguments"), dict) else {}
+            resolved_target = validate_manager_target_proposal(
+                correction_target=correction_target,
+                proposal=proposed_target,
+            )
+            tool_state["correction_target"] = resolved_target
             results.append(
                 {
                     "tool_name": name,
                     "evidence": {},
                     "mutation_result": {},
-                    "provenance": {"correction_target": correction_target},
-                    "confidence": "available" if correction_target else "none",
+                    "provenance": {"correction_target": resolved_target},
+                    "confidence": "available" if resolved_target else "none",
                     "failure_family": None,
                 }
             )
@@ -252,6 +314,7 @@ async def execute_manager_tool_calls(
             continue
         if name == "estimate_nutrition":
             try:
+                active_correction_target = dict(tool_state.get("correction_target") or correction_target)
                 artifact = await estimate_nutrition_tool(
                     db,
                     user_external_id=user_external_id,
@@ -265,7 +328,7 @@ async def execute_manager_tool_calls(
                     allow_search=allow_search,
                     force_new_meal_context=(
                         not bool(((state_before.injected_context or {}).get("PENDING_FOLLOWUP") or {}).get("is_open"))
-                        and not correction_target_resolved(correction_target)
+                        and not correction_target_resolved(active_correction_target)
                     ),
                     contextualized_query=contextualized_query_for_estimation(raw_user_input=raw_user_input, state_before=state_before),
                 )
@@ -274,7 +337,7 @@ async def execute_manager_tool_calls(
                 if payload is not None:
                     attach_correction_target_ref_to_payload(
                         payload=payload,
-                        correction_target=correction_target,
+                        correction_target=active_correction_target,
                     )
                     budget_summary = compare_against_budget_tool(
                         current_budget_view=state_before.current_budget_view,
@@ -283,9 +346,9 @@ async def execute_manager_tool_calls(
                     )
                 tool_state["nutrition_artifact"] = artifact
                 tool_state["budget_summary"] = budget_summary
-                results.append(nutrition_tool_output(raw_user_input=raw_user_input, nutrition_artifact=artifact, correction_target=correction_target, budget_summary=budget_summary))
+                results.append(nutrition_tool_output(raw_user_input=raw_user_input, nutrition_artifact=artifact, correction_target=active_correction_target, budget_summary=budget_summary))
             except Exception as exc:
-                results.append(nutrition_tool_output(raw_user_input=raw_user_input, nutrition_artifact=None, correction_target=correction_target, budget_summary=None, failure_family="tool_execution_error", error_message=str(exc)))
+                results.append(nutrition_tool_output(raw_user_input=raw_user_input, nutrition_artifact=None, correction_target=dict(tool_state.get("correction_target") or correction_target), budget_summary=None, failure_family="tool_execution_error", error_message=str(exc)))
             continue
         results.append({"tool_name": name or "unknown", "evidence": {}, "mutation_result": {}, "provenance": {}, "confidence": "none", "failure_family": "unknown_tool"})
     return results

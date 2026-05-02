@@ -13,9 +13,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.shared.contracts.readiness_claim import build_readiness_claim
+from scripts.build_accurate_intake_mvp_live_stage_manifest import stage_summary_from_stages
 
 
 DEFAULT_LIVE_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic.json"
+DEFAULT_STAGE_MANIFEST_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_live_stage_manifest.json"
 DEFAULT_OFFLINE_REPLAY_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_offline_shadow_replay.json"
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
 
@@ -34,11 +36,12 @@ DECISION_OPTION_IDS = (
 def build_accurate_intake_live_decision_pack(
     live_artifact: dict[str, Any],
     *,
+    stage_manifest_artifact: dict[str, Any] | None = None,
     offline_replay_artifact: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    input_integrity = _input_integrity(live_artifact)
+    input_integrity = _input_integrity(live_artifact, stage_manifest_artifact=stage_manifest_artifact)
     evidence_summary = _evidence_summary(live_artifact)
-    stage_summary = _stage_summary(live_artifact)
+    stage_summary = _stage_summary(live_artifact, stage_manifest_artifact=stage_manifest_artifact)
     offline_replay_summary = _offline_replay_summary(offline_replay_artifact)
     selected_option, selection_reason = _select_option(
         input_integrity=input_integrity,
@@ -51,6 +54,9 @@ def build_accurate_intake_live_decision_pack(
             "artifact_type": "accurate_intake_mvp_live_decision_pack",
             "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "source_artifact_type": live_artifact.get("artifact_type"),
+            "source_stage_manifest_type": (
+                stage_manifest_artifact.get("artifact_type") if isinstance(stage_manifest_artifact, dict) else None
+            ),
             "claim_scope": "live_diagnostic_decision_pack",
             "readiness_claimed": False,
             "readiness_claim": _readiness_claim(),
@@ -86,15 +92,20 @@ def build_accurate_intake_live_decision_pack(
 def write_accurate_intake_live_decision_pack(
     *,
     live_artifact_path: Path = DEFAULT_LIVE_ARTIFACT,
+    stage_manifest_artifact_path: Path | None = None,
     offline_replay_artifact_path: Path | None = None,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
 ) -> Path:
     live_artifact = json.loads(live_artifact_path.read_text(encoding="utf-8"))
+    stage_manifest_artifact = None
+    if stage_manifest_artifact_path is not None and stage_manifest_artifact_path.exists():
+        stage_manifest_artifact = json.loads(stage_manifest_artifact_path.read_text(encoding="utf-8"))
     offline_replay_artifact = None
     if offline_replay_artifact_path is not None and offline_replay_artifact_path.exists():
         offline_replay_artifact = json.loads(offline_replay_artifact_path.read_text(encoding="utf-8"))
     pack = build_accurate_intake_live_decision_pack(
         live_artifact,
+        stage_manifest_artifact=stage_manifest_artifact,
         offline_replay_artifact=offline_replay_artifact,
     )
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -111,6 +122,8 @@ def _select_option(
     offline_replay_summary: dict[str, Any],
 ) -> tuple[str, str]:
     if input_integrity.get("passed") is not True:
+        if input_integrity.get("stage_manifest_integrity_blocked") is True:
+            return "stay_diagnostic", "stage_manifest_integrity_blocked"
         return "stay_diagnostic", "input_integrity_blocked"
     if stage_summary.get("provider_health_blocked") is True:
         return "provider_health_blocked", "environment_or_provider_blocker"
@@ -118,6 +131,10 @@ def _select_option(
         return "schema_contract_blocked", "schema_contract_blocked"
     if stage_summary.get("full_suite_without_single_case_probe") is True:
         return "single_case_probe_required", "single_case_probe_missing"
+    if stage_summary.get("has_timeout_stage") is True:
+        return "stay_diagnostic", "timeout_evidence_incomplete"
+    if stage_summary.get("has_failed_stage") is True:
+        return "stay_diagnostic", "live_diagnostic_contract_failures"
     if evidence_summary.get("environment_or_provider_blocker") is True:
         return "stay_diagnostic", "environment_or_provider_blocker"
     if evidence_summary.get("timeout_count", 0) > 0:
@@ -137,7 +154,11 @@ def _select_option(
     return "defer_to_local_mvp", "live_diagnostic_not_clean"
 
 
-def _input_integrity(live_artifact: dict[str, Any]) -> dict[str, Any]:
+def _input_integrity(
+    live_artifact: dict[str, Any],
+    *,
+    stage_manifest_artifact: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     blockers: list[str] = []
     if live_artifact.get("artifact_type") != "accurate_intake_mvp_live_diagnostic":
         blockers.append("input_artifact_type_invalid")
@@ -152,7 +173,32 @@ def _input_integrity(live_artifact: dict[str, Any]) -> dict[str, Any]:
     ):
         if live_artifact.get(key) is True:
             blockers.append(f"input_{key}")
-    return {"passed": not blockers, "blockers": sorted(set(blockers))}
+    stage_manifest_integrity_blocked = False
+    if stage_manifest_artifact is not None:
+        if stage_manifest_artifact.get("artifact_type") != "accurate_intake_mvp_live_stage_manifest":
+            blockers.append("stage_manifest_artifact_type_invalid")
+            stage_manifest_integrity_blocked = True
+        manifest_integrity = _dict(stage_manifest_artifact.get("input_integrity"))
+        if manifest_integrity.get("passed") is not True:
+            stage_manifest_integrity_blocked = True
+            for blocker in _string_list(manifest_integrity.get("blockers")):
+                blockers.append(f"stage_manifest_{blocker}")
+        for key in (
+            "readiness_claimed",
+            "product_readiness_claimed",
+            "private_self_use_approved",
+            "production_selected",
+            "mutation_rollout_approved",
+            "runtime_web_activation_approved",
+        ):
+            if stage_manifest_artifact.get(key) is True:
+                blockers.append(f"stage_manifest_{key}")
+                stage_manifest_integrity_blocked = True
+    return {
+        "passed": not blockers,
+        "blockers": sorted(set(blockers)),
+        "stage_manifest_integrity_blocked": stage_manifest_integrity_blocked,
+    }
 
 
 def _evidence_summary(live_artifact: dict[str, Any]) -> dict[str, Any]:
@@ -178,7 +224,25 @@ def _evidence_summary(live_artifact: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _stage_summary(live_artifact: dict[str, Any]) -> dict[str, Any]:
+def _stage_summary(
+    live_artifact: dict[str, Any],
+    *,
+    stage_manifest_artifact: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if (
+        isinstance(stage_manifest_artifact, dict)
+        and stage_manifest_artifact.get("artifact_type") == "accurate_intake_mvp_live_stage_manifest"
+        and _dict(stage_manifest_artifact.get("input_integrity")).get("passed") is True
+    ):
+        stages = [_dict(stage) for stage in _list(stage_manifest_artifact.get("stages"))]
+        summary = stage_summary_from_stages(stages)
+        summary["source"] = "stage_manifest"
+        summary["manifest_stage_count"] = len(stages)
+        summary["has_timeout_stage"] = any(str(stage.get("status") or "") == "timeout" for stage in stages)
+        summary["has_failed_stage"] = any(
+            str(stage.get("status") or "") in {"fail", "blocked"} for stage in stages
+        )
+        return summary
     stages = [_dict(stage) for stage in _list(live_artifact.get("stages"))]
     by_id = {str(stage.get("stage_id") or ""): stage for stage in stages}
     provider_health = by_id.get("provider_health_smoke", {})
@@ -194,7 +258,8 @@ def _stage_summary(live_artifact: dict[str, Any]) -> dict[str, Any]:
     )
     schema_contract_blocked = bool(schema_probe) and schema_probe.get("status") != "pass"
     full_suite_without_single_case_probe = bool(full_suite) and single_case.get("status") != "pass"
-    return {
+    result = {
+        "source": "live_artifact",
         "present": bool(stages),
         "stage_ids": [str(stage.get("stage_id") or "") for stage in stages],
         "provider_health_status": _optional_string(provider_health.get("status")),
@@ -215,6 +280,9 @@ def _stage_summary(live_artifact: dict[str, Any]) -> dict[str, Any]:
             if stage.get("status") != "pass"
         ],
     }
+    result["has_timeout_stage"] = any(str(stage.get("status") or "") == "timeout" for stage in stages)
+    result["has_failed_stage"] = any(str(stage.get("status") or "") in {"fail", "blocked"} for stage in stages)
+    return result
 
 
 def _offline_replay_summary(artifact: dict[str, Any] | None) -> dict[str, Any]:
@@ -366,11 +434,13 @@ def _json_safe(value: Any) -> Any:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build Accurate Intake MVP live diagnostic decision pack.")
     parser.add_argument("--live-artifact", default=str(DEFAULT_LIVE_ARTIFACT))
+    parser.add_argument("--stage-manifest", default=str(DEFAULT_STAGE_MANIFEST_ARTIFACT))
     parser.add_argument("--offline-replay-artifact", default=str(DEFAULT_OFFLINE_REPLAY_ARTIFACT))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     args = parser.parse_args()
     path = write_accurate_intake_live_decision_pack(
         live_artifact_path=Path(args.live_artifact),
+        stage_manifest_artifact_path=Path(args.stage_manifest) if args.stage_manifest else None,
         offline_replay_artifact_path=Path(args.offline_replay_artifact) if args.offline_replay_artifact else None,
         output_dir=Path(args.output_dir),
     )

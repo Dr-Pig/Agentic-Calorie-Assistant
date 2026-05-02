@@ -70,15 +70,24 @@ def build_commit_request_candidate(
         "route_target": payload.route_target,
         "best_answer_source": payload.best_answer_source,
     }
+    resolved_meal_thread_id = meal_thread_id
     correction_target_ref = trace_contract.get("correction_target_ref")
     if isinstance(correction_target_ref, dict):
         trace_ref["correction_target_ref"] = dict(correction_target_ref)
+        if resolved_meal_thread_id is None and correction_target_ref.get("meal_thread_id") is not None:
+            resolved_meal_thread_id = int(correction_target_ref["meal_thread_id"])
+    if trace_contract.get("correction_operation") == "remove_item":
+        trace_ref["correction_operation"] = "remove_item"
+        items = []
+    resolved_version_reason = version_reason or (
+        "correction" if parent_version_id is not None or "correction_target_ref" in trace_ref else "new_intake"
+    )
     return CommitRequestCandidate(
         request_id=request_id or payload.request_id,
         manager_intent=manager_intent,
-        meal_thread_id=meal_thread_id,
+        meal_thread_id=resolved_meal_thread_id,
         parent_version_id=parent_version_id,
-        version_reason=version_reason or ("correction" if parent_version_id is not None else "new_intake"),
+        version_reason=resolved_version_reason,
         meal_title=payload.meal_title or raw_input,
         raw_input=raw_input,
         estimated_kcal=payload.estimated_kcal,
