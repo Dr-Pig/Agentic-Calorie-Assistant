@@ -447,6 +447,13 @@ def test_accurate_intake_live_decision_pack_can_prepare_private_candidate_but_no
                 "model_diversity_status": "provider_diversity_present",
             },
         },
+        provider_robustness_artifact={
+            "artifact_type": "accurate_intake_mvp_live_robustness_matrix",
+            "input_integrity": {"passed": True, "blockers": []},
+            "model_inversion_evidence_passed": True,
+            "contract_overfit_risk": False,
+            "model_diversity_status": "provider_diversity_present",
+        },
     )
 
     assert pack["selected_option"] == "prepare_private_self_use_candidate"
@@ -456,7 +463,56 @@ def test_accurate_intake_live_decision_pack_can_prepare_private_candidate_but_no
     assert pack["product_readiness_claimed"] is False
     assert pack["mutation_rollout_approved"] is False
     assert pack["model_portability_claimed"] is False
-    assert pack["max_model_claim"] == "single_profile_live_diagnostic_observed"
+    assert pack["max_model_claim"] == "multi_profile_live_diagnostic_observed"
+
+
+def test_accurate_intake_live_decision_pack_requires_robustness_matrix_after_replay_diversity() -> None:
+    pack = build_accurate_intake_live_decision_pack(
+        _artifact(strict_pass_count=5, repaired_pass_count=0),
+        offline_replay_artifact={
+            "artifact_type": "accurate_intake_mvp_offline_shadow_replay",
+            "input_integrity": {"passed": True, "blockers": []},
+            "summary": {
+                "sample_run_count": 3,
+                "strict_replay_ready": True,
+                "repaired_pass_count": 0,
+                "timeout_count": 0,
+                "model_diversity_status": "provider_diversity_present",
+            },
+        },
+    )
+
+    assert pack["selected_option"] == "offline_shadow_replay"
+    assert pack["selection_reason"] == "provider_robustness_matrix_required"
+    assert pack["private_self_use_candidate_prepared"] is False
+
+
+def test_accurate_intake_live_decision_pack_blocks_candidate_on_contract_overfit_risk() -> None:
+    pack = build_accurate_intake_live_decision_pack(
+        _artifact(strict_pass_count=5, repaired_pass_count=0),
+        offline_replay_artifact={
+            "artifact_type": "accurate_intake_mvp_offline_shadow_replay",
+            "input_integrity": {"passed": True, "blockers": []},
+            "summary": {
+                "sample_run_count": 3,
+                "strict_replay_ready": True,
+                "repaired_pass_count": 0,
+                "timeout_count": 0,
+                "model_diversity_status": "provider_diversity_present",
+            },
+        },
+        provider_robustness_artifact={
+            "artifact_type": "accurate_intake_mvp_live_robustness_matrix",
+            "input_integrity": {"passed": True, "blockers": []},
+            "model_inversion_evidence_passed": False,
+            "contract_overfit_risk": True,
+            "model_diversity_status": "provider_diversity_present",
+        },
+    )
+
+    assert pack["selected_option"] == "offline_shadow_replay"
+    assert pack["selection_reason"] == "contract_overfit_risk"
+    assert pack["private_self_use_candidate_prepared"] is False
 
 
 def test_accurate_intake_live_decision_pack_blocks_private_candidate_when_replay_is_single_profile_only() -> None:

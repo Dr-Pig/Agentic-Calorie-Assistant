@@ -19,6 +19,7 @@ from scripts.build_accurate_intake_mvp_live_stage_manifest import stage_summary_
 DEFAULT_LIVE_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic.json"
 DEFAULT_STAGE_MANIFEST_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_live_stage_manifest.json"
 DEFAULT_OFFLINE_REPLAY_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_offline_shadow_replay.json"
+DEFAULT_PROVIDER_ROBUSTNESS_MATRIX_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_live_robustness_matrix.json"
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
 
 DECISION_OPTION_IDS = (
@@ -39,16 +40,19 @@ def build_accurate_intake_live_decision_pack(
     *,
     stage_manifest_artifact: dict[str, Any] | None = None,
     offline_replay_artifact: dict[str, Any] | None = None,
+    provider_robustness_artifact: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     input_integrity = _input_integrity(live_artifact, stage_manifest_artifact=stage_manifest_artifact)
     evidence_summary = _evidence_summary(live_artifact)
     stage_summary = _stage_summary(live_artifact, stage_manifest_artifact=stage_manifest_artifact)
     offline_replay_summary = _offline_replay_summary(offline_replay_artifact)
+    provider_robustness_summary = _provider_robustness_summary(provider_robustness_artifact)
     selected_option, selection_reason = _select_option(
         input_integrity=input_integrity,
         evidence_summary=evidence_summary,
         stage_summary=stage_summary,
         offline_replay_summary=offline_replay_summary,
+        provider_robustness_summary=provider_robustness_summary,
     )
     return _json_safe(
         {
@@ -58,6 +62,11 @@ def build_accurate_intake_live_decision_pack(
             "source_stage_manifest_type": (
                 stage_manifest_artifact.get("artifact_type") if isinstance(stage_manifest_artifact, dict) else None
             ),
+            "source_provider_robustness_matrix_type": (
+                provider_robustness_artifact.get("artifact_type")
+                if isinstance(provider_robustness_artifact, dict)
+                else None
+            ),
             "claim_scope": "live_diagnostic_decision_pack",
             "readiness_claimed": False,
             "readiness_claim": _readiness_claim(),
@@ -66,7 +75,11 @@ def build_accurate_intake_live_decision_pack(
             "private_self_use_candidate_prepared": selected_option == "prepare_private_self_use_candidate",
             "production_selected": False,
             "model_portability_claimed": False,
-            "max_model_claim": _max_model_claim(live_artifact, stage_manifest_artifact=stage_manifest_artifact),
+            "max_model_claim": _max_model_claim(
+                live_artifact,
+                stage_manifest_artifact=stage_manifest_artifact,
+                provider_robustness_summary=provider_robustness_summary,
+            ),
             "mutation_rollout_approved": False,
             "runtime_web_activation_approved": False,
             "shadow_or_canary_approved": False,
@@ -74,6 +87,7 @@ def build_accurate_intake_live_decision_pack(
             "stage_summary": stage_summary,
             "evidence_summary": evidence_summary,
             "offline_replay_summary": offline_replay_summary,
+            "provider_robustness_summary": provider_robustness_summary,
             "decision_options_ordered": list(DECISION_OPTION_IDS),
             "decision_options": _decision_options(),
             "selected_option": selected_option,
@@ -97,6 +111,7 @@ def write_accurate_intake_live_decision_pack(
     live_artifact_path: Path = DEFAULT_LIVE_ARTIFACT,
     stage_manifest_artifact_path: Path | None = None,
     offline_replay_artifact_path: Path | None = None,
+    provider_robustness_artifact_path: Path | None = None,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
 ) -> Path:
     live_artifact = json.loads(live_artifact_path.read_text(encoding="utf-8"))
@@ -106,10 +121,14 @@ def write_accurate_intake_live_decision_pack(
     offline_replay_artifact = None
     if offline_replay_artifact_path is not None and offline_replay_artifact_path.exists():
         offline_replay_artifact = json.loads(offline_replay_artifact_path.read_text(encoding="utf-8"))
+    provider_robustness_artifact = None
+    if provider_robustness_artifact_path is not None and provider_robustness_artifact_path.exists():
+        provider_robustness_artifact = json.loads(provider_robustness_artifact_path.read_text(encoding="utf-8"))
     pack = build_accurate_intake_live_decision_pack(
         live_artifact,
         stage_manifest_artifact=stage_manifest_artifact,
         offline_replay_artifact=offline_replay_artifact,
+        provider_robustness_artifact=provider_robustness_artifact,
     )
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / "accurate_intake_mvp_live_decision_pack.json"
@@ -123,6 +142,7 @@ def _select_option(
     evidence_summary: dict[str, Any],
     stage_summary: dict[str, Any],
     offline_replay_summary: dict[str, Any],
+    provider_robustness_summary: dict[str, Any],
 ) -> tuple[str, str]:
     if input_integrity.get("passed") is not True:
         if input_integrity.get("stage_manifest_integrity_blocked") is True:
@@ -166,6 +186,14 @@ def _select_option(
         if offline_replay_summary.get("strict_replay_ready") is True:
             if offline_replay_summary.get("model_diversity_status") == "model_diversity_missing":
                 return "offline_shadow_replay", "model_diversity_missing"
+            if provider_robustness_summary.get("present") is not True:
+                return "offline_shadow_replay", "provider_robustness_matrix_required"
+            if provider_robustness_summary.get("integrity_passed") is not True:
+                return "offline_shadow_replay", "provider_robustness_matrix_integrity_blocked"
+            if provider_robustness_summary.get("contract_overfit_risk") is True:
+                return "offline_shadow_replay", "contract_overfit_risk"
+            if provider_robustness_summary.get("model_inversion_evidence_passed") is not True:
+                return "offline_shadow_replay", "model_inversion_evidence_missing"
             return "prepare_private_self_use_candidate", "strict_live_diagnostic_with_replay_evidence"
         return "offline_shadow_replay", "offline_replay_not_strict"
     return "defer_to_local_mvp", "live_diagnostic_not_clean"
@@ -293,7 +321,13 @@ def _max_model_claim(
     live_artifact: dict[str, Any],
     *,
     stage_manifest_artifact: dict[str, Any] | None = None,
+    provider_robustness_summary: dict[str, Any] | None = None,
 ) -> str:
+    if (
+        isinstance(provider_robustness_summary, dict)
+        and provider_robustness_summary.get("model_diversity_status") == "provider_diversity_present"
+    ):
+        return "multi_profile_live_diagnostic_observed"
     profile_ids: set[str] = set()
     model_ids: set[str] = set()
     if isinstance(stage_manifest_artifact, dict):
@@ -342,6 +376,30 @@ def _offline_replay_summary(artifact: dict[str, Any] | None) -> dict[str, Any]:
         "repaired_pass_count": int(summary.get("repaired_pass_count") or 0),
         "timeout_count": int(summary.get("timeout_count") or 0),
         "model_diversity_status": str(summary.get("model_diversity_status") or "unknown"),
+    }
+
+
+def _provider_robustness_summary(artifact: dict[str, Any] | None) -> dict[str, Any]:
+    if artifact is None:
+        return {
+            "present": False,
+            "integrity_passed": False,
+            "model_inversion_evidence_passed": False,
+            "contract_overfit_risk": False,
+            "model_diversity_status": "missing_provider_robustness_matrix",
+            "single_profile_only": True,
+        }
+    integrity = _dict(artifact.get("input_integrity"))
+    return {
+        "present": artifact.get("artifact_type") == "accurate_intake_mvp_live_robustness_matrix",
+        "integrity_passed": integrity.get("passed") is True,
+        "model_inversion_evidence_passed": artifact.get("model_inversion_evidence_passed") is True,
+        "contract_overfit_risk": artifact.get("contract_overfit_risk") is True,
+        "model_diversity_status": str(artifact.get("model_diversity_status") or "unknown"),
+        "single_profile_only": artifact.get("single_profile_only") is True,
+        "has_retry_dependent_evidence": artifact.get("has_retry_dependent_evidence") is True,
+        "has_timeout_evidence": artifact.get("has_timeout_evidence") is True,
+        "has_error_evidence": artifact.get("has_error_evidence") is True,
     }
 
 
@@ -486,12 +544,16 @@ def main() -> int:
     parser.add_argument("--live-artifact", default=str(DEFAULT_LIVE_ARTIFACT))
     parser.add_argument("--stage-manifest", default=str(DEFAULT_STAGE_MANIFEST_ARTIFACT))
     parser.add_argument("--offline-replay-artifact", default=str(DEFAULT_OFFLINE_REPLAY_ARTIFACT))
+    parser.add_argument("--provider-robustness-matrix", default=str(DEFAULT_PROVIDER_ROBUSTNESS_MATRIX_ARTIFACT))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     args = parser.parse_args()
     path = write_accurate_intake_live_decision_pack(
         live_artifact_path=Path(args.live_artifact),
         stage_manifest_artifact_path=Path(args.stage_manifest) if args.stage_manifest else None,
         offline_replay_artifact_path=Path(args.offline_replay_artifact) if args.offline_replay_artifact else None,
+        provider_robustness_artifact_path=(
+            Path(args.provider_robustness_matrix) if args.provider_robustness_matrix else None
+        ),
         output_dir=Path(args.output_dir),
     )
     print(path)

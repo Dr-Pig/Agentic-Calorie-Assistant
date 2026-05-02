@@ -87,6 +87,18 @@ def build_accurate_intake_live_robustness_matrix(
     )
     has_error_evidence = any(stage.get("status") in {"fail", "blocked"} for stage in stages)
     single_profile_only = len(profile_ids) <= 1 and len(model_ids) <= 1
+    model_diversity_status = "model_diversity_missing" if single_profile_only else "provider_diversity_present"
+    contract_overfit_risk = (not single_profile_only) and any(
+        _is_contract_overfit_signal(stage.get("failure_layer"), stage.get("failure_family")) for stage in stages
+    )
+    model_inversion_evidence_passed = (
+        not blockers
+        and bool(stages)
+        and not single_profile_only
+        and not has_retry_dependent_evidence
+        and not has_timeout_evidence
+        and not has_error_evidence
+    )
     return _json_safe(
         {
             "artifact_type": "accurate_intake_mvp_live_robustness_matrix",
@@ -109,6 +121,9 @@ def build_accurate_intake_live_robustness_matrix(
             "provider_profile_ids": sorted(profile_ids),
             "models": sorted(model_ids),
             "single_profile_only": single_profile_only,
+            "model_diversity_status": model_diversity_status,
+            "model_inversion_evidence_passed": model_inversion_evidence_passed,
+            "contract_overfit_risk": contract_overfit_risk,
             "stage_count": len(stages),
             "stages": stages,
             "result_kind_counts": result_kind_counts,
@@ -118,7 +133,12 @@ def build_accurate_intake_live_robustness_matrix(
             "has_timeout_evidence": has_timeout_evidence,
             "has_error_evidence": has_error_evidence,
             "private_self_use_candidate_blocked": (
-                bool(blockers) or has_retry_dependent_evidence or has_timeout_evidence or has_error_evidence
+                bool(blockers)
+                or not model_inversion_evidence_passed
+                or contract_overfit_risk
+                or has_retry_dependent_evidence
+                or has_timeout_evidence
+                or has_error_evidence
             ),
         }
     )
@@ -158,6 +178,11 @@ def _counts(values: Any) -> dict[str, int]:
             continue
         counts[str(value)] = counts.get(str(value), 0) + 1
     return counts
+
+
+def _is_contract_overfit_signal(failure_layer: Any, failure_family: Any) -> bool:
+    signal = f"{failure_layer or ''} {failure_family or ''}".lower()
+    return any(token in signal for token in ("contract", "schema", "semantic"))
 
 
 def _json_safe(value: Any) -> Any:

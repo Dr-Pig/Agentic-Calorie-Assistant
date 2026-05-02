@@ -92,6 +92,8 @@ def test_live_robustness_matrix_tracks_result_kinds_and_blocks_activation() -> N
     assert matrix["private_self_use_candidate_blocked"] is True
     assert matrix["max_model_claim"] == "single_profile_live_diagnostic_observed"
     assert matrix["model_portability_claimed"] is False
+    assert matrix["model_diversity_status"] == "model_diversity_missing"
+    assert matrix["model_inversion_evidence_passed"] is False
 
 
 def test_live_robustness_matrix_writer_creates_artifact(tmp_path: Path) -> None:
@@ -113,3 +115,59 @@ def test_live_robustness_matrix_writer_creates_artifact(tmp_path: Path) -> None:
     assert output.name == "accurate_intake_mvp_live_robustness_matrix.json"
     assert payload["artifact_type"] == "accurate_intake_mvp_live_robustness_matrix"
     assert payload["result_kind_counts"] == {"strict_pass_first_attempt": 1}
+
+
+def test_live_robustness_matrix_marks_clean_multi_profile_evidence_without_portability_claim() -> None:
+    matrix = build_accurate_intake_live_robustness_matrix(
+        [
+            _stage_artifact(
+                stage_id="single_case_live_probe",
+                status="pass",
+                result_kind="strict_pass_first_attempt",
+                provider_profile_id="builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                model="grok-4-fast",
+            ),
+            _stage_artifact(
+                stage_id="single_case_live_probe",
+                status="pass",
+                result_kind="strict_pass_first_attempt",
+                provider_profile_id="alternate-accurate-intake-mvp-live-diagnostic",
+                model="alternate-model",
+            ),
+        ]
+    )
+
+    assert matrix["single_profile_only"] is False
+    assert matrix["model_diversity_status"] == "provider_diversity_present"
+    assert matrix["model_inversion_evidence_passed"] is True
+    assert matrix["contract_overfit_risk"] is False
+    assert matrix["model_portability_claimed"] is False
+    assert matrix["max_model_claim"] == "multi_profile_live_diagnostic_observed"
+
+
+def test_live_robustness_matrix_flags_contract_overfit_risk_on_alternate_profile_failure() -> None:
+    matrix = build_accurate_intake_live_robustness_matrix(
+        [
+            _stage_artifact(
+                stage_id="single_case_live_probe",
+                status="pass",
+                result_kind="strict_pass_first_attempt",
+                provider_profile_id="builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                model="grok-4-fast",
+            ),
+            _stage_artifact(
+                stage_id="single_case_live_probe",
+                status="fail",
+                result_kind="fail",
+                failure_layer="provider_contract_non_adherence",
+                failure_family="semantic_contract_violation",
+                provider_profile_id="alternate-accurate-intake-mvp-live-diagnostic",
+                model="alternate-model",
+            ),
+        ]
+    )
+
+    assert matrix["model_diversity_status"] == "provider_diversity_present"
+    assert matrix["model_inversion_evidence_passed"] is False
+    assert matrix["contract_overfit_risk"] is True
+    assert matrix["private_self_use_candidate_blocked"] is True
