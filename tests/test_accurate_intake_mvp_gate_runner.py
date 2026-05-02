@@ -15,7 +15,7 @@ def test_accurate_intake_mvp_gate_manifest_declares_local_deterministic_scope() 
     manifest = verify_accurate_intake_mvp.load_gate_manifest(MANIFEST_PATH)
 
     assert manifest["gate_id"] == "accurate_intake_mvp_deterministic_v1"
-    assert manifest["gate_version"] == "1.3"
+    assert manifest["gate_version"] == "1.4"
     assert manifest["claim_scope"] == "local_deterministic_mvp_gate"
     assert manifest["evidence_scope"] == "deterministic_regression_evidence"
     assert manifest["live_llm_required"] is False
@@ -64,6 +64,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_product_loop_mvp_read_model.py",
         "tests/test_local_persistence_self_use.py",
         "tests/test_accurate_intake_debug_surface.py",
+        "tests/test_accurate_intake_mvp_self_use_smoke.py",
     ):
         assert expected_test in flat_args
 

@@ -1,6 +1,6 @@
 {
   "gate_id": "accurate_intake_mvp_deterministic_v1",
-  "gate_version": "1.3",
+  "gate_version": "1.4",
   "gate_mode": "deterministic_regression_wall",
   "claim_scope": "local_deterministic_mvp_gate",
   "evidence_scope": "deterministic_regression_evidence",
@@ -90,7 +90,8 @@
       "pytest": [
         "tests/test_product_loop_mvp_read_model.py",
         "tests/test_local_persistence_self_use.py",
-        "tests/test_accurate_intake_debug_surface.py"
+        "tests/test_accurate_intake_debug_surface.py",
+        "tests/test_accurate_intake_mvp_self_use_smoke.py"
       ]
     }
   ],
