@@ -94,6 +94,22 @@ def build_phase_c_same_truth_gate(
     if state_commit is not None and sidecar_commit is not None and state_commit != sidecar_commit:
         _append_once(consistency_flags, "state_delta_sidecar_mutation_mismatch")
 
+    canonical_ids = _dict(mutation_outcome.get("canonical_ids"))
+    committed_thread_id = _int_or_none(canonical_ids.get("meal_thread_id"))
+    committed_version_id = _int_or_none(canonical_ids.get("meal_version_id"))
+    if committed_thread_id is None and isinstance(canonical_commit, dict):
+        committed_thread_id = _int_or_none(canonical_commit.get("meal_thread_id"))
+    if committed_version_id is None and isinstance(canonical_commit, dict):
+        committed_version_id = _int_or_none(canonical_commit.get("meal_version_id"))
+    if committed_thread_id is not None and committed_version_id is not None and isinstance(budget_after.get("meals"), list):
+        matching_meals = [
+            meal
+            for meal in budget_after.get("meals", [])
+            if isinstance(meal, dict) and _int_or_none(meal.get("meal_thread_id")) == committed_thread_id
+        ]
+        if matching_meals and all(_int_or_none(meal.get("meal_version_id")) != committed_version_id for meal in matching_meals):
+            _append_once(consistency_flags, "canonical_active_version_mismatch")
+
     predicted_consumed = _int_or_none(_field(budget_summary, "predicted_consumed_kcal_after"))
     predicted_remaining = _int_or_none(_field(budget_summary, "predicted_remaining_kcal_after"))
     read_consumed = _int_or_none(budget_after.get("consumed_kcal"))
@@ -108,6 +124,7 @@ def build_phase_c_same_truth_gate(
         read_result.get("owner_alignment") == "contradictory"
         or "contradictory" in set(str(value) for value in mutation_outcome.values())
         or "budget_summary_state_after_mismatch" in consistency_flags
+        or "canonical_active_version_mismatch" in consistency_flags
         or "phase_c_projection_persistence_commit_mismatch" in consistency_flags
         or "state_delta_sidecar_mutation_mismatch" in consistency_flags
     )

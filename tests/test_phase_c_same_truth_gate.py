@@ -96,6 +96,42 @@ def test_phase_c_same_truth_gate_hard_fails_post_write_budget_mismatch_without_r
     assert "budget_summary_state_after_mismatch" in gate["consistency_flags"]
 
 
+def test_phase_c_same_truth_gate_hard_fails_when_budget_view_points_at_different_active_version() -> None:
+    phase_c_trace = {
+        "mutation_outcome": {
+            "canonical_commit_status": "committed",
+            "ledger_mutation_status": "updated",
+            "canonical_ids": {"meal_thread_id": 77, "meal_version_id": 88},
+        },
+        "same_truth_read_result": {
+            "owner_alignment": "aligned",
+            "consistency_flags": [],
+            "compared_surfaces": ["persistence_result"],
+        },
+    }
+    state_after = SimpleNamespace(
+        current_budget_view=SimpleNamespace(
+            model_dump=lambda *, mode="json": {
+                "consumed_kcal": 900,
+                "remaining_kcal": 900,
+                "meals": [{"meal_thread_id": 77, "meal_version_id": 99, "total_kcal": 900}],
+            }
+        )
+    )
+
+    gate = build_phase_c_same_truth_gate(
+        phase_c_trace=phase_c_trace,
+        persistence_result=SimpleNamespace(canonical_commit={"meal_thread_id": 77, "meal_version_id": 88}),
+        state_delta={"canonical_commit": True, "ledger_updated": True},
+        sidecar={"state_mutation_summary": {"canonical_commit": True, "ledger_updated": True}},
+        state_after=state_after,
+        budget_summary={"predicted_consumed_kcal_after": 900, "predicted_remaining_kcal_after": 900},
+    )
+
+    assert gate["status"] == "hard_fail"
+    assert "canonical_active_version_mismatch" in gate["consistency_flags"]
+
+
 def test_phase_c_same_truth_gate_flags_missing_projection_without_inventing_truth() -> None:
     gate = build_phase_c_same_truth_gate(
         phase_c_trace={},

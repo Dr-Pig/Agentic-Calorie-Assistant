@@ -69,6 +69,10 @@ def manager_context_trace_payload(
                 "manager_context_pack": json_safe(manager_context_pack_payload),
                 "trace_only_inventory": sorted(manager_context_pack.trace_only.keys()),
                 "not_for_manager_inventory": sorted(manager_context_pack.not_for_manager.keys()),
+                "injected_fields": sorted(manager_context_pack.manager_context.keys()),
+                "available_if_needed_fields": sorted(manager_context_pack.available_if_needed.keys()),
+                "trace_only_fields": sorted(manager_context_pack.trace_only.keys()),
+                "promotion_reasons": list(manager_context_pack.promotion_reasons),
             }
         )
     return trace

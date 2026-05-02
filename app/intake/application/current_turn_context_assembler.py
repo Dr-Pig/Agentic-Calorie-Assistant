@@ -92,6 +92,154 @@ def _active_meal_thread_state(active_meal: Any) -> tuple[dict[str, Any] | None, 
     return dict(active_meal), "present"
 
 
+def _current_budget_snapshot(payload: Any, *, has_active_plan: bool) -> dict[str, Any] | None:
+    budget = _as_dict(payload)
+    if not budget:
+        return None
+    return {
+        "local_date": budget.get("local_date"),
+        "budget_kcal": int(budget.get("budget_kcal") or 0),
+        "consumed_kcal": int(budget.get("consumed_kcal") or 0),
+        "remaining_kcal": int(budget.get("remaining_kcal") or 0),
+        "active_meal_count": int(budget.get("active_meal_count") or 0),
+        "has_active_plan": bool(budget.get("has_active_plan") if "has_active_plan" in budget else has_active_plan),
+        "has_day_budget_ledger": bool(budget.get("has_day_budget_ledger", False)),
+        "ledger_last_recomputed_at": budget.get("ledger_last_recomputed_at"),
+        "no_plan_posture": str(budget.get("no_plan_posture") or "not_applicable"),
+        "overshoot_status": str(budget.get("overshoot_status") or "unknown"),
+        "freshness_status": str(budget.get("freshness_status") or "current_turn"),
+        "source": "current_budget_view",
+        "truth_owner": "budget_read_model",
+        "read_only": True,
+    }
+
+
+def _active_body_plan_snapshot(payload: Any) -> dict[str, Any] | None:
+    body_plan = _as_dict(payload)
+    if not body_plan:
+        return None
+    return {
+        "body_plan_id": body_plan.get("body_plan_id"),
+        "goal_type": body_plan.get("goal_type"),
+        "daily_budget_kcal": int(body_plan.get("daily_budget_kcal") or 0),
+        "estimated_tdee": int(body_plan.get("estimated_tdee") or 0),
+        "safety_floor_kcal": int(body_plan.get("safety_floor_kcal") or 0),
+        "freshness_status": str(body_plan.get("freshness_status") or "current_turn"),
+        "source": "active_body_plan_view",
+        "truth_owner": "body_read_model",
+        "read_only": True,
+    }
+
+
+def _recent_item_targets(
+    *,
+    target_meal_reference: dict[str, Any],
+    recent_committed_meals: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    targets: list[dict[str, Any]] = []
+    if target_meal_reference.get("meal_item_id") is None:
+        pass
+    else:
+        targets.append(
+            {
+                "target_object_type": "meal_item",
+                "meal_thread_id": target_meal_reference.get("meal_thread_id"),
+                "meal_version_id": target_meal_reference.get("meal_version_id"),
+                "meal_item_id": target_meal_reference.get("meal_item_id"),
+                "canonical_name": target_meal_reference.get("canonical_name"),
+                "source": str(target_meal_reference.get("target_resolution_source") or "target_meal_reference"),
+                "confidence": str(target_meal_reference.get("correction_confidence") or "medium"),
+                "item_resolution_source": str(target_meal_reference.get("item_resolution_source") or "unknown"),
+            }
+        )
+    for meal in recent_committed_meals:
+        item_resolution_source = str(meal.get("item_resolution_source") or "unknown")
+        for candidate in list(meal.get("item_candidates") or []):
+            if not isinstance(candidate, dict):
+                continue
+            targets.append(
+                {
+                    "target_object_type": "meal_item_candidate",
+                    "meal_thread_id": meal.get("meal_thread_id"),
+                    "meal_version_id": meal.get("meal_version_id"),
+                    "meal_item_id": candidate.get("meal_item_id"),
+                    "canonical_name": candidate.get("canonical_name"),
+                    "item_index": candidate.get("item_index"),
+                    "estimated_kcal": int(candidate.get("estimated_kcal") or 0),
+                    "source": "recent_committed_meal",
+                    "confidence": "medium",
+                    "item_resolution_source": item_resolution_source,
+                    "mutation_authority": False,
+                    "selected_target": False,
+                }
+            )
+    return targets
+
+
+def _target_resolution_posture(target_meal_reference: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "target_resolution_source": str(target_meal_reference.get("target_resolution_source") or "none"),
+        "correction_confidence": str(target_meal_reference.get("correction_confidence") or "low"),
+        "item_resolution_source": str(target_meal_reference.get("item_resolution_source") or "none"),
+        "mutation_authority": False,
+        "read_only": True,
+    }
+
+
+def _session_atomic_blocks(
+    *,
+    raw_user_input: str,
+    last_system_question: str | None,
+    pending_followup: dict[str, Any] | None,
+    target_meal_reference: dict[str, Any],
+) -> list[dict[str, Any]]:
+    blocks: list[dict[str, Any]] = []
+    if last_system_question:
+        blocks.append(
+            {
+                "block_type": "clarification_question_answer",
+                "role": "support_evidence",
+                "read_only": True,
+                "mutation_authority": False,
+                "question": last_system_question,
+                "answer": raw_user_input,
+                "object_ref": {"meal_thread_id": pending_followup.get("meal_thread_id") if pending_followup else None},
+            }
+        )
+    if pending_followup is not None:
+        blocks.append(
+            {
+                "block_type": "pending_followup",
+                "role": "support_evidence",
+                "read_only": True,
+                "mutation_authority": False,
+                "pending_question": pending_followup.get("pending_question") or pending_followup.get("question"),
+                "object_ref": {"meal_thread_id": pending_followup.get("meal_thread_id")},
+            }
+        )
+    if target_meal_reference.get("meal_thread_id") is not None:
+        object_ref = {
+            "meal_thread_id": target_meal_reference.get("meal_thread_id"),
+            "meal_version_id": target_meal_reference.get("meal_version_id"),
+        }
+        if target_meal_reference.get("meal_item_id") is not None:
+            object_ref["meal_item_id"] = target_meal_reference.get("meal_item_id")
+        if target_meal_reference.get("canonical_name") is not None:
+            object_ref["canonical_name"] = target_meal_reference.get("canonical_name")
+        blocks.append(
+            {
+                "block_type": "correction_target_reference",
+                "role": "support_evidence",
+                "read_only": True,
+                "mutation_authority": False,
+                "object_ref": object_ref,
+                "target_resolution_source": str(target_meal_reference.get("target_resolution_source") or "none"),
+                "item_resolution_source": str(target_meal_reference.get("item_resolution_source") or "none"),
+            }
+        )
+    return blocks
+
+
 def _candidate_attachment_targets(
     *,
     pending_followup: dict[str, Any] | None,
@@ -145,6 +293,8 @@ def build_current_turn_context_v1(
     active_meal = injected_context.get("ACTIVE_MEAL")
     pending_followup_payload = injected_context.get("PENDING_FOLLOWUP")
     recent_meals_payload = injected_context.get("RECENT_COMMITTED_MEALS_SUMMARY")
+    budget_payload = injected_context.get("CURRENT_BUDGET")
+    active_body_plan_payload = injected_context.get("ACTIVE_BODY_PLAN")
     target_meal_reference = _as_dict(injected_context.get("TARGET_MEAL_REFERENCE"))
     session_summary = _as_dict(injected_context.get("SESSION_SUMMARY"))
 
@@ -155,6 +305,23 @@ def build_current_turn_context_v1(
     active_meal_thread_ref, active_meal_availability = _active_meal_thread_state(active_meal)
     pending_followup, pending_followup_availability = _pending_followup_state(_as_dict(pending_followup_payload))
     recent_committed_meals, recent_committed_availability = _recent_committed_state(recent_meals_payload)
+    current_budget_snapshot = _current_budget_snapshot(
+        budget_payload,
+        has_active_plan=bool(getattr(resolved_state, "onboarding_ready", False))
+        or _as_dict(active_body_plan_payload).get("body_plan_id") is not None,
+    )
+    active_body_plan_snapshot = _active_body_plan_snapshot(active_body_plan_payload)
+    recent_item_targets = _recent_item_targets(
+        target_meal_reference=target_meal_reference,
+        recent_committed_meals=recent_committed_meals,
+    )
+    target_resolution_posture = _target_resolution_posture(target_meal_reference)
+    session_atomic_blocks = _session_atomic_blocks(
+        raw_user_input=raw_user_input,
+        last_system_question=last_system_question,
+        pending_followup=pending_followup,
+        target_meal_reference=target_meal_reference,
+    )
     current_event = interaction_event or build_chat_interaction_event(raw_user_input=raw_user_input)
     candidate_targets = _candidate_attachment_targets(
         pending_followup=pending_followup,
@@ -196,6 +363,26 @@ def build_current_turn_context_v1(
             availability=recent_committed_availability,
             summary={"count": len(recent_committed_meals)},
         ),
+        "current_budget_snapshot": _source_view(
+            owner="budget/current_budget_read_model",
+            availability="present" if current_budget_snapshot is not None else "unknown",
+            summary={"read_only": True},
+        ),
+        "active_body_plan_snapshot": _source_view(
+            owner="body/active_body_plan_read_model",
+            availability="present" if active_body_plan_snapshot is not None else "unknown",
+            summary={"read_only": True},
+        ),
+        "recent_item_targets": _source_view(
+            owner="intake/correction_target_read_model",
+            availability="present" if recent_item_targets else "none",
+            summary={"count": len(recent_item_targets), "read_only": True},
+        ),
+        "session_atomic_blocks": _source_view(
+            owner="conversation_state/current_session_summary",
+            availability="present" if session_atomic_blocks else "none",
+            summary={"count": len(session_atomic_blocks), "read_only": True},
+        ),
         "last_system_question": _source_view(
             owner="current_turn_runtime_summary",
             availability=last_system_question_availability,
@@ -228,6 +415,25 @@ def build_current_turn_context_v1(
         active_meal_thread_ref=active_meal_thread_ref,
         pending_followup=pending_followup,
         recent_committed_meal_refs=recent_committed_meals,
+        current_budget_snapshot=current_budget_snapshot,
+        active_body_plan_snapshot=active_body_plan_snapshot,
+        recent_item_targets=recent_item_targets,
+        target_resolution_posture=target_resolution_posture,
+        context_freshness={
+            "current_budget_snapshot": (
+                str(current_budget_snapshot.get("freshness_status") or "unknown")
+                if current_budget_snapshot is not None
+                else "unknown"
+            ),
+            "active_body_plan_snapshot": (
+                str(active_body_plan_snapshot.get("freshness_status") or "unknown")
+                if active_body_plan_snapshot is not None
+                else "unknown"
+            ),
+            "recent_item_targets": "current_turn" if recent_item_targets else "none",
+            "session_atomic_blocks": "current_turn" if session_atomic_blocks else "none",
+        },
+        session_atomic_blocks=session_atomic_blocks,
         current_interaction_event=current_event,
         candidate_attachment_targets=candidate_targets,
         open_workflow_type=open_workflow_type,
@@ -240,5 +446,9 @@ def build_current_turn_context_v1(
             "target_resolution_source": str(target_meal_reference.get("target_resolution_source") or "none"),
             "has_explicit_interaction_target": bool(current_event.target_object_id),
             "surface_mode": current_event.surface_mode,
+            "has_current_budget_snapshot": current_budget_snapshot is not None,
+            "has_active_body_plan_snapshot": active_body_plan_snapshot is not None,
+            "recent_item_target_count": len(recent_item_targets),
+            "session_atomic_block_count": len(session_atomic_blocks),
         },
     )
