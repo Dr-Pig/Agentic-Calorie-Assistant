@@ -9,13 +9,14 @@ from scripts import verify_accurate_intake_mvp
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "docs" / "quality" / "accurate_intake_mvp_gate_manifest.json"
+RUNBOOK_PATH = ROOT / "docs" / "quality" / "ACCURATE_INTAKE_MVP_SELF_USE_RUNBOOK.md"
 
 
 def test_accurate_intake_mvp_gate_manifest_declares_local_deterministic_scope() -> None:
     manifest = verify_accurate_intake_mvp.load_gate_manifest(MANIFEST_PATH)
 
     assert manifest["gate_id"] == "accurate_intake_mvp_deterministic_v1"
-    assert manifest["gate_version"] == "1.7"
+    assert manifest["gate_version"] == "1.8"
     assert manifest["claim_scope"] == "local_deterministic_mvp_gate"
     assert manifest["evidence_scope"] == "deterministic_regression_evidence"
     assert manifest["live_llm_required"] is False
@@ -37,9 +38,12 @@ def test_accurate_intake_mvp_gate_manifest_declares_local_deterministic_scope() 
         "manager_style_active_runtime_smoke_required_group_pass",
         "ux_semantic_manager_decision_consumption_required_group_pass",
         "active_api_route_smoke_required_group_pass",
+        "scoped_explicit_item_removal_self_use_pass",
     ]
     assert manifest["semantic_owner"]["food_knowledge"] == "evidence_support_only"
     assert manifest["llm_deterministic_boundary"]["truth_owner"] == "deterministic"
+    assert "read_only_debug_surface_shell" not in set(manifest["deferred_capabilities"])
+    assert "delete_void_undo_lifecycle" in set(manifest["deferred_capabilities"])
 
 
 def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
@@ -71,6 +75,10 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_local_persistence_self_use.py",
         "tests/test_accurate_intake_debug_surface.py",
         "tests/test_accurate_intake_mvp_self_use_smoke.py",
+        "tests/test_wave1_phase_b2_source_selection.py",
+        "tests/test_wave1_phase_b2_packetizer_input_seed.py",
+        "tests/test_wave1_phase_b2_packet_consumption.py",
+        "tests/test_wave1_phase_b2_final_mapping.py",
         "tests/test_accurate_intake_mvp_manager_style_smoke.py",
         "tests/test_accurate_intake_mvp_ux_semantic_wall.py",
         "tests/test_accurate_intake_mvp_api_smoke.py",
@@ -183,3 +191,17 @@ def test_ci_has_independent_accurate_intake_mvp_gate_job() -> None:
     assert "python scripts/verify_accurate_intake_mvp.py --python python" in workflow
     assert "--output artifacts/accurate_intake_mvp_gate.json" in workflow
     assert "accurate-intake-mvp-gate-report" in workflow
+
+
+def test_self_use_runbook_records_portable_local_deterministic_scope() -> None:
+    runbook = RUNBOOK_PATH.read_text(encoding="utf-8-sig")
+
+    assert "Accurate Intake MVP Self-Use Runbook" in runbook
+    assert "claim scope: `local_deterministic_mvp_gate`" in runbook
+    assert "python scripts/verify_accurate_intake_mvp.py --output artifacts/accurate_intake_mvp_gate.json" in runbook
+    assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py" in runbook
+    assert "Manager structured decision fixtures own intent/workflow/target proposal" in runbook
+    assert "Food evidence seeds are support-only" in runbook
+    assert "No live LLM" in runbook
+    assert "No Tavily/web product truth" in runbook
+    assert "Generated artifacts are local evidence, not repo truth" in runbook

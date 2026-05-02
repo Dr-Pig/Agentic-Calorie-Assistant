@@ -67,6 +67,32 @@ def _correction_candidate(*, meal_thread_id: int, meal_item_id: int) -> CommitRe
     )
 
 
+def _removal_candidate(*, meal_thread_id: int, meal_item_id: int) -> CommitRequestCandidate:
+    return CommitRequestCandidate(
+        request_id="mvp-product-loop-removal",
+        manager_intent="food_estimation",
+        meal_thread_id=meal_thread_id,
+        version_reason="correction",
+        meal_title="chicken rice and soup",
+        raw_input="remove the chicken rice",
+        estimated_kcal=150,
+        protein_g=3,
+        carb_g=5,
+        fat_g=3,
+        resolution_status="completed_meal",
+        local_date="2026-05-02",
+        items=[],
+        trace_ref={
+            "correction_operation": "remove_item",
+            "correction_target_ref": {
+                "meal_thread_id": meal_thread_id,
+                "meal_item_id": meal_item_id,
+                "canonical_name": "chicken rice",
+            },
+        },
+    )
+
+
 def _items_for_version(db: Session, version_id: int) -> list[MealItemRecord]:
     return db.execute(
         select(MealItemRecord)
@@ -141,6 +167,7 @@ def test_product_loop_roundtrip_debug_read_model_uses_active_versions_and_preser
             "new_total_kcal": 470,
             "old_total_kcal": 650,
             "non_target_item_names_preserved": ["soup"],
+            "removed_item_names": [],
         }
     ]
     assert debug_model["ledger_audit_events"] == [
@@ -207,3 +234,36 @@ def test_debug_read_model_keeps_ledger_audit_separate_from_current_truth_when_au
     assert debug_model["ledger_audit_events"][0]["delta_kcal"] == 999
     assert debug_model["ledger_audit_events"][0]["current_truth_owner"] is False
     assert debug_model["same_truth"]["source_truth"] == "active_meal_versions"
+
+
+def test_product_loop_read_model_tracks_explicit_item_removal_as_new_active_version() -> None:
+    db = _session()
+    user = get_or_create_user(db, "mvp-product-loop-removal")
+    initial = commit_meal_payload_to_canonical(db, user=user, candidate=_initial_candidate(), budget_kcal=1800)
+    assert initial is not None
+    old_items = _items_for_version(db, initial.meal_version_id)
+
+    removal = commit_meal_payload_to_canonical(
+        db,
+        user=user,
+        candidate=_removal_candidate(meal_thread_id=initial.meal_thread_id, meal_item_id=old_items[0].id),
+        budget_kcal=1800,
+    )
+    assert removal is not None
+
+    current_budget = build_current_budget_view(db, user_id=user.id, local_date="2026-05-02")
+    debug_model = build_accurate_intake_debug_read_model(
+        db,
+        user_id=user.id,
+        local_date="2026-05-02",
+        current_budget=current_budget,
+    )
+
+    active_version = debug_model["meal_threads"][0]["active_version"]
+    assert debug_model["today_summary"]["consumed_kcal"] == 150
+    assert debug_model["today_summary"]["remaining_kcal"] == 1650
+    assert active_version["total_kcal"] == 150
+    assert [item["name"] for item in active_version["items"]] == ["soup"]
+    assert debug_model["correction_history"][0]["removed_item_names"] == ["chicken rice"]
+    assert debug_model["correction_history"][0]["non_target_item_names_preserved"] == ["soup"]
+    assert debug_model["same_truth"]["status"] == "pass"

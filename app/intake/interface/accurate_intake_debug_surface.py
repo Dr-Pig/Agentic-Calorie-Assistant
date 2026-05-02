@@ -11,6 +11,7 @@ def render_accurate_intake_debug_surface(payload: dict[str, Any]) -> str:
     meal_threads = list(model.get("meal_threads") or [])
     pending_drafts = list(model.get("pending_drafts") or [])
     corrections = list(model.get("correction_history") or [])
+    ledger_events = list(model.get("ledger_audit_events") or [])
     same_truth = dict(model.get("same_truth") or {})
 
     def _rows(items: list[Any], empty: str) -> str:
@@ -58,6 +59,8 @@ def render_accurate_intake_debug_surface(payload: dict[str, Any]) -> str:
     <section><h2>Meal Threads</h2><ul>{_rows(meal_threads, "No meal threads found.")}</ul></section>
     <section><h2>Pending Drafts</h2><ul>{_rows(pending_drafts, "No pending drafts.")}</ul></section>
     <section><h2>Correction History</h2><ul>{_rows(corrections, "No corrections yet.")}</ul></section>
+    <section><h2>Ledger Audit Events</h2><ul>{_rows(ledger_events, "No ledger audit events.")}</ul></section>
+    <section><h2>Same Truth Trace</h2><ul>{_rows([same_truth] if same_truth else [], "No same-truth trace.")}</ul></section>
   </main>
 </body>
 </html>"""

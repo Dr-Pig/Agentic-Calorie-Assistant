@@ -1,6 +1,6 @@
 {
   "gate_id": "accurate_intake_mvp_deterministic_v1",
-  "gate_version": "1.7",
+  "gate_version": "1.8",
   "gate_mode": "deterministic_regression_wall",
   "claim_scope": "local_deterministic_mvp_gate",
   "evidence_scope": "deterministic_regression_evidence",
@@ -28,7 +28,8 @@
     "local_persistence_debug_surface_required_group_pass",
     "manager_style_active_runtime_smoke_required_group_pass",
     "ux_semantic_manager_decision_consumption_required_group_pass",
-    "active_api_route_smoke_required_group_pass"
+    "active_api_route_smoke_required_group_pass",
+    "scoped_explicit_item_removal_self_use_pass"
   ],
   "semantic_owner": {
     "user_intent": "manager_or_llm_structured_decision",
@@ -85,7 +86,11 @@
       "pytest": [
         "tests/test_food_knowledge_mvp_coverage.py",
         "tests/test_wave1_phase_b2_small_anchor_store.py",
-        "tests/test_wave1_phase_b2_exact_item_card_lookup.py"
+        "tests/test_wave1_phase_b2_exact_item_card_lookup.py",
+        "tests/test_wave1_phase_b2_source_selection.py",
+        "tests/test_wave1_phase_b2_packetizer_input_seed.py",
+        "tests/test_wave1_phase_b2_packet_consumption.py",
+        "tests/test_wave1_phase_b2_final_mapping.py"
       ]
     },
     {
@@ -121,10 +126,10 @@
     "limited_live_canary"
   ],
   "deferred_capabilities": [
-    "read_only_debug_surface_shell",
     "live_llm_canary",
     "web_tavily",
     "polished_ui",
-    "production_db"
+    "production_db",
+    "delete_void_undo_lifecycle"
   ]
 }

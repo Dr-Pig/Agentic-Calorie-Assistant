@@ -21,10 +21,12 @@ def test_self_use_smoke_report_closes_local_product_loop_without_live_dependenci
 
     debug_surface = report["debug_surface"]
     model = debug_surface["model"]
-    assert model["today_summary"]["consumed_kcal"] == 470
-    assert model["today_summary"]["remaining_kcal"] == 1330
-    assert model["meal_threads"][0]["active_version"]["total_kcal"] == 470
-    assert model["correction_history"][0]["non_target_item_names_preserved"] == ["soup"]
+    assert model["today_summary"]["consumed_kcal"] == 150
+    assert model["today_summary"]["remaining_kcal"] == 1650
+    assert model["meal_threads"][0]["active_version"]["total_kcal"] == 150
+    assert model["meal_threads"][0]["active_version"]["items"][0]["name"] == "soup"
+    assert model["correction_history"][-1]["non_target_item_names_preserved"] == ["soup"]
+    assert model["correction_history"][-1]["removed_item_names"] == ["chicken rice"]
     assert model["same_truth"]["status"] == "pass"
 
 

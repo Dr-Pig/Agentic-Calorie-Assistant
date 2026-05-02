@@ -146,6 +146,10 @@ def _correction_target_ref(candidate: CommitRequestCandidate) -> dict[str, Any]:
     return dict(raw) if isinstance(raw, dict) else {}
 
 
+def _is_item_removal_correction(candidate: CommitRequestCandidate) -> bool:
+    return dict(candidate.trace_ref or {}).get("correction_operation") == "remove_item"
+
+
 def _item_records_for_candidate(
     db: Session,
     *,
@@ -167,14 +171,37 @@ def _item_records_for_candidate(
         expected_name = str(target_ref.get("canonical_name") or "").strip()
         if expected_name and expected_name.casefold() != str(target_item.name or "").strip().casefold():
             raise ValueError("correction_canonical_name_mismatch")
-        replacements = list(candidate.items)
-        if not replacements:
-            raise ValueError("correction_replacement_item_missing")
         old_items = db.execute(
             select(MealItemRecord)
             .where(MealItemRecord.meal_version_id == target_item.meal_version_id)
             .order_by(MealItemRecord.item_index.asc())
         ).scalars().all()
+        if _is_item_removal_correction(candidate):
+            remaining_items = [old_item for old_item in old_items if old_item.id != target_item.id]
+            if not remaining_items:
+                raise ValueError("item_removal_cannot_empty_meal_thread")
+            return [
+                MealItemRecord(
+                    meal_version_id=version_id,
+                    item_index=new_index,
+                    name=old_item.name,
+                    quantity_hint=old_item.quantity_hint,
+                    source=old_item.source,
+                    evidence_role=old_item.evidence_role,
+                    estimate_basis=old_item.estimate_basis,
+                    confidence_tier=old_item.confidence_tier,
+                    estimated_kcal=old_item.estimated_kcal,
+                    protein_g=old_item.protein_g,
+                    carb_g=old_item.carb_g,
+                    fat_g=old_item.fat_g,
+                    evidence_ids_json=list(old_item.evidence_ids_json or []),
+                    classification_json=dict(old_item.classification_json or {}),
+                )
+                for new_index, old_item in enumerate(remaining_items)
+            ]
+        replacements = list(candidate.items)
+        if not replacements:
+            raise ValueError("correction_replacement_item_missing")
         records: list[MealItemRecord] = []
         for new_index, old_item in enumerate(old_items):
             if old_item.id == target_item.id:
