@@ -206,6 +206,7 @@ def test_self_use_runbook_records_portable_local_deterministic_scope() -> None:
     assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py" in runbook
     assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py --scenario-wall-v2" in runbook
     assert "Accurate Intake MVP v2.0 scenario wall" in runbook
+    assert "operator transcript" in runbook
     assert "Manager structured decision fixtures own intent/workflow/target proposal" in runbook
     assert "Food evidence seeds are support-only" in runbook
     assert "No live LLM" in runbook
