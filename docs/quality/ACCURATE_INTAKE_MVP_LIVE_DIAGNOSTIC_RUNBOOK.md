@@ -22,7 +22,7 @@ Run deterministic gates before any provider call:
 python scripts/verify_accurate_intake_mvp.py --output artifacts/accurate_intake_mvp_gate.json
 python scripts/run_accurate_intake_mvp_self_use_smoke.py --scenario-wall-v2
 python scripts/run_accurate_intake_mvp_self_use_smoke.py --reopen-continuity
-python -m pytest tests/test_accurate_intake_mvp_live_diagnostic.py tests/test_accurate_intake_mvp_live_decision_pack.py tests/test_accurate_intake_mvp_live_stage_manifest.py tests/test_accurate_intake_mvp_live_runbook.py -q
+python -m pytest tests/test_accurate_intake_mvp_live_diagnostic.py tests/test_accurate_intake_mvp_live_decision_pack.py tests/test_accurate_intake_mvp_live_stage_manifest.py tests/test_accurate_intake_mvp_offline_shadow_replay.py tests/test_accurate_intake_mvp_live_runbook.py -q
 ```
 
 Do not run live provider stages if the deterministic baseline is red.
@@ -38,12 +38,14 @@ python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage fake_provider_
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id explicit_item_removal_seeded --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_seeded_removal.json
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id chinese_chicken_rice_correction_removal_debug --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_single_case.json
 python scripts/build_accurate_intake_mvp_live_stage_manifest.py
+python scripts/build_accurate_intake_mvp_offline_shadow_replay.py
 python scripts/build_accurate_intake_mvp_live_decision_pack.py
 ```
 
-The generated manifest and decision pack paths are:
+The generated manifest, replay, and decision pack paths are:
 
 - `artifacts/accurate_intake_mvp_live_stage_manifest.json`
+- `artifacts/accurate_intake_mvp_offline_shadow_replay.json`
 - `artifacts/accurate_intake_mvp_live_decision_pack.json`
 
 ## Full Suite Gate
@@ -80,6 +82,7 @@ Do not stage:
 - `artifacts/accurate_intake_mvp_live_diagnostic_seeded_removal.json`
 - `artifacts/accurate_intake_mvp_live_diagnostic_single_case.json`
 - `artifacts/accurate_intake_mvp_live_stage_manifest.json`
+- `artifacts/accurate_intake_mvp_offline_shadow_replay.json`
 - `artifacts/accurate_intake_mvp_live_decision_pack.json`
 - local SQLite files
 - provider raw traces

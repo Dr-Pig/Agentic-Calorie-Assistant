@@ -160,6 +160,8 @@ def _select_option(
         if offline_replay_summary.get("integrity_passed") is not True:
             return "offline_shadow_replay", "offline_replay_integrity_blocked"
         if offline_replay_summary.get("strict_replay_ready") is True:
+            if offline_replay_summary.get("model_diversity_status") == "model_diversity_missing":
+                return "offline_shadow_replay", "model_diversity_missing"
             return "prepare_private_self_use_candidate", "strict_live_diagnostic_with_replay_evidence"
         return "offline_shadow_replay", "offline_replay_not_strict"
     return "defer_to_local_mvp", "live_diagnostic_not_clean"
@@ -319,6 +321,7 @@ def _offline_replay_summary(artifact: dict[str, Any] | None) -> dict[str, Any]:
             "sample_run_count": 0,
             "repaired_pass_count": 0,
             "timeout_count": 0,
+            "model_diversity_status": "missing_offline_replay",
         }
     summary = _dict(artifact.get("summary"))
     integrity = _dict(artifact.get("input_integrity"))
@@ -334,6 +337,7 @@ def _offline_replay_summary(artifact: dict[str, Any] | None) -> dict[str, Any]:
         "sample_run_count": int(summary.get("sample_run_count") or 0),
         "repaired_pass_count": int(summary.get("repaired_pass_count") or 0),
         "timeout_count": int(summary.get("timeout_count") or 0),
+        "model_diversity_status": str(summary.get("model_diversity_status") or "unknown"),
     }
 
 
