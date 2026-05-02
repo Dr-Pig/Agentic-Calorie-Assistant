@@ -39,6 +39,7 @@ python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_li
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id chinese_chicken_rice_correction_removal_debug --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_single_case.json
 python scripts/build_accurate_intake_mvp_live_stage_manifest.py
 python scripts/build_accurate_intake_mvp_offline_shadow_replay.py
+python scripts/build_accurate_intake_mvp_live_robustness_matrix.py
 python scripts/build_accurate_intake_mvp_live_decision_pack.py
 ```
 
@@ -46,6 +47,7 @@ The generated manifest, replay, and decision pack paths are:
 
 - `artifacts/accurate_intake_mvp_live_stage_manifest.json`
 - `artifacts/accurate_intake_mvp_offline_shadow_replay.json`
+- `artifacts/accurate_intake_mvp_live_robustness_matrix.json`
 - `artifacts/accurate_intake_mvp_live_decision_pack.json`
 
 ## Full Suite Gate
@@ -59,6 +61,7 @@ The generated manifest, replay, and decision pack paths are:
 - original multi-turn single-case probe passes as `strict_pass_first_attempt`.
 - offline replay artifact is present and `strict_replay_ready=true`.
 - zero timeout and zero retry-dependent evidence.
+- provider robustness matrix has `model_inversion_evidence_passed=true` and `contract_overfit_risk=false`.
 
 Do not run the full suite when a prior stage is missing, failed, timed out, only passed after retry, or when the offline replay gate would return `offline_replay_required`.
 
@@ -91,6 +94,7 @@ Do not stage:
 - `artifacts/accurate_intake_mvp_live_diagnostic_full_suite.json`
 - `artifacts/accurate_intake_mvp_live_stage_manifest.json`
 - `artifacts/accurate_intake_mvp_offline_shadow_replay.json`
+- `artifacts/accurate_intake_mvp_live_robustness_matrix.json`
 - `artifacts/accurate_intake_mvp_live_decision_pack.json`
 - local SQLite files
 - provider raw traces
