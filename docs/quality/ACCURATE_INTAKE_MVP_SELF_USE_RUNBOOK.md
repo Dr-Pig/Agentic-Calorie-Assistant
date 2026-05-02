@@ -31,9 +31,11 @@ Run these from the repo root on Windows, macOS, Linux, Docker, or devcontainer e
 python -m pytest tests/test_accurate_intake_mvp_gate_runner.py tests/test_accurate_intake_mvp_ux_semantic_wall.py -q
 python -m pytest tests/test_correction_commit_uow_adapter.py tests/test_accurate_intake_debug_surface.py -q
 python -m pytest tests/test_product_loop_mvp_read_model.py tests/test_local_persistence_self_use.py tests/test_accurate_intake_mvp_self_use_smoke.py -q
+python -m pytest tests/test_accurate_intake_mvp_self_use_scenario_wall.py -q
 python -m pytest tests/test_food_knowledge_mvp_coverage.py tests/test_wave1_phase_b2_small_anchor_store.py tests/test_wave1_phase_b2_exact_item_card_lookup.py -q
 python scripts/verify_accurate_intake_mvp.py --output artifacts/accurate_intake_mvp_gate.json
 python scripts/run_accurate_intake_mvp_self_use_smoke.py
+python scripts/run_accurate_intake_mvp_self_use_smoke.py --scenario-wall-v2
 ```
 
 Run pytest groups sequentially on Windows. If a temporary SQLite file is locked, rerun the affected group after the prior process exits; do not classify that as product behavior evidence until the rerun result is known.
@@ -65,6 +67,24 @@ Do not stage:
 - provider/live diagnostic outputs
 
 Repo truth for this gate is the manifest, tests, runbook, canonical specs, and source code.
+
+## Accurate Intake MVP v2.0 Scenario Wall
+
+The Accurate Intake MVP v2.0 scenario wall expands the single local smoke into five deterministic Chinese self-use flows:
+
+- `雞肉飯和湯 -> 雞肉飯少一點 -> 把湯拿掉 -> debug read`
+- `珍珠奶茶 -> 半糖大杯`
+- `滷味 -> 有豆干、海帶、貢丸`
+- `今天吃了多少？`
+- no-plan consumed query without target or remaining claims
+
+The scenario wall remains local deterministic evidence. It uses Manager structured fixtures for intent, workflow, target proposal, and read-only query posture. The deterministic runner validates, rejects unsafe mutation, and computes canonical state/read-model truth; it must not route from raw text keywords or fabricate missing Manager semantic fields.
+
+Run it with:
+
+```powershell
+python scripts/run_accurate_intake_mvp_self_use_smoke.py --scenario-wall-v2
+```
 
 ## Explicit Non-Goals
 

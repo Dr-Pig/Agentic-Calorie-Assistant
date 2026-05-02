@@ -1,6 +1,6 @@
 {
   "gate_id": "accurate_intake_mvp_deterministic_v1",
-  "gate_version": "1.8",
+  "gate_version": "2.0",
   "gate_mode": "deterministic_regression_wall",
   "claim_scope": "local_deterministic_mvp_gate",
   "evidence_scope": "deterministic_regression_evidence",
@@ -26,6 +26,7 @@
     "accurate_intake_mvp_gate_pass",
     "food_knowledge_required_group_pass",
     "local_persistence_debug_surface_required_group_pass",
+    "self_use_scenario_wall_v2_required_group_pass",
     "manager_style_active_runtime_smoke_required_group_pass",
     "ux_semantic_manager_decision_consumption_required_group_pass",
     "active_api_route_smoke_required_group_pass",
@@ -106,6 +107,12 @@
       "group_id": "manager_style_active_runtime_smoke",
       "pytest": [
         "tests/test_accurate_intake_mvp_manager_style_smoke.py"
+      ]
+    },
+    {
+      "group_id": "self_use_scenario_wall_v2",
+      "pytest": [
+        "tests/test_accurate_intake_mvp_self_use_scenario_wall.py"
       ]
     },
     {
