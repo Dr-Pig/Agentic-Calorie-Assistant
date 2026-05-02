@@ -15,6 +15,7 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "Generated live artifacts are local diagnostic evidence, not repo truth",
         "full_suite_live_diagnostic remains blocked",
         "offline replay artifact is present and `strict_replay_ready=true`",
+        "provider robustness matrix has `model_inversion_evidence_passed=true`",
         "--stage full_suite_live_diagnostic --offline-replay-artifact artifacts/accurate_intake_mvp_offline_shadow_replay.json",
         "offline_replay_required",
         "strict_pass_first_attempt",
@@ -36,6 +37,7 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "--stage single_case_live_probe --case-id chinese_chicken_rice_correction_removal_debug",
         "python scripts/build_accurate_intake_mvp_live_stage_manifest.py",
         "python scripts/build_accurate_intake_mvp_offline_shadow_replay.py",
+        "python scripts/build_accurate_intake_mvp_live_robustness_matrix.py",
         "python scripts/build_accurate_intake_mvp_live_decision_pack.py",
         "artifacts/accurate_intake_mvp_live_diagnostic_provider_health.json",
         "artifacts/accurate_intake_mvp_live_diagnostic_schema_probe.json",
@@ -45,6 +47,7 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "artifacts/accurate_intake_mvp_live_diagnostic_full_suite.json",
         "artifacts/accurate_intake_mvp_live_stage_manifest.json",
         "artifacts/accurate_intake_mvp_offline_shadow_replay.json",
+        "artifacts/accurate_intake_mvp_live_robustness_matrix.json",
         "artifacts/accurate_intake_mvp_live_decision_pack.json",
     ]
 
