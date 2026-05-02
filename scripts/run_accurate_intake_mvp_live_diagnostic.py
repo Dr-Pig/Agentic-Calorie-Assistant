@@ -39,6 +39,7 @@ from app.shared.contracts.intake_payloads import CommitRequestCandidate, MealIte
 
 ARTIFACT_PATH = ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic.json"
 DEFAULT_DB_PATH = ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic.sqlite3"
+DEFAULT_OFFLINE_REPLAY_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_offline_shadow_replay.json"
 DEFAULT_LOCAL_DATE = "2026-05-02"
 DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID = (
     "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic"
@@ -529,6 +530,7 @@ def run_diagnostic(
     live_invoked: bool = True,
     stage: str = STAGE_ALL,
     case_id: str | None = None,
+    offline_replay_artifact_path: Path | None = DEFAULT_OFFLINE_REPLAY_ARTIFACT,
 ) -> dict[str, Any]:
     profile = provider_profile(provider_profile_id)
     if provider_override is None:
@@ -670,7 +672,20 @@ def run_diagnostic(
             if stages[-1]["status"] != "pass":
                 break
         elif stage_id == STAGE_FULL_SUITE_LIVE_DIAGNOSTIC:
-            if not _stage_passed(stages, STAGE_SINGLE_CASE_LIVE_PROBE):
+            offline_replay_gate = _full_suite_offline_replay_gate(offline_replay_artifact_path)
+            if not offline_replay_gate.get("allowed"):
+                stages.append(
+                    _stage_blocked(
+                        profile=profile,
+                        stage_id=stage_id,
+                        timeout_budget_ms=provider_timeout_ms,
+                        failure_layer="diagnostic_ordering",
+                        failure_family=str(offline_replay_gate.get("failure_family") or "offline_replay_required"),
+                        summary={"offline_replay_gate": offline_replay_gate},
+                    )
+                )
+                break
+            if not _stage_passed(stages, STAGE_SINGLE_CASE_LIVE_PROBE) and stage != STAGE_FULL_SUITE_LIVE_DIAGNOSTIC:
                 stages.append(
                     _stage_blocked(
                         profile=profile,
@@ -696,6 +711,7 @@ def run_diagnostic(
                     stage_id=stage_id,
                     stage_cases=cases,
                     timeout_budget_ms=effective_case_timeout_ms,
+                    extra_summary={"offline_replay_gate": offline_replay_gate},
                 )
             )
     report = _report_shell(
@@ -766,6 +782,7 @@ def _stage_blocked(
     timeout_budget_ms: int,
     failure_layer: str,
     failure_family: str,
+    **extra: Any,
 ) -> dict[str, Any]:
     return _stage_result(
         profile=profile,
@@ -774,6 +791,7 @@ def _stage_blocked(
         timeout_budget_ms=timeout_budget_ms,
         failure_layer=failure_layer,
         failure_family=failure_family,
+        **extra,
     )
 
 
@@ -988,8 +1006,11 @@ def _runtime_gate_stage_result(
     stage_id: str,
     stage_cases: list[dict[str, Any]],
     timeout_budget_ms: int,
+    extra_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     summary = _summary(stage_cases)
+    if extra_summary:
+        summary = {**summary, **extra_summary}
     failure_layer = None
     failure_family = None
     status = "pass"
@@ -1016,6 +1037,37 @@ def _runtime_gate_stage_result(
         case_ids=[str(case.get("case_id") or "") for case in stage_cases],
         summary=summary,
     )
+
+
+def _full_suite_offline_replay_gate(offline_replay_artifact_path: Path | None) -> dict[str, Any]:
+    if offline_replay_artifact_path is None:
+        return {"allowed": False, "failure_family": "offline_replay_required", "source_path": None}
+    path = Path(offline_replay_artifact_path)
+    if not path.exists():
+        return {"allowed": False, "failure_family": "offline_replay_required", "source_path": str(path)}
+    try:
+        artifact = _dict(json.loads(path.read_text(encoding="utf-8")))
+    except Exception:
+        return {"allowed": False, "failure_family": "offline_replay_integrity_blocked", "source_path": str(path)}
+    summary = _dict(artifact.get("summary"))
+    integrity = _dict(artifact.get("input_integrity"))
+    if artifact.get("artifact_type") != "accurate_intake_mvp_offline_shadow_replay":
+        return {"allowed": False, "failure_family": "offline_replay_integrity_blocked", "source_path": str(path)}
+    if integrity.get("passed") is not True:
+        return {"allowed": False, "failure_family": "offline_replay_integrity_blocked", "source_path": str(path)}
+    if summary.get("strict_replay_ready") is not True:
+        return {"allowed": False, "failure_family": "offline_replay_not_strict", "source_path": str(path)}
+    if int(summary.get("pass_after_retry_count") or 0) > 0 or int(summary.get("timeout_count") or 0) > 0:
+        return {"allowed": False, "failure_family": "offline_replay_retry_or_timeout", "source_path": str(path)}
+    if int(summary.get("failed_stage_count") or 0) > 0:
+        return {"allowed": False, "failure_family": "offline_replay_has_failed_stage", "source_path": str(path)}
+    return {
+        "allowed": True,
+        "failure_family": None,
+        "source_path": str(path),
+        "sample_run_count": int(summary.get("sample_run_count") or 0),
+        "model_diversity_status": _optional_string(summary.get("model_diversity_status")),
+    }
 
 
 async def _run_case(
@@ -1906,6 +1958,7 @@ def main() -> int:
     parser.add_argument("--provider-request-retry-jitter-ms", type=int, default=100)
     parser.add_argument("--stage", choices=(STAGE_ALL, *ORDERED_STAGE_IDS), default=STAGE_ALL)
     parser.add_argument("--case-id", default=None)
+    parser.add_argument("--offline-replay-artifact", default=str(DEFAULT_OFFLINE_REPLAY_ARTIFACT))
     args = parser.parse_args()
 
     report = run_diagnostic(
@@ -1920,6 +1973,7 @@ def main() -> int:
         provider_request_retry_jitter_ms=int(args.provider_request_retry_jitter_ms),
         stage=str(args.stage),
         case_id=str(args.case_id) if args.case_id else None,
+        offline_replay_artifact_path=Path(args.offline_replay_artifact) if args.offline_replay_artifact else None,
     )
     print(
         json.dumps(
