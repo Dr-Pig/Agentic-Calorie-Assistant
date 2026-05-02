@@ -1,0 +1,488 @@
+{
+  "register_id": "accurate_intake_mvp_ux_semantic_cases_v1",
+  "human_review_doc": "docs/quality/ACCURATE_INTAKE_MVP_UX_SEMANTIC_CASES.md",
+  "gate_group_id": "ux_semantic_manager_decision_consumption",
+  "gate_version": "1.7",
+  "claim_scope": "local_deterministic_mvp_gate",
+  "case_set_role": "manager_owned_ux_semantic_regression_wall",
+  "runner_inferred_semantics": false,
+  "live_llm_required": false,
+  "web_tavily_required": false,
+  "schema_migration_required": false,
+  "truth_owner": {
+    "user_intent": "manager_structured_decision",
+    "routing_or_workflow_effect": "manager_structured_decision",
+    "target_attachment": "manager_structured_decision_plus_deterministic_guard",
+    "food_knowledge": "evidence_support_only",
+    "mutation_legality": "deterministic_guard",
+    "persistence_truth": "canonical_meal_budget_body_models"
+  },
+  "deterministic_roles": {
+    "allowed": [
+      "validate_schema",
+      "validate_target_exists_unique_writable",
+      "validate_evidence_accepted",
+      "reject_or_downgrade_unsafe_mutation",
+      "compute_ledger_and_read_model_truth"
+    ],
+    "forbidden": [
+      "infer_user_intent_from_raw_text",
+      "choose_workflow_route_from_keywords",
+      "create_missing_workflow_effect",
+      "fabricate_target_attachment",
+      "decide_logged_draft_no_mutation_from_food_seed",
+      "silently_rewrite_manager_semantic_decision"
+    ]
+  },
+  "food_seed_rule": {
+    "role": "candidate_evidence_semantic_hints_portion_source_provenance_only",
+    "can_decide_logged_draft_no_mutation": false,
+    "can_authorize_mutation": false,
+    "can_update_ledger": false
+  },
+  "response_assertion_policy": {
+    "mode": "semantic_facts",
+    "must_check": [
+      "state posture",
+      "estimate or insufficiency honesty",
+      "followup presence when required",
+      "no false exactness claim",
+      "no no-plan remaining or target claim"
+    ],
+    "must_not_check": [
+      "exact wording template",
+      "provider-specific phrasing"
+    ]
+  },
+  "deferred_to_v1_8": [
+    "browser_ui_shell",
+    "delete_void_undo",
+    "live_llm_diagnostic",
+    "production_db_schema"
+  ],
+  "cases": [
+    {
+      "case_id": "UX-001",
+      "title": "tea egg single item logging",
+      "raw_user_input": "我吃了一顆茶葉蛋",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "log_meal",
+        "workflow_effect": "commit",
+        "final_action": "commit",
+        "target_attachment": {"mode": "new_meal"},
+        "tool_calls": ["estimate_nutrition", "compare_against_budget"],
+        "evidence_posture": "needs_tool_evidence"
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_evidence_accepted", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": true, "ledger_delta": "positive", "read_model_same_truth": true}
+    },
+    {
+      "case_id": "UX-002",
+      "title": "bubble milk tea first turn logged estimate with followup",
+      "raw_user_input": "我喝了一杯珍珠奶茶",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "log_meal",
+        "workflow_effect": "commit_with_refinement_followup",
+        "final_action": "commit",
+        "target_attachment": {"mode": "new_meal"},
+        "tool_calls": ["estimate_nutrition", "compare_against_budget"],
+        "evidence_posture": "needs_tool_evidence",
+        "followup_targets": ["size", "sugar_level"]
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_evidence_accepted", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": true, "followup_required": true, "read_model_same_truth": true}
+    },
+    {
+      "case_id": "UX-003",
+      "title": "bubble milk tea second turn refinement",
+      "raw_user_input": "半糖大杯",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "correct_meal",
+        "workflow_effect": "correction",
+        "final_action": "correction_applied",
+        "target_attachment": {"mode": "target_committed_item", "resolution": "manager_selected_guard_validated"},
+        "tool_calls": ["resolve_correction_target", "estimate_nutrition", "compare_against_budget"],
+        "evidence_posture": "needs_tool_evidence"
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_target_exists_unique_writable", "validate_evidence_accepted", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": true, "old_version_superseded": true, "non_target_items_preserved": true}
+    },
+    {
+      "case_id": "UX-004",
+      "title": "chicken bento usable estimate with followup",
+      "raw_user_input": "我吃雞腿便當",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "log_meal",
+        "workflow_effect": "commit_with_refinement_followup",
+        "final_action": "commit",
+        "target_attachment": {"mode": "new_meal"},
+        "tool_calls": ["estimate_nutrition", "compare_against_budget"],
+        "evidence_posture": "needs_tool_evidence",
+        "followup_targets": ["rice_portion", "main_style"]
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_evidence_accepted", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": true, "followup_required": true}
+    },
+    {
+      "case_id": "UX-005",
+      "title": "bare home-cooked meal drafts and asks",
+      "raw_user_input": "我吃家常菜",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "log_meal",
+        "workflow_effect": "ask_clarification",
+        "final_action": "ask_followup",
+        "target_attachment": {"mode": "new_draft_meal"},
+        "tool_calls": [],
+        "evidence_posture": "insufficient_for_estimate",
+        "followup_targets": ["listed_items"]
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "reject_or_downgrade_unsafe_mutation", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": false, "draft_saved": true, "ledger_delta": "none"}
+    },
+    {
+      "case_id": "UX-006",
+      "title": "home-cooked meal with listed dishes estimates with portion followup",
+      "raw_user_input": "我吃白飯半碗、三杯雞、青菜",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "log_meal",
+        "workflow_effect": "commit_with_refinement_followup",
+        "final_action": "commit",
+        "target_attachment": {"mode": "new_meal"},
+        "tool_calls": ["estimate_nutrition", "compare_against_budget"],
+        "evidence_posture": "needs_tool_evidence",
+        "followup_targets": ["portion"]
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_evidence_accepted", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": true, "followup_required": true}
+    },
+    {
+      "case_id": "UX-007",
+      "title": "bare luwei drafts and asks",
+      "raw_user_input": "我吃滷味",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "log_meal",
+        "workflow_effect": "ask_clarification",
+        "final_action": "ask_followup",
+        "target_attachment": {"mode": "new_draft_meal"},
+        "tool_calls": [],
+        "evidence_posture": "insufficient_for_estimate",
+        "followup_targets": ["listed_items", "portion"]
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "reject_or_downgrade_unsafe_mutation", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": false, "draft_saved": true, "ledger_delta": "none"}
+    },
+    {
+      "case_id": "UX-008",
+      "title": "listed luwei estimates with portion followup",
+      "raw_user_input": "滷味有豆皮、甜不辣、王子麵",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "log_meal",
+        "workflow_effect": "commit_with_refinement_followup",
+        "final_action": "commit",
+        "target_attachment": {"mode": "new_meal"},
+        "tool_calls": ["estimate_nutrition", "compare_against_budget"],
+        "evidence_posture": "needs_tool_evidence",
+        "followup_targets": ["portion"]
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_evidence_accepted", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": true, "followup_required": true}
+    },
+    {
+      "case_id": "UX-009",
+      "title": "high-variance basket distinction",
+      "raw_user_input": "鹽酥雞有雞排、甜不辣、四季豆",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "log_meal",
+        "workflow_effect": "commit_with_refinement_followup",
+        "final_action": "commit",
+        "target_attachment": {"mode": "new_meal"},
+        "tool_calls": ["estimate_nutrition", "compare_against_budget"],
+        "evidence_posture": "needs_tool_evidence",
+        "followup_targets": ["portion"]
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_evidence_accepted", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": true, "food_seed_support_only": true}
+    },
+    {
+      "case_id": "UX-010",
+      "title": "exact item card supports logging",
+      "raw_user_input": "我吃松屋特盛牛丼",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "log_meal",
+        "workflow_effect": "commit",
+        "final_action": "commit",
+        "target_attachment": {"mode": "new_meal"},
+        "tool_calls": ["estimate_nutrition", "compare_against_budget"],
+        "evidence_posture": "exact_packet_required"
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_evidence_accepted", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": true, "exactness_claim": "local_diagnostic_seed_only"}
+    },
+    {
+      "case_id": "UX-011",
+      "title": "brand item variant ambiguity stays non-exact",
+      "raw_user_input": "我吃松屋牛丼",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "log_meal",
+        "workflow_effect": "commit_with_refinement_followup",
+        "final_action": "commit",
+        "target_attachment": {"mode": "new_meal"},
+        "tool_calls": ["estimate_nutrition", "compare_against_budget"],
+        "evidence_posture": "non_exact_estimate",
+        "followup_targets": ["variant_size"]
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_evidence_accepted", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": true, "must_not_claim_exact_truth": true}
+    },
+    {
+      "case_id": "UX-012",
+      "title": "query-only calories answer does not mutate",
+      "raw_user_input": "珍珠奶茶大概多少熱量？",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "answer_food_question",
+        "workflow_effect": "answer_only",
+        "final_action": "answer_only",
+        "target_attachment": {"mode": "none"},
+        "tool_calls": ["estimate_nutrition"],
+        "evidence_posture": "query_support"
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "reject_or_downgrade_unsafe_mutation", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": false, "ledger_delta": "none"}
+    },
+    {
+      "case_id": "UX-013",
+      "title": "explicit correction with unique target",
+      "raw_user_input": "改半糖",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "correct_meal",
+        "workflow_effect": "correction",
+        "final_action": "correction_applied",
+        "target_attachment": {"mode": "target_committed_item", "resolution": "manager_selected_guard_validated"},
+        "tool_calls": ["resolve_correction_target", "estimate_nutrition", "compare_against_budget"],
+        "evidence_posture": "needs_tool_evidence"
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_target_exists_unique_writable", "validate_evidence_accepted", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": true, "old_version_superseded": true}
+    },
+    {
+      "case_id": "UX-014",
+      "title": "ambiguous correction cannot silently mutate",
+      "raw_user_input": "改少一點",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "correct_meal",
+        "workflow_effect": "ask_clarification",
+        "final_action": "ask_followup",
+        "target_attachment": {"mode": "ambiguous_candidates"},
+        "tool_calls": ["resolve_correction_target"],
+        "evidence_posture": "target_ambiguous",
+        "followup_targets": ["correction_target"]
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_target_exists_unique_writable", "reject_or_downgrade_unsafe_mutation", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": false, "mutation_blocked_reason": "target_not_unique"}
+    },
+    {
+      "case_id": "UX-015",
+      "title": "no-plan logging keeps budget honesty",
+      "raw_user_input": "我吃牛肉麵",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "log_meal",
+        "workflow_effect": "commit_without_budget_target",
+        "final_action": "commit",
+        "target_attachment": {"mode": "new_meal"},
+        "tool_calls": ["estimate_nutrition"],
+        "evidence_posture": "needs_tool_evidence"
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_evidence_accepted", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": true, "can_answer_consumed": true, "must_not_claim_remaining_or_target": true}
+    },
+    {
+      "case_id": "UX-016",
+      "title": "active plan same-truth across API and debug",
+      "raw_user_input": "我今天目前吃了多少？",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "answer_remaining_budget",
+        "workflow_effect": "answer_only",
+        "final_action": "answer_only",
+        "target_attachment": {"mode": "none"},
+        "tool_calls": [],
+        "evidence_posture": "read_only_state"
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"canonical_commit": false, "read_model_same_truth": true}
+    },
+    {
+      "case_id": "UX-017",
+      "title": "correction reload excludes superseded versions",
+      "raw_user_input": "剛剛那個雞腿便當飯少一點",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "correct_meal",
+        "workflow_effect": "correction",
+        "final_action": "correction_applied",
+        "target_attachment": {"mode": "target_committed_item", "resolution": "manager_selected_guard_validated"},
+        "tool_calls": ["resolve_correction_target", "estimate_nutrition", "compare_against_budget"],
+        "evidence_posture": "needs_tool_evidence"
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_target_exists_unique_writable", "validate_evidence_accepted", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"old_version_superseded": true, "superseded_versions_double_counted": false}
+    },
+    {
+      "case_id": "UX-018",
+      "title": "context promotion remains support evidence",
+      "raw_user_input": "半糖大杯",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "deterministic_role": "none",
+        "current_turn_intent": "correct_meal",
+        "workflow_effect": "correction",
+        "final_action": "correction_applied",
+        "target_attachment": {"mode": "target_committed_item", "resolution": "manager_selected_guard_validated"},
+        "tool_calls": ["resolve_correction_target", "estimate_nutrition", "compare_against_budget"],
+        "evidence_posture": "needs_tool_evidence"
+      },
+      "expected_runtime_validation": {
+        "deterministic_roles": ["validate_schema", "validate_target_exists_unique_writable", "validate_evidence_accepted", "compute_ledger_and_read_model_truth"],
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {"context_has_mutation_authority": false, "read_model_same_truth": true}
+    }
+  ]
+}
