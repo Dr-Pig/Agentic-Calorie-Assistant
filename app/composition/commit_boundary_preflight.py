@@ -6,6 +6,7 @@ from typing import Any
 from app.composition.phase_a_boundary_projection import build_intake_boundary_projection
 from app.intake.application.final_action_mutation_classifier import final_action_effect_class
 from app.runtime.contracts.phase_a import PhaseABoundaryProjection
+from app.shared.contracts.correction_target import validate_correction_target_ref
 from app.shared.contracts.intake_results import EstimatePayload
 
 
@@ -23,6 +24,7 @@ class CommitBoundaryPreflightResult:
     canonical_write_allowed: bool | None
     ledger_mutation_allowed: bool | None
     correction_target_resolved: bool | None
+    correction_target_validation: dict[str, Any] | None = None
     projection: PhaseABoundaryProjection | None = None
 
     def trace_payload(self) -> dict[str, Any]:
@@ -39,20 +41,13 @@ class CommitBoundaryPreflightResult:
             "canonical_write_allowed": self.canonical_write_allowed,
             "ledger_mutation_allowed": self.ledger_mutation_allowed,
             "correction_target_resolved": self.correction_target_resolved,
+            "correction_target_validation": self.correction_target_validation,
         }
 
 
 def _correction_target_resolved(correction_target: Any | None) -> bool | None:
-    if not isinstance(correction_target, dict) or not correction_target:
-        return None
-    source = str(correction_target.get("target_resolution_source") or "").strip().lower()
-    has_evidence = source not in {"", "none", "unknown"}
-    if not has_evidence:
-        return None
-    return any(
-        correction_target.get(key) is not None
-        for key in ("meal_thread_id", "meal_version_id", "meal_id", "target_object_id")
-    )
+    resolved = validate_correction_target_ref(correction_target).get("resolved")
+    return resolved if isinstance(resolved, bool) else None
 
 
 def _effect_allowed(
@@ -144,6 +139,7 @@ def run_commit_boundary_preflight(
             canonical_write_allowed=None,
             ledger_mutation_allowed=None,
             correction_target_resolved=None,
+            correction_target_validation=None,
             projection=None,
         )
     if payload is None:
@@ -160,6 +156,7 @@ def run_commit_boundary_preflight(
             canonical_write_allowed=None,
             ledger_mutation_allowed=None,
             correction_target_resolved=None,
+            correction_target_validation=None,
             projection=None,
         )
 
@@ -174,6 +171,7 @@ def run_commit_boundary_preflight(
         active_body_plan_present=active_body_plan_present,
     )
     decision = projection.commit_boundary_decision
+    target_validation = validate_correction_target_ref(correction_target)
     target_resolved = _correction_target_resolved(correction_target)
     if effect_class == "correction_persistence" and target_resolved is None:
         target_resolved = False
@@ -197,6 +195,7 @@ def run_commit_boundary_preflight(
         canonical_write_allowed=decision.canonical_write_allowed,
         ledger_mutation_allowed=decision.ledger_mutation_allowed,
         correction_target_resolved=target_resolved,
+        correction_target_validation=target_validation,
         projection=projection,
     )
 

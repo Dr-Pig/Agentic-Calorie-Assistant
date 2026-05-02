@@ -44,6 +44,12 @@ class CurrentTurnContextV1(BaseModel):
     active_meal_thread_ref: dict[str, Any] | None = None
     pending_followup: dict[str, Any] | None = None
     recent_committed_meal_refs: list[dict[str, Any]] = Field(default_factory=list)
+    current_budget_snapshot: dict[str, Any] | None = None
+    active_body_plan_snapshot: dict[str, Any] | None = None
+    recent_item_targets: list[dict[str, Any]] = Field(default_factory=list)
+    target_resolution_posture: dict[str, Any] = Field(default_factory=dict)
+    context_freshness: dict[str, str] = Field(default_factory=dict)
+    session_atomic_blocks: list[dict[str, Any]] = Field(default_factory=list)
     current_interaction_event: InteractionEvent
     candidate_attachment_targets: list[dict[str, Any]] = Field(default_factory=list)
     open_workflow_type: OpenWorkflowType = "unknown"
@@ -65,6 +71,7 @@ class ManagerContextPack(BaseModel):
     available_if_needed: dict[str, Any] = Field(default_factory=dict)
     trace_only: dict[str, Any] = Field(default_factory=dict)
     not_for_manager: dict[str, Any] = Field(default_factory=dict)
+    promotion_reasons: list[str] = Field(default_factory=list)
 
 
 class ManagerSemanticDecision(BaseModel):

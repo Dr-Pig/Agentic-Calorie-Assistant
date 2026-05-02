@@ -8,34 +8,168 @@ It is a development verification note, not product truth and not a readiness cla
 - Repo target runtime: Python 3.12.
 - CI runtime: Python 3.12.
 - Dockerfile runtime: `python:3.12-slim`.
+- Compose verification service: `compose.yml` service `app`.
+- Docker is preferred for local parity, but it is not mandatory for local Phase C verification.
 - Local Python 3.9 runs are not authoritative for active runtime, persistence, SQLAlchemy app paths, Phase C response assembly, or broader CI gates.
 - Contract-only isolated tests may run locally when they do not import active Python 3.12-only runtime.
+- GitHub Actions / CI Python 3.12 remains the final merge authority.
+
+## Runtime Authority Policy
+
+Use the narrowest available authoritative runtime:
+
+```yaml
+preferred:
+  runtime: docker_compose
+  proves:
+    - local_phase_c_verification
+    - container_parity
+
+allowed_fallback:
+  runtime: local_python_3_12_virtualenv
+  examples:
+    - .venv312
+    - uv-managed Python 3.12 environment
+  proves:
+    - local_phase_c_verification
+  does_not_prove:
+    - container_parity
+    - OS-level service parity
+
+not_authoritative:
+  - Python 3.9
+  - system Python when below 3.12
+```
+
+Do not change product behavior, prompts, tests, or runtime contracts to make Python 3.9 local runs pass.
+
+## One-Command Verification
+
+Prefer the repo wrapper:
+
+```bash
+./scripts/verify_phase_c.sh
+```
+
+The wrapper uses this order:
+
+1. Docker Compose when `docker` is on `PATH`.
+2. `.venv312` when Docker is unavailable.
+3. `python3.12` plus `lint-imports` on `PATH` when `.venv312` is unavailable.
+4. Fail fast with an environment blocker when no authoritative runtime exists.
+
+The environment classifier can be run directly:
+
+```bash
+python scripts/verify_environment.py
+```
+
+It prints JSON with:
+
+- selected verification status
+- Python executable and version
+- Docker availability
+- what the runtime is and is not authoritative for
+- the rule that CI remains final merge authority
 
 ## Required Before Slice 2
 
-Before starting `Canonical Commit UnitOfWork Adapter` or any other active Phase C persistence refactor, verify in Python 3.12 or Docker:
+Before starting `Canonical Commit UnitOfWork Adapter` or any other active Phase C persistence refactor, verify in Docker or an allowed Python 3.12 fallback:
 
 ```bash
-python -m pytest \
+./scripts/verify_phase_c.sh
+```
+
+If Docker is used, prefer a test-oriented container command over app-server boot so Alembic, uvicorn, and deployment startup do not obscure verification failures.
+
+The repo-owned Docker path is:
+
+```bash
+docker compose run --rm app python --version
+docker compose run --rm app python -m pytest \
   tests/test_phase_c_transaction_ports_contract.py \
   tests/test_phase_c_mutation_projection.py \
   tests/test_phase_c_same_truth_gate.py \
   -q
-git diff --check
 ```
 
-If Docker is used, prefer a test-oriented container command over app-server boot so Alembic, uvicorn, and deployment startup do not obscure verification failures.
+`compose.yml` mounts the repository into `/app` and sets `PYTHONPATH=/app` so tests, scripts, docs, and local gates run against the same checked-out tree.
+
+If Docker is unavailable, this local fallback is allowed:
+
+```bash
+source .venv312/bin/activate
+python --version
+python scripts/verify_environment.py
+PYTHONPATH=. python -m pytest \
+  tests/test_phase_c_transaction_ports_contract.py \
+  tests/test_phase_c_mutation_projection.py \
+  tests/test_phase_c_same_truth_gate.py \
+  -q
+PYTHONPATH=. python scripts/check_layer_integrity.py
+PYTHONPATH=. python scripts/check_runtime_boundaries.py
+PYTHONPATH=. python scripts/audit_readiness_claim_integrity.py
+PYTHONPATH=. python scripts/audit_deterministic_semantic_ownership.py --stage zero-high-risk
+PYTHONPATH=. python scripts/audit_repo_legacy_surfaces.py
+PYTHONPATH=. lint-imports --config .importlinter
+PYTHONPATH=. python scripts/check_markdown_encoding.py --policy-docs --require-bom
+git diff --check
+```
 
 ## Stop Conditions
 
 Stop and resolve the environment blocker before product work if:
 
-- Docker or Python 3.12 is unavailable.
+- Docker is unavailable and no Python 3.12 fallback is available.
 - `pip install -r requirements.txt` fails in Python 3.12.
 - Python 3.12 Phase C verification fails before the active-runtime refactor starts.
 - Dockerfile or dependency setup needs a narrow dev-env fix.
+- `scripts/audit_readiness_claim_integrity.py` fails on existing artifacts.
 
 Do not change product behavior to support Python 3.9.
+
+## Current Known Baseline Blocker Pattern
+
+If the readiness-claim audit fails because existing local artifacts under `artifacts/` are missing `readiness_claim`, classify it as a baseline artifact-governance blocker, not a Slice 2 product failure.
+
+Allowed actions:
+
+- regenerate the affected diagnostic artifacts from their owner scripts
+- repair the producer script that omitted `readiness_claim`
+- move stale local artifacts out of the default audit path after explicit human confirmation
+
+Forbidden actions:
+
+- bypass the audit to claim readiness
+- change mutation, ledger, or canonical persistence behavior to satisfy an artifact audit
+- treat an artifact generated by Python 3.9 as authoritative
+
+## Phase C Closeout Regression Scope
+
+The Phase C wrapper now covers:
+
+- environment runtime classification
+- canonical commit UnitOfWork rollback
+- correction target preflight hardening
+- stable single-item correction target reference propagation
+- correction UnitOfWork item preservation
+- no-plan ledger policy
+- budget ledger truth boundary
+- Phase C mutation projection
+- Phase C same-truth closure diagnostics
+- Phase A context contract lock for bounded read-only budget/body/target context
+- Phase A/B context runtime assembly for recent item candidates and budget/body snapshot posture
+- Phase A/C policy-aware context visibility and session atomic block guardrails
+- Wave 1 founder deterministic diagnostic when the runner is present
+
+## No-Plan Ledger Policy
+
+Default policy for Phase C:
+
+- no active `BodyPlan` means intake commit must not bootstrap a new `DayBudgetLedger`
+- no-plan intake may still create canonical meal truth and ledger audit events
+- no-plan budget answers remain onboarding-required / zero-budget style until a plan exists
+- product code must not silently invent budget truth from a meal commit alone
 
 ## Out of Scope
 

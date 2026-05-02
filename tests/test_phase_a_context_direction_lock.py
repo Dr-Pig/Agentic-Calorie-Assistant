@@ -95,9 +95,19 @@ def test_build_manager_context_pack_uses_curated_context_and_excludes_trace_only
         "active_meal_thread_ref",
         "pending_followup",
         "candidate_attachment_targets",
+        "current_budget_snapshot",
+        "recent_item_targets",
+        "target_resolution_posture",
+        "context_freshness",
+        "session_atomic_blocks",
     }
     assert set(pack.available_if_needed.keys()) == {
         "recent_committed_meal_refs",
+        "active_body_plan_snapshot",
+        "recent_item_targets",
+        "target_resolution_posture",
+        "context_freshness",
+        "session_atomic_blocks",
         "last_system_question",
         "open_workflow_type",
     }
@@ -106,6 +116,28 @@ def test_build_manager_context_pack_uses_curated_context_and_excludes_trace_only
     assert "full_ledger_history" not in pack.manager_context
     assert pack.trace_only["raw_transcript"] == ["user: tea", "assistant: what size?", "user: half sugar"]
     assert pack.not_for_manager["long_term_memory_blobs"] == [{"preference": "half sugar"}]
+    assert "followup_or_correction_context" in pack.promotion_reasons
+
+
+def test_budget_query_promotion_requires_explicit_mode_and_keeps_transcript_trace_only() -> None:
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="今天還剩多少",
+        resolved_state=_resolved_state(),
+    )
+
+    default_pack = build_manager_context_pack(current_turn_context=current_turn_context)
+    budget_pack = build_manager_context_pack(
+        current_turn_context=current_turn_context,
+        promotion_mode="budget_query",
+        recent_transcript_tail=["user: 今天還剩多少"],
+    )
+
+    assert "active_body_plan_snapshot" not in default_pack.manager_context
+    assert "active_body_plan_snapshot" in budget_pack.manager_context
+    assert "context_freshness" in budget_pack.manager_context
+    assert "budget_query_context" in budget_pack.promotion_reasons
+    assert "raw_transcript" not in budget_pack.manager_context
+    assert budget_pack.trace_only["raw_transcript"] == ["user: 今天還剩多少"]
 
 
 def test_build_history_expansion_request_uses_wave1_default_budget() -> None:

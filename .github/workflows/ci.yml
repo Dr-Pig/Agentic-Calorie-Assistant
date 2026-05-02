@@ -100,6 +100,59 @@ jobs:
             tests/test_workflow_routing_decision.py \
             -q
 
+  phase-c-environment-gate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify Phase C environment policy
+        run: |
+          python scripts/verify_environment.py
+          python -m pytest tests/test_environment_verification.py -q
+
+      - name: Run Phase C baseline gate
+        run: |
+          python -m pytest \
+            tests/test_environment_verification.py \
+            tests/test_canonical_commit_unit_of_work_adapter.py \
+            tests/test_correction_commit_uow_adapter.py \
+            tests/test_correction_target_reference_state.py \
+            tests/test_no_plan_ledger_policy.py \
+            tests/test_budget_ledger_truth_boundary.py \
+            tests/test_phase_a_current_turn_context.py \
+            tests/test_phase_a_context_direction_lock.py \
+            tests/test_phase_a_manager_payload_wiring.py \
+            tests/test_phase_c_transaction_ports_contract.py \
+            tests/test_phase_c_mutation_projection.py \
+            tests/test_phase_c_same_truth_gate.py \
+            tests/test_phase_a_commit_boundary_preflight.py \
+            -q
+          python scripts/run_wave1_founder_e2e_deterministic_diagnostic.py
+
+      - name: Run Phase C governance gate
+        run: |
+          python scripts/check_layer_integrity.py
+          python scripts/check_runtime_boundaries.py
+          python scripts/audit_readiness_claim_integrity.py
+          python scripts/audit_deterministic_semantic_ownership.py --stage zero-high-risk
+          python scripts/audit_repo_legacy_surfaces.py
+          lint-imports --config .importlinter
+          python scripts/check_markdown_encoding.py --policy-docs --require-bom
+          git diff --check
+
   wave1-phase-a-contracts:
     runs-on: ubuntu-latest
 

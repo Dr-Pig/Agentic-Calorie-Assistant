@@ -17,6 +17,8 @@ def _resolved_state(
     pending_followup: dict[str, object] | None = None,
     recent_committed_meals: list[dict[str, object]] | None = None,
     target_meal_reference: dict[str, object] | None = None,
+    current_budget: dict[str, object] | None = None,
+    active_body_plan: dict[str, object] | None = None,
     session_summary: dict[str, object] | None = None,
     conversation_state: object | None = None,
 ) -> object:
@@ -37,6 +39,21 @@ def _resolved_state(
                 "pending_question": None,
             },
             "RECENT_COMMITTED_MEALS_SUMMARY": recent_committed_meals or [],
+            "CURRENT_BUDGET": current_budget
+            if current_budget is not None
+            else {
+                "budget_kcal": 0,
+                "consumed_kcal": 0,
+                "remaining_kcal": 0,
+                "active_meal_count": 0,
+            },
+            "ACTIVE_BODY_PLAN": active_body_plan
+            if active_body_plan is not None
+            else {
+                "body_plan_id": None,
+                "goal_type": None,
+                "daily_budget_kcal": 0,
+            },
             "TARGET_MEAL_REFERENCE": target_meal_reference
             if target_meal_reference is not None
             else {
@@ -104,6 +121,242 @@ def test_build_current_turn_context_v1_maps_repo_truth_context_into_current_turn
     assert context.source_views["pending_followup"].availability == "present"
     assert context.source_views["pending_followup"].owner == "conversation_state/intake_followup_read_model"
     assert context.source_views["last_system_question"].availability == "present"
+
+
+def test_build_current_turn_context_v1_exposes_read_only_context_contract_fields() -> None:
+    context = build_current_turn_context_v1(
+        raw_user_input="今天還剩多少",
+        resolved_state=_resolved_state(
+            active_meal={
+                "meal_thread_id": 77,
+                "meal_version_id": 88,
+                "meal_item_id": 990,
+                "canonical_name": "milk tea",
+                "meal_title": "milk tea",
+                "item_resolution_source": "single_active_item",
+            },
+            target_meal_reference={
+                "meal_thread_id": 77,
+                "meal_version_id": 88,
+                "meal_item_id": 990,
+                "canonical_name": "milk tea",
+                "meal_title": "milk tea",
+                "target_resolution_source": "active_meal_view",
+                "correction_confidence": "medium",
+                "item_resolution_source": "single_active_item",
+            },
+            current_budget={
+                "budget_kcal": 1800,
+                "consumed_kcal": 600,
+                "remaining_kcal": 1200,
+                "active_meal_count": 1,
+            },
+            active_body_plan={
+                "body_plan_id": 5,
+                "goal_type": "lose_weight",
+                "daily_budget_kcal": 1800,
+            },
+        ),
+    )
+
+    assert context.current_budget_snapshot["budget_kcal"] == 1800
+    assert context.current_budget_snapshot["consumed_kcal"] == 600
+    assert context.current_budget_snapshot["remaining_kcal"] == 1200
+    assert context.current_budget_snapshot["active_meal_count"] == 1
+    assert context.current_budget_snapshot["has_active_plan"] is True
+    assert context.current_budget_snapshot["source"] == "current_budget_view"
+    assert context.current_budget_snapshot["truth_owner"] == "budget_read_model"
+    assert context.current_budget_snapshot["read_only"] is True
+    assert context.active_body_plan_snapshot["body_plan_id"] == 5
+    assert context.active_body_plan_snapshot["truth_owner"] == "body_read_model"
+    assert context.recent_item_targets == [
+        {
+            "target_object_type": "meal_item",
+            "meal_thread_id": 77,
+            "meal_version_id": 88,
+            "meal_item_id": 990,
+            "canonical_name": "milk tea",
+            "source": "active_meal_view",
+            "confidence": "medium",
+            "item_resolution_source": "single_active_item",
+        }
+    ]
+    assert context.target_resolution_posture == {
+        "target_resolution_source": "active_meal_view",
+        "correction_confidence": "medium",
+        "item_resolution_source": "single_active_item",
+        "mutation_authority": False,
+        "read_only": True,
+    }
+    assert context.context_freshness["current_budget_snapshot"] == "current_turn"
+    assert context.context_freshness["active_body_plan_snapshot"] == "current_turn"
+    assert context.source_views["current_budget_snapshot"].owner == "budget/current_budget_read_model"
+    assert context.source_views["active_body_plan_snapshot"].owner == "body/active_body_plan_read_model"
+
+
+def test_current_turn_context_preserves_resolver_budget_fields_without_recompute() -> None:
+    context = build_current_turn_context_v1(
+        raw_user_input="今天還剩多少",
+        resolved_state=_resolved_state(
+            current_budget={
+                "budget_kcal": 1800,
+                "consumed_kcal": 500,
+                "remaining_kcal": 1200,
+                "active_meal_count": 2,
+                "has_active_plan": True,
+                "has_day_budget_ledger": True,
+                "no_plan_posture": "not_applicable",
+                "freshness_status": "stale",
+            },
+            active_body_plan={
+                "body_plan_id": 5,
+                "goal_type": "lose_weight",
+                "daily_budget_kcal": 1800,
+                "freshness_status": "stale",
+            },
+        ),
+    )
+
+    assert context.current_budget_snapshot["remaining_kcal"] == 1200
+    assert context.current_budget_snapshot["freshness_status"] == "stale"
+    assert context.current_budget_snapshot["has_day_budget_ledger"] is True
+    assert context.context_freshness["current_budget_snapshot"] == "stale"
+    assert context.active_body_plan_snapshot["freshness_status"] == "stale"
+
+
+def test_current_turn_context_keeps_multi_item_candidates_non_authoritative() -> None:
+    context = build_current_turn_context_v1(
+        raw_user_input="飯少一點",
+        resolved_state=_resolved_state(
+            recent_committed_meals=[
+                {
+                    "meal_thread_id": 77,
+                    "meal_version_id": 88,
+                    "meal_title": "rice and egg",
+                    "item_resolution_source": "ambiguous_active_items",
+                    "item_candidates": [
+                        {
+                            "meal_item_id": 901,
+                            "canonical_name": "rice",
+                            "item_index": 0,
+                            "estimated_kcal": 260,
+                            "mutation_authority": False,
+                            "selected_target": False,
+                        },
+                        {
+                            "meal_item_id": 902,
+                            "canonical_name": "egg",
+                            "item_index": 1,
+                            "estimated_kcal": 90,
+                            "mutation_authority": False,
+                            "selected_target": False,
+                        },
+                    ],
+                }
+            ],
+            target_meal_reference={
+                "meal_thread_id": 77,
+                "meal_version_id": 88,
+                "meal_title": "rice and egg",
+                "target_resolution_source": "active_meal_view",
+                "correction_confidence": "medium",
+                "item_resolution_source": "ambiguous_active_items",
+            },
+        ),
+    )
+
+    assert context.target_resolution_posture["item_resolution_source"] == "ambiguous_active_items"
+    assert context.target_resolution_posture["mutation_authority"] is False
+    assert context.target_resolution_posture["read_only"] is True
+    assert context.recent_item_targets == [
+        {
+            "target_object_type": "meal_item_candidate",
+            "meal_thread_id": 77,
+            "meal_version_id": 88,
+            "meal_item_id": 901,
+            "canonical_name": "rice",
+            "item_index": 0,
+            "estimated_kcal": 260,
+            "source": "recent_committed_meal",
+            "confidence": "medium",
+            "item_resolution_source": "ambiguous_active_items",
+            "mutation_authority": False,
+            "selected_target": False,
+        },
+        {
+            "target_object_type": "meal_item_candidate",
+            "meal_thread_id": 77,
+            "meal_version_id": 88,
+            "meal_item_id": 902,
+            "canonical_name": "egg",
+            "item_index": 1,
+            "estimated_kcal": 90,
+            "source": "recent_committed_meal",
+            "confidence": "medium",
+            "item_resolution_source": "ambiguous_active_items",
+            "mutation_authority": False,
+            "selected_target": False,
+        },
+    ]
+
+
+def test_current_turn_context_builds_bounded_session_atomic_blocks_as_support_evidence() -> None:
+    context = build_current_turn_context_v1(
+        raw_user_input="半糖",
+        resolved_state=_resolved_state(
+            pending_followup={
+                "is_open": True,
+                "meal_id": 10,
+                "meal_thread_id": 77,
+                "pending_question": "甜度是多少?",
+            },
+            target_meal_reference={
+                "meal_thread_id": 77,
+                "meal_version_id": 88,
+                "meal_item_id": 990,
+                "canonical_name": "milk tea",
+                "meal_title": "milk tea",
+                "target_resolution_source": "pending_followup_state",
+                "correction_confidence": "high",
+                "item_resolution_source": "single_active_item",
+            },
+            session_summary={"latest_assistant_turns": ["甜度是多少?"]},
+        ),
+    )
+
+    assert context.session_atomic_blocks == [
+        {
+            "block_type": "clarification_question_answer",
+            "role": "support_evidence",
+            "read_only": True,
+            "mutation_authority": False,
+            "question": "甜度是多少?",
+            "answer": "半糖",
+            "object_ref": {"meal_thread_id": 77},
+        },
+        {
+            "block_type": "pending_followup",
+            "role": "support_evidence",
+            "read_only": True,
+            "mutation_authority": False,
+            "pending_question": "甜度是多少?",
+            "object_ref": {"meal_thread_id": 77},
+        },
+        {
+            "block_type": "correction_target_reference",
+            "role": "support_evidence",
+            "read_only": True,
+            "mutation_authority": False,
+            "object_ref": {
+                "meal_thread_id": 77,
+                "meal_version_id": 88,
+                "meal_item_id": 990,
+                "canonical_name": "milk tea",
+            },
+            "target_resolution_source": "pending_followup_state",
+            "item_resolution_source": "single_active_item",
+        },
+    ]
 
 
 def test_build_current_turn_context_v1_preserves_unknown_vs_none() -> None:
