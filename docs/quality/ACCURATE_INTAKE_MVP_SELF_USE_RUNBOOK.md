@@ -80,6 +80,8 @@ The Accurate Intake MVP v2.0 scenario wall expands the single local smoke into f
 
 The scenario wall remains local deterministic evidence. It uses Manager structured fixtures for intent, workflow, target proposal, and read-only query posture. The deterministic runner validates, rejects unsafe mutation, and computes canonical state/read-model truth; it must not route from raw text keywords or fabricate missing Manager semantic fields.
 
+The scenario-wall JSON also includes an `operator_transcript` compact review view. This operator transcript is read-only and derived from existing scenario evidence: Manager decisions, runtime validation, state-before/state-after summaries, and canonical debug same-truth output. It is for human/operator review only and does not create a new truth surface.
+
 Run it with:
 
 ```powershell
