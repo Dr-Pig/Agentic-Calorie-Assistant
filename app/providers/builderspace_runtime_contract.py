@@ -35,7 +35,9 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
             "and manager_contract_evidence_state.nutrition_evidence_present is false, this field must be "
             "call_tools with estimate_nutrition; do not return final with ask_followup, answer_only, or no_commit "
             "as a substitute. If evidence_posture says requires_tool/evidence_missing/evidence_pending or "
-            "semantic_decision.estimation_posture says pending_tool_call/tool_pending, this field must be call_tools."
+            "semantic_decision.estimation_posture says pending_tool_call/tool_pending, this field must be call_tools. "
+            "Exception: explicit remove_item correction uses target evidence from resolve_correction_target, not "
+            "estimate_nutrition."
         )
     evidence_posture = properties.get("evidence_posture")
     if isinstance(evidence_posture, dict):
@@ -54,7 +56,8 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
     if isinstance(tool_calls, dict):
         tool_calls["description"] = (
             "Required when manager_action is call_tools. Use estimate_nutrition before commit, "
-            "correction_applied, or overshoot_note if current-loop nutrition evidence is missing."
+            "nutrition-changing correction_applied, or overshoot_note if current-loop nutrition evidence is missing. "
+            "For explicit remove_item, call resolve_correction_target when target evidence is missing."
         )
     answer_contract = properties.get("answer_contract")
     if isinstance(answer_contract, dict):
@@ -74,7 +77,8 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
         final_action_candidate["description"] = (
             "The manager's intended final action after required evidence exists. If this is commit, "
             "correction_applied, or overshoot_note and evidence is missing, the current payload must be "
-            "manager_action=call_tools with estimate_nutrition, not a final ask_followup/no_commit/answer_only."
+            "manager_action=call_tools with estimate_nutrition, not a final ask_followup/no_commit/answer_only. "
+            "Explicit remove_item is a correction_applied exception when target evidence is present."
         )
     estimation_posture = semantic_properties.get("estimation_posture")
     if isinstance(estimation_posture, dict):
@@ -152,6 +156,8 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
         evidence_state = constraints.get("manager_contract_evidence_state") if isinstance(constraints, dict) else None
         if isinstance(evidence_state, dict) and evidence_state.get("nutrition_evidence_present") is False:
             evidence_required = set(FOUNDER_LIVE_MANAGER_EVIDENCE_REQUIRED_FINAL_ACTIONS)
+            if evidence_state.get("target_evidence_present") is True:
+                evidence_required.discard("correction_applied")
             allowed_final_actions = [action for action in allowed_final_actions if action not in evidence_required]
         base_schema["properties"]["intent_type"] = {
             "type": "string",

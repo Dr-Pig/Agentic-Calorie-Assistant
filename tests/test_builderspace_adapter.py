@@ -1181,6 +1181,75 @@ def test_founder_live_schema_excludes_commit_actions_until_evidence_exists(
     ]
 
 
+def test_founder_live_remove_item_can_finalize_with_target_evidence_without_nutrition(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        **_founder_live_constraints(),
+        "manager_contract_evidence_state": {
+            "nutrition_evidence_present": False,
+            "target_evidence_present": True,
+            "target_evidence_operation": "remove_item",
+            "tool_result_names": ["resolve_correction_target"],
+        },
+    }
+    target_attachment = {
+        "mode": "target_committed_thread",
+        "operation": "remove_item",
+        "target_object_id": "meal-item-soup",
+        "canonical_name": "soup",
+    }
+    remove_item_final = _founder_live_payload(
+        final_action="correction_applied",
+        workflow_effect="correction",
+        target_attachment=target_attachment,
+        evidence_posture="target_evidence_present",
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": target_attachment,
+            "workflow_effect": "correction",
+            "operation": "remove_item",
+            "final_action_candidate": "correction_applied",
+            "estimation_posture": "target_resolved",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "correction_write",
+            "uncertainty_posture": "low",
+            "source": "live_manager_structured_output",
+        },
+        answer_contract={"response_mode": "correction_update"},
+    )
+
+    adapter._validate_manager_payload(
+        "intake_manager_round",
+        remove_item_final,
+        constraints=constraints,
+    )
+
+
+def test_founder_live_remove_item_schema_keeps_correction_action_with_target_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        **_founder_live_constraints(),
+        "manager_contract_evidence_state": {
+            "nutrition_evidence_present": False,
+            "target_evidence_present": True,
+            "target_evidence_operation": "remove_item",
+            "tool_result_names": ["resolve_correction_target"],
+        },
+    }
+
+    schema = adapter._response_schema_for_stage("intake_manager_round", constraints=constraints)
+
+    final_action_enum = schema["properties"]["final_action"]["enum"]
+    assert "correction_applied" in final_action_enum
+    assert "commit" not in final_action_enum
+    assert "overshoot_note" not in final_action_enum
+
+
 def test_founder_live_contract_does_not_count_failed_tool_result_as_evidence() -> None:
     from app.runtime.agent.founder_live_manager_contract import founder_live_manager_contract_constraints
 
@@ -1198,6 +1267,8 @@ def test_founder_live_contract_does_not_count_failed_tool_result_as_evidence() -
     assert constraints["manager_contract_evidence_state"] == {
         "tool_result_names": ["estimate_nutrition"],
         "nutrition_evidence_present": False,
+        "target_evidence_present": False,
+        "target_evidence_source": None,
     }
 
 
