@@ -215,6 +215,67 @@ def test_accurate_intake_live_decision_pack_repeats_on_retry_dependent_manifest(
     assert pack["private_self_use_candidate_prepared"] is False
 
 
+def test_accurate_intake_live_decision_pack_uses_clean_stage_manifest_over_stale_live_artifact() -> None:
+    stale_live_artifact = _artifact(
+        live_invoked=True,
+        strict_pass_count=1,
+        timeout_count=3,
+        failure_layers=["provider_runtime_error"],
+        failure_family="environment_or_provider_blocker",
+    )
+    stage_manifest = {
+        "artifact_type": "accurate_intake_mvp_live_stage_manifest",
+        "input_integrity": {"passed": True, "blockers": []},
+        "stages": [
+            {
+                "stage_id": "provider_health_smoke",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                "model": "grok-4-fast",
+            },
+            {
+                "stage_id": "schema_contract_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                "model": "grok-4-fast",
+            },
+            {
+                "stage_id": "fake_provider_active_runtime_gate",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                "model": "grok-4-fast",
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["explicit_item_removal_seeded"],
+                "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                "model": "grok-4-fast",
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["chinese_chicken_rice_correction_removal_debug"],
+                "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                "model": "grok-4-fast",
+            },
+        ],
+    }
+
+    pack = build_accurate_intake_live_decision_pack(stale_live_artifact, stage_manifest_artifact=stage_manifest)
+
+    assert pack["selected_option"] == "offline_shadow_replay"
+    assert pack["selection_reason"] == "clean_stage_manifest_requires_replay_before_private_self_use_candidate"
+    assert pack["stage_summary"]["source"] == "stage_manifest"
+    assert pack["stage_summary"]["result_kind_counts"] == {"strict_pass_first_attempt": 5}
+    assert pack["private_self_use_candidate_prepared"] is False
+
+
 def test_accurate_intake_live_decision_pack_blocks_missing_required_stage_manifest() -> None:
     live_artifact = _artifact(strict_pass_count=5, repaired_pass_count=0)
     stage_manifest = {

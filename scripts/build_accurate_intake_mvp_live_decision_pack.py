@@ -144,6 +144,8 @@ def _select_option(
             return "stay_diagnostic", "stage_evidence_missing"
         if stage_summary.get("missing_required_single_case_ids"):
             return "single_case_probe_required", "single_case_probe_missing"
+    if stage_summary.get("source") == "stage_manifest" and stage_summary.get("present") is True:
+        return "offline_shadow_replay", "clean_stage_manifest_requires_replay_before_private_self_use_candidate"
     if evidence_summary.get("environment_or_provider_blocker") is True:
         return "stay_diagnostic", "environment_or_provider_blocker"
     if evidence_summary.get("timeout_count", 0) > 0:
