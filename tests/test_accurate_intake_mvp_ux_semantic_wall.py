@@ -234,7 +234,7 @@ def test_gate_manifest_keeps_ux_semantic_wall_as_required_group() -> None:
     manifest = json.loads(GATE_MANIFEST_PATH.read_text(encoding="utf-8-sig"))
     groups = {group["group_id"]: group for group in manifest["required_groups"]}
 
-    assert manifest["gate_version"] == "1.8"
+    assert manifest["gate_version"] == "2.0"
     assert "ux_semantic_manager_decision_consumption" in groups
     assert groups["ux_semantic_manager_decision_consumption"]["pytest"] == [
         "tests/test_accurate_intake_mvp_ux_semantic_wall.py"
