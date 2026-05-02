@@ -230,6 +230,82 @@ def test_accurate_intake_live_seeded_explicit_removal_single_turn_probe(tmp_path
     assert "estimate_nutrition" not in tool_names
 
 
+def test_accurate_intake_live_single_case_probe_supports_turn_limit(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+        stage="single_case_live_probe",
+        case_id="chinese_chicken_rice_correction_removal_debug",
+        max_turn=2,
+    )
+
+    case = report["cases"][0]
+    assert [turn["turn"] for turn in case["turns"]] == [1, 2]
+    assert case["turn_limit"] == {
+        "max_turn": 2,
+        "original_turn_count": 4,
+        "executed_turn_count": 2,
+        "completed_turns": [1, 2],
+        "last_completed_turn": 2,
+        "is_turn_limited": True,
+    }
+    assert report["stages"][-1]["summary"]["turn_limited_case_count"] == 1
+
+
+def test_accurate_intake_live_diagnostic_releases_stage_sqlite_handles(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+    db_path = tmp_path / "accurate_intake_mvp_live.sqlite3"
+
+    module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=db_path,
+        provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+        stage="single_case_live_probe",
+        case_id="explicit_item_removal_seeded",
+    )
+
+    stage_db_path = db_path.with_name(f"{db_path.stem}.single_case_live_probe{db_path.suffix}")
+    assert stage_db_path.exists()
+    stage_db_path.unlink()
+    assert not stage_db_path.exists()
+
+
+def test_accurate_intake_live_original_multiturn_blocks_noop_removal_turn() -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+    case = module._single_case_probe_inventory(  # noqa: SLF001 - diagnostic case contract.
+        case_id="chinese_chicken_rice_correction_removal_debug",
+    )[0]
+    turns = [
+        {"turn": 1, "state_delta": {"canonical_commit": True}, "runtime_error": None},
+        {"turn": 2, "state_delta": {"canonical_commit": True, "old_version_superseded": True}, "runtime_error": None},
+        {
+            "turn": 3,
+            "manager_final_action": "no_commit",
+            "workflow_effect": "safe_failure",
+            "state_delta": {"canonical_commit": False, "new_meal_version_created": False},
+            "runtime_error": None,
+        },
+        {"turn": 4, "state_delta": {"canonical_commit": False}, "runtime_error": None},
+    ]
+
+    verdict, blockers, failure_layer = module._validate_case(  # noqa: SLF001 - diagnostic grader contract.
+        case=case,
+        turns=turns,
+        debug_surface={"model": {"same_truth": {"status": "pass"}}},
+    )
+
+    assert verdict == "fail"
+    assert failure_layer == "runtime"
+    assert "turn_3_expected_canonical_mutation_missing" in blockers
+
+
 def test_accurate_intake_live_schema_probe_blocks_product_loop_cases(tmp_path: Path) -> None:
     module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
 

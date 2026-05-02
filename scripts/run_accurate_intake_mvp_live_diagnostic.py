@@ -6,7 +6,7 @@ import importlib
 import json
 import os
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 import sys
@@ -107,6 +107,8 @@ class LiveCase:
     body_plan_seeded: bool
     steps: tuple[LiveStep, ...]
     seed_kind: str | None = None
+    turn_limit_max_turn: int | None = None
+    original_turn_count: int | None = None
 
 
 class AccurateIntakeLiveDiagnosticProvider:
@@ -450,7 +452,7 @@ class ScriptedAccurateIntakeLiveProvider:
             "uncertainty_posture": "bounded",
             "evidence_honesty_posture": evidence_posture,
             "semantic_decision": {
-                "semantic_authority": "scripted_fake_provider",
+                "semantic_authority": "deterministic_fake_provider",
                 "current_turn_intent": current_turn_intent,
                 "target_attachment": target,
                 "workflow_effect": workflow_effect,
@@ -530,6 +532,7 @@ def run_diagnostic(
     live_invoked: bool = True,
     stage: str = STAGE_ALL,
     case_id: str | None = None,
+    max_turn: int | None = None,
     offline_replay_artifact_path: Path | None = DEFAULT_OFFLINE_REPLAY_ARTIFACT,
 ) -> dict[str, Any]:
     profile = provider_profile(provider_profile_id)
@@ -652,7 +655,7 @@ def run_diagnostic(
                 break
             single_cases = _run_case_batch(
                 db_path=_stage_db_path(db_path, stage_id),
-                cases=_single_case_probe_inventory(case_id=case_id),
+                cases=_single_case_probe_inventory(case_id=case_id, max_turn=max_turn),
                 provider=provider,
                 profile=profile,
                 local_date=local_date,
@@ -978,26 +981,35 @@ def _run_case_batch(
         db_path.unlink()
     SessionLocal = _session_factory(db_path)
     results: list[dict[str, Any]] = []
-    for case in cases:
-        started = datetime.now(UTC)
-        invocation_start_index = len(provider.invocations)
-        try:
-            case_result = asyncio.run(
-                asyncio.wait_for(
-                    _run_case(SessionLocal, case=case, provider=provider, local_date=local_date),
-                    timeout=max(0.001, case_timeout_ms / 1000),
+    try:
+        for case in cases:
+            started = datetime.now(UTC)
+            invocation_start_index = len(provider.invocations)
+            try:
+                case_result = asyncio.run(
+                    asyncio.wait_for(
+                        _run_case(SessionLocal, case=case, provider=provider, local_date=local_date),
+                        timeout=max(0.001, case_timeout_ms / 1000),
+                    )
                 )
-            )
-        except Exception as exc:
-            case_result = _case_error(
-                case,
-                exc,
-                provider_invocations=provider.invocations[invocation_start_index:],
-            )
-        case_result["latency_ms"] = int((datetime.now(UTC) - started).total_seconds() * 1000)
-        case_result["stage_id"] = stage_id
-        results.append(_decorate_case(case_result, profile=profile))
+            except Exception as exc:
+                case_result = _case_error(
+                    case,
+                    exc,
+                    provider_invocations=provider.invocations[invocation_start_index:],
+                )
+            case_result["latency_ms"] = int((datetime.now(UTC) - started).total_seconds() * 1000)
+            case_result["stage_id"] = stage_id
+            results.append(_decorate_case(case_result, profile=profile))
+    finally:
+        _dispose_session_factory(SessionLocal)
     return results
+
+
+def _dispose_session_factory(SessionLocal: sessionmaker[Session]) -> None:
+    bind = getattr(SessionLocal, "kw", {}).get("bind")
+    if bind is not None and hasattr(bind, "dispose"):
+        bind.dispose()
 
 
 def _runtime_gate_stage_result(
@@ -1102,7 +1114,7 @@ async def _run_case(
             local_date=local_date,
         )
     verdict, blockers, failure_layer = _validate_case(case=case, turns=turns, debug_surface=debug_surface)
-    return {
+    case_result = {
         "case_id": case.case_id,
         "description": case.description,
         "verdict": verdict,
@@ -1115,6 +1127,10 @@ async def _run_case(
         "seeded_state": seeded_state,
         "state_delta": _case_state_delta(turns=turns, debug_surface=debug_surface),
     }
+    turn_limit = _turn_limit_payload(case, turns)
+    if turn_limit is not None:
+        case_result["turn_limit"] = turn_limit
+    return case_result
 
 
 def _case_inventory() -> list[LiveCase]:
@@ -1273,12 +1289,28 @@ def _seeded_explicit_removal_case() -> LiveCase:
     )
 
 
-def _single_case_probe_inventory(*, case_id: str | None = None) -> list[LiveCase]:
+def _limit_case_turns(case: LiveCase, *, max_turn: int | None) -> LiveCase:
+    if max_turn is None:
+        return case
+    if max_turn <= 0:
+        raise ValueError("--max-turn must be a positive integer")
+    limited_steps = tuple(step for step in case.steps if step.turn <= max_turn)
+    if not limited_steps:
+        raise ValueError(f"max_turn={max_turn} excludes every turn for case_id={case.case_id!r}")
+    return replace(
+        case,
+        steps=limited_steps,
+        turn_limit_max_turn=max_turn,
+        original_turn_count=len(case.steps),
+    )
+
+
+def _single_case_probe_inventory(*, case_id: str | None = None, max_turn: int | None = None) -> list[LiveCase]:
     cases = [_seeded_explicit_removal_case(), *_case_inventory()]
     selected = str(case_id or "explicit_item_removal_seeded")
     for case in cases:
         if case.case_id == selected:
-            return [case]
+            return [_limit_case_turns(case, max_turn=max_turn)]
     supported = ", ".join(case.case_id for case in cases)
     raise ValueError(f"Unsupported Accurate Intake live diagnostic case_id: {selected}. Supported: {supported}")
 
@@ -1293,6 +1325,19 @@ def _validate_case(
     for turn in turns:
         if _dict(turn.get("runtime_error")):
             blockers.append("runtime_error")
+    turn_by_number = {int(turn.get("turn") or 0): _dict(turn) for turn in turns}
+    for step in case.steps:
+        expected_final_action = str(step.script.get("final_action") or "")
+        if expected_final_action not in {"commit", "correction_applied"}:
+            continue
+        turn = turn_by_number.get(step.turn)
+        if not turn:
+            continue
+        state_delta = _dict(turn.get("state_delta"))
+        if state_delta.get("canonical_commit") is not True:
+            blockers.append(f"turn_{step.turn}_expected_canonical_mutation_missing")
+        if expected_final_action == "correction_applied" and state_delta.get("new_meal_version_created") is not True:
+            blockers.append(f"turn_{step.turn}_expected_new_version_missing")
     if case.case_id == "today_consumed_query_only":
         if _dict(turns[0].get("state_delta")).get("canonical_commit"):
             blockers.append("query_only_mutated_state")
@@ -1323,6 +1368,20 @@ def _turn_summary(step: LiveStep, result: dict[str, Any]) -> dict[str, Any]:
         "manager_rounds": _json_safe(_list(execution.get("manager_rounds"))),
         "hard_fail_conditions": list(result.get("hard_fail_conditions") or []),
         "runtime_error": None,
+    }
+
+
+def _turn_limit_payload(case: LiveCase, turns: list[dict[str, Any]]) -> dict[str, Any] | None:
+    if case.turn_limit_max_turn is None:
+        return None
+    completed_turns = [int(turn.get("turn") or 0) for turn in turns]
+    return {
+        "max_turn": case.turn_limit_max_turn,
+        "original_turn_count": int(case.original_turn_count or len(case.steps)),
+        "executed_turn_count": len(turns),
+        "completed_turns": completed_turns,
+        "last_completed_turn": max(completed_turns) if completed_turns else None,
+        "is_turn_limited": True,
     }
 
 
@@ -1536,6 +1595,7 @@ def _summary(cases: list[dict[str, Any]]) -> dict[str, Any]:
         "provider_timeout_count": statuses.count("timeout"),
         "failure_layers": failure_layers,
         "failure_families": failure_families,
+        "turn_limited_case_count": sum(1 for case in cases if _dict(case.get("turn_limit")).get("is_turn_limited") is True),
         "private_self_use_unlock_allowed": False,
     }
 
@@ -1960,6 +2020,7 @@ def main() -> int:
     parser.add_argument("--provider-request-retry-jitter-ms", type=int, default=100)
     parser.add_argument("--stage", choices=(STAGE_ALL, *ORDERED_STAGE_IDS), default=STAGE_ALL)
     parser.add_argument("--case-id", default=None)
+    parser.add_argument("--max-turn", type=int, default=None)
     parser.add_argument("--offline-replay-artifact", default=str(DEFAULT_OFFLINE_REPLAY_ARTIFACT))
     args = parser.parse_args()
 
@@ -1975,6 +2036,7 @@ def main() -> int:
         provider_request_retry_jitter_ms=int(args.provider_request_retry_jitter_ms),
         stage=str(args.stage),
         case_id=str(args.case_id) if args.case_id else None,
+        max_turn=args.max_turn,
         offline_replay_artifact_path=Path(args.offline_replay_artifact) if args.offline_replay_artifact else None,
     )
     print(
