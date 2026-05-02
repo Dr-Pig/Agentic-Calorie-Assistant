@@ -50,6 +50,12 @@ def _preserved_item_names(db: Session, *, old_version_id: int, new_version_id: i
     return [name for name, kcal in old_items.items() if name in new_items and new_items[name] == kcal]
 
 
+def _removed_item_names(db: Session, *, old_version_id: int, new_version_id: int) -> list[str]:
+    old_names = {item.name for item in _item_rows(db, version_id=old_version_id)}
+    new_names = {item.name for item in _item_rows(db, version_id=new_version_id)}
+    return sorted(name for name in old_names if name not in new_names)
+
+
 def _meal_threads(db: Session, *, user_id: int, local_date: str) -> list[dict[str, Any]]:
     threads = db.execute(
         select(MealThreadRecord)
@@ -105,6 +111,11 @@ def _correction_history(db: Session, *, user_id: int, local_date: str) -> list[d
                 "new_total_kcal": int(version.total_kcal or 0),
                 "old_total_kcal": int(old_version.total_kcal or 0),
                 "non_target_item_names_preserved": _preserved_item_names(
+                    db,
+                    old_version_id=old_version.id,
+                    new_version_id=version.id,
+                ),
+                "removed_item_names": _removed_item_names(
                     db,
                     old_version_id=old_version.id,
                     new_version_id=version.id,

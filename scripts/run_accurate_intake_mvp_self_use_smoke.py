@@ -85,6 +85,32 @@ def _correction_candidate(*, local_date: str, meal_thread_id: int, meal_item_id:
     )
 
 
+def _removal_candidate(*, local_date: str, meal_thread_id: int, meal_item_id: int) -> CommitRequestCandidate:
+    return CommitRequestCandidate(
+        request_id="self-use-smoke-removal",
+        manager_intent="food_estimation",
+        meal_thread_id=meal_thread_id,
+        version_reason="correction",
+        meal_title="chicken rice and soup",
+        raw_input="remove the chicken rice",
+        estimated_kcal=150,
+        protein_g=3,
+        carb_g=5,
+        fat_g=3,
+        resolution_status="completed_meal",
+        local_date=local_date,
+        items=[],
+        trace_ref={
+            "correction_operation": "remove_item",
+            "correction_target_ref": {
+                "meal_thread_id": meal_thread_id,
+                "meal_item_id": meal_item_id,
+                "canonical_name": "chicken rice",
+            },
+        },
+    )
+
+
 def build_self_use_smoke_report(
     *,
     db_path: Path,
@@ -122,6 +148,24 @@ def build_self_use_smoke_report(
         )
         if correction is None:
             raise RuntimeError("self_use_correction_commit_failed")
+        corrected_target = db.execute(
+            select(MealItemRecord)
+            .where(MealItemRecord.meal_version_id == correction.meal_version_id, MealItemRecord.name == "chicken rice")
+        ).scalars().first()
+        if corrected_target is None:
+            raise RuntimeError("self_use_corrected_target_item_missing")
+        removal = commit_meal_payload_to_canonical(
+            db,
+            user=user,
+            candidate=_removal_candidate(
+                local_date=local_date,
+                meal_thread_id=initial.meal_thread_id,
+                meal_item_id=corrected_target.id,
+            ),
+            budget_kcal=1800,
+        )
+        if removal is None:
+            raise RuntimeError("self_use_item_removal_commit_failed")
 
     with SessionLocal() as db:
         debug_payload = build_accurate_intake_debug_payload(
@@ -136,18 +180,21 @@ def build_self_use_smoke_report(
     correction_history = list(model.get("correction_history") or [])
     status = "pass"
     blockers: list[str] = []
-    if today.get("consumed_kcal") != 470:
+    if today.get("consumed_kcal") != 150:
         status = "fail"
-        blockers.append("consumed_kcal_not_from_corrected_active_version")
-    if today.get("remaining_kcal") != 1330:
+        blockers.append("consumed_kcal_not_from_removed_item_active_version")
+    if today.get("remaining_kcal") != 1650:
         status = "fail"
         blockers.append("remaining_kcal_not_from_current_budget_truth")
     if same_truth.get("status") != "pass":
         status = "fail"
         blockers.append("debug_surface_same_truth_failed")
-    if not correction_history or correction_history[0].get("non_target_item_names_preserved") != ["soup"]:
+    if not correction_history or correction_history[-1].get("non_target_item_names_preserved") != ["soup"]:
         status = "fail"
-        blockers.append("correction_non_target_item_not_preserved")
+        blockers.append("item_removal_non_target_item_not_preserved")
+    if not correction_history or correction_history[-1].get("removed_item_names") != ["chicken rice"]:
+        status = "fail"
+        blockers.append("item_removal_target_not_removed")
     return {
         "artifact_schema_version": "1.0",
         "smoke_id": "accurate_intake_mvp_self_use_smoke_v1",
@@ -164,7 +211,8 @@ def build_self_use_smoke_report(
         "input_sequence": [
             {"turn": 1, "kind": "new_meal", "text": "chicken rice and soup"},
             {"turn": 2, "kind": "explicit_item_correction", "text": "the chicken rice was smaller"},
-            {"turn": 3, "kind": "debug_read", "text": "show current local product-loop truth"},
+            {"turn": 3, "kind": "explicit_item_removal", "text": "remove the chicken rice"},
+            {"turn": 4, "kind": "debug_read", "text": "show current local product-loop truth"},
         ],
         "debug_surface": debug_payload,
     }
