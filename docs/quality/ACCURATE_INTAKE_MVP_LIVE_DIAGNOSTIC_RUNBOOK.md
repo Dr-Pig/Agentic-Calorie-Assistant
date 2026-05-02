@@ -57,9 +57,16 @@ The generated manifest, replay, and decision pack paths are:
 - fake-provider active runtime gate passes.
 - seeded explicit-removal single-turn probe passes as `strict_pass_first_attempt`.
 - original multi-turn single-case probe passes as `strict_pass_first_attempt`.
+- offline replay artifact is present and `strict_replay_ready=true`.
 - zero timeout and zero retry-dependent evidence.
 
-Do not run the full suite when a prior stage is missing, failed, timed out, or only passed after retry.
+Do not run the full suite when a prior stage is missing, failed, timed out, only passed after retry, or when the offline replay gate would return `offline_replay_required`.
+
+Full-suite diagnostic command, only after the gate above is green:
+
+```powershell
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage full_suite_live_diagnostic --offline-replay-artifact artifacts/accurate_intake_mvp_offline_shadow_replay.json --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_full_suite.json
+```
 
 ## Retry And Timeout Policy
 
@@ -81,6 +88,7 @@ Do not stage:
 - `artifacts/accurate_intake_mvp_live_diagnostic_fake_runtime_gate.json`
 - `artifacts/accurate_intake_mvp_live_diagnostic_seeded_removal.json`
 - `artifacts/accurate_intake_mvp_live_diagnostic_single_case.json`
+- `artifacts/accurate_intake_mvp_live_diagnostic_full_suite.json`
 - `artifacts/accurate_intake_mvp_live_stage_manifest.json`
 - `artifacts/accurate_intake_mvp_offline_shadow_replay.json`
 - `artifacts/accurate_intake_mvp_live_decision_pack.json`

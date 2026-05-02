@@ -332,6 +332,44 @@ def test_accurate_intake_live_decision_pack_blocks_missing_required_single_case(
     assert pack["private_self_use_candidate_prepared"] is False
 
 
+def test_accurate_intake_live_decision_pack_blocks_full_suite_when_offline_replay_gate_fails() -> None:
+    live_artifact = _artifact(strict_pass_count=5, repaired_pass_count=0)
+    stage_manifest = {
+        "artifact_type": "accurate_intake_mvp_live_stage_manifest",
+        "input_integrity": {"passed": True, "blockers": []},
+        "stages": [
+            {"stage_id": "provider_health_smoke", "status": "pass", "result_kind": "strict_pass_first_attempt"},
+            {"stage_id": "schema_contract_probe", "status": "pass", "result_kind": "strict_pass_first_attempt"},
+            {"stage_id": "fake_provider_active_runtime_gate", "status": "pass", "result_kind": "strict_pass_first_attempt"},
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["explicit_item_removal_seeded"],
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["chinese_chicken_rice_correction_removal_debug"],
+            },
+            {
+                "stage_id": "full_suite_live_diagnostic",
+                "status": "blocked",
+                "result_kind": "blocked",
+                "failure_layer": "diagnostic_ordering",
+                "failure_family": "offline_replay_required",
+            },
+        ],
+    }
+
+    pack = build_accurate_intake_live_decision_pack(live_artifact, stage_manifest_artifact=stage_manifest)
+
+    assert pack["selected_option"] == "full_suite_blocked"
+    assert pack["selection_reason"] == "offline_replay_required"
+    assert pack["private_self_use_candidate_prepared"] is False
+
+
 def test_accurate_intake_live_decision_pack_stays_diagnostic_on_product_loop_contract_failure() -> None:
     pack = build_accurate_intake_live_decision_pack(
         _artifact(
