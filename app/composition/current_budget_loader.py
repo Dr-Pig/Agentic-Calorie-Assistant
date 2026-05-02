@@ -53,7 +53,7 @@ def load_current_budget_view(
     active_consumed_kcal = sum(int(version.total_kcal or 0) for _, version in meal_rows)
     budget_kcal = int(ledger.budget_kcal or 0) if ledger is not None else 0
     adjustment_kcal = int(ledger.adjustment_kcal or 0) if ledger is not None else 0
-    consumed_kcal = active_consumed_kcal if ledger is not None else 0
+    consumed_kcal = active_consumed_kcal
     remaining_kcal = budget_kcal - consumed_kcal - adjustment_kcal if ledger is not None else 0
     macro_guard = evaluate_macro_display(
         estimated_kcal=consumed_kcal,
