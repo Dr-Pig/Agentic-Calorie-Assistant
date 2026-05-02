@@ -53,4 +53,6 @@ def test_no_plan_budget_answer_remains_onboarding_required_after_meal_commit() -
     answer = build_remaining_budget_answer_contract(db, user_id=user.id, local_date="2026-05-02")
 
     assert answer.status == "onboarding_required"
-    assert answer.daily_target_kcal == 0
+    assert answer.consumed_kcal == 420
+    assert answer.daily_target_kcal is None
+    assert answer.remaining_kcal is None

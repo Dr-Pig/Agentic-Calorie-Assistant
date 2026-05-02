@@ -27,7 +27,8 @@ def test_remaining_budget_answer_requires_onboarding_when_no_active_plan() -> No
     answer = build_remaining_budget_answer_contract(db, user_id=user.id, local_date="2026-04-18")
 
     assert answer.status == "onboarding_required"
-    assert answer.daily_target_kcal == 0
+    assert answer.daily_target_kcal is None
+    assert answer.remaining_kcal is None
 
 
 def test_remaining_budget_answer_reads_bootstrap_target_and_two_meals() -> None:
