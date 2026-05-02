@@ -15,7 +15,7 @@ def test_accurate_intake_mvp_gate_manifest_declares_local_deterministic_scope() 
     manifest = verify_accurate_intake_mvp.load_gate_manifest(MANIFEST_PATH)
 
     assert manifest["gate_id"] == "accurate_intake_mvp_deterministic_v1"
-    assert manifest["gate_version"] == "1.1"
+    assert manifest["gate_version"] == "1.2"
     assert manifest["claim_scope"] == "local_deterministic_mvp_gate"
     assert manifest["evidence_scope"] == "deterministic_regression_evidence"
     assert manifest["live_llm_required"] is False
@@ -32,8 +32,8 @@ def test_accurate_intake_mvp_gate_manifest_declares_local_deterministic_scope() 
     assert manifest["next_promotion_criteria"] == [
         "phase_c_gate_pass",
         "accurate_intake_mvp_gate_pass",
-        "food_knowledge_optional_group_pass",
-        "debug_surface_same_truth_group_pass",
+        "food_knowledge_required_group_pass",
+        "local_persistence_debug_surface_required_group_pass",
     ]
     assert manifest["semantic_owner"]["food_knowledge"] == "evidence_support_only"
     assert manifest["llm_deterministic_boundary"]["truth_owner"] == "deterministic"
@@ -49,6 +49,8 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "multi_turn_context",
         "correction_and_no_plan",
         "ledger_truth_and_read_model",
+        "food_knowledge_mvp",
+        "local_persistence_and_debug_surface",
     ]
     flat_args = " ".join(arg for group in plan.groups for command in group.commands for arg in command)
     for expected_test in (
@@ -58,12 +60,14 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_no_plan_ledger_policy.py",
         "tests/test_budget_ledger_truth_boundary.py",
         "tests/test_phase_c_same_truth_gate.py",
+        "tests/test_food_knowledge_mvp_coverage.py",
         "tests/test_product_loop_mvp_read_model.py",
+        "tests/test_local_persistence_self_use.py",
     ):
         assert expected_test in flat_args
 
 
-def test_gate_plan_excludes_optional_groups_by_default_and_can_include_them() -> None:
+def test_gate_plan_has_no_optional_mvp_groups_after_food_knowledge_promotion() -> None:
     manifest = verify_accurate_intake_mvp.load_gate_manifest(MANIFEST_PATH)
 
     default_plan = verify_accurate_intake_mvp.build_gate_plan(manifest, python_executable="python")
@@ -73,10 +77,11 @@ def test_gate_plan_excludes_optional_groups_by_default_and_can_include_them() ->
         include_optional=True,
     )
 
-    assert "food_knowledge_mvp" not in [group.group_id for group in default_plan.groups]
+    assert "food_knowledge_mvp" in [group.group_id for group in default_plan.groups]
     assert "food_knowledge_mvp" in [group.group_id for group in optional_plan.groups]
-    food_group = next(group for group in optional_plan.groups if group.group_id == "food_knowledge_mvp")
-    assert food_group.requirement == "optional"
+    assert optional_plan.included_optional_groups == ()
+    food_group = next(group for group in default_plan.groups if group.group_id == "food_knowledge_mvp")
+    assert food_group.requirement == "required"
     assert "tests/test_food_knowledge_mvp_coverage.py" in " ".join(food_group.commands[0])
 
 
@@ -102,9 +107,11 @@ def test_gate_runner_returns_machine_readable_group_summary(monkeypatch, capsys)
         "multi_turn_context",
         "correction_and_no_plan",
         "ledger_truth_and_read_model",
+        "food_knowledge_mvp",
+        "local_persistence_and_debug_surface",
     ]
     assert {group["requirement"] for group in output["groups"]} == {"required"}
-    assert len(calls) == 4
+    assert len(calls) == 6
 
 
 def test_gate_runner_writes_artifact_output(monkeypatch, tmp_path, capsys) -> None:
@@ -130,8 +137,9 @@ def test_gate_runner_writes_artifact_output(monkeypatch, tmp_path, capsys) -> No
     assert artifact == printed
     assert artifact["status"] == "pass"
     assert artifact["artifact_schema_version"] == "1.0"
-    assert artifact["included_optional_groups"] == ["food_knowledge_mvp"]
-    assert any(group["requirement"] == "optional" for group in artifact["groups"])
+    assert artifact["included_optional_groups"] == []
+    assert all(group["requirement"] == "required" for group in artifact["groups"])
+    assert "food_knowledge_mvp" in [group["group_id"] for group in artifact["groups"]]
 
 
 def test_gate_runner_fails_fast_by_default_and_reports_failed_group(monkeypatch, capsys) -> None:

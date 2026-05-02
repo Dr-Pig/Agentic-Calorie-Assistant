@@ -1,6 +1,6 @@
 {
   "gate_id": "accurate_intake_mvp_deterministic_v1",
-  "gate_version": "1.1",
+  "gate_version": "1.2",
   "gate_mode": "deterministic_regression_wall",
   "claim_scope": "local_deterministic_mvp_gate",
   "evidence_scope": "deterministic_regression_evidence",
@@ -24,8 +24,8 @@
   "next_promotion_criteria": [
     "phase_c_gate_pass",
     "accurate_intake_mvp_gate_pass",
-    "food_knowledge_optional_group_pass",
-    "debug_surface_same_truth_group_pass"
+    "food_knowledge_required_group_pass",
+    "local_persistence_debug_surface_required_group_pass"
   ],
   "semantic_owner": {
     "user_intent": "manager_or_llm_structured_decision",
@@ -74,12 +74,9 @@
       "group_id": "ledger_truth_and_read_model",
       "pytest": [
         "tests/test_budget_ledger_truth_boundary.py",
-        "tests/test_phase_c_same_truth_gate.py",
-        "tests/test_product_loop_mvp_read_model.py"
+        "tests/test_phase_c_same_truth_gate.py"
       ]
-    }
-  ],
-  "optional_groups": [
+    },
     {
       "group_id": "food_knowledge_mvp",
       "pytest": [
@@ -87,11 +84,17 @@
         "tests/test_wave1_phase_b2_small_anchor_store.py",
         "tests/test_wave1_phase_b2_exact_item_card_lookup.py"
       ]
+    },
+    {
+      "group_id": "local_persistence_and_debug_surface",
+      "pytest": [
+        "tests/test_product_loop_mvp_read_model.py",
+        "tests/test_local_persistence_self_use.py"
+      ]
     }
   ],
+  "optional_groups": [],
   "deferred_groups": [
-    "debug_surface_same_truth",
-    "local_persistence_self_use",
     "limited_live_canary"
   ],
   "deferred_capabilities": [

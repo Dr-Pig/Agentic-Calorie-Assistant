@@ -155,6 +155,8 @@ def _item_records_for_candidate(
 ) -> list[MealItemRecord]:
     target_ref = _correction_target_ref(candidate)
     target_item_id = target_ref.get("meal_item_id")
+    if candidate.version_reason in {"correction", "historical_correction"} and target_item_id is None:
+        raise ValueError("correction_requires_explicit_item_target")
     if candidate.version_reason in {"correction", "historical_correction"} and target_item_id is not None:
         target_item = db.get(MealItemRecord, target_item_id)
         if target_item is None:
