@@ -64,6 +64,8 @@ def build_accurate_intake_live_decision_pack(
             "private_self_use_approved": False,
             "private_self_use_candidate_prepared": selected_option == "prepare_private_self_use_candidate",
             "production_selected": False,
+            "model_portability_claimed": False,
+            "max_model_claim": _max_model_claim(live_artifact, stage_manifest_artifact=stage_manifest_artifact),
             "mutation_rollout_approved": False,
             "runtime_web_activation_approved": False,
             "shadow_or_canary_approved": False,
@@ -137,6 +139,11 @@ def _select_option(
         return "stay_diagnostic", "live_diagnostic_contract_failures"
     if stage_summary.get("has_retry_dependent_stage") is True:
         return "repeat_single_profile_diagnostic", "retry_dependent_evidence"
+    if stage_summary.get("source") == "stage_manifest" and stage_summary.get("has_missing_required_stage") is True:
+        if stage_summary.get("missing_required_stage_ids"):
+            return "stay_diagnostic", "stage_evidence_missing"
+        if stage_summary.get("missing_required_single_case_ids"):
+            return "single_case_probe_required", "single_case_probe_missing"
     if evidence_summary.get("environment_or_provider_blocker") is True:
         return "stay_diagnostic", "environment_or_provider_blocker"
     if evidence_summary.get("timeout_count", 0) > 0:
@@ -253,8 +260,6 @@ def _stage_summary(
     by_id = {str(stage.get("stage_id") or ""): stage for stage in stages}
     provider_health = by_id.get("provider_health_smoke", {})
     schema_probe = by_id.get("schema_contract_probe", {})
-    full_suite = by_id.get("full_suite_live_diagnostic", {})
-    single_case = by_id.get("single_case_live_probe", {})
     provider_health_blocked = (
         not stages
         and "environment_or_provider_blocker" in _evidence_summary(live_artifact).get("failure_families", [])
@@ -263,29 +268,10 @@ def _stage_summary(
         and provider_health.get("status") != "pass"
     )
     schema_contract_blocked = bool(schema_probe) and schema_probe.get("status") != "pass"
-    full_suite_without_single_case_probe = bool(full_suite) and single_case.get("status") != "pass"
-    result = {
-        "source": "live_artifact",
-        "present": bool(stages),
-        "stage_ids": [str(stage.get("stage_id") or "") for stage in stages],
-        "provider_health_status": _optional_string(provider_health.get("status")),
-        "schema_contract_status": _optional_string(schema_probe.get("status")),
-        "single_case_probe_status": _optional_string(single_case.get("status")),
-        "full_suite_status": _optional_string(full_suite.get("status")),
-        "provider_health_blocked": provider_health_blocked,
-        "schema_contract_blocked": schema_contract_blocked,
-        "full_suite_without_single_case_probe": full_suite_without_single_case_probe,
-        "stage_failures": [
-            {
-                "stage_id": str(stage.get("stage_id") or ""),
-                "status": str(stage.get("status") or ""),
-                "failure_layer": _optional_string(stage.get("failure_layer")),
-                "failure_family": _optional_string(stage.get("failure_family")),
-            }
-            for stage in stages
-            if stage.get("status") != "pass"
-        ],
-    }
+    result = stage_summary_from_stages(stages)
+    result["source"] = "live_artifact"
+    result["provider_health_blocked"] = provider_health_blocked
+    result["schema_contract_blocked"] = schema_contract_blocked
     result["has_timeout_stage"] = any(str(stage.get("status") or "") == "timeout" for stage in stages)
     result["has_failed_stage"] = any(str(stage.get("status") or "") in {"fail", "blocked"} for stage in stages)
     result["has_retry_dependent_stage"] = any(
@@ -293,6 +279,33 @@ def _stage_summary(
         for stage in stages
     )
     return result
+
+
+def _max_model_claim(
+    live_artifact: dict[str, Any],
+    *,
+    stage_manifest_artifact: dict[str, Any] | None = None,
+) -> str:
+    profile_ids: set[str] = set()
+    model_ids: set[str] = set()
+    if isinstance(stage_manifest_artifact, dict):
+        for stage in _list(stage_manifest_artifact.get("stages")):
+            stage_dict = _dict(stage)
+            profile_id = _optional_string(stage_dict.get("provider_profile_id"))
+            model_id = _optional_string(stage_dict.get("model"))
+            if profile_id:
+                profile_ids.add(profile_id)
+            if model_id:
+                model_ids.add(model_id)
+    profile_id = _optional_string(live_artifact.get("provider_profile_id"))
+    model_id = _optional_string(live_artifact.get("provider_profile_model"))
+    if profile_id:
+        profile_ids.add(profile_id)
+    if model_id:
+        model_ids.add(model_id)
+    if len(profile_ids) <= 1 and len(model_ids) <= 1:
+        return "single_profile_live_diagnostic_observed"
+    return "multi_profile_live_diagnostic_observed"
 
 
 def _offline_replay_summary(artifact: dict[str, Any] | None) -> dict[str, Any]:
