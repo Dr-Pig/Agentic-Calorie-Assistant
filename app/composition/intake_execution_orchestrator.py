@@ -13,6 +13,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.composition.intake_execution_response import build_intake_execution_response, finalized_budget_summary
+from app.composition.request_runtime_context import load_request_runtime_context
 from app.composition.intake_manager_tool_batch import (
     apply_final_action_to_payload,
     execute_manager_tool_calls,
@@ -31,10 +32,15 @@ from app.composition.intake_execution_persistence import initial_state_mutation_
 from app.intake.application.intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool
 from app.intake.application.phase_a_runtime_context import prepare_phase_a_runtime_context
 from app.nutrition.application.manager_policy_hints import nutrition_manager_policy_hints
+from app.nutrition.application.estimate_artifacts import EstimatedNutritionArtifact
 from app.nutrition.application.owner_lineage_trace import attach_owner_lineage_trace
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
 from app.runtime.application.manager_service import run_intake_manager
+from app.shared.contracts.common import EstimateRequest
+from app.shared.contracts.correction_operation import structured_payload_requests_remove_item
+from app.shared.contracts.correction_target import validate_correction_target_ref
+from app.shared.contracts.intake import EstimatePayload
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 
 
@@ -44,6 +50,72 @@ def _now_ms() -> int:
 
 def _append_stage_timing(stage_timings: list[dict[str, Any]], stage: str, duration_ms: int) -> None:
     stage_timings.append({"stage": stage, "duration_ms": duration_ms})
+
+
+def _manager_result_payload(manager_result: Any) -> dict[str, Any]:
+    return {
+        "final_action": str(getattr(manager_result, "final_action", "") or ""),
+        "target_attachment": dict(getattr(manager_result, "target_attachment", {}) or {}),
+        "answer_contract": dict(getattr(manager_result, "answer_contract", {}) or {}),
+        "semantic_decision": dict(getattr(manager_result, "semantic_decision", {}) or {}),
+    }
+
+
+def _remove_item_target_evidence_ready(*, manager_payload: dict[str, Any], correction_target: dict[str, Any]) -> bool:
+    if str(manager_payload.get("final_action") or "") != "correction_applied":
+        return False
+    if not structured_payload_requests_remove_item(manager_payload):
+        return False
+    return validate_correction_target_ref(correction_target).get("resolved") is True
+
+
+def _build_remove_item_target_evidence_artifact(
+    db: Session,
+    *,
+    user_external_id: str,
+    raw_user_input: str,
+    local_date: str,
+    request_id: str,
+    correction_target: dict[str, Any],
+    manager_semantic_decision: dict[str, Any],
+) -> EstimatedNutritionArtifact:
+    request = EstimateRequest(text=raw_user_input, allow_search=False, user_id=user_external_id)
+    runtime_context = load_request_runtime_context(
+        request=request,
+        db=db,
+        provider=type("TargetEvidenceRemovalProvider", (), {"readiness": lambda self: {"configured": False}})(),
+    )
+    target_validation = validate_correction_target_ref(correction_target)
+    canonical_name = str(target_validation.get("canonical_name") or correction_target.get("canonical_name") or "").strip()
+    payload = EstimatePayload(
+        request_id=request_id,
+        meal_title=f"remove {canonical_name}".strip() or "remove item",
+        estimated_kcal=1,
+        source_decision="ready",
+        answer_mode="direct_answer",
+        action_taken="correction_applied",
+        route_target="direct_answer",
+        reply_text="Removed the selected item.",
+        trace_contract={
+            "local_date": local_date,
+            "occurred_at": f"{local_date}T12:00:00+08:00",
+            "timezone": "Asia/Taipei",
+            "correction_operation": "remove_item",
+            "correction_operation_source": "manager_structured_decision",
+            "correction_target_ref": {
+                "meal_thread_id": target_validation.get("meal_thread_id"),
+                "meal_item_id": target_validation.get("meal_item_id"),
+                "canonical_name": canonical_name,
+            },
+            "target_evidence_contract": {
+                "evidence_type": "target_evidence",
+                "source": "resolve_correction_target",
+                "nutrition_evidence_required": False,
+                "manager_semantic_decision": dict(manager_semantic_decision or {}),
+            },
+        },
+    )
+    return EstimatedNutritionArtifact(request=request, runtime_context=runtime_context, payload=payload)
 
 
 async def process_intake_execution_turn(
@@ -202,6 +274,11 @@ async def process_intake_execution_turn(
         artifact = tool_state.get("nutrition_artifact")
         payload = getattr(artifact, "payload", None) if artifact is not None else None
         if final_action in {"commit", "correction_applied", "overshoot_note"} and payload is None:
+            if _remove_item_target_evidence_ready(
+                manager_payload=manager_payload,
+                correction_target=dict(tool_state.get("correction_target") or {}),
+            ):
+                return {"ok": True, "phase_a_transition_guard_preflight": preflight_trace}
             return {
                 "ok": False,
                 "repair_request": True,
@@ -251,6 +328,21 @@ async def process_intake_execution_turn(
     nutrition_artifact = tool_state.get("nutrition_artifact")
     budget_summary = tool_state.get("budget_summary")
     payload = getattr(nutrition_artifact, "payload", None) if nutrition_artifact is not None else None
+    if payload is None and _remove_item_target_evidence_ready(
+        manager_payload=_manager_result_payload(manager_result),
+        correction_target=dict(tool_state.get("correction_target") or {}),
+    ):
+        nutrition_artifact = _build_remove_item_target_evidence_artifact(
+            db,
+            user_external_id=user_external_id,
+            raw_user_input=raw_user_input,
+            local_date=local_date,
+            request_id=request_id,
+            correction_target=dict(tool_state.get("correction_target") or {}),
+            manager_semantic_decision=dict(getattr(manager_result, "semantic_decision", {}) or {}),
+        )
+        tool_state["nutrition_artifact"] = nutrition_artifact
+        payload = nutrition_artifact.payload
     apply_final_action_to_payload(
         payload=payload,
         raw_user_input=raw_user_input,

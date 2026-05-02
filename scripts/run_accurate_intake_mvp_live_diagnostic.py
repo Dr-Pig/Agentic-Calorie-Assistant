@@ -346,7 +346,7 @@ class ScriptedAccurateIntakeLiveProvider:
             }
         if (
             self._current_step.get("correction_operation") == "remove_item"
-            and not _has_tool_result(user_payload, "estimate_nutrition")
+            and not _has_tool_result(user_payload, "resolve_correction_target")
             and "estimate_nutrition" in available_tools
         ):
             return {
@@ -1483,6 +1483,8 @@ def _failed_invariant_for_repair_attempt(payload: dict[str, Any]) -> str | None:
     ).lower()
     if "non-empty tool_calls" in message and "manager_action='call_tools'" in message:
         return "call_tools_requires_tool_calls"
+    if "remove_item" in message and "target evidence" in message:
+        return "remove_item_requires_target_evidence"
     if "commit_without_evidence" in message:
         return "commit_requires_evidence"
     if "correction_without_target" in message:
