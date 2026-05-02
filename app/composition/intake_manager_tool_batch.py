@@ -116,6 +116,19 @@ def correction_target_resolved(correction_target: dict[str, Any]) -> bool:
     return validate_correction_target_ref(correction_target).get("resolved") is True
 
 
+def attach_correction_target_ref_to_payload(*, payload: Any | None, correction_target: dict[str, Any]) -> None:
+    if payload is None or not correction_target_resolved(correction_target):
+        return
+    trace_contract = payload_trace_contract(payload)
+    trace_contract["correction_target_ref"] = {
+        "meal_thread_id": correction_target.get("meal_thread_id"),
+        "meal_item_id": correction_target.get("meal_item_id"),
+        "canonical_name": correction_target.get("canonical_name"),
+    }
+    trace_contract["correction_target_ref_source"] = "phase_a_resolved_target_reference"
+    payload.trace_contract = trace_contract
+
+
 def nutrition_tool_output(
     *,
     raw_user_input: str,
@@ -259,6 +272,10 @@ async def execute_manager_tool_calls(
                 payload = getattr(artifact, "payload", None)
                 budget_summary = None
                 if payload is not None:
+                    attach_correction_target_ref_to_payload(
+                        payload=payload,
+                        correction_target=correction_target,
+                    )
                     budget_summary = compare_against_budget_tool(
                         current_budget_view=state_before.current_budget_view,
                         estimated_kcal=int(getattr(payload, "estimated_kcal", 0) or 0),

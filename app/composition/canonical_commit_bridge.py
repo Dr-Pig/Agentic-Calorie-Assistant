@@ -65,6 +65,14 @@ def build_commit_request_candidate(
             )
         ]
     trace_contract = payload.trace_contract or {}
+    trace_ref = {
+        "request_id": request_id or payload.request_id,
+        "route_target": payload.route_target,
+        "best_answer_source": payload.best_answer_source,
+    }
+    correction_target_ref = trace_contract.get("correction_target_ref")
+    if isinstance(correction_target_ref, dict):
+        trace_ref["correction_target_ref"] = dict(correction_target_ref)
     return CommitRequestCandidate(
         request_id=request_id or payload.request_id,
         manager_intent=manager_intent,
@@ -81,11 +89,7 @@ def build_commit_request_candidate(
         occurred_at=trace_contract.get("occurred_at"),
         local_date=str(trace_contract.get("local_date") or ""),
         items=items,
-        trace_ref={
-            "request_id": request_id or payload.request_id,
-            "route_target": payload.route_target,
-            "best_answer_source": payload.best_answer_source,
-        },
+        trace_ref=trace_ref,
     )
 
 

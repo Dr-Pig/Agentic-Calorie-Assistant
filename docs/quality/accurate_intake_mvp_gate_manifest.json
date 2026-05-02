@@ -1,6 +1,6 @@
 {
   "gate_id": "accurate_intake_mvp_deterministic_v1",
-  "gate_version": "1.4",
+  "gate_version": "1.5",
   "gate_mode": "deterministic_regression_wall",
   "claim_scope": "local_deterministic_mvp_gate",
   "evidence_scope": "deterministic_regression_evidence",
@@ -25,7 +25,8 @@
     "phase_c_gate_pass",
     "accurate_intake_mvp_gate_pass",
     "food_knowledge_required_group_pass",
-    "local_persistence_debug_surface_required_group_pass"
+    "local_persistence_debug_surface_required_group_pass",
+    "manager_style_active_runtime_smoke_required_group_pass"
   ],
   "semantic_owner": {
     "user_intent": "manager_or_llm_structured_decision",
@@ -92,6 +93,12 @@
         "tests/test_local_persistence_self_use.py",
         "tests/test_accurate_intake_debug_surface.py",
         "tests/test_accurate_intake_mvp_self_use_smoke.py"
+      ]
+    },
+    {
+      "group_id": "manager_style_active_runtime_smoke",
+      "pytest": [
+        "tests/test_accurate_intake_mvp_manager_style_smoke.py"
       ]
     }
   ],
