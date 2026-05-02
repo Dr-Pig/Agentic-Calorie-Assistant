@@ -75,6 +75,45 @@
     },
     {
       "record_kind": "generic_anchor",
+      "anchor_id": "stable_base_zhajiangmian",
+      "canonical_name": "\u70b8\u91ac\u9eb5",
+      "aliases": ["\u70b8\u91ac\u9eb5"],
+      "dish_type": "stable_base_variable_dish",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": ["dry_noodle_sauce"],
+      "followup_hints": ["ask_bowl_size", "ask_sauce_amount", "ask_add_ons"],
+      "clarify_required": false,
+      "baseline_kcal_range": [500, 850],
+      "baseline_likely_kcal": 680,
+      "major_modifiers": [
+        {"name": "bowl_size", "values": ["small", "regular", "large"]},
+        {"name": "sauce_amount", "values": ["light", "regular", "extra"]},
+        {"name": "add_ons", "values": ["none", "egg", "extra_meat"]}
+      ],
+      "composition_hints": ["noodles", "soybean_meat_sauce"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "generic_meal_gyudon",
+      "canonical_name": "\u725b\u4e3c",
+      "aliases": ["\u725b\u4e3c", "\u725b\u8089\u4e3c"],
+      "dish_type": "generic_meal",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": ["rice_bowl"],
+      "followup_hints": ["ask_bowl_size", "ask_add_ons"],
+      "clarify_required": false,
+      "baseline_kcal_range": [550, 850],
+      "baseline_likely_kcal": 700,
+      "major_modifiers": [
+        {"name": "bowl_size", "values": ["small", "regular", "large"]},
+        {"name": "add_ons", "values": ["none", "onsen_egg", "extra_meat"]}
+      ],
+      "composition_hints": ["rice", "beef", "sauce"]
+    },
+    {
+      "record_kind": "generic_anchor",
       "anchor_id": "stable_base_spicy_stinky_tofu",
       "canonical_name": "\u9ebb\u8fa3\u81ed\u8c46\u8150",
       "aliases": ["\u9ebb\u8fa3\u81ed\u8c46\u8150"],

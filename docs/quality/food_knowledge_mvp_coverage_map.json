@@ -1,0 +1,67 @@
+{
+  "coverage_id": "food_knowledge_mvp_deterministic_v1",
+  "scope": "local_deterministic_evidence_support",
+  "truth_owner": "none",
+  "mutation_authority": "none",
+  "live_llm_required": false,
+  "web_tavily_required": false,
+  "schema_migration_required": false,
+  "not_claiming": [
+    "food_knowledge_is_product_truth",
+    "food_knowledge_can_authorize_mutation",
+    "food_knowledge_can_update_ledger",
+    "food_knowledge_can_decide_logged_or_draft",
+    "live_food_search_ready"
+  ],
+  "coverage": [
+    {
+      "ux_category": "滷味",
+      "coverage_type": "semantic_only",
+      "role": "evidence_support_only",
+      "source": "small_anchor_store_tw",
+      "expected_posture": "composition_unknown_basket_requires_listed_items"
+    },
+    {
+      "ux_category": "麻辣燙",
+      "coverage_type": "semantic_only",
+      "role": "evidence_support_only",
+      "source": "small_anchor_store_tw",
+      "expected_posture": "composition_unknown_basket_requires_listed_items"
+    },
+    {
+      "ux_category": "便當",
+      "coverage_type": "generic_anchor",
+      "role": "evidence_support_only",
+      "source": "small_anchor_store_tw",
+      "expected_posture": "bounded_generic_estimate"
+    },
+    {
+      "ux_category": "珍奶",
+      "coverage_type": "generic_anchor",
+      "role": "evidence_support_only",
+      "source": "small_anchor_store_tw",
+      "expected_posture": "bounded_generic_estimate"
+    },
+    {
+      "ux_category": "炸醬麵",
+      "coverage_type": "generic_anchor",
+      "role": "evidence_support_only",
+      "source": "small_anchor_store_tw",
+      "expected_posture": "bounded_generic_estimate"
+    },
+    {
+      "ux_category": "牛丼",
+      "coverage_type": "generic_anchor",
+      "role": "evidence_support_only",
+      "source": "small_anchor_store_tw",
+      "expected_posture": "bounded_generic_estimate"
+    },
+    {
+      "ux_category": "超商 exact item",
+      "coverage_type": "exact_item",
+      "role": "evidence_support_only",
+      "source": "exact_item_cards_tw",
+      "expected_posture": "local_exact_item_seed"
+    }
+  ]
+}
