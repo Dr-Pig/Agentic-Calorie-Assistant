@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -135,3 +136,37 @@ def test_item_level_correction_keeps_ledger_audit_as_event_not_current_truth() -
     assert [event.delta_kcal for event in audit_events] == [650, 470]
     ledger = db.execute(select(DayBudgetLedgerRecord)).scalar_one()
     assert ledger.consumed_kcal == 470
+
+
+def test_item_level_correction_requires_explicit_target_reference() -> None:
+    db = _session()
+    user = get_or_create_user(db, "correction-uow-requires-target")
+    initial = commit_meal_payload_to_canonical(db, user=user, candidate=_initial_candidate(), budget_kcal=1800)
+    assert initial is not None
+
+    missing_target = CommitRequestCandidate(
+        request_id="correction-uow-missing-target",
+        manager_intent="food_estimation",
+        meal_thread_id=initial.meal_thread_id,
+        version_reason="correction",
+        meal_title="lunch plate",
+        raw_input="the lunch was smaller",
+        estimated_kcal=470,
+        protein_g=30,
+        carb_g=55,
+        fat_g=12,
+        resolution_status="completed_meal",
+        local_date="2026-05-02",
+        items=[MealItemPayload(name="lunch plate", estimated_kcal=470, protein_g=30, carb_g=55, fat_g=12)],
+    )
+
+    with pytest.raises(ValueError, match="correction_requires_explicit_item_target"):
+        commit_meal_payload_to_canonical(db, user=user, candidate=missing_target, budget_kcal=1800)
+
+    db.expire_all()
+    thread = db.get(MealThreadRecord, initial.meal_thread_id)
+    assert thread is not None
+    assert thread.active_version_id == initial.meal_version_id
+    assert len(db.execute(select(MealVersionRecord)).scalars().all()) == 1
+    ledger = db.execute(select(DayBudgetLedgerRecord)).scalar_one()
+    assert ledger.consumed_kcal == 650

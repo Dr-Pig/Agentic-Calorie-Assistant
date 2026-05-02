@@ -7,8 +7,9 @@ from app.budget.infrastructure.models import DayBudgetLedgerRecord
 from app.composition.canonical_persistence import commit_meal_payload_to_canonical
 from app.composition.current_budget_read_model import build_current_budget_view
 from app.database import get_or_create_user
+from app.intake.infrastructure.models import MealItemRecord
 from app.models import Base
-from app.schemas import CommitRequestCandidate
+from app.schemas import CommitRequestCandidate, MealItemPayload
 
 
 def _session() -> Session:
@@ -61,6 +62,9 @@ def test_current_budget_view_excludes_superseded_versions_from_current_consumed_
         budget_kcal=1800,
     )
     assert initial is not None
+    target_item = db.execute(
+        select(MealItemRecord).where(MealItemRecord.meal_version_id == initial.meal_version_id)
+    ).scalar_one()
     correction = commit_meal_payload_to_canonical(
         db,
         user=user,
@@ -74,6 +78,14 @@ def test_current_budget_view_excludes_superseded_versions_from_current_consumed_
             estimated_kcal=470,
             resolution_status="completed_meal",
             local_date="2026-05-02",
+            items=[MealItemPayload(name="corrected meal", estimated_kcal=470)],
+            trace_ref={
+                "correction_target_ref": {
+                    "meal_thread_id": initial.meal_thread_id,
+                    "meal_item_id": target_item.id,
+                    "canonical_name": "initial meal",
+                }
+            },
         ),
         budget_kcal=1800,
     )
