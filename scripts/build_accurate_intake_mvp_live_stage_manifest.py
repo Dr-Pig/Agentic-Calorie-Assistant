@@ -102,6 +102,10 @@ def stage_summary_from_stages(stages: list[dict[str, Any]]) -> dict[str, Any]:
     provider_health_blocked = bool(provider_health) and provider_health.get("status") != "pass"
     schema_contract_blocked = bool(schema_probe) and schema_probe.get("status") != "pass"
     full_suite_without_single_case_probe = bool(full_suite) and single_case.get("status") != "pass"
+    has_retry_dependent_stage = any(
+        stage.get("retry_policy_applied") is True or str(stage.get("result_kind") or "") == "pass_after_retry"
+        for stage in stages
+    )
     return {
         "present": bool(stages),
         "stage_ids": [str(stage.get("stage_id") or "") for stage in stages],
@@ -112,6 +116,7 @@ def stage_summary_from_stages(stages: list[dict[str, Any]]) -> dict[str, Any]:
         "provider_health_blocked": provider_health_blocked,
         "schema_contract_blocked": schema_contract_blocked,
         "full_suite_without_single_case_probe": full_suite_without_single_case_probe,
+        "has_retry_dependent_stage": has_retry_dependent_stage,
         "stage_failures": [
             {
                 "stage_id": str(stage.get("stage_id") or ""),
@@ -149,6 +154,8 @@ def _manifest_stage(
             "failure_layer": _optional_string(stage.get("failure_layer")),
             "failure_family": _optional_string(stage.get("failure_family")),
             "retry_policy_applied": bool(stage.get("retry_policy_applied")),
+            "result_kind": _optional_string(stage.get("result_kind")),
+            "retry_attempts": [_dict(item) for item in _list(stage.get("retry_attempts"))],
             "case_ids": [str(item) for item in _list(stage.get("case_ids"))],
             "summary": _dict(stage.get("summary")),
         }

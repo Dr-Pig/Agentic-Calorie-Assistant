@@ -5,6 +5,7 @@ import asyncio
 import importlib
 import json
 import os
+import random
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -110,11 +111,25 @@ class LiveCase:
 class AccurateIntakeLiveDiagnosticProvider:
     """Adds diagnostic profile metadata and shared manager contract constraints."""
 
-    def __init__(self, provider: Any, *, profile: dict[str, Any], live_invoked: bool) -> None:
+    def __init__(
+        self,
+        provider: Any,
+        *,
+        profile: dict[str, Any],
+        live_invoked: bool,
+        provider_request_timeout_ms: int = 180000,
+        provider_request_retry_count: int = 0,
+        provider_request_retry_backoff_ms: int = 0,
+        provider_request_retry_jitter_ms: int = 0,
+    ) -> None:
         self._provider = provider
         self.profile = dict(profile)
         self.live_invoked = live_invoked
         self.invocations: list[dict[str, Any]] = []
+        self.provider_request_timeout_ms = max(1, int(provider_request_timeout_ms))
+        self.provider_request_retry_count = max(0, int(provider_request_retry_count))
+        self.provider_request_retry_backoff_ms = max(0, int(provider_request_retry_backoff_ms))
+        self.provider_request_retry_jitter_ms = max(0, int(provider_request_retry_jitter_ms))
 
     def begin_step(self, step_script: dict[str, Any]) -> None:
         if hasattr(self._provider, "begin_step"):
@@ -134,44 +149,86 @@ class AccurateIntakeLiveDiagnosticProvider:
 
     async def complete_with_trace(self, **kwargs: Any) -> tuple[dict[str, Any], dict[str, Any]]:
         stage = str(kwargs.get("stage") or "")
-        started = datetime.now(UTC)
         kwargs = _with_accurate_intake_live_contract_constraints(kwargs, profile=self.profile)
-        try:
-            payload, trace = await self._provider.complete_with_trace(**kwargs)
-        except Exception as exc:
-            error_trace = _provider_error_trace(exc, stage=stage, profile=self.profile)
-            self.invocations.append(error_trace)
-            raise
-        elapsed_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
-        enriched_trace = {
-            **_dict(trace),
-            "provider_profile_id": self.profile["provider_profile_id"],
-            "provider_profile_model": self.profile["model"],
-            "provider_profile_role": self.profile["provider_profile_role"],
-            "transport_policy": self.profile["transport_policy"],
-            "schema_name": self.profile["schema_name"],
-            "schema_version": self.profile["schema_version"],
-            "production_selected": False,
-            "not_production_selection": True,
-            "live_llm_invoked": self.live_invoked,
-            "latency_ms": elapsed_ms,
-        }
-        self.invocations.append(
-            {
-                "stage": stage,
+        max_attempts = self.provider_request_retry_count + 1
+        retry_attempts: list[dict[str, Any]] = []
+        for attempt_index in range(1, max_attempts + 1):
+            started = datetime.now(UTC)
+            try:
+                payload, trace = await asyncio.wait_for(
+                    self._provider.complete_with_trace(**kwargs),
+                    timeout=max(0.001, self.provider_request_timeout_ms / 1000),
+                )
+            except Exception as exc:
+                elapsed_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
+                retryable = _is_retryable_provider_exception(exc)
+                error_trace = _provider_error_trace(exc, stage=stage, profile=self.profile)
+                error_trace.update(
+                    {
+                        "attempt_index": attempt_index,
+                        "attempt_count": attempt_index,
+                        "max_attempt_count": max_attempts,
+                        "latency_ms": elapsed_ms,
+                        "timeout_budget_ms": self.provider_request_timeout_ms,
+                        "retryable": retryable,
+                        "retry_policy_applied": attempt_index > 1,
+                        "result_kind": "timeout_after_retry"
+                        if retryable and attempt_index == max_attempts and max_attempts > 1
+                        else "timeout_first_attempt",
+                    }
+                )
+                retry_attempts.append(error_trace)
+                self.invocations.append(error_trace)
+                if retryable and attempt_index < max_attempts:
+                    await asyncio.sleep(self._retry_delay_seconds(attempt_index))
+                    continue
+                raise
+            elapsed_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
+            result_kind = "pass_after_retry" if attempt_index > 1 else "strict_pass_first_attempt"
+            enriched_trace = {
+                **_dict(trace),
                 "provider_profile_id": self.profile["provider_profile_id"],
                 "provider_profile_model": self.profile["model"],
                 "provider_profile_role": self.profile["provider_profile_role"],
                 "transport_policy": self.profile["transport_policy"],
                 "schema_name": self.profile["schema_name"],
                 "schema_version": self.profile["schema_version"],
+                "production_selected": False,
+                "not_production_selection": True,
                 "live_llm_invoked": self.live_invoked,
                 "latency_ms": elapsed_ms,
-                "failure_family": None,
-                "provider_trace": enriched_trace,
+                "timeout_budget_ms": self.provider_request_timeout_ms,
+                "attempt_count": attempt_index,
+                "retry_policy_applied": attempt_index > 1,
+                "result_kind": result_kind,
+                "retry_attempts": retry_attempts,
             }
-        )
-        return payload, enriched_trace
+            self.invocations.append(
+                {
+                    "stage": stage,
+                    "provider_profile_id": self.profile["provider_profile_id"],
+                    "provider_profile_model": self.profile["model"],
+                    "provider_profile_role": self.profile["provider_profile_role"],
+                    "transport_policy": self.profile["transport_policy"],
+                    "schema_name": self.profile["schema_name"],
+                    "schema_version": self.profile["schema_version"],
+                    "live_llm_invoked": self.live_invoked,
+                    "latency_ms": elapsed_ms,
+                    "timeout_budget_ms": self.provider_request_timeout_ms,
+                    "attempt_count": attempt_index,
+                    "retry_policy_applied": attempt_index > 1,
+                    "result_kind": result_kind,
+                    "failure_family": None,
+                    "provider_trace": enriched_trace,
+                }
+            )
+            return payload, enriched_trace
+        raise RuntimeError("provider retry loop exited without result")
+
+    def _retry_delay_seconds(self, attempt_index: int) -> float:
+        backoff = (self.provider_request_retry_backoff_ms / 1000) * attempt_index
+        jitter = random.uniform(0, self.provider_request_retry_jitter_ms / 1000) if self.provider_request_retry_jitter_ms else 0.0
+        return backoff + jitter
 
 
 class ScriptedAccurateIntakeLiveProvider:
@@ -464,6 +521,9 @@ def run_diagnostic(
     provider_profile_id: str = DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID,
     provider_timeout_ms: int = 180000,
     case_timeout_ms: int | None = None,
+    provider_request_retry_count: int = 1,
+    provider_request_retry_backoff_ms: int = 250,
+    provider_request_retry_jitter_ms: int = 100,
     provider_override: Any | None = None,
     provider_mode: str = "live",
     live_invoked: bool = True,
@@ -472,8 +532,21 @@ def run_diagnostic(
 ) -> dict[str, Any]:
     profile = provider_profile(provider_profile_id)
     if provider_override is None:
-        provider_override = _build_builderspace_provider(profile=profile, provider_timeout_ms=provider_timeout_ms)
-    provider = AccurateIntakeLiveDiagnosticProvider(provider_override, profile=profile, live_invoked=live_invoked)
+        provider_override = _build_builderspace_provider(
+            profile=profile,
+            provider_timeout_ms=provider_timeout_ms,
+            transport_retry_count=0,
+            transport_retry_backoff_seconds=0.0,
+        )
+    provider = AccurateIntakeLiveDiagnosticProvider(
+        provider_override,
+        profile=profile,
+        live_invoked=live_invoked,
+        provider_request_timeout_ms=provider_timeout_ms,
+        provider_request_retry_count=provider_request_retry_count,
+        provider_request_retry_backoff_ms=provider_request_retry_backoff_ms,
+        provider_request_retry_jitter_ms=provider_request_retry_jitter_ms,
+    )
     readiness = provider.readiness()
     if provider_mode == "live" and not readiness.get("configured"):
         report = build_missing_provider_report(profile=profile)
@@ -484,7 +557,10 @@ def run_diagnostic(
     single_selected_stage = len(selected_stage_ids) == 1
     stages: list[dict[str, Any]] = []
     cases: list[dict[str, Any]] = []
-    effective_case_timeout_ms = int(case_timeout_ms if case_timeout_ms is not None else provider_timeout_ms + 15000)
+    retry_budget_ms = provider_timeout_ms * (provider_request_retry_count + 1) + (
+        provider_request_retry_backoff_ms * provider_request_retry_count
+    )
+    effective_case_timeout_ms = int(case_timeout_ms if case_timeout_ms is not None else retry_budget_ms + 15000)
     for stage_id in selected_stage_ids:
         if stage_id == STAGE_PROVIDER_HEALTH_SMOKE:
             stages.append(
@@ -540,6 +616,10 @@ def run_diagnostic(
                     ScriptedAccurateIntakeLiveProvider(),
                     profile=profile,
                     live_invoked=False,
+                    provider_request_timeout_ms=provider_timeout_ms,
+                    provider_request_retry_count=0,
+                    provider_request_retry_backoff_ms=0,
+                    provider_request_retry_jitter_ms=0,
                 ),
                 profile=profile,
                 local_date=local_date,
@@ -657,8 +737,10 @@ def _stage_result(
     failure_layer: str | None = None,
     failure_family: str | None = None,
     retry_policy_applied: bool = False,
+    result_kind: str | None = None,
     **extra: Any,
 ) -> dict[str, Any]:
+    resolved_result_kind = result_kind or _stage_result_kind(status=status, retry_policy_applied=retry_policy_applied)
     result = {
         "stage_id": stage_id,
         "status": status,
@@ -671,6 +753,7 @@ def _stage_result(
         "failure_layer": failure_layer,
         "failure_family": failure_family,
         "retry_policy_applied": bool(retry_policy_applied),
+        "result_kind": resolved_result_kind,
     }
     result.update(extra)
     return _json_safe(result)
@@ -705,6 +788,41 @@ def _root_stage_failure(stages: list[dict[str, Any]]) -> tuple[str | None, str |
     return None, None
 
 
+def _stage_result_kind(*, status: str, retry_policy_applied: bool) -> str:
+    if status == "pass":
+        return "pass_after_retry" if retry_policy_applied else "strict_pass_first_attempt"
+    if status == "timeout":
+        return "timeout_after_retry" if retry_policy_applied else "timeout_first_attempt"
+    return status
+
+
+def _provider_attempt_count_from_trace(trace: dict[str, Any]) -> int:
+    if int(trace.get("attempt_count") or 0) > 0:
+        return int(trace.get("attempt_count") or 0)
+    transport_attempts = _list(trace.get("transport_attempts"))
+    if transport_attempts:
+        return len(transport_attempts)
+    return 1
+
+
+def _provider_trace_retry_applied(trace: dict[str, Any]) -> bool:
+    if trace.get("retry_policy_applied") is True:
+        return True
+    transport_attempts = _list(trace.get("transport_attempts"))
+    return len(transport_attempts) > 1
+
+
+def _latest_provider_invocation(
+    *,
+    provider: AccurateIntakeLiveDiagnosticProvider,
+    stage_id: str,
+) -> dict[str, Any]:
+    for invocation in reversed(provider.invocations):
+        if str(invocation.get("stage") or "") in {stage_id, MANAGER_LOOP_STAGE}:
+            return _dict(invocation)
+    return {}
+
+
 def _run_probe_stage(
     *,
     provider: AccurateIntakeLiveDiagnosticProvider,
@@ -715,18 +833,23 @@ def _run_probe_stage(
 ) -> dict[str, Any]:
     started = datetime.now(UTC)
     try:
-        payload, trace = asyncio.run(
-            asyncio.wait_for(
-                _provider_probe(provider=provider, stage_id=stage_id),
-                timeout=max(0.001, timeout_budget_ms / 1000),
-            )
-        )
+        payload, trace = asyncio.run(_provider_probe(provider=provider, stage_id=stage_id))
         if require_contract_schema:
             _validate_probe_payload_shape(payload)
     except Exception as exc:
         latency_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
         failure_layer = _failure_layer_for_exception(exc)
         failure_family = _failure_family_for_exception(exc)
+        latest_invocation = _latest_provider_invocation(provider=provider, stage_id=stage_id)
+        attempt_count = int(latest_invocation.get("attempt_count") or 1)
+        retry_policy_applied = bool(latest_invocation.get("retry_policy_applied"))
+        result_kind = str(
+            latest_invocation.get("result_kind")
+            or _stage_result_kind(
+                status="timeout" if failure_family == "environment_or_provider_blocker" else "fail",
+                retry_policy_applied=retry_policy_applied,
+            )
+        )
         if require_contract_schema and failure_family != "environment_or_provider_blocker":
             failure_layer = "provider_contract_non_adherence"
             failure_family = "schema_contract_blocked"
@@ -735,22 +858,26 @@ def _run_probe_stage(
             stage_id=stage_id,
             status="timeout" if failure_family == "environment_or_provider_blocker" else "fail",
             timeout_budget_ms=timeout_budget_ms,
-            attempt_count=1,
+            attempt_count=attempt_count,
             latency_ms=latency_ms,
             failure_layer=failure_layer,
             failure_family=failure_family,
-            retry_policy_applied=False,
+            retry_policy_applied=retry_policy_applied,
+            result_kind=result_kind,
             runtime_error={"type": type(exc).__name__, "message": str(exc)},
+            retry_attempts=list(latest_invocation.get("retry_attempts") or []),
         )
     latency_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
+    retry_policy_applied = _provider_trace_retry_applied(trace)
     return _stage_result(
         profile=profile,
         stage_id=stage_id,
         status="pass",
         timeout_budget_ms=timeout_budget_ms,
-        attempt_count=1,
+        attempt_count=_provider_attempt_count_from_trace(trace),
         latency_ms=latency_ms,
-        retry_policy_applied=False,
+        retry_policy_applied=retry_policy_applied,
+        result_kind=str(trace.get("result_kind") or _stage_result_kind(status="pass", retry_policy_applied=retry_policy_applied)),
         provider_trace=_dict(trace),
     )
 
@@ -835,6 +962,7 @@ def _run_case_batch(
     results: list[dict[str, Any]] = []
     for case in cases:
         started = datetime.now(UTC)
+        invocation_start_index = len(provider.invocations)
         try:
             case_result = asyncio.run(
                 asyncio.wait_for(
@@ -843,7 +971,11 @@ def _run_case_batch(
                 )
             )
         except Exception as exc:
-            case_result = _case_error(case, exc)
+            case_result = _case_error(
+                case,
+                exc,
+                provider_invocations=provider.invocations[invocation_start_index:],
+            )
         case_result["latency_ms"] = int((datetime.now(UTC) - started).total_seconds() * 1000)
         case_result["stage_id"] = stage_id
         results.append(_decorate_case(case_result, profile=profile))
@@ -869,16 +1001,18 @@ def _runtime_gate_stage_result(
         status = "fail"
         failure_layer = (summary.get("failure_layers") or ["runtime"])[0]
         failure_family = (summary.get("failure_families") or ["runtime_failure"])[0]
+    retry_policy_applied = any(case.get("retry_policy_applied") is True for case in stage_cases)
     return _stage_result(
         profile=profile,
         stage_id=stage_id,
         status=status,
         timeout_budget_ms=timeout_budget_ms,
-        attempt_count=len(stage_cases),
+        attempt_count=sum(int(case.get("provider_request_attempt_count") or 1) for case in stage_cases),
         latency_ms=sum(int(case.get("latency_ms") or 0) for case in stage_cases),
         failure_layer=failure_layer,
         failure_family=failure_family,
-        retry_policy_applied=False,
+        retry_policy_applied=retry_policy_applied,
+        result_kind=_stage_result_kind(status=status, retry_policy_applied=retry_policy_applied),
         case_ids=[str(case.get("case_id") or "") for case in stage_cases],
         summary=summary,
     )
@@ -1140,7 +1274,15 @@ def _turn_summary(step: LiveStep, result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _case_error(case: LiveCase, exc: Exception) -> dict[str, Any]:
+def _case_error(
+    case: LiveCase,
+    exc: Exception,
+    *,
+    provider_invocations: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    invocations = [_dict(item) for item in (provider_invocations or [])]
+    retry_policy_applied = any(item.get("retry_policy_applied") is True for item in invocations)
+    attempt_count = sum(max(1, int(item.get("attempt_count") or 1)) for item in invocations) or 1
     return {
         "case_id": case.case_id,
         "description": case.description,
@@ -1153,13 +1295,18 @@ def _case_error(case: LiveCase, exc: Exception) -> dict[str, Any]:
         "turns": [],
         "debug_surface": {},
         "state_delta": {},
+        "provider_invocations": invocations,
+        "provider_request_attempt_count": attempt_count,
+        "retry_policy_applied": retry_policy_applied,
+        "result_kind": "timeout_after_retry" if retry_policy_applied else "timeout_first_attempt",
         "runtime_error": {"type": type(exc).__name__, "message": str(exc)},
     }
 
 
 def _decorate_case(case: dict[str, Any], *, profile: dict[str, Any]) -> dict[str, Any]:
     decorated = dict(case)
-    contract_status = _case_contract_status(decorated)
+    result_kind = _case_result_kind(decorated)
+    contract_status = _case_contract_status(decorated, result_kind=result_kind)
     failure_layer, failure_family = _classify_failure(decorated)
     decorated["provider_profile_id"] = profile["provider_profile_id"]
     decorated["provider_profile_model"] = profile["model"]
@@ -1169,6 +1316,9 @@ def _decorate_case(case: dict[str, Any], *, profile: dict[str, Any]) -> dict[str
     decorated["schema_name"] = profile["schema_name"]
     decorated["schema_version"] = profile["schema_version"]
     decorated["case_contract_status"] = contract_status
+    decorated["result_kind"] = result_kind
+    decorated["provider_request_attempt_count"] = _case_provider_attempt_count(decorated)
+    decorated["retry_policy_applied"] = _case_retry_policy_applied(decorated)
     decorated["private_self_use_unlock_allowed"] = False
     decorated["readiness_claimed"] = False
     decorated["production_selected"] = False
@@ -1181,7 +1331,7 @@ def _decorate_case(case: dict[str, Any], *, profile: dict[str, Any]) -> dict[str
     return decorated
 
 
-def _case_contract_status(case: dict[str, Any]) -> str:
+def _case_contract_status(case: dict[str, Any], *, result_kind: str | None = None) -> str:
     if _case_has_provider_timeout(case):
         return "timeout"
     if _dict(case.get("runtime_error")):
@@ -1189,7 +1339,41 @@ def _case_contract_status(case: dict[str, Any]) -> str:
     for trace in _case_manager_traces(case):
         if trace.get("repair_attempted") is True or str(trace.get("repair_result") or "") == "passed_after_repair":
             return "repaired_pass"
+    if result_kind == "pass_after_retry":
+        return "retried_pass"
     return "strict_pass" if case.get("verdict") == "pass" else "fail"
+
+
+def _case_result_kind(case: dict[str, Any]) -> str:
+    if str(case.get("result_kind") or ""):
+        return str(case.get("result_kind"))
+    if _case_has_provider_timeout(case):
+        return "timeout_after_retry" if _case_retry_policy_applied(case) else "timeout_first_attempt"
+    if case.get("verdict") != "pass":
+        return "fail"
+    if _case_retry_policy_applied(case):
+        return "pass_after_retry"
+    return "strict_pass_first_attempt"
+
+
+def _case_retry_policy_applied(case: dict[str, Any]) -> bool:
+    if case.get("retry_policy_applied") is True:
+        return True
+    for item in _list(case.get("provider_invocations")):
+        if _dict(item).get("retry_policy_applied") is True:
+            return True
+    return any(_provider_trace_retry_applied(trace) for trace in _case_manager_traces(case))
+
+
+def _case_provider_attempt_count(case: dict[str, Any]) -> int:
+    if int(case.get("provider_request_attempt_count") or 0) > 0:
+        return int(case.get("provider_request_attempt_count") or 0)
+    attempts = 0
+    for item in _list(case.get("provider_invocations")):
+        attempts += max(1, int(_dict(item).get("attempt_count") or 1))
+    for trace in _case_manager_traces(case):
+        attempts += _provider_attempt_count_from_trace(trace)
+    return attempts or 1
 
 
 def _case_manager_traces(case: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1237,6 +1421,7 @@ def _summary(cases: list[dict[str, Any]]) -> dict[str, Any]:
         "pass_count": sum(1 for case in cases if case.get("verdict") == "pass"),
         "fail_count": sum(1 for case in cases if case.get("verdict") == "fail"),
         "strict_pass_count": statuses.count("strict_pass"),
+        "retried_pass_count": statuses.count("retried_pass"),
         "repaired_pass_count": statuses.count("repaired_pass"),
         "contract_fail_count": statuses.count("fail"),
         "timeout_count": statuses.count("timeout"),
@@ -1249,6 +1434,7 @@ def _summary(cases: list[dict[str, Any]]) -> dict[str, Any]:
 
 def _summary_with_stages(*, cases: list[dict[str, Any]], stages: list[dict[str, Any]]) -> dict[str, Any]:
     summary = dict(_summary(cases))
+    stage_retried_pass_count = sum(1 for stage in stages if str(stage.get("result_kind") or "") == "pass_after_retry")
     stage_failure_layers = {
         str(stage.get("failure_layer"))
         for stage in stages
@@ -1265,6 +1451,13 @@ def _summary_with_stages(*, cases: list[dict[str, Any]], stages: list[dict[str, 
     summary["stage_pass_count"] = sum(1 for stage in stages if stage.get("status") == "pass")
     summary["stage_timeout_count"] = sum(1 for stage in stages if stage.get("status") == "timeout")
     summary["stage_fail_count"] = sum(1 for stage in stages if stage.get("status") in {"fail", "blocked"})
+    summary["stage_retried_pass_count"] = stage_retried_pass_count
+    summary["retried_pass_count"] = int(summary.get("retried_pass_count") or 0) + stage_retried_pass_count
+    provider_stage_timeout_count = sum(
+        1 for stage in stages if stage.get("status") == "timeout" and not _list(stage.get("case_ids"))
+    )
+    summary["provider_timeout_count"] = int(summary.get("provider_timeout_count") or 0) + provider_stage_timeout_count
+    summary["timeout_count"] = int(summary.get("timeout_count") or 0) + provider_stage_timeout_count
     return summary
 
 
@@ -1380,12 +1573,22 @@ def _with_accurate_intake_live_contract_constraints(kwargs: dict[str, Any], *, p
     return updated
 
 
-def _build_builderspace_provider(*, profile: dict[str, Any], provider_timeout_ms: int) -> Any:
+def _build_builderspace_provider(
+    *,
+    profile: dict[str, Any],
+    provider_timeout_ms: int,
+    transport_retry_count: int,
+    transport_retry_backoff_seconds: float,
+) -> Any:
     from app.providers.builderspace_adapter import BuilderSpaceAdapter
 
     timeout_seconds = max(1, int(provider_timeout_ms / 1000))
     previous_timeout = os.environ.get("AI_BUILDER_TIMEOUT_SECONDS")
+    previous_retry_count = os.environ.get("AI_BUILDER_TRANSPORT_RETRY_COUNT")
+    previous_retry_backoff = os.environ.get("AI_BUILDER_TRANSPORT_RETRY_BACKOFF_SECONDS")
     os.environ["AI_BUILDER_TIMEOUT_SECONDS"] = str(timeout_seconds)
+    os.environ["AI_BUILDER_TRANSPORT_RETRY_COUNT"] = str(max(0, int(transport_retry_count)))
+    os.environ["AI_BUILDER_TRANSPORT_RETRY_BACKOFF_SECONDS"] = str(max(0.0, float(transport_retry_backoff_seconds)))
     try:
         return BuilderSpaceAdapter(
             manager_model_override=str(profile["model"]),
@@ -1396,6 +1599,14 @@ def _build_builderspace_provider(*, profile: dict[str, Any], provider_timeout_ms
             os.environ.pop("AI_BUILDER_TIMEOUT_SECONDS", None)
         else:
             os.environ["AI_BUILDER_TIMEOUT_SECONDS"] = previous_timeout
+        if previous_retry_count is None:
+            os.environ.pop("AI_BUILDER_TRANSPORT_RETRY_COUNT", None)
+        else:
+            os.environ["AI_BUILDER_TRANSPORT_RETRY_COUNT"] = previous_retry_count
+        if previous_retry_backoff is None:
+            os.environ.pop("AI_BUILDER_TRANSPORT_RETRY_BACKOFF_SECONDS", None)
+        else:
+            os.environ["AI_BUILDER_TRANSPORT_RETRY_BACKOFF_SECONDS"] = previous_retry_backoff
 
 
 def _session_factory(db_path: Path) -> sessionmaker[Session]:
@@ -1516,6 +1727,28 @@ def _failure_family_for_exception(exc: Exception) -> str:
     return _failure_family_for_error_dict({"type": type(exc).__name__, "message": str(exc)})
 
 
+def _is_retryable_provider_exception(exc: Exception) -> bool:
+    error_type = type(exc).__name__.lower()
+    message = str(exc).lower()
+    retryable_markers = (
+        "timeout",
+        "timed out",
+        "rate limit",
+        "ratelimit",
+        "429",
+        "too many requests",
+        "temporarily unavailable",
+        "connection",
+        "connecterror",
+        "readtimeout",
+        "writetimeout",
+        "pooltimeout",
+        "503",
+        "500",
+    )
+    return any(marker in error_type or marker in message for marker in retryable_markers)
+
+
 def _failure_layer_for_error_dict(runtime_error: dict[str, Any]) -> str:
     error_type = str(runtime_error.get("type") or "")
     message = str(runtime_error.get("message") or "")
@@ -1614,6 +1847,9 @@ def main() -> int:
     parser.add_argument("--provider-profile-id", default=DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID)
     parser.add_argument("--provider-timeout-ms", type=int, default=180000)
     parser.add_argument("--case-timeout-ms", type=int, default=None)
+    parser.add_argument("--provider-request-retry-count", type=int, default=1)
+    parser.add_argument("--provider-request-retry-backoff-ms", type=int, default=250)
+    parser.add_argument("--provider-request-retry-jitter-ms", type=int, default=100)
     parser.add_argument("--stage", choices=(STAGE_ALL, *ORDERED_STAGE_IDS), default=STAGE_ALL)
     parser.add_argument("--case-id", default=None)
     args = parser.parse_args()
@@ -1625,6 +1861,9 @@ def main() -> int:
         provider_profile_id=str(args.provider_profile_id),
         provider_timeout_ms=int(args.provider_timeout_ms),
         case_timeout_ms=args.case_timeout_ms,
+        provider_request_retry_count=int(args.provider_request_retry_count),
+        provider_request_retry_backoff_ms=int(args.provider_request_retry_backoff_ms),
+        provider_request_retry_jitter_ms=int(args.provider_request_retry_jitter_ms),
         stage=str(args.stage),
         case_id=str(args.case_id) if args.case_id else None,
     )

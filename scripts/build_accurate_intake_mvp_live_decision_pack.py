@@ -135,6 +135,8 @@ def _select_option(
         return "stay_diagnostic", "timeout_evidence_incomplete"
     if stage_summary.get("has_failed_stage") is True:
         return "stay_diagnostic", "live_diagnostic_contract_failures"
+    if stage_summary.get("has_retry_dependent_stage") is True:
+        return "repeat_single_profile_diagnostic", "retry_dependent_evidence"
     if evidence_summary.get("environment_or_provider_blocker") is True:
         return "stay_diagnostic", "environment_or_provider_blocker"
     if evidence_summary.get("timeout_count", 0) > 0:
@@ -242,6 +244,10 @@ def _stage_summary(
         summary["has_failed_stage"] = any(
             str(stage.get("status") or "") in {"fail", "blocked"} for stage in stages
         )
+        summary["has_retry_dependent_stage"] = any(
+            stage.get("retry_policy_applied") is True or str(stage.get("result_kind") or "") == "pass_after_retry"
+            for stage in stages
+        )
         return summary
     stages = [_dict(stage) for stage in _list(live_artifact.get("stages"))]
     by_id = {str(stage.get("stage_id") or ""): stage for stage in stages}
@@ -282,6 +288,10 @@ def _stage_summary(
     }
     result["has_timeout_stage"] = any(str(stage.get("status") or "") == "timeout" for stage in stages)
     result["has_failed_stage"] = any(str(stage.get("status") or "") in {"fail", "blocked"} for stage in stages)
+    result["has_retry_dependent_stage"] = any(
+        stage.get("retry_policy_applied") is True or str(stage.get("result_kind") or "") == "pass_after_retry"
+        for stage in stages
+    )
     return result
 
 

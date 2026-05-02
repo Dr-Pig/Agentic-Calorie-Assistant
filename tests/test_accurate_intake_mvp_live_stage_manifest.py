@@ -126,3 +126,16 @@ def test_live_stage_manifest_writer_creates_artifact(tmp_path: Path) -> None:
     assert output.name == "accurate_intake_mvp_live_stage_manifest.json"
     assert payload["artifact_type"] == "accurate_intake_mvp_live_stage_manifest"
     assert payload["stage_summary"]["provider_health_status"] == "pass"
+
+
+def test_live_stage_manifest_preserves_retry_result_kind(tmp_path: Path) -> None:
+    single = tmp_path / "single.json"
+    payload = _live_artifact(stage_id="single_case_live_probe", status="pass")
+    payload["stages"][0]["result_kind"] = "pass_after_retry"  # type: ignore[index]
+    payload["stages"][0]["retry_policy_applied"] = True  # type: ignore[index]
+    single.write_text(json.dumps(payload), encoding="utf-8")
+
+    manifest = build_accurate_intake_live_stage_manifest([single])
+
+    assert manifest["stages"][0]["result_kind"] == "pass_after_retry"
+    assert manifest["stage_summary"]["has_retry_dependent_stage"] is True
