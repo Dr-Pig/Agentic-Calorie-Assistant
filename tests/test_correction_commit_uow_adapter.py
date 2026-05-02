@@ -66,6 +66,32 @@ def _correction_candidate(*, meal_thread_id: int, meal_item_id: int) -> CommitRe
     )
 
 
+def _removal_candidate(*, meal_thread_id: int, meal_item_id: int, canonical_name: str = "chicken rice") -> CommitRequestCandidate:
+    return CommitRequestCandidate(
+        request_id="correction-uow-remove-item",
+        manager_intent="food_estimation",
+        meal_thread_id=meal_thread_id,
+        version_reason="correction",
+        meal_title="lunch plate",
+        raw_input="remove the chicken rice",
+        estimated_kcal=150,
+        protein_g=3,
+        carb_g=5,
+        fat_g=3,
+        resolution_status="completed_meal",
+        local_date="2026-05-02",
+        items=[],
+        trace_ref={
+            "correction_operation": "remove_item",
+            "correction_target_ref": {
+                "meal_thread_id": meal_thread_id,
+                "meal_item_id": meal_item_id,
+                "canonical_name": canonical_name,
+            },
+        },
+    )
+
+
 def _items_for_version(db: Session, version_id: int) -> list[MealItemRecord]:
     return db.execute(
         select(MealItemRecord)
@@ -170,3 +196,115 @@ def test_item_level_correction_requires_explicit_target_reference() -> None:
     assert len(db.execute(select(MealVersionRecord)).scalars().all()) == 1
     ledger = db.execute(select(DayBudgetLedgerRecord)).scalar_one()
     assert ledger.consumed_kcal == 650
+
+
+def test_explicit_item_removal_creates_new_version_without_deleting_thread_or_non_target_items() -> None:
+    db = _session()
+    user = get_or_create_user(db, "correction-uow-remove-target")
+    initial = commit_meal_payload_to_canonical(db, user=user, candidate=_initial_candidate(), budget_kcal=1800)
+    assert initial is not None
+    old_items = _items_for_version(db, initial.meal_version_id)
+
+    removal = commit_meal_payload_to_canonical(
+        db,
+        user=user,
+        candidate=_removal_candidate(meal_thread_id=initial.meal_thread_id, meal_item_id=old_items[0].id),
+        budget_kcal=1800,
+    )
+
+    assert removal is not None
+    assert removal.superseded_version_id == initial.meal_version_id
+    thread = db.get(MealThreadRecord, initial.meal_thread_id)
+    assert thread is not None
+    assert thread.active_version_id == removal.meal_version_id
+    old_version = db.get(MealVersionRecord, initial.meal_version_id)
+    assert old_version is not None
+    assert old_version.version_status == "superseded"
+
+    new_items = _items_for_version(db, removal.meal_version_id)
+    assert [(item.name, item.estimated_kcal) for item in new_items] == [("soup", 150)]
+    assert db.get(MealThreadRecord, initial.meal_thread_id) is not None
+    ledger = db.execute(select(DayBudgetLedgerRecord)).scalar_one()
+    assert ledger.consumed_kcal == 150
+    assert ledger.remaining_kcal == 1650
+
+
+def test_raw_text_remove_without_structured_operation_does_not_remove_item() -> None:
+    db = _session()
+    user = get_or_create_user(db, "correction-uow-remove-raw-text-not-owner")
+    initial = commit_meal_payload_to_canonical(db, user=user, candidate=_initial_candidate(), budget_kcal=1800)
+    assert initial is not None
+    old_items = _items_for_version(db, initial.meal_version_id)
+    raw_text_only = CommitRequestCandidate(
+        request_id="correction-uow-raw-text-remove",
+        manager_intent="food_estimation",
+        meal_thread_id=initial.meal_thread_id,
+        version_reason="correction",
+        meal_title="lunch plate",
+        raw_input="remove the chicken rice",
+        estimated_kcal=150,
+        resolution_status="completed_meal",
+        local_date="2026-05-02",
+        items=[],
+        trace_ref={
+            "correction_target_ref": {
+                "meal_thread_id": initial.meal_thread_id,
+                "meal_item_id": old_items[0].id,
+                "canonical_name": "chicken rice",
+            }
+        },
+    )
+
+    with pytest.raises(ValueError, match="correction_replacement_item_missing"):
+        commit_meal_payload_to_canonical(db, user=user, candidate=raw_text_only, budget_kcal=1800)
+
+    db.expire_all()
+    thread = db.get(MealThreadRecord, initial.meal_thread_id)
+    assert thread is not None
+    assert thread.active_version_id == initial.meal_version_id
+    assert [(item.name, item.estimated_kcal) for item in _items_for_version(db, initial.meal_version_id)] == [
+        ("chicken rice", 500),
+        ("soup", 150),
+    ]
+    assert len(db.execute(select(MealVersionRecord)).scalars().all()) == 1
+
+
+def test_explicit_item_removal_rejects_whole_meal_undo_when_no_non_target_items_remain() -> None:
+    db = _session()
+    user = get_or_create_user(db, "correction-uow-remove-last-item")
+    initial = commit_meal_payload_to_canonical(
+        db,
+        user=user,
+        candidate=CommitRequestCandidate(
+            request_id="correction-uow-single-item",
+            manager_intent="food_estimation",
+            version_reason="new_intake",
+            meal_title="tea egg",
+            raw_input="tea egg",
+            estimated_kcal=80,
+            resolution_status="completed_meal",
+            local_date="2026-05-02",
+            items=[MealItemPayload(name="tea egg", estimated_kcal=80)],
+        ),
+        budget_kcal=1800,
+    )
+    assert initial is not None
+    only_item = _items_for_version(db, initial.meal_version_id)[0]
+
+    with pytest.raises(ValueError, match="item_removal_cannot_empty_meal_thread"):
+        commit_meal_payload_to_canonical(
+            db,
+            user=user,
+            candidate=_removal_candidate(
+                meal_thread_id=initial.meal_thread_id,
+                meal_item_id=only_item.id,
+                canonical_name="tea egg",
+            ),
+            budget_kcal=1800,
+        )
+
+    db.expire_all()
+    thread = db.get(MealThreadRecord, initial.meal_thread_id)
+    assert thread is not None
+    assert thread.active_version_id == initial.meal_version_id
+    assert len(db.execute(select(MealVersionRecord)).scalars().all()) == 1

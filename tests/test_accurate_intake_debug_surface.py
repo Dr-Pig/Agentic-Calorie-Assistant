@@ -115,6 +115,8 @@ def test_debug_payload_exposes_canonical_product_loop_state_without_recomputing_
     assert model["meal_threads"][0]["active_version"]["total_kcal"] == 470
     assert model["correction_history"][0]["non_target_item_names_preserved"] == ["soup"]
     assert model["same_truth"]["status"] == "pass"
+    assert model["ledger_audit_events"]
+    assert all(event["role"] == "audit_event" for event in model["ledger_audit_events"])
 
 
 def test_debug_read_model_surfaces_pending_drafts_as_read_only() -> None:
@@ -178,4 +180,6 @@ def test_debug_surface_route_is_registered_and_renderer_is_read_only() -> None:
 
     assert "Accurate Intake Debug Surface" in html
     assert "Read-only local MVP surface" in html
+    assert "Ledger Audit Events" in html
+    assert "Same Truth Trace" in html
     assert "chicken rice" in html

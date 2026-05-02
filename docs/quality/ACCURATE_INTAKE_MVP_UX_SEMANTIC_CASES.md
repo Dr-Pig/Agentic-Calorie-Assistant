@@ -93,6 +93,7 @@ These cases must not be implemented as deterministic raw-text routers.
 ## Review Notes
 
 - v1.7 verifies deterministic/API/debug consumption of Manager structured decisions.
-- It intentionally does not run live LLM, Tavily, browser UI, deletion/void, or production DB.
-- Browser UI shell and delete/void/undo are deferred to v1.8.
+- v1.8 keeps this UX semantic case register as the machine-truth semantic wall, then adds scoped explicit item removal, read-only debug audit/same-truth surface coverage, and local self-use smoke closure in the MVP gate manifest.
+- It intentionally does not run live LLM, Tavily, polished browser UI, full deletion/void/undo lifecycle, or production DB.
+- Full delete/void/undo lifecycle remains deferred; v1.8 item removal is only a Manager-structured explicit target removal through existing versioning.
 - Live Manager diagnostics should only run after this deterministic semantic wall remains green.

@@ -15,6 +15,27 @@
   ],
   "coverage": [
     {
+      "ux_category": "茶葉蛋",
+      "coverage_type": "generic_anchor",
+      "role": "evidence_support_only",
+      "source": "small_anchor_store_tw",
+      "expected_posture": "stable_single_item_estimate"
+    },
+    {
+      "ux_category": "珍奶",
+      "coverage_type": "generic_anchor",
+      "role": "evidence_support_only",
+      "source": "small_anchor_store_tw",
+      "expected_posture": "bounded_generic_estimate_with_modifier_followup"
+    },
+    {
+      "ux_category": "雞腿便當",
+      "coverage_type": "generic_anchor",
+      "role": "evidence_support_only",
+      "source": "small_anchor_store_tw",
+      "expected_posture": "bounded_generic_estimate_with_portion_followup"
+    },
+    {
       "ux_category": "滷味",
       "coverage_type": "semantic_only",
       "role": "evidence_support_only",
@@ -29,35 +50,49 @@
       "expected_posture": "composition_unknown_basket_requires_listed_items"
     },
     {
-      "ux_category": "便當",
+      "ux_category": "麻辣臭豆腐",
       "coverage_type": "generic_anchor",
       "role": "evidence_support_only",
       "source": "small_anchor_store_tw",
-      "expected_posture": "bounded_generic_estimate"
+      "expected_posture": "bounded_generic_estimate_with_portion_followup"
     },
     {
-      "ux_category": "珍奶",
+      "ux_category": "鹽酥雞單品",
       "coverage_type": "generic_anchor",
       "role": "evidence_support_only",
       "source": "small_anchor_store_tw",
-      "expected_posture": "bounded_generic_estimate"
+      "expected_posture": "portion_cue_required_for_single_item_anchor"
     },
     {
-      "ux_category": "炸醬麵",
-      "coverage_type": "generic_anchor",
+      "ux_category": "鹽酥雞籃子",
+      "coverage_type": "semantic_only",
       "role": "evidence_support_only",
       "source": "small_anchor_store_tw",
-      "expected_posture": "bounded_generic_estimate"
+      "expected_posture": "bare_basket_requires_listed_items"
     },
     {
-      "ux_category": "牛丼",
-      "coverage_type": "generic_anchor",
+      "ux_category": "鹽酥雞列品項",
+      "coverage_type": "listed_item_fanout",
       "role": "evidence_support_only",
       "source": "small_anchor_store_tw",
-      "expected_posture": "bounded_generic_estimate"
+      "expected_posture": "listed_item_fanout_deferred_to_packet_chain"
+    },
+    {
+      "ux_category": "UX listed basket components",
+      "coverage_type": "listed_item_components",
+      "role": "evidence_support_only",
+      "source": "small_anchor_store_tw",
+      "expected_posture": "component_anchors_for_v1_8_ux_strings"
     },
     {
       "ux_category": "超商 exact item",
+      "coverage_type": "exact_item",
+      "role": "evidence_support_only",
+      "source": "exact_item_cards_tw",
+      "expected_posture": "local_exact_item_seed"
+    },
+    {
+      "ux_category": "松屋 exact item",
       "coverage_type": "exact_item",
       "role": "evidence_support_only",
       "source": "exact_item_cards_tw",

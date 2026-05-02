@@ -65,6 +65,32 @@ def _correction_candidate(*, meal_thread_id: int, meal_item_id: int) -> CommitRe
     )
 
 
+def _removal_candidate(*, meal_thread_id: int, meal_item_id: int) -> CommitRequestCandidate:
+    return CommitRequestCandidate(
+        request_id="self-use-persistence-removal",
+        manager_intent="food_estimation",
+        meal_thread_id=meal_thread_id,
+        version_reason="correction",
+        meal_title="chicken rice and soup",
+        raw_input="remove the chicken rice",
+        estimated_kcal=150,
+        protein_g=3,
+        carb_g=5,
+        fat_g=3,
+        resolution_status="completed_meal",
+        local_date="2026-05-02",
+        items=[],
+        trace_ref={
+            "correction_operation": "remove_item",
+            "correction_target_ref": {
+                "meal_thread_id": meal_thread_id,
+                "meal_item_id": meal_item_id,
+                "canonical_name": "chicken rice",
+            },
+        },
+    )
+
+
 def test_local_sqlite_self_use_roundtrip_preserves_active_truth_after_reopen(tmp_path: Path) -> None:
     db_path = tmp_path / "accurate_intake_self_use.sqlite3"
     SessionLocal = _session_factory(db_path)
@@ -112,4 +138,48 @@ def test_local_sqlite_self_use_roundtrip_preserves_active_truth_after_reopen(tmp
     assert debug_model["meal_threads"][0]["active_version"]["total_kcal"] == 470
     assert debug_model["meal_threads"][0]["superseded_versions"][0]["total_kcal"] == 650
     assert debug_model["correction_history"][0]["non_target_item_names_preserved"] == ["soup"]
+    assert debug_model["same_truth"]["status"] == "pass"
+
+
+def test_local_sqlite_self_use_roundtrip_preserves_item_removal_after_reopen(tmp_path: Path) -> None:
+    db_path = tmp_path / "accurate_intake_self_use_removal.sqlite3"
+    SessionLocal = _session_factory(db_path)
+
+    with SessionLocal() as db:
+        user = get_or_create_user(db, "self-use-removal-roundtrip")
+        initial = commit_meal_payload_to_canonical(db, user=user, candidate=_initial_candidate(), budget_kcal=1800)
+        assert initial is not None
+        user_id = user.id
+        meal_thread_id = initial.meal_thread_id
+        target_item = db.execute(
+            select(MealItemRecord).where(MealItemRecord.meal_version_id == initial.meal_version_id)
+        ).scalars().first()
+        assert target_item is not None
+        removal = commit_meal_payload_to_canonical(
+            db,
+            user=user,
+            candidate=_removal_candidate(meal_thread_id=meal_thread_id, meal_item_id=target_item.id),
+            budget_kcal=1800,
+        )
+        assert removal is not None
+
+    with SessionLocal() as db:
+        current_budget = build_current_budget_view(db, user_id=user_id, local_date="2026-05-02")
+        debug_model = build_accurate_intake_debug_read_model(
+            db,
+            user_id=user_id,
+            local_date="2026-05-02",
+            current_budget=current_budget,
+        )
+
+    assert debug_model["today_summary"]["consumed_kcal"] == 150
+    assert debug_model["today_summary"]["remaining_kcal"] == 1650
+    assert debug_model["meal_threads"][0]["active_version"]["items"] == [
+        {
+            "meal_item_id": debug_model["meal_threads"][0]["active_version"]["items"][0]["meal_item_id"],
+            "name": "soup",
+            "estimated_kcal": 150,
+        }
+    ]
+    assert debug_model["correction_history"][0]["removed_item_names"] == ["chicken rice"]
     assert debug_model["same_truth"]["status"] == "pass"
