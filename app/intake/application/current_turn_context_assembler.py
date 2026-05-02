@@ -260,6 +260,7 @@ def _candidate_attachment_targets(
                 "target_object_id": target_id,
                 "source": source,
                 "confidence": confidence,
+                "mutation_authority": False,
             }
         )
 
