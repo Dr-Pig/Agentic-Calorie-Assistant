@@ -397,6 +397,52 @@ def test_accurate_intake_live_provider_request_retry_pass_is_not_strict(tmp_path
     assert report["summary"]["strict_pass_count"] == 0
 
 
+def test_accurate_intake_live_repaired_case_surfaces_failed_invariant() -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+    profile = module.provider_profile(module.DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID)
+
+    decorated = module._decorate_case(  # noqa: SLF001 - diagnostic artifact contract.
+        {
+            "case_id": "chinese_chicken_rice_correction_removal_debug",
+            "verdict": "pass",
+            "turns": [
+                {
+                    "turn": 3,
+                    "manager_rounds": [
+                        {
+                            "trace": {
+                                "repair_attempted": True,
+                                "repair_result": "passed_after_repair",
+                                "repair_attempt_count": 1,
+                                "parse_attempts": [
+                                    {
+                                        "failure_family": "manager_output_contract_violation",
+                                        "error": "founder live manager contract requires non-empty tool_calls when manager_action='call_tools'",
+                                    }
+                                ],
+                            }
+                        }
+                    ],
+                }
+            ],
+        },
+        profile=profile,
+    )
+
+    assert decorated["case_contract_status"] == "repaired_pass"
+    assert decorated["repair_failure_family"] == "manager_output_contract_violation"
+    assert decorated["failed_invariant"] == "call_tools_requires_tool_calls"
+    assert decorated["repair_diagnostics"] == [
+        {
+            "turn": 3,
+            "repair_result": "passed_after_repair",
+            "repair_attempt_count": 1,
+            "repair_failure_family": "manager_output_contract_violation",
+            "failed_invariant": "call_tools_requires_tool_calls",
+        }
+    ]
+
+
 def test_accurate_intake_live_provider_request_timeout_after_retry_remains_blocker(tmp_path: Path) -> None:
     module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
 
