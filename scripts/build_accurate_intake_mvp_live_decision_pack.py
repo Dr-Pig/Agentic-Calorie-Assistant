@@ -194,6 +194,8 @@ def _select_option(
                 return "offline_shadow_replay", "contract_overfit_risk"
             if provider_robustness_summary.get("model_inversion_evidence_passed") is not True:
                 return "offline_shadow_replay", "model_inversion_evidence_missing"
+            if _full_suite_strict_ready(stage_summary) is not True:
+                return "full_suite_blocked", "full_suite_diagnostic_required"
             return "prepare_private_self_use_candidate", "strict_live_diagnostic_with_replay_evidence"
         return "offline_shadow_replay", "offline_replay_not_strict"
     return "defer_to_local_mvp", "live_diagnostic_not_clean"
@@ -516,6 +518,21 @@ def _full_suite_blocker(stage_summary: dict[str, Any]) -> str | None:
         if family.startswith("offline_replay"):
             return family
     return None
+
+
+def _full_suite_strict_ready(stage_summary: dict[str, Any]) -> bool:
+    if stage_summary.get("full_suite_status") != "pass":
+        return False
+    result_kind_counts = _dict(stage_summary.get("result_kind_counts"))
+    if "pass_after_retry" in result_kind_counts:
+        return False
+    full_suite_result_kind = None
+    for item in _list(stage_summary.get("stages")):
+        stage = _dict(item)
+        if stage.get("stage_id") == "full_suite_live_diagnostic":
+            full_suite_result_kind = _optional_string(stage.get("result_kind"))
+            break
+    return full_suite_result_kind in {None, "strict_pass_first_attempt"}
 
 
 def _dict(value: Any) -> dict[str, Any]:
