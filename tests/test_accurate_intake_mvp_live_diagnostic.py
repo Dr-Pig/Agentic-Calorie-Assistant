@@ -148,6 +148,7 @@ def test_accurate_intake_live_full_suite_is_blocked_without_single_case_probe(tm
             "failure_layer": "diagnostic_ordering",
             "failure_family": "single_case_probe_required",
             "retry_policy_applied": False,
+            "result_kind": "blocked",
         }
     ]
 
@@ -347,6 +348,9 @@ def test_accurate_intake_live_case_timeout_writes_environment_blocker_artifact(t
         live_invoked=False,
         provider_timeout_ms=1,
         case_timeout_ms=1,
+        provider_request_retry_count=0,
+        stage="single_case_live_probe",
+        case_id="explicit_item_removal_seeded",
     )
 
     assert output_path.exists()
@@ -354,3 +358,71 @@ def test_accurate_intake_live_case_timeout_writes_environment_blocker_artifact(t
     assert set(report["summary"]["failure_families"]) == {"environment_or_provider_blocker"}
     assert all(case["case_contract_status"] == "timeout" for case in report["cases"])
     assert any(stage["failure_family"] == "environment_or_provider_blocker" for stage in report["stages"])
+
+
+def test_accurate_intake_live_provider_request_retry_pass_is_not_strict(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    class FlakyProvider:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def readiness(self) -> dict[str, object]:
+            return {"provider": "flaky", "configured": True}
+
+        async def complete_with_trace(self, **_: object) -> tuple[dict[str, object], dict[str, object]]:
+            self.calls += 1
+            if self.calls == 1:
+                raise TimeoutError("simulated provider timeout")
+            return {"ok": True}, {"provider_trace": {"simulated": True}}
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=FlakyProvider(),
+        provider_mode="fake_retry_contract_test",
+        live_invoked=False,
+        stage="provider_health_smoke",
+        provider_timeout_ms=50,
+        provider_request_retry_count=1,
+        provider_request_retry_backoff_ms=0,
+    )
+
+    stage = report["stages"][0]
+    assert stage["status"] == "pass"
+    assert stage["attempt_count"] == 2
+    assert stage["result_kind"] == "pass_after_retry"
+    assert stage["retry_policy_applied"] is True
+    assert report["summary"]["retried_pass_count"] == 1
+    assert report["summary"]["strict_pass_count"] == 0
+
+
+def test_accurate_intake_live_provider_request_timeout_after_retry_remains_blocker(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    class AlwaysTimeoutProvider:
+        def readiness(self) -> dict[str, object]:
+            return {"provider": "always-timeout", "configured": True}
+
+        async def complete_with_trace(self, **_: object) -> tuple[dict[str, object], dict[str, object]]:
+            raise TimeoutError("simulated provider timeout")
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=AlwaysTimeoutProvider(),
+        provider_mode="fake_retry_contract_test",
+        live_invoked=False,
+        stage="provider_health_smoke",
+        provider_timeout_ms=50,
+        provider_request_retry_count=1,
+        provider_request_retry_backoff_ms=0,
+    )
+
+    stage = report["stages"][0]
+    assert stage["status"] == "timeout"
+    assert stage["attempt_count"] == 2
+    assert stage["result_kind"] == "timeout_after_retry"
+    assert stage["retry_policy_applied"] is True
+    assert stage["failure_family"] == "environment_or_provider_blocker"
+    assert report["summary"]["provider_timeout_count"] == 1

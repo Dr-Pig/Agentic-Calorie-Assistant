@@ -190,6 +190,31 @@ def test_accurate_intake_live_decision_pack_blocks_invalid_stage_manifest() -> N
     assert "stage_manifest_source_0_readiness_claimed" in pack["input_integrity"]["blockers"]
 
 
+def test_accurate_intake_live_decision_pack_repeats_on_retry_dependent_manifest() -> None:
+    live_artifact = _artifact(strict_pass_count=5, repaired_pass_count=0)
+    stage_manifest = {
+        "artifact_type": "accurate_intake_mvp_live_stage_manifest",
+        "input_integrity": {"passed": True, "blockers": []},
+        "stages": [
+            {"stage_id": "provider_health_smoke", "status": "pass", "result_kind": "strict_pass_first_attempt"},
+            {"stage_id": "schema_contract_probe", "status": "pass", "result_kind": "strict_pass_first_attempt"},
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "pass_after_retry",
+                "retry_policy_applied": True,
+            },
+        ],
+    }
+
+    pack = build_accurate_intake_live_decision_pack(live_artifact, stage_manifest_artifact=stage_manifest)
+
+    assert pack["selected_option"] == "repeat_single_profile_diagnostic"
+    assert pack["selection_reason"] == "retry_dependent_evidence"
+    assert pack["stage_summary"]["has_retry_dependent_stage"] is True
+    assert pack["private_self_use_candidate_prepared"] is False
+
+
 def test_accurate_intake_live_decision_pack_stays_diagnostic_on_product_loop_contract_failure() -> None:
     pack = build_accurate_intake_live_decision_pack(
         _artifact(
