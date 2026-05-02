@@ -289,6 +289,71 @@ Hard rules:
 - during manager-input rewiring, `phase_a_manager_context_pack` is the forward structured manager-input path
 - during the same cutover, `resolved_state` may remain in provider payload for compatibility only, but it must be explicitly marked as compatibility and must not continue as primary structured context truth
 
+### Context Contract Lock
+
+The first multi-turn intake MVP context slice strengthens the existing `CurrentTurnContextV1` and `ManagerContextPack` surfaces. It must not introduce a parallel `ContextSnapshotV1` truth surface unless a future test proves the current contracts cannot safely carry the required bounded fields.
+
+Allowed bounded context fields:
+
+- `current_budget_snapshot`
+- `active_body_plan_snapshot`
+- `recent_item_targets`
+- `target_resolution_posture`
+- `context_freshness`
+
+These fields are read-only assembled evidence. They may help the manager interpret the current turn, select among candidate targets, or explain budget posture, but they do not own product truth.
+
+Truth and authority remain:
+
+- meal and item identity: canonical `MealThread` / active `MealVersion` / active item records
+- budget math and remaining budget: budget/body read models
+- mutation legality: deterministic guards and Phase C UnitOfWork
+- transcript/session state: support evidence only
+
+Hard lock:
+
+- context pack must not compute budget truth
+- context pack must not infer or invent target ids
+- context pack must not authorize mutation
+- multi-item ambiguity must remain explicit candidate/ambiguity evidence, not auto-selection
+
+### Runtime Assembly Lock
+
+The second multi-turn intake MVP context slice may connect the contract fields to runtime read models, but only as read-only assembly:
+
+- `resolve_intake_state` may enrich recent committed meal summaries with active item candidate metadata.
+- single-item meals may expose stable `meal_item_id` and `canonical_name`.
+- multi-item meals may expose `item_candidates` and `item_resolution_source: ambiguous_active_items`.
+- multi-item meals must not expose a selected item target or mutation-authoritative `meal_item_id`.
+- budget/body snapshots may carry freshness, no-plan posture, overshoot posture, and ledger presence from the owning read models.
+- `current_turn_context_assembler` must copy resolver-provided budget/body values; it must not recompute consumed, remaining, active plan, or ledger truth.
+
+Stop conditions:
+
+- schema migration is required
+- item target metadata is unavailable without changing persistence truth
+- budget snapshot can only be produced by recomputing truth in the assembler
+- target ambiguity requires a product decision
+- manager runtime mutation behavior would need to change
+
+### Policy-Aware Visibility Lock
+
+The third multi-turn intake MVP context slice may promote selected read-only context fields from `available_if_needed` into `manager_context` when the current turn already has a structured posture:
+
+- follow-up / correction posture may promote `recent_item_targets`, `target_resolution_posture`, `context_freshness`, and `session_atomic_blocks`
+- budget-query posture may promote `active_body_plan_snapshot`, `context_freshness`, and `session_atomic_blocks` only when the caller explicitly requests that promotion mode
+- default chat context must not keyword-route budget queries or infer new product semantics just to promote fields
+
+Promotion is visibility only. It must not:
+
+- upgrade `final_action`
+- authorize mutation
+- bypass deterministic guards
+- choose among multi-item candidates
+- move raw transcript into default manager context
+
+Session atomic blocks are support evidence only. They may preserve current-turn continuity for clarification, pending follow-up, or target references, but canonical meal state, budget/body read models, deterministic guards, and Phase C UnitOfWork always win on contradiction.
+
 Wave 1 remains meal-first:
 
 - primary target objects are `meal_thread`, `meal_item`, and intake pending-followup targets

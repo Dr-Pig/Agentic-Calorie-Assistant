@@ -50,8 +50,13 @@ def load_current_budget_view(
     consumed_protein = sum(int(version.protein_g or 0) for _, version in meal_rows)
     consumed_carbs = sum(int(version.carb_g or 0) for _, version in meal_rows)
     consumed_fat = sum(int(version.fat_g or 0) for _, version in meal_rows)
+    active_consumed_kcal = sum(int(version.total_kcal or 0) for _, version in meal_rows)
+    budget_kcal = int(ledger.budget_kcal or 0) if ledger is not None else 0
+    adjustment_kcal = int(ledger.adjustment_kcal or 0) if ledger is not None else 0
+    consumed_kcal = active_consumed_kcal if ledger is not None else 0
+    remaining_kcal = budget_kcal - consumed_kcal - adjustment_kcal if ledger is not None else 0
     macro_guard = evaluate_macro_display(
-        estimated_kcal=ledger.consumed_kcal if ledger is not None else 0,
+        estimated_kcal=consumed_kcal,
         protein_g=consumed_protein,
         carb_g=consumed_carbs,
         fat_g=consumed_fat,
@@ -60,15 +65,15 @@ def load_current_budget_view(
     return CurrentBudgetView(
         user_id=user_id,
         local_date=local_date,
-        budget_kcal=ledger.budget_kcal if ledger is not None else 0,
-        consumed_kcal=ledger.consumed_kcal if ledger is not None else 0,
+        budget_kcal=budget_kcal,
+        consumed_kcal=consumed_kcal,
         consumed_protein=consumed_protein,
         consumed_carbs=consumed_carbs,
         consumed_fat=consumed_fat,
         show_macro=macro_guard.display_status == "show",
         macro_guard_reason=macro_guard.guard_reason,
-        adjustment_kcal=ledger.adjustment_kcal if ledger is not None else 0,
-        remaining_kcal=ledger.remaining_kcal if ledger is not None else 0,
+        adjustment_kcal=adjustment_kcal,
+        remaining_kcal=remaining_kcal,
         active_meal_count=len(meals),
         meals=meals,
         last_recomputed_at=ledger.last_recomputed_at if ledger is not None else None,

@@ -44,6 +44,17 @@ def _resolved_state() -> object:
                 "target_resolution_source": "pending_followup_state",
                 "correction_confidence": "high",
             },
+            "CURRENT_BUDGET": {
+                "budget_kcal": 1800,
+                "consumed_kcal": 600,
+                "remaining_kcal": 1200,
+                "active_meal_count": 1,
+            },
+            "ACTIVE_BODY_PLAN": {
+                "body_plan_id": 5,
+                "goal_type": "lose_weight",
+                "daily_budget_kcal": 1800,
+            },
             "SESSION_SUMMARY": {
                 "latest_assistant_turns": ["What size was it?"],
             },
@@ -134,7 +145,15 @@ async def test_run_intake_manager_sends_structured_phase_a_payload_to_provider()
         "active_meal_thread_ref",
         "pending_followup",
         "candidate_attachment_targets",
+        "current_budget_snapshot",
     ]
+    assert payload["phase_a_manager_context_pack"]["manager_context"]["current_budget_snapshot"]["read_only"] is True
+    assert (
+        payload["phase_a_manager_context_pack"]["manager_context"]["current_budget_snapshot"]["truth_owner"]
+        == "budget_read_model"
+    )
+    assert "mutation_authority" not in payload["phase_a_manager_context_pack"]["manager_context"]["current_budget_snapshot"]
+    assert payload["phase_a_manager_context_pack"]["available_if_needed"]["active_body_plan_snapshot"]["read_only"] is True
     assert "recent_committed_meal_refs" not in payload["phase_a_manager_context_pack"]["manager_context"]
     assert payload["phase_a_manager_context_pack"]["available_if_needed"]["recent_committed_meal_refs"][0]["meal_thread_id"] == 77
     assert payload["phase_a_surface_mode"] == "chat_freeform"
@@ -143,6 +162,33 @@ async def test_run_intake_manager_sends_structured_phase_a_payload_to_provider()
     assert payload["resolved_state_role"] == "compatibility_legacy"
     assert result.trace["manager_rounds"][0]["phase_a_input"]["phase_a_manager_context_pack_role"] == "primary_structured_context"
     assert result.trace["manager_rounds"][0]["phase_a_input"]["resolved_state_role"] == "compatibility_legacy"
+    assert "injected_fields" in result.trace["manager_rounds"][0]["phase_a_input"]
+    assert "promotion_reasons" in result.trace["manager_rounds"][0]["phase_a_input"]
+    assert "raw_transcript" in result.trace["manager_rounds"][0]["phase_a_input"]["trace_only_inventory"]
+
+
+@pytest.mark.asyncio
+async def test_promoted_context_visibility_does_not_change_provider_final_action() -> None:
+    resolved_state = _resolved_state()
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="half sugar",
+        resolved_state=resolved_state,
+    )
+    provider = _FakeProvider()
+
+    result = await run_intake_manager(
+        provider=provider,
+        raw_user_input="half sugar",
+        resolved_state=resolved_state,
+        current_turn_context=current_turn_context,
+        manager_context_pack=build_manager_context_pack(current_turn_context=current_turn_context),
+        available_tools=("read_day_budget",),
+    )
+
+    manager_context = provider.calls[0]["user_payload"]["phase_a_manager_context_pack"]["manager_context"]
+    assert "target_resolution_posture" in manager_context
+    assert manager_context["target_resolution_posture"]["mutation_authority"] is False
+    assert result.final_action == "no_commit"
 
 
 @pytest.mark.asyncio

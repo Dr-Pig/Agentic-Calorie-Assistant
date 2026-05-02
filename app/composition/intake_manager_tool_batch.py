@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.shared.contracts.correction_target import validate_correction_target_ref
+
 from app.composition.intake_estimation_tools import estimate_nutrition_tool
 from app.composition.intake_read_tools import compare_against_budget_tool
 from app.nutrition.application.evidence_eligibility import classify_query_family, summarize_eligibility_results
@@ -111,10 +113,7 @@ def contextualized_query_for_estimation(*, raw_user_input: str, state_before: An
 
 
 def correction_target_resolved(correction_target: dict[str, Any]) -> bool:
-    return any(
-        correction_target.get(key) is not None
-        for key in ("meal_thread_id", "meal_version_id", "meal_id", "target_object_id")
-    )
+    return validate_correction_target_ref(correction_target).get("resolved") is True
 
 
 def nutrition_tool_output(

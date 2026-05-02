@@ -131,6 +131,26 @@ def resolve_active_budget_kcal(
     return 0
 
 
+def should_refresh_day_budget_ledger(
+    db: Session,
+    *,
+    user_id: int,
+    local_date: str,
+    explicit_budget_kcal: int | None = None,
+) -> bool:
+    if explicit_budget_kcal is not None:
+        return True
+    if load_active_body_plan_record(db, user_id=user_id) is not None:
+        return True
+    existing_ledger = db.execute(
+        select(DayBudgetLedgerRecord).where(
+            DayBudgetLedgerRecord.user_id == user_id,
+            DayBudgetLedgerRecord.local_date == local_date,
+        )
+    ).scalar_one_or_none()
+    return existing_ledger is not None
+
+
 def ensure_body_plan_skeleton(
     db: Session,
     *,
@@ -164,6 +184,7 @@ def recompute_day_budget_ledger(
     user_id: int,
     local_date: str,
     budget_kcal: int | None = None,
+    commit: bool = True,
 ) -> DayBudgetLedgerRecord:
     resolved_budget_kcal = resolve_active_budget_kcal(
         db,
@@ -209,6 +230,8 @@ def recompute_day_budget_ledger(
     ledger.adjustment_kcal = adjustments
     ledger.remaining_kcal = resolved_budget_kcal - consumed - adjustments
     ledger.last_recomputed_at = datetime.now()
-    db.commit()
-    db.refresh(ledger)
+    db.flush()
+    if commit:
+        db.commit()
+        db.refresh(ledger)
     return ledger

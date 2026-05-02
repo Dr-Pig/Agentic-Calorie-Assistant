@@ -238,12 +238,46 @@ def test_commit_boundary_preflight_allows_correction_with_resolved_target() -> N
         payload=_payload(estimated_kcal=420),
         manager_final_action="correction_applied",
         active_body_plan_present=True,
-        correction_target={"target_resolution_source": "history_expansion", "meal_thread_id": 77},
+        correction_target={"target_resolution_source": "history_expansion", "meal_thread_id": 77, "meal_item_id": 8801},
     )
 
     assert result.blocked is False
     assert result.mutation_effect_class == "correction_persistence"
     assert result.correction_target_resolved is True
+
+
+def test_commit_boundary_preflight_blocks_correction_with_thread_but_missing_item_target() -> None:
+    result = run_commit_boundary_preflight(
+        payload=_payload(estimated_kcal=420),
+        manager_final_action="correction_applied",
+        active_body_plan_present=True,
+        correction_target={"target_resolution_source": "history_expansion", "meal_thread_id": 77},
+    )
+
+    assert result.blocked is True
+    assert result.correction_target_resolved is False
+    assert result.trace_payload()["correction_target_validation"]["failure_family"] == "correction_item_target_missing"
+
+
+def test_commit_boundary_preflight_traces_canonical_name_mismatch_without_using_name_as_authority() -> None:
+    result = run_commit_boundary_preflight(
+        payload=_payload(estimated_kcal=420),
+        manager_final_action="correction_applied",
+        active_body_plan_present=True,
+        correction_target={
+            "target_resolution_source": "history_expansion",
+            "meal_thread_id": 77,
+            "meal_item_id": 8801,
+            "canonical_name": "pearl milk tea",
+            "observed_canonical_name": "chicken rice",
+        },
+    )
+
+    assert result.blocked is True
+    assert result.correction_target_resolved is False
+    trace = result.trace_payload()["correction_target_validation"]
+    assert trace["failure_family"] == "correction_canonical_name_mismatch"
+    assert trace["truth_owner"] == "meal_item_id"
 
 
 class _Provider:
