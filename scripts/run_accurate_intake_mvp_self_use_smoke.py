@@ -22,10 +22,12 @@ from app.database import get_or_create_user
 from app.intake.infrastructure.models import MealItemRecord
 from app.models import Base
 from app.schemas import CommitRequestCandidate, MealItemPayload
+from app.shared.infra.models import User
 
 DEFAULT_ARTIFACT_PATH = ROOT / "artifacts" / "accurate_intake_mvp_self_use_smoke.json"
 DEFAULT_DB_PATH = ROOT / "artifacts" / "accurate_intake_mvp_self_use_smoke.sqlite3"
 DEFAULT_SCENARIO_WALL_ARTIFACT_PATH = ROOT / "artifacts" / "accurate_intake_mvp_self_use_scenario_wall.json"
+DEFAULT_REOPEN_CONTINUITY_ARTIFACT_PATH = ROOT / "artifacts" / "accurate_intake_mvp_reopen_continuity.json"
 
 _NOT_CLAIMING = [
     "product_ready",
@@ -247,6 +249,10 @@ def _ledger_event_count(db: Session, *, user_id: int, local_date: str) -> int:
     )
 
 
+def _lookup_user(db: Session, user_external_id: str) -> User | None:
+    return db.query(User).filter(User.user_id == user_external_id).first()
+
+
 def _first_item_id(db: Session, *, meal_version_id: int, name: str | None = None) -> int:
     query = select(MealItemRecord).where(MealItemRecord.meal_version_id == meal_version_id)
     if name is not None:
@@ -325,6 +331,158 @@ def _operator_transcript(scenarios: list[dict[str, Any]]) -> dict[str, Any]:
             "scenario.final_debug_surface.model.same_truth",
         ],
         "scenario_summaries": [_operator_scenario_summary(scenario) for scenario in scenarios],
+    }
+
+
+_REOPEN_EXPECTATIONS: list[dict[str, Any]] = [
+    {
+        "scenario_id": "chinese_chicken_rice_correction_removal_debug",
+        "user_external_id": "self-use-v2-chicken",
+        "consumed_kcal": 320,
+        "remaining_kcal": 1480,
+        "ledger_event_count": 3,
+        "active_item_names": ["雞肉飯"],
+        "removed_item_names": ["湯"],
+    },
+    {
+        "scenario_id": "bubble_milk_tea_refinement",
+        "user_external_id": "self-use-v2-bubble-tea",
+        "consumed_kcal": 520,
+        "remaining_kcal": 1280,
+        "ledger_event_count": 2,
+        "active_item_names": ["珍珠奶茶"],
+        "removed_item_names": [],
+    },
+    {
+        "scenario_id": "luwei_draft_to_listed_basket",
+        "user_external_id": "self-use-v2-luwei",
+        "consumed_kcal": 420,
+        "remaining_kcal": 1380,
+        "ledger_event_count": 1,
+        "active_item_names": ["豆干", "海帶", "貢丸"],
+        "removed_item_names": [],
+    },
+    {
+        "scenario_id": "query_only_today_consumed",
+        "user_external_id": "self-use-v2-query",
+        "consumed_kcal": 500,
+        "remaining_kcal": 1300,
+        "ledger_event_count": 1,
+        "active_item_names": ["雞腿便當"],
+        "removed_item_names": [],
+    },
+    {
+        "scenario_id": "no_plan_consumed_without_target_or_remaining",
+        "user_external_id": "self-use-v2-no-plan",
+        "consumed_kcal": 420,
+        "remaining_kcal": None,
+        "ledger_event_count": 1,
+        "active_item_names": ["三明治"],
+        "removed_item_names": [],
+        "today_status": "onboarding_required",
+    },
+]
+
+
+def _active_item_names(debug_payload: dict[str, Any]) -> list[str]:
+    model = dict(debug_payload.get("model") or {})
+    meal_threads = list(model.get("meal_threads") or [])
+    if not meal_threads:
+        return []
+    active_version = dict(dict(meal_threads[0]).get("active_version") or {})
+    return [str(item.get("name")) for item in list(active_version.get("items") or [])]
+
+
+def _removed_item_names(debug_payload: dict[str, Any]) -> list[str]:
+    model = dict(debug_payload.get("model") or {})
+    correction_history = list(model.get("correction_history") or [])
+    if not correction_history:
+        return []
+    return list(dict(correction_history[-1]).get("removed_item_names") or [])
+
+
+def _reopen_continuity_scenario(db: Session, *, expectation: dict[str, Any], local_date: str) -> dict[str, Any]:
+    user_external_id = str(expectation["user_external_id"])
+    user = _lookup_user(db, user_external_id)
+    debug_surface = _debug(db, user_external_id=user_external_id, local_date=local_date)
+    state_after = _state_summary(debug_surface)
+    today = dict(state_after.get("today_summary") or {})
+    active_item_names = _active_item_names(debug_surface)
+    removed_item_names = _removed_item_names(debug_surface)
+    ledger_count = _ledger_event_count(db, user_id=user.id, local_date=local_date) if user is not None else 0
+    blockers: list[str] = []
+    if user is None:
+        blockers.append("missing_reopened_user")
+    if today.get("consumed_kcal") != expectation.get("consumed_kcal"):
+        blockers.append("consumed_kcal_reopen_mismatch")
+    if today.get("remaining_kcal") != expectation.get("remaining_kcal"):
+        blockers.append("remaining_kcal_reopen_mismatch")
+    if expectation.get("today_status") and today.get("status") != expectation.get("today_status"):
+        blockers.append("today_status_reopen_mismatch")
+    if ledger_count != expectation.get("ledger_event_count"):
+        blockers.append("ledger_event_count_reopen_mismatch")
+    if active_item_names != expectation.get("active_item_names"):
+        blockers.append("active_item_names_reopen_mismatch")
+    if removed_item_names != expectation.get("removed_item_names"):
+        blockers.append("removed_item_names_reopen_mismatch")
+    if state_after.get("same_truth_status") != "pass":
+        blockers.append("same_truth_reopen_failed")
+    return {
+        "scenario_id": expectation["scenario_id"],
+        "user_external_id": user_external_id,
+        "status": "pass" if not blockers else "fail",
+        "blockers": blockers,
+        "read_only": True,
+        "mutation_applied": False,
+        "state_after_reopen": state_after,
+        "ledger_event_count_after_reopen": ledger_count,
+        "active_item_names_after_reopen": active_item_names,
+        "removed_item_names_after_reopen": removed_item_names,
+        "debug_surface": debug_surface,
+    }
+
+
+def build_self_use_reopen_continuity_report(
+    *,
+    db_path: Path,
+    local_date: str = "2026-05-02",
+) -> dict[str, Any]:
+    SessionLocal = _session_factory(db_path)
+    with SessionLocal() as db:
+        scenarios = [
+            _reopen_continuity_scenario(db, expectation=expectation, local_date=local_date)
+            for expectation in _REOPEN_EXPECTATIONS
+        ]
+    blockers = [
+        f"{scenario['scenario_id']}:{blocker}"
+        for scenario in scenarios
+        for blocker in list(scenario.get("blockers") or [])
+    ]
+    ledger_event_count_total = sum(int(scenario.get("ledger_event_count_after_reopen") or 0) for scenario in scenarios)
+    return {
+        "artifact_schema_version": "1.0",
+        "continuity_id": "accurate_intake_mvp_reopen_continuity_v1",
+        "claim_scope": "local_deterministic_mvp_gate",
+        "status": "pass" if not blockers else "fail",
+        "blockers": blockers,
+        "generated_at_utc": datetime.now(UTC).isoformat(),
+        "not_claiming": list(_NOT_CLAIMING),
+        "read_only": True,
+        "mutation_applied": False,
+        "product_readiness_claimed": False,
+        "live_llm_invoked": False,
+        "web_tavily_invoked": False,
+        "production_db_used": False,
+        "user_facing_rollout": False,
+        "db_mode": "reopen_existing_local_sqlite",
+        "local_date": local_date,
+        "summary": {
+            "scenario_count": len(scenarios),
+            "pass_count": sum(1 for scenario in scenarios if scenario.get("status") == "pass"),
+            "fail_count": sum(1 for scenario in scenarios if scenario.get("status") != "pass"),
+            "ledger_event_count_total": ledger_event_count_total,
+        },
+        "scenarios": scenarios,
     }
 
 
@@ -846,12 +1004,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", default=str(DEFAULT_ARTIFACT_PATH))
     parser.add_argument("--db-path", default=str(DEFAULT_DB_PATH))
     parser.add_argument("--scenario-wall-v2", action="store_true")
+    parser.add_argument("--reopen-continuity", action="store_true")
     parser.add_argument("--user-id", default="self-use-smoke-user")
     parser.add_argument("--local-date", default="2026-05-02")
     parser.add_argument("--keep-db", action="store_true")
     args = parser.parse_args(argv)
 
-    if args.scenario_wall_v2:
+    if args.scenario_wall_v2 and args.reopen_continuity:
+        raise SystemExit("--scenario-wall-v2 and --reopen-continuity cannot be combined")
+    if args.reopen_continuity:
+        report = build_self_use_reopen_continuity_report(
+            db_path=Path(args.db_path),
+            local_date=args.local_date,
+        )
+        output_path = Path(args.output)
+        if output_path == DEFAULT_ARTIFACT_PATH:
+            output_path = DEFAULT_REOPEN_CONTINUITY_ARTIFACT_PATH
+    elif args.scenario_wall_v2:
         report = build_self_use_scenario_wall_report(
             db_path=Path(args.db_path),
             local_date=args.local_date,
