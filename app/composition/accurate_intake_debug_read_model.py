@@ -114,6 +114,31 @@ def _correction_history(db: Session, *, user_id: int, local_date: str) -> list[d
     return history
 
 
+def _pending_drafts(db: Session, *, user_id: int, local_date: str) -> list[dict[str, Any]]:
+    versions = db.execute(
+        select(MealVersionRecord)
+        .join(MealThreadRecord, MealThreadRecord.id == MealVersionRecord.meal_thread_id)
+        .where(
+            MealThreadRecord.user_id == user_id,
+            MealVersionRecord.local_date == local_date,
+            MealVersionRecord.version_status != "superseded",
+            MealVersionRecord.resolution_status.in_(("candidate_meal", "draft_unresolved")),
+        )
+        .order_by(MealVersionRecord.id.asc())
+    ).scalars().all()
+    return [
+        {
+            "meal_thread_id": version.meal_thread_id,
+            "meal_version_id": version.id,
+            "title": version.meal_title,
+            "resolution_status": version.resolution_status,
+            "total_kcal": int(version.total_kcal or 0),
+            "read_only": True,
+        }
+        for version in versions
+    ]
+
+
 def _ledger_audit_events(db: Session, *, user_id: int, local_date: str) -> list[dict[str, Any]]:
     entries = db.execute(
         select(LedgerEntryRecord)
@@ -158,6 +183,7 @@ def build_accurate_intake_debug_read_model(
             "active_meal_count": int(current_budget.active_meal_count or 0),
         },
         "meal_threads": meal_threads,
+        "pending_drafts": _pending_drafts(db, user_id=user_id, local_date=local_date),
         "correction_history": _correction_history(db, user_id=user_id, local_date=local_date),
         "ledger_audit_events": _ledger_audit_events(db, user_id=user_id, local_date=local_date),
         "same_truth": {
