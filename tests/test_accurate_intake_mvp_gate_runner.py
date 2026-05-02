@@ -15,7 +15,7 @@ def test_accurate_intake_mvp_gate_manifest_declares_local_deterministic_scope() 
     manifest = verify_accurate_intake_mvp.load_gate_manifest(MANIFEST_PATH)
 
     assert manifest["gate_id"] == "accurate_intake_mvp_deterministic_v1"
-    assert manifest["gate_version"] == "1.5"
+    assert manifest["gate_version"] == "1.6"
     assert manifest["claim_scope"] == "local_deterministic_mvp_gate"
     assert manifest["evidence_scope"] == "deterministic_regression_evidence"
     assert manifest["live_llm_required"] is False
@@ -35,6 +35,7 @@ def test_accurate_intake_mvp_gate_manifest_declares_local_deterministic_scope() 
         "food_knowledge_required_group_pass",
         "local_persistence_debug_surface_required_group_pass",
         "manager_style_active_runtime_smoke_required_group_pass",
+        "active_api_route_smoke_required_group_pass",
     ]
     assert manifest["semantic_owner"]["food_knowledge"] == "evidence_support_only"
     assert manifest["llm_deterministic_boundary"]["truth_owner"] == "deterministic"
@@ -53,6 +54,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "food_knowledge_mvp",
         "local_persistence_and_debug_surface",
         "manager_style_active_runtime_smoke",
+        "active_api_route_smoke",
     ]
     flat_args = " ".join(arg for group in plan.groups for command in group.commands for arg in command)
     for expected_test in (
@@ -68,6 +70,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_accurate_intake_debug_surface.py",
         "tests/test_accurate_intake_mvp_self_use_smoke.py",
         "tests/test_accurate_intake_mvp_manager_style_smoke.py",
+        "tests/test_accurate_intake_mvp_api_smoke.py",
     ):
         assert expected_test in flat_args
 
@@ -115,9 +118,10 @@ def test_gate_runner_returns_machine_readable_group_summary(monkeypatch, capsys)
         "food_knowledge_mvp",
         "local_persistence_and_debug_surface",
         "manager_style_active_runtime_smoke",
+        "active_api_route_smoke",
     ]
     assert {group["requirement"] for group in output["groups"]} == {"required"}
-    assert len(calls) == 7
+    assert len(calls) == 8
 
 
 def test_gate_runner_writes_artifact_output(monkeypatch, tmp_path, capsys) -> None:
