@@ -13,6 +13,14 @@
     "food_knowledge_can_decide_logged_or_draft",
     "live_food_search_ready"
   ],
+  "packet_guard_policy": {
+    "seed_authority": "candidate_evidence_only",
+    "seed_can_decide_logged_draft_or_no_mutation": false,
+    "accepted_packet_required_for_synthesis": true,
+    "rejected_candidate_citable_as_evidence": false,
+    "no_accepted_packet_outcome": "insufficiency_or_clarify",
+    "final_disposition_owner": "b2_final_mapping"
+  },
   "coverage": [
     {
       "ux_category": "茶葉蛋",
