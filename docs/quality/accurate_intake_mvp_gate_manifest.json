@@ -1,0 +1,55 @@
+{
+  "gate_id": "accurate_intake_mvp_deterministic_v1",
+  "claim_scope": "local_deterministic_mvp_gate",
+  "live_llm_required": false,
+  "web_tavily_required": false,
+  "schema_migration_required": false,
+  "not_claiming": [
+    "product_ready",
+    "rollout_ready",
+    "live_llm_ready",
+    "web_ready",
+    "production_db_ready"
+  ],
+  "required_groups": [
+    {
+      "group_id": "turn2_replay_coverage",
+      "pytest": [
+        "tests/test_turn2_mvp_ux_coverage.py",
+        "tests/test_v2_benchmark_shadow_eval.py"
+      ]
+    },
+    {
+      "group_id": "multi_turn_context",
+      "pytest": [
+        "tests/test_accurate_intake_mvp_regression_wall.py",
+        "tests/test_phase_a_current_turn_context.py",
+        "tests/test_phase_a_manager_payload_wiring.py"
+      ]
+    },
+    {
+      "group_id": "correction_and_no_plan",
+      "pytest": [
+        "tests/test_correction_target_reference_state.py",
+        "tests/test_correction_commit_uow_adapter.py",
+        "tests/test_no_plan_ledger_policy.py"
+      ]
+    },
+    {
+      "group_id": "ledger_truth_and_read_model",
+      "pytest": [
+        "tests/test_budget_ledger_truth_boundary.py",
+        "tests/test_phase_c_same_truth_gate.py",
+        "tests/test_product_loop_mvp_read_model.py"
+      ]
+    }
+  ],
+  "deferred_capabilities": [
+    "food_knowledge_mvp_expansion",
+    "read_only_debug_surface_shell",
+    "live_llm_canary",
+    "web_tavily",
+    "polished_ui",
+    "production_db"
+  ]
+}
