@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from scripts.build_accurate_intake_mvp_live_stage_manifest import (
+    DEFAULT_STAGE_ARTIFACTS,
     build_accurate_intake_live_stage_manifest,
     write_accurate_intake_live_stage_manifest,
 )
@@ -13,6 +14,9 @@ def _live_artifact(
     *,
     stage_id: str,
     status: str,
+    case_ids: list[str] | None = None,
+    result_kind: str = "strict_pass_first_attempt",
+    retry_policy_applied: bool = False,
     failure_layer: str | None = None,
     failure_family: str | None = None,
     overclaim: bool = False,
@@ -44,7 +48,9 @@ def _live_artifact(
                 "timeout_budget_ms": 180000,
                 "failure_layer": failure_layer,
                 "failure_family": failure_family,
-                "retry_policy_applied": False,
+                "retry_policy_applied": retry_policy_applied,
+                "result_kind": result_kind,
+                "case_ids": case_ids or [],
             }
         ],
         "summary": {
@@ -139,3 +145,68 @@ def test_live_stage_manifest_preserves_retry_result_kind(tmp_path: Path) -> None
 
     assert manifest["stages"][0]["result_kind"] == "pass_after_retry"
     assert manifest["stage_summary"]["has_retry_dependent_stage"] is True
+
+
+def test_live_stage_manifest_default_sources_match_runbook_stage_artifacts() -> None:
+    assert [path.name for path in DEFAULT_STAGE_ARTIFACTS] == [
+        "accurate_intake_mvp_live_diagnostic_provider_health.json",
+        "accurate_intake_mvp_live_diagnostic_schema_probe.json",
+        "accurate_intake_mvp_live_diagnostic_fake_runtime_gate.json",
+        "accurate_intake_mvp_live_diagnostic_seeded_removal.json",
+        "accurate_intake_mvp_live_diagnostic_single_case.json",
+    ]
+
+
+def test_live_stage_manifest_summarizes_required_single_case_coverage_and_result_kinds(tmp_path: Path) -> None:
+    sources = [
+        ("health.json", _live_artifact(stage_id="provider_health_smoke", status="pass")),
+        ("schema.json", _live_artifact(stage_id="schema_contract_probe", status="pass")),
+        ("fake.json", _live_artifact(stage_id="fake_provider_active_runtime_gate", status="pass")),
+        (
+            "seeded.json",
+            _live_artifact(
+                stage_id="single_case_live_probe",
+                status="pass",
+                case_ids=["explicit_item_removal_seeded"],
+            ),
+        ),
+        (
+            "single.json",
+            _live_artifact(
+                stage_id="single_case_live_probe",
+                status="pass",
+                case_ids=["chinese_chicken_rice_correction_removal_debug"],
+                result_kind="pass_after_retry",
+                retry_policy_applied=True,
+            ),
+        ),
+    ]
+    paths: list[Path] = []
+    for filename, payload in sources:
+        path = tmp_path / filename
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        paths.append(path)
+
+    manifest = build_accurate_intake_live_stage_manifest(paths)
+
+    summary = manifest["stage_summary"]
+    assert summary["missing_required_stage_ids"] == []
+    assert summary["missing_required_single_case_ids"] == []
+    assert summary["has_missing_required_stage"] is False
+    assert summary["result_kind_counts"] == {
+        "strict_pass_first_attempt": 4,
+        "pass_after_retry": 1,
+    }
+    assert summary["has_retry_dependent_stage"] is True
+    assert summary["single_case_probe_results"] == [
+        {
+            "case_ids": ["explicit_item_removal_seeded"],
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+        },
+        {
+            "case_ids": ["chinese_chicken_rice_correction_removal_debug"],
+            "status": "pass",
+            "result_kind": "pass_after_retry",
+        },
+    ]
