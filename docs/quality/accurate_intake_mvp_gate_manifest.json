@@ -1,6 +1,9 @@
 {
   "gate_id": "accurate_intake_mvp_deterministic_v1",
+  "gate_version": "1.1",
+  "gate_mode": "deterministic_regression_wall",
   "claim_scope": "local_deterministic_mvp_gate",
+  "evidence_scope": "deterministic_regression_evidence",
   "live_llm_required": false,
   "web_tavily_required": false,
   "schema_migration_required": false,
@@ -11,6 +14,38 @@
     "web_ready",
     "production_db_ready"
   ],
+  "forbidden_claims": [
+    "product_ready",
+    "rollout_ready",
+    "live_llm_ready",
+    "web_ready",
+    "production_db_ready"
+  ],
+  "next_promotion_criteria": [
+    "phase_c_gate_pass",
+    "accurate_intake_mvp_gate_pass",
+    "food_knowledge_optional_group_pass",
+    "debug_surface_same_truth_group_pass"
+  ],
+  "semantic_owner": {
+    "user_intent": "manager_or_llm_structured_decision",
+    "food_knowledge": "evidence_support_only",
+    "routing_or_workflow_effect": "manager_contract",
+    "mutation_legality": "deterministic_guard_and_phase_c_uow",
+    "persistence_truth": "canonical_meal_budget_body_models"
+  },
+  "llm_deterministic_boundary": {
+    "decision_surface": "accurate_intake_mvp_deterministic_gate",
+    "truth_owner": "deterministic",
+    "deterministic_role": "validate_regression_wall",
+    "llm_role": "none",
+    "do_not_override": [
+      "manager_final_action",
+      "mutation_authority",
+      "ledger_truth",
+      "canonical_meal_thread_truth"
+    ]
+  },
   "required_groups": [
     {
       "group_id": "turn2_replay_coverage",
@@ -44,8 +79,22 @@
       ]
     }
   ],
+  "optional_groups": [
+    {
+      "group_id": "food_knowledge_mvp",
+      "pytest": [
+        "tests/test_food_knowledge_mvp_coverage.py",
+        "tests/test_wave1_phase_b2_small_anchor_store.py",
+        "tests/test_wave1_phase_b2_exact_item_card_lookup.py"
+      ]
+    }
+  ],
+  "deferred_groups": [
+    "debug_surface_same_truth",
+    "local_persistence_self_use",
+    "limited_live_canary"
+  ],
   "deferred_capabilities": [
-    "food_knowledge_mvp_expansion",
     "read_only_debug_surface_shell",
     "live_llm_canary",
     "web_tavily",
