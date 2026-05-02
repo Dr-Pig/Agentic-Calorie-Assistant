@@ -98,6 +98,14 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY = {
         "final_action": "correction_applied",
         "mutation_intent_candidate": "correction_write",
     },
+    "explicit_item_removal_rule": {
+        "semantic_intent": "correct_meal",
+        "workflow_family": "correction",
+        "operation": "remove_item",
+        "manager_role": "propose_target_or_call_resolve_correction_target",
+        "runtime_role": "validate_unique_writable_target",
+        "forbidden": ["hard_delete", "whole_meal_undo", "raw_text_deterministic_routing"],
+    },
     "composition_unknown_rule": {
         "workflow_effect": "ask_followup",
         "final_action": "ask_followup",
@@ -122,6 +130,8 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY_SUMMARY = (
     "if no current estimate_nutrition tool result exists, call estimate_nutrition before final commit, "
     "correction_applied, or overshoot_note; query-only nutrition questions must answer_only with no mutation; "
     "correct_meal must update the prior target with correction_applied/correction_write, not commit as a new meal; "
+    "explicit item removal is a correction-family turn: propose a target item or call resolve_correction_target, "
+    "then let runtime validate target uniqueness/writeability; do not hard-delete or undo a whole meal; "
     "self-selected basket or composition-unknown meals must ask_followup/no_mutation until components are known "
     "and must not call estimate_nutrition while composition is unknown; "
     "refinement_not_commit_gate and size_clarification follow-up postures require a followup_question."
@@ -197,6 +207,34 @@ FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES = [
             },
         },
     },
+    {
+        "name": "explicit_item_removal_as_correction",
+        "valid": {
+            "manager_action": "call_tools",
+            "tool_calls": [
+                {
+                    "name": "resolve_correction_target",
+                    "arguments": {
+                        "canonical_name": "target_item_name",
+                        "target_proposal_source": "manager_structured_output",
+                    },
+                }
+            ],
+            "semantic_decision": {
+                "current_turn_intent": "correct_meal",
+                "final_action_candidate": "correction_applied",
+                "mutation_intent_candidate": "correction_write",
+            },
+        },
+        "invalid": {
+            "manager_action": "final",
+            "final_action": "commit",
+            "semantic_decision": {
+                "current_turn_intent": "correct_meal",
+                "mutation_intent_candidate": "canonical_write",
+            },
+        },
+    },
 ]
 
 
@@ -248,6 +286,10 @@ def founder_live_manager_tool_description() -> str:
         "final_action answer_only, and mutation_intent_candidate no_mutation. "
         "For correct_meal, use correction_applied with correction_write rather than a new commit, and call "
         "estimate_nutrition first when current-loop nutrition evidence is missing. "
+        "For explicit item removal, treat it as correct_meal/correction_write: propose the target item in "
+        "target_attachment or call resolve_correction_target with structured target arguments, then allow runtime "
+        "to validate uniqueness/writeability; do not hard-delete, whole-meal undo, or rely on deterministic raw text "
+        "routing. "
         "Do not use ask_followup or no_commit as a substitute when semantic_decision.final_action_candidate "
         "is commit, correction_applied, or overshoot_note; call estimate_nutrition first. "
         "If you set evidence_posture to requires_tool, evidence_missing, or evidence_pending, or set "
