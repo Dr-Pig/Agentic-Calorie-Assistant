@@ -186,7 +186,14 @@ def build_budget_boundary_projection(
     )
     consistency_flags: list[str] = []
     owner_alignment = "aligned"
-    if degraded and observed_reply_text and str(remaining_budget.remaining_kcal) and str(remaining_budget.remaining_kcal) in observed_reply_text:
+    remaining_kcal = remaining_budget.remaining_kcal
+    if (
+        degraded
+        and remaining_kcal is not None
+        and observed_reply_text
+        and str(remaining_kcal)
+        and str(remaining_kcal) in observed_reply_text
+    ):
         owner_alignment = "contradictory"
         consistency_flags.append("degraded_budget_specific_remaining_exposed")
     return PhaseABoundaryProjection(

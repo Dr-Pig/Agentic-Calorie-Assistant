@@ -83,6 +83,24 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
     assert report["runner_inferred_semantics"] is False
     assert report["raw_text_routing_used"] is False
     assert report["readiness_claim"]["claim_scope"] == "unit_contract"
+    assert [stage["stage_id"] for stage in report["stages"]] == [
+        "provider_health_smoke",
+        "schema_contract_probe",
+        "fake_provider_active_runtime_gate",
+        "single_case_live_probe",
+        "full_suite_live_diagnostic",
+    ]
+    assert all(stage["status"] == "pass" for stage in report["stages"])
+    for stage in report["stages"]:
+        assert stage["provider_profile_id"] == report["provider_profile_id"]
+        assert stage["model"] == "grok-4-fast"
+        assert stage["transport_mode"] == "synthetic_tool_transport"
+        assert isinstance(stage["attempt_count"], int)
+        assert isinstance(stage["latency_ms"], int)
+        assert isinstance(stage["timeout_budget_ms"], int)
+        assert "failure_layer" in stage
+        assert "failure_family" in stage
+        assert stage["retry_policy_applied"] in {False, True}
 
     case_ids = [case["case_id"] for case in report["cases"]]
     assert case_ids == [
@@ -101,6 +119,73 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
     assert report["summary"]["strict_pass_count"] + report["summary"]["repaired_pass_count"] + report["summary"][
         "contract_fail_count"
     ] + report["summary"]["timeout_count"] == len(report["cases"])
+
+
+def test_accurate_intake_live_full_suite_is_blocked_without_single_case_probe(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+        stage="full_suite_live_diagnostic",
+    )
+
+    assert report["cases"] == []
+    assert report["failure_family"] == "single_case_probe_required"
+    assert report["stages"] == [
+        {
+            "stage_id": "full_suite_live_diagnostic",
+            "status": "blocked",
+            "provider_profile_id": module.DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID,
+            "model": "grok-4-fast",
+            "transport_mode": "synthetic_tool_transport",
+            "attempt_count": 0,
+            "latency_ms": 0,
+            "timeout_budget_ms": 180000,
+            "failure_layer": "diagnostic_ordering",
+            "failure_family": "single_case_probe_required",
+            "retry_policy_applied": False,
+        }
+    ]
+
+
+def test_accurate_intake_live_schema_probe_blocks_product_loop_cases(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    class SchemaFailingProvider:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def readiness(self) -> dict[str, object]:
+            return {"provider": "schema-failing", "configured": True}
+
+        async def complete_with_trace(self, **_: object) -> tuple[dict[str, object], dict[str, object]]:
+            self.calls += 1
+            if self.calls == 1:
+                return module.ScriptedAccurateIntakeLiveProvider()._entry_decision(), {"stage": "health"}  # noqa: SLF001
+            return {"intent": "log_meal"}, {"stage": "schema"}
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=SchemaFailingProvider(),
+        provider_mode="fake_schema_contract_test",
+        live_invoked=False,
+    )
+
+    assert [stage["stage_id"] for stage in report["stages"]] == [
+        "provider_health_smoke",
+        "schema_contract_probe",
+    ]
+    assert report["stages"][0]["status"] == "pass"
+    assert report["stages"][1]["status"] == "fail"
+    assert report["stages"][1]["failure_layer"] == "provider_contract_non_adherence"
+    assert report["stages"][1]["failure_family"] == "schema_contract_blocked"
+    assert report["cases"] == []
+    assert report["failure_family"] == "schema_contract_blocked"
 
 
 def test_accurate_intake_live_missing_provider_report_is_environment_blocker() -> None:
@@ -195,6 +280,7 @@ def test_accurate_intake_live_case_timeout_writes_environment_blocker_artifact(t
         provider_override=HangingProvider(),
         provider_mode="fake_timeout_contract_test",
         live_invoked=False,
+        provider_timeout_ms=1,
         case_timeout_ms=1,
     )
 
@@ -202,3 +288,4 @@ def test_accurate_intake_live_case_timeout_writes_environment_blocker_artifact(t
     assert report["summary"]["timeout_count"] == report["summary"]["case_count"]
     assert set(report["summary"]["failure_families"]) == {"environment_or_provider_blocker"}
     assert all(case["case_contract_status"] == "timeout" for case in report["cases"])
+    assert any(stage["failure_family"] == "environment_or_provider_blocker" for stage in report["stages"])

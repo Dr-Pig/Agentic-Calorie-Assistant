@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 
+from app.body.application.active_body_plan_read_model import build_active_body_plan_view
 from app.budget.interface.today_surface import resolve_today_local_date
 from app.composition.accurate_intake_debug_read_model import build_accurate_intake_debug_read_model
 from app.composition.current_budget_read_model import build_current_budget_view
@@ -63,6 +64,7 @@ def build_accurate_intake_debug_payload(
             },
         }
     current_budget = build_current_budget_view(db, user_id=user.id, local_date=resolved_local_date)
+    active_plan = build_active_body_plan_view(db, user_id=user.id)
     return {
         "surface_id": "accurate_intake_debug_surface_v1",
         "read_only": True,
@@ -76,6 +78,7 @@ def build_accurate_intake_debug_payload(
             user_id=user.id,
             local_date=resolved_local_date,
             current_budget=current_budget,
+            active_plan=active_plan,
         ),
     }
 

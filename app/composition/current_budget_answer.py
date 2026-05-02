@@ -17,9 +17,9 @@ class RemainingBudgetAnswerContract:
     status: BudgetAnswerStatus
     user_id: int
     local_date: str
-    daily_target_kcal: int
+    daily_target_kcal: int | None
     consumed_kcal: int
-    remaining_kcal: int
+    remaining_kcal: int | None
     meal_count: int
 
 
@@ -65,9 +65,9 @@ def build_remaining_budget_answer_contract_from_views(
             status="onboarding_required",
             user_id=user_id,
             local_date=local_date,
-            daily_target_kcal=0,
+            daily_target_kcal=None,
             consumed_kcal=consumed_kcal,
-            remaining_kcal=remaining_kcal,
+            remaining_kcal=None,
             meal_count=meal_count,
         )
 

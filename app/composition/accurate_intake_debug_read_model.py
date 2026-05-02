@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.budget.infrastructure.models import LedgerEntryRecord
 from app.intake.infrastructure.models import MealItemRecord, MealThreadRecord, MealVersionRecord
-from app.shared.domain import CurrentBudgetView
+from app.shared.domain import ActiveBodyPlanView, CurrentBudgetView
 
 
 def _item_rows(db: Session, *, version_id: int) -> list[MealItemRecord]:
@@ -174,6 +174,7 @@ def build_accurate_intake_debug_read_model(
     user_id: int,
     local_date: str,
     current_budget: CurrentBudgetView,
+    active_plan: ActiveBodyPlanView | None = None,
 ) -> dict[str, Any]:
     meal_threads = _meal_threads(db, user_id=user_id, local_date=local_date)
     active_version_total = sum(
@@ -182,8 +183,13 @@ def build_accurate_intake_debug_read_model(
     )
     current_budget_consumed = int(current_budget.consumed_kcal or 0)
     same_truth_status = "pass" if active_version_total == current_budget_consumed else "hard_fail"
-    return {
-        "today_summary": {
+    target_available = (
+        active_plan is None
+        or active_plan.body_plan_id is not None
+        or int(current_budget.budget_kcal or 0) > 0
+    )
+    if target_available:
+        today_summary = {
             "source_kind": "current_budget_read_model",
             "read_only": True,
             "user_id": user_id,
@@ -192,7 +198,23 @@ def build_accurate_intake_debug_read_model(
             "consumed_kcal": current_budget_consumed,
             "remaining_kcal": int(current_budget.remaining_kcal or 0),
             "active_meal_count": int(current_budget.active_meal_count or 0),
-        },
+        }
+    else:
+        today_summary = {
+            "source_kind": "current_budget_read_model",
+            "read_only": True,
+            "status": "onboarding_required",
+            "user_id": user_id,
+            "local_date": local_date,
+            "budget_kcal": None,
+            "consumed_kcal": current_budget_consumed,
+            "remaining_kcal": None,
+            "target_available": False,
+            "remaining_available": False,
+            "active_meal_count": int(current_budget.active_meal_count or 0),
+        }
+    return {
+        "today_summary": today_summary,
         "meal_threads": meal_threads,
         "pending_drafts": _pending_drafts(db, user_id=user_id, local_date=local_date),
         "correction_history": _correction_history(db, user_id=user_id, local_date=local_date),

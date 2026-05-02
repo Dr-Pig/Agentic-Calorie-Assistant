@@ -25,9 +25,11 @@ from app.models import Base
 from app.runtime.agent.founder_live_manager_contract import (
     FOUNDER_LIVE_MANAGER_SCHEMA_NAME,
     FOUNDER_LIVE_MANAGER_SCHEMA_VERSION,
+    FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS,
     FOUNDER_LIVE_MANAGER_TRANSPORT_POLICY,
     founder_live_manager_contract_constraints,
 )
+from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 from app.shared.contracts.readiness_claim import build_readiness_claim
 
 
@@ -38,6 +40,19 @@ DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID = (
     "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic"
 )
 ACTIVE_ENTRYPOINT = "app.composition.intake_turn_orchestrator.execute_intake_turn"
+STAGE_PROVIDER_HEALTH_SMOKE = "provider_health_smoke"
+STAGE_SCHEMA_CONTRACT_PROBE = "schema_contract_probe"
+STAGE_FAKE_PROVIDER_ACTIVE_RUNTIME_GATE = "fake_provider_active_runtime_gate"
+STAGE_SINGLE_CASE_LIVE_PROBE = "single_case_live_probe"
+STAGE_FULL_SUITE_LIVE_DIAGNOSTIC = "full_suite_live_diagnostic"
+STAGE_ALL = "all"
+ORDERED_STAGE_IDS = (
+    STAGE_PROVIDER_HEALTH_SMOKE,
+    STAGE_SCHEMA_CONTRACT_PROBE,
+    STAGE_FAKE_PROVIDER_ACTIVE_RUNTIME_GATE,
+    STAGE_SINGLE_CASE_LIVE_PROBE,
+    STAGE_FULL_SUITE_LIVE_DIAGNOSTIC,
+)
 
 _FORBIDDEN_CLAIMS = [
     "product_ready",
@@ -346,6 +361,16 @@ def build_missing_provider_report(*, profile: dict[str, Any]) -> dict[str, Any]:
             "provider_profile_model": profile["model"],
         },
         provider_invocations=[],
+        stages=[
+            _stage_result(
+                profile=profile,
+                stage_id=STAGE_PROVIDER_HEALTH_SMOKE,
+                status="fail",
+                timeout_budget_ms=0,
+                failure_layer="provider_runtime_error",
+                failure_family="environment_or_provider_blocker",
+            )
+        ],
         cases=[],
         failure_layer="provider_runtime_error",
         failure_family="environment_or_provider_blocker",
@@ -363,6 +388,7 @@ def run_diagnostic(
     provider_override: Any | None = None,
     provider_mode: str = "live",
     live_invoked: bool = True,
+    stage: str = STAGE_ALL,
 ) -> dict[str, Any]:
     profile = provider_profile(provider_profile_id)
     if provider_override is None:
@@ -374,36 +400,408 @@ def run_diagnostic(
         _write_report(output_path, report)
         return report
 
-    if db_path.exists():
-        db_path.unlink()
-    SessionLocal = _session_factory(db_path)
+    selected_stage_ids = _stage_ids_for(stage)
+    single_selected_stage = len(selected_stage_ids) == 1
+    stages: list[dict[str, Any]] = []
     cases: list[dict[str, Any]] = []
     effective_case_timeout_ms = int(case_timeout_ms if case_timeout_ms is not None else provider_timeout_ms + 15000)
-    for case in _case_inventory():
-        try:
-            cases.append(
-                asyncio.run(
-                    asyncio.wait_for(
-                        _run_case(SessionLocal, case=case, provider=provider, local_date=local_date),
-                        timeout=max(0.001, effective_case_timeout_ms / 1000),
-                    )
+    for stage_id in selected_stage_ids:
+        if stage_id == STAGE_PROVIDER_HEALTH_SMOKE:
+            stages.append(
+                _run_probe_stage(
+                    provider=provider,
+                    profile=profile,
+                    stage_id=stage_id,
+                    timeout_budget_ms=provider_timeout_ms,
+                    require_contract_schema=False,
                 )
             )
-        except Exception as exc:
-            cases.append(_case_error(case, exc))
-    cases = [_decorate_case(case, profile=profile) for case in cases]
+            if stages[-1]["status"] != "pass":
+                break
+        elif stage_id == STAGE_SCHEMA_CONTRACT_PROBE:
+            if not single_selected_stage and not _stage_passed(stages, STAGE_PROVIDER_HEALTH_SMOKE):
+                stages.append(
+                    _stage_blocked(
+                        profile=profile,
+                        stage_id=stage_id,
+                        timeout_budget_ms=provider_timeout_ms,
+                        failure_layer="provider_runtime_error",
+                        failure_family="provider_health_blocked",
+                    )
+                )
+                break
+            stages.append(
+                _run_probe_stage(
+                    provider=provider,
+                    profile=profile,
+                    stage_id=stage_id,
+                    timeout_budget_ms=provider_timeout_ms,
+                    require_contract_schema=True,
+                )
+            )
+            if stages[-1]["status"] != "pass":
+                break
+        elif stage_id == STAGE_FAKE_PROVIDER_ACTIVE_RUNTIME_GATE:
+            if not single_selected_stage and not _stage_passed(stages, STAGE_SCHEMA_CONTRACT_PROBE):
+                stages.append(
+                    _stage_blocked(
+                        profile=profile,
+                        stage_id=stage_id,
+                        timeout_budget_ms=effective_case_timeout_ms,
+                        failure_layer="provider_contract_non_adherence",
+                        failure_family="schema_contract_blocked",
+                    )
+                )
+                break
+            fake_cases = _run_case_batch(
+                db_path=_stage_db_path(db_path, stage_id),
+                cases=_case_inventory(),
+                provider=AccurateIntakeLiveDiagnosticProvider(
+                    ScriptedAccurateIntakeLiveProvider(),
+                    profile=profile,
+                    live_invoked=False,
+                ),
+                profile=profile,
+                local_date=local_date,
+                case_timeout_ms=effective_case_timeout_ms,
+                stage_id=stage_id,
+            )
+            stages.append(
+                _runtime_gate_stage_result(
+                    profile=profile,
+                    stage_id=stage_id,
+                    stage_cases=fake_cases,
+                    timeout_budget_ms=effective_case_timeout_ms,
+                )
+            )
+            if stages[-1]["status"] != "pass":
+                break
+        elif stage_id == STAGE_SINGLE_CASE_LIVE_PROBE:
+            if not single_selected_stage and not _stage_passed(stages, STAGE_FAKE_PROVIDER_ACTIVE_RUNTIME_GATE):
+                stages.append(
+                    _stage_blocked(
+                        profile=profile,
+                        stage_id=stage_id,
+                        timeout_budget_ms=effective_case_timeout_ms,
+                        failure_layer="runtime",
+                        failure_family="fake_provider_active_runtime_gate_blocked",
+                    )
+                )
+                break
+            single_cases = _run_case_batch(
+                db_path=_stage_db_path(db_path, stage_id),
+                cases=_case_inventory()[:1],
+                provider=provider,
+                profile=profile,
+                local_date=local_date,
+                case_timeout_ms=effective_case_timeout_ms,
+                stage_id=stage_id,
+            )
+            stages.append(
+                _runtime_gate_stage_result(
+                    profile=profile,
+                    stage_id=stage_id,
+                    stage_cases=single_cases,
+                    timeout_budget_ms=effective_case_timeout_ms,
+                )
+            )
+            if stage == STAGE_SINGLE_CASE_LIVE_PROBE:
+                cases = single_cases
+            if stages[-1]["status"] != "pass":
+                break
+        elif stage_id == STAGE_FULL_SUITE_LIVE_DIAGNOSTIC:
+            if not _stage_passed(stages, STAGE_SINGLE_CASE_LIVE_PROBE):
+                stages.append(
+                    _stage_blocked(
+                        profile=profile,
+                        stage_id=stage_id,
+                        timeout_budget_ms=provider_timeout_ms,
+                        failure_layer="diagnostic_ordering",
+                        failure_family="single_case_probe_required",
+                    )
+                )
+                break
+            cases = _run_case_batch(
+                db_path=db_path,
+                cases=_case_inventory(),
+                provider=provider,
+                profile=profile,
+                local_date=local_date,
+                case_timeout_ms=effective_case_timeout_ms,
+                stage_id=stage_id,
+            )
+            stages.append(
+                _runtime_gate_stage_result(
+                    profile=profile,
+                    stage_id=stage_id,
+                    stage_cases=cases,
+                    timeout_budget_ms=effective_case_timeout_ms,
+                )
+            )
     report = _report_shell(
         profile=profile,
         provider_mode=provider_mode,
         live_invoked=live_invoked,
         provider_readiness=readiness,
         provider_invocations=provider.invocations,
+        stages=stages,
         cases=cases,
-        failure_layer=None,
-        failure_family=None,
+        failure_layer=_root_stage_failure(stages)[0],
+        failure_family=_root_stage_failure(stages)[1],
     )
     _write_report(output_path, report)
     return report
+
+
+def _stage_ids_for(stage: str) -> list[str]:
+    if stage == STAGE_ALL:
+        return list(ORDERED_STAGE_IDS)
+    if stage not in ORDERED_STAGE_IDS:
+        supported = ", ".join((STAGE_ALL, *ORDERED_STAGE_IDS))
+        raise ValueError(f"Unsupported Accurate Intake live diagnostic stage: {stage}. Supported: {supported}")
+    return [stage]
+
+
+def _stage_db_path(db_path: Path, stage_id: str) -> Path:
+    return db_path.with_name(f"{db_path.stem}.{stage_id}{db_path.suffix}")
+
+
+def _stage_result(
+    *,
+    profile: dict[str, Any],
+    stage_id: str,
+    status: str,
+    timeout_budget_ms: int,
+    attempt_count: int = 0,
+    latency_ms: int = 0,
+    failure_layer: str | None = None,
+    failure_family: str | None = None,
+    retry_policy_applied: bool = False,
+    **extra: Any,
+) -> dict[str, Any]:
+    result = {
+        "stage_id": stage_id,
+        "status": status,
+        "provider_profile_id": profile["provider_profile_id"],
+        "model": profile["model"],
+        "transport_mode": profile["transport_policy"]["primary"],
+        "attempt_count": int(attempt_count),
+        "latency_ms": int(latency_ms),
+        "timeout_budget_ms": int(timeout_budget_ms),
+        "failure_layer": failure_layer,
+        "failure_family": failure_family,
+        "retry_policy_applied": bool(retry_policy_applied),
+    }
+    result.update(extra)
+    return _json_safe(result)
+
+
+def _stage_blocked(
+    *,
+    profile: dict[str, Any],
+    stage_id: str,
+    timeout_budget_ms: int,
+    failure_layer: str,
+    failure_family: str,
+) -> dict[str, Any]:
+    return _stage_result(
+        profile=profile,
+        stage_id=stage_id,
+        status="blocked",
+        timeout_budget_ms=timeout_budget_ms,
+        failure_layer=failure_layer,
+        failure_family=failure_family,
+    )
+
+
+def _stage_passed(stages: list[dict[str, Any]], stage_id: str) -> bool:
+    return any(stage.get("stage_id") == stage_id and stage.get("status") == "pass" for stage in stages)
+
+
+def _root_stage_failure(stages: list[dict[str, Any]]) -> tuple[str | None, str | None]:
+    for stage in stages:
+        if stage.get("status") != "pass":
+            return _optional_string(stage.get("failure_layer")), _optional_string(stage.get("failure_family"))
+    return None, None
+
+
+def _run_probe_stage(
+    *,
+    provider: AccurateIntakeLiveDiagnosticProvider,
+    profile: dict[str, Any],
+    stage_id: str,
+    timeout_budget_ms: int,
+    require_contract_schema: bool,
+) -> dict[str, Any]:
+    started = datetime.now(UTC)
+    try:
+        payload, trace = asyncio.run(
+            asyncio.wait_for(
+                _provider_probe(provider=provider, stage_id=stage_id),
+                timeout=max(0.001, timeout_budget_ms / 1000),
+            )
+        )
+        if require_contract_schema:
+            _validate_probe_payload_shape(payload)
+    except Exception as exc:
+        latency_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
+        failure_layer = _failure_layer_for_exception(exc)
+        failure_family = _failure_family_for_exception(exc)
+        if require_contract_schema and failure_family != "environment_or_provider_blocker":
+            failure_layer = "provider_contract_non_adherence"
+            failure_family = "schema_contract_blocked"
+        return _stage_result(
+            profile=profile,
+            stage_id=stage_id,
+            status="timeout" if failure_family == "environment_or_provider_blocker" else "fail",
+            timeout_budget_ms=timeout_budget_ms,
+            attempt_count=1,
+            latency_ms=latency_ms,
+            failure_layer=failure_layer,
+            failure_family=failure_family,
+            retry_policy_applied=False,
+            runtime_error={"type": type(exc).__name__, "message": str(exc)},
+        )
+    latency_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
+    return _stage_result(
+        profile=profile,
+        stage_id=stage_id,
+        status="pass",
+        timeout_budget_ms=timeout_budget_ms,
+        attempt_count=1,
+        latency_ms=latency_ms,
+        retry_policy_applied=False,
+        provider_trace=_dict(trace),
+    )
+
+
+async def _provider_probe(
+    *,
+    provider: AccurateIntakeLiveDiagnosticProvider,
+    stage_id: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    provider.begin_step({"entry_intent": "answer_remaining_budget", "kind": stage_id})
+    if stage_id == STAGE_PROVIDER_HEALTH_SMOKE:
+        return await provider.complete_with_trace(
+            system_prompt=(
+                "You are running a provider health smoke test. Return a small JSON object only: "
+                "{\"ok\": true, \"stage\": \"provider_health_smoke\"}."
+            ),
+            user_payload={
+                "diagnostic_stage_id": stage_id,
+                "raw_user_input": "provider health smoke",
+                "constraints": {
+                    "diagnostic_stage_id": stage_id,
+                    "diagnostic_no_product_loop": True,
+                    "manager_contract_not_required": True,
+                },
+            },
+            stage=STAGE_PROVIDER_HEALTH_SMOKE,
+            max_tokens=80,
+        )
+    return await provider.complete_with_trace(
+        system_prompt=(
+            "You are running an Accurate Intake manager schema contract probe. Return a manager structured "
+            "decision with intent_type='answer_remaining_budget', intent='answer_remaining_budget', "
+            "workflow_effect='answer_only', final_action='answer_only', and "
+            "semantic_decision.current_turn_intent='answer_remaining_budget'. Do not mutate state."
+        ),
+        user_payload={
+            "round_index": 0,
+            "diagnostic_stage_id": stage_id,
+            "raw_user_input": "How many calories did I consume today?",
+            "available_tools": ["read_body_plan", "read_day_budget"],
+            "tool_results": [],
+            "constraints": {
+                "diagnostic_stage_id": stage_id,
+                "diagnostic_no_product_loop": True,
+                "diagnostic_expected_manager_decision": {
+                    "intent": "answer_remaining_budget",
+                    "intent_type": "answer_remaining_budget",
+                    "workflow_effect": "answer_only",
+                    "final_action": "answer_only",
+                    "semantic_decision.current_turn_intent": "answer_remaining_budget",
+                },
+            },
+        },
+        stage=MANAGER_LOOP_STAGE,
+        max_tokens=800,
+    )
+
+
+def _validate_probe_payload_shape(payload: dict[str, Any]) -> None:
+    missing = [field for field in FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS if field not in payload]
+    if missing:
+        raise RuntimeError(f"schema contract probe missing required fields: {missing}")
+    if not isinstance(payload.get("semantic_decision"), dict):
+        raise RuntimeError("schema contract probe requires semantic_decision object")
+    if not isinstance(payload.get("answer_contract"), dict):
+        raise RuntimeError("schema contract probe requires answer_contract object")
+
+
+def _run_case_batch(
+    *,
+    db_path: Path,
+    cases: list[LiveCase],
+    provider: AccurateIntakeLiveDiagnosticProvider,
+    profile: dict[str, Any],
+    local_date: str,
+    case_timeout_ms: int,
+    stage_id: str,
+) -> list[dict[str, Any]]:
+    if db_path.exists():
+        db_path.unlink()
+    SessionLocal = _session_factory(db_path)
+    results: list[dict[str, Any]] = []
+    for case in cases:
+        started = datetime.now(UTC)
+        try:
+            case_result = asyncio.run(
+                asyncio.wait_for(
+                    _run_case(SessionLocal, case=case, provider=provider, local_date=local_date),
+                    timeout=max(0.001, case_timeout_ms / 1000),
+                )
+            )
+        except Exception as exc:
+            case_result = _case_error(case, exc)
+        case_result["latency_ms"] = int((datetime.now(UTC) - started).total_seconds() * 1000)
+        case_result["stage_id"] = stage_id
+        results.append(_decorate_case(case_result, profile=profile))
+    return results
+
+
+def _runtime_gate_stage_result(
+    *,
+    profile: dict[str, Any],
+    stage_id: str,
+    stage_cases: list[dict[str, Any]],
+    timeout_budget_ms: int,
+) -> dict[str, Any]:
+    summary = _summary(stage_cases)
+    failure_layer = None
+    failure_family = None
+    status = "pass"
+    if summary["timeout_count"] > 0:
+        status = "timeout"
+        failure_layer = "provider_runtime_error"
+        failure_family = "environment_or_provider_blocker"
+    elif summary["contract_fail_count"] > 0:
+        status = "fail"
+        failure_layer = (summary.get("failure_layers") or ["runtime"])[0]
+        failure_family = (summary.get("failure_families") or ["runtime_failure"])[0]
+    return _stage_result(
+        profile=profile,
+        stage_id=stage_id,
+        status=status,
+        timeout_budget_ms=timeout_budget_ms,
+        attempt_count=len(stage_cases),
+        latency_ms=sum(int(case.get("latency_ms") or 0) for case in stage_cases),
+        failure_layer=failure_layer,
+        failure_family=failure_family,
+        retry_policy_applied=False,
+        case_ids=[str(case.get("case_id") or "") for case in stage_cases],
+        summary=summary,
+    )
 
 
 async def _run_case(
@@ -730,6 +1128,27 @@ def _summary(cases: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _summary_with_stages(*, cases: list[dict[str, Any]], stages: list[dict[str, Any]]) -> dict[str, Any]:
+    summary = dict(_summary(cases))
+    stage_failure_layers = {
+        str(stage.get("failure_layer"))
+        for stage in stages
+        if stage.get("failure_layer") and stage.get("status") != "pass"
+    }
+    stage_failure_families = {
+        str(stage.get("failure_family"))
+        for stage in stages
+        if stage.get("failure_family") and stage.get("status") != "pass"
+    }
+    summary["failure_layers"] = sorted(set(summary["failure_layers"]) | stage_failure_layers)
+    summary["failure_families"] = sorted(set(summary["failure_families"]) | stage_failure_families)
+    summary["stage_count"] = len(stages)
+    summary["stage_pass_count"] = sum(1 for stage in stages if stage.get("status") == "pass")
+    summary["stage_timeout_count"] = sum(1 for stage in stages if stage.get("status") == "timeout")
+    summary["stage_fail_count"] = sum(1 for stage in stages if stage.get("status") in {"fail", "blocked"})
+    return summary
+
+
 def _report_shell(
     *,
     profile: dict[str, Any],
@@ -737,6 +1156,7 @@ def _report_shell(
     live_invoked: bool,
     provider_readiness: dict[str, Any],
     provider_invocations: list[dict[str, Any]],
+    stages: list[dict[str, Any]],
     cases: list[dict[str, Any]],
     failure_layer: str | None,
     failure_family: str | None,
@@ -756,6 +1176,7 @@ def _report_shell(
             "provider_profile_role": profile["provider_profile_role"],
             "provider_readiness": provider_readiness,
             "provider_invocations": provider_invocations,
+            "stages": stages,
             "transport_mode": profile["transport_policy"]["primary"],
             "transport_policy": profile["transport_policy"],
             "schema_name": profile["schema_name"],
@@ -782,7 +1203,7 @@ def _report_shell(
             "failure_family": failure_family,
             "readiness_claim": _readiness_claim(provider_mode=provider_mode, live_invoked=live_invoked),
             "cases": cases,
-            "summary": _summary(cases),
+            "summary": _summary_with_stages(cases=cases, stages=stages),
         }
     )
 
@@ -816,6 +1237,17 @@ def _with_accurate_intake_live_contract_constraints(kwargs: dict[str, Any], *, p
     updated = dict(kwargs)
     user_payload = dict(_dict(updated.get("user_payload")))
     constraints = dict(_dict(user_payload.get("constraints")))
+    constraints["accurate_intake_mvp_live_diagnostic"] = {
+        "runner_inferred_semantics": False,
+        "raw_text_routing_forbidden": True,
+        "web_tavily_invoked": False,
+        "live_provider_used_as_truth": False,
+    }
+    if str(updated.get("stage") or "") != MANAGER_LOOP_STAGE:
+        user_payload["constraints"] = constraints
+        user_payload.setdefault("accurate_intake_live_diagnostic_policy", constraints["accurate_intake_mvp_live_diagnostic"])
+        updated["user_payload"] = user_payload
+        return updated
     tool_results = [dict(item) for item in _list(user_payload.get("tool_results")) if isinstance(item, dict)]
     constraints.update(
         founder_live_manager_contract_constraints(
@@ -823,12 +1255,6 @@ def _with_accurate_intake_live_contract_constraints(kwargs: dict[str, Any], *, p
             tool_results=tool_results,
         )
     )
-    constraints["accurate_intake_mvp_live_diagnostic"] = {
-        "runner_inferred_semantics": False,
-        "raw_text_routing_forbidden": True,
-        "web_tavily_invoked": False,
-        "live_provider_used_as_truth": False,
-    }
     user_payload["constraints"] = constraints
     user_payload.setdefault("accurate_intake_live_diagnostic_policy", constraints["accurate_intake_mvp_live_diagnostic"])
     updated["user_payload"] = user_payload
@@ -961,6 +1387,11 @@ def _list(value: Any) -> list[Any]:
     return list(value) if isinstance(value, list) else []
 
 
+def _optional_string(value: Any) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
 
@@ -997,6 +1428,7 @@ def main() -> int:
     parser.add_argument("--provider-profile-id", default=DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID)
     parser.add_argument("--provider-timeout-ms", type=int, default=180000)
     parser.add_argument("--case-timeout-ms", type=int, default=None)
+    parser.add_argument("--stage", choices=(STAGE_ALL, *ORDERED_STAGE_IDS), default=STAGE_ALL)
     args = parser.parse_args()
 
     report = run_diagnostic(
@@ -1006,6 +1438,7 @@ def main() -> int:
         provider_profile_id=str(args.provider_profile_id),
         provider_timeout_ms=int(args.provider_timeout_ms),
         case_timeout_ms=args.case_timeout_ms,
+        stage=str(args.stage),
     )
     print(
         json.dumps(

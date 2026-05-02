@@ -213,6 +213,38 @@ def test_debug_read_model_and_chat_budget_answer_copy_same_current_budget_view_w
     assert debug_model["same_truth"]["status"] == "pass"
 
 
+def test_no_plan_debug_read_model_and_answer_contract_expose_consumed_without_fake_target() -> None:
+    db = _session()
+    user = get_or_create_user(db, "mvp-read-model-no-plan")
+    commit_meal_payload_to_canonical(db, user=user, candidate=_initial_candidate())
+
+    current_budget = build_current_budget_view(db, user_id=user.id, local_date="2026-05-02")
+    no_plan = ActiveBodyPlanView(body_plan_id=None)
+    answer = build_remaining_budget_answer_contract_from_views(
+        current_budget=current_budget,
+        active_plan=no_plan,
+    )
+    debug_model = build_accurate_intake_debug_read_model(
+        db,
+        user_id=user.id,
+        local_date="2026-05-02",
+        current_budget=current_budget,
+        active_plan=no_plan,
+    )
+
+    assert answer.status == "onboarding_required"
+    assert answer.consumed_kcal == 650
+    assert answer.daily_target_kcal is None
+    assert answer.remaining_kcal is None
+    assert debug_model["today_summary"]["status"] == "onboarding_required"
+    assert debug_model["today_summary"]["consumed_kcal"] == 650
+    assert debug_model["today_summary"]["budget_kcal"] is None
+    assert debug_model["today_summary"]["remaining_kcal"] is None
+    assert debug_model["today_summary"]["target_available"] is False
+    assert debug_model["today_summary"]["remaining_available"] is False
+    assert debug_model["same_truth"]["status"] == "pass"
+
+
 def test_debug_read_model_keeps_ledger_audit_separate_from_current_truth_when_audit_is_stale() -> None:
     db = _session()
     user = get_or_create_user(db, "mvp-audit-not-truth")

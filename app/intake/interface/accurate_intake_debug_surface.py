@@ -14,6 +14,9 @@ def render_accurate_intake_debug_surface(payload: dict[str, Any]) -> str:
     ledger_events = list(model.get("ledger_audit_events") or [])
     same_truth = dict(model.get("same_truth") or {})
 
+    def _display(value: Any, *, unavailable: str = "unavailable") -> str:
+        return unavailable if value is None else str(value)
+
     def _rows(items: list[Any], empty: str) -> str:
         if not items:
             return f"<li class=\"empty\">{escape(empty)}</li>"
@@ -51,8 +54,8 @@ def render_accurate_intake_debug_surface(payload: dict[str, Any]) -> str:
       <div class="stats">
         <div class="stat"><div class="label">User</div><div class="value">{escape(str(payload.get("user_external_id") or ""))}</div></div>
         <div class="stat"><div class="label">Date</div><div class="value">{escape(str(payload.get("local_date") or ""))}</div></div>
-        <div class="stat"><div class="label">Consumed</div><div class="value">{escape(str(today.get("consumed_kcal", 0)))}</div></div>
-        <div class="stat"><div class="label">Remaining</div><div class="value">{escape(str(today.get("remaining_kcal", 0)))}</div></div>
+        <div class="stat"><div class="label">Consumed</div><div class="value">{escape(_display(today.get("consumed_kcal", 0)))}</div></div>
+        <div class="stat"><div class="label">Remaining</div><div class="value">{escape(_display(today.get("remaining_kcal")))}</div></div>
         <div class="stat"><div class="label">Same Truth</div><div class="value">{escape(str(same_truth.get("status") or payload.get("state_posture") or "unknown"))}</div></div>
       </div>
     </section>

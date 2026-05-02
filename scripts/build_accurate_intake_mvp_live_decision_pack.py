@@ -20,6 +20,9 @@ DEFAULT_OFFLINE_REPLAY_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_offl
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
 
 DECISION_OPTION_IDS = (
+    "provider_health_blocked",
+    "schema_contract_blocked",
+    "single_case_probe_required",
     "stay_diagnostic",
     "repeat_single_profile_diagnostic",
     "offline_shadow_replay",
@@ -35,10 +38,12 @@ def build_accurate_intake_live_decision_pack(
 ) -> dict[str, Any]:
     input_integrity = _input_integrity(live_artifact)
     evidence_summary = _evidence_summary(live_artifact)
+    stage_summary = _stage_summary(live_artifact)
     offline_replay_summary = _offline_replay_summary(offline_replay_artifact)
     selected_option, selection_reason = _select_option(
         input_integrity=input_integrity,
         evidence_summary=evidence_summary,
+        stage_summary=stage_summary,
         offline_replay_summary=offline_replay_summary,
     )
     return _json_safe(
@@ -57,6 +62,7 @@ def build_accurate_intake_live_decision_pack(
             "runtime_web_activation_approved": False,
             "shadow_or_canary_approved": False,
             "input_integrity": input_integrity,
+            "stage_summary": stage_summary,
             "evidence_summary": evidence_summary,
             "offline_replay_summary": offline_replay_summary,
             "decision_options_ordered": list(DECISION_OPTION_IDS),
@@ -101,16 +107,23 @@ def _select_option(
     *,
     input_integrity: dict[str, Any],
     evidence_summary: dict[str, Any],
+    stage_summary: dict[str, Any],
     offline_replay_summary: dict[str, Any],
 ) -> tuple[str, str]:
     if input_integrity.get("passed") is not True:
         return "stay_diagnostic", "input_integrity_blocked"
+    if stage_summary.get("provider_health_blocked") is True:
+        return "provider_health_blocked", "environment_or_provider_blocker"
+    if stage_summary.get("schema_contract_blocked") is True:
+        return "schema_contract_blocked", "schema_contract_blocked"
+    if stage_summary.get("full_suite_without_single_case_probe") is True:
+        return "single_case_probe_required", "single_case_probe_missing"
     if evidence_summary.get("environment_or_provider_blocker") is True:
         return "stay_diagnostic", "environment_or_provider_blocker"
     if evidence_summary.get("timeout_count", 0) > 0:
-        return "repeat_single_profile_diagnostic", "timeout_evidence_incomplete"
+        return "stay_diagnostic", "timeout_evidence_incomplete"
     if evidence_summary.get("contract_fail_count", 0) > 0:
-        return "repeat_single_profile_diagnostic", "live_diagnostic_contract_failures"
+        return "stay_diagnostic", "live_diagnostic_contract_failures"
     if evidence_summary.get("repaired_pass_count", 0) > 0:
         return "repeat_single_profile_diagnostic", "live_clean_but_repair_dependent"
     if evidence_summary.get("strict_pass_count", 0) == evidence_summary.get("case_count", 0) and evidence_summary.get("case_count", 0) > 0:
@@ -165,6 +178,45 @@ def _evidence_summary(live_artifact: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _stage_summary(live_artifact: dict[str, Any]) -> dict[str, Any]:
+    stages = [_dict(stage) for stage in _list(live_artifact.get("stages"))]
+    by_id = {str(stage.get("stage_id") or ""): stage for stage in stages}
+    provider_health = by_id.get("provider_health_smoke", {})
+    schema_probe = by_id.get("schema_contract_probe", {})
+    full_suite = by_id.get("full_suite_live_diagnostic", {})
+    single_case = by_id.get("single_case_live_probe", {})
+    provider_health_blocked = (
+        not stages
+        and "environment_or_provider_blocker" in _evidence_summary(live_artifact).get("failure_families", [])
+    ) or (
+        bool(provider_health)
+        and provider_health.get("status") != "pass"
+    )
+    schema_contract_blocked = bool(schema_probe) and schema_probe.get("status") != "pass"
+    full_suite_without_single_case_probe = bool(full_suite) and single_case.get("status") != "pass"
+    return {
+        "present": bool(stages),
+        "stage_ids": [str(stage.get("stage_id") or "") for stage in stages],
+        "provider_health_status": _optional_string(provider_health.get("status")),
+        "schema_contract_status": _optional_string(schema_probe.get("status")),
+        "single_case_probe_status": _optional_string(single_case.get("status")),
+        "full_suite_status": _optional_string(full_suite.get("status")),
+        "provider_health_blocked": provider_health_blocked,
+        "schema_contract_blocked": schema_contract_blocked,
+        "full_suite_without_single_case_probe": full_suite_without_single_case_probe,
+        "stage_failures": [
+            {
+                "stage_id": str(stage.get("stage_id") or ""),
+                "status": str(stage.get("status") or ""),
+                "failure_layer": _optional_string(stage.get("failure_layer")),
+                "failure_family": _optional_string(stage.get("failure_family")),
+            }
+            for stage in stages
+            if stage.get("status") != "pass"
+        ],
+    }
+
+
 def _offline_replay_summary(artifact: dict[str, Any] | None) -> dict[str, Any]:
     if artifact is None:
         return {
@@ -210,6 +262,24 @@ def _repaired_cases(live_artifact: dict[str, Any]) -> list[dict[str, str | None]
 
 def _decision_options() -> list[dict[str, Any]]:
     return [
+        {
+            "option_id": "provider_health_blocked",
+            "description": "Provider health smoke failed or timed out; do not run or trust product-loop live evidence.",
+            "auto_activation_allowed": True,
+            "blocked_claims": ["private_self_use_ready", "product_ready", "production_manager"],
+        },
+        {
+            "option_id": "schema_contract_blocked",
+            "description": "Provider responded but failed the manager schema/transport contract probe.",
+            "auto_activation_allowed": True,
+            "blocked_claims": ["private_self_use_ready", "product_ready", "mutation_ready"],
+        },
+        {
+            "option_id": "single_case_probe_required",
+            "description": "Full suite evidence is invalid until an independent single-case live probe is green.",
+            "auto_activation_allowed": True,
+            "blocked_claims": ["private_self_use_ready", "product_ready", "live_ready"],
+        },
         {
             "option_id": "stay_diagnostic",
             "description": "Keep Accurate Intake live as diagnostic-only evidence collection.",

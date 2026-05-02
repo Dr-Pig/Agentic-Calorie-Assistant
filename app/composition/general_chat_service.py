@@ -29,12 +29,17 @@ class GeneralChatPassResult:
 def _budget_summary_response(db: Session, *, user_id: int, local_date: str) -> GeneralChatPassResult:
     answer = build_remaining_budget_answer_contract(db, user_id=user_id, local_date=local_date)
     if answer.status == "onboarding_required":
+        consumed_clause = (
+            f"I can see {answer.consumed_kcal} kcal consumed today, but "
+            if int(answer.consumed_kcal or 0) > 0
+            else ""
+        )
         return GeneralChatPassResult(
             target_workflow_family="general_chat",
             disposition="answer_only",
             workflow_effect="answer_budget_summary_without_state_mutation",
             required_read_surfaces=["CurrentBudgetView", "ActiveBodyPlanView"],
-            reply_text="Onboarding is required before I can answer remaining budget.",
+            reply_text=f"{consumed_clause}onboarding is required before I can answer remaining budget.",
             asked_follow_up=False,
             ui_hints={"mode": "general_chat_onboarding_required", "delivery": "chat_only"},
             remaining_budget_contract=answer,
