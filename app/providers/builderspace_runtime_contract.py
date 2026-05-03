@@ -10,6 +10,7 @@ from ..runtime.agent.manager_branch_contract import (
 from ..runtime.agent.founder_live_manager_contract import (
     FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS,
     FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES,
+    FOUNDER_LIVE_MANAGER_CALL_TOOLS_FINAL_ACTIONS,
     FOUNDER_LIVE_MANAGER_EVIDENCE_REQUIRED_FINAL_ACTIONS,
     FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS,
     FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS,
@@ -188,6 +189,25 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
             },
         }
         _apply_founder_live_contract_schema_guidance(base_schema)
+        base_schema["allOf"] = [
+            {
+                "if": {"properties": {"manager_action": {"const": "call_tools"}}},
+                "then": {
+                    "properties": {
+                        "final_action": {"type": "string", "enum": list(FOUNDER_LIVE_MANAGER_CALL_TOOLS_FINAL_ACTIONS)},
+                        "tool_calls": {"type": "array", "minItems": 1},
+                    }
+                },
+            },
+            {
+                "if": {"properties": {"manager_action": {"const": "final"}}},
+                "then": {
+                    "properties": {
+                        "tool_calls": {"type": "array", "maxItems": 0},
+                    }
+                },
+            },
+        ]
         if required_repair_tool:
             base_schema["properties"]["manager_action"] = {"type": "string", "enum": ["call_tools"]}
             base_schema["x-repair-contract"] = {
