@@ -1492,6 +1492,59 @@ def test_founder_live_schema_guidance_names_composition_unknown_call_tools_as_in
     assert "Do not include estimate_nutrition for composition-unknown" in tool_calls_description
 
 
+def test_founder_live_schema_constrains_call_tools_away_from_response_only_final_actions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    schema = adapter._response_schema_for_stage("intake_manager_round", constraints=_founder_live_constraints())
+
+    assert schema["allOf"]
+    call_tools_rule = next(
+        item
+        for item in schema["allOf"]
+        if item["if"]["properties"]["manager_action"]["const"] == "call_tools"
+    )
+    assert call_tools_rule["then"]["properties"]["final_action"]["enum"] == [
+        "commit",
+        "correction_applied",
+        "overshoot_note",
+    ]
+    assert call_tools_rule["then"]["properties"]["tool_calls"]["minItems"] == 1
+
+
+def test_founder_live_contract_rejects_call_tools_with_response_only_final_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    payload = _founder_live_payload(
+        manager_action="call_tools",
+        final_action="ask_followup",
+        workflow_effect="ask_followup",
+        evidence_posture="composition_unknown",
+        tool_calls=[{"name": "estimate_nutrition", "arguments": {}}],
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {},
+            "workflow_effect": "ask_followup",
+            "final_action_candidate": "ask_followup",
+            "estimation_posture": "composition_unknown_basket",
+            "followup_posture": "refinement_not_commit_gate",
+            "mutation_intent_candidate": "no_mutation",
+            "uncertainty_posture": "high",
+            "source": "live_manager_structured_output",
+        },
+        answer_contract={"followup_question": "Which items and portions should I estimate?"},
+    )
+
+    with pytest.raises(RuntimeError, match="call_tools cannot use response-only final_action"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            payload,
+            constraints=_founder_live_constraints(),
+        )
+
+
 def test_founder_live_shared_contract_examples_are_provider_and_case_agnostic() -> None:
     from app.runtime.agent.founder_live_manager_contract import (
         FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES,

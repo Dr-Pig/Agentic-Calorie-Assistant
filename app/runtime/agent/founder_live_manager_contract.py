@@ -76,6 +76,20 @@ FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS = [
     "manager_unavailable",
     "complete_onboarding",
 ]
+FOUNDER_LIVE_MANAGER_CALL_TOOLS_FINAL_ACTIONS = [
+    "commit",
+    "correction_applied",
+    "overshoot_note",
+]
+FOUNDER_LIVE_MANAGER_RESPONSE_ONLY_FINAL_ACTIONS = [
+    "ask_followup",
+    "answer_only",
+    "no_commit",
+    "answer_remaining_budget",
+    "onboarding_required",
+    "manager_unavailable",
+    "complete_onboarding",
+]
 FOUNDER_LIVE_MANAGER_FOLLOWUP_QUESTION_REQUIRED_POSTURES = {
     "refinement_not_commit_gate",
     "size_clarification",
@@ -494,6 +508,12 @@ def validate_founder_live_manager_contract_consistency(
             raise RuntimeError(
                 "founder live manager contract requires non-empty tool_calls when manager_action='call_tools'"
             )
+        call_tools_final_action = str(payload.get("final_action") or "")
+        if call_tools_final_action in FOUNDER_LIVE_MANAGER_RESPONSE_ONLY_FINAL_ACTIONS:
+            raise RuntimeError(
+                "founder live manager contract call_tools cannot use response-only final_action "
+                f"{call_tools_final_action!r}; use a target evidence or nutrition evidence action candidate"
+            )
         invalid_tool_names = [
             str(item.get("name") or item.get("tool_name") or "")
             for item in tool_calls
@@ -661,6 +681,8 @@ __all__ = [
     "FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS",
     "FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES",
     "FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS",
+    "FOUNDER_LIVE_MANAGER_CALL_TOOLS_FINAL_ACTIONS",
+    "FOUNDER_LIVE_MANAGER_RESPONSE_ONLY_FINAL_ACTIONS",
     "FOUNDER_LIVE_MANAGER_FOLLOWUP_QUESTION_REQUIRED_POSTURES",
     "FOUNDER_LIVE_MANAGER_CONTRACT_POLICY",
     "FOUNDER_LIVE_MANAGER_CONTRACT_POLICY_SUMMARY",
