@@ -35,8 +35,12 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
             
         required_evidence_output[group_id] = entry
 
-        if not present or status not in ("pass", "generated", "approved"):
+        if not present:
             blockers.append(f"missing evidence: {group_id}")
+        else:
+            expected_status = "generated" if group_id in ("dogfood_review_queue", "pre_live_decision_pack") else "pass"
+            if status != expected_status:
+                blockers.append(f"failed evidence: {group_id} status={status}")
 
     # 2. Check for blockers in any artifact claims
     for group_id, payload in evidence.items():
@@ -46,9 +50,12 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
         if payload.get("private_self_use_approved") is True:
             blockers.append("private self-use approval attempted")
         
-        if payload.get("product_readiness_claimed") is True:
+        if payload.get("product_readiness_claimed") is True or payload.get("product_ready") is True:
             blockers.append("readiness overclaim")
             
+        if payload.get("web_ready") is True:
+            blockers.append("readiness overclaim")
+
         if payload.get("live_provider_called") is True or payload.get("live_provider_used") is True:
             blockers.append("live provider used")
             
@@ -57,6 +64,15 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
             
         if payload.get("production_db_touched") is True:
             blockers.append("production DB touched")
+
+        if payload.get("production_selected") is True:
+            blockers.append("readiness overclaim")
+
+        if payload.get("rollout_approved") is True:
+            blockers.append("readiness overclaim")
+
+        if payload.get("live_manager_required") is True:
+            blockers.append("readiness overclaim")
 
     blockers = sorted(list(set(blockers)))
     candidate_prepared = len(blockers) == 0

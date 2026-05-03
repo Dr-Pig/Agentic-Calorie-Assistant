@@ -87,3 +87,25 @@ def test_candidate_never_sets_product_readiness_claimed_true() -> None:
     assert pack["local_web_self_use_candidate_v2"]["product_readiness_claimed"] is False
     assert pack["local_web_self_use_candidate_v2"]["private_self_use_approved"] is False
     assert pack["local_web_self_use_candidate_v2"]["kimi_activated"] is False
+
+def test_candidate_blocked_if_production_selected_or_rollout_approved_or_live_manager_required() -> None:
+    for field in ("production_selected", "rollout_approved", "live_manager_required", "web_ready", "product_ready"):
+        evidence = _clean_evidence()
+        evidence["some_artifact"] = {field: True}
+        pack = build_local_web_self_use_candidate_v2(evidence)
+        assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+        assert "readiness overclaim" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+def test_candidate_blocked_if_production_db_touched() -> None:
+    evidence = _clean_evidence()
+    evidence["some_artifact"] = {"production_db_touched": True}
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "production DB touched" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+def test_present_evidence_with_failed_status_blocks_as_failed_evidence() -> None:
+    evidence = _clean_evidence()
+    evidence["browser_shell_smoke"]["status"] = "blocked"
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "failed evidence: browser_shell_smoke status=blocked" in pack["local_web_self_use_candidate_v2"]["blockers"]
