@@ -133,6 +133,25 @@ def _run_summary(*, index: int, artifact: dict[str, Any]) -> dict[str, Any]:
     failed_stage_count = sum(
         1 for stage in stages if str(stage.get("status") or "") in {"fail", "blocked"}
     )
+    full_suite_stages = [
+        stage for stage in stages if str(stage.get("stage_id") or "") == "full_suite_live_diagnostic"
+    ]
+    full_suite = full_suite_stages[-1] if full_suite_stages else {}
+    full_suite_result_kind = str(full_suite.get("result_kind") or "") if full_suite else ""
+    full_suite_status = str(full_suite.get("status") or "") if full_suite else ""
+    full_suite_retry_dependent = bool(full_suite) and (
+        full_suite.get("retry_policy_applied") is True or full_suite_result_kind == "pass_after_retry"
+    )
+    full_suite_timeout = bool(full_suite) and (
+        full_suite_status == "timeout" or full_suite_result_kind.startswith("timeout")
+    )
+    full_suite_failed = bool(full_suite) and full_suite_status in {"fail", "blocked"}
+    full_suite_strict_first_attempt = (
+        bool(full_suite)
+        and full_suite_status == "pass"
+        and full_suite_result_kind == "strict_pass_first_attempt"
+        and not full_suite_retry_dependent
+    )
     strict_pass_first_attempt_count = result_kind_counts.get("strict_pass_first_attempt", 0)
     all_strict_first_attempt = (
         bool(stages)
@@ -158,6 +177,13 @@ def _run_summary(*, index: int, artifact: dict[str, Any]) -> dict[str, Any]:
         "timeout_count": timeout_count,
         "retry_dependent_count": retry_dependent_count,
         "failed_stage_count": failed_stage_count,
+        "full_suite_present": bool(full_suite),
+        "full_suite_status": full_suite_status or None,
+        "full_suite_result_kind": full_suite_result_kind or None,
+        "full_suite_strict_first_attempt": full_suite_strict_first_attempt,
+        "full_suite_pass_after_retry": full_suite_retry_dependent,
+        "full_suite_timeout": full_suite_timeout,
+        "full_suite_failed": full_suite_failed,
         "missing_required_stage_ids": missing_required_stage_ids,
         "missing_required_single_case_ids": missing_required_single_case_ids,
         "all_strict_first_attempt": all_strict_first_attempt,
@@ -198,6 +224,15 @@ def _summary(runs: list[dict[str, Any]], *, input_integrity: dict[str, Any]) -> 
     retry_dependent_count = sum(int(run.get("retry_dependent_count") or 0) for run in runs)
     failed_stage_count = sum(int(run.get("failed_stage_count") or 0) for run in runs)
     stage_count = sum(int(run.get("stage_count") or 0) for run in runs)
+    full_suite_run_count = sum(1 for run in runs if run.get("full_suite_present") is True)
+    full_suite_strict_first_attempt_count = sum(
+        1 for run in runs if run.get("full_suite_strict_first_attempt") is True
+    )
+    full_suite_pass_after_retry_count = sum(
+        1 for run in runs if run.get("full_suite_pass_after_retry") is True
+    )
+    full_suite_timeout_count = sum(1 for run in runs if run.get("full_suite_timeout") is True)
+    full_suite_failed_count = sum(1 for run in runs if run.get("full_suite_failed") is True)
     profile_ids = sorted(
         {str(profile_id) for run in runs for profile_id in _list(run.get("profile_ids")) if str(profile_id)}
     )
@@ -214,6 +249,15 @@ def _summary(runs: list[dict[str, Any]], *, input_integrity: dict[str, Any]) -> 
         and timeout_count == 0
         and retry_dependent_count == 0
         and failed_stage_count == 0
+    )
+    full_suite_replay_ready = (
+        strict_replay_ready
+        and full_suite_run_count >= MINIMUM_STRICT_REPLAY_RUNS_FOR_PRIVATE_SELF_USE_CANDIDATE
+        and full_suite_run_count == sample_run_count
+        and full_suite_strict_first_attempt_count == sample_run_count
+        and full_suite_pass_after_retry_count == 0
+        and full_suite_timeout_count == 0
+        and full_suite_failed_count == 0
     )
     single_profile_stability = (
         strict_replay_ready and len(profile_ids) <= 1 and len(models) <= 1
@@ -238,6 +282,12 @@ def _summary(runs: list[dict[str, Any]], *, input_integrity: dict[str, Any]) -> 
         "timeout_count": timeout_count,
         "retry_dependent_count": retry_dependent_count,
         "failed_stage_count": failed_stage_count,
+        "full_suite_run_count": full_suite_run_count,
+        "full_suite_strict_first_attempt_count": full_suite_strict_first_attempt_count,
+        "full_suite_pass_after_retry_count": full_suite_pass_after_retry_count,
+        "full_suite_timeout_count": full_suite_timeout_count,
+        "full_suite_failed_count": full_suite_failed_count,
+        "full_suite_replay_ready": full_suite_replay_ready,
         "failure_family_counts": failure_family_counts,
         "profile_ids": profile_ids,
         "models": models,

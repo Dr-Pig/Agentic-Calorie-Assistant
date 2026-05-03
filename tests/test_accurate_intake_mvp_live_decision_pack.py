@@ -123,6 +123,8 @@ def _strict_replay(*, model_diversity_status: str = "model_diversity_missing") -
         "summary": {
             "sample_run_count": 3,
             "strict_replay_ready": True,
+            "full_suite_replay_ready": False,
+            "full_suite_run_count": 0,
             "repaired_pass_count": 0,
             "timeout_count": 0,
             "model_diversity_status": model_diversity_status,
@@ -535,6 +537,7 @@ def test_accurate_intake_live_decision_pack_routes_single_strict_run_to_offline_
 def test_accurate_intake_live_decision_pack_can_prepare_private_candidate_but_not_approve_it() -> None:
     pack = build_accurate_intake_live_decision_pack(
         _artifact(strict_pass_count=5, repaired_pass_count=0),
+        stage_manifest_artifact=_clean_required_stage_manifest(include_full_suite=True),
         offline_replay_artifact={
             "artifact_type": "accurate_intake_mvp_offline_shadow_replay",
             "input_integrity": {"passed": True, "blockers": []},
@@ -542,6 +545,8 @@ def test_accurate_intake_live_decision_pack_can_prepare_private_candidate_but_no
                 "sample_run_count": 3,
                 "all_runs_strict": True,
                 "strict_replay_ready": True,
+                "full_suite_replay_ready": True,
+                "full_suite_run_count": 3,
                 "repaired_pass_count": 0,
                 "timeout_count": 0,
                 "model_diversity_status": "provider_diversity_present",
@@ -564,6 +569,38 @@ def test_accurate_intake_live_decision_pack_can_prepare_private_candidate_but_no
     assert pack["mutation_rollout_approved"] is False
     assert pack["model_portability_claimed"] is False
     assert pack["max_model_claim"] == "multi_profile_live_diagnostic_observed"
+
+
+def test_accurate_intake_live_decision_pack_requires_full_suite_replay_window_before_private_candidate() -> None:
+    pack = build_accurate_intake_live_decision_pack(
+        _artifact(strict_pass_count=5, repaired_pass_count=0),
+        stage_manifest_artifact=_clean_required_stage_manifest(include_full_suite=True),
+        offline_replay_artifact={
+            "artifact_type": "accurate_intake_mvp_offline_shadow_replay",
+            "input_integrity": {"passed": True, "blockers": []},
+            "summary": {
+                "sample_run_count": 3,
+                "strict_replay_ready": True,
+                "full_suite_replay_ready": False,
+                "full_suite_run_count": 1,
+                "repaired_pass_count": 0,
+                "timeout_count": 0,
+                "model_diversity_status": "provider_diversity_present",
+            },
+        },
+        provider_robustness_artifact={
+            "artifact_type": "accurate_intake_mvp_live_robustness_matrix",
+            "input_integrity": {"passed": True, "blockers": []},
+            "model_inversion_evidence_passed": True,
+            "contract_overfit_risk": False,
+            "model_diversity_status": "provider_diversity_present",
+        },
+    )
+
+    assert pack["selected_option"] == "offline_shadow_replay"
+    assert pack["selection_reason"] == "full_suite_replay_window_required"
+    assert pack["offline_replay_summary"]["full_suite_replay_ready"] is False
+    assert pack["private_self_use_candidate_prepared"] is False
 
 
 def test_accurate_intake_live_decision_pack_requires_robustness_matrix_after_replay_diversity() -> None:
