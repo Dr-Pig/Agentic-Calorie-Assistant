@@ -201,3 +201,18 @@ def test_offline_shadow_replay_writer_creates_artifact(tmp_path: Path) -> None:
     assert output.name == "accurate_intake_mvp_offline_shadow_replay.json"
     assert payload["artifact_type"] == "accurate_intake_mvp_offline_shadow_replay"
     assert payload["summary"]["sample_run_count"] == 1
+
+
+def test_offline_shadow_replay_writer_accepts_run_specific_output_path(tmp_path: Path) -> None:
+    source = tmp_path / "manifest.json"
+    output_path = tmp_path / "windows" / "accurate_intake_mvp_offline_shadow_replay_run_i.json"
+    source.write_text(json.dumps(_stage_manifest(include_full_suite=True), ensure_ascii=False), encoding="utf-8")
+
+    output = write_accurate_intake_offline_shadow_replay(
+        stage_manifest_paths=[source],
+        output_path=output_path,
+    )
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert output == output_path
+    assert payload["artifact_type"] == "accurate_intake_mvp_offline_shadow_replay"

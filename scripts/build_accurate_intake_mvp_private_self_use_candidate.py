@@ -76,11 +76,12 @@ def write_accurate_intake_private_self_use_candidate(
     *,
     decision_pack_path: Path = DEFAULT_DECISION_PACK_ARTIFACT,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
+    output_path: Path | None = None,
 ) -> Path:
     decision_pack = _dict(json.loads(decision_pack_path.read_text(encoding="utf-8")))
     candidate = build_accurate_intake_private_self_use_candidate(decision_pack)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    path = output_dir / "accurate_intake_mvp_private_self_use_candidate.json"
+    path = output_path or output_dir / "accurate_intake_mvp_private_self_use_candidate.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(candidate, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
 
@@ -113,10 +114,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Build Accurate Intake MVP private self-use candidate artifact.")
     parser.add_argument("--decision-pack", default=str(DEFAULT_DECISION_PACK_ARTIFACT))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument("--output")
     args = parser.parse_args()
     output = write_accurate_intake_private_self_use_candidate(
         decision_pack_path=Path(args.decision_pack),
         output_dir=Path(args.output_dir),
+        output_path=Path(args.output) if args.output else None,
     )
     print(output)
     return 0

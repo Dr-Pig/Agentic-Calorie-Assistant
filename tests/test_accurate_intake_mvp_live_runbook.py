@@ -54,6 +54,11 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "artifacts/accurate_intake_mvp_live_robustness_matrix.json",
         "artifacts/accurate_intake_mvp_live_decision_pack.json",
         "artifacts/accurate_intake_mvp_private_self_use_candidate.json",
+        "python scripts/build_accurate_intake_mvp_live_stage_manifest.py --output artifacts/accurate_intake_mvp_live_stage_manifest_run_i.json",
+        "python scripts/build_accurate_intake_mvp_offline_shadow_replay.py --stage-manifest artifacts/accurate_intake_mvp_live_stage_manifest_run_i.json --output artifacts/accurate_intake_mvp_offline_shadow_replay_run_i.json",
+        "python scripts/build_accurate_intake_mvp_live_robustness_matrix.py --output artifacts/accurate_intake_mvp_live_robustness_matrix_run_i.json",
+        "python scripts/build_accurate_intake_mvp_live_decision_pack.py --output artifacts/accurate_intake_mvp_live_decision_pack_run_i.json",
+        "python scripts/build_accurate_intake_mvp_private_self_use_candidate.py --output artifacts/accurate_intake_mvp_private_self_use_candidate_run_i.json",
     ]
 
     for fragment in required_fragments:
