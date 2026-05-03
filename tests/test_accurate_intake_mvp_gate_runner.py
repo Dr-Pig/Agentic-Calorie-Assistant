@@ -98,6 +98,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_accurate_intake_mvp_api_smoke.py",
         "tests/test_accurate_intake_local_web_shell_bridge.py",
         "tests/test_free_text_manual_target_manager_path.py",
+        "tests/test_accurate_intake_browser_shell_smoke.py",
     ):
         assert expected_test in flat_args
 
@@ -224,6 +225,8 @@ def test_self_use_runbook_records_portable_local_deterministic_scope() -> None:
     assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py --reopen-continuity" in runbook
     assert "python scripts/run_accurate_intake_local_self_use_shell.py --scenario one_day_v1" in runbook
     assert "python scripts/build_accurate_intake_local_self_use_candidate.py" in runbook
+    assert "python scripts/run_accurate_intake_browser_shell_smoke.py" in runbook
+    assert "browser_executed=false" in runbook
     assert "Accurate Intake MVP v2.0 scenario wall" in runbook
     assert "operator transcript" in runbook
     assert "Local Self-Use Shell And Candidate Packet" in runbook

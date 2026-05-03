@@ -116,6 +116,14 @@ python scripts/run_accurate_intake_local_web_shell_smoke.py --db-path .pytest_tm
 
 This route-bridge smoke proves static shell availability and backend route compatibility under deterministic Manager fixtures. It does not execute browser JavaScript; browser-executed fetch sequencing remains a separate UI QA/browser-automation slice before any web-readiness claim.
 
+Run the optional browser-executed shell smoke with:
+
+```powershell
+python scripts/run_accurate_intake_browser_shell_smoke.py --db-path .pytest_tmp_local/accurate_intake_browser_shell_smoke.sqlite3 --output artifacts/accurate_intake_browser_shell_smoke.json
+```
+
+This smoke executes the local shell in a real Chromium browser only when Playwright is available in the operator environment. If Playwright is not installed, the artifact is `blocked` with `browser_executed=false`; that blocked artifact is allowed for local deterministic PR evidence and still must not claim `web_ready`. To require browser execution explicitly, add `--require-browser-execution`. A passing browser artifact only proves local browser fetch/render/CJK behavior for this shell; it is not a product, rollout, live LLM, Web/Tavily, or production DB readiness claim.
+
 Run a fresh local shell pass with:
 
 ```powershell
