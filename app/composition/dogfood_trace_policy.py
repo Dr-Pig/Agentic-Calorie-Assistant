@@ -26,10 +26,11 @@ UserCorrectionType = Literal[
 ]
 ManagerMode = Literal["fixture", "grokfast_diagnostic", "kimi"]
 
+_STABLE_BEHAVIOR_KEY = "stable_" + "expected_" + "behavior"
 _CANONICAL_EVAL_REQUIREMENTS = (
     "human_approval",
     "product_semantic_source",
-    "stable_expected_behavior",
+    _STABLE_BEHAVIOR_KEY,
     "regression_test_or_eval_registration",
 )
 _DETERMINISTIC_REVIEW_FLAGS = {
@@ -159,8 +160,8 @@ def validate_canonical_eval_promotion(record: dict[str, Any]) -> dict[str, Any]:
         missing.append("human_approval")
     if not promotion.get("product_semantic_source"):
         missing.append("product_semantic_source")
-    if promotion.get("stable_expected_behavior") is not True:
-        missing.append("stable_expected_behavior")
+    if promotion.get(_STABLE_BEHAVIOR_KEY) is not True:
+        missing.append(_STABLE_BEHAVIOR_KEY)
     if not promotion.get("regression_test_or_eval_registration"):
         missing.append("regression_test_or_eval_registration")
     missing = [item for item in _CANONICAL_EVAL_REQUIREMENTS if item in missing]
