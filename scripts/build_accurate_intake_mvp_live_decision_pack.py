@@ -169,7 +169,25 @@ def _select_option(
         if stage_summary.get("missing_required_single_case_ids"):
             return "single_case_probe_required", "single_case_probe_missing"
     if stage_summary.get("source") == "stage_manifest" and stage_summary.get("present") is True:
-        return "offline_shadow_replay", "clean_stage_manifest_requires_replay_before_private_self_use_candidate"
+        if offline_replay_summary.get("present") is not True:
+            return "offline_shadow_replay", "clean_stage_manifest_requires_replay_before_private_self_use_candidate"
+        if offline_replay_summary.get("integrity_passed") is not True:
+            return "offline_shadow_replay", "offline_replay_integrity_blocked"
+        if offline_replay_summary.get("strict_replay_ready") is not True:
+            return "offline_shadow_replay", "offline_replay_not_strict"
+        if _full_suite_strict_ready(stage_summary) is not True:
+            return "full_suite_blocked", "full_suite_diagnostic_required"
+        if offline_replay_summary.get("model_diversity_status") == "model_diversity_missing":
+            return "offline_shadow_replay", "model_diversity_missing"
+        if provider_robustness_summary.get("present") is not True:
+            return "offline_shadow_replay", "provider_robustness_matrix_required"
+        if provider_robustness_summary.get("integrity_passed") is not True:
+            return "offline_shadow_replay", "provider_robustness_matrix_integrity_blocked"
+        if provider_robustness_summary.get("contract_overfit_risk") is True:
+            return "offline_shadow_replay", "contract_overfit_risk"
+        if provider_robustness_summary.get("model_inversion_evidence_passed") is not True:
+            return "offline_shadow_replay", "model_inversion_evidence_missing"
+        return "prepare_private_self_use_candidate", "strict_live_diagnostic_with_replay_evidence"
     if evidence_summary.get("environment_or_provider_blocker") is True:
         return "stay_diagnostic", "environment_or_provider_blocker"
     if evidence_summary.get("timeout_count", 0) > 0:
