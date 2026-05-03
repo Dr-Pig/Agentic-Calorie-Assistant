@@ -40,6 +40,16 @@ Current future manager candidate order is a hypothesis, not a production decisio
 
 Both candidates stay outside routine smoke until repo-local evaluation artifacts exist.
 
+## Accurate Intake MVP Deferred Kimi Validation
+
+Accurate Intake target-model validation will use `builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic` in a deferred slice.
+
+PR93-PR100 should not register Kimi as an active Accurate Intake live diagnostic runtime profile. Those PRs should finish model-agnostic schema, harness, dependency inversion, and local product-loop work using fixture paths and the existing GrokFast low-cost diagnostic probe.
+
+Kimi validation starts after the model-agnostic local web self-use loop is green. The first Kimi slice should run provider health, schema probe, fake runtime gate, selected staged probes, and cost/latency capture only.
+
+Kimi remains `production_selected=false`, `private_self_use_approved=false`, and outside routine smoke/default manager selection until an explicit future activation decision.
+
 ### First Live BuilderSpace Candidate Observations
 
 This first live pass upgraded `kimi-k2.5` and `gemini-3-flash-preview` from `hypothesis_only` to `artifact_observed`. It did not select a production manager. `production_selected = false` and `selection_status = not_decided` remain fixed for both candidates.

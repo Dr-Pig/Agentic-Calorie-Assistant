@@ -1,0 +1,107 @@
+{
+  "artifact_type": "accurate_intake_calorie_deficit_mvp_scope",
+  "artifact_schema_version": "1.0",
+  "current_mainline": "Accurate Intake local web self-use MVP",
+  "strategic_verdict": "mainline",
+  "mainline_blocker_being_removed": "practical calorie-deficit logging self-use loop",
+  "capability_layer": "L5-L9 plus L7-L9 diagnostic sidecar",
+  "slice_mode": [
+    "offline_runtime",
+    "local_diagnostic",
+    "diagnostic_only",
+    "producer_honesty"
+  ],
+  "target_acceptance": "seven_day_local_dogfood",
+  "active_pr93_live_profile": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+  "deferred_target_live_profile": "builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic",
+  "included_capabilities": [
+    "free_text_intake",
+    "manager_owned_intent_and_workflow",
+    "calorie_estimation",
+    "food_log_commit",
+    "correction_and_scoped_item_removal",
+    "manual_daily_kcal_target",
+    "today_consumed_and_remaining",
+    "static_fastapi_fake_line_chat",
+    "local_sqlite_persistence",
+    "dogfood_trace_log"
+  ],
+  "excluded_capabilities": [
+    "long_term_memory",
+    "proactive_reminders",
+    "rescue_or_recommendation",
+    "production_database",
+    "tavily_or_web_runtime_truth",
+    "public_rollout",
+    "production_default_manager_selection"
+  ],
+  "claim_flags": {
+    "product_readiness_claimed": false,
+    "private_self_use_approved": false,
+    "production_selected": false,
+    "mutation_rollout_approved": false,
+    "model_portability_claimed": false
+  },
+  "model_cost_strategy": {
+    "grokfast_role": "low_cost_diagnostic_probe",
+    "grokfast_is_target_production_model": false,
+    "kimi_role": "deferred_target_model_validation",
+    "kimi_provider_calls_before_target_validation_slice": false,
+    "kimi_full_suite_hardening_allowed": false,
+    "product_mainline_model_agnostic": true
+  },
+  "reviewer_policy": {
+    "subagent_reviewer_required_after_live_or_provider_affecting_stage_count": "3_to_5",
+    "subagent_reviewer_required_before_prompt_schema_or_contract_hardening": true,
+    "reviewer_mode": "read_only",
+    "reviewer_checks": [
+      "canonical_rule_source",
+      "legal_flow_or_holdout_coverage",
+      "raw_text_routing_risk",
+      "provider_overfit_risk",
+      "readiness_overclaim",
+      "global_mvp_goal_alignment"
+    ]
+  },
+  "deferred_kimi_validation_policy": {
+    "allowed_in_deferred_validation_slice": [
+      "provider_health_smoke",
+      "schema_contract_probe",
+      "fake_provider_active_runtime_gate",
+      "selected_staged_probes",
+      "cost_latency_capture",
+      "failure_attribution"
+    ],
+    "not_allowed_before_deferred_validation_slice": [
+      "full_suite_hardening_loop",
+      "direct_product_contract_change_from_kimi_failure",
+      "production_default_manager_selection",
+      "private_self_use_approval",
+      "readiness_claim"
+    ]
+  },
+  "llm_deterministic_boundary": {
+    "decision_surface": "Manager semantic decision and tool-call posture",
+    "truth_owner": "hybrid",
+    "llm_role": [
+      "infer_user_intent",
+      "choose_workflow_effect",
+      "propose_target_attachment",
+      "choose_tool_action_posture"
+    ],
+    "deterministic_role": [
+      "validate_schema",
+      "validate_target_uniqueness_writeability",
+      "validate_evidence_acceptance",
+      "compute_canonical_persistence_read_model_truth",
+      "reject_or_downgrade_unsafe_mutation"
+    ],
+    "do_not_override": [
+      "intent",
+      "workflow_effect",
+      "final_action",
+      "target_attachment",
+      "logged_draft_no_mutation_disposition"
+    ]
+  }
+}
