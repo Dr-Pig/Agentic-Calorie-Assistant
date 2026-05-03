@@ -38,6 +38,7 @@ def test_accurate_intake_mvp_gate_manifest_declares_local_deterministic_scope() 
         "self_use_scenario_wall_v2_required_group_pass",
         "one_day_self_use_scenario_wall_required_group_pass",
         "local_self_use_operator_shell_required_group_pass",
+        "local_self_use_candidate_packet_required_group_pass",
         "manager_style_active_runtime_smoke_required_group_pass",
         "ux_semantic_manager_decision_consumption_required_group_pass",
         "active_api_route_smoke_required_group_pass",
@@ -65,6 +66,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "self_use_scenario_wall_v2",
         "one_day_self_use_scenario_wall",
         "local_self_use_operator_shell",
+        "local_self_use_candidate_packet",
         "ux_semantic_manager_decision_consumption",
         "active_api_route_smoke",
     ]
@@ -85,6 +87,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_accurate_intake_mvp_self_use_scenario_wall.py",
         "tests/test_accurate_intake_one_day_self_use_wall.py",
         "tests/test_accurate_intake_local_self_use_shell.py",
+        "tests/test_accurate_intake_local_self_use_candidate.py",
         "tests/test_wave1_phase_b2_source_selection.py",
         "tests/test_wave1_phase_b2_packetizer_input_seed.py",
         "tests/test_wave1_phase_b2_packet_consumption.py",
@@ -143,11 +146,12 @@ def test_gate_runner_returns_machine_readable_group_summary(monkeypatch, capsys)
         "self_use_scenario_wall_v2",
         "one_day_self_use_scenario_wall",
         "local_self_use_operator_shell",
+        "local_self_use_candidate_packet",
         "ux_semantic_manager_decision_consumption",
         "active_api_route_smoke",
     ]
     assert {group["requirement"] for group in output["groups"]} == {"required"}
-    assert len(calls) == 12
+    assert len(calls) == 13
 
 
 def test_gate_runner_writes_artifact_output(monkeypatch, tmp_path, capsys) -> None:
@@ -216,8 +220,11 @@ def test_self_use_runbook_records_portable_local_deterministic_scope() -> None:
     assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py" in runbook
     assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py --scenario-wall-v2" in runbook
     assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py --reopen-continuity" in runbook
+    assert "python scripts/run_accurate_intake_local_self_use_shell.py --scenario one_day_v1" in runbook
+    assert "python scripts/build_accurate_intake_local_self_use_candidate.py" in runbook
     assert "Accurate Intake MVP v2.0 scenario wall" in runbook
     assert "operator transcript" in runbook
+    assert "Local Self-Use Shell And Candidate Packet" in runbook
     assert "Manager structured decision fixtures own intent/workflow/target proposal" in runbook
     assert "Food evidence seeds are support-only" in runbook
     assert "No live LLM" in runbook

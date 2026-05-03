@@ -92,6 +92,36 @@ python scripts/run_accurate_intake_mvp_self_use_smoke.py --scenario-wall-v2
 python scripts/run_accurate_intake_mvp_self_use_smoke.py --reopen-continuity
 ```
 
+## Local Self-Use Shell And Candidate Packet
+
+The local self-use operator shell is the deterministic dogfood surface for the one-day scenario. It defaults to fixture Manager mode and blocks unknown scenarios instead of parsing arbitrary raw text into intent, workflow, target attachment, or mutation disposition.
+
+Run a fresh local shell pass with:
+
+```powershell
+python scripts/run_accurate_intake_local_self_use_shell.py --scenario one_day_v1 --db-path .pytest_tmp_local/accurate_intake_self_use.sqlite --reset-db --output artifacts/accurate_intake_local_self_use_shell.json --print-debug-surface
+```
+
+Run reopen continuity against the same local SQLite DB with:
+
+```powershell
+python scripts/run_accurate_intake_local_self_use_shell.py --scenario one_day_v1 --db-path .pytest_tmp_local/accurate_intake_self_use.sqlite --keep-db --output artifacts/accurate_intake_local_self_use_shell_keep.json --print-debug-surface
+```
+
+Build the human-reviewable candidate packet with:
+
+```powershell
+python scripts/build_accurate_intake_local_self_use_candidate.py --shell-artifact artifacts/accurate_intake_local_self_use_shell.json --output artifacts/accurate_intake_local_self_use_candidate.json
+```
+
+The candidate packet may set `local_self_use_candidate_prepared=true` when the deterministic shell evidence is clean. It must keep `private_self_use_approved=false`, `product_readiness_claimed=false`, `production_selected=false`, and `live_manager_required=false`.
+
+Windows operators should run SQLite-backed commands sequentially. If `.pytest_tmp_local` reports a temporary SQLite lock, wait for the previous process to exit and rerun the affected command before classifying the result. Do not run the reset and keep-db shell commands concurrently against the same DB path.
+
+macOS, Linux, Docker, and devcontainer operators should use the same commands after the Python 3.12 environment is active. Docker/devcontainer usage is for environment parity only; it does not change the local deterministic claim scope.
+
+For local backup, copy the SQLite DB file before running `--reset-db`. Local DB files and generated artifacts remain local-only evidence; repo truth is scripts, tests, docs, manifests, and canonical specs.
+
 ## Explicit Non-Goals
 
 - No live LLM.
