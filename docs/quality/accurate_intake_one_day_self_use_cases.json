@@ -1,0 +1,126 @@
+{
+  "register_id": "accurate_intake_one_day_self_use_cases",
+  "artifact_schema_version": "1.0",
+  "scenario_id": "one_day_v1",
+  "claim_scope": "local_deterministic_mvp_gate",
+  "runner_inferred_semantics": false,
+  "live_llm_required": false,
+  "web_tavily_required": false,
+  "production_db_required": false,
+  "product_readiness_claimed": false,
+  "private_self_use_approved": false,
+  "description": "One local deterministic same-user day of Accurate Intake MVP usage, driven by Manager structured fixtures and validated through canonical local state/read models.",
+  "turns": [
+    {
+      "turn_id": "breakfast_tea_egg_latte",
+      "raw_user_input": "早餐吃茶葉蛋和拿鐵",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "deterministic_manager_structured_fixture",
+        "intent_type": "log_meal",
+        "workflow_effect": "new_meal_commit",
+        "final_action": "commit_logged_estimate"
+      }
+    },
+    {
+      "turn_id": "lunch_chicken_bento",
+      "raw_user_input": "午餐吃雞腿便當",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "deterministic_manager_structured_fixture",
+        "intent_type": "log_meal",
+        "workflow_effect": "new_meal_commit",
+        "final_action": "commit_logged_estimate"
+      }
+    },
+    {
+      "turn_id": "lunch_rice_less_correction",
+      "raw_user_input": "飯少一點",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "deterministic_manager_structured_fixture",
+        "intent_type": "correct_meal",
+        "workflow_effect": "correction_replace_item",
+        "final_action": "commit_correction",
+        "target_attachment": {"attachment_kind": "explicit_item_target", "canonical_name": "白飯"}
+      }
+    },
+    {
+      "turn_id": "bubble_tea_first_value",
+      "raw_user_input": "下午喝珍珠奶茶",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "deterministic_manager_structured_fixture",
+        "intent_type": "log_meal",
+        "workflow_effect": "new_meal_commit",
+        "final_action": "commit_logged_estimate",
+        "follow_up_posture": "ask_size_sugar_after_logging"
+      }
+    },
+    {
+      "turn_id": "bubble_tea_half_sugar_large_refinement",
+      "raw_user_input": "半糖大杯",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "deterministic_manager_structured_fixture",
+        "intent_type": "refine_meal",
+        "workflow_effect": "same_item_refinement",
+        "final_action": "commit_correction",
+        "target_attachment": {"attachment_kind": "same_item_refinement", "canonical_name": "珍珠奶茶"}
+      }
+    },
+    {
+      "turn_id": "dinner_luwei_bare_draft",
+      "raw_user_input": "晚餐吃滷味",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "deterministic_manager_structured_fixture",
+        "intent_type": "log_meal",
+        "workflow_effect": "draft_clarify_no_mutation",
+        "final_action": "ask_items"
+      }
+    },
+    {
+      "turn_id": "dinner_luwei_listed_commit",
+      "raw_user_input": "有豆干、海帶、貢丸",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "deterministic_manager_structured_fixture",
+        "intent_type": "complete_meal_details",
+        "workflow_effect": "listed_basket_commit",
+        "final_action": "commit_logged_estimate",
+        "target_attachment": {"attachment_kind": "draft_followup", "canonical_name": "滷味"}
+      }
+    },
+    {
+      "turn_id": "dinner_remove_gongwan",
+      "raw_user_input": "把貢丸拿掉",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "deterministic_manager_structured_fixture",
+        "intent_type": "correct_meal",
+        "workflow_effect": "correction_remove_item",
+        "final_action": "commit_correction",
+        "target_attachment": {"attachment_kind": "explicit_item_target", "canonical_name": "貢丸"}
+      }
+    },
+    {
+      "turn_id": "today_consumed_remaining_query",
+      "raw_user_input": "今天吃了多少？還剩多少？",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "deterministic_manager_structured_fixture",
+        "intent_type": "answer_remaining_budget",
+        "workflow_effect": "read_only_budget_query",
+        "final_action": "no_mutation"
+      }
+    }
+  ],
+  "expected_final_state": {
+    "consumed_kcal": 1670,
+    "remaining_kcal": 130,
+    "active_meal_count": 4,
+    "ledger_event_count": 7,
+    "same_truth_status": "pass"
+  }
+}
