@@ -1,0 +1,373 @@
+{
+  "register_id": "accurate_intake_basket_holdout_cases_v1",
+  "artifact_schema_version": "1.0",
+  "claim_scope": "local_deterministic_mvp_gate",
+  "purpose": "Anti-overfit regression set for basket semantics after listed-basket live failures.",
+  "runner_inferred_semantics": false,
+  "truth_owner": {
+    "user_intent": "manager_structured_decision",
+    "routing_or_workflow_effect": "manager_structured_decision",
+    "logged_draft_no_mutation": "manager_structured_decision_then_final_mapping",
+    "mutation_legality": "deterministic_guard",
+    "persistence_truth": "canonical_local_state"
+  },
+  "food_seed_rule": {
+    "can_provide_candidate_evidence": true,
+    "can_provide_semantic_hints": true,
+    "can_decide_logged_draft_no_mutation": false
+  },
+  "cases": [
+    {
+      "case_id": "BH-BARE-001",
+      "holdout_class": "bare_basket",
+      "raw_user_input": "我吃了滷味",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "final",
+        "final_action": "ask_followup",
+        "workflow_effect": "draft_clarify_no_mutation",
+        "tool_calls": [],
+        "followup_posture": "required_items"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": false,
+        "ledger_mutation_allowed": false,
+        "logged_or_committed": false
+      }
+    },
+    {
+      "case_id": "BH-BARE-002",
+      "holdout_class": "bare_basket",
+      "raw_user_input": "我吃了麻辣燙",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "final",
+        "final_action": "ask_followup",
+        "workflow_effect": "draft_clarify_no_mutation",
+        "tool_calls": [],
+        "followup_posture": "required_items"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": false,
+        "ledger_mutation_allowed": false,
+        "logged_or_committed": false
+      }
+    },
+    {
+      "case_id": "BH-BARE-003",
+      "holdout_class": "bare_basket",
+      "raw_user_input": "我去買鹽酥雞",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "final",
+        "final_action": "ask_followup",
+        "workflow_effect": "draft_clarify_no_mutation",
+        "tool_calls": [],
+        "followup_posture": "required_items"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": false,
+        "ledger_mutation_allowed": false,
+        "logged_or_committed": false
+      }
+    },
+    {
+      "case_id": "BH-BARE-004",
+      "holdout_class": "bare_basket",
+      "raw_user_input": "我吃自助餐",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "final",
+        "final_action": "ask_followup",
+        "workflow_effect": "draft_clarify_no_mutation",
+        "tool_calls": [],
+        "followup_posture": "required_items"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": false,
+        "ledger_mutation_allowed": false,
+        "logged_or_committed": false
+      }
+    },
+    {
+      "case_id": "BH-BARE-005",
+      "holdout_class": "bare_basket",
+      "raw_user_input": "我吃鹹水雞",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "final",
+        "final_action": "ask_followup",
+        "workflow_effect": "draft_clarify_no_mutation",
+        "tool_calls": [],
+        "followup_posture": "required_items"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": false,
+        "ledger_mutation_allowed": false,
+        "logged_or_committed": false
+      }
+    },
+    {
+      "case_id": "BH-BARE-006",
+      "holdout_class": "bare_basket",
+      "raw_user_input": "我吃關東煮",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "final",
+        "final_action": "ask_followup",
+        "workflow_effect": "draft_clarify_no_mutation",
+        "tool_calls": [],
+        "followup_posture": "required_items"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": false,
+        "ledger_mutation_allowed": false,
+        "logged_or_committed": false
+      }
+    },
+    {
+      "case_id": "BH-LISTED-001",
+      "holdout_class": "listed_basket",
+      "raw_user_input": "滷味，有豆干、海帶、貢丸",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "call_tools",
+        "final_action": "commit",
+        "workflow_effect": "listed_basket_commit",
+        "tool_calls": [
+          "estimate_nutrition"
+        ],
+        "followup_posture": "portion_refinement_optional"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": true,
+        "ledger_mutation_allowed": true,
+        "logged_or_committed": true
+      }
+    },
+    {
+      "case_id": "BH-LISTED-002",
+      "holdout_class": "listed_basket",
+      "raw_user_input": "麻辣燙，有王子麵、青菜、貢丸",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "call_tools",
+        "final_action": "commit",
+        "workflow_effect": "listed_basket_commit",
+        "tool_calls": [
+          "estimate_nutrition"
+        ],
+        "followup_posture": "portion_refinement_optional"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": true,
+        "ledger_mutation_allowed": true,
+        "logged_or_committed": true
+      }
+    },
+    {
+      "case_id": "BH-LISTED-003",
+      "holdout_class": "listed_basket",
+      "raw_user_input": "鹹水雞，有雞胸、花椰菜、豆干",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "call_tools",
+        "final_action": "commit",
+        "workflow_effect": "listed_basket_commit",
+        "tool_calls": [
+          "estimate_nutrition"
+        ],
+        "followup_posture": "portion_refinement_optional"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": true,
+        "ledger_mutation_allowed": true,
+        "logged_or_committed": true
+      }
+    },
+    {
+      "case_id": "BH-LISTED-004",
+      "holdout_class": "listed_basket",
+      "raw_user_input": "鹽酥雞，有甜不辣、米血、四季豆",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "call_tools",
+        "final_action": "commit",
+        "workflow_effect": "listed_basket_commit",
+        "tool_calls": [
+          "estimate_nutrition"
+        ],
+        "followup_posture": "portion_refinement_optional"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": true,
+        "ledger_mutation_allowed": true,
+        "logged_or_committed": true
+      }
+    },
+    {
+      "case_id": "BH-STABLE-001",
+      "holdout_class": "stable_common_item",
+      "raw_user_input": "珍珠奶茶半糖大杯",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "call_tools",
+        "final_action": "commit",
+        "workflow_effect": "stable_item_commit_with_optional_refinement",
+        "tool_calls": [
+          "estimate_nutrition"
+        ],
+        "followup_posture": "refinement_optional"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": true,
+        "ledger_mutation_allowed": true,
+        "logged_or_committed": true
+      }
+    },
+    {
+      "case_id": "BH-STABLE-002",
+      "holdout_class": "stable_common_item",
+      "raw_user_input": "雞腿便當",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "call_tools",
+        "final_action": "commit",
+        "workflow_effect": "stable_item_commit_with_optional_refinement",
+        "tool_calls": [
+          "estimate_nutrition"
+        ],
+        "followup_posture": "refinement_optional"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": true,
+        "ledger_mutation_allowed": true,
+        "logged_or_committed": true
+      }
+    },
+    {
+      "case_id": "BH-STABLE-003",
+      "holdout_class": "stable_common_item",
+      "raw_user_input": "茶葉蛋",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "call_tools",
+        "final_action": "commit",
+        "workflow_effect": "stable_item_commit_with_optional_refinement",
+        "tool_calls": [
+          "estimate_nutrition"
+        ],
+        "followup_posture": "refinement_optional"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": true,
+        "ledger_mutation_allowed": true,
+        "logged_or_committed": true
+      }
+    },
+    {
+      "case_id": "BH-STABLE-004",
+      "holdout_class": "stable_common_item",
+      "raw_user_input": "牛肉麵",
+      "runner_inferred_semantics": false,
+      "manager_decision_fixture": {
+        "source": "fixture_manager_structured_decision",
+        "semantic_owner": "manager",
+        "manager_action": "call_tools",
+        "final_action": "commit",
+        "workflow_effect": "stable_item_commit_with_optional_refinement",
+        "tool_calls": [
+          "estimate_nutrition"
+        ],
+        "followup_posture": "refinement_optional"
+      },
+      "expected_runtime_validation": {
+        "runner_may_infer_semantics_from_raw_text": false,
+        "food_seed_may_decide_logged_draft_no_mutation": false
+      },
+      "expected_state": {
+        "estimate_nutrition_called": true,
+        "ledger_mutation_allowed": true,
+        "logged_or_committed": true
+      }
+    }
+  ]
+}
