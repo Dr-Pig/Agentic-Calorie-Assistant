@@ -40,6 +40,7 @@ app/runtime/**/*.pyc
 !docs/quality/accurate_intake_contract_legal_flow_matrix.json
 !docs/quality/accurate_intake_pr74_84_semantic_drift_audit.json
 !docs/quality/accurate_intake_basket_holdout_cases.json
+!docs/quality/accurate_intake_post_pr88_phase_checkpoint.json
 !app/knowledge/
 !app/knowledge/small_anchor_store_tw.json
 !app/knowledge/exact_item_cards_tw.json
