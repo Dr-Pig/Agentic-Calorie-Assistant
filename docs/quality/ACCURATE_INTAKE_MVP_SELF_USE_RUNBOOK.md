@@ -114,6 +114,14 @@ python scripts/run_accurate_intake_local_web_shell_smoke.py --db-path .pytest_tm
 
 This route-bridge smoke proves static shell availability and backend route compatibility under deterministic Manager fixtures. It does not execute browser JavaScript; browser-executed fetch sequencing remains a separate UI QA/browser-automation slice before any web-readiness claim.
 
+Run the chat-history reload gate with:
+
+```powershell
+python scripts/run_accurate_intake_chat_history_reload_gate.py --db-path .pytest_tmp_local/accurate_intake_chat_history_reload_gate.sqlite3 --output artifacts/accurate_intake_chat_history_reload_gate.json
+```
+
+This reload gate writes a CJK chat turn through `/estimate`, closes the first local app/session, reopens the same SQLite DB, and verifies `/accurate-intake/chat-history`, `/today/current-budget`, and `/accurate-intake/debug` from the reopened backend surfaces. It proves current-session/current-day transcript and runtime-turn trace linkage survive local reload; it is not browser execution, long-term memory, live LLM, Web/Tavily, production DB, or web-readiness evidence.
+
 Run a fresh local shell pass with:
 
 ```powershell

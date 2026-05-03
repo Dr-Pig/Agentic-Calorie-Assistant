@@ -151,7 +151,8 @@
       "pytest": [
         "tests/test_accurate_intake_mvp_api_smoke.py",
         "tests/test_accurate_intake_local_web_shell.py",
-        "tests/test_accurate_intake_local_web_shell_bridge.py"
+        "tests/test_accurate_intake_local_web_shell_bridge.py",
+        "tests/test_accurate_intake_chat_history_reload_gate.py"
       ]
     }
   ],
