@@ -10,6 +10,7 @@ from dataclasses import replace
 import time
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.composition.intake_execution_response import build_intake_execution_response, finalized_budget_summary
@@ -33,6 +34,8 @@ from app.intake.application.history_expansion_manager_runtime import (
 from app.composition.intake_execution_persistence import initial_state_mutation_summary, persist_intake_execution_artifact
 from app.intake.application.intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool
 from app.intake.application.phase_a_runtime_context import prepare_phase_a_runtime_context
+from app.intake.application.target_evidence_artifacts import TargetEvidenceArtifact
+from app.intake.infrastructure.models import MealItemRecord
 from app.nutrition.application.manager_policy_hints import nutrition_manager_policy_hints
 from app.nutrition.application.estimate_artifacts import EstimatedNutritionArtifact
 from app.nutrition.application.owner_lineage_trace import attach_owner_lineage_trace
@@ -111,6 +114,46 @@ def _validate_final_manager_target_attachment(
     return last_validation
 
 
+def _remaining_item_totals_after_target_removal(
+    db: Session,
+    *,
+    target_item_id: int | None,
+) -> dict[str, Any]:
+    if target_item_id is None:
+        return {
+            "estimated_kcal": 0,
+            "protein_g": 0,
+            "carb_g": 0,
+            "fat_g": 0,
+            "remaining_item_names": [],
+            "removed_item_name": None,
+        }
+    target_item = db.get(MealItemRecord, target_item_id)
+    if target_item is None:
+        return {
+            "estimated_kcal": 0,
+            "protein_g": 0,
+            "carb_g": 0,
+            "fat_g": 0,
+            "remaining_item_names": [],
+            "removed_item_name": None,
+        }
+    old_items = db.execute(
+        select(MealItemRecord)
+        .where(MealItemRecord.meal_version_id == target_item.meal_version_id)
+        .order_by(MealItemRecord.item_index.asc())
+    ).scalars().all()
+    remaining_items = [old_item for old_item in old_items if old_item.id != target_item.id]
+    return {
+        "estimated_kcal": sum(int(item.estimated_kcal or 0) for item in remaining_items),
+        "protein_g": sum(int(item.protein_g or 0) for item in remaining_items),
+        "carb_g": sum(int(item.carb_g or 0) for item in remaining_items),
+        "fat_g": sum(int(item.fat_g or 0) for item in remaining_items),
+        "remaining_item_names": [str(item.name or "") for item in remaining_items],
+        "removed_item_name": str(target_item.name or ""),
+    }
+
+
 def _build_remove_item_target_evidence_artifact(
     db: Session,
     *,
@@ -120,7 +163,7 @@ def _build_remove_item_target_evidence_artifact(
     request_id: str,
     correction_target: dict[str, Any],
     manager_semantic_decision: dict[str, Any],
-) -> EstimatedNutritionArtifact:
+) -> TargetEvidenceArtifact:
     request = EstimateRequest(text=raw_user_input, allow_search=False, user_id=user_external_id)
     runtime_context = load_request_runtime_context(
         request=request,
@@ -129,10 +172,17 @@ def _build_remove_item_target_evidence_artifact(
     )
     target_validation = validate_correction_target_ref(correction_target)
     canonical_name = str(target_validation.get("canonical_name") or correction_target.get("canonical_name") or "").strip()
+    remaining_totals = _remaining_item_totals_after_target_removal(
+        db,
+        target_item_id=target_validation.get("meal_item_id"),
+    )
     payload = EstimatePayload(
         request_id=request_id,
         meal_title=f"remove {canonical_name}".strip() or "remove item",
-        estimated_kcal=1,
+        estimated_kcal=int(remaining_totals["estimated_kcal"]),
+        protein_g=int(remaining_totals["protein_g"]),
+        carb_g=int(remaining_totals["carb_g"]),
+        fat_g=int(remaining_totals["fat_g"]),
         source_decision="ready",
         answer_mode="direct_answer",
         action_taken="correction_applied",
@@ -149,15 +199,20 @@ def _build_remove_item_target_evidence_artifact(
                 "meal_item_id": target_validation.get("meal_item_id"),
                 "canonical_name": canonical_name,
             },
+            "canonical_remaining_item_totals": remaining_totals,
             "target_evidence_contract": {
                 "evidence_type": "target_evidence",
                 "source": "resolve_correction_target",
                 "nutrition_evidence_required": False,
+                "nutrition_evidence_present": False,
+                "target_evidence_is_nutrition_evidence": False,
+                "kcal_source": "canonical_remaining_items",
+                "placeholder_kcal_used": False,
                 "manager_semantic_decision": dict(manager_semantic_decision or {}),
             },
         },
     )
-    return EstimatedNutritionArtifact(request=request, runtime_context=runtime_context, payload=payload)
+    return TargetEvidenceArtifact(request=request, runtime_context=runtime_context, payload=payload)
 
 
 def _manager_ask_followup_question(manager_result: Any) -> str:
