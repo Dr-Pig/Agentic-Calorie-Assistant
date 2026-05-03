@@ -234,6 +234,28 @@ Explicit non-goals:
 - No production/default Manager selection.
 - No mutation rollout.
 
+## Pre-Live Local Web Self-Use Decision Pack
+
+Before any limited live canary is considered by a human reviewer, build a pre-live local web self-use decision pack from offline evidence:
+
+```powershell
+python scripts/build_accurate_intake_pre_live_self_use_decision_pack.py --evidence-json artifacts/accurate_intake_pre_live_evidence.json --output artifacts/accurate_intake_pre_live_self_use_decision_pack.json
+```
+
+This pack is not a live run and must keep `live_llm_invoked=false`, `live_canary_approved=false`, `kimi_active_runtime_default_allowed=false`, `product_readiness_claimed=false`, and `runtime_web_activation_approved=false`.
+
+The required evidence keys are:
+
+- `phase_c_gate`
+- `accurate_intake_mvp_gate`
+- `browser_shell_smoke`
+- `chat_history_reload_gate`
+- `free_text_manual_target_gate`
+- `dogfood_review_queue`
+- `local_dogfood_data_hygiene`
+
+The `browser_shell_smoke` evidence must have `browser_executed=true` before the pack can select `ready_for_human_limited_live_canary_decision`. Missing evidence keeps the selected option at `stay_local_self_use`.
+
 ## Semantic Ownership Boundary
 
 The live Manager owns intent, workflow effect, target proposal, and tool-decision posture.
