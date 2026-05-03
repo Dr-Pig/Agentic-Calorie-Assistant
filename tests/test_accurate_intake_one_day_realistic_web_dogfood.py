@@ -97,7 +97,7 @@ def test_negative_guard_raw_text_inference_not_used():
         res = client.post(
             "/estimate",
             json={
-                "text": "totally unrelated gibberish that has nothing to do with 1600",
+                "text": "這句完全無關而且沒有任何數字",
                 "user_id": "test",
                 "allow_search": False,
             },
