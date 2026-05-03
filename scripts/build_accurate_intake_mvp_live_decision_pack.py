@@ -179,6 +179,8 @@ def _select_option(
             return "full_suite_blocked", "full_suite_diagnostic_required"
         if offline_replay_summary.get("model_diversity_status") == "model_diversity_missing":
             return "offline_shadow_replay", "model_diversity_missing"
+        if offline_replay_summary.get("full_suite_replay_ready") is not True:
+            return "offline_shadow_replay", "full_suite_replay_window_required"
         if provider_robustness_summary.get("present") is not True:
             return "offline_shadow_replay", "provider_robustness_matrix_required"
         if provider_robustness_summary.get("integrity_passed") is not True:
@@ -214,6 +216,8 @@ def _select_option(
                 return "offline_shadow_replay", "model_inversion_evidence_missing"
             if _full_suite_strict_ready(stage_summary) is not True:
                 return "full_suite_blocked", "full_suite_diagnostic_required"
+            if offline_replay_summary.get("full_suite_replay_ready") is not True:
+                return "offline_shadow_replay", "full_suite_replay_window_required"
             return "prepare_private_self_use_candidate", "strict_live_diagnostic_with_replay_evidence"
         return "offline_shadow_replay", "offline_replay_not_strict"
     return "defer_to_local_mvp", "live_diagnostic_not_clean"
@@ -379,6 +383,11 @@ def _offline_replay_summary(artifact: dict[str, Any] | None) -> dict[str, Any]:
             "sample_run_count": 0,
             "repaired_pass_count": 0,
             "timeout_count": 0,
+            "full_suite_replay_ready": False,
+            "full_suite_run_count": 0,
+            "full_suite_strict_first_attempt_count": 0,
+            "full_suite_timeout_count": 0,
+            "full_suite_pass_after_retry_count": 0,
             "model_diversity_status": "missing_offline_replay",
         }
     summary = _dict(artifact.get("summary"))
@@ -395,6 +404,13 @@ def _offline_replay_summary(artifact: dict[str, Any] | None) -> dict[str, Any]:
         "sample_run_count": int(summary.get("sample_run_count") or 0),
         "repaired_pass_count": int(summary.get("repaired_pass_count") or 0),
         "timeout_count": int(summary.get("timeout_count") or 0),
+        "full_suite_replay_ready": summary.get("full_suite_replay_ready") is True,
+        "full_suite_run_count": int(summary.get("full_suite_run_count") or 0),
+        "full_suite_strict_first_attempt_count": int(
+            summary.get("full_suite_strict_first_attempt_count") or 0
+        ),
+        "full_suite_timeout_count": int(summary.get("full_suite_timeout_count") or 0),
+        "full_suite_pass_after_retry_count": int(summary.get("full_suite_pass_after_retry_count") or 0),
         "model_diversity_status": str(summary.get("model_diversity_status") or "unknown"),
     }
 
