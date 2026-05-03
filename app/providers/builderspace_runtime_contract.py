@@ -38,7 +38,8 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
             "semantic_decision.estimation_posture says pending_tool_call/tool_pending, this field must be call_tools. "
             "Exception: explicit remove_item correction uses target evidence from resolve_correction_target, not "
             "estimate_nutrition. Exception: composition-unknown baskets are not tool evidence missing; return final "
-            "ask_followup with tool_calls=[] instead of call_tools. Every call_tools response must include a non-empty "
+            "ask_followup with tool_calls=[] instead of call_tools; manager_action=call_tools is invalid for composition-unknown "
+            "baskets. Every call_tools response must include a non-empty "
             "tool_calls array."
         )
     evidence_posture = properties.get("evidence_posture")
@@ -63,7 +64,9 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
         tool_calls["description"] = (
             "Required when manager_action is call_tools. Use estimate_nutrition before commit, "
             "nutrition-changing correction_applied, or overshoot_note if current-loop nutrition evidence is missing. "
-            "For explicit remove_item, call resolve_correction_target when target evidence is missing."
+            "For explicit remove_item, call resolve_correction_target when target evidence is missing. "
+            "Do not include estimate_nutrition for composition-unknown ask_followup/no_mutation; use final with "
+            "tool_calls=[] instead."
         )
     answer_contract = properties.get("answer_contract")
     if isinstance(answer_contract, dict):
@@ -94,7 +97,8 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
         estimation_posture["description"] = (
             "Estimation state for this turn. pending_tool_call or tool_pending means the same payload must use "
             "manager_action=call_tools with estimate_nutrition; do not return manager_action=final until tool "
-            "results provide current-loop nutrition evidence."
+            "results provide current-loop nutrition evidence. composition_unknown_basket is not pending_tool_call; "
+            "it must pair with final ask_followup/no_mutation and tool_calls=[]."
         )
     followup_posture = semantic_properties.get("followup_posture")
     if isinstance(followup_posture, dict):
