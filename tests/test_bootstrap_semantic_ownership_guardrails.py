@@ -58,6 +58,10 @@ def test_bootstrap_records_founder_live_strictness_model_inversion_policy() -> N
     assert "not provider-specific trace imitation" in bootstrap
     assert "single-profile diagnostic stability" in bootstrap
     assert "model diversity evidence" in bootstrap
+    assert "live full-suite failure unlocks attribution/audit only" in bootstrap
+    assert "live failure alone cannot justify prompt/schema/contract hardening" in bootstrap
+    assert "legal-flow matrix" in bootstrap
+    assert "holdout tests" in bootstrap
     assert "local-2026-05-01-founder-live-strictness-model-inversion" in local_memory
 
 

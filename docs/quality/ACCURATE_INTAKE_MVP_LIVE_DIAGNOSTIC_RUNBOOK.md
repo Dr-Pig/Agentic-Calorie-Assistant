@@ -38,6 +38,7 @@ python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage fake_provider_
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id explicit_item_removal_seeded --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_seeded_removal.json
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id chinese_chicken_rice_correction_removal_debug --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_single_case.json
 python scripts/build_accurate_intake_mvp_live_stage_manifest.py
+python scripts/build_accurate_intake_contract_hardening_guard.py
 python scripts/build_accurate_intake_mvp_offline_shadow_replay.py
 python scripts/build_accurate_intake_mvp_live_robustness_matrix.py
 python scripts/build_accurate_intake_mvp_live_decision_pack.py
@@ -47,6 +48,7 @@ python scripts/build_accurate_intake_mvp_private_self_use_candidate.py
 The generated manifest, replay, and decision pack paths are:
 
 - `artifacts/accurate_intake_mvp_live_stage_manifest.json`
+- `artifacts/accurate_intake_contract_hardening_guard.json`
 - `artifacts/accurate_intake_mvp_offline_shadow_replay.json`
 - `artifacts/accurate_intake_mvp_live_robustness_matrix.json`
 - `artifacts/accurate_intake_mvp_live_decision_pack.json`
@@ -56,11 +58,45 @@ For repeated runs, pass `--output` to the artifact builders instead of overwriti
 
 ```powershell
 python scripts/build_accurate_intake_mvp_live_stage_manifest.py --output artifacts/accurate_intake_mvp_live_stage_manifest_run_i.json
+python scripts/build_accurate_intake_contract_hardening_guard.py --output artifacts/accurate_intake_contract_hardening_guard_run_i.json
 python scripts/build_accurate_intake_mvp_offline_shadow_replay.py --stage-manifest artifacts/accurate_intake_mvp_live_stage_manifest_run_i.json --output artifacts/accurate_intake_mvp_offline_shadow_replay_run_i.json
 python scripts/build_accurate_intake_mvp_live_robustness_matrix.py --output artifacts/accurate_intake_mvp_live_robustness_matrix_run_i.json
-python scripts/build_accurate_intake_mvp_live_decision_pack.py --output artifacts/accurate_intake_mvp_live_decision_pack_run_i.json
+python scripts/build_accurate_intake_mvp_live_decision_pack.py --output artifacts/accurate_intake_mvp_live_decision_pack_run_i.json --contract-hardening-guard-artifact artifacts/accurate_intake_contract_hardening_guard_run_i.json
 python scripts/build_accurate_intake_mvp_private_self_use_candidate.py --output artifacts/accurate_intake_mvp_private_self_use_candidate_run_i.json
 ```
+
+## Contract Hardening Anti-Overfit Gate
+
+`live full-suite failure unlocks attribution/audit only`.
+
+`live failure alone cannot justify prompt/schema/contract hardening`.
+
+Before any prompt, schema, or Manager contract hardening can be treated as merge-ready, build the contract hardening guard:
+
+```powershell
+python scripts/build_accurate_intake_contract_hardening_guard.py --output artifacts/accurate_intake_contract_hardening_guard.json
+```
+
+The guard records `contract_hardening_debt`. Any debt keeps decision packs diagnostic-only and blocks private self-use candidate preparation.
+
+Required guard fields include:
+
+- `fixed_case_ids`
+- `legal_flows_broken`
+- `canonical_rule_exists`
+- `legal_flow_matrix_updated`
+- `holdout_tests_added`
+- `raw_text_routing_risk`
+- `provider_overfit_risk`
+- `merge_allowed`
+
+`merge_allowed=true` requires canonical product-rule backing, an updated legal-flow matrix, holdout tests, no raw-text routing risk, no high provider-overfit risk, and `legal_flows_broken=[]`.
+
+The current PR74-PR84 audit is repo-tracked as:
+
+- `docs/quality/accurate_intake_pr74_84_semantic_drift_audit.json`
+- `docs/quality/accurate_intake_contract_legal_flow_matrix.json`
+- `docs/quality/accurate_intake_contract_change_manifest_pr84.json`
 
 ## Full Suite Gate
 
@@ -117,6 +153,7 @@ Do not stage:
 - `artifacts/accurate_intake_mvp_live_diagnostic_single_case.json`
 - `artifacts/accurate_intake_mvp_live_diagnostic_full_suite.json`
 - `artifacts/accurate_intake_mvp_live_stage_manifest.json`
+- `artifacts/accurate_intake_contract_hardening_guard.json`
 - `artifacts/accurate_intake_mvp_offline_shadow_replay.json`
 - `artifacts/accurate_intake_mvp_live_robustness_matrix.json`
 - `artifacts/accurate_intake_mvp_live_decision_pack.json`
