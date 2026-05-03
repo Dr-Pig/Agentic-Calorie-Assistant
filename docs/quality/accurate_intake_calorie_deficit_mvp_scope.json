@@ -16,6 +16,7 @@
   "deferred_target_live_profile": "builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic",
   "included_capabilities": [
     "free_text_intake",
+    "current_session_conversation_context",
     "manager_owned_intent_and_workflow",
     "calorie_estimation",
     "food_log_commit",

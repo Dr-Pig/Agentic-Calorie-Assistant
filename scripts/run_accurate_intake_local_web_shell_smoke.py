@@ -129,6 +129,18 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         blockers.append("today_budget_not_updated_after_estimate")
     if report["debug"].get("same_truth_status") != "pass":
         blockers.append("debug_same_truth_failed")
+    if report["chat_history"].get("ok") is not True:
+        blockers.append("chat_history_endpoint_failed")
+    if report["chat_history"].get("source") != "sqlite_message_buffer":
+        blockers.append("chat_history_not_sqlite_backed")
+    if report["chat_history"].get("frontend_semantic_owner") is not False:
+        blockers.append("chat_history_frontend_semantic_owner")
+    if report["chat_history"].get("runtime_turn_trace_present") is not True:
+        blockers.append("chat_history_missing_runtime_turn_trace")
+    if report["chat_history"].get("context_snapshot_present") is not True:
+        blockers.append("chat_history_missing_context_snapshot")
+    if report["chat_history"].get("trace_chain_complete") is not True:
+        blockers.append("chat_history_trace_chain_incomplete")
     if report["provider"]["live_llm_invoked"] is not False:
         blockers.append("live_llm_invoked")
     if report["frontend_semantic_owner"] is not False:
@@ -188,6 +200,12 @@ def build_local_web_shell_bridge_report(
         debug_model = dict(debug_payload.get("model") or {})
         same_truth = dict(debug_model.get("same_truth") or {})
         today_after = _json(today_after_response)
+        chat_history_response = client.get(
+            "/accurate-intake/chat-history",
+            params={"user_id": user_external_id, "local_date": backend_local_date},
+        )
+        chat_history_payload = _json(chat_history_response)
+        chat_history_messages = list(chat_history_payload.get("messages") or [])
 
         report: dict[str, Any] = {
             "artifact_schema_version": "1.0",
@@ -245,6 +263,23 @@ def build_local_web_shell_bridge_report(
                 "read_only": debug_payload.get("read_only"),
                 "same_truth_status": same_truth.get("status"),
                 "consumed_kcal": dict(debug_model.get("today_summary") or {}).get("consumed_kcal"),
+            },
+            "chat_history": {
+                **_status(chat_history_response),
+                "source": chat_history_payload.get("source"),
+                "frontend_semantic_owner": chat_history_payload.get("frontend_semantic_owner"),
+                "message_count": len(chat_history_messages),
+                "runtime_turn_trace_present": any(
+                    message.get("runtime_turn_trace_present") is True for message in chat_history_messages
+                ),
+                "context_snapshot_present": any(
+                    message.get("context_snapshot_present") is True for message in chat_history_messages
+                ),
+                "trace_chain_complete": any(
+                    message.get("trace_chain_complete") is True for message in chat_history_messages
+                ),
+                "long_term_memory_used": chat_history_payload.get("long_term_memory_used"),
+                "proactive_or_rescue_used": chat_history_payload.get("proactive_or_rescue_used"),
             },
             "manager_provider_call_count": len(provider.calls),
         }

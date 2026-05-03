@@ -41,6 +41,7 @@ class InteractionEvent(BaseModel):
 class CurrentTurnContextV1(BaseModel):
     user_utterance: str
     last_system_question: str | None = None
+    recent_chat_turns: list[dict[str, Any]] = Field(default_factory=list)
     active_meal_thread_ref: dict[str, Any] | None = None
     pending_followup: dict[str, Any] | None = None
     recent_committed_meal_refs: list[dict[str, Any]] = Field(default_factory=list)

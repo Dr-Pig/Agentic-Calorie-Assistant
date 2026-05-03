@@ -18,6 +18,7 @@ def test_local_web_shell_is_a_static_runtime_mirror_surface() -> None:
     assert 'data-budget-endpoint="/today/current-budget"' in html
     assert 'data-body-plan-endpoint="/body-plan/active"' in html
     assert 'data-debug-endpoint="/accurate-intake/debug"' in html
+    assert 'data-chat-history-endpoint="/accurate-intake/chat-history"' in html
     assert 'data-frontend-semantic-owner="false"' in html
     assert 'data-live-llm-required="false"' in html
     assert 'data-production-readiness-claimed="false"' in html
@@ -46,6 +47,16 @@ def test_local_web_shell_posts_raw_message_to_runtime_without_semantic_routing()
     ]
     for fragment in forbidden_fragments:
         assert fragment not in html
+
+
+def test_local_web_shell_reads_chat_history_from_backend_sqlite_surface() -> None:
+    html = _shell_html()
+
+    assert 'chatHistory: "/accurate-intake/chat-history"' in html
+    assert "renderChatHistory(chatHistory)" in html
+    assert "source === \"sqlite_message_buffer\"" in html
+    assert "localStorage" not in html
+    assert "sessionStorage" not in html
 
 
 def test_local_web_shell_displays_read_models_without_recomputing_budget_truth() -> None:
