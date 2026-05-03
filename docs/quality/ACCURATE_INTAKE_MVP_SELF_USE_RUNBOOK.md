@@ -144,6 +144,20 @@ Run reopen continuity against the same local SQLite DB with:
 python scripts/run_accurate_intake_local_self_use_shell.py --scenario one_day_v1 --db-path .pytest_tmp_local/accurate_intake_self_use.sqlite --keep-db --output artifacts/accurate_intake_local_self_use_shell_keep.json --print-debug-surface
 ```
 
+Inspect local dogfood DB hygiene before reset or export with:
+
+```powershell
+python scripts/manage_accurate_intake_local_dogfood_data.py --operation inspect --db-path workspace_data/local_dogfood/accurate_intake.sqlite3 --output artifacts/accurate_intake_local_dogfood_data_hygiene.json
+```
+
+Back up real dogfood SQLite data before any reset with:
+
+```powershell
+python scripts/manage_accurate_intake_local_dogfood_data.py --operation backup --db-path workspace_data/local_dogfood/accurate_intake.sqlite3 --backup-dir workspace_data/local_dogfood_backups --label before-reset --output artifacts/accurate_intake_local_dogfood_backup.json
+```
+
+Fixture and smoke DB paths under `.pytest_tmp_local` are disposable. Real dogfood DB paths under `workspace_data/local_dogfood` or explicitly named `real_dogfood` require backup before reset. Dogfood SQLite files, backups, JSONL exports, and generated hygiene manifests can contain personal diet logs; they are local-only and must not be committed.
+
 Build the human-reviewable candidate packet with:
 
 ```powershell
