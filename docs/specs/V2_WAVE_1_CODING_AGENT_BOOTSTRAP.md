@@ -160,6 +160,13 @@ Accurate Intake live sidecar anti-overfit note:
 - `contract_hardening_debt` blocks private self-use candidate preparation even when live evidence is otherwise clean
 - basket holdout and target-evidence guards must be green before further live full-suite hardening proceeds
 
+Post-PR88 phase checkpoint:
+- GrokFast remains a diagnostic contract probe only
+- PR85-PR88 establish portable harness governance, not live closure
+- stop GrokFast full-suite hardening and return to the Accurate Intake local self-use shell
+- the next live provider work should be a future target-model diagnostic slice after local self-use shell evidence is green and a human explicitly chooses the target profile
+- this checkpoint is not a private self-use approval and does not claim product readiness, model portability, production model selection, shadow/canary, or mutation rollout
+
 Slice 14 live harness status:
 - live scripts report `live_test_mode`, `base_url`, `server_ping_status`, `provider_readiness`, `phase_c_gate_status`, and `readiness_claim_scope`
 - default localhost script runs are diagnostic unless `--base-url` is explicitly supplied
