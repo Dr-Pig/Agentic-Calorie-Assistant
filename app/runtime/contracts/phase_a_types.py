@@ -35,6 +35,7 @@ ManagerSemanticIntent = Literal[
     "answer_remaining_budget",
     "onboarding_required",
     "general_chat",
+    "set_manual_daily_target",
     "unknown",
 ]
 ManagerMutationIntentCandidate = Literal[
@@ -42,6 +43,7 @@ ManagerMutationIntentCandidate = Literal[
     "draft_write",
     "correction_write",
     "ledger_read",
+    "budget_target_write",
     "no_mutation",
     "unknown",
 ]

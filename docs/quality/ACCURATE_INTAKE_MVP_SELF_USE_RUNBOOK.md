@@ -106,6 +106,8 @@ This browser shell is an operator mirror for local dogfood only. It is backend-c
 
 Conversation context for this shell is current-session/current-day only. Backend `/estimate` writes user and assistant messages to local SQLite `message_buffer` with a runtime-turn trace that links chat message, Manager decision, evidence packet, final mapping, state-before, state-after, and context snapshot. `/accurate-intake/chat-history` reads that SQLite surface back for rendering. This is not long-term memory, proactive behavior, rescue, or recommendation.
 
+Free-text daily target updates may enter through `/estimate` only when the Manager structured decision returns `intent_type=set_manual_daily_target` with an explicit `daily_target_kcal`. The browser shell must not keyword-route target text. The backend validates the target through the existing manual target service, blocks unsafe or ambiguous targets without food mutation, and keeps target calculation / TDEE automation out of this MVP.
+
 Run the local browser-shell route-bridge smoke with:
 
 ```powershell
@@ -113,6 +115,14 @@ python scripts/run_accurate_intake_local_web_shell_smoke.py --db-path .pytest_tm
 ```
 
 This route-bridge smoke proves static shell availability and backend route compatibility under deterministic Manager fixtures. It does not execute browser JavaScript; browser-executed fetch sequencing remains a separate UI QA/browser-automation slice before any web-readiness claim.
+
+Run the chat-history reload gate with:
+
+```powershell
+python scripts/run_accurate_intake_chat_history_reload_gate.py --db-path .pytest_tmp_local/accurate_intake_chat_history_reload_gate.sqlite3 --output artifacts/accurate_intake_chat_history_reload_gate.json
+```
+
+This reload gate writes a CJK chat turn through `/estimate`, closes the first local app/session, reopens the same SQLite DB, and verifies `/accurate-intake/chat-history`, `/today/current-budget`, and `/accurate-intake/debug` from the reopened backend surfaces. It proves current-session/current-day transcript and runtime-turn trace linkage survive local reload; it is not browser execution, long-term memory, live LLM, Web/Tavily, production DB, or web-readiness evidence.
 
 Run the optional browser-executed shell smoke with:
 

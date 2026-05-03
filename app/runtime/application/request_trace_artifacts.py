@@ -66,6 +66,8 @@ def _summarize_estimated_nutrition_artifact(artifact: Any) -> dict[str, Any] | N
 def _summarize_persist_meal_log_result(result: Any) -> dict[str, Any] | None:
     if result is None:
         return None
+    if isinstance(result, dict):
+        return _json_safe(result)
     return {
         "action": getattr(result, "action", None),
         "status": getattr(result, "status", None),
