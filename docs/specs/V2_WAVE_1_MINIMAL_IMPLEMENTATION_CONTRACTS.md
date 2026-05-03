@@ -297,6 +297,7 @@ Allowed bounded context fields:
 
 - `current_budget_snapshot`
 - `active_body_plan_snapshot`
+- `recent_chat_turns`
 - `recent_item_targets`
 - `target_resolution_posture`
 - `context_freshness`
@@ -316,6 +317,23 @@ Hard lock:
 - context pack must not infer or invent target ids
 - context pack must not authorize mutation
 - multi-item ambiguity must remain explicit candidate/ambiguity evidence, not auto-selection
+
+### Current-Session Conversation Context Contract
+
+Current-session/current-day chat context is Manager input evidence, not long-term memory. It is required for the local self-use MVP because follow-up turns such as listed basket refinements, correction targets, and read-only budget queries depend on recent conversation state.
+
+Required contract:
+
+- recent bounded chat turns must enter `CurrentTurnContextV1.recent_chat_turns` and the `ManagerContextPack` as read-only support evidence
+- assistant follow-up questions must be saved as structured follow-up fields on the runtime turn trace
+- pending drafts and unresolved follow-ups must link back to the chat message, runtime turn, and canonical thread/draft identifiers when present
+- the current user message may be interpreted by the Manager using recent chat turns plus pending state
+- every runtime turn must persist a context snapshot containing current-turn context, state-before, state-after, and Phase A trace evidence
+- chat message, Manager decision, evidence packet, final mapping, state-before, and state-after must be traceable through the same runtime turn id
+- web chat history must be read from local SQLite `message_buffer`, not frontend-only state
+- the frontend may send raw text and render backend outputs only; it must not infer intent, workflow, target attachment, disposition, kcal, consumed, remaining, or follow-up semantics
+
+This contract does not introduce durable memory, cross-session personalization, proactive behavior, rescue, recommendation, or renderer truth. Recent chat turns remain bounded evidence; canonical persistence/read-model truth remains with the owning runtime models.
 
 ### Runtime Assembly Lock
 

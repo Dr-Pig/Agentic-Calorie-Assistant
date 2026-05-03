@@ -64,6 +64,32 @@ def _resolved_state() -> object:
     )
 
 
+def _resolved_state_with_recent_chat_turns() -> object:
+    state = _resolved_state()
+    state.injected_context["RECENT_CHAT_TURNS"] = [
+        {
+            "message_id": 41,
+            "role": "user",
+            "content": "我吃了滷味",
+            "created_at": "2026-04-29T12:00:00+08:00",
+            "trace_id": "turn-bare-luwei",
+            "linked_meal_log_id": 10,
+            "local_date": "2026-04-29",
+        },
+        {
+            "message_id": 42,
+            "role": "assistant",
+            "content": "請列出滷味品項與大致份量。",
+            "created_at": "2026-04-29T12:00:01+08:00",
+            "trace_id": "turn-bare-luwei",
+            "linked_meal_log_id": 10,
+            "local_date": "2026-04-29",
+            "structured_followup_question": "請列出滷味品項與大致份量。",
+        },
+    ]
+    return state
+
+
 def _empty_resolved_state() -> object:
     return SimpleNamespace(
         onboarding_ready=True,
@@ -191,6 +217,7 @@ async def test_run_intake_manager_sends_structured_phase_a_payload_to_provider()
         "pending_followup",
         "candidate_attachment_targets",
         "current_budget_snapshot",
+        "recent_chat_turns",
     ]
     assert payload["phase_a_manager_context_pack"]["manager_context"]["current_budget_snapshot"]["read_only"] is True
     assert (
@@ -210,6 +237,44 @@ async def test_run_intake_manager_sends_structured_phase_a_payload_to_provider()
     assert "injected_fields" in result.trace["manager_rounds"][0]["phase_a_input"]
     assert "promotion_reasons" in result.trace["manager_rounds"][0]["phase_a_input"]
     assert "raw_transcript" in result.trace["manager_rounds"][0]["phase_a_input"]["trace_only_inventory"]
+
+
+@pytest.mark.asyncio
+async def test_run_intake_manager_sends_bounded_recent_chat_turns_in_context_pack() -> None:
+    resolved_state = _resolved_state_with_recent_chat_turns()
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="有豆干、海帶、貢丸",
+        resolved_state=resolved_state,
+    )
+    manager_context_pack = build_manager_context_pack(current_turn_context=current_turn_context)
+    provider = _FakeProvider()
+
+    result = await run_intake_manager(
+        provider=provider,
+        raw_user_input="有豆干、海帶、貢丸",
+        resolved_state=resolved_state,
+        current_turn_context=current_turn_context,
+        manager_context_pack=manager_context_pack,
+        available_tools=("read_day_budget",),
+    )
+
+    payload = provider.calls[0]["user_payload"]
+    recent_chat_turns = payload["phase_a_manager_context_pack"]["manager_context"]["recent_chat_turns"]
+    assert [turn["role"] for turn in recent_chat_turns] == ["user", "assistant"]
+    assert recent_chat_turns[1]["structured_followup_question"] == "請列出滷味品項與大致份量。"
+    assert recent_chat_turns[1]["trace_id"] == "turn-bare-luwei"
+    assert recent_chat_turns[1]["role"] == "assistant"
+    assert recent_chat_turns[1]["read_only"] is True
+    assert recent_chat_turns[1]["mutation_authority"] is False
+    assert payload["phase_a_manager_context_pack"]["policy"]["must_inject"] == [
+        "interaction_event",
+        "active_meal_thread_ref",
+        "pending_followup",
+        "candidate_attachment_targets",
+        "current_budget_snapshot",
+        "recent_chat_turns",
+    ]
+    assert "recent_chat_turns" in result.trace["manager_rounds"][0]["phase_a_input"]["injected_fields"]
 
 
 @pytest.mark.asyncio

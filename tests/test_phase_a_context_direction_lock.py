@@ -54,6 +54,17 @@ def _resolved_state() -> object:
             "SESSION_SUMMARY": {
                 "latest_assistant_turns": ["What size was it?"],
             },
+            "RECENT_CHAT_TURNS": [
+                {
+                    "message_id": 41,
+                    "role": "assistant",
+                    "content": "What size was it?",
+                    "created_at": "2026-04-29T12:00:00+08:00",
+                    "trace_id": "turn-1",
+                    "local_date": "2026-04-29",
+                    "structured_followup_question": "What size was it?",
+                }
+            ],
         },
     )
 
@@ -97,6 +108,7 @@ def test_build_manager_context_pack_uses_curated_context_and_excludes_trace_only
         "candidate_attachment_targets",
         "current_budget_snapshot",
         "recent_item_targets",
+        "recent_chat_turns",
         "target_resolution_posture",
         "context_freshness",
         "session_atomic_blocks",
@@ -114,6 +126,9 @@ def test_build_manager_context_pack_uses_curated_context_and_excludes_trace_only
     assert "raw_transcript" not in pack.manager_context
     assert "long_term_memory_blobs" not in pack.manager_context
     assert "full_ledger_history" not in pack.manager_context
+    assert pack.manager_context["recent_chat_turns"][0]["structured_followup_question"] == "What size was it?"
+    assert pack.manager_context["recent_chat_turns"][0]["read_only"] is True
+    assert pack.manager_context["recent_chat_turns"][0]["mutation_authority"] is False
     assert pack.trace_only["raw_transcript"] == ["user: tea", "assistant: what size?", "user: half sugar"]
     assert pack.not_for_manager["long_term_memory_blobs"] == [{"preference": "half sugar"}]
     assert "followup_or_correction_context" in pack.promotion_reasons

@@ -102,7 +102,9 @@ The local browser shell is available at:
 /static/accurate-intake-local-shell.html
 ```
 
-This browser shell is an operator mirror for local dogfood only. It is backend-current-day only until `/estimate` has an explicit local-date contract. It first asks `/today/current-budget` for the backend `local_date`, then uses that date for debug and manual target follow-up calls. It posts raw chat text to `/estimate`, renders `/today/current-budget`, `/body-plan/active`, and `/accurate-intake/debug`, and calls `/body-plan/manual-daily-target` for manual target updates. The browser shell must not infer intent, workflow, target attachment, disposition, kcal, consumed, remaining, or overshoot from raw text; those remain backend/runtime/read-model truth.
+This browser shell is an operator mirror for local dogfood only. It is backend-current-day only until `/estimate` has an explicit local-date contract. It first asks `/today/current-budget` for the backend `local_date`, then uses that date for debug, chat-history, and manual target follow-up calls. It posts raw chat text to `/estimate`, renders `/today/current-budget`, `/body-plan/active`, `/accurate-intake/debug`, and `/accurate-intake/chat-history`, and calls `/body-plan/manual-daily-target` for manual target updates. The browser shell must not infer intent, workflow, target attachment, disposition, kcal, consumed, remaining, follow-up semantics, or overshoot from raw text; those remain backend/runtime/read-model truth.
+
+Conversation context for this shell is current-session/current-day only. Backend `/estimate` writes user and assistant messages to local SQLite `message_buffer` with a runtime-turn trace that links chat message, Manager decision, evidence packet, final mapping, state-before, state-after, and context snapshot. `/accurate-intake/chat-history` reads that SQLite surface back for rendering. This is not long-term memory, proactive behavior, rescue, or recommendation.
 
 Run the local browser-shell route-bridge smoke with:
 
