@@ -41,6 +41,7 @@ python scripts/build_accurate_intake_mvp_live_stage_manifest.py
 python scripts/build_accurate_intake_contract_hardening_guard.py
 python scripts/build_accurate_intake_mvp_offline_shadow_replay.py
 python scripts/build_accurate_intake_mvp_live_robustness_matrix.py
+python scripts/build_accurate_intake_mvp_live_cost_summary.py
 python scripts/build_accurate_intake_mvp_live_decision_pack.py
 python scripts/build_accurate_intake_mvp_private_self_use_candidate.py
 ```
@@ -51,6 +52,7 @@ The generated manifest, replay, and decision pack paths are:
 - `artifacts/accurate_intake_contract_hardening_guard.json`
 - `artifacts/accurate_intake_mvp_offline_shadow_replay.json`
 - `artifacts/accurate_intake_mvp_live_robustness_matrix.json`
+- `artifacts/accurate_intake_mvp_live_cost_summary.json`
 - `artifacts/accurate_intake_mvp_live_decision_pack.json`
 - `artifacts/accurate_intake_mvp_private_self_use_candidate.json`
 
@@ -61,6 +63,7 @@ python scripts/build_accurate_intake_mvp_live_stage_manifest.py --output artifac
 python scripts/build_accurate_intake_contract_hardening_guard.py --output artifacts/accurate_intake_contract_hardening_guard_run_i.json
 python scripts/build_accurate_intake_mvp_offline_shadow_replay.py --stage-manifest artifacts/accurate_intake_mvp_live_stage_manifest_run_i.json --output artifacts/accurate_intake_mvp_offline_shadow_replay_run_i.json
 python scripts/build_accurate_intake_mvp_live_robustness_matrix.py --output artifacts/accurate_intake_mvp_live_robustness_matrix_run_i.json
+python scripts/build_accurate_intake_mvp_live_cost_summary.py --output artifacts/accurate_intake_mvp_live_cost_summary_run_i.json
 python scripts/build_accurate_intake_mvp_live_decision_pack.py --output artifacts/accurate_intake_mvp_live_decision_pack_run_i.json --contract-hardening-guard-artifact artifacts/accurate_intake_contract_hardening_guard_run_i.json
 python scripts/build_accurate_intake_mvp_private_self_use_candidate.py --output artifacts/accurate_intake_mvp_private_self_use_candidate_run_i.json
 ```
@@ -140,6 +143,24 @@ Before a decision pack may select `prepare_private_self_use_candidate`, the offl
 - `timeout_after_retry remains a blocker`.
 - Any timeout, provider error, schema error, runtime error, or retry-dependent pass keeps the decision at `stay_diagnostic` or `repeat_single_profile_diagnostic`.
 
+## Cost Summary Policy
+
+Build a live cost summary after staged live artifacts are produced:
+
+```powershell
+python scripts/build_accurate_intake_mvp_live_cost_summary.py --output artifacts/accurate_intake_mvp_live_cost_summary.json
+```
+
+The cost summary is diagnostic-only. It aggregates provider-reported token usage and provider-reported cost fields from local live artifacts. `token counts are not billing truth`; billing truth must come from provider-reported artifact fields or external billing records.
+
+The cost summary must preserve:
+
+- `billing_truth_source=provider_reported_artifact_fields_only`
+- `cost_unavailable_without_pricing=true` when token usage exists but no provider-reported cost field is present
+- `pricing_table_applied=false`
+
+Do not infer paid cost from tokens inside this repo. Do not stage generated cost summary artifacts as repo truth.
+
 ## Artifact Policy
 
 Generated live artifacts are local diagnostic evidence, not repo truth.
@@ -156,6 +177,7 @@ Do not stage:
 - `artifacts/accurate_intake_contract_hardening_guard.json`
 - `artifacts/accurate_intake_mvp_offline_shadow_replay.json`
 - `artifacts/accurate_intake_mvp_live_robustness_matrix.json`
+- `artifacts/accurate_intake_mvp_live_cost_summary.json`
 - `artifacts/accurate_intake_mvp_live_decision_pack.json`
 - `artifacts/accurate_intake_mvp_private_self_use_candidate.json`
 - local SQLite files

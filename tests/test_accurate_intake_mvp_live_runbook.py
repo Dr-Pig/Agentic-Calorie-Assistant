@@ -42,6 +42,7 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "python scripts/build_accurate_intake_contract_hardening_guard.py",
         "python scripts/build_accurate_intake_mvp_offline_shadow_replay.py",
         "python scripts/build_accurate_intake_mvp_live_robustness_matrix.py",
+        "python scripts/build_accurate_intake_mvp_live_cost_summary.py",
         "python scripts/build_accurate_intake_mvp_live_decision_pack.py",
         "python scripts/build_accurate_intake_mvp_private_self_use_candidate.py",
         "artifacts/accurate_intake_mvp_live_diagnostic_provider_health.json",
@@ -53,12 +54,14 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "artifacts/accurate_intake_mvp_live_stage_manifest.json",
         "artifacts/accurate_intake_mvp_offline_shadow_replay.json",
         "artifacts/accurate_intake_mvp_live_robustness_matrix.json",
+        "artifacts/accurate_intake_mvp_live_cost_summary.json",
         "artifacts/accurate_intake_mvp_live_decision_pack.json",
         "artifacts/accurate_intake_mvp_private_self_use_candidate.json",
         "python scripts/build_accurate_intake_mvp_live_stage_manifest.py --output artifacts/accurate_intake_mvp_live_stage_manifest_run_i.json",
         "python scripts/build_accurate_intake_contract_hardening_guard.py --output artifacts/accurate_intake_contract_hardening_guard_run_i.json",
         "python scripts/build_accurate_intake_mvp_offline_shadow_replay.py --stage-manifest artifacts/accurate_intake_mvp_live_stage_manifest_run_i.json --output artifacts/accurate_intake_mvp_offline_shadow_replay_run_i.json",
         "python scripts/build_accurate_intake_mvp_live_robustness_matrix.py --output artifacts/accurate_intake_mvp_live_robustness_matrix_run_i.json",
+        "python scripts/build_accurate_intake_mvp_live_cost_summary.py --output artifacts/accurate_intake_mvp_live_cost_summary_run_i.json",
         "python scripts/build_accurate_intake_mvp_live_decision_pack.py --output artifacts/accurate_intake_mvp_live_decision_pack_run_i.json",
         "python scripts/build_accurate_intake_mvp_private_self_use_candidate.py --output artifacts/accurate_intake_mvp_private_self_use_candidate_run_i.json",
         "live full-suite failure unlocks attribution/audit only",
@@ -66,6 +69,9 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "contract_hardening_debt",
         "legal_flows_broken",
         "holdout_tests_added",
+        "token counts are not billing truth",
+        "cost_unavailable_without_pricing=true",
+        "billing_truth_source=provider_reported_artifact_fields_only",
     ]
 
     for fragment in required_fragments:
