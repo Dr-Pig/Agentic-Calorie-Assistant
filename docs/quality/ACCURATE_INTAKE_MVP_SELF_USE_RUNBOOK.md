@@ -152,6 +152,14 @@ python scripts/build_accurate_intake_local_self_use_candidate.py --shell-artifac
 
 The candidate packet may set `local_self_use_candidate_prepared=true` when the deterministic shell evidence is clean. It must keep `private_self_use_approved=false`, `product_readiness_claimed=false`, `production_selected=false`, and `live_manager_required=false`.
 
+Build a local-only review artifact from runtime-turn traces with:
+
+```powershell
+python scripts/build_accurate_intake_dogfood_review_queue.py --trace-json path/to/runtime_turn_trace.json --output artifacts/accurate_intake_dogfood_review_queue.json
+```
+
+This local-only review artifact is dogfood triage material. It may mark `review_candidate` records from deterministic flags or reviewer-agent suggestions, but raw traces remain observation only and cannot become Food KB truth, golden truth, or canonical eval cases without human approval, product semantic source, stable expected behavior, and eval registration. The artifact can contain personal diet logs; keep it local and do not commit generated review artifacts.
+
 Windows operators should run SQLite-backed commands sequentially. If `.pytest_tmp_local` reports a temporary SQLite lock, wait for the previous process to exit and rerun the affected command before classifying the result. Do not run the reset and keep-db shell commands concurrently against the same DB path.
 
 macOS, Linux, Docker, and devcontainer operators should use the same commands after the Python 3.12 environment is active. Docker/devcontainer usage is for environment parity only; it does not change the local deterministic claim scope.

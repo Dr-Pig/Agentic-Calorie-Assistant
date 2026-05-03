@@ -69,7 +69,8 @@
         "tests/test_phase_a_current_turn_context.py",
         "tests/test_phase_a_manager_payload_wiring.py",
         "tests/test_conversation_turn_trace.py",
-        "tests/test_dogfood_trace_policy.py"
+        "tests/test_dogfood_trace_policy.py",
+        "tests/test_dogfood_review_queue_artifact.py"
       ]
     },
     {
