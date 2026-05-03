@@ -1,0 +1,49 @@
+{
+  "checkpoint_id": "accurate_intake_post_pr88_phase_checkpoint",
+  "artifact_schema_version": "1.0",
+  "checkpoint_date": "2026-05-03",
+  "current_mainline": "Accurate Intake MVP local self-use shell",
+  "return_to_product_mainline": true,
+  "grokfast_role": "diagnostic_contract_probe_only",
+  "do_not_continue_grokfast_full_suite_hardening": true,
+  "completed_baseline": [
+    "PR85_contract_hardening_guard_and_drift_audit",
+    "PR86_basket_holdout_anti_overfit_regression",
+    "PR87_remove_item_target_evidence_boundary",
+    "PR88_live_cost_summary_and_replay_hygiene"
+  ],
+  "next_pr_train": [
+    "PR89_post_pr88_phase_checkpoint",
+    "PR90_one_day_self_use_scenario_wall",
+    "PR91_local_self_use_operator_shell",
+    "PR92_local_self_use_candidate_packet"
+  ],
+  "not_claiming": [
+    "product_readiness",
+    "private_self_use_approval",
+    "model_portability",
+    "production_model_selection",
+    "shadow_or_canary",
+    "mutation_rollout"
+  ],
+  "claim_flags": {
+    "product_readiness_claimed": false,
+    "private_self_use_approved": false,
+    "model_portability_claimed": false,
+    "production_selected": false,
+    "mutation_rollout_approved": false
+  },
+  "live_sidecar_policy": {
+    "current_grokfast_scope": "diagnostic_only",
+    "future_live_work": "future_target_model_diagnostic_slice",
+    "full_suite_hardening_status": "paused_after_pr88",
+    "full_suite_evidence_role": "diagnostic_only"
+  },
+  "local_self_use_policy": {
+    "mode": "local_deterministic",
+    "manager_mode": "structured_fixture_first",
+    "live_manager_required": false,
+    "runtime_truth_changed": "local_diagnostic_only",
+    "mutation_scope": "isolated_local_db_only"
+  }
+}

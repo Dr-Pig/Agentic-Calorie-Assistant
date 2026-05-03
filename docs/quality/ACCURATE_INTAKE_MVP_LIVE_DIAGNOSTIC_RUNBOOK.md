@@ -161,6 +161,16 @@ The cost summary must preserve:
 
 Do not infer paid cost from tokens inside this repo. Do not stage generated cost summary artifacts as repo truth.
 
+## Post-PR88 phase checkpoint
+
+GrokFast remains a diagnostic contract probe only. It is not the production/default Manager, not model-portability evidence, and not a private self-use approval source.
+
+After PR85-PR88, stop GrokFast full-suite hardening and return to the Accurate Intake local self-use shell. The portable baseline is the contract hardening guard, legal-flow matrix, basket holdout, remove-item target-evidence boundary, and live cost/replay hygiene.
+
+The next live provider work should be a future target-model diagnostic slice after the local self-use shell is green and a human explicitly chooses the target profile. That future slice must reuse the staged live harness and preserve all non-claim flags.
+
+The checkpoint artifact is `docs/quality/accurate_intake_post_pr88_phase_checkpoint.json`. It is not a private self-use approval and does not claim product readiness, production model selection, model portability, shadow/canary, or mutation rollout.
+
 ## Artifact Policy
 
 Generated live artifacts are local diagnostic evidence, not repo truth.
