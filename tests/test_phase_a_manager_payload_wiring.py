@@ -7,6 +7,8 @@ import pytest
 from app.intake.application.context_injection_policy import build_manager_context_pack
 from app.intake.application.current_turn_context_assembler import build_current_turn_context_v1
 from app.runtime.application.manager_service import run_intake_manager
+from app.runtime.agent.manager_result_builder import IntakeManagerResult
+from app.shared.contracts.intake_results import EstimatePayload
 
 
 def _resolved_state() -> object:
@@ -110,6 +112,19 @@ class _CommitProvider(_FakeProvider):
             },
             {"source": "fake"},
         )
+
+
+def _correction_payload() -> EstimatePayload:
+    return EstimatePayload(
+        request_id="req-target-attachment",
+        meal_title="chicken rice",
+        estimated_kcal=320,
+        source_decision="ready",
+        answer_mode="direct_answer",
+        action_taken="direct_answer",
+        route_target="direct_answer",
+        trace_contract={"canonical_write_decision": {"can_write_canonical": True}},
+    )
 
 
 @pytest.mark.asyncio
@@ -287,6 +302,226 @@ async def test_shadow_payload_does_not_bypass_existing_manager_guard() -> None:
     assert (
         result.guard_outcome["phase_a_transition_guard_preflight"]["repair_result"]
         == "not_attempted"
+    )
+
+
+@pytest.mark.asyncio
+async def test_process_intake_execution_turn_validates_manager_final_target_attachment_for_correction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.composition import intake_execution_orchestrator as module
+
+    resolved_state = _resolved_state()
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="unrelated surface text",
+        resolved_state=resolved_state,
+    )
+    nutrition_artifact = SimpleNamespace(payload=_correction_payload())
+    candidate_target = {
+        "target_resolution_source": "manager_context_candidates",
+        "meal_thread_id": 1,
+        "meal_version_id": 1,
+        "item_candidates": [
+            {"meal_item_id": 11, "canonical_name": "chicken rice"},
+            {"meal_item_id": 12, "canonical_name": "soup"},
+        ],
+    }
+    persisted: list[dict[str, object]] = []
+
+    async def _fake_execute_manager_tool_calls(**kwargs: object) -> list[dict[str, object]]:
+        kwargs["tool_state"]["nutrition_artifact"] = nutrition_artifact
+        return [{"tool_name": "estimate_nutrition", "failure_family": None}]
+
+    async def _fake_run_intake_manager(**kwargs: object) -> object:
+        await kwargs["tool_executor"](tool_calls=[{"name": "estimate_nutrition"}])
+        target_attachment = {
+            "target_object_type": "meal_item_candidate",
+            "meal_thread_id": 1,
+            "meal_version_id": 1,
+            "meal_item_id": 11,
+            "canonical_name": "chicken rice",
+        }
+        return IntakeManagerResult(
+            intent="correct_meal",
+            manager_action="final",
+            final_action="correction_applied",
+            workflow_effect="correction",
+            target_attachment=target_attachment,
+            exactness="medium",
+            confidence="high",
+            evidence_posture="evidence_present",
+            repair_ack=False,
+            answer_contract={},
+            semantic_decision={
+                "semantic_authority": "manager_llm",
+                "current_turn_intent": "correct_meal",
+                "target_attachment": target_attachment,
+                "workflow_effect": "correction",
+                "final_action_candidate": "correction_applied",
+                "estimation_posture": "tool_complete",
+                "followup_posture": "none",
+                "mutation_intent_candidate": "correction_write",
+                "uncertainty_posture": "low",
+                "source": "manager_structured_target_attachment",
+            },
+            intent_type="log_meal",
+            manager_rounds=(),
+            tool_results=(),
+            request_failure_family=None,
+            trace={},
+            guard_outcome={},
+        )
+
+    def _fake_persist(*_: object, **kwargs: object) -> dict[str, object]:
+        persisted.append(dict(kwargs))
+        return {"canonical_commit": True}
+
+    monkeypatch.setattr(module, "execute_manager_tool_calls", _fake_execute_manager_tool_calls)
+    monkeypatch.setattr(module, "run_intake_manager", _fake_run_intake_manager)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: candidate_target)
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", _fake_persist)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(
+        module,
+        "build_intake_execution_response",
+        lambda *_, **kwargs: {
+            "persistence_result": kwargs["persistence_result"],
+            "phase_a_trace": kwargs["phase_a_trace"],
+            "nutrition_artifact": kwargs["nutrition_artifact"],
+        },
+    )
+
+    result = await module.process_intake_execution_turn(
+        None,
+        user_external_id="user-1",
+        raw_user_input="unrelated surface text",
+        local_date="2026-04-29",
+        allow_search=False,
+        provider=_FakeProvider(),
+        state_before=resolved_state,
+        manager_decision=SimpleNamespace(intent_type="log_meal", tool_calls=(), llm_used=False),
+        request_id="req-target-attachment",
+        stage_timings=[],
+        current_turn_context=current_turn_context,
+        phase_a_trace={},
+    )
+
+    preflight = result["phase_a_trace"]["phase_a_commit_boundary_preflight"]
+    trace_contract = result["nutrition_artifact"].payload.trace_contract
+    assert persisted
+    assert preflight["blocked"] is False
+    assert preflight["correction_target_resolved"] is True
+    assert preflight["correction_target_validation"]["meal_item_id"] == 11
+    assert trace_contract["correction_target_ref"] == {
+        "meal_thread_id": 1,
+        "meal_item_id": 11,
+        "canonical_name": "chicken rice",
+    }
+    assert trace_contract["correction_target_ref_source"] == "manager_target_attachment_validated"
+
+
+@pytest.mark.asyncio
+async def test_process_intake_execution_turn_rejects_unmatched_manager_target_attachment_without_raw_text_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.composition import intake_execution_orchestrator as module
+
+    resolved_state = _resolved_state()
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="remove soup please",
+        resolved_state=resolved_state,
+    )
+    nutrition_artifact = SimpleNamespace(payload=_correction_payload())
+    candidate_target = {
+        "target_resolution_source": "manager_context_candidates",
+        "meal_thread_id": 1,
+        "meal_version_id": 1,
+        "item_candidates": [
+            {"meal_item_id": 11, "canonical_name": "chicken rice"},
+            {"meal_item_id": 12, "canonical_name": "soup"},
+        ],
+    }
+    persisted: list[object] = []
+
+    async def _fake_execute_manager_tool_calls(**kwargs: object) -> list[dict[str, object]]:
+        kwargs["tool_state"]["nutrition_artifact"] = nutrition_artifact
+        return [{"tool_name": "estimate_nutrition", "failure_family": None}]
+
+    async def _fake_run_intake_manager(**kwargs: object) -> object:
+        await kwargs["tool_executor"](tool_calls=[{"name": "estimate_nutrition"}])
+        target_attachment = {
+            "target_object_type": "meal_item_candidate",
+            "canonical_name": "salad",
+        }
+        return IntakeManagerResult(
+            intent="correct_meal",
+            manager_action="final",
+            final_action="correction_applied",
+            workflow_effect="correction",
+            target_attachment=target_attachment,
+            exactness="medium",
+            confidence="high",
+            evidence_posture="evidence_present",
+            repair_ack=False,
+            answer_contract={},
+            semantic_decision={
+                "semantic_authority": "manager_llm",
+                "current_turn_intent": "correct_meal",
+                "target_attachment": target_attachment,
+                "workflow_effect": "correction",
+                "final_action_candidate": "correction_applied",
+                "estimation_posture": "tool_complete",
+                "followup_posture": "none",
+                "mutation_intent_candidate": "correction_write",
+                "uncertainty_posture": "low",
+                "source": "manager_structured_target_attachment",
+            },
+            intent_type="log_meal",
+            manager_rounds=(),
+            tool_results=(),
+            request_failure_family=None,
+            trace={},
+            guard_outcome={},
+        )
+
+    monkeypatch.setattr(module, "execute_manager_tool_calls", _fake_execute_manager_tool_calls)
+    monkeypatch.setattr(module, "run_intake_manager", _fake_run_intake_manager)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: candidate_target)
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", lambda *_, **__: persisted.append(object()))
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(
+        module,
+        "build_intake_execution_response",
+        lambda *_, **kwargs: {
+            "persistence_result": kwargs["persistence_result"],
+            "phase_a_trace": kwargs["phase_a_trace"],
+        },
+    )
+
+    result = await module.process_intake_execution_turn(
+        None,
+        user_external_id="user-1",
+        raw_user_input="remove soup please",
+        local_date="2026-04-29",
+        allow_search=False,
+        provider=_FakeProvider(),
+        state_before=resolved_state,
+        manager_decision=SimpleNamespace(intent_type="log_meal", tool_calls=(), llm_used=False),
+        request_id="req-target-attachment-rejected",
+        stage_timings=[],
+        current_turn_context=current_turn_context,
+        phase_a_trace={},
+    )
+
+    preflight = result["phase_a_trace"]["phase_a_commit_boundary_preflight"]
+    assert persisted == []
+    assert preflight["blocked"] is True
+    assert preflight["correction_target_resolved"] is False
+    assert (
+        preflight["correction_target_validation"]["manager_target_proposal_validation"]["failure_family"]
+        == "manager_target_proposal_not_found"
     )
 
 
