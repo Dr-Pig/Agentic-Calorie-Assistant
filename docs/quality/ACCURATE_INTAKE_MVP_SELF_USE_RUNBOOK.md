@@ -106,6 +106,8 @@ This browser shell is an operator mirror for local dogfood only. It is backend-c
 
 Conversation context for this shell is current-session/current-day only. Backend `/estimate` writes user and assistant messages to local SQLite `message_buffer` with a runtime-turn trace that links chat message, Manager decision, evidence packet, final mapping, state-before, state-after, and context snapshot. `/accurate-intake/chat-history` reads that SQLite surface back for rendering. This is not long-term memory, proactive behavior, rescue, or recommendation.
 
+Free-text daily target updates may enter through `/estimate` only when the Manager structured decision returns `intent_type=set_manual_daily_target` with an explicit `daily_target_kcal`. The browser shell must not keyword-route target text. The backend validates the target through the existing manual target service, blocks unsafe or ambiguous targets without food mutation, and keeps target calculation / TDEE automation out of this MVP.
+
 Run the local browser-shell route-bridge smoke with:
 
 ```powershell

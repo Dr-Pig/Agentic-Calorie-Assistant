@@ -35,6 +35,12 @@ def render_intake_reply(
             f"consumed {remaining_budget.consumed_kcal} kcal, "
             f"remaining {remaining_budget.remaining_kcal} kcal."
         )
+    if intent_type == "set_manual_daily_target" and remaining_budget is not None:
+        return (
+            f"Daily target updated to {remaining_budget.daily_target_kcal} kcal. "
+            f"Consumed {remaining_budget.consumed_kcal} kcal today; "
+            f"remaining {remaining_budget.remaining_kcal} kcal."
+        )
     if intent_type == "onboarding_required":
         return "Please complete onboarding first so I can seed your body plan and daily budget."
     if intent_type == "manager_unavailable":

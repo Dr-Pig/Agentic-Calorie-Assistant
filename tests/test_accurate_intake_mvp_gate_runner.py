@@ -97,6 +97,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_accurate_intake_mvp_ux_semantic_wall.py",
         "tests/test_accurate_intake_mvp_api_smoke.py",
         "tests/test_accurate_intake_local_web_shell_bridge.py",
+        "tests/test_free_text_manual_target_manager_path.py",
         "tests/test_accurate_intake_chat_history_reload_gate.py",
         "tests/test_accurate_intake_browser_shell_smoke.py",
     ):
@@ -231,6 +232,8 @@ def test_self_use_runbook_records_portable_local_deterministic_scope() -> None:
     assert "Accurate Intake MVP v2.0 scenario wall" in runbook
     assert "operator transcript" in runbook
     assert "Local Self-Use Shell And Candidate Packet" in runbook
+    assert "intent_type=set_manual_daily_target" in runbook
+    assert "must not keyword-route target text" in runbook
     assert "Manager structured decision fixtures own intent/workflow/target proposal" in runbook
     assert "Food evidence seeds are support-only" in runbook
     assert "No live LLM" in runbook
