@@ -96,6 +96,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_accurate_intake_mvp_manager_style_smoke.py",
         "tests/test_accurate_intake_mvp_ux_semantic_wall.py",
         "tests/test_accurate_intake_mvp_api_smoke.py",
+        "tests/test_accurate_intake_local_web_shell_bridge.py",
     ):
         assert expected_test in flat_args
 
