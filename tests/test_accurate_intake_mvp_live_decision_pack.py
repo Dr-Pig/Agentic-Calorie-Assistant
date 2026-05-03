@@ -723,6 +723,21 @@ def test_accurate_intake_live_decision_pack_writer_creates_artifact(tmp_path: Pa
     assert pack["runtime_web_activation_approved"] is False
 
 
+def test_accurate_intake_live_decision_pack_writer_accepts_run_specific_output_path(tmp_path: Path) -> None:
+    source = tmp_path / "accurate_intake_mvp_live_diagnostic.json"
+    output_path = tmp_path / "run_i" / "accurate_intake_mvp_live_decision_pack_run_i.json"
+    source.write_text(json.dumps(_artifact(failure_family="environment_or_provider_blocker"), ensure_ascii=False), encoding="utf-8")
+
+    output = write_accurate_intake_live_decision_pack(
+        live_artifact_path=source,
+        output_path=output_path,
+    )
+
+    pack = json.loads(output.read_text(encoding="utf-8"))
+    assert output == output_path
+    assert pack["artifact_type"] == "accurate_intake_mvp_live_decision_pack"
+
+
 def test_accurate_intake_live_decision_pack_writer_accepts_stage_manifest(tmp_path: Path) -> None:
     source = tmp_path / "accurate_intake_mvp_live_diagnostic.json"
     manifest = tmp_path / "accurate_intake_mvp_live_stage_manifest.json"

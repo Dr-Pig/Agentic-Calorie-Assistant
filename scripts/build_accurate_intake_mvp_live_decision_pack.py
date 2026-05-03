@@ -113,6 +113,7 @@ def write_accurate_intake_live_decision_pack(
     offline_replay_artifact_path: Path | None = None,
     provider_robustness_artifact_path: Path | None = None,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
+    output_path: Path | None = None,
 ) -> Path:
     live_artifact = json.loads(live_artifact_path.read_text(encoding="utf-8"))
     stage_manifest_artifact = None
@@ -130,8 +131,8 @@ def write_accurate_intake_live_decision_pack(
         offline_replay_artifact=offline_replay_artifact,
         provider_robustness_artifact=provider_robustness_artifact,
     )
-    output_dir.mkdir(parents=True, exist_ok=True)
-    path = output_dir / "accurate_intake_mvp_live_decision_pack.json"
+    path = output_path or output_dir / "accurate_intake_mvp_live_decision_pack.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(pack, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
 
@@ -597,6 +598,7 @@ def main() -> int:
     parser.add_argument("--offline-replay-artifact", default=str(DEFAULT_OFFLINE_REPLAY_ARTIFACT))
     parser.add_argument("--provider-robustness-matrix", default=str(DEFAULT_PROVIDER_ROBUSTNESS_MATRIX_ARTIFACT))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument("--output")
     args = parser.parse_args()
     path = write_accurate_intake_live_decision_pack(
         live_artifact_path=Path(args.live_artifact),
@@ -606,6 +608,7 @@ def main() -> int:
             Path(args.provider_robustness_matrix) if args.provider_robustness_matrix else None
         ),
         output_dir=Path(args.output_dir),
+        output_path=Path(args.output) if args.output else None,
     )
     print(path)
     return 0

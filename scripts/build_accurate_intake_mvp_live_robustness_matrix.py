@@ -148,12 +148,13 @@ def write_accurate_intake_live_robustness_matrix(
     *,
     stage_artifact_paths: list[Path] | None = None,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
+    output_path: Path | None = None,
 ) -> Path:
     paths = list(stage_artifact_paths or DEFAULT_STAGE_ARTIFACTS)
     artifacts = [_dict(json.loads(path.read_text(encoding="utf-8"))) for path in paths]
     matrix = build_accurate_intake_live_robustness_matrix(artifacts, source_paths=paths)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    path = output_dir / "accurate_intake_mvp_live_robustness_matrix.json"
+    path = output_path or output_dir / "accurate_intake_mvp_live_robustness_matrix.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(matrix, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
 
@@ -193,11 +194,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Build Accurate Intake MVP live robustness matrix.")
     parser.add_argument("--stage-artifact", action="append", dest="stage_artifacts")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument("--output")
     args = parser.parse_args()
     paths = [Path(item) for item in (args.stage_artifacts or [str(path) for path in DEFAULT_STAGE_ARTIFACTS])]
     output = write_accurate_intake_live_robustness_matrix(
         stage_artifact_paths=paths,
         output_dir=Path(args.output_dir),
+        output_path=Path(args.output) if args.output else None,
     )
     print(output)
     return 0

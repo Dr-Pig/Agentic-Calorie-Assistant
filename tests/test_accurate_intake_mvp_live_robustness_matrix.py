@@ -117,6 +117,30 @@ def test_live_robustness_matrix_writer_creates_artifact(tmp_path: Path) -> None:
     assert payload["result_kind_counts"] == {"strict_pass_first_attempt": 1}
 
 
+def test_live_robustness_matrix_writer_accepts_run_specific_output_path(tmp_path: Path) -> None:
+    source = tmp_path / "provider_health.json"
+    output_path = tmp_path / "run_i" / "accurate_intake_mvp_live_robustness_matrix_run_i.json"
+    source.write_text(
+        json.dumps(
+            _stage_artifact(
+                stage_id="provider_health_smoke",
+                status="pass",
+                result_kind="strict_pass_first_attempt",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    output = write_accurate_intake_live_robustness_matrix(
+        stage_artifact_paths=[source],
+        output_path=output_path,
+    )
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert output == output_path
+    assert payload["artifact_type"] == "accurate_intake_mvp_live_robustness_matrix"
+
+
 def test_live_robustness_matrix_marks_clean_multi_profile_evidence_without_portability_claim() -> None:
     matrix = build_accurate_intake_live_robustness_matrix(
         [
