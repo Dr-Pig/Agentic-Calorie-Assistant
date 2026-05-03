@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.composition.accurate_intake_debug_routes import build_accurate_intake_debug_payload
+from app.composition.canonical_body_support import ensure_body_plan_skeleton, recompute_day_budget_ledger
 from app.composition.canonical_persistence import commit_meal_payload_to_canonical
 from app.composition.current_budget_answer import build_remaining_budget_answer_contract
 from app.budget.infrastructure.models import LedgerEntryRecord
@@ -28,6 +29,7 @@ DEFAULT_ARTIFACT_PATH = ROOT / "artifacts" / "accurate_intake_mvp_self_use_smoke
 DEFAULT_DB_PATH = ROOT / "artifacts" / "accurate_intake_mvp_self_use_smoke.sqlite3"
 DEFAULT_SCENARIO_WALL_ARTIFACT_PATH = ROOT / "artifacts" / "accurate_intake_mvp_self_use_scenario_wall.json"
 DEFAULT_REOPEN_CONTINUITY_ARTIFACT_PATH = ROOT / "artifacts" / "accurate_intake_mvp_reopen_continuity.json"
+DEFAULT_ONE_DAY_SCENARIO_WALL_ARTIFACT_PATH = ROOT / "artifacts" / "accurate_intake_one_day_self_use_wall.json"
 
 _NOT_CLAIMING = [
     "product_ready",
@@ -189,6 +191,23 @@ def _manager_fixture(
     if follow_up_posture:
         payload["follow_up_posture"] = follow_up_posture
     return payload
+
+
+def _seed_local_active_budget_fixture(
+    db: Session,
+    *,
+    user: User,
+    local_date: str,
+    budget_kcal: int,
+) -> None:
+    ensure_body_plan_skeleton(
+        db,
+        user=user,
+        estimated_tdee=budget_kcal,
+        daily_budget_kcal=budget_kcal,
+        safety_floor_kcal=1500,
+    )
+    recompute_day_budget_ledger(db, user_id=user.id, local_date=local_date, budget_kcal=budget_kcal)
 
 
 def _runtime_validation(*, deterministic_role: str = "validate_reject_or_compute_state_truth") -> dict[str, Any]:
@@ -892,6 +911,544 @@ def build_self_use_scenario_wall_report(
     }
 
 
+def _packet(
+    *,
+    packet_status: str = "accepted",
+    evidence_class: str = "local_deterministic_candidate_evidence",
+    source: str = "deterministic_manager_fixture",
+) -> dict[str, Any]:
+    return {
+        "packet_status": packet_status,
+        "evidence_class": evidence_class,
+        "source": source,
+        "candidate_only": True,
+        "runtime_truth_owner": False,
+    }
+
+
+def _final_mapping(
+    *,
+    final_action: str,
+    workflow_effect: str,
+    mutation_allowed: bool,
+) -> dict[str, Any]:
+    return {
+        "owner": "b2_final_mapping",
+        "final_action": final_action,
+        "workflow_effect": workflow_effect,
+        "mutation_allowed": mutation_allowed,
+    }
+
+
+def _one_day_turn(
+    *,
+    turn_id: str,
+    turn: int,
+    raw_user_input: str,
+    manager_decision: dict[str, Any],
+    commit_result: dict[str, Any],
+    state_before: dict[str, Any],
+    state_after: dict[str, Any],
+    evidence_packet: dict[str, Any] | None = None,
+    final_mapping: dict[str, Any] | None = None,
+    target_evidence: dict[str, Any] | None = None,
+    runtime_validation: dict[str, Any] | None = None,
+    state_delta: dict[str, Any] | None = None,
+    answer_contract: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    workflow_effect = str(manager_decision.get("workflow_effect") or "")
+    final_action = str(manager_decision.get("final_action") or "")
+    payload = _turn(
+        turn=turn,
+        raw_user_input=raw_user_input,
+        manager_decision=manager_decision,
+        runtime_validation=runtime_validation,
+        commit_result=commit_result,
+    )
+    payload.update(
+        {
+            "turn_id": turn_id,
+            "state_before": state_before,
+            "state_after": state_after,
+            "evidence_packet": evidence_packet or _packet(packet_status="not_required"),
+            "final_mapping": final_mapping
+            or _final_mapping(
+                final_action=final_action,
+                workflow_effect=workflow_effect,
+                mutation_allowed=bool(commit_result.get("mutation_applied")),
+            ),
+        }
+    )
+    if target_evidence is not None:
+        payload["target_evidence"] = target_evidence
+    if state_delta is not None:
+        payload["state_delta"] = state_delta
+    if answer_contract is not None:
+        payload["answer_contract"] = answer_contract
+    return payload
+
+
+def build_one_day_self_use_scenario_wall_report(
+    *,
+    db_path: Path,
+    user_external_id: str = "self-use-one-day-v1",
+    local_date: str = "2026-05-03",
+    reset_db: bool = True,
+) -> dict[str, Any]:
+    if reset_db and db_path.exists():
+        db_path.unlink()
+    SessionLocal = _session_factory(db_path)
+    turns: list[dict[str, Any]] = []
+    with SessionLocal() as db:
+        user = get_or_create_user(db, user_external_id)
+        _seed_local_active_budget_fixture(db, user=user, local_date=local_date, budget_kcal=1800)
+        initial_debug = _debug(db, user_external_id=user_external_id, local_date=local_date)
+        day_state_before = _state_summary(initial_debug)
+
+        before = _state_summary(_debug(db, user_external_id=user_external_id, local_date=local_date))
+        breakfast = commit_meal_payload_to_canonical(
+            db,
+            user=user,
+            candidate=_candidate(
+                request_id="one-day-breakfast",
+                meal_title="茶葉蛋和拿鐵",
+                raw_input="早餐吃茶葉蛋和拿鐵",
+                estimated_kcal=270,
+                local_date=local_date,
+                items=[
+                    _meal_item("茶葉蛋", 80, protein_g=7, fat_g=5),
+                    _meal_item("拿鐵", 190, protein_g=9, carb_g=16, fat_g=9),
+                ],
+            ),
+            budget_kcal=1800,
+        )
+        if breakfast is None:
+            raise RuntimeError("one_day_breakfast_commit_failed")
+        after = _state_summary(_debug(db, user_external_id=user_external_id, local_date=local_date))
+        turns.append(
+            _one_day_turn(
+                turn_id="breakfast_tea_egg_latte",
+                turn=1,
+                raw_user_input="早餐吃茶葉蛋和拿鐵",
+                manager_decision=_manager_fixture(
+                    intent_type="log_meal",
+                    workflow_effect="new_meal_commit",
+                    final_action="commit_logged_estimate",
+                    follow_up_posture="none",
+                ),
+                evidence_packet=_packet(),
+                commit_result=_commit_result_payload(breakfast, mutation_applied=True),
+                state_before=before,
+                state_after=after,
+            )
+        )
+
+        before = after
+        lunch = commit_meal_payload_to_canonical(
+            db,
+            user=user,
+            candidate=_candidate(
+                request_id="one-day-lunch-bento",
+                meal_title="雞腿便當",
+                raw_input="午餐吃雞腿便當",
+                estimated_kcal=850,
+                local_date=local_date,
+                items=[
+                    _meal_item("雞腿", 420, protein_g=35, fat_g=24),
+                    _meal_item("白飯", 280, carb_g=62),
+                    _meal_item("配菜", 150, protein_g=4, carb_g=12, fat_g=8),
+                ],
+            ),
+            budget_kcal=1800,
+        )
+        if lunch is None:
+            raise RuntimeError("one_day_lunch_commit_failed")
+        after = _state_summary(_debug(db, user_external_id=user_external_id, local_date=local_date))
+        turns.append(
+            _one_day_turn(
+                turn_id="lunch_chicken_bento",
+                turn=2,
+                raw_user_input="午餐吃雞腿便當",
+                manager_decision=_manager_fixture(
+                    intent_type="log_meal",
+                    workflow_effect="new_meal_commit",
+                    final_action="commit_logged_estimate",
+                    follow_up_posture="optional_portion_refinement",
+                ),
+                evidence_packet=_packet(),
+                commit_result=_commit_result_payload(lunch, mutation_applied=True),
+                state_before=before,
+                state_after=after,
+            )
+        )
+
+        rice_item_id = _first_item_id(db, meal_version_id=lunch.meal_version_id, name="白飯")
+        before = after
+        lunch_correction = commit_meal_payload_to_canonical(
+            db,
+            user=user,
+            candidate=_candidate(
+                request_id="one-day-lunch-rice-less",
+                meal_thread_id=lunch.meal_thread_id,
+                version_reason="correction",
+                meal_title="雞腿便當",
+                raw_input="飯少一點",
+                estimated_kcal=720,
+                local_date=local_date,
+                items=[_meal_item("白飯", 150, carb_g=34, quantity_hint="少飯")],
+                trace_ref={
+                    "correction_target_ref": {
+                        "meal_thread_id": lunch.meal_thread_id,
+                        "meal_item_id": rice_item_id,
+                        "canonical_name": "白飯",
+                    }
+                },
+            ),
+            budget_kcal=1800,
+        )
+        if lunch_correction is None:
+            raise RuntimeError("one_day_lunch_correction_failed")
+        after = _state_summary(_debug(db, user_external_id=user_external_id, local_date=local_date))
+        turns.append(
+            _one_day_turn(
+                turn_id="lunch_rice_less_correction",
+                turn=3,
+                raw_user_input="飯少一點",
+                manager_decision=_manager_fixture(
+                    intent_type="correct_meal",
+                    workflow_effect="correction_replace_item",
+                    final_action="commit_correction",
+                    target_attachment={"attachment_kind": "explicit_item_target", "canonical_name": "白飯"},
+                ),
+                evidence_packet=_packet(),
+                commit_result=_commit_result_payload(lunch_correction, mutation_applied=True),
+                state_before=before,
+                state_after=after,
+            )
+        )
+
+        before = after
+        bubble = commit_meal_payload_to_canonical(
+            db,
+            user=user,
+            candidate=_candidate(
+                request_id="one-day-bubble-initial",
+                meal_title="珍珠奶茶",
+                raw_input="下午喝珍珠奶茶",
+                estimated_kcal=450,
+                local_date=local_date,
+                items=[_meal_item("珍珠奶茶", 450, carb_g=80, fat_g=12)],
+            ),
+            budget_kcal=1800,
+        )
+        if bubble is None:
+            raise RuntimeError("one_day_bubble_commit_failed")
+        after = _state_summary(_debug(db, user_external_id=user_external_id, local_date=local_date))
+        turns.append(
+            _one_day_turn(
+                turn_id="bubble_tea_first_value",
+                turn=4,
+                raw_user_input="下午喝珍珠奶茶",
+                manager_decision=_manager_fixture(
+                    intent_type="log_meal",
+                    workflow_effect="new_meal_commit",
+                    final_action="commit_logged_estimate",
+                    follow_up_posture="ask_size_sugar_after_logging",
+                ),
+                evidence_packet=_packet(),
+                commit_result=_commit_result_payload(bubble, mutation_applied=True),
+                state_before=before,
+                state_after=after,
+            )
+        )
+
+        bubble_item_id = _first_item_id(db, meal_version_id=bubble.meal_version_id, name="珍珠奶茶")
+        before = after
+        bubble_refinement = commit_meal_payload_to_canonical(
+            db,
+            user=user,
+            candidate=_candidate(
+                request_id="one-day-bubble-refinement",
+                meal_thread_id=bubble.meal_thread_id,
+                version_reason="correction",
+                meal_title="珍珠奶茶",
+                raw_input="半糖大杯",
+                estimated_kcal=520,
+                local_date=local_date,
+                items=[_meal_item("珍珠奶茶", 520, carb_g=92, fat_g=14, quantity_hint="半糖大杯")],
+                trace_ref={
+                    "correction_target_ref": {
+                        "meal_thread_id": bubble.meal_thread_id,
+                        "meal_item_id": bubble_item_id,
+                        "canonical_name": "珍珠奶茶",
+                    }
+                },
+            ),
+            budget_kcal=1800,
+        )
+        if bubble_refinement is None:
+            raise RuntimeError("one_day_bubble_refinement_failed")
+        after = _state_summary(_debug(db, user_external_id=user_external_id, local_date=local_date))
+        turns.append(
+            _one_day_turn(
+                turn_id="bubble_tea_half_sugar_large_refinement",
+                turn=5,
+                raw_user_input="半糖大杯",
+                manager_decision=_manager_fixture(
+                    intent_type="refine_meal",
+                    workflow_effect="same_item_refinement",
+                    final_action="commit_correction",
+                    target_attachment={"attachment_kind": "same_item_refinement", "canonical_name": "珍珠奶茶"},
+                ),
+                evidence_packet=_packet(),
+                commit_result=_commit_result_payload(bubble_refinement, mutation_applied=True),
+                state_before=before,
+                state_after=after,
+            )
+        )
+
+        before = after
+        turns.append(
+            _one_day_turn(
+                turn_id="dinner_luwei_bare_draft",
+                turn=6,
+                raw_user_input="晚餐吃滷味",
+                manager_decision=_manager_fixture(
+                    intent_type="log_meal",
+                    workflow_effect="draft_clarify_no_mutation",
+                    final_action="ask_items",
+                ),
+                evidence_packet=_packet(packet_status="not_required", evidence_class="composition_unknown_basket"),
+                final_mapping=_final_mapping(
+                    final_action="ask_items",
+                    workflow_effect="draft_clarify_no_mutation",
+                    mutation_allowed=False,
+                ),
+                commit_result={"mutation_applied": False, "no_mutation_reason": "composition_unknown_basket"},
+                state_before=before,
+                state_after=before,
+            )
+        )
+
+        luwei = commit_meal_payload_to_canonical(
+            db,
+            user=user,
+            candidate=_candidate(
+                request_id="one-day-luwei-listed",
+                meal_title="滷味",
+                raw_input="有豆干、海帶、貢丸",
+                estimated_kcal=420,
+                local_date=local_date,
+                items=[
+                    _meal_item("豆干", 120, protein_g=10, carb_g=6, fat_g=6),
+                    _meal_item("海帶", 40, carb_g=8),
+                    _meal_item("貢丸", 260, protein_g=12, carb_g=14, fat_g=18),
+                ],
+            ),
+            budget_kcal=1800,
+        )
+        if luwei is None:
+            raise RuntimeError("one_day_luwei_commit_failed")
+        after = _state_summary(_debug(db, user_external_id=user_external_id, local_date=local_date))
+        turns.append(
+            _one_day_turn(
+                turn_id="dinner_luwei_listed_commit",
+                turn=7,
+                raw_user_input="有豆干、海帶、貢丸",
+                manager_decision=_manager_fixture(
+                    intent_type="complete_meal_details",
+                    workflow_effect="listed_basket_commit",
+                    final_action="commit_logged_estimate",
+                    target_attachment={"attachment_kind": "draft_followup", "canonical_name": "滷味"},
+                ),
+                evidence_packet=_packet(),
+                commit_result=_commit_result_payload(luwei, mutation_applied=True),
+                state_before=before,
+                state_after=after,
+            )
+        )
+
+        gongwan_item_id = _first_item_id(db, meal_version_id=luwei.meal_version_id, name="貢丸")
+        before = after
+        removal = commit_meal_payload_to_canonical(
+            db,
+            user=user,
+            candidate=_candidate(
+                request_id="one-day-luwei-remove-gongwan",
+                meal_thread_id=luwei.meal_thread_id,
+                version_reason="correction",
+                meal_title="滷味",
+                raw_input="把貢丸拿掉",
+                estimated_kcal=160,
+                local_date=local_date,
+                items=[],
+                trace_ref={
+                    "correction_operation": "remove_item",
+                    "correction_target_ref": {
+                        "meal_thread_id": luwei.meal_thread_id,
+                        "meal_item_id": gongwan_item_id,
+                        "canonical_name": "貢丸",
+                    },
+                },
+            ),
+            budget_kcal=1800,
+        )
+        if removal is None:
+            raise RuntimeError("one_day_luwei_removal_failed")
+        after = _state_summary(_debug(db, user_external_id=user_external_id, local_date=local_date))
+        turns.append(
+            _one_day_turn(
+                turn_id="dinner_remove_gongwan",
+                turn=8,
+                raw_user_input="把貢丸拿掉",
+                manager_decision=_manager_fixture(
+                    intent_type="correct_meal",
+                    workflow_effect="correction_remove_item",
+                    final_action="commit_correction",
+                    target_attachment={"attachment_kind": "explicit_item_target", "canonical_name": "貢丸"},
+                ),
+                evidence_packet=_packet(packet_status="not_required", evidence_class="target_evidence_only"),
+                target_evidence={
+                    "target_evidence_present": True,
+                    "nutrition_evidence_present": False,
+                    "canonical_name": "貢丸",
+                },
+                commit_result=_commit_result_payload(removal, mutation_applied=True),
+                state_before=before,
+                state_after=after,
+            )
+        )
+
+        before = after
+        before_ledger_count = _ledger_event_count(db, user_id=user.id, local_date=local_date)
+        answer = build_remaining_budget_answer_contract(db, user_id=user.id, local_date=local_date)
+        final_debug_surface = _debug(db, user_external_id=user_external_id, local_date=local_date)
+        after_ledger_count = _ledger_event_count(db, user_id=user.id, local_date=local_date)
+        after = _state_summary(final_debug_surface)
+        turns.append(
+            _one_day_turn(
+                turn_id="today_consumed_remaining_query",
+                turn=9,
+                raw_user_input="今天吃了多少？還剩多少？",
+                manager_decision=_manager_fixture(
+                    intent_type="answer_remaining_budget",
+                    workflow_effect="read_only_budget_query",
+                    final_action="no_mutation",
+                ),
+                runtime_validation=_runtime_validation(deterministic_role="read_canonical_state_only"),
+                commit_result={"mutation_applied": False},
+                state_delta={
+                    "mutation_applied": False,
+                    "ledger_event_count_before": before_ledger_count,
+                    "ledger_event_count_after": after_ledger_count,
+                },
+                answer_contract={
+                    "status": answer.status,
+                    "consumed_kcal": answer.consumed_kcal,
+                    "daily_target_kcal": answer.daily_target_kcal,
+                    "remaining_kcal": answer.remaining_kcal,
+                },
+                state_before=before,
+                state_after=after,
+            )
+        )
+
+    blockers: list[str] = []
+    final_today = dict(after.get("today_summary") or {})
+    if final_today.get("consumed_kcal") != 1670:
+        blockers.append("final_consumed_kcal_mismatch")
+    if final_today.get("remaining_kcal") != 130:
+        blockers.append("final_remaining_kcal_mismatch")
+    if dict(final_debug_surface.get("model") or {}).get("same_truth", {}).get("status") != "pass":
+        blockers.append("same_truth_failed")
+    mutation_turn_count = sum(1 for turn in turns if dict(turn.get("commit_result") or {}).get("mutation_applied"))
+    return {
+        "artifact_schema_version": "1.0",
+        "scenario_wall_id": "accurate_intake_one_day_self_use_wall_v1",
+        "claim_scope": "local_deterministic_mvp_gate",
+        "status": "pass" if not blockers else "fail",
+        "blockers": blockers,
+        "generated_at_utc": datetime.now(UTC).isoformat(),
+        "not_claiming": list(_NOT_CLAIMING),
+        "product_readiness_claimed": False,
+        "live_llm_invoked": False,
+        "web_tavily_invoked": False,
+        "production_db_used": False,
+        "user_facing_rollout": False,
+        "runner_inferred_semantics": False,
+        "scenario_id": "one_day_v1",
+        "user_external_id": user_external_id,
+        "local_date": local_date,
+        "state_before": day_state_before,
+        "state_after": after,
+        "final_debug_surface": final_debug_surface,
+        "summary": {
+            "turn_count": len(turns),
+            "mutation_turn_count": mutation_turn_count,
+            "no_mutation_turn_count": len(turns) - mutation_turn_count,
+            "final_consumed_kcal": final_today.get("consumed_kcal"),
+            "final_remaining_kcal": final_today.get("remaining_kcal"),
+            "runner_inferred_semantics": False,
+        },
+        "turns": turns,
+    }
+
+
+def build_one_day_self_use_reopen_report(
+    *,
+    db_path: Path,
+    user_external_id: str = "self-use-one-day-v1",
+    local_date: str = "2026-05-03",
+) -> dict[str, Any]:
+    SessionLocal = _session_factory(db_path)
+    with SessionLocal() as db:
+        user = _lookup_user(db, user_external_id)
+        debug_surface = _debug(db, user_external_id=user_external_id, local_date=local_date)
+        state_after = _state_summary(debug_surface)
+        today = dict(state_after.get("today_summary") or {})
+        same_truth_status = state_after.get("same_truth_status")
+        ledger_event_count = _ledger_event_count(db, user_id=user.id, local_date=local_date) if user is not None else 0
+    blockers: list[str] = []
+    if user is None:
+        blockers.append("missing_reopened_user")
+    if today.get("consumed_kcal") != 1670:
+        blockers.append("final_consumed_kcal_reopen_mismatch")
+    if today.get("remaining_kcal") != 130:
+        blockers.append("final_remaining_kcal_reopen_mismatch")
+    if today.get("active_meal_count") != 4:
+        blockers.append("active_meal_count_reopen_mismatch")
+    if ledger_event_count != 7:
+        blockers.append("ledger_event_count_reopen_mismatch")
+    if same_truth_status != "pass":
+        blockers.append("same_truth_reopen_failed")
+    return {
+        "artifact_schema_version": "1.0",
+        "continuity_id": "accurate_intake_one_day_reopen_continuity_v1",
+        "claim_scope": "local_deterministic_mvp_gate",
+        "status": "pass" if not blockers else "fail",
+        "blockers": blockers,
+        "generated_at_utc": datetime.now(UTC).isoformat(),
+        "not_claiming": list(_NOT_CLAIMING),
+        "read_only": True,
+        "mutation_applied": False,
+        "product_readiness_claimed": False,
+        "live_llm_invoked": False,
+        "web_tavily_invoked": False,
+        "production_db_used": False,
+        "user_facing_rollout": False,
+        "db_mode": "reopen_existing_local_sqlite",
+        "local_date": local_date,
+        "debug_surface": debug_surface,
+        "summary": {
+            "final_consumed_kcal": today.get("consumed_kcal"),
+            "final_remaining_kcal": today.get("remaining_kcal"),
+            "active_meal_count": today.get("active_meal_count"),
+            "ledger_event_count": ledger_event_count,
+            "same_truth_status": same_truth_status,
+        },
+    }
+
+
 def build_self_use_smoke_report(
     *,
     db_path: Path,
@@ -1005,14 +1562,37 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--db-path", default=str(DEFAULT_DB_PATH))
     parser.add_argument("--scenario-wall-v2", action="store_true")
     parser.add_argument("--reopen-continuity", action="store_true")
+    parser.add_argument("--one-day-scenario-wall", action="store_true")
+    parser.add_argument("--one-day-reopen-continuity", action="store_true")
     parser.add_argument("--user-id", default="self-use-smoke-user")
     parser.add_argument("--local-date", default="2026-05-02")
     parser.add_argument("--keep-db", action="store_true")
     args = parser.parse_args(argv)
 
-    if args.scenario_wall_v2 and args.reopen_continuity:
-        raise SystemExit("--scenario-wall-v2 and --reopen-continuity cannot be combined")
-    if args.reopen_continuity:
+    selected_modes = [
+        args.scenario_wall_v2,
+        args.reopen_continuity,
+        args.one_day_scenario_wall,
+        args.one_day_reopen_continuity,
+    ]
+    if sum(1 for selected in selected_modes if selected) > 1:
+        raise SystemExit("self-use smoke modes cannot be combined")
+    if args.one_day_scenario_wall:
+        report = build_one_day_self_use_scenario_wall_report(
+            db_path=Path(args.db_path),
+            user_external_id=args.user_id if args.user_id != "self-use-smoke-user" else "self-use-one-day-v1",
+            local_date=args.local_date if args.local_date != "2026-05-02" else "2026-05-03",
+            reset_db=not args.keep_db,
+        )
+        output_path = Path(args.output)
+    elif args.one_day_reopen_continuity:
+        report = build_one_day_self_use_reopen_report(
+            db_path=Path(args.db_path),
+            user_external_id=args.user_id if args.user_id != "self-use-smoke-user" else "self-use-one-day-v1",
+            local_date=args.local_date if args.local_date != "2026-05-02" else "2026-05-03",
+        )
+        output_path = Path(args.output)
+    elif args.reopen_continuity:
         report = build_self_use_reopen_continuity_report(
             db_path=Path(args.db_path),
             local_date=args.local_date,
