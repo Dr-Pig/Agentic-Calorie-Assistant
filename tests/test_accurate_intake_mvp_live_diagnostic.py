@@ -306,6 +306,42 @@ def test_accurate_intake_live_original_multiturn_blocks_noop_removal_turn() -> N
     assert "turn_3_expected_canonical_mutation_missing" in blockers
 
 
+def test_accurate_intake_live_local_evidence_preserves_chicken_rice_and_soup_components() -> None:
+    from app.nutrition.application.estimate_artifacts import _shadow_stub_components  # noqa: PLC2701
+
+    components = _shadow_stub_components("\u96de\u8089\u98ef\u548c\u6e6f")
+
+    assert [(component.name, int(component.estimated_kcal or 0)) for component in components] == [
+        ("\u96de\u8089\u98ef", 500),
+        ("\u6e6f", 150),
+    ]
+
+
+def test_accurate_intake_live_original_turn3_fake_probe_removes_soup_component(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+        stage="single_case_live_probe",
+        case_id="chinese_chicken_rice_correction_removal_debug",
+        max_turn=3,
+    )
+
+    case = report["cases"][0]
+    assert case["verdict"] == "pass"
+    assert case["case_contract_status"] == "strict_pass"
+    assert case["turns"][2]["state_delta"]["canonical_commit"] is True
+    assert case["turns"][2]["state_delta"]["new_meal_version_created"] is True
+    correction_history = case["debug_surface"]["model"]["correction_history"]
+    assert correction_history[-1]["removed_item_names"] == ["\u6e6f"]
+    active_items = case["debug_surface"]["model"]["meal_threads"][0]["active_version"]["items"]
+    assert [item["name"] for item in active_items] == ["\u96de\u8089\u98ef"]
+
+
 def test_accurate_intake_live_schema_probe_blocks_product_loop_cases(tmp_path: Path) -> None:
     module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
 

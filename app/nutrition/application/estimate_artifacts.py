@@ -27,6 +27,22 @@ def shadow_stub_estimate_enabled(*, provider: Any) -> bool:
 
 def _shadow_stub_components(raw_user_input: str) -> list[ComponentEstimate]:
     normalized = raw_user_input.strip().lower()
+    chicken_rice = "\u96de\u8089\u98ef"
+    soup = "\u6e6f"
+    less = "\u5c11\u4e00\u9ede"
+    if chicken_rice in raw_user_input and soup in raw_user_input:
+        return [
+            ComponentEstimate(name=chicken_rice, quantity_hint="1 bowl", estimated_kcal=500, protein_g=30, carb_g=64, fat_g=15),
+            ComponentEstimate(name=soup, quantity_hint="1 bowl", estimated_kcal=150, protein_g=5, carb_g=6, fat_g=4),
+        ]
+    if chicken_rice in raw_user_input and less in raw_user_input:
+        return [
+            ComponentEstimate(name=chicken_rice, quantity_hint="smaller portion", estimated_kcal=320, protein_g=24, carb_g=42, fat_g=9),
+        ]
+    if chicken_rice in raw_user_input:
+        return [
+            ComponentEstimate(name=chicken_rice, quantity_hint="1 bowl", estimated_kcal=500, protein_g=30, carb_g=64, fat_g=15),
+        ]
     if "滷肉飯" in raw_user_input and "無糖豆漿" in raw_user_input:
         return [
             ComponentEstimate(name="滷肉飯", quantity_hint="1 bowl", estimated_kcal=550, protein_g=18, carb_g=58, fat_g=24),
