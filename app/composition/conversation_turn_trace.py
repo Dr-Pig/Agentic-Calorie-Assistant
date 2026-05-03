@@ -5,6 +5,10 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.composition.dogfood_trace_policy import (
+    build_manager_mode_policy,
+    build_unsupported_intent_policy,
+)
 from app.database import append_message, get_or_create_user
 from app.shared.infra.models import MessageBuffer
 
@@ -122,6 +126,29 @@ def _persistence_evidence_present(value: Any) -> bool:
     return _evidence_summary_content_present(persistence.get("evidence_summary"))
 
 
+def _dogfood_trace_policy(manager_decision: Any) -> dict[str, Any]:
+    decision = _object_dict(manager_decision)
+    unsupported_family = str(decision.get("unsupported_intent_family") or "").strip()
+    manager_mode = str(decision.get("manager_mode") or "fixture").strip() or "fixture"
+    provider_profile = decision.get("provider_profile")
+    model_id = decision.get("model_id")
+    return {
+        "lifecycle_status": "raw_trace",
+        "raw_trace_is_truth": False,
+        "review_candidate_can_be_auto_proposed": True,
+        "canonical_eval_requires_human_approval": True,
+        "unsupported_intent_policy": (
+            build_unsupported_intent_policy(unsupported_family) if unsupported_family else None
+        ),
+        "manager_mode_policy": build_manager_mode_policy(
+            manager_mode=manager_mode,
+            provider_profile=str(provider_profile) if provider_profile is not None else None,
+            live_call_used=bool(decision.get("live_call_used") is True),
+            model_id=str(model_id) if model_id is not None else None,
+        ),
+    }
+
+
 def build_runtime_turn_trace(
     *,
     request_id: str,
@@ -186,6 +213,7 @@ def build_runtime_turn_trace(
             "state_after_present": state_after is not None,
         },
         "manager_decision": _json_safe(manager_decision),
+        "dogfood_trace_policy": _json_safe(_dogfood_trace_policy(manager_decision)),
         "evidence_packet": _json_safe(tool_outputs),
         "final_mapping": _json_safe(final_mapping),
         "state_delta": _json_safe(state_delta),
