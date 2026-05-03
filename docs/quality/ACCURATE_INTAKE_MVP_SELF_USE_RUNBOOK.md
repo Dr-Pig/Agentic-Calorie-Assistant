@@ -104,6 +104,14 @@ The local browser shell is available at:
 
 This browser shell is an operator mirror for local dogfood only. It is backend-current-day only until `/estimate` has an explicit local-date contract. It first asks `/today/current-budget` for the backend `local_date`, then uses that date for debug and manual target follow-up calls. It posts raw chat text to `/estimate`, renders `/today/current-budget`, `/body-plan/active`, and `/accurate-intake/debug`, and calls `/body-plan/manual-daily-target` for manual target updates. The browser shell must not infer intent, workflow, target attachment, disposition, kcal, consumed, remaining, or overshoot from raw text; those remain backend/runtime/read-model truth.
 
+Run the local browser-shell route-bridge smoke with:
+
+```powershell
+python scripts/run_accurate_intake_local_web_shell_smoke.py --db-path .pytest_tmp_local/accurate_intake_local_web_shell_bridge.sqlite3 --output artifacts/accurate_intake_local_web_shell_bridge.json
+```
+
+This route-bridge smoke proves static shell availability and backend route compatibility under deterministic Manager fixtures. It does not execute browser JavaScript; browser-executed fetch sequencing remains a separate UI QA/browser-automation slice before any web-readiness claim.
+
 Run a fresh local shell pass with:
 
 ```powershell
