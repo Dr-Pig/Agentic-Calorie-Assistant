@@ -166,6 +166,15 @@ python scripts/build_accurate_intake_local_self_use_candidate.py --shell-artifac
 
 The candidate packet may set `local_self_use_candidate_prepared=true` when the deterministic shell evidence is clean. It must keep `private_self_use_approved=false`, `product_readiness_claimed=false`, `production_selected=false`, and `live_manager_required=false`.
 
+Build the v2 aggregated web candidate packet with:
+
+```powershell
+python scripts/build_accurate_intake_local_web_self_use_candidate_v2.py --evidence-json path/to/all_evidence.json --output artifacts/accurate_intake_local_web_self_use_candidate_v2.json
+```
+
+The v2 packet aggregates evidence from PR103-PR108 and checks for clean status across all required gates. It must not unlock private self-use approval or product readiness claims.
+
+
 Build a local-only review artifact from runtime-turn traces with:
 
 ```powershell
