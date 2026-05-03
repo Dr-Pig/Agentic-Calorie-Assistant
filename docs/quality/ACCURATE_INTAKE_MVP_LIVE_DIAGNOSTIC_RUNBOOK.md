@@ -171,6 +171,26 @@ The next live provider work should be a future target-model diagnostic slice aft
 
 The checkpoint artifact is `docs/quality/accurate_intake_post_pr88_phase_checkpoint.json`. It is not a private self-use approval and does not claim product readiness, production model selection, model portability, shadow/canary, or mutation rollout.
 
+## Kimi Deferred Target-Model Validation
+
+Kimi target-model validation will use `builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic` in a deferred target-model validation slice.
+
+Do not run Kimi provider calls during PR93-PR100. PR93-PR100 should finish the model-agnostic schema, harness, dependency inversion, and local product-loop baseline using fixture paths and the existing GrokFast low-cost diagnostic probe only.
+
+Kimi failure creates attribution and review records only. It must not directly trigger prompt, schema, Manager contract, product semantic, Food KB, or runtime truth changes.
+
+Do not run a Kimi full-suite hardening loop before the deferred target-model validation slice. Future Kimi artifacts must keep `production_selected=false` and `private_self_use_approved=false`.
+
+After every 3-5 live/provider-affecting stages, and before any prompt/schema/contract hardening, open a read-only reviewer pass. The reviewer checks canonical rule source, legal-flow or holdout coverage, raw-text routing risk, provider overfit risk, readiness overclaim, and alignment with the calorie-deficit logging MVP.
+
+Example deferred validation commands, only after the model-agnostic local web self-use loop is green and the target-model validation slice is explicitly opened:
+
+```powershell
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage provider_health_smoke --provider-profile-id builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_kimi_provider_health.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage schema_contract_probe --provider-profile-id builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_kimi_schema_probe.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id explicit_item_removal_seeded --provider-profile-id builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_kimi_seeded_probe.json
+```
+
 ## Artifact Policy
 
 Generated live artifacts are local diagnostic evidence, not repo truth.
