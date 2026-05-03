@@ -3,14 +3,27 @@ from __future__ import annotations
 from html import escape
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
 
 from app.body.application import build_active_body_plan_view
 from app.database import get_db, get_or_create_user
+from app.composition.manual_daily_target_service import (
+    ManualDailyTargetInput,
+    ManualDailyTargetSource,
+    set_manual_daily_target,
+)
 from app.shared.domain import ActiveBodyPlanView
 
 router = APIRouter()
+
+
+class ManualDailyTargetRequest(BaseModel):
+    user_id: str
+    daily_target_kcal: int
+    local_date: str
+    source: ManualDailyTargetSource = "user_chat"
 
 
 def _load_active_body_plan(
@@ -149,6 +162,40 @@ async def body_plan_active(
 ) -> dict:
     view = _load_active_body_plan(db, user_id=user_id)
     return view.model_dump(mode="json")
+
+
+@router.post("/body-plan/manual-daily-target")
+async def post_manual_daily_target(
+    req: ManualDailyTargetRequest,
+    db: Any = Depends(get_db),
+) -> dict:
+    user = get_or_create_user(db, req.user_id)
+    try:
+        result = set_manual_daily_target(
+            db,
+            user=user,
+            inputs=ManualDailyTargetInput(
+                daily_target_kcal=req.daily_target_kcal,
+                local_date=req.local_date,
+                source=req.source,
+            ),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return {
+        "status": result.status,
+        "user_id": req.user_id,
+        "local_date": result.local_date,
+        "previous_daily_target_kcal": result.previous_daily_target_kcal,
+        "target_delta_kcal": result.target_delta_kcal,
+        "active_body_plan": result.active_body_plan_view.model_dump(mode="json"),
+        "current_budget": result.current_budget_view.model_dump(mode="json"),
+        "live_llm_invoked": result.live_llm_invoked,
+        "product_readiness_claimed": result.product_readiness_claimed,
+        "private_self_use_approved": result.private_self_use_approved,
+        "production_selected": result.production_selected,
+    }
 
 
 @router.get("/body-plan", response_class=HTMLResponse)
