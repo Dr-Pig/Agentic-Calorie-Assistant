@@ -6,6 +6,7 @@ from app.shared.contracts.correction_target import validate_correction_target_re
 
 from app.composition.intake_estimation_tools import estimate_nutrition_tool
 from app.composition.intake_read_tools import compare_against_budget_tool
+from app.intake.application.target_evidence_artifacts import payload_is_target_evidence
 from app.nutrition.application.evidence_eligibility import classify_query_family, summarize_eligibility_results
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
@@ -44,6 +45,25 @@ def macro_summary(payload: Any | None) -> dict[str, Any]:
 
 def evidence_summary(*, raw_user_input: str, payload: Any | None) -> dict[str, Any]:
     trace_contract = payload_trace_contract(payload) if payload is not None else {}
+    if payload_is_target_evidence(payload):
+        target_contract = dict(trace_contract.get("target_evidence_contract") or {})
+        return {
+            "eligibility": "target_evidence",
+            "candidate_count": 0,
+            "exact_count": 0,
+            "near_exact_count": 0,
+            "generic_count": 0,
+            "high_variance_family": False,
+            "family_rule": None,
+            "why_not_exact": [],
+            "intake_execution_guard_family": trace_contract.get("intake_execution_guard_family"),
+            "search_attempt_count": 0,
+            "search_query": None,
+            "db_hit_type": None,
+            "nutrition_evidence_present": False,
+            "target_evidence_present": True,
+            "target_evidence_source": target_contract.get("source"),
+        }
     component_breakdown = list(getattr(payload, "component_breakdown", None) or []) if payload is not None else []
     grounding_summary = dict(trace_contract.get("grounding_summary") or {})
     db_hit_type = str(trace_contract.get("db_hit_type") or "")
@@ -196,16 +216,29 @@ def nutrition_tool_output(
     payload = getattr(nutrition_artifact, "payload", None) if nutrition_artifact is not None else None
     evidence: dict[str, Any] = {"nutrition_payload": None}
     if payload is not None:
-        evidence["nutrition_payload"] = {
-            "meal_title": getattr(payload, "meal_title", ""),
-            "estimated_kcal": int(getattr(payload, "estimated_kcal", 0) or 0),
-            "route_target": getattr(payload, "route_target", ""),
-            "action_taken": getattr(payload, "action_taken", ""),
-            "followup_question": getattr(payload, "followup_question", ""),
-            "reply_text": getattr(payload, "reply_text", ""),
-            "unresolved_info": payload_unresolved_info(payload),
-            "trace_contract": payload_trace_contract(payload),
-        }
+        trace_contract = payload_trace_contract(payload)
+        if payload_is_target_evidence(payload):
+            target_contract = dict(trace_contract.get("target_evidence_contract") or {})
+            evidence["target_evidence_payload"] = {
+                "evidence_type": "target_evidence",
+                "operation": trace_contract.get("correction_operation"),
+                "nutrition_evidence_present": False,
+                "target_evidence_is_nutrition_evidence": False,
+                "canonical_remaining_item_totals": dict(trace_contract.get("canonical_remaining_item_totals") or {}),
+            }
+            if target_contract.get("source") is not None:
+                evidence["target_evidence_payload"]["source"] = target_contract.get("source")
+        else:
+            evidence["nutrition_payload"] = {
+                "meal_title": getattr(payload, "meal_title", ""),
+                "estimated_kcal": int(getattr(payload, "estimated_kcal", 0) or 0),
+                "route_target": getattr(payload, "route_target", ""),
+                "action_taken": getattr(payload, "action_taken", ""),
+                "followup_question": getattr(payload, "followup_question", ""),
+                "reply_text": getattr(payload, "reply_text", ""),
+                "unresolved_info": payload_unresolved_info(payload),
+                "trace_contract": trace_contract,
+            }
     return {
         "tool_name": "estimate_nutrition",
         "evidence": evidence,
