@@ -1434,6 +1434,8 @@ def test_founder_live_contract_policy_names_existing_query_only_and_followup_inv
     assert policy["correction_rule"]["final_action"] == "correction_applied"
     assert policy["composition_unknown_rule"]["mutation_intent_candidate"] == "no_mutation"
     assert policy["composition_unknown_rule"]["estimate_tool_allowed"] is False
+    assert policy["composition_unknown_rule"]["required_manager_action"] == "final"
+    assert policy["composition_unknown_rule"]["forbidden_tool"] == "estimate_nutrition"
     assert policy["listed_basket_followup_rule"]["semantic_intent"] == "log_meal"
     assert policy["listed_basket_followup_rule"]["required_tool_when_evidence_missing"] == "estimate_nutrition"
     assert policy["listed_basket_followup_rule"]["forbidden_substitute_final_actions"] == [
@@ -1454,6 +1456,7 @@ def test_founder_live_contract_policy_names_existing_query_only_and_followup_inv
     assert "correct_meal" in description
     assert "self-selected basket" in description
     assert "return final ask_followup directly" in description
+    assert "manager_action call_tools is invalid for composition-unknown baskets" in description
     assert "do not call estimate_nutrition for composition-unknown baskets" in description
     assert "tool_calls=[] for composition-unknown ask_followup" in description
     assert "listed-item follow-up" in description
@@ -1464,7 +1467,29 @@ def test_founder_live_contract_policy_names_existing_query_only_and_followup_inv
     assert "case_id" not in description
     assert FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES[0]["invalid"]["manager_action"] == "final"
     assert FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES[0]["valid"]["manager_action"] == "call_tools"
+    composition_unknown = next(
+        item for item in FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES if item["name"] == "composition_unknown_exception"
+    )
+    assert composition_unknown["invalid"]["manager_action"] == "call_tools"
+    assert composition_unknown["invalid"]["tool_calls"] == [{"name": "estimate_nutrition"}]
     assert "case_id" not in str(FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES)
+
+
+def test_founder_live_schema_guidance_names_composition_unknown_call_tools_as_invalid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    schema = adapter._response_schema_for_stage("intake_manager_round", constraints=_founder_live_constraints())
+
+    manager_action_description = schema["properties"]["manager_action"]["description"]
+    tool_calls_description = schema["properties"]["tool_calls"]["description"]
+    estimation_posture_description = schema["properties"]["semantic_decision"]["properties"]["estimation_posture"][
+        "description"
+    ]
+
+    assert "manager_action=call_tools is invalid for composition-unknown" in manager_action_description
+    assert "composition_unknown_basket is not pending_tool_call" in estimation_posture_description
+    assert "Do not include estimate_nutrition for composition-unknown" in tool_calls_description
 
 
 def test_founder_live_shared_contract_examples_are_provider_and_case_agnostic() -> None:

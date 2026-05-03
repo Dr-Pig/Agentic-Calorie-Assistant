@@ -118,6 +118,9 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY = {
         "workflow_effect": "ask_followup",
         "final_action": "ask_followup",
         "mutation_intent_candidate": "no_mutation",
+        "required_manager_action": "final",
+        "required_tool_calls": [],
+        "forbidden_tool": "estimate_nutrition",
         "estimate_tool_allowed": False,
     },
     "listed_basket_followup_rule": {
@@ -149,7 +152,8 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY_SUMMARY = (
     "then let runtime validate target uniqueness/writeability; target evidence is sufficient for remove_item and "
     "estimate_nutrition is not required; do not hard-delete or undo a whole meal; "
     "self-selected basket or composition-unknown meals must ask_followup/no_mutation until components are known "
-    "and must not call estimate_nutrition while composition is unknown; "
+    "and must not call estimate_nutrition while composition is unknown; manager_action=call_tools is invalid "
+    "for composition-unknown baskets because no estimable item list exists yet; "
     "when a later follow-up supplies concrete listed items for that basket, it is no longer composition-unknown: "
     "use prior turn context, call estimate_nutrition before commit, and do not repeat the same composition clarification; "
     "refinement_not_commit_gate and size_clarification follow-up postures require a followup_question."
@@ -168,7 +172,8 @@ FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION = (
     "manager_action='call_tools' with estimate_nutrition, not manager_action='final'. "
     "Exception: if your semantic decision is composition-unknown "
     "ask_followup/no_mutation, return manager_action='final' with final_action='ask_followup' and no tool_calls; "
-    "set tool_calls=[] for composition-unknown ask_followup and do not estimate. Once the user supplies concrete listed items after that clarification, treat the turn as "
+    "set tool_calls=[] for composition-unknown ask_followup and do not estimate; manager_action='call_tools' "
+    "with estimate_nutrition is invalid while composition is unknown. Once the user supplies concrete listed items after that clarification, treat the turn as "
     "listed-item follow-up evidence collection: use prior turn context, return manager_action='call_tools' with estimate_nutrition before "
     "final commit and do not repeat the same composition clarification."
 )
@@ -223,6 +228,17 @@ FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES = [
             "final_action": "ask_followup",
             "workflow_effect": "ask_followup",
             "tool_calls": [],
+            "semantic_decision": {
+                "final_action_candidate": "ask_followup",
+                "mutation_intent_candidate": "no_mutation",
+                "estimation_posture": "composition_unknown_basket",
+            },
+        },
+        "invalid": {
+            "manager_action": "call_tools",
+            "final_action": "ask_followup",
+            "workflow_effect": "ask_followup",
+            "tool_calls": [{"name": "estimate_nutrition"}],
             "semantic_decision": {
                 "final_action_candidate": "ask_followup",
                 "mutation_intent_candidate": "no_mutation",
@@ -365,7 +381,8 @@ def founder_live_manager_tool_description() -> str:
         "semantic_decision.final_action_candidate still pointing at commit, correction_applied, or overshoot_note. "
         "For a self-selected basket with unknown composition, ask_followup with no_mutation until components are known; "
         "return final ask_followup directly, use tool_calls=[] for composition-unknown ask_followup, "
-        "and do not call estimate_nutrition for composition-unknown baskets. "
+        "and do not call estimate_nutrition for composition-unknown baskets; "
+        "manager_action call_tools is invalid for composition-unknown baskets. "
         "For a listed-item follow-up after that clarification, treat the supplied item list as the missing "
         "composition, use prior turn context even if the basket label is not repeated, and call estimate_nutrition "
         "before commit; do not repeat the same composition clarification. "
