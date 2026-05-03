@@ -1,0 +1,236 @@
+{
+  "artifact_type": "accurate_intake_pr74_84_semantic_drift_audit",
+  "artifact_schema_version": "1.0",
+  "status": "reviewed",
+  "claim_scope": "diagnostic_governance",
+  "pr_range": "PR74-PR84",
+  "summary": {
+    "runtime_behavior_changed": false,
+    "product_readiness_claimed": false,
+    "private_self_use_approved": false,
+    "highest_provider_overfit_risk": "medium",
+    "requires_followup_guards": [
+      "basket_holdout_anti_overfit_regression",
+      "remove_item_target_evidence_guard"
+    ]
+  },
+  "entries": [
+    {
+      "pr_number": 74,
+      "change_type": "contract_clarification",
+      "rule_changed": "Explicit remove_item may proceed with target evidence and does not require new nutrition evidence.",
+      "triggered_by_live_failure": true,
+      "canonical_spec_refs": [
+        "docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md#Semantic-Ownership-Boundary"
+      ],
+      "manager_owned_fields_affected": [
+        "workflow_effect",
+        "target_attachment",
+        "final_action"
+      ],
+      "runtime_validation_affected": [
+        "target uniqueness",
+        "target writeability",
+        "ledger recompute from canonical remaining items"
+      ],
+      "provider_overfit_risk": "medium",
+      "mitigation_tests": [
+        "PR87 remove-item target evidence guard"
+      ]
+    },
+    {
+      "pr_number": 75,
+      "change_type": "diagnostic_harness",
+      "rule_changed": "Multi-turn live probes can be turn-limited for failure attribution.",
+      "triggered_by_live_failure": true,
+      "canonical_spec_refs": [
+        "docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md#Staged-Live-Commands"
+      ],
+      "manager_owned_fields_affected": [],
+      "runtime_validation_affected": [
+        "failure turn attribution"
+      ],
+      "provider_overfit_risk": "low",
+      "mitigation_tests": [
+        "turn-limited probe attribution tests"
+      ]
+    },
+    {
+      "pr_number": 76,
+      "change_type": "runtime_trace_support",
+      "rule_changed": "Multi-item estimates preserve component items as future target candidates.",
+      "triggered_by_live_failure": true,
+      "canonical_spec_refs": [
+        "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md#Phase-C"
+      ],
+      "manager_owned_fields_affected": [
+        "target_attachment"
+      ],
+      "runtime_validation_affected": [
+        "component item identity preservation"
+      ],
+      "provider_overfit_risk": "medium",
+      "mitigation_tests": [
+        "multi-item preservation tests"
+      ]
+    },
+    {
+      "pr_number": 77,
+      "change_type": "runtime_validation",
+      "rule_changed": "Manager correction target attachment must be validated by deterministic uniqueness/writeability guard.",
+      "triggered_by_live_failure": false,
+      "canonical_spec_refs": [
+        "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md#High-impact-semantic-owner-hard-gate"
+      ],
+      "manager_owned_fields_affected": [
+        "target_attachment"
+      ],
+      "runtime_validation_affected": [
+        "target uniqueness",
+        "target writeability"
+      ],
+      "provider_overfit_risk": "low",
+      "mitigation_tests": [
+        "target attachment validation tests"
+      ]
+    },
+    {
+      "pr_number": 78,
+      "change_type": "decision_pack_gate",
+      "rule_changed": "Strict staged replay advances only to full-suite diagnostic required, not self-use approval.",
+      "triggered_by_live_failure": false,
+      "canonical_spec_refs": [
+        "docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md#Full-Suite-Gate"
+      ],
+      "manager_owned_fields_affected": [],
+      "runtime_validation_affected": [
+        "readiness claim boundary"
+      ],
+      "provider_overfit_risk": "low",
+      "mitigation_tests": [
+        "decision pack non-claim tests"
+      ]
+    },
+    {
+      "pr_number": 79,
+      "change_type": "manager_contract_guidance",
+      "rule_changed": "Listed basket follow-up may estimate, while bare basket remains ask-first.",
+      "triggered_by_live_failure": true,
+      "canonical_spec_refs": [
+        "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#self_selected_basket_without_listed_items",
+        "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#salt_crispy_chicken_surface_term_resolution"
+      ],
+      "manager_owned_fields_affected": [
+        "workflow_effect",
+        "tool_calls",
+        "final_action"
+      ],
+      "runtime_validation_affected": [
+        "ask-followup versus estimate disposition validation"
+      ],
+      "provider_overfit_risk": "medium",
+      "mitigation_tests": [
+        "PR86 basket holdout anti-overfit regression"
+      ]
+    },
+    {
+      "pr_number": 80,
+      "change_type": "offline_replay_gate",
+      "rule_changed": "Full-suite evidence requires repeated replay window before candidate preparation.",
+      "triggered_by_live_failure": false,
+      "canonical_spec_refs": [
+        "docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md#Full-Suite-Evidence-Window"
+      ],
+      "manager_owned_fields_affected": [],
+      "runtime_validation_affected": [
+        "replay window completeness"
+      ],
+      "provider_overfit_risk": "low",
+      "mitigation_tests": [
+        "full-suite replay evidence tests"
+      ]
+    },
+    {
+      "pr_number": 81,
+      "change_type": "artifact_hygiene",
+      "rule_changed": "Live evidence should be run-specific to prevent stale artifact false-greens.",
+      "triggered_by_live_failure": false,
+      "canonical_spec_refs": [
+        "docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md#Artifact-Policy"
+      ],
+      "manager_owned_fields_affected": [],
+      "runtime_validation_affected": [
+        "artifact lineage"
+      ],
+      "provider_overfit_risk": "low",
+      "mitigation_tests": [
+        "run-specific output path tests"
+      ]
+    },
+    {
+      "pr_number": 82,
+      "change_type": "draft_support",
+      "rule_changed": "Manager-owned ask_followup may persist draft support state without ledger mutation.",
+      "triggered_by_live_failure": true,
+      "canonical_spec_refs": [
+        "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#self_selected_basket_without_listed_items"
+      ],
+      "manager_owned_fields_affected": [
+        "workflow_effect",
+        "followup_question"
+      ],
+      "runtime_validation_affected": [
+        "draft no-ledger isolation"
+      ],
+      "provider_overfit_risk": "medium",
+      "mitigation_tests": [
+        "PR86 basket holdout anti-overfit regression"
+      ]
+    },
+    {
+      "pr_number": 83,
+      "change_type": "manager_contract_guidance",
+      "rule_changed": "Composition-unknown baskets must not call estimate tools before listed items exist.",
+      "triggered_by_live_failure": true,
+      "canonical_spec_refs": [
+        "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#self_selected_basket_without_listed_items"
+      ],
+      "manager_owned_fields_affected": [
+        "manager_action",
+        "tool_calls",
+        "final_action"
+      ],
+      "runtime_validation_affected": [
+        "composition-unknown no-estimate gate"
+      ],
+      "provider_overfit_risk": "medium",
+      "mitigation_tests": [
+        "PR86 basket holdout anti-overfit regression"
+      ]
+    },
+    {
+      "pr_number": 84,
+      "change_type": "schema_hardening",
+      "rule_changed": "manager_action=call_tools is constrained to evidence-producing final actions.",
+      "triggered_by_live_failure": true,
+      "canonical_spec_refs": [
+        "docs/quality/accurate_intake_contract_legal_flow_matrix.json",
+        "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#follow_up_for_estimable_items",
+        "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#self_selected_basket_without_listed_items"
+      ],
+      "manager_owned_fields_affected": [
+        "manager_action",
+        "tool_calls",
+        "final_action"
+      ],
+      "runtime_validation_affected": [
+        "schema admissibility"
+      ],
+      "provider_overfit_risk": "medium",
+      "mitigation_tests": [
+        "legal-flow matrix",
+        "PR86 basket holdout anti-overfit regression"
+      ]
+    }
+  ]
+}

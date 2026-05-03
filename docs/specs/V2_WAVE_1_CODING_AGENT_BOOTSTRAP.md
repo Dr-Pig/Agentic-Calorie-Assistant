@@ -153,6 +153,13 @@ Founder live strictness / model inversion note:
 - shared manager contracts may define schema and invariant requirements; provider profiles own transport and prompt rendering adaptation
 - if an alternate model regresses because the shared prompt/contract is GrokFast-shaped, classify `contract_overfit_risk` and split shared invariant policy from provider-specific rendering
 
+Accurate Intake live sidecar anti-overfit note:
+- live full-suite failure unlocks attribution/audit only
+- live failure alone cannot justify prompt/schema/contract hardening
+- prompt, schema, or Manager contract hardening must be backed by a canonical product rule, legal-flow matrix, holdout tests, no raw-text routing risk, no high provider-overfit risk, and no broken legal flows
+- `contract_hardening_debt` blocks private self-use candidate preparation even when live evidence is otherwise clean
+- basket holdout and target-evidence guards must be green before further live full-suite hardening proceeds
+
 Slice 14 live harness status:
 - live scripts report `live_test_mode`, `base_url`, `server_ping_status`, `provider_readiness`, `phase_c_gate_status`, and `readiness_claim_scope`
 - default localhost script runs are diagnostic unless `--base-url` is explicitly supplied
