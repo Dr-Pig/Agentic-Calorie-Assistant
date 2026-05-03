@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from typing import Any
+
 from app.database import get_or_create_user
 from app.intake.application.intake_tool_runtime import PersistMealLogResult
-from app.nutrition.application.estimate_artifacts import EstimatedNutritionArtifact
 from .commit_service import persist_text_meal_payload
 
 
@@ -21,7 +22,7 @@ def _manager_intent_from_semantic_decision(
 def persist_meal_log_tool(
     db,
     *,
-    artifact: EstimatedNutritionArtifact,
+    artifact: Any,
     request_id: str,
     final_action: str | None = None,
     manager_semantic_decision: dict | None = None,
