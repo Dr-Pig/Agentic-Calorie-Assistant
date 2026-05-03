@@ -134,6 +134,21 @@ def test_live_stage_manifest_writer_creates_artifact(tmp_path: Path) -> None:
     assert payload["stage_summary"]["provider_health_status"] == "pass"
 
 
+def test_live_stage_manifest_writer_accepts_run_specific_output_path(tmp_path: Path) -> None:
+    source = tmp_path / "health.json"
+    output_path = tmp_path / "run_i" / "accurate_intake_mvp_live_stage_manifest_run_i.json"
+    source.write_text(json.dumps(_live_artifact(stage_id="provider_health_smoke", status="pass")), encoding="utf-8")
+
+    output = write_accurate_intake_live_stage_manifest(
+        stage_artifact_paths=[source],
+        output_path=output_path,
+    )
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert output == output_path
+    assert payload["artifact_type"] == "accurate_intake_mvp_live_stage_manifest"
+
+
 def test_live_stage_manifest_preserves_retry_result_kind(tmp_path: Path) -> None:
     single = tmp_path / "single.json"
     payload = _live_artifact(stage_id="single_case_live_probe", status="pass")

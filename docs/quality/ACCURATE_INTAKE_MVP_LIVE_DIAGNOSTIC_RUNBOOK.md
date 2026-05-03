@@ -52,6 +52,16 @@ The generated manifest, replay, and decision pack paths are:
 - `artifacts/accurate_intake_mvp_live_decision_pack.json`
 - `artifacts/accurate_intake_mvp_private_self_use_candidate.json`
 
+For repeated runs, pass `--output` to the artifact builders instead of overwriting the default files:
+
+```powershell
+python scripts/build_accurate_intake_mvp_live_stage_manifest.py --output artifacts/accurate_intake_mvp_live_stage_manifest_run_i.json
+python scripts/build_accurate_intake_mvp_offline_shadow_replay.py --stage-manifest artifacts/accurate_intake_mvp_live_stage_manifest_run_i.json --output artifacts/accurate_intake_mvp_offline_shadow_replay_run_i.json
+python scripts/build_accurate_intake_mvp_live_robustness_matrix.py --output artifacts/accurate_intake_mvp_live_robustness_matrix_run_i.json
+python scripts/build_accurate_intake_mvp_live_decision_pack.py --output artifacts/accurate_intake_mvp_live_decision_pack_run_i.json
+python scripts/build_accurate_intake_mvp_private_self_use_candidate.py --output artifacts/accurate_intake_mvp_private_self_use_candidate_run_i.json
+```
+
 ## Full Suite Gate
 
 `full_suite_live_diagnostic remains blocked` until all prior stages meet this threshold:

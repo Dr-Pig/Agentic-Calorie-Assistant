@@ -101,3 +101,18 @@ def test_private_self_use_candidate_writer_creates_artifact(tmp_path: Path) -> N
     assert output.name == "accurate_intake_mvp_private_self_use_candidate.json"
     assert payload["artifact_type"] == "accurate_intake_mvp_private_self_use_candidate"
     assert payload["private_self_use_approved"] is False
+
+
+def test_private_self_use_candidate_writer_accepts_run_specific_output_path(tmp_path: Path) -> None:
+    source = tmp_path / "accurate_intake_mvp_live_decision_pack.json"
+    output_path = tmp_path / "run_i" / "accurate_intake_mvp_private_self_use_candidate_run_i.json"
+    source.write_text(json.dumps(_decision_pack(), ensure_ascii=False), encoding="utf-8")
+
+    output = write_accurate_intake_private_self_use_candidate(
+        decision_pack_path=source,
+        output_path=output_path,
+    )
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert output == output_path
+    assert payload["artifact_type"] == "accurate_intake_mvp_private_self_use_candidate"
