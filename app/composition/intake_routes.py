@@ -11,6 +11,7 @@ from app.composition.canonical_commit_bridge import (
     record_body_observation_to_canonical,
     record_budget_adjustment_to_canonical,
 )
+from app.composition.conversation_turn_trace import record_runtime_turn_messages
 from app.composition.general_chat_service import build_general_chat_response_pass
 from app.composition.intake_turn_orchestrator import execute_intake_turn
 from app.composition.phase_a_boundary_projection import attach_boundary_projection, build_budget_boundary_projection
@@ -95,6 +96,31 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                     assistant_message=general_chat_result.reply_text,
                     phase_a_trace=phase_a_trace,
                 )
+                record_runtime_turn_messages(
+                    db,
+                    user_external_id=user_id,
+                    request_id=request_id,
+                    local_date=local_date,
+                    raw_user_input=request.text,
+                    assistant_message=general_chat_result.reply_text,
+                    state_before=state_before,
+                    current_turn_context=current_turn_context,
+                    state_after=state_before,
+                    phase_a_trace=phase_a_trace,
+                    result={
+                        "manager_decision": {
+                            "intent_type": "general_chat",
+                            "workflow_effect": "answer_only",
+                            "tool_calls": [],
+                        },
+                        "intake_execution_manager": {
+                            "final": {"final_action": "answer_only", "workflow_effect": "answer_only"},
+                            "persistence_result": None,
+                        },
+                        "state_delta": {},
+                        "sidecar": {},
+                    },
+                )
                 return {
                     "request_id": request_id,
                     "coach_message": general_chat_result.reply_text,
@@ -111,9 +137,36 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                     value=parsed["weight_kg"],
                     local_date=local_date,
                 )
+                assistant_message = f"Recorded weight {parsed['weight_kg']} kg. Body plan was not changed."
+                state_after = resolve_intake_state(
+                    db,
+                    user_external_id=user_id,
+                    local_date=local_date,
+                )
+                record_runtime_turn_messages(
+                    db,
+                    user_external_id=user_id,
+                    request_id=request_id,
+                    local_date=local_date,
+                    raw_user_input=request.text,
+                    assistant_message=assistant_message,
+                    state_before=state_before,
+                    current_turn_context=current_turn_context,
+                    state_after=state_after,
+                    phase_a_trace=routing_result.phase_a_trace,
+                    result={
+                        "manager_decision": {"intent_type": "body_observation", "workflow_effect": "record_weight"},
+                        "intake_execution_manager": {
+                            "final": {"final_action": "answer_only", "workflow_effect": "body_observation_recorded"},
+                            "persistence_result": None,
+                        },
+                        "state_delta": {"body_observation_recorded": True},
+                        "sidecar": {},
+                    },
+                )
                 return {
                     "request_id": request_id,
-                    "coach_message": f"Recorded weight {parsed['weight_kg']} kg. Body plan was not changed.",
+                    "coach_message": assistant_message,
                     "payload": None,
                 }
 
@@ -128,10 +181,37 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                     local_date=local_date,
                     metadata={"source": "chat_adjustment"},
                 )
+                state_after = resolve_intake_state(
+                    db,
+                    user_external_id=user_id,
+                    local_date=local_date,
+                )
                 direction = "增加" if parsed["delta_kcal"] > 0 else "減少"
+                assistant_message = f"已調整今天預算，{direction} {abs(parsed['delta_kcal'])} kcal。"
+                record_runtime_turn_messages(
+                    db,
+                    user_external_id=user_id,
+                    request_id=request_id,
+                    local_date=local_date,
+                    raw_user_input=request.text,
+                    assistant_message=assistant_message,
+                    state_before=state_before,
+                    current_turn_context=current_turn_context,
+                    state_after=state_after,
+                    phase_a_trace=routing_result.phase_a_trace,
+                    result={
+                        "manager_decision": {"intent_type": "calibration", "workflow_effect": "adjust_budget"},
+                        "intake_execution_manager": {
+                            "final": {"final_action": "answer_only", "workflow_effect": "budget_adjusted"},
+                            "persistence_result": None,
+                        },
+                        "state_delta": {"budget_adjusted": True, "delta_kcal": parsed["delta_kcal"]},
+                        "sidecar": {},
+                    },
+                )
                 return {
                     "request_id": request_id,
-                    "coach_message": f"已調整今天預算，{direction} {abs(parsed['delta_kcal'])} kcal。",
+                    "coach_message": assistant_message,
                     "payload": None,
                 }
 
@@ -149,6 +229,19 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
             state_before=state_before,
             current_turn_context=current_turn_context,
             phase_a_trace=routing_result.phase_a_trace,
+        )
+        record_runtime_turn_messages(
+            db,
+            user_external_id=user_id,
+            request_id=result["request_id"],
+            local_date=local_date,
+            raw_user_input=request.text,
+            assistant_message=result["assistant_message"],
+            state_before=state_before,
+            current_turn_context=current_turn_context,
+            state_after=result.get("state_after"),
+            phase_a_trace=routing_result.phase_a_trace,
+            result=result,
         )
         return {
             "request_id": result["request_id"],

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
 from types import SimpleNamespace
 
+from app.composition.state_resolver import _recent_chat_turns
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, InteractionEvent
 from app.intake.application.attachment_resolver import resolve_attachment_decision
 from app.intake.application.current_turn_context_assembler import (
@@ -66,6 +68,42 @@ def _resolved_state(
             "SESSION_SUMMARY": session_summary if session_summary is not None else {},
         },
     )
+
+
+def test_recent_chat_turn_context_is_current_day_only_read_only_evidence() -> None:
+    messages = [
+        SimpleNamespace(
+            id=1,
+            role="user",
+            content="昨天的訊息",
+            created_at=datetime(2026, 4, 28, 12, 0, 0),
+            trace_id="turn-yesterday",
+            linked_meal_log_id=None,
+            trace_json={"runtime_turn_trace": {"local_date": "2026-04-28"}},
+        ),
+        SimpleNamespace(
+            id=2,
+            role="assistant",
+            content="請列出滷味品項與大致份量。",
+            created_at=datetime(2026, 4, 29, 12, 0, 0),
+            trace_id="turn-today",
+            linked_meal_log_id=10,
+            trace_json={
+                "runtime_turn_trace": {
+                    "local_date": "2026-04-29",
+                    "assistant_response": {"structured_followup_question": "請列出滷味品項與大致份量。"},
+                }
+            },
+        ),
+    ]
+
+    turns = _recent_chat_turns(messages, local_date="2026-04-29")
+
+    assert [turn["trace_id"] for turn in turns] == ["turn-today"]
+    assert turns[0]["structured_followup_question"] == "請列出滷味品項與大致份量。"
+    assert turns[0]["source"] == "sqlite_message_buffer"
+    assert turns[0]["read_only"] is True
+    assert turns[0]["mutation_authority"] is False
 
 
 def test_build_current_turn_context_v1_maps_repo_truth_context_into_current_turn_surface() -> None:

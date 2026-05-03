@@ -31,6 +31,13 @@ def test_local_web_shell_bridge_smoke_closes_static_to_runtime_loop(tmp_path: Pa
     assert report["today_after_estimate"]["consumed_kcal"] > 0
     assert report["debug"]["read_only"] is True
     assert report["debug"]["same_truth_status"] == "pass"
+    assert report["chat_history"]["ok"] is True
+    assert report["chat_history"]["source"] == "sqlite_message_buffer"
+    assert report["chat_history"]["frontend_semantic_owner"] is False
+    assert report["chat_history"]["message_count"] >= 2
+    assert report["chat_history"]["runtime_turn_trace_present"] is True
+    assert report["chat_history"]["context_snapshot_present"] is True
+    assert report["chat_history"]["trace_chain_complete"] is True
 
 
 def test_local_web_shell_bridge_uses_backend_date_for_followup_surfaces(tmp_path: Path) -> None:
@@ -58,6 +65,8 @@ def test_local_web_shell_bridge_preserves_non_claims(tmp_path: Path) -> None:
         "web_ready",
         "production_db_ready",
     } <= set(report["not_claiming"])
+    assert report["chat_history"]["long_term_memory_used"] is False
+    assert report["chat_history"]["proactive_or_rescue_used"] is False
 
 
 def test_local_web_shell_bridge_cli_writes_artifact(tmp_path: Path, capsys) -> None:

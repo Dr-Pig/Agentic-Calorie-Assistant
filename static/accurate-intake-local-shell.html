@@ -316,6 +316,7 @@
     data-budget-endpoint="/today/current-budget"
     data-body-plan-endpoint="/body-plan/active"
     data-debug-endpoint="/accurate-intake/debug"
+    data-chat-history-endpoint="/accurate-intake/chat-history"
     data-frontend-semantic-owner="false"
     data-live-llm-required="false"
     data-production-readiness-claimed="false"
@@ -410,6 +411,7 @@
       budget: "/today/current-budget",
       bodyPlan: "/body-plan/active",
       debug: "/accurate-intake/debug",
+      chatHistory: "/accurate-intake/chat-history",
       manualTarget: "/body-plan/manual-daily-target"
     };
 
@@ -446,6 +448,23 @@
       el("chat-log").appendChild(row);
       el("chat-log").scrollTop = el("chat-log").scrollHeight;
       return bubble;
+    }
+
+    function renderChatHistory(chatHistory) {
+      if (!chatHistory || !(chatHistory.source === "sqlite_message_buffer")) {
+        return;
+      }
+      const log = el("chat-log");
+      log.replaceChildren();
+      const messages = Array.isArray(chatHistory.messages) ? chatHistory.messages : [];
+      if (messages.length === 0) {
+        appendMessage("bot", "Backend chat history is empty. Send a message to create a runtime turn trace.");
+        return;
+      }
+      messages.forEach((message) => {
+        const role = message.role === "user" ? "user" : "bot";
+        appendMessage(role, message.content || "");
+      });
     }
 
     function listItems(id, rows, emptyText) {
@@ -530,9 +549,11 @@
       }
       const bodyPlan = await requestJson(`${endpoints.bodyPlan}?${userQuery.toString()}`);
       const debug = await requestJson(`${endpoints.debug}?${debugQuery.toString()}`);
+      const chatHistory = await requestJson(`${endpoints.chatHistory}?${debugQuery.toString()}`);
       renderBudget(budget);
       renderBodyPlan(bodyPlan);
       renderDebug(debug);
+      renderChatHistory(chatHistory);
     }
 
     async function submitMessage(event) {

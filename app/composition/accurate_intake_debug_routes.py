@@ -11,7 +11,7 @@ from app.composition.accurate_intake_debug_read_model import build_accurate_inta
 from app.composition.current_budget_read_model import build_current_budget_view
 from app.database import get_db
 from app.intake.interface.accurate_intake_debug_surface import render_accurate_intake_debug_surface
-from app.shared.infra.models import User
+from app.shared.infra.models import MessageBuffer, User
 
 router = APIRouter()
 
@@ -83,6 +83,98 @@ def build_accurate_intake_debug_payload(
     }
 
 
+def _runtime_turn_trace(message: MessageBuffer) -> dict[str, Any]:
+    trace_json = message.trace_json if isinstance(message.trace_json, dict) else {}
+    runtime_turn_trace = trace_json.get("runtime_turn_trace")
+    return dict(runtime_turn_trace) if isinstance(runtime_turn_trace, dict) else {}
+
+
+def _message_local_date(message: MessageBuffer) -> str | None:
+    trace = _runtime_turn_trace(message)
+    value = trace.get("local_date")
+    return str(value) if value else None
+
+
+def _trace_chain_complete(trace: dict[str, Any]) -> bool:
+    chain = trace.get("trace_chain")
+    if not isinstance(chain, dict):
+        return False
+    required = (
+        "manager_decision_present",
+        "evidence_packet_present",
+        "evidence_requirement_satisfied",
+        "final_mapping_present",
+        "state_before_present",
+        "state_after_present",
+    )
+    chat_linkage = trace.get("chat_linkage") if isinstance(trace.get("chat_linkage"), dict) else {}
+    return (
+        all(chain.get(key) is True for key in required)
+        and chat_linkage.get("user_message_id") is not None
+        and chat_linkage.get("assistant_message_id") is not None
+    )
+
+
+def _chat_history_message(message: MessageBuffer) -> dict[str, Any]:
+    trace = _runtime_turn_trace(message)
+    assistant_response = trace.get("assistant_response") if isinstance(trace.get("assistant_response"), dict) else {}
+    context_snapshot = trace.get("context_snapshot") if isinstance(trace.get("context_snapshot"), dict) else {}
+    return {
+        "message_id": message.id,
+        "role": message.role,
+        "content": message.content,
+        "created_at": message.created_at.isoformat() if message.created_at else None,
+        "trace_id": message.trace_id,
+        "linked_meal_log_id": message.linked_meal_log_id,
+        "local_date": _message_local_date(message),
+        "source": "sqlite_message_buffer",
+        "read_only": True,
+        "mutation_authority": False,
+        "runtime_turn_trace_present": bool(trace),
+        "context_snapshot_present": bool(context_snapshot),
+        "trace_chain_complete": _trace_chain_complete(trace),
+        "pending_followup_linkage_present": isinstance(trace.get("pending_followup_linkage"), dict),
+        "structured_followup_question": assistant_response.get("structured_followup_question"),
+    }
+
+
+def build_accurate_intake_chat_history_payload(
+    db: Any,
+    *,
+    user_external_id: str,
+    local_date: str | None,
+) -> dict[str, Any]:
+    resolved_local_date = resolve_today_local_date(local_date)
+    user = db.query(User).filter(User.user_id == user_external_id).first()
+    messages: list[dict[str, Any]] = []
+    if user is not None:
+        rows = (
+            db.query(MessageBuffer)
+            .filter(MessageBuffer.user_id == user.id)
+            .order_by(MessageBuffer.created_at.asc(), MessageBuffer.id.asc())
+            .all()
+        )
+        messages = [
+            _chat_history_message(message)
+            for message in rows
+            if _message_local_date(message) == resolved_local_date
+        ]
+    return {
+        "surface_id": "accurate_intake_chat_history_v1",
+        "read_only": True,
+        "source": "sqlite_message_buffer",
+        "frontend_semantic_owner": False,
+        "scope": "current_session_current_day",
+        "long_term_memory_used": False,
+        "proactive_or_rescue_used": False,
+        "user_external_id": user_external_id,
+        "user_id": user.id if user is not None else None,
+        "local_date": resolved_local_date,
+        "message_count": len(messages),
+        "messages": messages,
+    }
+
+
 @router.get("/accurate-intake/debug")
 async def accurate_intake_debug(
     user_id: str = "default_user",
@@ -90,6 +182,15 @@ async def accurate_intake_debug(
     db: Any = Depends(get_db),
 ) -> dict[str, Any]:
     return build_accurate_intake_debug_payload(db, user_external_id=user_id, local_date=local_date)
+
+
+@router.get("/accurate-intake/chat-history")
+async def accurate_intake_chat_history(
+    user_id: str = "default_user",
+    local_date: str | None = None,
+    db: Any = Depends(get_db),
+) -> dict[str, Any]:
+    return build_accurate_intake_chat_history_payload(db, user_external_id=user_id, local_date=local_date)
 
 
 @router.get("/accurate-intake/debug/surface", response_class=HTMLResponse)

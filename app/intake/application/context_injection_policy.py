@@ -19,6 +19,7 @@ def default_context_injection_policy() -> ContextInjectionPolicy:
             "pending_followup",
             "candidate_attachment_targets",
             "current_budget_snapshot",
+            "recent_chat_turns",
         ],
         available_if_needed=[
             "recent_committed_meal_refs",
@@ -60,6 +61,7 @@ def build_manager_context_pack(
         "pending_followup": current_turn_context.pending_followup,
         "candidate_attachment_targets": current_turn_context.candidate_attachment_targets,
         "current_budget_snapshot": current_turn_context.current_budget_snapshot,
+        "recent_chat_turns": current_turn_context.recent_chat_turns,
     }
     available_if_needed = {
         "recent_committed_meal_refs": current_turn_context.recent_committed_meal_refs,
