@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="zh-Hant" data-shell-id="accurate-intake-local-shell-v1">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Accurate Intake Local Shell</title>
+  <style>
+    :root {
+      --ink: #17211d;
+      --muted: #66736d;
+      --paper: #f7f3ea;
+      --panel: #fffaf0;
+      --line: #d9cfbd;
+      --green: #42d06f;
+      --green-dark: #1f7a3d;
+      --blue: #7fa6b8;
+      --warning: #9d5c16;
+      --danger: #a33d3d;
+      --shadow: 0 20px 60px rgba(39, 31, 20, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Aptos", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 16% 12%, rgba(66, 208, 111, 0.22), transparent 26rem),
+        radial-gradient(circle at 88% 6%, rgba(127, 166, 184, 0.30), transparent 30rem),
+        linear-gradient(135deg, #f5ead5 0%, #d7e7dd 100%);
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(360px, 460px) minmax(360px, 1fr);
+      gap: 20px;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .phone, .operator {
+      border: 1px solid rgba(23, 33, 29, 0.13);
+      background: rgba(255, 250, 240, 0.92);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .phone {
+      border-radius: 34px;
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 40px);
+    }
+
+    .operator {
+      border-radius: 28px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: calc(100vh - 40px);
+    }
+
+    header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.52);
+      backdrop-filter: blur(10px);
+    }
+
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      margin-bottom: 6px;
+      font-size: 22px;
+      line-height: 1.05;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(23, 33, 29, 0.12);
+      border-radius: 999px;
+      padding: 6px 9px;
+      background: rgba(255, 255, 255, 0.58);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+      background:
+        linear-gradient(rgba(116, 151, 169, 0.76), rgba(116, 151, 169, 0.76)),
+        repeating-linear-gradient(45deg, rgba(255,255,255,0.08) 0 2px, transparent 2px 10px);
+    }
+
+    .message {
+      display: flex;
+      gap: 9px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+    }
+
+    .message.user { justify-content: flex-end; }
+
+    .avatar {
+      flex: 0 0 auto;
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: var(--green-dark);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .bubble {
+      max-width: 78%;
+      border-radius: 18px;
+      padding: 11px 13px;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      font-size: 14px;
+      box-shadow: 0 2px 6px rgba(26, 22, 17, 0.12);
+    }
+
+    .bot .bubble {
+      border-top-left-radius: 5px;
+      background: #fff;
+    }
+
+    .user .bubble {
+      border-top-right-radius: 5px;
+      background: var(--green);
+    }
+
+    .composer {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      padding: 14px;
+      border-top: 1px solid rgba(23, 33, 29, 0.12);
+      background: rgba(255, 255, 255, 0.74);
+    }
+
+    input, button {
+      font: inherit;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid rgba(23, 33, 29, 0.14);
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--green-dark);
+      box-shadow: 0 0 0 3px rgba(66, 208, 111, 0.20);
+    }
+
+    button {
+      border: 0;
+      border-radius: 16px;
+      padding: 11px 15px;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #f2eadc;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    button:disabled {
+      opacity: 0.58;
+      cursor: wait;
+    }
+
+    .operator-body {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      gap: 14px;
+      padding: 18px;
+      overflow-y: auto;
+    }
+
+    .card {
+      border: 1px solid rgba(23, 33, 29, 0.12);
+      border-radius: 20px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.56);
+    }
+
+    .card.wide {
+      grid-column: 1 / -1;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      border-radius: 16px;
+      padding: 12px;
+      background: #fffaf7;
+      border: 1px solid rgba(23, 33, 29, 0.09);
+    }
+
+    .metric strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .metric span {
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .list li {
+      border: 1px solid rgba(23, 33, 29, 0.10);
+      border-radius: 14px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 13px;
+    }
+
+    .mono {
+      overflow: auto;
+      max-height: 260px;
+      border-radius: 16px;
+      padding: 12px;
+      background: #15201b;
+      color: #c9f2d3;
+      font-family: "Cascadia Mono", "Consolas", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(140px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .toolbar label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .danger { color: var(--danger); }
+    .warning { color: var(--warning); }
+
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; }
+      .phone { max-height: none; min-height: 640px; }
+      .operator { min-height: auto; }
+      .operator-body { grid-template-columns: 1fr; }
+      .toolbar { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main
+    class="shell"
+    data-runtime-endpoint="/estimate"
+    data-budget-endpoint="/today/current-budget"
+    data-body-plan-endpoint="/body-plan/active"
+    data-debug-endpoint="/accurate-intake/debug"
+    data-frontend-semantic-owner="false"
+    data-live-llm-required="false"
+    data-production-readiness-claimed="false"
+  >
+    <section class="phone" aria-label="Local chat shell">
+      <header>
+        <p class="eyebrow">Local deterministic shell</p>
+        <h1>Accurate Intake</h1>
+        <p>像 LINE 一樣輸入，但這個頁面只送出訊息並顯示後端回傳；不在瀏覽器判斷意圖、目標或熱量。</p>
+        <div class="status-row">
+          <span class="pill">fixture/live mode: backend owned</span>
+          <span class="pill">read model mirror</span>
+          <span class="pill">no rollout claim</span>
+        </div>
+      </header>
+
+      <div id="chat-log" class="chat" aria-live="polite">
+        <div class="message bot">
+          <div class="avatar">AI</div>
+          <div class="bubble">今天可以直接記錄飲食、修正餐點，或查詢今日已吃與剩餘。此頁不做語意路由，只顯示 runtime 結果。</div>
+        </div>
+      </div>
+
+      <form id="composer" class="composer">
+        <input id="message-input" name="message" autocomplete="off" placeholder="例如：我吃了一顆茶葉蛋和一杯拿鐵" />
+        <button id="send-button" type="submit">送出</button>
+      </form>
+    </section>
+
+    <section class="operator" aria-label="Read-only operator surface">
+      <header>
+        <p class="eyebrow">Same-truth operator surface</p>
+        <h2>Today / Body Plan / Debug</h2>
+        <div class="toolbar">
+          <label>User ID
+            <input id="user-id" value="local-self-use-001" />
+          </label>
+          <label>Backend Date
+            <input id="local-date-display" readonly value="unavailable" />
+          </label>
+          <label>Daily Target
+            <input id="daily-target" type="number" min="800" max="5000" placeholder="1600" />
+          </label>
+          <label>Controls
+            <button id="set-target" class="secondary" type="button">Set target</button>
+          </label>
+        </div>
+      </header>
+
+      <div class="operator-body">
+        <article class="card wide">
+          <p class="eyebrow">Budget truth</p>
+          <div class="metric-grid">
+            <div class="metric"><strong>Target</strong><span id="budget-kcal">unavailable</span></div>
+            <div class="metric"><strong>Consumed</strong><span id="consumed-kcal">unavailable</span></div>
+            <div class="metric"><strong>Remaining</strong><span id="remaining-kcal">unavailable</span></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Body plan</p>
+          <ul id="body-plan-list" class="list"></ul>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Same truth</p>
+          <ul id="same-truth-list" class="list"></ul>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Meal threads</p>
+          <ul id="meal-thread-list" class="list"></ul>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Drafts / corrections</p>
+          <ul id="draft-correction-list" class="list"></ul>
+        </article>
+
+        <article class="card wide">
+          <p class="eyebrow">Last runtime payload</p>
+          <pre id="last-payload" class="mono">{}</pre>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const PAGE_VERSION = "accurate-intake-local-shell.v1";
+    const endpoints = {
+      estimate: "/estimate",
+      budget: "/today/current-budget",
+      bodyPlan: "/body-plan/active",
+      debug: "/accurate-intake/debug",
+      manualTarget: "/body-plan/manual-daily-target"
+    };
+
+    const el = (id) => document.getElementById(id);
+
+    function userId() {
+      return el("user-id").value.trim() || "local-self-use-001";
+    }
+
+    let backendLocalDate = null;
+
+    function writeText(id, value) {
+      el(id).textContent = value === null || value === undefined || value === "" ? "unavailable" : String(value);
+    }
+
+    function setBusy(isBusy) {
+      el("send-button").disabled = isBusy;
+      el("set-target").disabled = isBusy;
+    }
+
+    function appendMessage(role, text) {
+      const row = document.createElement("div");
+      row.className = `message ${role}`;
+      if (role === "bot") {
+        const avatar = document.createElement("div");
+        avatar.className = "avatar";
+        avatar.textContent = "AI";
+        row.appendChild(avatar);
+      }
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = text;
+      row.appendChild(bubble);
+      el("chat-log").appendChild(row);
+      el("chat-log").scrollTop = el("chat-log").scrollHeight;
+      return bubble;
+    }
+
+    function listItems(id, rows, emptyText) {
+      const list = el(id);
+      list.replaceChildren();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        const item = document.createElement("li");
+        item.textContent = emptyText;
+        list.appendChild(item);
+        return;
+      }
+      rows.forEach((row) => {
+        const item = document.createElement("li");
+        item.textContent = row;
+        list.appendChild(item);
+      });
+    }
+
+    function formatMealThread(thread) {
+      const title = thread.meal_title || thread.title || "untitled meal";
+      const kcal = thread.total_kcal ?? thread.kcal ?? "unknown";
+      const status = thread.active_version_status || thread.resolution_status || thread.status || "unknown";
+      return `${title} | ${kcal} kcal | ${status}`;
+    }
+
+    function renderBudget(view) {
+      writeText("budget-kcal", view.budget_kcal ?? view.daily_target_kcal ?? view.target_kcal);
+      writeText("consumed-kcal", view.consumed_kcal);
+      writeText("remaining-kcal", view.remaining_kcal);
+    }
+
+    function renderBodyPlan(view) {
+      listItems("body-plan-list", [
+        `status: ${view.status || view.plan_status || "unknown"}`,
+        `goal: ${view.goal_type || "unavailable"}`,
+        `target: ${view.recommended_target_kcal ?? view.daily_target_kcal ?? "unavailable"}`,
+        `source: ${view.plan_source || "unavailable"}`
+      ], "No body plan loaded.");
+    }
+
+    function renderDebug(payload) {
+      const model = payload.model || {};
+      const sameTruth = model.same_truth || {};
+      listItems("same-truth-list", [
+        `status: ${sameTruth.status || "unknown"}`,
+        `source: ${sameTruth.source_truth || "unavailable"}`,
+        `debug consumed: ${sameTruth.debug_model_consumed_kcal ?? "unavailable"}`,
+        `budget consumed: ${sameTruth.current_budget_consumed_kcal ?? "unavailable"}`
+      ], "No same-truth surface loaded.");
+      listItems(
+        "meal-thread-list",
+        (model.meal_threads || []).map(formatMealThread),
+        "No meal threads for this date."
+      );
+      const draftRows = [];
+      (model.pending_drafts || []).forEach((draft) => draftRows.push(`draft: ${draft.meal_title || draft.title || "untitled"}`));
+      (model.correction_history || []).forEach((correction) => draftRows.push(`correction: ${correction.reason || correction.version_reason || "recorded"}`));
+      listItems("draft-correction-list", draftRows, "No pending drafts or correction history.");
+    }
+
+    async function requestJson(url, options) {
+      const response = await fetch(url, options);
+      const text = await response.text();
+      let payload = {};
+      if (text) {
+        payload = JSON.parse(text);
+      }
+      if (!response.ok) {
+        throw new Error(payload.error || payload.detail || `HTTP ${response.status}`);
+      }
+      return payload;
+    }
+
+    async function syncSurfaces() {
+      const userQuery = new URLSearchParams({ user_id: userId() });
+      const budget = await requestJson(`${endpoints.budget}?${userQuery.toString()}`);
+      backendLocalDate = budget.local_date || null;
+      writeText("local-date-display", backendLocalDate);
+      const debugQuery = new URLSearchParams({ user_id: userId() });
+      if (backendLocalDate) {
+        debugQuery.set("local_date", backendLocalDate);
+      }
+      const bodyPlan = await requestJson(`${endpoints.bodyPlan}?${userQuery.toString()}`);
+      const debug = await requestJson(`${endpoints.debug}?${debugQuery.toString()}`);
+      renderBudget(budget);
+      renderBodyPlan(bodyPlan);
+      renderDebug(debug);
+    }
+
+    async function submitMessage(event) {
+      event.preventDefault();
+      const input = el("message-input");
+      const text = input.value.trim();
+      if (!text) return;
+      appendMessage("user", text);
+      input.value = "";
+      const pending = appendMessage("bot", "Runtime processing...");
+      setBusy(true);
+      try {
+        const payload = await requestJson(endpoints.estimate, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "X-Canary-Page-Version": PAGE_VERSION
+          },
+          body: JSON.stringify({ text, user_id: userId(), allow_search: false })
+        });
+        pending.textContent = payload.coach_message || "No assistant message returned.";
+        el("last-payload").textContent = JSON.stringify(payload, null, 2);
+        await syncSurfaces();
+      } catch (error) {
+        pending.textContent = `Request failed: ${error.message}`;
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function submitDailyTarget() {
+      const target = Number(el("daily-target").value);
+      if (!Number.isFinite(target)) {
+        appendMessage("bot", "Daily target is unavailable. Enter a numeric kcal target before saving.");
+        return;
+      }
+      if (!backendLocalDate) {
+        appendMessage("bot", "Backend date is unavailable. Sync the read model before saving a target.");
+        return;
+      }
+      setBusy(true);
+      try {
+        const payload = await requestJson(endpoints.manualTarget, {
+          method: "POST",
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+          body: JSON.stringify({
+            user_id: userId(),
+            daily_target_kcal: target,
+            local_date: backendLocalDate,
+            source: "user_ui"
+          })
+        });
+        appendMessage("bot", `Daily target saved by backend: ${payload.current_budget?.budget_kcal ?? "unavailable"} kcal.`);
+        el("last-payload").textContent = JSON.stringify(payload, null, 2);
+        await syncSurfaces();
+      } catch (error) {
+        appendMessage("bot", `Target update failed: ${error.message}`);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    el("composer").addEventListener("submit", submitMessage);
+    el("set-target").addEventListener("click", submitDailyTarget);
+    syncSurfaces().catch((error) => {
+      appendMessage("bot", `Surface sync failed: ${error.message}`);
+    });
+  </script>
+</body>
+</html>
