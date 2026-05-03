@@ -15,9 +15,10 @@
     "docs/quality/accurate_intake_contract_legal_flow_matrix.json"
   ],
   "legal_flow_matrix_updated": true,
-  "holdout_tests_added": false,
+  "holdout_tests_added": true,
   "holdout_test_refs": [
-    "planned: PR86 basket holdout anti-overfit regression"
+    "tests/test_accurate_intake_basket_holdout_regression.py",
+    "docs/quality/accurate_intake_basket_holdout_cases.json"
   ],
   "raw_text_routing_risk": false,
   "provider_overfit_risk": "medium",
