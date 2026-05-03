@@ -74,6 +74,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
     for expected_test in (
         "tests/test_turn2_mvp_ux_coverage.py",
         "tests/test_accurate_intake_mvp_regression_wall.py",
+        "tests/test_dogfood_review_queue_artifact.py",
         "tests/test_correction_target_reference_state.py",
         "tests/test_no_plan_ledger_policy.py",
         "tests/test_budget_ledger_truth_boundary.py",
@@ -228,6 +229,8 @@ def test_self_use_runbook_records_portable_local_deterministic_scope() -> None:
     assert "python scripts/build_accurate_intake_local_self_use_candidate.py" in runbook
     assert "python scripts/run_accurate_intake_chat_history_reload_gate.py" in runbook
     assert "python scripts/run_accurate_intake_browser_shell_smoke.py" in runbook
+    assert "python scripts/build_accurate_intake_dogfood_review_queue.py" in runbook
+    assert "local-only review artifact" in runbook
     assert "browser_executed=false" in runbook
     assert "Accurate Intake MVP v2.0 scenario wall" in runbook
     assert "operator transcript" in runbook
