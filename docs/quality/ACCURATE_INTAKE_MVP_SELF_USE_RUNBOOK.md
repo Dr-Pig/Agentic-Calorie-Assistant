@@ -122,6 +122,14 @@ python scripts/run_accurate_intake_chat_history_reload_gate.py --db-path .pytest
 
 This reload gate writes a CJK chat turn through `/estimate`, closes the first local app/session, reopens the same SQLite DB, and verifies `/accurate-intake/chat-history`, `/today/current-budget`, and `/accurate-intake/debug` from the reopened backend surfaces. It proves current-session/current-day transcript and runtime-turn trace linkage survive local reload; it is not browser execution, long-term memory, live LLM, Web/Tavily, production DB, or web-readiness evidence.
 
+Run the optional browser-executed shell smoke with:
+
+```powershell
+python scripts/run_accurate_intake_browser_shell_smoke.py --db-path .pytest_tmp_local/accurate_intake_browser_shell_smoke.sqlite3 --output artifacts/accurate_intake_browser_shell_smoke.json
+```
+
+This smoke executes the local shell in a real Chromium browser only when Playwright is available in the operator environment. If Playwright is not installed, the artifact is `blocked` with `browser_executed=false`; that blocked artifact is allowed for local deterministic PR evidence and still must not claim `web_ready`. To require browser execution explicitly, add `--require-browser-execution`. A passing browser artifact only proves local browser fetch/render/CJK behavior for this shell; it is not a product, rollout, live LLM, Web/Tavily, or production DB readiness claim.
+
 Run a fresh local shell pass with:
 
 ```powershell
