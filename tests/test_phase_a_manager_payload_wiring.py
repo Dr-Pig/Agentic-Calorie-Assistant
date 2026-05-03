@@ -64,6 +64,36 @@ def _resolved_state() -> object:
     )
 
 
+def _empty_resolved_state() -> object:
+    return SimpleNamespace(
+        onboarding_ready=True,
+        user_id=1,
+        user_external_id="user-1",
+        local_date="2026-04-29",
+        active_body_plan_view=None,
+        current_budget_view=None,
+        conversation_state=None,
+        injected_context={
+            "ACTIVE_MEAL": None,
+            "PENDING_FOLLOWUP": {
+                "is_open": False,
+                "meal_id": None,
+                "meal_thread_id": None,
+                "pending_question": None,
+            },
+            "RECENT_COMMITTED_MEALS_SUMMARY": [],
+            "TARGET_MEAL_REFERENCE": {
+                "meal_thread_id": None,
+                "meal_version_id": None,
+                "meal_title": None,
+                "target_resolution_source": "none",
+                "correction_confidence": "low",
+            },
+            "SESSION_SUMMARY": {},
+        },
+    )
+
+
 class _FakeProvider:
     def __init__(self) -> None:
         self.calls: list[dict[str, object]] = []
@@ -489,7 +519,11 @@ async def test_process_intake_execution_turn_rejects_unmatched_manager_target_at
     monkeypatch.setattr(module, "run_intake_manager", _fake_run_intake_manager)
     monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: candidate_target)
     monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
-    monkeypatch.setattr(module, "persist_intake_execution_artifact", lambda *_, **__: persisted.append(object()))
+    monkeypatch.setattr(
+        module,
+        "persist_intake_execution_artifact",
+        lambda *_, **kwargs: persisted.append(object()) if kwargs["nutrition_artifact"] is not None else None,
+    )
     monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
     monkeypatch.setattr(
         module,
@@ -636,6 +670,201 @@ async def test_process_intake_execution_turn_passes_current_turn_context_to_mana
         result["captured_phase_a_trace"]["phase_a_commit_boundary_preflight"]["bypass_reason"]
         == "non_persistence_effect"
     )
+
+
+@pytest.mark.asyncio
+async def test_process_intake_execution_turn_persists_manager_ask_followup_as_draft_support_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.composition import intake_execution_orchestrator as module
+
+    resolved_state = _empty_resolved_state()
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="bare basket",
+        resolved_state=resolved_state,
+    )
+    persisted: list[dict[str, object]] = []
+
+    async def _fake_run_intake_manager(**_: object) -> IntakeManagerResult:
+        followup_question = "Which items and portions should I estimate?"
+        return IntakeManagerResult(
+            intent="log_meal",
+            manager_action="final",
+            final_action="ask_followup",
+            workflow_effect="ask_followup",
+            target_attachment={"mode": "new_meal"},
+            exactness="unknown",
+            confidence="medium",
+            evidence_posture="composition_unknown",
+            repair_ack=False,
+            answer_contract={
+                "reply_text": followup_question,
+                "followup_question": followup_question,
+            },
+            uncertainty_posture="high",
+            evidence_honesty_posture="insufficient_details",
+            semantic_decision={
+                "semantic_authority": "manager_llm",
+                "current_turn_intent": "log_meal",
+                "target_attachment": {"mode": "new_meal"},
+                "workflow_effect": "ask_followup",
+                "final_action_candidate": "ask_followup",
+                "estimation_posture": "insufficient_details",
+                "followup_posture": "ask_required",
+                "followup_question": followup_question,
+                "mutation_intent_candidate": "no_mutation",
+                "uncertainty_posture": "high",
+                "source": "manager_structured_ask_followup",
+            },
+            intent_type="log_meal",
+            manager_rounds=(),
+            tool_results=(),
+            request_failure_family=None,
+            trace={},
+            guard_outcome={},
+        )
+
+    def _fake_persist(*_: object, **kwargs: object) -> SimpleNamespace:
+        persisted.append(dict(kwargs))
+        payload = kwargs["nutrition_artifact"].payload
+        kwargs["state_mutation_summary"]["draft_saved"] = True
+        return SimpleNamespace(
+            action="save_draft_log",
+            status="draft_unresolved",
+            persisted_log_id=123,
+            canonical_commit=None,
+            payload=payload,
+        )
+
+    monkeypatch.setattr(module, "run_intake_manager", _fake_run_intake_manager)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", _fake_persist)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(
+        module,
+        "build_intake_execution_response",
+        lambda *_, **kwargs: {
+            "manager_result": kwargs["manager_result"],
+            "nutrition_artifact": kwargs["nutrition_artifact"],
+            "persistence_result": kwargs["persistence_result"],
+            "phase_a_trace": kwargs["phase_a_trace"],
+            "state_mutation_summary": kwargs["state_mutation_summary"],
+        },
+    )
+
+    result = await module.process_intake_execution_turn(
+        None,
+        user_external_id="user-1",
+        raw_user_input="bare basket",
+        local_date="2026-04-29",
+        allow_search=False,
+        provider=_FakeProvider(),
+        state_before=resolved_state,
+        manager_decision=SimpleNamespace(intent_type="log_meal", tool_calls=(), llm_used=False),
+        request_id="req-manager-ask-followup-draft",
+        stage_timings=[],
+        current_turn_context=current_turn_context,
+        phase_a_trace={},
+    )
+
+    payload = result["nutrition_artifact"].payload
+    preflight = result["phase_a_trace"]["phase_a_commit_boundary_preflight"]
+    assert len(persisted) == 1
+    assert persisted[0]["final_action"] == "ask_followup"
+    assert result["manager_result"].final_action == "ask_followup"
+    assert result["state_mutation_summary"]["draft_saved"] is True
+    assert result["persistence_result"].canonical_commit is None
+    assert payload.action_taken == "clarify_before_estimate"
+    assert payload.estimated_kcal == 0
+    assert payload.source_decision == "ask_user"
+    assert payload.trace_contract["response_mode_hint"] == "clarify_first"
+    assert payload.trace_contract["manager_ask_followup_draft_contract"]["deterministic_role"] == (
+        "persist_manager_owned_pending_followup_only"
+    )
+    assert payload.trace_contract["canonical_write_decision"] == {
+        "can_write_canonical": False,
+        "source": "manager_ask_followup_draft",
+    }
+    assert payload.followup_question == "Which items and portions should I estimate?"
+    assert preflight["blocked"] is False
+    assert preflight["projected_commit_intent"] == "draft"
+
+
+@pytest.mark.asyncio
+async def test_process_intake_execution_turn_does_not_create_draft_support_without_manager_ask_followup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.composition import intake_execution_orchestrator as module
+
+    resolved_state = _empty_resolved_state()
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="bare basket",
+        resolved_state=resolved_state,
+    )
+    persisted: list[object] = []
+
+    async def _fake_run_intake_manager(**_: object) -> IntakeManagerResult:
+        return IntakeManagerResult(
+            intent="log_meal",
+            manager_action="final",
+            final_action="no_commit",
+            workflow_effect="safe_failure",
+            target_attachment={"mode": "none"},
+            answer_contract={"reply_text": "Cannot proceed."},
+            semantic_decision={
+                "semantic_authority": "manager_llm",
+                "current_turn_intent": "log_meal",
+                "target_attachment": {"mode": "none"},
+                "workflow_effect": "safe_failure",
+                "final_action_candidate": "no_commit",
+                "estimation_posture": "insufficient_details",
+                "followup_posture": "none",
+                "mutation_intent_candidate": "no_mutation",
+                "uncertainty_posture": "high",
+                "source": "manager_structured_no_commit",
+            },
+        )
+
+    monkeypatch.setattr(module, "run_intake_manager", _fake_run_intake_manager)
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(
+        module,
+        "persist_intake_execution_artifact",
+        lambda *_, **kwargs: persisted.append(object()) if kwargs["nutrition_artifact"] is not None else None,
+    )
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(
+        module,
+        "build_intake_execution_response",
+        lambda *_, **kwargs: {
+            "manager_result": kwargs["manager_result"],
+            "nutrition_artifact": kwargs["nutrition_artifact"],
+            "persistence_result": kwargs["persistence_result"],
+            "phase_a_trace": kwargs["phase_a_trace"],
+        },
+    )
+
+    result = await module.process_intake_execution_turn(
+        None,
+        user_external_id="user-1",
+        raw_user_input="bare basket",
+        local_date="2026-04-29",
+        allow_search=False,
+        provider=_FakeProvider(),
+        state_before=resolved_state,
+        manager_decision=SimpleNamespace(intent_type="log_meal", tool_calls=(), llm_used=False),
+        request_id="req-no-manager-ask-followup-draft",
+        stage_timings=[],
+        current_turn_context=current_turn_context,
+        phase_a_trace={},
+    )
+
+    assert persisted == []
+    assert result["nutrition_artifact"] is None
+    assert result["manager_result"].final_action == "no_commit"
+    assert result["phase_a_trace"]["phase_a_commit_boundary_preflight"]["bypassed"] is True
 
 
 @pytest.mark.asyncio
