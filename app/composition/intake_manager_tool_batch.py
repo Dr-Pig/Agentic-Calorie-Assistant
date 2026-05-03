@@ -166,7 +166,12 @@ def validate_manager_target_proposal(
     }
 
 
-def attach_correction_target_ref_to_payload(*, payload: Any | None, correction_target: dict[str, Any]) -> None:
+def attach_correction_target_ref_to_payload(
+    *,
+    payload: Any | None,
+    correction_target: dict[str, Any],
+    source: str = "phase_a_resolved_target_reference",
+) -> None:
     if payload is None or not correction_target_resolved(correction_target):
         return
     trace_contract = payload_trace_contract(payload)
@@ -175,7 +180,7 @@ def attach_correction_target_ref_to_payload(*, payload: Any | None, correction_t
         "meal_item_id": correction_target.get("meal_item_id"),
         "canonical_name": correction_target.get("canonical_name"),
     }
-    trace_contract["correction_target_ref_source"] = "phase_a_resolved_target_reference"
+    trace_contract["correction_target_ref_source"] = source
     payload.trace_contract = trace_contract
 
 

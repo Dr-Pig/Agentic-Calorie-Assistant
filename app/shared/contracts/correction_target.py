@@ -19,6 +19,11 @@ def validate_correction_target_ref(correction_target: Any | None) -> dict[str, A
             "truth_owner": "meal_item_id",
             "reason": "no_target_evidence",
         }
+    diagnostic_fields = {}
+    if isinstance(correction_target.get("manager_target_proposal_validation"), dict):
+        diagnostic_fields["manager_target_proposal_validation"] = dict(
+            correction_target["manager_target_proposal_validation"]
+        )
     source = str(correction_target.get("target_resolution_source") or "").strip().lower()
     if source in {"", "none", "unknown"}:
         return {
@@ -26,6 +31,7 @@ def validate_correction_target_ref(correction_target: Any | None) -> dict[str, A
             "failure_family": None,
             "truth_owner": "meal_item_id",
             "reason": "no_target_evidence",
+            **diagnostic_fields,
         }
     if correction_target.get("meal_thread_id") is None:
         return {
@@ -33,6 +39,7 @@ def validate_correction_target_ref(correction_target: Any | None) -> dict[str, A
             "failure_family": "correction_thread_target_missing",
             "truth_owner": "meal_item_id",
             "reason": "meal_thread_id_required",
+            **diagnostic_fields,
         }
     if correction_target.get("meal_item_id") is None:
         return {
@@ -40,6 +47,7 @@ def validate_correction_target_ref(correction_target: Any | None) -> dict[str, A
             "failure_family": "correction_item_target_missing",
             "truth_owner": "meal_item_id",
             "reason": "meal_item_id_required",
+            **diagnostic_fields,
         }
 
     expected_name = str(correction_target.get("canonical_name") or "").strip()
@@ -52,6 +60,7 @@ def validate_correction_target_ref(correction_target: Any | None) -> dict[str, A
             "reason": "canonical_name_validation_failed",
             "canonical_name": expected_name,
             "observed_canonical_name": observed_name,
+            **diagnostic_fields,
         }
 
     return {
@@ -62,6 +71,7 @@ def validate_correction_target_ref(correction_target: Any | None) -> dict[str, A
         "meal_thread_id": correction_target.get("meal_thread_id"),
         "meal_item_id": correction_target.get("meal_item_id"),
         "canonical_name": expected_name,
+        **diagnostic_fields,
     }
 
 
