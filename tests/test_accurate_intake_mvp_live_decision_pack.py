@@ -59,6 +59,77 @@ def _artifact(
     }
 
 
+def _clean_required_stage_manifest(*, include_full_suite: bool = False) -> dict[str, object]:
+    stages: list[dict[str, object]] = [
+        {
+            "stage_id": "provider_health_smoke",
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+            "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+            "model": "grok-4-fast",
+        },
+        {
+            "stage_id": "schema_contract_probe",
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+            "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+            "model": "grok-4-fast",
+        },
+        {
+            "stage_id": "fake_provider_active_runtime_gate",
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+            "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+            "model": "grok-4-fast",
+        },
+        {
+            "stage_id": "single_case_live_probe",
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+            "case_ids": ["explicit_item_removal_seeded"],
+            "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+            "model": "grok-4-fast",
+        },
+        {
+            "stage_id": "single_case_live_probe",
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+            "case_ids": ["chinese_chicken_rice_correction_removal_debug"],
+            "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+            "model": "grok-4-fast",
+        },
+    ]
+    if include_full_suite:
+        stages.append(
+            {
+                "stage_id": "full_suite_live_diagnostic",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                "model": "grok-4-fast",
+            }
+        )
+    return {
+        "artifact_type": "accurate_intake_mvp_live_stage_manifest",
+        "input_integrity": {"passed": True, "blockers": []},
+        "stages": stages,
+    }
+
+
+def _strict_replay(*, model_diversity_status: str = "model_diversity_missing") -> dict[str, object]:
+    return {
+        "artifact_type": "accurate_intake_mvp_offline_shadow_replay",
+        "input_integrity": {"passed": True, "blockers": []},
+        "summary": {
+            "sample_run_count": 3,
+            "strict_replay_ready": True,
+            "repaired_pass_count": 0,
+            "timeout_count": 0,
+            "model_diversity_status": model_diversity_status,
+        },
+    }
+
+
 def test_accurate_intake_live_decision_pack_routes_environment_blocker_to_stay_diagnostic() -> None:
     pack = build_accurate_intake_live_decision_pack(
         _artifact(
@@ -274,6 +345,35 @@ def test_accurate_intake_live_decision_pack_uses_clean_stage_manifest_over_stale
     assert pack["stage_summary"]["source"] == "stage_manifest"
     assert pack["stage_summary"]["result_kind_counts"] == {"strict_pass_first_attempt": 5}
     assert pack["private_self_use_candidate_prepared"] is False
+
+
+def test_accurate_intake_live_decision_pack_advances_strict_replay_to_full_suite_gate() -> None:
+    pack = build_accurate_intake_live_decision_pack(
+        _artifact(strict_pass_count=1),
+        stage_manifest_artifact=_clean_required_stage_manifest(),
+        offline_replay_artifact=_strict_replay(),
+    )
+
+    assert pack["selected_option"] == "full_suite_blocked"
+    assert pack["selection_reason"] == "full_suite_diagnostic_required"
+    assert pack["offline_replay_summary"]["strict_replay_ready"] is True
+    assert pack["offline_replay_summary"]["model_diversity_status"] == "model_diversity_missing"
+    assert pack["private_self_use_candidate_prepared"] is False
+    assert pack["private_self_use_approved"] is False
+
+
+def test_accurate_intake_live_decision_pack_blocks_after_full_suite_when_model_diversity_missing() -> None:
+    pack = build_accurate_intake_live_decision_pack(
+        _artifact(strict_pass_count=5),
+        stage_manifest_artifact=_clean_required_stage_manifest(include_full_suite=True),
+        offline_replay_artifact=_strict_replay(model_diversity_status="model_diversity_missing"),
+    )
+
+    assert pack["selected_option"] == "offline_shadow_replay"
+    assert pack["selection_reason"] == "model_diversity_missing"
+    assert pack["stage_summary"]["full_suite_status"] == "pass"
+    assert pack["private_self_use_candidate_prepared"] is False
+    assert pack["private_self_use_approved"] is False
 
 
 def test_accurate_intake_live_decision_pack_blocks_missing_required_stage_manifest() -> None:
