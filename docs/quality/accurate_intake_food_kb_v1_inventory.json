@@ -1,0 +1,113 @@
+{
+  "artifact_type": "accurate_intake_food_kb_v1_inventory",
+  "artifact_schema_version": "1.0",
+  "generated_at_utc": "2026-05-03T05:18:16.206480Z",
+  "scope": "local_evidence_support_inventory",
+  "truth_owner": "none",
+  "mutation_authority": "none",
+  "food_seed_can_decide_logged_draft_or_no_mutation": false,
+  "live_llm_required": false,
+  "web_tavily_required": false,
+  "production_db_required": false,
+  "repo_contained_seed_counts": {
+    "small_anchor_total": 23,
+    "generic_anchor": 19,
+    "generic_semantic_only": 4,
+    "exact_item_cards": 5
+  },
+  "repo_contained_seed_paths": {
+    "small_anchor_store": "app/knowledge/small_anchor_store_tw.json",
+    "exact_item_cards": "app/knowledge/exact_item_cards_tw.json"
+  },
+  "tfda_base_pipeline": {
+    "base_nutrition_db_present": false,
+    "staging_inputs_present": false,
+    "data_build_package_present": false,
+    "base_nutrition_db_path": "app/knowledge/base_nutrition_db.json",
+    "staging_candidate_path": ".logs/tfda_base_candidates_tmp.json",
+    "staging_xlsx_path": ".logs/FDA_food_nutrition_2024.xlsx"
+  },
+  "coverage_gaps": [
+    {
+      "gap_id": "taiwan_breakfast_staples",
+      "recommended_role": "generic_anchor",
+      "semantic_authority": "none",
+      "source_posture": "candidate_evidence_only"
+    },
+    {
+      "gap_id": "taiwan_lunch_dinner_staples",
+      "recommended_role": "generic_anchor",
+      "semantic_authority": "none",
+      "source_posture": "candidate_evidence_only"
+    },
+    {
+      "gap_id": "drink_modifiers_and_chain_drinks",
+      "recommended_role": "generic_anchor",
+      "semantic_authority": "none",
+      "source_posture": "candidate_evidence_only"
+    },
+    {
+      "gap_id": "basket_components_common_items",
+      "recommended_role": "generic_anchor",
+      "semantic_authority": "none",
+      "source_posture": "candidate_evidence_only"
+    },
+    {
+      "gap_id": "home_cooked_plate_components",
+      "recommended_role": "generic_anchor",
+      "semantic_authority": "none",
+      "source_posture": "candidate_evidence_only"
+    },
+    {
+      "gap_id": "exact_item_card_corpus",
+      "recommended_role": "exact_item_card",
+      "semantic_authority": "none",
+      "source_posture": "candidate_evidence_only"
+    },
+    {
+      "gap_id": "tfda_base_nutrition_pipeline",
+      "recommended_role": "pipeline_infra",
+      "semantic_authority": "none",
+      "source_posture": "candidate_evidence_only"
+    }
+  ],
+  "recommended_pr_slices": [
+    {
+      "slice_id": "coverage_tests_first",
+      "must_preserve": "NutritionEvidenceStorePort",
+      "forbidden": "food_seed_semantic_or_mutation_authority"
+    },
+    {
+      "slice_id": "generic_anchor_seed_batches",
+      "must_preserve": "NutritionEvidenceStorePort",
+      "forbidden": "food_seed_semantic_or_mutation_authority"
+    },
+    {
+      "slice_id": "listed_basket_component_expansion",
+      "must_preserve": "NutritionEvidenceStorePort",
+      "forbidden": "food_seed_semantic_or_mutation_authority"
+    },
+    {
+      "slice_id": "exact_item_card_expansion",
+      "must_preserve": "NutritionEvidenceStorePort",
+      "forbidden": "food_seed_semantic_or_mutation_authority"
+    },
+    {
+      "slice_id": "tfda_pipeline_repair",
+      "must_preserve": "NutritionEvidenceStorePort",
+      "forbidden": "food_seed_semantic_or_mutation_authority"
+    }
+  ],
+  "not_claiming": [
+    "food_knowledge_is_product_truth",
+    "food_knowledge_can_authorize_mutation",
+    "food_knowledge_can_update_ledger",
+    "food_knowledge_can_decide_logged_or_draft",
+    "tfda_pipeline_active",
+    "live_food_search_ready"
+  ],
+  "readiness_claimed": false,
+  "product_readiness_claimed": false,
+  "private_self_use_approved": false,
+  "production_selected": false
+}
