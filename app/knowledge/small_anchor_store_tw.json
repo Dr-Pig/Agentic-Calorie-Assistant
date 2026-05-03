@@ -37,6 +37,117 @@
     },
     {
       "record_kind": "generic_anchor",
+      "anchor_id": "custom_drink_latte",
+      "canonical_name": "\u62ff\u9435",
+      "aliases": ["\u62ff\u9435", "\u62ff\u9435\u5496\u5561"],
+      "dish_type": "customizable_drink",
+      "composition_posture": "estimable_with_modifier_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": ["customizable_drink", "coffee_milk_drink"],
+      "followup_hints": ["ask_cup_size", "ask_milk_type"],
+      "clarify_required": false,
+      "baseline_kcal_range": [120, 260],
+      "baseline_likely_kcal": 180,
+      "major_modifiers": [
+        {"name": "cup_size", "values": ["small", "medium", "large"]},
+        {"name": "milk_type", "values": ["regular", "low_fat", "oat_milk"]}
+      ],
+      "composition_hints": ["coffee", "milk"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "custom_drink_americano",
+      "canonical_name": "\u7f8e\u5f0f\u5496\u5561",
+      "aliases": ["\u7f8e\u5f0f\u5496\u5561", "\u7f8e\u5f0f", "\u9ed1\u5496\u5561"],
+      "dish_type": "customizable_drink",
+      "composition_posture": "estimable_with_modifier_refinement",
+      "variance_level": "low",
+      "semantic_hints": ["customizable_drink", "coffee_drink"],
+      "followup_hints": ["ask_cup_size"],
+      "clarify_required": false,
+      "baseline_kcal_range": [5, 30],
+      "baseline_likely_kcal": 15,
+      "major_modifiers": [
+        {"name": "cup_size", "values": ["small", "medium", "large"]}
+      ],
+      "composition_hints": ["coffee"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "custom_drink_soy_milk",
+      "canonical_name": "\u8c46\u6f3f",
+      "aliases": ["\u8c46\u6f3f"],
+      "dish_type": "customizable_drink",
+      "composition_posture": "estimable_with_modifier_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": ["customizable_drink", "soy_drink"],
+      "followup_hints": ["ask_sugar_level", "ask_cup_size"],
+      "clarify_required": false,
+      "baseline_kcal_range": [80, 220],
+      "baseline_likely_kcal": 150,
+      "major_modifiers": [
+        {"name": "sugar_level", "values": ["unsweetened", "half_sugar", "full_sugar"]},
+        {"name": "cup_size", "values": ["small", "medium", "large"]}
+      ],
+      "composition_hints": ["soy_milk"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "custom_drink_fresh_milk_tea",
+      "canonical_name": "\u9bae\u5976\u8336",
+      "aliases": ["\u9bae\u5976\u8336", "\u5976\u8336"],
+      "dish_type": "customizable_drink",
+      "composition_posture": "estimable_with_modifier_refinement",
+      "variance_level": "high",
+      "semantic_hints": ["customizable_drink", "milk_tea_drink"],
+      "followup_hints": ["ask_sugar_level", "ask_cup_size"],
+      "clarify_required": false,
+      "baseline_kcal_range": [250, 500],
+      "baseline_likely_kcal": 360,
+      "major_modifiers": [
+        {"name": "sugar_level", "values": ["unsweetened", "half_sugar", "full_sugar"]},
+        {"name": "cup_size", "values": ["small", "medium", "large"]}
+      ],
+      "composition_hints": ["tea", "milk"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "custom_drink_unsweetened_green_tea",
+      "canonical_name": "\u7121\u7cd6\u7da0\u8336",
+      "aliases": ["\u7121\u7cd6\u7da0\u8336"],
+      "dish_type": "customizable_drink",
+      "composition_posture": "estimable_with_modifier_refinement",
+      "variance_level": "low",
+      "semantic_hints": ["customizable_drink", "unsweetened_tea"],
+      "followup_hints": ["ask_cup_size"],
+      "clarify_required": false,
+      "baseline_kcal_range": [0, 40],
+      "baseline_likely_kcal": 10,
+      "major_modifiers": [
+        {"name": "cup_size", "values": ["small", "medium", "large"]}
+      ],
+      "composition_hints": ["tea"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "custom_drink_cola",
+      "canonical_name": "\u53ef\u6a02",
+      "aliases": ["\u53ef\u6a02"],
+      "dish_type": "customizable_drink",
+      "composition_posture": "estimable_with_modifier_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": ["customizable_drink", "sweetened_soda"],
+      "followup_hints": ["ask_size"],
+      "clarify_required": false,
+      "baseline_kcal_range": [140, 300],
+      "baseline_likely_kcal": 210,
+      "major_modifiers": [
+        {"name": "size", "values": ["small", "regular", "large", "bottle"]}
+      ],
+      "composition_hints": ["soda"]
+    },
+    {
+      "record_kind": "generic_anchor",
       "anchor_id": "generic_meal_chicken_bento",
       "canonical_name": "\u96de\u817f\u4fbf\u7576",
       "aliases": ["\u4fbf\u7576", "\u96de\u817f\u4fbf\u7576"],

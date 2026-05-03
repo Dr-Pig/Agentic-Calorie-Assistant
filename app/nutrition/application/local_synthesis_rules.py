@@ -137,6 +137,10 @@ def question_from_followup_hints(followup_hints: tuple[str, ...]) -> str | None:
         return "\u8acb\u5217\u51fa\u54c1\u9805\u8207\u5927\u81f4\u4efd\u91cf\u3002"
     if {"ask_sugar_level", "ask_cup_size"}.issubset(hint_set):
         return "\u8acb\u88dc\u5145\u7cd6\u5ea6\u548c\u676f\u578b\u3002"
+    if {"ask_cup_size", "ask_milk_type"}.issubset(hint_set):
+        return "\u8acb\u88dc\u5145\u676f\u578b\u6216\u5976\u985e\u3002"
+    if "ask_cup_size" in hint_set:
+        return "\u8acb\u88dc\u5145\u676f\u578b\u6216\u4efd\u91cf\u3002"
     if {"ask_main_style", "ask_rice_portion"}.issubset(hint_set):
         return "\u8acb\u88dc\u5145\u4e3b\u83dc\u505a\u6cd5\u6216\u767d\u98ef\u4efd\u91cf\u3002"
     if {"ask_noodle_portion", "ask_add_ons", "ask_portion"}.issubset(hint_set) or "ask_noodle_portion" in hint_set:

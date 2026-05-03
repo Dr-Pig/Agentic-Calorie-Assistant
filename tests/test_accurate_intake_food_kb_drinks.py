@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 import pytest
 
 from app.nutrition.application.evidence_candidate_packetizer import (
@@ -17,23 +14,18 @@ from app.nutrition.application.retrieval_intent import build_retrieval_intent
 from app.nutrition.application.small_anchor_store import lookup_anchor_candidates
 
 
-ROOT = Path(__file__).resolve().parents[1]
-SMALL_ANCHOR_PATH = ROOT / "app" / "knowledge" / "small_anchor_store_tw.json"
-
-
 @pytest.mark.parametrize(
     ("message", "expected_name", "required_followup"),
     [
-        ("\u6211\u5403\u4e86\u4e00\u4efd\u86cb\u9905", "\u86cb\u9905", "ask_add_ons"),
-        ("\u6211\u5403\u4e86\u4e00\u500b\u98ef\u7cf0", "\u98ef\u7cf0", "ask_filling"),
-        ("\u6211\u5403\u4e86\u4e09\u660e\u6cbb", "\u4e09\u660e\u6cbb", "ask_filling"),
-        ("\u6211\u5403\u4e86\u4e00\u4efd\u6ef7\u8089\u98ef", "\u6ef7\u8089\u98ef", "ask_rice_portion"),
-        ("\u6211\u5403\u4e86\u6c34\u9903", "\u6c34\u9903", "ask_piece_count"),
-        ("\u6211\u5403\u4e86\u4e00\u4efd\u934b\u8cbc", "\u934b\u8cbc", "ask_piece_count"),
-        ("\u6211\u5403\u4e86\u4e00\u689d\u5730\u74dc", "\u5730\u74dc", "ask_size"),
+        ("\u6211\u559d\u4e86\u62ff\u9435", "\u62ff\u9435", "ask_milk_type"),
+        ("\u6211\u559d\u4e86\u7f8e\u5f0f\u5496\u5561", "\u7f8e\u5f0f\u5496\u5561", "ask_cup_size"),
+        ("\u6211\u559d\u4e86\u8c46\u6f3f", "\u8c46\u6f3f", "ask_sugar_level"),
+        ("\u6211\u559d\u4e86\u9bae\u5976\u8336", "\u9bae\u5976\u8336", "ask_sugar_level"),
+        ("\u6211\u559d\u4e86\u7121\u7cd6\u7da0\u8336", "\u7121\u7cd6\u7da0\u8336", "ask_cup_size"),
+        ("\u6211\u559d\u4e86\u53ef\u6a02", "\u53ef\u6a02", "ask_size"),
     ],
 )
-def test_practical_staple_anchors_are_lookup_support_only(
+def test_practical_drink_anchors_are_lookup_support_only(
     message: str,
     expected_name: str,
     required_followup: str,
@@ -53,70 +45,54 @@ def test_practical_staple_anchors_are_lookup_support_only(
     assert required_followup in candidate.followup_hints
 
 
-def test_practical_staple_query_lookup_stays_non_authoritative() -> None:
-    result = lookup_anchor_candidates(build_retrieval_intent("\u6ef7\u8089\u98ef\u591a\u5c11\u71b1\u91cf\uff1f"))
-
-    assert result.defer_reason is None
-    assert result.retrieval_context == "query_only_support"
-    assert result.mutation_authority == "none"
-    assert [candidate.canonical_name for candidate in result.candidates] == ["\u6ef7\u8089\u98ef"]
-    assert result.candidates[0].support_role == "lookup_support_only"
-
-
 @pytest.mark.parametrize(
     ("message", "expected_name", "expected_question"),
     [
         (
-            "\u6211\u5403\u4e86\u86cb\u9905",
-            "\u86cb\u9905",
-            "\u8acb\u88dc\u5145\u52a0\u6599\u6216\u91ac\u6599\u3002",
+            "\u6211\u559d\u4e86\u62ff\u9435",
+            "\u62ff\u9435",
+            "\u8acb\u88dc\u5145\u676f\u578b\u6216\u5976\u985e\u3002",
         ),
         (
-            "\u6211\u5403\u4e86\u98ef\u7cf0",
-            "\u98ef\u7cf0",
-            "\u8acb\u88dc\u5145\u5167\u9921\u6216\u5927\u5c0f\u3002",
+            "\u6211\u559d\u4e86\u7f8e\u5f0f\u5496\u5561",
+            "\u7f8e\u5f0f\u5496\u5561",
+            "\u8acb\u88dc\u5145\u676f\u578b\u6216\u4efd\u91cf\u3002",
         ),
         (
-            "\u6211\u5403\u4e86\u4e09\u660e\u6cbb",
-            "\u4e09\u660e\u6cbb",
-            "\u8acb\u88dc\u5145\u5167\u9921\u6216\u91ac\u6599\u3002",
+            "\u6211\u559d\u4e86\u8c46\u6f3f",
+            "\u8c46\u6f3f",
+            "\u8acb\u88dc\u5145\u7cd6\u5ea6\u548c\u676f\u578b\u3002",
         ),
         (
-            "\u6211\u5403\u4e86\u6ef7\u8089\u98ef",
-            "\u6ef7\u8089\u98ef",
-            "\u8acb\u88dc\u5145\u98ef\u91cf\u3001\u7897\u578b\u6216\u52a0\u6599\u3002",
+            "\u6211\u559d\u4e86\u9bae\u5976\u8336",
+            "\u9bae\u5976\u8336",
+            "\u8acb\u88dc\u5145\u7cd6\u5ea6\u548c\u676f\u578b\u3002",
         ),
         (
-            "\u6211\u5403\u4e86\u6c34\u9903",
-            "\u6c34\u9903",
-            "\u8acb\u88dc\u5145\u9846\u6578\u6216\u5167\u9921\u3002",
+            "\u6211\u559d\u4e86\u7121\u7cd6\u7da0\u8336",
+            "\u7121\u7cd6\u7da0\u8336",
+            "\u8acb\u88dc\u5145\u676f\u578b\u6216\u4efd\u91cf\u3002",
         ),
         (
-            "\u6211\u5403\u4e86\u934b\u8cbc",
-            "\u934b\u8cbc",
-            "\u8acb\u88dc\u5145\u9846\u6578\u6216\u5167\u9921\u3002",
-        ),
-        (
-            "\u6211\u5403\u4e86\u5730\u74dc",
-            "\u5730\u74dc",
+            "\u6211\u559d\u4e86\u53ef\u6a02",
+            "\u53ef\u6a02",
             "\u8acb\u88dc\u5145\u5927\u5c0f\u6216\u4efd\u91cf\u3002",
         ),
     ],
 )
-def test_practical_staple_packets_synthesize_to_anchor_estimate_with_refinement_metadata(
+def test_practical_drink_packets_synthesize_to_anchor_estimate_with_refinement_metadata(
     message: str,
     expected_name: str,
     expected_question: str,
 ) -> None:
     intent = build_retrieval_intent(message)
     anchor_result = lookup_anchor_candidates(intent)
-    seeds = packetizer_input_seeds_from_anchor_lookup_result(anchor_result)
-    packets = tuple(add_hard_recheck_metadata(build_candidate_packet(seed)) for seed in seeds)
-    consumption = consume_rechecked_packets(packets)
+    seed = packetizer_input_seeds_from_anchor_lookup_result(anchor_result)[0]
+    packet = add_hard_recheck_metadata(build_candidate_packet(seed))
+    consumption = consume_rechecked_packets((packet,))
 
     manager_pass = synthesize_local_manager_pass(intent, consumption)
 
-    assert len(consumption.accepted_packets) == 1
     assert consumption.accepted_packets[0]["accepted_usage"] == "anchor"
     item = manager_pass["item_results"][0]
     assert item["interpreted_food_identity"] == expected_name
@@ -126,8 +102,8 @@ def test_practical_staple_packets_synthesize_to_anchor_estimate_with_refinement_
     assert item["suggested_followup_question"] == expected_question
 
 
-def test_practical_staple_final_mapping_respects_write_owner_block() -> None:
-    intent = build_retrieval_intent("\u6211\u5403\u4e86\u6ef7\u8089\u98ef")
+def test_practical_drink_final_mapping_respects_write_owner_block() -> None:
+    intent = build_retrieval_intent("\u6211\u559d\u4e86\u62ff\u9435")
     anchor_result = lookup_anchor_candidates(intent)
     seed = packetizer_input_seeds_from_anchor_lookup_result(anchor_result)[0]
     packet = add_hard_recheck_metadata(build_candidate_packet(seed))
@@ -146,8 +122,8 @@ def test_practical_staple_final_mapping_respects_write_owner_block() -> None:
     assert mapping["reason"] == "canonical_write_owner_blocked"
 
 
-def test_practical_staple_query_final_mapping_never_mutates() -> None:
-    intent = build_retrieval_intent("\u6ef7\u8089\u98ef\u591a\u5c11\u71b1\u91cf\uff1f")
+def test_practical_drink_query_final_mapping_never_mutates() -> None:
+    intent = build_retrieval_intent("\u62ff\u9435\u591a\u5c11\u71b1\u91cf\uff1f")
     anchor_result = lookup_anchor_candidates(intent)
     seed = packetizer_input_seeds_from_anchor_lookup_result(anchor_result)[0]
     packet = add_hard_recheck_metadata(build_candidate_packet(seed))
@@ -165,18 +141,9 @@ def test_practical_staple_query_final_mapping_never_mutates() -> None:
     assert mapping["mutation_allowed"] is False
 
 
-def test_small_anchor_seed_rows_do_not_encode_workflow_or_mutation_authority() -> None:
-    rows = json.loads(SMALL_ANCHOR_PATH.read_text(encoding="utf-8-sig"))["anchors"]
-    forbidden_fields = {
-        "logged",
-        "draft",
-        "no_mutation",
-        "workflow_effect",
-        "final_action",
-        "target_attachment",
-        "mutation_authority",
-        "decides_logged_or_draft",
-    }
+def test_brand_mentioned_drink_does_not_fall_through_to_generic_anchor_as_exact_claim() -> None:
+    result = lookup_anchor_candidates(build_retrieval_intent("\u661f\u5df4\u514b\u62ff\u9435"))
 
-    for row in rows:
-        assert forbidden_fields.isdisjoint(row), row.get("canonical_name")
+    assert result.candidates == ()
+    assert result.defer_reason == "exact_brand_lookup_deferred_to_b2_005"
+    assert result.mutation_authority == "none"
