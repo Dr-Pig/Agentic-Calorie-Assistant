@@ -139,8 +139,20 @@ def question_from_followup_hints(followup_hints: tuple[str, ...]) -> str | None:
         return "\u8acb\u88dc\u5145\u7cd6\u5ea6\u548c\u676f\u578b\u3002"
     if {"ask_main_style", "ask_rice_portion"}.issubset(hint_set):
         return "\u8acb\u88dc\u5145\u4e3b\u83dc\u505a\u6cd5\u6216\u767d\u98ef\u4efd\u91cf\u3002"
-    if {"ask_noodle_portion", "ask_add_ons", "ask_portion"} & hint_set:
+    if {"ask_noodle_portion", "ask_add_ons", "ask_portion"}.issubset(hint_set) or "ask_noodle_portion" in hint_set:
         return "\u8acb\u88dc\u5145\u9eb5\u91cf\u3001\u52a0\u6599\u6216\u4efd\u91cf\u3002"
+    if {"ask_rice_portion", "ask_bowl_size"}.issubset(hint_set):
+        return "\u8acb\u88dc\u5145\u98ef\u91cf\u3001\u7897\u578b\u6216\u52a0\u6599\u3002"
+    if {"ask_piece_count", "ask_filling"}.issubset(hint_set):
+        return "\u8acb\u88dc\u5145\u9846\u6578\u6216\u5167\u9921\u3002"
+    if {"ask_filling", "ask_size"}.issubset(hint_set):
+        return "\u8acb\u88dc\u5145\u5167\u9921\u6216\u5927\u5c0f\u3002"
+    if {"ask_filling", "ask_sauce"}.issubset(hint_set):
+        return "\u8acb\u88dc\u5145\u5167\u9921\u6216\u91ac\u6599\u3002"
+    if {"ask_add_ons", "ask_sauce"}.issubset(hint_set):
+        return "\u8acb\u88dc\u5145\u52a0\u6599\u6216\u91ac\u6599\u3002"
+    if "ask_size" in hint_set:
+        return "\u8acb\u88dc\u5145\u5927\u5c0f\u6216\u4efd\u91cf\u3002"
     return None
 
 

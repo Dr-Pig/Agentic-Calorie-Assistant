@@ -33,8 +33,8 @@ def test_food_kb_inventory_matches_repo_contained_seed_counts() -> None:
     inventory = build_food_kb_inventory()
 
     assert inventory["repo_contained_seed_counts"] == {
-        "small_anchor_total": 23,
-        "generic_anchor": 19,
+        "small_anchor_total": 30,
+        "generic_anchor": 26,
         "generic_semantic_only": 4,
         "exact_item_cards": 5,
     }
