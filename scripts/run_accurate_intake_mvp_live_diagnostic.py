@@ -325,7 +325,7 @@ class ScriptedAccurateIntakeLiveProvider:
                 followup_question=str(self._current_step.get("followup_question") or "請補充品項。"),
             )
         if (
-            self._current_step.get("correction_operation") == "remove_item"
+            self._current_step.get("target_canonical_name")
             and round_index == 0
             and "resolve_correction_target" in available_tools
         ):
@@ -343,6 +343,25 @@ class ScriptedAccurateIntakeLiveProvider:
                     "current_turn_intent": "correct_meal",
                     "final_action_candidate": final_action,
                     "estimation_posture": "target_resolution_pending",
+                    "mutation_intent_candidate": "correction_write",
+                },
+            }
+        if (
+            self._current_step.get("target_canonical_name")
+            and self._current_step.get("correction_operation") != "remove_item"
+            and _has_tool_result(user_payload, "resolve_correction_target")
+            and not _has_tool_result(user_payload, "estimate_nutrition")
+            and "estimate_nutrition" in available_tools
+        ):
+            return {
+                "manager_action": "call_tools",
+                "response_mode": "tool_call",
+                "tool_calls": [{"name": "estimate_nutrition"}],
+                "evidence_posture": "evidence_pending",
+                "semantic_decision": {
+                    "current_turn_intent": "correct_meal",
+                    "final_action_candidate": final_action,
+                    "estimation_posture": "pending_tool_call",
                     "mutation_intent_candidate": "correction_write",
                 },
             }
@@ -1158,6 +1177,7 @@ def _case_inventory() -> list[LiveCase]:
                         "workflow_effect": "correction",
                         "mutation_intent": "correction_write",
                         "target_mode": "target_committed_thread",
+                        "target_canonical_name": "\u96de\u8089\u98ef",
                     },
                 ),
                 LiveStep(
@@ -1171,6 +1191,8 @@ def _case_inventory() -> list[LiveCase]:
                         "workflow_effect": "correction",
                         "mutation_intent": "correction_write",
                         "target_mode": "target_committed_thread",
+                        "correction_operation": "remove_item",
+                        "target_canonical_name": "\u6e6f",
                     },
                 ),
                 LiveStep(
