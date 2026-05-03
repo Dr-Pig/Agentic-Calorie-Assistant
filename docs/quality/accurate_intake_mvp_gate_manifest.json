@@ -131,7 +131,8 @@
     {
       "group_id": "local_self_use_operator_shell",
       "pytest": [
-        "tests/test_accurate_intake_local_self_use_shell.py"
+        "tests/test_accurate_intake_local_self_use_shell.py",
+        "tests/test_local_dogfood_data_hygiene.py"
       ]
     },
     {

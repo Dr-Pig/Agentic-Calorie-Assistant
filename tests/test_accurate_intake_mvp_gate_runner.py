@@ -87,6 +87,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_accurate_intake_mvp_self_use_scenario_wall.py",
         "tests/test_accurate_intake_one_day_self_use_wall.py",
         "tests/test_accurate_intake_local_self_use_shell.py",
+        "tests/test_local_dogfood_data_hygiene.py",
         "tests/test_accurate_intake_local_self_use_candidate.py",
         "tests/test_wave1_phase_b2_source_selection.py",
         "tests/test_wave1_phase_b2_packetizer_input_seed.py",
@@ -223,6 +224,7 @@ def test_self_use_runbook_records_portable_local_deterministic_scope() -> None:
     assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py --scenario-wall-v2" in runbook
     assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py --reopen-continuity" in runbook
     assert "python scripts/run_accurate_intake_local_self_use_shell.py --scenario one_day_v1" in runbook
+    assert "python scripts/manage_accurate_intake_local_dogfood_data.py --operation inspect" in runbook
     assert "python scripts/build_accurate_intake_local_self_use_candidate.py" in runbook
     assert "python scripts/run_accurate_intake_browser_shell_smoke.py" in runbook
     assert "browser_executed=false" in runbook
