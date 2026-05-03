@@ -1,0 +1,111 @@
+from __future__ import annotations
+
+import argparse
+from datetime import UTC, datetime
+import json
+from pathlib import Path
+from typing import Any
+
+REQUIRED_PRE_LIVE_EVIDENCE = (
+    "phase_c_gate",
+    "accurate_intake_mvp_gate",
+    "browser_shell_smoke",
+    "chat_history_reload_gate",
+    "free_text_manual_target_gate",
+    "dogfood_review_queue",
+    "local_dogfood_data_hygiene",
+)
+
+_PASS_STATUSES = {"pass", "generated"}
+
+
+def _json_safe(value: Any) -> Any:
+    return json.loads(json.dumps(value, ensure_ascii=False, default=str))
+
+
+def _evidence_missing(group_id: str, payload: dict[str, Any]) -> bool:
+    if str(payload.get("status") or "") not in _PASS_STATUSES:
+        return True
+    if group_id == "browser_shell_smoke" and payload.get("browser_executed") is not True:
+        return True
+    return False
+
+
+def build_pre_live_self_use_decision_pack(evidence: dict[str, Any]) -> dict[str, Any]:
+    evidence_status = {
+        group_id: dict(evidence.get(group_id) or {})
+        for group_id in REQUIRED_PRE_LIVE_EVIDENCE
+    }
+    missing_evidence = [
+        group_id
+        for group_id, payload in evidence_status.items()
+        if _evidence_missing(group_id, payload)
+    ]
+    selected_option = (
+        "stay_local_self_use"
+        if missing_evidence
+        else "ready_for_human_limited_live_canary_decision"
+    )
+    return _json_safe(
+        {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_pre_live_self_use_decision_pack",
+            "generated_at_utc": datetime.now(UTC).isoformat(),
+            "claim_scope": "pre_live_local_web_self_use_decision_pack",
+            "required_evidence": list(REQUIRED_PRE_LIVE_EVIDENCE),
+            "evidence_status": evidence_status,
+            "missing_evidence": missing_evidence,
+            "selected_option": selected_option,
+            "selection_reason": (
+                "pre_live_evidence_missing"
+                if missing_evidence
+                else "local_web_self_use_evidence_ready_for_human_live_decision"
+            ),
+            "live_llm_invoked": False,
+            "web_tavily_invoked": False,
+            "live_canary_approved": False,
+            "kimi_active_runtime_default_allowed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "runtime_web_activation_approved": False,
+            "production_db_ready_claimed": False,
+            "not_claiming": [
+                "product_ready",
+                "rollout_ready",
+                "live_llm_ready",
+                "web_ready",
+                "production_db_ready",
+                "kimi_ready",
+            ],
+        }
+    )
+
+
+def _load_evidence(path: Path) -> dict[str, Any]:
+    return dict(json.loads(path.read_text(encoding="utf-8")))
+
+
+def _write_output(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Build a pre-live Accurate Intake local web self-use decision pack."
+    )
+    parser.add_argument("--evidence-json", required=True)
+    parser.add_argument(
+        "--output",
+        default="artifacts/accurate_intake_pre_live_self_use_decision_pack.json",
+    )
+    args = parser.parse_args(argv)
+
+    pack = build_pre_live_self_use_decision_pack(_load_evidence(Path(args.evidence_json)))
+    _write_output(Path(args.output), pack)
+    print(json.dumps(pack, ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
