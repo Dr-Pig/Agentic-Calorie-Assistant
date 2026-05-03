@@ -30,6 +30,20 @@ def nutrition_manager_policy_hints() -> dict[str, Any]:
                     "Listed ingredients may be estimated item by item in a later turn."
                 ),
             },
+            {
+                "policy_id": "listed_basket_followup_with_items",
+                "applies_to": (
+                    "follow-up turn after a self-selected mixed basket clarification when the user provides concrete "
+                    "listed items or ingredients"
+                ),
+                "manager_behavior": (
+                    "When the user provides concrete listed items after a basket clarification, call the nutrition "
+                    "evidence tool before final commit. This is no longer composition-unknown; do not repeat the same "
+                    "composition clarification unless the listed details are still insufficient. The follow-up may "
+                    "only list item names and may not repeat the basket label; use prior turn context to attach it."
+                ),
+                "runtime_authority": "validate_evidence_packet_and_final_mapping_only",
+            },
         ],
     }
 

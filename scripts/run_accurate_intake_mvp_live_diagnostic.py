@@ -459,6 +459,7 @@ class ScriptedAccurateIntakeLiveProvider:
             "manager_action": "final",
             "intent": intent_type,
             "intent_type": intent_type,
+            "tool_calls": [],
             "final_action": final_action,
             "workflow_effect": workflow_effect,
             "target_attachment": target,
@@ -951,7 +952,8 @@ async def _provider_probe(
             "You are running an Accurate Intake manager schema contract probe. Return a manager structured "
             "decision with intent_type='answer_remaining_budget', intent='answer_remaining_budget', "
             "workflow_effect='answer_only', final_action='answer_only', and "
-            "semantic_decision.current_turn_intent='answer_remaining_budget'. Do not mutate state."
+            "semantic_decision.current_turn_intent='answer_remaining_budget'. Include tool_calls=[] because "
+            "manager_action is final. Do not mutate state."
         ),
         user_payload={
             "round_index": 0,

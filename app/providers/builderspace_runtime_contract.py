@@ -37,20 +37,26 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
             "as a substitute. If evidence_posture says requires_tool/evidence_missing/evidence_pending or "
             "semantic_decision.estimation_posture says pending_tool_call/tool_pending, this field must be call_tools. "
             "Exception: explicit remove_item correction uses target evidence from resolve_correction_target, not "
-            "estimate_nutrition."
+            "estimate_nutrition. Exception: composition-unknown baskets are not tool evidence missing; return final "
+            "ask_followup with tool_calls=[] instead of call_tools. Every call_tools response must include a non-empty "
+            "tool_calls array."
         )
     evidence_posture = properties.get("evidence_posture")
     if isinstance(evidence_posture, dict):
         evidence_posture["description"] = (
             "Evidence status for this manager round. Values like requires_tool, evidence_missing, or "
             "evidence_pending mean manager_action must be call_tools with estimate_nutrition; do not pair those "
-            "values with manager_action=final."
+            "values with manager_action=final. For composition-unknown baskets, use a composition_unknown or "
+            "insufficient_details posture and final ask_followup with tool_calls=[]; do not use evidence_missing "
+            "to trigger estimate_nutrition before components are known."
         )
     final_action = properties.get("final_action")
     if isinstance(final_action, dict):
         final_action["description"] = (
             "The top-level final action for this manager round. When evidence is missing, this cannot substitute "
-            "for an evidence-required semantic_decision.final_action_candidate; call estimate_nutrition first."
+            "for an evidence-required semantic_decision.final_action_candidate; call estimate_nutrition first. "
+            "When workflow_effect or semantic_decision.final_action_candidate is ask_followup, set this field to "
+            "ask_followup and include a concrete followup_question."
         )
     tool_calls = properties.get("tool_calls")
     if isinstance(tool_calls, dict):
@@ -64,7 +70,8 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
         answer_contract["description"] = (
             "Renderer-facing response contract. If semantic_decision.followup_posture is "
             "refinement_not_commit_gate or size_clarification, include a non-empty followup_question here "
-            "or in semantic_decision.followup_question."
+            "or in semantic_decision.followup_question. If final_action is ask_followup, include the concrete "
+            "question the user should answer."
         )
     semantic_decision = properties.get("semantic_decision")
     if not isinstance(semantic_decision, dict):
@@ -78,7 +85,9 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
             "The manager's intended final action after required evidence exists. If this is commit, "
             "correction_applied, or overshoot_note and evidence is missing, the current payload must be "
             "manager_action=call_tools with estimate_nutrition, not a final ask_followup/no_commit/answer_only. "
-            "Explicit remove_item is a correction_applied exception when target evidence is present."
+            "Explicit remove_item is a correction_applied exception when target evidence is present. If the "
+            "current turn supplies concrete listed items after a basket clarification, use commit as the candidate "
+            "and call estimate_nutrition instead of repeating ask_followup."
         )
     estimation_posture = semantic_properties.get("estimation_posture")
     if isinstance(estimation_posture, dict):
@@ -97,7 +106,8 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
     if isinstance(followup_question, dict):
         followup_question["description"] = (
             "Concrete user-facing follow-up question. Required to be non-empty when followup_posture is "
-            "refinement_not_commit_gate or size_clarification; otherwise use null or omit by using a non-question posture."
+            "refinement_not_commit_gate or size_clarification, and whenever final_action is ask_followup; otherwise "
+            "use null or omit by using a non-question posture."
         )
 
 
@@ -153,12 +163,6 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
         repair_failure_family = founder_live_manager_repair_failure_family(constraints)
         required_repair_tool = FOUNDER_LIVE_MANAGER_REPAIR_REQUIRED_TOOL_BY_FAMILY.get(repair_failure_family)
         allowed_final_actions = list(FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS)
-        evidence_state = constraints.get("manager_contract_evidence_state") if isinstance(constraints, dict) else None
-        if isinstance(evidence_state, dict) and evidence_state.get("nutrition_evidence_present") is False:
-            evidence_required = set(FOUNDER_LIVE_MANAGER_EVIDENCE_REQUIRED_FINAL_ACTIONS)
-            if evidence_state.get("target_evidence_present") is True:
-                evidence_required.discard("correction_applied")
-            allowed_final_actions = [action for action in allowed_final_actions if action not in evidence_required]
         base_schema["properties"]["intent_type"] = {
             "type": "string",
             "enum": list(FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES),
@@ -186,7 +190,7 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
                 "failure_family": repair_failure_family,
                 "required_tool": required_repair_tool,
             }
-            base_schema["required"] = [*FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS, "tool_calls"]
+            base_schema["required"] = list(FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS)
             base_schema["x-field-consumers"] = dict(FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS)
             return base_schema
         base_schema["required"] = list(FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS)
