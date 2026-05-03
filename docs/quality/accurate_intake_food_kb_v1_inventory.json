@@ -1,7 +1,7 @@
 {
   "artifact_type": "accurate_intake_food_kb_v1_inventory",
   "artifact_schema_version": "1.0",
-  "generated_at_utc": "2026-05-03T05:18:16.206480Z",
+  "generated_at_utc": "2026-05-03T05:23:20.775452Z",
   "scope": "local_evidence_support_inventory",
   "truth_owner": "none",
   "mutation_authority": "none",
@@ -10,8 +10,8 @@
   "web_tavily_required": false,
   "production_db_required": false,
   "repo_contained_seed_counts": {
-    "small_anchor_total": 23,
-    "generic_anchor": 19,
+    "small_anchor_total": 30,
+    "generic_anchor": 26,
     "generic_semantic_only": 4,
     "exact_item_cards": 5
   },

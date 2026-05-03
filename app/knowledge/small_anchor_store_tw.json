@@ -327,6 +327,138 @@
       "composition_hints": ["chicken"]
     },
     {
+      "record_kind": "generic_anchor",
+      "anchor_id": "breakfast_staple_egg_pancake",
+      "canonical_name": "\u86cb\u9905",
+      "aliases": ["\u86cb\u9905"],
+      "dish_type": "breakfast_staple",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": ["taiwan_breakfast_staple"],
+      "followup_hints": ["ask_add_ons", "ask_sauce"],
+      "clarify_required": false,
+      "baseline_kcal_range": [280, 450],
+      "baseline_likely_kcal": 360,
+      "major_modifiers": [
+        {"name": "add_ons", "values": ["none", "cheese", "ham", "tuna"]},
+        {"name": "sauce", "values": ["none", "light", "regular"]}
+      ],
+      "composition_hints": ["egg", "pancake_wrapper"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "breakfast_staple_rice_roll",
+      "canonical_name": "\u98ef\u7cf0",
+      "aliases": ["\u98ef\u7cf0", "\u7d2b\u7c73\u98ef\u7cf0"],
+      "dish_type": "breakfast_staple",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": ["taiwan_breakfast_staple", "rice_based"],
+      "followup_hints": ["ask_filling", "ask_size"],
+      "clarify_required": false,
+      "baseline_kcal_range": [350, 600],
+      "baseline_likely_kcal": 470,
+      "major_modifiers": [
+        {"name": "filling", "values": ["regular", "fried_dough", "egg", "meat_floss"]},
+        {"name": "size", "values": ["small", "regular", "large"]}
+      ],
+      "composition_hints": ["rice", "breakfast_fillings"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "breakfast_staple_sandwich",
+      "canonical_name": "\u4e09\u660e\u6cbb",
+      "aliases": ["\u4e09\u660e\u6cbb"],
+      "dish_type": "breakfast_staple",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": ["taiwan_breakfast_staple"],
+      "followup_hints": ["ask_filling", "ask_sauce"],
+      "clarify_required": false,
+      "baseline_kcal_range": [300, 520],
+      "baseline_likely_kcal": 410,
+      "major_modifiers": [
+        {"name": "filling", "values": ["egg", "ham", "tuna", "chicken"]},
+        {"name": "sauce", "values": ["none", "light", "regular"]}
+      ],
+      "composition_hints": ["bread", "filling"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "rice_bowl_luroufan",
+      "canonical_name": "\u6ef7\u8089\u98ef",
+      "aliases": ["\u6ef7\u8089\u98ef", "\u9b6f\u8089\u98ef"],
+      "dish_type": "rice_bowl",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": ["rice_bowl", "taiwan_staple"],
+      "followup_hints": ["ask_rice_portion", "ask_bowl_size", "ask_add_ons"],
+      "clarify_required": false,
+      "baseline_kcal_range": [450, 700],
+      "baseline_likely_kcal": 580,
+      "major_modifiers": [
+        {"name": "rice_portion", "values": ["small", "regular", "large"]},
+        {"name": "add_ons", "values": ["none", "egg", "tofu"]}
+      ],
+      "composition_hints": ["rice", "braised_pork_sauce"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "staple_dumplings",
+      "canonical_name": "\u6c34\u9903",
+      "aliases": ["\u6c34\u9903"],
+      "dish_type": "stable_base_variable_dish",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": ["dumplings", "piece_count_sensitive"],
+      "followup_hints": ["ask_piece_count", "ask_filling"],
+      "clarify_required": false,
+      "baseline_kcal_range": [350, 650],
+      "baseline_likely_kcal": 500,
+      "major_modifiers": [
+        {"name": "piece_count", "values": ["8", "10", "12", "15"]},
+        {"name": "filling", "values": ["pork_cabbage", "chive", "vegetable"]}
+      ],
+      "composition_hints": ["dumpling_wrappers", "filling"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "staple_potstickers",
+      "canonical_name": "\u934b\u8cbc",
+      "aliases": ["\u934b\u8cbc"],
+      "dish_type": "stable_base_variable_dish",
+      "composition_posture": "estimable_with_refinement",
+      "variance_level": "moderate",
+      "semantic_hints": ["dumplings", "piece_count_sensitive", "pan_fried"],
+      "followup_hints": ["ask_piece_count", "ask_filling"],
+      "clarify_required": false,
+      "baseline_kcal_range": [400, 700],
+      "baseline_likely_kcal": 560,
+      "major_modifiers": [
+        {"name": "piece_count", "values": ["8", "10", "12", "15"]},
+        {"name": "filling", "values": ["pork_cabbage", "chive", "vegetable"]}
+      ],
+      "composition_hints": ["dumpling_wrappers", "filling", "pan_fried_oil"]
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "single_item_sweet_potato",
+      "canonical_name": "\u5730\u74dc",
+      "aliases": ["\u5730\u74dc", "\u70e4\u5730\u74dc"],
+      "dish_type": "single_item",
+      "composition_posture": "single_item",
+      "variance_level": "moderate",
+      "semantic_hints": ["stable_single_item", "size_sensitive"],
+      "followup_hints": ["ask_size"],
+      "clarify_required": false,
+      "baseline_kcal_range": [120, 300],
+      "baseline_likely_kcal": 200,
+      "major_modifiers": [
+        {"name": "size", "values": ["small", "regular", "large"]}
+      ],
+      "composition_hints": ["sweet_potato"]
+    },
+    {
       "record_kind": "generic_semantic_only",
       "canonical_name": "\u6ef7\u5473",
       "aliases": ["\u6ef7\u5473"],
