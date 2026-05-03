@@ -39,6 +39,7 @@ def test_calorie_deficit_logging_mvp_scope_is_repo_tracked() -> None:
     }
     assert scope["included_capabilities"] == [
         "free_text_intake",
+        "current_session_conversation_context",
         "manager_owned_intent_and_workflow",
         "calorie_estimation",
         "food_log_commit",
@@ -48,6 +49,35 @@ def test_calorie_deficit_logging_mvp_scope_is_repo_tracked() -> None:
         "static_fastapi_fake_line_chat",
         "local_sqlite_persistence",
         "dogfood_trace_log",
+    ]
+    assert scope["dogfood_trace_lifecycle_policy"]["canonical_eval_case_requires"] == [
+        "human_approval",
+        "product_semantic_source",
+        "stable_expected_behavior",
+        "regression_test_or_eval_registration",
+    ]
+    assert scope["unsupported_free_text_policy"] == {
+        "default_final_action": "answer_only",
+        "default_answer_only_subtype": "general_guidance",
+        "mutation_allowed": False,
+        "target_change_allowed": False,
+        "meal_plan_persistence_allowed": False,
+        "reminder_creation_allowed": False,
+        "product_capability_claimed": False,
+    }
+    assert scope["session_date_policy_mvp"] == {
+        "default_active_date_source": "backend_local_today_or_current_active_date",
+        "supported": ["today", "current_active_date"],
+        "limited_or_unsupported": ["yesterday_backfill", "cross_midnight_assignment", "weekly_history_query"],
+        "ambiguous_date_mutation_behavior": "block_mutation_or_ask_clarification",
+    }
+    assert scope["best_practice_evidence"]["adopted_guidance"] == [
+        "log_traces_for_eval_case_mining",
+        "use_human_feedback_to_calibrate_automated_scoring",
+        "use_trace_grading_for_agent_error_identification",
+    ]
+    assert scope["best_practice_evidence"]["rejected_guidance"] == [
+        "auto_promote_raw_production_trace_to_canonical_eval_truth"
     ]
     assert scope["excluded_capabilities"] == [
         "long_term_memory",

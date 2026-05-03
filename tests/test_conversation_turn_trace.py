@@ -60,6 +60,40 @@ def test_runtime_turn_trace_distinguishes_packet_trace_from_evidence_content() -
     assert trace["trace_chain"]["state_after_present"] is True
 
 
+def test_runtime_turn_trace_records_dogfood_policy_without_claiming_truth() -> None:
+    trace = build_runtime_turn_trace(
+        request_id="turn-unsupported-rescue",
+        local_date="2026-05-04",
+        raw_user_input="我今天爆卡怎麼辦？",
+        assistant_message="可以先回到下一餐正常吃，這版不會啟動救援模式。",
+        state_before=_state(),
+        state_after=_state(),
+        current_turn_context=None,
+        result={
+            "manager_decision": {
+                "intent_type": "general_chat",
+                "workflow_effect": "answer_only",
+                "unsupported_intent_family": "rescue",
+                "manager_mode": "fixture",
+            },
+            "intake_execution_manager": {
+                "final": {"final_action": "answer_only", "workflow_effect": "answer_only"},
+                "persistence_result": None,
+            },
+            "state_delta": {},
+            "sidecar": {},
+        },
+    )
+
+    dogfood = trace["dogfood_trace_policy"]
+    assert dogfood["lifecycle_status"] == "raw_trace"
+    assert dogfood["raw_trace_is_truth"] is False
+    assert dogfood["unsupported_intent_policy"]["unsupported_intent_family"] == "rescue"
+    assert dogfood["unsupported_intent_policy"]["mutation_allowed"] is False
+    assert dogfood["manager_mode_policy"]["manager_mode"] == "fixture"
+    assert dogfood["manager_mode_policy"]["trace_fields"]["live_call_used"] is False
+
+
 def test_commit_trace_does_not_count_manager_rounds_as_evidence_content() -> None:
     trace = build_runtime_turn_trace(
         request_id="turn-commit-without-evidence",
