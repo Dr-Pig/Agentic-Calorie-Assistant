@@ -1,0 +1,137 @@
+{
+  "artifact_type": "accurate_intake_contract_legal_flow_matrix",
+  "artifact_schema_version": "1.0",
+  "status": "pass",
+  "claim_scope": "diagnostic_governance",
+  "updated_for_change_ids": [
+    "PR84"
+  ],
+  "legal_flows_broken": [],
+  "flows": [
+    {
+      "flow_id": "composition_unknown_basket",
+      "description": "Bare self-selected basket with unknown composition asks for items before estimation.",
+      "manager_action": "final",
+      "final_action": "ask_followup",
+      "tool_calls": [],
+      "workflow_effect": "draft_or_clarify",
+      "followup_posture": "required_items",
+      "mutation_intent_candidate": "none",
+      "ledger_mutation_allowed": false,
+      "canonical_rule_refs": [
+        "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#self_selected_basket_without_listed_items"
+      ]
+    },
+    {
+      "flow_id": "listed_basket_followup",
+      "description": "Prior basket draft with listed components may enter estimation through Manager-owned tool calls.",
+      "manager_action": "call_tools",
+      "final_action": "commit",
+      "tool_calls": [
+        "estimate_nutrition"
+      ],
+      "workflow_effect": "logged_estimate",
+      "followup_posture": "portion_refinement_optional_or_strong",
+      "mutation_intent_candidate": "commit",
+      "ledger_mutation_allowed": true,
+      "canonical_rule_refs": [
+        "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#salt_crispy_chicken_surface_term_resolution",
+        "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#self_selected_basket_without_listed_items"
+      ]
+    },
+    {
+      "flow_id": "stable_common_item_optional_refinement",
+      "description": "Stable anchored foods can log a usable estimate while asking optional refinement.",
+      "manager_action": "call_tools",
+      "final_action": "commit",
+      "tool_calls": [
+        "estimate_nutrition"
+      ],
+      "workflow_effect": "logged_estimate",
+      "followup_posture": "refinement_optional",
+      "mutation_intent_candidate": "commit",
+      "ledger_mutation_allowed": true,
+      "canonical_rule_refs": [
+        "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#pearl_milk_tea_missing_sugar_size",
+        "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#follow_up_for_estimable_items",
+        "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#taiwan_b2_case_law_narrow_set"
+      ]
+    },
+    {
+      "flow_id": "query_only_today_consumed",
+      "description": "Read-only consumed query reads canonical state and never mutates.",
+      "manager_action": "final",
+      "final_action": "answer_only",
+      "tool_calls": [],
+      "workflow_effect": "query_only",
+      "followup_posture": "none",
+      "mutation_intent_candidate": "none",
+      "ledger_mutation_allowed": false,
+      "canonical_rule_refs": [
+        "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md#Phase-C"
+      ]
+    },
+    {
+      "flow_id": "no_plan_consumed_query",
+      "description": "No-plan state may report consumed kcal but must not claim target or remaining budget.",
+      "manager_action": "final",
+      "final_action": "answer_only",
+      "tool_calls": [],
+      "workflow_effect": "query_only",
+      "followup_posture": "onboarding_required_for_budget",
+      "mutation_intent_candidate": "none",
+      "ledger_mutation_allowed": false,
+      "canonical_rule_refs": [
+        "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md#MS14-No-Plan-Fallback"
+      ]
+    },
+    {
+      "flow_id": "explicit_remove_item",
+      "description": "Explicit item removal is scoped correction/versioning with target evidence, not hard delete.",
+      "manager_action": "final",
+      "final_action": "correction_applied",
+      "tool_calls": [],
+      "workflow_effect": "remove_item",
+      "followup_posture": "none_if_target_unique",
+      "required_evidence": "target_evidence",
+      "mutation_intent_candidate": "remove_item",
+      "ledger_mutation_allowed": true,
+      "canonical_rule_refs": [
+        "docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md#Semantic-Ownership-Boundary"
+      ]
+    },
+    {
+      "flow_id": "nutrition_changing_correction",
+      "description": "Correction that changes nutrition requires current-loop nutrition evidence and target validation.",
+      "manager_action": "call_tools",
+      "final_action": "correction_applied",
+      "tool_calls": [
+        "estimate_nutrition"
+      ],
+      "workflow_effect": "nutrition_correction",
+      "followup_posture": "none_or_refinement",
+      "required_evidence": "nutrition_evidence_and_target_evidence",
+      "mutation_intent_candidate": "correction",
+      "ledger_mutation_allowed": true,
+      "canonical_rule_refs": [
+        "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md#Phase-C"
+      ]
+    },
+    {
+      "flow_id": "provisional_estimate_with_optional_followup",
+      "description": "Tool-backed estimate plus optional follow-up remains representable as commit with refinement posture.",
+      "manager_action": "call_tools",
+      "final_action": "commit",
+      "tool_calls": [
+        "estimate_nutrition"
+      ],
+      "workflow_effect": "logged_estimate",
+      "followup_posture": "refinement_optional",
+      "mutation_intent_candidate": "commit",
+      "ledger_mutation_allowed": true,
+      "canonical_rule_refs": [
+        "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#follow_up_for_estimable_items"
+      ]
+    }
+  ]
+}

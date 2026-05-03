@@ -20,6 +20,7 @@ DEFAULT_LIVE_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_live_diagnosti
 DEFAULT_STAGE_MANIFEST_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_live_stage_manifest.json"
 DEFAULT_OFFLINE_REPLAY_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_offline_shadow_replay.json"
 DEFAULT_PROVIDER_ROBUSTNESS_MATRIX_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_live_robustness_matrix.json"
+DEFAULT_CONTRACT_HARDENING_GUARD_ARTIFACT = ROOT / "artifacts" / "accurate_intake_contract_hardening_guard.json"
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
 
 DECISION_OPTION_IDS = (
@@ -41,18 +42,21 @@ def build_accurate_intake_live_decision_pack(
     stage_manifest_artifact: dict[str, Any] | None = None,
     offline_replay_artifact: dict[str, Any] | None = None,
     provider_robustness_artifact: dict[str, Any] | None = None,
+    contract_hardening_guard_artifact: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     input_integrity = _input_integrity(live_artifact, stage_manifest_artifact=stage_manifest_artifact)
     evidence_summary = _evidence_summary(live_artifact)
     stage_summary = _stage_summary(live_artifact, stage_manifest_artifact=stage_manifest_artifact)
     offline_replay_summary = _offline_replay_summary(offline_replay_artifact)
     provider_robustness_summary = _provider_robustness_summary(provider_robustness_artifact)
+    contract_hardening_summary = _contract_hardening_summary(contract_hardening_guard_artifact)
     selected_option, selection_reason = _select_option(
         input_integrity=input_integrity,
         evidence_summary=evidence_summary,
         stage_summary=stage_summary,
         offline_replay_summary=offline_replay_summary,
         provider_robustness_summary=provider_robustness_summary,
+        contract_hardening_summary=contract_hardening_summary,
     )
     return _json_safe(
         {
@@ -65,6 +69,11 @@ def build_accurate_intake_live_decision_pack(
             "source_provider_robustness_matrix_type": (
                 provider_robustness_artifact.get("artifact_type")
                 if isinstance(provider_robustness_artifact, dict)
+                else None
+            ),
+            "source_contract_hardening_guard_type": (
+                contract_hardening_guard_artifact.get("artifact_type")
+                if isinstance(contract_hardening_guard_artifact, dict)
                 else None
             ),
             "claim_scope": "live_diagnostic_decision_pack",
@@ -88,6 +97,7 @@ def build_accurate_intake_live_decision_pack(
             "evidence_summary": evidence_summary,
             "offline_replay_summary": offline_replay_summary,
             "provider_robustness_summary": provider_robustness_summary,
+            "contract_hardening_summary": contract_hardening_summary,
             "decision_options_ordered": list(DECISION_OPTION_IDS),
             "decision_options": _decision_options(),
             "selected_option": selected_option,
@@ -112,6 +122,7 @@ def write_accurate_intake_live_decision_pack(
     stage_manifest_artifact_path: Path | None = None,
     offline_replay_artifact_path: Path | None = None,
     provider_robustness_artifact_path: Path | None = None,
+    contract_hardening_guard_artifact_path: Path | None = None,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
     output_path: Path | None = None,
 ) -> Path:
@@ -125,11 +136,17 @@ def write_accurate_intake_live_decision_pack(
     provider_robustness_artifact = None
     if provider_robustness_artifact_path is not None and provider_robustness_artifact_path.exists():
         provider_robustness_artifact = json.loads(provider_robustness_artifact_path.read_text(encoding="utf-8"))
+    contract_hardening_guard_artifact = None
+    if contract_hardening_guard_artifact_path is not None and contract_hardening_guard_artifact_path.exists():
+        contract_hardening_guard_artifact = json.loads(
+            contract_hardening_guard_artifact_path.read_text(encoding="utf-8")
+        )
     pack = build_accurate_intake_live_decision_pack(
         live_artifact,
         stage_manifest_artifact=stage_manifest_artifact,
         offline_replay_artifact=offline_replay_artifact,
         provider_robustness_artifact=provider_robustness_artifact,
+        contract_hardening_guard_artifact=contract_hardening_guard_artifact,
     )
     path = output_path or output_dir / "accurate_intake_mvp_live_decision_pack.json"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -144,11 +161,17 @@ def _select_option(
     stage_summary: dict[str, Any],
     offline_replay_summary: dict[str, Any],
     provider_robustness_summary: dict[str, Any],
+    contract_hardening_summary: dict[str, Any],
 ) -> tuple[str, str]:
     if input_integrity.get("passed") is not True:
         if input_integrity.get("stage_manifest_integrity_blocked") is True:
             return "stay_diagnostic", "stage_manifest_integrity_blocked"
         return "stay_diagnostic", "input_integrity_blocked"
+    if contract_hardening_summary.get("present") is True:
+        if contract_hardening_summary.get("integrity_passed") is not True:
+            return "stay_diagnostic", "contract_hardening_guard_integrity_blocked"
+        if contract_hardening_summary.get("debt_present") is True:
+            return "offline_shadow_replay", "contract_hardening_debt"
     if stage_summary.get("provider_health_blocked") is True:
         return "provider_health_blocked", "environment_or_provider_blocker"
     if stage_summary.get("schema_contract_blocked") is True:
@@ -440,6 +463,35 @@ def _provider_robustness_summary(artifact: dict[str, Any] | None) -> dict[str, A
     }
 
 
+def _contract_hardening_summary(artifact: dict[str, Any] | None) -> dict[str, Any]:
+    if artifact is None:
+        return {
+            "present": False,
+            "integrity_passed": True,
+            "debt_present": False,
+            "merge_allowed": True,
+            "blockers": [],
+            "fixed_case_ids": [],
+            "legal_flows_broken": [],
+        }
+    integrity = _dict(artifact.get("input_integrity"))
+    debt = _dict(artifact.get("contract_hardening_debt"))
+    blockers = _string_list(artifact.get("blockers"))
+    artifact_type_valid = artifact.get("artifact_type") == "accurate_intake_contract_hardening_guard"
+    integrity_passed = artifact_type_valid and integrity.get("passed") is True
+    return {
+        "present": True,
+        "artifact_type_valid": artifact_type_valid,
+        "integrity_passed": integrity_passed,
+        "debt_present": debt.get("present") is True or artifact.get("merge_allowed") is False,
+        "merge_allowed": artifact.get("merge_allowed") is True,
+        "blockers": blockers,
+        "fixed_case_ids": _string_list(artifact.get("fixed_case_ids")),
+        "legal_flows_broken": _string_list(artifact.get("legal_flows_broken")),
+        "provider_overfit_risk": _optional_string(artifact.get("provider_overfit_risk")),
+    }
+
+
 def _repaired_cases(live_artifact: dict[str, Any]) -> list[dict[str, str | None]]:
     repaired: list[dict[str, str | None]] = []
     for case in _list(live_artifact.get("cases")):
@@ -597,6 +649,7 @@ def main() -> int:
     parser.add_argument("--stage-manifest", default=str(DEFAULT_STAGE_MANIFEST_ARTIFACT))
     parser.add_argument("--offline-replay-artifact", default=str(DEFAULT_OFFLINE_REPLAY_ARTIFACT))
     parser.add_argument("--provider-robustness-matrix", default=str(DEFAULT_PROVIDER_ROBUSTNESS_MATRIX_ARTIFACT))
+    parser.add_argument("--contract-hardening-guard-artifact", default=str(DEFAULT_CONTRACT_HARDENING_GUARD_ARTIFACT))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--output")
     args = parser.parse_args()
@@ -606,6 +659,9 @@ def main() -> int:
         offline_replay_artifact_path=Path(args.offline_replay_artifact) if args.offline_replay_artifact else None,
         provider_robustness_artifact_path=(
             Path(args.provider_robustness_matrix) if args.provider_robustness_matrix else None
+        ),
+        contract_hardening_guard_artifact_path=(
+            Path(args.contract_hardening_guard_artifact) if args.contract_hardening_guard_artifact else None
         ),
         output_dir=Path(args.output_dir),
         output_path=Path(args.output) if args.output else None,

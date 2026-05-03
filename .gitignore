@@ -36,6 +36,9 @@ app/runtime/**/*.pyc
 !docs/quality/AUDIT_RUNNER_REGISTRY.json
 !docs/quality/AUDIT_FIXTURE_REGISTRY.json
 !docs/quality/accurate_intake_mvp_ux_semantic_cases.json
+!docs/quality/accurate_intake_contract_change_manifest_pr84.json
+!docs/quality/accurate_intake_contract_legal_flow_matrix.json
+!docs/quality/accurate_intake_pr74_84_semantic_drift_audit.json
 !app/knowledge/
 !app/knowledge/small_anchor_store_tw.json
 !app/knowledge/exact_item_cards_tw.json

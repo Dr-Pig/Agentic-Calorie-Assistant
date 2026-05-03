@@ -1,0 +1,31 @@
+{
+  "artifact_type": "accurate_intake_contract_change_manifest",
+  "artifact_schema_version": "1.0",
+  "change_id": "PR84",
+  "claim_scope": "diagnostic_governance",
+  "proposed_change_type": "schema_hardening",
+  "fixed_case_ids": [
+    "luwei_bare_to_listed_basket"
+  ],
+  "live_failure_only": false,
+  "canonical_rule_exists": true,
+  "canonical_rule_refs": [
+    "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#self_selected_basket_without_listed_items",
+    "docs/specs/WAVE_1_PHASE_B2_SEMANTIC_DECISION_REGISTER.md#follow_up_for_estimable_items",
+    "docs/quality/accurate_intake_contract_legal_flow_matrix.json"
+  ],
+  "legal_flow_matrix_updated": true,
+  "holdout_tests_added": false,
+  "holdout_test_refs": [
+    "planned: PR86 basket holdout anti-overfit regression"
+  ],
+  "raw_text_routing_risk": false,
+  "provider_overfit_risk": "medium",
+  "legal_flows_broken": [],
+  "non_claims": {
+    "product_readiness_claimed": false,
+    "private_self_use_approved": false,
+    "production_selected": false,
+    "mutation_rollout_approved": false
+  }
+}

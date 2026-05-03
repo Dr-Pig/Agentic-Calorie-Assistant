@@ -652,6 +652,50 @@ def test_accurate_intake_live_decision_pack_blocks_candidate_on_contract_overfit
     assert pack["private_self_use_candidate_prepared"] is False
 
 
+def test_accurate_intake_live_decision_pack_blocks_candidate_on_contract_hardening_debt() -> None:
+    pack = build_accurate_intake_live_decision_pack(
+        _artifact(strict_pass_count=5, repaired_pass_count=0),
+        stage_manifest_artifact=_clean_required_stage_manifest(include_full_suite=True),
+        offline_replay_artifact={
+            "artifact_type": "accurate_intake_mvp_offline_shadow_replay",
+            "input_integrity": {"passed": True, "blockers": []},
+            "summary": {
+                "sample_run_count": 3,
+                "strict_replay_ready": True,
+                "full_suite_replay_ready": True,
+                "full_suite_run_count": 3,
+                "repaired_pass_count": 0,
+                "timeout_count": 0,
+                "model_diversity_status": "provider_diversity_present",
+            },
+        },
+        provider_robustness_artifact={
+            "artifact_type": "accurate_intake_mvp_live_robustness_matrix",
+            "input_integrity": {"passed": True, "blockers": []},
+            "model_inversion_evidence_passed": True,
+            "contract_overfit_risk": False,
+            "model_diversity_status": "provider_diversity_present",
+        },
+        contract_hardening_guard_artifact={
+            "artifact_type": "accurate_intake_contract_hardening_guard",
+            "input_integrity": {"passed": True, "blockers": []},
+            "merge_allowed": False,
+            "contract_hardening_debt": {
+                "present": True,
+                "reasons": ["live_failure_only", "holdout_tests_missing"],
+            },
+            "blockers": ["live_failure_only", "holdout_tests_missing"],
+        },
+    )
+
+    assert pack["selected_option"] == "offline_shadow_replay"
+    assert pack["selection_reason"] == "contract_hardening_debt"
+    assert pack["contract_hardening_summary"]["present"] is True
+    assert pack["contract_hardening_summary"]["debt_present"] is True
+    assert pack["private_self_use_candidate_prepared"] is False
+    assert pack["private_self_use_approved"] is False
+
+
 def test_accurate_intake_live_decision_pack_requires_full_suite_evidence_before_private_candidate() -> None:
     pack = build_accurate_intake_live_decision_pack(
         _artifact(
