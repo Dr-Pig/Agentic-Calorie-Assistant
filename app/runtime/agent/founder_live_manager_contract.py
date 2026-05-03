@@ -29,8 +29,10 @@ FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS = [
     "manager_action",
     "intent",
     "intent_type",
+    "tool_calls",
     "workflow_effect",
     "target_attachment",
+    "final_action",
     "exactness",
     "confidence",
     "evidence_posture",
@@ -42,8 +44,10 @@ FOUNDER_LIVE_MANAGER_FIELD_CONSUMERS = {
     "manager_action": "manager_loop_control",
     "intent": "runtime_router_and_trace_classifier",
     "intent_type": "active_runtime_router",
+    "tool_calls": "manager_loop_tool_router_when_calling_tools",
     "workflow_effect": "transition_guard_and_mutation_boundary",
     "target_attachment": "meal_thread_attachment_and_correction_path",
+    "final_action": "final_mapping_and_renderer_boundary",
     "exactness": "nutrition_final_mapping_and_renderer_exactness_guard",
     "confidence": "uncertainty_and_evidence_honesty_trace",
     "evidence_posture": "b2_evidence_and_final_mapping_guard",
@@ -116,6 +120,13 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY = {
         "mutation_intent_candidate": "no_mutation",
         "estimate_tool_allowed": False,
     },
+    "listed_basket_followup_rule": {
+        "semantic_intent": "log_meal",
+        "workflow_family": "listed_item_followup_after_clarification",
+        "required_tool_when_evidence_missing": "estimate_nutrition",
+        "forbidden_substitute_final_actions": ["ask_followup", "no_commit", "answer_only"],
+        "runtime_role": "validate_evidence_packet_and_final_mapping_only",
+    },
     "followup_question_rule": {
         "question_required_postures": sorted(FOUNDER_LIVE_MANAGER_FOLLOWUP_QUESTION_REQUIRED_POSTURES),
         "fallback_postures_when_no_question": ["none", "refinement_optional", "closed"],
@@ -139,6 +150,8 @@ FOUNDER_LIVE_MANAGER_CONTRACT_POLICY_SUMMARY = (
     "estimate_nutrition is not required; do not hard-delete or undo a whole meal; "
     "self-selected basket or composition-unknown meals must ask_followup/no_mutation until components are known "
     "and must not call estimate_nutrition while composition is unknown; "
+    "when a later follow-up supplies concrete listed items for that basket, it is no longer composition-unknown: "
+    "use prior turn context, call estimate_nutrition before commit, and do not repeat the same composition clarification; "
     "refinement_not_commit_gate and size_clarification follow-up postures require a followup_question."
 )
 FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION = (
@@ -155,7 +168,9 @@ FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION = (
     "manager_action='call_tools' with estimate_nutrition, not manager_action='final'. "
     "Exception: if your semantic decision is composition-unknown "
     "ask_followup/no_mutation, return manager_action='final' with final_action='ask_followup' and no tool_calls; "
-    "do not estimate."
+    "set tool_calls=[] for composition-unknown ask_followup and do not estimate. Once the user supplies concrete listed items after that clarification, treat the turn as "
+    "listed-item follow-up evidence collection: use prior turn context, return manager_action='call_tools' with estimate_nutrition before "
+    "final commit and do not repeat the same composition clarification."
 )
 FOUNDER_LIVE_MANAGER_FOLLOWUP_INSTRUCTION = (
     "Use followup_posture='refinement_not_commit_gate' or 'size_clarification' only when you also provide "
@@ -212,6 +227,30 @@ FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES = [
                 "final_action_candidate": "ask_followup",
                 "mutation_intent_candidate": "no_mutation",
                 "estimation_posture": "composition_unknown_basket",
+            },
+        },
+    },
+    {
+        "name": "listed_item_followup_after_clarification",
+        "valid": {
+            "manager_action": "call_tools",
+            "tool_calls": [{"name": "estimate_nutrition"}],
+            "evidence_posture": "evidence_pending",
+            "semantic_decision": {
+                "current_turn_intent": "log_meal",
+                "final_action_candidate": "commit",
+                "estimation_posture": "pending_tool_call",
+                "mutation_intent_candidate": "canonical_write",
+            },
+        },
+        "invalid": {
+            "manager_action": "final",
+            "final_action": "ask_followup",
+            "workflow_effect": "ask_followup",
+            "semantic_decision": {
+                "current_turn_intent": "log_meal",
+                "final_action_candidate": "commit",
+                "estimation_posture": "pending_tool_call",
             },
         },
     },
@@ -302,6 +341,9 @@ def founder_live_manager_contract_constraints(
 def founder_live_manager_tool_description() -> str:
     return (
         "Return the manager structured decision payload. Follow the founder live manager contract policy: "
+        "Always include top-level final_action and tool_calls; use tool_calls=[] when manager_action is final, "
+        "and use a non-empty tool_calls array when manager_action is call_tools. "
+        "Do not place final_action only inside answer_contract. "
         "intent_type must match semantic_decision.current_turn_intent "
         "(complete_onboarding -> complete_onboarding; answer_remaining_budget -> answer_remaining_budget; "
         "answer_query -> log_meal; log_meal -> log_meal; correct_meal -> log_meal). "
@@ -322,7 +364,11 @@ def founder_live_manager_tool_description() -> str:
         "The invalid evidence-required candidate pattern is manager_action final with evidence_missing and "
         "semantic_decision.final_action_candidate still pointing at commit, correction_applied, or overshoot_note. "
         "For a self-selected basket with unknown composition, ask_followup with no_mutation until components are known; "
-        "return final ask_followup directly and do not call estimate_nutrition for composition-unknown baskets. "
+        "return final ask_followup directly, use tool_calls=[] for composition-unknown ask_followup, "
+        "and do not call estimate_nutrition for composition-unknown baskets. "
+        "For a listed-item follow-up after that clarification, treat the supplied item list as the missing "
+        "composition, use prior turn context even if the basket label is not repeated, and call estimate_nutrition "
+        "before commit; do not repeat the same composition clarification. "
         "If current tool_results do not include estimate_nutrition evidence, do not finalize commit, "
         "nutrition-changing correction_applied, or overshoot_note; call estimate_nutrition first. "
         "If followup_posture is refinement_not_commit_gate or size_clarification, include a followup_question."
@@ -527,6 +573,24 @@ def validate_founder_live_manager_contract_consistency(
     mutation_intent = str(semantic_decision.get("mutation_intent_candidate") or "")
     workflow_effect = str(payload.get("workflow_effect") or semantic_decision.get("workflow_effect") or "")
     estimation_posture = str(semantic_decision.get("estimation_posture") or "")
+    if str(payload.get("manager_action") or "") == "final" and (
+        workflow_effect == "ask_followup" or final_action_candidate == "ask_followup"
+    ):
+        if final_action != "ask_followup":
+            raise RuntimeError(
+                "founder live manager contract ask_followup requires top-level final_action='ask_followup'"
+            )
+        answer_contract = payload.get("answer_contract")
+        answer_followup = (
+            str(answer_contract.get("followup_question") or "").strip()
+            if isinstance(answer_contract, dict)
+            else ""
+        )
+        semantic_followup = str(semantic_decision.get("followup_question") or "").strip()
+        if not (answer_followup or semantic_followup):
+            raise RuntimeError(
+                "founder live manager contract ask_followup requires a concrete followup_question"
+            )
     if (
         str(payload.get("manager_action") or "") == "call_tools"
         and workflow_effect == "ask_followup"
