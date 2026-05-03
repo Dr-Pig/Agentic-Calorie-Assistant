@@ -9,6 +9,10 @@ from sqlalchemy.orm import Session
 
 from app.composition.current_budget_answer import build_remaining_budget_answer_contract
 from app.composition.intake_execution_orchestrator import process_intake_execution_turn
+from app.composition.manual_daily_target_chat import (
+    apply_manual_daily_target_from_chat,
+    manual_daily_target_trace_payload,
+)
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.composition.state_resolver import resolve_intake_state
 from app.database import get_or_create_user
@@ -130,6 +134,7 @@ async def execute_intake_turn(
     remaining_budget = None
     nutrition_artifact = None
     persistence_result = None
+    assistant_message_override = None
     state_mutation_summary = initial_intake_turn_state_mutation_summary()
 
     if manager_decision.intent_type == "complete_onboarding":
@@ -204,6 +209,49 @@ async def execute_intake_turn(
                 "reason": "budget_query_without_active_plan",
             },
         )
+    elif manager_decision.intent_type == "set_manual_daily_target":
+        user = get_or_create_user(db, user_external_id)
+        try:
+            manual_target_result = apply_manual_daily_target_from_chat(
+                db,
+                user=user,
+                manager_decision=manager_decision,
+                local_date=resolved_local_date,
+            )
+        except ValueError as exc:
+            persistence_result = {
+                "manual_daily_target": {
+                    "status": "blocked",
+                    "reason": str(exc),
+                    "source": "manager_structured_decision",
+                }
+            }
+            state_mutation_summary["manual_daily_target_blocked"] = True
+            assistant_message_override = (
+                "I need an explicit daily target between 800 and 5000 kcal before updating it."
+            )
+            append_trace_event_tool(
+                request_id=request_id,
+                stage="v2_manual_daily_target_update",
+                status="blocked",
+                summary={"reason": str(exc), "source": "manager_structured_decision"},
+            )
+        else:
+            persistence_result = manual_daily_target_trace_payload(manual_target_result)
+            state_mutation_summary["manual_daily_target_updated"] = True
+            state_mutation_summary["manual_daily_target_kcal"] = manual_target_result.current_budget_view.budget_kcal
+            state_mutation_summary["body_plan_seeded"] = bool(manual_target_result.previous_daily_target_kcal is None)
+            append_trace_event_tool(
+                request_id=request_id,
+                stage="v2_manual_daily_target_update",
+                status="ok",
+                summary={
+                    "daily_target_kcal": manual_target_result.current_budget_view.budget_kcal,
+                    "previous_daily_target_kcal": manual_target_result.previous_daily_target_kcal,
+                    "source": "manager_structured_decision",
+                    "live_llm_invoked": manual_target_result.live_llm_invoked,
+                },
+            )
     elif manager_decision.intent_type == "manager_unavailable":
         append_trace_event_tool(
             request_id=request_id,
@@ -250,7 +298,7 @@ async def execute_intake_turn(
             local_date=resolved_local_date,
         )
 
-    assistant_message = render_intake_reply(
+    assistant_message = assistant_message_override or render_intake_reply(
         intent_type=manager_decision.intent_type,
         onboarding_result=onboarding_result,
         remaining_budget=remaining_budget,

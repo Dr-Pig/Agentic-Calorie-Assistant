@@ -106,6 +106,8 @@ This browser shell is an operator mirror for local dogfood only. It is backend-c
 
 Conversation context for this shell is current-session/current-day only. Backend `/estimate` writes user and assistant messages to local SQLite `message_buffer` with a runtime-turn trace that links chat message, Manager decision, evidence packet, final mapping, state-before, state-after, and context snapshot. `/accurate-intake/chat-history` reads that SQLite surface back for rendering. This is not long-term memory, proactive behavior, rescue, or recommendation.
 
+Free-text daily target updates may enter through `/estimate` only when the Manager structured decision returns `intent_type=set_manual_daily_target` with an explicit `daily_target_kcal`. The browser shell must not keyword-route target text. The backend validates the target through the existing manual target service, blocks unsafe or ambiguous targets without food mutation, and keeps target calculation / TDEE automation out of this MVP.
+
 Run the local browser-shell route-bridge smoke with:
 
 ```powershell
@@ -113,6 +115,14 @@ python scripts/run_accurate_intake_local_web_shell_smoke.py --db-path .pytest_tm
 ```
 
 This route-bridge smoke proves static shell availability and backend route compatibility under deterministic Manager fixtures. It does not execute browser JavaScript; browser-executed fetch sequencing remains a separate UI QA/browser-automation slice before any web-readiness claim.
+
+Run the chat-history reload gate with:
+
+```powershell
+python scripts/run_accurate_intake_chat_history_reload_gate.py --db-path .pytest_tmp_local/accurate_intake_chat_history_reload_gate.sqlite3 --output artifacts/accurate_intake_chat_history_reload_gate.json
+```
+
+This reload gate writes a CJK chat turn through `/estimate`, closes the first local app/session, reopens the same SQLite DB, and verifies `/accurate-intake/chat-history`, `/today/current-budget`, and `/accurate-intake/debug` from the reopened backend surfaces. It proves current-session/current-day transcript and runtime-turn trace linkage survive local reload; it is not browser execution, long-term memory, live LLM, Web/Tavily, production DB, or web-readiness evidence.
 
 Run the optional browser-executed shell smoke with:
 
@@ -134,6 +144,20 @@ Run reopen continuity against the same local SQLite DB with:
 python scripts/run_accurate_intake_local_self_use_shell.py --scenario one_day_v1 --db-path .pytest_tmp_local/accurate_intake_self_use.sqlite --keep-db --output artifacts/accurate_intake_local_self_use_shell_keep.json --print-debug-surface
 ```
 
+Inspect local dogfood DB hygiene before reset or export with:
+
+```powershell
+python scripts/manage_accurate_intake_local_dogfood_data.py --operation inspect --db-path workspace_data/local_dogfood/accurate_intake.sqlite3 --output artifacts/accurate_intake_local_dogfood_data_hygiene.json
+```
+
+Back up real dogfood SQLite data before any reset with:
+
+```powershell
+python scripts/manage_accurate_intake_local_dogfood_data.py --operation backup --db-path workspace_data/local_dogfood/accurate_intake.sqlite3 --backup-dir workspace_data/local_dogfood_backups --label before-reset --output artifacts/accurate_intake_local_dogfood_backup.json
+```
+
+Fixture and smoke DB paths under `.pytest_tmp_local` are disposable. Real dogfood DB paths under `workspace_data/local_dogfood` or explicitly named `real_dogfood` require backup before reset. Dogfood SQLite files, backups, JSONL exports, and generated hygiene manifests can contain personal diet logs; they are local-only and must not be committed.
+
 Build the human-reviewable candidate packet with:
 
 ```powershell
@@ -141,6 +165,14 @@ python scripts/build_accurate_intake_local_self_use_candidate.py --shell-artifac
 ```
 
 The candidate packet may set `local_self_use_candidate_prepared=true` when the deterministic shell evidence is clean. It must keep `private_self_use_approved=false`, `product_readiness_claimed=false`, `production_selected=false`, and `live_manager_required=false`.
+
+Build a local-only review artifact from runtime-turn traces with:
+
+```powershell
+python scripts/build_accurate_intake_dogfood_review_queue.py --trace-json path/to/runtime_turn_trace.json --output artifacts/accurate_intake_dogfood_review_queue.json
+```
+
+This local-only review artifact is dogfood triage material. It may mark `review_candidate` records from deterministic flags or reviewer-agent suggestions, but raw traces remain observation only and cannot become Food KB truth, golden truth, or canonical eval cases without human approval, product semantic source, stable expected behavior, and eval registration. The artifact can contain personal diet logs; keep it local and do not commit generated review artifacts.
 
 Windows operators should run SQLite-backed commands sequentially. If `.pytest_tmp_local` reports a temporary SQLite lock, wait for the previous process to exit and rerun the affected command before classifying the result. Do not run the reset and keep-db shell commands concurrently against the same DB path.
 

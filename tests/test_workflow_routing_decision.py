@@ -94,6 +94,18 @@ def test_workflow_routing_decision_does_not_keyword_route_calibration_request() 
     assert result.disposition == "defer"
 
 
+def test_workflow_routing_decision_does_not_keyword_route_manual_target_update() -> None:
+    result = build_workflow_routing_decision(
+        raw_user_input="今天目標 1600",
+        state_hints=WorkflowRoutingStateHints(has_active_body_plan=True),
+    )
+
+    assert result.target_workflow_family == "general_chat"
+    assert result.disposition == "defer"
+    assert result.routing_confidence == "low"
+    assert result.required_read_surfaces == []
+
+
 def test_workflow_routing_decision_does_not_use_state_hint_as_intake_semantic_owner() -> None:
     result = build_workflow_routing_decision(
         raw_user_input="half bowl",

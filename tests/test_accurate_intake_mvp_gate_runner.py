@@ -74,6 +74,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
     for expected_test in (
         "tests/test_turn2_mvp_ux_coverage.py",
         "tests/test_accurate_intake_mvp_regression_wall.py",
+        "tests/test_dogfood_review_queue_artifact.py",
         "tests/test_correction_target_reference_state.py",
         "tests/test_no_plan_ledger_policy.py",
         "tests/test_budget_ledger_truth_boundary.py",
@@ -87,6 +88,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_accurate_intake_mvp_self_use_scenario_wall.py",
         "tests/test_accurate_intake_one_day_self_use_wall.py",
         "tests/test_accurate_intake_local_self_use_shell.py",
+        "tests/test_local_dogfood_data_hygiene.py",
         "tests/test_accurate_intake_local_self_use_candidate.py",
         "tests/test_wave1_phase_b2_source_selection.py",
         "tests/test_wave1_phase_b2_packetizer_input_seed.py",
@@ -97,6 +99,8 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_accurate_intake_mvp_ux_semantic_wall.py",
         "tests/test_accurate_intake_mvp_api_smoke.py",
         "tests/test_accurate_intake_local_web_shell_bridge.py",
+        "tests/test_free_text_manual_target_manager_path.py",
+        "tests/test_accurate_intake_chat_history_reload_gate.py",
         "tests/test_accurate_intake_browser_shell_smoke.py",
     ):
         assert expected_test in flat_args
@@ -223,12 +227,18 @@ def test_self_use_runbook_records_portable_local_deterministic_scope() -> None:
     assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py --scenario-wall-v2" in runbook
     assert "python scripts/run_accurate_intake_mvp_self_use_smoke.py --reopen-continuity" in runbook
     assert "python scripts/run_accurate_intake_local_self_use_shell.py --scenario one_day_v1" in runbook
+    assert "python scripts/manage_accurate_intake_local_dogfood_data.py --operation inspect" in runbook
     assert "python scripts/build_accurate_intake_local_self_use_candidate.py" in runbook
+    assert "python scripts/run_accurate_intake_chat_history_reload_gate.py" in runbook
     assert "python scripts/run_accurate_intake_browser_shell_smoke.py" in runbook
+    assert "python scripts/build_accurate_intake_dogfood_review_queue.py" in runbook
+    assert "local-only review artifact" in runbook
     assert "browser_executed=false" in runbook
     assert "Accurate Intake MVP v2.0 scenario wall" in runbook
     assert "operator transcript" in runbook
     assert "Local Self-Use Shell And Candidate Packet" in runbook
+    assert "intent_type=set_manual_daily_target" in runbook
+    assert "must not keyword-route target text" in runbook
     assert "Manager structured decision fixtures own intent/workflow/target proposal" in runbook
     assert "Food evidence seeds are support-only" in runbook
     assert "No live LLM" in runbook
