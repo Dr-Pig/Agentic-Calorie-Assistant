@@ -73,6 +73,18 @@ Full-suite diagnostic command, only after the gate above is green:
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage full_suite_live_diagnostic --offline-replay-artifact artifacts/accurate_intake_mvp_offline_shadow_replay.json --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_full_suite.json
 ```
 
+## Full-Suite Evidence Window
+
+One strict full-suite artifact is diagnostic evidence only. It does not prepare private self-use.
+
+Before a decision pack may select `prepare_private_self_use_candidate`, the offline replay window must show:
+
+- `full_suite_replay_ready=true`.
+- at least three full-suite runs in the replay window.
+- every full-suite run is `strict_pass_first_attempt`.
+- zero full-suite timeout, retry-dependent pass, repaired pass, or failed case.
+- provider/model diversity evidence is present; GrokFast-only evidence remains `model_diversity_missing`.
+
 ## Retry And Timeout Policy
 
 - Retry only the failed provider request.

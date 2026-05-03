@@ -16,9 +16,9 @@ def _stage_manifest(
     result_kinds: list[str] | None = None,
     statuses: list[str] | None = None,
     failure_family: str | None = None,
+    include_full_suite: bool = False,
     overclaim: bool = False,
 ) -> dict[str, object]:
-    kinds = result_kinds or ["strict_pass_first_attempt"] * 5
     stage_ids = [
         "provider_health_smoke",
         "schema_contract_probe",
@@ -26,6 +26,9 @@ def _stage_manifest(
         "single_case_live_probe",
         "single_case_live_probe",
     ]
+    if include_full_suite:
+        stage_ids.append("full_suite_live_diagnostic")
+    kinds = result_kinds or ["strict_pass_first_attempt"] * len(stage_ids)
     case_ids = [
         [],
         [],
@@ -33,6 +36,8 @@ def _stage_manifest(
         ["explicit_item_removal_seeded"],
         ["chinese_chicken_rice_correction_removal_debug"],
     ]
+    if include_full_suite:
+        case_ids.append([])
     stage_statuses = statuses or ["pass"] * len(stage_ids)
     stages = [
         {
@@ -86,6 +91,8 @@ def test_offline_shadow_replay_records_single_clean_stage_run_without_candidate_
     assert replay["summary"]["timeout_count"] == 0
     assert replay["summary"]["strict_replay_ready"] is False
     assert replay["summary"]["eligible_for_private_self_use_candidate"] is False
+    assert replay["summary"]["full_suite_run_count"] == 0
+    assert replay["summary"]["full_suite_replay_ready"] is False
     assert replay["summary"]["model_diversity_missing"] is True
     assert replay["summary"]["max_model_claim"] == "single_profile_live_diagnostic_observed"
 
@@ -97,6 +104,7 @@ def test_offline_shadow_replay_marks_three_same_profile_runs_as_single_profile_o
 
     assert replay["summary"]["sample_run_count"] == 3
     assert replay["summary"]["strict_replay_ready"] is True
+    assert replay["summary"]["full_suite_replay_ready"] is False
     assert replay["summary"]["single_profile_stability"] is True
     assert replay["summary"]["model_diversity_missing"] is True
     assert replay["summary"]["model_diversity_status"] == "model_diversity_missing"
@@ -126,6 +134,49 @@ def test_offline_shadow_replay_excludes_retry_and_timeout_from_strict_replay() -
     assert replay["summary"]["timeout_count"] == 1
     assert replay["summary"]["failure_family_counts"] == {"environment_or_provider_blocker": 1}
     assert replay["summary"]["strict_replay_ready"] is False
+    assert replay["summary"]["eligible_for_private_self_use_candidate"] is False
+
+
+def test_offline_shadow_replay_tracks_full_suite_window_separately_from_stage_replay() -> None:
+    replay = build_accurate_intake_offline_shadow_replay(
+        [
+            _stage_manifest(include_full_suite=True),
+            _stage_manifest(include_full_suite=True),
+            _stage_manifest(include_full_suite=True),
+        ]
+    )
+
+    assert replay["summary"]["strict_replay_ready"] is True
+    assert replay["summary"]["full_suite_run_count"] == 3
+    assert replay["summary"]["full_suite_strict_first_attempt_count"] == 3
+    assert replay["summary"]["full_suite_pass_after_retry_count"] == 0
+    assert replay["summary"]["full_suite_timeout_count"] == 0
+    assert replay["summary"]["full_suite_replay_ready"] is True
+    assert replay["summary"]["eligible_for_private_self_use_candidate"] is False
+
+
+def test_offline_shadow_replay_rejects_retry_dependent_full_suite_window() -> None:
+    replay = build_accurate_intake_offline_shadow_replay(
+        [
+            _stage_manifest(include_full_suite=True),
+            _stage_manifest(
+                include_full_suite=True,
+                result_kinds=[
+                    "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
+                    "pass_after_retry",
+                ],
+            ),
+            _stage_manifest(include_full_suite=True),
+        ]
+    )
+
+    assert replay["summary"]["full_suite_run_count"] == 3
+    assert replay["summary"]["full_suite_pass_after_retry_count"] == 1
+    assert replay["summary"]["full_suite_replay_ready"] is False
     assert replay["summary"]["eligible_for_private_self_use_candidate"] is False
 
 
