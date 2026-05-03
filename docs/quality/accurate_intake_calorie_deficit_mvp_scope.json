@@ -36,6 +36,61 @@
     "public_rollout",
     "production_default_manager_selection"
   ],
+  "dogfood_trace_lifecycle_policy": {
+    "raw_trace": {
+      "created_by": "system_auto_logger",
+      "truth_status": "observation_only"
+    },
+    "review_candidate": {
+      "proposed_by": ["deterministic_rules", "optional_reviewer_agent"],
+      "approval_required": false
+    },
+    "human_labeled": {
+      "created_by": "human_reviewer",
+      "required_for_canonical_eval": true
+    },
+    "golden_candidate": {
+      "proposed_by": ["human_reviewer", "optional_reviewer_agent_after_human_label"],
+      "approved_by": "human_reviewer",
+      "status": "candidate_only"
+    },
+    "canonical_eval_case_requires": [
+      "human_approval",
+      "product_semantic_source",
+      "stable_expected_behavior",
+      "regression_test_or_eval_registration"
+    ]
+  },
+  "unsupported_free_text_policy": {
+    "default_final_action": "answer_only",
+    "default_answer_only_subtype": "general_guidance",
+    "mutation_allowed": false,
+    "target_change_allowed": false,
+    "meal_plan_persistence_allowed": false,
+    "reminder_creation_allowed": false,
+    "product_capability_claimed": false
+  },
+  "session_date_policy_mvp": {
+    "default_active_date_source": "backend_local_today_or_current_active_date",
+    "supported": ["today", "current_active_date"],
+    "limited_or_unsupported": ["yesterday_backfill", "cross_midnight_assignment", "weekly_history_query"],
+    "ambiguous_date_mutation_behavior": "block_mutation_or_ask_clarification"
+  },
+  "best_practice_evidence": {
+    "sources_checked": [
+      "https://platform.openai.com/docs/guides/evals",
+      "https://openai.github.io/openai-agents-python/tracing/",
+      "https://cookbook.openai.com/examples/evaluation/use-cases/tool_evaluation"
+    ],
+    "adopted_guidance": [
+      "log_traces_for_eval_case_mining",
+      "use_human_feedback_to_calibrate_automated_scoring",
+      "use_trace_grading_for_agent_error_identification"
+    ],
+    "rejected_guidance": [
+      "auto_promote_raw_production_trace_to_canonical_eval_truth"
+    ]
+  },
   "claim_flags": {
     "product_readiness_claimed": false,
     "private_self_use_approved": false,
