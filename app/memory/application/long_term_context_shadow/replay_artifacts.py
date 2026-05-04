@@ -151,10 +151,34 @@ def _calibration_bias_shadow_replay(
         "used_candidate_ids": sorted(used_ids),
         "ignored_candidates": _ignored_candidates(candidates, used_ids),
         "does_not_change_calibration_math": True,
+        "bias_attribution": _bias_attribution(used),
         "risk_if_wrong": "Could misattribute mismatch without changing the math.",
         "calibration_math_changed": False,
         "body_plan_mutated": False,
         "day_budget_mutated": False,
+        "runtime_effect_allowed": False,
+    }
+
+
+def _bias_attribution(
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    likely_underestimate: list[str] = []
+    likely_overestimate: list[str] = []
+    logging_quality: list[str] = []
+    for candidate in candidates:
+        direction = str(candidate.payload.get("bias_direction") or "")
+        if direction == "likely_underestimate":
+            likely_underestimate.append(candidate.candidate_id)
+        elif direction == "likely_overestimate":
+            likely_overestimate.append(candidate.candidate_id)
+        elif candidate.candidate_type == "logging_adherence_pattern":
+            logging_quality.append(candidate.candidate_id)
+    return {
+        "likely_underestimate_candidate_ids": sorted(likely_underestimate),
+        "likely_overestimate_candidate_ids": sorted(likely_overestimate),
+        "logging_quality_candidate_ids": sorted(logging_quality),
+        "math_adjustment_allowed": False,
         "runtime_effect_allowed": False,
     }
 

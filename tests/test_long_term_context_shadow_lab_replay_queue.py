@@ -49,6 +49,11 @@ def test_shadow_replay_evaluators_explain_used_and_ignored_context() -> None:
     calibration = artifact["replays"]["calibration_bias_shadow_replay"]
     assert calibration["expected_user_value"] == "better_bias_attribution_review"
     assert calibration["does_not_change_calibration_math"] is True
+    assert calibration["bias_attribution"]["likely_underestimate_candidate_ids"] == [
+        "intake-estimation-bias-likely-underestimate"
+    ]
+    assert calibration["bias_attribution"]["likely_overestimate_candidate_ids"] == []
+    assert calibration["bias_attribution"]["math_adjustment_allowed"] is False
     assert (
         "intake-estimation-bias-likely-underestimate"
         in calibration["used_candidate_ids"]

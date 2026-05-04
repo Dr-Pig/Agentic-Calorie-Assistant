@@ -57,21 +57,9 @@ def _recommendation_shadow_artifact(
     candidates: list[LongTermContextCandidate],
 ) -> dict[str, Any]:
     pool = _list_of_dicts(fixture.get("candidate_pool"))
+    context_candidates = _recommendation_context_candidates(candidates)
     evaluations = [
-        {
-            "evaluation_id": f"recommendation-shadow-{item.get('candidate_id', index + 1)}",
-            "candidate": item,
-            "used_context_candidate_ids": [
-                candidate.candidate_id
-                for candidate in candidates
-                if candidate.candidate_type
-                in {"preference", "food_preference", "golden_order"}
-            ],
-            "review_only_rank_signal": index + 1,
-            "review_status": "pending",
-            "human_review_required": True,
-            "runtime_effect_allowed": False,
-        }
+        _recommendation_candidate_evaluation(item, index, context_candidates)
         for index, item in enumerate(pool or [{"candidate_id": "fixture-empty-pool"}])
     ]
     return _base_artifact(
@@ -80,9 +68,99 @@ def _recommendation_shadow_artifact(
         extra={
             "live_search_used": False,
             "intake_commit_requested": False,
+            "used_context_candidate_ids": [
+                candidate.candidate_id for candidate in context_candidates
+            ],
             "candidate_evaluations": evaluations,
         },
     )
+
+
+def _recommendation_context_candidates(
+    candidates: list[LongTermContextCandidate],
+) -> list[LongTermContextCandidate]:
+    return [
+        candidate
+        for candidate in candidates
+        if candidate.candidate_type
+        in {
+            "food_preference",
+            "golden_order",
+            "negative_preference",
+            "temporary_preference",
+        }
+    ]
+
+
+def _recommendation_candidate_evaluation(
+    item: dict[str, Any],
+    index: int,
+    context_candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    positive = [
+        candidate.candidate_id
+        for candidate in context_candidates
+        if candidate.candidate_type in {"food_preference", "golden_order"}
+        and _context_candidate_matches_item(candidate, item)
+    ]
+    negative = [
+        candidate.candidate_id
+        for candidate in context_candidates
+        if candidate.candidate_type == "negative_preference"
+        and _context_candidate_matches_item(candidate, item)
+    ]
+    temporary = [
+        candidate.candidate_id
+        for candidate in context_candidates
+        if candidate.candidate_type == "temporary_preference"
+    ]
+    score = max(0, 100 - index * 5 + len(positive) * 25 - len(negative) * 70)
+    return {
+        "evaluation_id": f"recommendation-shadow-{item.get('candidate_id', index + 1)}",
+        "candidate": item,
+        "used_context_candidate_ids": [
+            candidate.candidate_id for candidate in context_candidates
+        ],
+        "review_only_rank_signal": index + 1,
+        "review_only_score": score,
+        "positive_context_matches": positive,
+        "negative_context_matches": negative,
+        "temporary_context_notes": temporary,
+        "blocked_by_negative_preference": bool(negative),
+        "ranking_basis": _recommendation_ranking_basis(positive, negative, temporary),
+        "review_status": "pending",
+        "human_review_required": True,
+        "runtime_effect_allowed": False,
+    }
+
+
+def _context_candidate_matches_item(
+    candidate: LongTermContextCandidate,
+    item: dict[str, Any],
+) -> bool:
+    name = str(item.get("name") or "").lower()
+    if candidate.candidate_type == "golden_order":
+        return any(
+            str(value).lower() in name
+            for value in candidate.payload.get("item_names") or []
+        )
+    value = str(candidate.payload.get("value") or "").lower()
+    return bool(value and value in name)
+
+
+def _recommendation_ranking_basis(
+    positive: list[str],
+    negative: list[str],
+    temporary: list[str],
+) -> list[str]:
+    basis = ["base_fixture_candidate_order"]
+    if positive:
+        basis.append("positive_preference_or_golden_order_match")
+    if negative:
+        basis.append("negative_preference_match")
+    if temporary:
+        basis.append("temporary_preference_context_available")
+    return basis
 
 
 def _rescue_shadow_artifact(

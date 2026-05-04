@@ -108,6 +108,9 @@ def _memory_promotion_demotion_shadow_artifact(
                 for candidate in candidates
             ],
             "demotion_review_lanes": _demotion_review_lanes(),
+            "correction_deletion_suppression_policy": (
+                _correction_deletion_suppression_policy()
+            ),
         },
     )
 
@@ -194,3 +197,25 @@ def _demotion_review_lanes() -> list[dict[str, Any]]:
             "durable_memory_mutation_allowed": False,
         },
     ]
+
+
+def _correction_deletion_suppression_policy() -> dict[str, Any]:
+    return {
+        "policy_status": "shadow_policy_only",
+        "supported_shadow_actions": [
+            "correct_candidate",
+            "suppress_candidate",
+            "delete_candidate",
+            "expire_candidate",
+        ],
+        "runtime_memory_mutation_allowed": False,
+        "durable_delete_allowed": False,
+        "manager_context_injection_allowed": False,
+        "source_trace_retained_for_audit": True,
+        "future_runtime_requirements": [
+            "human_confirmed_memory_store",
+            "user_visible_correction_surface",
+            "delete_or_suppress_audit_log",
+            "context_pack_exclusion_filter",
+        ],
+    }

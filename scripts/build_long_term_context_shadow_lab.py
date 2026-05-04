@@ -30,6 +30,11 @@ ARTIFACT_FILENAMES = {
     "context_signal_quality_scorecard": "context_signal_quality_scorecard.json",
     "candidate_extraction_engine_v2": "candidate_extraction_engine_v2.json",
     "derived_memory_views_shadow_eval": "derived_memory_views_shadow_eval.json",
+    "context_signal_lifecycle_shadow_eval": (
+        "context_signal_lifecycle_shadow_eval.json"
+    ),
+    "user_context_profile_shadow_eval": "user_context_profile_shadow_eval.json",
+    "scope_isolation_shadow_eval": "scope_isolation_shadow_eval.json",
     "context_value_scoring_v2": "context_value_scoring_v2.json",
     "shadow_replay_evaluators": "shadow_replay_evaluators.json",
     "review_queue_reducer": "review_queue_reducer.json",

@@ -259,7 +259,9 @@ def test_pr_review_autopilot_closeout_is_draft_pr_only() -> None:
     assert artifact["draft_pr_only"] is True
     assert artifact["auto_merge_allowed"] is False
     assert artifact["human_approval_required_for_merge"] is True
-    assert artifact["continue_without_gate_after_batch2"] is False
+    assert artifact["continue_same_draft_pr_after_ci_green"] is True
+    assert artifact["stop_after_pr_push"] is False
+    assert artifact["merge_still_requires_human_approval"] is True
     assert artifact["runtime_effect_allowed"] is False
 
 
