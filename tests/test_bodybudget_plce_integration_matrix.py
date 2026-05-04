@@ -33,6 +33,13 @@ def test_bodybudget_plce_integration_matrix_names_backend_read_models_and_routes
             "estimated_daily_deficit_kcal",
             "latest_weight_kg",
         ],
+        "body_budget_effective_budget_view": [
+            "/today/effective-budget",
+            "app.composition.body_budget_effective_budget.build_body_budget_effective_budget_view",
+            "runtime_effective_budget_kcal",
+            "adjustment_layers",
+            "sign_policy",
+        ],
         "active_body_plan_view": [
             "/body-plan/active",
             "app.body.application.active_body_plan_read_model.build_active_body_plan_view",
@@ -66,6 +73,7 @@ def test_bodybudget_plce_integration_matrix_keeps_plce_render_only() -> None:
     forbidden_tokens = [
         "Do not recompute consumed, remaining",
         "Do not calculate TDEE, target kcal, remaining kcal",
+        "Do not calculate effective budget, adjustment layer totals, or sign policy in PL/CE",
         "Do not run BMR/TDEE formulas",
         "do not create, rank, rewrite, accept, defer, or reject proposals",
         "does not add fields to `ManagerContextPacket`",
@@ -78,6 +86,7 @@ def test_bodybudget_plce_integration_matrix_references_importable_backend_read_m
     for dotted_path in [
         "app.composition.current_budget_read_model.build_current_budget_view",
         "app.composition.body_budget_deficit_summary.build_body_budget_deficit_summary",
+        "app.composition.body_budget_effective_budget.build_body_budget_effective_budget_view",
         "app.body.application.active_body_plan_read_model.build_active_body_plan_view",
         "app.composition.calibration_proposal_inbox.load_open_calibration_proposal_inbox",
     ]:
