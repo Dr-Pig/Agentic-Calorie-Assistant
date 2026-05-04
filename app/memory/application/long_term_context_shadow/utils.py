@@ -10,7 +10,7 @@ from app.memory.application.long_term_context_shadow.candidate_metadata import (
     _promotion_path,
     _risk_if_wrong,
 )
-from app.memory.application.long_term_context_shadow.candidate_review_helpers import (
+from app.memory.application.long_term_context_shadow.candidate_review_records import (
     _context_candidate_summary,
     _conversation_summary_preview,
     _review_status_for_action,
