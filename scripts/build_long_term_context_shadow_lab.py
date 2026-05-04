@@ -40,6 +40,9 @@ ARTIFACT_FILENAMES = {
         "contextual_friction_budget_shadow_eval.json"
     ),
     "menu_highlight_shadow_eval": "menu_highlight_shadow_eval.json",
+    "consumer_memory_substrate_shadow_eval": (
+        "consumer_memory_substrate_shadow_eval.json"
+    ),
     "context_value_scoring_v2": "context_value_scoring_v2.json",
     "shadow_replay_evaluators": "shadow_replay_evaluators.json",
     "review_queue_reducer": "review_queue_reducer.json",
@@ -70,6 +73,9 @@ ARTIFACT_FILENAMES = {
     "long_term_context_pack_shadow_eval": "long_term_context_pack_shadow_eval.json",
     "context_ingress_decision_shadow_eval": (
         "context_ingress_decision_shadow_eval.json"
+    ),
+    "memory_extraction_storage_rag_shadow_plan": (
+        "memory_extraction_storage_rag_shadow_plan.json"
     ),
     "product_capability_context_map": "product_capability_context_map.json",
     "external_memory_framework_research_review": (

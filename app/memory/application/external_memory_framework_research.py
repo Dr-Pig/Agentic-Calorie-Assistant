@@ -31,6 +31,12 @@ def build_external_memory_framework_research(
         "new_dependency_introduced": False,
         "external_framework_adopted_as_canonical": False,
         "l4a_l4c_superseded": False,
+        "legal_source_policy": {
+            "claude_code_leaked_source_used": False,
+            "public_docs_only_for_claude_code": True,
+            "local_skills_read_only": True,
+            "external_frameworks_not_canonical": True,
+        },
         **SHADOW_NON_CLAIM_FLAGS,
         **artifact_review_contract("external_memory_framework_research_review"),
         "research_sources": _research_sources(),
@@ -42,6 +48,42 @@ def build_external_memory_framework_research(
 
 def _research_sources() -> list[dict[str, Any]]:
     return [
+        {
+            "source_id": "claude-code-official-memory-docs",
+            "framework_id": "claude_code",
+            "source_kind": "official_docs",
+            "source_url": "https://code.claude.com/docs/en/memory",
+            "observed_practices": [
+                "memory_files_loaded_with_scope_order",
+                "modular_rules_loaded_by_path_scope",
+                "on_demand_topic_memory_files",
+                "memory_index_size_limit",
+                "plain_text_auditable_memory",
+            ],
+            "shadow_lab_translation": (
+                "Use bounded memory entrypoints and on-demand topic recall as "
+                "context packing pressure; do not read leaked source code."
+            ),
+        },
+        {
+            "source_id": "claude-memory-tool-official-guidance",
+            "framework_id": "claude_code",
+            "source_kind": "official_docs",
+            "source_url": (
+                "https://platform.claude.com/docs/en/agents-and-tools/"
+                "tool-use/memory-tool"
+            ),
+            "observed_practices": [
+                "memory_file_size_limits",
+                "paginated_memory_reading",
+                "memory_expiration",
+                "bounded_memory_tool_output",
+            ],
+            "shadow_lab_translation": (
+                "Adopt file-size, pagination, and expiration constraints as "
+                "future memory review requirements."
+            ),
+        },
         {
             "source_id": "hermes-memory-providers-user-guide",
             "framework_id": "hermes",
@@ -124,6 +166,42 @@ def _research_sources() -> list[dict[str, Any]]:
                 "future tool-mediated retrieval as shadow artifacts only."
             ),
         },
+        {
+            "source_id": "openclaw-memory-search-docs",
+            "framework_id": "openclaw",
+            "source_kind": "official_docs",
+            "source_url": "https://docs.openclaw.ai/concepts/memory-search",
+            "observed_practices": [
+                "configurable_embedding_provider",
+                "local_embedding_option",
+                "memory_index_status_checks",
+                "hybrid_index_troubleshooting",
+            ],
+            "shadow_lab_translation": (
+                "Use provider/index status as future diagnostics only; do not "
+                "activate embeddings or memory search in this PR."
+            ),
+        },
+        {
+            "source_id": "local-agent-runtime-memory-skills",
+            "framework_id": "local_agent_runtime_skills",
+            "source_kind": "local_read_only_skills",
+            "source_url": "local://C:/Users/User/Desktop/agent runtime",
+            "observed_practices": [
+                "future_utility_gate",
+                "novelty_gate",
+                "factuality_gate",
+                "safety_secret_gate",
+                "retain_raw_content_with_context",
+                "stable_document_id",
+                "tag_scope_before_recall",
+                "consolidation_delete_merge_rewrite",
+            ],
+            "shadow_lab_translation": (
+                "Adopt the quality gates and scope/tag discipline as artifact "
+                "policy; defer automatic memory tool writes."
+            ),
+        },
     ]
 
 
@@ -135,6 +213,10 @@ def _adopted_design_pressure() -> list[str]:
         "Prefer summary-first compiled context packs over raw conversation dumps.",
         "Treat conversation recall as tool-mediated retrieval with scope and review.",
         "Use review lanes before any promotion into confirmed or durable memory.",
+        "local_skill_future_utility_gate",
+        "local_skill_safety_secret_gate",
+        "stable_document_id_for_raw_trace_retention",
+        "metadata_scope_before_semantic_retrieval",
     ]
 
 
@@ -149,6 +231,10 @@ def _deferred_patterns() -> list[str]:
         "live_hybrid_search",
         "automatic_memory_flush_or_dreaming_promotion",
         "compiled_digest_loading_into_runtime",
+        "leaked_claude_code_source_or_zip_review",
+        "automatic_memory_add",
+        "automatic_memory_update",
+        "post_response_auto_capture",
     ]
 
 

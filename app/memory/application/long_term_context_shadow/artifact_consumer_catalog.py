@@ -72,6 +72,14 @@ ARTIFACT_CONSUMER_CATALOG: dict[str, list[str]] = {
         "chat_context",
         "human_review",
     ],
+    "consumer_memory_substrate_shadow_eval": [
+        "recommendation",
+        "proactive",
+        "calibration",
+        "rescue_later",
+        "architecture_governance",
+        "human_review",
+    ],
     "context_value_scoring_v2": [
         "human_review",
         "architecture_governance",
@@ -122,6 +130,17 @@ ARTIFACT_CONSUMER_CATALOG: dict[str, list[str]] = {
         "chat_context",
         "intake_clarification",
         "calibration",
+    ],
+    "memory_extraction_storage_rag_shadow_plan": [
+        "architecture_governance",
+        "future_manager_context_retrieval",
+        "recommendation",
+        "intake_clarification",
+        "calibration",
+        "proactive",
+        "rescue_later",
+        "chat_context",
+        "human_review",
     ],
     "entity_normalization_shadow_plan": [
         "architecture_governance",

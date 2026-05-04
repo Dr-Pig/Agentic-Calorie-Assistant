@@ -103,3 +103,43 @@ def test_local_framework_deep_review_scores_fit_without_adopting_runtime(
         for scorecard in review["framework_scorecards"]
     )
     assert "provider_context_auto_injection" in review["global_deferred_patterns"]
+
+
+def test_local_deep_review_includes_memory_skill_patterns_without_running_tools(
+    tmp_path: Path,
+) -> None:
+    skill_dir = tmp_path / "memory" / "openclaw" / "skills" / "memory-triage"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        "future utility novelty factual safe credentials memory_add memory_search",
+        encoding="utf-8",
+    )
+    docs_dir = tmp_path / "memory" / "hindsight" / "skills" / "hindsight-docs"
+    docs_dir.mkdir(parents=True)
+    (docs_dir / "best-practices.md").write_text(
+        "Retain raw content with context document_id timestamp tags recall budget",
+        encoding="utf-8",
+    )
+
+    from app.memory.application.local_memory_framework_review import (
+        build_local_framework_deep_review,
+    )
+
+    review = build_local_framework_deep_review(tmp_path)
+    summary = review["local_skill_reference_summary"]
+
+    assert summary["read_only_review"] is True
+    assert summary["tool_or_provider_started"] is False
+    assert summary["skill_files_reviewed"] >= 2
+    assert {
+        "future_utility_gate",
+        "novelty_gate",
+        "factuality_gate",
+        "safety_secret_gate",
+        "stable_document_id",
+        "tag_scope_before_recall",
+    }.issubset(set(summary["adopted_skill_patterns"]))
+    assert "automatic_memory_add" in summary["deferred_skill_patterns"]
+    assert summary["product_translation"]["raw_input"] == (
+        "retain as evidence with context, timestamp, and source refs"
+    )

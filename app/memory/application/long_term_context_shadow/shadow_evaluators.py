@@ -5,6 +5,9 @@ from typing import Any
 from app.memory.application.long_term_context_shadow.context_value_scoring import (
     _context_value_scoring_v2_artifact,
 )
+from app.memory.application.long_term_context_shadow.consumer_memory_substrate import (
+    _consumer_memory_substrate_shadow_artifact,
+)
 from app.memory.application.long_term_context_shadow.context_lifecycle_artifact import (
     _context_signal_lifecycle_shadow_artifact,
 )
@@ -70,6 +73,9 @@ def build_evaluator_artifacts(
             fixture,
             candidates,
         ),
+        "consumer_memory_substrate_shadow_eval": (
+            _consumer_memory_substrate_shadow_artifact(fixture, candidates)
+        ),
         "context_value_scoring_v2": _context_value_scoring_v2_artifact(
             fixture,
             candidates,
@@ -90,6 +96,7 @@ __all__ = [
     "_candidate_extraction_engine_v2_artifact",
     "_context_signal_lifecycle_shadow_artifact",
     "_context_value_scoring_v2_artifact",
+    "_consumer_memory_substrate_shadow_artifact",
     "_contextual_friction_budget_shadow_artifact",
     "_derived_memory_views_shadow_artifact",
     "_menu_highlight_shadow_artifact",
