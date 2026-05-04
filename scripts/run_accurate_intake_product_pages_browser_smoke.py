@@ -79,6 +79,10 @@ def _base_report(
         "chat_sent_cjk_message": False,
         "chat_assistant_bubble_rendered": False,
         "chat_history_reloaded": False,
+        "chat_url_state_preserved_after_date_change": False,
+        "chat_reload_preserved_selected_date": False,
+        "chat_user_url_state_preserved_after_user_change": False,
+        "chat_reload_preserved_user_id": False,
         "chat_enter_key_send_checked": False,
         "chat_shift_enter_multiline_checked": False,
         "chat_scrollable": False,
@@ -96,6 +100,10 @@ def _base_report(
         "today_no_debug_trace": False,
         "body_page_loaded": False,
         "body_query_user_id_honored": False,
+        "body_url_state_preserved_after_date_change": False,
+        "body_reload_preserved_selected_date": False,
+        "body_user_url_state_preserved_after_user_change": False,
+        "body_reload_preserved_user_id": False,
         "body_active_plan_rendered": False,
         "body_weight_checkin_saved": False,
         "body_plan_form_saved": False,
@@ -347,6 +355,80 @@ def _run_browser_sequence(
                 reload_scroll_state.get("scrollHeight", 0) > reload_scroll_state.get("clientHeight", 0)
                 and reload_scroll_state.get("moved") is True
             )
+            chat.evaluate(
+                """() => {
+                  const input = document.querySelector("#local-date");
+                  input.value = "2026-05-03";
+                  input.dispatchEvent(new Event("change", { bubbles: true }));
+                }"""
+            )
+            chat.wait_for_function(
+                """() => new URL(window.location.href).searchParams.get("local_date") === "2026-05-03" """,
+                timeout=timeout_ms,
+            )
+            result["chat_url_state_preserved_after_date_change"] = True
+            chat.reload(wait_until="networkidle", timeout=timeout_ms)
+            chat.wait_for_function(
+                """() => document.querySelector("#local-date")?.value === "2026-05-03" """,
+                timeout=timeout_ms,
+            )
+            result["chat_reload_preserved_selected_date"] = True
+            chat.evaluate(
+                """() => {
+                  const input = document.querySelector("#local-date");
+                  input.value = "2026-05-04";
+                  input.dispatchEvent(new Event("change", { bubbles: true }));
+                }"""
+            )
+            chat.wait_for_function(
+                """() => new URL(window.location.href).searchParams.get("local_date") === "2026-05-04" """,
+                timeout=timeout_ms,
+            )
+            chat.wait_for_function(
+                """(message) => (document.querySelector("#chat-scroll")?.textContent || "").includes(message)""",
+                arg=chat_messages[-1],
+                timeout=timeout_ms,
+            )
+            alternate_user_id = f"{user_external_id}-alt"
+            chat.evaluate(
+                """(userId) => {
+                  const input = document.querySelector("#user-id");
+                  input.value = userId;
+                  input.dispatchEvent(new Event("change", { bubbles: true }));
+                }""",
+                arg=alternate_user_id,
+            )
+            chat.wait_for_function(
+                """(userId) => new URL(window.location.href).searchParams.get("user_id") === userId """,
+                arg=alternate_user_id,
+                timeout=timeout_ms,
+            )
+            result["chat_user_url_state_preserved_after_user_change"] = True
+            chat.reload(wait_until="networkidle", timeout=timeout_ms)
+            chat.wait_for_function(
+                """(userId) => document.querySelector("#user-id")?.value === userId """,
+                arg=alternate_user_id,
+                timeout=timeout_ms,
+            )
+            result["chat_reload_preserved_user_id"] = True
+            chat.evaluate(
+                """(userId) => {
+                  const input = document.querySelector("#user-id");
+                  input.value = userId;
+                  input.dispatchEvent(new Event("change", { bubbles: true }));
+                }""",
+                arg=user_external_id,
+            )
+            chat.wait_for_function(
+                """(userId) => new URL(window.location.href).searchParams.get("user_id") === userId """,
+                arg=user_external_id,
+                timeout=timeout_ms,
+            )
+            chat.wait_for_function(
+                """(message) => (document.querySelector("#chat-scroll")?.textContent || "").includes(message)""",
+                arg=chat_messages[-1],
+                timeout=timeout_ms,
+            )
             result["fetch_sequence"].extend(_capture_fetches(chat))
             chat.close()
 
@@ -461,6 +543,62 @@ def _run_browser_sequence(
             result["body_active_plan_rendered"] = all(
                 body.locator(selector).inner_text(timeout=timeout_ms).strip() != "--"
                 for selector in ("#plan-daily-target", "#plan-tdee", "#plan-current-weight")
+            )
+            body.evaluate(
+                """() => {
+                  const input = document.querySelector("#local-date");
+                  input.value = "2026-05-03";
+                  input.dispatchEvent(new Event("change", { bubbles: true }));
+                }"""
+            )
+            body.wait_for_function(
+                """() => new URL(window.location.href).searchParams.get("local_date") === "2026-05-03" """,
+                timeout=timeout_ms,
+            )
+            result["body_url_state_preserved_after_date_change"] = True
+            body.reload(wait_until="networkidle", timeout=timeout_ms)
+            body.wait_for_function(
+                """() => document.querySelector("#local-date")?.value === "2026-05-03" """,
+                timeout=timeout_ms,
+            )
+            result["body_reload_preserved_selected_date"] = True
+            body.evaluate(
+                """() => {
+                  const input = document.querySelector("#local-date");
+                  input.value = "2026-05-04";
+                  input.dispatchEvent(new Event("change", { bubbles: true }));
+                }"""
+            )
+            body.wait_for_function(
+                """() => new URL(window.location.href).searchParams.get("local_date") === "2026-05-04" """,
+                timeout=timeout_ms,
+            )
+            alternate_user_id = f"{user_external_id}-alt"
+            body.fill("#user-id", alternate_user_id)
+            body.dispatch_event("#user-id", "change")
+            body.wait_for_function(
+                """(userId) => new URL(window.location.href).searchParams.get("user_id") === userId """,
+                arg=alternate_user_id,
+                timeout=timeout_ms,
+            )
+            result["body_user_url_state_preserved_after_user_change"] = True
+            body.reload(wait_until="networkidle", timeout=timeout_ms)
+            body.wait_for_function(
+                """(userId) => document.querySelector("#user-id")?.value === userId """,
+                arg=alternate_user_id,
+                timeout=timeout_ms,
+            )
+            result["body_reload_preserved_user_id"] = True
+            body.fill("#user-id", user_external_id)
+            body.dispatch_event("#user-id", "change")
+            body.wait_for_function(
+                """(userId) => new URL(window.location.href).searchParams.get("user_id") === userId """,
+                arg=user_external_id,
+                timeout=timeout_ms,
+            )
+            body.wait_for_function(
+                """() => document.querySelector("#plan-daily-target")?.textContent?.trim() !== "--" """,
+                timeout=timeout_ms,
             )
             result["current_step"] = "save_weight"
             body.fill("#weight-kg", "70.4")
@@ -578,6 +716,13 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("chat_sent_cjk_message", "chat_cjk_message_not_sent")
     require_true("chat_assistant_bubble_rendered", "chat_assistant_bubble_not_rendered")
     require_true("chat_history_reloaded", "chat_history_not_reloaded")
+    require_true("chat_url_state_preserved_after_date_change", "chat_url_state_not_preserved_after_date_change")
+    require_true("chat_reload_preserved_selected_date", "chat_reload_did_not_preserve_selected_date")
+    require_true(
+        "chat_user_url_state_preserved_after_user_change",
+        "chat_user_url_state_not_preserved_after_user_change",
+    )
+    require_true("chat_reload_preserved_user_id", "chat_reload_did_not_preserve_user_id")
     require_true("chat_enter_key_send_checked", "chat_enter_key_send_not_checked")
     require_true("chat_shift_enter_multiline_checked", "chat_shift_enter_multiline_not_checked")
     require_true("chat_scrollable", "chat_not_scrollable")
@@ -598,6 +743,13 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("today_no_debug_trace", "today_debug_trace_leaked")
     require_true("body_page_loaded", "body_page_not_loaded")
     require_true("body_query_user_id_honored", "body_query_user_id_not_honored")
+    require_true("body_url_state_preserved_after_date_change", "body_url_state_not_preserved_after_date_change")
+    require_true("body_reload_preserved_selected_date", "body_reload_did_not_preserve_selected_date")
+    require_true(
+        "body_user_url_state_preserved_after_user_change",
+        "body_user_url_state_not_preserved_after_user_change",
+    )
+    require_true("body_reload_preserved_user_id", "body_reload_did_not_preserve_user_id")
     require_true("body_active_plan_rendered", "body_active_plan_not_rendered")
     require_true("body_weight_checkin_saved", "body_weight_checkin_not_saved")
     require_true("body_plan_form_saved", "body_plan_form_not_saved")
