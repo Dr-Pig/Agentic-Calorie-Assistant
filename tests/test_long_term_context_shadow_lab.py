@@ -211,6 +211,7 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
         "memory_promotion_demotion_shadow_eval",
         "semantic_pattern_extraction_shadow_plan",
         "context_signal_quality_scorecard",
+        "context_pack_token_pressure_shadow_eval",
     }
 
     for artifact in artifacts.values():
@@ -500,6 +501,44 @@ def test_context_signal_quality_scorecard_prioritizes_value_and_harm_review() ->
     assert (
         "intake-estimation-bias-likely-underestimate"
         in rollups["calibration"]["candidate_ids"]
+    )
+
+
+def test_context_pack_token_pressure_shadow_eval_preserves_l4c_ordering() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "context_pack_token_pressure_shadow_eval"
+    ]
+
+    assert artifact["artifact_type"] == "context_pack_token_pressure_shadow_eval"
+    assert artifact["source_spec"] == "docs/specs/L4C_CONTEXT_PACKING_SPEC.md"
+    assert artifact["runtime_effect_allowed"] is False
+    assert artifact["manager_context_injected"] is False
+    assert artifact["token_pressure_policy"] == {
+        "general_compaction_threshold": 0.6,
+        "aggressive_compaction_threshold": 0.8,
+        "forced_trim_threshold": 0.9,
+    }
+    assert artifact["prune_order"][:2] == [
+        "long_transcript",
+        "raw_historical_records",
+    ]
+    assert "current_task_object" in artifact["preserve_first"]
+    assert "atomic_context_blocks" in artifact["preserve_first"]
+    assert artifact["atomic_blocks_split_allowed"] is False
+    assert {pack["pack_id"] for pack in artifact["evaluated_packs"]} >= {
+        "recommendation",
+        "intake_chat_context",
+        "calibration_context",
+        "proactive_context",
+        "rescue_context",
+        "cross_surface_context",
+    }
+    assert all(
+        pack["raw_full_history_dumped"] is False for pack in artifact["evaluated_packs"]
     )
 
 
@@ -923,6 +962,7 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "memory_promotion_demotion_shadow_eval.json",
         "semantic_pattern_extraction_shadow_plan.json",
         "context_signal_quality_scorecard.json",
+        "context_pack_token_pressure_shadow_eval.json",
         "external_memory_framework_research_review.json",
     }
     assert {path.name for path in output_dir.iterdir()} == expected_files
