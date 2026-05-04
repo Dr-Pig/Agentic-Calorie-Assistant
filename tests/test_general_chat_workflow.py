@@ -359,7 +359,8 @@ def test_general_chat_calibration_preview_can_persist_open_proposal_without_plan
 
     assert result.workflow_effect == "preview_calibration_proposal_without_plan_mutation"
     assert result.ui_hints["proposal_actions_enabled"] is True
-    assert result.ui_hints["root_route_activation"] == "deferred"
+    assert result.ui_hints["root_route_activation"] == "active"
+    assert result.ui_hints["stored_action_route_contract"] == "/calibration/proposal/stored-action"
     assert result.proposal_artifact is not None
     proposal_id = result.proposal_artifact["proposal_container_id"]
     proposal = db.get(ProposalContainerRecord, proposal_id)

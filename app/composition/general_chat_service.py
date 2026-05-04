@@ -150,7 +150,7 @@ def _calibration_unavailable_response(*, reason: str) -> GeneralChatPassResult:
             "delivery": "chat_primary_ui_mirror",
             "reason": reason,
             "proposal_actions_enabled": False,
-            "root_route_activation": "deferred",
+            "root_route_activation": "active",
         },
     )
 
@@ -319,7 +319,7 @@ def _calibration_preview_response(
             "stored_action_route_contract": (
                 "/calibration/proposal/stored-action" if proposal_actions_enabled else None
             ),
-            "root_route_activation": "deferred",
+            "root_route_activation": "active",
             "automatic_calibration_enabled": False,
             "plan_mutation_authorized": False,
             "ledger_mutation_authorized": False,
