@@ -39,6 +39,50 @@ def _pre_n3_payload() -> dict:
     return payload
 
 
+EXPECTED_RUNTIME_VISIBLE_ANCHOR_IDS = {
+    "single_item_tea_egg",
+    "custom_drink_boba_milk_tea",
+    "custom_drink_latte",
+    "custom_drink_americano",
+    "custom_drink_soy_milk",
+    "custom_drink_fresh_milk_tea",
+    "custom_drink_unsweetened_green_tea",
+    "custom_drink_cola",
+    "generic_meal_chicken_bento",
+    "single_item_salt_crispy_chicken",
+    "breakfast_staple_egg_pancake",
+    "breakfast_staple_rice_roll",
+    "breakfast_staple_sandwich",
+    "stable_base_beef_noodle",
+    "stable_base_zhajiangmian",
+    "single_item_sweet_potato",
+    "listed_item_tofu_dried",
+    "listed_item_kelp",
+    "listed_item_meatball",
+    "listed_item_greens_home_cooked",
+    "listed_item_tofu_skin",
+    "listed_item_instant_noodle_prince",
+    "listed_item_chicken_cutlet",
+    "listed_item_tempura_taiwan",
+    "listed_item_pig_blood_rice_cake",
+    "listed_item_green_beans",
+    "listed_item_chicken_home_cooked",
+    "listed_item_baiye_tofu",
+    "listed_item_squid",
+    "listed_item_rice_sausage",
+    "listed_item_oden_fishcake",
+    "listed_item_cabbage",
+    "listed_item_duck_blood",
+    "listed_item_glass_noodles",
+    "listed_item_mushroom",
+    "generic_meal_gyudon",
+    "stable_base_spicy_stinky_tofu",
+    "rice_bowl_luroufan",
+    "staple_dumplings",
+    "staple_potstickers",
+}
+
+
 def test_coverage_matrix_distinguishes_runtime_existing_anchor_and_gap() -> None:
     matrix = build_fooddb_runtime_coverage_matrix(small_anchor_payload=_pre_n3_payload())
     by_id = {entry["anchor_id"]: entry for entry in matrix["coverage_entries"] if entry.get("anchor_id")}
@@ -145,18 +189,8 @@ def test_status_packet_reports_runtime_anchors_without_claiming_integration_read
     assert status["pl_ce_files_changed"] is False
     assert status["real_fooddb_evidence_available"] is True
     assert status["product_loop_integration_claimed"] is False
-    assert status["runtime_visible_anchor_count"] == 9
-    assert status["runtime_visible_anchor_ids"] == [
-        "single_item_tea_egg",
-        "custom_drink_boba_milk_tea",
-        "custom_drink_latte",
-        "generic_meal_chicken_bento",
-        "listed_item_tofu_dried",
-        "listed_item_kelp",
-        "listed_item_meatball",
-        "listed_item_greens_home_cooked",
-        "breakfast_staple_egg_pancake",
-    ]
+    assert status["runtime_visible_anchor_count"] == 40
+    assert set(status["runtime_visible_anchor_ids"]) == EXPECTED_RUNTIME_VISIBLE_ANCHOR_IDS
 
 
 def test_fooddb_runtime_anchor_batch_cli_writes_roundtrippable_outputs(tmp_path: Path) -> None:

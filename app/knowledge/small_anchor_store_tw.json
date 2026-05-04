@@ -177,6 +177,11 @@
         "record_id": null,
         "source_url": null,
         "raw_row_hash": "1e772e740d5e2b059ea44f5d9d8b9ce927b71a8c76065698003821a36f143636"
+      },
+      "runtime_usage_boundary": "generic_drink_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_backed_mvp_portion_default",
+        "external_source_role": "source_evidence_only_not_common_serving"
       }
     },
     {
@@ -290,93 +295,504 @@
       "record_kind": "generic_anchor",
       "anchor_id": "custom_drink_americano",
       "canonical_name": "\u7f8e\u5f0f\u5496\u5561",
-      "aliases": ["\u7f8e\u5f0f\u5496\u5561", "\u7f8e\u5f0f", "\u9ed1\u5496\u5561"],
+      "aliases": [
+        "\u7f8e\u5f0f\u5496\u5561",
+        "\u7f8e\u5f0f",
+        "\u9ed1\u5496\u5561"
+      ],
       "dish_type": "customizable_drink",
       "composition_posture": "estimable_with_modifier_refinement",
       "variance_level": "low",
-      "semantic_hints": ["customizable_drink", "coffee_drink"],
-      "followup_hints": ["ask_cup_size"],
+      "semantic_hints": [
+        "customizable_drink",
+        "coffee_drink"
+      ],
+      "followup_hints": [
+        "ask_cup_size"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [5, 30],
+      "baseline_kcal_range": [
+        5,
+        30
+      ],
       "baseline_likely_kcal": 15,
       "major_modifiers": [
-        {"name": "cup_size", "values": ["small", "medium", "large"]}
+        {
+          "name": "cup_size",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        }
       ],
-      "composition_hints": ["coffee"]
+      "composition_hints": [
+        "coffee"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "drink_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u7f8e\u5f0f\u5496\u5561",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 15,
+      "kcal_range": [
+        5,
+        30
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_custom_drink_americano",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 15,
+          "kcal_range": [
+            5,
+            30
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "custom_drink_americano",
+        "raw_row_hash": "ee7e16f6e0cf1914aeeb4f426fe70869bda28dbb985759d9300ee679beb9f6b8"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "low_variance_single_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_drink_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "custom_drink_soy_milk",
       "canonical_name": "\u8c46\u6f3f",
-      "aliases": ["\u8c46\u6f3f"],
+      "aliases": [
+        "\u8c46\u6f3f"
+      ],
       "dish_type": "customizable_drink",
       "composition_posture": "estimable_with_modifier_refinement",
       "variance_level": "moderate",
-      "semantic_hints": ["customizable_drink", "soy_drink"],
-      "followup_hints": ["ask_sugar_level", "ask_cup_size"],
+      "semantic_hints": [
+        "customizable_drink",
+        "soy_drink"
+      ],
+      "followup_hints": [
+        "ask_sugar_level",
+        "ask_cup_size"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [80, 220],
+      "baseline_kcal_range": [
+        80,
+        220
+      ],
       "baseline_likely_kcal": 150,
       "major_modifiers": [
-        {"name": "sugar_level", "values": ["unsweetened", "half_sugar", "full_sugar"]},
-        {"name": "cup_size", "values": ["small", "medium", "large"]}
+        {
+          "name": "sugar_level",
+          "values": [
+            "unsweetened",
+            "half_sugar",
+            "full_sugar"
+          ]
+        },
+        {
+          "name": "cup_size",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        }
       ],
-      "composition_hints": ["soy_milk"]
+      "composition_hints": [
+        "soy_milk"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "drink_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u8c46\u6f3f",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 150,
+      "kcal_range": [
+        80,
+        220
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_custom_drink_soy_milk",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 150,
+          "kcal_range": [
+            80,
+            220
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "custom_drink_soy_milk",
+        "raw_row_hash": "97bff771845c0101ced481bb7e55456c7ea856769d7bec72b4c7b986c2f4f85e"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_drink_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "custom_drink_fresh_milk_tea",
       "canonical_name": "\u9bae\u5976\u8336",
-      "aliases": ["\u9bae\u5976\u8336", "\u5976\u8336"],
+      "aliases": [
+        "\u9bae\u5976\u8336",
+        "\u5976\u8336"
+      ],
       "dish_type": "customizable_drink",
       "composition_posture": "estimable_with_modifier_refinement",
       "variance_level": "high",
-      "semantic_hints": ["customizable_drink", "milk_tea_drink"],
-      "followup_hints": ["ask_sugar_level", "ask_cup_size"],
+      "semantic_hints": [
+        "customizable_drink",
+        "milk_tea_drink"
+      ],
+      "followup_hints": [
+        "ask_sugar_level",
+        "ask_cup_size"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [250, 500],
+      "baseline_kcal_range": [
+        250,
+        500
+      ],
       "baseline_likely_kcal": 360,
       "major_modifiers": [
-        {"name": "sugar_level", "values": ["unsweetened", "half_sugar", "full_sugar"]},
-        {"name": "cup_size", "values": ["small", "medium", "large"]}
+        {
+          "name": "sugar_level",
+          "values": [
+            "unsweetened",
+            "half_sugar",
+            "full_sugar"
+          ]
+        },
+        {
+          "name": "cup_size",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        }
       ],
-      "composition_hints": ["tea", "milk"]
+      "composition_hints": [
+        "tea",
+        "milk"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "drink_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u9bae\u5976\u8336",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 360,
+      "kcal_range": [
+        250,
+        500
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_custom_drink_fresh_milk_tea",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 360,
+          "kcal_range": [
+            250,
+            500
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "custom_drink_fresh_milk_tea",
+        "raw_row_hash": "b1ec8231ab2bc5ebf82cb89beddbc8e8a0facf2b2e17405f8cf365ab3b11454c"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "high_variance_customizable_drink_or_meal",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_drink_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "custom_drink_unsweetened_green_tea",
       "canonical_name": "\u7121\u7cd6\u7da0\u8336",
-      "aliases": ["\u7121\u7cd6\u7da0\u8336"],
+      "aliases": [
+        "\u7121\u7cd6\u7da0\u8336"
+      ],
       "dish_type": "customizable_drink",
       "composition_posture": "estimable_with_modifier_refinement",
       "variance_level": "low",
-      "semantic_hints": ["customizable_drink", "unsweetened_tea"],
-      "followup_hints": ["ask_cup_size"],
+      "semantic_hints": [
+        "customizable_drink",
+        "unsweetened_tea"
+      ],
+      "followup_hints": [
+        "ask_cup_size"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [0, 40],
+      "baseline_kcal_range": [
+        0,
+        40
+      ],
       "baseline_likely_kcal": 10,
       "major_modifiers": [
-        {"name": "cup_size", "values": ["small", "medium", "large"]}
+        {
+          "name": "cup_size",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        }
       ],
-      "composition_hints": ["tea"]
+      "composition_hints": [
+        "tea"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "drink_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u7121\u7cd6\u7da0\u8336",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 10,
+      "kcal_range": [
+        0,
+        40
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_custom_drink_unsweetened_green_tea",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 10,
+          "kcal_range": [
+            0,
+            40
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "custom_drink_unsweetened_green_tea",
+        "raw_row_hash": "42ab90c1f0de046abc7f497c9624eb50588cfa45d9e3ea481769c7cc4249911f"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "low_variance_single_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_drink_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "custom_drink_cola",
       "canonical_name": "\u53ef\u6a02",
-      "aliases": ["\u53ef\u6a02"],
+      "aliases": [
+        "\u53ef\u6a02"
+      ],
       "dish_type": "customizable_drink",
       "composition_posture": "estimable_with_modifier_refinement",
       "variance_level": "moderate",
-      "semantic_hints": ["customizable_drink", "sweetened_soda"],
-      "followup_hints": ["ask_size"],
+      "semantic_hints": [
+        "customizable_drink",
+        "sweetened_soda"
+      ],
+      "followup_hints": [
+        "ask_size"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [140, 300],
+      "baseline_kcal_range": [
+        140,
+        300
+      ],
       "baseline_likely_kcal": 210,
       "major_modifiers": [
-        {"name": "size", "values": ["small", "regular", "large", "bottle"]}
+        {
+          "name": "size",
+          "values": [
+            "small",
+            "regular",
+            "large",
+            "bottle"
+          ]
+        }
       ],
-      "composition_hints": ["soda"]
+      "composition_hints": [
+        "soda"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "drink_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u53ef\u6a02",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 210,
+      "kcal_range": [
+        140,
+        300
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_custom_drink_cola",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 210,
+          "kcal_range": [
+            140,
+            300
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "custom_drink_cola",
+        "raw_row_hash": "9c0743270ff1518b61b11e5de70b48bea3f81604231a42d259a782be513f75eb"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_drink_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
@@ -486,97 +902,540 @@
       "record_kind": "generic_anchor",
       "anchor_id": "stable_base_beef_noodle",
       "canonical_name": "\u725b\u8089\u9eb5",
-      "aliases": ["\u725b\u8089\u9eb5"],
+      "aliases": [
+        "\u725b\u8089\u9eb5"
+      ],
       "dish_type": "stable_base_variable_dish",
       "composition_posture": "stable_base_variable_dish",
       "variance_level": "moderate",
-      "semantic_hints": ["noodle_soup"],
-      "followup_hints": ["ask_noodle_amount", "ask_addons", "ask_portion"],
+      "semantic_hints": [
+        "noodle_soup"
+      ],
+      "followup_hints": [
+        "ask_noodle_amount",
+        "ask_addons",
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [550, 850],
+      "baseline_kcal_range": [
+        550,
+        850
+      ],
       "baseline_likely_kcal": 700,
       "major_modifiers": [
-        {"name": "noodle_amount", "values": ["small", "regular", "large"]},
-        {"name": "addons", "values": ["none", "extra_meat", "extra_noodles"]}
+        {
+          "name": "noodle_amount",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        },
+        {
+          "name": "addons",
+          "values": [
+            "none",
+            "extra_meat",
+            "extra_noodles"
+          ]
+        }
       ],
-      "composition_hints": ["noodles", "beef", "broth"]
+      "composition_hints": [
+        "noodles",
+        "beef",
+        "broth"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "generic_common_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u725b\u8089\u9eb5",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 700,
+      "kcal_range": [
+        550,
+        850
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_stable_base_beef_noodle",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 700,
+          "kcal_range": [
+            550,
+            850
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "stable_base_beef_noodle",
+        "raw_row_hash": "f6631e8f6c2eb65bd2391557e03456573c32ca55843f17cdfe5ea1df40b459a5"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "stable_base_zhajiangmian",
       "canonical_name": "\u70b8\u91ac\u9eb5",
-      "aliases": ["\u70b8\u91ac\u9eb5"],
+      "aliases": [
+        "\u70b8\u91ac\u9eb5"
+      ],
       "dish_type": "stable_base_variable_dish",
       "composition_posture": "estimable_with_refinement",
       "variance_level": "moderate",
-      "semantic_hints": ["dry_noodle_sauce"],
-      "followup_hints": ["ask_bowl_size", "ask_sauce_amount", "ask_add_ons"],
+      "semantic_hints": [
+        "dry_noodle_sauce"
+      ],
+      "followup_hints": [
+        "ask_bowl_size",
+        "ask_sauce_amount",
+        "ask_add_ons"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [500, 850],
+      "baseline_kcal_range": [
+        500,
+        850
+      ],
       "baseline_likely_kcal": 680,
       "major_modifiers": [
-        {"name": "bowl_size", "values": ["small", "regular", "large"]},
-        {"name": "sauce_amount", "values": ["light", "regular", "extra"]},
-        {"name": "add_ons", "values": ["none", "egg", "extra_meat"]}
+        {
+          "name": "bowl_size",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        },
+        {
+          "name": "sauce_amount",
+          "values": [
+            "light",
+            "regular",
+            "extra"
+          ]
+        },
+        {
+          "name": "add_ons",
+          "values": [
+            "none",
+            "egg",
+            "extra_meat"
+          ]
+        }
       ],
-      "composition_hints": ["noodles", "soybean_meat_sauce"]
+      "composition_hints": [
+        "noodles",
+        "soybean_meat_sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "generic_common_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u70b8\u91ac\u9eb5",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 680,
+      "kcal_range": [
+        500,
+        850
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_stable_base_zhajiangmian",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 680,
+          "kcal_range": [
+            500,
+            850
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "stable_base_zhajiangmian",
+        "raw_row_hash": "153b0bef185c5a052906e45e1fbf9b9f9b90935b2b894aec9d57e2091a282f41"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "generic_meal_gyudon",
       "canonical_name": "\u725b\u4e3c",
-      "aliases": ["\u725b\u4e3c", "\u725b\u8089\u4e3c"],
+      "aliases": [
+        "\u725b\u4e3c",
+        "\u725b\u8089\u4e3c"
+      ],
       "dish_type": "generic_meal",
       "composition_posture": "estimable_with_refinement",
       "variance_level": "moderate",
-      "semantic_hints": ["rice_bowl"],
-      "followup_hints": ["ask_bowl_size", "ask_add_ons"],
+      "semantic_hints": [
+        "rice_bowl"
+      ],
+      "followup_hints": [
+        "ask_bowl_size",
+        "ask_add_ons"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [550, 850],
+      "baseline_kcal_range": [
+        550,
+        850
+      ],
       "baseline_likely_kcal": 700,
       "major_modifiers": [
-        {"name": "bowl_size", "values": ["small", "regular", "large"]},
-        {"name": "add_ons", "values": ["none", "onsen_egg", "extra_meat"]}
+        {
+          "name": "bowl_size",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        },
+        {
+          "name": "add_ons",
+          "values": [
+            "none",
+            "onsen_egg",
+            "extra_meat"
+          ]
+        }
       ],
-      "composition_hints": ["rice", "beef", "sauce"]
+      "composition_hints": [
+        "rice",
+        "beef",
+        "sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "meal_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u725b\u4e3c",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 700,
+      "kcal_range": [
+        550,
+        850
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_generic_meal_gyudon",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 700,
+          "kcal_range": [
+            550,
+            850
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "generic_meal_gyudon",
+        "raw_row_hash": "1bc5b679c3c28663dbfa34dccf404228c7d045343b2086c9db7d69061a252536"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "stable_base_spicy_stinky_tofu",
       "canonical_name": "\u9ebb\u8fa3\u81ed\u8c46\u8150",
-      "aliases": ["\u9ebb\u8fa3\u81ed\u8c46\u8150"],
+      "aliases": [
+        "\u9ebb\u8fa3\u81ed\u8c46\u8150"
+      ],
       "dish_type": "stable_base_variable_dish",
       "composition_posture": "estimable_with_refinement",
       "variance_level": "high",
-      "semantic_hints": ["stable_base_variable_dish"],
-      "followup_hints": ["ask_noodle_portion", "ask_add_ons", "ask_portion", "ask_broth_consumption"],
+      "semantic_hints": [
+        "stable_base_variable_dish"
+      ],
+      "followup_hints": [
+        "ask_noodle_portion",
+        "ask_add_ons",
+        "ask_portion",
+        "ask_broth_consumption"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [350, 750],
+      "baseline_kcal_range": [
+        350,
+        750
+      ],
       "baseline_likely_kcal": 520,
       "major_modifiers": [
-        {"name": "noodle_portion", "values": ["none", "small", "regular"]},
-        {"name": "add_ons", "values": ["none", "duck_blood", "tofu_skin", "meat"]},
-        {"name": "broth_consumption", "values": ["little", "some", "most"]}
+        {
+          "name": "noodle_portion",
+          "values": [
+            "none",
+            "small",
+            "regular"
+          ]
+        },
+        {
+          "name": "add_ons",
+          "values": [
+            "none",
+            "duck_blood",
+            "tofu_skin",
+            "meat"
+          ]
+        },
+        {
+          "name": "broth_consumption",
+          "values": [
+            "little",
+            "some",
+            "most"
+          ]
+        }
       ],
-      "composition_hints": ["stinky_tofu", "spicy_broth"]
+      "composition_hints": [
+        "stinky_tofu",
+        "spicy_broth"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "generic_common_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u9ebb\u8fa3\u81ed\u8c46\u8150",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 520,
+      "kcal_range": [
+        350,
+        750
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_stable_base_spicy_stinky_tofu",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 520,
+          "kcal_range": [
+            350,
+            750
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "stable_base_spicy_stinky_tofu",
+        "raw_row_hash": "daca768e00f9447348ce6b907e3260f947863692ec81a70ddb8452d400d07d9f"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "high_variance_customizable_drink_or_meal",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "single_item_salt_crispy_chicken",
       "canonical_name": "\u9e7d\u9165\u96de",
-      "aliases": ["\u9e7d\u9165\u96de"],
+      "aliases": [
+        "\u9e7d\u9165\u96de"
+      ],
       "dish_type": "single_item",
       "composition_posture": "single_item",
       "variance_level": "moderate",
-      "semantic_hints": ["salt_crispy_chicken_single_item"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "salt_crispy_chicken_single_item"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [350, 650],
+      "baseline_kcal_range": [
+        350,
+        650
+      ],
       "baseline_likely_kcal": 500,
       "major_modifiers": [
-        {"name": "portion", "values": ["small", "regular", "large"]}
+        {
+          "name": "portion",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        }
       ],
-      "composition_hints": ["fried_chicken_bites"]
+      "composition_hints": [
+        "fried_chicken_bites"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "single_item_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u9e7d\u9165\u96de",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 500,
+      "kcal_range": [
+        350,
+        650
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_single_item_salt_crispy_chicken",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 500,
+          "kcal_range": [
+            350,
+            650
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "single_item_salt_crispy_chicken",
+        "raw_row_hash": "20f58e3de5ca53d49d75487e44398ce3d80dfd22dedb31daaf85d217c19a66c4"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_single_item_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
@@ -650,23 +1509,98 @@
         "record_id": null,
         "source_url": null,
         "raw_row_hash": "b5400071cb30aae35d371cfb5be512de70e5ef410fc9bc87fba7212f302b8671"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_backed_mvp_portion_default",
+        "external_source_role": "source_evidence_only_not_common_serving"
       }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_tofu_skin",
       "canonical_name": "\u8c46\u76ae",
-      "aliases": ["\u8c46\u76ae"],
+      "aliases": [
+        "\u8c46\u76ae"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "moderate",
-      "semantic_hints": ["luwei_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "luwei_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [70, 180],
+      "baseline_kcal_range": [
+        70,
+        180
+      ],
       "baseline_likely_kcal": 120,
       "major_modifiers": [],
-      "composition_hints": ["soy_product"]
+      "composition_hints": [
+        "soy_product"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u8c46\u76ae",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 120,
+      "kcal_range": [
+        70,
+        180
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_tofu_skin",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 120,
+          "kcal_range": [
+            70,
+            180
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_tofu_skin",
+        "raw_row_hash": "42310333aaba61f766dbf94752e9acc363510108882f3989d9ac3b1eb7593acb"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
@@ -840,81 +1774,433 @@
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_instant_noodle_prince",
       "canonical_name": "\u738b\u5b50\u9eb5",
-      "aliases": ["\u738b\u5b50\u9eb5"],
+      "aliases": [
+        "\u738b\u5b50\u9eb5"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "moderate",
-      "semantic_hints": ["luwei_component", "fried_snack_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "luwei_component",
+        "fried_snack_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [230, 320],
+      "baseline_kcal_range": [
+        230,
+        320
+      ],
       "baseline_likely_kcal": 280,
       "major_modifiers": [],
-      "composition_hints": ["instant_noodle"]
+      "composition_hints": [
+        "instant_noodle"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u738b\u5b50\u9eb5",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 280,
+      "kcal_range": [
+        230,
+        320
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_instant_noodle_prince",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 280,
+          "kcal_range": [
+            230,
+            320
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_instant_noodle_prince",
+        "raw_row_hash": "9a4789f9e2b6ebfe5765cd5e07623bc49061706952bdc936435dfee48b4baa98"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_chicken_cutlet",
       "canonical_name": "\u96de\u6392",
-      "aliases": ["\u96de\u6392"],
+      "aliases": [
+        "\u96de\u6392"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "high",
-      "semantic_hints": ["fried_snack_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "fried_snack_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [450, 750],
+      "baseline_kcal_range": [
+        450,
+        750
+      ],
       "baseline_likely_kcal": 600,
       "major_modifiers": [],
-      "composition_hints": ["fried_chicken"]
+      "composition_hints": [
+        "fried_chicken"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u96de\u6392",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 600,
+      "kcal_range": [
+        450,
+        750
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_chicken_cutlet",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 600,
+          "kcal_range": [
+            450,
+            750
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_chicken_cutlet",
+        "raw_row_hash": "222b9eb5c5ce2afd2183af589ddeb6e3ac0026af849f792f015b25e3c993f0dd"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "high_variance_customizable_drink_or_meal",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_tempura_taiwan",
       "canonical_name": "\u751c\u4e0d\u8fa3",
-      "aliases": ["\u751c\u4e0d\u8fa3"],
+      "aliases": [
+        "\u751c\u4e0d\u8fa3"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "moderate",
-      "semantic_hints": ["fried_snack_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "fried_snack_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [120, 240],
+      "baseline_kcal_range": [
+        120,
+        240
+      ],
       "baseline_likely_kcal": 180,
       "major_modifiers": [],
-      "composition_hints": ["fried_fish_cake"]
+      "composition_hints": [
+        "fried_fish_cake"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u751c\u4e0d\u8fa3",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 180,
+      "kcal_range": [
+        120,
+        240
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_tempura_taiwan",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 180,
+          "kcal_range": [
+            120,
+            240
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_tempura_taiwan",
+        "raw_row_hash": "7b26c9cc47f464cc68e9bb6b12856807eed811f19912ef6c8052b56138d40db4"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_pig_blood_rice_cake",
       "canonical_name": "\u7c73\u8840",
-      "aliases": ["\u7c73\u8840", "\u8c6c\u8840\u7cd5"],
+      "aliases": [
+        "\u7c73\u8840",
+        "\u8c6c\u8840\u7cd5"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "moderate",
-      "semantic_hints": ["fried_snack_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "fried_snack_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [120, 260],
+      "baseline_kcal_range": [
+        120,
+        260
+      ],
       "baseline_likely_kcal": 190,
       "major_modifiers": [],
-      "composition_hints": ["rice_cake"]
+      "composition_hints": [
+        "rice_cake"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u7c73\u8840",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 190,
+      "kcal_range": [
+        120,
+        260
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_pig_blood_rice_cake",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 190,
+          "kcal_range": [
+            120,
+            260
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_pig_blood_rice_cake",
+        "raw_row_hash": "5115f70bb71e0d41aa4e853af46ee86bf0c0bed84158fa5725094e656b0b3474"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_green_beans",
       "canonical_name": "\u56db\u5b63\u8c46",
-      "aliases": ["\u56db\u5b63\u8c46"],
+      "aliases": [
+        "\u56db\u5b63\u8c46"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "moderate",
-      "semantic_hints": ["fried_snack_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "fried_snack_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [70, 160],
+      "baseline_kcal_range": [
+        70,
+        160
+      ],
       "baseline_likely_kcal": 110,
       "major_modifiers": [],
-      "composition_hints": ["green_beans"]
+      "composition_hints": [
+        "green_beans"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u56db\u5b63\u8c46",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 110,
+      "kcal_range": [
+        70,
+        160
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_green_beans",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 110,
+          "kcal_range": [
+            70,
+            160
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_green_beans",
+        "raw_row_hash": "9a567a201c0e95245caaaa0fc76e997ef1a58de2ba7d216ff8b2a56e4a95d9e6"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
@@ -1008,17 +2294,89 @@
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_chicken_home_cooked",
       "canonical_name": "\u96de\u8089",
-      "aliases": ["\u96de\u8089", "\u96de\u80f8", "\u96de\u817f\u8089"],
+      "aliases": [
+        "\u96de\u8089",
+        "\u96de\u80f8",
+        "\u96de\u817f\u8089"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "moderate",
-      "semantic_hints": ["home_cooked_listed_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "home_cooked_listed_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [150, 350],
+      "baseline_kcal_range": [
+        150,
+        350
+      ],
       "baseline_likely_kcal": 240,
       "major_modifiers": [],
-      "composition_hints": ["chicken"]
+      "composition_hints": [
+        "chicken"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u96de\u8089",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 240,
+      "kcal_range": [
+        150,
+        350
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_chicken_home_cooked",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 240,
+          "kcal_range": [
+            150,
+            350
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_chicken_home_cooked",
+        "raw_row_hash": "cdb8c72ff0f43874b928ce3d7abc5ca57cbeae94be341c35adcf4ba1617a4e97"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
@@ -1130,288 +2488,1416 @@
       "record_kind": "generic_anchor",
       "anchor_id": "breakfast_staple_rice_roll",
       "canonical_name": "\u98ef\u7cf0",
-      "aliases": ["\u98ef\u7cf0", "\u7d2b\u7c73\u98ef\u7cf0"],
+      "aliases": [
+        "\u98ef\u7cf0",
+        "\u7d2b\u7c73\u98ef\u7cf0"
+      ],
       "dish_type": "breakfast_staple",
       "composition_posture": "estimable_with_refinement",
       "variance_level": "moderate",
-      "semantic_hints": ["taiwan_breakfast_staple", "rice_based"],
-      "followup_hints": ["ask_filling", "ask_size"],
+      "semantic_hints": [
+        "taiwan_breakfast_staple",
+        "rice_based"
+      ],
+      "followup_hints": [
+        "ask_filling",
+        "ask_size"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [350, 600],
+      "baseline_kcal_range": [
+        350,
+        600
+      ],
       "baseline_likely_kcal": 470,
       "major_modifiers": [
-        {"name": "filling", "values": ["regular", "fried_dough", "egg", "meat_floss"]},
-        {"name": "size", "values": ["small", "regular", "large"]}
+        {
+          "name": "filling",
+          "values": [
+            "regular",
+            "fried_dough",
+            "egg",
+            "meat_floss"
+          ]
+        },
+        {
+          "name": "size",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        }
       ],
-      "composition_hints": ["rice", "breakfast_fillings"]
+      "composition_hints": [
+        "rice",
+        "breakfast_fillings"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "meal_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u98ef\u7cf0",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 470,
+      "kcal_range": [
+        350,
+        600
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_breakfast_staple_rice_roll",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 470,
+          "kcal_range": [
+            350,
+            600
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "breakfast_staple_rice_roll",
+        "raw_row_hash": "c7484cf6a80ec9542c54b9cb82201a87d1b505a2f2bf0e186bd0b6c47a881c32"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_breakfast_staple_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "breakfast_staple_sandwich",
       "canonical_name": "\u4e09\u660e\u6cbb",
-      "aliases": ["\u4e09\u660e\u6cbb"],
+      "aliases": [
+        "\u4e09\u660e\u6cbb"
+      ],
       "dish_type": "breakfast_staple",
       "composition_posture": "estimable_with_refinement",
       "variance_level": "moderate",
-      "semantic_hints": ["taiwan_breakfast_staple"],
-      "followup_hints": ["ask_filling", "ask_sauce"],
+      "semantic_hints": [
+        "taiwan_breakfast_staple"
+      ],
+      "followup_hints": [
+        "ask_filling",
+        "ask_sauce"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [300, 520],
+      "baseline_kcal_range": [
+        300,
+        520
+      ],
       "baseline_likely_kcal": 410,
       "major_modifiers": [
-        {"name": "filling", "values": ["egg", "ham", "tuna", "chicken"]},
-        {"name": "sauce", "values": ["none", "light", "regular"]}
+        {
+          "name": "filling",
+          "values": [
+            "egg",
+            "ham",
+            "tuna",
+            "chicken"
+          ]
+        },
+        {
+          "name": "sauce",
+          "values": [
+            "none",
+            "light",
+            "regular"
+          ]
+        }
       ],
-      "composition_hints": ["bread", "filling"]
+      "composition_hints": [
+        "bread",
+        "filling"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "meal_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u4e09\u660e\u6cbb",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 410,
+      "kcal_range": [
+        300,
+        520
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_breakfast_staple_sandwich",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 410,
+          "kcal_range": [
+            300,
+            520
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "breakfast_staple_sandwich",
+        "raw_row_hash": "bf10b9c7f6e4363a7a4c846153b95d60cfddbeebc2ef01efdff7d4e4773ab72a"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_breakfast_staple_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "rice_bowl_luroufan",
       "canonical_name": "\u6ef7\u8089\u98ef",
-      "aliases": ["\u6ef7\u8089\u98ef", "\u9b6f\u8089\u98ef"],
+      "aliases": [
+        "\u6ef7\u8089\u98ef",
+        "\u9b6f\u8089\u98ef"
+      ],
       "dish_type": "rice_bowl",
       "composition_posture": "estimable_with_refinement",
       "variance_level": "moderate",
-      "semantic_hints": ["rice_bowl", "taiwan_staple"],
-      "followup_hints": ["ask_rice_portion", "ask_bowl_size", "ask_add_ons"],
+      "semantic_hints": [
+        "rice_bowl",
+        "taiwan_staple"
+      ],
+      "followup_hints": [
+        "ask_rice_portion",
+        "ask_bowl_size",
+        "ask_add_ons"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [450, 700],
+      "baseline_kcal_range": [
+        450,
+        700
+      ],
       "baseline_likely_kcal": 580,
       "major_modifiers": [
-        {"name": "rice_portion", "values": ["small", "regular", "large"]},
-        {"name": "add_ons", "values": ["none", "egg", "tofu"]}
+        {
+          "name": "rice_portion",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        },
+        {
+          "name": "add_ons",
+          "values": [
+            "none",
+            "egg",
+            "tofu"
+          ]
+        }
       ],
-      "composition_hints": ["rice", "braised_pork_sauce"]
+      "composition_hints": [
+        "rice",
+        "braised_pork_sauce"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "meal_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u6ef7\u8089\u98ef",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 580,
+      "kcal_range": [
+        450,
+        700
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_rice_bowl_luroufan",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 580,
+          "kcal_range": [
+            450,
+            700
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "rice_bowl_luroufan",
+        "raw_row_hash": "4915927c232e6c248652b0fb678c6dcf4f9da6686f902350dc35019787f8d839"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "staple_dumplings",
       "canonical_name": "\u6c34\u9903",
-      "aliases": ["\u6c34\u9903"],
+      "aliases": [
+        "\u6c34\u9903"
+      ],
       "dish_type": "stable_base_variable_dish",
       "composition_posture": "estimable_with_refinement",
       "variance_level": "moderate",
-      "semantic_hints": ["dumplings", "piece_count_sensitive"],
-      "followup_hints": ["ask_piece_count", "ask_filling"],
+      "semantic_hints": [
+        "dumplings",
+        "piece_count_sensitive"
+      ],
+      "followup_hints": [
+        "ask_piece_count",
+        "ask_filling"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [350, 650],
+      "baseline_kcal_range": [
+        350,
+        650
+      ],
       "baseline_likely_kcal": 500,
       "major_modifiers": [
-        {"name": "piece_count", "values": ["8", "10", "12", "15"]},
-        {"name": "filling", "values": ["pork_cabbage", "chive", "vegetable"]}
+        {
+          "name": "piece_count",
+          "values": [
+            "8",
+            "10",
+            "12",
+            "15"
+          ]
+        },
+        {
+          "name": "filling",
+          "values": [
+            "pork_cabbage",
+            "chive",
+            "vegetable"
+          ]
+        }
       ],
-      "composition_hints": ["dumpling_wrappers", "filling"]
+      "composition_hints": [
+        "dumpling_wrappers",
+        "filling"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "generic_common_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u6c34\u9903",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 500,
+      "kcal_range": [
+        350,
+        650
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_staple_dumplings",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 500,
+          "kcal_range": [
+            350,
+            650
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "staple_dumplings",
+        "raw_row_hash": "5ab6d83f7c8e77747f2244c0e141853b9066e558f73fcd9b0b15a1e6e731ac64"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "staple_potstickers",
       "canonical_name": "\u934b\u8cbc",
-      "aliases": ["\u934b\u8cbc"],
+      "aliases": [
+        "\u934b\u8cbc"
+      ],
       "dish_type": "stable_base_variable_dish",
       "composition_posture": "estimable_with_refinement",
       "variance_level": "moderate",
-      "semantic_hints": ["dumplings", "piece_count_sensitive", "pan_fried"],
-      "followup_hints": ["ask_piece_count", "ask_filling"],
+      "semantic_hints": [
+        "dumplings",
+        "piece_count_sensitive",
+        "pan_fried"
+      ],
+      "followup_hints": [
+        "ask_piece_count",
+        "ask_filling"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [400, 700],
+      "baseline_kcal_range": [
+        400,
+        700
+      ],
       "baseline_likely_kcal": 560,
       "major_modifiers": [
-        {"name": "piece_count", "values": ["8", "10", "12", "15"]},
-        {"name": "filling", "values": ["pork_cabbage", "chive", "vegetable"]}
+        {
+          "name": "piece_count",
+          "values": [
+            "8",
+            "10",
+            "12",
+            "15"
+          ]
+        },
+        {
+          "name": "filling",
+          "values": [
+            "pork_cabbage",
+            "chive",
+            "vegetable"
+          ]
+        }
       ],
-      "composition_hints": ["dumpling_wrappers", "filling", "pan_fried_oil"]
+      "composition_hints": [
+        "dumpling_wrappers",
+        "filling",
+        "pan_fried_oil"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "generic_common_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u934b\u8cbc",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 560,
+      "kcal_range": [
+        400,
+        700
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_staple_potstickers",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 560,
+          "kcal_range": [
+            400,
+            700
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "staple_potstickers",
+        "raw_row_hash": "4d4c304185cecb1a641850ff7cba96d29896a3f3cb67f75d0029309c819535b1"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "single_item_sweet_potato",
       "canonical_name": "\u5730\u74dc",
-      "aliases": ["\u5730\u74dc", "\u70e4\u5730\u74dc"],
+      "aliases": [
+        "\u5730\u74dc",
+        "\u70e4\u5730\u74dc"
+      ],
       "dish_type": "single_item",
       "composition_posture": "single_item",
       "variance_level": "moderate",
-      "semantic_hints": ["stable_single_item", "size_sensitive"],
-      "followup_hints": ["ask_size"],
+      "semantic_hints": [
+        "stable_single_item",
+        "size_sensitive"
+      ],
+      "followup_hints": [
+        "ask_size"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [120, 300],
+      "baseline_kcal_range": [
+        120,
+        300
+      ],
       "baseline_likely_kcal": 200,
       "major_modifiers": [
-        {"name": "size", "values": ["small", "regular", "large"]}
+        {
+          "name": "size",
+          "values": [
+            "small",
+            "regular",
+            "large"
+          ]
+        }
       ],
-      "composition_hints": ["sweet_potato"]
+      "composition_hints": [
+        "sweet_potato"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "single_item_serving",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u5730\u74dc",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 200,
+      "kcal_range": [
+        120,
+        300
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_single_item_sweet_potato",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 200,
+          "kcal_range": [
+            120,
+            300
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "single_item_sweet_potato",
+        "raw_row_hash": "afeb1e27c370fd2ff5feb70551d6ba027b07e1ed5fc0427e25ebcfd3fd8905f5"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_single_item_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_baiye_tofu",
       "canonical_name": "\u767e\u9801\u8c46\u8150",
-      "aliases": ["\u767e\u9801\u8c46\u8150", "\u767e\u9801"],
+      "aliases": [
+        "\u767e\u9801\u8c46\u8150",
+        "\u767e\u9801"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "moderate",
-      "semantic_hints": ["luwei_component", "malatang_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "luwei_component",
+        "malatang_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [120, 240],
+      "baseline_kcal_range": [
+        120,
+        240
+      ],
       "baseline_likely_kcal": 180,
       "major_modifiers": [],
-      "composition_hints": ["soy_product"]
+      "composition_hints": [
+        "soy_product"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u767e\u9801\u8c46\u8150",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 180,
+      "kcal_range": [
+        120,
+        240
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_baiye_tofu",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 180,
+          "kcal_range": [
+            120,
+            240
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_baiye_tofu",
+        "raw_row_hash": "e56beb7afa91edd25ff23d8f5c02403737c1047a6bf47118485a1292a5db43b6"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_squid",
       "canonical_name": "\u9b77\u9b5a",
-      "aliases": ["\u9b77\u9b5a", "\u82b1\u679d"],
+      "aliases": [
+        "\u9b77\u9b5a",
+        "\u82b1\u679d"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "moderate",
-      "semantic_hints": ["luwei_component", "fried_snack_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "luwei_component",
+        "fried_snack_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [120, 260],
+      "baseline_kcal_range": [
+        120,
+        260
+      ],
       "baseline_likely_kcal": 190,
       "major_modifiers": [],
-      "composition_hints": ["seafood"]
+      "composition_hints": [
+        "seafood"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u9b77\u9b5a",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 190,
+      "kcal_range": [
+        120,
+        260
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_squid",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 190,
+          "kcal_range": [
+            120,
+            260
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_squid",
+        "raw_row_hash": "12619764fd6ed8fdb607ddf28e9fd4351e77d872a59c8b90577f528c942d2162"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_rice_sausage",
       "canonical_name": "\u7c73\u8178",
-      "aliases": ["\u7c73\u8178", "\u5927\u8178"],
+      "aliases": [
+        "\u7c73\u8178",
+        "\u5927\u8178"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "moderate",
-      "semantic_hints": ["luwei_component", "fried_snack_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "luwei_component",
+        "fried_snack_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [180, 340],
+      "baseline_kcal_range": [
+        180,
+        340
+      ],
       "baseline_likely_kcal": 260,
       "major_modifiers": [],
-      "composition_hints": ["rice_sausage"]
+      "composition_hints": [
+        "rice_sausage"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u7c73\u8178",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 260,
+      "kcal_range": [
+        180,
+        340
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_rice_sausage",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 260,
+          "kcal_range": [
+            180,
+            340
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_rice_sausage",
+        "raw_row_hash": "129c29c9d617cb178ad897e7a3f920365b7e11911d546259fa46ddcad1323aeb"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_oden_fishcake",
       "canonical_name": "\u9ed1\u8f2a",
-      "aliases": ["\u9ed1\u8f2a", "\u95dc\u6771\u716e\u9ed1\u8f2a"],
+      "aliases": [
+        "\u9ed1\u8f2a",
+        "\u95dc\u6771\u716e\u9ed1\u8f2a"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "moderate",
-      "semantic_hints": ["luwei_component", "oden_component", "fried_snack_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "luwei_component",
+        "oden_component",
+        "fried_snack_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [80, 190],
+      "baseline_kcal_range": [
+        80,
+        190
+      ],
       "baseline_likely_kcal": 130,
       "major_modifiers": [],
-      "composition_hints": ["fishcake"]
+      "composition_hints": [
+        "fishcake"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u9ed1\u8f2a",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 130,
+      "kcal_range": [
+        80,
+        190
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_oden_fishcake",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 130,
+          "kcal_range": [
+            80,
+            190
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_oden_fishcake",
+        "raw_row_hash": "fddfdd9895e19f9967b93d72aa735bb9ca880f02551d4281b93565f7a4cfa0da"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_cabbage",
       "canonical_name": "\u9ad8\u9e97\u83dc",
-      "aliases": ["\u9ad8\u9e97\u83dc", "\u9ad8\u9e97"],
+      "aliases": [
+        "\u9ad8\u9e97\u83dc",
+        "\u9ad8\u9e97"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "low",
-      "semantic_hints": ["luwei_component", "malatang_component", "vegetable_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "luwei_component",
+        "malatang_component",
+        "vegetable_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [30, 120],
+      "baseline_kcal_range": [
+        30,
+        120
+      ],
       "baseline_likely_kcal": 70,
       "major_modifiers": [],
-      "composition_hints": ["vegetables"]
+      "composition_hints": [
+        "vegetables"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u9ad8\u9e97\u83dc",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 70,
+      "kcal_range": [
+        30,
+        120
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_cabbage",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 70,
+          "kcal_range": [
+            30,
+            120
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_cabbage",
+        "raw_row_hash": "61a24219ec5042dc32e729b7c14af6be0cb8e967426fbafc36950860f02087e4"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "low_variance_single_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_duck_blood",
       "canonical_name": "\u9d28\u8840",
-      "aliases": ["\u9d28\u8840"],
+      "aliases": [
+        "\u9d28\u8840"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "low",
-      "semantic_hints": ["malatang_component", "spicy_hotpot_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "malatang_component",
+        "spicy_hotpot_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [60, 130],
+      "baseline_kcal_range": [
+        60,
+        130
+      ],
       "baseline_likely_kcal": 90,
       "major_modifiers": [],
-      "composition_hints": ["duck_blood"]
+      "composition_hints": [
+        "duck_blood"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u9d28\u8840",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 90,
+      "kcal_range": [
+        60,
+        130
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_duck_blood",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 90,
+          "kcal_range": [
+            60,
+            130
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_duck_blood",
+        "raw_row_hash": "cd1aa5dbf480f4042327a89a89f02e0e4dc5332b05fc9a2b0fcc42c26b6a63fa"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "low_variance_single_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_glass_noodles",
       "canonical_name": "\u51ac\u7c89",
-      "aliases": ["\u51ac\u7c89", "\u7c89\u7d72"],
+      "aliases": [
+        "\u51ac\u7c89",
+        "\u7c89\u7d72"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "moderate",
-      "semantic_hints": ["malatang_component", "hotpot_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "malatang_component",
+        "hotpot_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [120, 260],
+      "baseline_kcal_range": [
+        120,
+        260
+      ],
       "baseline_likely_kcal": 190,
       "major_modifiers": [],
-      "composition_hints": ["glass_noodles"]
+      "composition_hints": [
+        "glass_noodles"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u51ac\u7c89",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 190,
+      "kcal_range": [
+        120,
+        260
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_glass_noodles",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 190,
+          "kcal_range": [
+            120,
+            260
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_glass_noodles",
+        "raw_row_hash": "efcc9ed678c775f3b8dc2813618a5f4420d6ecc26bf5338198937e85de5e0ab2"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_mushroom",
       "canonical_name": "\u9999\u83c7",
-      "aliases": ["\u9999\u83c7"],
+      "aliases": [
+        "\u9999\u83c7"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "low",
-      "semantic_hints": ["luwei_component", "malatang_component", "vegetable_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "luwei_component",
+        "malatang_component",
+        "vegetable_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [20, 90],
+      "baseline_kcal_range": [
+        20,
+        90
+      ],
       "baseline_likely_kcal": 50,
       "major_modifiers": [],
-      "composition_hints": ["mushroom"]
+      "composition_hints": [
+        "mushroom"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "label": "one existing FoodDB common serving for \u9999\u83c7",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "guarded_afk_batch_policy"
+        ]
+      },
+      "kcal_point": 50,
+      "kcal_range": [
+        20,
+        90
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_mushroom",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 50,
+          "kcal_range": [
+            20,
+            90
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_mushroom",
+        "raw_row_hash": "d5554cc6b878dbc71fae186fb88c6fd7beed697079841bae4aa8a612c558d1b6"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "guarded_afk_batch",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "existing_small_anchor_broad_taiwan_fooddb_batch",
+        "policy_version": "fooddb_guarded_afk_internal_seed_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "low_variance_single_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_semantic_only",
       "canonical_name": "\u6ef7\u5473",
-      "aliases": ["\u6ef7\u5473"],
+      "aliases": [
+        "\u6ef7\u5473"
+      ],
       "dish_type": "composition_unknown_basket",
       "composition_posture": "composition_unknown_basket",
       "variance_level": "high",
-      "semantic_hints": ["self_selected_basket"],
-      "followup_hints": ["ask_listed_items", "ask_portion"],
+      "semantic_hints": [
+        "self_selected_basket"
+      ],
+      "followup_hints": [
+        "ask_listed_items",
+        "ask_portion"
+      ],
       "clarify_required": true,
       "unresolved_reason": "composition_unknown_basket_requires_listed_items"
     },
     {
       "record_kind": "generic_semantic_only",
       "canonical_name": "\u9ebb\u8fa3\u71d9",
-      "aliases": ["\u9ebb\u8fa3\u71d9"],
+      "aliases": [
+        "\u9ebb\u8fa3\u71d9"
+      ],
       "dish_type": "composition_unknown_basket",
       "composition_posture": "composition_unknown_basket",
       "variance_level": "high",
-      "semantic_hints": ["self_selected_basket"],
-      "followup_hints": ["ask_listed_items", "ask_portion"],
+      "semantic_hints": [
+        "self_selected_basket"
+      ],
+      "followup_hints": [
+        "ask_listed_items",
+        "ask_portion"
+      ],
       "clarify_required": true,
       "unresolved_reason": "composition_unknown_basket_requires_listed_items"
     },
     {
       "record_kind": "generic_semantic_only",
       "canonical_name": "\u9e7d\u9165\u96de",
-      "aliases": ["\u9e7d\u9165\u96de"],
+      "aliases": [
+        "\u9e7d\u9165\u96de"
+      ],
       "dish_type": "composition_unknown_basket",
       "composition_posture": "composition_unknown_basket",
       "variance_level": "high",
-      "semantic_hints": ["self_selected_basket"],
-      "followup_hints": ["ask_listed_items", "ask_portion"],
+      "semantic_hints": [
+        "self_selected_basket"
+      ],
+      "followup_hints": [
+        "ask_listed_items",
+        "ask_portion"
+      ],
       "clarify_required": true,
       "unresolved_reason": "salt_crispy_chicken_basket_requires_listed_items"
     },
     {
       "record_kind": "generic_semantic_only",
       "canonical_name": "\u5bb6\u5e38\u83dc",
-      "aliases": ["\u5bb6\u5e38\u83dc", "\u5abd\u5abd\u716e\u7684"],
+      "aliases": [
+        "\u5bb6\u5e38\u83dc",
+        "\u5abd\u5abd\u716e\u7684"
+      ],
       "dish_type": "home_cooked_unspecified",
       "composition_posture": "composition_unknown_basket",
       "variance_level": "high",
-      "semantic_hints": ["home_cooked_unspecified"],
-      "followup_hints": ["ask_listed_items", "ask_portion"],
+      "semantic_hints": [
+        "home_cooked_unspecified"
+      ],
+      "followup_hints": [
+        "ask_listed_items",
+        "ask_portion"
+      ],
       "clarify_required": true,
       "unresolved_reason": "home_cooked_food_requires_listed_dishes_or_portions"
     }
