@@ -126,6 +126,47 @@ def test_import_preview_reads_export_manifest_without_writing_target_db(tmp_path
     assert preview["contains_personal_diet_logs"] is True
     assert preview["do_not_commit"] is True
     assert target_db.exists() is False
+    assert preview["export_format"] == "sqlite_copy_with_manifest"
+    assert preview["export_contains_sqlite_copy"] is True
+    assert preview["source_export_size_bytes"] == len(b"sqlite bytes")
+    assert isinstance(preview["source_export_modified_at_utc"], str)
+    assert preview["target_exists"] is False
+    assert preview["target_backup_required_before_restore"] is True
+    assert preview["manual_next_steps"] == [
+        "review_export_manifest",
+        "create_target_backup_before_restore",
+        "restore_manually_outside_this_preview",
+    ]
+
+
+def test_import_preview_rejects_manifest_without_required_export_copy_metadata(tmp_path: Path) -> None:
+    sqlite_copy = tmp_path / "exports" / "accurate_intake.sqlite3"
+    sqlite_copy.parent.mkdir()
+    sqlite_copy.write_bytes(b"sqlite bytes")
+    manifest_path = tmp_path / "exports" / "bad-metadata.manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "operation": "export",
+                "local_only": True,
+                "do_not_commit": True,
+                "contains_personal_diet_logs": True,
+                "export_path": str(sqlite_copy),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    preview = import_preview_local_dogfood_export(
+        export_manifest_path=manifest_path,
+        target_db_path=tmp_path / "local_dogfood" / "accurate_intake.sqlite3",
+    )
+
+    assert preview["status"] == "blocked"
+    assert "export_format_not_sqlite_copy_with_manifest" in preview["blockers"]
+    assert "export_manifest_missing_sqlite_copy_flag" in preview["blockers"]
+    assert preview["writes_performed"] is False
+    assert preview["import_allowed"] is False
 
 
 def test_import_preview_rejects_export_manifest_without_sqlite_copy_path(tmp_path: Path) -> None:
@@ -150,6 +191,95 @@ def test_import_preview_rejects_export_manifest_without_sqlite_copy_path(tmp_pat
 
     assert preview["status"] == "blocked"
     assert "export_sqlite_copy_missing" in preview["blockers"]
+
+
+def test_import_preview_rejects_export_copy_outside_allowed_local_roots(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "exports" / "outside-root.manifest.json"
+    manifest_path.parent.mkdir()
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "operation": "export",
+                "local_only": True,
+                "do_not_commit": True,
+                "contains_personal_diet_logs": True,
+                "export_format": "sqlite_copy_with_manifest",
+                "export_contains_sqlite_copy": True,
+                "export_path": "not_local_exports/unsafe.sqlite3",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    preview = import_preview_local_dogfood_export(
+        export_manifest_path=manifest_path,
+        target_db_path=tmp_path / "local_dogfood" / "accurate_intake.sqlite3",
+    )
+
+    assert preview["status"] == "blocked"
+    assert "source_export_path_outside_allowed_local_roots" in preview["blockers"]
+    assert preview["writes_performed"] is False
+    assert preview["import_allowed"] is False
+
+
+def test_import_preview_rejects_export_copy_when_source_equals_target(tmp_path: Path) -> None:
+    target_db = tmp_path / "local_dogfood" / "accurate_intake.sqlite3"
+    target_db.parent.mkdir()
+    target_db.write_bytes(b"sqlite bytes")
+    manifest_path = tmp_path / "exports" / "same-target.manifest.json"
+    manifest_path.parent.mkdir()
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "operation": "export",
+                "local_only": True,
+                "do_not_commit": True,
+                "contains_personal_diet_logs": True,
+                "export_format": "sqlite_copy_with_manifest",
+                "export_contains_sqlite_copy": True,
+                "export_path": str(target_db),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    preview = import_preview_local_dogfood_export(
+        export_manifest_path=manifest_path,
+        target_db_path=target_db,
+    )
+
+    assert preview["status"] == "blocked"
+    assert "source_export_path_equals_target_db" in preview["blockers"]
+    assert preview["target_exists"] is True
+
+
+def test_import_preview_rejects_non_sqlite_export_copy(tmp_path: Path) -> None:
+    text_copy = tmp_path / "exports" / "accurate_intake.txt"
+    text_copy.parent.mkdir()
+    text_copy.write_text("not sqlite", encoding="utf-8")
+    manifest_path = tmp_path / "exports" / "not-sqlite.manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "operation": "export",
+                "local_only": True,
+                "do_not_commit": True,
+                "contains_personal_diet_logs": True,
+                "export_format": "sqlite_copy_with_manifest",
+                "export_contains_sqlite_copy": True,
+                "export_path": str(text_copy),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    preview = import_preview_local_dogfood_export(
+        export_manifest_path=manifest_path,
+        target_db_path=tmp_path / "local_dogfood" / "accurate_intake.sqlite3",
+    )
+
+    assert preview["status"] == "blocked"
+    assert "source_export_path_not_sqlite" in preview["blockers"]
 
 
 def test_data_hygiene_cli_writes_inspection_manifest(tmp_path: Path) -> None:
