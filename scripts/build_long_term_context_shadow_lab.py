@@ -16,12 +16,14 @@ from app.memory.application.local_memory_framework_review import (  # noqa: E402
     build_local_framework_review,
 )
 from app.memory.application.long_term_context_shadow_lab import (  # noqa: E402
+    build_artifact_registry_manifest,
     build_shadow_lab_artifacts,
 )
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 
 
 ARTIFACT_FILENAMES = {
+    "artifact_registry_manifest": "artifact_registry_manifest.json",
     "long_term_memory_candidate_review": "long_term_memory_candidate_review.json",
     "context_value_review_queue": "context_value_review_queue.json",
     "context_signal_quality_scorecard": "context_signal_quality_scorecard.json",
@@ -74,13 +76,23 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
 
+    if args.local_framework_root:
+        artifacts["local_memory_framework_review"] = build_local_framework_review(
+            Path(args.local_framework_root)
+        )
+
+    artifacts["artifact_registry_manifest"] = build_artifact_registry_manifest(
+        fixture,
+        artifacts,
+    )
+
     for artifact_key, filename in ARTIFACT_FILENAMES.items():
         write_json_artifact(output_dir / filename, artifacts[artifact_key])
 
     if args.local_framework_root:
-        framework_review = build_local_framework_review(Path(args.local_framework_root))
         write_json_artifact(
-            output_dir / "local_memory_framework_review.json", framework_review
+            output_dir / "local_memory_framework_review.json",
+            artifacts["local_memory_framework_review"],
         )
 
     print(

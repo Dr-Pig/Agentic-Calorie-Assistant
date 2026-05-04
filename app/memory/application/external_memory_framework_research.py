@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.memory.application.long_term_context_shadow_lab import SHADOW_NON_CLAIM_FLAGS
+from app.memory.application.long_term_context_shadow_lab import (
+    SHADOW_NON_CLAIM_FLAGS,
+    artifact_review_contract,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -29,6 +32,7 @@ def build_external_memory_framework_research(
         "external_framework_adopted_as_canonical": False,
         "l4a_l4c_superseded": False,
         **SHADOW_NON_CLAIM_FLAGS,
+        **artifact_review_contract("external_memory_framework_research_review"),
         "research_sources": _research_sources(),
         "adopted_design_pressure": _adopted_design_pressure(),
         "deferred_patterns": _deferred_patterns(),

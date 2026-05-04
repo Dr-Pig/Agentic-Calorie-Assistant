@@ -32,15 +32,95 @@ SHADOW_NON_CLAIM_FLAGS: dict[str, bool] = {
     "private_self_use_approved": False,
 }
 
+DOGFOOD_EXPORT_SECTIONS: tuple[str, ...] = (
+    "meal_logs",
+    "body_observations",
+    "budget_summaries",
+    "calibration_diagnostics",
+    "language_observations",
+    "intake_estimation_events",
+    "app_usage_events",
+    "interaction_events",
+    "negative_preference_observations",
+    "temporary_preference_observations",
+    "conversation_history_summaries",
+    "trace_metadata",
+    "candidate_pool",
+    "review_actions",
+)
+
+CHAT_TRACE_SECTION_ALIASES: tuple[str, ...] = (
+    "chat_trace_metadata",
+    "chat_traces",
+    "conversation_trace_metadata",
+)
+
+ARTIFACT_CONSUMER_CATALOG: dict[str, list[str]] = {
+    "artifact_registry_manifest": ["human_review", "architecture_governance"],
+    "long_term_memory_candidate_review": [
+        "human_review",
+        "recommendation",
+        "intake_clarification",
+        "calibration",
+        "chat_context",
+    ],
+    "context_value_review_queue": ["human_review", "architecture_governance"],
+    "context_signal_quality_scorecard": [
+        "human_review",
+        "architecture_governance",
+    ],
+    "context_pack_token_pressure_shadow_eval": [
+        "context_packing_review",
+        "architecture_governance",
+    ],
+    "proactive_no_send_simulation": ["proactive", "human_review"],
+    "recommendation_shadow_eval": ["recommendation", "human_review"],
+    "rescue_shadow_candidates": ["rescue_later", "human_review"],
+    "memory_review_action_shadow_result": ["human_review", "memory_governance"],
+    "memory_promotion_demotion_shadow_eval": ["human_review", "memory_governance"],
+    "semantic_pattern_extraction_shadow_plan": [
+        "recommendation",
+        "nightly_insight",
+        "confirmed_memory_candidate_review",
+    ],
+    "conversation_recall_shadow_eval": [
+        "chat_context",
+        "intake_clarification",
+        "recommendation",
+        "calibration",
+    ],
+    "conversation_recall_tool_shadow_plan": [
+        "chat_context",
+        "future_manager_context_retrieval",
+    ],
+    "long_term_context_pack_shadow_eval": [
+        "recommendation",
+        "intake_clarification",
+        "chat_context",
+        "calibration",
+        "proactive",
+        "rescue_later",
+    ],
+    "product_capability_context_map": [
+        "architecture_governance",
+        "human_review",
+    ],
+    "external_memory_framework_research_review": [
+        "architecture_governance",
+        "human_review",
+    ],
+    "local_memory_framework_review": ["architecture_governance", "human_review"],
+}
+
 
 def build_shadow_lab_artifacts(
     fixture_payload: dict[str, Any],
 ) -> dict[str, dict[str, Any]]:
-    fixture = dict(fixture_payload or {})
+    fixture = _normalize_dogfood_export_payload(fixture_payload)
     candidates = _build_candidates(fixture)
     context_items = _build_context_value_items(candidates)
 
-    return {
+    artifacts = {
         "long_term_memory_candidate_review": _memory_candidate_review_artifact(
             fixture,
             candidates,
@@ -100,6 +180,74 @@ def build_shadow_lab_artifacts(
             candidates,
         ),
     }
+    artifacts = {
+        "artifact_registry_manifest": _artifact_registry_manifest_artifact(
+            fixture,
+            artifacts,
+        ),
+        **artifacts,
+    }
+    return artifacts
+
+
+def build_artifact_registry_manifest(
+    fixture_payload: dict[str, Any],
+    artifacts: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    fixture = (
+        dict(fixture_payload)
+        if "_input_reader" in fixture_payload
+        else _normalize_dogfood_export_payload(fixture_payload)
+    )
+    return _artifact_registry_manifest_artifact(
+        fixture,
+        {
+            artifact_key: artifact
+            for artifact_key, artifact in artifacts.items()
+            if artifact_key != "artifact_registry_manifest"
+        },
+    )
+
+
+def _normalize_dogfood_export_payload(
+    fixture_payload: dict[str, Any],
+) -> dict[str, Any]:
+    root = dict(fixture_payload or {})
+    export_root, source_shape = _dogfood_export_root(root)
+    fixture = dict(root)
+
+    normalized_sections: list[str] = []
+    for section in DOGFOOD_EXPORT_SECTIONS:
+        if section in export_root:
+            fixture[section] = export_root[section]
+            normalized_sections.append(section)
+
+    if "conversation_history_summaries" not in fixture:
+        for alias in CHAT_TRACE_SECTION_ALIASES:
+            if alias in export_root:
+                fixture["conversation_history_summaries"] = export_root[alias]
+                normalized_sections.append("conversation_history_summaries")
+                break
+
+    fixture["_input_reader"] = {
+        "source_shape": source_shape,
+        "fixture_input_used": True,
+        "real_dogfood_export_used": False,
+        "real_dogfood_export_claim_ignored": source_shape != "top_level_fixture",
+        "normalized_sections": sorted(set(normalized_sections)),
+        "supported_sections": list(DOGFOOD_EXPORT_SECTIONS) + ["chat_trace_metadata"],
+        "direct_db_access_used": False,
+        "live_provider_called": False,
+    }
+    return fixture
+
+
+def _dogfood_export_root(root: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    for key in ("dogfood_export", "dogfood_exports", "exports", "export"):
+        value = root.get(key)
+        if isinstance(value, dict):
+            return dict(value), key
+    return root, "top_level_fixture"
 
 
 def _base_artifact(
@@ -109,6 +257,7 @@ def _base_artifact(
     extra: dict[str, Any],
 ) -> dict[str, Any]:
     generated_at = str(fixture.get("generated_at_utc") or "1970-01-01T00:00:00+00:00")
+    contract = artifact_review_contract(artifact_type)
     payload = {
         "artifact_schema_version": "1.0",
         "artifact_type": artifact_type,
@@ -119,10 +268,106 @@ def _base_artifact(
         "diagnostic_only": True,
         "fixture_input_used": True,
         "real_dogfood_export_used": False,
+        "input_reader": fixture.get("_input_reader")
+        or {
+            "source_shape": "top_level_fixture",
+            "fixture_input_used": True,
+            "real_dogfood_export_used": False,
+            "real_dogfood_export_claim_ignored": False,
+            "normalized_sections": [],
+            "supported_sections": list(DOGFOOD_EXPORT_SECTIONS)
+            + ["chat_trace_metadata"],
+            "direct_db_access_used": False,
+            "live_provider_called": False,
+        },
         **SHADOW_NON_CLAIM_FLAGS,
+        **contract,
         **extra,
     }
+    payload["runtime_effect_allowed"] = False
     return _json_safe(payload)
+
+
+def artifact_review_contract(artifact_type: str) -> dict[str, Any]:
+    consumers = ARTIFACT_CONSUMER_CATALOG.get(
+        artifact_type,
+        ["human_review", "architecture_governance"],
+    )
+    return {
+        "intended_consumers": consumers,
+        "consumer_use_hints": _consumer_use_hints(consumers),
+        "risk_if_wrong": _artifact_risk_if_wrong(artifact_type),
+        "promotion_path": _artifact_promotion_path(artifact_type),
+        "runtime_effect_allowed": False,
+        "why_this_is_not_runtime_truth": _artifact_non_runtime_truth_reason(
+            artifact_type
+        ),
+    }
+
+
+def _artifact_registry_manifest_artifact(
+    fixture: dict[str, Any],
+    artifacts: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    entries = [
+        _artifact_registry_entry(
+            artifact_key="artifact_registry_manifest",
+            artifact_type="artifact_registry_manifest",
+            artifact=artifact_review_contract("artifact_registry_manifest"),
+        )
+    ]
+    entries.extend(
+        _artifact_registry_entry(
+            artifact_key=artifact_key,
+            artifact_type=str(artifact.get("artifact_type") or artifact_key),
+            artifact=artifact,
+        )
+        for artifact_key, artifact in artifacts.items()
+    )
+    artifacts_without_consumers = [
+        entry["artifact_key"] for entry in entries if not entry["intended_consumers"]
+    ]
+    pseudo_runtime_truth_risks = [
+        entry["artifact_key"]
+        for entry in entries
+        if entry["runtime_effect_allowed"] or not entry["why_this_is_not_runtime_truth"]
+    ]
+    return _base_artifact(
+        artifact_type="artifact_registry_manifest",
+        fixture=fixture,
+        extra={
+            "manifest_scope": "batch_1_shadow_lab_artifact_registry",
+            "artifact_count": len(entries),
+            "artifact_registry_entries": entries,
+            "artifacts_without_consumers": artifacts_without_consumers,
+            "pseudo_runtime_truth_risks": pseudo_runtime_truth_risks,
+            "all_artifacts_have_future_consumers": not artifacts_without_consumers,
+            "all_artifacts_block_runtime_truth": not pseudo_runtime_truth_risks,
+        },
+    )
+
+
+def _artifact_registry_entry(
+    *,
+    artifact_key: str,
+    artifact_type: str,
+    artifact: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "artifact_key": artifact_key,
+        "artifact_type": artifact_type,
+        "intended_consumers": list(artifact.get("intended_consumers") or []),
+        "consumer_use_hints": dict(artifact.get("consumer_use_hints") or {}),
+        "risk_if_wrong": str(artifact.get("risk_if_wrong") or ""),
+        "promotion_path": str(artifact.get("promotion_path") or ""),
+        "runtime_effect_allowed": bool(artifact.get("runtime_effect_allowed") is True),
+        "why_this_is_not_runtime_truth": str(
+            artifact.get("why_this_is_not_runtime_truth") or ""
+        ),
+        "manager_context_injection_allowed": False,
+        "durable_memory_write_allowed": False,
+        "future_consumer_declared": bool(artifact.get("intended_consumers")),
+    }
 
 
 def _build_candidates(fixture: dict[str, Any]) -> list[LongTermContextCandidate]:
@@ -484,6 +729,10 @@ def _language_candidates(
                 payload={
                     "user_phrase": phrase,
                     "observed_meaning": observation.get("observed_meaning"),
+                    "pattern_subtype": str(
+                        observation.get("phrase_kind") or "semantic_alias"
+                    ),
+                    "portion_semantics": observation.get("portion_semantics") or {},
                 },
                 reason_codes=["user_language_semantic_alias_candidate"],
                 intended_consumers=[
@@ -508,6 +757,30 @@ def _intake_estimation_bias_candidates(
     )
     direction, count = _most_common(directions)
     observed_at = [_parse_datetime(event.get("observed_at")) for event in events]
+    missed_item_patterns = _dedupe(
+        [
+            str(event.get("missed_item_kind"))
+            for event in events
+            if event.get("missed_item_kind")
+        ]
+    )
+    correction_tendencies = _dedupe(
+        [
+            str(event.get("correction_tendency"))
+            for event in events
+            if event.get("correction_tendency")
+        ]
+    )
+    evidence_subtypes = _dedupe(
+        [
+            *(
+                str(event.get("event_kind"))
+                for event in events
+                if event.get("event_kind")
+            ),
+            *(["correction_tendency"] if correction_tendencies else []),
+        ]
+    )
     return [
         _candidate(
             candidate_id=f"intake-estimation-bias-{_slug(direction)}",
@@ -530,6 +803,9 @@ def _intake_estimation_bias_candidates(
             payload={
                 "bias_direction": direction,
                 "events": events,
+                "evidence_subtypes": evidence_subtypes,
+                "missed_item_patterns": missed_item_patterns,
+                "correction_tendencies": correction_tendencies,
             },
             reason_codes=["intake_estimation_bias_candidate"],
             intended_consumers=[
@@ -817,6 +1093,13 @@ def _candidate(
             "raw_secret_values_stored": False,
             "redacted_fields": redacted_fields,
         },
+        privacy_contract={
+            "raw_secret_values_stored": False,
+            "scope_keys_required": True,
+            "source_refs_required": True,
+            "runtime_prompt_injection_allowed": False,
+        },
+        retention_posture="shadow_review_artifact_only",
         injection_eligibility={
             "eligible": False,
             "reason": "shadow_lab_no_runtime_injection",
@@ -827,6 +1110,10 @@ def _candidate(
             intended_consumers or _default_consumers(candidate_type)
         ),
         risk_if_wrong=_risk_if_wrong(candidate_type),
+        promotion_path=_promotion_path(candidate_type),
+        why_this_is_not_runtime_truth=_candidate_non_runtime_truth_reason(
+            candidate_type
+        ),
         reason_codes=reason_codes,
     )
 
@@ -2321,6 +2608,8 @@ def _context_candidate_summary(
         "intended_consumers": candidate.intended_consumers,
         "consumer_use_hints": candidate.consumer_use_hints,
         "risk_if_wrong": candidate.risk_if_wrong,
+        "promotion_path": candidate.promotion_path,
+        "why_this_is_not_runtime_truth": candidate.why_this_is_not_runtime_truth,
         "runtime_effect_allowed": False,
     }
 
@@ -2461,6 +2750,86 @@ def _risk_if_wrong(candidate_type: str) -> str:
     if candidate_type == "conversation_recall_context":
         return "Could retrieve stale or irrelevant conversation history and pollute current-turn context."
     return "Could inject unconfirmed context into future runtime behavior."
+
+
+def _promotion_path(candidate_type: str) -> str:
+    if candidate_type == "temporary_preference":
+        return "human_review_then_time_bounded_l3_confirmed_memory_later"
+    if candidate_type in {
+        "golden_order",
+        "food_preference",
+        "negative_preference",
+        "user_language_pattern",
+        "intake_estimation_bias",
+        "app_usage_style",
+        "interaction_preference",
+    }:
+        return "human_review_then_l3_confirmed_memory_later"
+    if candidate_type == "conversation_recall_context":
+        return "future_tool_mediated_recall_contract_review_only"
+    return "keep_shadowing_until_consumer_value_review"
+
+
+def _candidate_non_runtime_truth_reason(candidate_type: str) -> str:
+    if candidate_type == "golden_order":
+        return (
+            "Golden orders are materialized review views over MealThread history; "
+            "they do not replace canonical MealThread or FoodDB truth."
+        )
+    if candidate_type == "intake_estimation_bias":
+        return (
+            "Bias posture is calibration context only; it cannot rewrite calorie, "
+            "BodyPlan, or DayBudgetLedger truth."
+        )
+    if candidate_type == "conversation_recall_context":
+        return (
+            "Conversation recall remains summary-first future retrieval context; "
+            "no transcript is injected into ManagerContextPacket."
+        )
+    return (
+        "This is an offline shadow candidate derived from fixture/export evidence "
+        "for human review; runtime truth and mutation authority stay unchanged."
+    )
+
+
+def _artifact_risk_if_wrong(artifact_type: str) -> str:
+    if artifact_type == "artifact_registry_manifest":
+        return "Could hide an unowned or pseudo-runtime artifact from reviewer triage."
+    if "recommendation" in artifact_type:
+        return "Could overstate recommendation readiness or ranking value before runtime review."
+    if "proactive" in artifact_type:
+        return "Could make no-send trigger candidates look like approved sends."
+    if "rescue" in artifact_type:
+        return "Could imply rescue viability or budget mutation authority too early."
+    if "context_pack" in artifact_type:
+        return "Could make shadow context packs look ready for ManagerContextPacket injection."
+    if "framework" in artifact_type:
+        return "Could over-adopt external framework patterns over canonical L4A/L4C/L4D specs."
+    return "Could overstate unconfirmed long-term context as product or runtime truth."
+
+
+def _artifact_promotion_path(artifact_type: str) -> str:
+    if artifact_type == "artifact_registry_manifest":
+        return "review_manifest_then_keep_or_defer_each_artifact"
+    if "context_pack" in artifact_type:
+        return "human_review_then_future_context_pack_contract_slice"
+    if "recommendation" in artifact_type:
+        return "human_review_then_future_recommendation_shadow_eval_slice"
+    if "proactive" in artifact_type:
+        return "human_review_then_future_no_send_scheduler_eval_slice"
+    if "rescue" in artifact_type:
+        return "human_review_then_future_rescue_shadow_eval_slice"
+    if "framework" in artifact_type:
+        return "research_review_only_no_runtime_adoption"
+    return "human_review_then_keep_shadowing_or_defer"
+
+
+def _artifact_non_runtime_truth_reason(artifact_type: str) -> str:
+    return (
+        f"{artifact_type} is generated by the offline shadow lab for review only; "
+        "it cannot write durable memory, mutate canonical product objects, or inject "
+        "ManagerContextPacket context."
+    )
 
 
 def _trace_refs(fixture: dict[str, Any]) -> dict[str, str]:
@@ -2676,5 +3045,7 @@ def _json_safe(value: Any) -> dict[str, Any]:
 __all__ = [
     "SHADOW_NON_CLAIM_FLAGS",
     "SIDECAR_ACTIVATION_CONTRACT",
+    "artifact_review_contract",
+    "build_artifact_registry_manifest",
     "build_shadow_lab_artifacts",
 ]

@@ -56,11 +56,15 @@ class LongTermContextCandidate(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
     scope_keys: dict[str, str] = Field(default_factory=dict)
     secret_scan: dict[str, Any] = Field(default_factory=dict)
+    privacy_contract: dict[str, Any] = Field(default_factory=dict)
+    retention_posture: str = "shadow_review_artifact_only"
     injection_eligibility: dict[str, Any] = Field(default_factory=dict)
     runtime_injection_allowed: Literal[False] = False
     intended_consumers: list[str] = Field(default_factory=list)
     consumer_use_hints: dict[str, str] = Field(default_factory=dict)
     risk_if_wrong: str
+    promotion_path: str
+    why_this_is_not_runtime_truth: str
     reason_codes: list[str] = Field(default_factory=list)
     review_status: ReviewStatus = "pending"
     human_review_required: Literal[True] = True

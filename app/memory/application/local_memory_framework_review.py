@@ -4,7 +4,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-from app.memory.application.long_term_context_shadow_lab import SHADOW_NON_CLAIM_FLAGS
+from app.memory.application.long_term_context_shadow_lab import (
+    SHADOW_NON_CLAIM_FLAGS,
+    artifact_review_contract,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -40,6 +43,7 @@ def build_local_framework_review(root: Path | str) -> dict[str, Any]:
         "service_started": False,
         "live_provider_called": False,
         **SHADOW_NON_CLAIM_FLAGS,
+        **artifact_review_contract("local_memory_framework_review"),
         "framework_reviews": reviews,
     }
 

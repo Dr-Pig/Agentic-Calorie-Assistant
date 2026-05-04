@@ -94,6 +94,11 @@ def _fixture_payload() -> dict:
                 "observed_at": "2026-04-02T12:20:00+08:00",
                 "user_phrase": "正常便當",
                 "observed_meaning": "usually rice, one main, and two to three sides",
+                "phrase_kind": "portion_phrase",
+                "portion_semantics": {
+                    "portion_label": "normal_meal",
+                    "expected_components": ["rice", "main", "two_to_three_sides"],
+                },
                 "confidence": 0.62,
             }
         ],
@@ -102,7 +107,10 @@ def _fixture_payload() -> dict:
                 "trace_id": "bias-1",
                 "observed_at": "2026-04-03T22:15:00+08:00",
                 "bias_direction": "likely_underestimate",
+                "event_kind": "missed_item_pattern",
                 "reason": "missed_drink_or_sauce",
+                "missed_item_kind": "drink_or_sauce",
+                "correction_tendency": "adds_kcal_after_clarification",
                 "correction_delta_kcal": 180,
             }
         ],
@@ -198,6 +206,7 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
     artifacts = build_shadow_lab_artifacts(_fixture_payload())
 
     assert set(artifacts) == {
+        "artifact_registry_manifest",
         "long_term_memory_candidate_review",
         "context_value_review_queue",
         "proactive_no_send_simulation",
@@ -219,6 +228,130 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
             assert artifact[key] is expected
         assert artifact["fixture_input_used"] is True
         assert artifact["real_dogfood_export_used"] is False
+        assert artifact["runtime_effect_allowed"] is False
+        assert artifact["intended_consumers"]
+        assert artifact["consumer_use_hints"]
+        assert artifact["risk_if_wrong"]
+        assert artifact["promotion_path"]
+        assert artifact["why_this_is_not_runtime_truth"]
+
+
+def test_artifact_registry_manifest_indexes_every_artifact_contract() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifacts = build_shadow_lab_artifacts(_fixture_payload())
+    manifest = artifacts["artifact_registry_manifest"]
+
+    assert manifest["artifact_type"] == "artifact_registry_manifest"
+    assert manifest["runtime_effect_allowed"] is False
+    assert manifest["artifacts_without_consumers"] == []
+    assert manifest["pseudo_runtime_truth_risks"] == []
+
+    entries = {
+        entry["artifact_key"]: entry for entry in manifest["artifact_registry_entries"]
+    }
+    assert set(entries) == set(artifacts)
+    for artifact_key, artifact in artifacts.items():
+        entry = entries[artifact_key]
+        assert entry["artifact_type"] == artifact["artifact_type"]
+        assert entry["intended_consumers"] == artifact["intended_consumers"]
+        assert entry["consumer_use_hints"] == artifact["consumer_use_hints"]
+        assert entry["risk_if_wrong"] == artifact["risk_if_wrong"]
+        assert entry["promotion_path"] == artifact["promotion_path"]
+        assert (
+            entry["why_this_is_not_runtime_truth"]
+            == artifact["why_this_is_not_runtime_truth"]
+        )
+        assert entry["runtime_effect_allowed"] is False
+        assert entry["manager_context_injection_allowed"] is False
+
+
+def test_expanded_dogfood_export_reader_normalizes_nested_export_sections() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    fixture = {
+        "user_id": "fixture-user",
+        "generated_at_utc": "2026-04-09T00:00:00+00:00",
+        "dogfood_export": {
+            "meal_logs": [
+                {
+                    "trace_id": "expanded-meal-1",
+                    "meal_id": "expanded-m1",
+                    "logged_at": "2026-04-07T08:00:00+08:00",
+                    "item_names": ["oatmeal"],
+                    "item_kinds": ["staple"],
+                    "staple_types": ["oats"],
+                    "drink_names": [],
+                    "store_name": "Morning Bar",
+                }
+            ],
+            "body_observations": [
+                {
+                    "trace_id": "expanded-body-1",
+                    "observed_at": "2026-04-07T07:30:00+08:00",
+                    "weight_kg": 81.9,
+                }
+            ],
+            "budget_summaries": [
+                {
+                    "trace_id": "expanded-budget-1",
+                    "date": "2026-04-07",
+                    "target_kcal": 2100,
+                    "actual_kcal": 2240,
+                    "overshoot_kcal": 140,
+                }
+            ],
+            "calibration_diagnostics": [
+                {
+                    "trace_id": "expanded-cal-1",
+                    "window_start": "2026-03-30",
+                    "window_end": "2026-04-07",
+                    "expected_weight_delta_kg": -0.3,
+                    "observed_weight_delta_kg": -0.1,
+                }
+            ],
+            "chat_trace_metadata": [
+                {
+                    "trace_id": "expanded-chat-1",
+                    "conversation_id": "chat-expanded",
+                    "observed_at": "2026-04-07T23:00:00+08:00",
+                    "summary": "User preferred fewer repeated follow-up questions.",
+                    "topic_tags": ["followup_preference"],
+                }
+            ],
+            "trace_metadata": [
+                {
+                    "trace_id": "expanded-meal-1",
+                    "source_object_ref": "MealThread:expanded-m1",
+                }
+            ],
+        },
+    }
+
+    review = build_shadow_lab_artifacts(fixture)["long_term_memory_candidate_review"]
+
+    assert review["input_reader"]["source_shape"] == "dogfood_export"
+    assert review["input_reader"]["real_dogfood_export_claim_ignored"] is True
+    assert set(review["input_reader"]["normalized_sections"]) >= {
+        "meal_logs",
+        "body_observations",
+        "budget_summaries",
+        "calibration_diagnostics",
+        "conversation_history_summaries",
+        "trace_metadata",
+    }
+    candidate_types = {
+        candidate["candidate_type"] for candidate in review["candidates"]
+    }
+    assert {
+        "pattern",
+        "logging_adherence_pattern",
+        "conversation_recall_context",
+    }.issubset(candidate_types)
 
 
 def test_shadow_lab_forces_fixture_only_provenance_flags_even_if_input_claims_real_export() -> (
@@ -347,6 +480,24 @@ def test_memory_candidate_review_preserves_provenance_and_never_promotes_memory(
     ]
     assert oatmeal["consumer_use_hints"]
     assert oatmeal["risk_if_wrong"]
+    assert oatmeal["promotion_path"] == "human_review_then_l3_confirmed_memory_later"
+    assert oatmeal["why_this_is_not_runtime_truth"]
+    assert oatmeal["privacy_contract"] == {
+        "raw_secret_values_stored": False,
+        "scope_keys_required": True,
+        "source_refs_required": True,
+        "runtime_prompt_injection_allowed": False,
+    }
+    assert oatmeal["retention_posture"] == "shadow_review_artifact_only"
+
+    for candidate in candidates:
+        assert candidate["intended_consumers"]
+        assert candidate["consumer_use_hints"]
+        assert candidate["risk_if_wrong"]
+        assert candidate["promotion_path"]
+        assert candidate["why_this_is_not_runtime_truth"]
+        assert candidate["runtime_effect_allowed"] is False
+        assert candidate["runtime_injection_allowed"] is False
 
 
 def test_memory_candidate_taxonomy_covers_language_bias_usage_and_interaction_domains() -> (
@@ -377,6 +528,11 @@ def test_memory_candidate_taxonomy_covers_language_bias_usage_and_interaction_do
 
     language = by_type["user_language_pattern"]
     assert language["payload"]["user_phrase"] == "正常便當"
+    assert language["payload"]["pattern_subtype"] == "portion_phrase"
+    assert language["payload"]["portion_semantics"] == {
+        "portion_label": "normal_meal",
+        "expected_components": ["rice", "main", "two_to_three_sides"],
+    }
     assert language["intended_consumers"] == [
         "intake_clarification",
         "chat_context",
@@ -385,6 +541,12 @@ def test_memory_candidate_taxonomy_covers_language_bias_usage_and_interaction_do
 
     bias = by_type["intake_estimation_bias"]
     assert bias["payload"]["bias_direction"] == "likely_underestimate"
+    assert set(bias["payload"]["evidence_subtypes"]) == {
+        "missed_item_pattern",
+        "correction_tendency",
+    }
+    assert bias["payload"]["missed_item_patterns"] == ["drink_or_sauce"]
+    assert bias["payload"]["correction_tendencies"] == ["adds_kcal_after_clarification"]
     assert bias["intended_consumers"] == [
         "calibration",
         "intake_risk_tagging",
@@ -949,6 +1111,7 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
 
     assert exit_code == 0
     expected_files = {
+        "artifact_registry_manifest.json",
         "long_term_memory_candidate_review.json",
         "context_value_review_queue.json",
         "proactive_no_send_simulation.json",
@@ -966,6 +1129,16 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "external_memory_framework_research_review.json",
     }
     assert {path.name for path in output_dir.iterdir()} == expected_files
+    manifest = json.loads(
+        (output_dir / "artifact_registry_manifest.json").read_text(encoding="utf-8")
+    )
+    manifest_entries = {
+        entry["artifact_key"] for entry in manifest["artifact_registry_entries"]
+    }
+    assert manifest["artifact_count"] == len(expected_files)
+    assert "external_memory_framework_research_review" in manifest_entries
+    assert manifest["artifacts_without_consumers"] == []
+    assert manifest["pseudo_runtime_truth_risks"] == []
     for path in output_dir.iterdir():
         payload = json.loads(path.read_text(encoding="utf-8"))
         assert payload["shadow_mode"] is True
