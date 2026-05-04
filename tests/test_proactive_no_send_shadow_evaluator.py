@@ -324,6 +324,73 @@ def test_manual_shadow_review_without_reason_records_review_context_not_missing_
     assert row["why_now"] == "manual_shadow_review_for_weekly_insight"
 
 
+def test_unsafe_candidate_copy_suppresses_otherwise_reviewable_trigger() -> None:
+    artifact = build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="weekly_insight",
+                wake_source="scheduled_check",
+                user_relevant_reason="weekly_summary_expected_after_enough_data",
+                candidate_copy="You must stop eating like this.",
+                copy_posture="directive",
+                copy_has_user_agency=False,
+                copy_has_no_shame=False,
+            )
+        ]
+    )
+
+    row = artifact["trigger_evaluations"][0]
+
+    assert row["suppression_status"] == "suppressed"
+    assert "copy_posture_not_safe" in row["suppression_reasons"]
+    assert "copy_user_agency_required" in row["suppression_reasons"]
+    assert "copy_no_shame_required" in row["suppression_reasons"]
+    assert artifact["summary"]["copy_suppressed_count"] == 1
+    assert row["copy_review"] == {
+        "candidate_copy_provided": True,
+        "posture": "directive",
+        "passed": False,
+        "checks": {
+            "user_agency": False,
+            "no_shame": False,
+            "uncertainty_honest": True,
+            "invitation_only": True,
+        },
+        "deterministic_role": "validate_or_suppress_only",
+        "llm_role": "write_or_judge_candidate_copy_before_shadow_input",
+        "rewritten_by_evaluator": False,
+    }
+    assert row["sent"] is False
+    assert row["runtime_effect_allowed"] is False
+
+
+def test_safe_candidate_copy_is_reviewable_but_still_no_send() -> None:
+    artifact = build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="recommendation_prompt",
+                wake_source="app_open",
+                user_relevant_reason="app_open_dinner_context_can_reduce_decision_cost",
+                local_time="17:30",
+                data_sufficiency_status="higher",
+                user_benefit_strength="strong",
+                lower_frequency_ready=True,
+                delivery_surface="app_open",
+                candidate_copy="If you are choosing dinner, I can help pick a few steady options.",
+                copy_posture="invitation",
+            )
+        ]
+    )
+
+    row = _by_type(artifact)["recommendation_prompt"]
+
+    assert row["suppression_status"] == "not_suppressed"
+    assert row["copy_review"]["passed"] is True
+    assert row["copy_review"]["rewritten_by_evaluator"] is False
+    assert row["recommendation_served"] is False
+    assert row["sent"] is False
+
+
 def test_calibration_and_rescue_related_triggers_are_invitations_not_decisions() -> None:
     artifact = build_proactive_no_send_simulation(
         [
@@ -496,3 +563,15 @@ def test_proactive_spec_requires_user_relevant_reason_separate_from_wake_source(
     assert "`wake_source` records why the system evaluated a trigger" in source
     assert "`user_relevant_reason` records why this moment may help the user" in source
     assert "`missing_user_relevant_reason`" in source
+
+
+def test_proactive_spec_requires_copy_safety_rubric() -> None:
+    source = (Path(__file__).resolve().parents[1] / "docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md").read_text(
+        encoding="utf-8-sig"
+    )
+
+    assert "### 4.12 Candidate Copy Safety Rubric" in source
+    assert "deterministic evaluator may validate or suppress candidate copy" in source
+    assert "must not rewrite candidate copy" in source
+    assert "`copy_suppressed_count`" in source
+    assert "`copy_review_issues_present`" in source

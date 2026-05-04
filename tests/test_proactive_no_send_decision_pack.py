@@ -24,6 +24,22 @@ def _artifact_with_review_candidate() -> dict[str, object]:
     )
 
 
+def _artifact_with_copy_suppression() -> dict[str, object]:
+    return build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="weekly_insight",
+                wake_source="scheduled_check",
+                user_relevant_reason="weekly_summary_expected_after_enough_data",
+                candidate_copy="You must stop eating like this.",
+                copy_posture="directive",
+                copy_has_user_agency=False,
+                copy_has_no_shame=False,
+            )
+        ]
+    )
+
+
 def test_decision_pack_keeps_single_no_send_run_out_of_live_promotion() -> None:
     pack = build_proactive_no_send_decision_pack([_artifact_with_review_candidate()])
 
@@ -58,6 +74,15 @@ def test_decision_pack_rejects_overclaiming_or_side_effectful_inputs() -> None:
     assert pack["input_integrity"]["passed"] is False
     assert "run_1_product_readiness_claimed" in pack["input_integrity"]["blockers"]
     assert "run_2_proactive_sent" in pack["input_integrity"]["blockers"]
+    assert pack["promotion_allowed"] is False
+
+
+def test_decision_pack_surfaces_copy_review_suppression_risk() -> None:
+    pack = build_proactive_no_send_decision_pack([_artifact_with_copy_suppression()])
+
+    assert pack["summary"]["copy_suppressed_count"] == 1
+    assert "weekly_insight" in pack["summary"]["suppressed_trigger_types"]
+    assert "copy_review_issues_present" in pack["promotion_gate"]["promotion_blockers"]
     assert pack["promotion_allowed"] is False
 
 

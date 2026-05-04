@@ -23,6 +23,15 @@ RiskLevel = Literal["low", "medium", "high"]
 DeliverySurface = Literal["background", "app_open", "chat_open"]
 FeedbackAdaptation = Literal["none", "lower_frequency", "suppress_once", "category_suppressed"]
 WakeSource = Literal["scheduled_check", "state_threshold", "event_driven", "app_open", "manual_shadow_review"]
+CopyPosture = Literal[
+    "not_generated",
+    "invitation",
+    "informational",
+    "directive",
+    "shaming",
+    "fake_precision",
+    "decision_or_mutation",
+]
 
 
 LEVEL_2_TRIGGERS = {
@@ -44,6 +53,7 @@ LATER_ONLY_TRIGGERS = {
     "emotional_coaching_nudge",
     "memory_driven_intervention",
 }
+SAFE_COPY_POSTURES = {"invitation", "informational"}
 PERMISSION_POSTURE_BY_TRIGGER = {
     "weekly_insight": "user_expected",
     "meal_reminder": "user_expected",
@@ -91,6 +101,12 @@ class ProactiveNoSendShadowInput(BaseModel):
     explicit_trigger_opt_out: bool = False
     wake_source: WakeSource = "manual_shadow_review"
     user_relevant_reason: str | None = None
+    candidate_copy: str | None = None
+    copy_posture: CopyPosture = "not_generated"
+    copy_has_user_agency: bool = True
+    copy_has_no_shame: bool = True
+    copy_uncertainty_honest: bool = True
+    copy_invitation_only: bool = True
     confidence: float = 0.0
     annoyance_risk: RiskLevel = "medium"
     harm_if_wrong: RiskLevel = "low"
@@ -137,6 +153,7 @@ def _evaluate_trigger(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
     suppression_reasons.extend(_permission_suppression_reasons(item))
     suppression_reasons.extend(_interaction_feedback_suppression_reasons(item))
     suppression_reasons.extend(_reason_suppression_reasons(item))
+    suppression_reasons.extend(_copy_suppression_reasons(item))
     if _deferred_later_only(item) and "later_only_trigger_not_live_eligible" not in suppression_reasons:
         suppression_reasons.append("later_only_trigger_not_live_eligible")
 
@@ -165,6 +182,7 @@ def _evaluate_trigger(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
         "permission_posture": _permission_posture(item.trigger_type),
         "interrupt_cost": _interrupt_cost(item.delivery_surface),
         "interaction_feedback": _interaction_feedback(item),
+        "copy_review": _copy_review(item),
         "user_callable_when_suppressed": True,
         "stay_silent_until_signal": _stay_silent_until_signal(item),
     }
@@ -241,6 +259,46 @@ def _reason_suppression_reasons(item: ProactiveNoSendShadowInput) -> list[str]:
     return []
 
 
+def _copy_suppression_reasons(item: ProactiveNoSendShadowInput) -> list[str]:
+    if not _candidate_copy_provided(item):
+        return []
+
+    reasons: list[str] = []
+    if item.copy_posture not in SAFE_COPY_POSTURES:
+        reasons.append("copy_posture_not_safe")
+    if not item.copy_has_user_agency:
+        reasons.append("copy_user_agency_required")
+    if not item.copy_has_no_shame:
+        reasons.append("copy_no_shame_required")
+    if not item.copy_uncertainty_honest:
+        reasons.append("copy_uncertainty_honesty_required")
+    if not item.copy_invitation_only:
+        reasons.append("copy_invitation_boundary_required")
+    return reasons
+
+
+def _candidate_copy_provided(item: ProactiveNoSendShadowInput) -> bool:
+    return bool(str(item.candidate_copy or "").strip())
+
+
+def _copy_review(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
+    reasons = _copy_suppression_reasons(item)
+    return {
+        "candidate_copy_provided": _candidate_copy_provided(item),
+        "posture": item.copy_posture,
+        "passed": not reasons,
+        "checks": {
+            "user_agency": item.copy_has_user_agency,
+            "no_shame": item.copy_has_no_shame,
+            "uncertainty_honest": item.copy_uncertainty_honest,
+            "invitation_only": item.copy_invitation_only,
+        },
+        "deterministic_role": "validate_or_suppress_only",
+        "llm_role": "write_or_judge_candidate_copy_before_shadow_input",
+        "rewritten_by_evaluator": False,
+    }
+
+
 def _interaction_feedback(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
     return {
         "ignored_count": item.ignored_count,
@@ -314,6 +372,12 @@ def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "level_2_suppressed_count": sum(
             1 for reason in suppressed_reasons if reason.startswith("level_2_")
+        ),
+        "copy_suppressed_count": sum(
+            1
+            for row in rows
+            if row.get("suppression_status") == "suppressed"
+            and any(str(reason).startswith("copy_") for reason in list(row.get("suppression_reasons") or []))
         ),
         "live_delivery_allowed": False,
         "scheduler_activation_allowed": False,

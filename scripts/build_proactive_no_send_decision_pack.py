@@ -39,6 +39,7 @@ def build_proactive_no_send_decision_pack(no_send_artifacts: list[dict[str, Any]
     promotion_blockers = _promotion_blockers(
         input_integrity=input_integrity,
         clean_run_count=summary["clean_run_count"],
+        copy_suppressed_count=summary["copy_suppressed_count"],
     )
     return {
         "artifact_type": "proactive_no_send_decision_pack",
@@ -122,10 +123,19 @@ def _summary(no_send_artifacts: list[dict[str, Any]]) -> dict[str, Any]:
         "candidate_for_human_review_trigger_types": candidate_types,
         "suppressed_trigger_types": suppressed_types,
         "deferred_later_only_trigger_types": deferred_types,
+        "copy_suppressed_count": sum(
+            _artifact_summary_int(artifact, "copy_suppressed_count")
+            for artifact in no_send_artifacts
+        ),
     }
 
 
-def _promotion_blockers(*, input_integrity: dict[str, Any], clean_run_count: int) -> list[str]:
+def _promotion_blockers(
+    *,
+    input_integrity: dict[str, Any],
+    clean_run_count: int,
+    copy_suppressed_count: int,
+) -> list[str]:
     blockers = [
         "human_review_required_before_live_delivery",
         "live_scheduler_not_enabled",
@@ -135,6 +145,8 @@ def _promotion_blockers(*, input_integrity: dict[str, Any], clean_run_count: int
         blockers.append("minimum_clean_shadow_runs_not_met")
     if input_integrity.get("passed") is not True:
         blockers.append("input_integrity_failed")
+    if copy_suppressed_count > 0:
+        blockers.append("copy_review_issues_present")
     return sorted(blockers)
 
 
@@ -163,6 +175,16 @@ def _artifact_summary_mapping(artifact: dict[str, Any], key: str) -> dict[str, A
     value = summary.get(key)
     if not isinstance(value, dict):
         return {}
+    return value
+
+
+def _artifact_summary_int(artifact: dict[str, Any], key: str) -> int:
+    summary = artifact.get("summary")
+    if not isinstance(summary, dict):
+        return 0
+    value = summary.get(key)
+    if not isinstance(value, int):
+        return 0
     return value
 
 

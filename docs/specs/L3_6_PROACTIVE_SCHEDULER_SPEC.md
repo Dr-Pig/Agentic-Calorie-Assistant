@@ -299,6 +299,24 @@ Examples:
 
 This rule prevents proactive from becoming a blind scheduler, state threshold alarm, or location/event push system. The trigger must still prove a user-benefit reason, permission posture, data sufficiency, cooldown, quiet-hours safety, and no-send review readiness.
 
+### 4.12 Candidate Copy Safety Rubric
+
+No-send shadow review may include candidate copy, but the deterministic evaluator may validate or suppress candidate copy only.
+
+The evaluator must not rewrite candidate copy, generate safer wording, infer user emotion, or turn a failed copy review into a live message.
+
+Required copy checks:
+
+- user agency is preserved
+- no shame, blame, or failure framing is present
+- uncertainty is honest and does not imply fake precision
+- copy remains invitation-only when the trigger boundary is invitation-only
+- copy posture is informational or invitational, not directive, shaming, fake-precision, or mutation-bearing
+
+If candidate copy fails this rubric, the trigger must be suppressed with a `copy_*` suppression reason. The no-send summary must record `copy_suppressed_count` as a trigger count, not a reason count. The multi-run decision pack must surface copy review risk with `copy_review_issues_present` until the reviewed runs no longer contain copy-suppressed triggers.
+
+This rubric is intentionally not a language-generation system. LLMs may write or judge candidate copy before it enters the no-send artifact, but this evaluator only records checklist evidence, suppresses unsafe copy, and keeps `sent=false`.
+
 ---
 
 ## 5. Trigger-Specific Rules
