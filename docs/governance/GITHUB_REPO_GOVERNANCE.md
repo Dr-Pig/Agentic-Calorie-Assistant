@@ -33,6 +33,44 @@ Manual-only workflows are not required status checks:
 - `wave1-runtime-smoke`
 - `cd`
 
+## Serial PR Delivery Policy
+
+Default agent delivery is serial squash-merge, not long-lived stacked PR accumulation.
+This avoids ancestry drift after GitHub squash merge rewrites branch lineage.
+
+```yaml
+agent_policy:
+  low_risk_work:
+    mode: auto_serial
+    behavior:
+      - open PR
+      - run tests
+      - verify CI green
+      - verify mergeable clean
+      - squash merge after the applicable human/review gate is satisfied
+      - delete branch if it is not a stack base
+      - refresh next branch from main
+      - continue
+
+  stacked_work:
+    mode: allowed_with_self_retarget
+    max_depth: 2
+    behavior:
+      - merge base PR first
+      - retarget child PR to main
+      - rerun CI
+      - continue only if green and mergeable clean
+
+  high_risk_work:
+    mode: stop_for_human_gate
+```
+
+Low-risk diagnostic, docs, fixture, candidate, validator, and non-runtime-truth slices may proceed in one run as multiple serial PRs if each PR is opened, tested, CI-green, mergeable clean, and squash-merged before the next slice continues.
+
+Stacking is allowed only as a short bridge with `max_depth: 2`. After the base PR merges, retarget the child PR to `main`, rerun CI, and continue only if the child remains green and mergeable clean.
+
+High-risk work still stops for a human gate before merge or runtime activation. High-risk includes production DB work, user-facing rollout/readiness claims, mutation-authority changes, shared contract changes, live provider activation beyond diagnostic scope, and runtime-visible truth promotion without an approved promotion boundary.
+
 ## Platform-Level Hygiene
 
 Enable or confirm:
