@@ -106,9 +106,40 @@ def test_product_loop_review_bundle_combines_diagnostics_without_readiness_or_fo
     assert bundle["local_only"] is True
     assert bundle["contains_personal_diet_logs"] is True
     assert bundle["do_not_commit"] is True
+    assert bundle["input_claim_boundary_ok"] is True
+    assert bundle["input_claim_boundary_blockers"] == []
     assert bundle["review_queue"]["promotion_policy"]["human_approval_required_for_canonical_eval"] is True
     assert bundle["review_queue"]["promotion_policy"]["food_kb_truth_update_from_correction_allowed"] is False
     assert bundle["review_queue"]["review_candidate_count"] >= 1
+
+
+def test_product_loop_review_bundle_blocks_input_overclaims_without_promoting_them() -> None:
+    realistic = _realistic_v2()
+    realistic["real_fooddb_pass_claimed"] = True
+    realistic["dogfood_pass"] = True
+
+    bundle = build_product_loop_review_bundle_artifact(
+        browser_shell_smoke=_browser_shell(),
+        browser_fixture_dogfood=_fixture_dogfood(),
+        browser_realistic_dogfood=realistic,
+        context_review=_context_review(),
+        context_target_candidate_eval=_target_eval(),
+        context_window_diagnostic=_window_diagnostic(),
+    )
+
+    assert bundle["status"] == "blocked_input_overclaim"
+    assert bundle["input_claim_boundary_ok"] is False
+    assert "browser_realistic_dogfood.real_fooddb_pass_claimed" in bundle[
+        "input_claim_boundary_blockers"
+    ]
+    assert "browser_realistic_dogfood.dogfood_pass" in bundle[
+        "input_claim_boundary_blockers"
+    ]
+    assert bundle["real_fooddb_pass_claimed"] is False
+    assert bundle["dogfood_pass"] is False
+    assert bundle["included_artifacts"]["browser_realistic_dogfood"]["claim_flags"][
+        "real_fooddb_pass_claimed"
+    ] is True
 
 
 def test_product_loop_review_bundle_builder_script_writes_artifact(tmp_path: Path) -> None:
