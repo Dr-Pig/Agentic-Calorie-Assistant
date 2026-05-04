@@ -1,0 +1,44 @@
+main_branch: main
+mainline_merge_policy: mvp_and_governance_only
+
+mvp_mainline_tracks:
+  - AccurateIntake
+  - BodyBudgetCalibration
+  - FoodDB
+  - PLCE
+
+future_shadow_tracks:
+  - LongTermContextLab
+  - RecommendationShadow
+  - RescueShadow
+  - ProactiveShadow
+
+required_checks:
+  - repo-hygiene-and-architecture
+  - pre-edd-readiness
+  - runtime-contract-tests
+  - wave1-phase-a-contracts
+  - wave1-phase-b-contracts
+
+advisory_checks:
+  - phase-c-environment-gate
+  - accurate-intake-mvp-gate
+
+forbidden_future_runtime_effects:
+  - runtime_truth_changed: true
+  - manager_context_packet_changed: true
+  - mutation_changed: true
+  - product_readiness_claimed: true
+  - durable_memory_written: true
+  - proactive_sent: true
+  - recommendation_served: true
+  - rescue_committed: true
+  - day_budget_mutated: true
+  - body_plan_mutated: true
+  - meal_thread_mutated: true
+
+size_budget:
+  mvp_mainline_max_additions: 600
+  future_shadow_merge_max_additions: 250
+  max_stack_depth: 2
+  max_branch_age_days_without_realign: 2
