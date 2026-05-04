@@ -192,6 +192,17 @@ class RecommendationShadowArtifactGateResult(BaseModel):
     scenario_reports: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class RecommendationShadowFixtureImportResult(BaseModel):
+    scenarios: list[RecommendationShadowContextFixture] = Field(default_factory=list)
+    source_summary: dict[str, Any] = Field(default_factory=dict)
+
+
+class RecommendationShadowFixtureImportError(ValueError):
+    def __init__(self, failure_codes: list[str]) -> None:
+        self.failure_codes = failure_codes
+        super().__init__(", ".join(failure_codes))
+
+
 __all__ = [
     "CandidateSourceSummary",
     "CandidateSpec",
@@ -204,6 +215,8 @@ __all__ = [
     "RecommendationShadowEvalArtifact",
     "RecommendationShadowEvalResult",
     "RecommendationShadowFixtureValidationError",
+    "RecommendationShadowFixtureImportError",
+    "RecommendationShadowFixtureImportResult",
     "RecommendationShadowFlags",
     "SIDECAR_ACTIVATION_CONTRACT",
 ]

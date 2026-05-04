@@ -582,7 +582,9 @@ def test_shadow_evaluator_modules_do_not_import_live_runtime_provider_or_persist
     paths = [
         ROOT / "app" / "recommendation" / "domain" / "shadow.py",
         ROOT / "app" / "recommendation" / "application" / "shadow_evaluator.py",
+        ROOT / "app" / "recommendation" / "application" / "shadow_fixture_import.py",
         ROOT / "scripts" / "build_recommendation_shadow_eval.py",
+        ROOT / "scripts" / "build_recommendation_shadow_eval_from_fixtures.py",
     ]
 
     forbidden_import_prefixes = (
