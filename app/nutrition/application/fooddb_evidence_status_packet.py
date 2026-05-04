@@ -7,6 +7,7 @@ from .exact_evidence_lane_policy import build_exact_evidence_lane_policy_artifac
 from .fooddb_activation_gap_report import build_fooddb_activation_gap_report
 from .fooddb_guarded_afk_truth_audit import build_fooddb_guarded_afk_truth_audit
 from .fooddb_integration_readiness_matrix import build_fooddb_integration_readiness_matrix
+from .fooddb_manager_seam_gate import build_fooddb_manager_seam_gate
 from .websearch_source_policy import build_websearch_source_policy_artifact
 
 MINIMUM_COMMON_SERVING_ANCHORS = 40
@@ -31,6 +32,7 @@ def build_fooddb_evidence_status_packet(
     )
     exact_lane = build_exact_evidence_lane_policy_artifact()
     integration = build_fooddb_integration_readiness_matrix()
+    manager_seam_gate = build_fooddb_manager_seam_gate(small_anchor_payload=small_anchor_payload)
     websearch_policy = build_websearch_source_policy_artifact()
 
     truth_summary = truth_audit["summary"]
@@ -62,6 +64,7 @@ def build_fooddb_evidence_status_packet(
             "exact_card_existing_report_only_count": truth_summary["exact_card_count"],
             "integration_edges_contract_backed": integration_summary["contract_backed"],
             "integration_edges_draft": integration_summary["draft"],
+            "manager_fooddb_packet_seam_gate_status": manager_seam_gate["status"],
         },
         "activation_thresholds": {
             "minimum_common_serving_anchors": MINIMUM_COMMON_SERVING_ANCHORS,
@@ -101,11 +104,13 @@ def build_fooddb_evidence_status_packet(
             "contract_backed_edge_count": integration_summary["contract_backed"],
             "draft_edge_count": integration_summary["draft"],
             "websearch_runtime_truth_allowed": integration["websearch_runtime_truth_allowed"],
+            "manager_fooddb_packet_seam_gate_status": manager_seam_gate["status"],
         },
         "next_required_slices": _next_required_slices(
             runtime_anchor_count=runtime_anchor_count,
             listed_component_count=listed_count,
             integration_summary=integration_summary,
+            manager_seam_gate_status=manager_seam_gate["status"],
         ),
         "non_claims": [
             "no_product_loop_integration",
@@ -124,6 +129,7 @@ def _next_required_slices(
     runtime_anchor_count: int,
     listed_component_count: int,
     integration_summary: dict[str, Any],
+    manager_seam_gate_status: str = "not_run",
 ) -> list[str]:
     slices: list[str] = []
     if runtime_anchor_count < MINIMUM_COMMON_SERVING_ANCHORS:
@@ -132,8 +138,10 @@ def _next_required_slices(
         slices.append("listed_component_anchor_expansion")
     if integration_summary["draft"]:
         slices.append("packet_to_mutation_guard_hardening")
-    if not slices:
+    if not slices and manager_seam_gate_status != "pass":
         slices.append("manager_fooddb_packet_seam_smoke")
+    if not slices:
+        slices.append("grokfast_fooddb_packet_live_diagnostic")
     return slices
 
 
