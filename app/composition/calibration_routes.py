@@ -14,6 +14,7 @@ from app.body.application import (
 )
 from app.body.application.calibration_model import CalibrationModelInputs
 from app.composition.calibration_commit_bridge import (
+    StoredCalibrationProposalNotActionable,
     apply_calibration_proposal_commit,
     apply_stored_calibration_proposal_action,
 )
@@ -242,13 +243,18 @@ def stored_calibration_proposal_action(
         "defer_calibration_proposal": "deferred_pending_reminder",
         "reject_calibration_proposal": "rejected",
     }[request.action]
-    result = apply_stored_calibration_proposal_action(
-        db,
-        user=user,
-        proposal_container_id=request.proposal_container_id,
-        decision=decision,  # type: ignore[arg-type]
-        accepted_at=datetime.fromisoformat(request.accepted_at) if request.accepted_at else None,
-    )
+    try:
+        result = apply_stored_calibration_proposal_action(
+            db,
+            user=user,
+            proposal_container_id=request.proposal_container_id,
+            decision=decision,  # type: ignore[arg-type]
+            accepted_at=datetime.fromisoformat(request.accepted_at) if request.accepted_at else None,
+        )
+    except StoredCalibrationProposalNotActionable as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {
         "proposal_container_id": result.proposal_container_id,
         "proposal_status": result.proposal_status,
