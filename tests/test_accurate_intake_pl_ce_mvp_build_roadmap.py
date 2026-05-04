@@ -22,6 +22,14 @@ def test_pl_ce_roadmap_doc_exists_with_utf8_bom_and_track_split() -> None:
     assert "provider health smoke" in text
     assert "schema contract probe" in text
     assert "context-only single-case live probe" in text
+    assert "Serial PR Delivery Policy" in text
+    assert "mode: auto_serial" in text
+    assert "verify CI green" in text
+    assert "verify mergeable clean" in text
+    assert "squash merge" in text
+    assert "mode: allowed_with_self_retarget" in text
+    assert "max_depth: 2" in text
+    assert "mode: stop_for_human_gate" in text
 
 
 def test_pl_ce_roadmap_doc_records_best_practice_sources_and_non_claims() -> None:

@@ -16,6 +16,43 @@ PL+CE owns context visibility, review artifacts, fake-provider context smoke, an
 
 The FoodDB boundary remains blocked_waiting_for_fdb_artifact until FoodDB provides approved packet-ready metadata.
 
+## Serial PR Delivery Policy
+
+Default PL+CE delivery is serial squash-merge, not long-lived stack accumulation.
+The goal is to avoid ancestry drift after GitHub squash merge rewrites the PR branch lineage.
+
+```yaml
+agent_policy:
+  low_risk_work:
+    mode: auto_serial
+    behavior:
+      - open PR
+      - run tests
+      - verify CI green
+      - verify mergeable clean
+      - squash merge after the applicable human/review gate is satisfied
+      - delete branch if it is not a stack base
+      - refresh next branch
+      - continue
+
+  stacked_work:
+    mode: allowed_with_self_retarget
+    max_depth: 2
+    behavior:
+      - merge base PR first
+      - retarget child PR to main
+      - rerun CI
+      - continue only if green and mergeable clean
+
+  high_risk_work:
+    mode: stop_for_human_gate
+```
+
+Low-risk PL+CE diagnostic work can proceed in one run as multiple serial PRs if each PR is opened,
+tested, CI-green, mergeable clean, and squash-merged before continuing to the next slice.
+Stacking is allowed only as a short bridge, with max_depth: 2 and self-retarget after the base PR merges.
+High-risk work still stops for a human gate before merge or runtime activation.
+
 ## Activation Ladder
 
 The PL+CE activation sequence is:
