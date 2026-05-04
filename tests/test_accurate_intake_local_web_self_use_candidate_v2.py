@@ -9,7 +9,26 @@ def _clean_evidence() -> dict:
         "free_text_manual_target": {"status": "pass", "source": "test"},
         "dogfood_review_queue": {"status": "generated", "source": "test"},
         "local_dogfood_data_hygiene": {"status": "pass", "source": "test"},
-        "pre_live_decision_pack": {"status": "generated", "source": "test"},
+        "pre_live_decision_pack": {
+            "status": "generated",
+            "source": "test",
+            "ready_for_pl_ce_local_review": True,
+            "ready_for_live_diagnostic_decision": False,
+            "live_canary_approved": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
+        "pl_ce_local_review_decision_pack": {
+            "status": "ready_for_human_pl_ce_review",
+            "source": "test",
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "real_fooddb_pass_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
         "mvp_gate": {"status": "pass"},
         "phase_c_gate": {"status": "pass"},
     }
@@ -62,6 +81,41 @@ def test_candidate_blocked_when_pre_live_decision_pack_missing() -> None:
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert "missing evidence: pre_live_decision_pack" in pack["local_web_self_use_candidate_v2"]["blockers"]
 
+def test_candidate_blocked_when_pl_ce_local_review_decision_pack_missing() -> None:
+    evidence = _clean_evidence()
+    del evidence["pl_ce_local_review_decision_pack"]
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "missing evidence: pl_ce_local_review_decision_pack" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+def test_candidate_requires_pre_live_pack_to_reference_pl_ce_local_review() -> None:
+    evidence = _clean_evidence()
+    evidence["pre_live_decision_pack"]["ready_for_pl_ce_local_review"] = False
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "pre-live missing PL+CE local review gate" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+def test_candidate_blocks_pre_live_live_decision_or_canary_approval() -> None:
+    for flag in ("ready_for_live_diagnostic_decision", "live_canary_approved"):
+        evidence = _clean_evidence()
+        evidence["pre_live_decision_pack"][flag] = True
+        pack = build_local_web_self_use_candidate_v2(evidence)
+        assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+        assert "pre-live overclaim" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+def test_candidate_blocks_pl_ce_decision_pack_overclaims() -> None:
+    evidence = _clean_evidence()
+    evidence["pl_ce_local_review_decision_pack"].update(
+        {
+            "ready_for_live_diagnostic_decision": True,
+            "ready_for_fdb_integration": True,
+            "real_fooddb_pass_claimed": True,
+        }
+    )
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "PL+CE local review overclaim" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
 def test_candidate_blocked_if_private_self_use_approved_true() -> None:
     evidence = _clean_evidence()
     evidence["some_evil_artifact"] = {"private_self_use_approved": True}
@@ -81,6 +135,40 @@ def test_candidate_blocked_if_kimi_activated_or_live_provider_used() -> None:
     pack2 = build_local_web_self_use_candidate_v2(evidence2)
     assert pack2["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert "live provider used" in pack2["local_web_self_use_candidate_v2"]["blockers"]
+
+def test_candidate_blocked_if_live_llm_grokfast_or_websearch_used() -> None:
+    cases = (
+        ("live_llm_invoked", "live provider used"),
+        ("web_tavily_used", "websearch used"),
+        ("web_tavily_invoked", "websearch used"),
+        ("web_tavily", "websearch used"),
+        ("websearch_evidence_used", "websearch used"),
+        ("WebSearch", "websearch used"),
+        ("grokfast_activated", "GrokFast activated"),
+        ("GrokFast", "GrokFast activated"),
+    )
+    for flag, blocker in cases:
+        evidence = _clean_evidence()
+        evidence["some_artifact"] = {flag: True}
+        pack = build_local_web_self_use_candidate_v2(evidence)
+        assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+        assert blocker in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+def test_candidate_blocked_if_any_artifact_claims_fooddb_truth_or_integration() -> None:
+    cases = (
+        "ready_for_fdb_integration",
+        "fooddb_truth_updated",
+        "fooddb_evidence_used",
+        "real_fooddb_pass_claimed",
+        "fooddb_schema_changed",
+        "food_evidence_promotion_policy_changed",
+    )
+    for flag in cases:
+        evidence = _clean_evidence()
+        evidence["some_artifact"] = {flag: True}
+        pack = build_local_web_self_use_candidate_v2(evidence)
+        assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+        assert "FoodDB overclaim" in pack["local_web_self_use_candidate_v2"]["blockers"]
 
 def test_candidate_never_sets_product_readiness_claimed_true() -> None:
     pack = build_local_web_self_use_candidate_v2(_clean_evidence())
