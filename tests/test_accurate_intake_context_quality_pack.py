@@ -61,7 +61,7 @@ def test_context_quality_pack_combines_ce_diagnostics_without_fault_claims() -> 
     assert pack["deterministic_selected_target"] is False
     assert pack["deterministic_semantic_inference_used"] is False
     assert pack["mutation_authority"] is False
-    assert pack["summary"]["context_replay_scenario_count"] == 7
+    assert pack["summary"]["context_replay_scenario_count"] == 12
     assert pack["summary"]["target_candidate_scenario_count"] == 5
     assert pack["summary"]["ambiguous_target_scenarios"] >= 2
     assert pack["summary"]["pending_pin_scenarios"] >= 2
