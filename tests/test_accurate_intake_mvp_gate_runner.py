@@ -41,6 +41,7 @@ def test_accurate_intake_mvp_gate_manifest_declares_local_deterministic_scope() 
         "local_self_use_candidate_packet_required_group_pass",
         "manager_style_active_runtime_smoke_required_group_pass",
         "ux_semantic_manager_decision_consumption_required_group_pass",
+        "pl_ce_metadata_freshness_pack_contract_required_group_pass",
         "active_api_route_smoke_required_group_pass",
         "scoped_explicit_item_removal_self_use_pass",
     ]
@@ -68,6 +69,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "local_self_use_operator_shell",
         "local_self_use_candidate_packet",
         "ux_semantic_manager_decision_consumption",
+        "pl_ce_metadata_freshness_pack_contract",
         "active_api_route_smoke",
     ]
     flat_args = " ".join(arg for group in plan.groups for command in group.commands for arg in command)
@@ -97,6 +99,7 @@ def test_gate_plan_groups_required_mvp_regression_surfaces() -> None:
         "tests/test_wave1_phase_b2_final_mapping.py",
         "tests/test_accurate_intake_mvp_manager_style_smoke.py",
         "tests/test_accurate_intake_mvp_ux_semantic_wall.py",
+        "tests/test_accurate_intake_pl_ce_metadata_freshness_pack.py",
         "tests/test_accurate_intake_mvp_api_smoke.py",
         "tests/test_accurate_intake_local_web_shell_bridge.py",
         "tests/test_free_text_manual_target_manager_path.py",
@@ -156,10 +159,11 @@ def test_gate_runner_returns_machine_readable_group_summary(monkeypatch, capsys)
         "local_self_use_operator_shell",
         "local_self_use_candidate_packet",
         "ux_semantic_manager_decision_consumption",
+        "pl_ce_metadata_freshness_pack_contract",
         "active_api_route_smoke",
     ]
     assert {group["requirement"] for group in output["groups"]} == {"required"}
-    assert len(calls) == 13
+    assert len(calls) == 14
     assert all(kwargs.get("encoding") == "utf-8" for kwargs in run_kwargs)
     assert all(kwargs.get("errors") == "replace" for kwargs in run_kwargs)
 
