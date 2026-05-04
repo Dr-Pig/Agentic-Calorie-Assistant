@@ -73,8 +73,7 @@ FAIL_CONCLUSIONS = {"FAILURE", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STA
 
 STALE_CONTRACT_PATTERNS: tuple[tuple[str, str], ...] = (
     ("legacy_calibration_unmounted_route_gate", r"calibration_action_router_stays_unmounted_until_activation_plan"),
-    ("legacy_calibration_unmounted_route_gate", r'calibration_router"\s+not\s+in\s+source'),
-    ("legacy_calibration_unmounted_route_gate", r"calibration_router'\s+not\s+in\s+source"),
+    ("legacy_calibration_unmounted_route_gate", r"assert\s+[\"']calibration_router[\"']\s+not\s+in\s+source"),
 )
 
 CONTRACT_DRIFT_SCAN_EXCLUDES = (
