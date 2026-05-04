@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from openpyxl import Workbook
 
@@ -129,6 +130,21 @@ def test_raw_source_inventory_reports_malformed_xlsx_per_entry(tmp_path: Path) -
     assert inventory["scan_summary"]["present_count"] == 1
 
 
+def test_raw_source_inventory_reports_lazy_sheet_xml_parse_error_per_entry(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "FDA_food_nutrition_2024.xlsx"
+    _write_xlsx_with_malformed_sheet_xml(source)
+
+    inventory = build_food_raw_source_inventory(scan_roots=[tmp_path])
+    entry = _entry(inventory, "tfda_fda_food_nutrition_2024")
+
+    assert entry["local_path_present"] is True
+    assert entry["parse_error"] == "ParseError"
+    assert entry["row_count"] is None
+    assert inventory["scan_summary"]["present_count"] == 1
+
+
 def test_raw_source_inventory_reports_missing_sources_as_absent(tmp_path: Path) -> None:
     inventory = build_food_raw_source_inventory(scan_roots=[tmp_path / "missing"])
 
@@ -175,6 +191,45 @@ def test_raw_source_inventory_builder_writes_local_artifact_without_touching_foo
         for path in protected_truth
     }
     assert after == before
+
+
+def _write_xlsx_with_malformed_sheet_xml(path: Path) -> None:
+    with ZipFile(path, "w", ZIP_DEFLATED) as archive:
+        archive.writestr(
+            "[Content_Types].xml",
+            """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>""",
+        )
+        archive.writestr(
+            "_rels/.rels",
+            """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>""",
+        )
+        archive.writestr(
+            "xl/workbook.xml",
+            """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="nutrition" sheetId="1" r:id="rId1"/>
+  </sheets>
+</workbook>""",
+        )
+        archive.writestr(
+            "xl/_rels/workbook.xml.rels",
+            """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+</Relationships>""",
+        )
+        archive.writestr("xl/worksheets/sheet1.xml", "<worksheet><sheetData><row>")
 
 
 def _entry(inventory: dict[str, object], source_id: str) -> dict[str, object]:
