@@ -222,9 +222,10 @@ jobs:
 
       - name: Run product pages browser E2E diagnostic
         run: |
-          python -m pytest tests/test_accurate_intake_product_pages_browser_smoke.py tests/test_accurate_intake_product_pages_seven_day_diary_smoke.py tests/test_accurate_intake_product_pages_static.py -q
+          python -m pytest tests/test_accurate_intake_product_pages_browser_smoke.py tests/test_accurate_intake_product_pages_seven_day_diary_smoke.py tests/test_accurate_intake_product_pages_visual_qa.py tests/test_accurate_intake_product_pages_static.py -q
           python scripts/run_accurate_intake_product_pages_browser_smoke.py --require-browser-execution --output artifacts/accurate_intake_product_pages_browser_smoke_ci.json --timeout-ms 25000
           python scripts/run_accurate_intake_product_pages_seven_day_diary_smoke.py --require-browser-execution --output artifacts/accurate_intake_product_pages_seven_day_diary_smoke_ci.json --timeout-ms 25000
+          python scripts/run_accurate_intake_product_pages_visual_qa.py --require-browser-execution --output artifacts/accurate_intake_product_pages_visual_qa_ci.json --screenshot-dir artifacts/product_pages_visual_qa_ci --timeout-ms 25000
 
       - name: Upload product pages browser E2E report
         if: always()
@@ -234,6 +235,8 @@ jobs:
           path: |
             artifacts/accurate_intake_product_pages_browser_smoke_ci.json
             artifacts/accurate_intake_product_pages_seven_day_diary_smoke_ci.json
+            artifacts/accurate_intake_product_pages_visual_qa_ci.json
+            artifacts/product_pages_visual_qa_ci
           if-no-files-found: error
 
   wave1-phase-a-contracts:
