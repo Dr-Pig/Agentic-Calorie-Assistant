@@ -90,13 +90,13 @@ def resolve_attachment_decision(current_turn_context: CurrentTurnContextV1) -> A
 
     if _looks_like_back_reference(raw_user_input) and primary_target_id is not None:
         return AttachmentDecision(
-            disposition="attach_existing_thread",
-            target_object_type="meal_thread",
-            target_object_id=primary_target_id,
-            reason="identified_back_reference_target",
-            confidence="medium",
-            ambiguity_flag=False,
-            allowed_transition_class="interpretation_update",
+            disposition="answer_only",
+            target_object_type="none",
+            target_object_id=None,
+            reason="ambiguous_back_reference_requires_manager",
+            confidence="low",
+            ambiguity_flag=True,
+            allowed_transition_class="none",
         )
 
     if _looks_like_ambiguous_ack(raw_user_input):

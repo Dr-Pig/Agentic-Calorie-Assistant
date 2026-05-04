@@ -148,8 +148,8 @@ def test_context_quality_pack_combines_ce_diagnostics_without_fault_claims() -> 
     assert pack["summary"]["outside_current_day_omitted_scenarios"] == 1
     assert pack["summary"]["short_term_runtime_replay_scenario_count"] == 7
     assert pack["short_term_context_runtime_replay_checked"] is True
-    assert pack["short_term_context_current_gap_scenarios"] >= 1
-    assert "runtime_back_reference_heuristic_attached_target" in pack["short_term_context_known_gap_signals"]
+    assert pack["short_term_context_current_gap_scenarios"] == 0
+    assert pack["short_term_context_known_gap_signals"] == []
     assert pack["ready_for_live_diagnostic_decision"] is False
     assert pack["private_self_use_approved"] is False
 
