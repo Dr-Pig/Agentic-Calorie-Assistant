@@ -823,10 +823,13 @@ def test_shadow_replay_evaluators_explain_used_and_ignored_context() -> None:
         "recommendation_shadow_replay",
         "intake_clarification_shadow_replay",
         "calibration_bias_shadow_replay",
+        "conversation_recall_shadow_replay",
     }
 
     recommendation = artifact["replays"]["recommendation_shadow_replay"]
     assert recommendation["expected_user_value"] == "better_candidate_ranking_review"
+    assert recommendation["menu_scan_context_used_as_candidate_source"] is True
+    assert recommendation["runtime_recommendation_mode_started"] is False
     assert (
         "golden-order-morning-bar-oatmeal-latte" in recommendation["used_candidate_ids"]
     )
@@ -850,6 +853,12 @@ def test_shadow_replay_evaluators_explain_used_and_ignored_context() -> None:
         "intake-estimation-bias-likely-underestimate"
         in calibration["used_candidate_ids"]
     )
+
+    conversation = artifact["replays"]["conversation_recall_shadow_replay"]
+    assert conversation["expected_user_value"] == "better_cross_session_context_review"
+    assert conversation["manager_tool_call_allowed"] is False
+    assert conversation["raw_transcript_injected"] is False
+    assert "conversation-recall-context-summary" in conversation["used_candidate_ids"]
 
 
 def test_review_queue_reducer_prioritizes_product_value_without_artifact_sprawl() -> (
@@ -887,6 +896,19 @@ def test_review_queue_reducer_prioritizes_product_value_without_artifact_sprawl(
         len(items) for items in queue.values()
     )
     assert artifact["summary"]["pseudo_runtime_truth_risk_count"] == 0
+
+    reviews = {
+        item["mechanism_id"]: item for item in artifact["deferred_mechanism_reviews"]
+    }
+    assert {
+        "active_conversation_recall_tool",
+        "durable_memory_write_service",
+        "semantic_pattern_llm_extraction",
+        "style_profile_materialization",
+        "live_menu_scan_runtime",
+    }.issubset(reviews)
+    assert all(item["product_capability_value"] for item in reviews.values())
+    assert all(item["blocked_by_dependency"] is True for item in reviews.values())
 
 
 def test_context_pack_token_pressure_shadow_eval_preserves_l4c_ordering() -> None:

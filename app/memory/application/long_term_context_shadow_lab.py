@@ -1571,9 +1571,10 @@ def _shadow_replay_evaluators_artifact(
     fixture: dict[str, Any],
     candidates: list[LongTermContextCandidate],
 ) -> dict[str, Any]:
-    recommendation = _recommendation_shadow_replay(candidates)
+    recommendation = _recommendation_shadow_replay(fixture, candidates)
     intake = _intake_clarification_shadow_replay(candidates)
     calibration = _calibration_bias_shadow_replay(candidates)
+    conversation = _conversation_recall_shadow_replay(candidates)
     return _base_artifact(
         artifact_type="shadow_replay_evaluators",
         fixture=fixture,
@@ -1586,8 +1587,9 @@ def _shadow_replay_evaluators_artifact(
                 "recommendation_shadow_replay": recommendation,
                 "intake_clarification_shadow_replay": intake,
                 "calibration_bias_shadow_replay": calibration,
+                "conversation_recall_shadow_replay": conversation,
             },
-            "replay_count": 3,
+            "replay_count": 4,
         },
     )
 
@@ -1640,6 +1642,7 @@ def _review_queue_reducer_artifact(
                 "new_artifact_requires_scoring_or_replay_use": True,
                 "consumerless_candidates_deferred": True,
             },
+            "deferred_mechanism_reviews": _deferred_mechanism_reviews(),
             "summary": {
                 "candidate_count": len(candidates),
                 "high_priority_count": len(queue["high"]),
@@ -1968,6 +1971,7 @@ def _product_capability_value(candidate: LongTermContextCandidate) -> str:
 
 
 def _recommendation_shadow_replay(
+    fixture: dict[str, Any],
     candidates: list[LongTermContextCandidate],
 ) -> dict[str, Any]:
     used = [
@@ -1982,11 +1986,16 @@ def _recommendation_shadow_replay(
         }
     ]
     used_ids = {candidate.candidate_id for candidate in used}
+    menu_context = _menu_scan_shadow_context(fixture)
     return {
         "replay_id": "recommendation_shadow_replay",
         "expected_user_value": "better_candidate_ranking_review",
         "used_candidate_ids": sorted(used_ids),
         "ignored_candidates": _ignored_candidates(candidates, used_ids),
+        "menu_scan_context_used_as_candidate_source": bool(
+            menu_context.get("available")
+        ),
+        "runtime_recommendation_mode_started": False,
         "ranking_basis": [
             "preference_profile_summary_shadow",
             "golden_order_shadow",
@@ -1994,6 +2003,33 @@ def _recommendation_shadow_replay(
         ],
         "risk_if_wrong": "Could bias ranking before user-confirmed memory exists.",
         "recommendation_served": False,
+        "runtime_effect_allowed": False,
+    }
+
+
+def _conversation_recall_shadow_replay(
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    used = [
+        candidate
+        for candidate in candidates
+        if candidate.candidate_type == "conversation_recall_context"
+    ]
+    used_ids = {candidate.candidate_id for candidate in used}
+    return {
+        "replay_id": "conversation_recall_shadow_replay",
+        "expected_user_value": "better_cross_session_context_review",
+        "used_candidate_ids": sorted(used_ids),
+        "ignored_candidates": _ignored_candidates(candidates, used_ids),
+        "routing_basis": [
+            "summary_first_conversation_archive",
+            "source_scope_required",
+            "raw_transcript_fallback_disabled",
+        ],
+        "manager_tool_call_allowed": False,
+        "raw_transcript_injected": False,
+        "manager_context_packet_written": False,
+        "risk_if_wrong": "Could retrieve stale conversation context into a future turn.",
         "runtime_effect_allowed": False,
     }
 
@@ -2090,6 +2126,51 @@ def _review_queue_item(
         "durable_memory_written": False,
         "manager_context_injected": False,
     }
+
+
+def _deferred_mechanism_reviews() -> list[dict[str, Any]]:
+    return [
+        {
+            "mechanism_id": "active_conversation_recall_tool",
+            "product_capability_value": "Lets the future manager find prior conversations without prompt-dumping history.",
+            "blocked_by_dependency": True,
+            "deferred_reason": "Requires approved retrieval tool contract and ManagerContextPacket integration.",
+            "current_shadow_coverage": "conversation_recall_shadow_replay",
+            "runtime_effect_allowed": False,
+        },
+        {
+            "mechanism_id": "durable_memory_write_service",
+            "product_capability_value": "Turns reviewed preferences into persistent user memory.",
+            "blocked_by_dependency": True,
+            "deferred_reason": "Requires storage schema, promotion policy, deletion/correction surface, and human approval.",
+            "current_shadow_coverage": "memory_review_action_shadow_result",
+            "runtime_effect_allowed": False,
+        },
+        {
+            "mechanism_id": "semantic_pattern_llm_extraction",
+            "product_capability_value": "Finds richer behavioral patterns than deterministic counts can extract.",
+            "blocked_by_dependency": True,
+            "deferred_reason": "Requires live or approved LLM extraction path plus holdout evals.",
+            "current_shadow_coverage": "semantic_pattern_extraction_shadow_plan",
+            "runtime_effect_allowed": False,
+        },
+        {
+            "mechanism_id": "style_profile_materialization",
+            "product_capability_value": "Adapts response style, follow-up density, and proactive wording.",
+            "blocked_by_dependency": True,
+            "deferred_reason": "L4A marks conversation_style_profile as a later extension, not active runtime truth.",
+            "current_shadow_coverage": "app_usage_style and interaction_preference candidates",
+            "runtime_effect_allowed": False,
+        },
+        {
+            "mechanism_id": "live_menu_scan_runtime",
+            "product_capability_value": "Uses menu input before eating to rank concrete choices.",
+            "blocked_by_dependency": True,
+            "deferred_reason": "Requires vision/parser and recommendation runtime activation; shadow lab only reviews candidate-source value.",
+            "current_shadow_coverage": "candidate_extraction_engine_v2.menu_scan_shadow_context",
+            "runtime_effect_allowed": False,
+        },
+    ]
 
 
 def _context_pack_token_pressure_shadow_artifact(
