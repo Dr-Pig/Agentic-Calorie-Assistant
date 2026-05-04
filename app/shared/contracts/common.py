@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 RouteTarget = Literal[
@@ -67,6 +68,21 @@ class EstimateRequest(BaseModel):
     persist_calibration_proposal: bool = False
     calibration_proposal_container_id: int | None = Field(default=None, ge=1)
     calibration_action: CalibrationEstimateAction | None = None
+    calibration_action_accepted_at: str | None = None
+
+    @field_validator("calibration_action_accepted_at")
+    @classmethod
+    def _validate_calibration_action_accepted_at(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        candidate = value.strip()
+        if not candidate or ("T" not in candidate and " " not in candidate):
+            raise ValueError("calibration_action_accepted_at must include a date and time")
+        try:
+            datetime.fromisoformat(candidate)
+        except ValueError as exc:
+            raise ValueError("calibration_action_accepted_at must be an ISO datetime") from exc
+        return candidate
 
 
 class TurnState(BaseModel):
