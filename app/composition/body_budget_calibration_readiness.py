@@ -309,6 +309,25 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
                 "ui_role": "mirror_or_confirm_surface",
                 "llm_role": "none_for_mutation_legality",
             },
+            "estimate_route_action_bridge": {
+                "route": "/estimate",
+                "request_contract": "app.shared.contracts.common.EstimateRequest",
+                "mode": "calibration_action",
+                "requires": [
+                    "calibration_proposal_container_id",
+                    "calibration_action",
+                    "stored_action_contract",
+                ],
+                "accepted_actions": [
+                    "accept_calibration_proposal",
+                    "defer_calibration_proposal",
+                    "reject_calibration_proposal",
+                ],
+                "raw_text_authorized_mutation": False,
+                "manager_provider_invoked": False,
+                "mutation_legality_owner": "stored_action_contract",
+                "llm_role": "none_for_mutation_legality",
+            },
         },
         "route_activation": {
             "root_app_mounted": True,
