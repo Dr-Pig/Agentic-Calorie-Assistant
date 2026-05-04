@@ -8,10 +8,13 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.body.infrastructure.models import BodyPlanRecord
 from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord
-from app.composition import calibration_commit_bridge
+from app.composition import calibration_commit_bridge, calibration_proposal_expiry
 from app.composition.calibration_commit_bridge import (
     apply_calibration_proposal_commit,
     apply_stored_calibration_proposal_action,
+)
+from app.composition.calibration_proposal_expiry import (
+    expire_stale_calibration_proposals,
 )
 from app.database import get_or_create_user
 from app.models import Base
@@ -69,12 +72,17 @@ def _stored_calibration_proposal(
     user_id: int,
     status: str = "open",
     effect_payload: dict[str, object] | None = None,
+    metadata: dict[str, object] | None = None,
 ) -> ProposalContainerRecord:
     proposal = ProposalContainerRecord(
         user_id=user_id,
         proposal_type="calibration",
         proposal_status=status,
-        metadata_json={"local_date": "2026-05-04", "proposal_family": "budget_adjustment"},
+        metadata_json={
+            "local_date": "2026-05-04",
+            "proposal_family": "budget_adjustment",
+            **dict(metadata or {}),
+        },
     )
     db.add(proposal)
     db.flush()
@@ -127,6 +135,167 @@ def test_stored_calibration_action_rejects_terminal_proposal_without_side_effect
     assert _counts(db) == before_counts
 
 
+def test_expire_stale_calibration_proposals_marks_only_expired_active_rows_without_side_effects() -> None:
+    db = _session()
+    user = get_or_create_user(db, "calibration-expiry-bookkeeping")
+    other_user = get_or_create_user(db, "calibration-expiry-bookkeeping-other")
+    _active_body_plan(db, user_id=user.id)
+    expired_proposal = _stored_calibration_proposal(
+        db,
+        user_id=user.id,
+        status="open",
+        metadata={"expires_at": "2026-05-04T09:00:00"},
+    )
+    future_proposal = _stored_calibration_proposal(
+        db,
+        user_id=user.id,
+        status="open",
+        metadata={"expires_at": "2026-05-04T12:00:00"},
+    )
+    no_expiry_proposal = _stored_calibration_proposal(db, user_id=user.id, status="open")
+    terminal_proposal = _stored_calibration_proposal(
+        db,
+        user_id=user.id,
+        status="accepted",
+        metadata={"expires_at": "2026-05-04T09:00:00"},
+    )
+    legacy_presented_proposal = _stored_calibration_proposal(
+        db,
+        user_id=user.id,
+        status="presented",
+        metadata={"expires_at": "2026-05-04T09:00:00"},
+    )
+    other_user_proposal = _stored_calibration_proposal(
+        db,
+        user_id=other_user.id,
+        status="open",
+        metadata={"expires_at": "2026-05-04T09:00:00"},
+    )
+    before_counts = _counts(db)
+
+    result = expire_stale_calibration_proposals(
+        db,
+        user=user,
+        now_at=datetime(2026, 5, 4, 10, 30, 0),
+    )
+
+    assert result.expired_count == 1
+    assert result.expired_proposal_container_ids == [expired_proposal.id]
+    assert _counts(db) == before_counts
+    db.refresh(expired_proposal)
+    db.refresh(future_proposal)
+    db.refresh(no_expiry_proposal)
+    db.refresh(terminal_proposal)
+    db.refresh(other_user_proposal)
+    assert expired_proposal.proposal_status == "expired"
+    assert expired_proposal.accepted_at is None
+    assert expired_proposal.metadata_json["expired_at"] == "2026-05-04T10:30:00"
+    assert expired_proposal.metadata_json["expiry_reason"] == "expires_at_reached"
+    assert future_proposal.proposal_status == "open"
+    assert no_expiry_proposal.proposal_status == "open"
+    assert terminal_proposal.proposal_status == "accepted"
+    assert legacy_presented_proposal.proposal_status == "presented"
+    assert other_user_proposal.proposal_status == "open"
+
+    with pytest.raises(ValueError, match="stored calibration proposal is not actionable: expired"):
+        apply_stored_calibration_proposal_action(
+            db,
+            user=user,
+            proposal_container_id=expired_proposal.id,
+            decision="accepted",
+            accepted_at=datetime(2026, 5, 4, 10, 35, 0),
+        )
+
+    active_plan = db.execute(select(BodyPlanRecord).where(BodyPlanRecord.plan_status == "active")).scalar_one()
+    assert active_plan.daily_budget_kcal == 1800
+    assert _counts(db) == before_counts
+
+
+def test_expire_stale_calibration_proposals_rechecks_open_status_at_write_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    db = _session()
+    user = get_or_create_user(db, "calibration-expiry-race-guard")
+    _active_body_plan(db, user_id=user.id)
+    proposal = _stored_calibration_proposal(
+        db,
+        user_id=user.id,
+        status="open",
+        metadata={"expires_at": "2026-05-04T09:00:00"},
+    )
+    before_counts = _counts(db)
+    original_loader = calibration_proposal_expiry._load_expiry_candidate_rows
+
+    def mark_terminal_after_candidate_load(*args, **kwargs):
+        rows = original_loader(*args, **kwargs)
+        proposal.proposal_status = "accepted"
+        db.commit()
+        db.refresh(proposal)
+        return rows
+
+    monkeypatch.setattr(
+        calibration_proposal_expiry,
+        "_load_expiry_candidate_rows",
+        mark_terminal_after_candidate_load,
+    )
+
+    result = expire_stale_calibration_proposals(
+        db,
+        user=user,
+        now_at=datetime(2026, 5, 4, 10, 30, 0),
+    )
+
+    assert result.expired_count == 0
+    assert result.expired_proposal_container_ids == []
+    db.refresh(proposal)
+    assert proposal.proposal_status == "accepted"
+    assert _counts(db) == before_counts
+
+
+def test_expire_stale_calibration_proposals_does_not_compare_offset_expiry_to_naive_now() -> None:
+    db = _session()
+    user = get_or_create_user(db, "calibration-expiry-offset-mismatch")
+    _active_body_plan(db, user_id=user.id)
+    proposal = _stored_calibration_proposal(
+        db,
+        user_id=user.id,
+        status="open",
+        metadata={"expires_at": "2026-05-04T09:00:00Z"},
+    )
+
+    result = expire_stale_calibration_proposals(
+        db,
+        user=user,
+        now_at=datetime(2026, 5, 4, 10, 30, 0),
+    )
+
+    assert result.expired_count == 0
+    db.refresh(proposal)
+    assert proposal.proposal_status == "open"
+
+
+def test_expire_stale_calibration_proposals_compares_offset_aware_instants() -> None:
+    db = _session()
+    user = get_or_create_user(db, "calibration-expiry-offset-aware")
+    _active_body_plan(db, user_id=user.id)
+    proposal = _stored_calibration_proposal(
+        db,
+        user_id=user.id,
+        status="open",
+        metadata={"expires_at": "2026-05-04T09:00:00Z"},
+    )
+
+    result = expire_stale_calibration_proposals(
+        db,
+        user=user,
+        now_at=datetime.fromisoformat("2026-05-04T10:30:00+00:00"),
+    )
+
+    assert result.expired_count == 1
+    db.refresh(proposal)
+    assert proposal.proposal_status == "expired"
+
+
 def test_stored_calibration_action_rechecks_active_status_at_commit_boundary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -163,12 +332,11 @@ def test_stored_calibration_action_rechecks_active_status_at_commit_boundary(
     assert _counts(db) == before_counts
 
 
-@pytest.mark.parametrize("status", ["open", "presented", "negotiating"])
-def test_stored_calibration_action_accepts_active_proposal_statuses(status: str) -> None:
+def test_stored_calibration_action_accepts_canonical_open_proposal_status() -> None:
     db = _session()
-    user = get_or_create_user(db, f"calibration-active-{status}")
+    user = get_or_create_user(db, "calibration-active-open")
     _active_body_plan(db, user_id=user.id)
-    proposal = _stored_calibration_proposal(db, user_id=user.id, status=status)
+    proposal = _stored_calibration_proposal(db, user_id=user.id, status="open")
 
     result = apply_stored_calibration_proposal_action(
         db,
@@ -184,6 +352,28 @@ def test_stored_calibration_action_accepts_active_proposal_statuses(status: str)
     assert plans[0].plan_status == "superseded"
     assert plans[1].plan_status == "active"
     assert plans[1].daily_budget_kcal == 1650
+
+
+@pytest.mark.parametrize("status", ["presented", "negotiating"])
+def test_stored_calibration_action_rejects_legacy_noncanonical_active_statuses(status: str) -> None:
+    db = _session()
+    user = get_or_create_user(db, f"calibration-legacy-active-{status}")
+    _active_body_plan(db, user_id=user.id)
+    proposal = _stored_calibration_proposal(db, user_id=user.id, status=status)
+    before_counts = _counts(db)
+
+    with pytest.raises(ValueError, match=f"stored calibration proposal is not actionable: {status}"):
+        apply_stored_calibration_proposal_action(
+            db,
+            user=user,
+            proposal_container_id=proposal.id,
+            decision="accepted",
+            accepted_at=datetime(2026, 5, 4, 10, 30, 0),
+        )
+
+    active_plan = db.execute(select(BodyPlanRecord).where(BodyPlanRecord.plan_status == "active")).scalar_one()
+    assert active_plan.daily_budget_kcal == 1800
+    assert _counts(db) == before_counts
 
 
 @pytest.mark.parametrize("decision", ["rejected", "dismissed"])

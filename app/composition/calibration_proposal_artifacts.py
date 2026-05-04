@@ -11,7 +11,7 @@ from app.composition.canonical_proposal_support import ensure_proposal_artifact_
 from app.shared.domain import ProposalOption
 from app.shared.infra.models import ProposalContainerRecord, User
 
-ACTIVE_CALIBRATION_PROPOSAL_STATUSES = frozenset({"open", "presented", "negotiating"})
+ACTIVE_CALIBRATION_PROPOSAL_STATUSES = frozenset({"open"})
 
 
 def assert_calibration_proposal_persistence_clean_session(db: Session) -> None:
