@@ -35,8 +35,11 @@ SOURCE_PRIORITY = {
 def build_recommendation_shadow_eval_artifact(
     scenarios: list[RecommendationShadowContextFixture],
 ) -> RecommendationShadowEvalArtifact:
+    evals = [evaluate_recommendation_shadow_scenario(scenario) for scenario in scenarios]
     return RecommendationShadowEvalArtifact(
-        evals=[evaluate_recommendation_shadow_scenario(scenario) for scenario in scenarios]
+        track_status=_track_status(),
+        summary=_artifact_summary(evals),
+        evals=evals,
     )
 
 
@@ -76,6 +79,7 @@ def evaluate_recommendation_shadow_scenario(
 
     return RecommendationShadowEvalResult(
         scenario_id=scenario.scenario_id,
+        recommendation_mode=scenario.recommendation_mode,
         input_context_summary=_input_context_summary(scenario),
         candidate_spec=scenario.candidate_spec,
         candidate_source_summary=source_summary,
@@ -93,10 +97,45 @@ def evaluate_recommendation_shadow_scenario(
         cold_start_used=cold_start_used,
         coverage_gaps=source_summary.coverage_gaps,
         risk_if_wrong=risk_if_wrong,
+        expected_user_value=_expected_user_value(scenario),
         confidence=confidence,
         freshness_notes=freshness_notes,
         presentation_policy=_presentation_policy(scenario),
+        mode_notes=_mode_notes(scenario),
     )
+
+
+def _track_status() -> dict[str, Any]:
+    return {
+        "track": "RecommendationShadow",
+        "slice_id": "recommendation_shadow_evaluator",
+        "shadow_mode": True,
+        "recommendation_served": False,
+        "intake_committed": False,
+        "meal_thread_mutated": False,
+        "day_budget_mutated": False,
+        "body_plan_mutated": False,
+        "durable_memory_written": False,
+        "manager_context_injected": False,
+        "live_provider_used": False,
+    }
+
+
+def _artifact_summary(evals: list[RecommendationShadowEvalResult]) -> dict[str, Any]:
+    mode_counts = Counter(eval_item.recommendation_mode for eval_item in evals)
+    return {
+        "scenario_count": len(evals),
+        "mode_counts": dict(sorted(mode_counts.items())),
+        "runtime_effect_allowed_count": sum(
+            1 for eval_item in evals if eval_item.runtime_effect_allowed
+        ),
+        "recommendation_served_count": sum(
+            1 for eval_item in evals if eval_item.recommendation_served
+        ),
+        "intake_committed_count": sum(
+            1 for eval_item in evals if eval_item.intake_committed
+        ),
+    }
 
 
 def _is_cold_start(preference_profile_summary: dict[str, Any]) -> bool:
@@ -262,6 +301,11 @@ def _hint_packet(
         source_type=candidate.source_type,
         estimated_kcal_range=candidate.estimated_kcal_range,
         current_surface_channel=scenario.channel,
+        selection_context={
+            "scenario_id": scenario.scenario_id,
+            "recommendation_mode": scenario.recommendation_mode,
+            "runtime_effect_allowed": False,
+        },
         ranking_reason_summary=", ".join(top_pick.ranking_reasons[:3]),
         confidence=_confidence(top_pick),
         source_refs=candidate.source_refs,
@@ -432,6 +476,7 @@ def _input_context_summary(scenario: RecommendationShadowContextFixture) -> dict
         "user_id": scenario.user_id,
         "local_date": scenario.local_date,
         "channel": scenario.channel,
+        "recommendation_mode": scenario.recommendation_mode,
         "timezone": scenario.timezone,
         "remaining_kcal": scenario.current_budget_view.get("remaining_kcal"),
         "body_plan_status": scenario.active_body_plan_view.get("plan_status"),
@@ -452,6 +497,33 @@ def _risk_if_wrong(
     if _confirmed_negative_patterns(scenario):
         return "medium"
     return "low"
+
+
+def _expected_user_value(scenario: RecommendationShadowContextFixture) -> str:
+    if scenario.recommendation_mode == "swap_suggestion":
+        return "informational_swap_option_without_proposal"
+    if scenario.recommendation_mode == "menu_scan":
+        return "pre_intake_menu_choice_signal"
+    return "shadow_candidate_quality_signal"
+
+
+def _mode_notes(scenario: RecommendationShadowContextFixture) -> list[str]:
+    if scenario.recommendation_mode == "menu_scan":
+        return [
+            "menu_scan_fixture_only",
+            "parsed_menu_items_are_candidate_sources_not_intake_truth",
+        ]
+    if scenario.recommendation_mode == "swap_suggestion":
+        return [
+            "swap_suggestion_fixture_only",
+            "informational_only_no_proposal_state",
+        ]
+    if scenario.recommendation_mode == "pre_meal_planning":
+        return [
+            "pre_meal_planning_fixture_only",
+            "informational_only_no_budget_overlay",
+        ]
+    return []
 
 
 def _freshness_notes(scenario: RecommendationShadowContextFixture) -> list[str]:

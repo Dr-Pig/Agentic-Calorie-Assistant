@@ -226,6 +226,21 @@ def test_shadow_eval_artifact_contains_required_non_claim_flags() -> None:
     )
 
     assert artifact.shadow_mode is True
+    assert artifact.track_status == {
+        "track": "RecommendationShadow",
+        "slice_id": "recommendation_shadow_evaluator",
+        "shadow_mode": True,
+        "recommendation_served": False,
+        "intake_committed": False,
+        "meal_thread_mutated": False,
+        "day_budget_mutated": False,
+        "body_plan_mutated": False,
+        "durable_memory_written": False,
+        "manager_context_injected": False,
+        "live_provider_used": False,
+    }
+    assert artifact.summary["scenario_count"] == 1
+    assert artifact.summary["mode_counts"] == {"general": 1}
     assert artifact.real_runtime_effect is False
     assert artifact.recommendation_served is False
     assert artifact.intake_committed is False
@@ -252,6 +267,104 @@ def test_default_shadow_eval_writer_creates_requested_artifact(tmp_path: Path) -
     assert len(payload["evals"]) >= 6
     assert all(eval_item["recommendation_served"] is False for eval_item in payload["evals"])
     assert all(eval_item["hint_packet"]["is_canonical_truth"] is False for eval_item in payload["evals"])
+
+
+def test_menu_scan_mode_uses_menu_items_without_intake_commit() -> None:
+    scenario = _scenario(
+        scenario_id="menu-scan",
+        recommendation_mode="menu_scan",
+        candidate_spec=CandidateSpec(
+            desired_meal_style="light",
+            acceptable_cuisine_families=["taiwanese"],
+            soft_target_kcal_band={"min": 300, "max": 620},
+            priority_signals=["budget_fit", "menu_scan_item"],
+        ),
+        candidates=[
+            _candidate(
+                "menu-high-1",
+                "fried pork chop rice",
+                source_type="menu_scan_item",
+                kcal_min=760,
+                kcal_max=940,
+                cuisine_family="taiwanese",
+            ),
+            _candidate(
+                "menu-fit-1",
+                "grilled chicken rice",
+                source_type="menu_scan_item",
+                kcal_min=480,
+                kcal_max=620,
+                cuisine_family="taiwanese",
+                protein_posture="high",
+            ),
+        ],
+    )
+
+    result = evaluate_recommendation_shadow_scenario(scenario)
+
+    assert result.recommendation_mode == "menu_scan"
+    assert result.top_pick is not None
+    assert result.top_pick.candidate_id == "menu-fit-1"
+    assert result.hint_packet is not None
+    assert result.hint_packet.selection_context["recommendation_mode"] == "menu_scan"
+    assert result.hint_packet.is_canonical_truth is False
+    assert result.intake_committed is False
+    assert result.flags.meal_thread_mutated is False
+    assert result.mode_notes == [
+        "menu_scan_fixture_only",
+        "parsed_menu_items_are_candidate_sources_not_intake_truth",
+    ]
+
+
+def test_swap_suggestion_mode_is_informational_and_does_not_create_proposal() -> None:
+    scenario = _scenario(
+        scenario_id="swap-suggestion",
+        recommendation_mode="swap_suggestion",
+        recent_committed_meals_view={
+            "meals": [
+                {
+                    "title": "large fried chicken bento",
+                    "total_kcal": 930,
+                    "cuisine_family": "taiwanese",
+                    "item_patterns": ["fried"],
+                }
+            ]
+        },
+        candidate_spec=CandidateSpec(
+            desired_meal_style="lighter_alternative",
+            acceptable_cuisine_families=["taiwanese", "convenience_store"],
+            soft_target_kcal_band={"min": 300, "max": 620},
+            swaps_allowed=True,
+            priority_signals=["swap_suggestion", "budget_fit", "high_protein"],
+            protein_posture="high",
+        ),
+        candidates=[
+            _candidate(
+                "swap-1",
+                "grilled chicken bento half rice",
+                source_type="safe_fallback",
+                kcal_min=480,
+                kcal_max=620,
+                cuisine_family="taiwanese",
+                protein_posture="high",
+                item_patterns=["grilled", "bento"],
+            )
+        ],
+    )
+
+    result = evaluate_recommendation_shadow_scenario(scenario)
+
+    assert result.recommendation_mode == "swap_suggestion"
+    assert result.top_pick is not None
+    assert result.top_pick.candidate_id == "swap-1"
+    assert result.expected_user_value == "informational_swap_option_without_proposal"
+    assert result.flags.intake_committed is False
+    assert result.flags.meal_thread_mutated is False
+    assert result.flags.day_budget_mutated is False
+    assert result.mode_notes == [
+        "swap_suggestion_fixture_only",
+        "informational_only_no_proposal_state",
+    ]
 
 
 def test_shadow_eval_script_runs_by_file_path_without_pythonpath(tmp_path: Path) -> None:
@@ -282,6 +395,7 @@ def test_shadow_eval_script_runs_by_file_path_without_pythonpath(tmp_path: Path)
 def test_default_fixture_scenarios_cover_core_shadow_cases() -> None:
     artifact = build_default_recommendation_shadow_eval_artifact()
     scenario_ids = {item.scenario_id for item in artifact.evals}
+    mode_counts = artifact.summary["mode_counts"]
 
     assert {
         "cold_start_lunch",
@@ -290,7 +404,12 @@ def test_default_fixture_scenarios_cover_core_shadow_cases() -> None:
         "avoid_repeat_dinner",
         "budget_tight",
         "app_usage_style_concise",
+        "menu_scan_fixture",
+        "swap_suggestion_fixture",
     }.issubset(scenario_ids)
+    assert mode_counts["general"] >= 6
+    assert mode_counts["menu_scan"] == 1
+    assert mode_counts["swap_suggestion"] == 1
 
 
 def test_empty_golden_order_items_do_not_boost_unrelated_candidates() -> None:
@@ -386,6 +505,7 @@ def test_shadow_evaluator_modules_do_not_import_live_runtime_provider_or_persist
 def _scenario(
     scenario_id: str,
     *,
+    recommendation_mode: str = "general",
     current_budget_view: dict | None = None,
     active_body_plan_view: dict | None = None,
     recent_committed_meals_view: dict | None = None,
@@ -400,6 +520,7 @@ def _scenario(
 ) -> RecommendationShadowContextFixture:
     return RecommendationShadowContextFixture(
         scenario_id=scenario_id,
+        recommendation_mode=recommendation_mode,
         user_id="user-1",
         local_date="2026-05-04",
         channel="chat",

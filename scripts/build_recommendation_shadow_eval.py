@@ -239,12 +239,78 @@ def _default_scenarios() -> list[RecommendationShadowContextFixture]:
                 _candidate("style-2", "tofu salad", kcal_min=280, kcal_max=420),
             ],
         ),
+        _scenario(
+            scenario_id="menu_scan_fixture",
+            recommendation_mode="menu_scan",
+            candidate_spec=CandidateSpec(
+                desired_meal_style="light",
+                acceptable_cuisine_families=["taiwanese"],
+                soft_target_kcal_band={"min": 300, "max": 620},
+                priority_signals=["budget_fit", "menu_scan_item"],
+            ),
+            candidates=[
+                _candidate(
+                    "menu-high-1",
+                    "fried pork chop rice",
+                    source_type="menu_scan_item",
+                    kcal_min=760,
+                    kcal_max=940,
+                    cuisine_family="taiwanese",
+                    item_patterns=["fried", "rice"],
+                ),
+                _candidate(
+                    "menu-fit-1",
+                    "grilled chicken rice",
+                    source_type="menu_scan_item",
+                    kcal_min=480,
+                    kcal_max=620,
+                    cuisine_family="taiwanese",
+                    protein_posture="high",
+                    item_patterns=["grilled", "rice"],
+                ),
+            ],
+        ),
+        _scenario(
+            scenario_id="swap_suggestion_fixture",
+            recommendation_mode="swap_suggestion",
+            recent_committed_meals_view={
+                "meals": [
+                    {
+                        "title": "large fried chicken bento",
+                        "total_kcal": 930,
+                        "cuisine_family": "taiwanese",
+                        "item_patterns": ["fried"],
+                    }
+                ]
+            },
+            candidate_spec=CandidateSpec(
+                desired_meal_style="lighter_alternative",
+                acceptable_cuisine_families=["taiwanese", "convenience_store"],
+                soft_target_kcal_band={"min": 300, "max": 620},
+                swaps_allowed=True,
+                priority_signals=["swap_suggestion", "budget_fit", "high_protein"],
+                protein_posture="high",
+            ),
+            candidates=[
+                _candidate(
+                    "swap-1",
+                    "grilled chicken bento half rice",
+                    source_type="safe_fallback",
+                    kcal_min=480,
+                    kcal_max=620,
+                    cuisine_family="taiwanese",
+                    protein_posture="high",
+                    item_patterns=["grilled", "bento"],
+                )
+            ],
+        ),
     ]
 
 
 def _scenario(
     *,
     scenario_id: str,
+    recommendation_mode: str = "general",
     current_budget_view: dict | None = None,
     active_body_plan_view: dict | None = None,
     recent_committed_meals_view: dict | None = None,
@@ -259,6 +325,7 @@ def _scenario(
 ) -> RecommendationShadowContextFixture:
     return RecommendationShadowContextFixture(
         scenario_id=scenario_id,
+        recommendation_mode=recommendation_mode,
         user_id="dogfood-user",
         local_date="2026-05-04",
         channel="chat",

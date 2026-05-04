@@ -9,6 +9,13 @@ from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 SIDECAR_ACTIVATION_CONTRACT = offline_sidecar_contract("recommendation.domain.shadow")
 
+RecommendationMode = Literal[
+    "general",
+    "menu_scan",
+    "swap_suggestion",
+    "pre_meal_planning",
+]
+
 
 class RecommendationShadowFlags(BaseModel):
     shadow_mode: Literal[True] = True
@@ -61,6 +68,7 @@ class RecommendationCandidateFixture(BaseModel):
 
 class RecommendationShadowContextFixture(BaseModel):
     scenario_id: str
+    recommendation_mode: RecommendationMode = "general"
     user_id: str
     local_date: str
     channel: str
@@ -110,6 +118,7 @@ class RecommendationHintPacket(BaseModel):
     source_type: str
     estimated_kcal_range: dict[str, int]
     current_surface_channel: str
+    selection_context: dict[str, Any] = Field(default_factory=dict)
     ranking_reason_summary: str
     confidence: float
     source_refs: list[str] = Field(default_factory=list)
@@ -118,6 +127,7 @@ class RecommendationHintPacket(BaseModel):
 
 class RecommendationShadowEvalResult(BaseModel):
     scenario_id: str
+    recommendation_mode: RecommendationMode = "general"
     input_context_summary: dict[str, Any]
     candidate_spec: CandidateSpec
     candidate_source_summary: CandidateSourceSummary
@@ -139,6 +149,7 @@ class RecommendationShadowEvalResult(BaseModel):
     confidence: float = 0.0
     freshness_notes: list[str] = Field(default_factory=list)
     presentation_policy: str = "standard"
+    mode_notes: list[str] = Field(default_factory=list)
     runtime_effect_allowed: Literal[False] = False
     shadow_mode: Literal[True] = True
     recommendation_served: Literal[False] = False
@@ -160,6 +171,8 @@ class RecommendationShadowEvalArtifact(BaseModel):
     live_provider_used: Literal[False] = False
     product_readiness_claimed: Literal[False] = False
     private_self_use_approved: Literal[False] = False
+    track_status: dict[str, Any] = Field(default_factory=dict)
+    summary: dict[str, Any] = Field(default_factory=dict)
     evals: list[RecommendationShadowEvalResult] = Field(default_factory=list)
 
 
