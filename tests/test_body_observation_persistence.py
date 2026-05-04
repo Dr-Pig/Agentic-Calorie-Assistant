@@ -6,10 +6,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.body.application.body_observation_service import (
-    load_body_observation_history,
-    record_body_observation_to_canonical,
-)
+from app.body.application import get_latest_weight_observation
+from app.body.application.body_observation_service import load_body_observation_history, record_body_observation_to_canonical
 from app.shared.domain import BodyObservation
 from app.models import Base, User
 
@@ -102,6 +100,85 @@ def test_body_observation_preserves_explicit_local_date_and_orders_history() -> 
     ]
     assert all_history[0].source == "scale"
     assert all_history[1].source == "scale"
+
+
+def test_latest_weight_observation_uses_observed_at_desc_then_id_desc_and_exact_local_date() -> None:
+    db = _session()
+    user = _user(db)
+
+    record_body_observation_to_canonical(
+        db,
+        user=user,
+        value=70.0,
+        unit="kg",
+        observed_at=datetime(2026, 4, 14, 7, 0, 0),
+        local_date="2026-04-14",
+    )
+    same_time_first = record_body_observation_to_canonical(
+        db,
+        user=user,
+        value=70.5,
+        unit="kg",
+        observed_at=datetime(2026, 4, 14, 8, 0, 0),
+        local_date="2026-04-14",
+    )
+    same_time_second = record_body_observation_to_canonical(
+        db,
+        user=user,
+        value=70.6,
+        unit="kg",
+        observed_at=datetime(2026, 4, 14, 8, 0, 0),
+        local_date="2026-04-14",
+    )
+    next_day = record_body_observation_to_canonical(
+        db,
+        user=user,
+        value=71.0,
+        unit="kg",
+        observed_at=datetime(2026, 4, 15, 6, 0, 0),
+        local_date="2026-04-15",
+    )
+
+    latest_all = get_latest_weight_observation(db, user_id=user.id)
+    latest_for_day = get_latest_weight_observation(db, user_id=user.id, local_date="2026-04-14")
+
+    assert latest_all is not None
+    assert latest_all.observation_id == next_day.observation_id
+    assert latest_for_day is not None
+    assert latest_for_day.observation_id == same_time_second.observation_id
+    assert latest_for_day.observation_id != same_time_first.observation_id
+
+
+@pytest.mark.parametrize("unit", ["", " KG ", "Kg"])
+def test_weight_observation_accepts_missing_empty_or_case_variant_unit_as_kg(unit: str) -> None:
+    db = _session()
+    user = _user(db)
+
+    observation = record_body_observation_to_canonical(
+        db,
+        user=user,
+        value=72.0,
+        unit=unit,
+        observation_type="weight",
+        local_date="2026-04-16",
+    )
+
+    assert observation.unit == "kg"
+
+
+def test_weight_observation_rejects_non_kg_unit_without_conversion() -> None:
+    db = _session()
+    user = _user(db)
+
+    with pytest.raises(ValueError, match="kg"):
+        record_body_observation_to_canonical(
+            db,
+            user=user,
+            value=160.0,
+            unit="lb",
+            observation_type="weight",
+            local_date="2026-04-16",
+        )
 
 
 @pytest.mark.parametrize("value", [0.0, -10.0, float("inf")])
