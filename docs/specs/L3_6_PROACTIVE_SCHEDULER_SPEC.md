@@ -258,6 +258,30 @@ The summary must also make promotion blockers explicit:
 
 This summary is a review aid only. It does not approve live delivery, scheduler activation, push/LINE delivery, recommendation serving, rescue commitment, memory write, or mutation.
 
+### 4.10 Multi-Run Decision Pack
+
+A single no-send artifact must not unlock live promotion.
+
+Promotion review should use a separate decision pack that aggregates one or more no-send artifacts and records:
+
+- run count
+- clean run count
+- candidate trigger types for human review
+- suppressed trigger types
+- later-only trigger types
+- input-integrity blockers
+- promotion blockers
+
+Default promotion blockers:
+
+- `no_send_shadow_only`
+- `live_scheduler_not_enabled`
+- `human_review_required_before_live_delivery`
+- `minimum_clean_shadow_runs_not_met` until the configured clean-run threshold is met
+- `input_integrity_failed` if any source artifact overclaims readiness or records a side effect
+
+Even after repeated clean no-send runs, live delivery still requires an explicit activation plan and human approval.
+
 ---
 
 ## 5. Trigger-Specific Rules
