@@ -4,8 +4,8 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 
 from app.body.application import (
     BodyCalibrationDiagnosticRequest,
@@ -17,6 +17,7 @@ from app.composition.calibration_commit_bridge import (
     apply_calibration_proposal_commit,
     apply_stored_calibration_proposal_action,
 )
+from app.composition.calibration_input_assembler import assemble_calibration_model_inputs_from_history
 from app.composition.calibration_proposal_artifacts import (
     has_active_calibration_proposal,
     persist_calibration_proposal_artifact,
@@ -35,6 +36,16 @@ class CalibrationProposalPreviewRequest(BaseModel):
     recent_similar_proposal_open: bool = False
     persist_proposal: bool = False
     model_inputs: CalibrationModelInputs
+
+
+class CalibrationProposalPreviewFromHistoryRequest(BaseModel):
+    user_id: str
+    local_date: str
+    window_days: int = Field(default=14, gt=0)
+    current_budget_status: Literal["on_track", "tight", "over_budget", "unknown"] = "unknown"
+    rescue_recovery_viability: Literal["viable", "strained", "non_viable", "unknown"] = "unknown"
+    recent_similar_proposal_open: bool = False
+    persist_proposal: bool = False
 
 
 class CalibrationProposalActionRequest(BaseModel):
@@ -83,6 +94,63 @@ def calibration_proposal_preview(
         "diagnostic": diagnostic_payload,
         "proposal_policy_packet": diagnostic.proposal_policy_packet,
         "trace_envelope": diagnostic.trace_envelope,
+    }
+    if request.persist_proposal:
+        payload["proposal_artifact"] = persist_calibration_proposal_artifact(
+            db,
+            user=user,
+            local_date=request.local_date,
+            diagnostic=diagnostic,
+        )
+    return payload
+
+
+@router.post("/calibration/proposal/preview-from-history")
+def calibration_proposal_preview_from_history(
+    request: CalibrationProposalPreviewFromHistoryRequest,
+    db=Depends(get_db),
+) -> dict[str, object]:
+    user = get_or_create_user(db, request.user_id)
+    try:
+        assembly = assemble_calibration_model_inputs_from_history(
+            db,
+            user_id=user.id,
+            local_date=request.local_date,
+            window_days=request.window_days,
+        )
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 409 if detail == "active_body_plan_required_for_calibration_input_assembly" else 422
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+    recent_similar_proposal_open = request.recent_similar_proposal_open or has_active_calibration_proposal(
+        db,
+        user_id=user.id,
+    )
+    current_budget_view = build_current_budget_view(db, user_id=user.id, local_date=request.local_date)
+    active_body_plan_view = build_active_body_plan_view(db, user_id=user.id)
+    diagnostic = build_body_calibration_diagnostic(
+        BodyCalibrationDiagnosticRequest(
+            model_inputs=assembly.model_inputs,
+            current_budget_status=request.current_budget_status,
+            rescue_recovery_viability=request.rescue_recovery_viability,
+            recent_similar_proposal_open=recent_similar_proposal_open,
+            current_budget_view=current_budget_view,
+            active_body_plan_view=active_body_plan_view,
+        )
+    )
+    diagnostic_payload = asdict(diagnostic)
+    payload: dict[str, object] = {
+        "calibration_result": diagnostic_payload["calibration_result"],
+        "gate_result": diagnostic_payload["gate_result"],
+        "response": diagnostic_payload["response"],
+        "diagnostic": diagnostic_payload,
+        "proposal_policy_packet": diagnostic.proposal_policy_packet,
+        "trace_envelope": diagnostic.trace_envelope,
+        "input_assembly": {
+            "model_inputs": asdict(assembly.model_inputs),
+            "trace": assembly.trace,
+        },
     }
     if request.persist_proposal:
         payload["proposal_artifact"] = persist_calibration_proposal_artifact(
