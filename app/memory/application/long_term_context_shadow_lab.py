@@ -5,10 +5,15 @@ from collections import Counter, defaultdict
 from datetime import UTC, datetime
 from typing import Any
 
+from app.memory.application.derived_summaries import (
+    build_golden_order_summary,
+    build_preference_profile_summary,
+)
 from app.memory.domain.long_term_context_candidates import (
     ContextValueReviewItem,
     LongTermContextCandidate,
 )
+from app.memory.domain.summaries import CommittedMealEvent
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -46,6 +51,7 @@ DOGFOOD_EXPORT_SECTIONS: tuple[str, ...] = (
     "conversation_history_summaries",
     "trace_metadata",
     "candidate_pool",
+    "menu_scan_context",
     "review_actions",
 )
 
@@ -69,6 +75,27 @@ ARTIFACT_CONSUMER_CATALOG: dict[str, list[str]] = {
         "human_review",
         "architecture_governance",
     ],
+    "candidate_extraction_engine_v2": [
+        "human_review",
+        "architecture_governance",
+        "recommendation",
+        "intake_clarification",
+        "calibration",
+    ],
+    "context_value_scoring_v2": [
+        "human_review",
+        "architecture_governance",
+        "recommendation",
+        "intake_clarification",
+        "calibration",
+    ],
+    "shadow_replay_evaluators": [
+        "human_review",
+        "recommendation",
+        "intake_clarification",
+        "calibration",
+    ],
+    "review_queue_reducer": ["human_review", "architecture_governance"],
     "context_pack_token_pressure_shadow_eval": [
         "context_packing_review",
         "architecture_governance",
@@ -155,6 +182,22 @@ def build_shadow_lab_artifacts(
             context_items,
         ),
         "context_signal_quality_scorecard": _context_signal_quality_scorecard_artifact(
+            fixture,
+            candidates,
+        ),
+        "candidate_extraction_engine_v2": _candidate_extraction_engine_v2_artifact(
+            fixture,
+            candidates,
+        ),
+        "context_value_scoring_v2": _context_value_scoring_v2_artifact(
+            fixture,
+            candidates,
+        ),
+        "shadow_replay_evaluators": _shadow_replay_evaluators_artifact(
+            fixture,
+            candidates,
+        ),
+        "review_queue_reducer": _review_queue_reducer_artifact(
             fixture,
             candidates,
         ),
@@ -1433,6 +1476,620 @@ def _consumer_score_rollups(scores: list[dict[str, Any]]) -> list[dict[str, Any]
         }
         for consumer in consumers
     ]
+
+
+def _candidate_extraction_engine_v2_artifact(
+    fixture: dict[str, Any],
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    meal_events = _committed_meal_events(fixture)
+    preference_summary = build_preference_profile_summary(meal_events)
+    golden_order_summary = build_golden_order_summary(meal_events)
+    menu_context = _menu_scan_shadow_context(fixture)
+    return _base_artifact(
+        artifact_type="candidate_extraction_engine_v2",
+        fixture=fixture,
+        extra={
+            "source_spec_alignment": [
+                "docs/specs/L4A_MEMORY_MODEL_SPEC.md",
+                "docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md",
+                "docs/specs/L4C_CONTEXT_PACKING_SPEC.md",
+                "docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md",
+            ],
+            "active_menu_scan_runtime_used": False,
+            "memory_layers": [
+                {
+                    "layer_id": "l1_typed_history_observation",
+                    "runtime_truth_owner": "canonical_typed_history",
+                    "durable_memory_written": False,
+                },
+                {
+                    "layer_id": "l2a_deterministic_pattern",
+                    "runtime_truth_owner": "shadow_deterministic_consolidation",
+                    "durable_memory_written": False,
+                },
+                {
+                    "layer_id": "l3_review_candidate_only",
+                    "runtime_truth_owner": "human_review_future_promotion",
+                    "durable_memory_written": False,
+                },
+            ],
+            "source_section_counts": _source_section_counts(fixture),
+            "extracted_candidates": [
+                _candidate_extraction_record(candidate) for candidate in candidates
+            ],
+            "shadow_profile_views": {
+                "preference_profile_summary": _model_dict(preference_summary),
+                "golden_order_summary": _model_dict(golden_order_summary),
+                "pre_materialized_runtime_summary_written": False,
+                "style_profile_materialized": False,
+                "style_profile_reason": (
+                    "L4A keeps conversation_style_profile as a later extension point."
+                ),
+            },
+            "menu_scan_shadow_context": menu_context,
+            "weekly_highlight_shadow_candidates": _weekly_highlight_shadow_candidates(
+                fixture,
+            ),
+        },
+    )
+
+
+def _context_value_scoring_v2_artifact(
+    fixture: dict[str, Any],
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    scores = [_context_value_score_v2(fixture, candidate) for candidate in candidates]
+    action_rollups = Counter(score["recommended_action"] for score in scores)
+    bucket_rollups = Counter(score["review_priority_bucket"] for score in scores)
+    return _base_artifact(
+        artifact_type="context_value_scoring_v2",
+        fixture=fixture,
+        extra={
+            "runtime_effect_allowed": False,
+            "scorecard_used_for_runtime_ranking": False,
+            "score_dimensions": [
+                "evidence_strength_score",
+                "recency_score",
+                "frequency_score",
+                "consumer_value_score",
+                "harm_if_wrong_score",
+                "contradiction_penalty",
+                "review_priority_score",
+            ],
+            "candidate_scores": scores,
+            "action_rollups": dict(sorted(action_rollups.items())),
+            "bucket_rollups": dict(sorted(bucket_rollups.items())),
+            "all_candidates_have_product_capability_value": all(
+                bool(score["product_capability_value"]) for score in scores
+            ),
+        },
+    )
+
+
+def _shadow_replay_evaluators_artifact(
+    fixture: dict[str, Any],
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    recommendation = _recommendation_shadow_replay(candidates)
+    intake = _intake_clarification_shadow_replay(candidates)
+    calibration = _calibration_bias_shadow_replay(candidates)
+    return _base_artifact(
+        artifact_type="shadow_replay_evaluators",
+        fixture=fixture,
+        extra={
+            "recommendation_served": False,
+            "intake_commit_requested": False,
+            "calibration_math_changed": False,
+            "manager_context_packet_written": False,
+            "replays": {
+                "recommendation_shadow_replay": recommendation,
+                "intake_clarification_shadow_replay": intake,
+                "calibration_bias_shadow_replay": calibration,
+            },
+            "replay_count": 3,
+        },
+    )
+
+
+def _review_queue_reducer_artifact(
+    fixture: dict[str, Any],
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    scores = {
+        score["candidate_id"]: score
+        for score in (
+            _context_value_score_v2(fixture, candidate) for candidate in candidates
+        )
+    }
+    queue: dict[str, list[dict[str, Any]]] = {
+        "high": [],
+        "medium": [],
+        "low": [],
+        "rejected_or_deferred": [],
+    }
+    pseudo_runtime_truth_risks = 0
+    for candidate in candidates:
+        score = scores[candidate.candidate_id]
+        if (
+            candidate.runtime_effect_allowed
+            or not candidate.why_this_is_not_runtime_truth
+        ):
+            pseudo_runtime_truth_risks += 1
+        item = _review_queue_item(candidate, score)
+        if score["recommended_action"] == "discard":
+            queue["rejected_or_deferred"].append(item)
+        else:
+            queue[score["review_priority_bucket"]].append(item)
+
+    for bucket_items in queue.values():
+        bucket_items.sort(
+            key=lambda item: (
+                -item["review_priority_score"],
+                item["candidate_type"],
+                item["candidate_id"],
+            )
+        )
+
+    return _base_artifact(
+        artifact_type="review_queue_reducer",
+        fixture=fixture,
+        extra={
+            "artifact_sprawl_control": {
+                "new_artifact_requires_declared_consumer": True,
+                "new_artifact_requires_scoring_or_replay_use": True,
+                "consumerless_candidates_deferred": True,
+            },
+            "summary": {
+                "candidate_count": len(candidates),
+                "high_priority_count": len(queue["high"]),
+                "medium_priority_count": len(queue["medium"]),
+                "low_priority_count": len(queue["low"]),
+                "rejected_or_deferred_count": len(queue["rejected_or_deferred"]),
+                "pseudo_runtime_truth_risk_count": pseudo_runtime_truth_risks,
+            },
+            "review_queue": queue,
+        },
+    )
+
+
+def _committed_meal_events(fixture: dict[str, Any]) -> list[CommittedMealEvent]:
+    events: list[CommittedMealEvent] = []
+    for meal in _list_of_dicts(fixture.get("meal_logs")):
+        occurred_at = _parse_datetime(meal.get("logged_at"))
+        if occurred_at is None:
+            continue
+        occurred_at = _normalize_datetime(occurred_at)
+        events.append(
+            CommittedMealEvent(
+                event_id=str(meal.get("meal_id") or _trace_id(meal)),
+                occurred_at=occurred_at,
+                item_names=[str(item) for item in meal.get("item_names") or []],
+                store_name=(
+                    str(meal.get("store_name")) if meal.get("store_name") else None
+                ),
+                cuisine_family=(
+                    str(meal.get("cuisine_family"))
+                    if meal.get("cuisine_family")
+                    else None
+                ),
+            )
+        )
+    return events
+
+
+def _source_section_counts(fixture: dict[str, Any]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for section in DOGFOOD_EXPORT_SECTIONS:
+        value = fixture.get(section)
+        if isinstance(value, list):
+            counts[section] = len(value)
+        elif isinstance(value, dict):
+            counts[section] = 1
+        else:
+            counts[section] = 0
+    return counts
+
+
+def _candidate_extraction_record(
+    candidate: LongTermContextCandidate,
+) -> dict[str, Any]:
+    return {
+        "candidate_id": candidate.candidate_id,
+        "candidate_type": candidate.candidate_type,
+        "layer_id": _candidate_layer_id(candidate),
+        "source_trace_ids": candidate.source_trace_ids,
+        "source_object_refs": candidate.source_object_refs,
+        "evidence_count": candidate.evidence_count,
+        "confidence": candidate.confidence,
+        "freshness_posture": candidate.freshness_posture,
+        "payload_extracts": _candidate_payload_extracts(candidate),
+        "intended_consumers": candidate.intended_consumers,
+        "runtime_effect_allowed": False,
+        "durable_memory_written": False,
+    }
+
+
+def _candidate_layer_id(candidate: LongTermContextCandidate) -> str:
+    if candidate.candidate_type in {
+        "pattern",
+        "food_preference",
+        "logging_adherence_pattern",
+        "intake_estimation_bias",
+        "app_usage_style",
+        "interaction_preference",
+    }:
+        return "l2a_deterministic_pattern"
+    return "l3_review_candidate_only"
+
+
+def _candidate_payload_extracts(candidate: LongTermContextCandidate) -> dict[str, Any]:
+    payload = candidate.payload
+    if candidate.candidate_type == "user_language_pattern":
+        return {
+            "user_phrase": payload.get("user_phrase"),
+            "observed_meaning": payload.get("observed_meaning"),
+            "portion_semantics": payload.get("portion_semantics") or {},
+            "pattern_subtype": payload.get("pattern_subtype"),
+        }
+    if candidate.candidate_type == "intake_estimation_bias":
+        return {
+            "bias_direction": payload.get("bias_direction"),
+            "missed_item_patterns": payload.get("missed_item_patterns") or [],
+            "correction_tendencies": payload.get("correction_tendencies") or [],
+            "evidence_subtypes": payload.get("evidence_subtypes") or [],
+        }
+    if candidate.candidate_type == "app_usage_style":
+        return {
+            "usage_signal_distribution": payload.get("usage_signal_distribution") or {},
+        }
+    if candidate.candidate_type == "interaction_preference":
+        return {"preference_signal": payload.get("preference_signal")}
+    if candidate.candidate_type == "golden_order":
+        return {
+            "store_name": payload.get("store_name"),
+            "item_names": payload.get("item_names") or [],
+            "materialized_from_canonical_history": True,
+        }
+    return dict(payload)
+
+
+def _menu_scan_shadow_context(fixture: dict[str, Any]) -> dict[str, Any]:
+    menu = fixture.get("menu_scan_context")
+    if not isinstance(menu, dict):
+        return {
+            "available": False,
+            "runtime_recommendation_mode_started": False,
+            "parsed_item_count": 0,
+            "candidate_source_only": True,
+        }
+    parsed_items = _list_of_dicts(menu.get("parsed_items"))
+    return {
+        "available": True,
+        "scan_source": str(menu.get("scan_source") or "unknown"),
+        "restaurant_name": str(menu.get("restaurant_name") or ""),
+        "parsed_item_count": len(parsed_items),
+        "parse_confidence": _bounded_confidence(
+            menu.get("parse_confidence"),
+            default=0.0,
+        ),
+        "unparsed_item_count": len(menu.get("unparsed_items") or []),
+        "runtime_recommendation_mode_started": False,
+        "candidate_source_only": True,
+        "manager_context_injected": False,
+        "intake_state_created": False,
+    }
+
+
+def _weekly_highlight_shadow_candidates(fixture: dict[str, Any]) -> dict[str, Any]:
+    budgets = _list_of_dicts(fixture.get("budget_summaries"))
+    overshoot_days = [
+        item for item in budgets if _float_value(item.get("overshoot_kcal")) > 0
+    ]
+    at_or_under_budget = len(budgets) - len(overshoot_days)
+    positive_highlights = []
+    if at_or_under_budget > 0:
+        positive_highlights.append(
+            {
+                "highlight_id": "budget-days-at-or-under-target",
+                "text": f"{at_or_under_budget} fixture day(s) at or under target",
+                "source": "budget_summaries",
+            }
+        )
+    return {
+        "derived_view_only": True,
+        "weekly_insight_report_written": False,
+        "proactive_sent": False,
+        "narrative_summary_generated": False,
+        "budget_day_count": len(budgets),
+        "overshoot_days": len(overshoot_days),
+        "positive_highlights": positive_highlights,
+        "insufficient_data_posture": len(budgets) < 7,
+    }
+
+
+def _context_value_score_v2(
+    fixture: dict[str, Any],
+    candidate: LongTermContextCandidate,
+) -> dict[str, Any]:
+    evidence_strength_score = round(
+        max(candidate.confidence, min(candidate.evidence_count / 3, 1.0)),
+        3,
+    )
+    frequency_score = round(min(candidate.evidence_count / 5, 1.0), 3)
+    recency_score = _recency_score(candidate)
+    consumer_value_score = _consumer_value_score(candidate)
+    harm_level = _harm_if_wrong_level(candidate)
+    harm_if_wrong_score = _harm_score(harm_level)
+    contradiction_penalty = _contradiction_penalty(fixture, candidate)
+    review_priority_score = round(
+        max(
+            0.0,
+            min(
+                1.0,
+                evidence_strength_score * 0.22
+                + recency_score * 0.13
+                + frequency_score * 0.15
+                + consumer_value_score * 0.25
+                + harm_if_wrong_score * 0.25
+                - contradiction_penalty,
+            ),
+        ),
+        3,
+    )
+    review_priority_bucket = _review_priority_bucket(review_priority_score)
+    return {
+        "candidate_id": candidate.candidate_id,
+        "candidate_type": candidate.candidate_type,
+        "intended_consumers": candidate.intended_consumers,
+        "evidence_count": candidate.evidence_count,
+        "confidence": candidate.confidence,
+        "evidence_strength_score": evidence_strength_score,
+        "recency_score": recency_score,
+        "frequency_score": frequency_score,
+        "consumer_value_score": consumer_value_score,
+        "harm_if_wrong_score": harm_if_wrong_score,
+        "harm_if_wrong_level": harm_level,
+        "contradiction_penalty": contradiction_penalty,
+        "review_priority_score": review_priority_score,
+        "review_priority_bucket": review_priority_bucket,
+        "recommended_action": _scoring_recommended_action(
+            candidate,
+            review_priority_bucket,
+            contradiction_penalty,
+        ),
+        "product_capability_value": _product_capability_value(candidate),
+        "runtime_effect_allowed": False,
+    }
+
+
+def _recency_score(candidate: LongTermContextCandidate) -> float:
+    posture_scores = {
+        "fresh": 1.0,
+        "recent": 0.8,
+        "unknown": 0.35,
+        "stale": 0.15,
+    }
+    return posture_scores.get(candidate.freshness_posture, 0.35)
+
+
+def _consumer_value_score(candidate: LongTermContextCandidate) -> float:
+    consumers = set(candidate.intended_consumers)
+    if consumers.intersection(
+        {
+            "recommendation",
+            "intake_clarification",
+            "calibration",
+            "nutrition_clarify_priority",
+        }
+    ):
+        return 0.9
+    if consumers.intersection({"chat_context", "proactive", "response_generation"}):
+        return 0.7
+    if consumers.intersection({"rescue_later", "ux"}):
+        return 0.55
+    return 0.35
+
+
+def _harm_score(harm_level: str) -> float:
+    if harm_level == "high":
+        return 0.9
+    if harm_level == "medium":
+        return 0.55
+    return 0.2
+
+
+def _contradiction_penalty(
+    fixture: dict[str, Any],
+    candidate: LongTermContextCandidate,
+) -> float:
+    if candidate.candidate_type != "negative_preference":
+        return 0.0
+    value = str(candidate.payload.get("value") or "").lower()
+    if not value:
+        return 0.0
+    pool_names = [
+        str(item.get("name") or "").lower()
+        for item in _list_of_dicts(fixture.get("candidate_pool"))
+    ]
+    return 0.25 if any(value in name for name in pool_names) else 0.0
+
+
+def _review_priority_bucket(score: float) -> str:
+    if score >= 0.65:
+        return "high"
+    if score >= 0.4:
+        return "medium"
+    return "low"
+
+
+def _scoring_recommended_action(
+    candidate: LongTermContextCandidate,
+    bucket: str,
+    contradiction_penalty: float,
+) -> str:
+    if not candidate.intended_consumers:
+        return "discard"
+    if contradiction_penalty > 0:
+        return "ask_user_to_confirm"
+    if candidate.candidate_type in {
+        "negative_preference",
+        "temporary_preference",
+        "golden_order",
+        "food_preference",
+    }:
+        return "ask_user_to_confirm" if bucket in {"high", "medium"} else "discard"
+    if _harm_if_wrong_level(candidate) == "high":
+        return "keep_shadowing"
+    return "keep_shadowing" if bucket in {"high", "medium"} else "discard"
+
+
+def _product_capability_value(candidate: LongTermContextCandidate) -> str:
+    if candidate.candidate_type in {
+        "golden_order",
+        "food_preference",
+        "negative_preference",
+        "temporary_preference",
+    }:
+        return "direct_recommendation_or_intake_gain"
+    if candidate.candidate_type in {
+        "intake_estimation_bias",
+        "logging_adherence_pattern",
+    }:
+        return "calibration_or_clarification_gain"
+    if candidate.candidate_type in {
+        "app_usage_style",
+        "interaction_preference",
+        "conversation_recall_context",
+        "user_language_pattern",
+    }:
+        return "chat_or_proactive_experience_gain"
+    return "broad_product_context_gain"
+
+
+def _recommendation_shadow_replay(
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    used = [
+        candidate
+        for candidate in candidates
+        if candidate.candidate_type
+        in {
+            "golden_order",
+            "food_preference",
+            "negative_preference",
+            "temporary_preference",
+        }
+    ]
+    used_ids = {candidate.candidate_id for candidate in used}
+    return {
+        "replay_id": "recommendation_shadow_replay",
+        "expected_user_value": "better_candidate_ranking_review",
+        "used_candidate_ids": sorted(used_ids),
+        "ignored_candidates": _ignored_candidates(candidates, used_ids),
+        "ranking_basis": [
+            "preference_profile_summary_shadow",
+            "golden_order_shadow",
+            "negative_preference_guardrail_shadow",
+        ],
+        "risk_if_wrong": "Could bias ranking before user-confirmed memory exists.",
+        "recommendation_served": False,
+        "runtime_effect_allowed": False,
+    }
+
+
+def _intake_clarification_shadow_replay(
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    used = [
+        candidate
+        for candidate in candidates
+        if candidate.candidate_type
+        in {"user_language_pattern", "intake_estimation_bias", "negative_preference"}
+    ]
+    used_ids = {candidate.candidate_id for candidate in used}
+    low_confidence_phrase = any(
+        candidate.candidate_type == "user_language_pattern"
+        and candidate.confidence < 0.7
+        for candidate in used
+    )
+    return {
+        "replay_id": "intake_clarification_shadow_replay",
+        "expected_user_value": "fewer_but_better_followups_review",
+        "used_candidate_ids": sorted(used_ids),
+        "ignored_candidates": _ignored_candidates(candidates, used_ids),
+        "clarification_policy": (
+            "ask_targeted_followup"
+            if low_confidence_phrase
+            else "use_phrase_pattern_with_caution"
+        ),
+        "risk_if_wrong": "Could over-assume meaning of a user phrase.",
+        "intake_commit_requested": False,
+        "runtime_effect_allowed": False,
+    }
+
+
+def _calibration_bias_shadow_replay(
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    used = [
+        candidate
+        for candidate in candidates
+        if candidate.candidate_type
+        in {"intake_estimation_bias", "logging_adherence_pattern", "pattern"}
+        and (
+            "calibration" in candidate.intended_consumers
+            or "intake_risk_tagging" in candidate.intended_consumers
+        )
+    ]
+    used_ids = {candidate.candidate_id for candidate in used}
+    return {
+        "replay_id": "calibration_bias_shadow_replay",
+        "expected_user_value": "better_bias_attribution_review",
+        "used_candidate_ids": sorted(used_ids),
+        "ignored_candidates": _ignored_candidates(candidates, used_ids),
+        "does_not_change_calibration_math": True,
+        "risk_if_wrong": "Could misattribute mismatch without changing the math.",
+        "calibration_math_changed": False,
+        "body_plan_mutated": False,
+        "day_budget_mutated": False,
+        "runtime_effect_allowed": False,
+    }
+
+
+def _ignored_candidates(
+    candidates: list[LongTermContextCandidate],
+    used_ids: set[str],
+) -> list[dict[str, str]]:
+    return [
+        {
+            "candidate_id": candidate.candidate_id,
+            "candidate_type": candidate.candidate_type,
+            "ignored_reason": "not_relevant_to_this_replay_consumer",
+        }
+        for candidate in candidates
+        if candidate.candidate_id not in used_ids
+    ]
+
+
+def _review_queue_item(
+    candidate: LongTermContextCandidate,
+    score: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "candidate_id": candidate.candidate_id,
+        "candidate_type": candidate.candidate_type,
+        "review_priority_score": score["review_priority_score"],
+        "review_priority_bucket": score["review_priority_bucket"],
+        "recommended_action": score["recommended_action"],
+        "product_capability_value": score["product_capability_value"],
+        "intended_consumers": candidate.intended_consumers,
+        "risk_if_wrong": candidate.risk_if_wrong,
+        "promotion_path": candidate.promotion_path,
+        "runtime_effect_allowed": False,
+        "durable_memory_written": False,
+        "manager_context_injected": False,
+    }
 
 
 def _context_pack_token_pressure_shadow_artifact(

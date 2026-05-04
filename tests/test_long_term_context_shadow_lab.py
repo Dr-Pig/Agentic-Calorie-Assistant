@@ -192,8 +192,28 @@ def _fixture_payload() -> dict:
                 "candidate_id": "food-1",
                 "name": "oatmeal with latte",
                 "source": "fixture",
+                "estimated_kcal": 520,
+                "tags": ["breakfast", "oats"],
             }
         ],
+        "menu_scan_context": {
+            "scan_source": "text_description",
+            "restaurant_name": "Morning Bar",
+            "parsed_items": [
+                {
+                    "item_name": "oatmeal with latte",
+                    "estimated_kcal_range": [480, 560],
+                    "confidence": 0.82,
+                },
+                {
+                    "item_name": "cilantro chicken bowl",
+                    "estimated_kcal_range": [620, 760],
+                    "confidence": 0.71,
+                },
+            ],
+            "parse_confidence": 0.78,
+            "unparsed_items": [],
+        },
     }
 
 
@@ -226,6 +246,10 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
         "context_quality_contradiction_review_queue",
         "capability_scenario_fixture_pack",
         "pr_review_autopilot_closeout",
+        "candidate_extraction_engine_v2",
+        "context_value_scoring_v2",
+        "shadow_replay_evaluators",
+        "review_queue_reducer",
     }
 
     for artifact in artifacts.values():
@@ -669,6 +693,200 @@ def test_context_signal_quality_scorecard_prioritizes_value_and_harm_review() ->
         "intake-estimation-bias-likely-underestimate"
         in rollups["calibration"]["candidate_ids"]
     )
+
+
+def test_candidate_extraction_engine_v2_materializes_layers_profile_menu_and_highlights() -> (
+    None
+):
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "candidate_extraction_engine_v2"
+    ]
+
+    assert artifact["artifact_type"] == "candidate_extraction_engine_v2"
+    assert artifact["runtime_effect_allowed"] is False
+    assert artifact["durable_memory_written"] is False
+    assert artifact["manager_context_injected"] is False
+    assert artifact["active_menu_scan_runtime_used"] is False
+
+    assert artifact["memory_layers"] == [
+        {
+            "layer_id": "l1_typed_history_observation",
+            "runtime_truth_owner": "canonical_typed_history",
+            "durable_memory_written": False,
+        },
+        {
+            "layer_id": "l2a_deterministic_pattern",
+            "runtime_truth_owner": "shadow_deterministic_consolidation",
+            "durable_memory_written": False,
+        },
+        {
+            "layer_id": "l3_review_candidate_only",
+            "runtime_truth_owner": "human_review_future_promotion",
+            "durable_memory_written": False,
+        },
+    ]
+
+    extracted = {
+        candidate["candidate_id"]: candidate
+        for candidate in artifact["extracted_candidates"]
+    }
+    language_candidate_id = next(
+        candidate_id
+        for candidate_id in extracted
+        if candidate_id.startswith("user-language-")
+    )
+    assert "intake-estimation-bias-likely-underestimate" in extracted
+    assert extracted[language_candidate_id]["payload_extracts"]["user_phrase"]
+    assert extracted["intake-estimation-bias-likely-underestimate"]["payload_extracts"][
+        "missed_item_patterns"
+    ] == ["drink_or_sauce"]
+
+    profile = artifact["shadow_profile_views"]["preference_profile_summary"]
+    assert profile["is_durable_memory_truth"] is False
+    assert profile["event_count"] == 4
+    assert profile["top_stores"][0] == {"label": "Morning Bar", "count": 3}
+
+    golden = artifact["shadow_profile_views"]["golden_order_summary"]
+    assert golden["is_durable_memory_truth"] is False
+    assert golden["orders"][0]["store_name"] == "Morning Bar"
+
+    assert (
+        artifact["menu_scan_shadow_context"]["runtime_recommendation_mode_started"]
+        is False
+    )
+    assert artifact["menu_scan_shadow_context"]["restaurant_name"] == "Morning Bar"
+    assert artifact["menu_scan_shadow_context"]["parsed_item_count"] == 2
+
+    highlights = artifact["weekly_highlight_shadow_candidates"]
+    assert highlights["derived_view_only"] is True
+    assert "positive_highlights" in highlights
+    assert highlights["narrative_summary_generated"] is False
+
+
+def test_context_value_scoring_v2_scores_value_risk_recency_and_actions() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "context_value_scoring_v2"
+    ]
+
+    assert artifact["artifact_type"] == "context_value_scoring_v2"
+    assert artifact["runtime_effect_allowed"] is False
+    assert artifact["scorecard_used_for_runtime_ranking"] is False
+    assert artifact["score_dimensions"] == [
+        "evidence_strength_score",
+        "recency_score",
+        "frequency_score",
+        "consumer_value_score",
+        "harm_if_wrong_score",
+        "contradiction_penalty",
+        "review_priority_score",
+    ]
+
+    by_id = {item["candidate_id"]: item for item in artifact["candidate_scores"]}
+    golden = by_id["golden-order-morning-bar-oatmeal-latte"]
+    assert golden["review_priority_bucket"] == "high"
+    assert golden["recommended_action"] == "ask_user_to_confirm"
+    assert golden["product_capability_value"] == "direct_recommendation_or_intake_gain"
+
+    bias = by_id["intake-estimation-bias-likely-underestimate"]
+    assert bias["harm_if_wrong_level"] == "high"
+    assert bias["recommended_action"] == "keep_shadowing"
+    assert bias["product_capability_value"] == "calibration_or_clarification_gain"
+
+    assert artifact["action_rollups"]["ask_user_to_confirm"] >= 1
+    assert artifact["all_candidates_have_product_capability_value"] is True
+
+
+def test_shadow_replay_evaluators_explain_used_and_ignored_context() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "shadow_replay_evaluators"
+    ]
+
+    assert artifact["artifact_type"] == "shadow_replay_evaluators"
+    assert artifact["runtime_effect_allowed"] is False
+    assert artifact["recommendation_served"] is False
+    assert artifact["intake_commit_requested"] is False
+    assert artifact["calibration_math_changed"] is False
+
+    assert set(artifact["replays"]) == {
+        "recommendation_shadow_replay",
+        "intake_clarification_shadow_replay",
+        "calibration_bias_shadow_replay",
+    }
+
+    recommendation = artifact["replays"]["recommendation_shadow_replay"]
+    assert recommendation["expected_user_value"] == "better_candidate_ranking_review"
+    assert (
+        "golden-order-morning-bar-oatmeal-latte" in recommendation["used_candidate_ids"]
+    )
+    assert recommendation["ignored_candidates"]
+
+    intake = artifact["replays"]["intake_clarification_shadow_replay"]
+    assert intake["expected_user_value"] == "fewer_but_better_followups_review"
+    assert intake["clarification_policy"] in {
+        "ask_targeted_followup",
+        "use_phrase_pattern_with_caution",
+    }
+    assert any(
+        candidate_id.startswith("user-language-")
+        for candidate_id in intake["used_candidate_ids"]
+    )
+
+    calibration = artifact["replays"]["calibration_bias_shadow_replay"]
+    assert calibration["expected_user_value"] == "better_bias_attribution_review"
+    assert calibration["does_not_change_calibration_math"] is True
+    assert (
+        "intake-estimation-bias-likely-underestimate"
+        in calibration["used_candidate_ids"]
+    )
+
+
+def test_review_queue_reducer_prioritizes_product_value_without_artifact_sprawl() -> (
+    None
+):
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())["review_queue_reducer"]
+
+    assert artifact["artifact_type"] == "review_queue_reducer"
+    assert artifact["runtime_effect_allowed"] is False
+    assert artifact["durable_memory_written"] is False
+    assert artifact["manager_context_injected"] is False
+    assert artifact["artifact_sprawl_control"] == {
+        "new_artifact_requires_declared_consumer": True,
+        "new_artifact_requires_scoring_or_replay_use": True,
+        "consumerless_candidates_deferred": True,
+    }
+
+    queue = artifact["review_queue"]
+    assert set(queue) == {"high", "medium", "low", "rejected_or_deferred"}
+    assert queue["high"]
+    assert any(
+        item["candidate_id"] == "negative-preference-ingredient-cilantro"
+        for item in queue["high"]
+    )
+    assert all(
+        item["runtime_effect_allowed"] is False
+        for bucket in queue.values()
+        for item in bucket
+    )
+    assert artifact["summary"]["candidate_count"] == sum(
+        len(items) for items in queue.values()
+    )
+    assert artifact["summary"]["pseudo_runtime_truth_risk_count"] == 0
 
 
 def test_context_pack_token_pressure_shadow_eval_preserves_l4c_ordering() -> None:
@@ -1275,6 +1493,10 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "context_quality_contradiction_review_queue.json",
         "capability_scenario_fixture_pack.json",
         "pr_review_autopilot_closeout.json",
+        "candidate_extraction_engine_v2.json",
+        "context_value_scoring_v2.json",
+        "shadow_replay_evaluators.json",
+        "review_queue_reducer.json",
         "external_memory_framework_research_review.json",
     }
     assert {path.name for path in output_dir.iterdir()} == expected_files

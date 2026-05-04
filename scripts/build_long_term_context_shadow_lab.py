@@ -28,6 +28,10 @@ ARTIFACT_FILENAMES = {
     "long_term_memory_candidate_review": "long_term_memory_candidate_review.json",
     "context_value_review_queue": "context_value_review_queue.json",
     "context_signal_quality_scorecard": "context_signal_quality_scorecard.json",
+    "candidate_extraction_engine_v2": "candidate_extraction_engine_v2.json",
+    "context_value_scoring_v2": "context_value_scoring_v2.json",
+    "shadow_replay_evaluators": "shadow_replay_evaluators.json",
+    "review_queue_reducer": "review_queue_reducer.json",
     "context_pack_token_pressure_shadow_eval": (
         "context_pack_token_pressure_shadow_eval.json"
     ),
