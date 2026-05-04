@@ -14,6 +14,9 @@ from app.rescue.application.shadow_candidate_artifact import (  # noqa: E402
     build_rescue_shadow_candidates_artifact,
 )
 from app.rescue.domain.shadow_context import RescueContextFixture  # noqa: E402
+from app.rescue.fixtures.shadow_scenarios import (  # noqa: E402
+    rescue_shadow_scenario_fixture_pairs,
+)
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
 
@@ -22,13 +25,18 @@ DEFAULT_OUTPUT = "artifacts/rescue_shadow_candidates.json"
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Build the offline RescueShadow RS5 candidate artifact."
+        description="Build the offline RescueShadow candidate artifact."
+    )
+    parser.add_argument(
+        "--scenario-set",
+        choices=("rs5_default", "rs6_minimum"),
+        default="rs5_default",
     )
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
     args = parser.parse_args(argv)
 
     artifact = build_rescue_shadow_candidates_artifact(
-        scenarios=(("rs5_default_large_overshoot_fixture", _default_context()),)
+        scenarios=_scenario_pairs(args.scenario_set)
     )
     payload = artifact.model_dump(mode="json")
     write_json_artifact(Path(args.output), payload)
@@ -43,6 +51,14 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     return 0
+
+
+def _scenario_pairs(
+    scenario_set: str,
+) -> tuple[tuple[str, RescueContextFixture], ...]:
+    if scenario_set == "rs6_minimum":
+        return rescue_shadow_scenario_fixture_pairs()
+    return (("rs5_default_large_overshoot_fixture", _default_context()),)
 
 
 def _default_context() -> RescueContextFixture:

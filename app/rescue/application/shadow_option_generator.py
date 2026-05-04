@@ -201,6 +201,21 @@ def generate_rescue_option_packet(
             ],
         )
 
+    if _is_repeated_overshoot_strategy_candidate(trigger):
+        option = _ask_user_option(
+            context,
+            rationale=(
+                "Repeated overshoot signals warrant a shadow strategy review "
+                "before any adjustment candidate."
+            ),
+            risk_if_wrong=viability.harm_if_wrong,
+        )
+        return _packet(
+            candidates=[option],
+            selected_option_id=option.option_id,
+            reason_codes=[*reason_codes, "repeated_overshoot_strategy_review"],
+        )
+
     if _should_generate_spread_candidate(context, trigger, viability):
         option = _multi_day_spread_option(context)
         return _packet(
@@ -402,6 +417,12 @@ def _should_generate_spread_candidate(
         and viability.confidence >= 0.7
         and not _exceeds_soft_spread_capacity(context)
     )
+
+
+def _is_repeated_overshoot_strategy_candidate(
+    trigger: RescueTriggerDetectionResult,
+) -> bool:
+    return trigger.trigger_candidate == "repeated_overshoot_pattern"
 
 
 def _exceeds_soft_spread_capacity(context: RescueContextFixture) -> bool:

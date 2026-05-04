@@ -18,6 +18,8 @@ SIDECAR_MODULES = [
     "app.recommendation.application",
     "app.recommendation.application.candidate_quality_gate",
     "app.rescue",
+    "app.rescue.fixtures",
+    "app.rescue.fixtures.shadow_scenarios",
     "app.rescue.domain",
     "app.rescue.domain.proposal_read_models",
     "app.rescue.domain.shadow_context",
