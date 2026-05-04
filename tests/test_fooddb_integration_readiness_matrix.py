@@ -18,6 +18,16 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
     assert matrix["runtime_truth_changed"] is False
     assert matrix["mutation_changed"] is False
     assert matrix["shared_contract_changed"] is False
+    assert matrix["manager_context_changed"] is False
+    assert matrix["websearch_runtime_truth_allowed"] is False
+    assert matrix["readiness_claimed"] is False
+    assert set(matrix["non_claims"]) == {
+        "no_runtime_truth_promotion",
+        "no_packetizer_contract_change",
+        "no_manager_context_change",
+        "no_websearch_runtime_truth",
+        "no_readiness_claim",
+    }
 
     edges = {edge["edge_id"]: edge for edge in matrix["check_edges"]}
     assert set(edges) == {
@@ -33,7 +43,7 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
     }
 
     assert edges["manager_decision_to_retrieval_intent"]["current_status"] == "contract_backed"
-    assert edges["retrieval_router_to_sqlite_fts_adapter"]["current_status"] == "draft"
+    assert edges["retrieval_router_to_sqlite_fts_adapter"]["current_status"] == "contract_backed"
     assert edges["retrieval_router_to_websearch_candidate"]["current_status"] == "contract_backed"
     assert edges["packet_to_manager_seam"]["current_status"] == "contract_backed"
     assert (
