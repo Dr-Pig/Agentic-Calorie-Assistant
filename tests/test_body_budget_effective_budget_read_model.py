@@ -122,7 +122,7 @@ def test_effective_budget_read_model_layers_entries_and_preserves_current_budget
     assert view["sign_policy"]["current_runtime_policy"] == "type_aware_signed_layers_to_legacy_subtractive_adjustment"
     assert view["sign_policy"]["canonical_l3m_policy"] == "base_budget_plus_signed_rescue_and_calibration_layers"
     assert view["sign_policy"]["canonical_l3m_formula_enabled"] is True
-    assert view["calibration_adjustment_ledger_entry_enabled"] is False
+    assert view["calibration_adjustment_ledger_entry_enabled"] is True
     assert view["rescue_enabled"] is False
     assert view["recommendation_enabled"] is False
     assert view["proactive_enabled"] is False

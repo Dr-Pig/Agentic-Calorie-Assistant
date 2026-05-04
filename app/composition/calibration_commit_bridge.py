@@ -82,6 +82,24 @@ def _coerce_required_int(payload: dict[str, Any], field_name: str) -> int:
         raise ValueError(f"{field_name} must be an integer") from exc
 
 
+def _coerce_optional_int(payload: dict[str, Any], field_name: str) -> int | None:
+    if field_name not in payload or payload.get(field_name) is None:
+        return None
+    value = payload[field_name]
+    if isinstance(value, bool):
+        raise ValueError(f"{field_name} must be an integer")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        if value.is_integer():
+            return int(value)
+        raise ValueError(f"{field_name} must be an integer")
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be an integer") from exc
+
+
 def _coerce_optional_float(payload: dict[str, Any], field_name: str) -> float | None:
     if field_name not in payload or payload.get(field_name) is None:
         return None
@@ -128,6 +146,14 @@ def _validate_plan_changing_effect_payload(
     normalized = dict(effect_payload)
     normalized["new_daily_budget_kcal"] = new_daily_budget
     normalized["new_estimated_tdee_kcal"] = new_estimated_tdee
+    calibration_adjustment_delta = _coerce_optional_int(normalized, "calibration_adjustment_delta_kcal")
+    if calibration_adjustment_delta is not None:
+        candidate_effective_budget = new_daily_budget + calibration_adjustment_delta
+        if candidate_effective_budget < safety_floor:
+            raise ValueError(
+                "calibration_adjustment_delta_kcal must not push effective budget below active plan safety_floor_kcal"
+            )
+        normalized["calibration_adjustment_delta_kcal"] = calibration_adjustment_delta
     if proposal_family in {"pace_adjustment", "plan_reset"}:
         new_pace = _coerce_optional_float(normalized, "new_target_pace_kg_per_week")
         if new_pace is not None:
@@ -230,6 +256,41 @@ def _create_new_body_plan_version(
     db.add(new_plan)
     db.flush()
     return new_plan
+
+
+def _create_calibration_adjustment_entry_if_requested(
+    db: Session,
+    *,
+    user: User,
+    proposal: ProposalContainerRecord,
+    proposal_family: str,
+    body_plan_id: int,
+    effect_payload: dict[str, Any],
+    effective_from: str,
+) -> LedgerEntryRecord | None:
+    calibration_adjustment_delta = effect_payload.get("calibration_adjustment_delta_kcal")
+    if calibration_adjustment_delta is None:
+        return None
+    delta_kcal = int(calibration_adjustment_delta or 0)
+    if delta_kcal == 0:
+        return None
+    entry = LedgerEntryRecord(
+        user_id=user.id,
+        local_date=effective_from,
+        entry_type="calibration_adjustment",
+        source_type="proposal_option",
+        source_id=proposal.top_option_id,
+        delta_kcal=delta_kcal,
+        metadata_json={
+            "proposal_container_id": proposal.id,
+            "proposal_family": proposal_family,
+            "body_plan_id": body_plan_id,
+            "effective_from": effective_from,
+        },
+    )
+    db.add(entry)
+    db.flush()
+    return entry
 
 
 def _load_calibration_proposal_or_raise(
@@ -384,6 +445,15 @@ def apply_calibration_proposal_commit(
             accepted_at=resolved_now,
         )
         body_plan_id = new_plan.id
+        _create_calibration_adjustment_entry_if_requested(
+            db,
+            user=user,
+            proposal=proposal,
+            proposal_family=proposal_family,
+            body_plan_id=new_plan.id,
+            effect_payload=effect_payload,
+            effective_from=effective_from,
+        )
         recompute_day_budget_ledger(
             db,
             user_id=user.id,

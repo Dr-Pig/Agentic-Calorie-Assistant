@@ -202,7 +202,7 @@ def _readiness_claim() -> dict[str, Any]:
                 "docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md#BodyBudget PL/CE Integration Readiness Matrix",
             ],
         },
-        allowed_next_stage="calibration_adjustment_ledger_entry_commit",
+        allowed_next_stage="calibration_acceptance_chat_surface_or_rescue_overlay_foundation",
         forbidden_claims=[
             "product_ready",
             "private_self_use_approved",
@@ -288,7 +288,12 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
                 "plan_changing_families": sorted(PLAN_CHANGING_CALIBRATION_FAMILIES),
                 "body_plan_mutation_authorized_on_accept": True,
                 "day_budget_ledger_refresh_authorized_on_accept": True,
-                "ledger_entry_calibration_adjustment_enabled": False,
+                "ledger_entry_calibration_adjustment_enabled": True,
+                "ledger_entry_calibration_adjustment_requires": [
+                    "explicit_accept_on_active_stored_proposal",
+                    "explicit_effect_payload_calibration_adjustment_delta_kcal",
+                    "effective_budget_not_below_safety_floor",
+                ],
                 "llm_role": "none",
             },
         },
