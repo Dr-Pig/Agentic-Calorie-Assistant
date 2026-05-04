@@ -113,6 +113,20 @@ def _fake_provider_blockers(payload: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def _runtime_replay_blockers(payload: dict[str, Any]) -> list[str]:
+    blockers = []
+    if not payload:
+        blockers.append("short_term_context_runtime_replay.not_generated")
+        return blockers
+    if _status(payload) not in {"runtime_replay_diagnostic_pass", "diagnostic_has_known_context_gaps"}:
+        blockers.append("short_term_context_runtime_replay.invalid_status")
+    if payload.get("runtime_trace_backed") is not True:
+        blockers.append("short_term_context_runtime_replay.not_runtime_trace_backed")
+    if _int_value(payload.get("scenario_count")) < 7:
+        blockers.append("short_term_context_runtime_replay.scenario_count_too_low")
+    return blockers
+
+
 def build_context_quality_pack_artifact(
     *,
     context_review: dict[str, Any],
@@ -120,6 +134,7 @@ def build_context_quality_pack_artifact(
     context_window_diagnostic: dict[str, Any],
     context_replay: dict[str, Any],
     fake_provider_context_smoke: dict[str, Any],
+    short_term_context_runtime_replay: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     inputs = {
         "context_review": _object_dict(context_review),
@@ -127,6 +142,7 @@ def build_context_quality_pack_artifact(
         "context_window_diagnostic": _object_dict(context_window_diagnostic),
         "context_replay": _object_dict(context_replay),
         "fake_provider_context_smoke": _object_dict(fake_provider_context_smoke),
+        "short_term_context_runtime_replay": _object_dict(short_term_context_runtime_replay),
     }
     blockers: list[str] = []
     for artifact_id, payload in inputs.items():
@@ -136,10 +152,12 @@ def build_context_quality_pack_artifact(
     blockers.extend(_window_blockers(inputs["context_window_diagnostic"]))
     blockers.extend(_replay_blockers(inputs["context_replay"]))
     blockers.extend(_fake_provider_blockers(inputs["fake_provider_context_smoke"]))
+    blockers.extend(_runtime_replay_blockers(inputs["short_term_context_runtime_replay"]))
 
     target_summary = _object_dict(inputs["target_candidate_eval"].get("summary"))
     replay_summary = _object_dict(inputs["context_replay"].get("summary"))
     review_summary = _object_dict(inputs["context_review"].get("summary"))
+    runtime_replay_summary = _object_dict(inputs["short_term_context_runtime_replay"].get("summary"))
     return _json_safe(
         {
             "artifact_schema_version": "1.0",
@@ -173,6 +191,12 @@ def build_context_quality_pack_artifact(
                 "outside_current_day_omitted_scenarios": _int_value(
                     replay_summary.get("outside_current_day_omitted_scenarios")
                 ),
+                "short_term_runtime_replay_scenario_count": _int_value(
+                    runtime_replay_summary.get("scenario_count")
+                ),
+                "short_term_runtime_replay_current_gap_scenarios": _int_value(
+                    runtime_replay_summary.get("current_gap_scenarios")
+                ),
             },
             "local_only": True,
             "diagnostic_only": True,
@@ -184,6 +208,13 @@ def build_context_quality_pack_artifact(
             "mutation_authority": False,
             "ready_for_live_diagnostic_decision": False,
             "ready_for_fdb_integration": False,
+            "short_term_context_runtime_replay_checked": bool(inputs["short_term_context_runtime_replay"]),
+            "short_term_context_current_gap_scenarios": _int_value(
+                runtime_replay_summary.get("current_gap_scenarios")
+            ),
+            "short_term_context_known_gap_signals": list(
+                runtime_replay_summary.get("known_gap_signals") or []
+            ),
             "fooddb_truth_updated": False,
             "real_fooddb_pass_claimed": False,
             "dogfood_pass": False,
