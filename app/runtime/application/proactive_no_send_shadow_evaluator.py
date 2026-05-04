@@ -96,6 +96,7 @@ class ProactiveNoSendShadowInput(BaseModel):
 def build_proactive_no_send_simulation(
     inputs: list[ProactiveNoSendShadowInput],
 ) -> dict[str, Any]:
+    trigger_evaluations = [_evaluate_trigger(item) for item in inputs]
     return {
         "artifact_type": "proactive_no_send_simulation",
         "artifact_schema_version": "1.0",
@@ -114,7 +115,8 @@ def build_proactive_no_send_simulation(
         "meal_thread_mutated": False,
         "product_readiness_claimed": False,
         "private_self_use_approved": False,
-        "trigger_evaluations": [_evaluate_trigger(item) for item in inputs],
+        "summary": _summary(trigger_evaluations),
+        "trigger_evaluations": trigger_evaluations,
     }
 
 
@@ -258,6 +260,56 @@ def _interrupt_cost(delivery_surface: DeliverySurface) -> RiskLevel:
     if delivery_surface == "app_open":
         return "low"
     return "medium"
+
+
+def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    suppressed = {
+        str(row["trigger_type"]): list(row["suppression_reasons"])
+        for row in rows
+        if row.get("suppression_status") == "suppressed"
+    }
+    deferred = [
+        str(row["trigger_type"])
+        for row in rows
+        if row.get("suppression_status") == "deferred_later_only"
+    ]
+    reviewable = [
+        str(row["trigger_type"])
+        for row in rows
+        if row.get("suppression_status") == "not_suppressed"
+    ]
+    suppressed_reasons = [
+        str(reason)
+        for row in rows
+        if row.get("suppression_status") == "suppressed"
+        for reason in list(row.get("suppression_reasons") or [])
+    ]
+    return {
+        "trigger_count": len(rows),
+        "candidate_for_human_review_trigger_types": reviewable,
+        "suppressed_trigger_types": suppressed,
+        "deferred_later_only_trigger_types": deferred,
+        "suppressed_count": len(suppressed),
+        "later_only_count": len(deferred),
+        "permission_suppressed_count": sum(
+            1 for reason in suppressed_reasons if reason.startswith("permission_")
+        ),
+        "interaction_feedback_suppressed_count": sum(
+            1
+            for reason in suppressed_reasons
+            if reason.startswith("interaction_feedback_") or reason == "explicit_trigger_opt_out"
+        ),
+        "level_2_suppressed_count": sum(
+            1 for reason in suppressed_reasons if reason.startswith("level_2_")
+        ),
+        "live_delivery_allowed": False,
+        "scheduler_activation_allowed": False,
+        "promotion_blockers": [
+            "human_review_required_before_live_delivery",
+            "live_scheduler_not_enabled",
+            "no_send_shadow_only",
+        ],
+    }
 
 
 def _permission_posture(trigger_type: str) -> str:

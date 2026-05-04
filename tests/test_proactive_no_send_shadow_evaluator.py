@@ -394,3 +394,42 @@ def test_default_artifact_covers_canonical_and_shadow_trigger_sets(tmp_path: Pat
     assert '"interaction_feedback_lower_frequency_required"' in artifact_text
     assert '"interaction_feedback_dismissed_recently"' in artifact_text
     assert '"explicit_trigger_opt_out"' in artifact_text
+
+
+def test_no_send_summary_groups_review_candidates_and_promotion_blockers() -> None:
+    artifact = build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="recommendation_prompt",
+                data_sufficiency_status="higher",
+                user_benefit_strength="strong",
+                lower_frequency_ready=True,
+                delivery_surface="app_open",
+            ),
+            ProactiveNoSendShadowInput(
+                trigger_type="calibration_insight",
+                data_sufficiency_status="higher",
+                user_benefit_strength="strong",
+                lower_frequency_ready=True,
+            ),
+            ProactiveNoSendShadowInput(trigger_type="memory_driven_intervention"),
+        ]
+    )
+
+    summary = artifact["summary"]
+
+    assert summary["trigger_count"] == 3
+    assert summary["candidate_for_human_review_trigger_types"] == ["recommendation_prompt"]
+    assert summary["suppressed_trigger_types"] == {
+        "calibration_insight": ["permission_explicit_consent_required"],
+    }
+    assert summary["deferred_later_only_trigger_types"] == ["memory_driven_intervention"]
+    assert summary["permission_suppressed_count"] == 1
+    assert summary["later_only_count"] == 1
+    assert summary["live_delivery_allowed"] is False
+    assert summary["scheduler_activation_allowed"] is False
+    assert summary["promotion_blockers"] == [
+        "human_review_required_before_live_delivery",
+        "live_scheduler_not_enabled",
+        "no_send_shadow_only",
+    ]

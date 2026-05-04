@@ -239,6 +239,25 @@ Default interrupt cost:
 
 No-send shadow artifacts must record `interrupt_cost` so future promotion review can distinguish app-open helpfulness from background interruption risk.
 
+### 4.9 No-Send Review Summary
+
+No-send artifacts must include a summary that separates:
+
+- candidate trigger types that may be reviewed by a human
+- suppressed trigger types and their explicit reasons
+- later-only trigger types that are not live-eligible
+- permission, interaction-feedback, and Level 2 suppression counts
+
+The summary must also make promotion blockers explicit:
+
+- `live_delivery_allowed=false`
+- `scheduler_activation_allowed=false`
+- `no_send_shadow_only`
+- `live_scheduler_not_enabled`
+- `human_review_required_before_live_delivery`
+
+This summary is a review aid only. It does not approve live delivery, scheduler activation, push/LINE delivery, recommendation serving, rescue commitment, memory write, or mutation.
+
 ---
 
 ## 5. Trigger-Specific Rules
