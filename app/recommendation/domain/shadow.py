@@ -203,6 +203,19 @@ class RecommendationShadowFixtureImportError(ValueError):
         super().__init__(", ".join(failure_codes))
 
 
+class RecommendationShadowScorecard(BaseModel):
+    scorecard_type: Literal["recommendation_shadow_scorecard"] = (
+        "recommendation_shadow_scorecard"
+    )
+    shadow_mode: Literal[True] = True
+    gate_passed: bool
+    issue_codes: list[str] = Field(default_factory=list)
+    summary: dict[str, Any] = Field(default_factory=dict)
+    scenario_scorecards: list[dict[str, Any]] = Field(default_factory=list)
+    product_readiness_claimed: Literal[False] = False
+    private_self_use_approved: Literal[False] = False
+
+
 __all__ = [
     "CandidateSourceSummary",
     "CandidateSpec",
@@ -218,5 +231,6 @@ __all__ = [
     "RecommendationShadowFixtureImportError",
     "RecommendationShadowFixtureImportResult",
     "RecommendationShadowFlags",
+    "RecommendationShadowScorecard",
     "SIDECAR_ACTIVATION_CONTRACT",
 ]

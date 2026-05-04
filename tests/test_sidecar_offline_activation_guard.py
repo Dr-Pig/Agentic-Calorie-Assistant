@@ -21,6 +21,7 @@ SIDECAR_MODULES = [
     "app.recommendation.application.shadow_artifact_gate",
     "app.recommendation.application.shadow_evaluator",
     "app.recommendation.application.shadow_fixture_import",
+    "app.recommendation.application.shadow_scorecard",
     "app.rescue",
     "app.rescue.domain",
     "app.rescue.domain.proposal_read_models",
