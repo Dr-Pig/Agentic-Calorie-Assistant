@@ -17,7 +17,10 @@ from app.composition.calibration_commit_bridge import (
     apply_calibration_proposal_commit,
     apply_stored_calibration_proposal_action,
 )
-from app.composition.calibration_proposal_artifacts import persist_calibration_proposal_artifact
+from app.composition.calibration_proposal_artifacts import (
+    has_active_calibration_proposal,
+    persist_calibration_proposal_artifact,
+)
 from app.composition.current_budget_read_model import build_current_budget_view
 from app.database import get_db, get_or_create_user
 
@@ -56,6 +59,10 @@ def calibration_proposal_preview(
     db=Depends(get_db),
 ) -> dict[str, object]:
     user = get_or_create_user(db, request.user_id)
+    recent_similar_proposal_open = request.recent_similar_proposal_open or has_active_calibration_proposal(
+        db,
+        user_id=user.id,
+    )
     current_budget_view = build_current_budget_view(db, user_id=user.id, local_date=request.local_date)
     active_body_plan_view = build_active_body_plan_view(db, user_id=user.id)
     diagnostic = build_body_calibration_diagnostic(
@@ -63,7 +70,7 @@ def calibration_proposal_preview(
             model_inputs=request.model_inputs,
             current_budget_status=request.current_budget_status,
             rescue_recovery_viability=request.rescue_recovery_viability,
-            recent_similar_proposal_open=request.recent_similar_proposal_open,
+            recent_similar_proposal_open=recent_similar_proposal_open,
             current_budget_view=current_budget_view,
             active_body_plan_view=active_body_plan_view,
         )
