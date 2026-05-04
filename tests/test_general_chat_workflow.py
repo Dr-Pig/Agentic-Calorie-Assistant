@@ -9,10 +9,10 @@ from app.body.infrastructure.models import BodyObservationRecord, BodyPlanRecord
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_or_create_user
 from app.composition.general_chat_service import build_general_chat_response_pass
-from app.models import Base, DayBudgetLedgerRecord, MealThreadRecord, MealVersionRecord
+from app.models import Base, DayBudgetLedgerRecord, LedgerEntryRecord, MealThreadRecord, MealVersionRecord
 from app.schemas import CommitRequestCandidate
 from app.composition.canonical_persistence import commit_meal_payload_to_canonical
-from app.shared.infra.models import ProposalContainerRecord
+from app.shared.infra.models import ProposalContainerRecord, ProposalOptionRecord
 
 
 def _session() -> Session:
@@ -129,6 +129,47 @@ def _seed_calibration_history(db: Session, *, external_id: str, local_date: str 
     db.add(ledger)
     db.commit()
     return user, plan
+
+
+def _stored_calibration_action_proposal(
+    db: Session,
+    *,
+    user_id: int,
+    local_date: str = "2026-05-14",
+    status: str = "open",
+    calibration_adjustment_delta_kcal: int | None = -60,
+) -> ProposalContainerRecord:
+    proposal = ProposalContainerRecord(
+        user_id=user_id,
+        proposal_type="calibration",
+        proposal_status=status,
+        metadata_json={"local_date": local_date, "proposal_family": "budget_adjustment"},
+    )
+    db.add(proposal)
+    db.flush()
+    effect_payload = {
+        "new_daily_budget_kcal": 1650,
+        "new_estimated_tdee_kcal": 2050,
+        "review_after_days": 14,
+        "rationale_summary": "chat action calibration test",
+    }
+    if calibration_adjustment_delta_kcal is not None:
+        effect_payload["calibration_adjustment_delta_kcal"] = calibration_adjustment_delta_kcal
+    option = ProposalOptionRecord(
+        proposal_container_id=proposal.id,
+        option_type="budget_adjustment",
+        option_label="Budget adjustment",
+        option_summary="Chat action stored proposal option",
+        rank_order=0,
+        is_primary=True,
+        effect_payload_json=effect_payload,
+    )
+    db.add(option)
+    db.flush()
+    proposal.top_option_id = option.id
+    db.commit()
+    db.refresh(proposal)
+    return proposal
 
 
 def test_general_chat_budget_mode_reads_shared_budget_views() -> None:
@@ -381,3 +422,84 @@ def test_general_chat_raw_text_does_not_activate_calibration_preview_without_exp
     assert result.input_assembly is None
     assert result.proposal_artifact is None
     assert db.query(ProposalContainerRecord).count() == 0
+
+
+def test_general_chat_calibration_action_accepts_explicit_stored_proposal_in_chat_surface() -> None:
+    db = _session()
+    user, _ = _seed_calibration_history(db, external_id="general-chat-calibration-action-accept")
+    proposal = _stored_calibration_action_proposal(db, user_id=user.id, calibration_adjustment_delta_kcal=-60)
+
+    result = build_general_chat_response_pass(
+        db,
+        user_external_id="general-chat-calibration-action-accept",
+        raw_user_input="套用這個方案",
+        mode="calibration_action",
+        local_date="2026-05-14",
+        calibration_proposal_container_id=proposal.id,
+        calibration_action="accept_calibration_proposal",
+        accepted_at=datetime(2026, 5, 14, 10, 30, 0),
+    )
+
+    proposal_after = db.get(ProposalContainerRecord, proposal.id)
+    entry = db.query(LedgerEntryRecord).one()
+    assert result.target_workflow_family == "general_chat"
+    assert result.disposition == "answer_only"
+    assert result.workflow_effect == "apply_calibration_proposal_action_with_state_mutation"
+    assert result.ui_hints["mode"] == "general_chat_calibration_action"
+    assert result.ui_hints["proposal_status"] == "accepted"
+    assert result.ui_hints["proposal_container_id"] == proposal.id
+    assert result.calibration_action_result is not None
+    assert result.calibration_action_result["current_budget_view"]["budget_kcal"] == 1650
+    assert result.calibration_action_result["current_budget_view"]["adjustment_kcal"] == 60
+    assert proposal_after is not None
+    assert proposal_after.proposal_status == "accepted"
+    assert entry.entry_type == "calibration_adjustment"
+    assert entry.delta_kcal == -60
+
+
+def test_general_chat_calibration_action_rejects_explicit_stored_proposal_without_plan_or_ledger_mutation() -> None:
+    db = _session()
+    user, baseline_plan = _seed_calibration_history(db, external_id="general-chat-calibration-action-reject")
+    proposal = _stored_calibration_action_proposal(db, user_id=user.id, calibration_adjustment_delta_kcal=-60)
+
+    result = build_general_chat_response_pass(
+        db,
+        user_external_id="general-chat-calibration-action-reject",
+        raw_user_input="先維持不變",
+        mode="calibration_action",
+        local_date="2026-05-14",
+        calibration_proposal_container_id=proposal.id,
+        calibration_action="reject_calibration_proposal",
+        accepted_at=datetime(2026, 5, 14, 10, 30, 0),
+    )
+
+    active_plan = db.query(BodyPlanRecord).filter(BodyPlanRecord.plan_status == "active").one()
+    proposal_after = db.get(ProposalContainerRecord, proposal.id)
+    assert result.workflow_effect == "apply_calibration_proposal_action_without_plan_mutation"
+    assert result.ui_hints["proposal_status"] == "rejected"
+    assert active_plan.id == baseline_plan.id
+    assert proposal_after is not None
+    assert proposal_after.proposal_status == "rejected"
+    assert db.query(LedgerEntryRecord).count() == 0
+
+
+def test_general_chat_calibration_action_requires_explicit_proposal_target() -> None:
+    db = _session()
+    user, baseline_plan = _seed_calibration_history(db, external_id="general-chat-calibration-action-missing")
+    _stored_calibration_action_proposal(db, user_id=user.id, calibration_adjustment_delta_kcal=-60)
+
+    result = build_general_chat_response_pass(
+        db,
+        user_external_id="general-chat-calibration-action-missing",
+        raw_user_input="好",
+        mode="calibration_action",
+        local_date="2026-05-14",
+        calibration_action="accept_calibration_proposal",
+        accepted_at=datetime(2026, 5, 14, 10, 30, 0),
+    )
+
+    active_plan = db.query(BodyPlanRecord).filter(BodyPlanRecord.plan_status == "active").one()
+    assert result.workflow_effect == "calibration_action_unavailable_without_state_mutation"
+    assert result.ui_hints["reason"] == "missing_explicit_proposal_container_id_or_action"
+    assert active_plan.id == baseline_plan.id
+    assert db.query(LedgerEntryRecord).count() == 0

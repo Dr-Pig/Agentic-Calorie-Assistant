@@ -296,6 +296,19 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
                 ],
                 "llm_role": "none",
             },
+            "chat_action_surface": {
+                "service": "app.composition.general_chat_service.build_general_chat_response_pass",
+                "mode": "calibration_action",
+                "requires": [
+                    "explicit_proposal_container_id",
+                    "explicit_calibration_action",
+                    "stored_action_contract",
+                ],
+                "does_not_keyword_attach": True,
+                "chat_primary_surface": True,
+                "ui_role": "mirror_or_confirm_surface",
+                "llm_role": "none_for_mutation_legality",
+            },
         },
         "route_activation": {
             "root_app_mounted": True,
