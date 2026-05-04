@@ -3,6 +3,13 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from scripts.repo_policy import (
+    category_for_repo_path,
+    load_active_code_policy,
+    normalize_repo_path,
+    target_cap_for_repo_path,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -124,3 +131,63 @@ def test_long_term_context_artifact_contract_blocks_unowned_outputs() -> None:
         assert artifact["promotion_path"], artifact_key
         assert artifact["why_this_is_not_runtime_truth"], artifact_key
         assert artifact["runtime_effect_allowed"] is False, artifact_key
+
+
+def _line_count(path: Path) -> int:
+    return len(path.read_text(encoding="utf-8").splitlines())
+
+
+def test_long_term_context_shadow_lab_facade_stays_thin_by_responsibility() -> None:
+    facade = ROOT / "app" / "memory" / "application" / "long_term_context_shadow_lab.py"
+    shadow_parts = ROOT / "app" / "memory" / "application" / "long_term_context_shadow"
+
+    assert _line_count(facade) <= 300
+
+    expected_owner_modules = {
+        "contracts.py",
+        "fixture_reader.py",
+        "candidate_extraction.py",
+        "review_artifacts.py",
+        "shadow_evaluators.py",
+        "future_artifacts.py",
+        "utils.py",
+    }
+    actual_owner_modules = {path.name for path in shadow_parts.glob("*.py")}
+    assert expected_owner_modules <= actual_owner_modules
+
+    policy = load_active_code_policy()
+    oversized_modules: dict[str, str] = {}
+    for path in shadow_parts.glob("*.py"):
+        if path.name == "__init__.py":
+            continue
+        repo_path = normalize_repo_path(path)
+        category = category_for_repo_path(repo_path, policy)
+        target_cap = target_cap_for_repo_path(repo_path, policy)
+        if category is None or target_cap is None:
+            oversized_modules[path.name] = "unmapped"
+            continue
+        line_count = _line_count(path)
+        if line_count > target_cap:
+            oversized_modules[path.name] = f"{line_count}>{target_cap}"
+
+    assert oversized_modules == {}
+
+
+def test_long_term_context_shadow_lab_functions_stay_focused() -> None:
+    module_paths = [
+        ROOT / "app" / "memory" / "application" / "long_term_context_shadow_lab.py",
+        *(ROOT / "app" / "memory" / "application" / "long_term_context_shadow").glob(
+            "*.py"
+        ),
+    ]
+    oversized_functions: dict[str, int] = {}
+    for path in module_paths:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                length = node.end_lineno - node.lineno + 1
+                if length > 80:
+                    relative = path.relative_to(ROOT).as_posix()
+                    oversized_functions[f"{relative}:{node.name}"] = length
+
+    assert oversized_functions == {}
