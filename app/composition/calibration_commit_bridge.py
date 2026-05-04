@@ -4,8 +4,10 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Literal
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord
 from app.composition.canonical_persistence import (
     ensure_proposal_artifact_skeleton,
     load_active_body_plan_record,
@@ -18,6 +20,18 @@ from app.shared.domain import ActiveBodyPlanView, CurrentBudgetView
 from app.shared.infra.models import User
 
 CalibrationCommitDecision = Literal["accepted", "rejected", "deferred_pending_reminder"]
+PLAN_CHANGING_CALIBRATION_FAMILIES = frozenset(
+    {
+        "budget_adjustment",
+        "pace_adjustment",
+        "plan_reset",
+    }
+)
+MIN_DAILY_BUDGET_KCAL = 800
+MAX_DAILY_BUDGET_KCAL = 5000
+MIN_ESTIMATED_TDEE_KCAL = 800
+MAX_ESTIMATED_TDEE_KCAL = 6000
+MAX_TARGET_PACE_KG_PER_WEEK = 2.0
 
 
 @dataclass(frozen=True)
@@ -39,6 +53,119 @@ def _resolve_effective_from(
     if immediate or accepted_at.hour < 11:
         return local_date
     return (datetime.fromisoformat(local_date) + timedelta(days=1)).date().isoformat()
+
+
+def _coerce_required_int(payload: dict[str, Any], field_name: str) -> int:
+    if field_name not in payload or payload.get(field_name) is None:
+        raise ValueError(f"{field_name} is required for accepted plan-changing calibration proposal")
+    value = payload[field_name]
+    if isinstance(value, bool):
+        raise ValueError(f"{field_name} must be an integer")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        if value.is_integer():
+            return int(value)
+        raise ValueError(f"{field_name} must be an integer")
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be an integer") from exc
+
+
+def _coerce_optional_float(payload: dict[str, Any], field_name: str) -> float | None:
+    if field_name not in payload or payload.get(field_name) is None:
+        return None
+    value = payload[field_name]
+    if isinstance(value, bool):
+        raise ValueError(f"{field_name} must be numeric")
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be numeric") from exc
+
+
+def _validate_plan_changing_effect_payload(
+    *,
+    proposal_family: str,
+    effect_payload: dict[str, Any],
+    active_plan: BodyPlanRecord | None,
+) -> dict[str, Any]:
+    if proposal_family not in PLAN_CHANGING_CALIBRATION_FAMILIES:
+        if effect_payload.get("plan_change_required") is True:
+            raise ValueError(f"unknown plan-changing calibration proposal_family {proposal_family!r}")
+        return effect_payload
+
+    new_daily_budget = _coerce_required_int(effect_payload, "new_daily_budget_kcal")
+    safety_floor = int(active_plan.safety_floor_kcal or 0) if active_plan is not None else 0
+    if new_daily_budget < safety_floor:
+        raise ValueError("new_daily_budget_kcal must not be below active plan safety_floor_kcal")
+    if not MIN_DAILY_BUDGET_KCAL <= new_daily_budget <= MAX_DAILY_BUDGET_KCAL:
+        raise ValueError(
+            f"new_daily_budget_kcal must be between {MIN_DAILY_BUDGET_KCAL} and {MAX_DAILY_BUDGET_KCAL}"
+        )
+
+    if "new_estimated_tdee_kcal" in effect_payload and effect_payload.get("new_estimated_tdee_kcal") is not None:
+        new_estimated_tdee = _coerce_required_int(effect_payload, "new_estimated_tdee_kcal")
+    else:
+        if active_plan is None:
+            raise ValueError("new_estimated_tdee_kcal is required when no active plan TDEE can be inherited")
+        new_estimated_tdee = int(active_plan.estimated_tdee or 0)
+    if not MIN_ESTIMATED_TDEE_KCAL <= new_estimated_tdee <= MAX_ESTIMATED_TDEE_KCAL:
+        raise ValueError(
+            f"new_estimated_tdee_kcal must be between {MIN_ESTIMATED_TDEE_KCAL} and {MAX_ESTIMATED_TDEE_KCAL}"
+        )
+
+    normalized = dict(effect_payload)
+    normalized["new_daily_budget_kcal"] = new_daily_budget
+    normalized["new_estimated_tdee_kcal"] = new_estimated_tdee
+    if proposal_family in {"pace_adjustment", "plan_reset"}:
+        new_pace = _coerce_optional_float(normalized, "new_target_pace_kg_per_week")
+        if new_pace is not None:
+            if new_pace <= 0 or new_pace > MAX_TARGET_PACE_KG_PER_WEEK:
+                raise ValueError(
+                    f"new_target_pace_kg_per_week must be positive and <= {MAX_TARGET_PACE_KG_PER_WEEK}"
+                )
+            normalized["new_target_pace_kg_per_week"] = new_pace
+    return normalized
+
+
+def _build_calibration_commit_current_budget_view(
+    db: Session,
+    *,
+    user_id: int,
+    local_date: str,
+) -> CurrentBudgetView:
+    existing_ledger = db.execute(
+        select(DayBudgetLedgerRecord).where(
+            DayBudgetLedgerRecord.user_id == user_id,
+            DayBudgetLedgerRecord.local_date == local_date,
+        )
+    ).scalar_one_or_none()
+    view = build_current_budget_view(db, user_id=user_id, local_date=local_date)
+    if existing_ledger is not None:
+        return view
+
+    active_plan = load_active_body_plan_record(db, user_id=user_id)
+    if active_plan is None or int(active_plan.daily_budget_kcal or 0) <= 0:
+        return view
+
+    adjustment_deltas = db.execute(
+        select(LedgerEntryRecord.delta_kcal).where(
+            LedgerEntryRecord.user_id == user_id,
+            LedgerEntryRecord.local_date == local_date,
+            LedgerEntryRecord.entry_type != "meal_consumption",
+        )
+    ).scalars().all()
+    budget_kcal = int(active_plan.daily_budget_kcal or 0)
+    adjustment_kcal = sum(int(delta or 0) for delta in adjustment_deltas)
+    return view.model_copy(
+        update={
+            "budget_kcal": budget_kcal,
+            "adjustment_kcal": adjustment_kcal,
+            "remaining_kcal": budget_kcal - int(view.consumed_kcal or 0) - adjustment_kcal,
+        }
+    )
 
 
 def _create_new_body_plan_version(
@@ -107,12 +234,20 @@ def apply_calibration_proposal_commit(
     accepted_at: datetime | None = None,
 ) -> CalibrationCommitResult:
     resolved_now = accepted_at or datetime.now()
-    immediate = proposal_family in {"logging_quality_first", "monitor_only"}
+    plan_change_accepted = decision == "accepted" and proposal_family in PLAN_CHANGING_CALIBRATION_FAMILIES
+    immediate = not plan_change_accepted
     effective_from = _resolve_effective_from(
         local_date=local_date,
         accepted_at=resolved_now,
         immediate=immediate,
     )
+    active_plan = load_active_body_plan_record(db, user_id=user.id) if plan_change_accepted else None
+    if decision == "accepted":
+        effect_payload = _validate_plan_changing_effect_payload(
+            proposal_family=proposal_family,
+            effect_payload=effect_payload,
+            active_plan=active_plan,
+        )
     proposal = ensure_proposal_artifact_skeleton(
         db,
         user=user,
@@ -138,8 +273,7 @@ def apply_calibration_proposal_commit(
         proposal.accepted_at = resolved_now
 
     body_plan_id: int | None = None
-    if decision == "accepted" and proposal_family not in {"logging_quality_first", "monitor_only"}:
-        active_plan = load_active_body_plan_record(db, user_id=user.id)
+    if plan_change_accepted:
         new_plan = _create_new_body_plan_version(
             db,
             user=user,
@@ -154,12 +288,6 @@ def apply_calibration_proposal_commit(
             local_date=effective_from,
             budget_kcal=new_plan.daily_budget_kcal,
         )
-    else:
-        recompute_day_budget_ledger(
-            db,
-            user_id=user.id,
-            local_date=effective_from,
-        )
 
     db.commit()
     db.refresh(proposal)
@@ -168,6 +296,10 @@ def apply_calibration_proposal_commit(
         proposal_status=proposal.proposal_status,  # type: ignore[arg-type]
         body_plan_id=body_plan_id,
         effective_from=effective_from,
-        current_budget_view=build_current_budget_view(db, user_id=user.id, local_date=effective_from),
+        current_budget_view=_build_calibration_commit_current_budget_view(
+            db,
+            user_id=user.id,
+            local_date=effective_from,
+        ),
         active_body_plan_view=build_active_body_plan_view(db, user_id=user.id),
     )
