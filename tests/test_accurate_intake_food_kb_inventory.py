@@ -37,13 +37,14 @@ def test_food_kb_inventory_matches_repo_contained_seed_counts() -> None:
     inventory = build_food_kb_inventory()
 
     assert inventory["repo_contained_seed_counts"] == {
-        "small_anchor_total": 44,
-        "generic_anchor": 40,
+        "small_anchor_total": 55,
+        "generic_anchor": 51,
         "generic_semantic_only": 4,
         "exact_item_cards": 5,
-        "basket_components": 19,
+        "basket_components": 30,
     }
-    assert inventory["source_class_breakdown"]["existing_repo_seed"] == 49
+    assert inventory["source_class_breakdown"]["existing_repo_seed"] == 60
+    assert inventory["source_class_breakdown"]["taiwan_tfda_open_data"] == 11
     assert inventory["source_class_breakdown"]["missing_source_metadata"] == 49
     assert inventory["missing_source_metadata_count"] == 49
     assert inventory["tfda_base_pipeline"]["base_nutrition_db_present"] is False

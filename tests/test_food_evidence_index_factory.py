@@ -40,7 +40,7 @@ def test_composition_builds_sqlite_fts_port_from_small_anchor_source(tmp_path: P
 
     assert isinstance(index, FoodEvidenceIndexPort)
     assert index.describe_index()["adapter_type"] == "sqlite_fts_food_evidence_index"
-    assert len(index.load_records()) == 44
+    assert len(index.load_records()) == 55
 
 
 def test_composition_availability_drives_router_without_backend_leakage(tmp_path: Path) -> None:
