@@ -55,6 +55,14 @@ def test_bodybudget_plce_integration_matrix_names_backend_read_models_and_routes
             "proposal_status",
             "options[].effect_payload",
         ],
+        "calibration_proposal_history": [
+            "/calibration/proposals/history",
+            "public_router",
+            "app.composition.calibration_proposal_inbox.load_calibration_proposal_history",
+            "expired_at",
+            "primary_option_summary",
+            "does not expose `options[]` or `effect_payload`",
+        ],
     }
 
     for read_model_name, required_tokens in expected_contracts.items():
@@ -92,6 +100,7 @@ def test_bodybudget_plce_integration_matrix_references_importable_backend_read_m
         "app.composition.body_budget_effective_budget.build_body_budget_effective_budget_view",
         "app.body.application.active_body_plan_read_model.build_active_body_plan_view",
         "app.composition.calibration_proposal_inbox.load_open_calibration_proposal_inbox",
+        "app.composition.calibration_proposal_inbox.load_calibration_proposal_history",
     ]:
         assert callable(_resolve_symbol(dotted_path))
 
@@ -105,6 +114,7 @@ def test_bodybudget_plce_integration_matrix_tracks_calibration_router_activation
     internal_paths = {route.path for route in internal_router.routes}
 
     assert "/calibration/proposals/open" in public_paths
+    assert "/calibration/proposals/history" in public_paths
     assert "/calibration/proposal/preview-from-history" in public_paths
     assert "/calibration/proposal/stored-action" in public_paths
     assert "/calibration/proposal/action" not in public_paths
@@ -122,6 +132,8 @@ def test_bodybudget_plce_integration_matrix_distinguishes_proposal_route_project
     assert "Route projection fields:" in matrix
     assert "Read function domain fields:" in matrix
     assert "metadata-derived fields are not direct read-function fields" in matrix
+    assert "`calibration_proposal_history` is read-only audit" in matrix
+    assert "History route projection must not expose `options[]`, `effect_payload`" in matrix
     assert "metadata" in proposal_container.model_fields
     assert "local_date" not in proposal_container.model_fields
     assert "proposal_family" not in proposal_container.model_fields

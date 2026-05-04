@@ -13,7 +13,10 @@ from app.composition.calibration_commit_bridge import (
     apply_stored_calibration_proposal_action,
 )
 from app.composition.calibration_proposal_expiry import expire_stale_calibration_proposals
-from app.composition.calibration_proposal_inbox import load_open_calibration_proposal_inbox
+from app.composition.calibration_proposal_inbox import (
+    load_calibration_proposal_history,
+    load_open_calibration_proposal_inbox,
+)
 from app.composition.calibration_preview_service import (
     build_calibration_preview_from_history,
     build_calibration_preview_from_model_inputs,
@@ -82,6 +85,28 @@ def _proposal_inbox_payload(proposal: ProposalContainer) -> dict[str, object]:
     }
 
 
+def _proposal_history_payload(proposal: ProposalContainer) -> dict[str, object]:
+    metadata = proposal.metadata if isinstance(proposal.metadata, dict) else {}
+    primary_option = next((option for option in proposal.options if option.proposal_option_id == proposal.top_option_id), None)
+    if primary_option is None:
+        primary_option = next((option for option in proposal.options if option.is_primary), None)
+    return {
+        "proposal_container_id": proposal.proposal_container_id,
+        "proposal_type": proposal.proposal_type,
+        "proposal_status": proposal.proposal_status,
+        "top_option_id": proposal.top_option_id,
+        "local_date": metadata.get("local_date"),
+        "proposal_family": metadata.get("proposal_family"),
+        "created_at": proposal.created_at,
+        "accepted_at": proposal.accepted_at,
+        "expired_at": metadata.get("expired_at"),
+        "expiry_reason": metadata.get("expiry_reason"),
+        "primary_option_type": primary_option.option_type if primary_option is not None else None,
+        "primary_option_label": primary_option.option_label if primary_option is not None else None,
+        "primary_option_summary": primary_option.option_summary if primary_option is not None else None,
+    }
+
+
 @router.get("/calibration/proposals/open")
 @public_router.get("/calibration/proposals/open")
 def open_calibration_proposals(
@@ -101,6 +126,28 @@ def open_calibration_proposals(
         "user_id": user_id,
         "open_count": len(proposals),
         "proposals": [_proposal_inbox_payload(proposal) for proposal in proposals],
+    }
+
+
+@router.get("/calibration/proposals/history")
+@public_router.get("/calibration/proposals/history")
+def calibration_proposal_history(
+    user_id: str,
+    limit: int = Query(default=50, ge=1, le=100),
+    db=Depends(get_db),
+) -> dict[str, object]:
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if user is None:
+        return {
+            "user_id": user_id,
+            "history_count": 0,
+            "proposals": [],
+        }
+    proposals = load_calibration_proposal_history(db, user_id=user.id, limit=limit)
+    return {
+        "user_id": user_id,
+        "history_count": len(proposals),
+        "proposals": [_proposal_history_payload(proposal) for proposal in proposals],
     }
 
 

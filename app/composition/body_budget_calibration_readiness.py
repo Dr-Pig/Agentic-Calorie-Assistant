@@ -180,6 +180,41 @@ def _stable_read_models() -> list[dict[str, Any]]:
                 "accept_defer_reject_outside_stored_action",
             ],
         },
+        {
+            "name": "calibration_proposal_history",
+            "aliases": [],
+            "canonical_name_required_for_plce": True,
+            "backend_route": "/calibration/proposals/history",
+            "read_function": "app.composition.calibration_proposal_inbox.load_calibration_proposal_history",
+            "truth_owner": ["calibration_proposal_artifacts"],
+            "stable_fields": [
+                "proposal_container_id",
+                "proposal_type",
+                "proposal_status",
+                "top_option_id",
+                "local_date",
+                "proposal_family",
+                "created_at",
+                "accepted_at",
+                "expired_at",
+                "expiry_reason",
+                "primary_option_type",
+                "primary_option_label",
+                "primary_option_summary",
+            ],
+            "plce_allowed_use": "render_read_only_calibration_proposal_audit_history",
+            "plce_forbidden": [
+                "create_proposals",
+                "rank_proposals",
+                "rewrite_options",
+                "accept_defer_reject_from_history",
+                "expose_full_diagnostic_metadata",
+                "effect_payload",
+                "options",
+                "proposal_policy_packet",
+                "trace_envelope",
+            ],
+        },
     ]
 
 
@@ -299,6 +334,20 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
                 "mirror_only": True,
                 "preserve_backend_order": True,
             },
+            "proposal_history": {
+                "service": "app.composition.calibration_proposal_inbox.load_calibration_proposal_history",
+                "route": "/calibration/proposals/history",
+                "canonical_statuses": sorted(
+                    ["accepted", "dismissed", "expired", "open", "rejected"]
+                ),
+                "read_only": True,
+                "public_route_mounted": True,
+                "safe_projection_only": True,
+                "exposes_effect_payload": False,
+                "exposes_full_metadata": False,
+                "mutation_authorized": False,
+                "llm_role": "none",
+            },
             "stored_action": {
                 "service": "app.composition.calibration_commit_bridge.apply_stored_calibration_proposal_action",
                 "mutation_requires": "explicit_accept_on_active_stored_proposal",
@@ -371,6 +420,7 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
             "router_module": "app.composition.calibration_routes.public_router",
             "router_contract_paths": [
                 "/calibration/proposals/open",
+                "/calibration/proposals/history",
                 "/calibration/proposal/preview-from-history",
                 "/calibration/proposal/stored-action",
             ],
