@@ -16,6 +16,7 @@ from app.composition.canonical_persistence import (
 from app.body.application.active_body_plan_read_model import build_active_body_plan_view
 from app.body.infrastructure.models import BodyPlanRecord
 from app.composition.current_budget_read_model import build_current_budget_view
+from app.shared.infra.models import ProposalContainerRecord
 from app.shared.domain import ActiveBodyPlanView, CurrentBudgetView
 from app.shared.infra.models import User
 
@@ -223,6 +224,29 @@ def _create_new_body_plan_version(
     return new_plan
 
 
+def _load_calibration_proposal_or_raise(
+    db: Session,
+    *,
+    user: User,
+    proposal_container_id: int,
+) -> ProposalContainerRecord:
+    proposal = db.get(ProposalContainerRecord, proposal_container_id)
+    if proposal is None or proposal.user_id != user.id or proposal.proposal_type != "calibration":
+        raise ValueError("calibration proposal not found")
+    return proposal
+
+
+def _stored_top_option_payload(proposal: ProposalContainerRecord) -> tuple[str, dict[str, Any]]:
+    top_option = next((option for option in proposal.options if option.id == proposal.top_option_id), None)
+    if top_option is None:
+        top_option = next((option for option in proposal.options if option.is_primary), None)
+    if top_option is None and proposal.options:
+        top_option = sorted(proposal.options, key=lambda option: option.rank_order)[0]
+    if top_option is None:
+        raise ValueError("calibration proposal has no option to apply")
+    return top_option.option_type, dict(top_option.effect_payload_json or {})
+
+
 def apply_calibration_proposal_commit(
     db: Session,
     *,
@@ -232,6 +256,7 @@ def apply_calibration_proposal_commit(
     effect_payload: dict[str, Any],
     decision: CalibrationCommitDecision,
     accepted_at: datetime | None = None,
+    proposal_container_id: int | None = None,
 ) -> CalibrationCommitResult:
     resolved_now = accepted_at or datetime.now()
     plan_change_accepted = decision == "accepted" and proposal_family in PLAN_CHANGING_CALIBRATION_FAMILIES
@@ -248,26 +273,39 @@ def apply_calibration_proposal_commit(
             effect_payload=effect_payload,
             active_plan=active_plan,
         )
-    proposal = ensure_proposal_artifact_skeleton(
-        db,
-        user=user,
-        proposal_type="calibration",
-        metadata={
+    if proposal_container_id is None:
+        proposal = ensure_proposal_artifact_skeleton(
+            db,
+            user=user,
+            proposal_type="calibration",
+            metadata={
+                "proposal_family": proposal_family,
+                "effective_from": effective_from,
+                "decision": decision,
+            },
+            options=[
+                {
+                    "option_type": proposal_family,
+                    "option_label": proposal_family,
+                    "option_summary": str(effect_payload.get("rationale_summary") or proposal_family),
+                    "is_primary": True,
+                    "rank_order": 0,
+                    "effect_payload_json": dict(effect_payload),
+                }
+            ],
+        )
+    else:
+        proposal = _load_calibration_proposal_or_raise(
+            db,
+            user=user,
+            proposal_container_id=proposal_container_id,
+        )
+        proposal.metadata_json = {
+            **dict(proposal.metadata_json or {}),
             "proposal_family": proposal_family,
             "effective_from": effective_from,
             "decision": decision,
-        },
-        options=[
-            {
-                "option_type": proposal_family,
-                "option_label": proposal_family,
-                "option_summary": str(effect_payload.get("rationale_summary") or proposal_family),
-                "is_primary": True,
-                "rank_order": 0,
-                "effect_payload_json": dict(effect_payload),
-            }
-        ],
-    )
+        }
     proposal.proposal_status = decision
     if decision == "accepted":
         proposal.accepted_at = resolved_now
@@ -302,4 +340,33 @@ def apply_calibration_proposal_commit(
             local_date=effective_from,
         ),
         active_body_plan_view=build_active_body_plan_view(db, user_id=user.id),
+    )
+
+
+def apply_stored_calibration_proposal_action(
+    db: Session,
+    *,
+    user: User,
+    proposal_container_id: int,
+    decision: CalibrationCommitDecision,
+    accepted_at: datetime | None = None,
+) -> CalibrationCommitResult:
+    proposal = _load_calibration_proposal_or_raise(
+        db,
+        user=user,
+        proposal_container_id=proposal_container_id,
+    )
+    local_date = str((proposal.metadata_json or {}).get("local_date") or "").strip()
+    if not local_date:
+        raise ValueError("stored calibration proposal is missing local_date")
+    proposal_family, effect_payload = _stored_top_option_payload(proposal)
+    return apply_calibration_proposal_commit(
+        db,
+        user=user,
+        local_date=local_date,
+        proposal_family=proposal_family,
+        effect_payload=effect_payload,
+        decision=decision,
+        accepted_at=accepted_at,
+        proposal_container_id=proposal.id,
     )
