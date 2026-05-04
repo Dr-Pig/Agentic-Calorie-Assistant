@@ -46,6 +46,35 @@ def _evidence_missing(group_id: str, payload: dict[str, Any]) -> bool:
 def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
     for flag in (
+        "shared_contract_changed",
+        "manager_context_packet_schema_changed",
+        "manager_context_packet_changed",
+        "nutrition_evidence_store_port_changed",
+        "food_evidence_record_schema_changed",
+        "packet_ready_anchor_schema_changed",
+        "packetizer_format_changed",
+        "packetizer_contract_changed",
+        "basket_semantics_changed",
+        "estimate_output_format_changed",
+        "food_evidence_promotion_policy_changed",
+        "runtime_truth_changed",
+        "mutation_changed",
+        "production_db_touched",
+        "production_db_ready_claimed",
+        "runtime_web_activation_approved",
+        "live_canary_approved",
+        "kimi_active_runtime_default_allowed",
+        "kimi_activated",
+        "grokfast_activated",
+        "web_ready",
+        "product_ready",
+        "production_selected",
+        "rollout_approved",
+        "live_manager_required",
+        "websearch_evidence_used",
+        "web_tavily",
+        "fooddb_evidence_used",
+        "fooddb_schema_changed",
         "writes_performed",
         "import_allowed",
         "production_db_used",
@@ -87,11 +116,16 @@ def build_pre_live_self_use_decision_pack(evidence: dict[str, Any]) -> dict[str,
             "pl_ce_local_review_decision_pack",
             evidence_status["pl_ce_local_review_decision_pack"],
         )
+        and not any(
+            blocker.startswith("pl_ce_local_review_decision_pack_")
+            for blocker in blockers
+        )
     )
     return _json_safe(
         {
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_pre_live_self_use_decision_pack",
+            "status": "generated",
             "generated_at_utc": datetime.now(UTC).isoformat(),
             "claim_scope": "pre_live_local_web_self_use_decision_pack",
             "required_evidence": list(REQUIRED_PRE_LIVE_EVIDENCE),
