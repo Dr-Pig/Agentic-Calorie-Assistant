@@ -14,6 +14,12 @@ from app.shared.infra.models import ProposalContainerRecord, User
 ACTIVE_CALIBRATION_PROPOSAL_STATUSES = frozenset({"open", "presented", "negotiating"})
 
 
+def assert_calibration_proposal_persistence_clean_session(db: Session) -> None:
+    dirty_objects = [item for collection in (db.new, db.dirty, db.deleted) for item in collection]
+    if dirty_objects:
+        raise ValueError("calibration_proposal_persistence_requires_clean_session")
+
+
 def _option_payload(option: ProposalOption, *, is_primary: bool) -> dict[str, Any]:
     return {
         "option_type": option.option_type,
@@ -41,6 +47,8 @@ def persist_calibration_proposal_artifact(
     local_date: str,
     diagnostic: BodyCalibrationDiagnosticResult,
 ) -> dict[str, Any] | None:
+    assert_calibration_proposal_persistence_clean_session(db)
+
     response = diagnostic.response
     if not response.surfaced or response.top_option is None:
         return None
@@ -81,6 +89,7 @@ def has_active_calibration_proposal(
 
 __all__ = [
     "ACTIVE_CALIBRATION_PROPOSAL_STATUSES",
+    "assert_calibration_proposal_persistence_clean_session",
     "has_active_calibration_proposal",
     "persist_calibration_proposal_artifact",
 ]

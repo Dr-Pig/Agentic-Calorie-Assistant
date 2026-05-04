@@ -1,30 +1,22 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.body.application import (
-    BodyCalibrationDiagnosticRequest,
-    build_active_body_plan_view,
-    build_body_calibration_diagnostic,
-)
 from app.body.application.calibration_model import CalibrationModelInputs
 from app.composition.calibration_commit_bridge import (
     StoredCalibrationProposalNotActionable,
     apply_calibration_proposal_commit,
     apply_stored_calibration_proposal_action,
 )
-from app.composition.calibration_input_assembler import assemble_calibration_model_inputs_from_history
 from app.composition.calibration_proposal_inbox import load_open_calibration_proposal_inbox
-from app.composition.calibration_proposal_artifacts import (
-    has_active_calibration_proposal,
-    persist_calibration_proposal_artifact,
+from app.composition.calibration_preview_service import (
+    build_calibration_preview_from_history,
+    build_calibration_preview_from_model_inputs,
 )
-from app.composition.current_budget_read_model import build_current_budget_view
 from app.database import get_db, get_or_create_user
 from app.shared.domain import ProposalContainer
 from app.shared.infra.models import User
@@ -110,38 +102,26 @@ def calibration_proposal_preview(
     db=Depends(get_db),
 ) -> dict[str, object]:
     user = get_or_create_user(db, request.user_id)
-    recent_similar_proposal_open = request.recent_similar_proposal_open or has_active_calibration_proposal(
+    preview = build_calibration_preview_from_model_inputs(
         db,
-        user_id=user.id,
+        user=user,
+        local_date=request.local_date,
+        model_inputs=request.model_inputs,
+        current_budget_status=request.current_budget_status,
+        rescue_recovery_viability=request.rescue_recovery_viability,
+        recent_similar_proposal_open=request.recent_similar_proposal_open,
+        persist_proposal=request.persist_proposal,
     )
-    current_budget_view = build_current_budget_view(db, user_id=user.id, local_date=request.local_date)
-    active_body_plan_view = build_active_body_plan_view(db, user_id=user.id)
-    diagnostic = build_body_calibration_diagnostic(
-        BodyCalibrationDiagnosticRequest(
-            model_inputs=request.model_inputs,
-            current_budget_status=request.current_budget_status,
-            rescue_recovery_viability=request.rescue_recovery_viability,
-            recent_similar_proposal_open=recent_similar_proposal_open,
-            current_budget_view=current_budget_view,
-            active_body_plan_view=active_body_plan_view,
-        )
-    )
-    diagnostic_payload = asdict(diagnostic)
     payload: dict[str, object] = {
-        "calibration_result": diagnostic_payload["calibration_result"],
-        "gate_result": diagnostic_payload["gate_result"],
-        "response": diagnostic_payload["response"],
-        "diagnostic": diagnostic_payload,
-        "proposal_policy_packet": diagnostic.proposal_policy_packet,
-        "trace_envelope": diagnostic.trace_envelope,
+        "calibration_result": preview.calibration_result,
+        "gate_result": preview.gate_result,
+        "response": preview.response,
+        "diagnostic": preview.diagnostic,
+        "proposal_policy_packet": preview.proposal_policy_packet,
+        "trace_envelope": preview.trace_envelope,
     }
     if request.persist_proposal:
-        payload["proposal_artifact"] = persist_calibration_proposal_artifact(
-            db,
-            user=user,
-            local_date=request.local_date,
-            diagnostic=diagnostic,
-        )
+        payload["proposal_artifact"] = preview.proposal_artifact
     return payload
 
 
@@ -152,53 +132,32 @@ def calibration_proposal_preview_from_history(
 ) -> dict[str, object]:
     user = get_or_create_user(db, request.user_id)
     try:
-        assembly = assemble_calibration_model_inputs_from_history(
+        preview = build_calibration_preview_from_history(
             db,
-            user_id=user.id,
+            user=user,
             local_date=request.local_date,
             window_days=request.window_days,
+            current_budget_status=request.current_budget_status,
+            rescue_recovery_viability=request.rescue_recovery_viability,
+            recent_similar_proposal_open=request.recent_similar_proposal_open,
+            persist_proposal=request.persist_proposal,
         )
     except ValueError as exc:
         detail = str(exc)
         status_code = 409 if detail == "active_body_plan_required_for_calibration_input_assembly" else 422
         raise HTTPException(status_code=status_code, detail=detail) from exc
 
-    recent_similar_proposal_open = request.recent_similar_proposal_open or has_active_calibration_proposal(
-        db,
-        user_id=user.id,
-    )
-    current_budget_view = build_current_budget_view(db, user_id=user.id, local_date=request.local_date)
-    active_body_plan_view = build_active_body_plan_view(db, user_id=user.id)
-    diagnostic = build_body_calibration_diagnostic(
-        BodyCalibrationDiagnosticRequest(
-            model_inputs=assembly.model_inputs,
-            current_budget_status=request.current_budget_status,
-            rescue_recovery_viability=request.rescue_recovery_viability,
-            recent_similar_proposal_open=recent_similar_proposal_open,
-            current_budget_view=current_budget_view,
-            active_body_plan_view=active_body_plan_view,
-        )
-    )
-    diagnostic_payload = asdict(diagnostic)
     payload: dict[str, object] = {
-        "calibration_result": diagnostic_payload["calibration_result"],
-        "gate_result": diagnostic_payload["gate_result"],
-        "response": diagnostic_payload["response"],
-        "diagnostic": diagnostic_payload,
-        "proposal_policy_packet": diagnostic.proposal_policy_packet,
-        "trace_envelope": diagnostic.trace_envelope,
-        "input_assembly": {
-            "model_inputs": asdict(assembly.model_inputs),
-            "trace": assembly.trace,
-        },
+        "calibration_result": preview.calibration_result,
+        "gate_result": preview.gate_result,
+        "response": preview.response,
+        "diagnostic": preview.diagnostic,
+        "proposal_policy_packet": preview.proposal_policy_packet,
+        "trace_envelope": preview.trace_envelope,
+        "input_assembly": preview.input_assembly,
     }
     if request.persist_proposal:
-        payload["proposal_artifact"] = persist_calibration_proposal_artifact(
-            db,
-            user=user,
-            local_date=request.local_date,
-            diagnostic=diagnostic,
-        )
+        payload["proposal_artifact"] = preview.proposal_artifact
     return payload
 
 
