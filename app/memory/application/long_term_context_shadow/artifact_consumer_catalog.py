@@ -148,6 +148,16 @@ ARTIFACT_CONSUMER_CATALOG: dict[str, list[str]] = {
         "chat_context",
         "human_review",
     ],
+    "memory_dependency_graph_shadow_eval": [
+        "architecture_governance",
+        "recommendation",
+        "intake_clarification",
+        "chat_context",
+        "calibration",
+        "proactive",
+        "rescue_later",
+        "human_review",
+    ],
     "entity_normalization_shadow_plan": [
         "architecture_governance",
         "recommendation",
