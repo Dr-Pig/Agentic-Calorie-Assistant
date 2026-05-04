@@ -41,6 +41,37 @@ def _object_dict(value: Any) -> dict[str, Any]:
     return {}
 
 
+def _manager_context_policy_version(packet: dict[str, Any] | None) -> str | None:
+    if not isinstance(packet, dict):
+        return None
+    metadata = dict(packet.get("metadata") or {})
+    version = metadata.get("context_policy_version")
+    return str(version) if version is not None else None
+
+
+def _manager_context_loaded_summary(packet: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(packet, dict):
+        return {}
+    artifact = dict(packet.get("context_loading_artifact") or {})
+    return _json_safe(dict(artifact.get("loaded_context_summary") or {}))
+
+
+def _manager_context_omitted_summary(packet: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(packet, dict):
+        return {}
+    artifact = dict(packet.get("context_loading_artifact") or {})
+    omitted = dict(artifact.get("omitted_context_summary") or {})
+    if "deferred_context_ids" not in omitted:
+        deferred_context_ids = [
+            item.get("context_id")
+            for item in list(packet.get("omitted_context") or [])
+            if isinstance(item, dict) and item.get("context_id") is not None
+        ]
+        if deferred_context_ids:
+            omitted["deferred_context_ids"] = deferred_context_ids
+    return _json_safe(omitted)
+
+
 def _pending_followup_snapshot(state: Any) -> dict[str, Any] | None:
     conversation_state = getattr(state, "conversation_state", None)
     pending_state = getattr(conversation_state, "pending_followup_state", None)
@@ -157,6 +188,7 @@ def build_runtime_turn_trace(
     assistant_message: str | None,
     state_before: Any,
     current_turn_context: Any | None,
+    manager_context_packet_v1: dict[str, Any] | None = None,
     result: dict[str, Any] | None = None,
     state_after: Any | None = None,
     phase_a_trace: dict[str, Any] | None = None,
@@ -179,6 +211,9 @@ def build_runtime_turn_trace(
     ) or _persistence_evidence_present(tool_outputs.get("persistence_result"))
     evidence_required = final_action in _EVIDENCE_REQUIRED_FINAL_ACTIONS
     evidence_requirement_satisfied = (not evidence_required) or evidence_content_present
+    context_policy_version = _manager_context_policy_version(manager_context_packet_v1)
+    loaded_context_summary = _manager_context_loaded_summary(manager_context_packet_v1)
+    omitted_context_summary = _manager_context_omitted_summary(manager_context_packet_v1)
     return {
         "trace_schema_version": "accurate_intake_conversation_turn_v1",
         "request_id": request_id,
@@ -187,8 +222,13 @@ def build_runtime_turn_trace(
         "long_term_memory": False,
         "proactive": False,
         "rescue_recommendation": False,
+        "context_policy_version": context_policy_version,
+        "loaded_context_summary": loaded_context_summary,
+        "omitted_context_summary": omitted_context_summary,
+        "manager_context_packet_v1": _json_safe(manager_context_packet_v1),
         "context_snapshot": {
             "current_turn_context": _model_dump(current_turn_context) if current_turn_context is not None else None,
+            "manager_context_packet_v1": _json_safe(manager_context_packet_v1),
             "state_before": _state_snapshot(state_before),
             "state_after": _state_snapshot(state_after) if state_after is not None else None,
             "phase_a_trace": _json_safe(phase_a_trace or payload.get("phase_a_trace") or {}),
@@ -279,6 +319,7 @@ def record_runtime_turn_messages(
     assistant_message: str | None,
     state_before: Any,
     current_turn_context: Any | None,
+    manager_context_packet_v1: dict[str, Any] | None = None,
     result: dict[str, Any] | None = None,
     state_after: Any | None = None,
     phase_a_trace: dict[str, Any] | None = None,
@@ -291,6 +332,7 @@ def record_runtime_turn_messages(
         assistant_message=assistant_message,
         state_before=state_before,
         current_turn_context=current_turn_context,
+        manager_context_packet_v1=manager_context_packet_v1,
         result=result,
         state_after=state_after,
         phase_a_trace=phase_a_trace,

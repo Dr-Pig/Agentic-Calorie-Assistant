@@ -6,6 +6,10 @@ import pytest
 
 from app.intake.application.context_injection_policy import build_manager_context_pack
 from app.intake.application.current_turn_context_assembler import build_current_turn_context_v1
+from app.intake.application.manager_context_policy import (
+    MANAGER_CONTEXT_POLICY_VERSION,
+    build_manager_context_packet_v1,
+)
 from app.runtime.application.manager_service import run_intake_manager
 from app.runtime.agent.manager_result_builder import IntakeManagerResult
 from app.shared.contracts.intake_results import EstimatePayload
@@ -275,6 +279,105 @@ async def test_run_intake_manager_sends_bounded_recent_chat_turns_in_context_pac
         "recent_chat_turns",
     ]
     assert "recent_chat_turns" in result.trace["manager_rounds"][0]["phase_a_input"]["injected_fields"]
+
+
+@pytest.mark.asyncio
+async def test_run_intake_manager_sends_manager_context_packet_v1_sidecar_without_changing_decision() -> None:
+    resolved_state = _resolved_state_with_recent_chat_turns()
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="half sugar",
+        resolved_state=resolved_state,
+    )
+    packet = build_manager_context_packet_v1(
+        current_turn_context=current_turn_context,
+        user_id="user-1",
+        local_date="2026-04-29",
+        session_id="session-1",
+    )
+    provider = _FakeProvider()
+
+    result = await run_intake_manager(
+        provider=provider,
+        raw_user_input="half sugar",
+        resolved_state=resolved_state,
+        current_turn_context=current_turn_context,
+        manager_context_pack=build_manager_context_pack(current_turn_context=current_turn_context),
+        manager_context_packet_v1=packet,
+        available_tools=("read_day_budget",),
+    )
+
+    payload = provider.calls[0]["user_payload"]
+    sidecar_trace = result.trace["manager_rounds"][0]["phase_a_input"]["manager_context_packet_v1"]
+    assert payload["manager_context_packet_v1"]["metadata"]["context_policy_version"] == MANAGER_CONTEXT_POLICY_VERSION
+    assert payload["manager_context_packet_v1"]["context_loading_artifact"]["loaded_message_count"] == 2
+    assert sidecar_trace["context_policy_version"] == MANAGER_CONTEXT_POLICY_VERSION
+    assert sidecar_trace["loaded_context_summary"]["recent_chat_messages"] == 2
+    assert sidecar_trace["omitted_context_summary"]["recent_chat_messages_omitted"] == 0
+    assert "messages" not in sidecar_trace["recent_chat_window"]
+    assert result.final_action == "no_commit"
+    assert result.workflow_effect == "safe_failure"
+
+
+@pytest.mark.asyncio
+async def test_run_intake_manager_refreshes_manager_context_packet_v1_between_rounds() -> None:
+    class _ToolThenFinalProvider(_FakeProvider):
+        async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+            self.calls.append(dict(kwargs))
+            if len(self.calls) == 1:
+                return (
+                    {"manager_action": "call_tools", "tool_calls": [{"name": "phase_a_expand_history"}]},
+                    {"source": "fake"},
+                )
+            return await super().complete_with_trace(**kwargs)
+
+    resolved_state = _resolved_state()
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="half sugar",
+        resolved_state=resolved_state,
+    )
+    initial_packet = build_manager_context_packet_v1(
+        current_turn_context=current_turn_context,
+        user_id="user-1",
+        local_date="2026-04-29",
+        session_id="session-1",
+        max_recent_messages=1,
+    )
+    refreshed_context = current_turn_context.model_copy(
+        update={"recent_chat_turns": [{"message_id": 99, "role": "assistant", "content": "expanded"}]}
+    )
+    refreshed_packet = build_manager_context_packet_v1(
+        current_turn_context=refreshed_context,
+        user_id="user-1",
+        local_date="2026-04-29",
+        session_id="session-1",
+    )
+    provider = _ToolThenFinalProvider()
+
+    async def _tool_executor(**_: object) -> list[dict[str, object]]:
+        return [{"tool_name": "phase_a_expand_history", "confidence": "medium"}]
+
+    async def _refresher(**_: object) -> dict[str, object]:
+        return {
+            "current_turn_context": refreshed_context,
+            "manager_context_packet_v1": refreshed_packet,
+        }
+
+    result = await run_intake_manager(
+        provider=provider,
+        raw_user_input="half sugar",
+        resolved_state=resolved_state,
+        current_turn_context=current_turn_context,
+        manager_context_packet_v1=initial_packet,
+        available_tools=("phase_a_expand_history",),
+        tool_executor=_tool_executor,
+        manager_context_refresher=_refresher,
+    )
+
+    second_payload = provider.calls[1]["user_payload"]
+    assert second_payload["manager_context_packet_v1"]["recent_chat_window"]["messages"][0]["message_id"] == 99
+    assert result.trace["manager_rounds"][1]["phase_a_input"]["manager_context_packet_v1"]["loaded_context_summary"][
+        "recent_chat_messages"
+    ] == 1
 
 
 @pytest.mark.asyncio
@@ -633,6 +736,12 @@ async def test_execute_intake_turn_passes_current_turn_context_to_manager(monkey
         raw_user_input="what's left today?",
         resolved_state=resolved_state,
     )
+    packet = build_manager_context_packet_v1(
+        current_turn_context=current_turn_context,
+        user_id="user-1",
+        local_date="2026-04-29",
+        session_id="session-1",
+    )
     captured: dict[str, object] = {}
 
     async def _fake_run_intake_manager(**kwargs: object) -> object:
@@ -676,11 +785,13 @@ async def test_execute_intake_turn_passes_current_turn_context_to_manager(monkey
         provider=object(),
         state_before=resolved_state,
         current_turn_context=current_turn_context,
+        manager_context_packet_v1=packet,
         phase_a_trace={},
     )
 
     assert captured["current_turn_context"] == current_turn_context
     assert captured["manager_context_pack"] is not None
+    assert captured["manager_context_packet_v1"] == packet
     assert result["assistant_message"] == "ok"
 
 
@@ -692,6 +803,12 @@ async def test_process_intake_execution_turn_passes_current_turn_context_to_mana
     current_turn_context = build_current_turn_context_v1(
         raw_user_input="half sugar",
         resolved_state=resolved_state,
+    )
+    packet = build_manager_context_packet_v1(
+        current_turn_context=current_turn_context,
+        user_id="user-1",
+        local_date="2026-04-29",
+        session_id="session-1",
     )
     captured: dict[str, object] = {}
 
@@ -725,11 +842,13 @@ async def test_process_intake_execution_turn_passes_current_turn_context_to_mana
         request_id="req-1",
         stage_timings=[],
         current_turn_context=current_turn_context,
+        manager_context_packet_v1=packet,
         phase_a_trace={},
     )
 
     assert captured["current_turn_context"] == current_turn_context
     assert captured["manager_context_pack"] is not None
+    assert captured["manager_context_packet_v1"] == packet
     assert result["captured_phase_a_trace"]["phase_a_commit_boundary_preflight"]["bypassed"] is True
     assert (
         result["captured_phase_a_trace"]["phase_a_commit_boundary_preflight"]["bypass_reason"]

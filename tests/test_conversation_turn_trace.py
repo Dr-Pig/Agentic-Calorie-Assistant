@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.composition.conversation_turn_trace import build_runtime_turn_trace, record_runtime_turn_messages
+from app.intake.application.manager_context_policy import MANAGER_CONTEXT_POLICY_VERSION
 from app.models import Base
 from app.shared.infra.models import MessageBuffer
 
@@ -147,6 +148,58 @@ def test_commit_trace_accepts_canonical_persistence_as_evidence_content() -> Non
     assert trace["trace_chain"]["evidence_requirement_satisfied"] is True
 
 
+def test_runtime_turn_trace_persists_manager_context_packet_v1_snapshot_and_summaries() -> None:
+    packet = {
+        "metadata": {
+            "context_policy_version": MANAGER_CONTEXT_POLICY_VERSION,
+            "local_date": "2026-04-29",
+            "claim_scope": "current_session_current_day_manager_input_evidence",
+        },
+        "recent_chat_window": {
+            "policy": {"last_messages": 20, "max_chars": 6000},
+            "messages": [{"message_id": 1, "role": "user", "content": "hello"}],
+        },
+        "context_loading_artifact": {
+            "loaded_message_count": 1,
+            "omitted_count": 0,
+            "loaded_char_count": 5,
+            "char_truncated": False,
+            "token_budget_status": "within_budget",
+            "loaded_context_summary": {"recent_chat_messages": 1},
+            "omitted_context_summary": {"recent_chat_messages_omitted": 0},
+        },
+        "omitted_context": [],
+    }
+
+    trace = build_runtime_turn_trace(
+        request_id="turn-context",
+        local_date="2026-04-29",
+        raw_user_input="hello",
+        assistant_message="ok",
+        state_before=_state(),
+        state_after=_state(),
+        current_turn_context=None,
+        manager_context_packet_v1=packet,
+        result={
+            "manager_decision": {"intent_type": "general_chat", "workflow_effect": "answer_only"},
+            "intake_execution_manager": {
+                "final": {"final_action": "answer_only", "workflow_effect": "answer_only"},
+                "persistence_result": None,
+            },
+            "state_delta": {},
+            "sidecar": {},
+        },
+    )
+
+    assert trace["context_policy_version"] == MANAGER_CONTEXT_POLICY_VERSION
+    assert trace["loaded_context_summary"] == {"recent_chat_messages": 1}
+    assert trace["omitted_context_summary"] == {"recent_chat_messages_omitted": 0}
+    assert trace["manager_context_packet_v1"]["recent_chat_window"]["messages"][0]["content"] == "hello"
+    assert trace["context_snapshot"]["manager_context_packet_v1"]["metadata"]["context_policy_version"] == (
+        MANAGER_CONTEXT_POLICY_VERSION
+    )
+
+
 def test_runtime_turn_message_trace_links_pending_followup_to_chat_messages() -> None:
     engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
     Base.metadata.create_all(bind=engine)
@@ -170,6 +223,13 @@ def test_runtime_turn_message_trace_links_pending_followup_to_chat_messages() ->
                 }
             ),
             current_turn_context=None,
+            manager_context_packet_v1={
+                "metadata": {"context_policy_version": MANAGER_CONTEXT_POLICY_VERSION},
+                "context_loading_artifact": {
+                    "loaded_context_summary": {"recent_chat_messages": 0},
+                    "omitted_context_summary": {"recent_chat_messages_omitted": 0},
+                },
+            },
             result={
                 "manager_decision": {"intent_type": "log_meal", "workflow_effect": "draft_clarify_no_mutation"},
                 "intake_execution_manager": {
@@ -193,3 +253,7 @@ def test_runtime_turn_message_trace_links_pending_followup_to_chat_messages() ->
     assert runtime_trace["chat_linkage"]["assistant_message_id"] == result["assistant_message_id"]
     assert runtime_trace["pending_followup_linkage"]["runtime_turn_id"] == "turn-followup"
     assert runtime_trace["pending_followup_linkage"]["pending_followup"]["meal_thread_id"] == 77
+    assert runtime_trace["context_policy_version"] == MANAGER_CONTEXT_POLICY_VERSION
+    assert runtime_trace["manager_context_packet_v1"]["metadata"]["context_policy_version"] == (
+        MANAGER_CONTEXT_POLICY_VERSION
+    )
