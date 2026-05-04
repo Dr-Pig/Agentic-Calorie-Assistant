@@ -27,6 +27,10 @@ def test_food_kb_inventory_doc_preserves_evidence_only_boundary() -> None:
     assert inventory["production_db_required"] is False
     assert inventory["readiness_claimed"] is False
     assert inventory["product_readiness_claimed"] is False
+    assert inventory["source_quality_policy"]["artifact_type"] == (
+        "accurate_intake_food_evidence_source_quality_policy"
+    )
+    assert inventory["food_gap_register_input"]["present"] is False
 
 
 def test_food_kb_inventory_matches_repo_contained_seed_counts() -> None:
@@ -37,10 +41,42 @@ def test_food_kb_inventory_matches_repo_contained_seed_counts() -> None:
         "generic_anchor": 40,
         "generic_semantic_only": 4,
         "exact_item_cards": 5,
+        "basket_components": 19,
     }
+    assert inventory["source_class_breakdown"]["existing_repo_seed"] == 49
+    assert inventory["source_class_breakdown"]["missing_source_metadata"] == 49
+    assert inventory["missing_source_metadata_count"] == 49
     assert inventory["tfda_base_pipeline"]["base_nutrition_db_present"] is False
     assert inventory["tfda_base_pipeline"]["staging_inputs_present"] is False
     assert inventory["tfda_base_pipeline"]["data_build_package_present"] is False
+
+
+def test_food_kb_inventory_can_summarize_pr112_gap_candidates_without_promotion() -> None:
+    inventory = build_food_kb_inventory(
+        food_gap_register={
+            "food_gap_candidates": [
+                {"gap_family": "breakfast_combo", "promotion_allowed": False},
+                {"gap_family": "chicken_bento_rice_modifier", "promotion_allowed": False},
+                {"gap_family": "bubble_tea_sugar_size_modifier", "promotion_allowed": False},
+            ],
+            "non_candidate_turns": [
+                {"observed_turn_id": "dinner_basket_001", "classification": "manager_context_gap"},
+            ],
+        }
+    )
+
+    gap_summary = inventory["food_gap_register_input"]
+
+    assert gap_summary["present"] is True
+    assert gap_summary["pr112_gap_candidate_count"] == 3
+    assert gap_summary["gap_candidates_by_family"] == {
+        "breakfast_combo": 1,
+        "chicken_bento_rice_modifier": 1,
+        "bubble_tea_sugar_size_modifier": 1,
+    }
+    assert gap_summary["unsafe_to_promote_count"] == 3
+    assert gap_summary["promotion_ready_count"] == 0
+    assert gap_summary["non_candidate_turn_count"] == 1
 
 
 def test_food_kb_inventory_lists_mvp_gap_families_without_authorizing_semantics() -> None:

@@ -1,7 +1,7 @@
 {
   "artifact_type": "accurate_intake_food_kb_v1_inventory",
   "artifact_schema_version": "1.0",
-  "generated_at_utc": "2026-05-03T05:33:47.618198Z",
+  "generated_at_utc": "2026-05-04T02:49:14.828890Z",
   "scope": "local_evidence_support_inventory",
   "truth_owner": "none",
   "mutation_authority": "none",
@@ -13,7 +13,146 @@
     "small_anchor_total": 44,
     "generic_anchor": 40,
     "generic_semantic_only": 4,
-    "exact_item_cards": 5
+    "exact_item_cards": 5,
+    "basket_components": 19
+  },
+  "source_quality_policy": {
+    "artifact_schema_version": "1.0",
+    "artifact_type": "accurate_intake_food_evidence_source_quality_policy",
+    "claim_scope": "source_quality_gate_before_food_kb_expansion",
+    "source_classes": {
+      "existing_repo_seed": {
+        "role": "current_internal_baseline",
+        "can_support": [
+          "candidate_evidence"
+        ],
+        "confidence_posture": "current_repo_baseline",
+        "required_provenance": [
+          "seed_file_path",
+          "record_id"
+        ],
+        "caveats": [
+          "requires_review_for_expansion"
+        ],
+        "human_review_required": true
+      },
+      "taiwan_tfda_open_data": {
+        "role": "generic_taiwan_anchor",
+        "can_support": [
+          "generic_anchor"
+        ],
+        "confidence_posture": "medium_high",
+        "required_provenance": [
+          "dataset_name",
+          "retrieved_or_reviewed_date",
+          "food_name"
+        ],
+        "caveats": [
+          "may_not_match_restaurant_or_vendor_preparation"
+        ],
+        "human_review_required": true
+      },
+      "official_brand_chain_page": {
+        "role": "exact_card",
+        "can_support": [
+          "exact_item_evidence"
+        ],
+        "confidence_posture": "high",
+        "required_provenance": [
+          "source_url",
+          "reviewed_date",
+          "variant_name",
+          "portion_size"
+        ],
+        "caveats": [
+          "only_valid_for_matching_brand_variant_and_portion"
+        ],
+        "human_review_required": true
+      },
+      "open_food_facts": {
+        "role": "packaged_candidate",
+        "can_support": [
+          "candidate_only_unless_quality_flags_pass"
+        ],
+        "confidence_posture": "variable",
+        "required_provenance": [
+          "barcode_or_product_id",
+          "retrieved_or_reviewed_date"
+        ],
+        "requires_quality_flags": true,
+        "caveats": [
+          "community_data_quality_varies"
+        ],
+        "human_review_required": true
+      },
+      "usda_fallback": {
+        "role": "fallback_generic_normalization",
+        "can_support": [
+          "fallback_anchor"
+        ],
+        "confidence_posture": "medium",
+        "required_provenance": [
+          "fdc_id_or_food_name",
+          "retrieved_or_reviewed_date"
+        ],
+        "caveats": [
+          "non_taiwan_specific"
+        ],
+        "human_review_required": true
+      },
+      "dogfood_user_correction": {
+        "role": "review_candidate",
+        "can_support": [
+          "gap_candidate",
+          "human_label"
+        ],
+        "cannot_support_until_approved": [
+          "nutrition_truth",
+          "canonical_eval_truth"
+        ],
+        "confidence_posture": "pending_review",
+        "required_provenance": [
+          "trace_id",
+          "turn_id",
+          "reviewer_id"
+        ],
+        "caveats": [
+          "observation_not_truth_until_human_review"
+        ],
+        "human_review_required": true
+      }
+    },
+    "promotion_policy": {
+      "food_gap_candidate_can_update_truth": false,
+      "human_review_required_before_food_kb_truth": true,
+      "source_provenance_required": true,
+      "source_quality_class_required": true
+    },
+    "food_kb_truth_updated": false,
+    "nutrition_seed_created": false,
+    "exact_card_created": false,
+    "packet_truth_created": false,
+    "canonical_eval_promoted": false,
+    "product_readiness_claimed": false,
+    "private_self_use_approved": false
+  },
+  "source_class_breakdown": {
+    "existing_repo_seed": 49,
+    "taiwan_tfda_open_data": 0,
+    "official_brand_chain_page": 0,
+    "open_food_facts": 0,
+    "usda_fallback": 0,
+    "dogfood_user_correction": 0,
+    "missing_source_metadata": 49
+  },
+  "missing_source_metadata_count": 49,
+  "food_gap_register_input": {
+    "present": false,
+    "pr112_gap_candidate_count": 0,
+    "gap_candidates_by_family": {},
+    "unsafe_to_promote_count": 0,
+    "promotion_ready_count": 0,
+    "non_candidate_turn_count": 0
   },
   "repo_contained_seed_paths": {
     "small_anchor_store": "app/knowledge/small_anchor_store_tw.json",
