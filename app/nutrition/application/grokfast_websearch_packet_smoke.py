@@ -151,6 +151,11 @@ def build_live_websearch_manager_payload(*, packet_case: dict[str, Any]) -> dict
             "Use only the provided compact WebSearch evidence packet.",
             "Treat every WebSearch packet as candidate-only and not runtime nutrition truth.",
             "Do not invent source IDs, kcal values, exact-card truth, FoodDB truth, item_results, or ledger writes.",
+            "Do not call tools for WebSearch candidate-only packets; this is source candidate review, not nutrition estimation.",
+            "Use final_action='no_commit' for candidate review or weak-source rejection; use final_action='ask_followup' when identity, size, or variant is ambiguous.",
+            "Cite candidate packet IDs only in answer_contract.source_candidate_refs.",
+            "Keep top-level target_attachment empty for candidate-only WebSearch evidence.",
+            "Set semantic_decision.mutation_intent_candidate='no_mutation' for every WebSearch candidate-only response.",
             "For exact brand/menu candidates, keep the source candidate pending for later promotion review.",
             "For related or weak candidates, ask follow-up or reject/request a better source.",
             "This diagnostic is no-commit and grants no readiness.",
@@ -201,6 +206,7 @@ def _sanitize_case_evaluation(evaluation: dict[str, Any]) -> dict[str, Any]:
         "manager_action": evaluation.get("manager_action"),
         "final_action": evaluation.get("final_action"),
         "runtime_mutation_attempted": bool(evaluation.get("runtime_mutation_attempted")),
+        "mutation_signal": dict(evaluation.get("mutation_signal") or {}),
         "provider_trace": dict(evaluation.get("provider_trace") or {}),
     }
 
