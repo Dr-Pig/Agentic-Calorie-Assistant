@@ -88,7 +88,7 @@ def test_retrieval_policy_artifact_is_report_only_and_manager_packet_is_compact(
     assert artifact["runtime_truth_changed"] is False
     assert artifact["manager_context_changed"] is False
     assert artifact["packetizer_format_changed"] is False
-    assert artifact["summary"]["runtime_anchor_indexed_count"] == 40
+    assert artifact["summary"]["runtime_anchor_indexed_count"] == 51
     assert artifact["manager_retrieval_catalog"]["raw_source_rows_included"] is False
     assert artifact["manager_retrieval_catalog"]["candidate_only_records_included"] is False
     assert artifact["manager_retrieval_catalog"]["full_fooddb_included"] is False

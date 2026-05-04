@@ -39,24 +39,23 @@ def test_fooddb_evidence_status_packet_summarizes_current_fdb_without_runtime_ch
     assert packet["live_websearch_used"] is False
     assert packet["readiness_claimed"] is False
     assert packet["summary"] == {
-        "runtime_common_serving_anchor_count": 40,
-        "listed_component_anchor_count": 19,
+        "runtime_common_serving_anchor_count": 51,
+        "listed_component_anchor_count": 30,
         "source_evidence_only_count": 848,
         "semantic_only_basket_family_count": 4,
         "exact_card_staging_candidate_count": 1,
         "exact_card_existing_report_only_count": 5,
-        "integration_edges_contract_backed": 8,
-        "integration_edges_draft": 1,
+        "integration_edges_contract_backed": 9,
+        "integration_edges_draft": 0,
     }
     assert packet["activation_thresholds"] == {
         "minimum_common_serving_anchors": 40,
         "minimum_listed_component_anchors": 30,
         "meets_common_serving_anchor_minimum": True,
-        "meets_listed_component_minimum": False,
+        "meets_listed_component_minimum": True,
     }
     assert packet["next_required_slices"] == [
-        "listed_component_anchor_expansion",
-        "packet_to_mutation_guard_hardening",
+        "manager_fooddb_packet_seam_smoke",
     ]
 
 
@@ -106,7 +105,7 @@ def test_fooddb_evidence_status_packet_script_roundtrip(tmp_path: Path) -> None:
 
     packet = read_json_artifact(output)
     assert packet["artifact_type"] == "accurate_intake_fooddb_evidence_status_packet_v1"
-    assert packet["summary"]["runtime_common_serving_anchor_count"] == 40
+    assert packet["summary"]["runtime_common_serving_anchor_count"] == 51
     assert packet["summary"]["exact_card_staging_candidate_count"] == 1
 
 

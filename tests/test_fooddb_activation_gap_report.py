@@ -38,10 +38,10 @@ def test_fooddb_activation_gap_report_reports_repo_truth_controls_without_runtim
     assert report["runtime_truth_changed"] is False
     assert report["claim_scope"] == "fooddb_activation_gap_report_only"
     assert report["summary"] == {
-        "runtime_visible_common_serving_anchor_count": 40,
+        "runtime_visible_common_serving_anchor_count": 51,
         "source_evidence_only_count": 848,
         "semantic_only_basket_family_count": 4,
-        "listed_component_anchor_count": 19,
+        "listed_component_anchor_count": 30,
         "exact_candidate_only_posture": "candidate_only",
     }
 
@@ -94,5 +94,5 @@ def test_fooddb_activation_gap_report_cli_writes_roundtrippable_artifact(tmp_pat
     assert main(["--output", str(output)]) == 0
 
     artifact = read_json_artifact(output)
-    assert artifact["summary"]["listed_component_anchor_count"] == 19
+    assert artifact["summary"]["listed_component_anchor_count"] == 30
     assert artifact["activation_can_proceed_with_known_bounded_gaps"] is True

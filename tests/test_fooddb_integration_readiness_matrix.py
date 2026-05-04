@@ -46,6 +46,11 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
     assert edges["retrieval_router_to_sqlite_fts_adapter"]["current_status"] == "contract_backed"
     assert edges["retrieval_router_to_websearch_candidate"]["current_status"] == "contract_backed"
     assert edges["packet_to_manager_seam"]["current_status"] == "contract_backed"
+    assert edges["packet_to_mutation_guard"]["current_status"] == "contract_backed"
+    assert (
+        "app.nutrition.application.fooddb_packet_mutation_guard_readiness.build_fooddb_packet_mutation_guard_readiness"
+        in edges["packet_to_mutation_guard"]["evidence"]
+    )
     assert (
         edges["exact_candidate_to_no_mutation"]["manager_style_guard"]
         == "exact_candidate_packets_remain_candidate_only_until_separate_promotion_lane"
@@ -54,6 +59,10 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         edges["listed_components_to_approved_runtime_anchors"]["manager_style_guard"]
         == "listed_basket_components_may_estimate_only_when_runtime_anchor_is_approved"
     )
+    assert matrix["summary"]["contract_backed"] == 9
+    assert matrix["summary"]["draft"] == 0
+    assert matrix["summary"]["missing"] == 0
+    assert matrix["summary"]["next_required_slices"] == ["manager_fooddb_packet_seam_smoke"]
 
 
 def test_activation_plan_documents_integration_readiness_matrix() -> None:

@@ -3900,6 +3900,1047 @@
       ],
       "clarify_required": true,
       "unresolved_reason": "home_cooked_food_requires_listed_dishes_or_portions"
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_oil_tofu",
+      "canonical_name": "\u6cb9\u8c46\u8150",
+      "aliases": [
+        "\u6cb9\u8c46\u8150",
+        "\u4e09\u89d2\u6cb9\u8c46\u8150",
+        "\u5c0f\u4e09\u89d2\u6cb9\u8c46\u8150"
+      ],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "luwei_component",
+        "malatang_component",
+        "tofu_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        59,
+        99
+      ],
+      "baseline_likely_kcal": 79,
+      "major_modifiers": [],
+      "composition_hints": [
+        "oil_tofu",
+        "soy_product"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "portion_grams": 50,
+        "label": "one listed component portion for \u6cb9\u8c46\u8150",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_activation_portion_policy"
+        ]
+      },
+      "kcal_point": 79,
+      "kcal_range": [
+        59,
+        99
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_8b4b8b3e5586",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 158.3573,
+          "canonical_name": "\u5c0f\u4e09\u89d2\u6cb9\u8c46\u8150"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_8b4b8b3e5586",
+        "raw_row_hash": "10bf2456021cbd587dbcbd7e26a7d63973e7b121eb4aaa92f57a7adb802aa0bd"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus MVP listed-component portion policy",
+      "reviewed_date": "2026-05-05",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_activation_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "listed_component_activation_minimum_batch",
+        "policy_version": "fooddb_listed_component_tfda_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_fishcake",
+      "canonical_name": "\u9b5a\u677f",
+      "aliases": [
+        "\u9b5a\u677f",
+        "\u9b5a\u677f\u7247"
+      ],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "oden_component",
+        "luwei_component",
+        "processed_fish_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        47,
+        79
+      ],
+      "baseline_likely_kcal": 63,
+      "major_modifiers": [],
+      "composition_hints": [
+        "fishcake",
+        "processed_fish"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "portion_grams": 50,
+        "label": "one listed component portion for \u9b5a\u677f",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_activation_portion_policy"
+        ]
+      },
+      "kcal_point": 63,
+      "kcal_range": [
+        47,
+        79
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_36160eb9bdbe",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 125.2781,
+          "canonical_name": "\u9b5a\u677f"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_36160eb9bdbe",
+        "raw_row_hash": "280b19f6742196f1ebb2c3db414e471dbce2803b0ba787606063667483f62707"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus MVP listed-component portion policy",
+      "reviewed_date": "2026-05-05",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_activation_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "listed_component_activation_minimum_batch",
+        "policy_version": "fooddb_listed_component_tfda_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_fish_ball",
+      "canonical_name": "\u9b5a\u4e38",
+      "aliases": [
+        "\u9b5a\u4e38",
+        "\u65d7\u9b5a\u4e38"
+      ],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "oden_component",
+        "luwei_component",
+        "hotpot_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        41,
+        69
+      ],
+      "baseline_likely_kcal": 55,
+      "major_modifiers": [],
+      "composition_hints": [
+        "fish_ball",
+        "processed_fish"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "portion_grams": 35,
+        "label": "one listed component portion for \u9b5a\u4e38",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_activation_portion_policy"
+        ]
+      },
+      "kcal_point": 55,
+      "kcal_range": [
+        41,
+        69
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_120e2dc3fd74",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 157.9898,
+          "canonical_name": "\u51b7\u51cd\u65d7\u9b5a\u4e38"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_120e2dc3fd74",
+        "raw_row_hash": "04a5e378b3e25347b1f4401189f932a70aa33a22f2ad6b4550e04f89f8e46efd"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus MVP listed-component portion policy",
+      "reviewed_date": "2026-05-05",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_activation_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "listed_component_activation_minimum_batch",
+        "policy_version": "fooddb_listed_component_tfda_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_flower_squid_ball",
+      "canonical_name": "\u82b1\u679d\u4e38",
+      "aliases": [
+        "\u82b1\u679d\u4e38"
+      ],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "fried_snack_component",
+        "luwei_component",
+        "hotpot_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        43,
+        71
+      ],
+      "baseline_likely_kcal": 57,
+      "major_modifiers": [],
+      "composition_hints": [
+        "squid_ball",
+        "processed_seafood"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "portion_grams": 35,
+        "label": "one listed component portion for \u82b1\u679d\u4e38",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_activation_portion_policy"
+        ]
+      },
+      "kcal_point": 57,
+      "kcal_range": [
+        43,
+        71
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_17d37a590d81",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 161.9531,
+          "canonical_name": "\u51b7\u51cd\u82b1\u679d\u4e38"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_17d37a590d81",
+        "raw_row_hash": "0b51ba1745b85abacf71d96c898577f2bdfa7789752d048299e55213a1653c0f"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus MVP listed-component portion policy",
+      "reviewed_date": "2026-05-05",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_activation_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "listed_component_activation_minimum_batch",
+        "policy_version": "fooddb_listed_component_tfda_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_shrimp_ball",
+      "canonical_name": "\u8766\u4e38",
+      "aliases": [
+        "\u8766\u4e38"
+      ],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "hotpot_component",
+        "luwei_component",
+        "oden_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        32,
+        54
+      ],
+      "baseline_likely_kcal": 43,
+      "major_modifiers": [],
+      "composition_hints": [
+        "shrimp_ball",
+        "processed_seafood"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "portion_grams": 35,
+        "label": "one listed component portion for \u8766\u4e38",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_activation_portion_policy"
+        ]
+      },
+      "kcal_point": 43,
+      "kcal_range": [
+        32,
+        54
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_60796ff2a706",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 122.7462,
+          "canonical_name": "\u51b7\u51cd\u8766\u4e38"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_60796ff2a706",
+        "raw_row_hash": "f7a16a869e3849e3fcded9e70c285a20b933512539ad53d43075e014db27f553"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus MVP listed-component portion policy",
+      "reviewed_date": "2026-05-05",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_activation_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "listed_component_activation_minimum_batch",
+        "policy_version": "fooddb_listed_component_tfda_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_chicken_meatball",
+      "canonical_name": "\u96de\u8089\u4e38",
+      "aliases": [
+        "\u96de\u8089\u4e38",
+        "\u96de\u4e38"
+      ],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "hotpot_component",
+        "luwei_component",
+        "processed_meat_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        53,
+        89
+      ],
+      "baseline_likely_kcal": 71,
+      "major_modifiers": [],
+      "composition_hints": [
+        "chicken_meatball",
+        "processed_meat"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "portion_grams": 35,
+        "label": "one listed component portion for \u96de\u8089\u4e38",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_activation_portion_policy"
+        ]
+      },
+      "kcal_point": 71,
+      "kcal_range": [
+        53,
+        89
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_3903ea15be8d",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 201.9356,
+          "canonical_name": "\u51b7\u51cd\u96de\u8089\u4e38"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_3903ea15be8d",
+        "raw_row_hash": "8eca1cfda68225a3a8d01988bedb16f70e090be8eaefea664da95af8ba64a27d"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus MVP listed-component portion policy",
+      "reviewed_date": "2026-05-05",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_activation_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "listed_component_activation_minimum_batch",
+        "policy_version": "fooddb_listed_component_tfda_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_small_sausage",
+      "canonical_name": "\u5c0f\u9999\u8178",
+      "aliases": [
+        "\u5c0f\u9999\u8178"
+      ],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "high",
+      "semantic_hints": [
+        "fried_snack_component",
+        "luwei_component",
+        "processed_meat_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        48,
+        100
+      ],
+      "baseline_likely_kcal": 74,
+      "major_modifiers": [],
+      "composition_hints": [
+        "sausage",
+        "processed_meat"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one listed component portion for \u5c0f\u9999\u8178",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_activation_portion_policy"
+        ]
+      },
+      "kcal_point": 74,
+      "kcal_range": [
+        48,
+        100
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_cd57909e6e08",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 248.0356,
+          "canonical_name": "\u51b7\u51cd\u5c0f\u9999\u8178"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_cd57909e6e08",
+        "raw_row_hash": "1917a2640cba9cbbf07952e0868b255e685c7bb5d6a18e6f39af793b5a0fa8b4"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus MVP listed-component portion policy",
+      "reviewed_date": "2026-05-05",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_activation_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "listed_component_activation_minimum_batch",
+        "policy_version": "fooddb_listed_component_tfda_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "high_variance_customizable_drink_or_meal",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_radish_cake",
+      "canonical_name": "\u863f\u8514\u7cd5",
+      "aliases": [
+        "\u863f\u8514\u7cd5",
+        "\u83dc\u982d\u7cbf"
+      ],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "high",
+      "semantic_hints": [
+        "fried_snack_component",
+        "breakfast_component",
+        "listed_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        57,
+        117
+      ],
+      "baseline_likely_kcal": 87,
+      "major_modifiers": [],
+      "composition_hints": [
+        "radish_cake",
+        "rice_cake"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "portion_grams": 80,
+        "label": "one listed component portion for \u863f\u8514\u7cd5",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_activation_portion_policy"
+        ]
+      },
+      "kcal_point": 87,
+      "kcal_range": [
+        57,
+        117
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_b63602e4e0bd",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 109.1234,
+          "canonical_name": "\u51b7\u85cf\u5ee3\u5f0f\u863f\u8514\u7cd5"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_b63602e4e0bd",
+        "raw_row_hash": "09faedad6149feaedd456d045271994187c08bcc35aea37cd22f8fa4924d2345"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus MVP listed-component portion policy",
+      "reviewed_date": "2026-05-05",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_activation_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "listed_component_activation_minimum_batch",
+        "policy_version": "fooddb_listed_component_tfda_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "high_variance_customizable_drink_or_meal",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only_with_cooking_variance",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_mianchang",
+      "canonical_name": "\u9eb5\u8178",
+      "aliases": [
+        "\u9eb5\u8178"
+      ],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "luwei_component",
+        "malatang_component",
+        "wheat_gluten_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        62,
+        102
+      ],
+      "baseline_likely_kcal": 82,
+      "major_modifiers": [],
+      "composition_hints": [
+        "mianchang",
+        "wheat_gluten"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "portion_grams": 60,
+        "label": "one listed component portion for \u9eb5\u8178",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_activation_portion_policy"
+        ]
+      },
+      "kcal_point": 82,
+      "kcal_range": [
+        62,
+        102
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_d7dacb8b9374",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 136.7618,
+          "canonical_name": "\u9eb5\u8178(\u672a\u8abf\u5473)"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_d7dacb8b9374",
+        "raw_row_hash": "2f458898b3475105e51ed874a17076eda323101a34427ffc4237735a4bbed96d"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus MVP listed-component portion policy",
+      "reviewed_date": "2026-05-05",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_activation_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "listed_component_activation_minimum_batch",
+        "policy_version": "fooddb_listed_component_tfda_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_miankin",
+      "canonical_name": "\u9eb5\u7b4b",
+      "aliases": [
+        "\u9eb5\u7b4b"
+      ],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "high",
+      "semantic_hints": [
+        "luwei_component",
+        "malatang_component",
+        "wheat_gluten_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        104,
+        216
+      ],
+      "baseline_likely_kcal": 160,
+      "major_modifiers": [],
+      "composition_hints": [
+        "miankin",
+        "wheat_gluten"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "portion_grams": 25,
+        "label": "one listed component portion for \u9eb5\u7b4b",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_activation_portion_policy"
+        ]
+      },
+      "kcal_point": 160,
+      "kcal_range": [
+        104,
+        216
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_7b3d9d5e4014",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 639.1694,
+          "canonical_name": "\u9eb5\u7b4b(\u672a\u8abf\u5473)"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_7b3d9d5e4014",
+        "raw_row_hash": "d850d567a6de6bc7032b69c1e56ee3e14948e70c8f1f907b098f4b20e03b732f"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus MVP listed-component portion policy",
+      "reviewed_date": "2026-05-05",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_activation_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "listed_component_activation_minimum_batch",
+        "policy_version": "fooddb_listed_component_tfda_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "high_variance_customizable_drink_or_meal",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only_high_variance",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
+    },
+    {
+      "record_kind": "generic_anchor",
+      "anchor_id": "listed_item_egg_tofu",
+      "canonical_name": "\u96de\u86cb\u8c46\u8150",
+      "aliases": [
+        "\u96de\u86cb\u8c46\u8150",
+        "\u86cb\u8c46\u8150"
+      ],
+      "dish_type": "listed_item",
+      "composition_posture": "listed_item_component",
+      "variance_level": "moderate",
+      "semantic_hints": [
+        "luwei_component",
+        "malatang_component",
+        "tofu_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
+      "clarify_required": false,
+      "baseline_kcal_range": [
+        59,
+        99
+      ],
+      "baseline_likely_kcal": 79,
+      "major_modifiers": [],
+      "composition_hints": [
+        "egg_tofu",
+        "soy_product"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one listed component portion for \u96de\u86cb\u8c46\u8150",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "listed_component_activation_portion_policy"
+        ]
+      },
+      "kcal_point": 79,
+      "kcal_range": [
+        59,
+        99
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_c37400f7f2c1",
+          "source_id": "taiwan_tfda_open_data",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "external_source_role": "source_evidence_only",
+          "kcal_per_100g": 78.6338,
+          "canonical_name": "\u96de\u86cb\u8c46\u8150"
+        }
+      ],
+      "source_provenance": {
+        "source_id": "taiwan_tfda_open_data",
+        "source_class": "taiwan_tfda_open_data",
+        "source_file": "app/knowledge/tfda_per100g_source_evidence_tw.json",
+        "source_url": null,
+        "record_id": "tfda_per100g_c37400f7f2c1",
+        "raw_row_hash": "6d2b0a679e0e7d4cbceac77d2457e7c599698b3b9dac99f03c05d478f47adae7"
+      },
+      "source_class": "taiwan_tfda_open_data",
+      "source": "TFDA per-100g source evidence plus MVP listed-component portion policy",
+      "reviewed_date": "2026-05-05",
+      "source_posture_flags": [
+        "tfda_source_evidence",
+        "listed_component_activation_batch",
+        "not_exact_card",
+        "not_per_100g_serving"
+      ],
+      "approval_metadata": {
+        "approval_mode": "guarded_afk_batch_policy_approved",
+        "approval_scope": "listed_component_activation_minimum_batch",
+        "policy_version": "fooddb_listed_component_tfda_batch_v1",
+        "approved_by": "guarded_afk_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "tfda_per_100g_scaled_by_component_portion_with_variance_buffer"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "tfda_per_100g_scaled_by_listed_component_portion_policy",
+        "external_source_role": "source_evidence_only_not_common_serving"
+      }
     }
   ]
 }
