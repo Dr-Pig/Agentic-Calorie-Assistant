@@ -251,6 +251,54 @@ python scripts/build_accurate_intake_fooddb_quality_plan.py --inventory-json doc
 
 This plan is review packets only. It may identify the first review batch families such as breakfast combo, chicken bento rice modifier, bubble tea sugar/size modifier, and luwei listed components, but it must not update FoodDB truth, create nutrition seeds, create exact cards, or claim one-day dogfood pass. LLM extraction may normalize candidate labels, source hints, or portion candidates for review, but deterministic promotion policy and human approval are required before any seed, exact card, or packet truth promotion.
 
+PR117 adds a raw source inventory/registry foundation for the FoodDB ingestion pipeline stage boundary:
+
+```text
+raw source -> candidate -> validator_passed -> auto_eligible_packet_candidate -> packet_ready
+```
+
+Build the local raw source inventory with:
+
+```powershell
+python scripts/build_accurate_intake_food_raw_source_inventory.py --scan-root path\to\local\data --scan-root path\to\local\staging --output artifacts/accurate_intake_food_raw_source_inventory.json
+```
+
+The generated inventory is local-only and ignored. The tracked registry is `docs/quality/accurate_intake_food_raw_source_registry.json`; it records known source filenames, source classes, and intended candidate roles only. This PR117 boundary does not create candidates, packet-ready anchors/cards, nutrition seeds, exact cards, packet truth, runtime truth, or canonical eval oracles.
+
+PR118 advances one stage to `FoodEvidenceCandidate` normalization only:
+
+```powershell
+python scripts/build_accurate_intake_food_evidence_candidates.py --scan-root path\to\local\data --scan-root path\to\local\staging --output artifacts/accurate_intake_food_evidence_candidates.json
+```
+
+The generated candidate artifact is local-only and ignored. `FoodEvidenceCandidate` rows may normalize labels, aliases, source class, serving basis, kcal point, and provenance from known raw/staging sources, but every row remains `promotion_status=candidate` with `runtime_truth_allowed=false`. This PR118 boundary does not create validator-passed rows, auto-eligible packet candidates, packet-ready anchors/cards, nutrition seeds, exact cards, packet truth, runtime truth, or canonical eval oracles.
+
+PR119 validates candidates and reports PR110 coverage diagnostics only:
+
+```powershell
+python scripts/build_accurate_intake_food_evidence_validation.py --candidate-json artifacts/accurate_intake_food_evidence_candidates.json --food-gap-register artifacts/accurate_intake_food_kb_gap_register.json --output artifacts/accurate_intake_food_evidence_validation.json
+```
+
+The generated validation artifact is local-only and ignored. It may mark candidate rows as `validator_passed`, `rejected`, or `needs_source_repair` using provenance, serving basis, kcal sanity, source class compatibility, parse-error repair, and duplicate/alias collision checks. `validator_passed` is still not packet-ready truth: every validated row keeps `runtime_truth_allowed=false`, does not update FoodDB truth, and cannot create nutrition seeds, exact cards, packet truth, runtime truth, or canonical eval oracles.
+
+PR120 builds the stop-gate batch report before any FoodDB truth promotion:
+
+```powershell
+python scripts/build_accurate_intake_food_auto_eligible_batch.py --validation-json artifacts/accurate_intake_food_evidence_validation.json --output artifacts/accurate_intake_food_auto_eligible_batch.json --sample-size-per-group 10
+```
+
+The generated auto-eligible artifact is local-only and ignored. It may classify a subset of `validator_passed` rows as `auto_eligible_packet_candidate` and attach approval metadata for batch review, exception reporting, and sample audit. `auto_eligible_packet_candidate` is still not packet-ready truth: `runtime_truth_allowed=false` remains mandatory, and PR121 must not begin until the batch policy, exception report, and sample audit are reviewed. PR120 must not update FoodDB truth, create nutrition seeds, exact cards, packet truth, runtime truth, or canonical eval oracles.
+
+PR121 promotes selected TFDA-backed MVP evidence in two separate runtime roles:
+
+```powershell
+python scripts/build_accurate_intake_tfda_batch_promotion.py --candidate-json artifacts/accurate_intake_food_evidence_candidates.json --auto-eligible-json artifacts/accurate_intake_food_auto_eligible_batch.json --source-evidence-output app/knowledge/tfda_per100g_source_evidence_tw.json --anchor-output artifacts/accurate_intake_tfda_selected_common_serving_anchors.json --report-output artifacts/accurate_intake_tfda_batch_promotion.json --update-small-anchor-store
+```
+
+The tracked TFDA per-100g file is `source_evidence_only`: it may preserve TFDA provenance and kcal-per-100g evidence, but it must keep `runtime_estimate_allowed=false` and `packetizer_common_serving_allowed=false`. It is not a user-facing serving estimate, packet truth, exact card, nutrition seed, or canonical eval oracle.
+
+Only selected MVP portion-default anchors may become `common_serving_anchor` records in the small-anchor store. Each selected runtime anchor must carry `serving_basis`, `portion_basis`, `kcal_point`, `kcal_range`, source provenance/source refs back to `source_evidence_only`, range policy, approval metadata, and `runtime_truth_allowed=true`. PR121 must not promote all TFDA rows to runtime truth, must not consume official brand/Open Food Facts/USDA/old base candidates, and must not change basket semantics: bare baskets still ask follow-up, while listed baskets can only estimate components that already have approved runtime anchors.
+
 Build the First Food Evidence human review pack with:
 
 ```powershell
