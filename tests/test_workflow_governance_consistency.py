@@ -19,6 +19,18 @@ def test_github_repo_governance_mentions_current_required_jobs() -> None:
         assert f"`{job_name}`" in governance
 
 
+def test_github_repo_governance_defines_serial_pr_delivery_policy() -> None:
+    governance = (ROOT / "docs" / "governance" / "GITHUB_REPO_GOVERNANCE.md").read_text(encoding="utf-8")
+
+    assert "Serial PR Delivery Policy" in governance
+    assert "mode: auto_serial" in governance
+    assert "squash merge after the applicable human/review gate is satisfied" in governance
+    assert "mode: allowed_with_self_retarget" in governance
+    assert "max_depth: 2" in governance
+    assert "retarget child PR to main" in governance
+    assert "mode: stop_for_human_gate" in governance
+
+
 def test_harness_go_no_go_mentions_current_required_jobs() -> None:
     harness = (ROOT / "docs" / "governance" / "HARNESS_GO_NO_GO.md").read_text(encoding="utf-8")
 
