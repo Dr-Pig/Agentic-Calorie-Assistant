@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
 from app.body.application import build_active_body_plan_view
+from app.composition.calibration_commit_bridge import (
+    CalibrationCommitDecision,
+    apply_stored_calibration_proposal_action,
+)
 from app.composition.calibration_preview_service import build_calibration_preview_from_history
 from app.composition.current_budget_answer import build_remaining_budget_answer_contract
 from app.database import get_or_create_user
@@ -17,7 +22,13 @@ GeneralChatMode = Literal[
     "goal_summary",
     "workflow_handoff",
     "calibration_preview",
+    "calibration_action",
     "fallback_answer",
+]
+CalibrationChatAction = Literal[
+    "accept_calibration_proposal",
+    "defer_calibration_proposal",
+    "reject_calibration_proposal",
 ]
 
 
@@ -33,6 +44,7 @@ class GeneralChatPassResult:
     remaining_budget_contract: Any | None = None
     active_body_plan_present: bool | None = None
     calibration_diagnostic: dict[str, Any] | None = None
+    calibration_action_result: dict[str, Any] | None = None
     input_assembly: dict[str, Any] | None = None
     proposal_artifact: dict[str, Any] | None = None
 
@@ -143,6 +155,112 @@ def _calibration_unavailable_response(*, reason: str) -> GeneralChatPassResult:
     )
 
 
+def _calibration_action_unavailable_response(*, reason: str) -> GeneralChatPassResult:
+    return GeneralChatPassResult(
+        target_workflow_family="general_chat",
+        disposition="answer_only",
+        workflow_effect="calibration_action_unavailable_without_state_mutation",
+        required_read_surfaces=[
+            "calibration_proposal_inbox",
+            "CurrentBudgetView",
+            "ActiveBodyPlanView",
+            "body_budget_effective_budget_view",
+        ],
+        reply_text=f"Calibration proposal action is unavailable: {reason}.",
+        asked_follow_up=False,
+        ui_hints={
+            "mode": "general_chat_calibration_action_unavailable",
+            "delivery": "chat_primary_ui_mirror",
+            "reason": reason,
+            "plan_mutation_authorized": False,
+            "ledger_mutation_authorized": False,
+        },
+    )
+
+
+def _calibration_decision_from_action(action: CalibrationChatAction) -> CalibrationCommitDecision:
+    action_map: dict[str, CalibrationCommitDecision] = {
+        "accept_calibration_proposal": "accepted",
+        "defer_calibration_proposal": "deferred_pending_reminder",
+        "reject_calibration_proposal": "rejected",
+    }
+    return action_map[action]
+
+
+def _calibration_action_response(
+    db: Session,
+    *,
+    user: User,
+    proposal_container_id: int | None,
+    action: CalibrationChatAction | None,
+    accepted_at: datetime | None,
+) -> GeneralChatPassResult:
+    if proposal_container_id is None or action is None:
+        return _calibration_action_unavailable_response(reason="missing_explicit_proposal_container_id_or_action")
+
+    try:
+        result = apply_stored_calibration_proposal_action(
+            db,
+            user=user,
+            proposal_container_id=proposal_container_id,
+            decision=_calibration_decision_from_action(action),
+            accepted_at=accepted_at,
+        )
+    except ValueError as exc:
+        return _calibration_action_unavailable_response(reason=str(exc))
+
+    current_budget = result.current_budget_view.model_dump(mode="json")
+    active_body_plan = result.active_body_plan_view.model_dump(mode="json")
+    action_payload = {
+        "proposal_container_id": result.proposal_container_id,
+        "proposal_status": result.proposal_status,
+        "body_plan_id": result.body_plan_id,
+        "effective_from": result.effective_from,
+        "current_budget_view": current_budget,
+        "active_body_plan_view": active_body_plan,
+    }
+    state_mutated = result.proposal_status == "accepted" and result.body_plan_id is not None
+    if result.proposal_status == "accepted":
+        reply_text = (
+            f"Calibration proposal accepted. Effective from {result.effective_from}. "
+            f"Daily target: {current_budget.get('budget_kcal')} kcal. "
+            f"Remaining: {current_budget.get('remaining_kcal')} kcal."
+        )
+    elif result.proposal_status == "rejected":
+        reply_text = "Calibration proposal rejected. Your active plan was not changed."
+    else:
+        reply_text = "Calibration proposal deferred. Your active plan was not changed."
+
+    return GeneralChatPassResult(
+        target_workflow_family="general_chat",
+        disposition="answer_only",
+        workflow_effect=(
+            "apply_calibration_proposal_action_with_state_mutation"
+            if state_mutated
+            else "apply_calibration_proposal_action_without_plan_mutation"
+        ),
+        required_read_surfaces=[
+            "calibration_proposal_inbox",
+            "CurrentBudgetView",
+            "ActiveBodyPlanView",
+            "body_budget_effective_budget_view",
+        ],
+        reply_text=reply_text,
+        asked_follow_up=False,
+        ui_hints={
+            "mode": "general_chat_calibration_action",
+            "delivery": "chat_primary_ui_mirror",
+            "proposal_container_id": result.proposal_container_id,
+            "proposal_status": result.proposal_status,
+            "effective_from": result.effective_from,
+            "plan_mutation_authorized": state_mutated,
+            "ledger_mutation_authorized": state_mutated,
+            "automatic_calibration_enabled": False,
+        },
+        calibration_action_result=action_payload,
+    )
+
+
 def _calibration_preview_response(
     db: Session,
     *,
@@ -235,6 +353,9 @@ def build_general_chat_response_pass(
     mode: GeneralChatMode,
     local_date: str,
     persist_calibration_proposal: bool = False,
+    calibration_proposal_container_id: int | None = None,
+    calibration_action: CalibrationChatAction | None = None,
+    accepted_at: datetime | None = None,
 ) -> GeneralChatPassResult:
     del raw_user_input
     user = get_or_create_user(db, user_external_id)
@@ -251,5 +372,13 @@ def build_general_chat_response_pass(
             user=user,
             local_date=local_date,
             persist_calibration_proposal=persist_calibration_proposal,
+        )
+    if mode == "calibration_action":
+        return _calibration_action_response(
+            db,
+            user=user,
+            proposal_container_id=calibration_proposal_container_id,
+            action=calibration_action,
+            accepted_at=accepted_at,
         )
     return _fallback_answer_response()
