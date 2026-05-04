@@ -538,13 +538,13 @@
 
     function formatMealThread(thread) {
       const title = thread.meal_title || thread.title || "untitled meal";
-      const kcal = thread.total_kcal ?? thread.kcal ?? "unknown";
-      const status = thread.active_version_status || thread.resolution_status || thread.status || "unknown";
+      const kcal = thread.active_version?.total_kcal ?? "unknown";
+      const status = thread.active_version?.status || thread.resolution_status || thread.status || "unknown";
       return `${title} | ${kcal} kcal | ${status}`;
     }
 
     function renderBudget(view) {
-      writeText("budget-kcal", view.budget_kcal ?? view.daily_target_kcal ?? view.target_kcal);
+      writeText("budget-kcal", view.budget_kcal);
       writeText("consumed-kcal", view.consumed_kcal);
       writeText("remaining-kcal", view.remaining_kcal);
     }
@@ -553,7 +553,7 @@
       listItems("body-plan-list", [
         `status: ${view.status || view.plan_status || "unknown"}`,
         `goal: ${view.goal_type || "unavailable"}`,
-        `target: ${view.recommended_target_kcal ?? view.daily_target_kcal ?? "unavailable"}`,
+        `target: ${view.recommended_target_kcal ?? "unavailable"}`,
         `source: ${view.plan_source || "unavailable"}`
       ], "No body plan loaded.");
     }

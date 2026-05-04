@@ -104,6 +104,24 @@ def test_local_web_shell_has_render_only_review_debug_panels() -> None:
     assert "not_available" in html
 
 
+def test_local_web_shell_debug_panel_uses_current_backend_read_model_fields_only() -> None:
+    html = _shell_html()
+
+    assert "thread.active_version?.total_kcal" in html
+    assert "thread.active_version?.status" in html
+    assert "view.budget_kcal" in html
+    assert "view.recommended_target_kcal" in html
+
+    obsolete_fallbacks = [
+        "thread.total_kcal",
+        "thread.kcal",
+        "view.daily_target_kcal",
+        "view.target_kcal",
+    ]
+    for fragment in obsolete_fallbacks:
+        assert fragment not in html
+
+
 def test_local_web_shell_uses_backend_budget_date_instead_of_browser_date_truth() -> None:
     html = _shell_html()
 

@@ -65,7 +65,9 @@ def test_browser_shell_smoke_validator_requires_fetch_sequence_and_cjk() -> None
         "debug_surface_rendered": True,
         "trace_surface_rendered": True,
         "pending_followup_surface_rendered": True,
+        "runtime_status_surface_rendered": True,
         "failure_signal_surface_rendered": True,
+        "not_available_rendered": True,
         "forbidden_storage_used": False,
         "browser": {
             "shell_markers": {
@@ -109,7 +111,9 @@ def test_browser_shell_smoke_validator_requires_expected_fetch_methods() -> None
         "debug_surface_rendered": True,
         "trace_surface_rendered": True,
         "pending_followup_surface_rendered": True,
+        "runtime_status_surface_rendered": True,
         "failure_signal_surface_rendered": True,
+        "not_available_rendered": True,
         "forbidden_storage_used": False,
         "browser": {
             "shell_markers": {
@@ -154,7 +158,9 @@ def test_browser_shell_smoke_validator_requires_reload_and_read_model_surfaces()
         "debug_surface_rendered": False,
         "trace_surface_rendered": False,
         "pending_followup_surface_rendered": False,
+        "runtime_status_surface_rendered": False,
         "failure_signal_surface_rendered": False,
+        "not_available_rendered": False,
         "forbidden_storage_used": False,
         "browser": {
             "shell_markers": {
@@ -189,7 +195,9 @@ def test_browser_shell_smoke_validator_requires_reload_and_read_model_surfaces()
     assert "debug_surface_not_rendered" in blockers
     assert "trace_surface_not_rendered" in blockers
     assert "pending_followup_surface_not_rendered" in blockers
+    assert "runtime_status_surface_not_rendered" in blockers
     assert "failure_signal_surface_not_rendered" in blockers
+    assert "not_available_not_rendered" in blockers
 
 
 def test_browser_shell_smoke_validator_requires_storage_evidence() -> None:
@@ -204,7 +212,9 @@ def test_browser_shell_smoke_validator_requires_storage_evidence() -> None:
         "debug_surface_rendered": True,
         "trace_surface_rendered": True,
         "pending_followup_surface_rendered": True,
+        "runtime_status_surface_rendered": True,
         "failure_signal_surface_rendered": True,
+        "not_available_rendered": True,
         "forbidden_storage_used": False,
         "browser": {
             "shell_markers": {
@@ -241,7 +251,9 @@ def test_browser_shell_smoke_validator_rejects_any_browser_storage_use() -> None
         "debug_surface_rendered": True,
         "trace_surface_rendered": True,
         "pending_followup_surface_rendered": True,
+        "runtime_status_surface_rendered": True,
         "failure_signal_surface_rendered": True,
+        "not_available_rendered": True,
         "forbidden_storage_used": True,
         "browser": {
             "shell_markers": {
