@@ -60,10 +60,14 @@ def _summary(
         "intake_committed_count": sum(
             1 for eval_item in artifact.evals if eval_item.intake_committed
         ),
+        "runtime_recommendation_selected_count": sum(
+            1 for eval_item in artifact.evals if eval_item.runtime_recommendation_selected
+        ),
         "canonical_hint_packet_count": sum(
             1
             for eval_item in artifact.evals
-            if eval_item.hint_packet is not None and eval_item.hint_packet.is_canonical_truth
+            for draft in eval_item.candidate_hint_packet_drafts
+            if draft.is_canonical_truth
         ),
         "failure_count": len(gate_result.failure_codes),
         "warning_count": len(gate_result.warning_codes),
@@ -77,22 +81,30 @@ def _scenario_scorecard(eval_item: RecommendationShadowEvalResult) -> dict:
         "recommendation_mode": eval_item.recommendation_mode,
         "candidate_count": len(eval_item.candidate_items),
         "filtered_count": len(eval_item.filtered_candidates),
-        "ranked_count": len(eval_item.ranked_candidates),
+        "deterministic_shadow_candidate_order_count": len(
+            eval_item.deterministic_shadow_candidate_order
+        ),
         "source_counts": eval_item.candidate_source_summary.source_counts,
         "filtered_reason_counts": _filtered_reason_counts(eval_item),
-        "top_pick_candidate_id": (
-            eval_item.top_pick.candidate_id if eval_item.top_pick else None
-        ),
-        "top_pick_title": eval_item.top_pick.title if eval_item.top_pick else None,
-        "backup_pick_candidate_ids": [
-            candidate.candidate_id for candidate in eval_item.backup_picks
-        ],
-        "hint_packet_present": eval_item.hint_packet is not None,
-        "hint_packet_canonical": (
-            eval_item.hint_packet.is_canonical_truth
-            if eval_item.hint_packet is not None
+        "shadow_leading_candidate_id": (
+            eval_item.shadow_leading_candidate.candidate_id
+            if eval_item.shadow_leading_candidate
             else None
         ),
+        "shadow_leading_candidate_title": (
+            eval_item.shadow_leading_candidate.title
+            if eval_item.shadow_leading_candidate
+            else None
+        ),
+        "shadow_candidate_alternate_ids": [
+            candidate.candidate_id for candidate in eval_item.shadow_candidate_alternates
+        ],
+        "final_hint_packet_present": False,
+        "hint_packet_draft_count": len(eval_item.candidate_hint_packet_drafts),
+        "hint_packet_drafts_canonical_count": sum(
+            1 for draft in eval_item.candidate_hint_packet_drafts if draft.is_canonical_truth
+        ),
+        "warnings": ["diagnostic_candidate_order_not_runtime_recommendation"],
         "cold_start_used": eval_item.cold_start_used,
         "coverage_gaps": eval_item.coverage_gaps,
         "memory_candidates_used": eval_item.memory_candidates_used,
@@ -104,6 +116,10 @@ def _scenario_scorecard(eval_item: RecommendationShadowEvalResult) -> dict:
         "confidence": eval_item.confidence,
         "presentation_policy": eval_item.presentation_policy,
         "mode_notes": eval_item.mode_notes,
+        "selection_owner": eval_item.selection_owner,
+        "llm_ranking_used": eval_item.llm_ranking_used,
+        "manager_selection_required": eval_item.manager_selection_required,
+        "runtime_recommendation_selected": eval_item.runtime_recommendation_selected,
         "runtime_effect_allowed": eval_item.runtime_effect_allowed,
         "recommendation_served": eval_item.recommendation_served,
         "intake_committed": eval_item.intake_committed,

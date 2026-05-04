@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
@@ -17,7 +17,11 @@ RecommendationMode = Literal[
 ]
 
 
-class RecommendationShadowFlags(BaseModel):
+class RecommendationShadowModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class RecommendationShadowFlags(RecommendationShadowModel):
     shadow_mode: Literal[True] = True
     real_runtime_effect: Literal[False] = False
     recommendation_served: Literal[False] = False
@@ -38,7 +42,7 @@ class RecommendationShadowFixtureValidationError(ValueError):
         super().__init__(", ".join(reason_codes))
 
 
-class CandidateSpec(BaseModel):
+class CandidateSpec(RecommendationShadowModel):
     desired_meal_style: str = "any"
     acceptable_cuisine_families: list[str] = Field(default_factory=lambda: ["any"])
     excluded_item_patterns: list[str] = Field(default_factory=list)
@@ -53,7 +57,7 @@ class CandidateSpec(BaseModel):
     budget_fit_posture: str = "normal"
 
 
-class RecommendationCandidateFixture(BaseModel):
+class RecommendationCandidateFixture(RecommendationShadowModel):
     candidate_id: str
     title: str
     source_type: str = "safe_fallback"
@@ -72,7 +76,7 @@ class RecommendationCandidateFixture(BaseModel):
     hard_avoid_flags: list[str] = Field(default_factory=list)
 
 
-class RecommendationShadowContextFixture(BaseModel):
+class RecommendationShadowContextFixture(RecommendationShadowModel):
     scenario_id: str
     recommendation_mode: RecommendationMode = "general"
     user_id: str
@@ -94,19 +98,19 @@ class RecommendationShadowContextFixture(BaseModel):
     candidate_source_fixture: list[RecommendationCandidateFixture] = Field(default_factory=list)
 
 
-class CandidateSourceSummary(BaseModel):
+class CandidateSourceSummary(RecommendationShadowModel):
     candidate_count: int = 0
     source_counts: dict[str, int] = Field(default_factory=dict)
     coverage_gaps: list[str] = Field(default_factory=list)
 
 
-class FilteredRecommendationCandidate(BaseModel):
+class FilteredRecommendationCandidate(RecommendationShadowModel):
     candidate_id: str
     title: str
     reason_codes: list[str] = Field(default_factory=list)
 
 
-class RankedRecommendationCandidate(BaseModel):
+class RankedRecommendationCandidate(RecommendationShadowModel):
     candidate_id: str
     title: str
     rank: int
@@ -117,7 +121,7 @@ class RankedRecommendationCandidate(BaseModel):
     ranking_reasons: list[str] = Field(default_factory=list)
 
 
-class RecommendationHintPacket(BaseModel):
+class RecommendationHintPacket(RecommendationShadowModel):
     candidate_id: str
     title: str
     store_metadata: dict[str, Any] = Field(default_factory=dict)
@@ -128,10 +132,14 @@ class RecommendationHintPacket(BaseModel):
     ranking_reason_summary: str
     confidence: float
     source_refs: list[str] = Field(default_factory=list)
+    selection_authority: Literal["none_shadow_candidate_only"] = (
+        "none_shadow_candidate_only"
+    )
+    requires_explicit_user_or_manager_selection: Literal[True] = True
     is_canonical_truth: Literal[False] = False
 
 
-class RecommendationShadowEvalResult(BaseModel):
+class RecommendationShadowEvalResult(RecommendationShadowModel):
     scenario_id: str
     recommendation_mode: RecommendationMode = "general"
     input_context_summary: dict[str, Any]
@@ -139,11 +147,15 @@ class RecommendationShadowEvalResult(BaseModel):
     candidate_source_summary: CandidateSourceSummary
     candidate_items: list[RecommendationCandidateFixture] = Field(default_factory=list)
     filtered_candidates: list[FilteredRecommendationCandidate] = Field(default_factory=list)
-    ranked_candidates: list[RankedRecommendationCandidate] = Field(default_factory=list)
-    top_pick: RankedRecommendationCandidate | None = None
-    backup_picks: list[RankedRecommendationCandidate] = Field(default_factory=list)
+    deterministic_shadow_candidate_order: list[RankedRecommendationCandidate] = Field(
+        default_factory=list
+    )
+    shadow_leading_candidate: RankedRecommendationCandidate | None = None
+    shadow_candidate_alternates: list[RankedRecommendationCandidate] = Field(
+        default_factory=list
+    )
     ranking_basis: dict[str, Any] = Field(default_factory=dict)
-    hint_packet: RecommendationHintPacket | None = None
+    candidate_hint_packet_drafts: list[RecommendationHintPacket] = Field(default_factory=list)
     memory_candidates_used: list[str] = Field(default_factory=list)
     memory_candidates_ignored: list[str] = Field(default_factory=list)
     hard_constraints: list[str] = Field(default_factory=list)
@@ -157,6 +169,10 @@ class RecommendationShadowEvalResult(BaseModel):
     presentation_policy: str = "standard"
     mode_notes: list[str] = Field(default_factory=list)
     fixture_governance: dict[str, Any] = Field(default_factory=dict)
+    selection_owner: Literal["manager_llm_not_run"] = "manager_llm_not_run"
+    llm_ranking_used: Literal[False] = False
+    manager_selection_required: Literal[True] = True
+    runtime_recommendation_selected: Literal[False] = False
     runtime_effect_allowed: Literal[False] = False
     shadow_mode: Literal[True] = True
     recommendation_served: Literal[False] = False
@@ -164,7 +180,7 @@ class RecommendationShadowEvalResult(BaseModel):
     flags: RecommendationShadowFlags = Field(default_factory=RecommendationShadowFlags)
 
 
-class RecommendationShadowEvalArtifact(BaseModel):
+class RecommendationShadowEvalArtifact(RecommendationShadowModel):
     artifact_type: Literal["recommendation_shadow_eval"] = "recommendation_shadow_eval"
     shadow_mode: Literal[True] = True
     real_runtime_effect: Literal[False] = False
@@ -184,7 +200,7 @@ class RecommendationShadowEvalArtifact(BaseModel):
     evals: list[RecommendationShadowEvalResult] = Field(default_factory=list)
 
 
-class RecommendationShadowArtifactGateResult(BaseModel):
+class RecommendationShadowArtifactGateResult(RecommendationShadowModel):
     passed: bool
     failure_codes: list[str] = Field(default_factory=list)
     warning_codes: list[str] = Field(default_factory=list)
@@ -192,7 +208,7 @@ class RecommendationShadowArtifactGateResult(BaseModel):
     scenario_reports: list[dict[str, Any]] = Field(default_factory=list)
 
 
-class RecommendationShadowFixtureImportResult(BaseModel):
+class RecommendationShadowFixtureImportResult(RecommendationShadowModel):
     scenarios: list[RecommendationShadowContextFixture] = Field(default_factory=list)
     source_summary: dict[str, Any] = Field(default_factory=dict)
 
@@ -203,7 +219,7 @@ class RecommendationShadowFixtureImportError(ValueError):
         super().__init__(", ".join(failure_codes))
 
 
-class RecommendationShadowScorecard(BaseModel):
+class RecommendationShadowScorecard(RecommendationShadowModel):
     scorecard_type: Literal["recommendation_shadow_scorecard"] = (
         "recommendation_shadow_scorecard"
     )

@@ -58,9 +58,20 @@ def test_cold_start_shadow_eval_uses_fallback_candidates_without_runtime_effect(
     assert result.runtime_effect_allowed is False
     assert result.cold_start_used is True
     assert result.candidate_source_summary.candidate_count == 2
-    assert result.top_pick is not None
-    assert result.hint_packet is not None
-    assert result.hint_packet.is_canonical_truth is False
+    assert not hasattr(result, "top_pick")
+    assert not hasattr(result, "hint_packet")
+    assert result.selection_owner == "manager_llm_not_run"
+    assert result.llm_ranking_used is False
+    assert result.manager_selection_required is True
+    assert result.runtime_recommendation_selected is False
+    assert result.shadow_leading_candidate is not None
+    assert result.candidate_hint_packet_drafts
+    assert all(
+        draft.is_canonical_truth is False
+        and draft.selection_authority == "none_shadow_candidate_only"
+        and draft.requires_explicit_user_or_manager_selection is True
+        for draft in result.candidate_hint_packet_drafts
+    )
     assert result.flags == RecommendationShadowFlags()
     assert result.fixture_governance["validation_status"] == "pass"
     assert "sparse_preference_profile_allowed" in result.fixture_governance["notes"]
@@ -209,8 +220,8 @@ def test_confirmed_negative_preference_filters_candidate_but_soft_preference_onl
 
     assert [item.candidate_id for item in result.filtered_candidates] == ["drink-1"]
     assert result.filtered_candidates[0].reason_codes == ["confirmed_negative_preference"]
-    assert result.top_pick is not None
-    assert result.top_pick.candidate_id == "bento-1"
+    assert result.shadow_leading_candidate is not None
+    assert result.shadow_leading_candidate.candidate_id == "bento-1"
     assert "preferred_cuisine:taiwanese" in result.soft_preferences
     assert "preferred_cuisine:taiwanese" not in result.hard_constraints
 
@@ -269,9 +280,12 @@ def test_golden_order_and_avoid_repeat_shape_shadow_ranking_basis() -> None:
 
     result = evaluate_recommendation_shadow_scenario(scenario)
 
-    assert result.top_pick is not None
-    assert result.top_pick.candidate_id == "golden-1"
-    assert result.ranked_candidates[0].score > result.ranked_candidates[1].score
+    assert result.shadow_leading_candidate is not None
+    assert result.shadow_leading_candidate.candidate_id == "golden-1"
+    assert (
+        result.deterministic_shadow_candidate_order[0].score
+        > result.deterministic_shadow_candidate_order[1].score
+    )
     assert "golden_order:FamilyMart" in result.memory_candidates_used
     assert "avoid_repeat_from_today:noodles" in result.soft_preferences
     assert "repeat-1" in result.memory_candidates_ignored
@@ -297,8 +311,8 @@ def test_budget_tight_filters_over_budget_and_keeps_lower_calorie_candidate() ->
 
     assert [item.candidate_id for item in result.filtered_candidates] == ["high-1"]
     assert "over_budget" in result.filtered_candidates[0].reason_codes
-    assert result.top_pick is not None
-    assert result.top_pick.candidate_id == "low-1"
+    assert result.shadow_leading_candidate is not None
+    assert result.shadow_leading_candidate.candidate_id == "low-1"
     assert result.risk_if_wrong == "medium"
 
 
@@ -315,8 +329,8 @@ def test_app_usage_style_sets_concise_presentation_policy() -> None:
     result = evaluate_recommendation_shadow_scenario(scenario)
 
     assert result.presentation_policy == "concise"
-    assert result.hint_packet is not None
-    assert result.hint_packet.current_surface_channel == "chat"
+    assert result.candidate_hint_packet_drafts
+    assert result.candidate_hint_packet_drafts[0].current_surface_channel == "chat"
 
 
 def test_shadow_eval_artifact_contains_required_non_claim_flags() -> None:
@@ -327,7 +341,7 @@ def test_shadow_eval_artifact_contains_required_non_claim_flags() -> None:
     assert artifact.shadow_mode is True
     assert artifact.track_status == {
         "track": "RecommendationShadow",
-        "slice_id": "recommendation_shadow_evaluator",
+        "slice_id": "recommendation_shadow_manager_selection_boundary",
         "shadow_mode": True,
         "recommendation_served": False,
         "intake_committed": False,
@@ -370,7 +384,13 @@ def test_default_shadow_eval_writer_creates_requested_artifact(tmp_path: Path) -
     assert payload["integrity"]["invalid_scenario_count"] == 0
     assert len(payload["evals"]) >= 6
     assert all(eval_item["recommendation_served"] is False for eval_item in payload["evals"])
-    assert all(eval_item["hint_packet"]["is_canonical_truth"] is False for eval_item in payload["evals"])
+    assert all("top_pick" not in eval_item for eval_item in payload["evals"])
+    assert all("hint_packet" not in eval_item for eval_item in payload["evals"])
+    assert all(eval_item["shadow_leading_candidate"] is not None for eval_item in payload["evals"])
+    assert all(
+        all(draft["is_canonical_truth"] is False for draft in eval_item["candidate_hint_packet_drafts"])
+        for eval_item in payload["evals"]
+    )
 
 
 def test_menu_scan_mode_uses_menu_items_without_intake_commit() -> None:
@@ -407,11 +427,14 @@ def test_menu_scan_mode_uses_menu_items_without_intake_commit() -> None:
     result = evaluate_recommendation_shadow_scenario(scenario)
 
     assert result.recommendation_mode == "menu_scan"
-    assert result.top_pick is not None
-    assert result.top_pick.candidate_id == "menu-fit-1"
-    assert result.hint_packet is not None
-    assert result.hint_packet.selection_context["recommendation_mode"] == "menu_scan"
-    assert result.hint_packet.is_canonical_truth is False
+    assert result.shadow_leading_candidate is not None
+    assert result.shadow_leading_candidate.candidate_id == "menu-fit-1"
+    assert result.candidate_hint_packet_drafts
+    assert (
+        result.candidate_hint_packet_drafts[0].selection_context["recommendation_mode"]
+        == "menu_scan"
+    )
+    assert result.candidate_hint_packet_drafts[0].is_canonical_truth is False
     assert result.intake_committed is False
     assert result.flags.meal_thread_mutated is False
     assert result.mode_notes == [
@@ -459,8 +482,8 @@ def test_swap_suggestion_mode_is_informational_and_does_not_create_proposal() ->
     result = evaluate_recommendation_shadow_scenario(scenario)
 
     assert result.recommendation_mode == "swap_suggestion"
-    assert result.top_pick is not None
-    assert result.top_pick.candidate_id == "swap-1"
+    assert result.shadow_leading_candidate is not None
+    assert result.shadow_leading_candidate.candidate_id == "swap-1"
     assert result.expected_user_value == "informational_swap_option_without_proposal"
     assert result.flags.intake_committed is False
     assert result.flags.meal_thread_mutated is False
@@ -549,8 +572,8 @@ def test_empty_golden_order_items_do_not_boost_unrelated_candidates() -> None:
     result = evaluate_recommendation_shadow_scenario(scenario)
 
     assert result.memory_candidates_used == []
-    assert result.top_pick is not None
-    assert "golden_order" not in result.top_pick.ranking_reasons
+    assert result.shadow_leading_candidate is not None
+    assert "golden_order" not in result.shadow_leading_candidate.ranking_reasons
 
 
 def test_active_runtime_does_not_import_recommendation_shadow_evaluator() -> None:

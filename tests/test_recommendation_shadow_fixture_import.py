@@ -50,8 +50,9 @@ def test_fixture_import_loads_explicit_scenario_bundle_without_runtime_effect() 
     }
     assert artifact.evals[0].scenario_id == "fixture-import-1"
     assert artifact.evals[0].runtime_effect_allowed is False
-    assert artifact.evals[0].hint_packet is not None
-    assert artifact.evals[0].hint_packet.is_canonical_truth is False
+    assert artifact.evals[0].shadow_leading_candidate is not None
+    assert artifact.evals[0].candidate_hint_packet_drafts
+    assert artifact.evals[0].candidate_hint_packet_drafts[0].is_canonical_truth is False
     assert gate_result.passed is False
     assert "artifact:missing_required_scenario:cold_start_lunch" in gate_result.failure_codes
 
@@ -298,7 +299,13 @@ def test_fixture_import_cli_builds_shadow_artifact_from_fixture_file(tmp_path: P
     assert artifact_payload["artifact_type"] == "recommendation_shadow_eval"
     assert artifact_payload["evals"][0]["scenario_id"] == "fixture-cli-1"
     assert artifact_payload["evals"][0]["recommendation_served"] is False
-    assert artifact_payload["evals"][0]["hint_packet"]["is_canonical_truth"] is False
+    assert "hint_packet" not in artifact_payload["evals"][0]
+    assert (
+        artifact_payload["evals"][0]["candidate_hint_packet_drafts"][0][
+            "is_canonical_truth"
+        ]
+        is False
+    )
     assert report_payload["passed"] is False
     assert "artifact:missing_required_scenario:cold_start_lunch" in report_payload[
         "failure_codes"

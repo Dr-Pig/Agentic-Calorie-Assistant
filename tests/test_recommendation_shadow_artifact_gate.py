@@ -60,19 +60,26 @@ def test_artifact_gate_rejects_runtime_effect_and_readiness_claims() -> None:
     assert f"eval:{bad_eval.scenario_id}:intake_committed_true" in result.failure_codes
 
 
-def test_artifact_gate_rejects_canonical_hint_packet_claim() -> None:
+def test_artifact_gate_rejects_canonical_hint_packet_draft_claim() -> None:
     artifact = build_default_recommendation_shadow_eval_artifact()
-    assert artifact.evals[0].hint_packet is not None
-    bad_hint = artifact.evals[0].hint_packet.model_copy(
+    assert artifact.evals[0].candidate_hint_packet_drafts
+    bad_hint = artifact.evals[0].candidate_hint_packet_drafts[0].model_copy(
         update={"is_canonical_truth": True}
     )
-    bad_eval = artifact.evals[0].model_copy(update={"hint_packet": bad_hint})
+    bad_eval = artifact.evals[0].model_copy(
+        update={
+            "candidate_hint_packet_drafts": [
+                bad_hint,
+                *artifact.evals[0].candidate_hint_packet_drafts[1:],
+            ]
+        }
+    )
     bad_artifact = artifact.model_copy(update={"evals": [bad_eval, *artifact.evals[1:]]})
 
     result = evaluate_recommendation_shadow_artifact_quality(bad_artifact)
 
     assert result.passed is False
-    assert f"eval:{bad_eval.scenario_id}:canonical_hint_packet" in result.failure_codes
+    assert f"eval:{bad_eval.scenario_id}:canonical_hint_packet_draft" in result.failure_codes
 
 
 def test_artifact_payload_gate_rejects_missing_required_non_claim_fields() -> None:
@@ -84,7 +91,7 @@ def test_artifact_payload_gate_rejects_missing_required_non_claim_fields() -> No
     del payload["integrity"]["runtime_effect_allowed_count"]
     del first_eval["runtime_effect_allowed"]
     del first_eval["flags"]["durable_memory_written"]
-    del first_eval["hint_packet"]["is_canonical_truth"]
+    del first_eval["candidate_hint_packet_drafts"][0]["is_canonical_truth"]
 
     result = evaluate_recommendation_shadow_artifact_payload(payload)
 
@@ -100,7 +107,7 @@ def test_artifact_payload_gate_rejects_missing_required_non_claim_fields() -> No
         in result.failure_codes
     )
     assert (
-        f"eval:{first_eval['scenario_id']}:hint_packet_missing_field:is_canonical_truth"
+        f"eval:{first_eval['scenario_id']}:hint_packet_draft_index:0:missing_field:is_canonical_truth"
         in result.failure_codes
     )
 
@@ -117,7 +124,7 @@ def test_artifact_payload_gate_reports_true_non_claim_fields_before_model_valida
     first_eval["runtime_effect_allowed"] = True
     first_eval["recommendation_served"] = True
     first_eval["flags"]["durable_memory_written"] = True
-    first_eval["hint_packet"]["is_canonical_truth"] = True
+    first_eval["candidate_hint_packet_drafts"][0]["is_canonical_truth"] = True
 
     result = evaluate_recommendation_shadow_artifact_payload(payload)
 
@@ -138,7 +145,10 @@ def test_artifact_payload_gate_reports_true_non_claim_fields_before_model_valida
         f"eval:{first_eval['scenario_id']}:flags_durable_memory_written_true"
         in result.failure_codes
     )
-    assert f"eval:{first_eval['scenario_id']}:canonical_hint_packet" in result.failure_codes
+    assert (
+        f"eval:{first_eval['scenario_id']}:hint_packet_draft_index:0:canonical_hint_packet_draft"
+        in result.failure_codes
+    )
     assert "payload:model_validation_error" in result.failure_codes
 
 
@@ -185,14 +195,14 @@ def test_artifact_payload_gate_dedupes_validation_error_failure_codes() -> None:
     assert result.summary["failure_count"] == len(result.failure_codes)
 
 
-def test_artifact_gate_rejects_missing_candidate_ranking_and_hint_packet() -> None:
+def test_artifact_gate_rejects_missing_candidate_order_and_hint_packet_drafts() -> None:
     artifact = build_default_recommendation_shadow_eval_artifact()
     bad_eval = artifact.evals[0].model_copy(
         update={
             "candidate_items": [],
-            "ranked_candidates": [],
-            "top_pick": None,
-            "hint_packet": None,
+            "deterministic_shadow_candidate_order": [],
+            "shadow_leading_candidate": None,
+            "candidate_hint_packet_drafts": [],
         }
     )
     bad_artifact = artifact.model_copy(update={"evals": [bad_eval, *artifact.evals[1:]]})
@@ -201,9 +211,30 @@ def test_artifact_gate_rejects_missing_candidate_ranking_and_hint_packet() -> No
 
     assert result.passed is False
     assert f"eval:{bad_eval.scenario_id}:no_candidate_items" in result.failure_codes
-    assert f"eval:{bad_eval.scenario_id}:no_ranked_candidates" in result.failure_codes
-    assert f"eval:{bad_eval.scenario_id}:missing_top_pick" in result.failure_codes
-    assert f"eval:{bad_eval.scenario_id}:missing_hint_packet" in result.failure_codes
+    assert (
+        f"eval:{bad_eval.scenario_id}:no_deterministic_shadow_candidate_order"
+        in result.failure_codes
+    )
+    assert f"eval:{bad_eval.scenario_id}:missing_shadow_leading_candidate" in result.failure_codes
+    assert f"eval:{bad_eval.scenario_id}:missing_hint_packet_drafts" in result.failure_codes
+
+
+def test_artifact_payload_gate_rejects_legacy_deterministic_selection_fields() -> None:
+    artifact = build_default_recommendation_shadow_eval_artifact()
+    payload = artifact.model_dump(mode="json")
+    first_eval = payload["evals"][0]
+    first_eval["top_pick"] = first_eval["shadow_leading_candidate"]
+    first_eval["backup_picks"] = first_eval["shadow_candidate_alternates"]
+    first_eval["ranked_candidates"] = first_eval["deterministic_shadow_candidate_order"]
+    first_eval["hint_packet"] = first_eval["candidate_hint_packet_drafts"][0]
+
+    result = evaluate_recommendation_shadow_artifact_payload(payload)
+
+    assert result.passed is False
+    assert f"eval:{first_eval['scenario_id']}:legacy_field:top_pick" in result.failure_codes
+    assert f"eval:{first_eval['scenario_id']}:legacy_field:backup_picks" in result.failure_codes
+    assert f"eval:{first_eval['scenario_id']}:legacy_field:ranked_candidates" in result.failure_codes
+    assert f"eval:{first_eval['scenario_id']}:legacy_field:hint_packet" in result.failure_codes
 
 
 def test_shadow_artifact_gate_script_runs_by_file_path_without_pythonpath(

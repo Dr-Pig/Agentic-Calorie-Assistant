@@ -33,6 +33,7 @@ def test_default_shadow_scorecard_summarizes_modes_sources_and_no_claim_status()
     assert scorecard.summary["source_counts"]["safe_fallback"] >= 1
     assert scorecard.summary["canonical_hint_packet_count"] == 0
     assert scorecard.summary["runtime_effect_allowed_count"] == 0
+    assert scorecard.summary["runtime_recommendation_selected_count"] == 0
 
 
 def test_shadow_scorecard_reports_each_scenario_review_surface() -> None:
@@ -44,12 +45,14 @@ def test_shadow_scorecard_reports_each_scenario_review_surface() -> None:
 
     assert cold_start["cold_start_used"] is True
     assert cold_start["candidate_count"] >= 1
-    assert cold_start["top_pick_candidate_id"]
-    assert cold_start["hint_packet_present"] is True
-    assert cold_start["hint_packet_canonical"] is False
+    assert cold_start["shadow_leading_candidate_id"]
+    assert cold_start["final_hint_packet_present"] is False
+    assert cold_start["hint_packet_draft_count"] >= 1
+    assert cold_start["hint_packet_drafts_canonical_count"] == 0
+    assert "diagnostic_candidate_order_not_runtime_recommendation" in cold_start["warnings"]
     assert "location_context_fixture_not_used" in cold_start["coverage_gaps"]
     assert negative["filtered_reason_counts"]["confirmed_negative_preference"] == 1
-    assert negative["top_pick_candidate_id"] != "negative-drink-1"
+    assert negative["shadow_leading_candidate_id"] != "negative-drink-1"
 
 
 def test_shadow_scorecard_preserves_gate_failures_without_claiming_readiness() -> None:
@@ -57,9 +60,9 @@ def test_shadow_scorecard_preserves_gate_failures_without_claiming_readiness() -
     bad_eval = artifact.evals[0].model_copy(
         update={
             "candidate_items": [],
-            "ranked_candidates": [],
-            "top_pick": None,
-            "hint_packet": None,
+            "deterministic_shadow_candidate_order": [],
+            "shadow_leading_candidate": None,
+            "candidate_hint_packet_drafts": [],
         }
     )
     bad_artifact = artifact.model_copy(update={"evals": [bad_eval, *artifact.evals[1:]]})
@@ -70,7 +73,7 @@ def test_shadow_scorecard_preserves_gate_failures_without_claiming_readiness() -
     assert scorecard.product_readiness_claimed is False
     assert scorecard.private_self_use_approved is False
     assert f"eval:{bad_eval.scenario_id}:no_candidate_items" in scorecard.issue_codes
-    assert _scenario(scorecard, bad_eval.scenario_id)["hint_packet_present"] is False
+    assert _scenario(scorecard, bad_eval.scenario_id)["hint_packet_draft_count"] == 0
 
 
 def test_shadow_scorecard_script_writes_json_report_without_pythonpath(
@@ -115,9 +118,9 @@ def test_shadow_scorecard_script_reports_failing_artifact_without_nonzero_exit(
     bad_eval = artifact.evals[0].model_copy(
         update={
             "candidate_items": [],
-            "ranked_candidates": [],
-            "top_pick": None,
-            "hint_packet": None,
+            "deterministic_shadow_candidate_order": [],
+            "shadow_leading_candidate": None,
+            "candidate_hint_packet_drafts": [],
         }
     )
     bad_artifact = artifact.model_copy(update={"evals": [bad_eval, *artifact.evals[1:]]})

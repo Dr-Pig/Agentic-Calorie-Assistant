@@ -50,6 +50,14 @@ EVAL_FALSE_FLAGS = (
     "runtime_effect_allowed",
     "recommendation_served",
     "intake_committed",
+    "runtime_recommendation_selected",
+)
+
+LEGACY_SELECTION_FIELDS = (
+    "ranked_candidates",
+    "top_pick",
+    "backup_picks",
+    "hint_packet",
 )
 
 
@@ -119,9 +127,13 @@ def evaluate_recommendation_shadow_artifact_quality(
                 "warning_codes": scenario_warnings,
                 "candidate_count": len(eval_item.candidate_items),
                 "filtered_count": len(eval_item.filtered_candidates),
-                "ranked_count": len(eval_item.ranked_candidates),
-                "top_pick_candidate_id": (
-                    eval_item.top_pick.candidate_id if eval_item.top_pick else None
+                "deterministic_shadow_candidate_order_count": len(
+                    eval_item.deterministic_shadow_candidate_order
+                ),
+                "shadow_leading_candidate_id": (
+                    eval_item.shadow_leading_candidate.candidate_id
+                    if eval_item.shadow_leading_candidate
+                    else None
                 ),
             }
         )
@@ -238,11 +250,11 @@ def _eval_payload_presence_failure_codes(
         "candidate_source_summary",
         "candidate_items",
         "filtered_candidates",
-        "ranked_candidates",
-        "top_pick",
-        "backup_picks",
+        "deterministic_shadow_candidate_order",
+        "shadow_leading_candidate",
+        "shadow_candidate_alternates",
         "ranking_basis",
-        "hint_packet",
+        "candidate_hint_packet_drafts",
         "memory_candidates_used",
         "memory_candidates_ignored",
         "hard_constraints",
@@ -256,6 +268,10 @@ def _eval_payload_presence_failure_codes(
         "presentation_policy",
         "mode_notes",
         "fixture_governance",
+        "selection_owner",
+        "llm_ranking_used",
+        "manager_selection_required",
+        "runtime_recommendation_selected",
         "runtime_effect_allowed",
         "shadow_mode",
         "recommendation_served",
@@ -264,6 +280,10 @@ def _eval_payload_presence_failure_codes(
     ):
         if field_name not in eval_payload:
             failure_codes.append(f"{prefix}:missing_field:{field_name}")
+
+    for field_name in LEGACY_SELECTION_FIELDS:
+        if field_name in eval_payload:
+            failure_codes.append(f"{prefix}:legacy_field:{field_name}")
 
     flags = eval_payload.get("flags")
     if isinstance(flags, dict):
@@ -279,30 +299,26 @@ def _eval_payload_presence_failure_codes(
             if field_name in flags and flags.get(field_name) is not False:
                 failure_codes.append(f"{prefix}:flags_{field_name}_true")
 
-    hint_packet = eval_payload.get("hint_packet")
-    if isinstance(hint_packet, dict):
-        for field_name in (
-            "candidate_id",
-            "title",
-            "store_metadata",
-            "source_type",
-            "estimated_kcal_range",
-            "current_surface_channel",
-            "selection_context",
-            "ranking_reason_summary",
-            "confidence",
-            "source_refs",
-            "is_canonical_truth",
-        ):
-            if field_name not in hint_packet:
+    hint_packet_drafts = eval_payload.get("candidate_hint_packet_drafts")
+    if isinstance(hint_packet_drafts, list):
+        for draft_index, hint_packet in enumerate(hint_packet_drafts):
+            if not isinstance(hint_packet, dict):
                 failure_codes.append(
-                    f"{prefix}:hint_packet_missing_field:{field_name}"
+                    f"{prefix}:hint_packet_draft_index:{draft_index}:not_object"
                 )
-        if (
-            "is_canonical_truth" in hint_packet
-            and hint_packet.get("is_canonical_truth") is not False
-        ):
-            failure_codes.append(f"{prefix}:canonical_hint_packet")
+                continue
+            _extend_hint_packet_payload_failure_codes(
+                hint_packet,
+                f"{prefix}:hint_packet_draft_index:{draft_index}",
+                failure_codes,
+            )
+
+    if eval_payload.get("selection_owner") != "manager_llm_not_run":
+        failure_codes.append(f"{prefix}:selection_owner_unexpected")
+    if eval_payload.get("llm_ranking_used") is not False:
+        failure_codes.append(f"{prefix}:llm_ranking_used_not_false")
+    if eval_payload.get("manager_selection_required") is not True:
+        failure_codes.append(f"{prefix}:manager_selection_required_not_true")
 
     if eval_payload.get("shadow_mode") is not True:
         failure_codes.append(f"{prefix}:shadow_mode_not_true")
@@ -310,6 +326,47 @@ def _eval_payload_presence_failure_codes(
         if field_name in eval_payload and eval_payload.get(field_name) is not False:
             failure_codes.append(f"{prefix}:{field_name}_true")
     return failure_codes
+
+
+def _extend_hint_packet_payload_failure_codes(
+    hint_packet: dict[str, Any],
+    prefix: str,
+    failure_codes: list[str],
+) -> None:
+    for field_name in (
+        "candidate_id",
+        "title",
+        "store_metadata",
+        "source_type",
+        "estimated_kcal_range",
+        "current_surface_channel",
+        "selection_context",
+        "ranking_reason_summary",
+        "confidence",
+        "source_refs",
+        "selection_authority",
+        "requires_explicit_user_or_manager_selection",
+        "is_canonical_truth",
+    ):
+        if field_name not in hint_packet:
+            failure_codes.append(f"{prefix}:missing_field:{field_name}")
+    if (
+        "is_canonical_truth" in hint_packet
+        and hint_packet.get("is_canonical_truth") is not False
+    ):
+        failure_codes.append(f"{prefix}:canonical_hint_packet_draft")
+    if (
+        "selection_authority" in hint_packet
+        and hint_packet.get("selection_authority") != "none_shadow_candidate_only"
+    ):
+        failure_codes.append(f"{prefix}:selection_authority_unexpected")
+    if (
+        "requires_explicit_user_or_manager_selection" in hint_packet
+        and hint_packet.get("requires_explicit_user_or_manager_selection") is not True
+    ):
+        failure_codes.append(
+            f"{prefix}:requires_explicit_user_or_manager_selection_not_true"
+        )
 
 
 def _extend_track_status_failures(
@@ -382,14 +439,23 @@ def _evaluate_scenario(
 
     if not eval_item.candidate_items:
         failure_codes.append(f"{prefix}:no_candidate_items")
-    if not eval_item.ranked_candidates:
-        failure_codes.append(f"{prefix}:no_ranked_candidates")
-    if eval_item.top_pick is None:
-        failure_codes.append(f"{prefix}:missing_top_pick")
-    if eval_item.hint_packet is None:
-        failure_codes.append(f"{prefix}:missing_hint_packet")
-    elif eval_item.hint_packet.is_canonical_truth is not False:
-        failure_codes.append(f"{prefix}:canonical_hint_packet")
+    if not eval_item.deterministic_shadow_candidate_order:
+        failure_codes.append(f"{prefix}:no_deterministic_shadow_candidate_order")
+    if eval_item.shadow_leading_candidate is None:
+        failure_codes.append(f"{prefix}:missing_shadow_leading_candidate")
+    if not eval_item.candidate_hint_packet_drafts:
+        failure_codes.append(f"{prefix}:missing_hint_packet_drafts")
+    for draft_index, draft in enumerate(eval_item.candidate_hint_packet_drafts):
+        if draft.is_canonical_truth is not False:
+            failure_codes.append(f"{prefix}:canonical_hint_packet_draft")
+        if draft.selection_authority != "none_shadow_candidate_only":
+            failure_codes.append(
+                f"{prefix}:hint_packet_draft_index:{draft_index}:selection_authority_unexpected"
+            )
+        if draft.requires_explicit_user_or_manager_selection is not True:
+            failure_codes.append(
+                f"{prefix}:hint_packet_draft_index:{draft_index}:requires_explicit_user_or_manager_selection_not_true"
+            )
 
     if (
         eval_item.candidate_source_summary.candidate_count
@@ -398,11 +464,21 @@ def _evaluate_scenario(
         failure_codes.append(f"{prefix}:candidate_count_mismatch")
 
     if (
-        eval_item.top_pick is not None
-        and eval_item.ranked_candidates
-        and eval_item.top_pick.candidate_id != eval_item.ranked_candidates[0].candidate_id
+        eval_item.shadow_leading_candidate is not None
+        and eval_item.deterministic_shadow_candidate_order
+        and eval_item.shadow_leading_candidate.candidate_id
+        != eval_item.deterministic_shadow_candidate_order[0].candidate_id
     ):
-        failure_codes.append(f"{prefix}:top_pick_not_first_ranked_candidate")
+        failure_codes.append(f"{prefix}:shadow_leading_candidate_not_first_ordered")
+
+    if eval_item.selection_owner != "manager_llm_not_run":
+        failure_codes.append(f"{prefix}:selection_owner_unexpected")
+    if eval_item.llm_ranking_used is not False:
+        failure_codes.append(f"{prefix}:llm_ranking_used_not_false")
+    if eval_item.manager_selection_required is not True:
+        failure_codes.append(f"{prefix}:manager_selection_required_not_true")
+    if eval_item.runtime_recommendation_selected is not False:
+        failure_codes.append(f"{prefix}:runtime_recommendation_selected_true")
 
     if eval_item.fixture_governance.get("validation_status") != "pass":
         failure_codes.append(f"{prefix}:fixture_governance_not_pass")

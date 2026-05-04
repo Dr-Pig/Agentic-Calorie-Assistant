@@ -81,10 +81,12 @@ def evaluate_recommendation_shadow_scenario(
         scenario, allowed_candidates
     )
     source_summary = _source_summary(allowed_candidates, source_candidates)
-    top_pick = ranked_candidates[0] if ranked_candidates else None
-    backup_picks = ranked_candidates[1:3]
-    hint_packet = _hint_packet(scenario, top_pick, allowed_candidates)
-    confidence = _confidence(top_pick)
+    shadow_leading_candidate = ranked_candidates[0] if ranked_candidates else None
+    shadow_candidate_alternates = ranked_candidates[1:3]
+    hint_packet_drafts = _candidate_hint_packet_drafts(
+        scenario, ranked_candidates, allowed_candidates
+    )
+    confidence = _confidence(shadow_leading_candidate)
     risk_if_wrong = _risk_if_wrong(scenario, filtered_candidates)
     freshness_notes = _freshness_notes(scenario)
 
@@ -96,11 +98,11 @@ def evaluate_recommendation_shadow_scenario(
         candidate_source_summary=source_summary,
         candidate_items=allowed_candidates,
         filtered_candidates=filtered_candidates,
-        ranked_candidates=ranked_candidates,
-        top_pick=top_pick,
-        backup_picks=backup_picks,
+        deterministic_shadow_candidate_order=ranked_candidates,
+        shadow_leading_candidate=shadow_leading_candidate,
+        shadow_candidate_alternates=shadow_candidate_alternates,
         ranking_basis=ranking_basis,
-        hint_packet=hint_packet,
+        candidate_hint_packet_drafts=hint_packet_drafts,
         memory_candidates_used=used_memory,
         memory_candidates_ignored=ignored_memory,
         hard_constraints=hard_constraints,
@@ -120,7 +122,7 @@ def evaluate_recommendation_shadow_scenario(
 def _track_status() -> dict[str, Any]:
     return {
         "track": "RecommendationShadow",
-        "slice_id": "recommendation_shadow_evaluator",
+        "slice_id": "recommendation_shadow_manager_selection_boundary",
         "shadow_mode": True,
         "recommendation_served": False,
         "intake_committed": False,
@@ -166,7 +168,8 @@ def _artifact_integrity(evals: list[RecommendationShadowEvalResult]) -> dict[str
         "canonical_hint_packet_count": sum(
             1
             for eval_item in evals
-            if eval_item.hint_packet is not None and eval_item.hint_packet.is_canonical_truth
+            for draft in eval_item.candidate_hint_packet_drafts
+            if draft.is_canonical_truth
         ),
     }
 
@@ -330,11 +333,15 @@ def _rank_candidates(
     ]
 
     ranking_basis = {
-        "algorithm": "deterministic_shadow_rule_basis",
+        "algorithm": "deterministic_shadow_candidate_ordering",
         "source_priority": SOURCE_PRIORITY,
         "candidate_spec_priority_signals": scenario.candidate_spec.priority_signals,
         "hard_filters_applied_before_ranking": True,
         "llm_ranking_used": False,
+        "selection_owner": "manager_llm_not_run",
+        "manager_selection_required": True,
+        "runtime_recommendation_selected": False,
+        "note": "candidate_order_is_diagnostic_not_runtime_recommendation",
     }
     return ranked, ranking_basis, _dedupe(used_memory), _dedupe(ignored_memory)
 
@@ -359,35 +366,39 @@ def _source_summary(
     )
 
 
-def _hint_packet(
+def _candidate_hint_packet_drafts(
     scenario: RecommendationShadowContextFixture,
-    top_pick: RankedRecommendationCandidate | None,
+    ranked_candidates: list[RankedRecommendationCandidate],
     candidates: list[RecommendationCandidateFixture],
-) -> RecommendationHintPacket | None:
-    if top_pick is None:
-        return None
-    candidate = next(
-        item for item in candidates if item.candidate_id == top_pick.candidate_id
-    )
-    return RecommendationHintPacket(
-        candidate_id=candidate.candidate_id,
-        title=candidate.title,
-        store_metadata={
-            "store_name": candidate.store_name,
-            **candidate.store_metadata,
-        },
-        source_type=candidate.source_type,
-        estimated_kcal_range=candidate.estimated_kcal_range,
-        current_surface_channel=scenario.channel,
-        selection_context={
-            "scenario_id": scenario.scenario_id,
-            "recommendation_mode": scenario.recommendation_mode,
-            "runtime_effect_allowed": False,
-        },
-        ranking_reason_summary=", ".join(top_pick.ranking_reasons[:3]),
-        confidence=_confidence(top_pick),
-        source_refs=candidate.source_refs,
-    )
+) -> list[RecommendationHintPacket]:
+    candidates_by_id = {candidate.candidate_id: candidate for candidate in candidates}
+    drafts: list[RecommendationHintPacket] = []
+    for ranked_candidate in ranked_candidates[:3]:
+        candidate = candidates_by_id[ranked_candidate.candidate_id]
+        drafts.append(
+            RecommendationHintPacket(
+                candidate_id=candidate.candidate_id,
+                title=candidate.title,
+                store_metadata={
+                    "store_name": candidate.store_name,
+                    **candidate.store_metadata,
+                },
+                source_type=candidate.source_type,
+                estimated_kcal_range=candidate.estimated_kcal_range,
+                current_surface_channel=scenario.channel,
+                selection_context={
+                    "scenario_id": scenario.scenario_id,
+                    "recommendation_mode": scenario.recommendation_mode,
+                    "runtime_effect_allowed": False,
+                    "selection_owner": "manager_llm_not_run",
+                    "runtime_recommendation_selected": False,
+                },
+                ranking_reason_summary=", ".join(ranked_candidate.ranking_reasons[:3]),
+                confidence=_confidence(ranked_candidate),
+                source_refs=candidate.source_refs,
+            )
+        )
+    return drafts
 
 
 def _soft_preferences(
@@ -620,10 +631,10 @@ def _presentation_policy(scenario: RecommendationShadowContextFixture) -> str:
     return "standard"
 
 
-def _confidence(top_pick: RankedRecommendationCandidate | None) -> float:
-    if top_pick is None:
+def _confidence(candidate: RankedRecommendationCandidate | None) -> float:
+    if candidate is None:
         return 0.0
-    return round(min(max(top_pick.score / 120.0, 0.0), 0.95), 2)
+    return round(min(max(candidate.score / 120.0, 0.0), 0.95), 2)
 
 
 def _dedupe(values: list[str]) -> list[str]:
