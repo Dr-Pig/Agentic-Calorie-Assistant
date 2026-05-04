@@ -471,10 +471,11 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
                 "test": "tests/test_body_budget_calibration_self_use_journey_smoke.py",
                 "claim_scope": "local_deterministic_body_budget_calibration_smoke",
                 "covers": [
-                    "history_to_calibration_preview",
+                    "estimate_route_history_to_calibration_preview",
+                    "estimate_route_raw_text_noop",
+                    "estimate_route_explicit_stored_action_accept",
                     "persisted_open_proposal_inbox",
                     "read_only_proposal_history",
-                    "explicit_stored_action_accept",
                     "active_body_plan_update",
                     "current_budget_same_truth",
                     "effective_budget_same_truth",
