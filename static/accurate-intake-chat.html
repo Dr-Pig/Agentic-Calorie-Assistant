@@ -331,6 +331,13 @@
         }
       });
     }
+    function updateCurrentUrl() {
+      const nextUrl = pageUrl("chat");
+      const resolved = new URL(nextUrl, window.location.href);
+      if (window.location.search !== resolved.search) {
+        window.history.replaceState(null, "", nextUrl);
+      }
+    }
     function setStatus(value) {
       el("chat-history-status").textContent = `Conversation ${value}.`;
     }
@@ -425,10 +432,12 @@
       }
     });
     el("local-date").addEventListener("change", () => {
+      updateCurrentUrl();
       updateNavigationLinks();
       loadHistory().catch((error) => setStatus(`failed ${error.message}`));
     });
     el("user-id").addEventListener("change", () => {
+      updateCurrentUrl();
       updateNavigationLinks();
       loadHistory().catch((error) => setStatus(`failed ${error.message}`));
     });

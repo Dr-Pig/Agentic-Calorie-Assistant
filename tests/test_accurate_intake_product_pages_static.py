@@ -116,6 +116,18 @@ def test_today_page_updates_current_url_when_selected_date_changes() -> None:
     assert "updateCurrentUrl();" in html
 
 
+def test_chat_and_body_pages_update_current_url_when_session_inputs_change() -> None:
+    for path, page in ((CHAT, "chat"), (BODY, "body")):
+        html = _html(path)
+
+        assert "function updateCurrentUrl()" in html
+        assert "window.history.replaceState" in html
+        assert f'pageUrl("{page}")' in html
+        assert "updateCurrentUrl();" in html
+        assert 'el("local-date").addEventListener("change", () => {\n      updateCurrentUrl();' in html
+        assert 'el("user-id").addEventListener("change", () => {\n      updateCurrentUrl();' in html
+
+
 def test_body_page_covers_plan_weight_goal_activity_inputs_without_frontend_tdee_math() -> None:
     html = _html(BODY)
 

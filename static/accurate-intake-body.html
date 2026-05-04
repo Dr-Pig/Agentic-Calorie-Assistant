@@ -303,6 +303,13 @@
         }
       });
     }
+    function updateCurrentUrl() {
+      const nextUrl = pageUrl("body");
+      const resolved = new URL(nextUrl, window.location.href);
+      if (window.location.search !== resolved.search) {
+        window.history.replaceState(null, "", nextUrl);
+      }
+    }
     function numberOrNull(id) {
       const value = el(id).value.trim();
       return value ? Number(value) : null;
@@ -420,8 +427,12 @@
       renderPlan(payload.active_body_plan || {});
       el("body-status").textContent = `Manual daily target saved${payload.current_budget?.budget_kcal == null ? "" : `: ${payload.current_budget.budget_kcal} kcal`}.`;
     });
-    el("local-date").addEventListener("change", updateNavigationLinks);
+    el("local-date").addEventListener("change", () => {
+      updateCurrentUrl();
+      updateNavigationLinks();
+    });
     el("user-id").addEventListener("change", () => {
+      updateCurrentUrl();
       updateNavigationLinks();
       loadBody().catch((error) => { el("body-status").textContent = `Could not load body plan: ${error.message}`; });
     });
