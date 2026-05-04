@@ -273,6 +273,25 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
                 "ledger_entry_calibration_adjustment_enabled": False,
                 "llm_role": "none",
             },
+            "proposal_response_contract": {
+                "service": "app.body.application.calibration_proposal_response.build_calibration_proposal_response",
+                "required_outputs": [
+                    "reply_text",
+                    "proposal_cards",
+                    "top_option",
+                    "backup_options",
+                    "quick_actions",
+                    "ui_hints",
+                ],
+                "presentation_policy": "single_primary_recommendation",
+                "backup_options_default_visibility": "hidden",
+                "quick_action_contract": {
+                    "stored_action_requires_proposal_container_id": True,
+                    "raw_text_authorized_mutation": False,
+                    "view_alternatives_mutation_authorized": False,
+                },
+                "llm_role": "explain_only_future_optional",
+            },
             "proposal_inbox": {
                 "service": "app.composition.calibration_proposal_inbox.load_open_calibration_proposal_inbox",
                 "active_statuses": sorted(ACTIVE_CALIBRATION_PROPOSAL_STATUSES),
