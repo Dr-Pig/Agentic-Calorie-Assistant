@@ -10,9 +10,11 @@ from pathlib import Path
 from app.recommendation.application.shadow_evaluator import (
     build_recommendation_shadow_eval_artifact,
     evaluate_recommendation_shadow_scenario,
+    validate_recommendation_shadow_fixture,
 )
 from app.recommendation.domain.shadow import (
     CandidateSpec,
+    RecommendationShadowFixtureValidationError,
     RecommendationCandidateFixture,
     RecommendationShadowContextFixture,
     RecommendationShadowFlags,
@@ -60,6 +62,103 @@ def test_cold_start_shadow_eval_uses_fallback_candidates_without_runtime_effect(
     assert result.hint_packet is not None
     assert result.hint_packet.is_canonical_truth is False
     assert result.flags == RecommendationShadowFlags()
+    assert result.fixture_governance["validation_status"] == "pass"
+    assert "sparse_preference_profile_allowed" in result.fixture_governance["notes"]
+
+
+def test_fixture_validation_rejects_missing_hard_budget_context() -> None:
+    scenario = _scenario(
+        scenario_id="missing-budget",
+        current_budget_view={"budget_kcal": 1600, "consumed_kcal": 900},
+        candidates=[_candidate("c1", "tofu bento")],
+    )
+
+    try:
+        validate_recommendation_shadow_fixture(scenario)
+    except RecommendationShadowFixtureValidationError as exc:
+        assert exc.reason_codes == ["missing_current_budget_remaining_kcal"]
+    else:
+        raise AssertionError("fixture validation should reject missing remaining_kcal")
+
+
+def test_fixture_validation_rejects_missing_hard_body_plan_context() -> None:
+    scenario = _scenario(
+        scenario_id="missing-body-plan",
+        active_body_plan_view={"goal_type": "lose_weight"},
+        candidates=[_candidate("c1", "tofu bento")],
+    )
+
+    try:
+        validate_recommendation_shadow_fixture(scenario)
+    except RecommendationShadowFixtureValidationError as exc:
+        assert exc.reason_codes == ["missing_active_body_plan_daily_budget_kcal"]
+    else:
+        raise AssertionError("fixture validation should reject missing active body plan budget")
+
+
+def test_fixture_validation_rejects_invalid_candidate_kcal_range() -> None:
+    scenario = _scenario(
+        scenario_id="bad-kcal-range",
+        candidates=[
+            _candidate("bad-1", "impossible bento", kcal_min=700, kcal_max=500),
+            _candidate("bad-2", "zero meal", kcal_min=0, kcal_max=0),
+        ],
+    )
+
+    try:
+        validate_recommendation_shadow_fixture(scenario)
+    except RecommendationShadowFixtureValidationError as exc:
+        assert exc.reason_codes == [
+            "candidate:bad-1:invalid_kcal_range",
+            "candidate:bad-2:invalid_kcal_range",
+        ]
+    else:
+        raise AssertionError("fixture validation should reject invalid kcal ranges")
+
+
+def test_fixture_validation_rejects_boolean_hard_context_values() -> None:
+    budget_scenario = _scenario(
+        scenario_id="bool-budget",
+        current_budget_view={"remaining_kcal": True, "budget_kcal": 1600, "consumed_kcal": 900},
+        candidates=[_candidate("c1", "tofu bento")],
+    )
+    body_scenario = _scenario(
+        scenario_id="bool-body",
+        active_body_plan_view={
+            "daily_budget_kcal": True,
+            "goal_type": "lose_weight",
+            "plan_status": "active",
+        },
+        candidates=[_candidate("c1", "tofu bento")],
+    )
+
+    for scenario, expected_code in [
+        (budget_scenario, "missing_current_budget_remaining_kcal"),
+        (body_scenario, "missing_active_body_plan_daily_budget_kcal"),
+    ]:
+        try:
+            validate_recommendation_shadow_fixture(scenario)
+        except RecommendationShadowFixtureValidationError as exc:
+            assert exc.reason_codes == [expected_code]
+        else:
+            raise AssertionError("fixture validation should reject boolean hard context")
+
+
+def test_candidate_fixture_rejects_string_or_boolean_kcal_values_before_eval() -> None:
+    for raw_range in [
+        {"min": "350", "max": "550"},
+        {"min": True, "max": True},
+    ]:
+        try:
+            RecommendationCandidateFixture(
+                candidate_id="bad-kcal",
+                title="bad kcal",
+                estimated_kcal_range=raw_range,
+            )
+        except ValueError as exc:
+            assert "estimated_kcal_range" in str(exc)
+        else:
+            raise AssertionError("candidate fixture should reject non-strict kcal values")
 
 
 def test_confirmed_negative_preference_filters_candidate_but_soft_preference_only_ranks() -> None:
@@ -241,6 +340,9 @@ def test_shadow_eval_artifact_contains_required_non_claim_flags() -> None:
     }
     assert artifact.summary["scenario_count"] == 1
     assert artifact.summary["mode_counts"] == {"general": 1}
+    assert artifact.integrity["validation_status"] == "pass"
+    assert artifact.integrity["invalid_scenario_count"] == 0
+    assert artifact.integrity["runtime_effect_allowed_count"] == 0
     assert artifact.real_runtime_effect is False
     assert artifact.recommendation_served is False
     assert artifact.intake_committed is False
@@ -264,6 +366,8 @@ def test_default_shadow_eval_writer_creates_requested_artifact(tmp_path: Path) -
     assert output == output_path
     assert payload["artifact_type"] == "recommendation_shadow_eval"
     assert payload["shadow_mode"] is True
+    assert payload["integrity"]["validation_status"] == "pass"
+    assert payload["integrity"]["invalid_scenario_count"] == 0
     assert len(payload["evals"]) >= 6
     assert all(eval_item["recommendation_served"] is False for eval_item in payload["evals"])
     assert all(eval_item["hint_packet"]["is_canonical_truth"] is False for eval_item in payload["evals"])

@@ -12,6 +12,7 @@ from app.recommendation.domain.shadow import (
     RecommendationShadowContextFixture,
     RecommendationShadowEvalArtifact,
     RecommendationShadowEvalResult,
+    RecommendationShadowFixtureValidationError,
 )
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
@@ -39,13 +40,23 @@ def build_recommendation_shadow_eval_artifact(
     return RecommendationShadowEvalArtifact(
         track_status=_track_status(),
         summary=_artifact_summary(evals),
+        integrity=_artifact_integrity(evals),
         evals=evals,
     )
+
+
+def validate_recommendation_shadow_fixture(
+    scenario: RecommendationShadowContextFixture,
+) -> None:
+    reason_codes = _fixture_validation_reason_codes(scenario)
+    if reason_codes:
+        raise RecommendationShadowFixtureValidationError(reason_codes)
 
 
 def evaluate_recommendation_shadow_scenario(
     scenario: RecommendationShadowContextFixture,
 ) -> RecommendationShadowEvalResult:
+    validate_recommendation_shadow_fixture(scenario)
     cold_start_used = _is_cold_start(scenario.preference_profile_summary)
     hard_constraints = _hard_constraints(scenario)
     source_candidates = list(scenario.candidate_source_fixture)
@@ -102,6 +113,7 @@ def evaluate_recommendation_shadow_scenario(
         freshness_notes=freshness_notes,
         presentation_policy=_presentation_policy(scenario),
         mode_notes=_mode_notes(scenario),
+        fixture_governance=_fixture_governance(scenario),
     )
 
 
@@ -135,6 +147,72 @@ def _artifact_summary(evals: list[RecommendationShadowEvalResult]) -> dict[str, 
         "intake_committed_count": sum(
             1 for eval_item in evals if eval_item.intake_committed
         ),
+    }
+
+
+def _artifact_integrity(evals: list[RecommendationShadowEvalResult]) -> dict[str, Any]:
+    runtime_effect_count = sum(1 for eval_item in evals if eval_item.runtime_effect_allowed)
+    invalid_count = sum(
+        1
+        for eval_item in evals
+        if eval_item.fixture_governance.get("validation_status") != "pass"
+    )
+    return {
+        "validation_status": "pass"
+        if invalid_count == 0 and runtime_effect_count == 0
+        else "fail",
+        "invalid_scenario_count": invalid_count,
+        "runtime_effect_allowed_count": runtime_effect_count,
+        "canonical_hint_packet_count": sum(
+            1
+            for eval_item in evals
+            if eval_item.hint_packet is not None and eval_item.hint_packet.is_canonical_truth
+        ),
+    }
+
+
+def _fixture_validation_reason_codes(
+    scenario: RecommendationShadowContextFixture,
+) -> list[str]:
+    reason_codes: list[str] = []
+    if not _is_strict_int(scenario.current_budget_view.get("remaining_kcal")):
+        reason_codes.append("missing_current_budget_remaining_kcal")
+    if not _is_strict_int(scenario.active_body_plan_view.get("daily_budget_kcal")):
+        reason_codes.append("missing_active_body_plan_daily_budget_kcal")
+    for candidate in scenario.candidate_source_fixture:
+        kcal_min = candidate.estimated_kcal_range.get("min")
+        kcal_max = candidate.estimated_kcal_range.get("max")
+        if not _valid_kcal_range(kcal_min, kcal_max):
+            reason_codes.append(f"candidate:{candidate.candidate_id}:invalid_kcal_range")
+    return reason_codes
+
+
+def _valid_kcal_range(kcal_min: int | None, kcal_max: int | None) -> bool:
+    if not _is_strict_int(kcal_min) or not _is_strict_int(kcal_max):
+        return False
+    return 0 < kcal_min <= kcal_max
+
+
+def _is_strict_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _fixture_governance(scenario: RecommendationShadowContextFixture) -> dict[str, Any]:
+    notes: list[str] = []
+    if _is_cold_start(scenario.preference_profile_summary):
+        notes.append("sparse_preference_profile_allowed")
+    if not scenario.golden_order_summary.get("orders"):
+        notes.append("empty_golden_orders_allowed")
+    if not scenario.negative_preference_summary.get("items"):
+        notes.append("empty_negative_preferences_allowed")
+    return {
+        "validation_status": "pass",
+        "notes": notes,
+        "fixture_only": True,
+        "hard_context_checked": [
+            "current_budget_view.remaining_kcal",
+            "active_body_plan_view.daily_budget_kcal",
+        ],
     }
 
 
@@ -556,4 +634,5 @@ __all__ = [
     "SIDECAR_ACTIVATION_CONTRACT",
     "build_recommendation_shadow_eval_artifact",
     "evaluate_recommendation_shadow_scenario",
+    "validate_recommendation_shadow_fixture",
 ]

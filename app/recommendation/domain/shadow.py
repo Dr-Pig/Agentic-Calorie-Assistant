@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictInt
 
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
@@ -32,6 +32,12 @@ class RecommendationShadowFlags(BaseModel):
     private_self_use_approved: Literal[False] = False
 
 
+class RecommendationShadowFixtureValidationError(ValueError):
+    def __init__(self, reason_codes: list[str]) -> None:
+        self.reason_codes = reason_codes
+        super().__init__(", ".join(reason_codes))
+
+
 class CandidateSpec(BaseModel):
     desired_meal_style: str = "any"
     acceptable_cuisine_families: list[str] = Field(default_factory=lambda: ["any"])
@@ -52,7 +58,7 @@ class RecommendationCandidateFixture(BaseModel):
     title: str
     source_type: str = "safe_fallback"
     store_name: str | None = None
-    estimated_kcal_range: dict[str, int] = Field(
+    estimated_kcal_range: dict[str, StrictInt] = Field(
         default_factory=lambda: {"min": 0, "max": 0}
     )
     item_kind: str = "meal"
@@ -150,6 +156,7 @@ class RecommendationShadowEvalResult(BaseModel):
     freshness_notes: list[str] = Field(default_factory=list)
     presentation_policy: str = "standard"
     mode_notes: list[str] = Field(default_factory=list)
+    fixture_governance: dict[str, Any] = Field(default_factory=dict)
     runtime_effect_allowed: Literal[False] = False
     shadow_mode: Literal[True] = True
     recommendation_served: Literal[False] = False
@@ -173,6 +180,7 @@ class RecommendationShadowEvalArtifact(BaseModel):
     private_self_use_approved: Literal[False] = False
     track_status: dict[str, Any] = Field(default_factory=dict)
     summary: dict[str, Any] = Field(default_factory=dict)
+    integrity: dict[str, Any] = Field(default_factory=dict)
     evals: list[RecommendationShadowEvalResult] = Field(default_factory=list)
 
 
@@ -186,6 +194,7 @@ __all__ = [
     "RecommendationShadowContextFixture",
     "RecommendationShadowEvalArtifact",
     "RecommendationShadowEvalResult",
+    "RecommendationShadowFixtureValidationError",
     "RecommendationShadowFlags",
     "SIDECAR_ACTIVATION_CONTRACT",
 ]
