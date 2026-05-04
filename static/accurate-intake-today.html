@@ -235,9 +235,9 @@
   <header class="topbar">
     <div class="brand">Accurate Intake</div>
     <nav aria-label="Accurate Intake pages">
-      <a href="/static/accurate-intake-chat.html">Chat</a>
-      <a href="/static/accurate-intake-today.html" aria-current="page">Today</a>
-      <a href="/static/accurate-intake-body.html">Body</a>
+      <a data-nav-target="chat" href="/static/accurate-intake-chat.html">Chat</a>
+      <a data-nav-target="today" href="/static/accurate-intake-today.html" aria-current="page">Today</a>
+      <a data-nav-target="body" href="/static/accurate-intake-body.html">Body</a>
     </nav>
   </header>
   <main data-surface-role="today-diary">
@@ -287,6 +287,17 @@
     }
     function selectedDate() {
       return el("selected-date").value || todayIso();
+    }
+    function pageUrl(page) {
+      return `/static/accurate-intake-${page}.html?user_id=${encodeURIComponent(userId())}&local_date=${encodeURIComponent(selectedDate())}`;
+    }
+    function updateNavigationLinks() {
+      document.querySelectorAll("[data-nav-target]").forEach((link) => {
+        const target = link.getAttribute("data-nav-target");
+        if (target) {
+          link.href = pageUrl(target);
+        }
+      });
     }
     function shiftDate(iso, delta) {
       const date = new Date(`${iso}T00:00:00`);
@@ -352,6 +363,7 @@
     }
     async function loadToday() {
       renderDayStrip();
+      updateNavigationLinks();
       el("today-status").textContent = "Loading this day...";
       const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
       const payload = await requestJson(`${endpoints.currentBudget}?${query.toString()}`);
