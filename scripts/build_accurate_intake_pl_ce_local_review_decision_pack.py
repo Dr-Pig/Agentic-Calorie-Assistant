@@ -17,10 +17,16 @@ REQUIRED_PL_CE_LOCAL_REVIEW_EVIDENCE = (
     "browser_shell_smoke",
     "browser_fixture_dogfood",
     "browser_realistic_dogfood",
+    "fixture_full_product_loop_e2e",
     "pl_ce_review_bundle",
     "context_review",
     "context_target_candidate_eval",
+    "context_replay_pack",
     "context_window_diagnostic",
+    "context_quality_pack",
+    "fixture_evidence_packet_emulator",
+    "fake_provider_tool_loop_smoke",
+    "review_eval_candidate_pipeline",
     "local_operator_data_hygiene_bundle",
     "mvp_gate",
 )
@@ -31,7 +37,12 @@ _PASS_STATUSES = {
     "browser_fixture_pass",
     "browser_diagnostic_pass_with_fixture_evidence_gap",
     "browser_diagnostic_pass_with_evidence_gap",
+    "fixture_product_loop_e2e_diagnostic_pass",
     "product_loop_context_diagnostic_ready_for_human_review",
+    "context_quality_diagnostic_pass",
+    "fixture_packet_emulator_ready",
+    "fake_provider_tool_loop_smoke_pass",
+    "review_eval_candidate_pipeline_ready",
     "local_operator_data_hygiene_ready",
 }
 
@@ -80,6 +91,28 @@ def _overclaim_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         blockers.append(f"{group_id}_writes_performed")
     if payload.get("import_allowed") is True:
         blockers.append(f"{group_id}_import_allowed")
+    if payload.get("fixture_packet_truth") is True:
+        blockers.append(f"{group_id}_fixture_packet_truth")
+    if payload.get("evidence_packet_truth") is True:
+        blockers.append(f"{group_id}_evidence_packet_truth")
+    if payload.get("canonical_eval_promoted") is True:
+        blockers.append(f"{group_id}_canonical_eval_promoted")
+    if payload.get("manager_context_packet_schema_changed") is True:
+        blockers.append(f"{group_id}_manager_context_packet_schema_changed")
+    if payload.get("deterministic_semantic_inference_used") is True:
+        blockers.append(f"{group_id}_deterministic_semantic_inference_used")
+    if payload.get("raw_text_intent_router_used") is True:
+        blockers.append(f"{group_id}_raw_text_intent_router_used")
+    if payload.get("mutation_authority") is True:
+        blockers.append(f"{group_id}_mutation_authority")
+    if payload.get("ready_for_live_diagnostic_decision") is True:
+        blockers.append(f"{group_id}_ready_for_live_diagnostic_decision")
+    if payload.get("ready_for_fdb_integration") is True:
+        blockers.append(f"{group_id}_ready_for_fdb_integration")
+    if payload.get("fooddb_evidence_used") is True:
+        blockers.append(f"{group_id}_fooddb_evidence_used")
+    if payload.get("websearch_evidence_used") is True:
+        blockers.append(f"{group_id}_websearch_evidence_used")
     return blockers
 
 
