@@ -13,5 +13,7 @@ def test_foundation_train_runbook_mentions_context_policy_harness_and_fooddb_pla
     assert "LocalSQLiteRouteHarness" in text
     assert "write_json_artifact" in text
     assert "build_accurate_intake_fooddb_quality_plan.py" in text
+    assert "build_accurate_intake_food_evidence_human_review_pack.py" in text
+    assert "First Food Evidence human review pack" in text
     assert "FoodDB truth" in text
     assert "review packets only" in text
