@@ -78,6 +78,13 @@ def test_body_budget_calibration_readiness_artifact_records_preview_and_action_m
     assert chat_action["chat_primary_surface"] is True
     assert chat_action["does_not_keyword_attach"] is True
     assert "explicit_proposal_container_id" in chat_action["requires"]
+    estimate_bridge = artifact["calibration_flow_contract"]["estimate_route_action_bridge"]
+    assert estimate_bridge["route"] == "/estimate"
+    assert estimate_bridge["mode"] == "calibration_action"
+    assert estimate_bridge["raw_text_authorized_mutation"] is False
+    assert estimate_bridge["manager_provider_invoked"] is False
+    assert "calibration_proposal_container_id" in estimate_bridge["requires"]
+    assert "accept_calibration_proposal" in estimate_bridge["accepted_actions"]
 
     non_claims = artifact["non_claims"]
     assert non_claims["automatic_calibration_enabled"] is False

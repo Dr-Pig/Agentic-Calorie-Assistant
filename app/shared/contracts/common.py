@@ -38,6 +38,11 @@ RecommendationCandidateKind = Literal["golden_order", "nearby", "safe_fallback",
 RecommendationBudgetPosture = Literal["on_track", "tight", "over_budget", "unknown"]
 StageTraceStatus = Literal["ok", "error"]
 LogicalModelRole = Literal["fast_router_model", "strict_reasoner_model", "response_writer_model", "vision_parser_model"]
+CalibrationEstimateAction = Literal[
+    "accept_calibration_proposal",
+    "defer_calibration_proposal",
+    "reject_calibration_proposal",
+]
 
 
 class ComponentContext(BaseModel):
@@ -57,6 +62,8 @@ class EstimateRequest(BaseModel):
     allow_search: bool = True
     user_id: str = "default_user"
     session_state: EstimateSessionState | None = None
+    calibration_proposal_container_id: int | None = Field(default=None, ge=1)
+    calibration_action: CalibrationEstimateAction | None = None
 
 
 class TurnState(BaseModel):
