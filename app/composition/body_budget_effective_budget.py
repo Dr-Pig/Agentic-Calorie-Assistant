@@ -96,7 +96,7 @@ def build_body_budget_effective_budget_view(
             "canonical_l3m_formula_enabled": True,
             "migration_required_before_calibration_adjustment_ledger_entries": False,
         },
-        "calibration_adjustment_ledger_entry_enabled": False,
+        "calibration_adjustment_ledger_entry_enabled": True,
         "automatic_calibration_enabled": False,
         "rescue_enabled": False,
         "recommendation_enabled": False,
