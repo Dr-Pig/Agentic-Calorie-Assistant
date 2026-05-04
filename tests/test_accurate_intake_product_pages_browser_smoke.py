@@ -201,6 +201,15 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
     assert report["today_manual_target_readback_checked"] is True
 
 
+def test_ci_requires_product_pages_browser_execution() -> None:
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+
+    assert "product-pages-browser-e2e" in workflow
+    assert "python -m playwright install --with-deps chromium" in workflow
+    assert "run_accurate_intake_product_pages_browser_smoke.py --require-browser-execution" in workflow
+    assert "accurate_intake_product_pages_browser_smoke_ci.json" in workflow
+
+
 def test_product_pages_browser_smoke_stays_out_of_fooddb_websearch_and_live_boundaries() -> None:
     source = Path("scripts/run_accurate_intake_product_pages_browser_smoke.py").read_text(encoding="utf-8")
 

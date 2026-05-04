@@ -55,6 +55,7 @@ def test_chat_page_can_send_local_access_header_for_history_without_storage() ->
     assert '"X-Local-Debug-Token": token' in html
     assert "localDebugHeaders" in html
     assert "localDebugHeaders(url)" in html
+    assert "local_debug_token" not in html
     assert "localStorage" not in html
     assert "sessionStorage" not in html
 

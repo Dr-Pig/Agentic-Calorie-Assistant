@@ -320,8 +320,7 @@
     function localDebugHeaders(url) {
       const inputToken = el("local-access-token")?.value.trim() || "";
       const globalToken = typeof window.LOCAL_DEBUG_API_TOKEN === "string" ? window.LOCAL_DEBUG_API_TOKEN.trim() : "";
-      const paramToken = (params.get("local_debug_token") || "").trim();
-      const token = inputToken || globalToken || paramToken;
+      const token = inputToken || globalToken;
       if (!token) {
         return {};
       }
