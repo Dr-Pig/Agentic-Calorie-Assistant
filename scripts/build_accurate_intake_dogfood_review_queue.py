@@ -13,15 +13,7 @@ from app.composition.dogfood_review_queue import (  # noqa: E402
     build_dogfood_review_queue_artifact,
     build_review_candidate_from_runtime_trace,
 )
-
-
-def _read_json(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -48,18 +40,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     review_candidates = [
-        build_review_candidate_from_runtime_trace(_read_json(Path(path)))
+        build_review_candidate_from_runtime_trace(read_json_artifact(Path(path)))
         for path in args.trace_json
     ]
     correction_feedback_events = [
-        _read_json(Path(path))
+        read_json_artifact(Path(path))
         for path in args.correction_event_json
     ]
     artifact = build_dogfood_review_queue_artifact(
         review_candidates=review_candidates,
         correction_feedback_events=correction_feedback_events,
     )
-    _write_json(Path(args.output), artifact)
+    write_json_artifact(Path(args.output), artifact)
     print(json.dumps({"artifact": args.output, "status": artifact["status"]}, ensure_ascii=False))
     return 0
 
