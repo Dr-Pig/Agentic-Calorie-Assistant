@@ -41,8 +41,10 @@ def test_body_budget_calibration_readiness_artifact_freezes_plce_read_model_cont
     effective_budget = artifact["stable_read_models"][2]
     assert effective_budget["backend_route"] == "/today/effective-budget"
     assert "runtime_effective_budget_kcal" in effective_budget["stable_fields"]
+    assert "adjustment_layers.runtime_adjustment_total_from_entries_kcal" in effective_budget["stable_fields"]
     assert "sign_policy" in effective_budget["stable_fields"]
     assert "calculate_effective_budget" in effective_budget["plce_forbidden"]
+    assert artifact["calibration_flow_contract"]["effective_budget_math"]["canonical_l3m_formula_enabled"] is True
 
 
 def test_body_budget_calibration_readiness_artifact_records_preview_and_action_mutation_boundaries() -> None:

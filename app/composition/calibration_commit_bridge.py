@@ -7,6 +7,7 @@ from typing import Any, Literal
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.budget.application.effective_budget_math import summarize_budget_adjustment_layers
 from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord
 from app.composition.canonical_persistence import (
     ensure_proposal_artifact_skeleton,
@@ -158,15 +159,15 @@ def _build_calibration_commit_current_budget_view(
     if active_plan is None or int(active_plan.daily_budget_kcal or 0) <= 0:
         return view
 
-    adjustment_deltas = db.execute(
-        select(LedgerEntryRecord.delta_kcal).where(
+    adjustment_entries = db.execute(
+        select(LedgerEntryRecord).where(
             LedgerEntryRecord.user_id == user_id,
             LedgerEntryRecord.local_date == local_date,
             LedgerEntryRecord.entry_type != "meal_consumption",
         )
     ).scalars().all()
     budget_kcal = int(active_plan.daily_budget_kcal or 0)
-    adjustment_kcal = sum(int(delta or 0) for delta in adjustment_deltas)
+    adjustment_kcal = summarize_budget_adjustment_layers(adjustment_entries).runtime_adjustment_total_kcal
     return view.model_copy(
         update={
             "budget_kcal": budget_kcal,

@@ -100,6 +100,8 @@ def _stable_read_models() -> list[dict[str, Any]]:
                 "remaining_kcal",
                 "remaining_formula",
                 "adjustment_layers",
+                "adjustment_layers.signed_effective_budget_delta_kcal",
+                "adjustment_layers.runtime_adjustment_total_from_entries_kcal",
                 "entry_breakdown",
                 "sign_policy",
                 "calibration_adjustment_ledger_entry_enabled",
@@ -110,7 +112,7 @@ def _stable_read_models() -> list[dict[str, Any]]:
                 "calculate_adjustment_layer_totals",
                 "calculate_sign_policy",
                 "infer_calibration_adjustment_ledger_entry_readiness",
-                "switch_to_canonical_l3m_formula_without_backend_migration",
+                "reinterpret_signed_layers_outside_backend_budget_math_helper",
             ],
         },
         {
@@ -200,7 +202,7 @@ def _readiness_claim() -> dict[str, Any]:
                 "docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md#BodyBudget PL/CE Integration Readiness Matrix",
             ],
         },
-        allowed_next_stage="pl_ce_render_contract_or_effective_budget_math_migration",
+        allowed_next_stage="calibration_adjustment_ledger_entry_commit",
         forbidden_claims=[
             "product_ready",
             "private_self_use_approved",
@@ -237,6 +239,15 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
             "proposal_inbox_order_owned_by_backend": True,
         },
         "calibration_flow_contract": {
+            "effective_budget_math": {
+                "service": "app.budget.application.effective_budget_math.summarize_budget_adjustment_layers",
+                "sign_policy": "type_aware_signed_layers_to_legacy_subtractive_adjustment",
+                "manual_adjustment_policy": "positive_delta_reduces_available_budget",
+                "calibration_adjustment_policy": "signed_delta_adds_to_effective_budget",
+                "rescue_overlay_policy": "signed_delta_adds_to_effective_budget",
+                "canonical_l3m_formula_enabled": True,
+                "llm_role": "none",
+            },
             "input_assembler": {
                 "service": "app.composition.calibration_input_assembler."
                 "assemble_calibration_model_inputs_from_history",
