@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.composition.current_budget_answer import RemainingBudgetAnswerContract
+from app.runtime.contracts.phase_a import CurrentTurnContextV1, InteractionEvent
 from app.intake.application.boundary_output_honesty import (
     enforce_budget_output_honesty,
     enforce_intake_output_honesty,
@@ -218,9 +219,21 @@ async def test_general_chat_route_applies_degraded_budget_output_honesty(
         meal_count=2,
     )
     captured_trace: dict[str, object] = {}
+    captured_record: dict[str, object] = {}
 
     monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: SimpleNamespace())
-    monkeypatch.setattr(module, "build_current_turn_context_v1", lambda **_: SimpleNamespace())
+    monkeypatch.setattr(
+        module,
+        "build_current_turn_context_v1",
+        lambda **_: CurrentTurnContextV1(
+            user_utterance="how many calories can I still eat?",
+            current_interaction_event=InteractionEvent(
+                source="chat",
+                event_type="user_message",
+                raw_text="how many calories can I still eat?",
+            ),
+        ),
+    )
     monkeypatch.setattr(
         module,
         "build_workflow_routing_decision",
@@ -251,6 +264,7 @@ async def test_general_chat_route_applies_degraded_budget_output_honesty(
         captured_trace.update(kwargs)
 
     monkeypatch.setattr(module, "write_general_chat_request_trace_artifact", _capture_trace)
+    monkeypatch.setattr(module, "record_runtime_turn_messages", lambda *_, **kwargs: captured_record.update(kwargs))
 
     result = await module.estimate(
         SimpleNamespace(text="how many calories can I still eat?", user_id="user-1"),
@@ -263,3 +277,5 @@ async def test_general_chat_route_applies_degraded_budget_output_honesty(
     assert isinstance(phase_a_trace, dict)
     assert phase_a_trace["phase_a_output_honesty"]["normalized"] is True
     assert "500" not in captured_trace["assistant_message"]
+    assert captured_record["manager_context_packet_v1"] is not None
+    assert captured_record["manager_context_packet_v1"]["metadata"]["context_policy_version"]
