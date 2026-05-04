@@ -124,6 +124,7 @@ def test_offline_sidecar_stack_is_not_imported_by_active_runtime_entrypoints() -
         "app.recommendation",
         "app.rescue",
         "app.runtime.application.proactive_deterministic_gate",
+        "app.runtime.application.proactive_no_send_shadow_evaluator",
         "app.runtime.contracts.pending_meal_intent",
         "app.runtime.contracts.proactive_gate",
     )
