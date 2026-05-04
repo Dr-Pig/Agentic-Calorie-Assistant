@@ -25,6 +25,15 @@ def _evidence(**overrides: dict) -> dict:
             "production_db_used": False,
             "fooddb_truth_updated": False,
         },
+        "pl_ce_local_review_decision_pack": {
+            "status": "ready_for_human_pl_ce_review",
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "real_fooddb_pass_claimed": False,
+            "private_self_use_approved": False,
+        },
     }
     evidence.update(overrides)
     return evidence
@@ -93,6 +102,65 @@ def test_pre_live_decision_pack_requires_browser_executed_evidence_before_human_
     assert pack["selected_option"] == "stay_local_self_use"
     assert "browser_shell_smoke" in pack["missing_evidence"]
     assert pack["evidence_status"]["browser_shell_smoke"]["browser_executed"] is False
+
+
+def test_pre_live_decision_pack_requires_pl_ce_local_review_gate_before_human_live_decision() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(pl_ce_local_review_decision_pack={})
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "pl_ce_local_review_decision_pack" in pack["missing_evidence"]
+    assert pack["ready_for_pl_ce_local_review"] is False
+    assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_blocks_when_pl_ce_local_review_gate_is_blocked() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            pl_ce_local_review_decision_pack={
+                "status": "blocked",
+                "ready_for_live_diagnostic_decision": False,
+            }
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "pl_ce_local_review_decision_pack" in pack["missing_evidence"]
+    assert pack["ready_for_pl_ce_local_review"] is False
+    assert pack["live_canary_approved"] is False
+
+
+def test_pre_live_decision_pack_blocks_pl_ce_local_review_overclaims() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            pl_ce_local_review_decision_pack={
+                "status": "ready_for_human_pl_ce_review",
+                "ready_for_live_diagnostic_decision": True,
+                "ready_for_fdb_integration": True,
+                "real_fooddb_pass_claimed": True,
+                "private_self_use_approved": True,
+            }
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "pl_ce_local_review_decision_pack_ready_for_live_diagnostic_decision" in pack["blockers"]
+    assert "pl_ce_local_review_decision_pack_ready_for_fdb_integration" in pack["blockers"]
+    assert "pl_ce_local_review_decision_pack_real_fooddb_pass_claimed" in pack["blockers"]
+    assert "pl_ce_local_review_decision_pack_private_self_use_approved" in pack["blockers"]
+    assert pack["ready_for_pl_ce_local_review"] is True
+    assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_does_not_accept_pl_ce_status_for_other_evidence() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(phase_c_gate={"status": "ready_for_human_pl_ce_review"})
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "phase_c_gate" in pack["missing_evidence"]
+    assert pack["ready_for_pl_ce_local_review"] is True
 
 
 def test_pre_live_decision_pack_script_writes_artifact(tmp_path: Path) -> None:
