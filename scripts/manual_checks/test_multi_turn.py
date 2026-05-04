@@ -1,15 +1,21 @@
 """Multi-turn persistence test for the unified MealLog memory system."""
 import asyncio
+import os
 import httpx
 
 BASE = "http://127.0.0.1:8011"
 USER_ID = "test_user_multiturn"
 
 
+def _debug_headers():
+    token = os.environ.get("LOCAL_DEBUG_API_TOKEN", "").strip()
+    return {"X-Local-Debug-Token": token} if token else {}
+
+
 async def main():
     async with httpx.AsyncClient(timeout=60) as client:
         # Reset context
-        await client.post(f"{BASE}/user/{USER_ID}/context/reset")
+        await client.post(f"{BASE}/user/{USER_ID}/context/reset", headers=_debug_headers())
 
         # ── Turn 1: New intake ──
         print("--- Turn 1: New intake ---")
@@ -26,7 +32,7 @@ async def main():
         print(f"Kcal: {p1.get('estimated_kcal')}")
 
         # Check logs
-        logs1 = (await client.get(f"{BASE}/user/{USER_ID}/logs")).json()
+        logs1 = (await client.get(f"{BASE}/user/{USER_ID}/logs", headers=_debug_headers())).json()
         print(f"\nLogs after Turn 1: {len(logs1['logs'])} record(s)")
         if logs1["logs"]:
             print(f"  Latest: {logs1['logs'][0]['meal_title']} - {logs1['logs'][0]['kcal']} kcal")
@@ -48,7 +54,7 @@ async def main():
         print(f"Kcal: {p2.get('estimated_kcal')}")
 
         # Check logs - should see superseded + new completed
-        logs2 = (await client.get(f"{BASE}/user/{USER_ID}/logs")).json()
+        logs2 = (await client.get(f"{BASE}/user/{USER_ID}/logs", headers=_debug_headers())).json()
         print(f"\nLogs after Turn 2: {len(logs2['logs'])} record(s)")
         for log in logs2["logs"]:
             print(f"  [{log.get('id')}] {log['meal_title']} - {log['kcal']} kcal")
@@ -69,7 +75,7 @@ async def main():
         print(f"Action: {p3.get('action_taken')}")
         print(f"Kcal: {p3.get('estimated_kcal')}")
 
-        logs3 = (await client.get(f"{BASE}/user/{USER_ID}/logs")).json()
+        logs3 = (await client.get(f"{BASE}/user/{USER_ID}/logs", headers=_debug_headers())).json()
         print(f"\nLogs after Turn 3: {len(logs3['logs'])} record(s)")
         for log in logs3["logs"]:
             print(f"  [{log.get('id')}] {log['meal_title']} - {log['kcal']} kcal")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from typing import Any
 
 from fastapi import FastAPI
@@ -103,6 +104,8 @@ def _client(db: Session, provider: _ManualTargetManagerProvider, monkeypatch) ->
 
 
 def test_free_text_manual_target_uses_manager_decision_and_existing_target_service(monkeypatch) -> None:
+    debug_token = secrets.token_urlsafe(24)
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", debug_token)
     db = _session()
     provider = _ManualTargetManagerProvider(target_kcal=1600)
     client = _client(db, provider, monkeypatch)
@@ -131,6 +134,7 @@ def test_free_text_manual_target_uses_manager_decision_and_existing_target_servi
     debug = client.get(
         "/accurate-intake/debug",
         params={"user_id": user_external_id, "local_date": today.json()["local_date"]},
+        headers={"X-Local-Debug-Token": debug_token},
     )
 
     assert today.json()["budget_kcal"] == 1600
@@ -141,6 +145,8 @@ def test_free_text_manual_target_uses_manager_decision_and_existing_target_servi
 
 
 def test_free_text_manual_target_blocks_unsafe_target_without_meal_mutation(monkeypatch) -> None:
+    debug_token = secrets.token_urlsafe(24)
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", debug_token)
     db = _session()
     provider = _ManualTargetManagerProvider(target_kcal=300)
     client = _client(db, provider, monkeypatch)
@@ -161,7 +167,11 @@ def test_free_text_manual_target_blocks_unsafe_target_without_meal_mutation(monk
     assert payload["remaining_budget"]["daily_target_kcal"] is None
     assert payload["remaining_budget"]["remaining_kcal"] is None
 
-    debug = client.get("/accurate-intake/debug", params={"user_id": user_external_id})
+    debug = client.get(
+        "/accurate-intake/debug",
+        params={"user_id": user_external_id},
+        headers={"X-Local-Debug-Token": debug_token},
+    )
     assert debug.status_code == 200
     assert debug.json()["model"]["meal_threads"] == []
 

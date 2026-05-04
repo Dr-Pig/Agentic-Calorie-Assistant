@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import secrets
 import socket
 import sys
 import threading
@@ -236,6 +238,7 @@ def _run_browser_sequence(
     base_url: str,
     user_external_id: str,
     cjk_message: str,
+    local_debug_token: str,
     timeout_ms: int,
     headless: bool,
 ) -> dict[str, Any]:
@@ -248,10 +251,17 @@ def _run_browser_sequence(
             f"""
             (() => {{
               const smokeUserId = {json.dumps(user_external_id)};
+              const localDebugToken = {json.dumps(local_debug_token)};
               const primeUserId = () => {{
                 const input = document.querySelector("#user-id");
                 if (input && input.value !== smokeUserId) {{
                   input.value = smokeUserId;
+                }}
+              }};
+              const primeLocalDebugToken = () => {{
+                const input = document.querySelector("#local-debug-token");
+                if (input && input.value !== localDebugToken) {{
+                  input.value = localDebugToken;
                 }}
               }};
               const captureInitialChat = () => {{
@@ -262,10 +272,12 @@ def _run_browser_sequence(
               }};
               const observer = new MutationObserver(() => {{
                 primeUserId();
+                primeLocalDebugToken();
                 captureInitialChat();
               }});
               observer.observe(document, {{ childList: true, subtree: true, characterData: true }});
               primeUserId();
+              primeLocalDebugToken();
               captureInitialChat();
             }})();
             """
@@ -274,6 +286,13 @@ def _run_browser_sequence(
         try:
             page.goto(f"{base_url}/static/accurate-intake-local-shell.html", wait_until="networkidle", timeout=timeout_ms)
             page.fill("#user-id", user_external_id)
+            page.fill("#local-debug-token", local_debug_token)
+            page.wait_for_function(
+                """(token) => document.querySelector("#local-debug-token")?.value === token""",
+                arg=local_debug_token,
+                timeout=timeout_ms,
+            )
+            page.evaluate("""async () => { await syncSurfaces(); }""")
             page.wait_for_selector("#message-input", timeout=timeout_ms)
             initial_chat_text = page.evaluate(
                 """() => window.__accurateIntakeInitialChatText || document.querySelector("#chat-log")?.textContent || "" """
@@ -554,6 +573,9 @@ def build_browser_shell_smoke_report(
     engine, SessionLocal = _session_factory(db_path)
     provider = DeterministicSelfUseManagerProvider()
     db = SessionLocal()
+    local_debug_token = secrets.token_urlsafe(24)
+    previous_debug_token = os.environ.get("LOCAL_DEBUG_API_TOKEN")
+    os.environ["LOCAL_DEBUG_API_TOKEN"] = local_debug_token
     app = _build_app(db, provider)
     port = _free_port()
     server, thread = _run_uvicorn_in_thread(app, port=port)
@@ -568,6 +590,7 @@ def build_browser_shell_smoke_report(
                 base_url=base_url,
                 user_external_id=user_external_id,
                 cjk_message=cjk_message,
+                local_debug_token=local_debug_token,
                 timeout_ms=timeout_ms,
                 headless=headless,
             )
@@ -607,6 +630,10 @@ def build_browser_shell_smoke_report(
         _restore_runtime(app)
         db.close()
         engine.dispose()
+        if previous_debug_token is None:
+            os.environ.pop("LOCAL_DEBUG_API_TOKEN", None)
+        else:
+            os.environ["LOCAL_DEBUG_API_TOKEN"] = previous_debug_token
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -19,6 +19,11 @@ from app.nutrition.application.grokfast_websearch_packet_smoke import (  # noqa:
     build_live_websearch_manager_payload,
 )
 from app.providers.builderspace_adapter import BuilderSpaceAdapter, BuilderSpaceResponseError  # noqa: E402
+from app.runtime.agent.founder_live_manager_contract import (  # noqa: E402
+    FOUNDER_LIVE_MANAGER_CONTRACT_PROFILE_ID,
+    FOUNDER_LIVE_MANAGER_TRANSPORT_POLICY,
+    founder_live_manager_contract_constraints,
+)
 from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT  # noqa: E402
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE  # noqa: E402
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
@@ -32,7 +37,8 @@ WEBSEARCH_PACKET_MANAGER_SYSTEM_PROMPT = (
     + "\nWebSearch packet seam diagnostic: the user payload contains a compact, candidate-only "
     "WebSearch evidence packet. Use it only for source candidate review and disambiguation. "
     "Do not create nutrition truth, exact-card truth, FoodDB truth, item_results, ledger writes, "
-    "or readiness claims.\n"
+    "or readiness claims. When the provider uses the manager structured-decision tool contract, "
+    "return exactly that tool's argument object and include both top-level intent and intent_type.\n"
 )
 
 
@@ -97,7 +103,7 @@ async def _run_live(*, packet_artifact: dict[str, Any]) -> tuple[dict[str, Any],
         try:
             parsed, trace = await adapter.complete_with_trace(
                 system_prompt=WEBSEARCH_PACKET_MANAGER_SYSTEM_PROMPT,
-                user_payload=build_live_websearch_manager_payload(packet_case=packet_case),
+                user_payload=_build_live_manager_payload_with_contract(packet_case=packet_case),
                 stage=MANAGER_LOOP_STAGE,
                 max_tokens=1600,
             )
@@ -156,6 +162,31 @@ async def _run_live(*, packet_artifact: dict[str, Any]) -> tuple[dict[str, Any],
     )
     artifact["provider_readiness"] = readiness
     return artifact, 0
+
+
+def _build_live_manager_payload_with_contract(*, packet_case: dict[str, Any]) -> dict[str, Any]:
+    payload = build_live_websearch_manager_payload(packet_case=packet_case)
+    base_constraints = dict(payload.get("constraints") or {})
+    contract_constraints = founder_live_manager_contract_constraints(
+        GROKFAST_WEBSEARCH_PACKET_PROFILE["provider_profile_id"],
+        tool_results=[],
+    )
+    payload["constraints"] = {
+        **base_constraints,
+        **contract_constraints,
+        "websearch_packet_smoke": True,
+        "websearch_runtime_truth_allowed": False,
+        "runtime_mutation_allowed": False,
+        "expected_behavior": base_constraints.get("expected_behavior"),
+        "case_id": base_constraints.get("case_id"),
+    }
+    payload["manager_contract_diagnostic"] = {
+        "profile_id": FOUNDER_LIVE_MANAGER_CONTRACT_PROFILE_ID,
+        "transport_policy": FOUNDER_LIVE_MANAGER_TRANSPORT_POLICY,
+        "claim_scope": "websearch_packet_manager_seam_smoke_only",
+        "runtime_truth_changed": False,
+    }
+    return payload
 
 
 def _load_packet_artifact(input_path: Path) -> dict[str, Any]:

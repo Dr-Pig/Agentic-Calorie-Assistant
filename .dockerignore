@@ -23,6 +23,10 @@ __pycache__
 .env
 .env.*
 !.env.example
+.evomap_credentials.json
+.evomap-node.json
+evomap_credentials.json
+evomap-node.json
 artifacts/
 runtime/
 workspace_data/
