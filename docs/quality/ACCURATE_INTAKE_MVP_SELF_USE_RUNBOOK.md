@@ -191,6 +191,14 @@ python scripts/build_accurate_intake_dogfood_operator_review.py --dogfood-json a
 
 This surface is a local-only triage view. It may classify turns as target update success, food evidence gap, blocked mutation, query/no-mutation, unsupported intent, manager/context gap, or not checked using structured artifact fields only. Runtime error / missing-payload status may classify a turn as `manager_context_gap`; raw user text and assistant text are display-only. The surface must not recompute kcal, update Food KB truth, promote canonical eval cases, or convert `diagnostic_pass_with_evidence_gap` into `pass`.
 
+Build the Food KB gap register from the operator review surface with:
+
+```powershell
+python scripts/build_accurate_intake_food_gap_register.py --operator-review-json artifacts/accurate_intake_dogfood_operator_review.json --output artifacts/accurate_intake_food_kb_gap_register.json
+```
+
+This register turns `food_evidence_gap` review turns into `review_candidate` records only. It may carry display-only user text for human review, but it must not update Food KB truth, create nutrition seeds, create exact cards, create packet truth, or promote canonical eval oracles. Manager context/runtime gaps and query/no-mutation turns remain non-candidates until the upstream blocker is reviewed.
+
 Windows operators should run SQLite-backed commands sequentially. If `.pytest_tmp_local` reports a temporary SQLite lock, wait for the previous process to exit and rerun the affected command before classifying the result. Do not run the reset and keep-db shell commands concurrently against the same DB path.
 
 macOS, Linux, Docker, and devcontainer operators should use the same commands after the Python 3.12 environment is active. Docker/devcontainer usage is for environment parity only; it does not change the local deterministic claim scope.
