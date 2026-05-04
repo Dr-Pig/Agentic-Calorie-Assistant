@@ -74,6 +74,10 @@ def build_shadow_lab_artifacts(
             fixture,
             candidates,
         ),
+        "product_capability_context_map": _product_capability_context_map_artifact(
+            fixture,
+            candidates,
+        ),
     }
 
 
@@ -813,6 +817,426 @@ def _context_value_review_queue_artifact(
     )
 
 
+def _product_capability_context_map_artifact(
+    fixture: dict[str, Any],
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    context_domains = _context_domain_catalog()
+    candidate_types = sorted({candidate.candidate_type for candidate in candidates})
+    expected_candidate_types = {
+        "app_usage_style",
+        "conversation_recall_context",
+        "food_preference",
+        "golden_order",
+        "intake_estimation_bias",
+        "interaction_preference",
+        "logging_adherence_pattern",
+        "negative_preference",
+        "pattern",
+        "temporary_preference",
+        "user_language_pattern",
+    }
+    return _base_artifact(
+        artifact_type="product_capability_context_map",
+        fixture=fixture,
+        extra={
+            "runtime_effect_allowed": False,
+            "canonical_truth_replaced_by_memory": False,
+            "source_specs": [
+                "docs/specs/L4A_MEMORY_MODEL_SPEC.md",
+                "docs/specs/L4C_CONTEXT_PACKING_SPEC.md",
+                "docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md",
+                "docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md",
+                "docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md",
+                "docs/specs/L3_3A_DEFICIT_EXPENDITURE_CALIBRATION_MODEL_SPEC.md",
+                "docs/specs/L3_3B_CALIBRATION_PROPOSAL_POLICY_RUNTIME_CONTRACT_SPEC.md",
+                "docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md",
+            ],
+            "capability_families": _capability_families(),
+            "context_domains": context_domains,
+            "consumer_contracts": _consumer_contracts(),
+            "candidate_type_to_context_domain": _candidate_type_to_context_domain(),
+            "available_candidate_types": candidate_types,
+            "coverage_gaps": {
+                "fixture_missing_candidate_types": sorted(
+                    expected_candidate_types.difference(candidate_types)
+                ),
+                "runtime_not_integrated_domains": [
+                    domain["context_domain_id"] for domain in context_domains
+                ],
+                "reason": (
+                    "Fixture-only shadow lab records product capability pressure "
+                    "without claiming durable memory or runtime integration."
+                ),
+            },
+            "llm_deterministic_boundary": {
+                "deterministic_role": [
+                    "derive L2a statistical patterns",
+                    "validate scope keys and non-claim flags",
+                    "compile consumer-specific context packs",
+                    "reject runtime mutation or injection",
+                ],
+                "llm_role_later_only": [
+                    "extract L2b semantic patterns",
+                    "summarize conversation recall candidates",
+                    "classify nuanced interaction preference candidates",
+                ],
+                "human_role": [
+                    "accept or reject memory candidates",
+                    "confirm durable preference promotion",
+                    "approve any future runtime activation",
+                ],
+                "do_not_override": [
+                    "MealThread",
+                    "DayBudgetLedger",
+                    "BodyPlan",
+                    "ProposalContainer",
+                    "FoodDB truth",
+                    "ManagerContextPacket boundary",
+                ],
+            },
+        },
+    )
+
+
+def _context_domain_catalog() -> list[dict[str, Any]]:
+    return [
+        {
+            "context_domain_id": "food_preference_context",
+            "candidate_types": ["food_preference", "pattern"],
+            "truth_owner": "memory_derived_from_meal_thread_history",
+            "primary_consumers": ["recommendation", "intake_clarification"],
+            "risk_if_wrong": "Could overfit ranking or intake defaults to weak evidence.",
+            "runtime_injection_allowed": False,
+        },
+        {
+            "context_domain_id": "negative_preference_context",
+            "candidate_types": ["negative_preference"],
+            "truth_owner": "human_confirmed_or_reviewed_memory",
+            "primary_consumers": ["recommendation", "proactive"],
+            "risk_if_wrong": "Could suppress foods or suggestions the user would accept.",
+            "runtime_injection_allowed": False,
+        },
+        {
+            "context_domain_id": "temporary_preference_context",
+            "candidate_types": ["temporary_preference"],
+            "truth_owner": "time_bounded_reviewed_memory",
+            "primary_consumers": ["recommendation", "chat_context", "proactive"],
+            "risk_if_wrong": "Could keep expired short-term constraints alive.",
+            "runtime_injection_allowed": False,
+        },
+        {
+            "context_domain_id": "golden_order_context",
+            "candidate_types": ["golden_order"],
+            "truth_owner": "materialized_view_from_meal_thread_history",
+            "primary_consumers": ["recommendation", "intake_clarification"],
+            "risk_if_wrong": "Could mistake repeated historical orders for desired defaults.",
+            "runtime_injection_allowed": False,
+        },
+        {
+            "context_domain_id": "user_language_semantic_alias_context",
+            "candidate_types": ["user_language_pattern"],
+            "truth_owner": "reviewed_language_observation",
+            "primary_consumers": [
+                "intake_clarification",
+                "chat_context",
+                "recommendation",
+            ],
+            "risk_if_wrong": "Could misread personal phrases such as small, normal, or messy eating.",
+            "runtime_injection_allowed": False,
+        },
+        {
+            "context_domain_id": "intake_estimation_bias_context",
+            "candidate_types": ["intake_estimation_bias"],
+            "truth_owner": "calibration_review_context",
+            "primary_consumers": [
+                "calibration",
+                "nutrition_clarify_priority",
+                "intake_risk_tagging",
+            ],
+            "risk_if_wrong": "Could misattribute calorie mismatch to user logging behavior.",
+            "runtime_injection_allowed": False,
+        },
+        {
+            "context_domain_id": "app_usage_style_context",
+            "candidate_types": ["app_usage_style"],
+            "truth_owner": "reviewed_usage_pattern",
+            "primary_consumers": [
+                "chat_context",
+                "proactive",
+                "cross_surface_experience",
+            ],
+            "risk_if_wrong": "Could personalize app behavior before the pattern is real.",
+            "runtime_injection_allowed": False,
+        },
+        {
+            "context_domain_id": "interaction_preference_context",
+            "candidate_types": ["interaction_preference"],
+            "truth_owner": "reviewed_interaction_pattern",
+            "primary_consumers": ["chat_context", "proactive", "response_generation"],
+            "risk_if_wrong": "Could make answers too terse, too verbose, or ask poorly timed questions.",
+            "runtime_injection_allowed": False,
+        },
+        {
+            "context_domain_id": "logging_adherence_context",
+            "candidate_types": ["logging_adherence_pattern", "pattern"],
+            "truth_owner": "deterministic_history_aggregation",
+            "primary_consumers": ["calibration", "proactive", "rescue_later"],
+            "risk_if_wrong": "Could distort confidence in calibration or reminder timing.",
+            "runtime_injection_allowed": False,
+        },
+        {
+            "context_domain_id": "conversation_recall_context",
+            "candidate_types": ["conversation_recall_context"],
+            "truth_owner": "summary_first_conversation_archive",
+            "primary_consumers": [
+                "chat_context",
+                "intake_clarification",
+                "recommendation",
+                "calibration",
+            ],
+            "risk_if_wrong": "Could pull stale prior conversation into the current turn.",
+            "runtime_injection_allowed": False,
+        },
+        {
+            "context_domain_id": "proactive_suppression_context",
+            "candidate_types": ["interaction_preference", "app_usage_style"],
+            "truth_owner": "future_reviewed_suppression_memory",
+            "primary_consumers": ["proactive"],
+            "risk_if_wrong": "Could send unwanted nudges or suppress useful ones.",
+            "runtime_injection_allowed": False,
+        },
+        {
+            "context_domain_id": "rescue_history_context",
+            "candidate_types": ["logging_adherence_pattern", "pattern"],
+            "truth_owner": "proposal_and_budget_history_summary",
+            "primary_consumers": ["rescue_later", "calibration"],
+            "risk_if_wrong": "Could overstate short-term recovery viability.",
+            "runtime_injection_allowed": False,
+        },
+        {
+            "context_domain_id": "calibration_quality_context",
+            "candidate_types": ["intake_estimation_bias", "logging_adherence_pattern"],
+            "truth_owner": "calibration_model_context_summary",
+            "primary_consumers": ["calibration", "intake_clarification"],
+            "risk_if_wrong": "Could reduce trust in body/budget calibration decisions.",
+            "runtime_injection_allowed": False,
+        },
+        {
+            "context_domain_id": "cross_surface_context",
+            "candidate_types": [
+                "app_usage_style",
+                "conversation_recall_context",
+                "interaction_preference",
+            ],
+            "truth_owner": "runtime_surface_context_summary",
+            "primary_consumers": ["cross_surface_experience", "chat_context"],
+            "risk_if_wrong": "Could make chat, UI, and quick actions feel inconsistent.",
+            "runtime_injection_allowed": False,
+        },
+    ]
+
+
+def _capability_families() -> list[dict[str, Any]]:
+    return [
+        {
+            "family_id": "F1",
+            "name": "Plan Bootstrap & Fallback",
+            "context_domain_ids": [
+                "app_usage_style_context",
+                "interaction_preference_context",
+                "cross_surface_context",
+            ],
+            "product_objects": ["body_plan", "day_budget_ledger"],
+            "memory_role": "Degraded-mode explanation and onboarding preference context only.",
+            "runtime_effect_allowed": False,
+        },
+        {
+            "family_id": "F2",
+            "name": "Meal Thread Resolution",
+            "context_domain_ids": [
+                "user_language_semantic_alias_context",
+                "intake_estimation_bias_context",
+                "food_preference_context",
+                "conversation_recall_context",
+            ],
+            "product_objects": ["meal_thread"],
+            "memory_role": "Clarify better without replacing MealThread or FoodDB truth.",
+            "runtime_effect_allowed": False,
+        },
+        {
+            "family_id": "F3",
+            "name": "Budget & Cross-Surface Sync",
+            "context_domain_ids": [
+                "logging_adherence_context",
+                "cross_surface_context",
+                "conversation_recall_context",
+            ],
+            "product_objects": ["day_budget_ledger", "meal_thread", "body_plan"],
+            "memory_role": "Explain and audit sync context; never mutate ledger truth.",
+            "runtime_effect_allowed": False,
+        },
+        {
+            "family_id": "F4",
+            "name": "Rescue & Proposal Negotiation",
+            "context_domain_ids": [
+                "rescue_history_context",
+                "logging_adherence_context",
+                "interaction_preference_context",
+            ],
+            "product_objects": ["proposal", "day_budget_ledger"],
+            "memory_role": "Future rescue viability and presentation context only.",
+            "runtime_effect_allowed": False,
+        },
+        {
+            "family_id": "F5",
+            "name": "Body Observation & Calibration",
+            "context_domain_ids": [
+                "intake_estimation_bias_context",
+                "logging_adherence_context",
+                "calibration_quality_context",
+                "conversation_recall_context",
+            ],
+            "product_objects": ["body_plan", "proposal"],
+            "memory_role": "Support calibration confidence and attribution; do not rewrite plan.",
+            "runtime_effect_allowed": False,
+        },
+        {
+            "family_id": "F6",
+            "name": "Recommendation & Preference Learning",
+            "context_domain_ids": [
+                "food_preference_context",
+                "negative_preference_context",
+                "temporary_preference_context",
+                "golden_order_context",
+                "conversation_recall_context",
+                "calibration_quality_context",
+            ],
+            "product_objects": [
+                "meal_thread",
+                "body_plan",
+                "day_budget_ledger",
+                "preference_memory",
+            ],
+            "memory_role": "Primary ranking and filtering context after review.",
+            "runtime_effect_allowed": False,
+        },
+        {
+            "family_id": "F7",
+            "name": "Proactive Triggering",
+            "context_domain_ids": [
+                "proactive_suppression_context",
+                "app_usage_style_context",
+                "interaction_preference_context",
+                "logging_adherence_context",
+                "food_preference_context",
+            ],
+            "product_objects": ["proactive_trigger", "proposal"],
+            "memory_role": "No-send timing, suppression, and candidate quality context only.",
+            "runtime_effect_allowed": False,
+        },
+        {
+            "family_id": "F8",
+            "name": "Cross-Channel / Cross-Surface Experience",
+            "context_domain_ids": [
+                "cross_surface_context",
+                "app_usage_style_context",
+                "interaction_preference_context",
+                "conversation_recall_context",
+            ],
+            "product_objects": ["meal_thread", "day_budget_ledger", "body_plan"],
+            "memory_role": "Keep chat-first personalization coherent across surfaces.",
+            "runtime_effect_allowed": False,
+        },
+    ]
+
+
+def _consumer_contracts() -> list[dict[str, Any]]:
+    return [
+        {
+            "consumer_id": "recommendation",
+            "uses_context_domains": [
+                "food_preference_context",
+                "negative_preference_context",
+                "temporary_preference_context",
+                "golden_order_context",
+                "calibration_quality_context",
+            ],
+            "allowed_use": "shadow ranking/filtering review",
+            "forbidden_use": "serving recommendation or committing intake",
+        },
+        {
+            "consumer_id": "intake_clarification",
+            "uses_context_domains": [
+                "user_language_semantic_alias_context",
+                "intake_estimation_bias_context",
+                "food_preference_context",
+            ],
+            "allowed_use": "shadow clarify-priority review",
+            "forbidden_use": "rewriting nutrition evidence or FoodDB truth",
+        },
+        {
+            "consumer_id": "chat_context",
+            "uses_context_domains": [
+                "interaction_preference_context",
+                "app_usage_style_context",
+                "conversation_recall_context",
+            ],
+            "allowed_use": "future response-context candidate review",
+            "forbidden_use": "automatic prompt injection",
+        },
+        {
+            "consumer_id": "calibration",
+            "uses_context_domains": [
+                "intake_estimation_bias_context",
+                "logging_adherence_context",
+                "calibration_quality_context",
+            ],
+            "allowed_use": "confidence and attribution review",
+            "forbidden_use": "direct BodyPlan or DayBudgetLedger mutation",
+        },
+        {
+            "consumer_id": "proactive",
+            "uses_context_domains": [
+                "proactive_suppression_context",
+                "app_usage_style_context",
+                "interaction_preference_context",
+                "logging_adherence_context",
+            ],
+            "allowed_use": "no-send simulation",
+            "forbidden_use": "scheduler activation or channel send",
+        },
+        {
+            "consumer_id": "rescue_later",
+            "uses_context_domains": [
+                "rescue_history_context",
+                "logging_adherence_context",
+                "interaction_preference_context",
+            ],
+            "allowed_use": "future rescue viability review",
+            "forbidden_use": "rescue proposal commit or budget overlay mutation",
+        },
+        {
+            "consumer_id": "cross_surface_experience",
+            "uses_context_domains": [
+                "cross_surface_context",
+                "app_usage_style_context",
+                "conversation_recall_context",
+            ],
+            "allowed_use": "surface consistency review",
+            "forbidden_use": "creating parallel UI/channel truth",
+        },
+    ]
+
+
+def _candidate_type_to_context_domain() -> dict[str, list[str]]:
+    mapping: dict[str, list[str]] = {}
+    for domain in _context_domain_catalog():
+        for candidate_type in domain["candidate_types"]:
+            mapping.setdefault(candidate_type, []).append(domain["context_domain_id"])
+    return {key: sorted(value) for key, value in sorted(mapping.items())}
+
+
 def _proactive_no_send_artifact(
     fixture: dict[str, Any],
     candidates: list[LongTermContextCandidate],
@@ -1168,6 +1592,52 @@ def _long_term_context_pack_shadow_artifact(
                 "pattern",
             },
         ),
+        "proactive_context": _context_pack(
+            pack_id="proactive_context",
+            candidates=candidates,
+            allowed_consumers={
+                "proactive",
+                "proactive_message_style",
+                "recommendation",
+                "rescue_later",
+            },
+            allowed_candidate_types={
+                "app_usage_style",
+                "food_preference",
+                "golden_order",
+                "interaction_preference",
+                "logging_adherence_pattern",
+                "pattern",
+            },
+        ),
+        "rescue_context": _context_pack(
+            pack_id="rescue_context",
+            candidates=candidates,
+            allowed_consumers={"rescue_later", "calibration", "proactive"},
+            allowed_candidate_types={
+                "intake_estimation_bias",
+                "interaction_preference",
+                "logging_adherence_pattern",
+                "pattern",
+            },
+        ),
+        "cross_surface_context": _context_pack(
+            pack_id="cross_surface_context",
+            candidates=candidates,
+            allowed_consumers={
+                "chat_context",
+                "intake_clarification",
+                "proactive",
+                "response_generation",
+                "ux",
+            },
+            allowed_candidate_types={
+                "app_usage_style",
+                "conversation_recall_context",
+                "interaction_preference",
+                "user_language_pattern",
+            },
+        ),
     }
     return _base_artifact(
         artifact_type="long_term_context_pack_shadow_eval",
@@ -1255,6 +1725,26 @@ def _context_pack_rank(
             "logging_adherence_pattern": 1,
             "pattern": 2,
             "conversation_recall_context": 3,
+        },
+        "proactive_context": {
+            "app_usage_style": 0,
+            "interaction_preference": 1,
+            "logging_adherence_pattern": 2,
+            "food_preference": 3,
+            "golden_order": 4,
+            "pattern": 5,
+        },
+        "rescue_context": {
+            "logging_adherence_pattern": 0,
+            "intake_estimation_bias": 1,
+            "pattern": 2,
+            "interaction_preference": 3,
+        },
+        "cross_surface_context": {
+            "app_usage_style": 0,
+            "interaction_preference": 1,
+            "conversation_recall_context": 2,
+            "user_language_pattern": 3,
         },
     }
     return ranking.get(pack_id, {}).get(candidate.candidate_type, 99)

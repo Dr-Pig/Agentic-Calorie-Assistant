@@ -31,6 +31,7 @@ ARTIFACT_FILENAMES = {
     "conversation_recall_shadow_eval": "conversation_recall_shadow_eval.json",
     "conversation_recall_tool_shadow_plan": "conversation_recall_tool_shadow_plan.json",
     "long_term_context_pack_shadow_eval": "long_term_context_pack_shadow_eval.json",
+    "product_capability_context_map": "product_capability_context_map.json",
     "external_memory_framework_research_review": (
         "external_memory_framework_research_review.json"
     ),

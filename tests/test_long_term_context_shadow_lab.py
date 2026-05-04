@@ -185,6 +185,7 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
         "conversation_recall_shadow_eval",
         "long_term_context_pack_shadow_eval",
         "conversation_recall_tool_shadow_plan",
+        "product_capability_context_map",
     }
 
     for artifact in artifacts.values():
@@ -416,6 +417,80 @@ def test_context_value_queue_explains_usefulness_and_early_injection_harm() -> N
         }
 
 
+def test_product_capability_context_map_covers_whole_product_memory_consumers() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "product_capability_context_map"
+    ]
+
+    assert artifact["artifact_type"] == "product_capability_context_map"
+    assert artifact["runtime_effect_allowed"] is False
+    assert artifact["manager_context_injected"] is False
+    assert artifact["canonical_truth_replaced_by_memory"] is False
+    assert {family["family_id"] for family in artifact["capability_families"]} == {
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "F5",
+        "F6",
+        "F7",
+        "F8",
+    }
+
+    domain_ids = {domain["context_domain_id"] for domain in artifact["context_domains"]}
+    assert {
+        "food_preference_context",
+        "negative_preference_context",
+        "temporary_preference_context",
+        "golden_order_context",
+        "user_language_semantic_alias_context",
+        "intake_estimation_bias_context",
+        "app_usage_style_context",
+        "interaction_preference_context",
+        "logging_adherence_context",
+        "conversation_recall_context",
+        "proactive_suppression_context",
+        "rescue_history_context",
+        "calibration_quality_context",
+        "cross_surface_context",
+    }.issubset(domain_ids)
+
+    by_family = {
+        family["family_id"]: family for family in artifact["capability_families"]
+    }
+    assert "food_preference_context" in by_family["F6"]["context_domain_ids"]
+    assert (
+        "user_language_semantic_alias_context" in by_family["F2"]["context_domain_ids"]
+    )
+    assert "intake_estimation_bias_context" in by_family["F5"]["context_domain_ids"]
+    assert "conversation_recall_context" in by_family["F8"]["context_domain_ids"]
+    assert "proactive_suppression_context" in by_family["F7"]["context_domain_ids"]
+
+    consumer_ids = {
+        consumer["consumer_id"] for consumer in artifact["consumer_contracts"]
+    }
+    assert {
+        "recommendation",
+        "intake_clarification",
+        "chat_context",
+        "calibration",
+        "proactive",
+        "rescue_later",
+        "cross_surface_experience",
+    }.issubset(consumer_ids)
+
+    assert {
+        "negative_preference",
+        "temporary_preference",
+    }.issubset(set(artifact["coverage_gaps"]["fixture_missing_candidate_types"]))
+    assert "docs/specs/L4A_MEMORY_MODEL_SPEC.md" in artifact["source_specs"]
+    assert "docs/specs/L4C_CONTEXT_PACKING_SPEC.md" in artifact["source_specs"]
+
+
 def test_review_actions_create_shadow_records_without_durable_memory_write() -> None:
     from app.memory.application.long_term_context_shadow_lab import (
         build_shadow_lab_artifacts,
@@ -542,6 +617,9 @@ def test_consumer_specific_context_packs_are_summary_first_and_non_injecting() -
         "recommendation",
         "intake_chat_context",
         "calibration_context",
+        "proactive_context",
+        "rescue_context",
+        "cross_surface_context",
     }
 
     for pack in artifact["context_packs"].values():
@@ -576,6 +654,23 @@ def test_consumer_specific_context_packs_are_summary_first_and_non_injecting() -
         in calibration["selected_candidate_ids"]
     )
     assert "pattern-budget-overshoot-frequency" in calibration["selected_candidate_ids"]
+
+    proactive = artifact["context_packs"]["proactive_context"]
+    assert "app-usage-style-pattern" in proactive["selected_candidate_ids"]
+    assert (
+        "interaction-preference-prefers-direct-calorie-numbers"
+        in proactive["selected_candidate_ids"]
+    )
+
+    rescue = artifact["context_packs"]["rescue_context"]
+    assert "pattern-budget-overshoot-frequency" in rescue["selected_candidate_ids"]
+    assert "pattern-weight-logging-consistency" in rescue["selected_candidate_ids"]
+
+    cross_surface = artifact["context_packs"]["cross_surface_context"]
+    assert "app-usage-style-pattern" in cross_surface["selected_candidate_ids"]
+    assert (
+        "conversation-recall-context-summary" in cross_surface["selected_candidate_ids"]
+    )
 
 
 def test_shadow_simulations_never_send_serve_or_commit() -> None:
@@ -635,6 +730,7 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "conversation_recall_shadow_eval.json",
         "long_term_context_pack_shadow_eval.json",
         "conversation_recall_tool_shadow_plan.json",
+        "product_capability_context_map.json",
         "external_memory_framework_research_review.json",
     }
     assert {path.name for path in output_dir.iterdir()} == expected_files
