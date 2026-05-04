@@ -45,6 +45,81 @@ def _context_review() -> dict[str, object]:
     }
 
 
+def _short_term_context_smoke() -> dict[str, object]:
+    loaded = {
+        "recent_chat_messages": 0,
+        "pending_followup_present": False,
+        "pending_draft_present": False,
+        "target_candidate_count": 0,
+        "interaction_event_present": True,
+    }
+    omitted = {
+        "policy_excluded_context_ids": [
+            "debug_artifacts",
+            "dogfood_review_artifacts",
+            "raw_trace_dump",
+            "food_gap_candidates_as_truth",
+            "full_day_transcript_by_default",
+            "long_term_memory",
+            "proactive_context",
+            "rescue_context",
+            "recommendation_context",
+        ],
+        "recent_chat_messages_omitted": 0,
+        "omitted_by_message_limit": 0,
+        "omitted_by_char_cap": 0,
+    }
+    return {
+        "smoke_id": "accurate_intake_product_pages_short_term_context_smoke_v1",
+        "status": "pass",
+        "browser_executed": True,
+        "fixture_manager_used": True,
+        "live_llm_invoked": False,
+        "web_tavily_used": False,
+        "fooddb_evidence_used": False,
+        "real_fooddb_pass_claimed": False,
+        "product_readiness_claimed": False,
+        "private_self_use_approved": False,
+        "browser": {
+            "chat_history_payload": {
+                "source": "accurate_intake_chat_history_read_model",
+                "long_term_memory_used": False,
+                "proactive_or_rescue_used": False,
+                "messages": [
+                    {
+                        "trace_id": "runtime-trace-user-1",
+                        "context_policy_version": "accurate_intake_mvp_context_policy_v1",
+                        "loaded_context_summary": loaded,
+                        "omitted_context_summary": omitted,
+                        "pending_followup_linkage_present": True,
+                        "pending_pins_present": True,
+                        "target_candidate_count": 0,
+                    },
+                    {
+                        "trace_id": "runtime-trace-assistant-1",
+                        "context_policy_version": "accurate_intake_mvp_context_policy_v1",
+                        "loaded_context_summary": loaded,
+                        "omitted_context_summary": omitted,
+                        "pending_followup_linkage_present": True,
+                        "pending_pins_present": True,
+                        "target_candidate_count": 0,
+                    },
+                ],
+            }
+        },
+        "fake_provider_calls": [
+            {
+                "stage": "execution_after_followup",
+                "context_policy_version_present": True,
+                "loaded_context_summary_present": True,
+                "omitted_context_summary_present": True,
+                "pending_followup_pin_present": True,
+                "raw_user_input_used_for_fixture_selection": False,
+            }
+        ],
+    }
+
+
 def test_context_quality_pack_combines_ce_diagnostics_without_fault_claims() -> None:
     pack = build_context_quality_pack_artifact(
         context_review=_context_review(),
@@ -142,6 +217,55 @@ def test_context_quality_pack_cli_writes_artifact(tmp_path: Path, capsys) -> Non
 
     assert exit_code == 0
     assert artifact == printed
+    assert artifact["status"] == "context_quality_diagnostic_pass"
+
+
+def test_context_quality_pack_can_be_backed_by_product_page_runtime_trace() -> None:
+    artifact = module.build_context_quality_pack_report(
+        short_term_context_smoke=_short_term_context_smoke(),
+        require_runtime_trace_input=True,
+    )
+
+    assert artifact["status"] == "context_quality_diagnostic_pass"
+    assert artifact["runtime_trace_input_used"] is True
+    assert artifact["runtime_trace_source_artifact"] == "accurate_intake_product_pages_short_term_context_smoke_v1"
+    assert artifact["runtime_trace_context_review"]["summary"]["present_context_trace_count"] == 2
+    assert artifact["context_engineering_fault_claimed"] is False
+    assert artifact["manager_context_packet_schema_changed"] is False
+    assert artifact["deterministic_semantic_inference_used"] is False
+    assert artifact["raw_text_intent_router_used"] is False
+
+
+def test_context_quality_pack_rejects_fixture_only_when_runtime_trace_is_required() -> None:
+    artifact = module.build_context_quality_pack_report(require_runtime_trace_input=True)
+
+    assert artifact["status"] == "fail"
+    assert artifact["runtime_trace_input_used"] is False
+    assert "runtime_trace_input.required_missing" in artifact["blockers"]
+    assert artifact["context_engineering_fault_claimed"] is False
+    assert artifact["product_readiness_claimed"] is False
+
+
+def test_context_quality_pack_cli_accepts_runtime_trace_smoke_artifact(tmp_path: Path, capsys) -> None:
+    smoke_path = tmp_path / "short-term-context-smoke.json"
+    output_path = tmp_path / "context-quality.json"
+    smoke_path.write_text(json.dumps(_short_term_context_smoke()), encoding="utf-8")
+
+    exit_code = module.main(
+        [
+            "--short-term-context-smoke",
+            str(smoke_path),
+            "--require-runtime-trace-input",
+            "--output",
+            str(output_path),
+        ]
+    )
+    printed = json.loads(capsys.readouterr().out)
+    artifact = json.loads(output_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert artifact == printed
+    assert artifact["runtime_trace_input_used"] is True
     assert artifact["status"] == "context_quality_diagnostic_pass"
 
 
