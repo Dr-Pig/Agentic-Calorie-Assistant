@@ -37,6 +37,10 @@ def _has_explicit_calibration_action_request(request: EstimateRequest) -> bool:
     )
 
 
+def _request_local_date(request: EstimateRequest) -> str:
+    return request.local_date or datetime.now().date().isoformat()
+
+
 def _build_calibration_action_route_payload(general_chat_result: Any) -> dict[str, Any]:
     ui_hints = dict(general_chat_result.ui_hints or {})
     action_result = general_chat_result.calibration_action_result
@@ -76,7 +80,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
     source_page_version = raw_request.headers.get("X-Canary-Page-Version")
     try:
         user_id = request.user_id if getattr(request, "user_id", None) else "default_user"
-        local_date = datetime.now().date().isoformat()
+        local_date = _request_local_date(request)
 
         state_before = resolve_intake_state(
             db,

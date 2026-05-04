@@ -52,7 +52,7 @@ def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() ->
     assert "Conversation history not loaded." in html
     assert "<summary>Conversation settings</summary>" in html
     assert "grid-template-columns: 1fr;" in html
-    assert 'body: JSON.stringify({ text, user_id: userId(), allow_search: false })' in html
+    assert 'body: JSON.stringify({ text, user_id: userId(), local_date: selectedDate(), allow_search: false })' in html
     assert 'chatHistory: "/accurate-intake/chat-history"' in html
     assert 'estimate: "/estimate"' in html
     assert "history:" not in html
@@ -73,10 +73,11 @@ def test_chat_composer_supports_enter_send_and_shift_enter_multiline() -> None:
     assert "requestSubmit()" in html
 
 
-def test_chat_page_can_send_local_access_header_for_history_without_storage() -> None:
+def test_chat_page_can_send_local_access_header_for_history_without_visible_debug_control() -> None:
     html = _html(CHAT)
 
-    assert 'id="local-access-token"' in html
+    assert 'id="local-access-token"' not in html
+    assert "Local access token" not in html
     assert "window.LOCAL_DEBUG_API_TOKEN" in html
     assert '"X-Local-Debug-Token": token' in html
     assert "localDebugHeaders" in html
