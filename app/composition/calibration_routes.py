@@ -12,6 +12,7 @@ from app.composition.calibration_commit_bridge import (
     apply_calibration_proposal_commit,
     apply_stored_calibration_proposal_action,
 )
+from app.composition.calibration_proposal_expiry import expire_stale_calibration_proposals
 from app.composition.calibration_proposal_inbox import load_open_calibration_proposal_inbox
 from app.composition.calibration_preview_service import (
     build_calibration_preview_from_history,
@@ -59,6 +60,11 @@ class StoredCalibrationProposalActionRequest(BaseModel):
     proposal_container_id: int
     action: Literal["accept_calibration_proposal", "defer_calibration_proposal", "reject_calibration_proposal"]
     accepted_at: str | None = None
+
+
+class CalibrationProposalExpiryRequest(BaseModel):
+    user_id: str
+    now_at: str | None = None
 
 
 def _proposal_inbox_payload(proposal: ProposalContainer) -> dict[str, object]:
@@ -225,6 +231,31 @@ def stored_calibration_proposal_action(
         "effective_from": result.effective_from,
         "current_budget_view": result.current_budget_view.model_dump(mode="json"),
         "active_body_plan_view": result.active_body_plan_view.model_dump(mode="json"),
+    }
+
+
+@router.post("/calibration/proposals/expire-stale")
+def expire_stale_calibration_proposals_route(
+    request: CalibrationProposalExpiryRequest,
+    db=Depends(get_db),
+) -> dict[str, object]:
+    user = db.query(User).filter(User.user_id == request.user_id).first()
+    if user is None:
+        return {
+            "expired_count": 0,
+            "expired_proposal_container_ids": [],
+        }
+    try:
+        result = expire_stale_calibration_proposals(
+            db,
+            user=user,
+            now_at=datetime.fromisoformat(request.now_at) if request.now_at else None,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {
+        "expired_count": result.expired_count,
+        "expired_proposal_container_ids": result.expired_proposal_container_ids,
     }
 
 

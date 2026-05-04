@@ -5,6 +5,7 @@ from typing import Any
 
 from app.composition.calibration_commit_bridge import PLAN_CHANGING_CALIBRATION_FAMILIES
 from app.composition.calibration_proposal_artifacts import ACTIVE_CALIBRATION_PROPOSAL_STATUSES
+from app.composition.calibration_proposal_expiry import EXPIRABLE_CALIBRATION_PROPOSAL_STATUSES
 from app.shared.contracts.readiness_claim import build_readiness_claim
 
 
@@ -316,6 +317,21 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
                 ],
                 "llm_role": "none",
             },
+            "proposal_expiry_bookkeeping": {
+                "service": "app.composition.calibration_proposal_expiry.expire_stale_calibration_proposals",
+                "route": "/calibration/proposals/expire-stale",
+                "route_scope": "internal_bookkeeping_only",
+                "root_public_route_mounted": False,
+                "expirable_statuses": sorted(EXPIRABLE_CALIBRATION_PROPOSAL_STATUSES),
+                "proposal_status_after_expiry": "expired",
+                "expires_at_source": "ProposalContainer.metadata_json.expires_at",
+                "expired_at_source": "bookkeeping_execution_time",
+                "body_plan_mutation_authorized": False,
+                "day_budget_ledger_mutation_authorized": False,
+                "ledger_entry_mutation_authorized": False,
+                "proactive_trigger_authorized": False,
+                "llm_role": "none",
+            },
             "chat_action_surface": {
                 "service": "app.composition.general_chat_service.build_general_chat_response_pass",
                 "mode": "calibration_action",
@@ -361,6 +377,7 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
             "internal_diagnostic_paths_not_root_mounted": [
                 "/calibration/proposal/preview",
                 "/calibration/proposal/action",
+                "/calibration/proposals/expire-stale",
             ],
             "frontend_route_call_allowed_after_activation": True,
         },
