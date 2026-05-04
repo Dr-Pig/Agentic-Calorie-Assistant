@@ -195,6 +195,9 @@ def import_preview_local_dogfood_export(
 ) -> dict:
     blockers: list[str] = []
     source_manifest: dict = {}
+    source_export_path: Path | None = None
+    source_export_size_bytes: int | None = None
+    source_export_modified_at_utc: str | None = None
     if not export_manifest_path.exists():
         blockers.append("export_manifest_missing")
     else:
@@ -209,17 +212,43 @@ def import_preview_local_dogfood_export(
             blockers.append("export_manifest_not_local_only")
         if source_manifest.get("do_not_commit") is not True:
             blockers.append("export_manifest_missing_do_not_commit")
+        if source_manifest.get("export_format") != "sqlite_copy_with_manifest":
+            blockers.append("export_format_not_sqlite_copy_with_manifest")
+        if source_manifest.get("export_contains_sqlite_copy") is not True:
+            blockers.append("export_manifest_missing_sqlite_copy_flag")
         export_path_value = source_manifest.get("export_path")
         if not export_path_value:
             blockers.append("export_sqlite_copy_missing")
         else:
-            export_path = Path(str(export_path_value))
-            if not export_path.exists():
+            source_export_path = _resolved_path(Path(str(export_path_value)))
+            blockers.extend(
+                _generated_path_blockers(
+                    source_export_path,
+                    kind="source_export_path",
+                )
+            )
+            if source_export_path.suffix.lower() not in {".db", ".sqlite", ".sqlite3"}:
+                blockers.append("source_export_path_not_sqlite")
+            if source_export_path == _resolved_path(target_db_path):
+                blockers.append("source_export_path_equals_target_db")
+            if not source_export_path.exists():
                 blockers.append("export_sqlite_copy_missing")
+            else:
+                source_stat = source_export_path.stat()
+                source_export_size_bytes = source_stat.st_size
+                source_export_modified_at_utc = datetime.fromtimestamp(
+                    source_stat.st_mtime,
+                    UTC,
+                ).isoformat()
     classification = classify_local_dogfood_db(target_db_path)
     personal_logs = bool(
         source_manifest.get("contains_personal_diet_logs") or classification["contains_personal_diet_logs"]
     )
+    target_exists = _resolved_path(target_db_path).exists()
+    manual_next_steps = ["review_export_manifest"]
+    if classification["backup_required_before_reset"] is True:
+        manual_next_steps.append("create_target_backup_before_restore")
+    manual_next_steps.append("restore_manually_outside_this_preview")
     return {
         "artifact_schema_version": "1.0",
         "artifact_type": "accurate_intake_local_dogfood_import_preview",
@@ -231,9 +260,16 @@ def import_preview_local_dogfood_export(
         "import_allowed": False,
         "writes_performed": False,
         "source_manifest_path": str(export_manifest_path),
-        "source_export_path": source_manifest.get("export_path"),
+        "source_export_path": str(source_export_path) if source_export_path is not None else source_manifest.get("export_path"),
+        "source_export_size_bytes": source_export_size_bytes,
+        "source_export_modified_at_utc": source_export_modified_at_utc,
+        "export_format": source_manifest.get("export_format"),
+        "export_contains_sqlite_copy": source_manifest.get("export_contains_sqlite_copy"),
         "target_db_path": str(target_db_path),
         "target_db_class": classification["db_class"],
+        "target_exists": target_exists,
+        "target_backup_required_before_restore": classification["backup_required_before_reset"],
+        "manual_next_steps": manual_next_steps,
         "local_only": True,
         "contains_personal_diet_logs": personal_logs,
         "do_not_commit": True,
