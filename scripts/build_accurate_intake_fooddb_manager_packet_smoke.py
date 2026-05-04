@@ -12,10 +12,10 @@ if str(ROOT) not in sys.path:
 from app.nutrition.application.fooddb_manager_packet_smoke import (  # noqa: E402
     build_fooddb_manager_packet_smoke,
 )
-from app.nutrition.application.fooddb_retrieval_policy import (  # noqa: E402
-    build_runtime_retrieval_records_from_small_anchor_payload,
+from app.nutrition.infrastructure.local_food_evidence_index import (  # noqa: E402
+    LocalSmallAnchorFoodEvidenceIndex,
 )
-from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
+from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
 
 DEFAULT_SMALL_ANCHOR_STORE = ROOT / "app" / "knowledge" / "small_anchor_store_tw.json"
@@ -30,9 +30,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
-    retrieval_records = build_runtime_retrieval_records_from_small_anchor_payload(
-        read_json_artifact(Path(args.small_anchor_store))
-    )
+    index = LocalSmallAnchorFoodEvidenceIndex.from_path(Path(args.small_anchor_store))
+    retrieval_records = index.load_records()
     artifact = build_fooddb_manager_packet_smoke(retrieval_records=retrieval_records)
     write_json_artifact(Path(args.output), artifact)
     print(
