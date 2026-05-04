@@ -93,6 +93,27 @@ ARTIFACT_CONSUMER_CATALOG: dict[str, list[str]] = {
         "chat_context",
         "future_manager_context_retrieval",
     ],
+    "conversation_recall_retrieval_shadow_eval": [
+        "chat_context",
+        "intake_clarification",
+        "recommendation",
+        "calibration",
+    ],
+    "entity_normalization_shadow_plan": [
+        "architecture_governance",
+        "recommendation",
+        "intake_clarification",
+        "calibration",
+    ],
+    "context_quality_contradiction_review_queue": [
+        "human_review",
+        "architecture_governance",
+    ],
+    "capability_scenario_fixture_pack": [
+        "human_review",
+        "architecture_governance",
+    ],
+    "pr_review_autopilot_closeout": ["human_review", "delivery_governance"],
     "long_term_context_pack_shadow_eval": [
         "recommendation",
         "intake_clarification",
@@ -110,6 +131,10 @@ ARTIFACT_CONSUMER_CATALOG: dict[str, list[str]] = {
         "human_review",
     ],
     "local_memory_framework_review": ["architecture_governance", "human_review"],
+    "local_memory_framework_deep_review": [
+        "architecture_governance",
+        "human_review",
+    ],
 }
 
 
@@ -170,6 +195,29 @@ def build_shadow_lab_artifacts(
                 fixture,
                 candidates,
             )
+        ),
+        "conversation_recall_retrieval_shadow_eval": (
+            _conversation_recall_retrieval_shadow_artifact(
+                fixture,
+                candidates,
+            )
+        ),
+        "entity_normalization_shadow_plan": _entity_normalization_shadow_artifact(
+            fixture,
+            candidates,
+        ),
+        "context_quality_contradiction_review_queue": (
+            _context_quality_contradiction_review_artifact(
+                fixture,
+                candidates,
+            )
+        ),
+        "capability_scenario_fixture_pack": _capability_scenario_fixture_pack_artifact(
+            fixture,
+            candidates,
+        ),
+        "pr_review_autopilot_closeout": _pr_review_autopilot_closeout_artifact(
+            fixture,
         ),
         "long_term_context_pack_shadow_eval": _long_term_context_pack_shadow_artifact(
             fixture,
@@ -2372,6 +2420,254 @@ def _conversation_recall_tool_shadow_plan_artifact(
     )
 
 
+def _conversation_recall_retrieval_shadow_artifact(
+    fixture: dict[str, Any],
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    recall_candidates = [
+        candidate
+        for candidate in candidates
+        if candidate.candidate_type == "conversation_recall_context"
+    ]
+    ranked = [
+        {
+            "rank": index + 1,
+            "candidate_id": candidate.candidate_id,
+            "candidate_type": candidate.candidate_type,
+            "source_class": "conversation_history_summary",
+            "retrieval_mode": "metadata_scope_filter",
+            "scope_keys": candidate.scope_keys,
+            "freshness_posture": candidate.freshness_posture,
+            "source_trace_ids": candidate.source_trace_ids,
+            "source_object_refs": candidate.source_object_refs,
+            "summary_preview": _conversation_summary_preview(candidate),
+            "raw_transcript_returned": False,
+            "would_load_full_history": False,
+            "runtime_effect_allowed": False,
+        }
+        for index, candidate in enumerate(
+            sorted(
+                recall_candidates,
+                key=lambda item: (-item.confidence, item.candidate_id),
+            )
+        )
+    ]
+    return _base_artifact(
+        artifact_type="conversation_recall_retrieval_shadow_eval",
+        fixture=fixture,
+        extra={
+            "source_spec": "docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md",
+            "summary_first": True,
+            "retrieval_tool_registered": False,
+            "retrieval_tool_called": False,
+            "manager_tool_call_allowed": False,
+            "live_vector_search_used": False,
+            "raw_transcript_returned": False,
+            "source_classes": [
+                "conversation_history_summary",
+                "memory_candidate_review_artifact",
+            ],
+            "routing_policy": {
+                "deterministic_scope_filter_first": True,
+                "metadata_filter_before_semantic_search": True,
+                "full_document_read_fallback_allowed": False,
+                "stale_result_requires_review": True,
+            },
+            "ranked_results": ranked,
+            "negative_cases": [
+                {
+                    "case_id": "missing_user_scope",
+                    "retrieval_allowed": False,
+                    "reason": "scope_keys_required_before_recall",
+                },
+                {
+                    "case_id": "raw_transcript_request",
+                    "retrieval_allowed": False,
+                    "reason": "summary_first_shadow_lab_forbids_raw_transcript",
+                },
+            ],
+        },
+    )
+
+
+def _entity_normalization_shadow_artifact(
+    fixture: dict[str, Any],
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    return _base_artifact(
+        artifact_type="entity_normalization_shadow_plan",
+        fixture=fixture,
+        extra={
+            "entity_store_written": False,
+            "fooddb_truth_changed": False,
+            "canonical_objects_replaced": False,
+            "entity_types": [
+                "food_item",
+                "store",
+                "user_phrase",
+                "preference_value",
+                "conversation_topic",
+            ],
+            "normalization_review_lanes": [
+                {
+                    "lane_id": "alias_link_review",
+                    "human_review_required": True,
+                    "runtime_effect_allowed": False,
+                },
+                {
+                    "lane_id": "canonical_truth_conflict_review",
+                    "human_review_required": True,
+                    "runtime_effect_allowed": False,
+                },
+                {
+                    "lane_id": "entity_merge_split_review",
+                    "human_review_required": True,
+                    "runtime_effect_allowed": False,
+                },
+            ],
+            "proposed_entities": _proposed_normalized_entities(candidates),
+            "source_candidate_ids": [
+                candidate.candidate_id for candidate in candidates
+            ],
+        },
+    )
+
+
+def _context_quality_contradiction_review_artifact(
+    fixture: dict[str, Any],
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    review_items = _contradiction_review_items(fixture, candidates)
+    return _base_artifact(
+        artifact_type="context_quality_contradiction_review_queue",
+        fixture=fixture,
+        extra={
+            "runtime_blocking_claimed": False,
+            "contradiction_count": sum(
+                1 for item in review_items if item["contradiction_detected"]
+            ),
+            "quality_dimensions": [
+                "evidence_strength",
+                "freshness",
+                "consumer_scope",
+                "contradiction_risk",
+                "promotion_readiness",
+            ],
+            "review_items": review_items,
+        },
+    )
+
+
+def _capability_scenario_fixture_pack_artifact(
+    fixture: dict[str, Any],
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    available_types = {candidate.candidate_type for candidate in candidates}
+    scenarios = [
+        _capability_scenario(
+            scenario_id="recommendation_with_preferences",
+            consumer_id="recommendation",
+            expected_artifact_ids=[
+                "long_term_memory_candidate_review",
+                "recommendation_shadow_eval",
+                "long_term_context_pack_shadow_eval",
+            ],
+            candidate_types=["food_preference", "negative_preference", "golden_order"],
+        ),
+        _capability_scenario(
+            scenario_id="intake_clarification_with_user_language",
+            consumer_id="intake_clarification",
+            expected_artifact_ids=[
+                "long_term_memory_candidate_review",
+                "context_value_review_queue",
+            ],
+            candidate_types=["user_language_pattern", "intake_estimation_bias"],
+        ),
+        _capability_scenario(
+            scenario_id="chat_context_style_shadow",
+            consumer_id="chat_context",
+            expected_artifact_ids=[
+                "long_term_context_pack_shadow_eval",
+                "conversation_recall_shadow_eval",
+            ],
+            candidate_types=["app_usage_style", "interaction_preference"],
+        ),
+        _capability_scenario(
+            scenario_id="calibration_bias_attribution_shadow",
+            consumer_id="calibration",
+            expected_artifact_ids=[
+                "context_quality_contradiction_review_queue",
+                "long_term_context_pack_shadow_eval",
+            ],
+            candidate_types=["intake_estimation_bias", "logging_adherence_pattern"],
+        ),
+        _capability_scenario(
+            scenario_id="proactive_no_send_timing_shadow",
+            consumer_id="proactive",
+            expected_artifact_ids=[
+                "proactive_no_send_simulation",
+                "long_term_context_pack_shadow_eval",
+            ],
+            candidate_types=["app_usage_style", "logging_adherence_pattern"],
+        ),
+        _capability_scenario(
+            scenario_id="rescue_later_viability_shadow",
+            consumer_id="rescue_later",
+            expected_artifact_ids=[
+                "rescue_shadow_candidates",
+                "long_term_context_pack_shadow_eval",
+            ],
+            candidate_types=["logging_adherence_pattern", "intake_estimation_bias"],
+        ),
+        _capability_scenario(
+            scenario_id="conversation_recall_tool_shadow",
+            consumer_id="conversation_recall",
+            expected_artifact_ids=[
+                "conversation_recall_tool_shadow_plan",
+                "conversation_recall_retrieval_shadow_eval",
+            ],
+            candidate_types=["conversation_recall_context"],
+        ),
+    ]
+    return _base_artifact(
+        artifact_type="capability_scenario_fixture_pack",
+        fixture=fixture,
+        extra={
+            "fixture_only": True,
+            "runtime_scenarios_executed": False,
+            "scenario_count": len(scenarios),
+            "available_candidate_types": sorted(available_types),
+            "scenarios": scenarios,
+        },
+    )
+
+
+def _pr_review_autopilot_closeout_artifact(fixture: dict[str, Any]) -> dict[str, Any]:
+    return _base_artifact(
+        artifact_type="pr_review_autopilot_closeout",
+        fixture=fixture,
+        extra={
+            "draft_pr_only": True,
+            "auto_merge_allowed": False,
+            "human_approval_required_for_merge": True,
+            "continue_without_gate_after_batch2": False,
+            "review_loop_allowed_actions": [
+                "push_offline_shadow_fixes",
+                "update_draft_pr_body",
+                "inspect_ci",
+                "inspect_review_comments",
+            ],
+            "review_loop_forbidden_actions": [
+                "merge_main",
+                "mark_ready_for_review",
+                "register_runtime_tool",
+                "add_startup_or_scheduler_hook",
+                "write_durable_memory",
+            ],
+        },
+    )
+
+
 def _long_term_context_pack_shadow_artifact(
     fixture: dict[str, Any],
     candidates: list[LongTermContextCandidate],
@@ -2592,6 +2888,160 @@ def _context_pack_rank(
         },
     }
     return ranking.get(pack_id, {}).get(candidate.candidate_type, 99)
+
+
+def _proposed_normalized_entities(
+    candidates: list[LongTermContextCandidate],
+) -> list[dict[str, Any]]:
+    entities: dict[str, dict[str, Any]] = {}
+
+    def add_entity(
+        *,
+        entity_type: str,
+        label: str,
+        source_candidate_id: str,
+    ) -> None:
+        if not label:
+            return
+        entity_id = f"{entity_type}-{_slug(label)}"
+        entity = entities.setdefault(
+            entity_id,
+            {
+                "entity_id": entity_id,
+                "entity_type": entity_type,
+                "label": label,
+                "source_candidate_ids": [],
+                "canonical_truth_write_allowed": False,
+                "runtime_effect_allowed": False,
+            },
+        )
+        entity["source_candidate_ids"] = _dedupe(
+            [*entity["source_candidate_ids"], source_candidate_id]
+        )
+
+    for candidate in candidates:
+        payload = candidate.payload
+        if candidate.candidate_type == "golden_order":
+            add_entity(
+                entity_type="store",
+                label=str(payload.get("store_name") or ""),
+                source_candidate_id=candidate.candidate_id,
+            )
+            for item in payload.get("item_names") or []:
+                add_entity(
+                    entity_type="food",
+                    label=str(item),
+                    source_candidate_id=candidate.candidate_id,
+                )
+        elif candidate.candidate_type == "food_preference":
+            add_entity(
+                entity_type="food",
+                label=str(payload.get("value") or ""),
+                source_candidate_id=candidate.candidate_id,
+            )
+        elif candidate.candidate_type in {
+            "negative_preference",
+            "temporary_preference",
+        }:
+            add_entity(
+                entity_type="preference-value",
+                label=str(payload.get("value") or ""),
+                source_candidate_id=candidate.candidate_id,
+            )
+        elif candidate.candidate_type == "user_language_pattern":
+            add_entity(
+                entity_type="user-phrase",
+                label=str(payload.get("user_phrase") or ""),
+                source_candidate_id=candidate.candidate_id,
+            )
+        elif candidate.candidate_type == "conversation_recall_context":
+            summaries = payload.get("conversation_summaries")
+            if isinstance(summaries, list):
+                for summary in summaries:
+                    if not isinstance(summary, dict):
+                        continue
+                    for tag in summary.get("topic_tags") or []:
+                        add_entity(
+                            entity_type="conversation-topic",
+                            label=str(tag),
+                            source_candidate_id=candidate.candidate_id,
+                        )
+
+    return sorted(entities.values(), key=lambda item: item["entity_id"])
+
+
+def _contradiction_review_items(
+    fixture: dict[str, Any],
+    candidates: list[LongTermContextCandidate],
+) -> list[dict[str, Any]]:
+    pool_names = [
+        str(item.get("name") or "").lower()
+        for item in _list_of_dicts(fixture.get("candidate_pool"))
+    ]
+    negative_candidates = [
+        candidate
+        for candidate in candidates
+        if candidate.candidate_type == "negative_preference"
+    ]
+    conflicting_negative_ids: list[str] = []
+    for candidate in negative_candidates:
+        value = str(candidate.payload.get("value") or "").lower()
+        if value and any(value in name for name in pool_names):
+            conflicting_negative_ids.append(candidate.candidate_id)
+
+    items = [
+        {
+            "check_id": "negative_preference_vs_candidate_pool",
+            "candidate_ids": conflicting_negative_ids,
+            "contradiction_detected": bool(conflicting_negative_ids),
+            "review_status": "pending",
+            "recommended_action": "keep_shadowing",
+            "risk_if_wrong": (
+                "Could recommend or suppress a food based on conflicting preference evidence."
+            ),
+            "runtime_effect_allowed": False,
+        },
+        {
+            "check_id": "temporary_preference_expiry_review",
+            "candidate_ids": [
+                candidate.candidate_id
+                for candidate in candidates
+                if candidate.candidate_type == "temporary_preference"
+            ],
+            "contradiction_detected": False,
+            "review_status": "pending",
+            "recommended_action": "verify_expiry_before_future_promotion",
+            "risk_if_wrong": "Could keep expired temporary context active too long.",
+            "runtime_effect_allowed": False,
+        },
+    ]
+    return items
+
+
+def _capability_scenario(
+    *,
+    scenario_id: str,
+    consumer_id: str,
+    expected_artifact_ids: list[str],
+    candidate_types: list[str],
+) -> dict[str, Any]:
+    return {
+        "scenario_id": scenario_id,
+        "consumer_id": consumer_id,
+        "candidate_types": candidate_types,
+        "expected_artifact_ids": expected_artifact_ids,
+        "runtime_effect_allowed": False,
+        "forbidden_runtime_effects": [
+            "manager_context_injection",
+            "durable_memory_write",
+            "db_mutation",
+            "live_provider_call",
+            "proactive_send",
+            "recommendation_served",
+            "rescue_commit",
+        ],
+        "acceptance_focus": "review_artifact_shape_only",
+    }
 
 
 def _context_candidate_summary(

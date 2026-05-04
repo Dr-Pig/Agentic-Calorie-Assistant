@@ -49,3 +49,57 @@ def test_local_framework_review_maps_framework_patterns_without_runtime_dependen
         for item in review["framework_reviews"]
         for risk in item["rejected_or_deferred_patterns"]
     )
+
+
+def test_local_framework_deep_review_scores_fit_without_adopting_runtime(
+    tmp_path: Path,
+) -> None:
+    hermes_doc = tmp_path / "hermes_memory.md"
+    openclaw_doc = tmp_path / "openclaw_memory.md"
+    graphiti_doc = tmp_path / "graphiti_memory.md"
+
+    hermes_doc.write_text(
+        "pre_llm_call post_llm_call memory_mode provider sync conversation memory",
+        encoding="utf-8",
+    )
+    openclaw_doc.write_text(
+        "scope recallInjectionPosition review backfill contradiction freshness entity",
+        encoding="utf-8",
+    )
+    graphiti_doc.write_text(
+        "graph entity temporal provenance search retrieval",
+        encoding="utf-8",
+    )
+
+    from app.memory.application.local_memory_framework_review import (
+        build_local_framework_deep_review,
+    )
+
+    review = build_local_framework_deep_review(tmp_path)
+
+    assert review["artifact_type"] == "local_memory_framework_deep_review"
+    assert review["shadow_mode"] is True
+    assert review["read_only_review"] is True
+    assert review["new_dependency_introduced"] is False
+    assert review["runtime_integration_recommended"] is False
+    assert review["runtime_effect_allowed"] is False
+    assert review["review_questions"] == [
+        "raw_history_vs_derived_vs_confirmed_memory",
+        "promotion_and_demotion_policy",
+        "provenance_and_source_refs",
+        "freshness_and_staleness",
+        "prompt_pollution_prevention",
+        "retrieval_ranking_and_scope",
+        "user_correction_deletion_suppression",
+        "no_send_proactive_simulation",
+    ]
+    assert {item["framework_id"] for item in review["framework_scorecards"]} >= {
+        "hermes",
+        "openclaw",
+        "graphiti",
+    }
+    assert all(
+        scorecard["runtime_effect_allowed"] is False
+        for scorecard in review["framework_scorecards"]
+    )
+    assert "provider_context_auto_injection" in review["global_deferred_patterns"]

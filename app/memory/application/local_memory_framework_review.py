@@ -48,6 +48,106 @@ def build_local_framework_review(root: Path | str) -> dict[str, Any]:
     }
 
 
+def build_local_framework_deep_review(root: Path | str) -> dict[str, Any]:
+    root_path = Path(root)
+    base_review = build_local_framework_review(root_path)
+    scorecards = [
+        _framework_scorecard(review)
+        for review in base_review.get("framework_reviews", [])
+        if isinstance(review, dict)
+    ]
+    return {
+        "artifact_schema_version": "1.0",
+        "artifact_type": "local_memory_framework_deep_review",
+        "status": "generated",
+        "claim_scope": "local_framework_deep_review_only",
+        "local_framework_root": str(root_path),
+        "read_only_review": True,
+        "new_dependency_introduced": False,
+        "service_started": False,
+        "live_provider_called": False,
+        "runtime_integration_recommended": False,
+        **SHADOW_NON_CLAIM_FLAGS,
+        **artifact_review_contract("local_memory_framework_deep_review"),
+        "review_questions": [
+            "raw_history_vs_derived_vs_confirmed_memory",
+            "promotion_and_demotion_policy",
+            "provenance_and_source_refs",
+            "freshness_and_staleness",
+            "prompt_pollution_prevention",
+            "retrieval_ranking_and_scope",
+            "user_correction_deletion_suppression",
+            "no_send_proactive_simulation",
+        ],
+        "framework_scorecards": scorecards,
+        "global_adoptable_patterns": _global_deep_adoptable_patterns(scorecards),
+        "global_deferred_patterns": _global_deep_deferred_patterns(scorecards),
+    }
+
+
+def _framework_scorecard(review: dict[str, Any]) -> dict[str, Any]:
+    capabilities = list(review.get("observed_capabilities") or [])
+    adoptable = list(review.get("adoptable_patterns") or [])
+    deferred = list(review.get("rejected_or_deferred_patterns") or [])
+    fit_score = min(
+        1.0,
+        round(
+            0.2
+            + 0.1 * len(capabilities)
+            + 0.08 * len(adoptable)
+            - 0.04 * len(deferred),
+            2,
+        ),
+    )
+    return {
+        "framework_id": str(review.get("framework_id") or "unknown"),
+        "evidence_files": list(review.get("evidence_files") or []),
+        "observed_capabilities": capabilities,
+        "product_fit_score": max(0.0, fit_score),
+        "adoptable_pattern_count": len(adoptable),
+        "deferred_pattern_count": len(deferred),
+        "runtime_violation_risks": [
+            pattern
+            for pattern in deferred
+            if "auto" in pattern.lower()
+            or "provider" in pattern.lower()
+            or "runtime" in pattern.lower()
+        ],
+        "recommended_translation": str(review.get("shadow_lab_translation") or ""),
+        "runtime_effect_allowed": False,
+    }
+
+
+def _global_deep_adoptable_patterns(
+    scorecards: list[dict[str, Any]],
+) -> list[str]:
+    patterns = [
+        "scope_key_first_retrieval",
+        "source_ref_required_memory_candidates",
+        "review_lane_before_promotion",
+    ]
+    if any(
+        "entity_or_graph_memory" in scorecard["observed_capabilities"]
+        for scorecard in scorecards
+    ):
+        patterns.append("entity_links_as_shadow_normalization_pressure")
+    return patterns
+
+
+def _global_deep_deferred_patterns(
+    scorecards: list[dict[str, Any]],
+) -> list[str]:
+    patterns = [
+        "provider_context_auto_injection",
+        "auto_capture_after_response",
+        "runtime_memory_tool_registration",
+        "live_vector_or_hybrid_search",
+    ]
+    if any(scorecard["runtime_violation_risks"] for scorecard in scorecards):
+        patterns.append("framework_runtime_hooks")
+    return patterns
+
+
 def _candidate_files(root: Path, framework_id: str) -> list[Path]:
     if not root.exists():
         return []
@@ -198,4 +298,8 @@ def _dedupe_paths(paths: list[Path]) -> list[Path]:
     return result
 
 
-__all__ = ["SIDECAR_ACTIVATION_CONTRACT", "build_local_framework_review"]
+__all__ = [
+    "SIDECAR_ACTIVATION_CONTRACT",
+    "build_local_framework_deep_review",
+    "build_local_framework_review",
+]

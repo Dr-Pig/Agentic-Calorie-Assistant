@@ -13,6 +13,7 @@ from app.memory.application.external_memory_framework_research import (  # noqa:
     build_external_memory_framework_research,
 )
 from app.memory.application.local_memory_framework_review import (  # noqa: E402
+    build_local_framework_deep_review,
     build_local_framework_review,
 )
 from app.memory.application.long_term_context_shadow_lab import (  # noqa: E402
@@ -42,6 +43,15 @@ ARTIFACT_FILENAMES = {
     ),
     "conversation_recall_shadow_eval": "conversation_recall_shadow_eval.json",
     "conversation_recall_tool_shadow_plan": "conversation_recall_tool_shadow_plan.json",
+    "conversation_recall_retrieval_shadow_eval": (
+        "conversation_recall_retrieval_shadow_eval.json"
+    ),
+    "entity_normalization_shadow_plan": "entity_normalization_shadow_plan.json",
+    "context_quality_contradiction_review_queue": (
+        "context_quality_contradiction_review_queue.json"
+    ),
+    "capability_scenario_fixture_pack": "capability_scenario_fixture_pack.json",
+    "pr_review_autopilot_closeout": "pr_review_autopilot_closeout.json",
     "long_term_context_pack_shadow_eval": "long_term_context_pack_shadow_eval.json",
     "product_capability_context_map": "product_capability_context_map.json",
     "external_memory_framework_research_review": (
@@ -80,6 +90,9 @@ def main(argv: list[str] | None = None) -> int:
         artifacts["local_memory_framework_review"] = build_local_framework_review(
             Path(args.local_framework_root)
         )
+        artifacts["local_memory_framework_deep_review"] = (
+            build_local_framework_deep_review(Path(args.local_framework_root))
+        )
 
     artifacts["artifact_registry_manifest"] = build_artifact_registry_manifest(
         fixture,
@@ -94,6 +107,10 @@ def main(argv: list[str] | None = None) -> int:
             output_dir / "local_memory_framework_review.json",
             artifacts["local_memory_framework_review"],
         )
+        write_json_artifact(
+            output_dir / "local_memory_framework_deep_review.json",
+            artifacts["local_memory_framework_deep_review"],
+        )
 
     print(
         json.dumps(
@@ -101,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
                 "status": "generated",
                 "output_dir": str(output_dir),
                 "artifact_count": len(ARTIFACT_FILENAMES)
-                + (1 if args.local_framework_root else 0),
+                + (2 if args.local_framework_root else 0),
             },
             ensure_ascii=False,
         )

@@ -221,6 +221,11 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
         "semantic_pattern_extraction_shadow_plan",
         "context_signal_quality_scorecard",
         "context_pack_token_pressure_shadow_eval",
+        "conversation_recall_retrieval_shadow_eval",
+        "entity_normalization_shadow_plan",
+        "context_quality_contradiction_review_queue",
+        "capability_scenario_fixture_pack",
+        "pr_review_autopilot_closeout",
     }
 
     for artifact in artifacts.values():
@@ -983,6 +988,145 @@ def test_conversation_recall_tool_shadow_plan_keeps_future_retrieval_disabled() 
     )
 
 
+def test_conversation_recall_retrieval_shadow_eval_routes_without_tool_calls() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "conversation_recall_retrieval_shadow_eval"
+    ]
+
+    assert artifact["artifact_type"] == "conversation_recall_retrieval_shadow_eval"
+    assert artifact["retrieval_tool_registered"] is False
+    assert artifact["retrieval_tool_called"] is False
+    assert artifact["live_vector_search_used"] is False
+    assert artifact["raw_transcript_returned"] is False
+    assert artifact["manager_context_injected"] is False
+    assert artifact["source_classes"] == [
+        "conversation_history_summary",
+        "memory_candidate_review_artifact",
+    ]
+    assert artifact["routing_policy"] == {
+        "deterministic_scope_filter_first": True,
+        "metadata_filter_before_semantic_search": True,
+        "full_document_read_fallback_allowed": False,
+        "stale_result_requires_review": True,
+    }
+    assert artifact["ranked_results"][0]["candidate_id"] == (
+        "conversation-recall-context-summary"
+    )
+    assert artifact["negative_cases"][0] == {
+        "case_id": "missing_user_scope",
+        "retrieval_allowed": False,
+        "reason": "scope_keys_required_before_recall",
+    }
+
+
+def test_entity_normalization_shadow_plan_stays_review_only() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "entity_normalization_shadow_plan"
+    ]
+
+    assert artifact["artifact_type"] == "entity_normalization_shadow_plan"
+    assert artifact["entity_store_written"] is False
+    assert artifact["fooddb_truth_changed"] is False
+    assert artifact["canonical_objects_replaced"] is False
+    assert artifact["manager_context_injected"] is False
+    assert artifact["entity_types"] == [
+        "food_item",
+        "store",
+        "user_phrase",
+        "preference_value",
+        "conversation_topic",
+    ]
+    proposed_ids = {entity["entity_id"] for entity in artifact["proposed_entities"]}
+    assert "store-morning-bar" in proposed_ids
+    assert "food-oatmeal" in proposed_ids
+    assert "preference-value-cilantro" in proposed_ids
+    assert artifact["normalization_review_lanes"][0]["runtime_effect_allowed"] is False
+
+
+def test_context_quality_contradiction_review_flags_shadow_conflicts() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    fixture = _fixture_payload()
+    fixture["candidate_pool"].append(
+        {"candidate_id": "food-cilantro", "name": "cilantro chicken bowl"}
+    )
+
+    artifact = build_shadow_lab_artifacts(fixture)[
+        "context_quality_contradiction_review_queue"
+    ]
+
+    assert artifact["artifact_type"] == "context_quality_contradiction_review_queue"
+    assert artifact["runtime_blocking_claimed"] is False
+    assert artifact["manager_context_injected"] is False
+    assert artifact["contradiction_count"] >= 1
+    conflict = next(
+        item
+        for item in artifact["review_items"]
+        if item["check_id"] == "negative_preference_vs_candidate_pool"
+    )
+    assert conflict["review_status"] == "pending"
+    assert conflict["runtime_effect_allowed"] is False
+    assert conflict["recommended_action"] == "keep_shadowing"
+    assert "negative-preference-ingredient-cilantro" in conflict["candidate_ids"]
+
+
+def test_capability_scenario_fixture_pack_covers_consumer_paths_without_runtime() -> (
+    None
+):
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "capability_scenario_fixture_pack"
+    ]
+
+    assert artifact["artifact_type"] == "capability_scenario_fixture_pack"
+    assert artifact["runtime_scenarios_executed"] is False
+    assert artifact["manager_context_injected"] is False
+    assert artifact["fixture_only"] is True
+    assert {scenario["consumer_id"] for scenario in artifact["scenarios"]} == {
+        "recommendation",
+        "intake_clarification",
+        "chat_context",
+        "calibration",
+        "proactive",
+        "rescue_later",
+        "conversation_recall",
+    }
+    for scenario in artifact["scenarios"]:
+        assert scenario["runtime_effect_allowed"] is False
+        assert scenario["expected_artifact_ids"]
+        assert scenario["forbidden_runtime_effects"]
+
+
+def test_pr_review_autopilot_closeout_is_draft_pr_only() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "pr_review_autopilot_closeout"
+    ]
+
+    assert artifact["artifact_type"] == "pr_review_autopilot_closeout"
+    assert artifact["draft_pr_only"] is True
+    assert artifact["auto_merge_allowed"] is False
+    assert artifact["human_approval_required_for_merge"] is True
+    assert artifact["continue_without_gate_after_batch2"] is False
+    assert artifact["runtime_effect_allowed"] is False
+
+
 def test_consumer_specific_context_packs_are_summary_first_and_non_injecting() -> None:
     from app.memory.application.long_term_context_shadow_lab import (
         build_shadow_lab_artifacts,
@@ -1126,6 +1270,11 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "semantic_pattern_extraction_shadow_plan.json",
         "context_signal_quality_scorecard.json",
         "context_pack_token_pressure_shadow_eval.json",
+        "conversation_recall_retrieval_shadow_eval.json",
+        "entity_normalization_shadow_plan.json",
+        "context_quality_contradiction_review_queue.json",
+        "capability_scenario_fixture_pack.json",
+        "pr_review_autopilot_closeout.json",
         "external_memory_framework_research_review.json",
     }
     assert {path.name for path in output_dir.iterdir()} == expected_files
@@ -1143,3 +1292,45 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         payload = json.loads(path.read_text(encoding="utf-8"))
         assert payload["shadow_mode"] is True
         assert payload["real_runtime_effect"] is False
+
+
+def test_shadow_lab_builder_script_writes_local_deep_review_when_root_is_present(
+    tmp_path: Path,
+) -> None:
+    fixture_path = tmp_path / "fixture.json"
+    output_dir = tmp_path / "artifacts"
+    framework_root = tmp_path / "frameworks"
+    framework_root.mkdir()
+    (framework_root / "openclaw_memory.md").write_text(
+        "scope recallInjectionPosition contradiction freshness review",
+        encoding="utf-8",
+    )
+    fixture_path.write_text(
+        json.dumps(_fixture_payload(), ensure_ascii=False), encoding="utf-8"
+    )
+
+    from scripts.build_long_term_context_shadow_lab import main
+
+    exit_code = main(
+        [
+            "--fixture-json",
+            str(fixture_path),
+            "--output-dir",
+            str(output_dir),
+            "--local-framework-root",
+            str(framework_root),
+        ]
+    )
+
+    assert exit_code == 0
+    assert (output_dir / "local_memory_framework_review.json").exists()
+    assert (output_dir / "local_memory_framework_deep_review.json").exists()
+    manifest = json.loads(
+        (output_dir / "artifact_registry_manifest.json").read_text(encoding="utf-8")
+    )
+    manifest_entries = {
+        entry["artifact_key"] for entry in manifest["artifact_registry_entries"]
+    }
+    assert "local_memory_framework_deep_review" in manifest_entries
+    assert manifest["artifacts_without_consumers"] == []
+    assert manifest["pseudo_runtime_truth_risks"] == []
