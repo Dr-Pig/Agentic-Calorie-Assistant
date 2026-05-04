@@ -139,6 +139,22 @@ def test_body_budget_calibration_readiness_artifact_records_calibration_router_a
     assert "router.include_router(calibration_router)" in root_routes_source
 
 
+def test_body_budget_calibration_readiness_artifact_names_self_use_journey_smoke_gate() -> None:
+    from app.composition.body_budget_calibration_readiness import (
+        build_body_budget_calibration_readiness_artifact,
+    )
+
+    artifact = build_body_budget_calibration_readiness_artifact()
+
+    gate = artifact["journey_smoke_gates"]["calibration_self_use_journey"]
+    assert gate["script"] == "scripts/run_body_budget_calibration_self_use_journey_smoke.py"
+    assert gate["test"] == "tests/test_body_budget_calibration_self_use_journey_smoke.py"
+    assert "history_to_calibration_preview" in gate["covers"]
+    assert "explicit_stored_action_accept" in gate["covers"]
+    assert "automatic_calibration" in gate["does_not_claim"]
+    assert "private_self_use_approval" in gate["does_not_claim"]
+
+
 def test_body_budget_calibration_readiness_script_writes_artifact(tmp_path: Path) -> None:
     from scripts.run_body_budget_calibration_readiness_diagnostic import main
 
