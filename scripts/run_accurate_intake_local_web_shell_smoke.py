@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import json
+import os
+import secrets
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -22,6 +25,7 @@ from app.composition.onboarding_service import OnboardingBootstrapInput, bootstr
 from app.database import get_db, get_or_create_user
 from app.models import Base
 from app.routes import router
+from app.runtime.interface.local_debug_auth import LOCAL_DEBUG_API_TOKEN_ENV, LOCAL_DEBUG_API_TOKEN_HEADER
 from scripts.run_accurate_intake_mvp_manager_style_smoke import DeterministicSelfUseManagerProvider
 
 DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_local_web_shell_bridge.sqlite3"
@@ -111,6 +115,20 @@ def _status(response: Any) -> dict[str, Any]:
     }
 
 
+@contextmanager
+def _local_debug_headers():
+    token = secrets.token_urlsafe(24)
+    previous_token = os.environ.get(LOCAL_DEBUG_API_TOKEN_ENV)
+    os.environ[LOCAL_DEBUG_API_TOKEN_ENV] = token
+    try:
+        yield {LOCAL_DEBUG_API_TOKEN_HEADER: token}
+    finally:
+        if previous_token is None:
+            os.environ.pop(LOCAL_DEBUG_API_TOKEN_ENV, None)
+        else:
+            os.environ[LOCAL_DEBUG_API_TOKEN_ENV] = previous_token
+
+
 def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     blockers: list[str] = []
     if not report["static_shell"]["ok"]:
@@ -161,51 +179,54 @@ def build_local_web_shell_bridge_report(
     db = SessionLocal()
     client: TestClient | None = None
     try:
-        client = _build_test_client(db, provider)
-        initial_budget_response = client.get("/today/current-budget", params={"user_id": user_external_id})
-        initial_budget = _json(initial_budget_response)
-        backend_local_date = str(initial_budget.get("local_date") or "")
-        if backend_local_date:
-            _seed_body_plan(db, user_external_id=user_external_id, local_date=backend_local_date)
+        with _local_debug_headers() as debug_headers:
+            client = _build_test_client(db, provider)
+            initial_budget_response = client.get("/today/current-budget", params={"user_id": user_external_id})
+            initial_budget = _json(initial_budget_response)
+            backend_local_date = str(initial_budget.get("local_date") or "")
+            if backend_local_date:
+                _seed_body_plan(db, user_external_id=user_external_id, local_date=backend_local_date)
 
-        static_response = client.get("/static/accurate-intake-local-shell.html")
-        static_text = static_response.text
-        budget_response = client.get("/today/current-budget", params={"user_id": user_external_id})
-        budget = _json(budget_response)
-        backend_local_date = str(budget.get("local_date") or backend_local_date)
-        manual_target_response = client.post(
-            "/body-plan/manual-daily-target",
-            json={
-                "user_id": user_external_id,
-                "daily_target_kcal": 1600,
-                "local_date": backend_local_date,
-                "source": "user_ui",
-            },
-        )
-        estimate_response = client.post(
-            "/estimate",
-            json={
-                "text": "chicken sandwich",
-                "user_id": user_external_id,
-                "allow_search": False,
-            },
-            headers={"X-Canary-Page-Version": "accurate-intake-local-shell.v1"},
-        )
-        today_after_response = client.get("/today/current-budget", params={"user_id": user_external_id})
-        debug_response = client.get(
-            "/accurate-intake/debug",
-            params={"user_id": user_external_id, "local_date": backend_local_date},
-        )
-        debug_payload = _json(debug_response)
-        debug_model = dict(debug_payload.get("model") or {})
-        same_truth = dict(debug_model.get("same_truth") or {})
-        today_after = _json(today_after_response)
-        chat_history_response = client.get(
-            "/accurate-intake/chat-history",
-            params={"user_id": user_external_id, "local_date": backend_local_date},
-        )
-        chat_history_payload = _json(chat_history_response)
-        chat_history_messages = list(chat_history_payload.get("messages") or [])
+            static_response = client.get("/static/accurate-intake-local-shell.html")
+            static_text = static_response.text
+            budget_response = client.get("/today/current-budget", params={"user_id": user_external_id})
+            budget = _json(budget_response)
+            backend_local_date = str(budget.get("local_date") or backend_local_date)
+            manual_target_response = client.post(
+                "/body-plan/manual-daily-target",
+                json={
+                    "user_id": user_external_id,
+                    "daily_target_kcal": 1600,
+                    "local_date": backend_local_date,
+                    "source": "user_ui",
+                },
+            )
+            estimate_response = client.post(
+                "/estimate",
+                json={
+                    "text": "chicken sandwich",
+                    "user_id": user_external_id,
+                    "allow_search": False,
+                },
+                headers={"X-Canary-Page-Version": "accurate-intake-local-shell.v1"},
+            )
+            today_after_response = client.get("/today/current-budget", params={"user_id": user_external_id})
+            debug_response = client.get(
+                "/accurate-intake/debug",
+                params={"user_id": user_external_id, "local_date": backend_local_date},
+                headers=debug_headers,
+            )
+            debug_payload = _json(debug_response)
+            debug_model = dict(debug_payload.get("model") or {})
+            same_truth = dict(debug_model.get("same_truth") or {})
+            today_after = _json(today_after_response)
+            chat_history_response = client.get(
+                "/accurate-intake/chat-history",
+                params={"user_id": user_external_id, "local_date": backend_local_date},
+                headers=debug_headers,
+            )
+            chat_history_payload = _json(chat_history_response)
+            chat_history_messages = list(chat_history_payload.get("messages") or [])
 
         report: dict[str, Any] = {
             "artifact_schema_version": "1.0",

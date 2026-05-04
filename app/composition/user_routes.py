@@ -5,12 +5,18 @@ from typing import Any
 from fastapi import APIRouter, Depends
 
 from app.database import get_db, get_meal_log_history, get_or_create_user
+from app.runtime.interface.local_debug_auth import require_local_debug_access
 
 router = APIRouter()
 
 
 @router.get("/user/{user_id}/logs")
-async def get_user_logs(user_id: str, include_superseded: bool = False, db: Any = Depends(get_db)) -> dict:
+async def get_user_logs(
+    user_id: str,
+    include_superseded: bool = False,
+    db: Any = Depends(get_db),
+    _local_debug_access: None = Depends(require_local_debug_access),
+) -> dict:
     user = get_or_create_user(db, user_id)
     logs = get_meal_log_history(db, user, limit=10, include_superseded=include_superseded)
 
@@ -36,7 +42,11 @@ async def get_user_logs(user_id: str, include_superseded: bool = False, db: Any 
 
 
 @router.post("/user/{user_id}/context/reset")
-async def reset_user_context(user_id: str, db: Any = Depends(get_db)) -> dict:
+async def reset_user_context(
+    user_id: str,
+    db: Any = Depends(get_db),
+    _local_debug_access: None = Depends(require_local_debug_access),
+) -> dict:
     user = get_or_create_user(db, user_id)
     from app.models import MealLog
 

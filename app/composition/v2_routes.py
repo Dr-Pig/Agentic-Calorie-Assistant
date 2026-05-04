@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 import time
 from typing import Any
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -14,6 +15,7 @@ from app.intake.application.attachment_resolver import resolve_attachment_decisi
 from app.intake.application.current_turn_context_assembler import build_current_turn_context_v1
 from app.intake.application.phase_a_trace import build_phase_a_trace
 from app.intake.application.transition_guard import resolve_transition_guard
+from app.logger import logger
 from app.runtime.interface.provider_runtime import extract_provider, manager_provider, search_provider
 
 router = APIRouter()
@@ -56,8 +58,8 @@ def _compute_latency_bucket(total_ms: int) -> str:
 
 @router.post("/v2/estimate")
 async def v2_estimate(req: V2EstimateRequest, db: Any = Depends(get_db)) -> dict[str, Any]:
-    print(f"DEBUG: v2_estimate called with {req.text}")
     request_start_ms = int(time.time() * 1000)
+    request_id = uuid4().hex
     
     try:
         onboarding_payload = (
@@ -124,8 +126,6 @@ async def v2_estimate(req: V2EstimateRequest, db: Any = Depends(get_db)) -> dict
         result["latency_tracking"] = latency_tracking
         
         return result
-    except Exception as exc:
-        print(f"CRITICAL ERROR in v2_estimate: {str(exc)}")
-        import traceback
-        traceback.print_exc()
-        return {"error": str(exc), "traceback": traceback.format_exc(), "status": "error"}
+    except Exception:
+        logger.exception("v2_estimate failed request_id=%s", request_id)
+        return {"error": "internal_server_error", "request_id": request_id, "status": "error"}

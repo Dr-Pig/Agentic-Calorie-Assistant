@@ -319,6 +319,17 @@ def test_browser_shell_smoke_script_stays_out_of_fooddb_and_live_provider_bounda
         assert fragment not in source
 
 
+def test_browser_shell_smoke_primes_local_debug_token_for_public_repo_hardening() -> None:
+    source = Path("scripts/run_accurate_intake_browser_shell_smoke.py").read_text(encoding="utf-8")
+
+    assert "secrets.token_urlsafe" in source
+    forbidden_constant = "BROWSER" + "_SMOKE_LOCAL_DEBUG_TOKEN"
+    assert forbidden_constant not in source
+    assert 'os.environ["LOCAL_DEBUG_API_TOKEN"]' in source
+    assert 'document.querySelector("#local-debug-token")' in source
+    assert "primeLocalDebugToken()" in source
+
+
 def test_browser_shell_smoke_cli_writes_blocked_artifact_without_failing_optional_run(
     monkeypatch,
     tmp_path: Path,
