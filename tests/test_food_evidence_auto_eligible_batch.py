@@ -89,6 +89,28 @@ def test_auto_eligible_batch_adds_approval_metadata_without_runtime_truth() -> N
     }
 
 
+def test_auto_eligible_includes_validated_tfda_listed_component_candidates() -> None:
+    artifact = build_food_evidence_auto_eligible_batch(
+        validation_artifact=_validation_artifact(
+            [
+                _validated_candidate(
+                    "dougan",
+                    "豆干",
+                    evidence_role="listed_component_anchor_candidate",
+                )
+            ]
+        ),
+        sample_size_per_group=2,
+    )
+
+    assert artifact["summary"]["auto_eligible_count"] == 1
+    candidate = artifact["auto_eligible_candidates"][0]
+    assert candidate["evidence_role"] == "listed_component_anchor_candidate"
+    assert candidate["promotion_status"] == "auto_eligible_packet_candidate"
+    assert candidate["runtime_truth_allowed"] is False
+    assert candidate["packet_ready"] is False
+
+
 def test_auto_eligible_blocks_validator_failures_and_non_auto_sources() -> None:
     artifact = build_food_evidence_auto_eligible_batch(
         validation_artifact=_validation_artifact(

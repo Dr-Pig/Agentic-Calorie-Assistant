@@ -8,7 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.nutrition.application.food_evidence_candidate_triage_report import build_food_evidence_candidate_triage_report  # noqa: E402
+from app.nutrition.application.food_evidence_candidate_triage_report import (  # noqa: E402
+    build_food_evidence_candidate_triage_report,
+)
 
 
 def _validated_candidate(
@@ -44,6 +46,12 @@ def _validation_artifact() -> dict:
             evidence_role="generic_anchor_candidate",
         ),
         _validated_candidate(
+            "tfda_listed",
+            "豆干",
+            source_class="taiwan_tfda_open_data",
+            evidence_role="listed_component_anchor_candidate",
+        ),
+        _validated_candidate(
             "official_exact",
             "official dessert",
             source_class="official_brand_chain_page",
@@ -68,8 +76,8 @@ def _validation_artifact() -> dict:
         "artifact_type": "accurate_intake_food_evidence_candidate_validation",
         "claim_scope": "food_evidence_candidate_validation_only",
         "summary": {
-            "candidate_count": 4,
-            "validator_passed_count": 2,
+            "candidate_count": 5,
+            "validator_passed_count": 3,
             "rejected_count": 1,
             "needs_source_repair_count": 1,
             "source_parse_error_count": 1,
@@ -94,10 +102,10 @@ def _auto_eligible_artifact() -> dict:
         "artifact_type": "accurate_intake_food_auto_eligible_candidate_batch",
         "claim_scope": "food_evidence_auto_eligible_candidates_only",
         "summary": {
-            "validated_candidate_count": 4,
-            "auto_eligible_count": 2,
+            "validated_candidate_count": 5,
+            "auto_eligible_count": 3,
             "exception_count": 2,
-            "sample_audit_group_count": 2,
+            "sample_audit_group_count": 3,
         },
         "auto_eligible_candidates": [
             {
@@ -107,6 +115,19 @@ def _auto_eligible_artifact() -> dict:
                 "evidence_role": "generic_anchor_candidate",
                 "canonical_label": "tfda drink",
                 "aliases": ["tfda drink-alt"],
+                "kcal_point": 123,
+                "validation_status": "validator_passed",
+                "promotion_status": "auto_eligible_packet_candidate",
+                "runtime_truth_allowed": False,
+                "packet_ready": False,
+            },
+            {
+                "candidate_id": "tfda_listed",
+                "source_id": "tfda_listed_source",
+                "source_class": "taiwan_tfda_open_data",
+                "evidence_role": "listed_component_anchor_candidate",
+                "canonical_label": "豆干",
+                "aliases": ["豆干-alt"],
                 "kcal_point": 123,
                 "validation_status": "validator_passed",
                 "promotion_status": "auto_eligible_packet_candidate",
@@ -153,6 +174,22 @@ def _auto_eligible_artifact() -> dict:
         ],
         "sample_audit_report": [
             {
+                "sample_group": "official_brand_chain_page/exact_card_candidate",
+                "available_count": 1,
+                "sample_size": 1,
+                "sample_only_not_approved": True,
+                "approval_granted": False,
+                "samples": [
+                    {
+                        "candidate_id": "official_exact",
+                        "canonical_label": "official dessert",
+                        "source_id": "official_exact_source",
+                        "kcal_point": 123,
+                        "runtime_truth_allowed": False,
+                    }
+                ],
+            },
+            {
                 "sample_group": "taiwan_tfda_open_data/generic_anchor_candidate",
                 "available_count": 1,
                 "sample_size": 1,
@@ -169,16 +206,16 @@ def _auto_eligible_artifact() -> dict:
                 ],
             },
             {
-                "sample_group": "official_brand_chain_page/exact_card_candidate",
+                "sample_group": "taiwan_tfda_open_data/listed_component_anchor_candidate",
                 "available_count": 1,
                 "sample_size": 1,
                 "sample_only_not_approved": True,
                 "approval_granted": False,
                 "samples": [
                     {
-                        "candidate_id": "official_exact",
-                        "canonical_label": "official dessert",
-                        "source_id": "official_exact_source",
+                        "candidate_id": "tfda_listed",
+                        "canonical_label": "豆干",
+                        "source_id": "tfda_listed_source",
                         "kcal_point": 123,
                         "runtime_truth_allowed": False,
                     }
@@ -208,20 +245,21 @@ def test_candidate_triage_report_classifies_lanes_and_stop_rules() -> None:
         "listed_basket_components_max_before_activation": 60,
     }
     assert report["validation_summary_compact"] == {
-        "candidate_count": 4,
-        "validator_passed_count": 2,
+        "candidate_count": 5,
+        "validator_passed_count": 3,
         "rejected_count": 1,
         "needs_source_repair_count": 1,
         "source_parse_error_count": 1,
     }
     assert report["auto_eligible_summary_compact"] == {
-        "validated_candidate_count": 4,
-        "auto_eligible_count": 2,
+        "validated_candidate_count": 5,
+        "auto_eligible_count": 3,
         "exception_count": 2,
-        "sample_audit_group_count": 2,
+        "sample_audit_group_count": 3,
     }
     assert report["summary"] == {
         "tfda_generic_auto_eligible_count": 1,
+        "tfda_listed_component_auto_eligible_count": 1,
         "official_exact_candidate_only_count": 1,
         "source_repair_required_count": 1,
         "rejected_count": 1,
@@ -237,8 +275,14 @@ def test_candidate_triage_report_classifies_lanes_and_stop_rules() -> None:
             "evidence_role": "generic_anchor_candidate",
             "count": 1,
         },
+        {
+            "source_class": "taiwan_tfda_open_data",
+            "evidence_role": "listed_component_anchor_candidate",
+            "count": 1,
+        },
     ]
     tfda_lane = report["lane_map"]["tfda_generic_runtime_batch_candidates"]
+    listed_lane = report["lane_map"]["tfda_listed_component_runtime_batch_candidates"]
     exact_lane = report["lane_map"]["official_exact_candidate_only"]
     repair_lane = report["lane_map"]["source_repair_required"]
     rejected_lane = report["lane_map"]["rejected"]
@@ -247,6 +291,11 @@ def test_candidate_triage_report_classifies_lanes_and_stop_rules() -> None:
     assert tfda_lane["candidate_ids"] == ["tfda_generic"]
     assert tfda_lane["runtime_truth_allowed"] is False
     assert tfda_lane["next_action"] == "runtime-batch-plan"
+
+    assert listed_lane["lane_count"] == 1
+    assert listed_lane["candidate_ids"] == ["tfda_listed"]
+    assert listed_lane["runtime_truth_allowed"] is False
+    assert listed_lane["next_action"] == "listed-component-runtime-batch-plan"
 
     assert exact_lane["lane_count"] == 1
     assert exact_lane["candidate_ids"] == ["official_exact"]
@@ -327,6 +376,7 @@ def test_candidate_triage_report_cli_writes_roundtrippable_artifact(tmp_path: Pa
 
     artifact = read_json_artifact(output_path)
     assert artifact["summary"]["tfda_generic_auto_eligible_count"] == 1
+    assert artifact["summary"]["tfda_listed_component_auto_eligible_count"] == 1
     assert artifact["summary"]["official_exact_candidate_only_count"] == 1
     assert artifact["coverage_stop_rule"]["common_serving_anchor_max_before_activation"] == 80
     assert artifact["non_claims"] == [
