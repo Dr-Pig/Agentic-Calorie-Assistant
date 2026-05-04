@@ -115,10 +115,33 @@ def _trace_chain_complete(trace: dict[str, Any]) -> bool:
     )
 
 
+def _dict_or_empty(value: Any) -> dict[str, Any]:
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _manager_context_summary(trace: dict[str, Any]) -> dict[str, Any]:
+    packet = _dict_or_empty(trace.get("manager_context_packet_v1"))
+    hard_pins = _dict_or_empty(packet.get("hard_pins"))
+    target_candidates = _dict_or_empty(packet.get("target_candidates"))
+    correction_targets = target_candidates.get("for_correction_or_removal")
+    if not isinstance(correction_targets, list):
+        correction_targets = []
+    pending_pin_keys = ("pending_followup", "pending_draft")
+    return {
+        "context_policy_version": trace.get("context_policy_version"),
+        "loaded_context_summary": _dict_or_empty(trace.get("loaded_context_summary")),
+        "omitted_context_summary": _dict_or_empty(trace.get("omitted_context_summary")),
+        "pending_pins_present": any(bool(_dict_or_empty(hard_pins.get(key))) for key in pending_pin_keys),
+        "target_candidates_present": bool(correction_targets),
+        "target_candidate_count": len(correction_targets),
+    }
+
+
 def _chat_history_message(message: MessageBuffer) -> dict[str, Any]:
     trace = _runtime_turn_trace(message)
     assistant_response = trace.get("assistant_response") if isinstance(trace.get("assistant_response"), dict) else {}
     context_snapshot = trace.get("context_snapshot") if isinstance(trace.get("context_snapshot"), dict) else {}
+    manager_context = _manager_context_summary(trace)
     return {
         "message_id": message.id,
         "role": message.role,
@@ -135,6 +158,7 @@ def _chat_history_message(message: MessageBuffer) -> dict[str, Any]:
         "trace_chain_complete": _trace_chain_complete(trace),
         "pending_followup_linkage_present": isinstance(trace.get("pending_followup_linkage"), dict),
         "structured_followup_question": assistant_response.get("structured_followup_question"),
+        **manager_context,
     }
 
 

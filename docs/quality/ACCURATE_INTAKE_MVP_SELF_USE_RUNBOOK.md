@@ -134,6 +134,14 @@ python scripts/run_accurate_intake_browser_shell_smoke.py --db-path .pytest_tmp_
 
 This smoke executes the local shell in a real Chromium browser only when Playwright is available in the operator environment. If Playwright is not installed, the artifact is `blocked` with `browser_executed=false`; that blocked artifact is allowed for local deterministic PR evidence and still must not claim `web_ready`. To require browser execution explicitly, add `--require-browser-execution`. A passing browser artifact only proves local browser fetch/render/CJK behavior for this shell; it is not a product, rollout, live LLM, Web/Tavily, or production DB readiness claim.
 
+Run the browser realistic local dogfood diagnostic v2 with:
+
+```powershell
+python scripts/run_accurate_intake_browser_realistic_web_dogfood_v2.py --require-browser-execution --db-path .pytest_tmp_local/accurate_intake_browser_realistic_web_dogfood_v2.sqlite3 --output artifacts/accurate_intake_browser_realistic_web_dogfood_v2.json
+```
+
+This browser diagnostic drives the local shell through a target update and CJK food/query turns with deterministic fixture Manager decisions and fixture evidence only. Its success status is `browser_diagnostic_pass_with_fixture_evidence_gap` or `browser_diagnostic_pass_with_evidence_gap`; it must not emit `pass`, `dogfood_pass`, `realistic_pass`, or `fooddb_pass`. The fixture Manager can provide structured Manager decisions, and fixture evidence can simulate packet-ready evidence for local diagnostics only; those fixtures must not become FoodDB truth or update app knowledge.
+
 Run a fresh local shell pass with:
 
 ```powershell
@@ -156,6 +164,18 @@ Back up real dogfood SQLite data before any reset with:
 
 ```powershell
 python scripts/manage_accurate_intake_local_dogfood_data.py --operation backup --db-path workspace_data/local_dogfood/accurate_intake.sqlite3 --backup-dir workspace_data/local_dogfood_backups --label before-reset --output artifacts/accurate_intake_local_dogfood_backup.json
+```
+
+Export a local-only SQLite copy plus manifest for operator review or handoff inspection with:
+
+```powershell
+python scripts/manage_accurate_intake_local_dogfood_data.py --operation export --db-path workspace_data/local_dogfood/accurate_intake.sqlite3 --export-dir workspace_data/local_dogfood_exports --label review --output artifacts/accurate_intake_local_dogfood_export.json
+```
+
+Preview an export before any manual restore/import workflow with:
+
+```powershell
+python scripts/manage_accurate_intake_local_dogfood_data.py --operation import-preview --db-path workspace_data/local_dogfood/accurate_intake.sqlite3 --import-manifest workspace_data/local_dogfood_exports/accurate_intake.review.YYYYMMDDTHHMMSSZ.manifest.json --output artifacts/accurate_intake_local_dogfood_import_preview.json
 ```
 
 Fixture and smoke DB paths under `.pytest_tmp_local` are disposable. Real dogfood DB paths under `workspace_data/local_dogfood` or explicitly named `real_dogfood` require backup before reset. Dogfood SQLite files, backups, JSONL exports, and generated hygiene manifests can contain personal diet logs; they are local-only and must not be committed.
@@ -191,7 +211,21 @@ Build the operator review surface from the one-day realistic dogfood diagnostic 
 python scripts/build_accurate_intake_dogfood_operator_review.py --dogfood-json artifacts/accurate_intake_one_day_realistic_web_dogfood.json --output artifacts/accurate_intake_dogfood_operator_review.json
 ```
 
-This surface is a local-only triage view. It may classify turns as target update success, food evidence gap, blocked mutation, query/no-mutation, unsupported intent, manager/context gap, or not checked using structured artifact fields only. Runtime error / missing-payload status may classify a turn as `manager_context_gap`; raw user text and assistant text are display-only. The surface must not recompute kcal, update Food KB truth, promote canonical eval cases, or convert `diagnostic_pass_with_evidence_gap` into `pass`.
+For the browser realistic v2 diagnostic, use the same builder against the browser artifact:
+
+```powershell
+python scripts/build_accurate_intake_dogfood_operator_review.py --dogfood-json artifacts/accurate_intake_browser_realistic_web_dogfood_v2.json --output artifacts/accurate_intake_dogfood_operator_review_v2.json
+```
+
+This surface is a local-only triage view. It may classify turns as target update success, food evidence gap, blocked mutation, query/no-mutation, unsupported intent, manager/context gap, or not checked using structured artifact fields only. Runtime error / missing-payload status may classify a turn as `manager_context_gap`; raw user text and assistant text are display-only. Browser v2 manager context status is limited to `not_available`, `not_checked`, or `missing_context_snapshot`; this is diagnostic-only and must not claim a Context Engineering fault. The surface must not recompute kcal, update Food KB truth, promote canonical eval cases, or convert `diagnostic_pass_with_evidence_gap` or `browser_diagnostic_pass_with_fixture_evidence_gap` into `pass`.
+
+Build the Product Loop handoff v3 metadata gate with:
+
+```powershell
+python scripts/build_accurate_intake_product_loop_handoff_v3.py --browser-shell-smoke artifacts/accurate_intake_browser_shell_smoke.json --browser-fixture-dogfood artifacts/accurate_intake_browser_one_day_fixture_dogfood.json --local-dogfood-hygiene artifacts/accurate_intake_local_dogfood_export.json --browser-realistic-dogfood artifacts/accurate_intake_browser_realistic_web_dogfood_v2.json --operator-review artifacts/accurate_intake_dogfood_operator_review_v2.json --mvp-gate artifacts/accurate_intake_mvp_gate.json --output artifacts/accurate_intake_product_loop_handoff_v3.json
+```
+
+The handoff gate is validation-only. Without a FoodDB artifact it must report `ready_for_fdb_integration=false` and `fooddb_artifact_status=blocked_waiting_for_fdb_artifact`. A fixture FoodDB artifact still must keep `real_fooddb_pass_claimed=false`. Invalid FoodDB metadata blocks the gate and must not trigger auto-fix or FoodDB truth updates.
 
 Build the Food KB gap register from the operator review surface with:
 

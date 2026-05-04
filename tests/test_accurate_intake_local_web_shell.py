@@ -83,6 +83,67 @@ def test_local_web_shell_displays_read_models_without_recomputing_budget_truth()
         assert fragment not in html
 
 
+def test_local_web_shell_has_render_only_review_debug_panels() -> None:
+    html = _shell_html()
+
+    for selector in (
+        'id="last-turn-trace-list"',
+        'id="pending-followup-list"',
+        'id="runtime-status-list"',
+        'id="failure-signal-list"',
+    ):
+        assert selector in html
+
+    assert "renderReviewPanel(debug, chatHistory)" in html
+    assert "valueOrNotAvailable" in html
+    assert "runtime_turn_trace_present" in html
+    assert "context_snapshot_present" in html
+    assert "trace_chain_complete" in html
+    assert "pending_followup_linkage_present" in html
+    assert "structured_followup_question" in html
+    assert "not_available" in html
+
+
+def test_local_web_shell_renders_manager_context_trace_fields_without_inference() -> None:
+    html = _shell_html()
+
+    for fragment in (
+        "context_policy_version",
+        "loaded_context_summary",
+        "omitted_context_summary",
+        "pending_pins_present",
+        "target_candidate_count",
+        "not_checked",
+    ):
+        assert fragment in html
+
+    for forbidden_fragment in (
+        "manager_context_gap",
+        "inferManagerContext",
+        "inferEvidenceGap",
+        "selectTarget",
+    ):
+        assert forbidden_fragment not in html
+
+
+def test_local_web_shell_debug_panel_uses_current_backend_read_model_fields_only() -> None:
+    html = _shell_html()
+
+    assert "thread.active_version?.total_kcal" in html
+    assert "thread.active_version?.status" in html
+    assert "view.budget_kcal" in html
+    assert "view.recommended_target_kcal" in html
+
+    obsolete_fallbacks = [
+        "thread.total_kcal",
+        "thread.kcal",
+        "view.daily_target_kcal",
+        "view.target_kcal",
+    ]
+    for fragment in obsolete_fallbacks:
+        assert fragment not in html
+
+
 def test_local_web_shell_uses_backend_budget_date_instead_of_browser_date_truth() -> None:
     html = _shell_html()
 
@@ -92,6 +153,8 @@ def test_local_web_shell_uses_backend_budget_date_instead_of_browser_date_truth(
     assert "let backendLocalDate = null;" in html
     assert "backendLocalDate = budget.local_date || null;" in html
     assert 'writeText("local-date-display", backendLocalDate);' in html
+    assert 'if ("value" in target)' in html
+    assert "target.value = rendered;" in html
     assert "local_date: backendLocalDate" in html
     assert "local_date: localDate()" not in html
 

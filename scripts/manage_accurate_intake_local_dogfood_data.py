@@ -12,6 +12,8 @@ if str(ROOT) not in sys.path:
 from app.composition.local_dogfood_data_hygiene import (  # noqa: E402
     backup_local_dogfood_db,
     build_local_dogfood_data_manifest,
+    export_local_dogfood_db,
+    import_preview_local_dogfood_export,
 )
 
 
@@ -24,9 +26,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Inspect or back up local-only Accurate Intake dogfood SQLite data."
     )
-    parser.add_argument("--operation", choices=["inspect", "backup", "reset"], default="inspect")
+    parser.add_argument(
+        "--operation",
+        choices=["inspect", "backup", "reset", "export", "import-preview"],
+        default="inspect",
+    )
     parser.add_argument("--db-path", required=True)
     parser.add_argument("--backup-dir", default="workspace_data/local_dogfood_backups")
+    parser.add_argument("--export-dir", default="workspace_data/local_dogfood_exports")
+    parser.add_argument("--import-manifest")
     parser.add_argument("--label", default="manual-backup")
     parser.add_argument("--output", default="artifacts/accurate_intake_local_dogfood_data_hygiene.json")
     args = parser.parse_args(argv)
@@ -38,6 +46,27 @@ def main(argv: list[str] | None = None) -> int:
             backup_dir=Path(args.backup_dir),
             label=args.label,
         )
+    elif args.operation == "export":
+        payload = export_local_dogfood_db(
+            db_path=db_path,
+            export_dir=Path(args.export_dir),
+            label=args.label,
+        )
+    elif args.operation == "import-preview":
+        if not args.import_manifest:
+            payload = {
+                **build_local_dogfood_data_manifest(db_path=db_path, operation=args.operation),
+                "status": "blocked",
+                "allowed": False,
+                "blockers": ["import_manifest_required"],
+                "import_allowed": False,
+                "writes_performed": False,
+            }
+        else:
+            payload = import_preview_local_dogfood_export(
+                export_manifest_path=Path(args.import_manifest),
+                target_db_path=db_path,
+            )
     else:
         payload = build_local_dogfood_data_manifest(db_path=db_path, operation=args.operation)
 
