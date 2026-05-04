@@ -18,6 +18,30 @@ _DEFERRED_CONTEXT_REASONS = {
     "recommendation_context": "out_of_scope_for_mvp",
 }
 
+_INTERACTION_EVENT_FIELDS = (
+    "source",
+    "surface_mode",
+    "event_type",
+    "raw_text",
+    "action_id",
+    "target_object_type",
+    "target_object_id",
+    "occurred_at",
+)
+_DISPLAY_LABEL_FIELDS = ("display_name", "target_label", "label")
+_TARGET_CANDIDATE_FIELDS = (
+    "item_id",
+    "meal_item_id",
+    "meal_thread_id",
+    "meal_version_id",
+    "target_object_type",
+    "target_object_id",
+    "display_name",
+    "canonical_name",
+    "uniqueness_status",
+)
+_TARGET_CANDIDATE_BOOL_FIELDS = ("removable", "eligible")
+
 
 def build_manager_context_packet_v1(
     *,
@@ -27,8 +51,8 @@ def build_manager_context_packet_v1(
     session_id: str,
     channel: str = "web_shell",
     manager_mode: str = "fixture",
-    max_recent_messages: int = 8,
-    max_recent_chars: int = 2000,
+    max_recent_messages: int = 20,
+    max_recent_chars: int = 6000,
     pending_draft: dict[str, Any] | None = None,
     active_day_state: dict[str, Any] | None = None,
     target_candidates: list[dict[str, Any]] | None = None,
@@ -58,6 +82,19 @@ def build_manager_context_packet_v1(
         "rescue_context": rescue_context,
         "recommendation_context": recommendation_context,
     }
+    recent_chat_messages, loading_artifact = _bounded_recent_chat_turns_with_artifact(
+        current_turn_context.recent_chat_turns,
+        max_recent_messages=max_recent_messages,
+        max_recent_chars=max_recent_chars,
+        pending_followup=current_turn_context.pending_followup,
+        pending_draft=pending_draft,
+        target_candidates=target_candidates or current_turn_context.recent_item_targets,
+        interaction_event=current_turn_context.current_interaction_event,
+    )
+    omitted_context = _omitted_context(deferred_inputs)
+    loading_artifact["omitted_context_summary"]["deferred_context_ids"] = [
+        item["context_id"] for item in omitted_context
+    ]
     return {
         "metadata": {
             "user_id": user_id,
@@ -71,15 +108,14 @@ def build_manager_context_packet_v1(
             "channel": channel,
             "manager_mode": manager_mode,
             "read_only": True,
+            "mutation_authority": False,
+            "interaction_event": _interaction_event_snapshot(current_turn_context.current_interaction_event),
         },
         "recent_chat_window": {
             "policy": {"last_messages": max_recent_messages, "max_chars": max_recent_chars},
-            "messages": _bounded_recent_chat_turns(
-                current_turn_context.recent_chat_turns,
-                max_recent_messages=max_recent_messages,
-                max_recent_chars=max_recent_chars,
-            ),
+            "messages": recent_chat_messages,
         },
+        "context_loading_artifact": loading_artifact,
         "hard_pins": {
             "pending_followup": _readonly_copy(current_turn_context.pending_followup),
             "pending_draft": _readonly_copy(pending_draft),
@@ -100,7 +136,7 @@ def build_manager_context_packet_v1(
             "no_long_term_memory_in_mvp",
             "no_proactive_rescue_or_recommendation_context_in_mvp",
         ],
-        "omitted_context": _omitted_context(deferred_inputs),
+        "omitted_context": omitted_context,
         "not_claiming": [
             "long_term_memory",
             "proactive_behavior",
@@ -116,20 +152,108 @@ def _bounded_recent_chat_turns(
     *,
     max_recent_messages: int,
     max_recent_chars: int,
-) -> list[dict[str, Any]]:
-    selected = [dict(turn) for turn in list(turns or [])[-max_recent_messages:]]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    return _bounded_recent_chat_turns_with_artifact(
+        turns,
+        max_recent_messages=max_recent_messages,
+        max_recent_chars=max_recent_chars,
+    )
+
+
+def _bounded_recent_chat_turns_with_artifact(
+    turns: list[dict[str, Any]],
+    *,
+    max_recent_messages: int,
+    max_recent_chars: int,
+    pending_followup: dict[str, Any] | None = None,
+    pending_draft: dict[str, Any] | None = None,
+    target_candidates: list[dict[str, Any]] | None = None,
+    interaction_event: Any | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    max_recent_messages = max(0, int(max_recent_messages or 0))
+    max_recent_chars = max(0, int(max_recent_chars or 0))
+    all_turns = [dict(turn) for turn in list(turns or []) if isinstance(turn, dict)]
+    selected = all_turns[-max_recent_messages:] if max_recent_messages else []
+    omitted_by_message_limit = max(len(all_turns) - len(selected), 0)
     bounded: list[dict[str, Any]] = []
     total_chars = 0
+    omitted_by_char_cap = 0
+    char_truncated = False
     for turn in reversed(selected):
         content = str(turn.get("content") or "")
+        if max_recent_chars == 0:
+            omitted_by_char_cap += 1
+            char_truncated = True
+            continue
         if bounded and total_chars + len(content) > max_recent_chars:
+            omitted_by_char_cap += 1
+            char_truncated = True
             continue
         if not bounded and len(content) > max_recent_chars:
             turn["content"] = content[-max_recent_chars:]
             content = str(turn["content"])
+            char_truncated = True
         total_chars += len(content)
         bounded.append(_readonly_copy(turn) or {})
-    return list(reversed(bounded))
+    messages = list(reversed(bounded))
+    omitted_count = omitted_by_message_limit + omitted_by_char_cap
+    artifact = {
+        "loaded_message_count": len(messages),
+        "omitted_count": omitted_count,
+        "loaded_char_count": total_chars,
+        "hard_char_cap": max_recent_chars,
+        "char_truncated": char_truncated,
+        "token_budget_status": "at_hard_cap" if char_truncated or total_chars >= max_recent_chars > 0 else "within_budget",
+        "loaded_context_summary": {
+            "recent_chat_messages": len(messages),
+            "pending_followup_present": pending_followup is not None,
+            "pending_draft_present": pending_draft is not None,
+            "target_candidate_count": len(list(target_candidates or [])),
+            "interaction_event_present": interaction_event is not None,
+        },
+        "omitted_context_summary": {
+            "recent_chat_messages_omitted": omitted_count,
+            "omitted_by_message_limit": omitted_by_message_limit,
+            "omitted_by_char_cap": omitted_by_char_cap,
+        },
+    }
+    return messages, artifact
+
+
+def _interaction_event_snapshot(event: Any | None) -> dict[str, Any] | None:
+    if event is None:
+        return None
+    payload = event.model_dump(mode="json") if hasattr(event, "model_dump") else dict(event)
+    snapshot = {
+        key: payload.get(key)
+        for key in _INTERACTION_EVENT_FIELDS
+        if payload.get(key) is not None
+    }
+    event_payload = _display_label_snapshot(payload.get("payload"))
+    if event_payload:
+        snapshot["payload"] = event_payload
+    metadata = _display_label_snapshot(payload.get("metadata"))
+    if metadata:
+        snapshot["metadata"] = metadata
+    snapshot.update({
+        "read_only": True,
+        "mutation_authority": False,
+    })
+    return snapshot
+
+
+def _display_label_snapshot(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    return {
+        key: value[key]
+        for key in _DISPLAY_LABEL_FIELDS
+        if key in value and _safe_scalar(value[key])
+    }
+
+
+def _safe_scalar(value: Any) -> bool:
+    return value is None or isinstance(value, (str, int, float)) and not isinstance(value, bool)
 
 
 def _active_day_state(
@@ -152,9 +276,17 @@ def _target_candidates(
 ) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
     for candidate in list(candidates or [])[:max_target_candidates]:
-        item = dict(candidate)
+        if not isinstance(candidate, dict):
+            continue
+        item = {
+            key: candidate[key]
+            for key in _TARGET_CANDIDATE_FIELDS
+            if key in candidate and _safe_scalar(candidate[key])
+        }
+        for key in _TARGET_CANDIDATE_BOOL_FIELDS:
+            if isinstance(candidate.get(key), bool):
+                item[key] = candidate[key]
         item.setdefault("uniqueness_status", "candidate")
-        item.setdefault("removable", True)
         item["read_only"] = True
         item["mutation_authority"] = False
         normalized.append(item)

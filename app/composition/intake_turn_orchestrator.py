@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.composition.current_budget_answer import build_remaining_budget_answer_contract
 from app.composition.intake_execution_orchestrator import process_intake_execution_turn
+from app.composition.manager_context_runtime import build_runtime_manager_context_packet_v1
 from app.composition.manual_daily_target_chat import (
     apply_manual_daily_target_from_chat,
     manual_daily_target_trace_payload,
@@ -71,6 +72,7 @@ async def execute_intake_turn(
     state_before: Any | None = None,
     current_turn_context: CurrentTurnContextV1 | None = None,
     manager_context_pack: ManagerContextPack | None = None,
+    manager_context_packet_v1: dict[str, Any] | None = None,
     phase_a_trace: dict[str, Any] | None = None,
     _timing_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -102,6 +104,14 @@ async def execute_intake_turn(
     manager_context_pack = phase_a_runtime.manager_context_pack
     phase_a_trace = phase_a_runtime.phase_a_trace
     shadow_runtime = phase_a_runtime.shadow_runtime
+    if manager_context_packet_v1 is None:
+        manager_context_packet_v1 = build_runtime_manager_context_packet_v1(
+            db=db,
+            current_turn_context=current_turn_context,
+            user_external_id=user_external_id,
+            local_date=resolved_local_date,
+            session_id=request_id,
+        )
 
     stage_start = int(time.time() * 1000)
     manager_decision: IntakeManagerResult = await run_intake_manager(
@@ -112,6 +122,7 @@ async def execute_intake_turn(
         available_tools=("read_body_plan", "read_day_budget"),
         current_turn_context=current_turn_context,
         manager_context_pack=manager_context_pack,
+        manager_context_packet_v1=manager_context_packet_v1,
         history_expansion_policy=HistoryExpansionPolicy(),
         phase_a_shadow_hypothesis=shadow_runtime.manager_payload if shadow_runtime is not None else None,
     )
@@ -281,6 +292,7 @@ async def execute_intake_turn(
             stage_timings=stage_timings,
             current_turn_context=current_turn_context,
             manager_context_pack=manager_context_pack,
+            manager_context_packet_v1=manager_context_packet_v1,
             phase_a_trace=phase_a_trace,
         )
     else:

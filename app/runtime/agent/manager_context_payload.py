@@ -33,6 +33,36 @@ def manager_context_pack_payload(manager_context_pack: ManagerContextPack | None
     }
 
 
+def manager_context_packet_v1_trace_payload(packet: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(packet, dict):
+        return None
+    metadata = dict(packet.get("metadata") or {})
+    artifact = dict(packet.get("context_loading_artifact") or {})
+    recent_chat_window = dict(packet.get("recent_chat_window") or {})
+    policy = dict(recent_chat_window.get("policy") or {})
+    target_candidates = dict(packet.get("target_candidates") or {})
+    return {
+        "context_policy_version": metadata.get("context_policy_version"),
+        "loaded_context_summary": dict(artifact.get("loaded_context_summary") or {}),
+        "omitted_context_summary": dict(artifact.get("omitted_context_summary") or {}),
+        "recent_chat_window": {
+            "policy": policy,
+            "loaded_message_count": artifact.get("loaded_message_count"),
+            "omitted_count": artifact.get("omitted_count"),
+            "loaded_char_count": artifact.get("loaded_char_count"),
+            "char_truncated": artifact.get("char_truncated"),
+            "token_budget_status": artifact.get("token_budget_status"),
+        },
+        "hard_pins_present": {
+            "pending_followup": bool(dict(packet.get("hard_pins") or {}).get("pending_followup")),
+            "pending_draft": bool(dict(packet.get("hard_pins") or {}).get("pending_draft")),
+        },
+        "target_candidate_count": len(list(target_candidates.get("for_correction_or_removal") or [])),
+        "read_only": True,
+        "mutation_authority": False,
+    }
+
+
 def manager_context_trace_payload(
     *,
     current_turn_context: CurrentTurnContextV1 | None,
@@ -80,6 +110,7 @@ def manager_context_trace_payload(
 
 __all__ = [
     "manager_context_pack_payload",
+    "manager_context_packet_v1_trace_payload",
     "manager_context_trace_payload",
     "shadow_hypothesis_instruction",
 ]

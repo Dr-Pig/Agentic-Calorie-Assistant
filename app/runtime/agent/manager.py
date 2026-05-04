@@ -5,6 +5,7 @@ from typing import Any, Awaitable, Callable
 from app.runtime.agent.manager_provider_readiness import provider_ready
 from app.runtime.agent.manager_context_payload import (
     manager_context_pack_payload as serialize_manager_context_pack,
+    manager_context_packet_v1_trace_payload,
     manager_context_trace_payload,
     shadow_hypothesis_instruction,
 )
@@ -63,6 +64,7 @@ async def run_intake_manager(
     available_tools: tuple[str, ...] | list[str],
     current_turn_context: CurrentTurnContextV1 | None = None,
     manager_context_pack: ManagerContextPack | None = None,
+    manager_context_packet_v1: dict[str, Any] | None = None,
     history_expansion_policy: HistoryExpansionPolicy | None = None,
     phase_a_shadow_hypothesis: dict[str, Any] | None = None,
     phase_a_history_expansion_enabled: bool = False,
@@ -105,6 +107,9 @@ async def run_intake_manager(
             phase_a_history_expansion_enabled=phase_a_history_expansion_enabled,
             phase_a_shadow_hypothesis=phase_a_shadow_hypothesis,
         )
+        manager_context_trace["manager_context_packet_v1"] = manager_context_packet_v1_trace_payload(
+            manager_context_packet_v1
+        )
         user_payload = {
             "raw_user_input": raw_user_input,
             "resolved_state": json_safe(resolved_state),
@@ -115,6 +120,7 @@ async def run_intake_manager(
                 else None
             ),
             "phase_a_manager_context_pack": json_safe(manager_context_pack_payload),
+            "manager_context_packet_v1": json_safe(manager_context_packet_v1),
             "phase_a_manager_context_pack_role": manager_context_trace["phase_a_manager_context_pack_role"],
             "phase_a_surface_mode": phase_a_surface_mode,
             "phase_a_context_pack_version": "v1" if manager_context_pack_payload is not None else None,
@@ -198,6 +204,9 @@ async def run_intake_manager(
                     refreshed_pack = refresh.get("manager_context_pack")
                     if isinstance(refreshed_pack, ManagerContextPack):
                         manager_context_pack = refreshed_pack
+                    refreshed_packet = refresh.get("manager_context_packet_v1")
+                    if isinstance(refreshed_packet, dict):
+                        manager_context_packet_v1 = refreshed_packet
                     if "phase_a_history_expansion_enabled" in refresh:
                         phase_a_history_expansion_enabled = bool(refresh["phase_a_history_expansion_enabled"])
             guard_feedback = None

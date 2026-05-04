@@ -14,6 +14,7 @@ from app.composition.canonical_commit_bridge import (
 from app.composition.conversation_turn_trace import record_runtime_turn_messages
 from app.composition.general_chat_service import build_general_chat_response_pass
 from app.composition.intake_turn_orchestrator import execute_intake_turn
+from app.composition.manager_context_runtime import build_runtime_manager_context_packet_v1
 from app.composition.phase_a_boundary_projection import attach_boundary_projection, build_budget_boundary_projection
 from app.composition.state_resolver import resolve_intake_state
 from app.database import get_db, get_or_create_user
@@ -46,6 +47,13 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
         current_turn_context = build_current_turn_context_v1(
             raw_user_input=request.text,
             resolved_state=state_before,
+        )
+        manager_context_packet_v1 = build_runtime_manager_context_packet_v1(
+            db=db,
+            current_turn_context=current_turn_context,
+            user_external_id=user_id,
+            local_date=local_date,
+            session_id=request_id,
         )
         routing_result = build_workflow_routing_decision(
             raw_user_input=request.text,
@@ -105,6 +113,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                     assistant_message=general_chat_result.reply_text,
                     state_before=state_before,
                     current_turn_context=current_turn_context,
+                    manager_context_packet_v1=manager_context_packet_v1,
                     state_after=state_before,
                     phase_a_trace=phase_a_trace,
                     result={
@@ -152,6 +161,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                     assistant_message=assistant_message,
                     state_before=state_before,
                     current_turn_context=current_turn_context,
+                    manager_context_packet_v1=manager_context_packet_v1,
                     state_after=state_after,
                     phase_a_trace=routing_result.phase_a_trace,
                     result={
@@ -197,6 +207,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                     assistant_message=assistant_message,
                     state_before=state_before,
                     current_turn_context=current_turn_context,
+                    manager_context_packet_v1=manager_context_packet_v1,
                     state_after=state_after,
                     phase_a_trace=routing_result.phase_a_trace,
                     result={
@@ -228,6 +239,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
             extract_port=extract_provider,
             state_before=state_before,
             current_turn_context=current_turn_context,
+            manager_context_packet_v1=manager_context_packet_v1,
             phase_a_trace=routing_result.phase_a_trace,
         )
         record_runtime_turn_messages(
@@ -239,6 +251,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
             assistant_message=result["assistant_message"],
             state_before=state_before,
             current_turn_context=current_turn_context,
+            manager_context_packet_v1=manager_context_packet_v1,
             state_after=result.get("state_after"),
             phase_a_trace=routing_result.phase_a_trace,
             result=result,

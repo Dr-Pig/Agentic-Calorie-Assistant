@@ -61,6 +61,62 @@ def test_manager_context_packet_bounds_recent_chat_and_records_policy_version() 
     assert all(turn["mutation_authority"] is False for turn in packet["recent_chat_window"]["messages"])
 
 
+def test_manager_context_packet_defaults_to_last_20_messages_and_6000_char_cap() -> None:
+    turns = [
+        {"message_id": i, "role": "user", "content": f"message-{i:02d}"}
+        for i in range(25)
+    ]
+
+    packet = build_manager_context_packet_v1(
+        current_turn_context=_context(recent_chat_turns=turns),
+        user_id="local-user",
+        local_date="2026-05-04",
+        session_id="session-1",
+    )
+
+    artifact = packet["context_loading_artifact"]
+    assert packet["recent_chat_window"]["policy"] == {"last_messages": 20, "max_chars": 6000}
+    assert [turn["message_id"] for turn in packet["recent_chat_window"]["messages"]] == list(range(5, 25))
+    assert artifact["loaded_message_count"] == 20
+    assert artifact["omitted_count"] == 5
+    assert artifact["loaded_char_count"] == sum(len(f"message-{i:02d}") for i in range(5, 25))
+    assert artifact["char_truncated"] is False
+    assert artifact["token_budget_status"] == "within_budget"
+    assert artifact["loaded_context_summary"] == {
+        "recent_chat_messages": 20,
+        "pending_followup_present": True,
+        "pending_draft_present": False,
+        "target_candidate_count": 2,
+        "interaction_event_present": True,
+    }
+
+
+def test_manager_context_packet_records_char_truncation_and_omitted_count() -> None:
+    turns = [
+        {"message_id": 1, "role": "user", "content": "a" * 3000},
+        {"message_id": 2, "role": "assistant", "content": "b" * 3000},
+        {"message_id": 3, "role": "user", "content": "c" * 3000},
+    ]
+
+    packet = build_manager_context_packet_v1(
+        current_turn_context=_context(recent_chat_turns=turns),
+        user_id="local-user",
+        local_date="2026-05-04",
+        session_id="session-1",
+        max_recent_messages=20,
+        max_recent_chars=6000,
+    )
+
+    artifact = packet["context_loading_artifact"]
+    assert [turn["message_id"] for turn in packet["recent_chat_window"]["messages"]] == [2, 3]
+    assert artifact["loaded_message_count"] == 2
+    assert artifact["omitted_count"] == 1
+    assert artifact["loaded_char_count"] == 6000
+    assert artifact["char_truncated"] is True
+    assert artifact["token_budget_status"] == "at_hard_cap"
+    assert artifact["omitted_context_summary"]["recent_chat_messages_omitted"] == 1
+
+
 def test_manager_context_packet_hard_pins_pending_followup_and_draft() -> None:
     packet = build_manager_context_packet_v1(
         current_turn_context=_context(recent_chat_turns=[]),
@@ -123,7 +179,7 @@ def test_manager_context_packet_structures_target_candidates_without_authority()
         local_date="2026-05-04",
         session_id="session-1",
         target_candidates=[
-            {"item_id": f"item-{i}", "display_name": f"item {i}", "meal_thread_id": "meal-1"}
+            {"item_id": f"item-{i}", "display_name": f"item {i}", "meal_thread_id": "meal-1", "removable": True}
             for i in range(12)
         ],
         max_target_candidates=10,
@@ -141,3 +197,122 @@ def test_manager_context_packet_structures_target_candidates_without_authority()
         "mutation_authority": False,
     }
     assert packet["target_candidates"]["mutation_authority"] is False
+
+
+def test_manager_context_packet_exposes_interaction_event_and_targets_as_read_only_support() -> None:
+    context = _context()
+    context.current_interaction_event = InteractionEvent(
+        source="ui",
+        event_type="tap_target",
+        raw_text="remove this",
+        target_object_type="meal_item",
+        target_object_id="item-42",
+        payload={"display_name": "soup"},
+    )
+
+    packet = build_manager_context_packet_v1(
+        current_turn_context=context,
+        user_id="local-user",
+        local_date="2026-05-04",
+        session_id="session-1",
+        target_candidates=[
+            {
+                "target_object_type": "meal_item",
+                "target_object_id": "item-42",
+                "display_name": "soup",
+                "selected_target": True,
+                "mutation_authority": True,
+            }
+        ],
+    )
+
+    interaction_event = packet["current_turn"]["interaction_event"]
+    candidate = packet["target_candidates"]["for_correction_or_removal"][0]
+    assert interaction_event["target_object_type"] == "meal_item"
+    assert interaction_event["target_object_id"] == "item-42"
+    assert interaction_event["read_only"] is True
+    assert interaction_event["mutation_authority"] is False
+    assert candidate["target_object_id"] == "item-42"
+    assert candidate["display_name"] == "soup"
+    assert "selected_target" not in candidate
+    assert candidate["mutation_authority"] is False
+
+
+def test_manager_context_packet_strips_unsafe_interaction_and_target_fields() -> None:
+    context = _context()
+    context.current_interaction_event = InteractionEvent(
+        source="ui",
+        event_type="tap_target",
+        raw_text="remove this",
+        action_id="remove-item",
+        target_object_type="meal_item",
+        target_object_id="item-42",
+        occurred_at="2026-05-04T12:00:00+08:00",
+        payload={
+            "display_name": "soup",
+            "target_label": "Soup item",
+            "semantic_decision": {"workflow_effect": "correction"},
+            "mutation_authority": True,
+        },
+        metadata={
+            "target_label": "Soup metadata label",
+            "selected_target": True,
+            "route_target": "commit",
+        },
+    )
+
+    packet = build_manager_context_packet_v1(
+        current_turn_context=context,
+        user_id="local-user",
+        local_date="2026-05-04",
+        session_id="session-1",
+        target_candidates=[
+            {
+                "target_object_type": "meal_item",
+                "target_object_id": "item-42",
+                "meal_item_id": 42,
+                "meal_thread_id": 77,
+                "meal_version_id": 88,
+                "display_name": "soup",
+                "canonical_name": "soup",
+                "eligible": True,
+                "removable": True,
+                "selected_target": True,
+                "mutation_authority": True,
+                "semantic_decision": {"workflow_effect": "correction"},
+                "route_target": "commit",
+                "payload": {"unsafe": "nested"},
+            }
+        ],
+    )
+
+    interaction_event = packet["current_turn"]["interaction_event"]
+    candidate = packet["target_candidates"]["for_correction_or_removal"][0]
+    assert interaction_event == {
+        "source": "ui",
+        "surface_mode": "ui_anchored_action",
+        "event_type": "tap_target",
+        "raw_text": "remove this",
+        "action_id": "remove-item",
+        "target_object_type": "meal_item",
+        "target_object_id": "item-42",
+        "occurred_at": "2026-05-04T12:00:00+08:00",
+        "payload": {"display_name": "soup", "target_label": "Soup item"},
+        "metadata": {"target_label": "Soup metadata label"},
+        "read_only": True,
+        "mutation_authority": False,
+    }
+    assert candidate == {
+        "target_object_type": "meal_item",
+        "target_object_id": "item-42",
+        "meal_item_id": 42,
+        "meal_thread_id": 77,
+        "meal_version_id": 88,
+        "display_name": "soup",
+        "canonical_name": "soup",
+        "eligible": True,
+        "removable": True,
+        "uniqueness_status": "candidate",
+        "read_only": True,
+        "mutation_authority": False,
+    }
