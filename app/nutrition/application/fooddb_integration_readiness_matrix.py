@@ -108,9 +108,11 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
             to_node="runtime_mutation_guard",
             dependency_direction="grounding_to_write_guard",
             required_contract="mutation guard checks evidence sufficiency before commit",
-            current_status="draft",
+            current_status="contract_backed",
             manager_style_guard="insufficient_evidence_must_downgrade_to_followup_or_no_mutation",
             evidence=[
+                "app.nutrition.application.fooddb_packet_mutation_guard_readiness.build_fooddb_packet_mutation_guard_readiness",
+                "tests.test_fooddb_packet_mutation_guard_readiness",
                 "app.nutrition.application.grokfast_fooddb_packet_smoke.evaluate_manager_output_against_packet",
                 "app.nutrition.application.food_evidence_mvp_policy",
             ],
@@ -167,9 +169,7 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
             "edge_count": len(check_edges),
             **counts,
             "next_required_slices": [
-                "packet_to_mutation_guard_hardening",
-                "websearch_cache_rate_license_policy",
-                "exact_card_candidate_promotion_lane",
+                "manager_fooddb_packet_seam_smoke",
             ],
         },
         "non_claims": [
