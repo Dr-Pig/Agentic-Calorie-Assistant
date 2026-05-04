@@ -8,7 +8,10 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.composition.calibration_proposal_inbox import load_open_calibration_proposal_inbox
+from app.composition.calibration_proposal_inbox import (
+    load_calibration_proposal_history,
+    load_open_calibration_proposal_inbox,
+)
 from app.composition.calibration_routes import router as calibration_router
 from app.composition.canonical_proposal_support import ensure_proposal_artifact_skeleton
 from app.database import get_db, get_or_create_user
@@ -152,3 +155,79 @@ def test_open_calibration_proposals_route_returns_mirror_payload_without_mutatio
     assert "proposal_policy_packet" not in proposal_payload
     assert "trace_envelope" not in proposal_payload
     assert db.get(ProposalContainerRecord, proposal.id).proposal_status == "open"
+
+
+def test_calibration_proposal_history_returns_canonical_statuses_sorted() -> None:
+    db = _session()
+    user = get_or_create_user(db, "calibration-history-read-model")
+    accepted = _proposal(db, user=user, status="accepted", created_at=datetime(2026, 5, 1, 8, 0, 0))
+    dismissed = _proposal(db, user=user, status="dismissed", created_at=datetime(2026, 5, 2, 8, 0, 0))
+    expired = _proposal(db, user=user, status="expired", created_at=datetime(2026, 5, 3, 8, 0, 0))
+    legacy = _proposal(db, user=user, status="deferred_pending_reminder", created_at=datetime(2026, 5, 4, 8, 0, 0))
+
+    history = load_calibration_proposal_history(db, user_id=user.id)
+
+    assert [proposal.proposal_container_id for proposal in history] == [expired.id, dismissed.id, accepted.id]
+    assert legacy.id not in [proposal.proposal_container_id for proposal in history]
+    assert all(proposal.proposal_type == "calibration" for proposal in history)
+    assert history[0].proposal_status == "expired"
+    assert history[0].metadata["trace_envelope"]["automatic_calibration_enabled"] is False
+    assert history[0].options[0].effect_payload["new_daily_budget_kcal"] == 2000
+
+
+def test_calibration_proposal_history_route_projects_safe_read_only_payload() -> None:
+    db = _session()
+    client = _client(db)
+    user = get_or_create_user(db, "calibration-history-route")
+    proposal = _proposal(db, user=user, status="expired", created_at=datetime(2026, 5, 3, 8, 0, 0))
+    proposal.metadata_json = {
+        **dict(proposal.metadata_json or {}),
+        "expired_at": "2026-05-04T10:30:00",
+        "expiry_reason": "expires_at_reached",
+    }
+    db.commit()
+
+    response = client.get("/calibration/proposals/history", params={"user_id": "calibration-history-route"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["user_id"] == "calibration-history-route"
+    assert payload["history_count"] == 1
+    item = payload["proposals"][0]
+    assert item == {
+        "proposal_container_id": proposal.id,
+        "proposal_type": "calibration",
+        "proposal_status": "expired",
+        "top_option_id": proposal.top_option_id,
+        "local_date": "2026-05-14",
+        "proposal_family": "budget_adjustment",
+        "created_at": "2026-05-03T08:00:00",
+        "accepted_at": None,
+        "expired_at": "2026-05-04T10:30:00",
+        "expiry_reason": "expires_at_reached",
+        "primary_option_type": "budget_adjustment",
+        "primary_option_label": "budget_adjustment",
+        "primary_option_summary": "budget_adjustment primary",
+    }
+    assert "user_id" not in item
+    assert "metadata" not in item
+    assert "proposal_policy_packet" not in item
+    assert "trace_envelope" not in item
+    assert "options" not in item
+    assert "effect_payload" not in item
+    assert db.get(ProposalContainerRecord, proposal.id).proposal_status == "expired"
+
+
+def test_calibration_proposal_history_route_is_read_only_for_unknown_user() -> None:
+    db = _session()
+    client = _client(db)
+
+    response = client.get("/calibration/proposals/history", params={"user_id": "missing-calibration-history-user"})
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "user_id": "missing-calibration-history-user",
+        "history_count": 0,
+        "proposals": [],
+    }
+    assert db.execute(select(User).where(User.user_id == "missing-calibration-history-user")).scalar_one_or_none() is None
