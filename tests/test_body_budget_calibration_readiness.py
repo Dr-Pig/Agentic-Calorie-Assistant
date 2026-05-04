@@ -27,6 +27,7 @@ def test_body_budget_calibration_readiness_artifact_freezes_plce_read_model_cont
     assert stable_names == [
         "current_budget_view",
         "body_budget_deficit_summary",
+        "body_budget_effective_budget_view",
         "active_body_plan_view",
         "calibration_proposal_inbox",
     ]
@@ -37,6 +38,11 @@ def test_body_budget_calibration_readiness_artifact_freezes_plce_read_model_cont
     assert artifact["plce_contract"]["manager_context_packet_changed"] is False
     assert "estimated_daily_deficit_kcal" in deficit_summary["stable_fields"]
     assert "latest_weight_kg" in deficit_summary["stable_fields"]
+    effective_budget = artifact["stable_read_models"][2]
+    assert effective_budget["backend_route"] == "/today/effective-budget"
+    assert "runtime_effective_budget_kcal" in effective_budget["stable_fields"]
+    assert "sign_policy" in effective_budget["stable_fields"]
+    assert "calculate_effective_budget" in effective_budget["plce_forbidden"]
 
 
 def test_body_budget_calibration_readiness_artifact_records_preview_and_action_mutation_boundaries() -> None:
