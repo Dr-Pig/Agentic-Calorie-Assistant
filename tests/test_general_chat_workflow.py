@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.body.infrastructure.models import BodyObservationRecord, BodyPlanRecord, BodyProfileRecord
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_or_create_user
 from app.composition.general_chat_service import build_general_chat_response_pass
-from app.models import Base, BodyPlanRecord, DayBudgetLedgerRecord, MealThreadRecord
+from app.models import Base, DayBudgetLedgerRecord, MealThreadRecord, MealVersionRecord
 from app.schemas import CommitRequestCandidate
 from app.composition.canonical_persistence import commit_meal_payload_to_canonical
+from app.shared.infra.models import ProposalContainerRecord
 
 
 def _session() -> Session:
@@ -35,6 +39,96 @@ def _bootstrap_user(db: Session, external_id: str):
         ),
     )
     return user, bootstrap
+
+
+def _seed_calibration_history(db: Session, *, external_id: str, local_date: str = "2026-05-14"):
+    user = get_or_create_user(db, external_id)
+    plan = BodyPlanRecord(
+        user_id=user.id,
+        plan_status="active",
+        plan_label="calibration baseline",
+        estimated_tdee=2100,
+        daily_budget_kcal=1800,
+        safety_floor_kcal=1200,
+        target_pace_kg_per_week=0.5,
+        metadata_json={"recommended_target_kcal": 1800, "plan_source": "test_baseline", "goal_type": "lose_weight"},
+        started_at=datetime(2026, 5, 1, 8, 0, 0),
+        created_at=datetime(2026, 5, 1, 8, 0, 0),
+    )
+    profile = BodyProfileRecord(
+        user_id=user.id,
+        profile_status="active",
+        sex="female",
+        age_years=31,
+        height_cm=165.0,
+        current_weight_kg=70.0,
+        activity_level="light",
+        goal_type="lose_weight",
+        timezone="Asia/Taipei",
+        created_at=datetime(2026, 5, 1, 8, 0, 0),
+        updated_at=datetime(2026, 5, 1, 8, 0, 0),
+    )
+    db.add_all([plan, profile])
+    db.flush()
+    for offset in range(14):
+        day = (datetime(2026, 5, 1) + timedelta(days=offset)).date().isoformat()
+        thread = MealThreadRecord(
+            user_id=user.id,
+            title=f"meal {day}",
+            thread_kind="text_intake",
+            created_at=datetime.fromisoformat(day).replace(hour=12),
+            updated_at=datetime.fromisoformat(day).replace(hour=12),
+        )
+        db.add(thread)
+        db.flush()
+        version = MealVersionRecord(
+            meal_thread_id=thread.id,
+            version_status="active",
+            version_reason="new_intake",
+            meal_title=f"meal {day}",
+            raw_input="test meal",
+            resolution_status="completed_meal",
+            total_kcal=1800,
+            protein_g=0,
+            carb_g=0,
+            fat_g=0,
+            occurred_at=datetime.fromisoformat(day).replace(hour=12),
+            local_date=day,
+            created_at=datetime.fromisoformat(day).replace(hour=13),
+        )
+        db.add(version)
+        db.flush()
+        thread.active_version_id = version.id
+    for day, value in [
+        ("2026-05-01", 70.0),
+        ("2026-05-04", 69.7),
+        ("2026-05-07", 69.4),
+        ("2026-05-10", 69.1),
+        ("2026-05-14", 68.8),
+    ]:
+        observation = BodyObservationRecord(
+            user_id=user.id,
+            observation_type="weight",
+            value=value,
+            unit="kg",
+            observed_at=datetime.fromisoformat(day).replace(hour=7),
+            local_date=day,
+            source="manual",
+            metadata_json={},
+            created_at=datetime.fromisoformat(day).replace(hour=7, minute=5),
+        )
+        db.add(observation)
+    ledger = DayBudgetLedgerRecord(
+        user_id=user.id,
+        local_date=local_date,
+        budget_kcal=1800,
+        consumed_kcal=1800,
+        adjustment_kcal=0,
+        remaining_kcal=0,
+    )
+    db.add(ledger)
+    db.commit()
+    return user, plan
 
 
 def test_general_chat_budget_mode_reads_shared_budget_views() -> None:
@@ -164,3 +258,126 @@ def test_general_chat_open_workflow_boundary_does_not_silently_enter_intake() ->
     assert result.target_workflow_family == "general_chat"
     assert result.disposition == "open_new_workflow"
     assert result.workflow_effect == "handoff_to_formal_workflow"
+
+
+def test_general_chat_calibration_preview_defaults_to_no_proposal_persistence() -> None:
+    db = _session()
+    _, baseline_plan = _seed_calibration_history(db, external_id="general-chat-calibration-preview-default")
+    before_body_plan_count = db.query(BodyPlanRecord).count()
+    before_ledger_count = db.query(DayBudgetLedgerRecord).count()
+
+    result = build_general_chat_response_pass(
+        db,
+        user_external_id="general-chat-calibration-preview-default",
+        raw_user_input="should we adjust my target?",
+        mode="calibration_preview",
+        local_date="2026-05-14",
+    )
+
+    assert result.disposition == "answer_only"
+    assert result.workflow_effect == "preview_calibration_proposal_without_plan_mutation"
+    assert result.required_read_surfaces == [
+        "CalibrationInputAssembly",
+        "CurrentBudgetView",
+        "ActiveBodyPlanView",
+        "CalibrationProposalPolicyPacket",
+    ]
+    assert result.ui_hints["mode"] == "general_chat_calibration_preview"
+    assert result.ui_hints["proposal_surface"] is True
+    assert result.ui_hints["proposal_actions_enabled"] is False
+    assert result.input_assembly is not None
+    assert result.input_assembly["trace"]["window_days"] == 14
+    assert result.input_assembly["trace"]["meal_day_count"] == 14
+    assert result.input_assembly["trace"]["body_observation_count"] == 5
+    assert result.input_assembly["trace"]["raw_body_observation_count"] == 5
+    assert result.proposal_artifact is None
+    active_plan = db.query(BodyPlanRecord).filter(BodyPlanRecord.plan_status == "active").one()
+    assert active_plan.id == baseline_plan.id
+    assert db.query(BodyPlanRecord).count() == before_body_plan_count
+    assert db.query(DayBudgetLedgerRecord).count() == before_ledger_count
+    assert db.query(ProposalContainerRecord).count() == 0
+
+
+def test_general_chat_calibration_preview_can_persist_open_proposal_without_plan_or_ledger_mutation() -> None:
+    db = _session()
+    user, baseline_plan = _seed_calibration_history(
+        db,
+        external_id="general-chat-calibration-preview-persist",
+    )
+    before_body_plan_count = db.query(BodyPlanRecord).count()
+    before_ledger_count = db.query(DayBudgetLedgerRecord).count()
+
+    result = build_general_chat_response_pass(
+        db,
+        user_external_id="general-chat-calibration-preview-persist",
+        raw_user_input="should we adjust my target?",
+        mode="calibration_preview",
+        local_date="2026-05-14",
+        persist_calibration_proposal=True,
+    )
+
+    assert result.workflow_effect == "preview_calibration_proposal_without_plan_mutation"
+    assert result.ui_hints["proposal_actions_enabled"] is True
+    assert result.ui_hints["root_route_activation"] == "deferred"
+    assert result.proposal_artifact is not None
+    proposal_id = result.proposal_artifact["proposal_container_id"]
+    proposal = db.get(ProposalContainerRecord, proposal_id)
+    assert proposal is not None
+    assert proposal.user_id == user.id
+    assert proposal.proposal_type == "calibration"
+    assert proposal.proposal_status == "open"
+    assert proposal.metadata_json["local_date"] == "2026-05-14"
+    active_plan = db.query(BodyPlanRecord).filter(BodyPlanRecord.plan_status == "active").one()
+    assert active_plan.id == baseline_plan.id
+    assert active_plan.daily_budget_kcal == 1800
+    assert db.query(BodyPlanRecord).count() == before_body_plan_count
+    assert db.query(DayBudgetLedgerRecord).count() == before_ledger_count
+
+
+def test_general_chat_calibration_preview_does_not_duplicate_existing_open_proposal() -> None:
+    db = _session()
+    _seed_calibration_history(
+        db,
+        external_id="general-chat-calibration-preview-existing-open",
+    )
+
+    first = build_general_chat_response_pass(
+        db,
+        user_external_id="general-chat-calibration-preview-existing-open",
+        raw_user_input="should we adjust my target?",
+        mode="calibration_preview",
+        local_date="2026-05-14",
+        persist_calibration_proposal=True,
+    )
+    second = build_general_chat_response_pass(
+        db,
+        user_external_id="general-chat-calibration-preview-existing-open",
+        raw_user_input="should we adjust my target?",
+        mode="calibration_preview",
+        local_date="2026-05-14",
+        persist_calibration_proposal=True,
+    )
+
+    assert first.proposal_artifact is not None
+    assert second.proposal_artifact is None
+    assert second.ui_hints["proposal_actions_enabled"] is False
+    assert db.query(ProposalContainerRecord).count() == 1
+
+
+def test_general_chat_raw_text_does_not_activate_calibration_preview_without_explicit_mode() -> None:
+    db = _session()
+    _seed_calibration_history(db, external_id="general-chat-calibration-raw-text")
+
+    result = build_general_chat_response_pass(
+        db,
+        user_external_id="general-chat-calibration-raw-text",
+        raw_user_input="should we adjust my target?",
+        mode="fallback_answer",
+        local_date="2026-05-14",
+        persist_calibration_proposal=True,
+    )
+
+    assert result.workflow_effect == "answer_general_product_question_without_state_mutation"
+    assert result.input_assembly is None
+    assert result.proposal_artifact is None
+    assert db.query(ProposalContainerRecord).count() == 0
