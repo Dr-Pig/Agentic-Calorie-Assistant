@@ -28,8 +28,11 @@ def test_fooddb_manager_packet_smoke_builds_compact_packets_for_mvp_cases() -> N
     assert artifact["runtime_truth_changed"] is False
     assert artifact["live_provider_used"] is False
     assert artifact["manager_context_changed"] is False
+    assert artifact["runtime_packetizer_contract_changed"] is False
+    assert artifact["manager_recall_packet_shape_changed"] is True
     assert artifact["packetizer_format_changed"] is False
     assert artifact["summary"]["case_count"] == 5
+    assert artifact["summary"]["compact_packet_structural_leak_check"] == "enabled"
 
     for case in artifact["cases"]:
         packet = case["manager_evidence_packet"]
@@ -57,10 +60,14 @@ def test_fooddb_manager_packet_smoke_builds_compact_packets_for_mvp_cases() -> N
                 "followup_hints",
                 "source_provenance",
                 "approval_metadata",
+                "modifier_compatibility",
+                "ranking_reasons",
             }
             assert item["runtime_truth_allowed"] is True
             assert item["source_provenance"]["source_id"]
+            assert "raw_row_hash" not in item["source_provenance"]
             assert item["approval_metadata"]["runtime_truth_allowed"] is True
+            assert isinstance(item["ranking_reasons"], list)
 
 
 def test_fooddb_manager_packet_smoke_classifies_boba_basket_and_bento_cases() -> None:
