@@ -217,6 +217,14 @@ python scripts/build_accurate_intake_fooddb_quality_plan.py --inventory-json doc
 
 This plan is review packets only. It may identify the first review batch families such as breakfast combo, chicken bento rice modifier, bubble tea sugar/size modifier, and luwei listed components, but it must not update FoodDB truth, create nutrition seeds, create exact cards, or claim one-day dogfood pass. LLM extraction may normalize candidate labels, source hints, or portion candidates for review, but deterministic promotion policy and human approval are required before any seed, exact card, or packet truth promotion.
 
+Build the First Food Evidence human review pack with:
+
+```powershell
+python scripts/build_accurate_intake_food_evidence_human_review_pack.py --food-gap-register artifacts/accurate_intake_food_kb_gap_register.json --inventory-json docs/quality/accurate_intake_food_kb_v1_inventory.json --quality-plan-json artifacts/accurate_intake_fooddb_quality_plan.json --output artifacts/accurate_intake_food_evidence_human_review_pack.json
+```
+
+This review pack is the human decision surface before any first-batch FoodDB truth promotion. It groups PR110/PR112 gap candidates into the first review families and keeps every candidate at `review_candidate` with `promotion_allowed=false`. Raw user text remains display-only; candidate grouping comes from structured gap-register fields. The pack must not update FoodDB truth, create nutrition seeds, create exact cards, create packet truth, promote canonical eval truth, or claim one-day dogfood pass.
+
 SQLite-backed route/integration tests should use the shared `LocalSQLiteRouteHarness` when adding new route-level tests. JSON artifact producers should use `write_json_artifact` / `read_json_artifact` to avoid producer-consumer drift such as literal `"\\n"` suffixes. Unit tests should consume fixed artifact dictionaries where possible; DB-heavy scenario runners should be integration-scoped and run sequentially on Windows.
 
 Windows operators should run SQLite-backed commands sequentially. If `.pytest_tmp_local` reports a temporary SQLite lock, wait for the previous process to exit and rerun the affected command before classifying the result. Do not run the reset and keep-db shell commands concurrently against the same DB path.
