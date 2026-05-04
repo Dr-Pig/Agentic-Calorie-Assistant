@@ -40,5 +40,6 @@ forbidden_future_runtime_effects:
 size_budget:
   mvp_mainline_max_additions: 600
   future_shadow_merge_max_additions: 250
+  dormant_shadow_max_additions: 15000
   max_stack_depth: 2
   max_branch_age_days_without_realign: 2
