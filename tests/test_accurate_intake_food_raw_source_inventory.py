@@ -143,6 +143,8 @@ def test_raw_source_inventory_reports_lazy_sheet_xml_parse_error_per_entry(
     assert entry["parse_error"] == "ParseError"
     assert entry["row_count"] is None
     assert inventory["scan_summary"]["present_count"] == 1
+    source.unlink()
+    assert not source.exists()
 
 
 def test_raw_source_inventory_reports_missing_sources_as_absent(tmp_path: Path) -> None:

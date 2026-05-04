@@ -6,10 +6,10 @@ import hashlib
 import json
 from pathlib import Path
 from typing import Any, Iterable
-from xml.etree.ElementTree import ParseError
-from zipfile import BadZipFile
+from xml.etree.ElementTree import ParseError, iterparse
+from zipfile import BadZipFile, ZipFile
 
-from openpyxl import load_workbook
+from openpyxl.reader.excel import ExcelReader
 from openpyxl.utils.exceptions import InvalidFileException
 
 
@@ -20,6 +20,14 @@ NON_CLAIM_FLAGS = {
     "packet_truth_created": False,
     "canonical_eval_promoted": False,
 }
+XLSX_PARSE_EXCEPTIONS = (
+    BadZipFile,
+    InvalidFileException,
+    ParseError,
+    OSError,
+    ValueError,
+    KeyError,
+)
 
 
 @dataclass(frozen=True)
@@ -254,8 +262,9 @@ def _json_records(payload: Any) -> list[Any]:
 
 def _inspect_xlsx(path: Path) -> dict[str, Any]:
     try:
-        workbook = load_workbook(path, read_only=True, data_only=True)
-    except (BadZipFile, InvalidFileException, ParseError, OSError, ValueError, KeyError) as exc:
+        _preflight_xlsx_worksheet_xml(path)
+        workbook = _load_workbook_read_only(path)
+    except XLSX_PARSE_EXCEPTIONS as exc:
         return {"parse_error": type(exc).__name__}
     try:
         sheets = []
@@ -278,10 +287,35 @@ def _inspect_xlsx(path: Path) -> dict[str, Any]:
             "sheet_count": len(sheets),
             "sheets": sheets,
         }
-    except (BadZipFile, InvalidFileException, ParseError, OSError, ValueError, KeyError) as exc:
+    except XLSX_PARSE_EXCEPTIONS as exc:
         return {"parse_error": type(exc).__name__}
     finally:
         workbook.close()
+
+
+def _load_workbook_read_only(path: Path):
+    reader = ExcelReader(path, read_only=True, data_only=True)
+    try:
+        reader.read()
+    except XLSX_PARSE_EXCEPTIONS:
+        if reader.wb is not None:
+            reader.wb.close()
+        reader.archive.close()
+        raise
+    return reader.wb
+
+
+def _preflight_xlsx_worksheet_xml(path: Path) -> None:
+    with ZipFile(path, "r") as archive:
+        worksheet_names = [
+            name
+            for name in archive.namelist()
+            if name.startswith("xl/worksheets/") and name.endswith(".xml")
+        ]
+        for name in worksheet_names:
+            with archive.open(name) as source:
+                for _event, element in iterparse(source):
+                    element.clear()
 
 
 def _schema_fingerprint(schema_keys: list[str]) -> str:
