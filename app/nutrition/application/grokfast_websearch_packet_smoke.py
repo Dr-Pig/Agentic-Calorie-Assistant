@@ -207,17 +207,24 @@ def _sanitize_case_evaluation(evaluation: dict[str, Any]) -> dict[str, Any]:
 
 def _sanitize_provider_trace(provider_trace: dict[str, Any]) -> dict[str, Any]:
     trace = provider_trace.get("trace")
+    trace_source = trace if isinstance(trace, dict) else provider_trace
     trace_summary = {}
-    if isinstance(trace, dict):
+    if isinstance(trace_source, dict):
         trace_summary = {
-            "failure_family": trace.get("failure_family"),
-            "failing_component": trace.get("failing_component"),
-            "request_failure_family": trace.get("request_failure_family"),
-            "parse_contract_status": trace.get("parse_contract_status"),
-            "repair_attempted": trace.get("repair_attempted"),
-            "repair_result": trace.get("repair_result"),
-            "transport_attempt_count": len(trace.get("transport_attempts") or []),
-            "parse_attempt_count": len(trace.get("parse_attempts") or []),
+            "failure_family": trace_source.get("failure_family"),
+            "failing_component": trace_source.get("failing_component"),
+            "request_failure_family": trace_source.get("request_failure_family"),
+            "parse_contract_status": trace_source.get("parse_contract_status"),
+            "repair_attempted": trace_source.get("repair_attempted"),
+            "repair_result": trace_source.get("repair_result"),
+            "transport_attempt_count": len(trace_source.get("transport_attempts") or []),
+            "parse_attempt_count": len(trace_source.get("parse_attempts") or []),
+            "structured_output_transport_mode": trace_source.get("structured_output_transport_mode"),
+            "decision_transport_mode": trace_source.get("decision_transport_mode"),
+            "decision_transport_attempted": trace_source.get("decision_transport_attempted"),
+            "decision_transport_contract_breach": trace_source.get("decision_transport_contract_breach"),
+            "schema_name": trace_source.get("schema_name"),
+            "schema_version": trace_source.get("schema_version"),
         }
     return {
         "provider_profile_id": provider_trace.get("provider_profile_id"),
