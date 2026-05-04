@@ -103,6 +103,20 @@ def test_body_budget_calibration_readiness_artifact_records_preview_and_action_m
     assert chat_action["chat_primary_surface"] is True
     assert chat_action["does_not_keyword_attach"] is True
     assert "explicit_proposal_container_id" in chat_action["requires"]
+    chat_preview = artifact["calibration_flow_contract"]["chat_preview_surface"]
+    assert chat_preview["mode"] == "calibration_preview"
+    assert chat_preview["chat_primary_surface"] is True
+    assert chat_preview["does_not_keyword_attach"] is True
+    assert chat_preview["body_plan_mutation_authorized"] is False
+    assert chat_preview["day_budget_ledger_mutation_authorized"] is False
+    estimate_preview = artifact["calibration_flow_contract"]["estimate_route_preview_bridge"]
+    assert estimate_preview["route"] == "/estimate"
+    assert estimate_preview["mode"] == "calibration_preview"
+    assert estimate_preview["optional_persistence_flag"] == "persist_calibration_proposal"
+    assert estimate_preview["raw_text_authorized_preview"] is False
+    assert estimate_preview["raw_text_authorized_proposal_persistence"] is False
+    assert estimate_preview["manager_provider_invoked"] is False
+    assert "calibration_preview_requested" in estimate_preview["requires"]
     estimate_bridge = artifact["calibration_flow_contract"]["estimate_route_action_bridge"]
     assert estimate_bridge["route"] == "/estimate"
     assert estimate_bridge["mode"] == "calibration_action"

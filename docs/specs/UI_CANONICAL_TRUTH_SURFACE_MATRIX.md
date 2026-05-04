@@ -184,6 +184,7 @@ It does not authorize frontend math, CE packet changes, ManagerContextPacket cha
 - Context Engineering may summarize these read models only through a separate CE contract slice. This matrix does not add fields to `ManagerContextPacket`.
 - `calibration_proposal_inbox` is a mirror only. Primary negotiation remains chat-first, and stored actions remain the only mutation path for accepted/deferred/rejected calibration proposals.
 - `calibration_proposal_history` is read-only audit. History route projection must not expose `options[]`, `effect_payload`, full metadata, policy packets, or trace envelopes, and must not be used as a mutation source.
+- `/estimate` may bridge chat-primary calibration preview only when `EstimateRequest.calibration_preview_requested=true`; `persist_calibration_proposal=true` is ignored unless the explicit preview flag is present. Raw chat text, chip label text, or reply wording must not authorize preview persistence.
 - `/estimate` may bridge chat-primary calibration accept/defer/reject only when `EstimateRequest` includes both `calibration_proposal_container_id` and `calibration_action`; raw chat text, chip label text, or reply wording must not authorize calibration mutation.
 
 ## Action Wiring Rules
@@ -193,6 +194,7 @@ It does not authorize frontend math, CE packet changes, ManagerContextPacket cha
 | Read-only dashboard refresh | May read existing canonical read models and render supplied values. | Stop if renderer must compute missing truth. |
 | UI-anchored correction / confirmation | Must re-enter `InteractionEvent`, attachment/transition guards, manager decision, and domain workflow. | Stop if direct mutation is proposed from UI. |
 | Proposal accept / defer / reject | Must use proposal command path owned by the relevant domain and manager policy. | Stop if UI creates, ranks, or rewrites proposal options. |
+| Chat-primary calibration proposal preview | May call `/estimate` only with explicit `calibration_preview_requested=true`; may persist an open proposal only with explicit `persist_calibration_proposal=true` and backend preview eligibility. | Stop if preview or proposal persistence is inferred from raw text such as "should we adjust", button copy, assistant wording, or proposal card position. |
 | Chat-primary calibration proposal action | May call `/estimate` only with explicit `calibration_proposal_container_id` and `calibration_action`, or call `/calibration/proposal/stored-action` directly. | Stop if action is inferred from raw text such as "yes", button copy, assistant wording, or proposal card position. |
 | Smart chip / shortcut | May only launch an already-defined command with explicit target identity. | Stop if chip label requires new routing semantics. |
 | Diagnostic trace inspection | Internal only; may support engineering review. | Stop if trace labels become product copy or user-visible truth. |

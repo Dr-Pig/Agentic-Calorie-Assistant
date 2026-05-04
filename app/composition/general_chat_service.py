@@ -151,6 +151,8 @@ def _calibration_unavailable_response(*, reason: str) -> GeneralChatPassResult:
             "reason": reason,
             "proposal_actions_enabled": False,
             "root_route_activation": "active",
+            "plan_mutation_authorized": False,
+            "ledger_mutation_authorized": False,
         },
     )
 

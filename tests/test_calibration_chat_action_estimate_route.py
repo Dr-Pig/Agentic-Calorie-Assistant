@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -8,10 +8,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.body.infrastructure.models import BodyPlanRecord
+from app.body.infrastructure.models import BodyObservationRecord, BodyPlanRecord, BodyProfileRecord
 from app.composition import intake_routes
 from app.database import get_db, get_or_create_user
-from app.models import Base, LedgerEntryRecord
+from app.models import Base, DayBudgetLedgerRecord, LedgerEntryRecord, MealThreadRecord, MealVersionRecord
 from app.routes import router
 from app.shared.infra.models import ProposalContainerRecord, ProposalOptionRecord
 
@@ -54,6 +54,99 @@ def _client(db: Session, monkeypatch) -> TestClient:
 
     app.dependency_overrides[get_db] = override_get_db
     return TestClient(app)
+
+
+def _seed_calibration_history(db: Session, *, user_external_id: str) -> BodyPlanRecord:
+    user = get_or_create_user(db, user_external_id)
+    plan = BodyPlanRecord(
+        user_id=user.id,
+        plan_status="active",
+        plan_label="route preview baseline",
+        estimated_tdee=2100,
+        daily_budget_kcal=1800,
+        safety_floor_kcal=1200,
+        target_pace_kg_per_week=0.5,
+        metadata_json={"recommended_target_kcal": 1800, "plan_source": "test_baseline", "goal_type": "lose_weight"},
+        started_at=datetime(2026, 5, 1, 8, 0, 0),
+        created_at=datetime(2026, 5, 1, 8, 0, 0),
+    )
+    profile = BodyProfileRecord(
+        user_id=user.id,
+        profile_status="active",
+        sex="female",
+        age_years=31,
+        height_cm=165.0,
+        current_weight_kg=70.0,
+        activity_level="light",
+        goal_type="lose_weight",
+        timezone="Asia/Taipei",
+        created_at=datetime(2026, 5, 1, 8, 0, 0),
+        updated_at=datetime(2026, 5, 1, 8, 0, 0),
+    )
+    db.add_all([plan, profile])
+    db.flush()
+    for offset in range(14):
+        day = (datetime(2026, 5, 1) + timedelta(days=offset)).date().isoformat()
+        thread = MealThreadRecord(
+            user_id=user.id,
+            title=f"meal {day}",
+            thread_kind="text_intake",
+            created_at=datetime.fromisoformat(day).replace(hour=12),
+            updated_at=datetime.fromisoformat(day).replace(hour=12),
+        )
+        db.add(thread)
+        db.flush()
+        version = MealVersionRecord(
+            meal_thread_id=thread.id,
+            version_status="active",
+            version_reason="new_intake",
+            meal_title=f"meal {day}",
+            raw_input="test meal",
+            resolution_status="completed_meal",
+            total_kcal=1800,
+            protein_g=0,
+            carb_g=0,
+            fat_g=0,
+            occurred_at=datetime.fromisoformat(day).replace(hour=12),
+            local_date=day,
+            created_at=datetime.fromisoformat(day).replace(hour=13),
+        )
+        db.add(version)
+        db.flush()
+        thread.active_version_id = version.id
+    for day, value in [
+        ("2026-05-01", 70.0),
+        ("2026-05-04", 69.7),
+        ("2026-05-07", 69.4),
+        ("2026-05-10", 69.1),
+        ("2026-05-14", 68.8),
+    ]:
+        db.add(
+            BodyObservationRecord(
+                user_id=user.id,
+                observation_type="weight",
+                value=value,
+                unit="kg",
+                observed_at=datetime.fromisoformat(day).replace(hour=7),
+                local_date=day,
+                source="manual",
+                metadata_json={},
+                created_at=datetime.fromisoformat(day).replace(hour=7, minute=5),
+            )
+        )
+    db.add(
+        DayBudgetLedgerRecord(
+            user_id=user.id,
+            local_date=ROUTE_LOCAL_DATE,
+            budget_kcal=1800,
+            consumed_kcal=1800,
+            adjustment_kcal=0,
+            remaining_kcal=0,
+        )
+    )
+    db.commit()
+    db.refresh(plan)
+    return plan
 
 
 def _seed_stored_calibration_proposal(db: Session, *, user_external_id: str) -> int:
@@ -102,6 +195,132 @@ def _seed_stored_calibration_proposal(db: Session, *, user_external_id: str) -> 
     return int(proposal.id)
 
 
+def test_estimate_route_can_preview_calibration_from_history_without_provider_or_plan_mutation(monkeypatch) -> None:
+    db = _session()
+    user_external_id = "estimate-route-calibration-preview"
+    baseline_plan = _seed_calibration_history(db, user_external_id=user_external_id)
+    before_body_plan_count = db.query(BodyPlanRecord).count()
+    before_ledger_count = db.query(DayBudgetLedgerRecord).count()
+    client = _client(db, monkeypatch)
+
+    response = client.post(
+        "/estimate",
+        json={
+            "text": "preview calibration from backend history",
+            "allow_search": False,
+            "user_id": user_external_id,
+            "local_date": ROUTE_LOCAL_DATE,
+            "calibration_preview_requested": True,
+            "persist_calibration_proposal": True,
+        },
+    )
+
+    payload = response.json()["payload"]
+    proposal = db.query(ProposalContainerRecord).one()
+    active_plan = db.query(BodyPlanRecord).filter(BodyPlanRecord.plan_status == "active").one()
+    assert response.status_code == 200
+    assert response.json()["coach_message"].startswith("Calibration preview surfaced")
+    assert payload["manager_decision"]["intent_type"] == "calibration"
+    assert payload["manager_decision"]["workflow_effect"] == "preview_calibration_proposal_without_plan_mutation"
+    assert payload["manager_decision"]["explicit_structured_preview"] is True
+    assert payload["state_delta"]["calibration_preview_processed"] is True
+    assert payload["state_delta"]["proposal_persisted"] is True
+    assert payload["state_delta"]["proposal_container_id"] == proposal.id
+    assert payload["state_delta"]["plan_mutated"] is False
+    assert payload["state_delta"]["ledger_mutated"] is False
+    assert payload["ui_hints"]["mode"] == "general_chat_calibration_preview"
+    assert payload["ui_hints"]["proposal_actions_enabled"] is True
+    assert payload["ui_hints"]["stored_action_route_contract"] == "/calibration/proposal/stored-action"
+    assert payload["required_read_surfaces"] == [
+        "CalibrationInputAssembly",
+        "CurrentBudgetView",
+        "ActiveBodyPlanView",
+        "CalibrationProposalPolicyPacket",
+    ]
+    assert payload["input_assembly"]["trace"]["window_days"] == 14
+    assert payload["input_assembly"]["trace"]["body_observation_count"] == 5
+    assert payload["proposal_artifact"]["proposal_container_id"] == proposal.id
+    assert proposal.proposal_status == "open"
+    assert active_plan.id == baseline_plan.id
+    assert active_plan.daily_budget_kcal == 1800
+    assert db.query(BodyPlanRecord).count() == before_body_plan_count
+    assert db.query(DayBudgetLedgerRecord).count() == before_ledger_count
+    assert db.query(LedgerEntryRecord).count() == 0
+
+
+def test_estimate_route_calibration_preview_missing_history_is_unavailable_without_mutation(monkeypatch) -> None:
+    db = _session()
+    user_external_id = "estimate-route-calibration-preview-missing-history"
+    client = _client(db, monkeypatch)
+
+    response = client.post(
+        "/estimate",
+        json={
+            "text": "preview calibration from backend history",
+            "allow_search": False,
+            "user_id": user_external_id,
+            "local_date": ROUTE_LOCAL_DATE,
+            "calibration_preview_requested": True,
+            "persist_calibration_proposal": True,
+        },
+    )
+
+    payload = response.json()["payload"]
+    assert response.status_code == 200
+    assert payload["manager_decision"]["workflow_effect"] == "calibration_preview_unavailable_without_state_mutation"
+    assert payload["state_delta"]["calibration_preview_processed"] is True
+    assert payload["state_delta"]["proposal_persisted"] is False
+    assert payload["state_delta"]["plan_mutated"] is False
+    assert payload["state_delta"]["ledger_mutated"] is False
+    assert payload["ui_hints"]["mode"] == "general_chat_calibration_preview_unavailable"
+    assert payload["ui_hints"]["plan_mutation_authorized"] is False
+    assert payload["ui_hints"]["ledger_mutation_authorized"] is False
+    assert db.query(ProposalContainerRecord).count() == 0
+    assert db.query(BodyPlanRecord).count() == 0
+    assert db.query(DayBudgetLedgerRecord).count() == 0
+    assert db.query(LedgerEntryRecord).count() == 0
+
+
+def test_estimate_route_raw_calibration_text_does_not_activate_preview_or_persist_proposal(monkeypatch) -> None:
+    db = _session()
+    user_external_id = "estimate-route-raw-text-no-preview"
+    baseline_plan = _seed_calibration_history(db, user_external_id=user_external_id)
+    client = _client(db, monkeypatch)
+
+    async def no_budget_adjustment_parse(_provider, _text):
+        return {}
+
+    async def fake_execute_intake_turn(*_args, **_kwargs):
+        return {
+            "request_id": "fake-intake-request",
+            "assistant_message": "intake fallback",
+            "manager_decision": {"intent_type": "intake"},
+            "state_after": None,
+        }
+
+    monkeypatch.setattr(intake_routes, "parse_weight_or_budget_intent", no_budget_adjustment_parse)
+    monkeypatch.setattr(intake_routes, "execute_intake_turn", fake_execute_intake_turn)
+
+    response = client.post(
+        "/estimate",
+        json={
+            "text": "should we adjust my target?",
+            "allow_search": False,
+            "user_id": user_external_id,
+            "local_date": ROUTE_LOCAL_DATE,
+            "persist_calibration_proposal": True,
+        },
+    )
+
+    active_plan = db.query(BodyPlanRecord).filter(BodyPlanRecord.plan_status == "active").one()
+    assert response.status_code == 200
+    assert response.json()["payload"]["request_id"] == "fake-intake-request"
+    assert db.query(ProposalContainerRecord).count() == 0
+    assert active_plan.id == baseline_plan.id
+    assert active_plan.daily_budget_kcal == 1800
+    assert db.query(LedgerEntryRecord).count() == 0
+
+
 def test_estimate_route_accepts_explicit_calibration_action_without_provider_or_raw_text_routing(monkeypatch) -> None:
     db = _session()
     user_external_id = "estimate-route-calibration-action-accept"
@@ -114,6 +333,8 @@ def test_estimate_route_accepts_explicit_calibration_action_without_provider_or_
             "text": "apply selected calibration proposal",
             "allow_search": False,
             "user_id": user_external_id,
+            "calibration_preview_requested": True,
+            "persist_calibration_proposal": True,
             "calibration_proposal_container_id": proposal_id,
             "calibration_action": "accept_calibration_proposal",
         },
