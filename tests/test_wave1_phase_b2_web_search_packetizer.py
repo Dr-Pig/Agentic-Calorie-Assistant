@@ -100,6 +100,11 @@ def test_exact_same_item_official_candidate_is_accepted_for_exact_evidence_usage
     assert packet["truth_level"] == "candidate"
     assert packet["source_type"] == "web_search"
     assert packet["source_quality_label"] == "brand_menu"
+    assert packet["license_status"] == "unknown"
+    assert packet["robots_status"] == "unknown"
+    assert packet["serving_basis_candidate"] == "per_cup"
+    assert packet["identity_confidence"] == "high"
+    assert packet["nutrition_fields_present"] == ["kcal"]
     assert packet["match_type"] == "exact"
     assert packet["brand_match"] == "same"
     assert packet["matched_name"] == "迷客夏珍珠紅茶拿鐵"
