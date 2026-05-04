@@ -30,6 +30,7 @@ def test_body_budget_calibration_readiness_artifact_freezes_plce_read_model_cont
         "body_budget_effective_budget_view",
         "active_body_plan_view",
         "calibration_proposal_inbox",
+        "calibration_proposal_history",
     ]
     deficit_summary = artifact["stable_read_models"][1]
     assert deficit_summary["aliases"] == ["deficit_summary"]
@@ -45,6 +46,12 @@ def test_body_budget_calibration_readiness_artifact_freezes_plce_read_model_cont
     assert "sign_policy" in effective_budget["stable_fields"]
     assert "calculate_effective_budget" in effective_budget["plce_forbidden"]
     assert artifact["calibration_flow_contract"]["effective_budget_math"]["canonical_l3m_formula_enabled"] is True
+    proposal_history = artifact["stable_read_models"][5]
+    assert proposal_history["backend_route"] == "/calibration/proposals/history"
+    assert proposal_history["read_function"] == "app.composition.calibration_proposal_inbox.load_calibration_proposal_history"
+    assert "expired_at" in proposal_history["stable_fields"]
+    assert "primary_option_summary" in proposal_history["stable_fields"]
+    assert "effect_payload" in proposal_history["plce_forbidden"]
 
 
 def test_body_budget_calibration_readiness_artifact_records_preview_and_action_mutation_boundaries() -> None:
@@ -123,6 +130,7 @@ def test_body_budget_calibration_readiness_artifact_records_calibration_router_a
     assert route_activation["root_app_mounted"] is True
     assert route_activation["root_mount_status"] == "activated_for_calibration_contract_routes"
     assert "/calibration/proposals/open" in route_activation["router_contract_paths"]
+    assert "/calibration/proposals/history" in route_activation["router_contract_paths"]
     assert "/calibration/proposal/stored-action" in route_activation["router_contract_paths"]
     assert "/calibration/proposals/expire-stale" in route_activation["internal_diagnostic_paths_not_root_mounted"]
 

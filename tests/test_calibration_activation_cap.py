@@ -60,6 +60,20 @@ def test_root_router_exposes_open_calibration_proposals_read_model() -> None:
     }
 
 
+def test_root_router_exposes_calibration_proposal_history_read_model() -> None:
+    db = _session()
+    client = _client(db)
+
+    response = client.get("/calibration/proposals/history", params={"user_id": "route-history"})
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "user_id": "route-history",
+        "history_count": 0,
+        "proposals": [],
+    }
+
+
 def test_root_router_does_not_expose_direct_calibration_payload_action() -> None:
     db = _session()
     client = _client(db)
