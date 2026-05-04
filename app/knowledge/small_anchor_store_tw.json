@@ -4,17 +4,85 @@
       "record_kind": "generic_anchor",
       "anchor_id": "single_item_tea_egg",
       "canonical_name": "\u8336\u8449\u86cb",
-      "aliases": ["\u8336\u8449\u86cb"],
+      "aliases": [
+        "\u8336\u8449\u86cb"
+      ],
       "dish_type": "single_item",
       "composition_posture": "single_item",
       "variance_level": "low",
-      "semantic_hints": ["stable_single_item"],
+      "semantic_hints": [
+        "stable_single_item"
+      ],
       "followup_hints": [],
       "clarify_required": false,
-      "baseline_kcal_range": [70, 90],
+      "baseline_kcal_range": [
+        70,
+        90
+      ],
       "baseline_likely_kcal": 80,
       "major_modifiers": [],
-      "composition_hints": ["egg"]
+      "composition_hints": [
+        "egg"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "egg",
+        "portion_quantity": 1,
+        "portion_grams": 60,
+        "label": "one tea egg",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "internal_seed_batch_policy"
+        ]
+      },
+      "kcal_point": 80,
+      "kcal_range": [
+        70,
+        90
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_single_item_tea_egg",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 80,
+          "kcal_range": [
+            70,
+            90
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "single_item_tea_egg",
+        "raw_row_hash": "2bba3c47fa15740bbfb0302c40446f7031f9d7c64d76c45ae19132c50c4a2b49"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "internal_seed_batch_approved",
+        "approval_scope": "pr110_mvp_gap_existing_small_anchor_batch",
+        "policy_version": "fooddb_internal_seed_anchor_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "low_variance_single_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "stable_single_item_common_serving",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
@@ -115,20 +183,108 @@
       "record_kind": "generic_anchor",
       "anchor_id": "custom_drink_latte",
       "canonical_name": "\u62ff\u9435",
-      "aliases": ["\u62ff\u9435", "\u62ff\u9435\u5496\u5561"],
+      "aliases": [
+        "\u62ff\u9435",
+        "\u62ff\u9435\u5496\u5561"
+      ],
       "dish_type": "customizable_drink",
       "composition_posture": "estimable_with_modifier_refinement",
       "variance_level": "moderate",
-      "semantic_hints": ["customizable_drink", "coffee_milk_drink"],
-      "followup_hints": ["ask_cup_size", "ask_milk_type"],
+      "semantic_hints": [
+        "customizable_drink",
+        "coffee_milk_drink"
+      ],
+      "followup_hints": [
+        "ask_cup_size",
+        "ask_milk_type"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [120, 260],
+      "baseline_kcal_range": [
+        120,
+        260
+      ],
       "baseline_likely_kcal": 180,
       "major_modifiers": [
-        {"name": "cup_size", "values": ["small", "medium", "large"]},
-        {"name": "milk_type", "values": ["regular", "low_fat", "oat_milk"]}
+        {
+          "name": "cup_size",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "milk_type",
+          "values": [
+            "regular",
+            "low_fat",
+            "oat_milk"
+          ]
+        }
       ],
-      "composition_hints": ["coffee", "milk"]
+      "composition_hints": [
+        "coffee",
+        "milk"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "medium_cup",
+        "portion_quantity": 1,
+        "portion_ml": 360,
+        "label": "one medium latte",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "internal_seed_batch_policy"
+        ]
+      },
+      "kcal_point": 180,
+      "kcal_range": [
+        120,
+        260
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_custom_drink_latte",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 180,
+          "kcal_range": [
+            120,
+            260
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "custom_drink_latte",
+        "raw_row_hash": "d2f0974e5f54e3c3a4a5912c441cd58a3fbbc4b4d5330395f8a99ba502e08981"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "internal_seed_batch_approved",
+        "approval_scope": "pr110_mvp_gap_existing_small_anchor_batch",
+        "policy_version": "fooddb_internal_seed_anchor_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_drink_range_estimate_with_refinement",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
@@ -226,20 +382,105 @@
       "record_kind": "generic_anchor",
       "anchor_id": "generic_meal_chicken_bento",
       "canonical_name": "\u96de\u817f\u4fbf\u7576",
-      "aliases": ["\u4fbf\u7576", "\u96de\u817f\u4fbf\u7576"],
+      "aliases": [
+        "\u4fbf\u7576",
+        "\u96de\u817f\u4fbf\u7576"
+      ],
       "dish_type": "generic_meal",
       "composition_posture": "estimable_generic_meal",
       "variance_level": "moderate",
-      "semantic_hints": ["bento"],
-      "followup_hints": ["ask_main_style", "ask_rice_portion"],
+      "semantic_hints": [
+        "bento"
+      ],
+      "followup_hints": [
+        "ask_main_style",
+        "ask_rice_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [650, 900],
+      "baseline_kcal_range": [
+        650,
+        900
+      ],
       "baseline_likely_kcal": 780,
       "major_modifiers": [
-        {"name": "main_style", "values": ["fried", "braised"]},
-        {"name": "rice_portion", "values": ["half", "full"]}
+        {
+          "name": "main_style",
+          "values": [
+            "fried",
+            "braised"
+          ]
+        },
+        {
+          "name": "rice_portion",
+          "values": [
+            "half",
+            "full"
+          ]
+        }
       ],
-      "composition_hints": ["rice", "protein", "side_dishes"]
+      "composition_hints": [
+        "rice",
+        "protein",
+        "side_dishes"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "box",
+        "portion_quantity": 1,
+        "label": "one generic chicken bento",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "internal_seed_batch_policy"
+        ]
+      },
+      "kcal_point": 780,
+      "kcal_range": [
+        650,
+        900
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_generic_meal_chicken_bento",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 780,
+          "kcal_range": [
+            650,
+            900
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "generic_meal_chicken_bento",
+        "raw_row_hash": "793e6b61d0b73474ebbb9b678f2e058818b600a4401410378624ec4c9574f8cd"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "internal_seed_batch_approved",
+        "approval_scope": "pr110_mvp_gap_existing_small_anchor_batch",
+        "policy_version": "fooddb_internal_seed_anchor_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_only_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
@@ -431,33 +672,169 @@
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_kelp",
       "canonical_name": "\u6d77\u5e36",
-      "aliases": ["\u6d77\u5e36"],
+      "aliases": [
+        "\u6d77\u5e36"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "low",
-      "semantic_hints": ["luwei_component"],
+      "semantic_hints": [
+        "luwei_component"
+      ],
       "followup_hints": [],
       "clarify_required": false,
-      "baseline_kcal_range": [20, 60],
+      "baseline_kcal_range": [
+        20,
+        60
+      ],
       "baseline_likely_kcal": 40,
       "major_modifiers": [],
-      "composition_hints": ["seaweed"]
+      "composition_hints": [
+        "seaweed"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 30,
+        "label": "one listed luwei kelp component",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "internal_seed_batch_policy"
+        ]
+      },
+      "kcal_point": 40,
+      "kcal_range": [
+        20,
+        60
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_kelp",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 40,
+          "kcal_range": [
+            20,
+            60
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_kelp",
+        "raw_row_hash": "3291940656c4c5fdb45213f02b7114af83253874c660239a5c5aaa07b82c2c4d"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "internal_seed_batch_approved",
+        "approval_scope": "pr110_mvp_gap_existing_small_anchor_batch",
+        "policy_version": "fooddb_internal_seed_anchor_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "low_variance_single_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_meatball",
       "canonical_name": "\u8ca2\u4e38",
-      "aliases": ["\u8ca2\u4e38"],
+      "aliases": [
+        "\u8ca2\u4e38"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "moderate",
-      "semantic_hints": ["luwei_component"],
+      "semantic_hints": [
+        "luwei_component"
+      ],
       "followup_hints": [],
       "clarify_required": false,
-      "baseline_kcal_range": [45, 90],
+      "baseline_kcal_range": [
+        45,
+        90
+      ],
       "baseline_likely_kcal": 65,
       "major_modifiers": [],
-      "composition_hints": ["processed_meatball"]
+      "composition_hints": [
+        "processed_meatball"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "piece",
+        "portion_quantity": 1,
+        "portion_grams": 35,
+        "label": "one listed luwei meatball component",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "internal_seed_batch_policy"
+        ]
+      },
+      "kcal_point": 65,
+      "kcal_range": [
+        45,
+        90
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_meatball",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 65,
+          "kcal_range": [
+            45,
+            90
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_meatball",
+        "raw_row_hash": "f91225518d094e9cc93d4e0c231e31342bd951d1a9a269b08cea9a51adef46b2"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "internal_seed_batch_approved",
+        "approval_scope": "pr110_mvp_gap_existing_small_anchor_batch",
+        "policy_version": "fooddb_internal_seed_anchor_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
@@ -543,17 +920,89 @@
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_greens_home_cooked",
       "canonical_name": "\u9752\u83dc",
-      "aliases": ["\u9752\u83dc", "\u70d9\u9752\u83dc", "\u7092\u9752\u83dc"],
+      "aliases": [
+        "\u9752\u83dc",
+        "\u70d9\u9752\u83dc",
+        "\u7092\u9752\u83dc"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "moderate",
-      "semantic_hints": ["home_cooked_listed_component"],
-      "followup_hints": ["ask_portion"],
+      "semantic_hints": [
+        "home_cooked_listed_component"
+      ],
+      "followup_hints": [
+        "ask_portion"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [50, 180],
+      "baseline_kcal_range": [
+        50,
+        180
+      ],
       "baseline_likely_kcal": 110,
       "major_modifiers": [],
-      "composition_hints": ["vegetables"]
+      "composition_hints": [
+        "vegetables"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "listed_component_portion",
+        "portion_quantity": 1,
+        "portion_grams": 100,
+        "label": "one listed greens component portion",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "internal_seed_batch_policy"
+        ]
+      },
+      "kcal_point": 110,
+      "kcal_range": [
+        50,
+        180
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_listed_item_greens_home_cooked",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 110,
+          "kcal_range": [
+            50,
+            180
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "listed_item_greens_home_cooked",
+        "raw_row_hash": "fc4c9d33bd28a2e69a5515a65a30d2b93d3391e23b8f88d1573b1b7cde5277f8"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "internal_seed_batch_approved",
+        "approval_scope": "pr110_mvp_gap_existing_small_anchor_batch",
+        "policy_version": "fooddb_internal_seed_anchor_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "listed_component_only_not_generic_vegetable_truth",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
@@ -575,20 +1024,107 @@
       "record_kind": "generic_anchor",
       "anchor_id": "breakfast_staple_egg_pancake",
       "canonical_name": "\u86cb\u9905",
-      "aliases": ["\u86cb\u9905"],
+      "aliases": [
+        "\u86cb\u9905"
+      ],
       "dish_type": "breakfast_staple",
       "composition_posture": "estimable_with_refinement",
       "variance_level": "moderate",
-      "semantic_hints": ["taiwan_breakfast_staple"],
-      "followup_hints": ["ask_add_ons", "ask_sauce"],
+      "semantic_hints": [
+        "taiwan_breakfast_staple"
+      ],
+      "followup_hints": [
+        "ask_add_ons",
+        "ask_sauce"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [280, 450],
+      "baseline_kcal_range": [
+        280,
+        450
+      ],
       "baseline_likely_kcal": 360,
       "major_modifiers": [
-        {"name": "add_ons", "values": ["none", "cheese", "ham", "tuna"]},
-        {"name": "sauce", "values": ["none", "light", "regular"]}
+        {
+          "name": "add_ons",
+          "values": [
+            "none",
+            "cheese",
+            "ham",
+            "tuna"
+          ]
+        },
+        {
+          "name": "sauce",
+          "values": [
+            "none",
+            "light",
+            "regular"
+          ]
+        }
       ],
-      "composition_hints": ["egg", "pancake_wrapper"]
+      "composition_hints": [
+        "egg",
+        "pancake_wrapper"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "runtime_truth_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_unit": "serving",
+        "portion_quantity": 1,
+        "portion_grams": 130,
+        "label": "one Taiwan breakfast egg pancake",
+        "derived_from": [
+          "existing_small_anchor_store",
+          "internal_seed_batch_policy"
+        ]
+      },
+      "kcal_point": 360,
+      "kcal_range": [
+        280,
+        450
+      ],
+      "source_refs": [
+        {
+          "source_evidence_id": "internal_seed_breakfast_staple_egg_pancake",
+          "runtime_role": "internal_seed_baseline",
+          "serving_basis": "existing_small_anchor_baseline",
+          "kcal_point": 360,
+          "kcal_range": [
+            280,
+            450
+          ]
+        }
+      ],
+      "source_provenance": {
+        "source_id": "existing_small_anchor_store_tw",
+        "source_file": "app/knowledge/small_anchor_store_tw.json",
+        "source_url": null,
+        "record_id": "breakfast_staple_egg_pancake",
+        "raw_row_hash": "f8dd0afc7e36a157762195ba539e40eebcc039c3d901038ecd02b46c8f75a883"
+      },
+      "source_posture_flags": [
+        "internal_seed",
+        "not_external_source_promotion"
+      ],
+      "approval_metadata": {
+        "approval_mode": "internal_seed_batch_approved",
+        "approval_scope": "pr110_mvp_gap_existing_small_anchor_batch",
+        "policy_version": "fooddb_internal_seed_anchor_batch_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_basis": "existing_small_anchor_baseline_range"
+      },
+      "runtime_usage_boundary": "generic_range_estimate_with_refinement_not_exact",
+      "kcal_basis": {
+        "runtime_value_source": "existing_mvp_anchor_baseline",
+        "external_source_role": "not_used_for_runtime_truth"
+      }
     },
     {
       "record_kind": "generic_anchor",
