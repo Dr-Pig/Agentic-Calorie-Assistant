@@ -110,6 +110,13 @@ def _fake_provider_blockers(payload: dict[str, Any]) -> list[str]:
         blockers.append("fake_provider_context_smoke.not_pass")
     if payload.get("final_semantic_decision_source") != "fixture_manager_structured_decision":
         blockers.append("fake_provider_context_smoke.semantic_source_not_fixture_manager")
+    summary = _object_dict(payload.get("summary"))
+    if payload.get("manager_handoff_matrix_checked") is not True:
+        blockers.append("fake_provider_context_smoke.manager_handoff_matrix_missing")
+    if _int_value(summary.get("manager_handoff_scenario_count")) < 3:
+        blockers.append("fake_provider_context_smoke.manager_handoff_scenario_count_too_low")
+    if _int_value(summary.get("ambiguous_back_reference_scenarios")) < 1:
+        blockers.append("fake_provider_context_smoke.ambiguous_back_reference_missing")
     return blockers
 
 
@@ -158,6 +165,7 @@ def build_context_quality_pack_artifact(
     replay_summary = _object_dict(inputs["context_replay"].get("summary"))
     review_summary = _object_dict(inputs["context_review"].get("summary"))
     runtime_replay_summary = _object_dict(inputs["short_term_context_runtime_replay"].get("summary"))
+    fake_provider_summary = _object_dict(inputs["fake_provider_context_smoke"].get("summary"))
     return _json_safe(
         {
             "artifact_schema_version": "1.0",
@@ -196,6 +204,12 @@ def build_context_quality_pack_artifact(
                 ),
                 "short_term_runtime_replay_current_gap_scenarios": _int_value(
                     runtime_replay_summary.get("current_gap_scenarios")
+                ),
+                "fake_provider_handoff_scenario_count": _int_value(
+                    fake_provider_summary.get("manager_handoff_scenario_count")
+                ),
+                "fake_provider_ambiguous_back_reference_scenarios": _int_value(
+                    fake_provider_summary.get("ambiguous_back_reference_scenarios")
                 ),
             },
             "local_only": True,
