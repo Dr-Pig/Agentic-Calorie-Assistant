@@ -157,9 +157,14 @@
             }, 10);
         }
 
+        function localDebugHeaders() {
+            const token = typeof window.LOCAL_DEBUG_API_TOKEN === 'string' ? window.LOCAL_DEBUG_API_TOKEN.trim() : '';
+            return token ? { 'X-Local-Debug-Token': token } : {};
+        }
+
         async function refreshLogs() {
             try {
-                const res = await fetch(`/user/${STABLE_USER_ID}/logs`);
+                const res = await fetch(`/user/${STABLE_USER_ID}/logs`, { headers: localDebugHeaders() });
                 const data = await res.json();
                 const logContainer = document.getElementById('meal-logs');
                 
@@ -187,7 +192,7 @@
 
         async function resetContext() {
             if(!confirm("確定要重置目前的對話狀態嗎？歷史紀錄將保留。")) return;
-            await fetch(`/user/${STABLE_USER_ID}/context/reset`, { method: 'POST' });
+            await fetch(`/user/${STABLE_USER_ID}/context/reset`, { method: 'POST', headers: localDebugHeaders() });
             alert("狀態已清除！");
             location.reload();
         }

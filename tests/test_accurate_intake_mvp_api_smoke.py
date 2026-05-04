@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import secrets
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -59,6 +61,8 @@ def _client(db: Session, monkeypatch) -> tuple[TestClient, DeterministicSelfUseM
 
 
 def test_estimate_route_closes_manager_style_product_loop_against_debug_surface(monkeypatch, tmp_path: Path) -> None:
+    debug_token = secrets.token_urlsafe(24)
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", debug_token)
     db = _session(tmp_path / "api-smoke.sqlite3")
     user_external_id = "api-smoke-user"
     local_date = "2026-05-02"
@@ -97,6 +101,7 @@ def test_estimate_route_closes_manager_style_product_loop_against_debug_surface(
     debug_response = client.get(
         "/accurate-intake/debug",
         params={"user_id": user_external_id, "local_date": route_local_date},
+        headers={"X-Local-Debug-Token": debug_token},
     )
     assert debug_response.status_code == 200
     debug_payload = debug_response.json()
