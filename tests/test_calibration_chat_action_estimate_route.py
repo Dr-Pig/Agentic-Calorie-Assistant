@@ -337,6 +337,7 @@ def test_estimate_route_accepts_explicit_calibration_action_without_provider_or_
             "persist_calibration_proposal": True,
             "calibration_proposal_container_id": proposal_id,
             "calibration_action": "accept_calibration_proposal",
+            "calibration_action_accepted_at": "2026-05-14T10:30:00",
         },
     )
 
@@ -350,7 +351,9 @@ def test_estimate_route_accepts_explicit_calibration_action_without_provider_or_
     assert payload["manager_decision"]["intent_type"] == "calibration"
     assert payload["manager_decision"]["workflow_effect"] == "apply_calibration_proposal_action_with_state_mutation"
     assert payload["calibration_action_result"]["proposal_status"] == "accepted"
+    assert payload["calibration_action_result"]["effective_from"] == ROUTE_LOCAL_DATE
     assert payload["ui_hints"]["mode"] == "general_chat_calibration_action"
+    assert payload["ui_hints"]["effective_from"] == ROUTE_LOCAL_DATE
     assert payload["ui_hints"]["plan_mutation_authorized"] is True
     assert payload["required_read_surfaces"] == [
         "calibration_proposal_inbox",
@@ -364,7 +367,72 @@ def test_estimate_route_accepts_explicit_calibration_action_without_provider_or_
     assert active_plans[0].daily_budget_kcal == 1650
     assert len(superseded_plans) == 1
     assert ledger_entry.entry_type == "calibration_adjustment"
+    assert ledger_entry.local_date == ROUTE_LOCAL_DATE
     assert ledger_entry.delta_kcal == -60
+
+
+def test_estimate_route_accept_after_local_cutoff_applies_next_day_from_backend(monkeypatch) -> None:
+    db = _session()
+    user_external_id = "estimate-route-calibration-action-accept-after-cutoff"
+    proposal_id = _seed_stored_calibration_proposal(db, user_external_id=user_external_id)
+    client = _client(db, monkeypatch)
+
+    response = client.post(
+        "/estimate",
+        json={
+            "text": "apply selected calibration proposal",
+            "allow_search": False,
+            "user_id": user_external_id,
+            "local_date": ROUTE_LOCAL_DATE,
+            "calibration_proposal_container_id": proposal_id,
+            "calibration_action": "accept_calibration_proposal",
+            "calibration_action_accepted_at": "2026-05-14T11:30:00",
+        },
+    )
+
+    payload = response.json()["payload"]
+    ledger = db.query(DayBudgetLedgerRecord).one()
+    ledger_entry = db.query(LedgerEntryRecord).one()
+    assert response.status_code == 200
+    assert payload["calibration_action_result"]["proposal_status"] == "accepted"
+    assert payload["calibration_action_result"]["effective_from"] == "2026-05-15"
+    assert payload["calibration_action_result"]["current_budget_view"]["budget_kcal"] == 1650
+    assert payload["ui_hints"]["effective_from"] == "2026-05-15"
+    assert ledger.local_date == "2026-05-15"
+    assert ledger.budget_kcal == 1650
+    assert ledger_entry.local_date == "2026-05-15"
+    assert ledger_entry.delta_kcal == -60
+
+
+def test_estimate_route_rejects_invalid_calibration_action_accepted_at_without_mutation(monkeypatch) -> None:
+    for invalid_accepted_at in ["not-a-date", ROUTE_LOCAL_DATE]:
+        db = _session()
+        user_external_id = f"estimate-route-invalid-accepted-at-{invalid_accepted_at}"
+        proposal_id = _seed_stored_calibration_proposal(db, user_external_id=user_external_id)
+        client = _client(db, monkeypatch)
+
+        response = client.post(
+            "/estimate",
+            json={
+                "text": "apply selected calibration proposal",
+                "allow_search": False,
+                "user_id": user_external_id,
+                "local_date": ROUTE_LOCAL_DATE,
+                "calibration_proposal_container_id": proposal_id,
+                "calibration_action": "accept_calibration_proposal",
+                "calibration_action_accepted_at": invalid_accepted_at,
+            },
+        )
+
+        proposal = db.get(ProposalContainerRecord, proposal_id)
+        active_plan = db.query(BodyPlanRecord).filter(BodyPlanRecord.plan_status == "active").one()
+        assert response.status_code == 422
+        assert proposal is not None
+        assert proposal.proposal_status == "open"
+        assert active_plan.daily_budget_kcal == 1800
+        assert db.query(BodyPlanRecord).count() == 1
+        assert db.query(DayBudgetLedgerRecord).count() == 0
+        assert db.query(LedgerEntryRecord).count() == 0
 
 
 def test_estimate_route_calibration_action_requires_explicit_proposal_target(monkeypatch) -> None:

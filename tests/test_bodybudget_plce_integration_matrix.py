@@ -81,6 +81,8 @@ def test_bodybudget_plce_integration_matrix_keeps_plce_render_only() -> None:
     assert "`EstimateRequest.calibration_preview_requested=true`" in matrix
     assert "`persist_calibration_proposal=true` is ignored unless the explicit preview flag is present" in matrix
     assert "`calibration_proposal_container_id` and `calibration_action`" in matrix
+    assert "`calibration_action_accepted_at`" in matrix
+    assert "PL/CE must not calculate the effective date" in matrix
     assert "must not authorize preview persistence" in matrix
     assert "raw chat text, chip label text, or reply wording must not authorize calibration mutation" in matrix
     assert "Chat-primary calibration proposal preview" in matrix

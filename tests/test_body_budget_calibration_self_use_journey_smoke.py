@@ -56,6 +56,8 @@ def test_body_budget_calibration_self_use_journey_smoke_exercises_closed_loop(tm
     assert report["proposal_action"]["entrypoint"] == "/estimate"
     assert report["proposal_action"]["workflow_effect"] == "apply_calibration_proposal_action_with_state_mutation"
     assert report["proposal_action"]["proposal_status"] == "accepted"
+    assert report["proposal_action"]["calibration_action_accepted_at"] == "2026-05-14T10:30:00"
+    assert report["proposal_action"]["effective_from"] == "2026-05-14"
     assert report["proposal_action"]["plan_mutated"] is True
     assert report["proposal_action"]["ledger_mutated"] is True
     assert report["proposal_action"]["db_plan_mutated"] is True
