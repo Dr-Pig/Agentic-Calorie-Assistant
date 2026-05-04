@@ -431,6 +431,32 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
             ],
             "frontend_route_call_allowed_after_activation": True,
         },
+        "journey_smoke_gates": {
+            "calibration_self_use_journey": {
+                "script": "scripts/run_body_budget_calibration_self_use_journey_smoke.py",
+                "test": "tests/test_body_budget_calibration_self_use_journey_smoke.py",
+                "claim_scope": "local_deterministic_body_budget_calibration_smoke",
+                "covers": [
+                    "history_to_calibration_preview",
+                    "persisted_open_proposal_inbox",
+                    "read_only_proposal_history",
+                    "explicit_stored_action_accept",
+                    "active_body_plan_update",
+                    "current_budget_same_truth",
+                    "effective_budget_same_truth",
+                    "weekly_progress_weight_loop_read_model",
+                ],
+                "does_not_claim": [
+                    "product_readiness",
+                    "private_self_use_approval",
+                    "automatic_calibration",
+                    "live_provider_use",
+                    "rescue",
+                    "recommendation",
+                    "proactive",
+                ],
+            },
+        },
         "runtime_truth_changed": {
             "scope": "readiness_contract_only",
             "does_not_change": [
