@@ -99,6 +99,8 @@ def _base_report(
         "today_current_day_restored_checked": False,
         "today_url_state_preserved_after_date_change": False,
         "today_reload_preserved_selected_date": False,
+        "today_user_url_state_preserved_after_user_change": False,
+        "today_reload_preserved_user_id": False,
         "today_summary_rendered": False,
         "today_meal_list_rendered": False,
         "today_no_debug_trace": False,
@@ -495,6 +497,7 @@ def _run_browser_sequence(
                 today.evaluate("""() => new URL(window.location.href).searchParams.get("local_date")""")
                 == previous_local_date
             )
+            result["fetch_sequence"].extend(_capture_fetches(today))
             today.reload(wait_until="networkidle", timeout=timeout_ms)
             today.wait_for_function(
                 """(dateValue) => document.querySelector("#selected-date")?.value === dateValue """,
@@ -530,6 +533,35 @@ def _run_browser_sequence(
                 timeout=timeout_ms
             )
             result["today_date_switch_checked"] = True
+            result["fetch_sequence"].extend(_capture_fetches(today))
+            alternate_today_user_id = f"{user_external_id}-today-alt"
+            today.fill("#user-id", alternate_today_user_id)
+            today.dispatch_event("#user-id", "change")
+            today.wait_for_function(
+                """(userId) => new URL(window.location.href).searchParams.get("user_id") === userId """,
+                arg=alternate_today_user_id,
+                timeout=timeout_ms,
+            )
+            result["today_user_url_state_preserved_after_user_change"] = True
+            today.reload(wait_until="networkidle", timeout=timeout_ms)
+            today.wait_for_function(
+                """(userId) => document.querySelector("#user-id")?.value === userId """,
+                arg=alternate_today_user_id,
+                timeout=timeout_ms,
+            )
+            result["today_reload_preserved_user_id"] = True
+            today.fill("#user-id", user_external_id)
+            today.dispatch_event("#user-id", "change")
+            today.wait_for_function(
+                """(userId) => new URL(window.location.href).searchParams.get("user_id") === userId """,
+                arg=user_external_id,
+                timeout=timeout_ms,
+            )
+            today.wait_for_function(
+                """(message) => (document.querySelector("#meal-list")?.textContent || "").includes(message) """,
+                arg=cjk_message,
+                timeout=timeout_ms,
+            )
             nav_checks.append(
                 _nav_session_query_preserved(today, user_external_id=user_external_id, local_date=local_date)
             )
@@ -633,7 +665,15 @@ def _run_browser_sequence(
             )
             result["body_weight_checkin_saved"] = True
             result["current_step"] = "save_body_plan"
+            body.select_option("#sex", "female")
+            body.fill("#age-years", "34")
+            body.fill("#height-cm", "170")
+            body.fill("#current-weight-kg", "70")
             body.fill("#target-weight-kg", "65")
+            body.select_option("#goal-type", "lose_weight")
+            body.select_option("#daily-lifestyle", "sedentary_with_some_walking")
+            body.select_option("#weekly-exercise-days-band", "0")
+            body.fill("#weekly-target-rate-kg", "0.5")
             body.click('button:has-text("Rebuild plan")')
             body.wait_for_function(
                 """() => (document.querySelector("#body-status")?.textContent || "").includes("Plan saved") """,
@@ -762,6 +802,11 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         "today_url_state_not_preserved_after_date_change",
     )
     require_true("today_reload_preserved_selected_date", "today_reload_did_not_preserve_selected_date")
+    require_true(
+        "today_user_url_state_preserved_after_user_change",
+        "today_user_url_state_not_preserved_after_user_change",
+    )
+    require_true("today_reload_preserved_user_id", "today_reload_did_not_preserve_user_id")
     require_true("today_summary_rendered", "today_summary_not_rendered")
     require_true("today_meal_list_rendered", "today_meal_list_not_rendered")
     require_true("today_no_debug_trace", "today_debug_trace_leaked")
@@ -974,7 +1019,7 @@ def main(argv: list[str] | None = None) -> int:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    print(json.dumps(report, ensure_ascii=True, indent=2))
     if report["status"] == "pass":
         return 0
     if report["status"] == "blocked" and not args.require_browser_execution:

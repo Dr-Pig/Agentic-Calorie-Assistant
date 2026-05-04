@@ -26,15 +26,10 @@ def _png_fixture_bytes(*, width: int = 1, height: int = 1) -> bytes:
 def _passing_report(tmp_path: Path) -> dict[str, object]:
     screenshot_dir = tmp_path / "screenshots"
     screenshot_dir.mkdir(parents=True, exist_ok=True)
-    for name in (
-        "chat-desktop.png",
-        "today-desktop.png",
-        "body-desktop.png",
-        "chat-mobile.png",
-        "today-mobile.png",
-        "body-mobile.png",
-    ):
-        (screenshot_dir / name).write_bytes(_png_fixture_bytes())
+    for name in ("chat-desktop.png", "today-desktop.png", "body-desktop.png"):
+        (screenshot_dir / name).write_bytes(_png_fixture_bytes(width=1440, height=1100))
+    for name in ("chat-mobile.png", "today-mobile.png", "body-mobile.png"):
+        (screenshot_dir / name).write_bytes(_png_fixture_bytes(width=390, height=844))
     return {
         "browser_executed": True,
         "desktop_screenshots_captured": True,
@@ -162,6 +157,17 @@ def test_product_pages_visual_qa_validator_rejects_header_only_png_stub(tmp_path
 
     assert status == "fail"
     assert "screenshot_invalid_png:desktop:body" in blockers
+
+
+def test_product_pages_visual_qa_validator_rejects_tiny_png_screenshot_evidence(tmp_path: Path) -> None:
+    report = _passing_report(tmp_path)
+    tiny_path = Path(str(report["screenshots"]["desktop"]["chat"]))
+    tiny_path.write_bytes(_png_fixture_bytes(width=1, height=1))
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "screenshot_too_small:desktop:chat:1x1" in blockers
 
 
 def test_product_pages_visual_qa_validator_rejects_missing_surfaces_and_claims(tmp_path: Path) -> None:
