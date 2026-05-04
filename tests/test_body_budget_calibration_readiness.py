@@ -62,6 +62,12 @@ def test_body_budget_calibration_readiness_artifact_records_preview_and_action_m
     assert preview["day_budget_ledger_mutation_authorized"] is False
     assert preview["ledger_entry_calibration_adjustment_enabled"] is False
     assert "clean_sqlalchemy_session" in preview["persist_proposal_requires"]
+    response_contract = artifact["calibration_flow_contract"]["proposal_response_contract"]
+    assert response_contract["presentation_policy"] == "single_primary_recommendation"
+    assert response_contract["backup_options_default_visibility"] == "hidden"
+    assert "proposal_cards" in response_contract["required_outputs"]
+    assert response_contract["quick_action_contract"]["raw_text_authorized_mutation"] is False
+    assert response_contract["quick_action_contract"]["view_alternatives_mutation_authorized"] is False
 
     stored_action = artifact["calibration_flow_contract"]["stored_action"]
     assert stored_action["mutation_requires"] == "explicit_accept_on_active_stored_proposal"
