@@ -29,6 +29,7 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
         "retrieval_ranking_policy_shadow_eval",
         "manager_memory_contract_shadow_plan",
         "pre_compaction_memory_flush_shadow_plan",
+        "memory_do_not_save_policy_shadow_eval",
         "product_capability_context_map",
         "memory_dependency_graph_shadow_eval",
         "memory_promotion_demotion_shadow_eval",

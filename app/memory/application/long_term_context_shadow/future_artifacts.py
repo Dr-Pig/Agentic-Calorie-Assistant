@@ -18,6 +18,9 @@ from app.memory.application.long_term_context_shadow.conversation_artifacts impo
 from app.memory.application.long_term_context_shadow.dependency_graph_artifact import (
     _memory_dependency_graph_shadow_artifact,
 )
+from app.memory.application.long_term_context_shadow.do_not_save_policy_artifact import (
+    _memory_do_not_save_policy_shadow_artifact,
+)
 from app.memory.application.long_term_context_shadow.memory_architecture_artifacts import (
     _memory_extraction_storage_rag_artifact,
 )
@@ -72,6 +75,9 @@ def build_future_shadow_artifacts(
         ),
         "pre_compaction_memory_flush_shadow_plan": (
             _pre_compaction_memory_flush_shadow_artifact(fixture)
+        ),
+        "memory_do_not_save_policy_shadow_eval": (
+            _memory_do_not_save_policy_shadow_artifact(fixture)
         ),
         "product_capability_context_map": _product_capability_context_map_artifact(
             fixture,
@@ -150,6 +156,7 @@ __all__ = [
     "_conversation_recall_tool_shadow_plan_artifact",
     "_entity_normalization_shadow_artifact",
     "_long_term_context_pack_shadow_artifact",
+    "_memory_do_not_save_policy_shadow_artifact",
     "_manager_memory_contract_shadow_artifact",
     "_memory_dependency_graph_shadow_artifact",
     "_memory_extraction_storage_rag_artifact",

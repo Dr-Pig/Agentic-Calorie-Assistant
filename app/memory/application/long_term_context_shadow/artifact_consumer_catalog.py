@@ -169,6 +169,17 @@ ARTIFACT_CONSUMER_CATALOG: dict[str, list[str]] = {
         "calibration",
         "human_review",
     ],
+    "memory_do_not_save_policy_shadow_eval": [
+        "architecture_governance",
+        "privacy_review",
+        "memory_governance",
+        "recommendation",
+        "intake_clarification",
+        "chat_context",
+        "proactive",
+        "calibration",
+        "human_review",
+    ],
     "memory_dependency_graph_shadow_eval": [
         "architecture_governance",
         "recommendation",
