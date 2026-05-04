@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from app.nutrition.application.fooddb_retrieval_policy import (
+    _rank_candidates,
     build_fooddb_retrieval_policy_artifact,
     build_runtime_retrieval_records_from_small_anchor_payload,
     retrieve_fooddb_candidates,
@@ -107,3 +108,71 @@ def test_retrieval_policy_cli_writes_roundtrippable_artifact(tmp_path: Path) -> 
     assert artifact["retrieval_architecture"]["dependency_inversion"][
         "future_adapter_shape"
     ] == "local_json_or_sqlite_or_supabase_can_supply_same_records"
+
+
+def test_retrieval_policy_exposes_ranking_features_and_modifier_compatibility() -> None:
+    records = build_runtime_retrieval_records_from_small_anchor_payload(_small_anchor_payload())
+    result = retrieve_fooddb_candidates(
+        "large boba",
+        retrieval_records=records,
+    )
+
+    assert result["normalized_query"]["candidate_terms"] == ["large boba", "boba"]
+    assert result["ranking_policy"]["features"] == [
+        "lexical_match",
+        "runtime_truth_allowed",
+        "source_quality",
+        "serving_basis",
+        "portion_basis",
+        "modifier_compatibility",
+        "ambiguity_risk",
+    ]
+
+    candidate = result["accepted_candidates"][0]
+    assert candidate["anchor_id"] == "custom_drink_boba_milk_tea"
+    assert candidate["ranking_reasons"] == [
+        "alias_expansion_exact",
+        "runtime_truth_allowed",
+        "kcal_range_present",
+        "serving_basis_present",
+        "portion_basis_present",
+        "modifier_compatible:cup_size",
+    ]
+    assert candidate["modifier_compatibility"] == {"cup_size": "compatible"}
+
+
+def test_retrieval_policy_fuzzy_matches_alias_expansion_keys_without_vector_truth() -> None:
+    records = build_runtime_retrieval_records_from_small_anchor_payload(_small_anchor_payload())
+    result = retrieve_fooddb_candidates(
+        "boba milk teaa",
+        retrieval_records=records,
+    )
+
+    assert result["vector_search_policy"]["allowed_for"] == "candidate_recall_later_only"
+    assert result["truth_selection_forbidden"] is True
+    candidate = result["accepted_candidates"][0]
+    assert candidate["anchor_id"] == "custom_drink_boba_milk_tea"
+    assert candidate["match_path"] == "fuzzy_alias_expansion"
+    assert candidate["confidence"] == "medium_high"
+    assert candidate["requires_manager_disambiguation"] is True
+
+
+def test_retrieval_ranking_prefers_runtime_truth_when_other_signals_tie() -> None:
+    base = {
+        "match_path": "canonical_or_alias_exact",
+        "match_score": 100,
+        "modifier_compatibility": {},
+        "source_provenance": {"source_id": "test"},
+        "serving_basis": "common_serving",
+        "portion_basis": {"portion_quantity": 1},
+        "requires_manager_disambiguation": False,
+    }
+
+    ranked = _rank_candidates(
+        [
+            {**base, "anchor_id": "a_false", "runtime_truth_allowed": False},
+            {**base, "anchor_id": "b_true", "runtime_truth_allowed": True},
+        ]
+    )
+
+    assert [candidate["anchor_id"] for candidate in ranked] == ["b_true", "a_false"]
