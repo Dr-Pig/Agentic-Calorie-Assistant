@@ -17,6 +17,7 @@ CandidateType = Literal[
     "pattern",
     "preference",
     "negative_preference",
+    "temporary_preference",
     "golden_order",
     "user_language_pattern",
     "intake_estimation_bias",

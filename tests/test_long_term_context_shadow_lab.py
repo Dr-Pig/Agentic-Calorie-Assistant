@@ -128,6 +128,28 @@ def _fixture_payload() -> dict:
                 "action": "accepted",
             }
         ],
+        "negative_preference_observations": [
+            {
+                "trace_id": "neg-1",
+                "observed_at": "2026-04-05T12:15:00+08:00",
+                "preference_scope": "ingredient",
+                "value": "cilantro",
+                "source_signal": "explicit_rejection",
+                "confidence": 0.9,
+            }
+        ],
+        "temporary_preference_observations": [
+            {
+                "trace_id": "temp-1",
+                "observed_at": "2026-04-06T18:30:00+08:00",
+                "preference_type": "temporary_constraint",
+                "value": "lower_oil_dinner",
+                "context_scope": "dinner",
+                "valid_from": "2026-04-06",
+                "valid_until": "2026-04-10",
+                "confidence": 0.8,
+            }
+        ],
         "conversation_history_summaries": [
             {
                 "trace_id": "conv-1",
@@ -344,6 +366,8 @@ def test_memory_candidate_taxonomy_covers_language_bias_usage_and_interaction_do
         "interaction_preference",
         "food_preference",
         "logging_adherence_pattern",
+        "negative_preference",
+        "temporary_preference",
         "conversation_recall_context",
     }.issubset(by_type)
 
@@ -382,6 +406,23 @@ def test_memory_candidate_taxonomy_covers_language_bias_usage_and_interaction_do
     logging = by_type["logging_adherence_pattern"]
     assert "calibration" in logging["intended_consumers"]
     assert "rescue_later" in logging["intended_consumers"]
+
+    negative = by_type["negative_preference"]
+    assert negative["payload"]["value"] == "cilantro"
+    assert negative["intended_consumers"] == [
+        "recommendation",
+        "proactive",
+        "intake_clarification",
+    ]
+
+    temporary = by_type["temporary_preference"]
+    assert temporary["payload"]["valid_until"] == "2026-04-10"
+    assert temporary["intended_consumers"] == [
+        "recommendation",
+        "chat_context",
+        "proactive",
+        "intake_clarification",
+    ]
 
     recall = by_type["conversation_recall_context"]
     assert recall["payload"]["summary_first"] is True
@@ -483,10 +524,14 @@ def test_product_capability_context_map_covers_whole_product_memory_consumers() 
         "cross_surface_experience",
     }.issubset(consumer_ids)
 
-    assert {
-        "negative_preference",
-        "temporary_preference",
-    }.issubset(set(artifact["coverage_gaps"]["fixture_missing_candidate_types"]))
+    assert (
+        "negative_preference"
+        not in artifact["coverage_gaps"]["fixture_missing_candidate_types"]
+    )
+    assert (
+        "temporary_preference"
+        not in artifact["coverage_gaps"]["fixture_missing_candidate_types"]
+    )
     assert "docs/specs/L4A_MEMORY_MODEL_SPEC.md" in artifact["source_specs"]
     assert "docs/specs/L4C_CONTEXT_PACKING_SPEC.md" in artifact["source_specs"]
 
@@ -638,6 +683,14 @@ def test_consumer_specific_context_packs_are_summary_first_and_non_injecting() -
         in recommendation["selected_candidate_ids"]
     )
     assert "preference-drink-latte" in recommendation["selected_candidate_ids"]
+    assert (
+        "negative-preference-ingredient-cilantro"
+        in recommendation["selected_candidate_ids"]
+    )
+    assert (
+        "temporary-preference-lower-oil-dinner"
+        in recommendation["selected_candidate_ids"]
+    )
 
     intake_chat = artifact["context_packs"]["intake_chat_context"]
     assert any(

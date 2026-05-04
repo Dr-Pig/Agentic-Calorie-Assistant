@@ -114,6 +114,12 @@ def _build_candidates(fixture: dict[str, Any]) -> list[LongTermContextCandidate]
     bias_events = _list_of_dicts(fixture.get("intake_estimation_events"))
     usage_events = _list_of_dicts(fixture.get("app_usage_events"))
     interaction_events = _list_of_dicts(fixture.get("interaction_events"))
+    negative_preferences = _list_of_dicts(
+        fixture.get("negative_preference_observations")
+    )
+    temporary_preferences = _list_of_dicts(
+        fixture.get("temporary_preference_observations")
+    )
     conversation_summaries = _list_of_dicts(
         fixture.get("conversation_history_summaries")
     )
@@ -132,6 +138,12 @@ def _build_candidates(fixture: dict[str, Any]) -> list[LongTermContextCandidate]
     candidates.extend(_app_usage_style_candidates(user_id, usage_events, trace_refs))
     candidates.extend(
         _interaction_preference_candidates(user_id, interaction_events, trace_refs)
+    )
+    candidates.extend(
+        _negative_preference_candidates(user_id, negative_preferences, trace_refs)
+    )
+    candidates.extend(
+        _temporary_preference_candidates(user_id, temporary_preferences, trace_refs)
     )
     candidates.extend(
         _conversation_recall_context_candidates(
@@ -593,6 +605,105 @@ def _interaction_preference_candidates(
     ]
 
 
+def _negative_preference_candidates(
+    user_id: str,
+    observations: list[dict[str, Any]],
+    trace_refs: dict[str, str],
+) -> list[LongTermContextCandidate]:
+    candidates: list[LongTermContextCandidate] = []
+    for observation in observations:
+        scope = str(observation.get("preference_scope") or "general")
+        value = str(observation.get("value") or "unknown")
+        observed_at = _parse_datetime(observation.get("observed_at"))
+        candidates.append(
+            _candidate(
+                candidate_id=f"negative-preference-{_slug(scope)}-{_slug(value)}",
+                candidate_type="negative_preference",
+                user_id=user_id,
+                source_trace_ids=[_trace_id(observation)],
+                source_object_refs=[
+                    _source_ref(
+                        observation,
+                        trace_refs,
+                        fallback_kind="NegativePreferenceObservation",
+                        fallback_id_key="trace_id",
+                    )
+                ],
+                evidence_count=1,
+                observed_at=[observed_at] if observed_at else [],
+                confidence=_bounded_confidence(
+                    observation.get("confidence"), default=0.5
+                ),
+                proposed_memory_text=f"Candidate negative preference: avoid {value}",
+                payload={
+                    "preference_scope": scope,
+                    "value": value,
+                    "source_signal": observation.get("source_signal"),
+                    "confirmed": False,
+                },
+                reason_codes=["negative_preference_candidate"],
+                intended_consumers=[
+                    "recommendation",
+                    "proactive",
+                    "intake_clarification",
+                ],
+            )
+        )
+    return candidates
+
+
+def _temporary_preference_candidates(
+    user_id: str,
+    observations: list[dict[str, Any]],
+    trace_refs: dict[str, str],
+) -> list[LongTermContextCandidate]:
+    candidates: list[LongTermContextCandidate] = []
+    for observation in observations:
+        value = str(observation.get("value") or "unknown")
+        observed_at = _parse_datetime(observation.get("observed_at"))
+        valid_until = str(observation.get("valid_until") or "")
+        candidates.append(
+            _candidate(
+                candidate_id=f"temporary-preference-{_slug(value)}",
+                candidate_type="temporary_preference",
+                user_id=user_id,
+                source_trace_ids=[_trace_id(observation)],
+                source_object_refs=[
+                    _source_ref(
+                        observation,
+                        trace_refs,
+                        fallback_kind="TemporaryPreferenceObservation",
+                        fallback_id_key="trace_id",
+                    )
+                ],
+                evidence_count=1,
+                observed_at=[observed_at] if observed_at else [],
+                confidence=_bounded_confidence(
+                    observation.get("confidence"), default=0.5
+                ),
+                proposed_memory_text=(
+                    f"Candidate temporary preference through {valid_until}: {value}"
+                ),
+                payload={
+                    "preference_type": observation.get("preference_type"),
+                    "value": value,
+                    "context_scope": observation.get("context_scope"),
+                    "valid_from": observation.get("valid_from"),
+                    "valid_until": observation.get("valid_until"),
+                    "confirmed": False,
+                },
+                reason_codes=["temporary_preference_candidate"],
+                intended_consumers=[
+                    "recommendation",
+                    "chat_context",
+                    "proactive",
+                    "intake_clarification",
+                ],
+            )
+        )
+    return candidates
+
+
 def _conversation_recall_context_candidates(
     user_id: str,
     summaries: list[dict[str, Any]],
@@ -710,6 +821,12 @@ def _build_context_value_items(
         elif candidate.candidate_type == "food_preference":
             capabilities = ["recommendation", "proactive", "intake_clarification"]
             action = "ask_user_to_confirm"
+        elif candidate.candidate_type == "negative_preference":
+            capabilities = ["recommendation", "proactive", "intake_clarification"]
+            action = "ask_user_to_confirm"
+        elif candidate.candidate_type == "temporary_preference":
+            capabilities = ["recommendation", "chat_context", "proactive"]
+            action = "ask_user_to_confirm"
         elif candidate.candidate_type == "user_language_pattern":
             capabilities = ["intake_clarification", "chat_context"]
             action = "keep_shadowing"
@@ -777,7 +894,12 @@ def _memory_candidate_review_artifact(
                 "preference_candidate_count": sum(
                     1
                     for candidate in candidates
-                    if candidate.candidate_type in {"preference", "food_preference"}
+                    if candidate.candidate_type
+                    in {
+                        "preference",
+                        "food_preference",
+                        "temporary_preference",
+                    }
                 ),
                 "negative_preference_candidate_count": sum(
                     1
@@ -1552,6 +1674,8 @@ def _long_term_context_pack_shadow_artifact(
             allowed_candidate_types={
                 "food_preference",
                 "golden_order",
+                "negative_preference",
+                "temporary_preference",
                 "user_language_pattern",
                 "conversation_recall_context",
             },
@@ -1573,7 +1697,9 @@ def _long_term_context_pack_shadow_artifact(
                 "golden_order",
                 "intake_estimation_bias",
                 "interaction_preference",
+                "negative_preference",
                 "pattern",
+                "temporary_preference",
                 "user_language_pattern",
             },
         ),
@@ -1607,7 +1733,9 @@ def _long_term_context_pack_shadow_artifact(
                 "golden_order",
                 "interaction_preference",
                 "logging_adherence_pattern",
+                "negative_preference",
                 "pattern",
+                "temporary_preference",
             },
         ),
         "rescue_context": _context_pack(
@@ -1707,18 +1835,22 @@ def _context_pack_rank(
         "recommendation": {
             "golden_order": 0,
             "food_preference": 1,
-            "user_language_pattern": 2,
-            "conversation_recall_context": 3,
+            "negative_preference": 2,
+            "temporary_preference": 3,
+            "user_language_pattern": 4,
+            "conversation_recall_context": 5,
         },
         "intake_chat_context": {
             "user_language_pattern": 0,
             "interaction_preference": 1,
             "app_usage_style": 2,
             "intake_estimation_bias": 3,
-            "conversation_recall_context": 4,
-            "golden_order": 5,
-            "food_preference": 6,
-            "pattern": 7,
+            "negative_preference": 4,
+            "temporary_preference": 5,
+            "conversation_recall_context": 6,
+            "golden_order": 7,
+            "food_preference": 8,
+            "pattern": 9,
         },
         "calibration_context": {
             "intake_estimation_bias": 0,
@@ -1730,9 +1862,11 @@ def _context_pack_rank(
             "app_usage_style": 0,
             "interaction_preference": 1,
             "logging_adherence_pattern": 2,
-            "food_preference": 3,
-            "golden_order": 4,
-            "pattern": 5,
+            "negative_preference": 3,
+            "temporary_preference": 4,
+            "food_preference": 5,
+            "golden_order": 6,
+            "pattern": 7,
         },
         "rescue_context": {
             "logging_adherence_pattern": 0,
@@ -1825,6 +1959,15 @@ def _default_consumers(candidate_type: str) -> list[str]:
         return ["recommendation", "intake_clarification", "chat_context"]
     if candidate_type == "food_preference":
         return ["recommendation", "proactive", "intake_clarification"]
+    if candidate_type == "negative_preference":
+        return ["recommendation", "proactive", "intake_clarification"]
+    if candidate_type == "temporary_preference":
+        return [
+            "recommendation",
+            "chat_context",
+            "proactive",
+            "intake_clarification",
+        ]
     if candidate_type == "logging_adherence_pattern":
         return ["calibration", "proactive", "rescue_later"]
     if candidate_type == "intake_estimation_bias":
@@ -1886,6 +2029,10 @@ def _risk_if_wrong(candidate_type: str) -> str:
         return (
             "Could overfit recommendations or intake defaults to a weak food pattern."
         )
+    if candidate_type == "negative_preference":
+        return "Could suppress acceptable foods or recommendations before a dislike is confirmed."
+    if candidate_type == "temporary_preference":
+        return "Could keep a short-term preference active after it should expire."
     if candidate_type == "logging_adherence_pattern":
         return "Could overstate adherence or logging quality and distort calibration confidence."
     if candidate_type == "conversation_recall_context":
