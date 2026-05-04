@@ -99,7 +99,8 @@
         "tests/test_wave1_phase_b2_packetizer_input_seed.py",
         "tests/test_wave1_phase_b2_packet_consumption.py",
         "tests/test_food_evidence_mvp_packet_guard.py",
-        "tests/test_wave1_phase_b2_final_mapping.py"
+        "tests/test_wave1_phase_b2_final_mapping.py",
+        "tests/test_food_kb_gap_register_from_review_surface.py"
       ]
     },
     {
