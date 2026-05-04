@@ -9,6 +9,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app.memory.application.external_memory_framework_research import (  # noqa: E402
+    build_external_memory_framework_research,
+)
 from app.memory.application.local_memory_framework_review import (  # noqa: E402
     build_local_framework_review,
 )
@@ -27,6 +30,9 @@ ARTIFACT_FILENAMES = {
     "memory_review_action_shadow_result": "memory_review_action_shadow_result.json",
     "conversation_recall_shadow_eval": "conversation_recall_shadow_eval.json",
     "long_term_context_pack_shadow_eval": "long_term_context_pack_shadow_eval.json",
+    "external_memory_framework_research_review": (
+        "external_memory_framework_research_review.json"
+    ),
 }
 
 
@@ -48,6 +54,13 @@ def main(argv: list[str] | None = None) -> int:
     fixture = read_json_artifact(Path(args.fixture_json))
     output_dir = Path(args.output_dir)
     artifacts = build_shadow_lab_artifacts(fixture)
+    artifacts["external_memory_framework_research_review"] = (
+        build_external_memory_framework_research(
+            generated_at_utc=str(
+                fixture.get("generated_at_utc") or "1970-01-01T00:00:00+00:00"
+            )
+        )
+    )
 
     for artifact_key, filename in ARTIFACT_FILENAMES.items():
         write_json_artifact(output_dir / filename, artifacts[artifact_key])

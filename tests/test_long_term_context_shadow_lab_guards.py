@@ -34,6 +34,7 @@ def test_long_term_context_lab_stays_out_of_active_runtime_imports() -> None:
     ]
     forbidden_imports = (
         "app.memory.application.long_term_context_shadow_lab",
+        "app.memory.application.external_memory_framework_research",
         "app.memory.domain.long_term_context_candidates",
     )
     forbidden_tokens = (

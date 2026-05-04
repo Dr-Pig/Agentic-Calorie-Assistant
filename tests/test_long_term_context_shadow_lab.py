@@ -591,6 +591,7 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "memory_review_action_shadow_result.json",
         "conversation_recall_shadow_eval.json",
         "long_term_context_pack_shadow_eval.json",
+        "external_memory_framework_research_review.json",
     }
     assert {path.name for path in output_dir.iterdir()} == expected_files
     for path in output_dir.iterdir():
