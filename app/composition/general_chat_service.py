@@ -140,6 +140,22 @@ def _workflow_handoff_response() -> GeneralChatPassResult:
     )
 
 
+def _empty_calibration_preview_proposal_response(*, reason: str) -> dict[str, Any]:
+    return {
+        "surfaced": False,
+        "proposal_family": None,
+        "proposal_cards": [],
+        "quick_actions": [],
+        "ui_hints": {
+            "reason": reason,
+            "proposal_actions_enabled": False,
+        },
+        "proposal_container_id": None,
+        "stored_action_required": True,
+        "raw_text_authorized_mutation": False,
+    }
+
+
 def _calibration_unavailable_response(*, reason: str) -> GeneralChatPassResult:
     return GeneralChatPassResult(
         target_workflow_family="general_chat",
@@ -162,6 +178,7 @@ def _calibration_unavailable_response(*, reason: str) -> GeneralChatPassResult:
             "plan_mutation_authorized": False,
             "ledger_mutation_authorized": False,
         },
+        proposal_response=_empty_calibration_preview_proposal_response(reason=reason),
     )
 
 
@@ -201,6 +218,7 @@ def _shape_calibration_preview_quick_action(
         shaped["proposal_container_id"] = proposal_container_id
         if not enabled:
             shaped["disabled_reason"] = "stored_proposal_required"
+            shaped["mutation_authorized"] = False
         return shaped
 
     shaped["enabled"] = True

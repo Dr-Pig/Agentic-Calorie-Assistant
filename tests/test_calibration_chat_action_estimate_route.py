@@ -288,6 +288,20 @@ def test_estimate_route_calibration_preview_missing_history_is_unavailable_witho
     assert payload["ui_hints"]["mode"] == "general_chat_calibration_preview_unavailable"
     assert payload["ui_hints"]["plan_mutation_authorized"] is False
     assert payload["ui_hints"]["ledger_mutation_authorized"] is False
+    unavailable_reason = payload["ui_hints"]["reason"]
+    assert payload["proposal_response"] == {
+        "surfaced": False,
+        "proposal_family": None,
+        "proposal_cards": [],
+        "quick_actions": [],
+        "ui_hints": {
+            "reason": unavailable_reason,
+            "proposal_actions_enabled": False,
+        },
+        "proposal_container_id": None,
+        "stored_action_required": True,
+        "raw_text_authorized_mutation": False,
+    }
     assert db.query(ProposalContainerRecord).count() == 0
     assert db.query(BodyPlanRecord).count() == 0
     assert db.query(DayBudgetLedgerRecord).count() == 0
@@ -320,6 +334,7 @@ def test_estimate_route_preview_without_persistence_disables_stored_action_quick
     assert preview_actions["accept_calibration_proposal"]["enabled"] is False
     assert preview_actions["accept_calibration_proposal"]["disabled_reason"] == "stored_proposal_required"
     assert preview_actions["accept_calibration_proposal"]["proposal_container_id"] is None
+    assert preview_actions["accept_calibration_proposal"]["mutation_authorized"] is False
     assert preview_actions["reject_calibration_proposal"]["enabled"] is False
     assert preview_actions["defer_calibration_proposal"]["enabled"] is False
     assert preview_actions["view_calibration_alternatives"]["enabled"] is True
