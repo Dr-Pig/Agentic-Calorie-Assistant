@@ -43,6 +43,7 @@ def _proactive_intelligence_shadow_artifact(
             ],
             "candidate_trigger_decisions": decisions,
             "decision_rollup": _decision_rollup(decisions),
+            "proactive_silence_cases": _proactive_silence_cases(),
             "false_positive_silence_cases": _false_positive_silence_cases(),
         },
     )
@@ -170,6 +171,44 @@ def _false_positive_silence_cases() -> list[dict[str, Any]]:
             "case_id": "recent_user_dismissal",
             "should_stay_silent": True,
             "next_signal_required": "dismissal_cooldown_expired",
+            "runtime_effect_allowed": False,
+        },
+    ]
+
+
+def _proactive_silence_cases() -> list[dict[str, Any]]:
+    return [
+        {
+            "case_id": "late_night_backfill_already_logged",
+            "why_system_should_stay_silent": (
+                "The user may be catching up on logs and another reminder would add "
+                "friction without improving evidence quality."
+            ),
+            "potential_trigger_suppressed": "missed_logging_reminder",
+            "user_annoyance_risk": "high_after_recent_logging_activity",
+            "future_data_needed": "new_unlogged_gap_after_cooldown",
+            "runtime_effect_allowed": False,
+        },
+        {
+            "case_id": "low_confidence_preference_signal",
+            "why_system_should_stay_silent": (
+                "A weak preference candidate can bias recommendations or reminders "
+                "before the user confirms it."
+            ),
+            "potential_trigger_suppressed": "personalized_food_nudge",
+            "user_annoyance_risk": "medium_due_to_unconfirmed_personalization",
+            "future_data_needed": "more_evidence_or_user_confirmation",
+            "runtime_effect_allowed": False,
+        },
+        {
+            "case_id": "recent_user_dismissal",
+            "why_system_should_stay_silent": (
+                "Dismissal is an explicit negative timing signal and should suppress "
+                "follow-up until the cooldown expires."
+            ),
+            "potential_trigger_suppressed": "repeat_proactive_prompt",
+            "user_annoyance_risk": "high_due_to_repetition",
+            "future_data_needed": "dismissal_cooldown_expired_plus_new_signal",
             "runtime_effect_allowed": False,
         },
     ]

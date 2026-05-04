@@ -26,6 +26,7 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
         "conversation_recall_tool_shadow_plan",
         "context_ingress_decision_shadow_eval",
         "memory_extraction_storage_rag_shadow_plan",
+        "manager_memory_contract_shadow_plan",
         "product_capability_context_map",
         "memory_promotion_demotion_shadow_eval",
         "semantic_pattern_extraction_shadow_plan",

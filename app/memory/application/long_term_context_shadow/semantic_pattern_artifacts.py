@@ -27,6 +27,11 @@ def _semantic_pattern_extraction_shadow_artifact(
             "llm_extraction_called": False,
             "semantic_memory_written": False,
             "runtime_effect_allowed": False,
+            "semantic_extraction_flags": {
+                "fixture_llm_output_used": True,
+                "live_provider_used": False,
+                "semantic_extraction_runtime_ready": False,
+            },
             "readiness_gate": {
                 "required_new_committed_meal_items": 21,
                 "required_days_since_last_extraction": 7,

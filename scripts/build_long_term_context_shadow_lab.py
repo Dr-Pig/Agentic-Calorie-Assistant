@@ -77,6 +77,7 @@ ARTIFACT_FILENAMES = {
     "memory_extraction_storage_rag_shadow_plan": (
         "memory_extraction_storage_rag_shadow_plan.json"
     ),
+    "manager_memory_contract_shadow_plan": "manager_memory_contract_shadow_plan.json",
     "product_capability_context_map": "product_capability_context_map.json",
     "external_memory_framework_research_review": (
         "external_memory_framework_research_review.json"

@@ -18,6 +18,9 @@ from app.memory.application.long_term_context_shadow.conversation_artifacts impo
 from app.memory.application.long_term_context_shadow.memory_architecture_artifacts import (
     _memory_extraction_storage_rag_artifact,
 )
+from app.memory.application.long_term_context_shadow.manager_memory_contracts import (
+    _manager_memory_contract_shadow_artifact,
+)
 from app.memory.application.long_term_context_shadow.quality_artifacts import (
     _capability_scenario_fixture_pack_artifact,
     _context_quality_contradiction_review_artifact,
@@ -51,6 +54,9 @@ def build_future_shadow_artifacts(
         ),
         "memory_extraction_storage_rag_shadow_plan": (
             _memory_extraction_storage_rag_artifact(fixture)
+        ),
+        "manager_memory_contract_shadow_plan": (
+            _manager_memory_contract_shadow_artifact(fixture)
         ),
         "product_capability_context_map": _product_capability_context_map_artifact(
             fixture,
@@ -126,6 +132,7 @@ __all__ = [
     "_conversation_recall_tool_shadow_plan_artifact",
     "_entity_normalization_shadow_artifact",
     "_long_term_context_pack_shadow_artifact",
+    "_manager_memory_contract_shadow_artifact",
     "_memory_extraction_storage_rag_artifact",
     "_memory_promotion_demotion_shadow_artifact",
     "_memory_review_action_shadow_artifact",

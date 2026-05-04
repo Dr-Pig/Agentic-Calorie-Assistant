@@ -103,6 +103,7 @@ def _memory_promotion_demotion_shadow_artifact(
             "promotion_attempted": False,
             "demotion_attempted": False,
             "durable_write_allowed": False,
+            "memory_states": _memory_states(),
             "promotion_review_items": [
                 _promotion_review_item(candidate, action_status_by_candidate)
                 for candidate in candidates
@@ -113,6 +114,20 @@ def _memory_promotion_demotion_shadow_artifact(
             ),
         },
     )
+
+
+def _memory_states() -> dict[str, dict[str, bool]]:
+    return {
+        "candidate": {"runtime_use_allowed": False},
+        "confirmed_memory": {
+            "runtime_use_allowed": False,
+            "still_false_until_injection_gate": True,
+        },
+        "runtime_injectable_memory": {
+            "runtime_use_allowed": False,
+            "requires_future_gate": True,
+        },
+    }
 
 
 def _review_action_status_by_candidate(fixture: dict[str, Any]) -> dict[str, str]:

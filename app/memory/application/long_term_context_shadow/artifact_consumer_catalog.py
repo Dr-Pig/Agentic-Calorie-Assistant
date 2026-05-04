@@ -142,6 +142,12 @@ ARTIFACT_CONSUMER_CATALOG: dict[str, list[str]] = {
         "chat_context",
         "human_review",
     ],
+    "manager_memory_contract_shadow_plan": [
+        "architecture_governance",
+        "future_manager_context_retrieval",
+        "chat_context",
+        "human_review",
+    ],
     "entity_normalization_shadow_plan": [
         "architecture_governance",
         "recommendation",
