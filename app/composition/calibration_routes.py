@@ -7,10 +7,12 @@ from typing import Literal
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from app.body.application import build_active_body_plan_view
-from app.body.application.calibration_model import CalibrationModelInputs, build_calibration_model
-from app.body.application.calibration_proposal_gate import CalibrationProposalGateInputs, build_calibration_proposal_gate
-from app.body.application.calibration_proposal_response import build_calibration_proposal_response
+from app.body.application import (
+    BodyCalibrationDiagnosticRequest,
+    build_active_body_plan_view,
+    build_body_calibration_diagnostic,
+)
+from app.body.application.calibration_model import CalibrationModelInputs
 from app.composition.calibration_commit_bridge import apply_calibration_proposal_commit
 from app.composition.current_budget_read_model import build_current_budget_view
 from app.database import get_db, get_or_create_user
@@ -42,28 +44,26 @@ def calibration_proposal_preview(
     db=Depends(get_db),
 ) -> dict[str, object]:
     user = get_or_create_user(db, request.user_id)
-    calibration_result = build_calibration_model(request.model_inputs)
-    gate_result = build_calibration_proposal_gate(
-        CalibrationProposalGateInputs(
-            calibration_result=calibration_result,
-            current_budget_status=request.current_budget_status,
-            active_body_plan_status="active" if build_active_body_plan_view(db, user_id=user.id).body_plan_id else "inactive",
-            rescue_recovery_viability=request.rescue_recovery_viability,
-            recent_similar_proposal_open=request.recent_similar_proposal_open,
-        )
-    )
     current_budget_view = build_current_budget_view(db, user_id=user.id, local_date=request.local_date)
     active_body_plan_view = build_active_body_plan_view(db, user_id=user.id)
-    response = build_calibration_proposal_response(
-        calibration_result=calibration_result,
-        gate_result=gate_result,
-        current_budget_view=current_budget_view,
-        active_body_plan_view=active_body_plan_view,
+    diagnostic = build_body_calibration_diagnostic(
+        BodyCalibrationDiagnosticRequest(
+            model_inputs=request.model_inputs,
+            current_budget_status=request.current_budget_status,
+            rescue_recovery_viability=request.rescue_recovery_viability,
+            recent_similar_proposal_open=request.recent_similar_proposal_open,
+            current_budget_view=current_budget_view,
+            active_body_plan_view=active_body_plan_view,
+        )
     )
+    diagnostic_payload = asdict(diagnostic)
     return {
-        "calibration_result": asdict(calibration_result),
-        "gate_result": asdict(gate_result),
-        "response": asdict(response),
+        "calibration_result": diagnostic_payload["calibration_result"],
+        "gate_result": diagnostic_payload["gate_result"],
+        "response": diagnostic_payload["response"],
+        "diagnostic": diagnostic_payload,
+        "proposal_policy_packet": diagnostic.proposal_policy_packet,
+        "trace_envelope": diagnostic.trace_envelope,
     }
 
 
