@@ -126,9 +126,11 @@ def test_gate_plan_has_no_optional_mvp_groups_after_food_knowledge_promotion() -
 
 def test_gate_runner_returns_machine_readable_group_summary(monkeypatch, capsys) -> None:
     calls: list[list[str]] = []
+    run_kwargs: list[dict[str, object]] = []
 
-    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
         calls.append(command)
+        run_kwargs.append(dict(kwargs))
         return subprocess.CompletedProcess(command, 0, stdout="ok\n", stderr="")
 
     monkeypatch.setattr(verify_accurate_intake_mvp.subprocess, "run", fake_run)
@@ -158,6 +160,8 @@ def test_gate_runner_returns_machine_readable_group_summary(monkeypatch, capsys)
     ]
     assert {group["requirement"] for group in output["groups"]} == {"required"}
     assert len(calls) == 13
+    assert all(kwargs.get("encoding") == "utf-8" for kwargs in run_kwargs)
+    assert all(kwargs.get("errors") == "replace" for kwargs in run_kwargs)
 
 
 def test_gate_runner_writes_artifact_output(monkeypatch, tmp_path, capsys) -> None:
@@ -186,6 +190,18 @@ def test_gate_runner_writes_artifact_output(monkeypatch, tmp_path, capsys) -> No
     assert artifact["included_optional_groups"] == []
     assert all(group["requirement"] == "required" for group in artifact["groups"])
     assert "food_knowledge_mvp" in [group["group_id"] for group in artifact["groups"]]
+
+
+def test_gate_runner_stdout_json_is_ascii_safe_for_windows_console() -> None:
+    payload = {
+        "status": "pass",
+        "stdout": "decoded replacement \ufffd and 中文 output",
+    }
+
+    encoded = verify_accurate_intake_mvp.stdout_json(payload).encode("cp950")
+
+    assert b"\\ufffd" in encoded
+    assert b"\\u4e2d\\u6587" in encoded
 
 
 def test_gate_runner_fails_fast_by_default_and_reports_failed_group(monkeypatch, capsys) -> None:
