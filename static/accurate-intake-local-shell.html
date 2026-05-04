@@ -396,6 +396,26 @@
           <ul id="draft-correction-list" class="list"></ul>
         </article>
 
+        <article class="card">
+          <p class="eyebrow">Last turn trace</p>
+          <ul id="last-turn-trace-list" class="list"></ul>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Pending follow-up</p>
+          <ul id="pending-followup-list" class="list"></ul>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Runtime status</p>
+          <ul id="runtime-status-list" class="list"></ul>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Failure signals</p>
+          <ul id="failure-signal-list" class="list"></ul>
+        </article>
+
         <article class="card wide">
           <p class="eyebrow">Last runtime payload</p>
           <pre id="last-payload" class="mono">{}</pre>
@@ -489,6 +509,33 @@
       });
     }
 
+    function valueOrNotAvailable(value) {
+      if (value === null || value === undefined || value === "") {
+        return "not_available";
+      }
+      return String(value);
+    }
+
+    function boolOrNotAvailable(value) {
+      if (value === true || value === false) {
+        return String(value);
+      }
+      return "not_available";
+    }
+
+    function lastRuntimeMessage(chatHistory) {
+      const messages = Array.isArray(chatHistory?.messages) ? chatHistory.messages : [];
+      return messages.length > 0 ? messages[messages.length - 1] : {};
+    }
+
+    function readLastPayload() {
+      try {
+        return JSON.parse(el("last-payload").textContent || "{}");
+      } catch (_error) {
+        return {};
+      }
+    }
+
     function formatMealThread(thread) {
       const title = thread.meal_title || thread.title || "untitled meal";
       const kcal = thread.total_kcal ?? thread.kcal ?? "unknown";
@@ -531,6 +578,38 @@
       listItems("draft-correction-list", draftRows, "No pending drafts or correction history.");
     }
 
+    function renderReviewPanel(debug, chatHistory) {
+      const model = debug?.model || {};
+      const todaySummary = model.today_summary || {};
+      const lastMessage = lastRuntimeMessage(chatHistory);
+      const payload = readLastPayload();
+      const hardFailConditions = Array.isArray(payload.hard_fail_conditions) ? payload.hard_fail_conditions : null;
+
+      listItems("last-turn-trace-list", [
+        `runtime_turn_trace_present: ${boolOrNotAvailable(lastMessage.runtime_turn_trace_present)}`,
+        `context_snapshot_present: ${boolOrNotAvailable(lastMessage.context_snapshot_present)}`,
+        `trace_chain_complete: ${boolOrNotAvailable(lastMessage.trace_chain_complete)}`,
+        `trace_id: ${valueOrNotAvailable(lastMessage.trace_id)}`
+      ], "No runtime trace fields loaded.");
+
+      listItems("pending-followup-list", [
+        `pending_followup_linkage_present: ${boolOrNotAvailable(lastMessage.pending_followup_linkage_present)}`,
+        `structured_followup_question: ${valueOrNotAvailable(lastMessage.structured_followup_question)}`
+      ], "No pending follow-up fields loaded.");
+
+      listItems("runtime-status-list", [
+        `debug_surface: ${valueOrNotAvailable(debug?.surface_id)}`,
+        `state_posture: ${valueOrNotAvailable(debug?.state_posture)}`,
+        `chat_scope: ${valueOrNotAvailable(chatHistory?.scope)}`,
+        `today_status: ${valueOrNotAvailable(todaySummary.status)}`
+      ], "No runtime status loaded.");
+
+      listItems("failure-signal-list", [
+        `hard_fail_conditions: ${hardFailConditions ? hardFailConditions.join(", ") : "not_available"}`,
+        `last_payload_request_id: ${valueOrNotAvailable(payload.request_id)}`
+      ], "No failure signals loaded.");
+    }
+
     async function requestJson(url, options) {
       const response = await fetch(url, options);
       const text = await response.text();
@@ -560,6 +639,7 @@
       renderBodyPlan(bodyPlan);
       renderDebug(debug);
       renderChatHistory(chatHistory);
+      renderReviewPanel(debug, chatHistory);
     }
 
     async function submitMessage(event) {

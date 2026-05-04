@@ -83,6 +83,27 @@ def test_local_web_shell_displays_read_models_without_recomputing_budget_truth()
         assert fragment not in html
 
 
+def test_local_web_shell_has_render_only_review_debug_panels() -> None:
+    html = _shell_html()
+
+    for selector in (
+        'id="last-turn-trace-list"',
+        'id="pending-followup-list"',
+        'id="runtime-status-list"',
+        'id="failure-signal-list"',
+    ):
+        assert selector in html
+
+    assert "renderReviewPanel(debug, chatHistory)" in html
+    assert "valueOrNotAvailable" in html
+    assert "runtime_turn_trace_present" in html
+    assert "context_snapshot_present" in html
+    assert "trace_chain_complete" in html
+    assert "pending_followup_linkage_present" in html
+    assert "structured_followup_question" in html
+    assert "not_available" in html
+
+
 def test_local_web_shell_uses_backend_budget_date_instead_of_browser_date_truth() -> None:
     html = _shell_html()
 

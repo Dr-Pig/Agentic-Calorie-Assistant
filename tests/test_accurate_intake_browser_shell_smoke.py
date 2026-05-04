@@ -63,6 +63,9 @@ def test_browser_shell_smoke_validator_requires_fetch_sequence_and_cjk() -> None
         "assistant_bubble_rendered": True,
         "today_summary_rendered": True,
         "debug_surface_rendered": True,
+        "trace_surface_rendered": True,
+        "pending_followup_surface_rendered": True,
+        "failure_signal_surface_rendered": True,
         "forbidden_storage_used": False,
         "browser": {
             "shell_markers": {
@@ -104,6 +107,9 @@ def test_browser_shell_smoke_validator_requires_expected_fetch_methods() -> None
         "assistant_bubble_rendered": True,
         "today_summary_rendered": True,
         "debug_surface_rendered": True,
+        "trace_surface_rendered": True,
+        "pending_followup_surface_rendered": True,
+        "failure_signal_surface_rendered": True,
         "forbidden_storage_used": False,
         "browser": {
             "shell_markers": {
@@ -146,6 +152,9 @@ def test_browser_shell_smoke_validator_requires_reload_and_read_model_surfaces()
         "assistant_bubble_rendered": True,
         "today_summary_rendered": False,
         "debug_surface_rendered": False,
+        "trace_surface_rendered": False,
+        "pending_followup_surface_rendered": False,
+        "failure_signal_surface_rendered": False,
         "forbidden_storage_used": False,
         "browser": {
             "shell_markers": {
@@ -178,6 +187,9 @@ def test_browser_shell_smoke_validator_requires_reload_and_read_model_surfaces()
     assert "chat_history_not_reloaded" in blockers
     assert "today_summary_not_rendered" in blockers
     assert "debug_surface_not_rendered" in blockers
+    assert "trace_surface_not_rendered" in blockers
+    assert "pending_followup_surface_not_rendered" in blockers
+    assert "failure_signal_surface_not_rendered" in blockers
 
 
 def test_browser_shell_smoke_validator_requires_storage_evidence() -> None:
@@ -190,6 +202,9 @@ def test_browser_shell_smoke_validator_requires_storage_evidence() -> None:
         "assistant_bubble_rendered": True,
         "today_summary_rendered": True,
         "debug_surface_rendered": True,
+        "trace_surface_rendered": True,
+        "pending_followup_surface_rendered": True,
+        "failure_signal_surface_rendered": True,
         "forbidden_storage_used": False,
         "browser": {
             "shell_markers": {
@@ -224,6 +239,9 @@ def test_browser_shell_smoke_validator_rejects_any_browser_storage_use() -> None
         "assistant_bubble_rendered": True,
         "today_summary_rendered": True,
         "debug_surface_rendered": True,
+        "trace_surface_rendered": True,
+        "pending_followup_surface_rendered": True,
+        "failure_signal_surface_rendered": True,
         "forbidden_storage_used": True,
         "browser": {
             "shell_markers": {

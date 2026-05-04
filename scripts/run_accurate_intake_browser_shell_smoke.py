@@ -191,6 +191,9 @@ def _empty_browser_result() -> dict[str, Any]:
         "last_payload_parseable": False,
         "today_summary_rendered": False,
         "debug_surface_rendered": False,
+        "trace_surface_rendered": False,
+        "pending_followup_surface_rendered": False,
+        "failure_signal_surface_rendered": False,
         "browser_reload_checked": False,
         "chat_history_reloaded": False,
         "reload_chat_text_contains_user_message": False,
@@ -315,6 +318,10 @@ def _run_browser_sequence(
                     return Boolean(value) && value !== "unavailable";
                   };
                   const sameTruthText = text("#same-truth-list");
+                  const listRendered = (selector) => {
+                    const value = text(selector);
+                    return Boolean(value) && !value.includes("No ");
+                  };
                   return {
                     backendLocalDate: inputValue("#local-date-display"),
                     todaySummaryRendered: (
@@ -325,7 +332,10 @@ def _run_browser_sequence(
                     debugSurfaceRendered: (
                       sameTruthText.length > 0 &&
                       !sameTruthText.includes("No same-truth surface loaded")
-                    )
+                    ),
+                    traceSurfaceRendered: listRendered("#last-turn-trace-list"),
+                    pendingFollowupSurfaceRendered: listRendered("#pending-followup-list"),
+                    failureSignalSurfaceRendered: listRendered("#failure-signal-list")
                   };
                 }"""
             )
@@ -360,6 +370,9 @@ def _run_browser_sequence(
                 "last_payload_parseable": last_payload_parseable,
                 "today_summary_rendered": bool(surface_state.get("todaySummaryRendered")),
                 "debug_surface_rendered": bool(surface_state.get("debugSurfaceRendered")),
+                "trace_surface_rendered": bool(surface_state.get("traceSurfaceRendered")),
+                "pending_followup_surface_rendered": bool(surface_state.get("pendingFollowupSurfaceRendered")),
+                "failure_signal_surface_rendered": bool(surface_state.get("failureSignalSurfaceRendered")),
                 "browser_reload_checked": True,
                 "chat_history_reloaded": chat_history_reloaded,
                 "reload_chat_text_contains_user_message": cjk_message in reload_chat_text,
@@ -407,6 +420,12 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         blockers.append("today_summary_not_rendered")
     if flag("debug_surface_rendered") is not True:
         blockers.append("debug_surface_not_rendered")
+    if flag("trace_surface_rendered") is not True:
+        blockers.append("trace_surface_not_rendered")
+    if flag("pending_followup_surface_rendered") is not True:
+        blockers.append("pending_followup_surface_not_rendered")
+    if flag("failure_signal_surface_rendered") is not True:
+        blockers.append("failure_signal_surface_not_rendered")
     if flag("browser_reload_checked") is not True:
         blockers.append("browser_reload_not_checked")
     if flag("chat_history_reloaded") is not True:
@@ -461,6 +480,9 @@ def _base_report(
         "assistant_bubble_rendered": False,
         "today_summary_rendered": False,
         "debug_surface_rendered": False,
+        "trace_surface_rendered": False,
+        "pending_followup_surface_rendered": False,
+        "failure_signal_surface_rendered": False,
         "fetch_sequence": [],
         "forbidden_storage_used": False,
         "live_llm_invoked": False,
@@ -532,6 +554,9 @@ def build_browser_shell_smoke_report(
             "assistant_bubble_rendered",
             "today_summary_rendered",
             "debug_surface_rendered",
+            "trace_surface_rendered",
+            "pending_followup_surface_rendered",
+            "failure_signal_surface_rendered",
             "fetch_sequence",
             "forbidden_storage_used",
         ):
