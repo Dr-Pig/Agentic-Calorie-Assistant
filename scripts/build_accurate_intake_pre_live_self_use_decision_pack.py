@@ -15,9 +15,20 @@ REQUIRED_PRE_LIVE_EVIDENCE = (
     "dogfood_review_queue",
     "local_dogfood_data_hygiene",
     "local_operator_data_hygiene_bundle",
+    "pl_ce_local_review_decision_pack",
 )
 
-_PASS_STATUSES = {"pass", "generated", "local_operator_data_hygiene_ready"}
+_EXPECTED_STATUS_BY_GROUP = {
+    "phase_c_gate": "pass",
+    "accurate_intake_mvp_gate": "pass",
+    "browser_shell_smoke": "pass",
+    "chat_history_reload_gate": "pass",
+    "free_text_manual_target_gate": "pass",
+    "dogfood_review_queue": "generated",
+    "local_dogfood_data_hygiene": "pass",
+    "local_operator_data_hygiene_bundle": "local_operator_data_hygiene_ready",
+    "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
+}
 
 
 def _json_safe(value: Any) -> Any:
@@ -25,7 +36,7 @@ def _json_safe(value: Any) -> Any:
 
 
 def _evidence_missing(group_id: str, payload: dict[str, Any]) -> bool:
-    if str(payload.get("status") or "") not in _PASS_STATUSES:
+    if str(payload.get("status") or "") != _EXPECTED_STATUS_BY_GROUP[group_id]:
         return True
     if group_id == "browser_shell_smoke" and payload.get("browser_executed") is not True:
         return True
@@ -44,6 +55,9 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         "web_tavily_invoked",
         "private_self_use_approved",
         "product_readiness_claimed",
+        "ready_for_live_diagnostic_decision",
+        "ready_for_fdb_integration",
+        "real_fooddb_pass_claimed",
     ):
         if payload.get(flag) is True:
             blockers.append(f"{group_id}_{flag}")
@@ -68,6 +82,12 @@ def build_pre_live_self_use_decision_pack(evidence: dict[str, Any]) -> dict[str,
         if missing_evidence or blockers
         else "ready_for_human_limited_live_canary_decision"
     )
+    ready_for_pl_ce_local_review = (
+        not _evidence_missing(
+            "pl_ce_local_review_decision_pack",
+            evidence_status["pl_ce_local_review_decision_pack"],
+        )
+    )
     return _json_safe(
         {
             "artifact_schema_version": "1.0",
@@ -86,6 +106,8 @@ def build_pre_live_self_use_decision_pack(evidence: dict[str, Any]) -> dict[str,
                 if blockers
                 else "local_web_self_use_evidence_ready_for_human_live_decision"
             ),
+            "ready_for_pl_ce_local_review": ready_for_pl_ce_local_review,
+            "ready_for_live_diagnostic_decision": False,
             "live_llm_invoked": False,
             "web_tavily_invoked": False,
             "live_canary_approved": False,
