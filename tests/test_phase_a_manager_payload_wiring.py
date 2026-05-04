@@ -976,6 +976,127 @@ async def test_process_intake_execution_turn_persists_manager_ask_followup_as_dr
 
 
 @pytest.mark.asyncio
+async def test_process_intake_execution_turn_allows_manager_ask_followup_through_runtime_guard(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.composition import intake_execution_orchestrator as module
+
+    class _AskFollowupProvider:
+        def __init__(self) -> None:
+            self.calls: list[dict[str, object]] = []
+
+        def readiness(self) -> dict[str, object]:
+            return {"configured": True}
+
+        async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+            user_payload = dict(kwargs.get("user_payload") or {})
+            self.calls.append(user_payload)
+            followup_question = "Which items and portions should I estimate?"
+            if {"read_body_plan", "read_day_budget"}.intersection(set(user_payload.get("available_tools") or [])):
+                return (
+                    {
+                        "manager_action": "final",
+                        "intent": "log_meal",
+                        "intent_type": "log_meal",
+                        "final_action": "route_to_intake",
+                        "workflow_effect": "route_to_intake",
+                        "target_attachment": {"mode": "new_meal"},
+                        "answer_contract": {"reply_text": "route_to_intake"},
+                        "semantic_decision": {
+                            "semantic_authority": "deterministic_fake_provider",
+                            "current_turn_intent": "log_meal",
+                            "target_attachment": {"mode": "new_meal"},
+                            "workflow_effect": "route_to_intake",
+                            "final_action_candidate": "route_to_intake",
+                            "estimation_posture": "needs_manager_execution",
+                            "followup_posture": "none",
+                            "mutation_intent_candidate": "canonical_write",
+                            "uncertainty_posture": "bounded",
+                            "source": "test_fake_provider",
+                        },
+                    },
+                    {"source": "test_fake_provider"},
+                )
+            return (
+                {
+                    "manager_action": "final",
+                    "intent": "log_meal",
+                    "intent_type": "log_meal",
+                    "final_action": "ask_followup",
+                    "workflow_effect": "ask_followup",
+                    "target_attachment": {"mode": "new_meal"},
+                    "answer_contract": {
+                        "reply_text": followup_question,
+                        "followup_question": followup_question,
+                    },
+                    "semantic_decision": {
+                        "semantic_authority": "deterministic_fake_provider",
+                        "current_turn_intent": "log_meal",
+                        "target_attachment": {"mode": "new_meal"},
+                        "workflow_effect": "ask_followup",
+                        "final_action_candidate": "ask_followup",
+                        "estimation_posture": "insufficient_details",
+                        "followup_posture": "ask_required",
+                        "followup_question": followup_question,
+                        "mutation_intent_candidate": "no_mutation",
+                        "uncertainty_posture": "high",
+                        "source": "test_fake_provider",
+                    },
+                },
+                {"source": "test_fake_provider"},
+            )
+
+    resolved_state = _empty_resolved_state()
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="bare basket",
+        resolved_state=resolved_state,
+    )
+    persisted: list[dict[str, object]] = []
+
+    def _fake_persist(*_: object, **kwargs: object) -> SimpleNamespace:
+        persisted.append(dict(kwargs))
+        payload = kwargs["nutrition_artifact"].payload
+        kwargs["state_mutation_summary"]["draft_saved"] = True
+        return SimpleNamespace(
+            action="save_draft_log",
+            status="draft_unresolved",
+            persisted_log_id=321,
+            canonical_commit=None,
+            payload=payload,
+        )
+
+    monkeypatch.setattr(module, "resolve_correction_target_tool", lambda **_: {})
+    monkeypatch.setattr(module, "append_trace_event_tool", lambda **_: None)
+    monkeypatch.setattr(module, "persist_intake_execution_artifact", _fake_persist)
+    monkeypatch.setattr(module, "resolve_intake_state", lambda *_, **__: resolved_state)
+    monkeypatch.setattr(
+        module,
+        "build_intake_execution_response",
+        lambda *_, **kwargs: {"manager_result": kwargs["manager_result"]},
+    )
+
+    result = await module.process_intake_execution_turn(
+        None,
+        user_external_id="user-1",
+        raw_user_input="bare basket",
+        local_date="2026-04-29",
+        allow_search=False,
+        provider=_AskFollowupProvider(),
+        state_before=resolved_state,
+        manager_decision=SimpleNamespace(intent_type="log_meal"),
+        request_id="req-1",
+        stage_timings=[],
+        current_turn_context=current_turn_context,
+        phase_a_trace={},
+    )
+
+    assert persisted
+    assert persisted[0]["final_action"] == "ask_followup"
+    assert result["manager_result"].final_action == "ask_followup"
+    assert result["manager_result"].workflow_effect == "ask_followup"
+
+
+@pytest.mark.asyncio
 async def test_process_intake_execution_turn_does_not_create_draft_support_without_manager_ask_followup(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

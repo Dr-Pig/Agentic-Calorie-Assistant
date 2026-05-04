@@ -11,6 +11,7 @@ from app.intake.application.boundary_output_honesty import (
     enforce_intake_output_honesty,
 )
 from app.composition.general_chat_service import GeneralChatPassResult
+from app.shared.contracts.common import EstimateRequest
 
 
 def test_intake_output_honesty_normalizes_blocked_commit_structured_surfaces() -> None:
@@ -267,7 +268,12 @@ async def test_general_chat_route_applies_degraded_budget_output_honesty(
     monkeypatch.setattr(module, "record_runtime_turn_messages", lambda *_, **kwargs: captured_record.update(kwargs))
 
     result = await module.estimate(
-        SimpleNamespace(text="how many calories can I still eat?", user_id="user-1"),
+        EstimateRequest(
+            text="how many calories can I still eat?",
+            user_id="user-1",
+            local_date="2026-04-29",
+            allow_search=False,
+        ),
         SimpleNamespace(headers={}),
         db=None,
     )
@@ -275,6 +281,7 @@ async def test_general_chat_route_applies_degraded_budget_output_honesty(
     assert result["coach_message"] == "Onboarding is required before I can answer remaining budget."
     phase_a_trace = captured_trace["phase_a_trace"]
     assert isinstance(phase_a_trace, dict)
+    assert captured_trace["local_date"] == "2026-04-29"
     assert phase_a_trace["phase_a_output_honesty"]["normalized"] is True
     assert "500" not in captured_trace["assistant_message"]
     assert captured_record["manager_context_packet_v1"] is not None
