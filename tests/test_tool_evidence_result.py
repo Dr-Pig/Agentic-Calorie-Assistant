@@ -11,6 +11,9 @@ from app.nutrition.application.fooddb_retrieval_policy import retrieve_fooddb_ca
 from app.nutrition.application.tool_evidence_result import (
     build_tool_evidence_result,
 )
+from app.nutrition.application.websearch_candidate_packet_smoke import (
+    build_websearch_candidate_packet_smoke,
+)
 from app.nutrition.infrastructure.local_food_evidence_index import (
     LocalSmallAnchorFoodEvidenceIndex,
 )
@@ -104,6 +107,178 @@ def test_tool_evidence_result_rejects_compact_looking_malformed_packets() -> Non
             evidence_packets=(shallow_packet,),
             index_adapter={"adapter_kind": "local_small_anchor_index"},
         )
+
+
+def test_tool_evidence_result_wraps_websearch_candidate_packets_without_truth_promotion() -> None:
+    packet_artifact = build_websearch_candidate_packet_smoke()
+    packets = tuple(case["websearch_candidate_packet"] for case in packet_artifact["cases"])
+
+    result = build_tool_evidence_result(
+        tool_name="search_official_nutrition",
+        tool_call_id="tool-call-websearch",
+        evidence_packets=packets,
+        index_adapter={
+            "adapter_kind": "web_search_candidate_adapter",
+            "storage_backend": "external_search",
+            "search_provider": "fixture_only",
+        },
+        trace_context={"live_websearch_used": False},
+    )
+
+    assert result["result_type"] == "tool_evidence_result_v1"
+    assert result["tool_name"] == "search_official_nutrition"
+    assert result["runtime_mutation_allowed"] is False
+    assert result["runtime_truth_changed"] is False
+    assert result["manager_context_changed"] is False
+    assert result["read_model_only"] is True
+    assert result["source_implementation_visible"] is False
+    assert result["trace"]["packet_count"] == 4
+    assert result["trace"]["compact_packet_pass_count"] == 4
+    assert result["trace"]["live_websearch_used"] is False
+    assert result["trace"]["raw_source_rows_included"] is False
+    assert all(packet["packet_type"] == "SearchCandidatePacket" for packet in result["evidence_packets"])
+    assert all(packet["truth_level"] == "candidate" for packet in result["evidence_packets"])
+    assert all("runtime_truth_allowed" not in packet for packet in result["evidence_packets"])
+    assert "index_adapter" not in result
+    assert "adapter_kind" not in str(result)
+    assert "external_search" not in str(result)
+    assert "creating_fooddb_truth" in result["manager_must_not_use_for"]
+
+
+def test_tool_evidence_result_rejects_websearch_candidate_truth_shortcuts() -> None:
+    packet_artifact = build_websearch_candidate_packet_smoke()
+    truth_shortcuts = (
+        ("runtime_truth_allowed", True),
+        ("truth_level", "final"),
+        ("final_kcal", 400),
+        ("ledger_mutation_result", {"status": "applied"}),
+    )
+
+    for field, value in truth_shortcuts:
+        packet = dict(packet_artifact["cases"][0]["websearch_candidate_packet"])
+        packet[field] = value
+
+        with pytest.raises(ValueError, match="malformed_evidence_packet"):
+            build_tool_evidence_result(
+                tool_name="search_official_nutrition",
+                tool_call_id=f"tool-call-websearch-{field}",
+                evidence_packets=(packet,),
+                index_adapter={"adapter_kind": "web_search_candidate_adapter"},
+            )
+
+
+def test_tool_evidence_result_rejects_websearch_packet_adapter_leakage() -> None:
+    packet_artifact = build_websearch_candidate_packet_smoke()
+    adapter_leaks = (
+        ("adapter_kind", "web_search_candidate_adapter"),
+        ("storage_backend", "external_search"),
+        ("raw_source_rows", [{"provider": "fixture"}]),
+        ("snippet", "leaked storage_backend=external_search detail"),
+    )
+
+    for field, value in adapter_leaks:
+        packet = dict(packet_artifact["cases"][0]["websearch_candidate_packet"])
+        packet[field] = value
+
+        with pytest.raises(ValueError):
+            build_tool_evidence_result(
+                tool_name="search_official_nutrition",
+                tool_call_id=f"tool-call-websearch-{field}",
+                evidence_packets=(packet,),
+                index_adapter={"adapter_kind": "web_search_candidate_adapter"},
+            )
+
+
+def test_tool_evidence_result_rejects_nested_websearch_packet_leakage() -> None:
+    packet_artifact = build_websearch_candidate_packet_smoke()
+    nested_leaks = (
+        {"sibling_variant_risk": {"present": False, "final_kcal": 300}},
+        {"sibling_variant_risk": {"present": False, "truth_level": "final"}},
+        {"sibling_variant_risk": {"present": False, "adapter_kind": "web_search_candidate_adapter"}},
+        {"matched_terms": ["external_search"]},
+    )
+
+    for mutation in nested_leaks:
+        packet = dict(packet_artifact["cases"][0]["websearch_candidate_packet"])
+        packet.update(mutation)
+
+        with pytest.raises(ValueError):
+            build_tool_evidence_result(
+                tool_name="search_official_nutrition",
+                tool_call_id="tool-call-websearch-nested-leak",
+                evidence_packets=(packet,),
+                index_adapter={"adapter_kind": "web_search_candidate_adapter"},
+            )
+
+
+def test_tool_evidence_result_rejects_trace_context_adapter_leakage() -> None:
+    packet_artifact = build_websearch_candidate_packet_smoke()
+    packet = packet_artifact["cases"][0]["websearch_candidate_packet"]
+
+    with pytest.raises(ValueError, match="forbidden_trace_context"):
+        build_tool_evidence_result(
+            tool_name="search_official_nutrition",
+            tool_call_id="tool-call-websearch-trace-leak",
+            evidence_packets=(packet,),
+            index_adapter={"adapter_kind": "web_search_candidate_adapter"},
+            trace_context={"storage_backend": "external_search"},
+        )
+
+    with pytest.raises(ValueError, match="forbidden_trace_context"):
+        build_tool_evidence_result(
+            tool_name="search_official_nutrition",
+            tool_call_id="tool-call-websearch-trace-substring-leak",
+            evidence_packets=(packet,),
+            index_adapter={"adapter_kind": "web_search_candidate_adapter"},
+            trace_context={"packet_claim_scope": "uses storage_backend=external_search"},
+        )
+
+
+def test_tool_evidence_result_rejects_partial_websearch_candidate_packets() -> None:
+    packet_artifact = build_websearch_candidate_packet_smoke()
+    required_fields = (
+        "raw_ref",
+        "matched_name",
+        "canonical_name",
+        "brand_match",
+        "size_or_serving_match",
+        "modifier_match",
+        "sibling_variant_risk",
+    )
+
+    for field in required_fields:
+        packet = dict(packet_artifact["cases"][0]["websearch_candidate_packet"])
+        del packet[field]
+
+        with pytest.raises(ValueError, match="malformed_evidence_packet"):
+            build_tool_evidence_result(
+                tool_name="search_official_nutrition",
+                tool_call_id=f"tool-call-websearch-missing-{field}",
+                evidence_packets=(packet,),
+                index_adapter={"adapter_kind": "web_search_candidate_adapter"},
+            )
+
+
+def test_websearch_tool_evidence_result_script_roundtrip(tmp_path: Path) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact
+    from scripts.build_accurate_intake_websearch_tool_evidence_result_smoke import main
+
+    output = tmp_path / "websearch_tool_evidence_result.json"
+
+    assert main(["--output", str(output)]) == 0
+
+    artifact = read_json_artifact(output)
+    tool_result = artifact["tool_evidence_result"]
+    assert artifact["artifact_type"] == "accurate_intake_websearch_tool_evidence_result_smoke"
+    assert artifact["runtime_truth_changed"] is False
+    assert artifact["live_websearch_used"] is False
+    assert artifact["live_provider_used"] is False
+    assert artifact["websearch_runtime_truth_allowed"] is False
+    assert artifact["adapter_diagnostics"]["manager_visible"] is False
+    assert "adapter_diagnostics" not in tool_result
+    assert tool_result["result_type"] == "tool_evidence_result_v1"
+    assert tool_result["trace"]["packet_count"] == 4
+    assert all(packet["truth_level"] == "candidate" for packet in tool_result["evidence_packets"])
 
 
 def test_tool_evidence_result_script_roundtrip(tmp_path: Path) -> None:
