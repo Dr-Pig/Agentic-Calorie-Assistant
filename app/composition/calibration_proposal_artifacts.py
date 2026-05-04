@@ -3,12 +3,15 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.body.application.body_calibration_service import BodyCalibrationDiagnosticResult
 from app.composition.canonical_proposal_support import ensure_proposal_artifact_skeleton
 from app.shared.domain import ProposalOption
 from app.shared.infra.models import ProposalContainerRecord, User
+
+ACTIVE_CALIBRATION_PROPOSAL_STATUSES = frozenset({"open", "presented", "negotiating"})
 
 
 def _option_payload(option: ProposalOption, *, is_primary: bool) -> dict[str, Any]:
@@ -61,4 +64,23 @@ def persist_calibration_proposal_artifact(
     return _artifact_payload(proposal)
 
 
-__all__ = ["persist_calibration_proposal_artifact"]
+def has_active_calibration_proposal(
+    db: Session,
+    *,
+    user_id: int,
+) -> bool:
+    proposal_id = db.execute(
+        select(ProposalContainerRecord.id).where(
+            ProposalContainerRecord.user_id == user_id,
+            ProposalContainerRecord.proposal_type == "calibration",
+            ProposalContainerRecord.proposal_status.in_(ACTIVE_CALIBRATION_PROPOSAL_STATUSES),
+        )
+    ).scalar_one_or_none()
+    return proposal_id is not None
+
+
+__all__ = [
+    "ACTIVE_CALIBRATION_PROPOSAL_STATUSES",
+    "has_active_calibration_proposal",
+    "persist_calibration_proposal_artifact",
+]

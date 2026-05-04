@@ -213,3 +213,45 @@ def test_stored_calibration_accept_uses_persisted_option_and_updates_same_propos
     assert plans[1].plan_status == "active"
     assert plans[1].daily_budget_kcal == 2000
     assert ledger.budget_kcal == 2000
+
+
+def test_calibration_preview_blocks_duplicate_when_open_stored_proposal_exists() -> None:
+    db = _session()
+    client = _client(db)
+    user = get_or_create_user(db, "calibration-duplicate-open")
+    _active_body_plan(db, user_id=user.id)
+    request_payload = {
+        "user_id": "calibration-duplicate-open",
+        "local_date": "2026-05-04",
+        "current_budget_status": "over_budget",
+        "rescue_recovery_viability": "non_viable",
+        "persist_proposal": True,
+        "model_inputs": {
+            "body_plan_estimated_tdee_kcal": 2100,
+            "observation_window_days": 21,
+            "body_observation_count": 9,
+            "intake_coverage": 0.93,
+            "operating_expenditure_shift_kcal": 340,
+            "trend_mismatch_consistency": 0.9,
+            "trend_volatility": 0.1,
+            "logging_gap_ratio": 0.05,
+            "late_logged_meal_ratio": 0.05,
+        },
+    }
+
+    first = client.post("/calibration/proposal/preview", json=request_payload)
+    second = client.post("/calibration/proposal/preview", json=request_payload)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    second_payload = second.json()
+    assert second_payload["gate_result"]["proposal_eligibility"] is False
+    assert any(
+        "similar calibration proposal is still open" in reason
+        for reason in second_payload["gate_result"]["gate_rationale"]
+    )
+    assert second_payload["response"]["surfaced"] is False
+    assert second_payload["proposal_artifact"] is None
+    proposals = db.execute(select(ProposalContainerRecord)).scalars().all()
+    assert len(proposals) == 1
+    assert proposals[0].proposal_status == "open"
