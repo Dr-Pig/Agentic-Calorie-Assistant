@@ -210,6 +210,7 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
         "product_capability_context_map",
         "memory_promotion_demotion_shadow_eval",
         "semantic_pattern_extraction_shadow_plan",
+        "context_signal_quality_scorecard",
     }
 
     for artifact in artifacts.values():
@@ -458,6 +459,48 @@ def test_context_value_queue_explains_usefulness_and_early_injection_harm() -> N
             "promote_to_confirmed_memory_later",
             "discard",
         }
+
+
+def test_context_signal_quality_scorecard_prioritizes_value_and_harm_review() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "context_signal_quality_scorecard"
+    ]
+
+    assert artifact["artifact_type"] == "context_signal_quality_scorecard"
+    assert artifact["runtime_effect_allowed"] is False
+    assert artifact["manager_context_injected"] is False
+    assert artifact["scorecard_used_for_runtime_ranking"] is False
+
+    by_id = {item["candidate_id"]: item for item in artifact["candidate_scores"]}
+    assert (
+        by_id["golden-order-morning-bar-oatmeal-latte"]["context_value_level"] == "high"
+    )
+    assert (
+        by_id["intake-estimation-bias-likely-underestimate"]["harm_if_wrong_level"]
+        == "high"
+    )
+    assert (
+        by_id["intake-estimation-bias-likely-underestimate"][
+            "recommended_review_action"
+        ]
+        == "keep_shadowing"
+    )
+    assert (
+        by_id["negative-preference-ingredient-cilantro"]["recommended_review_action"]
+        == "ask_user_to_confirm"
+    )
+    assert by_id["temporary-preference-lower-oil-dinner"]["expiry_sensitive"] is True
+
+    rollups = {rollup["consumer_id"]: rollup for rollup in artifact["consumer_rollups"]}
+    assert rollups["recommendation"]["candidate_count"] >= 4
+    assert (
+        "intake-estimation-bias-likely-underestimate"
+        in rollups["calibration"]["candidate_ids"]
+    )
 
 
 def test_product_capability_context_map_covers_whole_product_memory_consumers() -> None:
@@ -879,6 +922,7 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "product_capability_context_map.json",
         "memory_promotion_demotion_shadow_eval.json",
         "semantic_pattern_extraction_shadow_plan.json",
+        "context_signal_quality_scorecard.json",
         "external_memory_framework_research_review.json",
     }
     assert {path.name for path in output_dir.iterdir()} == expected_files

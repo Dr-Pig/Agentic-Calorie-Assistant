@@ -24,6 +24,7 @@ from app.shared.infra.json_artifacts import read_json_artifact, write_json_artif
 ARTIFACT_FILENAMES = {
     "long_term_memory_candidate_review": "long_term_memory_candidate_review.json",
     "context_value_review_queue": "context_value_review_queue.json",
+    "context_signal_quality_scorecard": "context_signal_quality_scorecard.json",
     "proactive_no_send_simulation": "proactive_no_send_simulation.json",
     "recommendation_shadow_eval": "recommendation_shadow_eval.json",
     "rescue_shadow_candidates": "rescue_shadow_candidates.json",
