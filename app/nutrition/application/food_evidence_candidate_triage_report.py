@@ -40,6 +40,11 @@ def build_food_evidence_candidate_triage_report(
         source_class="official_brand_chain_page",
         evidence_role="exact_card_candidate",
     )
+    local_packaged_exact_candidates = _filter_validated_candidates(
+        validated_candidates,
+        source_class="local_taiwan_packaged_extract",
+        evidence_role="exact_card_candidate",
+    )
     repair_candidates = [
         candidate
         for candidate in validated_candidates
@@ -75,6 +80,7 @@ def build_food_evidence_candidate_triage_report(
             "tfda_generic_auto_eligible_count": len(tfda_generic_candidates),
             "tfda_listed_component_auto_eligible_count": len(tfda_listed_component_candidates),
             "official_exact_candidate_only_count": len(official_exact_candidates),
+            "local_packaged_exact_candidate_only_count": len(local_packaged_exact_candidates),
             "source_repair_required_count": len(repair_candidates),
             "rejected_count": len(rejected_candidates),
         },
@@ -104,6 +110,16 @@ def build_food_evidence_candidate_triage_report(
                 "runtime_truth_allowed": False,
                 "next_action": "exact-candidate-review",
                 "records": official_exact_candidates,
+            },
+            "local_packaged_exact_candidate_only": {
+                "lane_kind": "candidate_only",
+                "lane_count": len(local_packaged_exact_candidates),
+                "candidate_ids": [
+                    candidate["candidate_id"] for candidate in local_packaged_exact_candidates
+                ],
+                "runtime_truth_allowed": False,
+                "next_action": "local-packaged-exact-candidate-review",
+                "records": local_packaged_exact_candidates,
             },
             "source_repair_required": {
                 "lane_kind": "repair",
@@ -152,6 +168,22 @@ def _filter_candidates(
         candidate
         for candidate in candidates
         if candidate.get("source_class") == source_class and candidate.get("evidence_role") == evidence_role
+    ]
+    return [_compact_candidate(candidate) for candidate in filtered]
+
+
+def _filter_validated_candidates(
+    candidates: list[dict[str, Any]],
+    *,
+    source_class: str,
+    evidence_role: str,
+) -> list[dict[str, Any]]:
+    filtered = [
+        candidate
+        for candidate in candidates
+        if candidate.get("validation_status") == "validator_passed"
+        and candidate.get("source_class") == source_class
+        and candidate.get("evidence_role") == evidence_role
     ]
     return [_compact_candidate(candidate) for candidate in filtered]
 
