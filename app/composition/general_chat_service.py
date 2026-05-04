@@ -181,7 +181,7 @@ def _calibration_action_unavailable_response(*, reason: str) -> GeneralChatPassR
 def _calibration_decision_from_action(action: CalibrationChatAction) -> CalibrationCommitDecision:
     action_map: dict[str, CalibrationCommitDecision] = {
         "accept_calibration_proposal": "accepted",
-        "defer_calibration_proposal": "deferred_pending_reminder",
+        "defer_calibration_proposal": "dismissed",
         "reject_calibration_proposal": "rejected",
     }
     return action_map[action]
@@ -228,8 +228,10 @@ def _calibration_action_response(
         )
     elif result.proposal_status == "rejected":
         reply_text = "Calibration proposal rejected. Your active plan was not changed."
+    elif result.proposal_status == "dismissed":
+        reply_text = "Calibration proposal dismissed for now. Your active plan was not changed."
     else:
-        reply_text = "Calibration proposal deferred. Your active plan was not changed."
+        reply_text = "Calibration proposal closed. Your active plan was not changed."
 
     return GeneralChatPassResult(
         target_workflow_family="general_chat",

@@ -172,7 +172,7 @@ def calibration_proposal_action(
     user = get_or_create_user(db, request.user_id)
     decision = {
         "accept_calibration_proposal": "accepted",
-        "defer_calibration_proposal": "deferred_pending_reminder",
+        "defer_calibration_proposal": "dismissed",
         "reject_calibration_proposal": "rejected",
     }[request.action]
     result = apply_calibration_proposal_commit(
@@ -203,7 +203,7 @@ def stored_calibration_proposal_action(
     user = get_or_create_user(db, request.user_id)
     decision = {
         "accept_calibration_proposal": "accepted",
-        "defer_calibration_proposal": "deferred_pending_reminder",
+        "defer_calibration_proposal": "dismissed",
         "reject_calibration_proposal": "rejected",
     }[request.action]
     try:
