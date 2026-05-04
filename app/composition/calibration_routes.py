@@ -4,7 +4,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.body.application import (
@@ -18,12 +18,15 @@ from app.composition.calibration_commit_bridge import (
     apply_stored_calibration_proposal_action,
 )
 from app.composition.calibration_input_assembler import assemble_calibration_model_inputs_from_history
+from app.composition.calibration_proposal_inbox import load_open_calibration_proposal_inbox
 from app.composition.calibration_proposal_artifacts import (
     has_active_calibration_proposal,
     persist_calibration_proposal_artifact,
 )
 from app.composition.current_budget_read_model import build_current_budget_view
 from app.database import get_db, get_or_create_user
+from app.shared.domain import ProposalContainer
+from app.shared.infra.models import User
 
 router = APIRouter()
 
@@ -62,6 +65,42 @@ class StoredCalibrationProposalActionRequest(BaseModel):
     proposal_container_id: int
     action: Literal["accept_calibration_proposal", "defer_calibration_proposal", "reject_calibration_proposal"]
     accepted_at: str | None = None
+
+
+def _proposal_inbox_payload(proposal: ProposalContainer) -> dict[str, object]:
+    metadata = proposal.metadata if isinstance(proposal.metadata, dict) else {}
+    return {
+        "proposal_container_id": proposal.proposal_container_id,
+        "proposal_type": proposal.proposal_type,
+        "proposal_status": proposal.proposal_status,
+        "top_option_id": proposal.top_option_id,
+        "local_date": metadata.get("local_date"),
+        "proposal_family": metadata.get("proposal_family"),
+        "created_at": proposal.created_at,
+        "accepted_at": proposal.accepted_at,
+        "options": [option.model_dump(mode="json") for option in proposal.options],
+    }
+
+
+@router.get("/calibration/proposals/open")
+def open_calibration_proposals(
+    user_id: str,
+    limit: int = Query(default=20, ge=1, le=50),
+    db=Depends(get_db),
+) -> dict[str, object]:
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if user is None:
+        return {
+            "user_id": user_id,
+            "open_count": 0,
+            "proposals": [],
+        }
+    proposals = load_open_calibration_proposal_inbox(db, user_id=user.id, limit=limit)
+    return {
+        "user_id": user_id,
+        "open_count": len(proposals),
+        "proposals": [_proposal_inbox_payload(proposal) for proposal in proposals],
+    }
 
 
 @router.post("/calibration/proposal/preview")
