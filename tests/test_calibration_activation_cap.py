@@ -76,3 +76,12 @@ def test_root_router_does_not_expose_manual_model_input_preview() -> None:
     response = client.post("/calibration/proposal/preview", json={})
 
     assert response.status_code == 404
+
+
+def test_root_router_does_not_expose_calibration_expiry_bookkeeping() -> None:
+    db = _session()
+    client = _client(db)
+
+    response = client.post("/calibration/proposals/expire-stale", json={})
+
+    assert response.status_code == 404

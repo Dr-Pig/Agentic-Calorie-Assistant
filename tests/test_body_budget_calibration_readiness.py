@@ -77,11 +77,20 @@ def test_body_budget_calibration_readiness_artifact_records_preview_and_action_m
     assert "explicit_effect_payload_calibration_adjustment_delta_kcal" in stored_action[
         "ledger_entry_calibration_adjustment_requires"
     ]
-    assert stored_action["active_statuses"] == ["negotiating", "open", "presented"]
+    assert stored_action["active_statuses"] == ["open"]
     assert "accepted" in stored_action["terminal_statuses"]
     assert "dismissed" in stored_action["terminal_statuses"]
     assert "deferred_pending_reminder" not in stored_action["terminal_statuses"]
     assert stored_action["legacy_terminal_status_aliases"] == ["deferred_pending_reminder"]
+    expiry_bookkeeping = artifact["calibration_flow_contract"]["proposal_expiry_bookkeeping"]
+    assert expiry_bookkeeping["service"] == "app.composition.calibration_proposal_expiry.expire_stale_calibration_proposals"
+    assert expiry_bookkeeping["route"] == "/calibration/proposals/expire-stale"
+    assert expiry_bookkeeping["root_public_route_mounted"] is False
+    assert expiry_bookkeeping["expirable_statuses"] == ["open"]
+    assert expiry_bookkeeping["proposal_status_after_expiry"] == "expired"
+    assert expiry_bookkeeping["body_plan_mutation_authorized"] is False
+    assert expiry_bookkeeping["day_budget_ledger_mutation_authorized"] is False
+    assert expiry_bookkeeping["proactive_trigger_authorized"] is False
     chat_action = artifact["calibration_flow_contract"]["chat_action_surface"]
     assert chat_action["mode"] == "calibration_action"
     assert chat_action["chat_primary_surface"] is True
@@ -115,6 +124,7 @@ def test_body_budget_calibration_readiness_artifact_records_calibration_router_a
     assert route_activation["root_mount_status"] == "activated_for_calibration_contract_routes"
     assert "/calibration/proposals/open" in route_activation["router_contract_paths"]
     assert "/calibration/proposal/stored-action" in route_activation["router_contract_paths"]
+    assert "/calibration/proposals/expire-stale" in route_activation["internal_diagnostic_paths_not_root_mounted"]
 
     root_routes_source = (ROOT / "app" / "routes.py").read_text(encoding="utf-8")
     assert "from app.composition.calibration_routes import public_router as calibration_router" in root_routes_source

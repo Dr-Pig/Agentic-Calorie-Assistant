@@ -99,14 +99,14 @@ def test_open_calibration_proposal_inbox_returns_active_proposals_with_options_s
     user = get_or_create_user(db, "calibration-inbox-read-model")
     accepted = _proposal(db, user=user, status="accepted", created_at=datetime(2026, 5, 1, 8, 0, 0))
     older_open = _proposal(db, user=user, status="open", created_at=datetime(2026, 5, 2, 8, 0, 0))
-    newer_open = _proposal(db, user=user, status="presented", created_at=datetime(2026, 5, 3, 8, 0, 0))
+    newer_open = _proposal(db, user=user, status="open", created_at=datetime(2026, 5, 3, 8, 0, 0))
 
     inbox = load_open_calibration_proposal_inbox(db, user_id=user.id)
 
     assert [proposal.proposal_container_id for proposal in inbox] == [newer_open.id, older_open.id]
     assert accepted.id not in [proposal.proposal_container_id for proposal in inbox]
     assert inbox[0].proposal_type == "calibration"
-    assert inbox[0].proposal_status == "presented"
+    assert inbox[0].proposal_status == "open"
     assert inbox[0].metadata["proposal_policy_packet"]["plan_mutation_authorized"] is False
     assert inbox[0].metadata["trace_envelope"]["automatic_calibration_enabled"] is False
     assert [option.rank_order for option in inbox[0].options] == [0, 1]
