@@ -209,6 +209,7 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
         "conversation_recall_tool_shadow_plan",
         "product_capability_context_map",
         "memory_promotion_demotion_shadow_eval",
+        "semantic_pattern_extraction_shadow_plan",
     }
 
     for artifact in artifacts.values():
@@ -622,6 +623,49 @@ def test_memory_promotion_demotion_shadow_eval_never_writes_durable_memory() -> 
     )
 
 
+def test_semantic_pattern_extraction_shadow_plan_keeps_llm_extraction_disabled() -> (
+    None
+):
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "semantic_pattern_extraction_shadow_plan"
+    ]
+
+    assert artifact["artifact_type"] == "semantic_pattern_extraction_shadow_plan"
+    assert artifact["source_spec"] == "docs/specs/L4A_MEMORY_MODEL_SPEC.md"
+    assert artifact["llm_extraction_called"] is False
+    assert artifact["semantic_memory_written"] is False
+    assert artifact["runtime_effect_allowed"] is False
+    assert artifact["readiness_gate"] == {
+        "required_new_committed_meal_items": 21,
+        "required_days_since_last_extraction": 7,
+        "fixture_committed_meal_items": 4,
+        "extraction_allowed_now": False,
+        "block_reason": "insufficient_committed_meal_items",
+    }
+    assert artifact["planned_output_schema"]["pattern_type_values"] == [
+        "contextual_preference",
+        "temporal_preference",
+        "trend_shift",
+        "situational_avoidance",
+    ]
+    assert artifact["intended_consumers"] == [
+        "recommendation",
+        "nightly_insight",
+        "confirmed_memory_candidate_review",
+    ]
+    assert artifact["shadow_extraction_candidates"][0]["pattern_type"] == (
+        "temporal_preference"
+    )
+    assert (
+        artifact["shadow_extraction_candidates"][0]["durable_memory_write_allowed"]
+        is False
+    )
+
+
 def test_conversation_recall_shadow_eval_is_summary_first_and_tool_call_disabled() -> (
     None
 ):
@@ -834,6 +878,7 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "conversation_recall_tool_shadow_plan.json",
         "product_capability_context_map.json",
         "memory_promotion_demotion_shadow_eval.json",
+        "semantic_pattern_extraction_shadow_plan.json",
         "external_memory_framework_research_review.json",
     }
     assert {path.name for path in output_dir.iterdir()} == expected_files
