@@ -25,7 +25,12 @@ class CommandSpec:
 _command_plan: list[CommandSpec] = [
     CommandSpec(
         name="markdown_encoding_policy",
-        command=(sys.executable, "scripts/check_markdown_encoding.py", "--policy-docs", "--require-bom"),
+        command=(
+            sys.executable,
+            "scripts/check_markdown_encoding.py",
+            "--policy-docs",
+            "--require-bom",
+        ),
         status_key="encoding_status",
     ),
 ]
@@ -34,7 +39,14 @@ if sys.platform.startswith("win"):
     _command_plan.append(
         CommandSpec(
             name="docs_encoding_policy",
-            command=(POWERSHELL_BIN, "-ExecutionPolicy", "Bypass", "-File", "scripts/check_encoding.ps1", "-AuditDocsPolicy"),
+            command=(
+                POWERSHELL_BIN,
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "scripts/check_encoding.ps1",
+                "-AuditDocsPolicy",
+            ),
             status_key="encoding_status",
         )
     )
@@ -48,7 +60,14 @@ _command_plan.extend(
         ),
         CommandSpec(
             name="fat_file_audit",
-            command=(POWERSHELL_BIN, "-ExecutionPolicy", "Bypass", "-File", "scripts/check_fat_files.ps1", "-AuditAll"),
+            command=(
+                POWERSHELL_BIN,
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "scripts/check_fat_files.ps1",
+                "-AuditAll",
+            ),
             status_key="fat_file_status",
         ),
         CommandSpec(
@@ -87,6 +106,7 @@ _command_plan.extend(
                 "tests/test_tavily_timeout_contract.py",
                 "tests/test_text_integrity.py",
                 "tests/test_import_external_workspace_candidates.py",
+                "tests/test_long_term_context_shadow_lab_guards.py",
                 "tests/test_pre_edd_readiness.py",
                 "tests/test_readiness_claim_integrity.py",
                 "tests/test_workflow_routing_decision.py",
@@ -110,9 +130,7 @@ PROTECTED_FAT_PATHS = (
     "app/providers/deepseek_adapter.py",
 )
 
-FREEZE_GROWTH_PATHS = (
-    "app/providers/builderspace_adapter.py",
-)
+FREEZE_GROWTH_PATHS = ("app/providers/builderspace_adapter.py",)
 
 
 def classify_fat_audit(*, stdout: str, exit_code: int) -> dict[str, Any]:
@@ -145,7 +163,9 @@ def summarize_status(statuses: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _merge_status(existing: dict[str, Any] | None, new_status: dict[str, Any]) -> dict[str, Any]:
+def _merge_status(
+    existing: dict[str, Any] | None, new_status: dict[str, Any]
+) -> dict[str, Any]:
     if existing is None:
         return dict(new_status)
     merged = dict(existing)
@@ -177,7 +197,9 @@ def _run_command(spec: CommandSpec, *, timeout_seconds: int) -> dict[str, Any]:
             "exit_code": completed.returncode,
             "stdout": completed.stdout,
             "status": "pass" if completed.returncode == 0 else "fail",
-            "details": [] if completed.returncode == 0 else [f"{spec.name} exited {completed.returncode}"],
+            "details": []
+            if completed.returncode == 0
+            else [f"{spec.name} exited {completed.returncode}"],
         }
     except subprocess.TimeoutExpired as exc:
         return {
@@ -212,14 +234,22 @@ def run_pre_edd_readiness(*, timeout_seconds: int = 180) -> dict[str, Any]:
     for spec in COMMAND_PLAN:
         result = _run_command(spec, timeout_seconds=timeout_seconds)
         if spec.name == "fat_file_audit":
-            result.update(classify_fat_audit(stdout=result.get("stdout") or "", exit_code=int(result.get("exit_code") or 0)))
+            result.update(
+                classify_fat_audit(
+                    stdout=result.get("stdout") or "",
+                    exit_code=int(result.get("exit_code") or 0),
+                )
+            )
         command_results.append({k: v for k, v in result.items() if k != "stdout"})
         current = statuses.get(spec.status_key)
         statuses[spec.status_key] = _merge_status(current, result)
 
     # Responsibility pressure is enforced by the architecture guard tests and
     # fat audit. Keep it explicit so reports cannot hide it inside pytest output.
-    if statuses["fat_file_status"]["status"] == "pass" and statuses["single_manager_status"]["status"] == "pass":
+    if (
+        statuses["fat_file_status"]["status"] == "pass"
+        and statuses["single_manager_status"]["status"] == "pass"
+    ):
         statuses["responsibility_status"] = {"status": "pass", "details": []}
     else:
         statuses["responsibility_status"] = {
@@ -232,15 +262,25 @@ def run_pre_edd_readiness(*, timeout_seconds: int = 180) -> dict[str, Any]:
     derived_pass = statuses["single_manager_status"]["status"] == "pass"
     statuses["domain_tool_surface_status"] = {
         "status": "pass" if derived_pass else "fail",
-        "details": [] if derived_pass else ["single-manager runtime boundary or architecture guard failed"],
+        "details": []
+        if derived_pass
+        else ["single-manager runtime boundary or architecture guard failed"],
     }
     statuses["guard_invariant_status"] = {
         "status": "pass" if derived_pass else "fail",
-        "details": [] if derived_pass else ["guard invariant checks are carried by the architecture/runtime test wall"],
+        "details": []
+        if derived_pass
+        else [
+            "guard invariant checks are carried by the architecture/runtime test wall"
+        ],
     }
     statuses["latency_trace_status"] = {
         "status": "pass" if derived_pass else "fail",
-        "details": [] if derived_pass else ["latency trace guard is incomplete because single-manager/runtime checks failed"],
+        "details": []
+        if derived_pass
+        else [
+            "latency trace guard is incomplete because single-manager/runtime checks failed"
+        ],
     }
     product_truth_pass = (
         derived_pass
@@ -249,11 +289,15 @@ def run_pre_edd_readiness(*, timeout_seconds: int = 180) -> dict[str, Any]:
     )
     statuses["product_truth_alignment_status"] = {
         "status": "pass" if product_truth_pass else "fail",
-        "details": [] if product_truth_pass else ["product-truth-first architecture or canonical spec alignment failed"],
+        "details": []
+        if product_truth_pass
+        else ["product-truth-first architecture or canonical spec alignment failed"],
     }
     statuses["anti_overfit_status"] = {
         "status": "pass" if product_truth_pass else "fail",
-        "details": [] if product_truth_pass else ["fixture-shape or case-specific guard failed"],
+        "details": []
+        if product_truth_pass
+        else ["fixture-shape or case-specific guard failed"],
     }
 
     summary = summarize_status(statuses)
@@ -266,7 +310,9 @@ def run_pre_edd_readiness(*, timeout_seconds: int = 180) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run pre-EDD architecture/readiness gates without business eval suites.")
+    parser = argparse.ArgumentParser(
+        description="Run pre-EDD architecture/readiness gates without business eval suites."
+    )
     parser.add_argument("--report-path", default=str(DEFAULT_REPORT_PATH))
     parser.add_argument("--timeout-seconds", type=int, default=180)
     args = parser.parse_args()
@@ -274,8 +320,16 @@ def main() -> int:
     report = run_pre_edd_readiness(timeout_seconds=args.timeout_seconds)
     report_path = Path(args.report_path)
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps({"report_path": str(report_path), **report["summary"]}, ensure_ascii=False, indent=2))
+    report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    print(
+        json.dumps(
+            {"report_path": str(report_path), **report["summary"]},
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     return 0 if report["summary"]["status"] == "ready_for_edd" else 1
 
 

@@ -36,18 +36,28 @@ def test_v2_routes_use_manager_provider_entrypoint() -> None:
     assert "manager_provider=manager_provider" in source
     assert "search_port=search_provider" in source
     assert "extract_port=extract_provider" in source
-    assert f'{_legacy_provider_token("planner")}={_legacy_provider_token("planner")}' not in source
-    assert f'{_legacy_provider_token("primary")}={_legacy_provider_token("primary")}' not in source
+    assert (
+        f"{_legacy_provider_token('planner')}={_legacy_provider_token('planner')}"
+        not in source
+    )
+    assert (
+        f"{_legacy_provider_token('primary')}={_legacy_provider_token('primary')}"
+        not in source
+    )
 
 
 def test_runtime_trace_contract_exports_manager_stage_names() -> None:
-    source = (ROOT / "app" / "runtime" / "contracts" / "trace.py").read_text(encoding="utf-8")
+    source = (ROOT / "app" / "runtime" / "contracts" / "trace.py").read_text(
+        encoding="utf-8"
+    )
 
     assert 'MANAGER_LOOP_STAGE = "intake_manager_round"' in source
 
 
 def test_v2_manager_tools_compatibility_facade_is_deleted() -> None:
-    assert not (ROOT / "app" / "intake" / "application" / ("manager_" + "tools.py")).exists()
+    assert not (
+        ROOT / "app" / "intake" / "application" / ("manager_" + "tools.py")
+    ).exists()
 
 
 def test_v2_schemas_no_longer_exports_archived_recommendation_contracts() -> None:
@@ -58,16 +68,32 @@ def test_v2_schemas_no_longer_exports_archived_recommendation_contracts() -> Non
     assert "HintPacket" not in source
 
 
-def test_v2_services_import_intake_domain_tools_and_ignore_legacy_provider_split() -> None:
-    intake_turn = (ROOT / "app" / "composition" / "intake_turn_orchestrator.py").read_text(encoding="utf-8")
-    intake_execution = (ROOT / "app" / "composition" / "intake_execution_orchestrator.py").read_text(encoding="utf-8")
-    intake_execution_tools = (ROOT / "app" / "composition" / "intake_manager_tool_batch.py").read_text(encoding="utf-8")
-    estimation = (ROOT / "app" / "composition" / "intake_estimation_tools.py").read_text(encoding="utf-8")
+def test_v2_services_import_intake_domain_tools_and_ignore_legacy_provider_split() -> (
+    None
+):
+    intake_turn = (
+        ROOT / "app" / "composition" / "intake_turn_orchestrator.py"
+    ).read_text(encoding="utf-8")
+    intake_execution = (
+        ROOT / "app" / "composition" / "intake_execution_orchestrator.py"
+    ).read_text(encoding="utf-8")
+    intake_execution_tools = (
+        ROOT / "app" / "composition" / "intake_manager_tool_batch.py"
+    ).read_text(encoding="utf-8")
+    estimation = (
+        ROOT / "app" / "composition" / "intake_estimation_tools.py"
+    ).read_text(encoding="utf-8")
 
     assert "manager_tools" not in intake_turn
     assert "manager_tools" not in intake_execution
-    assert "from app.intake.application.intake_trace_tools import append_trace_event_tool" in intake_turn
-    assert "from app.intake.application.intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool" in intake_execution
+    assert (
+        "from app.intake.application.intake_trace_tools import append_trace_event_tool"
+        in intake_turn
+    )
+    assert (
+        "from app.intake.application.intake_trace_tools import append_trace_event_tool, resolve_correction_target_tool"
+        in intake_execution
+    )
     assert _legacy_provider_token("planner") not in intake_turn
     assert _legacy_provider_token("primary") not in intake_turn
     assert _legacy_provider_token("planner") not in intake_execution
@@ -98,6 +124,7 @@ def test_offline_sidecar_stack_is_not_imported_by_active_runtime_entrypoints() -
         "app.recommendation",
         "app.rescue",
         "app.runtime.application.proactive_deterministic_gate",
+        "app.runtime.application.proactive_no_send_shadow_evaluator",
         "app.runtime.contracts.pending_meal_intent",
         "app.runtime.contracts.proactive_gate",
     )
@@ -108,7 +135,16 @@ def test_offline_sidecar_stack_is_not_imported_by_active_runtime_entrypoints() -
             if imported.startswith(forbidden_prefixes):
                 violations.append(f"{path.relative_to(ROOT)} imports {imported}")
 
-    assert not violations, "Offline sidecar modules must stay out of active runtime entrypoints: " + ", ".join(violations)
+    assert not violations, (
+        "Offline sidecar modules must stay out of active runtime entrypoints: "
+        + ", ".join(violations)
+    )
+
+
+def test_ci_runtime_contract_wall_runs_long_term_context_architecture_guards() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+
+    assert "tests/test_long_term_context_shadow_lab_guards.py" in workflow
 
 
 def test_root_compatibility_files_do_not_absorb_sidecar_stack() -> None:
@@ -143,7 +179,10 @@ def test_root_compatibility_files_do_not_absorb_sidecar_stack() -> None:
             if token in source:
                 violations.append(f"{path.relative_to(ROOT)} contains {token}")
 
-    assert not violations, "Protected root files must not absorb sidecar contracts: " + ", ".join(violations)
+    assert not violations, (
+        "Protected root files must not absorb sidecar contracts: "
+        + ", ".join(violations)
+    )
 
 
 def test_root_routes_mount_only_public_calibration_router_after_activation_plan() -> None:
