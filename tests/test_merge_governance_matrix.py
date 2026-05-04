@@ -350,6 +350,25 @@ def test_proactive_title_wins_over_memory_words_in_body() -> None:
     assert entry["track"] == "ProactiveShadow"
 
 
+def test_proactive_no_send_runtime_application_brake_can_be_dormant_candidate() -> None:
+    entry = build_matrix_from_prs(
+        [
+            _pr(
+                title="Add proactive no-send shadow evaluator",
+                head="codex/proactive-no-send-shadow",
+                body="track: ProactiveShadow\nruntime_truth_changed: false\nmanager_context_packet_changed: false\nmutation_changed: false\nproduct_readiness_claimed: false\n",
+                additions=1886,
+                files=[{"path": "app/runtime/application/proactive_no_send_shadow_evaluator.py", "additions": 1886}],
+            )
+        ],
+        DEFAULT_CONFIG,
+    )["entries"][0]
+
+    assert entry["boundary_status"] == "pass"
+    assert entry["runtime_activation_status"] == "inactive"
+    assert entry["recommended_verdict"] == "dormant_shadow_candidate"
+
+
 def test_dependency_bumps_do_not_need_product_track_report() -> None:
     entry = build_matrix_from_prs(
         [
