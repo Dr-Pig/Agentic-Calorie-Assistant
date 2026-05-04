@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.composition.intake_execution_response import build_intake_execution_response, finalized_budget_summary
+from app.composition.manager_context_runtime import build_runtime_manager_context_packet_v1
 from app.composition.request_runtime_context import load_request_runtime_context
 from app.composition.intake_manager_tool_batch import (
     apply_final_action_to_payload,
@@ -326,6 +327,7 @@ async def process_intake_execution_turn(
     stage_timings: list[dict[str, Any]],
     current_turn_context: CurrentTurnContextV1 | None = None,
     manager_context_pack: ManagerContextPack | None = None,
+    manager_context_packet_v1: dict[str, Any] | None = None,
     phase_a_trace: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     active_manager_provider = manager_provider or provider
@@ -344,6 +346,14 @@ async def process_intake_execution_turn(
     latest_attachment_decision = phase_a_runtime.attachment_decision
     latest_transition_guard_result = phase_a_runtime.transition_guard_result
     shadow_runtime = phase_a_runtime.shadow_runtime
+    if manager_context_packet_v1 is None:
+        manager_context_packet_v1 = build_runtime_manager_context_packet_v1(
+            db=db,
+            current_turn_context=current_turn_context,
+            user_external_id=user_external_id,
+            local_date=local_date,
+            session_id=request_id,
+        )
     if current_turn_context is None or latest_attachment_decision is None or latest_transition_guard_result is None:
         raise ValueError("Phase A runtime context is required for intake execution.")
     manager_history_eligibility = manager_history_expansion_eligibility(
@@ -368,6 +378,7 @@ async def process_intake_execution_turn(
         nonlocal latest_attachment_decision
         nonlocal latest_transition_guard_result
         nonlocal manager_context_pack
+        nonlocal manager_context_packet_v1
         nonlocal phase_a_history_expansion_enabled
         nonlocal manager_triggered_history_attempted
         nonlocal manager_triggered_history_trace
@@ -404,6 +415,13 @@ async def process_intake_execution_turn(
                 latest_attachment_decision = expansion.post_attachment_decision
                 latest_transition_guard_result = expansion.post_transition_guard_result
                 manager_context_pack = build_manager_context_pack(current_turn_context=current_turn_context)
+                manager_context_packet_v1 = build_runtime_manager_context_packet_v1(
+                    db=db,
+                    current_turn_context=current_turn_context,
+                    user_external_id=user_external_id,
+                    local_date=local_date,
+                    session_id=request_id,
+                )
                 phase_a_history_expansion_enabled = False
                 manager_triggered_history_trace = expansion.trace_payload()
                 result = expansion.tool_result()
@@ -444,6 +462,7 @@ async def process_intake_execution_turn(
         return {
             "current_turn_context": current_turn_context,
             "manager_context_pack": manager_context_pack,
+            "manager_context_packet_v1": manager_context_packet_v1,
             "phase_a_history_expansion_enabled": phase_a_history_expansion_enabled,
         }
 
@@ -491,6 +510,7 @@ async def process_intake_execution_turn(
         ),
         current_turn_context=current_turn_context,
         manager_context_pack=manager_context_pack,
+        manager_context_packet_v1=manager_context_packet_v1,
         history_expansion_policy=HistoryExpansionPolicy(),
         phase_a_shadow_hypothesis=shadow_runtime.manager_payload if shadow_runtime is not None else None,
         phase_a_history_expansion_enabled=phase_a_history_expansion_enabled,

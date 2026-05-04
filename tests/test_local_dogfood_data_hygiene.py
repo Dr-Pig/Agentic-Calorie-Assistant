@@ -7,6 +7,8 @@ from app.composition.local_dogfood_data_hygiene import (
     backup_local_dogfood_db,
     build_local_dogfood_data_manifest,
     classify_local_dogfood_db,
+    export_local_dogfood_db,
+    import_preview_local_dogfood_export,
 )
 
 
@@ -34,6 +36,17 @@ def test_real_dogfood_database_requires_backup_before_reset() -> None:
     assert manifest["do_not_commit"] is True
 
 
+def test_real_dogfood_path_classification_wins_case_insensitively_over_smoke_name() -> None:
+    db_path = Path("workspace_data/LOCAL_DOGFOOD/accurate_intake_smoke.sqlite3")
+
+    manifest = classify_local_dogfood_db(db_path)
+
+    assert manifest["db_class"] == "real_dogfood_db"
+    assert manifest["real_dogfood_data"] is True
+    assert manifest["disposable"] is False
+    assert manifest["backup_required_before_reset"] is True
+
+
 def test_real_dogfood_backup_copies_sqlite_file_and_writes_local_only_manifest(tmp_path: Path) -> None:
     db_path = tmp_path / "real_dogfood" / "accurate_intake.sqlite3"
     db_path.parent.mkdir()
@@ -53,6 +66,90 @@ def test_real_dogfood_backup_copies_sqlite_file_and_writes_local_only_manifest(t
     assert manifest["contains_personal_diet_logs"] is True
     assert manifest["do_not_commit"] is True
     assert manifest["backup_path"] == str(backup_path)
+
+
+def test_backup_sanitizes_label_before_writing_local_copy(tmp_path: Path) -> None:
+    db_path = tmp_path / "real_dogfood" / "accurate_intake.sqlite3"
+    db_path.parent.mkdir()
+    db_path.write_bytes(b"sqlite bytes")
+
+    report = backup_local_dogfood_db(
+        db_path=db_path,
+        backup_dir=tmp_path / "backups",
+        label="../before reset!!",
+    )
+
+    backup_path = Path(report["backup_path"])
+    assert report["status"] == "pass"
+    assert ".." not in backup_path.name
+    assert "before-reset" in backup_path.name
+
+
+def test_export_copies_real_dogfood_sqlite_and_marks_local_personal_logs(tmp_path: Path) -> None:
+    db_path = tmp_path / "real_dogfood" / "accurate_intake.sqlite3"
+    db_path.parent.mkdir()
+    db_path.write_bytes(b"sqlite bytes")
+
+    report = export_local_dogfood_db(db_path=db_path, export_dir=tmp_path / "exports", label="review")
+
+    export_path = Path(report["export_path"])
+    manifest_path = Path(report["manifest_path"])
+    assert report["status"] == "pass"
+    assert report["operation"] == "export"
+    assert report["local_only"] is True
+    assert report["contains_personal_diet_logs"] is True
+    assert report["do_not_commit"] is True
+    assert report["export_contains_sqlite_copy"] is True
+    assert export_path.read_bytes() == b"sqlite bytes"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["export_path"] == str(export_path)
+    assert manifest["contains_personal_diet_logs"] is True
+
+
+def test_import_preview_reads_export_manifest_without_writing_target_db(tmp_path: Path) -> None:
+    db_path = tmp_path / "real_dogfood" / "accurate_intake.sqlite3"
+    db_path.parent.mkdir()
+    db_path.write_bytes(b"sqlite bytes")
+    export_report = export_local_dogfood_db(db_path=db_path, export_dir=tmp_path / "exports", label="review")
+    target_db = tmp_path / "local_dogfood" / "accurate_intake.sqlite3"
+
+    preview = import_preview_local_dogfood_export(
+        export_manifest_path=Path(export_report["manifest_path"]),
+        target_db_path=target_db,
+    )
+
+    assert preview["status"] == "pass"
+    assert preview["operation"] == "import-preview"
+    assert preview["writes_performed"] is False
+    assert preview["import_allowed"] is False
+    assert preview["local_only"] is True
+    assert preview["contains_personal_diet_logs"] is True
+    assert preview["do_not_commit"] is True
+    assert target_db.exists() is False
+
+
+def test_import_preview_rejects_export_manifest_without_sqlite_copy_path(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "exports" / "bad.manifest.json"
+    manifest_path.parent.mkdir()
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "operation": "export",
+                "local_only": True,
+                "do_not_commit": True,
+                "contains_personal_diet_logs": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    preview = import_preview_local_dogfood_export(
+        export_manifest_path=manifest_path,
+        target_db_path=tmp_path / "local_dogfood" / "accurate_intake.sqlite3",
+    )
+
+    assert preview["status"] == "blocked"
+    assert "export_sqlite_copy_missing" in preview["blockers"]
 
 
 def test_data_hygiene_cli_writes_inspection_manifest(tmp_path: Path) -> None:
@@ -76,3 +173,39 @@ def test_data_hygiene_cli_writes_inspection_manifest(tmp_path: Path) -> None:
     assert manifest["operation"] == "inspect"
     assert manifest["db_class"] == "real_dogfood_db"
     assert manifest["reset_without_backup_allowed"] is False
+
+
+def test_data_hygiene_cli_blocks_export_dir_outside_local_roots(tmp_path: Path) -> None:
+    db_path = tmp_path / "real_dogfood" / "accurate_intake.sqlite3"
+    db_path.parent.mkdir()
+    db_path.write_bytes(b"sqlite bytes")
+    output_path = tmp_path / "blocked-export.json"
+
+    from scripts.manage_accurate_intake_local_dogfood_data import main
+
+    exit_code = main(
+        [
+            "--operation",
+            "export",
+            "--db-path",
+            str(db_path),
+            "--export-dir",
+            "not_local_exports",
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    manifest = json.loads(output_path.read_text(encoding="utf-8"))
+    assert exit_code == 1
+    assert manifest["status"] == "blocked"
+    assert "export_dir_outside_allowed_local_roots" in manifest["blockers"]
+
+
+def test_self_use_runbook_documents_export_and_import_preview_commands() -> None:
+    runbook = Path("docs/quality/ACCURATE_INTAKE_MVP_SELF_USE_RUNBOOK.md").read_text(encoding="utf-8-sig")
+
+    assert "--operation export" in runbook
+    assert "--operation import-preview" in runbook
+    assert "workspace_data/local_dogfood_exports" in runbook
+    assert "local-only SQLite copy plus manifest" in runbook
