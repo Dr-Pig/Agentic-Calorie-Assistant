@@ -68,6 +68,8 @@ def _missing(group_id: str, payload: dict[str, Any]) -> bool:
         return True
     if group_id == "context_quality_pack" and payload.get("runtime_trace_input_used") is not True:
         return True
+    if group_id == "context_quality_pack" and payload.get("short_term_context_runtime_replay_checked") is not True:
+        return True
     return False
 
 
@@ -117,6 +119,8 @@ def _overclaim_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         blockers.append(f"{group_id}_websearch_evidence_used")
     if group_id == "context_quality_pack" and payload.get("runtime_trace_input_used") is not True:
         blockers.append("context_quality_pack_runtime_trace_input_missing")
+    if group_id == "context_quality_pack" and payload.get("short_term_context_runtime_replay_checked") is not True:
+        blockers.append("context_quality_pack_short_term_runtime_replay_missing")
     return blockers
 
 

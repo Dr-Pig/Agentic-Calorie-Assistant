@@ -87,6 +87,7 @@ def _required_payloads() -> dict[str, dict[str, object]]:
             "artifact_type": "accurate_intake_context_quality_pack",
             "status": "context_quality_diagnostic_pass",
             "runtime_trace_input_used": True,
+            "short_term_context_runtime_replay_checked": True,
             "context_engineering_fault_claimed": False,
             "manager_context_packet_schema_changed": False,
             "deterministic_semantic_inference_used": False,

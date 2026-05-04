@@ -79,6 +79,7 @@ def _evidence(**overrides: dict) -> dict:
             "artifact_type": "accurate_intake_context_quality_pack",
             "status": "context_quality_diagnostic_pass",
             "runtime_trace_input_used": True,
+            "short_term_context_runtime_replay_checked": True,
             "context_engineering_fault_claimed": False,
             "manager_context_packet_schema_changed": False,
             "deterministic_semantic_inference_used": False,
@@ -163,6 +164,20 @@ def test_pl_ce_local_review_pack_blocks_fixture_only_context_quality_pack() -> N
     assert pack["status"] == "blocked"
     assert "context_quality_pack" in pack["missing_evidence"]
     assert "context_quality_pack_runtime_trace_input_missing" in pack["blockers"]
+
+
+def test_pl_ce_local_review_pack_blocks_missing_short_term_runtime_replay() -> None:
+    evidence = _evidence()
+    evidence["context_quality_pack"] = {
+        **evidence["context_quality_pack"],
+        "short_term_context_runtime_replay_checked": False,
+    }
+
+    pack = build_pl_ce_local_review_decision_pack(evidence)
+
+    assert pack["status"] == "blocked"
+    assert "context_quality_pack" in pack["missing_evidence"]
+    assert "context_quality_pack_short_term_runtime_replay_missing" in pack["blockers"]
 
 
 def test_pl_ce_local_review_pack_blocks_overclaim_and_missing_context_or_hygiene_bundle() -> None:
