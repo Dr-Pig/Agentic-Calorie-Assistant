@@ -79,6 +79,8 @@ def _base_report(
         "chat_sent_cjk_message": False,
         "chat_assistant_bubble_rendered": False,
         "chat_history_reloaded": False,
+        "chat_enter_key_send_checked": False,
+        "chat_shift_enter_multiline_checked": False,
         "chat_scrollable": False,
         "chat_scroll_behavior_checked": False,
         "chat_reload_scroll_behavior_checked": False,
@@ -268,8 +270,40 @@ def _run_browser_sequence(
             )
             result["chat_page_loaded"] = True
             result["current_step"] = "submit_chat_message"
-            chat_messages = [cjk_message] + [f"{cjk_message} 第{i}筆" for i in range(2, 11)]
-            for message in chat_messages:
+            enter_message = f"{cjk_message} keyboard enter"
+            multiline_first_line = f"{cjk_message} shift enter"
+            multiline_second_line = "second line"
+            multiline_message = f"{multiline_first_line}\n{multiline_second_line}"
+            chat_messages = [enter_message, multiline_message] + [f"{cjk_message} extra {i}" for i in range(3, 11)]
+
+            chat.fill("#message-input", enter_message)
+            chat.press("#message-input", "Enter")
+            chat.wait_for_function(
+                """(message) => {
+                  const text = document.querySelector("#chat-scroll")?.textContent || "";
+                  return text.includes(`Logged. ${message}`);
+                }""",
+                arg=enter_message,
+                timeout=timeout_ms,
+            )
+            result["chat_enter_key_send_checked"] = True
+
+            chat.fill("#message-input", multiline_first_line)
+            chat.press("#message-input", "Shift+Enter")
+            textarea_value = chat.locator("#message-input").input_value(timeout=timeout_ms)
+            result["chat_shift_enter_multiline_checked"] = "\n" in textarea_value
+            chat.type("#message-input", multiline_second_line)
+            chat.click("#send-button")
+            chat.wait_for_function(
+                """({ firstLine, secondLine }) => {
+                  const text = document.querySelector("#chat-scroll")?.textContent || "";
+                  return text.includes(firstLine) && text.includes(secondLine) && text.includes("Logged.");
+                }""",
+                arg={"firstLine": multiline_first_line, "secondLine": multiline_second_line},
+                timeout=timeout_ms,
+            )
+
+            for message in chat_messages[2:]:
                 chat.fill("#message-input", message)
                 chat.click("#send-button")
                 chat.wait_for_function(
@@ -526,6 +560,8 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("chat_sent_cjk_message", "chat_cjk_message_not_sent")
     require_true("chat_assistant_bubble_rendered", "chat_assistant_bubble_not_rendered")
     require_true("chat_history_reloaded", "chat_history_not_reloaded")
+    require_true("chat_enter_key_send_checked", "chat_enter_key_send_not_checked")
+    require_true("chat_shift_enter_multiline_checked", "chat_shift_enter_multiline_not_checked")
     require_true("chat_scrollable", "chat_not_scrollable")
     require_true("chat_scroll_behavior_checked", "chat_scroll_behavior_not_checked")
     require_true("chat_reload_scroll_behavior_checked", "chat_reload_scroll_behavior_not_checked")
