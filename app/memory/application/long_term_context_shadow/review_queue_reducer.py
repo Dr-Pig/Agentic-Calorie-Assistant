@@ -130,7 +130,7 @@ def _deferred_mechanism_reviews() -> list[dict[str, Any]]:
             "product_capability_value": "Uses menu input before eating to rank concrete choices.",
             "blocked_by_dependency": True,
             "deferred_reason": "Requires vision/parser and recommendation runtime activation; shadow lab only reviews candidate-source value.",
-            "current_shadow_coverage": "candidate_extraction_engine_v2.menu_scan_shadow_context",
+            "current_shadow_coverage": "menu_highlight_shadow_eval",
             "runtime_effect_allowed": False,
         },
     ]

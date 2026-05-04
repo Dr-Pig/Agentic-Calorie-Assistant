@@ -71,3 +71,11 @@ def test_menu_highlight_context_is_declared_as_product_capability_context() -> N
         family["family_id"]: family for family in artifact["capability_families"]
     }
     assert "menu_highlight_context" in by_family["F6"]["context_domain_ids"]
+
+    reducer = build_shadow_lab_artifacts(_fixture_payload())["review_queue_reducer"]
+    deferred = {
+        item["mechanism_id"]: item for item in reducer["deferred_mechanism_reviews"]
+    }
+    assert deferred["live_menu_scan_runtime"]["current_shadow_coverage"] == (
+        "menu_highlight_shadow_eval"
+    )
