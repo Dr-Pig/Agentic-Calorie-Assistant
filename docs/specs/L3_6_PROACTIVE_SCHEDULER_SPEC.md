@@ -138,6 +138,209 @@ Examples:
 - recommendation nudges should not send without an active body plan or adequate candidate context
 - rescue nudges should not send without valid current-budget truth
 
+### 4.5 UX Permission Posture
+
+Every trigger evaluation must record a `permission_posture` before it can be considered for live delivery.
+
+Allowed values:
+
+- `user_expected`
+- `user_opted_in`
+- `app_open_only`
+- `no_push_allowed`
+- `later_requires_explicit_consent`
+
+Default v1 posture:
+
+| Trigger / Shadow Candidate | Permission Posture |
+| --- | --- |
+| `weekly_insight` | `user_expected` |
+| `meal_reminder` / `missing_log_reminder_with_cooldown` | `user_expected` |
+| `weight_reminder` / `low_frequency_weight_log_reminder` | `user_opted_in` |
+| `recommendation_prompt` | `app_open_only` |
+| `recommendation_nudge_meal_time` | `no_push_allowed` unless explicitly enabled later |
+| `recommendation_nudge_nearby` | `no_push_allowed` unless explicitly enabled later |
+| `swap_suggestion` | `no_push_allowed` unless explicitly enabled later |
+| `overshoot_risk` / `rescue_nudge` | `later_requires_explicit_consent` |
+| `calibration_insight` / `calibration_nudge` | `later_requires_explicit_consent` |
+| `location_based_food_push` / `strict_multi_day_correction` / `emotional_coaching_nudge` / `memory_driven_intervention` | `later_requires_explicit_consent` |
+
+Permission posture is not the same as data sufficiency. A trigger can have enough data and still be non-sendable because the user has not opted into that kind of proactive intervention.
+
+### 4.6 No-Send Shadow Gate
+
+Before any new trigger family is live, it must pass no-send shadow review.
+
+The no-send artifact must prove:
+
+- `shadow_mode=true`
+- `real_runtime_effect=false`
+- `proactive_sent=false`
+- `scheduler_enabled=false`
+- `manager_context_injected=false`
+- `durable_memory_written=false`
+- no recommendation result was served
+- no rescue proposal was committed
+- no `BodyPlan`, `DayBudgetLedger`, or `MealThread` mutation occurred
+
+Level 2 shadow-first candidates require a stricter threshold than Level 1 reminders:
+
+```yaml
+level_2_gate:
+  require:
+    - higher_data_sufficiency
+    - lower_frequency
+    - stronger_user_benefit
+    - explicit_suppression_reason_if_skipped
+```
+
+Level 2 candidates include:
+
+- `pre_meal_budget_awareness`
+- `overshoot_risk`
+- `calibration_insight`
+- `recommendation_prompt`
+
+If any Level 2 candidate is skipped, the artifact must include an explicit suppression reason.
+
+### 4.7 Interaction Feedback Adaptation
+
+Proactive should learn to stay quiet before it learns to send more.
+
+No-send shadow evaluation must record interaction feedback signals:
+
+- ignored count
+- dismissed count
+- accepted count
+- explicit trigger opt-out
+
+Default adaptation rules:
+
+| Signal | Required Adaptation |
+| --- | --- |
+| repeated ignored trigger | lower future frequency |
+| recent dismiss | suppress once or wait for a materially new context |
+| explicit trigger opt-out | suppress that category until the user re-enables it |
+| accepted trigger | keep as positive evidence only; it does not bypass cooldown, permission, or data gates |
+
+Suppressed categories must remain user-callable. For example, if a user disables meal reminders, the user may still ask the chat to help log a meal or review the day.
+
+### 4.8 Channel Sensitivity
+
+Delivery surface changes the interruption cost.
+
+Default interrupt cost:
+
+| Delivery Surface | Interrupt Cost | Implication |
+| --- | --- | --- |
+| `background` / push-like surface | high | requires the strictest permission and suppression posture |
+| `chat_open` | medium | may show lightweight suggestions if contextual gates pass |
+| `app_open` | low | best first surface for recommendation invitations |
+
+No-send shadow artifacts must record `interrupt_cost` so future promotion review can distinguish app-open helpfulness from background interruption risk.
+
+### 4.9 No-Send Review Summary
+
+No-send artifacts must include a summary that separates:
+
+- candidate trigger types that may be reviewed by a human
+- suppressed trigger types and their explicit reasons
+- later-only trigger types that are not live-eligible
+- permission, interaction-feedback, and Level 2 suppression counts
+
+The summary must also make promotion blockers explicit:
+
+- `live_delivery_allowed=false`
+- `scheduler_activation_allowed=false`
+- `no_send_shadow_only`
+- `live_scheduler_not_enabled`
+- `human_review_required_before_live_delivery`
+
+This summary is a review aid only. It does not approve live delivery, scheduler activation, push/LINE delivery, recommendation serving, rescue commitment, memory write, or mutation.
+
+### 4.10 Multi-Run Decision Pack
+
+A single no-send artifact must not unlock live promotion.
+
+Promotion review should use a separate decision pack that aggregates one or more no-send artifacts and records:
+
+- run count
+- clean run count
+- candidate trigger types for human review
+- suppressed trigger types
+- later-only trigger types
+- input-integrity blockers
+- promotion blockers
+
+Default promotion blockers:
+
+- `no_send_shadow_only`
+- `live_scheduler_not_enabled`
+- `human_review_required_before_live_delivery`
+- `minimum_clean_shadow_runs_not_met` until the configured clean-run threshold is met
+- `input_integrity_failed` if any source artifact overclaims readiness or records a side effect
+
+Even after repeated clean no-send runs, live delivery still requires an explicit activation plan and human approval.
+
+### 4.11 Wake Source Is Not User Benefit
+
+No-send shadow artifacts must separate the technical reason the evaluator woke up from the UX reason a proactive message might help.
+
+- `wake_source` records why the system evaluated a trigger, such as `scheduled_check`, `state_threshold`, `event_driven`, or `app_open`
+- `user_relevant_reason` records why this moment may help the user rather than merely interrupt them
+
+For non-manual evaluations, a missing `user_relevant_reason` must suppress the trigger with `missing_user_relevant_reason`.
+
+Examples:
+
+- scheduled weekly insight can evaluate because of `scheduled_check`, but its user-relevant reason should be weekly summary expected after enough data
+- overshoot risk can evaluate because of `state_threshold`, but its user-relevant reason should be helping the next meal decision
+- recommendation prompt can evaluate because of `app_open`, but its user-relevant reason should be reducing decision cost on a low-interrupt surface
+
+This rule prevents proactive from becoming a blind scheduler, state threshold alarm, or location/event push system. The trigger must still prove a user-benefit reason, permission posture, data sufficiency, cooldown, quiet-hours safety, and no-send review readiness.
+
+### 4.12 Candidate Copy Safety Rubric
+
+No-send shadow review may include candidate copy, but the deterministic evaluator may validate or suppress candidate copy only.
+
+The evaluator must not rewrite candidate copy, generate safer wording, infer user emotion, or turn a failed copy review into a live message.
+
+Required copy checks:
+
+- user agency is preserved
+- no shame, blame, or failure framing is present
+- uncertainty is honest and does not imply fake precision
+- copy remains invitation-only when the trigger boundary is invitation-only
+- copy posture is informational or invitational, not directive, shaming, fake-precision, or mutation-bearing
+
+If candidate copy fails this rubric, the trigger must be suppressed with a `copy_*` suppression reason. The no-send summary must record `copy_suppressed_count` as a trigger count, not a reason count. The multi-run decision pack must surface copy review risk with `copy_review_issues_present` until the reviewed runs no longer contain copy-suppressed triggers.
+
+This rubric is intentionally not a language-generation system. LLMs may write or judge candidate copy before it enters the no-send artifact, but this evaluator only records checklist evidence, suppresses unsafe copy, and keeps `sent=false`.
+
+### 4.13 Review Decision Taxonomy
+
+Each no-send trigger row must include `review_decision` so reviewers can understand the dominant reason a trigger is or is not reviewable without reverse-engineering raw suppression reasons.
+
+Allowed statuses:
+
+- `candidate_for_human_review`
+- `suppressed_copy_safety`
+- `suppressed_permission`
+- `suppressed_feedback`
+- `suppressed_context_or_data`
+- `deferred_later_only`
+
+Classification priority should be:
+
+1. later-only trigger
+2. copy safety failure
+3. permission or surface failure
+4. interaction feedback or opt-out
+5. context, evidence, threshold, cooldown, quiet-hours, or reason failure
+6. candidate for human review
+
+The no-send summary and decision pack must aggregate `review_decision_counts`. These counts are review diagnostics only and do not approve live delivery.
+
 ---
 
 ## 5. Trigger-Specific Rules
@@ -211,6 +414,12 @@ Downstream posture:
 
 - hand off into `rescue`
 
+No-send shadow posture:
+
+- allowed output is invitation-only, for example "we can look later if you want help adjusting"
+- forbidden output includes a concrete future deficit such as "tomorrow eat 300 kcal less"
+- forbidden output includes creating a rescue proposal or mutating the day budget ledger
+
 ### 5.4 `recommendation_nudge_meal_time`
 
 Type:
@@ -239,6 +448,14 @@ Intensity rule:
 - medium-quality context should send only a low-friction offer to help find dinner
 - low-quality context should skip silently
 - proactive recommendation should not run expensive live web/menu/blog search by default; live enrichment is user-engaged unless a later spec defines a cache-backed exception
+
+No-send `recommendation_prompt` boundary:
+
+- allowed output is candidate invitation only, for example "if you are getting dinner, I can help pick a few stable options"
+- forbidden output includes actual ranked food candidates
+- forbidden output includes live menu or search query execution
+- forbidden output includes creating an intake hint packet
+- forbidden output includes serving a recommendation result
 
 ### 5.5 `recommendation_nudge_nearby`
 
@@ -322,6 +539,13 @@ LLM dispatch decision:
 Downstream posture:
 
 - hand off into `calibration`
+
+No-send `calibration_insight` boundary:
+
+- allowed output is invitation-only, for example "we can do a calibration preview"
+- forbidden output includes telling the user they should change to a specific target
+- forbidden output includes outputting a concrete new kcal target
+- forbidden output includes mutating `BodyPlan`
 
 ---
 
