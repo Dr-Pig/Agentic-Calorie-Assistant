@@ -29,13 +29,16 @@ def test_exact_evidence_lane_policy_prefers_local_exact_seed_before_websearch() 
     web = _case_by_id(artifact, "websearch_candidate_review_fallback")
     assert web["lane_decision"]["selected_lane"] == "websearch_candidate_review"
     assert web["lane_decision"]["websearch_required"] is True
+    assert web["lane_decision"]["evidence_signal"] == "exact_card_candidate_review_available"
     assert web["local_exact"]["defer_reason"] == "no_exact_item_match"
     assert web["websearch_pipeline"]["extract_candidate_allowed_count"] == 1
+    assert web["exact_card_staging"]["candidate_count"] == 1
 
     no_exact = _case_by_id(artifact, "no_exact_evidence_available")
     assert no_exact["lane_decision"]["selected_lane"] == "no_exact_evidence"
-    assert no_exact["lane_decision"]["manager_expected_behavior"] == "ask_followup_or_generic_path"
+    assert no_exact["lane_decision"]["evidence_signal"] == "no_exact_evidence_available"
     assert no_exact["websearch_pipeline"]["extract_candidate_allowed_count"] == 0
+    assert no_exact["exact_card_staging"]["candidate_count"] == 0
 
 
 def test_exact_evidence_lane_policy_keeps_every_lane_support_only() -> None:
@@ -51,6 +54,49 @@ def test_exact_evidence_lane_policy_keeps_every_lane_support_only() -> None:
         for classification in case["websearch_pipeline"]["candidate_classifications"]:
             assert classification["runtime_truth_allowed"] is False
             assert classification["packet_ready_truth_allowed"] is False
+        for candidate in case["exact_card_staging"]["candidates"]:
+            assert candidate["evidence_role"] == "exact_card_candidate"
+            assert candidate["promotion_status"] == "review_candidate"
+            assert candidate["promotion_allowed"] is False
+            assert candidate["runtime_truth_allowed"] is False
+            assert candidate["packet_ready_truth_allowed"] is False
+            assert candidate["exact_card_created"] is False
+            assert candidate["approval_required_before_runtime_truth"] is True
+
+
+def test_exact_evidence_lane_builds_websearch_exact_card_staging_candidate() -> None:
+    artifact = build_exact_evidence_lane_policy_artifact()
+    web = _case_by_id(artifact, "websearch_candidate_review_fallback")
+    candidate = web["exact_card_staging"]["candidates"][0]
+
+    assert candidate["canonical_name"] == "Milksha pearl black tea latte"
+    assert candidate["source_url"] == "https://milksha.example/menu/pearl-black-tea-latte"
+    assert candidate["source_policy"]["license_status"] == "public_menu_page"
+    assert candidate["source_policy"]["robots_status"] == "allowed"
+    assert candidate["source_policy"]["identity_confidence"] == "high"
+    assert candidate["source_policy"]["serving_basis_candidate"] == "per_cup"
+    assert candidate["source_policy"]["nutrition_fields_present"] == ["kcal"]
+    assert candidate["approval_metadata"] == {
+        "approval_mode": "none",
+        "approval_scope": "review_candidate_only",
+        "policy_version": "exact_evidence_lane_policy_v1",
+        "runtime_truth_allowed": False,
+    }
+    assert "kcal_point" not in candidate
+    assert "kcal_range" not in candidate
+
+
+def test_exact_evidence_lane_uses_evidence_signals_not_manager_oracles() -> None:
+    artifact = build_exact_evidence_lane_policy_artifact()
+
+    for case in artifact["cases"]:
+        assert "manager_expected_behavior" not in case["lane_decision"]
+        assert "evidence_signal" in case["lane_decision"]
+    assert not _contains_key(artifact, "manager_signal")
+    assert not _contains_key(artifact, "manager_expected_behavior")
+    assert "candidate_review_no_commit" not in str(artifact)
+    assert "ask_followup" not in str(artifact)
+    assert "source_not_sufficient" not in str(artifact)
 
 
 def test_exact_evidence_lane_policy_script_roundtrip(tmp_path: Path) -> None:
@@ -84,3 +130,11 @@ def test_exact_evidence_lane_policy_has_no_live_or_shared_contract_imports() -> 
         source = path.read_text(encoding="utf-8")
         for token in forbidden:
             assert token not in source
+
+
+def _contains_key(value: object, key: str) -> bool:
+    if isinstance(value, dict):
+        return key in value or any(_contains_key(child, key) for child in value.values())
+    if isinstance(value, list):
+        return any(_contains_key(item, key) for item in value)
+    return False
