@@ -56,6 +56,7 @@ def _required_payloads() -> dict[str, dict[str, object]]:
         "context_quality_pack": {
             "status": "context_quality_diagnostic_pass",
             "runtime_trace_input_used": True,
+            "short_term_context_runtime_replay_checked": True,
             "ready_for_live_diagnostic_decision": False,
         },
         "fixture_evidence_packet_emulator": {
