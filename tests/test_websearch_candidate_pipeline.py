@@ -3,8 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.nutrition.application.websearch_candidate_pipeline import (
+    WebSearchPipelineCase,
     build_websearch_candidate_pipeline_diagnostic,
 )
+from app.nutrition.application.retrieval_intent import RetrievalIntent
 
 
 def _case_by_id(artifact: dict, case_id: str) -> dict:
@@ -20,6 +22,14 @@ def test_websearch_candidate_pipeline_builds_offline_query_plan_and_classificati
     assert artifact["live_provider_used"] is False
     assert artifact["runtime_truth_changed"] is False
     assert artifact["websearch_runtime_truth_allowed"] is False
+    assert artifact["source_policy"]["artifact_type"] == "accurate_intake_websearch_source_policy_v1"
+    assert artifact["source_policy"]["live_websearch_used"] is False
+    assert artifact["source_policy"]["websearch_runtime_truth_allowed"] is False
+    assert artifact["source_policy"]["max_search_attempts"] == 2
+    assert artifact["source_policy"]["rate_policy"]["max_results"] == 5
+    assert artifact["source_policy"]["license_policy"]["unknown_license_behavior"] == (
+        "candidate_only_requires_review"
+    )
     assert artifact["summary"]["case_count"] == 4
     assert artifact["summary"]["runtime_truth_allowed_count"] == 0
 
@@ -32,16 +42,17 @@ def test_websearch_candidate_pipeline_builds_offline_query_plan_and_classificati
     assert exact["candidate_classifications"][0]["runtime_truth_allowed"] is False
 
     sibling = _case_by_id(artifact, "pipeline_milksha_sibling")
-    assert sibling["candidate_classifications"][0]["candidate_class"] == "near_exact_sibling_candidate"
-    assert sibling["candidate_classifications"][0]["manager_expected_behavior"] == "ask_followup"
+    assert sibling["candidate_classifications"][0]["candidate_class"] == "blocked_source_policy_candidate"
+    assert sibling["candidate_classifications"][0]["manager_signal"] == "source_policy_blocked"
+    assert "identity_confidence_not_high" in sibling["candidate_classifications"][0]["source_policy_block_reasons"]
 
     weak = _case_by_id(artifact, "pipeline_third_party_weak")
     assert weak["candidate_classifications"][0]["candidate_class"] == "weak_or_unusable_candidate"
-    assert weak["candidate_classifications"][0]["manager_expected_behavior"] == "reject_or_request_better_source"
+    assert weak["candidate_classifications"][0]["manager_signal"] == "source_not_sufficient"
 
     wrong_size = _case_by_id(artifact, "pipeline_starbucks_wrong_size")
     assert wrong_size["candidate_classifications"][0]["candidate_class"] == "near_exact_wrong_size_candidate"
-    assert wrong_size["candidate_classifications"][0]["manager_expected_behavior"] == "ask_followup"
+    assert wrong_size["candidate_classifications"][0]["manager_signal"] == "needs_disambiguation"
 
 
 def test_websearch_candidate_pipeline_excludes_raw_hits_and_truth_fields() -> None:
@@ -63,6 +74,57 @@ def test_websearch_candidate_pipeline_excludes_raw_hits_and_truth_fields() -> No
         for classification in case["candidate_classifications"]:
             assert classification["runtime_truth_allowed"] is False
             assert classification["packet_ready_truth_allowed"] is False
+            assert "manager_expected_behavior" not in classification
+
+
+def test_websearch_candidate_pipeline_applies_source_policy_to_unknown_license_hits() -> None:
+    artifact = build_websearch_candidate_pipeline_diagnostic(
+        (
+            WebSearchPipelineCase(
+                case_id="pipeline_unknown_license",
+                intent=RetrievalIntent(
+                    base_dish="pearl black tea latte",
+                    aliases=["Milksha pearl black tea latte"],
+                    brand_hint="Milksha",
+                    size_hint=None,
+                    modifier_hints=[],
+                    listed_items=[],
+                    retrieval_goal="exact_brand_lookup",
+                ),
+                raw_hits=(
+                    {
+                        "title": "Milksha pearl black tea latte",
+                        "url": "https://milksha.example/menu/pearl-black-tea-latte",
+                        "brand_detected": "Milksha",
+                        "officialness": "official",
+                        "source_quality_label": "high",
+                        "identity_confidence": "high",
+                        "serving_basis": "per_cup",
+                        "nutrition_fields_present": ["kcal"],
+                        "license_status": "unknown",
+                        "robots_status": "unknown",
+                        "raw_ref": "raw/websearch/unknown_license.json#0",
+                    },
+                ),
+            ),
+        )
+    )
+
+    classification = artifact["cases"][0]["candidate_classifications"][0]
+    assert classification["candidate_class"] == "blocked_source_policy_candidate"
+    assert classification["extract_candidate_allowed"] is False
+    assert classification["runtime_truth_allowed"] is False
+    assert "license_unknown" in classification["source_policy_block_reasons"]
+    assert "robots_unknown" in classification["source_policy_block_reasons"]
+    assert artifact["cases"][0]["selected_extract_decision"]["selected_search_packet_id"] is None
+    assert artifact["cases"][0]["selected_extract_decision"]["extract_allowed_by_policy"] is False
+    assert artifact["cases"][0]["selected_extract_decision"]["extract_count"] == 0
+    assert artifact["cases"][0]["selected_extract_decision"]["extract_reason"] == (
+        "source_policy_blocked_selected_extract"
+    )
+    assert "license_unknown" in artifact["cases"][0]["selected_extract_decision"][
+        "source_policy_block_reasons"
+    ]
 
 
 def test_websearch_candidate_pipeline_script_roundtrip(tmp_path: Path) -> None:

@@ -66,6 +66,8 @@ def _missing(group_id: str, payload: dict[str, Any]) -> bool:
         return True
     if group_id == "pl_ce_review_bundle" and payload.get("ready_for_fdb_integration") is not False:
         return True
+    if group_id == "context_quality_pack" and payload.get("runtime_trace_input_used") is not True:
+        return True
     return False
 
 
@@ -113,6 +115,8 @@ def _overclaim_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         blockers.append(f"{group_id}_fooddb_evidence_used")
     if payload.get("websearch_evidence_used") is True:
         blockers.append(f"{group_id}_websearch_evidence_used")
+    if group_id == "context_quality_pack" and payload.get("runtime_trace_input_used") is not True:
+        blockers.append("context_quality_pack_runtime_trace_input_missing")
     return blockers
 
 

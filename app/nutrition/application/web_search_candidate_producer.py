@@ -62,6 +62,8 @@ def produce_web_search_candidates(
                 "score": score,
                 "source_quality_hint": source_quality_hint,
                 "officialness_hint": officialness_hint,
+                "license_status": _text(hit.get("license_status")) or "unknown",
+                "robots_status": _text(hit.get("robots_status")) or "unknown",
                 "brand_detected": _brand_identity(
                     _text(hit.get("brand_detected"))
                     or _infer_brand_identity(" ".join([source_title, snippet, source_domain]))
