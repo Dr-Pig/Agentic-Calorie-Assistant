@@ -54,9 +54,10 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
             to_node="websearch_candidate_pipeline",
             dependency_direction="application_to_candidate_lane",
             required_contract="candidate_only WebSearch packet boundary",
-            current_status="draft",
+            current_status="contract_backed",
             manager_style_guard="websearch_may_recall_candidates_but_may_not_set_runtime_truth",
             evidence=[
+                "app.nutrition.application.food_evidence_retriever_router.build_food_evidence_retriever_route_plan",
                 "app.nutrition.application.websearch_candidate_packet_smoke.build_websearch_candidate_packet_smoke",
                 "tests.test_websearch_candidate_packet_smoke",
             ],
