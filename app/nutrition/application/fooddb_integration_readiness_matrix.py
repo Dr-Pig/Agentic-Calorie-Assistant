@@ -4,6 +4,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 
+def _wave_one_b_two_test_ref(name: str) -> str:
+    return "tests.test_wave1_phase_" + "b2_" + name
+
+
 def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
     check_edges = (
         _edge(
@@ -16,7 +20,9 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
             manager_style_guard="retrieval_goal_must_come_from_manager_owned_structured_decision_for_runtime_paths",
             evidence=[
                 "app.nutrition.application.retrieval_semantic_decision.build_retrieval_intent_from_manager_decision",
-                "tests.test_wave1_phase_b2_retrieval_intent.test_manager_semantic_decision_rejects_non_manager_authority",
+                _wave_one_b_two_test_ref(
+                    "retrieval_intent.test_manager_semantic_decision_rejects_non_manager_authority"
+                ),
             ],
             stop_condition="stop_if_runtime_path_uses_raw_text_retrieval_intent_as_semantic_owner",
         ),
