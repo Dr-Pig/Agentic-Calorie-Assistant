@@ -217,6 +217,20 @@ python scripts/build_accurate_intake_fooddb_quality_plan.py --inventory-json doc
 
 This plan is review packets only. It may identify the first review batch families such as breakfast combo, chicken bento rice modifier, bubble tea sugar/size modifier, and luwei listed components, but it must not update FoodDB truth, create nutrition seeds, create exact cards, or claim one-day dogfood pass. LLM extraction may normalize candidate labels, source hints, or portion candidates for review, but deterministic promotion policy and human approval are required before any seed, exact card, or packet truth promotion.
 
+PR117 adds a raw source inventory/registry foundation for the FoodDB ingestion pipeline stage boundary:
+
+```text
+raw source -> candidate -> validator_passed -> auto_eligible_packet_candidate -> packet_ready
+```
+
+Build the local raw source inventory with:
+
+```powershell
+python scripts/build_accurate_intake_food_raw_source_inventory.py --scan-root path\to\local\data --scan-root path\to\local\staging --output artifacts/accurate_intake_food_raw_source_inventory.json
+```
+
+The generated inventory is local-only and ignored. The tracked registry is `docs/quality/accurate_intake_food_raw_source_registry.json`; it records known source filenames, source classes, and intended candidate roles only. This PR117 boundary does not create candidates, packet-ready anchors/cards, nutrition seeds, exact cards, packet truth, runtime truth, or canonical eval oracles.
+
 SQLite-backed route/integration tests should use the shared `LocalSQLiteRouteHarness` when adding new route-level tests. JSON artifact producers should use `write_json_artifact` / `read_json_artifact` to avoid producer-consumer drift such as literal `"\\n"` suffixes. Unit tests should consume fixed artifact dictionaries where possible; DB-heavy scenario runners should be integration-scoped and run sequentially on Windows.
 
 Windows operators should run SQLite-backed commands sequentially. If `.pytest_tmp_local` reports a temporary SQLite lock, wait for the previous process to exit and rerun the affected command before classifying the result. Do not run the reset and keep-db shell commands concurrently against the same DB path.
