@@ -100,3 +100,23 @@ def test_selected_extract_policy_allows_identity_safe_official_candidate_for_ext
     assert decision.extract_allowed_by_policy is True
     assert decision.selected_search_packet_id == "pkt_web_search_identity_safe"
     assert decision.extract_reason == "selected_same_item_official_candidate"
+
+
+def test_selected_extract_policy_exact_candidate_remains_candidate_only() -> None:
+    exact_packet = _search_packet(packet_id="pkt_web_search_exact")
+
+    decision = choose_selected_extract_packet((exact_packet,))
+
+    assert decision.extract_allowed_by_policy is True
+    assert decision.selected_search_packet_id == "pkt_web_search_exact"
+    assert decision.selected_urls == ["https://milksha.example/menu/pearl-black-tea-latte"]
+    assert decision.to_trace() == {
+        "selected_search_packet_id": "pkt_web_search_exact",
+        "extract_reason": "selected_same_item_official_candidate",
+        "extract_allowed_by_policy": True,
+        "max_extract_urls": 1,
+        "extract_count": 1,
+    }
+    assert exact_packet["truth_level"] == "candidate"
+    assert "runtime_truth_allowed" not in exact_packet
+    assert "mutation_allowed" not in exact_packet
