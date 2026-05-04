@@ -6,7 +6,7 @@ import os
 import secrets
 import sys
 import time
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app.budget.interface.today_surface import resolve_today_local_date  # noqa: E402
 from app.database import get_or_create_user  # noqa: E402
 from app.runtime.interface.local_debug_auth import LOCAL_DEBUG_API_TOKEN_ENV  # noqa: E402
 from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
@@ -36,7 +37,7 @@ from scripts.run_accurate_intake_mvp_manager_style_smoke import (  # noqa: E402
 DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_product_pages_browser_smoke.sqlite3"
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_product_pages_browser_smoke.json"
 DEFAULT_USER_ID = "product-pages-browser-smoke-user"
-DEFAULT_LOCAL_DATE = "2026-05-04"
+DEFAULT_LOCAL_DATE = resolve_today_local_date(None)
 DEFAULT_CJK_MESSAGE = "早餐吃茶葉蛋和拿鐵"
 NOT_CLAIMING = [
     "product_ready",
@@ -63,6 +64,7 @@ def _base_report(
     *,
     user_external_id: str,
     db_path: Path,
+    local_date: str,
     browser_execution_required: bool,
 ) -> dict[str, Any]:
     return {
@@ -73,12 +75,20 @@ def _base_report(
         "not_claiming": list(NOT_CLAIMING),
         "user_external_id": user_external_id,
         "db_path": str(db_path),
+        "local_date": local_date,
+        "previous_local_date": _previous_local_date(local_date),
         "browser_execution_required": browser_execution_required,
         "browser_executed": False,
         "chat_page_loaded": False,
         "chat_sent_cjk_message": False,
         "chat_assistant_bubble_rendered": False,
         "chat_history_reloaded": False,
+        "chat_url_state_preserved_after_date_change": False,
+        "chat_reload_preserved_selected_date": False,
+        "chat_user_url_state_preserved_after_user_change": False,
+        "chat_reload_preserved_user_id": False,
+        "chat_enter_key_send_checked": False,
+        "chat_shift_enter_multiline_checked": False,
         "chat_scrollable": False,
         "chat_scroll_behavior_checked": False,
         "chat_reload_scroll_behavior_checked": False,
@@ -87,11 +97,19 @@ def _base_report(
         "today_date_switch_checked": False,
         "today_previous_day_empty_checked": False,
         "today_current_day_restored_checked": False,
+        "today_url_state_preserved_after_date_change": False,
+        "today_reload_preserved_selected_date": False,
+        "today_user_url_state_preserved_after_user_change": False,
+        "today_reload_preserved_user_id": False,
         "today_summary_rendered": False,
         "today_meal_list_rendered": False,
         "today_no_debug_trace": False,
         "body_page_loaded": False,
         "body_query_user_id_honored": False,
+        "body_url_state_preserved_after_date_change": False,
+        "body_reload_preserved_selected_date": False,
+        "body_user_url_state_preserved_after_user_change": False,
+        "body_reload_preserved_user_id": False,
         "body_active_plan_rendered": False,
         "body_weight_checkin_saved": False,
         "body_plan_form_saved": False,
@@ -104,6 +122,7 @@ def _base_report(
         "mobile_populated_state_checked": False,
         "mobile_no_debug_trace": False,
         "product_cjk_copy_rendered": False,
+        "nav_session_query_preserved": False,
         "forbidden_storage_used": False,
         "frontend_semantic_owner": False,
         "live_llm_invoked": False,
@@ -114,6 +133,10 @@ def _base_report(
         "private_self_use_approved": False,
         "fetch_sequence": [],
     }
+
+
+def _previous_local_date(local_date: str) -> str:
+    return (date.fromisoformat(local_date) - timedelta(days=1)).isoformat()
 
 
 def _page_url(base_url: str, page_name: str, *, user_external_id: str, local_date: str) -> str:
@@ -188,6 +211,26 @@ def _chat_scroll_state(page: Any) -> dict[str, Any]:
     )
 
 
+def _nav_session_query_preserved(page: Any, *, user_external_id: str, local_date: str) -> bool:
+    return bool(
+        page.evaluate(
+            """({ userExternalId, localDate }) => {
+              const links = Array.from(document.querySelectorAll("[data-nav-target]"));
+              if (links.length < 3) {
+                return false;
+              }
+              return links.every((link) => {
+                const url = new URL(link.href, window.location.href);
+                return url.searchParams.get("user_id") === userExternalId
+                  && url.searchParams.get("local_date") === localDate
+                  && !url.searchParams.has("local_debug_token");
+              });
+            }""",
+            {"userExternalId": user_external_id, "localDate": local_date},
+        )
+    )
+
+
 def _open_page(
     browser: Any,
     *,
@@ -214,6 +257,7 @@ def _run_browser_sequence(
     local_debug_token: str,
 ) -> dict[str, Any]:
     sync_playwright = _load_sync_playwright()
+    previous_local_date = _previous_local_date(local_date)
     result: dict[str, Any] = {
         "current_step": "not_started",
         "fetch_sequence": [],
@@ -229,6 +273,7 @@ def _run_browser_sequence(
             mobile_viewport = {"width": 390, "height": 844}
             desktop_overflows: list[dict[str, Any]] = []
             mobile_overflows: list[dict[str, Any]] = []
+            nav_checks: list[bool] = []
             storage_keys = {"localStorageKeys": [], "sessionStorageKeys": []}
             page_texts: list[str] = []
 
@@ -241,10 +286,45 @@ def _run_browser_sequence(
                 local_debug_token=local_debug_token,
             )
             chat.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
+            nav_checks.append(
+                _nav_session_query_preserved(chat, user_external_id=user_external_id, local_date=local_date)
+            )
             result["chat_page_loaded"] = True
             result["current_step"] = "submit_chat_message"
-            chat_messages = [cjk_message] + [f"{cjk_message} 第{i}筆" for i in range(2, 11)]
-            for message in chat_messages:
+            enter_message = f"{cjk_message} keyboard enter"
+            multiline_first_line = f"{cjk_message} shift enter"
+            multiline_second_line = "second line"
+            multiline_message = f"{multiline_first_line}\n{multiline_second_line}"
+            chat_messages = [enter_message, multiline_message] + [f"{cjk_message} extra {i}" for i in range(3, 11)]
+
+            chat.fill("#message-input", enter_message)
+            chat.press("#message-input", "Enter")
+            chat.wait_for_function(
+                """(message) => {
+                  const text = document.querySelector("#chat-scroll")?.textContent || "";
+                  return text.includes(`Logged. ${message}`);
+                }""",
+                arg=enter_message,
+                timeout=timeout_ms,
+            )
+            result["chat_enter_key_send_checked"] = True
+
+            chat.fill("#message-input", multiline_first_line)
+            chat.press("#message-input", "Shift+Enter")
+            textarea_value = chat.locator("#message-input").input_value(timeout=timeout_ms)
+            result["chat_shift_enter_multiline_checked"] = "\n" in textarea_value
+            chat.type("#message-input", multiline_second_line)
+            chat.click("#send-button")
+            chat.wait_for_function(
+                """({ firstLine, secondLine }) => {
+                  const text = document.querySelector("#chat-scroll")?.textContent || "";
+                  return text.includes(firstLine) && text.includes(secondLine) && text.includes("Logged.");
+                }""",
+                arg={"firstLine": multiline_first_line, "secondLine": multiline_second_line},
+                timeout=timeout_ms,
+            )
+
+            for message in chat_messages[2:]:
                 chat.fill("#message-input", message)
                 chat.click("#send-button")
                 chat.wait_for_function(
@@ -286,6 +366,85 @@ def _run_browser_sequence(
                 reload_scroll_state.get("scrollHeight", 0) > reload_scroll_state.get("clientHeight", 0)
                 and reload_scroll_state.get("moved") is True
             )
+            chat.evaluate(
+                """(dateValue) => {
+                  const input = document.querySelector("#local-date");
+                  input.value = dateValue;
+                  input.dispatchEvent(new Event("change", { bubbles: true }));
+                }""",
+                arg=previous_local_date,
+            )
+            chat.wait_for_function(
+                """(dateValue) => new URL(window.location.href).searchParams.get("local_date") === dateValue """,
+                arg=previous_local_date,
+                timeout=timeout_ms,
+            )
+            result["chat_url_state_preserved_after_date_change"] = True
+            chat.reload(wait_until="networkidle", timeout=timeout_ms)
+            chat.wait_for_function(
+                """(dateValue) => document.querySelector("#local-date")?.value === dateValue """,
+                arg=previous_local_date,
+                timeout=timeout_ms,
+            )
+            result["chat_reload_preserved_selected_date"] = True
+            chat.evaluate(
+                """(dateValue) => {
+                  const input = document.querySelector("#local-date");
+                  input.value = dateValue;
+                  input.dispatchEvent(new Event("change", { bubbles: true }));
+                }""",
+                arg=local_date,
+            )
+            chat.wait_for_function(
+                """(dateValue) => new URL(window.location.href).searchParams.get("local_date") === dateValue """,
+                arg=local_date,
+                timeout=timeout_ms,
+            )
+            chat.wait_for_function(
+                """(message) => (document.querySelector("#chat-scroll")?.textContent || "").includes(message)""",
+                arg=chat_messages[-1],
+                timeout=timeout_ms,
+            )
+            alternate_user_id = f"{user_external_id}-alt"
+            chat.evaluate(
+                """(userId) => {
+                  const input = document.querySelector("#user-id");
+                  input.value = userId;
+                  input.dispatchEvent(new Event("change", { bubbles: true }));
+                }""",
+                arg=alternate_user_id,
+            )
+            chat.wait_for_function(
+                """(userId) => new URL(window.location.href).searchParams.get("user_id") === userId """,
+                arg=alternate_user_id,
+                timeout=timeout_ms,
+            )
+            result["chat_user_url_state_preserved_after_user_change"] = True
+            chat.reload(wait_until="networkidle", timeout=timeout_ms)
+            chat.wait_for_function(
+                """(userId) => document.querySelector("#user-id")?.value === userId """,
+                arg=alternate_user_id,
+                timeout=timeout_ms,
+            )
+            result["chat_reload_preserved_user_id"] = True
+            chat.evaluate(
+                """(userId) => {
+                  const input = document.querySelector("#user-id");
+                  input.value = userId;
+                  input.dispatchEvent(new Event("change", { bubbles: true }));
+                }""",
+                arg=user_external_id,
+            )
+            chat.wait_for_function(
+                """(userId) => new URL(window.location.href).searchParams.get("user_id") === userId """,
+                arg=user_external_id,
+                timeout=timeout_ms,
+            )
+            chat.wait_for_function(
+                """(message) => (document.querySelector("#chat-scroll")?.textContent || "").includes(message)""",
+                arg=chat_messages[-1],
+                timeout=timeout_ms,
+            )
             result["fetch_sequence"].extend(_capture_fetches(chat))
             chat.close()
 
@@ -298,6 +457,9 @@ def _run_browser_sequence(
                 local_debug_token=local_debug_token,
             )
             today.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
+            nav_checks.append(
+                _nav_session_query_preserved(today, user_external_id=user_external_id, local_date=local_date)
+            )
             today.wait_for_function(
                 """() => document.querySelector("#budget-kcal")?.textContent?.trim() !== "--" """,
                 timeout=timeout_ms,
@@ -312,14 +474,16 @@ def _run_browser_sequence(
             result["today_no_debug_trace"] = _is_visible_product_text_clean(today_text)
             result["current_step"] = "switch_today_date"
             today.evaluate(
-                """() => {
+                """(dateValue) => {
                   const input = document.querySelector("#selected-date");
-                  input.value = "2026-05-03";
+                  input.value = dateValue;
                   input.dispatchEvent(new Event("change", { bubbles: true }));
-                }"""
+                }""",
+                arg=previous_local_date,
             )
             today.wait_for_function(
-                """() => document.querySelector("#selected-date")?.value === "2026-05-03" """,
+                """(dateValue) => document.querySelector("#selected-date")?.value === dateValue """,
+                arg=previous_local_date,
                 timeout=timeout_ms,
             )
             today.wait_for_function(
@@ -329,15 +493,35 @@ def _run_browser_sequence(
             result["today_previous_day_empty_checked"] = cjk_message not in today.locator("#meal-list").inner_text(
                 timeout=timeout_ms
             )
-            today.evaluate(
-                """() => {
-                  const input = document.querySelector("#selected-date");
-                  input.value = "2026-05-04";
-                  input.dispatchEvent(new Event("change", { bubbles: true }));
-                }"""
+            result["today_url_state_preserved_after_date_change"] = (
+                today.evaluate("""() => new URL(window.location.href).searchParams.get("local_date")""")
+                == previous_local_date
+            )
+            result["fetch_sequence"].extend(_capture_fetches(today))
+            today.reload(wait_until="networkidle", timeout=timeout_ms)
+            today.wait_for_function(
+                """(dateValue) => document.querySelector("#selected-date")?.value === dateValue """,
+                arg=previous_local_date,
+                timeout=timeout_ms,
             )
             today.wait_for_function(
-                """() => document.querySelector("#selected-date")?.value === "2026-05-04" """,
+                """() => (document.querySelector("#meal-list")?.textContent || "").includes("No meals logged") """,
+                timeout=timeout_ms,
+            )
+            result["today_reload_preserved_selected_date"] = cjk_message not in today.locator("#meal-list").inner_text(
+                timeout=timeout_ms
+            )
+            today.evaluate(
+                """(dateValue) => {
+                  const input = document.querySelector("#selected-date");
+                  input.value = dateValue;
+                  input.dispatchEvent(new Event("change", { bubbles: true }));
+                }""",
+                arg=local_date,
+            )
+            today.wait_for_function(
+                """(dateValue) => document.querySelector("#selected-date")?.value === dateValue """,
+                arg=local_date,
                 timeout=timeout_ms,
             )
             today.wait_for_function(
@@ -349,6 +533,38 @@ def _run_browser_sequence(
                 timeout=timeout_ms
             )
             result["today_date_switch_checked"] = True
+            result["fetch_sequence"].extend(_capture_fetches(today))
+            alternate_today_user_id = f"{user_external_id}-today-alt"
+            today.fill("#user-id", alternate_today_user_id)
+            today.dispatch_event("#user-id", "change")
+            today.wait_for_function(
+                """(userId) => new URL(window.location.href).searchParams.get("user_id") === userId """,
+                arg=alternate_today_user_id,
+                timeout=timeout_ms,
+            )
+            result["today_user_url_state_preserved_after_user_change"] = True
+            today.reload(wait_until="networkidle", timeout=timeout_ms)
+            today.wait_for_function(
+                """(userId) => document.querySelector("#user-id")?.value === userId """,
+                arg=alternate_today_user_id,
+                timeout=timeout_ms,
+            )
+            result["today_reload_preserved_user_id"] = True
+            today.fill("#user-id", user_external_id)
+            today.dispatch_event("#user-id", "change")
+            today.wait_for_function(
+                """(userId) => new URL(window.location.href).searchParams.get("user_id") === userId """,
+                arg=user_external_id,
+                timeout=timeout_ms,
+            )
+            today.wait_for_function(
+                """(message) => (document.querySelector("#meal-list")?.textContent || "").includes(message) """,
+                arg=cjk_message,
+                timeout=timeout_ms,
+            )
+            nav_checks.append(
+                _nav_session_query_preserved(today, user_external_id=user_external_id, local_date=local_date)
+            )
             result["fetch_sequence"].extend(_capture_fetches(today))
             desktop_overflows.append(_overflow_state(today))
             storage_keys["localStorageKeys"].extend(_storage_state(today).get("localStorageKeys", []))
@@ -365,6 +581,9 @@ def _run_browser_sequence(
                 local_debug_token=local_debug_token,
             )
             body.wait_for_selector('[data-surface-role="body-plan"]', timeout=timeout_ms)
+            nav_checks.append(
+                _nav_session_query_preserved(body, user_external_id=user_external_id, local_date=local_date)
+            )
             body.wait_for_function(
                 """() => document.querySelector("#plan-daily-target")?.textContent?.trim() !== "--" """,
                 timeout=timeout_ms,
@@ -376,6 +595,67 @@ def _run_browser_sequence(
                 body.locator(selector).inner_text(timeout=timeout_ms).strip() != "--"
                 for selector in ("#plan-daily-target", "#plan-tdee", "#plan-current-weight")
             )
+            body.evaluate(
+                """(dateValue) => {
+                  const input = document.querySelector("#local-date");
+                  input.value = dateValue;
+                  input.dispatchEvent(new Event("change", { bubbles: true }));
+                }""",
+                arg=previous_local_date,
+            )
+            body.wait_for_function(
+                """(dateValue) => new URL(window.location.href).searchParams.get("local_date") === dateValue """,
+                arg=previous_local_date,
+                timeout=timeout_ms,
+            )
+            result["body_url_state_preserved_after_date_change"] = True
+            body.reload(wait_until="networkidle", timeout=timeout_ms)
+            body.wait_for_function(
+                """(dateValue) => document.querySelector("#local-date")?.value === dateValue """,
+                arg=previous_local_date,
+                timeout=timeout_ms,
+            )
+            result["body_reload_preserved_selected_date"] = True
+            body.evaluate(
+                """(dateValue) => {
+                  const input = document.querySelector("#local-date");
+                  input.value = dateValue;
+                  input.dispatchEvent(new Event("change", { bubbles: true }));
+                }""",
+                arg=local_date,
+            )
+            body.wait_for_function(
+                """(dateValue) => new URL(window.location.href).searchParams.get("local_date") === dateValue """,
+                arg=local_date,
+                timeout=timeout_ms,
+            )
+            alternate_user_id = f"{user_external_id}-alt"
+            body.fill("#user-id", alternate_user_id)
+            body.dispatch_event("#user-id", "change")
+            body.wait_for_function(
+                """(userId) => new URL(window.location.href).searchParams.get("user_id") === userId """,
+                arg=alternate_user_id,
+                timeout=timeout_ms,
+            )
+            result["body_user_url_state_preserved_after_user_change"] = True
+            body.reload(wait_until="networkidle", timeout=timeout_ms)
+            body.wait_for_function(
+                """(userId) => document.querySelector("#user-id")?.value === userId """,
+                arg=alternate_user_id,
+                timeout=timeout_ms,
+            )
+            result["body_reload_preserved_user_id"] = True
+            body.fill("#user-id", user_external_id)
+            body.dispatch_event("#user-id", "change")
+            body.wait_for_function(
+                """(userId) => new URL(window.location.href).searchParams.get("user_id") === userId """,
+                arg=user_external_id,
+                timeout=timeout_ms,
+            )
+            body.wait_for_function(
+                """() => document.querySelector("#plan-daily-target")?.textContent?.trim() !== "--" """,
+                timeout=timeout_ms,
+            )
             result["current_step"] = "save_weight"
             body.fill("#weight-kg", "70.4")
             body.click('button:has-text("Save weight")')
@@ -385,7 +665,15 @@ def _run_browser_sequence(
             )
             result["body_weight_checkin_saved"] = True
             result["current_step"] = "save_body_plan"
+            body.select_option("#sex", "female")
+            body.fill("#age-years", "34")
+            body.fill("#height-cm", "170")
+            body.fill("#current-weight-kg", "70")
             body.fill("#target-weight-kg", "65")
+            body.select_option("#goal-type", "lose_weight")
+            body.select_option("#daily-lifestyle", "sedentary_with_some_walking")
+            body.select_option("#weekly-exercise-days-band", "0")
+            body.fill("#weekly-target-rate-kg", "0.5")
             body.click('button:has-text("Rebuild plan")')
             body.wait_for_function(
                 """() => (document.querySelector("#body-status")?.textContent || "").includes("Plan saved") """,
@@ -466,6 +754,7 @@ def _run_browser_sequence(
             result["storage"] = storage_keys
             result["forbidden_storage_used"] = bool(storage_keys["localStorageKeys"] or storage_keys["sessionStorageKeys"])
             result["product_page_text"] = "\n".join(page_texts)
+            result["nav_session_query_preserved"] = bool(nav_checks) and all(nav_checks)
             result["product_cjk_copy_rendered"] = all(
                 fragment in result["product_page_text"]
                 for fragment in ("像 LINE", "每天一頁", "先把體重")
@@ -491,6 +780,15 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("chat_sent_cjk_message", "chat_cjk_message_not_sent")
     require_true("chat_assistant_bubble_rendered", "chat_assistant_bubble_not_rendered")
     require_true("chat_history_reloaded", "chat_history_not_reloaded")
+    require_true("chat_url_state_preserved_after_date_change", "chat_url_state_not_preserved_after_date_change")
+    require_true("chat_reload_preserved_selected_date", "chat_reload_did_not_preserve_selected_date")
+    require_true(
+        "chat_user_url_state_preserved_after_user_change",
+        "chat_user_url_state_not_preserved_after_user_change",
+    )
+    require_true("chat_reload_preserved_user_id", "chat_reload_did_not_preserve_user_id")
+    require_true("chat_enter_key_send_checked", "chat_enter_key_send_not_checked")
+    require_true("chat_shift_enter_multiline_checked", "chat_shift_enter_multiline_not_checked")
     require_true("chat_scrollable", "chat_not_scrollable")
     require_true("chat_scroll_behavior_checked", "chat_scroll_behavior_not_checked")
     require_true("chat_reload_scroll_behavior_checked", "chat_reload_scroll_behavior_not_checked")
@@ -499,11 +797,28 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("today_date_switch_checked", "today_date_switch_not_checked")
     require_true("today_previous_day_empty_checked", "today_previous_day_empty_not_checked")
     require_true("today_current_day_restored_checked", "today_current_day_restored_not_checked")
+    require_true(
+        "today_url_state_preserved_after_date_change",
+        "today_url_state_not_preserved_after_date_change",
+    )
+    require_true("today_reload_preserved_selected_date", "today_reload_did_not_preserve_selected_date")
+    require_true(
+        "today_user_url_state_preserved_after_user_change",
+        "today_user_url_state_not_preserved_after_user_change",
+    )
+    require_true("today_reload_preserved_user_id", "today_reload_did_not_preserve_user_id")
     require_true("today_summary_rendered", "today_summary_not_rendered")
     require_true("today_meal_list_rendered", "today_meal_list_not_rendered")
     require_true("today_no_debug_trace", "today_debug_trace_leaked")
     require_true("body_page_loaded", "body_page_not_loaded")
     require_true("body_query_user_id_honored", "body_query_user_id_not_honored")
+    require_true("body_url_state_preserved_after_date_change", "body_url_state_not_preserved_after_date_change")
+    require_true("body_reload_preserved_selected_date", "body_reload_did_not_preserve_selected_date")
+    require_true(
+        "body_user_url_state_preserved_after_user_change",
+        "body_user_url_state_not_preserved_after_user_change",
+    )
+    require_true("body_reload_preserved_user_id", "body_reload_did_not_preserve_user_id")
     require_true("body_active_plan_rendered", "body_active_plan_not_rendered")
     require_true("body_weight_checkin_saved", "body_weight_checkin_not_saved")
     require_true("body_plan_form_saved", "body_plan_form_not_saved")
@@ -516,6 +831,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("mobile_populated_state_checked", "mobile_populated_state_not_checked")
     require_true("mobile_no_debug_trace", "mobile_debug_trace_leaked")
     require_true("product_cjk_copy_rendered", "product_cjk_copy_not_rendered")
+    require_true("nav_session_query_preserved", "nav_session_query_not_preserved")
 
     if report.get("frontend_semantic_owner") is True:
         blockers.append("frontend_semantic_owner")
@@ -541,9 +857,11 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         ):
             blockers.append(f"fetch_missing:{method} {expected}")
     fetch_urls = [str(item.get("url") or "") for item in fetches if isinstance(item, dict)]
-    if not any("/today/current-budget" in url and "local_date=2026-05-03" in url for url in fetch_urls):
+    local_date = str(report.get("local_date") or DEFAULT_LOCAL_DATE)
+    previous_local_date = str(report.get("previous_local_date") or _previous_local_date(local_date))
+    if not any("/today/current-budget" in url and f"local_date={previous_local_date}" in url for url in fetch_urls):
         blockers.append("today_previous_day_fetch_missing")
-    if not any("/today/current-budget" in url and "local_date=2026-05-04" in url for url in fetch_urls):
+    if not any("/today/current-budget" in url and f"local_date={local_date}" in url for url in fetch_urls):
         blockers.append("today_current_day_fetch_missing")
     estimate_posts = [
         str(item.get("body") or "")
@@ -607,6 +925,7 @@ def build_product_pages_browser_smoke_report(
     report = _base_report(
         user_external_id=user_external_id,
         db_path=db_path,
+        local_date=local_date,
         browser_execution_required=require_browser_execution,
     )
     try:
@@ -700,7 +1019,7 @@ def main(argv: list[str] | None = None) -> int:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    print(json.dumps(report, ensure_ascii=True, indent=2))
     if report["status"] == "pass":
         return 0
     if report["status"] == "blocked" and not args.require_browser_execution:

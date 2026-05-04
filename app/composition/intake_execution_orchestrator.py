@@ -26,7 +26,10 @@ from app.composition.intake_manager_tool_batch import (
 from app.composition.state_resolver import resolve_intake_state
 from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
 from app.intake.application.context_injection_policy import build_manager_context_pack
-from app.intake.application.final_action_mutation_classifier import classify_final_action_mutation
+from app.intake.application.final_action_mutation_classifier import (
+    PERSISTENCE_EFFECT_ACTIONS,
+    classify_final_action_mutation,
+)
 from app.intake.application.history_expansion_manager_runtime import (
     PHASE_A_EXPAND_HISTORY_TOOL,
     activate_manager_triggered_history_expansion,
@@ -48,6 +51,9 @@ from app.shared.contracts.correction_operation import structured_payload_request
 from app.shared.contracts.correction_target import validate_correction_target_ref
 from app.shared.contracts.intake import EstimatePayload
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
+
+
+_MANAGER_LOOP_GUARD_PERSISTENCE_ACTIONS = PERSISTENCE_EFFECT_ACTIONS - frozenset({"ask_followup"})
 
 
 def _now_ms() -> int:
@@ -472,6 +478,7 @@ async def process_intake_execution_turn(
         transition_preflight = classify_final_action_mutation(
             manager_payload=manager_payload,
             transition_guard_result=latest_transition_guard_result,
+            persistence_effect_actions=_MANAGER_LOOP_GUARD_PERSISTENCE_ACTIONS,
         )
         preflight_trace = transition_preflight.trace_payload()
         if transition_preflight.blocked:

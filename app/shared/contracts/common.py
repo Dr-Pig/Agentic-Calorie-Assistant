@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 RouteTarget = Literal[
@@ -38,6 +39,11 @@ RecommendationCandidateKind = Literal["golden_order", "nearby", "safe_fallback",
 RecommendationBudgetPosture = Literal["on_track", "tight", "over_budget", "unknown"]
 StageTraceStatus = Literal["ok", "error"]
 LogicalModelRole = Literal["fast_router_model", "strict_reasoner_model", "response_writer_model", "vision_parser_model"]
+CalibrationEstimateAction = Literal[
+    "accept_calibration_proposal",
+    "defer_calibration_proposal",
+    "reject_calibration_proposal",
+]
 
 
 class ComponentContext(BaseModel):
@@ -56,7 +62,27 @@ class EstimateRequest(BaseModel):
     text: str = Field(min_length=1)
     allow_search: bool = True
     user_id: str = "default_user"
+    local_date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     session_state: EstimateSessionState | None = None
+    calibration_preview_requested: bool = False
+    persist_calibration_proposal: bool = False
+    calibration_proposal_container_id: int | None = Field(default=None, ge=1)
+    calibration_action: CalibrationEstimateAction | None = None
+    calibration_action_accepted_at: str | None = None
+
+    @field_validator("calibration_action_accepted_at")
+    @classmethod
+    def _validate_calibration_action_accepted_at(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        candidate = value.strip()
+        if not candidate or ("T" not in candidate and " " not in candidate):
+            raise ValueError("calibration_action_accepted_at must include a date and time")
+        try:
+            datetime.fromisoformat(candidate)
+        except ValueError as exc:
+            raise ValueError("calibration_action_accepted_at must be an ISO datetime") from exc
+        return candidate
 
 
 class TurnState(BaseModel):

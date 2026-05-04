@@ -30,13 +30,17 @@
       grid-template-rows: auto 1fr;
     }
     .topbar {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 16px auto 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      padding: 14px 22px;
-      border-bottom: 1px solid var(--line);
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
       background: var(--panel);
+      box-shadow: var(--shadow);
     }
     .brand {
       font-weight: 900;
@@ -67,7 +71,7 @@
       width: min(920px, calc(100vw - 32px));
       margin: 18px auto;
       display: grid;
-      min-height: calc(100vh - 92px);
+      min-height: calc(100vh - 118px);
     }
     .chat-card {
       display: grid;
@@ -97,6 +101,27 @@
       margin: 0;
       color: var(--muted);
       line-height: 1.45;
+    }
+    .chat-meta {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .action-link {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 11px;
+      color: var(--ink);
+      background: #fff;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 800;
     }
     .setup {
       display: grid;
@@ -129,11 +154,11 @@
       text-transform: uppercase;
       letter-spacing: 0;
     }
-    input, button {
+    input, textarea, button {
       font: inherit;
       min-height: 44px;
     }
-    input {
+    input, textarea {
       width: 100%;
       border: 1px solid rgba(23, 33, 29, 0.14);
       border-radius: 8px;
@@ -141,7 +166,13 @@
       color: var(--ink);
       background: #fff;
     }
+    textarea {
+      resize: vertical;
+      max-height: 132px;
+      line-height: 1.45;
+    }
     input:focus-visible,
+    textarea:focus-visible,
     button:focus-visible,
     a:focus-visible {
       outline: 3px solid rgba(31, 122, 61, 0.34);
@@ -212,12 +243,7 @@
       font-size: 12px;
       padding: 0 16px 12px;
       background: #f8faf9;
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
+      min-height: 24px;
     }
     @media (max-width: 760px) {
       .topbar,
@@ -226,6 +252,7 @@
       }
       .topbar {
         display: grid;
+        margin-top: 8px;
       }
       .setup {
         min-width: 0;
@@ -255,9 +282,9 @@
     <header class="topbar">
       <div class="brand">Accurate Intake</div>
       <nav aria-label="Accurate Intake pages">
-        <a href="/static/accurate-intake-chat.html" aria-current="page">Chat</a>
-        <a href="/static/accurate-intake-today.html">Today</a>
-        <a href="/static/accurate-intake-body.html">Body</a>
+        <a data-nav-target="chat" href="/static/accurate-intake-chat.html" aria-current="page">Chat</a>
+        <a data-nav-target="today" href="/static/accurate-intake-today.html">Today</a>
+        <a data-nav-target="body" href="/static/accurate-intake-body.html">Body</a>
       </nav>
     </header>
     <main>
@@ -266,6 +293,9 @@
           <div>
             <h1>Chat</h1>
             <p class="subtle">像 LINE 一樣輸入和回看飲食對話；這頁只送出訊息並顯示助理回覆。</p>
+            <p class="chat-meta">
+              <a id="chat-day-link" class="action-link" data-nav-target="today" href="/static/accurate-intake-today.html">Open this day</a>
+            </p>
           </div>
           <details class="setup-panel">
             <summary>Conversation settings</summary>
@@ -275,9 +305,6 @@
               </label>
               <label>Date
                 <input id="local-date" type="date" />
-              </label>
-              <label>Local access token
-                <input id="local-access-token" type="password" autocomplete="off" />
               </label>
             </div>
           </details>
@@ -289,7 +316,7 @@
           </div>
         </div>
         <form id="composer" class="composer">
-          <input id="message-input" name="message" autocomplete="off" aria-label="Message" placeholder="例如：早餐吃茶葉蛋和拿鐵" />
+          <textarea id="message-input" name="message" rows="1" autocomplete="off" aria-label="Message" placeholder="例如：早餐吃茶葉蛋和拿鐵"></textarea>
           <button id="send-button" type="submit">送出</button>
         </form>
         <div id="chat-history-status" class="status" aria-live="polite">Conversation history not loaded.</div>
@@ -314,13 +341,30 @@
     function selectedDate() {
       return el("local-date").value || todayIso();
     }
+    function pageUrl(page) {
+      return `/static/accurate-intake-${page}.html?user_id=${encodeURIComponent(userId())}&local_date=${encodeURIComponent(selectedDate())}`;
+    }
+    function updateNavigationLinks() {
+      document.querySelectorAll("[data-nav-target]").forEach((link) => {
+        const target = link.getAttribute("data-nav-target");
+        if (target) {
+          link.href = pageUrl(target);
+        }
+      });
+    }
+    function updateCurrentUrl() {
+      const nextUrl = pageUrl("chat");
+      const resolved = new URL(nextUrl, window.location.href);
+      if (window.location.search !== resolved.search) {
+        window.history.replaceState(null, "", nextUrl);
+      }
+    }
     function setStatus(value) {
       el("chat-history-status").textContent = `Conversation ${value}.`;
     }
     function localDebugHeaders(url) {
-      const inputToken = el("local-access-token")?.value.trim() || "";
       const globalToken = typeof window.LOCAL_DEBUG_API_TOKEN === "string" ? window.LOCAL_DEBUG_API_TOKEN.trim() : "";
-      const token = inputToken || globalToken;
+      const token = globalToken;
       if (!token) {
         return {};
       }
@@ -392,7 +436,7 @@
         const payload = await requestJson(endpoints.estimate, {
           method: "POST",
           headers: { "Content-Type": "application/json; charset=utf-8" },
-          body: JSON.stringify({ text, user_id: userId(), allow_search: false })
+          body: JSON.stringify({ text, user_id: userId(), local_date: selectedDate(), allow_search: false })
         });
         pending.textContent = payload.coach_message || "目前沒有可顯示的助理回覆。";
         await loadHistory();
@@ -401,8 +445,23 @@
       }
     }
     el("composer").addEventListener("submit", submitMessage);
-    el("local-date").addEventListener("change", () => loadHistory().catch((error) => setStatus(`failed ${error.message}`)));
-    el("user-id").addEventListener("change", () => loadHistory().catch((error) => setStatus(`failed ${error.message}`)));
+    el("message-input").addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+        event.preventDefault();
+        el("composer").requestSubmit();
+      }
+    });
+    el("local-date").addEventListener("change", () => {
+      updateCurrentUrl();
+      updateNavigationLinks();
+      loadHistory().catch((error) => setStatus(`failed ${error.message}`));
+    });
+    el("user-id").addEventListener("change", () => {
+      updateCurrentUrl();
+      updateNavigationLinks();
+      loadHistory().catch((error) => setStatus(`failed ${error.message}`));
+    });
+    updateNavigationLinks();
     loadHistory().catch((error) => setStatus(`failed ${error.message}`));
   </script>
 </body>

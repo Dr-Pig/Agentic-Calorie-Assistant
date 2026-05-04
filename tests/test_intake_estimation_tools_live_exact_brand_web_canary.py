@@ -18,8 +18,8 @@ sys.modules.setdefault(
     _conversation_state_summaries,
 )
 
-from app.composition.intake_estimation_tools import estimate_nutrition_tool
-import app.nutrition.application.estimate_artifacts as estimate_artifacts_module
+from app.composition.intake_estimation_tools import estimate_nutrition_tool  # noqa: E402
+import app.nutrition.application.estimate_artifacts as estimate_artifacts_module  # noqa: E402
 
 
 class _ProviderStub:
@@ -99,6 +99,10 @@ async def test_exact_brand_canary_success_keeps_user_facing_fallback_unchanged_b
                 "officialness": "official",
                 "brand_detected": "統一",
                 "serving_basis": "per_cup",
+                "identity_confidence": "high",
+                "license_status": "public_menu_page",
+                "robots_status": "allowed",
+                "nutrition_fields_present": ["kcal"],
             }
         ]
     )
@@ -154,6 +158,10 @@ async def test_exact_brand_canary_failure_keeps_fallback_and_records_failure_rea
                 "officialness": "official",
                 "brand_detected": "統一",
                 "serving_basis": "per_cup",
+                "identity_confidence": "high",
+                "license_status": "public_menu_page",
+                "robots_status": "allowed",
+                "nutrition_fields_present": ["kcal"],
             }
         ]
     )

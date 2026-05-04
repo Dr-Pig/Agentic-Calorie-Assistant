@@ -91,6 +91,7 @@ def run_gate(plan: GatePlan, *, fail_fast: bool = True) -> dict[str, Any]:
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
+                errors="replace",
             )
             command_results.append(
                 {
@@ -128,6 +129,10 @@ def run_gate(plan: GatePlan, *, fail_fast: bool = True) -> dict[str, Any]:
     }
 
 
+def stdout_json(result: dict[str, Any]) -> str:
+    return json.dumps(result, ensure_ascii=True, indent=2)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the Accurate Intake MVP deterministic gate.")
     parser.add_argument("--manifest", default=str(DEFAULT_MANIFEST_PATH))
@@ -148,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    print(stdout_json(result))
     return 0 if result["status"] == "pass" else 1
 
 

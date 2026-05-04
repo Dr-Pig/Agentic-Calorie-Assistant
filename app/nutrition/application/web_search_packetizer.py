@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Sequence
+from typing import Sequence
 
 from .context_normalizer import lookup_key, lookup_tokens, normalize_text
 from .retrieval_intent import RetrievalIntent
@@ -50,6 +50,9 @@ def build_web_search_candidate_packet(
         "truth_level": "candidate",
         "source_type": "web_search",
         "source_quality_label": source_quality_label,
+        "officialness_hint": _text(candidate.get("officialness_hint")),
+        "license_status": _text(candidate.get("license_status")) or "unknown",
+        "robots_status": _text(candidate.get("robots_status")) or "unknown",
         "raw_ref": _text(candidate.get("raw_ref")),
         "title": title,
         "url": url,
@@ -64,6 +67,9 @@ def build_web_search_candidate_packet(
         "size_or_serving_match": size_or_serving_match,
         "modifier_match": modifier_match,
         "serving_basis": _text(candidate.get("serving_basis_candidate")) or "unknown",
+        "serving_basis_candidate": _text(candidate.get("serving_basis_candidate")) or "unknown",
+        "identity_confidence": _text(candidate.get("identity_confidence")) or "unknown",
+        "nutrition_fields_present": list(candidate.get("nutrition_fields_present") or []),
         "sibling_variant_risk": sibling_variant_risk,
     }
 
