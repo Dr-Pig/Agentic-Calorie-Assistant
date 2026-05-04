@@ -94,6 +94,10 @@ FUTURE_ACTIVE_SURFACE_PATTERNS = (
     "migrations/",
 )
 
+PROACTIVE_SHADOW_ALLOWED_RUNTIME_APPLICATION_PATHS = {
+    "app/runtime/application/proactive_no_send_shadow_evaluator.py",
+}
+
 GUARD_OR_CONTRACT_TOKENS = (
     "guard",
     "contract",
@@ -531,7 +535,10 @@ def evaluate_sidecar_activation(
         if path.startswith("app/rescue/fixtures/"):
             findings.append("rescue_fixture_under_active_app_policy")
         if path.startswith("app/runtime/application/"):
-            runtime_status = "suspicious"
+            if track == "ProactiveShadow" and path in PROACTIVE_SHADOW_ALLOWED_RUNTIME_APPLICATION_PATHS:
+                runtime_status = "inactive"
+            else:
+                runtime_status = "suspicious"
         if any(path == pattern or path.startswith(pattern) for pattern in FUTURE_ACTIVE_SURFACE_PATTERNS):
             if not path.startswith("app/runtime/application/"):
                 runtime_status = "active"
