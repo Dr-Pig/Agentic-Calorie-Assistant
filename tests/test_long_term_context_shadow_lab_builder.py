@@ -35,6 +35,7 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "memory_extraction_storage_rag_shadow_plan.json",
         "retrieval_ranking_policy_shadow_eval.json",
         "manager_memory_contract_shadow_plan.json",
+        "pre_compaction_memory_flush_shadow_plan.json",
         "product_capability_context_map.json",
         "memory_dependency_graph_shadow_eval.json",
         "memory_promotion_demotion_shadow_eval.json",

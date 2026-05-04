@@ -81,6 +81,9 @@ ARTIFACT_FILENAMES = {
         "retrieval_ranking_policy_shadow_eval.json"
     ),
     "manager_memory_contract_shadow_plan": "manager_memory_contract_shadow_plan.json",
+    "pre_compaction_memory_flush_shadow_plan": (
+        "pre_compaction_memory_flush_shadow_plan.json"
+    ),
     "product_capability_context_map": "product_capability_context_map.json",
     "memory_dependency_graph_shadow_eval": "memory_dependency_graph_shadow_eval.json",
     "external_memory_framework_research_review": (

@@ -24,6 +24,9 @@ from app.memory.application.long_term_context_shadow.memory_architecture_artifac
 from app.memory.application.long_term_context_shadow.manager_memory_contracts import (
     _manager_memory_contract_shadow_artifact,
 )
+from app.memory.application.long_term_context_shadow.pre_compaction_flush_artifact import (
+    _pre_compaction_memory_flush_shadow_artifact,
+)
 from app.memory.application.long_term_context_shadow.quality_artifacts import (
     _capability_scenario_fixture_pack_artifact,
     _context_quality_contradiction_review_artifact,
@@ -66,6 +69,9 @@ def build_future_shadow_artifacts(
         ),
         "manager_memory_contract_shadow_plan": (
             _manager_memory_contract_shadow_artifact(fixture)
+        ),
+        "pre_compaction_memory_flush_shadow_plan": (
+            _pre_compaction_memory_flush_shadow_artifact(fixture)
         ),
         "product_capability_context_map": _product_capability_context_map_artifact(
             fixture,
@@ -150,6 +156,7 @@ __all__ = [
     "_memory_promotion_demotion_shadow_artifact",
     "_memory_review_action_shadow_artifact",
     "_pr_review_autopilot_closeout_artifact",
+    "_pre_compaction_memory_flush_shadow_artifact",
     "_proactive_no_send_artifact",
     "_product_capability_context_map_artifact",
     "_recommendation_shadow_artifact",
