@@ -53,11 +53,22 @@ def _effect_payload(*, budget: int = 1650) -> dict[str, object]:
     }
 
 
+def _effect_payload_with_calibration_adjustment(
+    *,
+    budget: int = 1650,
+    calibration_adjustment_delta_kcal: int = -75,
+) -> dict[str, object]:
+    payload = _effect_payload(budget=budget)
+    payload["calibration_adjustment_delta_kcal"] = calibration_adjustment_delta_kcal
+    return payload
+
+
 def _stored_calibration_proposal(
     db: Session,
     *,
     user_id: int,
     status: str = "open",
+    effect_payload: dict[str, object] | None = None,
 ) -> ProposalContainerRecord:
     proposal = ProposalContainerRecord(
         user_id=user_id,
@@ -74,7 +85,7 @@ def _stored_calibration_proposal(
         option_summary="Stored proposal option",
         rank_order=0,
         is_primary=True,
-        effect_payload_json=_effect_payload(budget=1650),
+        effect_payload_json=effect_payload or _effect_payload(budget=1650),
     )
     db.add(option)
     db.flush()
@@ -412,3 +423,104 @@ def test_accepting_budget_adjustment_creates_new_active_body_plan_and_refreshes_
     assert ledger.budget_kcal == 1650
     assert ledger.remaining_kcal == 1650
     assert db.execute(select(LedgerEntryRecord)).scalars().all() == []
+
+
+def test_accepting_budget_adjustment_with_explicit_calibration_delta_creates_adjustment_entry() -> None:
+    db = _session()
+    user = get_or_create_user(db, "calibration-budget-entry-accept")
+    _active_body_plan(db, user_id=user.id)
+
+    result = apply_calibration_proposal_commit(
+        db,
+        user=user,
+        local_date="2026-05-04",
+        proposal_family="budget_adjustment",
+        effect_payload=_effect_payload_with_calibration_adjustment(budget=1650, calibration_adjustment_delta_kcal=-75),
+        decision="accepted",
+        accepted_at=datetime(2026, 5, 4, 10, 30, 0),
+    )
+
+    proposal = db.get(ProposalContainerRecord, result.proposal_container_id)
+    assert proposal is not None
+    entry = db.execute(select(LedgerEntryRecord)).scalar_one()
+    ledger = db.execute(select(DayBudgetLedgerRecord)).scalar_one()
+    assert entry.entry_type == "calibration_adjustment"
+    assert entry.source_type == "proposal_option"
+    assert entry.source_id == proposal.top_option_id
+    assert entry.delta_kcal == -75
+    assert entry.metadata_json["proposal_container_id"] == result.proposal_container_id
+    assert entry.metadata_json["effective_from"] == "2026-05-04"
+    assert ledger.budget_kcal == 1650
+    assert ledger.adjustment_kcal == 75
+    assert ledger.remaining_kcal == 1575
+    assert result.current_budget_view.adjustment_kcal == 75
+    assert result.current_budget_view.remaining_kcal == 1575
+
+
+def test_stored_accept_with_explicit_calibration_delta_writes_one_adjustment_entry() -> None:
+    db = _session()
+    user = get_or_create_user(db, "stored-calibration-entry-accept")
+    _active_body_plan(db, user_id=user.id)
+    proposal = _stored_calibration_proposal(
+        db,
+        user_id=user.id,
+        status="open",
+        effect_payload=_effect_payload_with_calibration_adjustment(budget=1650, calibration_adjustment_delta_kcal=-60),
+    )
+
+    result = apply_stored_calibration_proposal_action(
+        db,
+        user=user,
+        proposal_container_id=proposal.id,
+        decision="accepted",
+        accepted_at=datetime(2026, 5, 4, 10, 30, 0),
+    )
+
+    entry = db.execute(select(LedgerEntryRecord)).scalar_one()
+    ledger = db.execute(select(DayBudgetLedgerRecord)).scalar_one()
+    assert result.proposal_status == "accepted"
+    assert entry.entry_type == "calibration_adjustment"
+    assert entry.source_type == "proposal_option"
+    assert entry.source_id == proposal.top_option_id
+    assert entry.delta_kcal == -60
+    assert ledger.budget_kcal == 1650
+    assert ledger.adjustment_kcal == 60
+    assert ledger.remaining_kcal == 1590
+
+    with pytest.raises(ValueError, match="stored calibration proposal is not actionable: accepted"):
+        apply_stored_calibration_proposal_action(
+            db,
+            user=user,
+            proposal_container_id=proposal.id,
+            decision="accepted",
+            accepted_at=datetime(2026, 5, 4, 10, 45, 0),
+        )
+    assert len(db.execute(select(LedgerEntryRecord)).scalars().all()) == 1
+
+
+def test_calibration_adjustment_delta_cannot_push_effective_budget_below_safety_floor() -> None:
+    db = _session()
+    user = get_or_create_user(db, "calibration-entry-floor")
+    _active_body_plan(db, user_id=user.id)
+
+    with pytest.raises(ValueError, match="calibration_adjustment_delta_kcal"):
+        apply_calibration_proposal_commit(
+            db,
+            user=user,
+            local_date="2026-05-04",
+            proposal_family="budget_adjustment",
+            effect_payload=_effect_payload_with_calibration_adjustment(
+                budget=1250,
+                calibration_adjustment_delta_kcal=-75,
+            ),
+            decision="accepted",
+            accepted_at=datetime(2026, 5, 4, 10, 30, 0),
+        )
+
+    assert _counts(db) == {
+        "body_plans": 1,
+        "day_ledgers": 0,
+        "ledger_entries": 0,
+        "proposals": 0,
+        "proposal_options": 0,
+    }
