@@ -138,6 +138,71 @@ Examples:
 - recommendation nudges should not send without an active body plan or adequate candidate context
 - rescue nudges should not send without valid current-budget truth
 
+### 4.5 UX Permission Posture
+
+Every trigger evaluation must record a `permission_posture` before it can be considered for live delivery.
+
+Allowed values:
+
+- `user_expected`
+- `user_opted_in`
+- `app_open_only`
+- `no_push_allowed`
+- `later_requires_explicit_consent`
+
+Default v1 posture:
+
+| Trigger / Shadow Candidate | Permission Posture |
+| --- | --- |
+| `weekly_insight` | `user_expected` |
+| `meal_reminder` / `missing_log_reminder_with_cooldown` | `user_expected` |
+| `weight_reminder` / `low_frequency_weight_log_reminder` | `user_opted_in` |
+| `recommendation_prompt` | `app_open_only` |
+| `recommendation_nudge_meal_time` | `no_push_allowed` unless explicitly enabled later |
+| `recommendation_nudge_nearby` | `no_push_allowed` unless explicitly enabled later |
+| `swap_suggestion` | `no_push_allowed` unless explicitly enabled later |
+| `overshoot_risk` / `rescue_nudge` | `later_requires_explicit_consent` |
+| `calibration_insight` / `calibration_nudge` | `later_requires_explicit_consent` |
+| `location_based_food_push` / `strict_multi_day_correction` / `emotional_coaching_nudge` / `memory_driven_intervention` | `later_requires_explicit_consent` |
+
+Permission posture is not the same as data sufficiency. A trigger can have enough data and still be non-sendable because the user has not opted into that kind of proactive intervention.
+
+### 4.6 No-Send Shadow Gate
+
+Before any new trigger family is live, it must pass no-send shadow review.
+
+The no-send artifact must prove:
+
+- `shadow_mode=true`
+- `real_runtime_effect=false`
+- `proactive_sent=false`
+- `scheduler_enabled=false`
+- `manager_context_injected=false`
+- `durable_memory_written=false`
+- no recommendation result was served
+- no rescue proposal was committed
+- no `BodyPlan`, `DayBudgetLedger`, or `MealThread` mutation occurred
+
+Level 2 shadow-first candidates require a stricter threshold than Level 1 reminders:
+
+```yaml
+level_2_gate:
+  require:
+    - higher_data_sufficiency
+    - lower_frequency
+    - stronger_user_benefit
+    - explicit_suppression_reason_if_skipped
+```
+
+Level 2 candidates include:
+
+- `pre_meal_budget_awareness`
+- `overshoot_risk`
+- `calibration_insight`
+- `recommendation_prompt`
+
+If any Level 2 candidate is skipped, the artifact must include an explicit suppression reason.
+
 ---
 
 ## 5. Trigger-Specific Rules
@@ -211,6 +276,12 @@ Downstream posture:
 
 - hand off into `rescue`
 
+No-send shadow posture:
+
+- allowed output is invitation-only, for example "we can look later if you want help adjusting"
+- forbidden output includes a concrete future deficit such as "tomorrow eat 300 kcal less"
+- forbidden output includes creating a rescue proposal or mutating the day budget ledger
+
 ### 5.4 `recommendation_nudge_meal_time`
 
 Type:
@@ -239,6 +310,14 @@ Intensity rule:
 - medium-quality context should send only a low-friction offer to help find dinner
 - low-quality context should skip silently
 - proactive recommendation should not run expensive live web/menu/blog search by default; live enrichment is user-engaged unless a later spec defines a cache-backed exception
+
+No-send `recommendation_prompt` boundary:
+
+- allowed output is candidate invitation only, for example "if you are getting dinner, I can help pick a few stable options"
+- forbidden output includes actual ranked food candidates
+- forbidden output includes live menu or search query execution
+- forbidden output includes creating an intake hint packet
+- forbidden output includes serving a recommendation result
 
 ### 5.5 `recommendation_nudge_nearby`
 
@@ -322,6 +401,13 @@ LLM dispatch decision:
 Downstream posture:
 
 - hand off into `calibration`
+
+No-send `calibration_insight` boundary:
+
+- allowed output is invitation-only, for example "we can do a calibration preview"
+- forbidden output includes telling the user they should change to a specific target
+- forbidden output includes outputting a concrete new kcal target
+- forbidden output includes mutating `BodyPlan`
 
 ---
 
