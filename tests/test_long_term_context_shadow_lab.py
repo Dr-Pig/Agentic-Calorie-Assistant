@@ -208,6 +208,7 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
         "long_term_context_pack_shadow_eval",
         "conversation_recall_tool_shadow_plan",
         "product_capability_context_map",
+        "memory_promotion_demotion_shadow_eval",
     }
 
     for artifact in artifacts.values():
@@ -573,6 +574,54 @@ def test_review_actions_create_shadow_records_without_durable_memory_write() -> 
     assert record["provenance"]["source_trace_ids"] == ["lang-1"]
 
 
+def test_memory_promotion_demotion_shadow_eval_never_writes_durable_memory() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "memory_promotion_demotion_shadow_eval"
+    ]
+
+    assert artifact["artifact_type"] == "memory_promotion_demotion_shadow_eval"
+    assert artifact["promotion_attempted"] is False
+    assert artifact["demotion_attempted"] is False
+    assert artifact["durable_memory_written"] is False
+    assert artifact["manager_context_injected"] is False
+    assert artifact["source_spec"] == "docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md"
+
+    by_id = {item["candidate_id"]: item for item in artifact["promotion_review_items"]}
+    language_item = next(
+        item
+        for item in artifact["promotion_review_items"]
+        if item["candidate_id"].startswith("user-language-")
+    )
+    assert language_item["review_action_status"] == "accepted"
+    assert language_item["durable_write_allowed"] is False
+    assert by_id["negative-preference-ingredient-cilantro"]["promotion_blockers"] == [
+        "human_confirmation_required"
+    ]
+    assert (
+        by_id["temporary-preference-lower-oil-dinner"]["temporal_validity_required"]
+        is True
+    )
+    assert by_id["temporary-preference-lower-oil-dinner"]["promotion_blockers"] == [
+        "human_confirmation_required",
+        "expiry_policy_required",
+    ]
+
+    demotion_lanes = {
+        lane["lane_id"]: lane for lane in artifact["demotion_review_lanes"]
+    }
+    assert (
+        demotion_lanes["expired_temporary_preference"]["automatic_runtime_effect"]
+        is False
+    )
+    assert (
+        demotion_lanes["user_correction_or_deletion"]["human_review_required"] is True
+    )
+
+
 def test_conversation_recall_shadow_eval_is_summary_first_and_tool_call_disabled() -> (
     None
 ):
@@ -784,6 +833,7 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "long_term_context_pack_shadow_eval.json",
         "conversation_recall_tool_shadow_plan.json",
         "product_capability_context_map.json",
+        "memory_promotion_demotion_shadow_eval.json",
         "external_memory_framework_research_review.json",
     }
     assert {path.name for path in output_dir.iterdir()} == expected_files

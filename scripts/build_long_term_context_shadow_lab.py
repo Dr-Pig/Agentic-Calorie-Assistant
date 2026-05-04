@@ -28,6 +28,9 @@ ARTIFACT_FILENAMES = {
     "recommendation_shadow_eval": "recommendation_shadow_eval.json",
     "rescue_shadow_candidates": "rescue_shadow_candidates.json",
     "memory_review_action_shadow_result": "memory_review_action_shadow_result.json",
+    "memory_promotion_demotion_shadow_eval": (
+        "memory_promotion_demotion_shadow_eval.json"
+    ),
     "conversation_recall_shadow_eval": "conversation_recall_shadow_eval.json",
     "conversation_recall_tool_shadow_plan": "conversation_recall_tool_shadow_plan.json",
     "long_term_context_pack_shadow_eval": "long_term_context_pack_shadow_eval.json",
