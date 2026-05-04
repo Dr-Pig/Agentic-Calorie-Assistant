@@ -26,6 +26,7 @@ SIDECAR_MODULES = [
     "app.runtime.contracts.pending_meal_intent",
     "app.runtime.contracts.proactive_gate",
     "app.runtime.application.proactive_deterministic_gate",
+    "app.runtime.application.proactive_no_send_shadow_evaluator",
 ]
 
 ACTIVE_RUNTIME_SURFACES = [
@@ -67,6 +68,7 @@ def test_sidecar_modules_are_not_imported_by_active_runtime_surfaces() -> None:
         "app.recommendation",
         "app.rescue",
         "proactive_deterministic_gate",
+        "proactive_no_send_shadow_evaluator",
         "pending_meal_intent",
         "proactive_gate",
     ]
@@ -83,6 +85,7 @@ def test_sidecar_modules_are_not_b2_readiness_inputs() -> None:
         "app.recommendation",
         "app.rescue",
         "proactive_deterministic_gate",
+        "proactive_no_send_shadow_evaluator",
         "pending_meal_intent",
         "proactive_gate",
     ]
