@@ -41,10 +41,12 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
             to_node="sqlite_fts_adapter",
             dependency_direction="application_to_future_adapter_port",
             required_contract="FoodEvidenceIndexPort implementation for SQLite FTS",
-            current_status="missing",
+            current_status="draft",
             manager_style_guard="future_sqlite_fts_must_supply_same_indexed_record_contract",
             evidence=[
                 "app.nutrition.application.food_evidence_index_port.FoodEvidenceIndexPort",
+                "app.nutrition.infrastructure.sqlite_food_evidence_index.SQLiteFtsFoodEvidenceIndex",
+                "tests.test_sqlite_food_evidence_index",
             ],
             stop_condition="stop_if_sqlite_fts_requires_manager_or_packetizer_contract_change",
         ),
@@ -156,9 +158,9 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
             "edge_count": len(check_edges),
             **counts,
             "next_required_slices": [
-                "sqlite_fts_adapter",
-                "unified_retrieval_router",
                 "packet_to_mutation_guard_hardening",
+                "websearch_cache_rate_license_policy",
+                "exact_card_candidate_promotion_lane",
             ],
         },
         "non_claims": [
