@@ -211,7 +211,13 @@ Build the operator review surface from the one-day realistic dogfood diagnostic 
 python scripts/build_accurate_intake_dogfood_operator_review.py --dogfood-json artifacts/accurate_intake_one_day_realistic_web_dogfood.json --output artifacts/accurate_intake_dogfood_operator_review.json
 ```
 
-This surface is a local-only triage view. It may classify turns as target update success, food evidence gap, blocked mutation, query/no-mutation, unsupported intent, manager/context gap, or not checked using structured artifact fields only. Runtime error / missing-payload status may classify a turn as `manager_context_gap`; raw user text and assistant text are display-only. The surface must not recompute kcal, update Food KB truth, promote canonical eval cases, or convert `diagnostic_pass_with_evidence_gap` into `pass`.
+For the browser realistic v2 diagnostic, use the same builder against the browser artifact:
+
+```powershell
+python scripts/build_accurate_intake_dogfood_operator_review.py --dogfood-json artifacts/accurate_intake_browser_realistic_web_dogfood_v2.json --output artifacts/accurate_intake_dogfood_operator_review_v2.json
+```
+
+This surface is a local-only triage view. It may classify turns as target update success, food evidence gap, blocked mutation, query/no-mutation, unsupported intent, manager/context gap, or not checked using structured artifact fields only. Runtime error / missing-payload status may classify a turn as `manager_context_gap`; raw user text and assistant text are display-only. Browser v2 manager context status is limited to `not_available`, `not_checked`, or `missing_context_snapshot`; this is diagnostic-only and must not claim a Context Engineering fault. The surface must not recompute kcal, update Food KB truth, promote canonical eval cases, or convert `diagnostic_pass_with_evidence_gap` or `browser_diagnostic_pass_with_fixture_evidence_gap` into `pass`.
 
 Build the Food KB gap register from the operator review surface with:
 

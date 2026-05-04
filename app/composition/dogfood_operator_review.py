@@ -9,6 +9,21 @@ _NOT_CHECKED_SURFACE_MAP = {
     "dogfood_review_queue_compatible": "dogfood_review_queue",
     "local_data_hygiene_respected": "local_data_hygiene",
 }
+_ALLOWED_MANAGER_CONTEXT_STATUSES = {
+    "not_available",
+    "not_checked",
+    "missing_context_snapshot",
+}
+_SOURCE_STATUS_TO_REVIEW_STATUS = {
+    "diagnostic_pass_with_evidence_gap": "diagnostic_review_with_evidence_gap",
+    "browser_diagnostic_pass_with_fixture_evidence_gap": (
+        "browser_diagnostic_review_with_fixture_evidence_gap"
+    ),
+    "browser_diagnostic_pass_with_evidence_gap": (
+        "browser_diagnostic_review_with_evidence_gap"
+    ),
+    "blocked": "blocked",
+}
 
 
 def _json_safe(value: Any) -> Any:
@@ -191,8 +206,121 @@ def _not_checked_surfaces(evidence: dict[str, Any]) -> list[str]:
     ]
 
 
+def _manager_context_status(value: Any) -> tuple[str, list[str]]:
+    status = str(value or "not_checked")
+    if status in _ALLOWED_MANAGER_CONTEXT_STATUSES:
+        return status, []
+    return "not_checked", ["manager_context_status_overclaim"]
+
+
+def _browser_surface_findings(browser: dict[str, Any]) -> list[str]:
+    findings: list[str] = []
+    if (
+        browser.get("browser_reload_checked") is not True
+        or browser.get("chat_history_reloaded") is not True
+    ):
+        findings.append("browser_reload_gap")
+    if browser.get("forbidden_storage_used") is True:
+        findings.append("storage_violation")
+    for key, finding in (
+        ("today_summary_rendered", "today_summary_surface_gap"),
+        ("debug_surface_rendered", "debug_surface_gap"),
+        ("runtime_status_surface_rendered", "runtime_status_surface_gap"),
+        ("cjk_messages_rendered", "cjk_render_gap"),
+        ("assistant_bubbles_rendered", "assistant_bubble_gap"),
+    ):
+        if browser.get(key) is not True:
+            findings.append(finding)
+    return findings
+
+
+def _browser_v2_turns(browser: dict[str, Any]) -> list[dict[str, Any]]:
+    turns: list[dict[str, Any]] = []
+    for item in list(browser.get("turn_results") or []):
+        if not isinstance(item, dict):
+            continue
+        expected_decision = _object_dict(item.get("expected_manager_decision"))
+        runtime_error_present = item.get("runtime_error_present") is True
+        payload_parseable = item.get("last_payload_parseable") is True
+        raw_response: dict[str, Any] = {}
+        if runtime_error_present or not payload_parseable:
+            raw_response = {
+                "error": "runtime_error_or_missing_payload",
+                "payload": None,
+            }
+        turns.append(
+            {
+                "turn_id": str(item.get("turn_id") or ""),
+                "raw_user_input": str(item.get("raw_user_input") or ""),
+                "assistant_response_summary": "browser payload parseable"
+                if payload_parseable
+                else "browser payload missing or failed",
+                "manager_decision": expected_decision,
+                "mutation_or_query": "query",
+                "state_before": {},
+                "state_after": {},
+                "state_delta": {},
+                "raw_response": raw_response,
+            }
+        )
+    return turns
+
+
+def _scenario_from_report(report: dict[str, Any]) -> tuple[
+    dict[str, Any],
+    str,
+    str,
+    list[str],
+]:
+    legacy = _object_dict(report.get("one_day_realistic_web_dogfood"))
+    if legacy:
+        return (
+            legacy,
+            "accurate_intake_one_day_realistic_web_dogfood",
+            "not_checked",
+            [],
+        )
+
+    if report.get("artifact_type") == "accurate_intake_browser_realistic_web_dogfood_v2":
+        browser = _object_dict(report.get("browser"))
+        manager_context_status, context_findings = _manager_context_status(
+            browser.get("manager_context_status")
+        )
+        findings = [*context_findings, *_browser_surface_findings(browser)]
+        scenario = {
+            "status": str(report.get("status") or "unknown"),
+            "turns": _browser_v2_turns(browser),
+            "blockers": [
+                *[str(item) for item in list(report.get("blockers") or [])],
+                *findings,
+            ],
+            "evidence": {
+                "evidence_gap_observed": browser.get("evidence_gap_observed") is True
+                or report.get("fixture_evidence_used") is True,
+                "pending_followup_used": "not_checked",
+                "same_truth_verified": "not_checked",
+                "dogfood_review_queue_compatible": "not_checked",
+                "local_data_hygiene_respected": "not_checked",
+            },
+        }
+        return (
+            scenario,
+            "accurate_intake_browser_realistic_web_dogfood_v2",
+            manager_context_status,
+            findings,
+        )
+
+    return ({}, str(report.get("artifact_type") or "unknown"), "not_checked", [])
+
+
+def _review_status_for_source(source_status: str) -> str:
+    return _SOURCE_STATUS_TO_REVIEW_STATUS.get(source_status, "generated")
+
+
 def build_dogfood_operator_review_surface(report: dict[str, Any]) -> dict[str, Any]:
-    scenario = _object_dict(report.get("one_day_realistic_web_dogfood"))
+    scenario, source_artifact, manager_context_status, browser_surface_findings = (
+        _scenario_from_report(report)
+    )
     evidence = _object_dict(scenario.get("evidence"))
     blockers = [str(item) for item in list(scenario.get("blockers") or [])]
     turn_reviews: list[dict[str, Any]] = []
@@ -286,15 +414,16 @@ def build_dogfood_operator_review_surface(report: dict[str, Any]) -> dict[str, A
             1 for turn in turn_reviews if turn["classification"] == "manager_context_gap"
         ),
         "not_checked_surfaces": _not_checked_surfaces(evidence),
+        "manager_context_status": manager_context_status,
+        "browser_surface_findings": browser_surface_findings,
     }
     source_status = str(scenario.get("status") or "unknown")
+    review_status = _review_status_for_source(source_status)
     return {
         "artifact_schema_version": "1.0",
         "artifact_type": "accurate_intake_dogfood_operator_review_surface",
-        "status": "diagnostic_review_with_evidence_gap"
-        if source_status == "diagnostic_pass_with_evidence_gap"
-        else "generated",
-        "source_artifact": "accurate_intake_one_day_realistic_web_dogfood",
+        "status": review_status,
+        "source_artifact": source_artifact,
         "source_status": source_status,
         "review_status": "generated",
         "generated_at_utc": datetime.now(UTC).isoformat(),
@@ -306,6 +435,13 @@ def build_dogfood_operator_review_surface(report: dict[str, Any]) -> dict[str, A
         "private_self_use_approved": False,
         "food_kb_truth_updated": False,
         "canonical_eval_promoted": False,
+        "real_fooddb_pass_claimed": False,
+        "dogfood_pass": False,
+        "manager_context_review": {
+            "status": manager_context_status,
+            "diagnostic_only": True,
+            "context_engineering_fault_claimed": False,
+        },
         "classification_policy": {
             "allowed_inputs": [
                 "turn_id",
@@ -324,6 +460,7 @@ def build_dogfood_operator_review_surface(report: dict[str, Any]) -> dict[str, A
             "assistant_text_role": "display_only",
             "kcal_recomputed": False,
             "food_kb_truth_update_allowed": False,
+            "frontend_semantic_owner": False,
         },
         "summary": summary,
         "turn_reviews": _json_safe(turn_reviews),
