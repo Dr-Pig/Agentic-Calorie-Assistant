@@ -149,6 +149,43 @@ def build_grokfast_fooddb_packet_diagnostic(
     }
 
 
+def build_packet_artifact_from_tool_evidence_result(*, tool_evidence_artifact: dict[str, Any]) -> dict[str, Any]:
+    tool_result = _tool_result_from_artifact(tool_evidence_artifact)
+    cases = []
+    for packet in tool_result.get("evidence_packets") or []:
+        if not isinstance(packet, dict):
+            continue
+        case_id = str(packet.get("case_id") or packet.get("packet_id") or "").strip()
+        if not case_id:
+            continue
+        cases.append(
+            {
+                "case_id": case_id,
+                "raw_user_input": packet.get("raw_user_input"),
+                "case_family": "tool_evidence_result_packet",
+                "manager_expected_behavior": packet.get("manager_expected_behavior"),
+                "manager_evidence_packet": dict(packet),
+                "tool_evidence_result": _single_packet_tool_result(tool_result=tool_result, packet=packet),
+            }
+        )
+    return {
+        "artifact_type": "accurate_intake_fooddb_manager_packet_smoke",
+        "artifact_schema_version": "1.0",
+        "source_artifact_type": tool_evidence_artifact.get("artifact_type"),
+        "claim_scope": "tool_evidence_result_manager_packet_projection",
+        "runtime_truth_changed": False,
+        "live_provider_used": False,
+        "manager_context_changed": False,
+        "runtime_packetizer_contract_changed": False,
+        "cases": cases,
+        "summary": {
+            "case_count": len(cases),
+            "tool_evidence_result_used": True,
+            "source_implementation_visible": False,
+        },
+    }
+
+
 def evaluate_manager_output_against_packet(
     *,
     packet_case: dict[str, Any],
@@ -207,19 +244,50 @@ def evaluate_manager_output_against_packet(
 
 def build_live_manager_payload(*, packet_case: dict[str, Any]) -> dict[str, Any]:
     packet = dict(packet_case.get("manager_evidence_packet") or {})
+    tool_result = packet_case.get("tool_evidence_result")
+    if not isinstance(tool_result, dict):
+        tool_result = {
+            "result_type": "tool_evidence_result_v1",
+            "tool_name": "lookup_food_evidence",
+            "tool_call_id": f"fooddb-packet-{packet_case.get('case_id')}",
+            "result_boundary": "read_only_evidence_packet_result",
+            "runtime_mutation_allowed": False,
+            "runtime_truth_changed": False,
+            "manager_context_changed": False,
+            "read_model_only": True,
+            "source_implementation_visible": False,
+            "evidence_packets": [packet],
+            "trace": {
+                "packet_count": 1,
+                "compact_packet_pass_count": 1,
+                "source_implementation_manager_visible": False,
+            },
+            "manager_may_use_for": [
+                "grounded_food_evidence",
+                "followup_or_uncertainty_decision",
+                "disambiguation",
+            ],
+            "manager_must_not_use_for": [
+                "runtime_mutation",
+                "creating_fooddb_truth",
+                "inventing_source",
+                "inferring_source_implementation",
+            ],
+        }
     return {
         "diagnostic_scope": "fooddb_packet_manager_seam_smoke",
         "raw_user_input": packet_case.get("raw_user_input"),
         "fooddb_evidence_packet": packet,
+        "tool_evidence_result": tool_result,
         "tool_results": [
             {
-                "tool_name": "lookup_generic_food",
-                "truth_level": "runtime_food_evidence_packet",
-                "output": packet,
+                "tool_name": tool_result.get("tool_name") or "lookup_food_evidence",
+                "truth_level": "read_only_food_evidence_result",
+                "output": tool_result,
             }
         ],
         "instructions": [
-            "Use only the provided FoodDB evidence packet for nutrition evidence.",
+            "Use only the provided ToolEvidenceResult and FoodDB evidence packet for nutrition evidence.",
             "Do not invent nutrition sources or evidence IDs.",
             "If evidence_items is empty for a bare basket, ask follow-up and do not mutate.",
             "If evidence_items exist, synthesize item_results from those packet items with uncertainty.",
@@ -227,6 +295,29 @@ def build_live_manager_payload(*, packet_case: dict[str, Any]) -> dict[str, Any]
         ],
         "constraints": _manager_constraints_for_case(packet_case),
     }
+
+
+def _tool_result_from_artifact(artifact: dict[str, Any]) -> dict[str, Any]:
+    tool_result = artifact.get("tool_evidence_result")
+    if isinstance(tool_result, dict):
+        return tool_result
+    if str(artifact.get("result_type") or "") == "tool_evidence_result_v1":
+        return artifact
+    raise ValueError("missing_tool_evidence_result")
+
+
+def _single_packet_tool_result(*, tool_result: dict[str, Any], packet: dict[str, Any]) -> dict[str, Any]:
+    single = {
+        key: value
+        for key, value in tool_result.items()
+        if key not in {"evidence_packets", "trace"}
+    }
+    trace = dict(tool_result.get("trace") or {})
+    trace["packet_count"] = 1
+    trace["compact_packet_pass_count"] = 1
+    single["evidence_packets"] = [dict(packet)]
+    single["trace"] = trace
+    return single
 
 
 def _manager_constraints_for_case(packet_case: dict[str, Any]) -> dict[str, Any]:
@@ -310,5 +401,6 @@ __all__ = [
     "build_fixture_manager_outputs",
     "build_grokfast_fooddb_packet_diagnostic",
     "build_live_manager_payload",
+    "build_packet_artifact_from_tool_evidence_result",
     "evaluate_manager_output_against_packet",
 ]

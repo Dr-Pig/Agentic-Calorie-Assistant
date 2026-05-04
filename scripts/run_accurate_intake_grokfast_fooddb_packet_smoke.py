@@ -16,6 +16,7 @@ from app.nutrition.application.grokfast_fooddb_packet_smoke import (  # noqa: E4
     build_fixture_manager_outputs,
     build_grokfast_fooddb_packet_diagnostic,
     build_live_manager_payload,
+    build_packet_artifact_from_tool_evidence_result,
 )
 from app.providers.builderspace_adapter import BuilderSpaceAdapter, BuilderSpaceResponseError  # noqa: E402
 from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT  # noqa: E402
@@ -24,12 +25,13 @@ from app.shared.infra.json_artifacts import read_json_artifact, write_json_artif
 
 
 DEFAULT_PACKET_SMOKE = ROOT / "artifacts" / "accurate_intake_fooddb_manager_packet_smoke.json"
+DEFAULT_TOOL_EVIDENCE_RESULT = ROOT / "artifacts" / "accurate_intake_tool_evidence_result_smoke.json"
 DEFAULT_OUTPUT = ROOT / "artifacts" / "accurate_intake_grokfast_fooddb_packet_smoke.json"
 
 FOODDB_PACKET_MANAGER_SYSTEM_PROMPT = (
     SINGLE_MANAGER_SYSTEM_PROMPT
-    + "\nFoodDB packet seam diagnostic: the user payload contains a compact "
-    "fooddb_evidence_packet. Use only packet evidence. Do not invent source IDs. "
+    + "\nFoodDB packet seam diagnostic: the user payload contains a read-only "
+    "ToolEvidenceResult with compact FoodDB evidence packets. Use only packet evidence. Do not invent source IDs. "
     "Do not write ledger state. This is diagnostic-only and not readiness evidence.\n"
 )
 
@@ -41,10 +43,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--mode", choices=("fixture", "live"), default="fixture")
     parser.add_argument("--allow-live", action="store_true")
     parser.add_argument("--packet-smoke", default=str(DEFAULT_PACKET_SMOKE))
+    parser.add_argument("--tool-evidence-result", default=None)
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
-    packet_artifact = read_json_artifact(Path(args.packet_smoke))
+    packet_artifact = _load_packet_artifact(args)
     output_path = Path(args.output)
 
     if args.mode == "live" and not args.allow_live:
@@ -173,6 +176,14 @@ def _print_summary(output_path: Path, artifact: dict[str, Any]) -> None:
             ensure_ascii=False,
         )
     )
+
+
+def _load_packet_artifact(args: argparse.Namespace) -> dict[str, Any]:
+    if args.tool_evidence_result:
+        return build_packet_artifact_from_tool_evidence_result(
+            tool_evidence_artifact=read_json_artifact(Path(args.tool_evidence_result))
+        )
+    return read_json_artifact(Path(args.packet_smoke))
 
 
 if __name__ == "__main__":
