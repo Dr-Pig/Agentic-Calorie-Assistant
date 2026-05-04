@@ -95,6 +95,20 @@
         "uncertainty_category": "high_variance_customizable_drink_or_meal",
         "range_multiplier": 0.3,
         "range_basis": "category_policy"
+      },
+      "runtime_truth_allowed": true,
+      "kcal_point": 450,
+      "kcal_range": [
+        350,
+        550
+      ],
+      "source_provenance": {
+        "source_id": "tfda_fda_food_nutrition_2024",
+        "source_file": "FDA_food_nutrition_2024.xlsx",
+        "row_index": 1575,
+        "record_id": null,
+        "source_url": null,
+        "raw_row_hash": "1e772e740d5e2b059ea44f5d9d8b9ce927b71a8c76065698003821a36f143636"
       }
     },
     {
@@ -381,6 +395,20 @@
         "uncertainty_category": "moderate_prepared_item",
         "range_multiplier": 0.2,
         "range_basis": "category_policy"
+      },
+      "runtime_truth_allowed": true,
+      "kcal_point": 95,
+      "kcal_range": [
+        70,
+        120
+      ],
+      "source_provenance": {
+        "source_id": "tfda_fda_food_nutrition_2024",
+        "source_file": "FDA_food_nutrition_2024.xlsx",
+        "row_index": 2021,
+        "record_id": null,
+        "source_url": null,
+        "raw_row_hash": "b5400071cb30aae35d371cfb5be512de70e5ef410fc9bc87fba7212f302b8671"
       }
     },
     {

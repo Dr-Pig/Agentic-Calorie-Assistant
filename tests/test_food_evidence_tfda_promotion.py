@@ -115,10 +115,15 @@ def test_tfda_promotion_creates_only_selected_common_serving_anchors_with_approv
     boba = anchors["custom_drink_boba_milk_tea"]
     assert boba["runtime_role"] == "common_serving_anchor"
     assert boba["runtime_estimate_allowed"] is True
+    assert boba["runtime_truth_allowed"] is True
+    assert boba["kcal_point"] > 0
+    assert len(boba["kcal_range"]) == 2
+    assert boba["kcal_range"][0] < boba["kcal_point"] < boba["kcal_range"][1]
     assert boba["portion_basis"]["derived_from"] == [
         "tfda_per_100g_source_evidence",
         "mvp_portion_default_policy",
     ]
+    assert boba["source_provenance"]["source_id"] == "tfda_fda_food_nutrition_2024"
     assert boba["approval_metadata"]["approval_mode"] == "batch_policy_approved"
     assert boba["approval_metadata"]["policy_version"] == "food_evidence_tfda_batch_promotion_v1"
     assert boba["range_policy"]["uncertainty_category"] == (
@@ -163,8 +168,12 @@ def test_selected_runtime_anchors_are_common_serving_not_per_100g() -> None:
         anchor = anchors[anchor_id]
         assert anchor["runtime_role"] == "common_serving_anchor"
         assert anchor["runtime_estimate_allowed"] is True
+        assert anchor["runtime_truth_allowed"] is True
         assert anchor["serving_basis"] == "common_serving"
         assert anchor["portion_basis"]["portion_unit"]
+        assert anchor["kcal_point"] == anchor["baseline_likely_kcal"]
+        assert anchor["kcal_range"] == anchor["baseline_kcal_range"]
+        assert anchor["source_provenance"]["source_id"] == "tfda_fda_food_nutrition_2024"
         assert anchor["range_policy"]["uncertainty_category"] == uncertainty_category
         assert anchor["approval_metadata"]["policy_version"] == (
             "food_evidence_tfda_batch_promotion_v1"
@@ -212,4 +221,7 @@ def test_tfda_promotion_cli_writes_roundtrippable_outputs(tmp_path: Path) -> Non
     report = read_json_artifact(report_output)
     assert source_artifact["records"][0]["runtime_estimate_allowed"] is False
     assert anchor_artifact["anchors"][0]["runtime_estimate_allowed"] is True
+    assert anchor_artifact["anchors"][0]["runtime_truth_allowed"] is True
+    assert anchor_artifact["anchors"][0]["kcal_point"] > 0
+    assert anchor_artifact["anchors"][0]["kcal_range"]
     assert report["summary"]["selected_runtime_anchor_count"] == 1

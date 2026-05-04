@@ -21,6 +21,8 @@ SELECTED_PORTION_DEFAULTS = {
         },
         "uncertainty_category": "high_variance_customizable_drink_or_meal",
         "range_multiplier": 0.30,
+        "runtime_kcal_point": 450,
+        "runtime_kcal_range": [350, 550],
     },
     "listed_item_tofu_dried": {
         "canonical_name": "豆干",
@@ -35,6 +37,8 @@ SELECTED_PORTION_DEFAULTS = {
         },
         "uncertainty_category": "moderate_prepared_item",
         "range_multiplier": 0.20,
+        "runtime_kcal_point": 95,
+        "runtime_kcal_range": [70, 120],
     },
 }
 
@@ -129,9 +133,13 @@ def apply_selected_anchor_metadata_to_small_anchor_store(
         for key in (
             "runtime_role",
             "runtime_estimate_allowed",
+            "runtime_truth_allowed",
             "serving_basis",
             "portion_basis",
+            "kcal_point",
+            "kcal_range",
             "source_refs",
+            "source_provenance",
             "approval_metadata",
             "range_policy",
         ):
@@ -199,15 +207,24 @@ def _common_serving_anchor(
     defaults: dict[str, Any],
     source: dict[str, Any],
 ) -> dict[str, Any]:
-    point = _portion_point_kcal(source["kcal_per_100g"], defaults["portion_basis"]["portion_grams"])
-    low, high = _range_from_point(point, defaults["range_multiplier"])
+    point = int(defaults.get("runtime_kcal_point") or _portion_point_kcal(
+        source["kcal_per_100g"],
+        defaults["portion_basis"]["portion_grams"],
+    ))
+    low, high = defaults.get("runtime_kcal_range") or _range_from_point(
+        point,
+        defaults["range_multiplier"],
+    )
     return {
         "anchor_id": anchor_id,
         "canonical_name": defaults["canonical_name"],
         "runtime_role": "common_serving_anchor",
         "runtime_estimate_allowed": True,
+        "runtime_truth_allowed": True,
         "serving_basis": defaults["serving_basis"],
         "portion_basis": defaults["portion_basis"],
+        "kcal_point": point,
+        "kcal_range": [low, high],
         "baseline_likely_kcal": point,
         "baseline_kcal_range": [low, high],
         "source_refs": [
@@ -219,6 +236,11 @@ def _common_serving_anchor(
                 "kcal_per_100g": source["kcal_per_100g"],
             }
         ],
+        "source_provenance": source["source_provenance"],
+        "kcal_basis": {
+            "runtime_value_source": "existing_mvp_anchor_baseline",
+            "tfda_role": "source_provenance_per_100g_support",
+        },
         "approval_metadata": {
             "approval_mode": "batch_policy_approved",
             "approval_scope": "selected_mvp_portion_default_anchor",
