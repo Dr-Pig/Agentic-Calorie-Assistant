@@ -35,6 +35,9 @@ def test_accurate_intake_one_day_realistic_web_dogfood_honest_gap():
         # Turn 1: target update
         t_target = turns[0]
         assert t_target["turn_id"] == "target_001"
+        assert t_target["expected_manager_decision"]["intent_type"] == "set_manual_daily_target"
+        assert t_target["manager_decision_source"] == "runtime_response"
+        assert t_target["manager_decision"]["intent_type"] == "set_manual_daily_target"
         assert t_target["state_after"]["budget_kcal"] == 1600
         assert t_target["mutation_or_query"] == "mutation"
 
@@ -42,7 +45,13 @@ def test_accurate_intake_one_day_realistic_web_dogfood_honest_gap():
         evi = scenario["evidence"]
         assert evi["food_logs_created"] is False
         assert evi["evidence_gap_observed"] is True
+        assert evi["manager_context_gap_observed"] is True
         assert evi["evidence_gap_handled_without_fake_kcal"] is True
+        assert "food evidence gap prevented realistic food logging" in scenario["blockers"]
+        assert (
+            "manager context/runtime gap prevented complete turn evaluation"
+            in scenario["blockers"]
+        )
 
         # Rule: Remove-item attempts the correction but correctly flags the negative guard
         # rather than faking an applied correction when the target ID is omitted!
@@ -59,6 +68,8 @@ def test_accurate_intake_one_day_realistic_web_dogfood_honest_gap():
 
         t_query = turns[7]
         assert t_query["turn_id"] == "query_001"
+        assert "expected_manager_decision" in t_query
+        assert "manager_decision_source" in t_query
         assert t_query["mutation_or_query"] == "query"
         # Since it is a query, ensure state_before and state_after consumed_kcal match
         assert (
@@ -123,7 +134,7 @@ def test_negative_guard_raw_text_inference_not_used():
             or semantic.get("daily_target_kcal") == 1600
         )
 
-        # Clean up
+        client.close()
         old_manager, old_search, old_extract = getattr(
             client, "old_providers", (None, None, None)
         )
@@ -131,3 +142,4 @@ def test_negative_guard_raw_text_inference_not_used():
         intake_routes.search_provider = old_search
         intake_routes.extract_provider = old_extract
         db.close()
+        engine.dispose()
