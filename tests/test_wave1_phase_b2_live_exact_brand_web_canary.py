@@ -5,8 +5,6 @@ from typing import Any
 import pytest
 
 from app.nutrition.application.exact_brand_web_canary import run_exact_brand_web_canary
-from app.nutrition.application.retrieval_intent import build_retrieval_intent
-
 
 class _FakeSearchPort:
     def __init__(self, hits: list[dict[str, Any]]) -> None:
@@ -30,7 +28,6 @@ class _FakeExtractPort:
 
 @pytest.mark.asyncio
 async def test_live_exact_brand_web_canary_returns_lane_result_when_extract_packet_is_accepted() -> None:
-    intent = build_retrieval_intent("我喝了統一超級抹茶歐蕾")
     search_port = _FakeSearchPort(
         [
             {
@@ -41,6 +38,10 @@ async def test_live_exact_brand_web_canary_returns_lane_result_when_extract_pack
                 "officialness": "official",
                 "brand_detected": "統一",
                 "serving_basis": "per_cup",
+                "identity_confidence": "high",
+                "license_status": "public_menu_page",
+                "robots_status": "allowed",
+                "nutrition_fields_present": ["kcal"],
                 "raw_ref": "raw:search:001",
             }
         ]
@@ -75,19 +76,21 @@ async def test_live_exact_brand_web_canary_returns_lane_result_when_extract_pack
     assert outcome.trace["provider_profile"]["search_port"] == "_FakeSearchPort"
     assert outcome.trace["selected_search_packet_id"].startswith("pkt_web_search_")
     assert outcome.trace["accepted_extract_packet_id"].startswith("pkt_web_extract_")
-    assert outcome.trace["candidate_traces"] == [
-        {
-            "packet_id": outcome.trace["selected_search_packet_id"],
-            "candidate_identity": "統一超級抹茶歐蕾",
-            "source_url": "https://president.example/products/matcha-latte",
-            "source_domain": "president.example",
-            "source_title": "統一超級抹茶歐蕾",
-            "source_snippet": "官方商品頁",
-            "hard_recheck_verdict": "accepted_for_exact_recheck",
-            "accepted_usage": None,
-            "rejected_risk": None,
-        }
-    ]
+    candidate_trace = outcome.trace["candidate_traces"][0]
+    assert candidate_trace["packet_id"] == outcome.trace["selected_search_packet_id"]
+    assert candidate_trace["candidate_identity"] == "統一超級抹茶歐蕾"
+    assert candidate_trace["source_url"] == "https://president.example/products/matcha-latte"
+    assert candidate_trace["source_domain"] == "president.example"
+    assert candidate_trace["source_title"] == "統一超級抹茶歐蕾"
+    assert candidate_trace["source_snippet"] == "官方商品頁"
+    assert candidate_trace["license_status"] == "public_menu_page"
+    assert candidate_trace["robots_status"] == "allowed"
+    assert candidate_trace["identity_confidence"] == "high"
+    assert candidate_trace["serving_basis_candidate"] == "per_cup"
+    assert candidate_trace["nutrition_fields_present"] == ["kcal"]
+    assert candidate_trace["hard_recheck_verdict"] == "accepted_for_exact_recheck"
+    assert candidate_trace["accepted_usage"] is None
+    assert candidate_trace["rejected_risk"] is None
     assert outcome.trace["packet_consumption_trace"]["accepted_packets"][0]["accepted_usage"] == "exact"
     assert outcome.trace["packet_consumption_trace"]["rejected_candidates"] == []
     assert outcome.trace["synthesis_evidence_refs"] == [outcome.trace["accepted_extract_packet_id"]]
@@ -129,6 +132,9 @@ async def test_live_exact_brand_web_canary_uses_contextualized_query_without_cha
                 "brand_detected": "星巴克",
                 "serving_basis": "per_cup",
                 "identity_confidence": "medium",
+                "license_status": "public_menu_page",
+                "robots_status": "allowed",
+                "nutrition_fields_present": ["kcal"],
             }
         ]
     )
@@ -221,6 +227,10 @@ async def test_live_exact_brand_web_canary_returns_none_when_no_accepted_extract
                 "officialness": "official",
                 "brand_detected": "統一",
                 "serving_basis": "per_cup",
+                "identity_confidence": "high",
+                "license_status": "public_menu_page",
+                "robots_status": "allowed",
+                "nutrition_fields_present": ["kcal"],
             }
         ]
     )
@@ -265,6 +275,9 @@ async def test_live_exact_brand_web_canary_keeps_rejected_web_candidates_out_of_
                 "brand_detected": "統一",
                 "identity_confidence": "medium",
                 "serving_basis": "per_cup",
+                "license_status": "public_menu_page",
+                "robots_status": "allowed",
+                "nutrition_fields_present": ["kcal"],
                 "raw_ref": "raw:search:wrong-item",
             }
         ]

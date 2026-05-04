@@ -1084,6 +1084,8 @@ def build_phase_b2_synthetic_smoke_report(
                     "source_quality_label": "high",
                     "serving_basis": "per_cup",
                     "nutrition_fields_present": ["kcal"],
+                    "license_status": "public_menu_page",
+                    "robots_status": "allowed",
                 }
             ],
             extract_rows=[

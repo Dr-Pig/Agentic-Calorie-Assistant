@@ -139,6 +139,10 @@ def test_tool_evidence_result_wraps_websearch_candidate_packets_without_truth_pr
     assert all(packet["packet_type"] == "SearchCandidatePacket" for packet in result["evidence_packets"])
     assert all(packet["truth_level"] == "candidate" for packet in result["evidence_packets"])
     assert all("runtime_truth_allowed" not in packet for packet in result["evidence_packets"])
+    assert all("license_status" in packet for packet in result["evidence_packets"])
+    assert all("robots_status" in packet for packet in result["evidence_packets"])
+    assert all("identity_confidence" in packet for packet in result["evidence_packets"])
+    assert all("serving_basis_candidate" in packet for packet in result["evidence_packets"])
     assert "index_adapter" not in result
     assert "adapter_kind" not in str(result)
     assert "external_search" not in str(result)
