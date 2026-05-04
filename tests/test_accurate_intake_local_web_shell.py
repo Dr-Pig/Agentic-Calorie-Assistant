@@ -104,6 +104,28 @@ def test_local_web_shell_has_render_only_review_debug_panels() -> None:
     assert "not_available" in html
 
 
+def test_local_web_shell_renders_manager_context_trace_fields_without_inference() -> None:
+    html = _shell_html()
+
+    for fragment in (
+        "context_policy_version",
+        "loaded_context_summary",
+        "omitted_context_summary",
+        "pending_pins_present",
+        "target_candidate_count",
+        "not_checked",
+    ):
+        assert fragment in html
+
+    for forbidden_fragment in (
+        "manager_context_gap",
+        "inferManagerContext",
+        "inferEvidenceGap",
+        "selectTarget",
+    ):
+        assert forbidden_fragment not in html
+
+
 def test_local_web_shell_debug_panel_uses_current_backend_read_model_fields_only() -> None:
     html = _shell_html()
 

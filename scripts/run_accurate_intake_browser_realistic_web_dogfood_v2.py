@@ -288,6 +288,7 @@ def _base_report(*, db_path: Path, browser_execution_required: bool) -> dict[str
         "web_tavily_used": False,
         "production_db_used": False,
         "product_readiness_claimed": False,
+        "private_self_use_approved": False,
         "web_readiness_claimed": False,
         "fixture_policy": {
             "fixture_manager_can_provide_structured_decisions": True,

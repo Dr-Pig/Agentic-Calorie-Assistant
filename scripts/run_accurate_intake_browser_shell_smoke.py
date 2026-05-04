@@ -195,6 +195,7 @@ def _empty_browser_result() -> dict[str, Any]:
         "pending_followup_surface_rendered": False,
         "runtime_status_surface_rendered": False,
         "failure_signal_surface_rendered": False,
+        "manager_context_trace_fields_rendered": False,
         "not_available_rendered": False,
         "browser_reload_checked": False,
         "chat_history_reloaded": False,
@@ -320,6 +321,7 @@ def _run_browser_sequence(
                     return Boolean(value) && value !== "unavailable";
                   };
                   const sameTruthText = text("#same-truth-list");
+                  const lastTurnTraceText = text("#last-turn-trace-list");
                   const pendingFollowupText = text("#pending-followup-list");
                   const failureSignalText = text("#failure-signal-list");
                   const listRendered = (selector) => {
@@ -341,6 +343,14 @@ def _run_browser_sequence(
                     pendingFollowupSurfaceRendered: listRendered("#pending-followup-list"),
                     runtimeStatusSurfaceRendered: listRendered("#runtime-status-list"),
                     failureSignalSurfaceRendered: listRendered("#failure-signal-list"),
+                    managerContextTraceFieldsRendered: (
+                      lastTurnTraceText.includes("context_policy_version:") &&
+                      !lastTurnTraceText.includes("context_policy_version: not_available") &&
+                      lastTurnTraceText.includes("loaded_context_summary:") &&
+                      lastTurnTraceText.includes("omitted_context_summary:") &&
+                      lastTurnTraceText.includes("pending_pins_present:") &&
+                      lastTurnTraceText.includes("target_candidate_count:")
+                    ),
                     notAvailableRendered: (
                       pendingFollowupText.includes("structured_followup_question: not_available") &&
                       failureSignalText.includes("hard_fail_conditions: not_available")
@@ -383,6 +393,7 @@ def _run_browser_sequence(
                 "pending_followup_surface_rendered": bool(surface_state.get("pendingFollowupSurfaceRendered")),
                 "runtime_status_surface_rendered": bool(surface_state.get("runtimeStatusSurfaceRendered")),
                 "failure_signal_surface_rendered": bool(surface_state.get("failureSignalSurfaceRendered")),
+                "manager_context_trace_fields_rendered": bool(surface_state.get("managerContextTraceFieldsRendered")),
                 "not_available_rendered": bool(surface_state.get("notAvailableRendered")),
                 "browser_reload_checked": True,
                 "chat_history_reloaded": chat_history_reloaded,
@@ -439,6 +450,8 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         blockers.append("runtime_status_surface_not_rendered")
     if flag("failure_signal_surface_rendered") is not True:
         blockers.append("failure_signal_surface_not_rendered")
+    if flag("manager_context_trace_fields_rendered") is not True:
+        blockers.append("manager_context_trace_fields_not_rendered")
     if flag("not_available_rendered") is not True:
         blockers.append("not_available_not_rendered")
     if flag("browser_reload_checked") is not True:
@@ -499,6 +512,7 @@ def _base_report(
         "pending_followup_surface_rendered": False,
         "runtime_status_surface_rendered": False,
         "failure_signal_surface_rendered": False,
+        "manager_context_trace_fields_rendered": False,
         "not_available_rendered": False,
         "fetch_sequence": [],
         "forbidden_storage_used": False,
@@ -506,6 +520,7 @@ def _base_report(
         "web_tavily_used": False,
         "production_db_used": False,
         "product_readiness_claimed": False,
+        "private_self_use_approved": False,
         "web_readiness_claimed": False,
         "frontend_semantic_owner": False,
     }
@@ -575,6 +590,7 @@ def build_browser_shell_smoke_report(
             "pending_followup_surface_rendered",
             "runtime_status_surface_rendered",
             "failure_signal_surface_rendered",
+            "manager_context_trace_fields_rendered",
             "not_available_rendered",
             "fetch_sequence",
             "forbidden_storage_used",

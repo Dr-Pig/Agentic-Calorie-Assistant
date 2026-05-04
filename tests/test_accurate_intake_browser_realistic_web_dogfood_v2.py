@@ -56,6 +56,7 @@ def test_browser_realistic_v2_missing_playwright_is_blocked_not_pass(monkeypatch
     assert report["real_fooddb_pass_claimed"] is False
     assert report["dogfood_pass"] is False
     assert report["web_readiness_claimed"] is False
+    assert report["private_self_use_approved"] is False
 
 
 def test_browser_realistic_v2_can_require_browser_execution(monkeypatch, tmp_path: Path) -> None:

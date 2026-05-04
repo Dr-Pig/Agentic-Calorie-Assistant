@@ -523,6 +523,13 @@
       return "not_available";
     }
 
+    function jsonOrNotChecked(value) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return "not_checked";
+      }
+      return JSON.stringify(value);
+    }
+
     function lastRuntimeMessage(chatHistory) {
       const messages = Array.isArray(chatHistory?.messages) ? chatHistory.messages : [];
       return messages.length > 0 ? messages[messages.length - 1] : {};
@@ -588,6 +595,11 @@
       listItems("last-turn-trace-list", [
         `runtime_turn_trace_present: ${boolOrNotAvailable(lastMessage.runtime_turn_trace_present)}`,
         `context_snapshot_present: ${boolOrNotAvailable(lastMessage.context_snapshot_present)}`,
+        `context_policy_version: ${valueOrNotAvailable(lastMessage.context_policy_version)}`,
+        `loaded_context_summary: ${jsonOrNotChecked(lastMessage.loaded_context_summary)}`,
+        `omitted_context_summary: ${jsonOrNotChecked(lastMessage.omitted_context_summary)}`,
+        `pending_pins_present: ${boolOrNotAvailable(lastMessage.pending_pins_present)}`,
+        `target_candidate_count: ${valueOrNotAvailable(lastMessage.target_candidate_count)}`,
         `trace_chain_complete: ${boolOrNotAvailable(lastMessage.trace_chain_complete)}`,
         `trace_id: ${valueOrNotAvailable(lastMessage.trace_id)}`
       ], "No runtime trace fields loaded.");
