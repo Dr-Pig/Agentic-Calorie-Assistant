@@ -117,8 +117,15 @@ def test_shadow_candidate_artifact_contains_required_fields_flags_and_selected_o
     assert payload["trigger_candidate"] == "today_overshoot"
     assert payload["rescue_viability_score"] > 0
     assert payload["viability_band"] == "medium"
-    assert payload["option_candidates"][0]["option_type"] == "multi_day_spread_candidate"
-    assert payload["selected_shadow_option"]["option_id"] == payload["option_candidates"][0]["option_id"]
+    assert payload["option_candidates"][0]["option_type"] == "bounded_spread_shadow_candidate"
+    assert (
+        payload["selected_shadow_option_for_review"]["option_id"]
+        == payload["option_candidates"][0]["option_id"]
+    )
+    assert (
+        payload["option_candidates"][0]["live_equivalent_required_gate"]
+        == "future_L3_4_proposal_accept_commit_gate"
+    )
     assert "CurrentBudgetView" in payload["context_candidates_used"]
     assert "OvershootSummary" in payload["context_candidates_used"]
     assert "ManagerContextPacket" in payload["context_candidates_ignored"]
@@ -173,12 +180,30 @@ def test_shadow_candidate_contract_rejects_unknown_fields() -> None:
             reason_codes=[],
             confidence=0.5,
             harm_if_wrong="low",
-            recommended_action="discard",
+            shadow_review_posture="discard",
             context_candidates_used=[],
             context_candidates_ignored=[],
             future_required_gate_before_runtime=[],
             unexpected_runtime_field="must_not_be_silently_accepted",
         )
+
+
+def test_shadow_candidate_rejects_old_runtime_ambiguous_review_fields() -> None:
+    from app.rescue.application.shadow_candidate_artifact import (
+        build_rescue_shadow_candidate_artifact,
+    )
+
+    candidate = build_rescue_shadow_candidate_artifact(
+        scenario_id="rs8_old_field_rejection_fixture",
+        context=_context(),
+    )
+    payload = candidate.model_dump(mode="python")
+    payload["recommended_action"] = "promote_later"
+    payload["selected_shadow_option"] = payload["selected_shadow_option_for_review"]
+
+    module = importlib.import_module("app.rescue.domain.shadow_artifact")
+    with pytest.raises(ValidationError):
+        module.RescueShadowCandidateArtifact(**payload)
 
 
 def test_shadow_candidate_summary_contracts_are_typed_frozen_and_json_safe() -> None:
@@ -211,8 +236,12 @@ def test_shadow_candidate_selected_option_must_exactly_match_candidate() -> None
         context=_context(),
     )
     payload = candidate.model_dump(mode="python")
-    payload["selected_shadow_option"] = dict(payload["selected_shadow_option"])
-    payload["selected_shadow_option"]["rationale"] = "Diverged selected option payload."
+    payload["selected_shadow_option_for_review"] = dict(
+        payload["selected_shadow_option_for_review"]
+    )
+    payload["selected_shadow_option_for_review"]["rationale"] = (
+        "Diverged selected option payload."
+    )
 
     module = importlib.import_module("app.rescue.domain.shadow_artifact")
     with pytest.raises(ValidationError):

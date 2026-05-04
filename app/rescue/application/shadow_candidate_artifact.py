@@ -82,7 +82,9 @@ def build_rescue_shadow_candidate_artifact(
         rescue_viability_score=viability.rescue_viability_score,
         viability_band=viability.viability_band,
         option_candidates=option_packet.option_candidates,
-        selected_shadow_option=_resolve_selected_shadow_option(option_packet),
+        selected_shadow_option_for_review=_resolve_selected_shadow_option_for_review(
+            option_packet
+        ),
         options_rejected=option_packet.options_rejected,
         reason_codes=_unique(
             [
@@ -93,7 +95,7 @@ def build_rescue_shadow_candidate_artifact(
         ),
         confidence=viability.confidence,
         harm_if_wrong=viability.harm_if_wrong,
-        recommended_action=viability.recommended_action,
+        shadow_review_posture=viability.shadow_review_posture,
         context_candidates_used=_context_candidates_used(),
         context_candidates_ignored=CONTEXT_CANDIDATES_IGNORED,
         future_required_gate_before_runtime=FUTURE_REQUIRED_GATE_BEFORE_RUNTIME,
@@ -114,8 +116,9 @@ def build_rescue_shadow_candidates_artifact(
     return RescueShadowCandidatesArtifact(
         summary=RescueShadowCandidatesSummary(
             candidate_count=len(candidates),
-            selected_shadow_option_count=sum(
-                candidate.selected_shadow_option is not None for candidate in candidates
+            selected_shadow_option_for_review_count=sum(
+                candidate.selected_shadow_option_for_review is not None
+                for candidate in candidates
             ),
             rejected_option_count=sum(
                 len(candidate.options_rejected) for candidate in candidates
@@ -126,13 +129,13 @@ def build_rescue_shadow_candidates_artifact(
     )
 
 
-def _resolve_selected_shadow_option(
+def _resolve_selected_shadow_option_for_review(
     option_packet: RescueOptionPacket,
 ) -> RescueOptionCandidate | None:
-    if not option_packet.selected_shadow_option_id:
+    if not option_packet.selected_shadow_option_id_for_review:
         return None
     for option in option_packet.option_candidates:
-        if option.option_id == option_packet.selected_shadow_option_id:
+        if option.option_id == option_packet.selected_shadow_option_id_for_review:
             return option
     return None
 

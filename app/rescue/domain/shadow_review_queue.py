@@ -9,7 +9,7 @@ from app.rescue.domain.shadow_options import RescueOptionType
 from app.rescue.domain.shadow_trigger import RescueTriggerCandidate
 from app.rescue.domain.shadow_viability import (
     RescueViabilityBand,
-    RescueViabilityRecommendedAction,
+    RescueViabilityShadowReviewPosture,
 )
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
@@ -23,13 +23,13 @@ RescueShadowReviewPriority = Literal["high", "medium", "low", "rejected_or_defer
 
 class RescueShadowReviewQueueItem(RescueShadowNoEffectFlags):
     scenario_id: str
-    priority: RescueShadowReviewPriority
+    shadow_review_priority: RescueShadowReviewPriority
     reasons: tuple[str, ...] = Field(default_factory=tuple)
-    recommended_action: RescueViabilityRecommendedAction
+    shadow_review_posture: RescueViabilityShadowReviewPosture
     viability_band: RescueViabilityBand
     confidence: float = Field(ge=0.0, le=1.0)
     trigger_candidate: RescueTriggerCandidate
-    selected_shadow_option_type: RescueOptionType | None = None
+    selected_shadow_option_type_for_review: RescueOptionType | None = None
 
 
 class RescueShadowReviewQueueSummary(RescueShadowNoEffectFlags):
@@ -74,7 +74,7 @@ class RescueShadowReviewQueue(RescueShadowNoEffectFlags):
         seen: set[str] = set()
         for expected_priority, items in bucket_expectations:
             for item in items:
-                if item.priority != expected_priority:
+                if item.shadow_review_priority != expected_priority:
                     raise ValueError("review queue item priority must match its bucket")
                 if item.scenario_id in seen:
                     raise ValueError("scenario_id must appear in only one review bucket")

@@ -103,11 +103,15 @@ def test_small_overshoot_generates_only_informational_or_no_rescue_option() -> N
 
     option_types = {option.option_type for option in packet.option_candidates}
     assert option_types <= {"informational_only", "no_rescue_needed"}
-    assert "multi_day_spread_candidate" not in option_types
+    assert "bounded_spread_shadow_candidate" not in option_types
     assert packet.runtime_effect_allowed is False
     assert packet.proposal_authority is False
     assert all(option.user_confirmation_required_later is True for option in packet.option_candidates)
     assert all(option.runtime_effect_allowed is False for option in packet.option_candidates)
+    assert all(
+        option.live_equivalent_required_gate == "future_L3_4_proposal_accept_commit_gate"
+        for option in packet.option_candidates
+    )
 
 
 def test_large_overshoot_off_track_generates_soft_spread_candidate_without_commit() -> None:
@@ -119,17 +123,18 @@ def test_large_overshoot_off_track_generates_soft_spread_candidate_without_commi
         },
     )
 
-    spread = _single_option(packet, "multi_day_spread_candidate")
+    spread = _single_option(packet, "bounded_spread_shadow_candidate")
     assert spread.affected_dates == (
         date(2026, 5, 5),
         date(2026, 5, 6),
         date(2026, 5, 7),
     )
     assert spread.suggested_adjustment_kcal_range[0] >= 75
-    assert spread.suggested_adjustment_kcal_range[1] <= 220
+    assert spread.suggested_adjustment_kcal_range[1] <= 270
     assert spread.user_confirmation_required_later is True
     assert spread.runtime_effect_allowed is False
-    assert packet.selected_shadow_option_id == spread.option_id
+    assert spread.live_equivalent_required_gate == "future_L3_4_proposal_accept_commit_gate"
+    assert packet.selected_shadow_option_id_for_review == spread.option_id
 
 
 def test_low_logging_quality_asks_user_before_any_adjustment_candidate() -> None:
@@ -161,7 +166,7 @@ def test_calibration_uncertain_avoids_overcorrection_and_asks_user() -> None:
     option_types = {option.option_type for option in packet.option_candidates}
     assert option_types == {"ask_user_context_first"}
     assert "recent_calibration_uncertain" in packet.reason_codes
-    assert "multi_day_spread_candidate" not in option_types
+    assert "bounded_spread_shadow_candidate" not in option_types
 
 
 def test_strict_plan_resistance_keeps_option_soft_and_user_confirmed() -> None:
@@ -175,8 +180,8 @@ def test_strict_plan_resistance_keeps_option_soft_and_user_confirmed() -> None:
     )
 
     option_types = {option.option_type for option in packet.option_candidates}
-    assert option_types <= {"ask_user_context_first", "next_day_soft_adjustment"}
-    assert "multi_day_spread_candidate" not in option_types
+    assert option_types == {"ask_user_context_first"}
+    assert "bounded_spread_shadow_candidate" not in option_types
     assert all(option.user_confirmation_required_later is True for option in packet.option_candidates)
 
 
@@ -188,8 +193,7 @@ def test_soft_context_alone_cannot_create_adjustment_option_without_trigger() ->
 
     option_types = {option.option_type for option in packet.option_candidates}
     assert option_types == {"no_rescue_needed"}
-    assert "next_day_soft_adjustment" not in option_types
-    assert packet.selected_shadow_option_id == packet.option_candidates[0].option_id
+    assert packet.selected_shadow_option_id_for_review == packet.option_candidates[0].option_id
 
 
 def test_spread_candidate_upper_bound_covers_overshoot_across_affected_dates() -> None:
@@ -200,7 +204,7 @@ def test_spread_candidate_upper_bound_covers_overshoot_across_affected_dates() -
             "weekly_deficit_posture": "off_track",
         },
     )
-    spread = _single_option(packet, "multi_day_spread_candidate")
+    spread = _single_option(packet, "bounded_spread_shadow_candidate")
 
     assert len(spread.affected_dates) == 4
     assert spread.suggested_adjustment_kcal_range[1] * len(spread.affected_dates) >= 880
@@ -213,9 +217,9 @@ def test_overshoot_beyond_soft_spread_capacity_asks_user_instead_of_undercoverin
             "daily_target_kcal": 3000,
             "safety_floor_kcal": 2300,
         },
-        overshoot_summary={"today_overshoot_kcal": 1541},
+        overshoot_summary={"today_overshoot_kcal": 2251},
         deficit_summary={
-            "weekly_deficit_gap_kcal": 1600,
+            "weekly_deficit_gap_kcal": 2300,
             "weekly_deficit_posture": "off_track",
         },
     )
@@ -223,7 +227,7 @@ def test_overshoot_beyond_soft_spread_capacity_asks_user_instead_of_undercoverin
     option_types = {option.option_type for option in packet.option_candidates}
     assert option_types == {"ask_user_context_first"}
     assert "soft_spread_capacity_exceeded" in packet.reason_codes
-    assert packet.options_rejected[0].rejected_option_type == "multi_day_spread_candidate"
+    assert packet.options_rejected[0].rejected_option_type == "bounded_spread_shadow_candidate"
 
 
 def test_capacity_exceeded_overrides_strict_plan_soft_adjustment() -> None:
@@ -233,9 +237,9 @@ def test_capacity_exceeded_overrides_strict_plan_soft_adjustment() -> None:
             "daily_target_kcal": 3000,
             "safety_floor_kcal": 2300,
         },
-        overshoot_summary={"today_overshoot_kcal": 1541},
+        overshoot_summary={"today_overshoot_kcal": 2251},
         deficit_summary={
-            "weekly_deficit_gap_kcal": 1600,
+            "weekly_deficit_gap_kcal": 2300,
             "weekly_deficit_posture": "off_track",
         },
         adherence_summary={"app_usage_style": "soft_first"},
@@ -243,7 +247,6 @@ def test_capacity_exceeded_overrides_strict_plan_soft_adjustment() -> None:
 
     option_types = {option.option_type for option in packet.option_candidates}
     assert option_types == {"ask_user_context_first"}
-    assert "next_day_soft_adjustment" not in option_types
     assert "soft_spread_capacity_exceeded" in packet.reason_codes
 
 
@@ -274,7 +277,7 @@ def test_existing_open_proposal_blocks_duplicate_option_candidates() -> None:
     )
 
     assert packet.option_candidates == ()
-    assert packet.selected_shadow_option_id is None
+    assert packet.selected_shadow_option_id_for_review is None
     assert packet.options_rejected[0].reason_code == "existing_open_proposal"
     assert packet.runtime_effect_allowed is False
 
@@ -286,7 +289,7 @@ def test_no_active_plan_blocks_option_candidates() -> None:
     )
 
     assert packet.option_candidates == ()
-    assert packet.selected_shadow_option_id is None
+    assert packet.selected_shadow_option_id_for_review is None
     assert packet.options_rejected[0].reason_code == "no_active_plan"
 
 
@@ -301,6 +304,7 @@ def test_option_contract_rejects_unknown_fields() -> None:
             suggested_adjustment_kcal_range=[0, 0],
             rationale="Informational shadow option only.",
             risk_if_wrong="low",
+            live_equivalent_required_gate="future_L3_4_proposal_accept_commit_gate",
             unexpected_runtime_field="must_not_be_silently_accepted",
         )
 
@@ -316,6 +320,7 @@ def test_option_contract_rejects_inverted_adjustment_ranges() -> None:
             suggested_adjustment_kcal_range=[220, 75],
             rationale="Invalid inverted range.",
             risk_if_wrong="low",
+            live_equivalent_required_gate="future_L3_4_proposal_accept_commit_gate",
         )
 
 
@@ -325,7 +330,17 @@ def test_option_packet_requires_selected_option_to_exist() -> None:
     with pytest.raises(ValidationError):
         module.RescueOptionPacket(
             option_candidates=[],
-            selected_shadow_option_id="missing",
+            selected_shadow_option_id_for_review="missing",
+        )
+
+
+def test_option_packet_rejects_old_runtime_ambiguous_selected_option_field() -> None:
+    module = importlib.import_module("app.rescue.domain.shadow_options")
+
+    with pytest.raises(ValidationError):
+        module.RescueOptionPacket(
+            option_candidates=[],
+            selected_shadow_option_id="old-runtime-ambiguous-field",
         )
 
 

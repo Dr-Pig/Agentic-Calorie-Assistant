@@ -12,13 +12,14 @@ SIDECAR_ACTIVATION_CONTRACT = offline_sidecar_contract("rescue.domain.shadow_opt
 
 RescueOptionType = Literal[
     "informational_only",
-    "same_day_soft_adjustment",
-    "next_day_soft_adjustment",
-    "multi_day_spread_candidate",
+    "bounded_spread_shadow_candidate",
     "ask_user_context_first",
     "no_rescue_needed",
 ]
 RescueOptionRiskIfWrong = Literal["low", "medium", "high"]
+RescueOptionLiveEquivalentRequiredGate = Literal[
+    "future_L3_4_proposal_accept_commit_gate"
+]
 
 
 class RescueOptionBaseModel(BaseModel):
@@ -32,6 +33,9 @@ class RescueOptionCandidate(RescueOptionBaseModel):
     suggested_adjustment_kcal_range: tuple[int, int]
     rationale: str
     risk_if_wrong: RescueOptionRiskIfWrong
+    live_equivalent_required_gate: RescueOptionLiveEquivalentRequiredGate = (
+        "future_L3_4_proposal_accept_commit_gate"
+    )
     user_confirmation_required_later: Literal[True] = True
     runtime_effect_allowed: Literal[False] = False
 
@@ -67,7 +71,7 @@ class RescueOptionPacket(RescueOptionBaseModel):
     proposal_authority: Literal[False] = False
     option_candidates: tuple[RescueOptionCandidate, ...] = Field(default_factory=tuple)
     options_rejected: tuple[RescueOptionRejection, ...] = Field(default_factory=tuple)
-    selected_shadow_option_id: str | None = None
+    selected_shadow_option_id_for_review: str | None = None
     reason_codes: tuple[str, ...] = Field(default_factory=tuple)
     rescue_committed: Literal[False] = False
     proposal_committed: Literal[False] = False
@@ -85,16 +89,19 @@ class RescueOptionPacket(RescueOptionBaseModel):
 
     @model_validator(mode="after")
     def validate_selected_option(self) -> RescueOptionPacket:
-        if self.selected_shadow_option_id is None:
+        if self.selected_shadow_option_id_for_review is None:
             return self
         candidate_ids = {option.option_id for option in self.option_candidates}
-        if self.selected_shadow_option_id not in candidate_ids:
-            raise ValueError("selected_shadow_option_id must reference an option candidate")
+        if self.selected_shadow_option_id_for_review not in candidate_ids:
+            raise ValueError(
+                "selected_shadow_option_id_for_review must reference an option candidate"
+            )
         return self
 
 
 __all__ = [
     "RescueOptionCandidate",
+    "RescueOptionLiveEquivalentRequiredGate",
     "RescueOptionPacket",
     "RescueOptionRejection",
     "RescueOptionRiskIfWrong",

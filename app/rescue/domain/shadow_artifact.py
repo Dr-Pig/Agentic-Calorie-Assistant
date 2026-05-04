@@ -13,7 +13,7 @@ from app.rescue.domain.shadow_trigger import RescueTriggerCandidate
 from app.rescue.domain.shadow_viability import (
     RescueViabilityBand,
     RescueViabilityHarmIfWrong,
-    RescueViabilityRecommendedAction,
+    RescueViabilityShadowReviewPosture,
 )
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
@@ -94,38 +94,40 @@ class RescueShadowCandidateArtifact(RescueShadowNoEffectFlags):
     rescue_viability_score: float = Field(ge=0.0, le=1.0)
     viability_band: RescueViabilityBand
     option_candidates: tuple[RescueOptionCandidate, ...] = Field(default_factory=tuple)
-    selected_shadow_option: RescueOptionCandidate | None = None
+    selected_shadow_option_for_review: RescueOptionCandidate | None = None
     options_rejected: tuple[RescueOptionRejection, ...] = Field(default_factory=tuple)
     reason_codes: tuple[str, ...] = Field(default_factory=tuple)
     confidence: float = Field(ge=0.0, le=1.0)
     harm_if_wrong: RescueViabilityHarmIfWrong
-    recommended_action: RescueViabilityRecommendedAction
+    shadow_review_posture: RescueViabilityShadowReviewPosture
     context_candidates_used: tuple[str, ...] = Field(default_factory=tuple)
     context_candidates_ignored: tuple[str, ...] = Field(default_factory=tuple)
     future_required_gate_before_runtime: tuple[str, ...] = Field(default_factory=tuple)
 
     @model_validator(mode="after")
-    def validate_selected_shadow_option(self) -> RescueShadowCandidateArtifact:
+    def validate_selected_shadow_option_for_review(self) -> RescueShadowCandidateArtifact:
         candidate_ids = [option.option_id for option in self.option_candidates]
         if len(set(candidate_ids)) != len(candidate_ids):
             raise ValueError("option_candidates must not contain duplicate option_ids")
-        if self.selected_shadow_option is None:
+        if self.selected_shadow_option_for_review is None:
             return self
         matching = [
             option
             for option in self.option_candidates
-            if option.option_id == self.selected_shadow_option.option_id
+            if option.option_id == self.selected_shadow_option_for_review.option_id
         ]
         if not matching:
-            raise ValueError("selected_shadow_option must reference an option candidate")
-        if matching[0] != self.selected_shadow_option:
-            raise ValueError("selected_shadow_option must exactly match option candidate")
+            raise ValueError("selected_shadow_option_for_review must reference an option candidate")
+        if matching[0] != self.selected_shadow_option_for_review:
+            raise ValueError(
+                "selected_shadow_option_for_review must exactly match option candidate"
+            )
         return self
 
 
 class RescueShadowCandidatesSummary(RescueShadowArtifactBaseModel):
     candidate_count: int = Field(ge=0)
-    selected_shadow_option_count: int = Field(ge=0)
+    selected_shadow_option_for_review_count: int = Field(ge=0)
     rejected_option_count: int = Field(ge=0)
     scenario_ids: tuple[str, ...] = Field(default_factory=tuple)
     claim_scope: Literal["offline_fixture_shadow_artifact"] = (
@@ -145,14 +147,17 @@ class RescueShadowCandidatesArtifact(RescueShadowNoEffectFlags):
     def validate_summary_matches_candidates(self) -> RescueShadowCandidatesArtifact:
         candidates = self.rescue_shadow_candidates
         selected_count = sum(
-            candidate.selected_shadow_option is not None for candidate in candidates
+            candidate.selected_shadow_option_for_review is not None
+            for candidate in candidates
         )
         rejected_count = sum(len(candidate.options_rejected) for candidate in candidates)
         scenario_ids = tuple(candidate.scenario_id for candidate in candidates)
         if self.summary.candidate_count != len(candidates):
             raise ValueError("summary.candidate_count must match candidates")
-        if self.summary.selected_shadow_option_count != selected_count:
-            raise ValueError("summary.selected_shadow_option_count must match candidates")
+        if self.summary.selected_shadow_option_for_review_count != selected_count:
+            raise ValueError(
+                "summary.selected_shadow_option_for_review_count must match candidates"
+            )
         if self.summary.rejected_option_count != rejected_count:
             raise ValueError("summary.rejected_option_count must match candidates")
         if self.summary.scenario_ids != scenario_ids:

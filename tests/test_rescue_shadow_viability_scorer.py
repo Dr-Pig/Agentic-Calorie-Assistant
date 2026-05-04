@@ -93,7 +93,7 @@ def test_small_overshoot_without_rescue_trigger_is_not_needed_discard() -> None:
     )
 
     assert result.viability_band == "not_needed"
-    assert result.recommended_action == "discard"
+    assert result.shadow_review_posture == "discard"
     assert result.rescue_viability_score == 0.0
     assert "overshoot_small" in result.reason_codes
     assert "weekly_deficit_still_ok" in result.reason_codes
@@ -109,7 +109,7 @@ def test_large_overshoot_off_track_weekly_deficit_and_good_logging_promotes_late
     )
 
     assert result.viability_band == "medium"
-    assert result.recommended_action == "promote_later"
+    assert result.shadow_review_posture == "promote_later"
     assert "overshoot_large" in result.reason_codes
     assert result.confidence >= 0.7
 
@@ -128,7 +128,7 @@ def test_low_logging_quality_lowers_confidence_and_softens_action() -> None:
     assert "low_logging_quality" in result.reason_codes
     assert result.confidence < 0.6
     assert result.viability_band == "medium"
-    assert result.recommended_action == "ask_user"
+    assert result.shadow_review_posture == "ask_user"
 
 
 def test_no_active_plan_trigger_returns_not_needed_discard() -> None:
@@ -138,7 +138,7 @@ def test_no_active_plan_trigger_returns_not_needed_discard() -> None:
     )
 
     assert result.viability_band == "not_needed"
-    assert result.recommended_action == "discard"
+    assert result.shadow_review_posture == "discard"
     assert "no_active_plan" in result.reason_codes
 
 
@@ -149,7 +149,7 @@ def test_open_proposal_trigger_returns_low_keep_shadowing() -> None:
     )
 
     assert result.viability_band == "low"
-    assert result.recommended_action == "keep_shadowing"
+    assert result.shadow_review_posture == "keep_shadowing"
     assert "existing_open_proposal" in result.reason_codes
 
 
@@ -178,7 +178,7 @@ def test_calibration_uncertain_prevents_high_band_and_promote_later() -> None:
 
     assert "recent_calibration_uncertain" in result.reason_codes
     assert result.viability_band == "medium"
-    assert result.recommended_action == "ask_user"
+    assert result.shadow_review_posture == "ask_user"
 
 
 def test_low_strictness_tolerance_or_ignored_strict_plans_softens_action() -> None:
@@ -194,7 +194,7 @@ def test_low_strictness_tolerance_or_ignored_strict_plans_softens_action() -> No
 
     assert "user_likely_dislikes_strict_plans" in result.reason_codes
     assert result.viability_band == "medium"
-    assert result.recommended_action == "ask_user"
+    assert result.shadow_review_posture == "ask_user"
     assert result.harm_if_wrong == "high"
 
 
@@ -210,7 +210,7 @@ def test_app_usage_style_strict_plan_resistance_softens_action() -> None:
 
     assert "user_likely_dislikes_strict_plans" in result.reason_codes
     assert result.viability_band == "medium"
-    assert result.recommended_action == "ask_user"
+    assert result.shadow_review_posture == "ask_user"
     assert result.harm_if_wrong == "high"
 
 
@@ -233,7 +233,7 @@ def test_extreme_overshoot_recovery_pressure_prevents_high_and_promote_later() -
 
     assert "rescue_risk_too_aggressive" in result.reason_codes
     assert result.viability_band == "medium"
-    assert result.recommended_action == "ask_user"
+    assert result.shadow_review_posture == "ask_user"
     assert result.harm_if_wrong == "high"
 
 
@@ -277,6 +277,20 @@ def test_viability_result_rejects_unknown_fields() -> None:
             reason_codes=[],
             confidence=0.5,
             harm_if_wrong="low",
-            recommended_action="keep_shadowing",
+            shadow_review_posture="keep_shadowing",
             unexpected_runtime_field="must_not_be_silently_accepted",
+        )
+
+
+def test_viability_result_rejects_old_runtime_ambiguous_action_field() -> None:
+    module = importlib.import_module("app.rescue.domain.shadow_viability")
+
+    with pytest.raises(ValidationError):
+        module.RescueViabilityScoreResult(
+            rescue_viability_score=0.2,
+            viability_band="low",
+            reason_codes=[],
+            confidence=0.5,
+            harm_if_wrong="low",
+            recommended_action="keep_shadowing",
         )

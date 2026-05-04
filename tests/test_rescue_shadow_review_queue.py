@@ -147,7 +147,7 @@ def test_review_queue_prioritizes_high_medium_low_and_deferred_candidates() -> N
         "rs7_high_repeated_good_logging"
     ]
     assert (
-        queue.high_priority_rescue_candidates[0].selected_shadow_option_type
+        queue.high_priority_rescue_candidates[0].selected_shadow_option_type_for_review
         == "ask_user_context_first"
     )
     assert [item.scenario_id for item in queue.medium_priority_rescue_candidates] == [
@@ -241,6 +241,22 @@ def test_review_queue_contract_rejects_unknown_fields() -> None:
             rejected_or_deferred=[],
             reasons=[],
             unexpected_runtime_field="must_not_be_silently_accepted",
+        )
+
+
+def test_review_queue_item_rejects_old_runtime_ambiguous_priority_fields() -> None:
+    module = importlib.import_module("app.rescue.domain.shadow_review_queue")
+
+    with pytest.raises(ValidationError):
+        module.RescueShadowReviewQueueItem(
+            scenario_id="rs8-old-review-field",
+            priority="high",
+            reasons=[],
+            recommended_action="promote_later",
+            viability_band="medium",
+            confidence=0.8,
+            trigger_candidate="today_overshoot",
+            selected_shadow_option_type="bounded_spread_shadow_candidate",
         )
 
 

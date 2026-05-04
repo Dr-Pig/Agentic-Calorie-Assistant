@@ -76,19 +76,19 @@ def _queue_item(
     reasons: tuple[str, ...],
 ) -> RescueShadowReviewQueueItem:
     selected_type = (
-        candidate.selected_shadow_option.option_type
-        if candidate.selected_shadow_option is not None
+        candidate.selected_shadow_option_for_review.option_type
+        if candidate.selected_shadow_option_for_review is not None
         else None
     )
     return RescueShadowReviewQueueItem(
         scenario_id=candidate.scenario_id,
-        priority=priority,
+        shadow_review_priority=priority,
         reasons=reasons,
-        recommended_action=candidate.recommended_action,
+        shadow_review_posture=candidate.shadow_review_posture,
         viability_band=candidate.viability_band,
         confidence=candidate.confidence,
         trigger_candidate=candidate.trigger_candidate,
-        selected_shadow_option_type=selected_type,
+        selected_shadow_option_type_for_review=selected_type,
     )
 
 
@@ -177,14 +177,14 @@ def _has_low_logging_quality(candidate: RescueShadowCandidateArtifact) -> bool:
 
 def _is_small_or_not_needed(candidate: RescueShadowCandidateArtifact) -> bool:
     selected_type = (
-        candidate.selected_shadow_option.option_type
-        if candidate.selected_shadow_option is not None
+        candidate.selected_shadow_option_for_review.option_type
+        if candidate.selected_shadow_option_for_review is not None
         else None
     )
     return (
         candidate.overshoot_summary.today_overshoot_kcal <= 100
         or candidate.viability_band == "not_needed"
-        or candidate.recommended_action == "discard"
+        or candidate.shadow_review_posture == "discard"
         or selected_type in {"informational_only", "no_rescue_needed"}
     )
 

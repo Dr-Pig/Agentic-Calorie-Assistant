@@ -1,10 +1,14 @@
 from datetime import datetime, timezone
 
+import pytest
+from pydantic import ValidationError
+
 from app.rescue.application.proposal_read_model import (
     build_active_rescue_proposal_inbox,
     build_rescue_proposal_history,
 )
 from app.rescue.domain.proposal_read_models import ProposalRecordSnapshot
+from app.rescue.domain.proposal_read_models import RescueProposalReadItem
 
 
 def test_active_inbox_filters_out_dismissed_rescue_proposals() -> None:
@@ -32,7 +36,9 @@ def test_active_inbox_filters_out_dismissed_rescue_proposals() -> None:
     inbox = build_active_rescue_proposal_inbox(proposals)
 
     assert [item.proposal_id for item in inbox.items] == ["p1"]
-    assert inbox.items[0].primary_actions == ["accept_rescue_plan", "dismiss_rescue_plan"]
+    assert inbox.items[0].primary_actions == []
+    assert inbox.items[0].action_surface == "read_only_shadow_status"
+    assert inbox.items[0].formal_commit_handler_bound is False
 
 
 def test_history_keeps_dismissed_proposal_with_expandable_explanation() -> None:
@@ -93,4 +99,18 @@ def test_active_inbox_accepts_presented_and_negotiating_and_sorts_newest_first()
     inbox = build_active_rescue_proposal_inbox([older, newer])
 
     assert [item.proposal_id for item in inbox.items] == ["p5", "p4"]
-    assert all(item.primary_actions == ["accept_rescue_plan", "dismiss_rescue_plan"] for item in inbox.items)
+    assert all(item.primary_actions == [] for item in inbox.items)
+    assert all(item.action_surface == "read_only_shadow_status" for item in inbox.items)
+
+
+def test_rescue_proposal_read_item_rejects_primary_actions() -> None:
+    with pytest.raises(ValidationError):
+        RescueProposalReadItem(
+            proposal_id="p6",
+            proposal_status="open",
+            title="Recover over 3 days",
+            summary="Shadow status only.",
+            expandable_explanation="No live accept handler is bound.",
+            primary_actions=["accept_rescue_plan"],
+            created_at=datetime(2026, 4, 30, 12, 0, tzinfo=timezone.utc),
+        )

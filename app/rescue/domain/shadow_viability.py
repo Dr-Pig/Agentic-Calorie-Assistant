@@ -10,7 +10,7 @@ from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 SIDECAR_ACTIVATION_CONTRACT = offline_sidecar_contract("rescue.domain.shadow_viability")
 
 RescueViabilityBand = Literal["not_needed", "low", "medium", "high"]
-RescueViabilityRecommendedAction = Literal[
+RescueViabilityShadowReviewPosture = Literal[
     "discard",
     "keep_shadowing",
     "ask_user",
@@ -22,7 +22,7 @@ RescueViabilityHarmIfWrong = Literal["low", "medium", "high"]
 class RescueViabilityScoreResult(BaseModel):
     """Offline shadow-review artifact, not product readiness or runtime authority.
 
-    ``recommended_action`` is a shadow review posture only. It is not runtime,
+    ``shadow_review_posture`` is a shadow review posture only. It is not runtime,
     proposal, recommendation, or mutation disposition.
     """
 
@@ -36,13 +36,13 @@ class RescueViabilityScoreResult(BaseModel):
     reason_codes: list[str]
     confidence: float = Field(ge=0.0, le=1.0)
     harm_if_wrong: RescueViabilityHarmIfWrong
-    recommended_action: RescueViabilityRecommendedAction
+    shadow_review_posture: RescueViabilityShadowReviewPosture
 
 
 __all__ = [
     "RescueViabilityBand",
     "RescueViabilityHarmIfWrong",
-    "RescueViabilityRecommendedAction",
     "RescueViabilityScoreResult",
+    "RescueViabilityShadowReviewPosture",
     "SIDECAR_ACTIVATION_CONTRACT",
 ]

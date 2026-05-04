@@ -26,8 +26,9 @@ STRICT_PLAN_RESISTANT_USAGE_STYLES = {
     "ignores_strict_plans",
     "low_friction_only",
 }
-MAX_SOFT_SPREAD_DAYS = 7
-MAX_SOFT_DAILY_ADJUSTMENT_KCAL = 220
+STANDARD_SPREAD_DAILY_CAP_RATE = 0.15
+MAX_STANDARD_SPREAD_DAYS = 5
+MIN_SHADOW_DAILY_ADJUSTMENT_KCAL = 75
 
 
 def generate_rescue_option_packet(
@@ -103,7 +104,7 @@ def generate_rescue_option_packet(
                 _rejection(
                     reason_code="low_logging_quality",
                     rationale="Adjustment candidates require better logging confidence.",
-                    rejected_option_type="multi_day_spread_candidate",
+                    rejected_option_type="bounded_spread_shadow_candidate",
                 )
             ],
         )
@@ -129,7 +130,7 @@ def generate_rescue_option_packet(
                 _rejection(
                     reason_code="recent_calibration_uncertain",
                     rationale="Calibration uncertainty blocks adjustment candidates.",
-                    rejected_option_type="multi_day_spread_candidate",
+                    rejected_option_type="bounded_spread_shadow_candidate",
                 )
             ],
         )
@@ -155,7 +156,7 @@ def generate_rescue_option_packet(
                 _rejection(
                     reason_code="soft_spread_capacity_exceeded",
                     rationale="The bounded soft spread cap cannot cover this overshoot.",
-                    rejected_option_type="multi_day_spread_candidate",
+                    rejected_option_type="bounded_spread_shadow_candidate",
                 )
             ],
         )
@@ -177,13 +178,20 @@ def generate_rescue_option_packet(
                 _rejection(
                     reason_code="viability_requires_user_context",
                     rationale="Viability scoring asked for user context before adjustment.",
-                    rejected_option_type="multi_day_spread_candidate",
+                    rejected_option_type="bounded_spread_shadow_candidate",
                 )
             ],
         )
 
     if _has_strict_plan_resistance(context, viability):
-        option = _next_day_soft_option(context)
+        option = _ask_user_option(
+            context,
+            rationale=(
+                "User plan-resistance signals require user context before any "
+                "bounded spread shadow candidate."
+            ),
+            risk_if_wrong="medium",
+        )
         return _packet(
             candidates=[option],
             selected_option_id=option.option_id,
@@ -195,8 +203,8 @@ def generate_rescue_option_packet(
             rejected=[
                 _rejection(
                     reason_code="user_likely_dislikes_strict_plans",
-                    rationale="Strict multi-day spread candidates are too forceful.",
-                    rejected_option_type="multi_day_spread_candidate",
+                    rationale="Bounded spread shadow candidates need user context first.",
+                    rejected_option_type="bounded_spread_shadow_candidate",
                 )
             ],
         )
@@ -217,11 +225,11 @@ def generate_rescue_option_packet(
         )
 
     if _should_generate_spread_candidate(context, trigger, viability):
-        option = _multi_day_spread_option(context)
+        option = _bounded_spread_shadow_option(context)
         return _packet(
             candidates=[option],
             selected_option_id=option.option_id,
-            reason_codes=[*reason_codes, "shadow_multi_day_spread_candidate"],
+            reason_codes=[*reason_codes, "bounded_spread_shadow_candidate"],
         )
 
     option = _no_rescue_needed_option(context)
@@ -242,7 +250,7 @@ def _packet(
     return RescueOptionPacket(
         option_candidates=candidates or [],
         options_rejected=rejected or [],
-        selected_shadow_option_id=selected_option_id,
+        selected_shadow_option_id_for_review=selected_option_id,
         reason_codes=_unique(reason_codes or []),
     )
 
@@ -285,34 +293,21 @@ def _ask_user_option(
     )
 
 
-def _next_day_soft_option(context: RescueContextFixture) -> RescueOptionCandidate:
-    return RescueOptionCandidate(
-        option_id=_option_id(context, "next-day-soft"),
-        option_type="next_day_soft_adjustment",
-        affected_dates=[context.local_date + timedelta(days=1)],
-        suggested_adjustment_kcal_range=(75, 150),
-        rationale=(
-            "User plan-resistance signals call for only a soft next-day shadow "
-            "candidate."
-        ),
-        risk_if_wrong="medium",
-    )
-
-
-def _multi_day_spread_option(context: RescueContextFixture) -> RescueOptionCandidate:
+def _bounded_spread_shadow_option(context: RescueContextFixture) -> RescueOptionCandidate:
     affected_dates = _spread_dates(context)
     lower, upper = _spread_adjustment_range(
+        context,
         context.overshoot_summary.today_overshoot_kcal,
         day_count=len(affected_dates),
     )
     return RescueOptionCandidate(
-        option_id=_option_id(context, "multi-day-spread"),
-        option_type="multi_day_spread_candidate",
+        option_id=_option_id(context, "bounded-spread"),
+        option_type="bounded_spread_shadow_candidate",
         affected_dates=affected_dates,
         suggested_adjustment_kcal_range=(lower, upper),
         rationale=(
-            "Large overshoot and weekly off-track posture can be shadowed as a "
-            "modest three-day spread."
+            "Large overshoot and weekly off-track posture can be reviewed as a "
+            "bounded spread shadow candidate."
         ),
         risk_if_wrong="medium",
     )
@@ -373,7 +368,7 @@ def _has_strict_plan_resistance(
 
 def _viability_requires_user_context(viability: RescueViabilityScoreResult) -> bool:
     return (
-        viability.recommended_action == "ask_user"
+        viability.shadow_review_posture == "ask_user"
         or "rescue_risk_too_aggressive" in viability.reason_codes
     )
 
@@ -396,7 +391,7 @@ def _should_not_generate_any_rescue_option(
         not trigger.should_generate_rescue_candidate
         or trigger.trigger_candidate == "no_rescue_needed"
         or viability.viability_band == "not_needed"
-        or viability.recommended_action == "discard"
+        or viability.shadow_review_posture == "discard"
         or context.overshoot_summary.today_overshoot_kcal <= 0
     )
 
@@ -413,7 +408,7 @@ def _should_generate_spread_candidate(
             context.deficit_summary.weekly_deficit_gap_kcal >= 500
             or context.deficit_summary.weekly_deficit_posture == "off_track"
         )
-        and viability.recommended_action == "promote_later"
+        and viability.shadow_review_posture == "promote_later"
         and viability.confidence >= 0.7
         and not _exceeds_soft_spread_capacity(context)
     )
@@ -431,7 +426,7 @@ def _is_repeated_overshoot_strategy_candidate(
 def _exceeds_soft_spread_capacity(context: RescueContextFixture) -> bool:
     return (
         context.overshoot_summary.today_overshoot_kcal
-        > MAX_SOFT_SPREAD_DAYS * MAX_SOFT_DAILY_ADJUSTMENT_KCAL
+        > MAX_STANDARD_SPREAD_DAYS * _daily_standard_cap_kcal(context)
     )
 
 
@@ -440,26 +435,34 @@ def _spread_dates(context: RescueContextFixture) -> tuple:
         max(
             ceil(
                 context.overshoot_summary.today_overshoot_kcal
-                / MAX_SOFT_DAILY_ADJUSTMENT_KCAL
+                / _daily_standard_cap_kcal(context)
             ),
             3,
         ),
-        MAX_SOFT_SPREAD_DAYS,
+        MAX_STANDARD_SPREAD_DAYS,
     )
     return tuple(context.local_date + timedelta(days=offset) for offset in range(1, day_count + 1))
 
 
 def _spread_adjustment_range(
+    context: RescueContextFixture,
     today_overshoot_kcal: int,
     *,
     day_count: int,
 ) -> tuple[int, int]:
     upper = min(
-        MAX_SOFT_DAILY_ADJUSTMENT_KCAL,
-        max(75, ceil(today_overshoot_kcal / max(day_count, 1))),
+        _daily_standard_cap_kcal(context),
+        max(MIN_SHADOW_DAILY_ADJUSTMENT_KCAL, ceil(today_overshoot_kcal / max(day_count, 1))),
     )
-    lower = max(75, ceil(upper * 0.6))
+    lower = max(MIN_SHADOW_DAILY_ADJUSTMENT_KCAL, ceil(upper * 0.6))
     return lower, upper
+
+
+def _daily_standard_cap_kcal(context: RescueContextFixture) -> int:
+    return max(
+        MIN_SHADOW_DAILY_ADJUSTMENT_KCAL,
+        int(context.current_budget.daily_budget_kcal * STANDARD_SPREAD_DAILY_CAP_RATE),
+    )
 
 
 def _option_id(context: RescueContextFixture, suffix: str) -> str:

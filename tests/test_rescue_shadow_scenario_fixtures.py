@@ -46,11 +46,14 @@ def test_small_overshoot_fixture_is_informational_only() -> None:
 
     assert trigger.should_generate_rescue_candidate is False
     assert viability.viability_band == "not_needed"
-    assert viability.recommended_action == "discard"
+    assert viability.shadow_review_posture == "discard"
     assert {option.option_type for option in option_packet.option_candidates} == {
         "informational_only"
     }
-    assert option_packet.selected_shadow_option_id == option_packet.option_candidates[0].option_id
+    assert (
+        option_packet.selected_shadow_option_id_for_review
+        == option_packet.option_candidates[0].option_id
+    )
 
 
 def test_large_overshoot_fixture_generates_soft_spread_candidate() -> None:
@@ -60,9 +63,9 @@ def test_large_overshoot_fixture_generates_soft_spread_candidate() -> None:
 
     assert trigger.should_generate_rescue_candidate is True
     assert viability.viability_band == "medium"
-    assert viability.recommended_action == "promote_later"
+    assert viability.shadow_review_posture == "promote_later"
     assert {option.option_type for option in option_packet.option_candidates} == {
-        "multi_day_spread_candidate"
+        "bounded_spread_shadow_candidate"
     }
 
 
@@ -73,7 +76,7 @@ def test_low_logging_quality_fixture_downgrades_confidence_and_asks_user() -> No
 
     assert "low_logging_quality" in viability.reason_codes
     assert viability.confidence < 0.6
-    assert viability.recommended_action == "ask_user"
+    assert viability.shadow_review_posture == "ask_user"
     assert {option.option_type for option in option_packet.option_candidates} == {
         "ask_user_context_first"
     }
@@ -84,12 +87,15 @@ def test_repeated_overshoot_fixture_flags_pattern_and_promote_later() -> None:
 
     assert trigger.trigger_candidate == "repeated_overshoot_pattern"
     assert "repeated_overshoot" in viability.reason_codes
-    assert viability.recommended_action == "promote_later"
+    assert viability.shadow_review_posture == "promote_later"
     assert {option.option_type for option in option_packet.option_candidates} == {
         "ask_user_context_first"
     }
     assert "repeated_overshoot_strategy_review" in option_packet.reason_codes
-    assert option_packet.selected_shadow_option_id == option_packet.option_candidates[0].option_id
+    assert (
+        option_packet.selected_shadow_option_id_for_review
+        == option_packet.option_candidates[0].option_id
+    )
     assert option_packet.runtime_effect_allowed is False
 
 
@@ -99,11 +105,11 @@ def test_calibration_uncertain_fixture_avoids_overcorrection() -> None:
     )
 
     assert "recent_calibration_uncertain" in viability.reason_codes
-    assert viability.recommended_action == "ask_user"
+    assert viability.shadow_review_posture == "ask_user"
     assert {option.option_type for option in option_packet.option_candidates} == {
         "ask_user_context_first"
     }
-    assert "multi_day_spread_candidate" not in {
+    assert "bounded_spread_shadow_candidate" not in {
         option.option_type for option in option_packet.option_candidates
     }
 
@@ -112,7 +118,7 @@ def test_user_dislikes_strict_plans_fixture_softens_option() -> None:
     _trigger, viability, option_packet = _scenario_outputs("user_dislikes_strict_plans")
 
     assert "user_likely_dislikes_strict_plans" in viability.reason_codes
-    assert viability.recommended_action == "ask_user"
+    assert viability.shadow_review_posture == "ask_user"
     assert {option.option_type for option in option_packet.option_candidates} == {
         "ask_user_context_first"
     }

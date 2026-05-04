@@ -5,8 +5,8 @@ from app.rescue.domain.shadow_trigger import RescueTriggerDetectionResult
 from app.rescue.domain.shadow_viability import (
     RescueViabilityBand,
     RescueViabilityHarmIfWrong,
-    RescueViabilityRecommendedAction,
     RescueViabilityScoreResult,
+    RescueViabilityShadowReviewPosture,
 )
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
@@ -207,7 +207,7 @@ def _action_for_result(
     calibration_uncertain: bool,
     strictness_risk: bool,
     aggressive_risk: bool,
-) -> RescueViabilityRecommendedAction:
+) -> RescueViabilityShadowReviewPosture:
     if band == "not_needed":
         return "discard"
     if calibration_uncertain:
@@ -228,7 +228,7 @@ def _result(
     reasons: list[str],
     confidence: float,
     harm: RescueViabilityHarmIfWrong,
-    action: RescueViabilityRecommendedAction,
+    action: RescueViabilityShadowReviewPosture,
 ) -> RescueViabilityScoreResult:
     return RescueViabilityScoreResult(
         rescue_viability_score=round(_clamp(score), 3),
@@ -236,7 +236,7 @@ def _result(
         reason_codes=_unique(reasons),
         confidence=round(_clamp(confidence), 3),
         harm_if_wrong=harm,
-        recommended_action=action,
+        shadow_review_posture=action,
     )
 
 
