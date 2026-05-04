@@ -44,6 +44,7 @@ def build_food_evidence_mvp_policy_manifest() -> dict[str, Any]:
             "existing_repo_seed": "current_baseline_requires_review_for_expansion",
             "taiwan_tfda_open_data": "generic_taiwan_anchor_support",
             "official_brand_chain_page": "exact_card_support_when_variant_and_portion_match",
+            "local_taiwan_packaged_extract": "exact_card_candidate_only_until_review_and_identity_match",
             "open_food_facts": "packaged_candidate_only",
             "usda_fallback": "fallback_generic_normalization_only",
             "dogfood_user_correction": "review_candidate_only",

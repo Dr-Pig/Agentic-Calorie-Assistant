@@ -124,6 +124,13 @@ def test_auto_eligible_blocks_validator_failures_and_non_auto_sources() -> None:
                     evidence_role="packaged_candidate",
                 ),
                 _validated_candidate(
+                    "local_exact",
+                    "local packaged exact",
+                    source_class="local_taiwan_packaged_extract",
+                    source_id="local_tw_packaged_extract_188_2",
+                    evidence_role="exact_card_candidate",
+                ),
+                _validated_candidate(
                     "usda",
                     "fallback",
                     source_class="usda_fallback",
@@ -151,6 +158,7 @@ def test_auto_eligible_blocks_validator_failures_and_non_auto_sources() -> None:
     assert artifact["summary"]["auto_eligible_count"] == 1
     exceptions = {item["candidate_id"]: item for item in artifact["exception_report"]}
     assert exceptions["off"]["exception_reason"] == "source_class_not_auto_eligible"
+    assert exceptions["local_exact"]["exception_reason"] == "source_class_not_auto_eligible"
     assert exceptions["usda"]["exception_reason"] == "source_class_not_auto_eligible"
     assert exceptions["old"]["exception_reason"] == "source_class_not_auto_eligible"
     assert exceptions["repair"]["exception_reason"] == "validation_not_passed"
