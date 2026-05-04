@@ -89,6 +89,8 @@ def _base_report(
         "today_date_switch_checked": False,
         "today_previous_day_empty_checked": False,
         "today_current_day_restored_checked": False,
+        "today_url_state_preserved_after_date_change": False,
+        "today_reload_preserved_selected_date": False,
         "today_summary_rendered": False,
         "today_meal_list_rendered": False,
         "today_no_debug_trace": False,
@@ -391,6 +393,22 @@ def _run_browser_sequence(
             result["today_previous_day_empty_checked"] = cjk_message not in today.locator("#meal-list").inner_text(
                 timeout=timeout_ms
             )
+            result["today_url_state_preserved_after_date_change"] = (
+                today.evaluate("""() => new URL(window.location.href).searchParams.get("local_date")""")
+                == "2026-05-03"
+            )
+            today.reload(wait_until="networkidle", timeout=timeout_ms)
+            today.wait_for_function(
+                """() => document.querySelector("#selected-date")?.value === "2026-05-03" """,
+                timeout=timeout_ms,
+            )
+            today.wait_for_function(
+                """() => (document.querySelector("#meal-list")?.textContent || "").includes("No meals logged") """,
+                timeout=timeout_ms,
+            )
+            result["today_reload_preserved_selected_date"] = cjk_message not in today.locator("#meal-list").inner_text(
+                timeout=timeout_ms
+            )
             today.evaluate(
                 """() => {
                   const input = document.querySelector("#selected-date");
@@ -570,6 +588,11 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("today_date_switch_checked", "today_date_switch_not_checked")
     require_true("today_previous_day_empty_checked", "today_previous_day_empty_not_checked")
     require_true("today_current_day_restored_checked", "today_current_day_restored_not_checked")
+    require_true(
+        "today_url_state_preserved_after_date_change",
+        "today_url_state_not_preserved_after_date_change",
+    )
+    require_true("today_reload_preserved_selected_date", "today_reload_did_not_preserve_selected_date")
     require_true("today_summary_rendered", "today_summary_not_rendered")
     require_true("today_meal_list_rendered", "today_meal_list_not_rendered")
     require_true("today_no_debug_trace", "today_debug_trace_leaked")

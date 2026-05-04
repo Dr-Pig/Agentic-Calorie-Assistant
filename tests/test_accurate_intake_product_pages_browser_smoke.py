@@ -24,6 +24,8 @@ def _passing_report() -> dict[str, object]:
         "today_date_switch_checked": True,
         "today_previous_day_empty_checked": True,
         "today_current_day_restored_checked": True,
+        "today_url_state_preserved_after_date_change": True,
+        "today_reload_preserved_selected_date": True,
         "today_summary_rendered": True,
         "today_meal_list_rendered": True,
         "today_no_debug_trace": True,
@@ -148,6 +150,8 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     report = _passing_report()
     report["today_previous_day_empty_checked"] = False
     report["today_current_day_restored_checked"] = False
+    report["today_url_state_preserved_after_date_change"] = False
+    report["today_reload_preserved_selected_date"] = False
     report["body_plan_readback_checked"] = False
     report["today_manual_target_readback_checked"] = False
 
@@ -156,6 +160,8 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     assert status == "fail"
     assert "today_previous_day_empty_not_checked" in blockers
     assert "today_current_day_restored_not_checked" in blockers
+    assert "today_url_state_not_preserved_after_date_change" in blockers
+    assert "today_reload_did_not_preserve_selected_date" in blockers
     assert "body_plan_readback_not_checked" in blockers
     assert "today_manual_target_readback_not_checked" in blockers
 
@@ -208,6 +214,8 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
     assert report["chat_reload_scroll_behavior_checked"] is True
     assert report["today_previous_day_empty_checked"] is True
     assert report["today_current_day_restored_checked"] is True
+    assert report["today_url_state_preserved_after_date_change"] is True
+    assert report["today_reload_preserved_selected_date"] is True
     assert report["body_plan_readback_checked"] is True
     assert report["today_manual_target_readback_checked"] is True
     assert report["nav_session_query_preserved"] is True

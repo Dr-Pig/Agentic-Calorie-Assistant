@@ -299,6 +299,13 @@
         }
       });
     }
+    function updateCurrentUrl() {
+      const nextUrl = pageUrl("today");
+      const resolved = new URL(nextUrl, window.location.href);
+      if (window.location.search !== resolved.search) {
+        window.history.replaceState(null, "", nextUrl);
+      }
+    }
     function shiftDate(iso, delta) {
       const date = new Date(`${iso}T00:00:00`);
       date.setDate(date.getDate() + delta);
@@ -363,6 +370,7 @@
     }
     async function loadToday() {
       renderDayStrip();
+      updateCurrentUrl();
       updateNavigationLinks();
       el("today-status").textContent = "Loading this day...";
       const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
