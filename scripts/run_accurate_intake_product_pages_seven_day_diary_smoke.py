@@ -185,7 +185,7 @@ def _date_strip_marks_current(page: Any, *, local_date: str) -> bool:
         page.evaluate(
             """(localDate) => {
               const current = document.querySelector('#day-strip [aria-current="date"]');
-              if (!current || current.textContent.trim() !== localDate) {
+              if (!current || current.getAttribute("aria-label") !== `Open ${localDate}`) {
                 return false;
               }
               return document.querySelectorAll("#day-strip button").length === 7;
@@ -544,7 +544,7 @@ def main(argv: list[str] | None = None) -> int:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    print(json.dumps(report, ensure_ascii=True, indent=2))
     if report["status"] == "pass":
         return 0
     if report["status"] == "blocked" and not args.require_browser_execution:
