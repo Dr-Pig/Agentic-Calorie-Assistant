@@ -6,8 +6,10 @@ import hashlib
 import json
 from pathlib import Path
 from typing import Any, Iterable
+from zipfile import BadZipFile
 
 from openpyxl import load_workbook
+from openpyxl.utils.exceptions import InvalidFileException
 
 
 NON_CLAIM_FLAGS = {
@@ -250,7 +252,10 @@ def _json_records(payload: Any) -> list[Any]:
 
 
 def _inspect_xlsx(path: Path) -> dict[str, Any]:
-    workbook = load_workbook(path, read_only=True, data_only=True)
+    try:
+        workbook = load_workbook(path, read_only=True, data_only=True)
+    except (BadZipFile, InvalidFileException, OSError, ValueError, KeyError) as exc:
+        return {"parse_error": type(exc).__name__}
     try:
         sheets = []
         row_count = 0
@@ -272,6 +277,8 @@ def _inspect_xlsx(path: Path) -> dict[str, Any]:
             "sheet_count": len(sheets),
             "sheets": sheets,
         }
+    except (BadZipFile, InvalidFileException, OSError, ValueError, KeyError) as exc:
+        return {"parse_error": type(exc).__name__}
     finally:
         workbook.close()
 

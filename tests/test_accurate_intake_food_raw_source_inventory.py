@@ -78,6 +78,19 @@ def test_raw_source_inventory_scans_json_without_absolute_paths(tmp_path: Path) 
     assert str(tmp_path) not in json.dumps(inventory)
 
 
+def test_raw_source_inventory_reports_malformed_json_per_entry(tmp_path: Path) -> None:
+    source = tmp_path / "openfoodfacts_taiwan_small.json"
+    source.write_text("{not valid json", encoding="utf-8")
+
+    inventory = build_food_raw_source_inventory(scan_roots=[tmp_path])
+    entry = _entry(inventory, "openfoodfacts_taiwan_small")
+
+    assert entry["local_path_present"] is True
+    assert entry["parse_error"] == "JSONDecodeError"
+    assert entry["row_count"] is None
+    assert inventory["scan_summary"]["present_count"] == 1
+
+
 def test_raw_source_inventory_scans_xlsx_without_absolute_paths(tmp_path: Path) -> None:
     workbook = Workbook()
     sheet = workbook.active
@@ -101,6 +114,19 @@ def test_raw_source_inventory_scans_xlsx_without_absolute_paths(tmp_path: Path) 
     assert entry["row_count"] == 2
     assert entry["relative_to_scan_root"] == "FDA_food_nutrition_2024.xlsx"
     assert str(tmp_path) not in json.dumps(inventory, ensure_ascii=False)
+
+
+def test_raw_source_inventory_reports_malformed_xlsx_per_entry(tmp_path: Path) -> None:
+    source = tmp_path / "FDA_food_nutrition_2024.xlsx"
+    source.write_bytes(b"not an xlsx workbook")
+
+    inventory = build_food_raw_source_inventory(scan_roots=[tmp_path])
+    entry = _entry(inventory, "tfda_fda_food_nutrition_2024")
+
+    assert entry["local_path_present"] is True
+    assert "parse_error" in entry
+    assert entry["row_count"] is None
+    assert inventory["scan_summary"]["present_count"] == 1
 
 
 def test_raw_source_inventory_reports_missing_sources_as_absent(tmp_path: Path) -> None:
