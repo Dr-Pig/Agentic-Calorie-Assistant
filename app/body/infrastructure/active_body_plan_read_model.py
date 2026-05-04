@@ -40,6 +40,8 @@ def load_active_body_plan_view(
     plan_source = metadata.get("plan_source")
     goal_type = metadata.get("goal_type")
     recommended_target_kcal = int(metadata.get("recommended_target_kcal") or body_plan.daily_budget_kcal or 0)
+    active_daily_target_kcal = int(body_plan.daily_budget_kcal or recommended_target_kcal or 0)
+    daily_deficit_kcal = max(0, int(body_plan.estimated_tdee or 0) - active_daily_target_kcal)
 
     return ActiveBodyPlanView(
         body_plan_id=body_plan.id,
@@ -53,6 +55,7 @@ def load_active_body_plan_view(
         activity_level=str(body_profile.activity_level) if body_profile is not None and body_profile.activity_level else None,
         daily_budget_kcal=body_plan.daily_budget_kcal,
         recommended_target_kcal=recommended_target_kcal,
+        daily_deficit_kcal=daily_deficit_kcal,
         safety_floor_kcal=body_plan.safety_floor_kcal,
         estimated_tdee=body_plan.estimated_tdee,
         target_pace_kg_per_week=body_plan.target_pace_kg_per_week,
