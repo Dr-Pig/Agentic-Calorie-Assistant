@@ -10,8 +10,13 @@ def _clean_evidence() -> dict:
         "dogfood_review_queue": {"status": "generated", "source": "test"},
         "local_dogfood_data_hygiene": {"status": "pass", "source": "test"},
         "pre_live_decision_pack": {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_pre_live_self_use_decision_pack",
             "status": "generated",
             "source": "test",
+            "selected_option": "ready_for_human_limited_live_canary_decision",
+            "missing_evidence": [],
+            "blockers": [],
             "ready_for_pl_ce_local_review": True,
             "ready_for_live_diagnostic_decision": False,
             "live_canary_approved": False,
@@ -190,6 +195,50 @@ def test_candidate_blocked_if_production_db_touched() -> None:
     pack = build_local_web_self_use_candidate_v2(evidence)
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert "production DB touched" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+def test_candidate_blocks_pre_live_selected_option_or_blockers() -> None:
+    evidence = _clean_evidence()
+    evidence["pre_live_decision_pack"]["selected_option"] = "stay_local_self_use"
+    evidence["pre_live_decision_pack"]["missing_evidence"] = ["phase_c_gate"]
+    evidence["pre_live_decision_pack"]["blockers"] = ["local_operator_data_hygiene_bundle_writes_performed"]
+
+    pack = build_local_web_self_use_candidate_v2(evidence)
+
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "pre-live selected option: stay_local_self_use" in pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert "pre-live missing evidence: phase_c_gate" in pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert (
+        "pre-live blocker: local_operator_data_hygiene_bundle_writes_performed"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
+
+def test_candidate_blocked_if_shared_contract_runtime_truth_or_mutation_changes() -> None:
+    cases = (
+        ("manager_context_packet_schema_changed", "shared contract change attempted"),
+        ("nutrition_evidence_store_port_changed", "shared contract change attempted"),
+        ("food_evidence_record_schema_changed", "shared contract change attempted"),
+        ("packet_ready_anchor_schema_changed", "shared contract change attempted"),
+        ("packetizer_format_changed", "shared contract change attempted"),
+        ("basket_semantics_changed", "shared contract change attempted"),
+        ("runtime_truth_changed", "runtime truth change attempted"),
+        ("mutation_changed", "mutation change attempted"),
+    )
+    for flag, blocker in cases:
+        evidence = _clean_evidence()
+        evidence["some_artifact"] = {flag: True}
+        pack = build_local_web_self_use_candidate_v2(evidence)
+        assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+        assert blocker in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+def test_candidate_blocked_if_runner_gate_evidence_is_invalid() -> None:
+    evidence = _clean_evidence()
+    evidence["local_web_candidate_gate_evidence"] = {
+        "status": "blocked_invalid_evidence",
+        "local_web_candidate_gate_blocked": True,
+    }
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "local web candidate gate evidence blocked" in pack["local_web_self_use_candidate_v2"]["blockers"]
 
 def test_present_evidence_with_failed_status_blocks_as_failed_evidence() -> None:
     evidence = _clean_evidence()
