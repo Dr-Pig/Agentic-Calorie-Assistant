@@ -219,6 +219,14 @@ python scripts/build_accurate_intake_dogfood_operator_review.py --dogfood-json a
 
 This surface is a local-only triage view. It may classify turns as target update success, food evidence gap, blocked mutation, query/no-mutation, unsupported intent, manager/context gap, or not checked using structured artifact fields only. Runtime error / missing-payload status may classify a turn as `manager_context_gap`; raw user text and assistant text are display-only. Browser v2 manager context status is limited to `not_available`, `not_checked`, or `missing_context_snapshot`; this is diagnostic-only and must not claim a Context Engineering fault. The surface must not recompute kcal, update Food KB truth, promote canonical eval cases, or convert `diagnostic_pass_with_evidence_gap` or `browser_diagnostic_pass_with_fixture_evidence_gap` into `pass`.
 
+Build the Product Loop handoff v3 metadata gate with:
+
+```powershell
+python scripts/build_accurate_intake_product_loop_handoff_v3.py --browser-shell-smoke artifacts/accurate_intake_browser_shell_smoke.json --browser-fixture-dogfood artifacts/accurate_intake_browser_one_day_fixture_dogfood.json --local-dogfood-hygiene artifacts/accurate_intake_local_dogfood_export.json --browser-realistic-dogfood artifacts/accurate_intake_browser_realistic_web_dogfood_v2.json --operator-review artifacts/accurate_intake_dogfood_operator_review_v2.json --mvp-gate artifacts/accurate_intake_mvp_gate.json --output artifacts/accurate_intake_product_loop_handoff_v3.json
+```
+
+The handoff gate is validation-only. Without a FoodDB artifact it must report `ready_for_fdb_integration=false` and `fooddb_artifact_status=blocked_waiting_for_fdb_artifact`. A fixture FoodDB artifact still must keep `real_fooddb_pass_claimed=false`. Invalid FoodDB metadata blocks the gate and must not trigger auto-fix or FoodDB truth updates.
+
 Build the Food KB gap register from the operator review surface with:
 
 ```powershell

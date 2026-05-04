@@ -202,9 +202,9 @@ blocked_by: not_reported_in_this_status_pack_yet
 
 track: PL
 branch: codex/pl1-browser-shell-smoke
-current_slice: PL1-PL4_product_loop_local_web_shell_train
+current_slice: PL1-PL7_product_loop_local_web_shell_train
 status: implemented_as_separable_commits_local_review_pending_not_merged
-expected_output: artifacts/accurate_intake_browser_shell_smoke.json; artifacts/accurate_intake_browser_one_day_fixture_dogfood.json; local-only dogfood export/import-preview manifests
+expected_output: artifacts/accurate_intake_browser_shell_smoke.json; artifacts/accurate_intake_browser_one_day_fixture_dogfood.json; artifacts/accurate_intake_browser_realistic_web_dogfood_v2.json; artifacts/accurate_intake_dogfood_operator_review_v2.json; artifacts/accurate_intake_product_loop_handoff_v3.json; local-only dogfood export/import-preview manifests
 shared_contract_changed: false
 blocked_by: none
 
