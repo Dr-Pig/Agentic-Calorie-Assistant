@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app.budget.interface.today_surface import resolve_today_local_date  # noqa: E402
 from app.composition import intake_routes  # noqa: E402
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date  # noqa: E402
 from app.database import get_db, get_or_create_user  # noqa: E402
@@ -583,7 +584,7 @@ def build_browser_shell_smoke_report(
         base_url = f"http://127.0.0.1:{port}"
         _wait_for_http(f"{base_url}/static/accurate-intake-local-shell.html")
         get_or_create_user(db, user_external_id)
-        local_date = "2026-05-04"
+        local_date = resolve_today_local_date(None)
         _seed_body_plan(db, user_external_id=user_external_id, local_date=local_date)
         try:
             report["browser"] = _run_browser_sequence(

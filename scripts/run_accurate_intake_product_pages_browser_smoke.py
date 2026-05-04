@@ -6,7 +6,7 @@ import os
 import secrets
 import sys
 import time
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app.budget.interface.today_surface import resolve_today_local_date  # noqa: E402
 from app.database import get_or_create_user  # noqa: E402
 from app.runtime.interface.local_debug_auth import LOCAL_DEBUG_API_TOKEN_ENV  # noqa: E402
 from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
@@ -36,7 +37,7 @@ from scripts.run_accurate_intake_mvp_manager_style_smoke import (  # noqa: E402
 DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_product_pages_browser_smoke.sqlite3"
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_product_pages_browser_smoke.json"
 DEFAULT_USER_ID = "product-pages-browser-smoke-user"
-DEFAULT_LOCAL_DATE = "2026-05-04"
+DEFAULT_LOCAL_DATE = resolve_today_local_date(None)
 DEFAULT_CJK_MESSAGE = "早餐吃茶葉蛋和拿鐵"
 NOT_CLAIMING = [
     "product_ready",
@@ -63,6 +64,7 @@ def _base_report(
     *,
     user_external_id: str,
     db_path: Path,
+    local_date: str,
     browser_execution_required: bool,
 ) -> dict[str, Any]:
     return {
@@ -73,6 +75,8 @@ def _base_report(
         "not_claiming": list(NOT_CLAIMING),
         "user_external_id": user_external_id,
         "db_path": str(db_path),
+        "local_date": local_date,
+        "previous_local_date": _previous_local_date(local_date),
         "browser_execution_required": browser_execution_required,
         "browser_executed": False,
         "chat_page_loaded": False,
@@ -127,6 +131,10 @@ def _base_report(
         "private_self_use_approved": False,
         "fetch_sequence": [],
     }
+
+
+def _previous_local_date(local_date: str) -> str:
+    return (date.fromisoformat(local_date) - timedelta(days=1)).isoformat()
 
 
 def _page_url(base_url: str, page_name: str, *, user_external_id: str, local_date: str) -> str:
@@ -247,6 +255,7 @@ def _run_browser_sequence(
     local_debug_token: str,
 ) -> dict[str, Any]:
     sync_playwright = _load_sync_playwright()
+    previous_local_date = _previous_local_date(local_date)
     result: dict[str, Any] = {
         "current_step": "not_started",
         "fetch_sequence": [],
@@ -356,32 +365,37 @@ def _run_browser_sequence(
                 and reload_scroll_state.get("moved") is True
             )
             chat.evaluate(
-                """() => {
+                """(dateValue) => {
                   const input = document.querySelector("#local-date");
-                  input.value = "2026-05-03";
+                  input.value = dateValue;
                   input.dispatchEvent(new Event("change", { bubbles: true }));
-                }"""
+                }""",
+                arg=previous_local_date,
             )
             chat.wait_for_function(
-                """() => new URL(window.location.href).searchParams.get("local_date") === "2026-05-03" """,
+                """(dateValue) => new URL(window.location.href).searchParams.get("local_date") === dateValue """,
+                arg=previous_local_date,
                 timeout=timeout_ms,
             )
             result["chat_url_state_preserved_after_date_change"] = True
             chat.reload(wait_until="networkidle", timeout=timeout_ms)
             chat.wait_for_function(
-                """() => document.querySelector("#local-date")?.value === "2026-05-03" """,
+                """(dateValue) => document.querySelector("#local-date")?.value === dateValue """,
+                arg=previous_local_date,
                 timeout=timeout_ms,
             )
             result["chat_reload_preserved_selected_date"] = True
             chat.evaluate(
-                """() => {
+                """(dateValue) => {
                   const input = document.querySelector("#local-date");
-                  input.value = "2026-05-04";
+                  input.value = dateValue;
                   input.dispatchEvent(new Event("change", { bubbles: true }));
-                }"""
+                }""",
+                arg=local_date,
             )
             chat.wait_for_function(
-                """() => new URL(window.location.href).searchParams.get("local_date") === "2026-05-04" """,
+                """(dateValue) => new URL(window.location.href).searchParams.get("local_date") === dateValue """,
+                arg=local_date,
                 timeout=timeout_ms,
             )
             chat.wait_for_function(
@@ -458,14 +472,16 @@ def _run_browser_sequence(
             result["today_no_debug_trace"] = _is_visible_product_text_clean(today_text)
             result["current_step"] = "switch_today_date"
             today.evaluate(
-                """() => {
+                """(dateValue) => {
                   const input = document.querySelector("#selected-date");
-                  input.value = "2026-05-03";
+                  input.value = dateValue;
                   input.dispatchEvent(new Event("change", { bubbles: true }));
-                }"""
+                }""",
+                arg=previous_local_date,
             )
             today.wait_for_function(
-                """() => document.querySelector("#selected-date")?.value === "2026-05-03" """,
+                """(dateValue) => document.querySelector("#selected-date")?.value === dateValue """,
+                arg=previous_local_date,
                 timeout=timeout_ms,
             )
             today.wait_for_function(
@@ -477,11 +493,12 @@ def _run_browser_sequence(
             )
             result["today_url_state_preserved_after_date_change"] = (
                 today.evaluate("""() => new URL(window.location.href).searchParams.get("local_date")""")
-                == "2026-05-03"
+                == previous_local_date
             )
             today.reload(wait_until="networkidle", timeout=timeout_ms)
             today.wait_for_function(
-                """() => document.querySelector("#selected-date")?.value === "2026-05-03" """,
+                """(dateValue) => document.querySelector("#selected-date")?.value === dateValue """,
+                arg=previous_local_date,
                 timeout=timeout_ms,
             )
             today.wait_for_function(
@@ -492,14 +509,16 @@ def _run_browser_sequence(
                 timeout=timeout_ms
             )
             today.evaluate(
-                """() => {
+                """(dateValue) => {
                   const input = document.querySelector("#selected-date");
-                  input.value = "2026-05-04";
+                  input.value = dateValue;
                   input.dispatchEvent(new Event("change", { bubbles: true }));
-                }"""
+                }""",
+                arg=local_date,
             )
             today.wait_for_function(
-                """() => document.querySelector("#selected-date")?.value === "2026-05-04" """,
+                """(dateValue) => document.querySelector("#selected-date")?.value === dateValue """,
+                arg=local_date,
                 timeout=timeout_ms,
             )
             today.wait_for_function(
@@ -545,32 +564,37 @@ def _run_browser_sequence(
                 for selector in ("#plan-daily-target", "#plan-tdee", "#plan-current-weight")
             )
             body.evaluate(
-                """() => {
+                """(dateValue) => {
                   const input = document.querySelector("#local-date");
-                  input.value = "2026-05-03";
+                  input.value = dateValue;
                   input.dispatchEvent(new Event("change", { bubbles: true }));
-                }"""
+                }""",
+                arg=previous_local_date,
             )
             body.wait_for_function(
-                """() => new URL(window.location.href).searchParams.get("local_date") === "2026-05-03" """,
+                """(dateValue) => new URL(window.location.href).searchParams.get("local_date") === dateValue """,
+                arg=previous_local_date,
                 timeout=timeout_ms,
             )
             result["body_url_state_preserved_after_date_change"] = True
             body.reload(wait_until="networkidle", timeout=timeout_ms)
             body.wait_for_function(
-                """() => document.querySelector("#local-date")?.value === "2026-05-03" """,
+                """(dateValue) => document.querySelector("#local-date")?.value === dateValue """,
+                arg=previous_local_date,
                 timeout=timeout_ms,
             )
             result["body_reload_preserved_selected_date"] = True
             body.evaluate(
-                """() => {
+                """(dateValue) => {
                   const input = document.querySelector("#local-date");
-                  input.value = "2026-05-04";
+                  input.value = dateValue;
                   input.dispatchEvent(new Event("change", { bubbles: true }));
-                }"""
+                }""",
+                arg=local_date,
             )
             body.wait_for_function(
-                """() => new URL(window.location.href).searchParams.get("local_date") === "2026-05-04" """,
+                """(dateValue) => new URL(window.location.href).searchParams.get("local_date") === dateValue """,
+                arg=local_date,
                 timeout=timeout_ms,
             )
             alternate_user_id = f"{user_external_id}-alt"
@@ -788,9 +812,11 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         ):
             blockers.append(f"fetch_missing:{method} {expected}")
     fetch_urls = [str(item.get("url") or "") for item in fetches if isinstance(item, dict)]
-    if not any("/today/current-budget" in url and "local_date=2026-05-03" in url for url in fetch_urls):
+    local_date = str(report.get("local_date") or DEFAULT_LOCAL_DATE)
+    previous_local_date = str(report.get("previous_local_date") or _previous_local_date(local_date))
+    if not any("/today/current-budget" in url and f"local_date={previous_local_date}" in url for url in fetch_urls):
         blockers.append("today_previous_day_fetch_missing")
-    if not any("/today/current-budget" in url and "local_date=2026-05-04" in url for url in fetch_urls):
+    if not any("/today/current-budget" in url and f"local_date={local_date}" in url for url in fetch_urls):
         blockers.append("today_current_day_fetch_missing")
     estimate_posts = [
         str(item.get("body") or "")
@@ -854,6 +880,7 @@ def build_product_pages_browser_smoke_report(
     report = _base_report(
         user_external_id=user_external_id,
         db_path=db_path,
+        local_date=local_date,
         browser_execution_required=require_browser_execution,
     )
     try:

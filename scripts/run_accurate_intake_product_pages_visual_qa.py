@@ -20,6 +20,7 @@ from app.database import get_or_create_user  # noqa: E402
 from app.runtime.interface.local_debug_auth import LOCAL_DEBUG_API_TOKEN_ENV  # noqa: E402
 from scripts.run_accurate_intake_product_pages_browser_smoke import (  # noqa: E402
     DEFAULT_CJK_MESSAGE,
+    DEFAULT_LOCAL_DATE,
     BrowserSmokeDependencyMissing,
     DeterministicSelfUseManagerProvider,
     _build_app,
@@ -44,7 +45,6 @@ DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_product_pages_vi
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_product_pages_visual_qa.json"
 DEFAULT_SCREENSHOT_DIR = ROOT / "artifacts" / "product_pages_visual_qa"
 DEFAULT_USER_ID = "product-pages-visual-qa-user"
-DEFAULT_LOCAL_DATE = "2026-05-04"
 NOT_CLAIMING = [
     "product_ready",
     "rollout_ready",
