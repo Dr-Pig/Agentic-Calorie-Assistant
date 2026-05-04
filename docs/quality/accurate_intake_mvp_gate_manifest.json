@@ -32,6 +32,7 @@
     "local_self_use_candidate_packet_required_group_pass",
     "manager_style_active_runtime_smoke_required_group_pass",
     "ux_semantic_manager_decision_consumption_required_group_pass",
+    "pl_ce_metadata_freshness_pack_contract_required_group_pass",
     "active_api_route_smoke_required_group_pass",
     "scoped_explicit_item_removal_self_use_pass"
   ],
@@ -150,6 +151,12 @@
       "group_id": "ux_semantic_manager_decision_consumption",
       "pytest": [
         "tests/test_accurate_intake_mvp_ux_semantic_wall.py"
+      ]
+    },
+    {
+      "group_id": "pl_ce_metadata_freshness_pack_contract",
+      "pytest": [
+        "tests/test_accurate_intake_pl_ce_metadata_freshness_pack.py"
       ]
     },
     {

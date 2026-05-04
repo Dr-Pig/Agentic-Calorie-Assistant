@@ -35,6 +35,20 @@ def test_check_pr_contract_drift_cli_detects_legacy_calibration_gate(tmp_path: P
     assert output["findings"] == ["legacy_calibration_unmounted_route_gate"]
 
 
+def test_check_pr_contract_drift_allows_private_router_rejection(tmp_path: Path, capsys) -> None:
+    text = tmp_path / "diff.txt"
+    text.write_text(
+        'assert "from app.composition.calibration_routes import router as calibration_router" not in source\n',
+        encoding="utf-8",
+    )
+
+    assert check_pr_contract_drift.main(["--text-file", str(text)]) == 0
+
+    output = json.loads(capsys.readouterr().out)
+    assert output["status"] == "pass"
+    assert output["findings"] == []
+
+
 def test_check_pr_size_budget_cli_reports_future_shadow_warning(tmp_path: Path, capsys) -> None:
     pr_json = tmp_path / "pr.json"
     pr_json.write_text(
