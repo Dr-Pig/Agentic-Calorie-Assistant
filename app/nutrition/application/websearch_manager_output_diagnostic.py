@@ -26,6 +26,7 @@ _MUTATING_FINAL_ACTIONS = frozenset({"commit", "log_food", "write_ledger", "cano
 _NON_MUTATING_WORKFLOW_EFFECTS = frozenset(
     {
         "answer_only",
+        "no_commit",
         "no_mutation",
         "pause_for_clarification",
         "query_only",
@@ -39,6 +40,8 @@ _MUTATING_WORKFLOW_EFFECT_FRAGMENTS = (
     "ledger",
     "mutation_applied",
 )
+_FOLLOWUP_FINAL_ACTIONS = frozenset({"ask_followup", "no_commit", "answer_only"})
+_REJECTION_FINAL_ACTIONS = frozenset({"no_commit", "answer_only", "ask_followup"})
 _FORBIDDEN_OUTPUT_KEYS = frozenset(
     {
         "accepted_usage",
@@ -79,39 +82,43 @@ def build_fixture_websearch_manager_outputs(*, packet_artifact: dict[str, Any]) 
         if expected_behavior == "candidate_review_or_later_exact_card_promotion_path":
             manager_output = {
                 "manager_action": "final",
-                "final_action": "keep_candidate_pending",
+                "final_action": "no_commit",
                 "workflow_effect": "source_candidate_review",
                 "target_attachment": {},
                 "tool_calls": [],
                 "item_results": [],
-                "evidence_used": sorted(candidate_refs)[:1],
                 "answer_contract": {
-                    "text": "WebSearch returned a candidate only; exact-card promotion is required before kcal use."
+                    "text": "WebSearch returned a candidate only; exact-card promotion is required before kcal use.",
+                    "source_candidate_refs": sorted(candidate_refs)[:1],
                 },
                 "semantic_decision": {"mutation_intent_candidate": "no_mutation"},
             }
         elif expected_behavior == "ask_followup_or_keep_candidate_pending":
             manager_output = {
                 "manager_action": "final",
-                "final_action": "request_clarification",
+                "final_action": "ask_followup",
                 "workflow_effect": "pause_for_clarification",
                 "target_attachment": {},
                 "tool_calls": [],
                 "item_results": [],
-                "evidence_used": sorted(candidate_refs)[:1],
-                "answer_contract": {"followup_question": "Please confirm the exact menu item or size."},
+                "answer_contract": {
+                    "followup_question": "Please confirm the exact menu item or size.",
+                    "source_candidate_refs": sorted(candidate_refs)[:1],
+                },
                 "semantic_decision": {"mutation_intent_candidate": "no_mutation"},
             }
         else:
             manager_output = {
                 "manager_action": "final",
-                "final_action": "reject_candidate",
+                "final_action": "no_commit",
                 "workflow_effect": "no_mutation",
                 "target_attachment": {},
                 "tool_calls": [],
                 "item_results": [],
-                "evidence_used": sorted(candidate_refs)[:1],
-                "answer_contract": {"text": "WebSearch candidate is not sufficient for nutrition truth."},
+                "answer_contract": {
+                    "text": "WebSearch candidate is not sufficient for nutrition truth.",
+                    "source_candidate_refs": sorted(candidate_refs)[:1],
+                },
                 "semantic_decision": {"mutation_intent_candidate": "no_mutation"},
             }
         outputs.append(
@@ -216,6 +223,7 @@ def evaluate_manager_output_against_websearch_packet(
     expected_behavior = str(packet_case.get("manager_expected_behavior") or "")
     allowed_refs = _allowed_candidate_refs(manager_packet)
     used_refs = _used_evidence_refs(manager_output)
+    mutation_attempted = _mutation_attempted(manager_output)
     failure_families: list[str] = []
 
     if _contains_forbidden_key(manager_output, _FORBIDDEN_OUTPUT_KEYS):
@@ -233,7 +241,7 @@ def evaluate_manager_output_against_websearch_packet(
     elif not any(_ref_is_allowed(ref, allowed_refs) for ref in used_refs):
         failure_families.append("websearch_candidate_not_used")
 
-    if _mutation_attempted(manager_output):
+    if mutation_attempted:
         failure_families.append("websearch_candidate_mutated_runtime")
 
     item_results = _recursive_values_for_key(manager_output, "item_results")
@@ -241,16 +249,9 @@ def evaluate_manager_output_against_websearch_packet(
         failure_families.append("websearch_candidate_created_item_results")
 
     final_action = str(manager_output.get("final_action") or "")
-    if expected_behavior == "ask_followup_or_keep_candidate_pending" and final_action not in {
-        "request_clarification",
-        "keep_candidate_pending",
-    }:
+    if expected_behavior == "ask_followup_or_keep_candidate_pending" and final_action not in _FOLLOWUP_FINAL_ACTIONS:
         failure_families.append("websearch_ambiguous_candidate_missing_followup")
-    if expected_behavior == "reject_or_request_better_source" and final_action not in {
-        "reject_candidate",
-        "request_better_source",
-        "request_clarification",
-    }:
+    if expected_behavior == "reject_or_request_better_source" and final_action not in _REJECTION_FINAL_ACTIONS:
         failure_families.append("websearch_weak_candidate_not_rejected")
 
     return {
@@ -263,20 +264,17 @@ def evaluate_manager_output_against_websearch_packet(
         "invented_evidence_refs": invented_refs,
         "manager_action": manager_output.get("manager_action"),
         "final_action": final_action,
-        "runtime_mutation_attempted": False,
+        "runtime_mutation_attempted": mutation_attempted,
+        "mutation_signal": _mutation_signal(manager_output),
         "manager_output": manager_output,
     }
 
 
 def _mutation_attempted(manager_output: dict[str, Any]) -> bool:
-    final_action = str(manager_output.get("final_action") or "")
-    workflow_effect = str(manager_output.get("workflow_effect") or "").lower()
-    semantic_decision = manager_output.get("semantic_decision")
-    mutation_intent = (
-        str((semantic_decision or {}).get("mutation_intent_candidate") or "")
-        if isinstance(semantic_decision, dict)
-        else ""
-    )
+    signal = _mutation_signal(manager_output)
+    final_action = signal["final_action"]
+    workflow_effect = signal["workflow_effect"]
+    mutation_intent = signal["mutation_intent_candidate"]
     return (
         final_action in _MUTATING_FINAL_ACTIONS
         or (
@@ -285,6 +283,22 @@ def _mutation_attempted(manager_output: dict[str, Any]) -> bool:
         )
         or (mutation_intent and mutation_intent != "no_mutation")
     )
+
+
+def _mutation_signal(manager_output: dict[str, Any]) -> dict[str, str]:
+    final_action = str(manager_output.get("final_action") or "")
+    workflow_effect = str(manager_output.get("workflow_effect") or "").lower()
+    semantic_decision = manager_output.get("semantic_decision")
+    mutation_intent = (
+        str((semantic_decision or {}).get("mutation_intent_candidate") or "")
+        if isinstance(semantic_decision, dict)
+        else ""
+    )
+    return {
+        "final_action": final_action,
+        "workflow_effect": workflow_effect,
+        "mutation_intent_candidate": mutation_intent,
+    }
 
 
 def _allowed_candidate_refs(manager_packet: dict[str, Any]) -> set[str]:
@@ -304,12 +318,19 @@ def _allowed_candidate_refs(manager_packet: dict[str, Any]) -> set[str]:
 
 def _used_evidence_refs(manager_output: dict[str, Any]) -> set[str]:
     refs: set[str] = set()
-    for value in _recursive_values_for_key(manager_output, "evidence_used"):
-        values = value if isinstance(value, list) else [value]
-        for ref in values:
-            value_text = str(ref or "").strip()
-            if value_text:
-                refs.add(value_text)
+    for key in ("evidence_used", "source_candidate_refs", "candidate_refs"):
+        for value in _recursive_values_for_key(manager_output, key):
+            refs.update(_ref_values(value))
+    return refs
+
+
+def _ref_values(value: Any) -> set[str]:
+    refs: set[str] = set()
+    values = value if isinstance(value, list) else [value]
+    for ref in values:
+        value_text = str(ref or "").strip()
+        if value_text:
+            refs.add(value_text)
     return refs
 
 

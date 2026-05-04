@@ -102,6 +102,12 @@ def test_websearch_manager_output_diagnostic_flags_truth_and_mutation_shortcuts(
     assert "websearch_truth_shortcut" in evaluation["failure_families"]
     assert "websearch_candidate_mutated_runtime" in evaluation["failure_families"]
     assert "websearch_candidate_created_item_results" in evaluation["failure_families"]
+    assert evaluation["runtime_mutation_attempted"] is True
+    assert evaluation["mutation_signal"] == {
+        "final_action": "commit",
+        "workflow_effect": "food_log_candidate",
+        "mutation_intent_candidate": "canonical_write",
+    }
 
 
 def test_websearch_manager_output_diagnostic_flags_truth_surfaces() -> None:
@@ -152,10 +158,12 @@ def test_websearch_manager_output_diagnostic_rejects_substring_evidence_refs() -
     packet_case = _manager_packet_artifact()["cases"][0]
     manager_output = {
         "manager_action": "final",
-        "final_action": "keep_candidate_pending",
+        "final_action": "no_commit",
         "workflow_effect": "source_candidate_review",
         "item_results": [],
-        "evidence_used": [f"{packet_case['case_id']} plus invented source and kcal truth"],
+        "answer_contract": {
+            "source_candidate_refs": [f"{packet_case['case_id']} plus invented source and kcal truth"]
+        },
         "semantic_decision": {"mutation_intent_candidate": "no_mutation"},
     }
 
@@ -172,10 +180,10 @@ def test_websearch_manager_output_diagnostic_requires_packet_evidence_use() -> N
     packet_case = _manager_packet_artifact()["cases"][0]
     manager_output = {
         "manager_action": "final",
-        "final_action": "keep_candidate_pending",
+        "final_action": "no_commit",
         "workflow_effect": "source_candidate_review",
         "item_results": [],
-        "evidence_used": [],
+        "answer_contract": {"source_candidate_refs": []},
         "semantic_decision": {"mutation_intent_candidate": "no_mutation"},
     }
 
@@ -188,6 +196,26 @@ def test_websearch_manager_output_diagnostic_requires_packet_evidence_use() -> N
     assert "websearch_candidate_not_used" in evaluation["failure_families"]
 
 
+def test_websearch_manager_output_diagnostic_treats_no_commit_as_non_mutating() -> None:
+    packet_case = _manager_packet_artifact()["cases"][0]
+    manager_output = {
+        "manager_action": "final",
+        "final_action": "no_commit",
+        "workflow_effect": "no_commit",
+        "item_results": [],
+        "answer_contract": {"source_candidate_refs": [packet_case["case_id"]]},
+        "semantic_decision": {"mutation_intent_candidate": "no_mutation"},
+    }
+
+    evaluation = evaluate_manager_output_against_websearch_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert evaluation["runtime_mutation_attempted"] is False
+    assert "websearch_candidate_mutated_runtime" not in evaluation["failure_families"]
+
+
 def test_websearch_manager_output_diagnostic_requires_followup_for_related_candidate() -> None:
     packet_artifact = _manager_packet_artifact()
     related = {
@@ -195,10 +223,10 @@ def test_websearch_manager_output_diagnostic_requires_followup_for_related_candi
     }["pkt_web_search_milksha_sibling"]
     manager_output = {
         "manager_action": "final",
-        "final_action": "keep_candidate_pending",
+        "final_action": "ask_followup",
         "workflow_effect": "source_candidate_review",
         "item_results": [],
-        "evidence_used": [related["case_id"]],
+        "answer_contract": {"source_candidate_refs": [related["case_id"]]},
         "semantic_decision": {"mutation_intent_candidate": "no_mutation"},
     }
 
@@ -209,7 +237,7 @@ def test_websearch_manager_output_diagnostic_requires_followup_for_related_candi
 
     assert evaluation["status"] == "pass"
 
-    manager_output["final_action"] = "candidate_review"
+    manager_output["final_action"] = "commit"
     evaluation = evaluate_manager_output_against_websearch_packet(
         packet_case=related,
         manager_output=manager_output,
