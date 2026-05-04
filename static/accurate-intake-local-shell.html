@@ -424,7 +424,13 @@
     let backendLocalDate = null;
 
     function writeText(id, value) {
-      el(id).textContent = value === null || value === undefined || value === "" ? "unavailable" : String(value);
+      const target = el(id);
+      const rendered = value === null || value === undefined || value === "" ? "unavailable" : String(value);
+      if ("value" in target) {
+        target.value = rendered;
+        return;
+      }
+      target.textContent = rendered;
     }
 
     function setBusy(isBusy) {

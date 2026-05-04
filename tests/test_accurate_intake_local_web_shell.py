@@ -92,6 +92,8 @@ def test_local_web_shell_uses_backend_budget_date_instead_of_browser_date_truth(
     assert "let backendLocalDate = null;" in html
     assert "backendLocalDate = budget.local_date || null;" in html
     assert 'writeText("local-date-display", backendLocalDate);' in html
+    assert 'if ("value" in target)' in html
+    assert "target.value = rendered;" in html
     assert "local_date: backendLocalDate" in html
     assert "local_date: localDate()" not in html
 

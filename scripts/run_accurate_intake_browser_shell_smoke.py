@@ -38,6 +38,13 @@ NOT_CLAIMING = [
     "web_ready",
     "production_db_ready",
 ]
+REQUIRED_FETCH_METHODS = {
+    "/today/current-budget": "GET",
+    "/body-plan/active": "GET",
+    "/accurate-intake/debug": "GET",
+    "/accurate-intake/chat-history": "GET",
+    "/estimate": "POST",
+}
 
 
 class BrowserSmokeDependencyMissing(RuntimeError):
@@ -150,6 +157,74 @@ def _install_fetch_recorder(page: Any) -> None:
     )
 
 
+def _contains_cjk(text: str) -> bool:
+    return any("\u4e00" <= char <= "\u9fff" for char in text)
+
+
+def _parse_json_object(text: str) -> tuple[dict[str, Any], bool]:
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return {}, False
+    if not isinstance(payload, dict):
+        return {}, False
+    return payload, True
+
+
+def _assistant_bubble_rendered(chat_text: str, payload: dict[str, Any]) -> bool:
+    coach_message = str(payload.get("coach_message") or "").strip()
+    if not coach_message:
+        return False
+    if "Runtime processing" in chat_text or "Request failed:" in chat_text:
+        return False
+    return coach_message in chat_text
+
+
+def _empty_browser_result() -> dict[str, Any]:
+    return {
+        "browser_name": "chromium",
+        "page_url": None,
+        "shell_markers": {},
+        "initial_cjk_rendered": False,
+        "user_cjk_message_rendered": False,
+        "assistant_bubble_rendered": False,
+        "last_payload_parseable": False,
+        "today_summary_rendered": False,
+        "debug_surface_rendered": False,
+        "browser_reload_checked": False,
+        "chat_history_reloaded": False,
+        "reload_chat_text_contains_user_message": False,
+        "fetch_sequence": [],
+        "before_reload_fetch_sequence": [],
+        "after_reload_fetch_sequence": [],
+        "storage": {},
+        "forbidden_storage_used": False,
+    }
+
+
+def _capture_partial_browser_state(page: Any, result: dict[str, Any]) -> None:
+    try:
+        result["page_url"] = page.url
+    except Exception:
+        pass
+    try:
+        result["fetch_sequence"] = page.evaluate("window.__accurateIntakeFetches || []")
+    except Exception:
+        pass
+    try:
+        result["storage"] = page.evaluate(
+            """() => ({
+              localStorageKeys: Object.keys(window.localStorage || {}),
+              sessionStorageKeys: Object.keys(window.sessionStorage || {})
+            })"""
+        )
+        result["forbidden_storage_used"] = bool(
+            result["storage"].get("localStorageKeys") or result["storage"].get("sessionStorageKeys")
+        )
+    except Exception:
+        pass
+
+
 def _run_browser_sequence(
     *,
     base_url: str,
@@ -162,12 +237,48 @@ def _run_browser_sequence(
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=headless)
         page = browser.new_page()
+        result = _empty_browser_result()
+        page.add_init_script(
+            f"""
+            (() => {{
+              const smokeUserId = {json.dumps(user_external_id)};
+              const primeUserId = () => {{
+                const input = document.querySelector("#user-id");
+                if (input && input.value !== smokeUserId) {{
+                  input.value = smokeUserId;
+                }}
+              }};
+              const captureInitialChat = () => {{
+                const chat = document.querySelector("#chat-log");
+                if (chat && !window.__accurateIntakeInitialChatText) {{
+                  window.__accurateIntakeInitialChatText = chat.textContent || "";
+                }}
+              }};
+              const observer = new MutationObserver(() => {{
+                primeUserId();
+                captureInitialChat();
+              }});
+              observer.observe(document, {{ childList: true, subtree: true, characterData: true }});
+              primeUserId();
+              captureInitialChat();
+            }})();
+            """
+        )
         _install_fetch_recorder(page)
         try:
             page.goto(f"{base_url}/static/accurate-intake-local-shell.html", wait_until="networkidle", timeout=timeout_ms)
             page.fill("#user-id", user_external_id)
             page.wait_for_selector("#message-input", timeout=timeout_ms)
-            initial_chat_text = page.locator("#chat-log").inner_text(timeout=timeout_ms)
+            initial_chat_text = page.evaluate(
+                """() => window.__accurateIntakeInitialChatText || document.querySelector("#chat-log")?.textContent || "" """
+            )
+            page.wait_for_function(
+                """() => {
+                  const value = document.querySelector("#local-date-display")?.value?.trim();
+                  return value && value !== "unavailable";
+                }""",
+                timeout=timeout_ms,
+            )
             shell_markers = page.locator("main.shell").evaluate(
                 """(node) => ({
                   frontendSemanticOwner: node.dataset.frontendSemanticOwner,
@@ -193,24 +304,76 @@ def _run_browser_sequence(
             )
             chat_text = page.locator("#chat-log").inner_text(timeout=timeout_ms)
             last_payload_text = page.locator("#last-payload").inner_text(timeout=timeout_ms)
-            fetches = page.evaluate("window.__accurateIntakeFetches || []")
+            last_payload, last_payload_parseable = _parse_json_object(last_payload_text)
+            before_reload_fetches = page.evaluate("window.__accurateIntakeFetches || []")
+            surface_state = page.evaluate(
+                """() => {
+                  const text = (selector) => document.querySelector(selector)?.textContent?.trim() || "";
+                  const inputValue = (selector) => document.querySelector(selector)?.value?.trim() || "";
+                  const metricAvailable = (selector) => {
+                    const value = text(selector);
+                    return Boolean(value) && value !== "unavailable";
+                  };
+                  const sameTruthText = text("#same-truth-list");
+                  return {
+                    backendLocalDate: inputValue("#local-date-display"),
+                    todaySummaryRendered: (
+                      metricAvailable("#budget-kcal") &&
+                      metricAvailable("#consumed-kcal") &&
+                      metricAvailable("#remaining-kcal")
+                    ),
+                    debugSurfaceRendered: (
+                      sameTruthText.length > 0 &&
+                      !sameTruthText.includes("No same-truth surface loaded")
+                    )
+                  };
+                }"""
+            )
+            page.reload(wait_until="networkidle", timeout=timeout_ms)
+            page.fill("#user-id", user_external_id)
+            page.evaluate("""async () => { await syncSurfaces(); }""")
+            page.wait_for_function(
+                """(message) => {
+                  const chat = document.querySelector("#chat-log")?.textContent || "";
+                  return chat.includes(message);
+                }""",
+                arg=cjk_message,
+                timeout=timeout_ms,
+            )
+            reload_chat_text = page.locator("#chat-log").inner_text(timeout=timeout_ms)
+            after_reload_fetches = page.evaluate("window.__accurateIntakeFetches || []")
             storage = page.evaluate(
                 """() => ({
                   localStorageKeys: Object.keys(window.localStorage || {}),
                   sessionStorageKeys: Object.keys(window.sessionStorage || {})
                 })"""
             )
-            return {
+            forbidden_storage_used = bool(storage["localStorageKeys"] or storage["sessionStorageKeys"])
+            chat_history_reloaded = cjk_message in reload_chat_text and "Backend chat history is empty" not in reload_chat_text
+            result.update({
                 "browser_name": "chromium",
                 "page_url": page.url,
                 "shell_markers": shell_markers,
-                "initial_cjk_rendered": "今天可以直接記錄飲食" in initial_chat_text,
+                "initial_cjk_rendered": _contains_cjk(initial_chat_text),
                 "user_cjk_message_rendered": cjk_message in chat_text,
-                "assistant_bubble_rendered": "Runtime processing" not in chat_text,
-                "last_payload_parseable": bool(json.loads(last_payload_text)),
-                "fetch_sequence": fetches,
+                "assistant_bubble_rendered": _assistant_bubble_rendered(chat_text, last_payload),
+                "last_payload_parseable": last_payload_parseable,
+                "today_summary_rendered": bool(surface_state.get("todaySummaryRendered")),
+                "debug_surface_rendered": bool(surface_state.get("debugSurfaceRendered")),
+                "browser_reload_checked": True,
+                "chat_history_reloaded": chat_history_reloaded,
+                "reload_chat_text_contains_user_message": cjk_message in reload_chat_text,
+                "fetch_sequence": before_reload_fetches + after_reload_fetches,
+                "before_reload_fetch_sequence": before_reload_fetches,
+                "after_reload_fetch_sequence": after_reload_fetches,
                 "storage": storage,
-            }
+                "forbidden_storage_used": forbidden_storage_used,
+            })
+            return result
+        except Exception as exc:
+            result["browser_sequence_error"] = f"{type(exc).__name__}: {exc}"
+            _capture_partial_browser_state(page, result)
+            return result
         finally:
             browser.close()
 
@@ -220,6 +383,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     if report.get("browser_executed") is not True:
         blockers.append("browser_not_executed")
     browser = dict(report.get("browser") or {})
+
+    def flag(key: str) -> Any:
+        return report[key] if key in report else browser.get(key)
+
     shell_markers = dict(browser.get("shell_markers") or {})
     if shell_markers.get("frontendSemanticOwner") != "false":
         blockers.append("frontend_semantic_owner_marker_missing")
@@ -227,29 +394,45 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         blockers.append("live_llm_marker_missing")
     if shell_markers.get("productionReadinessClaimed") != "false":
         blockers.append("production_readiness_marker_missing")
-    if browser.get("initial_cjk_rendered") is not True:
+    sequence_error = str(flag("browser_sequence_error") or "")
+    if sequence_error:
+        blockers.append(f"browser_sequence_error:{sequence_error.split(':', 1)[0]}")
+    if flag("initial_cjk_rendered") is not True:
         blockers.append("initial_cjk_not_rendered")
-    if browser.get("user_cjk_message_rendered") is not True:
+    if flag("user_cjk_message_rendered") is not True:
         blockers.append("user_cjk_message_not_rendered")
-    if browser.get("assistant_bubble_rendered") is not True:
+    if flag("assistant_bubble_rendered") is not True:
         blockers.append("assistant_bubble_not_rendered")
+    if flag("today_summary_rendered") is not True:
+        blockers.append("today_summary_not_rendered")
+    if flag("debug_surface_rendered") is not True:
+        blockers.append("debug_surface_not_rendered")
+    if flag("browser_reload_checked") is not True:
+        blockers.append("browser_reload_not_checked")
+    if flag("chat_history_reloaded") is not True:
+        blockers.append("chat_history_not_reloaded")
     if browser.get("last_payload_parseable") is not True:
         blockers.append("last_payload_not_parseable")
-    fetches = list(browser.get("fetch_sequence") or [])
-    urls = [str(item.get("url") or "") for item in fetches if isinstance(item, dict)]
-    for expected in (
-        "/today/current-budget",
-        "/body-plan/active",
-        "/accurate-intake/debug",
-        "/accurate-intake/chat-history",
-        "/estimate",
-    ):
-        if not any(expected in url for url in urls):
-            blockers.append(f"fetch_missing:{expected}")
-    storage = dict(browser.get("storage") or {})
-    if storage.get("localStorageKeys"):
+    fetches = list(report.get("fetch_sequence") or browser.get("fetch_sequence") or [])
+    for expected, method in REQUIRED_FETCH_METHODS.items():
+        if not any(
+            expected in str(item.get("url") or "") and str(item.get("method") or "GET").upper() == method
+            for item in fetches
+            if isinstance(item, dict)
+        ):
+            blockers.append(f"fetch_missing:{method} {expected}")
+    storage_raw = browser.get("storage")
+    storage = dict(storage_raw or {}) if isinstance(storage_raw, dict) else {}
+    storage_evidence_present = isinstance(storage.get("localStorageKeys"), list) and isinstance(
+        storage.get("sessionStorageKeys"), list
+    )
+    if report.get("browser_executed") is True and not storage_evidence_present:
+        blockers.append("storage_evidence_missing")
+    if flag("forbidden_storage_used") is True:
+        blockers.append("forbidden_storage_used")
+    if storage_evidence_present and storage.get("localStorageKeys"):
         blockers.append("local_storage_used")
-    if storage.get("sessionStorageKeys"):
+    if storage_evidence_present and storage.get("sessionStorageKeys"):
         blockers.append("session_storage_used")
     return ("pass" if not blockers else "fail"), blockers
 
@@ -271,6 +454,15 @@ def _base_report(
         "db_path": str(db_path),
         "browser_execution_required": browser_execution_required,
         "browser_executed": False,
+        "browser_reload_checked": False,
+        "chat_history_reloaded": False,
+        "initial_cjk_rendered": False,
+        "user_cjk_message_rendered": False,
+        "assistant_bubble_rendered": False,
+        "today_summary_rendered": False,
+        "debug_surface_rendered": False,
+        "fetch_sequence": [],
+        "forbidden_storage_used": False,
         "live_llm_invoked": False,
         "web_tavily_used": False,
         "production_db_used": False,
@@ -314,17 +506,36 @@ def build_browser_shell_smoke_report(
     try:
         base_url = f"http://127.0.0.1:{port}"
         _wait_for_http(f"{base_url}/static/accurate-intake-local-shell.html")
-        user = get_or_create_user(db, user_external_id)
+        get_or_create_user(db, user_external_id)
         local_date = "2026-05-04"
-        _seed_body_plan(db, user_external_id=user.external_id, local_date=local_date)
-        report["browser"] = _run_browser_sequence(
-            base_url=base_url,
-            user_external_id=user_external_id,
-            cjk_message=cjk_message,
-            timeout_ms=timeout_ms,
-            headless=headless,
-        )
+        _seed_body_plan(db, user_external_id=user_external_id, local_date=local_date)
+        try:
+            report["browser"] = _run_browser_sequence(
+                base_url=base_url,
+                user_external_id=user_external_id,
+                cjk_message=cjk_message,
+                timeout_ms=timeout_ms,
+                headless=headless,
+            )
+        except Exception as exc:
+            report["browser_sequence_error"] = f"{type(exc).__name__}: {exc}"
+            report["manager_provider_call_count"] = len(provider.calls)
+            report["status"] = "fail"
+            report["blockers"] = [f"browser_sequence_error:{type(exc).__name__}"]
+            return report
         report["browser_executed"] = True
+        for key in (
+            "browser_reload_checked",
+            "chat_history_reloaded",
+            "initial_cjk_rendered",
+            "user_cjk_message_rendered",
+            "assistant_bubble_rendered",
+            "today_summary_rendered",
+            "debug_surface_rendered",
+            "fetch_sequence",
+            "forbidden_storage_used",
+        ):
+            report[key] = report["browser"].get(key)
         report["manager_provider_call_count"] = len(provider.calls)
         status, blockers = _validate(report)
         report["status"] = status
