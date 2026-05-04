@@ -19,6 +19,7 @@ from app.composition import intake_routes  # noqa: E402
 from app.database import get_db  # noqa: E402
 from app.models import Base  # noqa: E402
 from app.routes import router  # noqa: E402
+from scripts.run_accurate_intake_local_web_shell_smoke import _local_debug_headers  # noqa: E402
 
 DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_one_day_dogfood.sqlite3"
 DEFAULT_OUTPUT_PATH = (
@@ -212,6 +213,11 @@ def _close_test_client(client: TestClient) -> None:
 
 
 def build_report(db_path: Path) -> dict[str, Any]:
+    with _local_debug_headers() as debug_headers:
+        return _build_report(db_path, debug_headers=debug_headers)
+
+
+def _build_report(db_path: Path, *, debug_headers: dict[str, str]) -> dict[str, Any]:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     if db_path.exists():
         db_path.unlink()
@@ -237,6 +243,7 @@ def build_report(db_path: Path) -> dict[str, Any]:
             debug_res_before = client.get(
                 "/accurate-intake/debug",
                 params={"user_id": user_id, "local_date": local_date},
+                headers=debug_headers,
             )
             state_before = (
                 (debug_res_before.json() if debug_res_before.content else {})
@@ -257,6 +264,7 @@ def build_report(db_path: Path) -> dict[str, Any]:
             debug_res_after = client.get(
                 "/accurate-intake/debug",
                 params={"user_id": user_id, "local_date": local_date},
+                headers=debug_headers,
             )
             state_after = (
                 (debug_res_after.json() if debug_res_after.content else {})

@@ -1,15 +1,22 @@
 """Multi-turn persistence and observability test."""
 import asyncio
+import os
 import httpx
 
 BASE = "http://127.0.0.1:8011"
 USER_ID = "obs_test_user"
 
+
+def _debug_headers():
+    token = os.environ.get("LOCAL_DEBUG_API_TOKEN", "").strip()
+    return {"X-Local-Debug-Token": token} if token else {}
+
+
 async def main():
     async with httpx.AsyncClient(timeout=60) as client:
         # 0. Reset
         print("--- Resetting Context ---")
-        await client.post(f"{BASE}/user/{USER_ID}/context/reset")
+        await client.post(f"{BASE}/user/{USER_ID}/context/reset", headers=_debug_headers())
 
         # 1. Turn 1: New Intake
         print("\n--- Turn 1: 我中午吃了一碗滷肉飯 ---")
@@ -52,13 +59,15 @@ async def main():
 
         # 3. Check Logs API (Filter test)
         print("\n--- Checking Logs API (Default: No Superseded) ---")
-        l_def = (await client.get(f"{BASE}/user/{USER_ID}/logs")).json()
+        l_def = (await client.get(f"{BASE}/user/{USER_ID}/logs", headers=_debug_headers())).json()
         print(f"Count: {len(l_def['logs'])}")
         for l in l_def['logs']:
             print(f"  - {l['meal_title']} ({l['status']})")
 
         print("\n--- Checking Logs API (Include Superseded) ---")
-        l_all = (await client.get(f"{BASE}/user/{USER_ID}/logs?include_superseded=true")).json()
+        l_all = (
+            await client.get(f"{BASE}/user/{USER_ID}/logs?include_superseded=true", headers=_debug_headers())
+        ).json()
         print(f"Count: {len(l_all['logs'])}")
         for l in l_all['logs']:
             print(f"  - {l['meal_title']} ({l['status']})")

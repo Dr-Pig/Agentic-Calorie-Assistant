@@ -11,6 +11,7 @@ from app.composition.accurate_intake_debug_read_model import build_accurate_inta
 from app.composition.current_budget_read_model import build_current_budget_view
 from app.database import get_db
 from app.intake.interface.accurate_intake_debug_surface import render_accurate_intake_debug_surface
+from app.runtime.interface.local_debug_auth import require_local_debug_access
 from app.shared.infra.models import MessageBuffer, User
 
 router = APIRouter()
@@ -204,6 +205,7 @@ async def accurate_intake_debug(
     user_id: str = "default_user",
     local_date: str | None = None,
     db: Any = Depends(get_db),
+    _local_debug_access: None = Depends(require_local_debug_access),
 ) -> dict[str, Any]:
     return build_accurate_intake_debug_payload(db, user_external_id=user_id, local_date=local_date)
 
@@ -213,6 +215,7 @@ async def accurate_intake_chat_history(
     user_id: str = "default_user",
     local_date: str | None = None,
     db: Any = Depends(get_db),
+    _local_debug_access: None = Depends(require_local_debug_access),
 ) -> dict[str, Any]:
     return build_accurate_intake_chat_history_payload(db, user_external_id=user_id, local_date=local_date)
 
@@ -222,6 +225,7 @@ async def accurate_intake_debug_surface(
     user_id: str = "default_user",
     local_date: str | None = None,
     db: Any = Depends(get_db),
+    _local_debug_access: None = Depends(require_local_debug_access),
 ) -> HTMLResponse:
     payload = build_accurate_intake_debug_payload(db, user_external_id=user_id, local_date=local_date)
     return HTMLResponse(

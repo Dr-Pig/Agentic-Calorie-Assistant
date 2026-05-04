@@ -15,6 +15,7 @@ from scripts.run_accurate_intake_local_web_shell_smoke import (  # noqa: E402
     _build_test_client,
     _close_test_client,
     _json,
+    _local_debug_headers,
     _seed_body_plan,
     _session_factory,
     _status,
@@ -143,6 +144,24 @@ def build_chat_history_reload_gate_report(
     cjk_message: str = DEFAULT_CJK_MESSAGE,
     reset_db: bool = True,
 ) -> dict[str, Any]:
+    with _local_debug_headers() as debug_headers:
+        return _build_chat_history_reload_gate_report(
+            db_path=db_path,
+            user_external_id=user_external_id,
+            cjk_message=cjk_message,
+            reset_db=reset_db,
+            debug_headers=debug_headers,
+        )
+
+
+def _build_chat_history_reload_gate_report(
+    *,
+    db_path: Path,
+    user_external_id: str,
+    cjk_message: str,
+    reset_db: bool,
+    debug_headers: dict[str, str],
+) -> dict[str, Any]:
     if reset_db and db_path.exists():
         db_path.unlink()
 
@@ -166,6 +185,7 @@ def build_chat_history_reload_gate_report(
         before_history_response = initial_client.get(
             "/accurate-intake/chat-history",
             params={"user_id": user_external_id, "local_date": backend_local_date},
+            headers=debug_headers,
         )
         before_budget = _json(before_budget_response)
         before_history = _json(before_history_response)
@@ -183,10 +203,12 @@ def build_chat_history_reload_gate_report(
         after_debug_response = reload_client.get(
             "/accurate-intake/debug",
             params={"user_id": user_external_id, "local_date": backend_local_date},
+            headers=debug_headers,
         )
         after_history_response = reload_client.get(
             "/accurate-intake/chat-history",
             params={"user_id": user_external_id, "local_date": backend_local_date},
+            headers=debug_headers,
         )
         after_budget = _json(after_budget_response)
         after_debug = _json(after_debug_response)

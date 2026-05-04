@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="zh-Hant" data-page-id="accurate-intake-today-page-v1">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Accurate Intake Today</title>
+  <style>
+    :root {
+      --ink: #17211d;
+      --muted: #5f6b66;
+      --paper: #eef2f1;
+      --panel: #ffffff;
+      --surface: #f8faf9;
+      --line: #ccd6d2;
+      --accent: #1f7a3d;
+      --shadow: 0 12px 34px rgba(31, 45, 39, 0.10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Aptos", "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    .topbar, .page-header, .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .topbar {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 16px auto 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 14px;
+      box-shadow: var(--shadow);
+    }
+    .brand {
+      font-size: 18px;
+      font-weight: 900;
+    }
+    nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    nav a, button, input {
+      min-height: 44px;
+      font: inherit;
+    }
+    nav a, button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 800;
+      background: #fff;
+      cursor: pointer;
+    }
+    nav a[aria-current="page"], button.primary {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+    input {
+      border: 1px solid rgba(23, 33, 29, 0.14);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--ink);
+    }
+    input:focus-visible, button:focus-visible, a:focus-visible {
+      outline: 3px solid rgba(31, 122, 61, 0.34);
+      outline-offset: 2px;
+    }
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 16px auto 40px;
+      display: grid;
+      gap: 14px;
+    }
+    .page-header {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 30px;
+      line-height: 1.1;
+    }
+    .subtle {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) 48px minmax(180px, 1fr) 48px;
+      gap: 8px;
+      align-items: end;
+      min-width: 560px;
+    }
+    label {
+      display: grid;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+    #day-strip {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .day-button {
+      display: grid;
+      grid-template-rows: auto auto;
+      align-content: center;
+      justify-items: start;
+      gap: 3px;
+      min-height: 58px;
+      padding: 9px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--ink);
+    }
+    .day-button-date {
+      font-size: 15px;
+      font-weight: 900;
+    }
+    .day-button-weekday {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .day-button[aria-current="date"] {
+      border-color: var(--accent);
+      background: #e3efe8;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .card {
+      padding: 16px;
+    }
+    .kcal-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .metric {
+      padding: 14px;
+      border: 1px solid rgba(23, 33, 29, 0.10);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+    .metric strong, .eyebrow {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+    .metric span {
+      display: block;
+      margin-top: 6px;
+      font-size: 30px;
+      font-weight: 900;
+      overflow-wrap: anywhere;
+    }
+    .meal-list {
+      display: grid;
+      gap: 10px;
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .meal-list li {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid rgba(23, 33, 29, 0.10);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow-wrap: anywhere;
+    }
+    .meal-title {
+      font-weight: 900;
+    }
+    .meal-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .empty {
+      color: var(--muted);
+      grid-template-columns: 1fr;
+    }
+    .status {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 10px;
+    }
+    .action-link {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--ink);
+      background: #fff;
+      text-decoration: none;
+      font-weight: 800;
+    }
+    @media (max-width: 860px) {
+      .topbar, .page-header {
+        grid-template-columns: 1fr;
+        display: grid;
+      }
+      .controls {
+        min-width: 0;
+        grid-template-columns: 1fr;
+      }
+      .grid, .kcal-grid, #day-strip {
+        grid-template-columns: 1fr;
+      }
+      #day-strip {
+        display: flex;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scroll-snap-type: x proximity;
+      }
+      .day-button {
+        min-width: 132px;
+        scroll-snap-align: start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Accurate Intake</div>
+    <nav aria-label="Accurate Intake pages">
+      <a data-nav-target="chat" href="/static/accurate-intake-chat.html">Chat</a>
+      <a data-nav-target="today" href="/static/accurate-intake-today.html" aria-current="page">Today</a>
+      <a data-nav-target="body" href="/static/accurate-intake-body.html">Body</a>
+    </nav>
+  </header>
+  <main data-surface-role="today-diary">
+    <section class="page-header">
+      <div>
+        <h1>Today</h1>
+        <p class="subtle">每天一頁看熱量目標、已吃、剩餘和當日餐點；切換日期就看那一天的紀錄。</p>
+      </div>
+      <div class="controls">
+        <label>User ID
+          <input id="user-id" autocomplete="off" value="local-self-use-001" />
+        </label>
+        <button id="previous-day" type="button" aria-label="Previous day"><span aria-hidden="true">&#8249;</span></button>
+        <label>Date
+          <input id="selected-date" type="date" />
+        </label>
+        <button id="next-day" type="button" aria-label="Next day"><span aria-hidden="true">&#8250;</span></button>
+      </div>
+    </section>
+    <section id="day-strip" aria-label="Seven day date strip"></section>
+    <section class="grid">
+      <article class="card">
+        <span class="eyebrow">Daily calories</span>
+        <div class="kcal-grid">
+          <div class="metric"><strong>Target</strong><span id="budget-kcal">--</span></div>
+          <div class="metric"><strong>Consumed</strong><span id="consumed-kcal">--</span></div>
+          <div class="metric"><strong>Remaining</strong><span id="remaining-kcal">--</span></div>
+        </div>
+        <p id="today-status" class="status">Daily record not loaded yet.</p>
+      </article>
+      <article class="card">
+        <span class="eyebrow">Food diary</span>
+        <ul id="meal-list" class="meal-list"></ul>
+        <p class="status"><a id="chat-link" class="action-link" href="/static/accurate-intake-chat.html">Open chat for this day</a></p>
+      </article>
+    </section>
+    <span hidden>product_readiness_claimed=false private_self_use_approved=false</span>
+  </main>
+  <script>
+    const endpoints = {
+      currentBudget: "/today/current-budget"
+    };
+    const todayIso = () => new Date().toISOString().slice(0, 10);
+    const el = (id) => document.getElementById(id);
+    const params = new URLSearchParams(window.location.search);
+    el("user-id").value = params.get("user_id") || el("user-id").value;
+    el("selected-date").value = params.get("local_date") || todayIso();
+
+    function userId() {
+      return el("user-id").value.trim() || "default_user";
+    }
+    function selectedDate() {
+      return el("selected-date").value || todayIso();
+    }
+    function pageUrl(page) {
+      return `/static/accurate-intake-${page}.html?user_id=${encodeURIComponent(userId())}&local_date=${encodeURIComponent(selectedDate())}`;
+    }
+    function updateNavigationLinks() {
+      document.querySelectorAll("[data-nav-target]").forEach((link) => {
+        const target = link.getAttribute("data-nav-target");
+        if (target) {
+          link.href = pageUrl(target);
+        }
+      });
+    }
+    function updateCurrentUrl() {
+      const nextUrl = pageUrl("today");
+      const resolved = new URL(nextUrl, window.location.href);
+      if (window.location.search !== resolved.search) {
+        window.history.replaceState(null, "", nextUrl);
+      }
+    }
+    function shiftDate(iso, delta) {
+      const date = new Date(`${iso}T00:00:00`);
+      date.setDate(date.getDate() + delta);
+      return date.toISOString().slice(0, 10);
+    }
+    function writeText(id, value) {
+      el(id).textContent = value == null ? "--" : String(value);
+    }
+    async function requestJson(url) {
+      const response = await fetch(url);
+      const text = await response.text();
+      const payload = text ? JSON.parse(text) : {};
+      if (!response.ok) {
+        throw new Error(payload.error || payload.detail || `HTTP ${response.status}`);
+      }
+      return payload;
+    }
+    function renderDayStrip() {
+      const strip = el("day-strip");
+      strip.innerHTML = "";
+      for (let offset = -3; offset <= 3; offset += 1) {
+        const iso = shiftDate(selectedDate(), offset);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "day-button";
+        button.setAttribute("aria-label", `Open ${iso}`);
+        const dateLabel = document.createElement("span");
+        dateLabel.className = "day-button-date";
+        dateLabel.textContent = iso.slice(5);
+        const weekday = document.createElement("span");
+        weekday.className = "day-button-weekday";
+        weekday.textContent = new Intl.DateTimeFormat("zh-TW", { weekday: "short" }).format(new Date(`${iso}T00:00:00`));
+        button.append(dateLabel, weekday);
+        if (iso === selectedDate()) {
+          button.setAttribute("aria-current", "date");
+        }
+        button.addEventListener("click", () => {
+          el("selected-date").value = iso;
+          loadToday();
+        });
+        strip.append(button);
+      }
+    }
+    function renderMeals(meals) {
+      const list = el("meal-list");
+      list.innerHTML = "";
+      if (!Array.isArray(meals) || meals.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "empty";
+        empty.textContent = "No meals logged for this day.";
+        list.append(empty);
+        return;
+      }
+      for (const meal of meals) {
+        const row = document.createElement("li");
+        const detail = document.createElement("div");
+        const title = document.createElement("div");
+        title.className = "meal-title";
+        title.textContent = meal.meal_title || "Meal";
+        const meta = document.createElement("div");
+        meta.className = "meal-meta";
+        meta.textContent = `${meal.occurred_at || "time unknown"} | ${meal.resolution_status || "recorded"}`;
+        const kcal = document.createElement("strong");
+        kcal.textContent = `${meal.total_kcal ?? "--"} kcal`;
+        detail.append(title, meta);
+        row.append(detail, kcal);
+        list.append(row);
+      }
+    }
+    async function loadToday() {
+      renderDayStrip();
+      updateCurrentUrl();
+      updateNavigationLinks();
+      el("today-status").textContent = "Loading this day...";
+      const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
+      const payload = await requestJson(`${endpoints.currentBudget}?${query.toString()}`);
+      writeText("budget-kcal", payload.budget_kcal);
+      writeText("consumed-kcal", payload.consumed_kcal);
+      writeText("remaining-kcal", payload.remaining_kcal);
+      renderMeals(payload.meals || []);
+      el("today-status").textContent = payload.status === "no_budget"
+        ? "No calorie target for this day yet."
+        : "Daily record updated.";
+      const chatLink = el("chat-link");
+      chatLink.href = `/static/accurate-intake-chat.html?user_id=${encodeURIComponent(userId())}&local_date=${selectedDate()}`;
+    }
+    el("previous-day").addEventListener("click", () => {
+      el("selected-date").value = shiftDate(selectedDate(), -1);
+      loadToday().catch((error) => { el("today-status").textContent = `Could not load this day: ${error.message}`; });
+    });
+    el("next-day").addEventListener("click", () => {
+      el("selected-date").value = shiftDate(selectedDate(), 1);
+      loadToday().catch((error) => { el("today-status").textContent = `Could not load this day: ${error.message}`; });
+    });
+    el("selected-date").addEventListener("change", () => {
+      loadToday().catch((error) => { el("today-status").textContent = `Could not load this day: ${error.message}`; });
+    });
+    el("user-id").addEventListener("change", () => {
+      loadToday().catch((error) => { el("today-status").textContent = `Could not load this day: ${error.message}`; });
+    });
+    loadToday().catch((error) => { el("today-status").textContent = `Could not load this day: ${error.message}`; });
+  </script>
+</body>
+</html>

@@ -12,6 +12,24 @@ RetrievalGoal = Literal[
     "query_only_answer",
 ]
 
+RAW_TEXT_RETRIEVAL_INTENT_POLICY = {
+    "semantic_authority_source": "deterministic_raw_text_hint_only",
+    "user_intent_owner": "manager_llm",
+    "workflow_owner": "manager_llm",
+    "mutation_owner": "runtime_guard",
+    "allowed_uses": [
+        "retrieval_candidate_recall",
+        "source_selection_hint",
+        "diagnostic_fixture_seed",
+    ],
+    "forbidden_uses": [
+        "user_intent_classification",
+        "workflow_effect_decision",
+        "final_action_selection",
+        "mutation_authority",
+    ],
+}
+
 _KNOWN_BRANDS = (
     "\u677e\u5c4b",
     "\u661f\u5df4\u514b",
@@ -75,6 +93,12 @@ class RetrievalIntent:
 
 
 def build_retrieval_intent(user_input: str) -> RetrievalIntent:
+    """Build a raw-text retrieval hint without semantic authority.
+
+    This helper is allowed to support candidate recall and diagnostic fixtures.
+    It must not own user intent, workflow effect, final action, or mutation.
+    """
+
     normalized = str(user_input or "").strip()
     listed_items = _extract_listed_items(normalized)
     brand_hint = _extract_brand_hint(normalized)
@@ -213,4 +237,9 @@ def _has_salt_crispy_chicken_portion_cue(user_input: str) -> bool:
     return any(cue in user_input for cue in ("\u4e00\u4efd", "\u4e00\u5305", "\u5c0f\u4efd", "\u5927\u4efd", "50\u5143", "\u4e94\u5341\u5143"))
 
 
-__all__ = ["RetrievalIntent", "RetrievalGoal", "build_retrieval_intent"]
+__all__ = [
+    "RAW_TEXT_RETRIEVAL_INTENT_POLICY",
+    "RetrievalIntent",
+    "RetrievalGoal",
+    "build_retrieval_intent",
+]

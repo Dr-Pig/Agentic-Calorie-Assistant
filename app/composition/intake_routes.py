@@ -30,13 +30,111 @@ from app.schemas import EstimateRequest
 router = APIRouter()
 
 
+def _has_explicit_calibration_action_request(request: EstimateRequest) -> bool:
+    return (
+        request.calibration_action is not None
+        or request.calibration_proposal_container_id is not None
+    )
+
+
+def _has_explicit_calibration_preview_request(request: EstimateRequest) -> bool:
+    return request.calibration_preview_requested is True and not _has_explicit_calibration_action_request(request)
+
+
+def _request_local_date(request: EstimateRequest) -> str:
+    return request.local_date or datetime.now().date().isoformat()
+
+
+def _parse_calibration_action_accepted_at(request: EstimateRequest) -> datetime | None:
+    if request.calibration_action_accepted_at is None:
+        return None
+    try:
+        return datetime.fromisoformat(request.calibration_action_accepted_at)
+    except ValueError as exc:
+        raise ValueError("calibration_action_accepted_at must be an ISO datetime") from exc
+
+
+def _build_calibration_action_route_payload(general_chat_result: Any) -> dict[str, Any]:
+    ui_hints = dict(general_chat_result.ui_hints or {})
+    action_result = general_chat_result.calibration_action_result
+    proposal_status = action_result.get("proposal_status") if isinstance(action_result, dict) else None
+    state_delta = {
+        "calibration_action_processed": action_result is not None,
+        "proposal_status": proposal_status,
+        "plan_mutated": bool(ui_hints.get("plan_mutation_authorized")),
+        "ledger_mutated": bool(ui_hints.get("ledger_mutation_authorized")),
+    }
+    manager_decision = {
+        "intent_type": "calibration",
+        "workflow_effect": general_chat_result.workflow_effect,
+        "tool_calls": [],
+        "explicit_structured_action": True,
+    }
+    return {
+        "manager_decision": manager_decision,
+        "intake_execution_manager": {
+            "final": {
+                "final_action": "calibration_action",
+                "workflow_effect": general_chat_result.workflow_effect,
+            },
+            "persistence_result": action_result,
+        },
+        "state_delta": state_delta,
+        "sidecar": {},
+        "ui_hints": ui_hints,
+        "required_read_surfaces": list(general_chat_result.required_read_surfaces),
+        "calibration_action_result": action_result,
+    }
+
+
+def _build_calibration_preview_route_payload(general_chat_result: Any) -> dict[str, Any]:
+    ui_hints = dict(general_chat_result.ui_hints or {})
+    proposal_artifact = general_chat_result.proposal_artifact
+    state_delta = {
+        "calibration_preview_processed": True,
+        "proposal_persisted": proposal_artifact is not None,
+        "proposal_container_id": (
+            proposal_artifact.get("proposal_container_id") if isinstance(proposal_artifact, dict) else None
+        ),
+        "plan_mutated": False,
+        "ledger_mutated": False,
+    }
+    manager_decision = {
+        "intent_type": "calibration",
+        "workflow_effect": general_chat_result.workflow_effect,
+        "tool_calls": [],
+        "explicit_structured_preview": True,
+    }
+    return {
+        "manager_decision": manager_decision,
+        "intake_execution_manager": {
+            "final": {
+                "final_action": "calibration_preview",
+                "workflow_effect": general_chat_result.workflow_effect,
+            },
+            "persistence_result": proposal_artifact,
+        },
+        "state_delta": state_delta,
+        "sidecar": {
+            "calibration_diagnostic": general_chat_result.calibration_diagnostic,
+            "input_assembly": general_chat_result.input_assembly,
+            "proposal_artifact": proposal_artifact,
+        },
+        "ui_hints": ui_hints,
+        "required_read_surfaces": list(general_chat_result.required_read_surfaces),
+        "calibration_diagnostic": general_chat_result.calibration_diagnostic,
+        "input_assembly": general_chat_result.input_assembly,
+        "proposal_artifact": proposal_artifact,
+    }
+
+
 @router.post("/estimate")
 async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Depends(get_db)) -> dict:
     request_id = uuid4().hex
     source_page_version = raw_request.headers.get("X-Canary-Page-Version")
     try:
         user_id = request.user_id if getattr(request, "user_id", None) else "default_user"
-        local_date = datetime.now().date().isoformat()
+        local_date = _request_local_date(request)
 
         state_before = resolve_intake_state(
             db,
@@ -60,6 +158,113 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
             current_turn_context=current_turn_context,
             resolved_state=state_before,
         )
+        if _has_explicit_calibration_preview_request(request):
+            general_chat_result = build_general_chat_response_pass(
+                db,
+                user_external_id=user_id,
+                raw_user_input=request.text,
+                mode="calibration_preview",
+                local_date=local_date,
+                persist_calibration_proposal=request.persist_calibration_proposal,
+            )
+            phase_a_trace = {
+                **routing_result.phase_a_trace,
+                "explicit_calibration_preview_request": {
+                    "present": True,
+                    "persist_calibration_proposal": request.persist_calibration_proposal,
+                    "raw_text_authorized_preview": False,
+                    "raw_text_authorized_proposal_persistence": False,
+                    "plan_mutation_authorized": False,
+                    "ledger_mutation_authorized": False,
+                },
+            }
+            route_payload = _build_calibration_preview_route_payload(general_chat_result)
+            write_general_chat_request_trace_artifact(
+                request_id=request_id,
+                user_external_id=user_id,
+                local_date=local_date,
+                raw_user_input=request.text,
+                state_before=state_before,
+                general_chat_result=general_chat_result,
+                assistant_message=general_chat_result.reply_text,
+                phase_a_trace=phase_a_trace,
+            )
+            record_runtime_turn_messages(
+                db,
+                user_external_id=user_id,
+                request_id=request_id,
+                local_date=local_date,
+                raw_user_input=request.text,
+                assistant_message=general_chat_result.reply_text,
+                state_before=state_before,
+                current_turn_context=current_turn_context,
+                manager_context_packet_v1=manager_context_packet_v1,
+                state_after=state_before,
+                phase_a_trace=phase_a_trace,
+                result=route_payload,
+            )
+            return {
+                "request_id": request_id,
+                "coach_message": general_chat_result.reply_text,
+                "payload": route_payload,
+            }
+        if _has_explicit_calibration_action_request(request):
+            general_chat_result = build_general_chat_response_pass(
+                db,
+                user_external_id=user_id,
+                raw_user_input=request.text,
+                mode="calibration_action",
+                local_date=local_date,
+                calibration_proposal_container_id=request.calibration_proposal_container_id,
+                calibration_action=request.calibration_action,
+                accepted_at=_parse_calibration_action_accepted_at(request),
+            )
+            state_after = resolve_intake_state(
+                db,
+                user_external_id=user_id,
+                local_date=local_date,
+            )
+            phase_a_trace = {
+                **routing_result.phase_a_trace,
+                "explicit_calibration_action_request": {
+                    "present": True,
+                    "proposal_container_id": request.calibration_proposal_container_id,
+                    "calibration_action": request.calibration_action,
+                    "calibration_action_accepted_at": request.calibration_action_accepted_at,
+                    "raw_text_authorized_mutation": False,
+                    "frontend_effective_date_calculation_authorized": False,
+                },
+            }
+            route_payload = _build_calibration_action_route_payload(general_chat_result)
+            write_general_chat_request_trace_artifact(
+                request_id=request_id,
+                user_external_id=user_id,
+                local_date=local_date,
+                raw_user_input=request.text,
+                state_before=state_before,
+                general_chat_result=general_chat_result,
+                assistant_message=general_chat_result.reply_text,
+                phase_a_trace=phase_a_trace,
+            )
+            record_runtime_turn_messages(
+                db,
+                user_external_id=user_id,
+                request_id=request_id,
+                local_date=local_date,
+                raw_user_input=request.text,
+                assistant_message=general_chat_result.reply_text,
+                state_before=state_before,
+                current_turn_context=current_turn_context,
+                manager_context_packet_v1=manager_context_packet_v1,
+                state_after=state_after,
+                phase_a_trace=phase_a_trace,
+                result=route_payload,
+            )
+            return {
+                "request_id": request_id,
+                "coach_message": general_chat_result.reply_text,
+                "payload": route_payload,
+            }
         if routing_result.target_workflow_family == "general_chat" and routing_result.disposition == "answer_only":
             if "CurrentBudgetView" in routing_result.required_read_surfaces:
                 general_chat_mode = "budget_summary"

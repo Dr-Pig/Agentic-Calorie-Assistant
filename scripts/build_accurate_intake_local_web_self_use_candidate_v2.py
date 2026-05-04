@@ -74,6 +74,31 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
 
         if _truthy_claim(payload, "live_provider_called", "live_provider_used", "live_llm_invoked"):
             blockers.append("live provider used")
+
+        if _truthy_claim(
+            payload,
+            "shared_contract_changed",
+            "manager_context_packet_schema_changed",
+            "manager_context_packet_changed",
+            "nutrition_evidence_store_port_changed",
+            "food_evidence_record_schema_changed",
+            "packet_ready_anchor_schema_changed",
+            "packetizer_format_changed",
+            "packetizer_contract_changed",
+            "basket_semantics_changed",
+            "estimate_output_format_changed",
+            "food_evidence_promotion_policy_changed",
+        ):
+            blockers.append("shared contract change attempted")
+
+        if _truthy_claim(payload, "runtime_truth_changed"):
+            blockers.append("runtime truth change attempted")
+
+        if _truthy_claim(payload, "mutation_changed"):
+            blockers.append("mutation change attempted")
+
+        if payload.get("local_web_candidate_gate_blocked") is True:
+            blockers.append("local web candidate gate evidence blocked")
             
         if _truthy_claim(payload, "kimi_activated"):
             blockers.append("Kimi activated")
@@ -115,8 +140,14 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
 
     pre_live_pack = dict(evidence.get("pre_live_decision_pack") or {})
     if pre_live_pack:
+        if pre_live_pack.get("selected_option") != "ready_for_human_limited_live_canary_decision":
+            blockers.append(f"pre-live selected option: {pre_live_pack.get('selected_option')}")
         if pre_live_pack.get("ready_for_pl_ce_local_review") is not True:
             blockers.append("pre-live missing PL+CE local review gate")
+        for missing_group in pre_live_pack.get("missing_evidence") or []:
+            blockers.append(f"pre-live missing evidence: {missing_group}")
+        for blocker in pre_live_pack.get("blockers") or []:
+            blockers.append(f"pre-live blocker: {blocker}")
         if (
             pre_live_pack.get("ready_for_live_diagnostic_decision") is True
             or pre_live_pack.get("live_canary_approved") is True

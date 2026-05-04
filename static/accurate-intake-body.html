@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="zh-Hant" data-page-id="accurate-intake-body-page-v1">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Accurate Intake Body</title>
+  <style>
+    :root {
+      --ink: #17211d;
+      --muted: #5f6b66;
+      --paper: #eef2f1;
+      --panel: #ffffff;
+      --surface: #f8faf9;
+      --line: #ccd6d2;
+      --accent: #1f7a3d;
+      --shadow: 0 12px 34px rgba(31, 45, 39, 0.10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Aptos", "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    .topbar, .page-header, .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .topbar {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 16px auto 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 14px;
+      box-shadow: var(--shadow);
+    }
+    .brand {
+      font-size: 18px;
+      font-weight: 900;
+    }
+    nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    nav a, button, input, select {
+      min-height: 44px;
+      font: inherit;
+    }
+    nav a, button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 800;
+      background: #fff;
+      cursor: pointer;
+    }
+    nav a[aria-current="page"], button.primary {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 16px auto 40px;
+      display: grid;
+      gap: 14px;
+    }
+    .page-header, .card {
+      padding: 18px;
+    }
+    .page-header {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 30px;
+      line-height: 1.1;
+    }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+    }
+    .subtle, .status {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .page-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .action-link {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--ink);
+      background: #fff;
+      text-decoration: none;
+      font-weight: 800;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .metric {
+      border: 1px solid rgba(23, 33, 29, 0.10);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 14px;
+      overflow-wrap: anywhere;
+    }
+    .metric strong, label, .eyebrow {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+    .metric span {
+      display: block;
+      margin-top: 6px;
+      font-size: 24px;
+      font-weight: 900;
+    }
+    form {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(180px, 1fr));
+      gap: 10px;
+    }
+    label {
+      display: grid;
+      gap: 5px;
+    }
+    input, select {
+      width: 100%;
+      border: 1px solid rgba(23, 33, 29, 0.14);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--ink);
+    }
+    input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+      outline: 3px solid rgba(31, 122, 61, 0.34);
+      outline-offset: 2px;
+    }
+    .full {
+      grid-column: 1 / -1;
+    }
+    .hint {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      text-transform: none;
+      font-weight: 700;
+    }
+    .section-intro {
+      margin: -4px 0 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .list li {
+      padding: 11px 12px;
+      border: 1px solid rgba(23, 33, 29, 0.10);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow-wrap: anywhere;
+    }
+    @media (max-width: 860px) {
+      .topbar, .page-header, .grid, .summary-grid, form {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+      .page-actions {
+        justify-content: stretch;
+      }
+      .action-link {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Accurate Intake</div>
+    <nav aria-label="Accurate Intake pages">
+      <a data-nav-target="chat" href="/static/accurate-intake-chat.html">Chat</a>
+      <a data-nav-target="today" href="/static/accurate-intake-today.html">Today</a>
+      <a data-nav-target="body" href="/static/accurate-intake-body.html" aria-current="page">Body</a>
+    </nav>
+  </header>
+  <main data-surface-role="body-plan">
+    <section class="page-header">
+      <div>
+        <span class="eyebrow">Body plan</span>
+        <h1>Body / Goal / TDEE</h1>
+        <p class="subtle">先把體重、目標、活動量和每日熱量目標整理清楚；這頁只顯示已保存的計畫與紀錄。</p>
+      </div>
+      <div class="page-actions">
+        <a class="action-link" data-nav-target="today" href="/static/accurate-intake-today.html">Open Today</a>
+        <a class="action-link" data-nav-target="chat" href="/static/accurate-intake-chat.html">Open Chat</a>
+      </div>
+    </section>
+    <section class="card" id="body-plan-summary">
+      <h2>Current plan</h2>
+      <div class="summary-grid">
+        <div class="metric"><strong>Daily target</strong><span id="plan-daily-target">--</span></div>
+        <div class="metric"><strong>TDEE</strong><span id="plan-tdee">--</span></div>
+        <div class="metric"><strong>Current weight</strong><span id="plan-current-weight">--</span></div>
+        <div class="metric"><strong>Target weight</strong><span id="plan-target-weight">--</span></div>
+        <div class="metric"><strong>Activity</strong><span id="plan-activity">--</span></div>
+        <div class="metric"><strong>Goal</strong><span id="plan-goal">--</span></div>
+      </div>
+      <p id="body-status" class="status">Body plan not loaded yet.</p>
+    </section>
+    <section class="grid">
+      <article class="card">
+        <h2>Check in weight</h2>
+        <p class="section-intro">紀錄當天量到的體重，之後可以回看趨勢。</p>
+        <form id="weight-form">
+          <label>User ID
+            <input id="user-id" value="local-self-use-001" autocomplete="off" />
+          </label>
+          <label>Date
+            <input id="local-date" type="date" />
+          </label>
+          <label>Weight kg
+            <input id="weight-kg" type="number" min="20" max="300" step="0.1" inputmode="decimal" placeholder="e.g. 70.0" aria-describedby="weight-kg-hint" />
+            <span id="weight-kg-hint" class="hint">Use the weight from this date.</span>
+          </label>
+          <button class="primary" type="submit">Save weight</button>
+        </form>
+      </article>
+      <article class="card">
+        <h2>Goal setup</h2>
+        <p class="section-intro">調整身體資料、活動量與每週目標；保存後這頁會讀回最新計畫。</p>
+        <form id="onboarding-form">
+          <label>Sex
+            <select id="sex" required>
+              <option value="" selected disabled>Select sex</option>
+              <option value="female">female</option>
+              <option value="male">male</option>
+            </select>
+          </label>
+          <label>Age
+            <input id="age-years" type="number" min="13" max="100" placeholder="e.g. 34" required />
+          </label>
+          <label>Height cm
+            <input id="height-cm" type="number" min="100" max="240" step="0.1" inputmode="decimal" placeholder="e.g. 170" required />
+          </label>
+          <label>Current weight kg
+            <input id="current-weight-kg" type="number" min="20" max="300" step="0.1" inputmode="decimal" placeholder="e.g. 70" required />
+          </label>
+          <label>Target weight kg
+            <input id="target-weight-kg" type="number" min="20" max="300" step="0.1" inputmode="decimal" placeholder="e.g. 65" />
+          </label>
+          <label>Goal
+            <select id="goal-type" required>
+              <option value="" selected disabled>Select goal</option>
+              <option value="lose_weight">Lose weight</option>
+              <option value="maintain_weight">Maintain weight</option>
+              <option value="gain_weight">Gain weight</option>
+            </select>
+          </label>
+          <label>Daily lifestyle
+            <select id="daily-lifestyle" required>
+              <option value="" selected disabled>Select lifestyle</option>
+              <option value="sedentary_with_some_walking">Mostly sitting, some walking</option>
+              <option value="mostly_sitting">Mostly sitting</option>
+              <option value="standing_or_light_activity">Standing or light activity</option>
+            </select>
+          </label>
+          <label>Weekly exercise
+            <select id="weekly-exercise-days-band" required>
+              <option value="" selected disabled>Select exercise</option>
+              <option value="0">0 days</option>
+              <option value="1_2">1-2 days</option>
+              <option value="3_4">3-4 days</option>
+              <option value="5_plus">5+ days</option>
+            </select>
+          </label>
+          <label>Weekly target kg
+            <input id="weekly-target-rate-kg" type="number" min="0" max="1" step="0.1" inputmode="decimal" placeholder="e.g. 0.5" required aria-describedby="weekly-target-rate-hint" />
+            <span id="weekly-target-rate-hint" class="hint">A small weekly rate is easier to sustain.</span>
+          </label>
+          <button class="primary full" type="submit">Rebuild plan</button>
+        </form>
+        <form id="manual-target-form">
+          <label>Manual daily target
+            <input id="manual-daily-target" type="number" min="800" max="5000" inputmode="numeric" placeholder="e.g. 1600" aria-describedby="manual-daily-target-hint" />
+            <span id="manual-daily-target-hint" class="hint">Optional override for the selected date.</span>
+          </label>
+          <button id="save-manual-target" class="full" type="submit">Save manual daily target</button>
+        </form>
+      </article>
+    </section>
+    <section class="card">
+      <h2>Weight history</h2>
+      <ul id="weight-history" class="list"></ul>
+    </section>
+    <span hidden>product_readiness_claimed=false private_self_use_approved=false</span>
+  </main>
+  <script>
+    const endpoints = {
+      bodyPlan: "/body-plan/active",
+      weightHistory: "/weight/observations",
+      weightObservation: "/weight/observation",
+      onboarding: "/onboarding/bootstrap",
+      manualTarget: "/body-plan/manual-daily-target"
+    };
+    const todayIso = () => new Date().toISOString().slice(0, 10);
+    const el = (id) => document.getElementById(id);
+    const params = new URLSearchParams(window.location.search);
+    el("user-id").value = params.get("user_id") || el("user-id").value;
+    el("local-date").value = params.get("local_date") || todayIso();
+
+    function userId() {
+      return el("user-id").value.trim() || "default_user";
+    }
+    function selectedDate() {
+      return el("local-date").value || todayIso();
+    }
+    function pageUrl(page) {
+      return `/static/accurate-intake-${page}.html?user_id=${encodeURIComponent(userId())}&local_date=${encodeURIComponent(selectedDate())}`;
+    }
+    function updateNavigationLinks() {
+      document.querySelectorAll("[data-nav-target]").forEach((link) => {
+        const target = link.getAttribute("data-nav-target");
+        if (target) {
+          link.href = pageUrl(target);
+        }
+      });
+    }
+    function updateCurrentUrl() {
+      const nextUrl = pageUrl("body");
+      const resolved = new URL(nextUrl, window.location.href);
+      if (window.location.search !== resolved.search) {
+        window.history.replaceState(null, "", nextUrl);
+      }
+    }
+    function numberOrNull(id) {
+      const value = el(id).value.trim();
+      return value ? Number(value) : null;
+    }
+    function writeText(id, value, suffix = "") {
+      el(id).textContent = value == null || value === "" ? "--" : `${value}${suffix}`;
+    }
+    function labelFor(value) {
+      return {
+        lose_weight: "Lose weight",
+        maintain_weight: "Maintain weight",
+        gain_weight: "Gain weight",
+        sedentary_with_some_walking: "Mostly sitting, some walking",
+        mostly_sitting: "Mostly sitting",
+        standing_or_light_activity: "Standing or light activity"
+      }[value] || value;
+    }
+    async function requestJson(url, options) {
+      const response = await fetch(url, options);
+      const text = await response.text();
+      const payload = text ? JSON.parse(text) : {};
+      if (!response.ok) {
+        throw new Error(payload.error || payload.detail || `HTTP ${response.status}`);
+      }
+      return payload;
+    }
+    function renderPlan(plan) {
+      const isActive = plan.plan_status === "active";
+      writeText("plan-daily-target", isActive ? (plan.daily_budget_kcal || plan.recommended_target_kcal) : null, " kcal");
+      writeText("plan-tdee", isActive ? plan.estimated_tdee : null, " kcal");
+      writeText("plan-current-weight", plan.current_weight_kg, " kg");
+      writeText("plan-target-weight", plan.target_weight_kg, " kg");
+      writeText("plan-activity", labelFor(plan.activity_level));
+      writeText("plan-goal", labelFor(plan.goal_type));
+      el("body-status").textContent = isActive ? "Plan loaded." : "Set up your body plan to see targets.";
+    }
+    function renderWeights(payload) {
+      const list = el("weight-history");
+      list.innerHTML = "";
+      const rows = Array.isArray(payload.observations) ? payload.observations : [];
+      if (!rows.length) {
+        const empty = document.createElement("li");
+        empty.textContent = "No weight check-ins yet.";
+        list.append(empty);
+        return;
+      }
+      for (const obs of rows) {
+        const item = document.createElement("li");
+        item.textContent = `${obs.local_date || obs.observed_at || "unknown"} | ${obs.value ?? "--"} ${obs.unit || "kg"}`;
+        list.append(item);
+      }
+    }
+    async function loadBody() {
+      updateNavigationLinks();
+      el("body-status").textContent = "Loading body plan...";
+      const plan = await requestJson(`${endpoints.bodyPlan}?${new URLSearchParams({ user_id: userId() }).toString()}`);
+      renderPlan(plan);
+      const history = await requestJson(`${endpoints.weightHistory}?${new URLSearchParams({ user_id: userId() }).toString()}`);
+      renderWeights(history);
+    }
+    el("weight-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const payload = await requestJson(endpoints.weightObservation, {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: JSON.stringify({
+          user_id: userId(),
+          weight_kg: Number(el("weight-kg").value),
+          unit: "kg",
+          local_date: selectedDate()
+        })
+      });
+      el("body-status").textContent = `Weight saved${payload.weight_kg == null ? "" : `: ${payload.weight_kg} kg`}.`;
+      await loadBody();
+    });
+    el("onboarding-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const payload = await requestJson(endpoints.onboarding, {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: JSON.stringify({
+          user_id: userId(),
+          sex: el("sex").value,
+          age_years: Number(el("age-years").value),
+          height_cm: Number(el("height-cm").value),
+          current_weight_kg: Number(el("current-weight-kg").value),
+          daily_lifestyle: el("daily-lifestyle").value,
+          weekly_exercise_days_band: el("weekly-exercise-days-band").value,
+          goal_type: el("goal-type").value,
+          weekly_target_rate_kg: Number(el("weekly-target-rate-kg").value),
+          target_weight_kg: numberOrNull("target-weight-kg"),
+          local_date: selectedDate(),
+          timezone: "Asia/Taipei"
+        })
+      });
+      renderPlan(payload.active_body_plan || {});
+      el("body-status").textContent = `Plan saved${payload.target_kcal == null ? "" : `: ${payload.target_kcal} kcal target`}.`;
+    });
+    el("manual-target-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const target = Number(el("manual-daily-target").value);
+      if (!Number.isFinite(target)) {
+        el("body-status").textContent = "Enter a manual daily target first.";
+        return;
+      }
+      const payload = await requestJson(endpoints.manualTarget, {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: JSON.stringify({
+          user_id: userId(),
+          daily_target_kcal: target,
+          local_date: selectedDate(),
+          source: "user_ui"
+        })
+      });
+      renderPlan(payload.active_body_plan || {});
+      el("body-status").textContent = `Manual daily target saved${payload.current_budget?.budget_kcal == null ? "" : `: ${payload.current_budget.budget_kcal} kcal`}.`;
+    });
+    el("local-date").addEventListener("change", () => {
+      updateCurrentUrl();
+      updateNavigationLinks();
+    });
+    el("user-id").addEventListener("change", () => {
+      updateCurrentUrl();
+      updateNavigationLinks();
+      loadBody().catch((error) => { el("body-status").textContent = `Could not load body plan: ${error.message}`; });
+    });
+    updateNavigationLinks();
+    loadBody().catch((error) => { el("body-status").textContent = `Could not load body plan: ${error.message}`; });
+  </script>
+</body>
+</html>
