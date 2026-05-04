@@ -203,9 +203,12 @@ def _build_test_client(db: Session, provider: Any) -> TestClient:
 
 def _close_test_client(client: TestClient) -> None:
     old_manager, old_search, old_extract = client.old_providers
-    intake_routes.manager_provider = old_manager
-    intake_routes.search_provider = old_search
-    intake_routes.extract_provider = old_extract
+    try:
+        client.close()
+    finally:
+        intake_routes.manager_provider = old_manager
+        intake_routes.search_provider = old_search
+        intake_routes.extract_provider = old_extract
 
 
 def build_report(db_path: Path) -> dict[str, Any]:
@@ -229,92 +232,103 @@ def build_report(db_path: Path) -> dict[str, Any]:
     turns_output = []
     has_evidence_gap = False
 
-    for fixture in ONE_DAY_TURN_FIXTURES:
-        debug_res_before = client.get(
-            "/accurate-intake/debug",
-            params={"user_id": user_id, "local_date": local_date},
-        )
-        state_before = (
-            (debug_res_before.json() if debug_res_before.content else {})
-            .get("model", {})
-            .get("today_summary", {})
-        )
-
-        res = client.post(
-            "/estimate",
-            json={
-                "text": fixture["raw_user_input"],
-                "user_id": user_id,
-                "allow_search": False,
-            },
-        )
-        data = res.json() if res.content else {}
-
-        debug_res_after = client.get(
-            "/accurate-intake/debug",
-            params={"user_id": user_id, "local_date": local_date},
-        )
-        state_after = (
-            (debug_res_after.json() if debug_res_after.content else {})
-            .get("model", {})
-            .get("today_summary", {})
-        )
-
-        # Determine mutation honestly from structured fields
-        payload = data.get("payload", {}) or {}
-        state_delta = payload.get("state_delta", {}) or {}
-        mgr_dec = payload.get("manager_decision", {}) or {}
-
-        # Check structured state_delta flags
-        delta_mutation = any(
-            v is True
-            for k, v in state_delta.items()
-            if k
-            in (
-                "canonical_commit",
-                "draft_saved",
-                "ledger_updated",
-                "body_plan_seeded",
-                "new_meal_version_created",
+    try:
+        for fixture in ONE_DAY_TURN_FIXTURES:
+            debug_res_before = client.get(
+                "/accurate-intake/debug",
+                params={"user_id": user_id, "local_date": local_date},
             )
-        )
-        # Check if budget actually changed between before/after
-        budget_before = state_before.get("budget_kcal", 0)
-        budget_after = state_after.get("budget_kcal", 0)
-        budget_changed = budget_before != budget_after
-        # Check manager final_action for target_updated
-        target_updated = mgr_dec.get("final_action") == "target_updated"
+            state_before = (
+                (debug_res_before.json() if debug_res_before.content else {})
+                .get("model", {})
+                .get("today_summary", {})
+            )
 
-        mutation_applied = delta_mutation or budget_changed or target_updated
-        mutation_or_query = "mutation" if mutation_applied else "query"
+            res = client.post(
+                "/estimate",
+                json={
+                    "text": fixture["raw_user_input"],
+                    "user_id": user_id,
+                    "allow_search": False,
+                },
+            )
+            data = res.json() if res.content else {}
 
-        # Detect evidence gaps honestly
-        if not mutation_applied and fixture["manager_decision"][
-            "mutation_intent_candidate"
-        ] not in ("no_mutation",):
-            has_evidence_gap = True
+            debug_res_after = client.get(
+                "/accurate-intake/debug",
+                params={"user_id": user_id, "local_date": local_date},
+            )
+            state_after = (
+                (debug_res_after.json() if debug_res_after.content else {})
+                .get("model", {})
+                .get("today_summary", {})
+            )
 
-        turns_output.append(
-            {
-                "turn_id": fixture["turn_id"],
-                "raw_user_input": fixture["raw_user_input"],
-                "expected_behavior": fixture["expected_behavior"],
-                "manager_decision": fixture["manager_decision"],
-                "mutation_or_query": mutation_or_query,
-                "state_before": state_before,
-                "state_after": state_after,
-                "assistant_response_summary": data.get("coach_message"),
-                "raw_response": data,
-                "state_delta": state_delta,
-            }
-        )
+            # Determine mutation honestly from observed runtime response fields.
+            payload = data.get("payload", {}) or {}
+            state_delta = payload.get("state_delta", {}) or {}
+            mgr_dec = payload.get("manager_decision", {}) or {}
 
-    _close_test_client(client)
-    db.close()
+            # Check structured state_delta flags
+            delta_mutation = any(
+                v is True
+                for k, v in state_delta.items()
+                if k
+                in (
+                    "canonical_commit",
+                    "draft_saved",
+                    "ledger_updated",
+                    "body_plan_seeded",
+                    "new_meal_version_created",
+                )
+            )
+            # Check if budget actually changed between before/after
+            budget_before = state_before.get("budget_kcal", 0)
+            budget_after = state_after.get("budget_kcal", 0)
+            budget_changed = budget_before != budget_after
+            # Check manager final_action for target_updated
+            target_updated = mgr_dec.get("final_action") == "target_updated"
+
+            mutation_applied = delta_mutation or budget_changed or target_updated
+            mutation_or_query = "mutation" if mutation_applied else "query"
+
+            # Detect evidence gaps honestly
+            if not mutation_applied and fixture["manager_decision"][
+                "mutation_intent_candidate"
+            ] not in ("no_mutation",):
+                has_evidence_gap = True
+
+            turns_output.append(
+                {
+                    "turn_id": fixture["turn_id"],
+                    "raw_user_input": fixture["raw_user_input"],
+                    "expected_behavior": fixture["expected_behavior"],
+                    "expected_manager_decision": fixture["manager_decision"],
+                    "manager_decision": mgr_dec,
+                    "manager_decision_source": (
+                        "runtime_response" if mgr_dec else "missing"
+                    ),
+                    "mutation_or_query": mutation_or_query,
+                    "state_before": state_before,
+                    "state_after": state_after,
+                    "assistant_response_summary": data.get("coach_message"),
+                    "raw_response": data,
+                    "state_delta": state_delta,
+                }
+            )
+    finally:
+        _close_test_client(client)
+        db.close()
+        engine.dispose()
 
     # Analyze final state
     active_meal_count = turns_output[-1]["state_after"].get("active_meal_count", 0)
     food_logs_created = active_meal_count > 0
+    manager_context_gap_observed = any(
+        turn.get("manager_decision_source") == "missing"
+        or bool((turn.get("raw_response") or {}).get("error"))
+        for turn in turns_output
+    )
 
     # Honest correction logic: we recorded a negative guard turn for removal.
     remove_item_attempted = True
@@ -325,7 +339,7 @@ def build_report(db_path: Path) -> dict[str, Any]:
     return {
         "one_day_realistic_web_dogfood": {
             "status": "diagnostic_pass_with_evidence_gap"
-            if has_evidence_gap
+            if has_evidence_gap or manager_context_gap_observed
             else "pass",
             "browser_executed": False,
             "live_provider_called": False,
@@ -338,6 +352,7 @@ def build_report(db_path: Path) -> dict[str, Any]:
                 "daily_target_updated": True,
                 "food_logs_created": food_logs_created,
                 "evidence_gap_observed": has_evidence_gap,
+                "manager_context_gap_observed": manager_context_gap_observed,
                 "evidence_gap_handled_without_fake_kcal": True,
                 "no_fake_kcal_truth": True,
                 "pending_followup_used": False,  # Skipped due to gap
@@ -352,9 +367,20 @@ def build_report(db_path: Path) -> dict[str, Any]:
                 "dogfood_review_queue_compatible": "not_checked",
                 "local_data_hygiene_respected": "not_checked",
             },
-            "blockers": ["food evidence gap prevented realistic food logging"]
-            if has_evidence_gap
-            else [],
+            "blockers": [
+                blocker
+                for blocker, observed in (
+                    (
+                        "food evidence gap prevented realistic food logging",
+                        has_evidence_gap,
+                    ),
+                    (
+                        "manager context/runtime gap prevented complete turn evaluation",
+                        manager_context_gap_observed,
+                    ),
+                )
+                if observed
+            ],
         }
     }
 
@@ -370,7 +396,7 @@ def main():
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
-        f.write("\\n")
+        f.write("\n")
     print(json.dumps(report, indent=2, ensure_ascii=False))
 
 

@@ -183,6 +183,14 @@ python scripts/build_accurate_intake_dogfood_review_queue.py --trace-json path/t
 
 This local-only review artifact is dogfood triage material. It may mark `review_candidate` records from deterministic flags or reviewer-agent suggestions, but raw traces remain observation only and cannot become Food KB truth, golden truth, or canonical eval cases without human approval, product semantic source, stable expected behavior, and eval registration. The artifact can contain personal diet logs; keep it local and do not commit generated review artifacts.
 
+Build the operator review surface from the one-day realistic dogfood diagnostic with:
+
+```powershell
+python scripts/build_accurate_intake_dogfood_operator_review.py --dogfood-json artifacts/accurate_intake_one_day_realistic_web_dogfood.json --output artifacts/accurate_intake_dogfood_operator_review.json
+```
+
+This surface is a local-only triage view. It may classify turns as target update success, food evidence gap, blocked mutation, query/no-mutation, unsupported intent, manager/context gap, or not checked using structured artifact fields only. Runtime error / missing-payload status may classify a turn as `manager_context_gap`; raw user text and assistant text are display-only. The surface must not recompute kcal, update Food KB truth, promote canonical eval cases, or convert `diagnostic_pass_with_evidence_gap` into `pass`.
+
 Windows operators should run SQLite-backed commands sequentially. If `.pytest_tmp_local` reports a temporary SQLite lock, wait for the previous process to exit and rerun the affected command before classifying the result. Do not run the reset and keep-db shell commands concurrently against the same DB path.
 
 macOS, Linux, Docker, and devcontainer operators should use the same commands after the Python 3.12 environment is active. Docker/devcontainer usage is for environment parity only; it does not change the local deterministic claim scope.
