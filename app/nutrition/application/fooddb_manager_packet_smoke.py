@@ -4,6 +4,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from .food_evidence_packet_builder import (
+    build_food_evidence_recall_packet,
+    is_compact_food_evidence_packet,
+)
 from .fooddb_retrieval_policy import IndexedFoodRecord, retrieve_fooddb_candidates
 
 
@@ -55,7 +59,11 @@ def build_fooddb_manager_packet_smoke(
     cases: tuple[FoodDBPacketSmokeCase, ...] = FOODDB_PACKET_SMOKE_CASES,
 ) -> dict[str, Any]:
     case_results = [_case_result(case, retrieval_records=retrieval_records) for case in cases]
-    compact_pass_count = sum(1 for item in case_results if _is_compact_packet(item["manager_evidence_packet"]))
+    compact_pass_count = sum(
+        1
+        for item in case_results
+        if is_compact_food_evidence_packet(item["manager_evidence_packet"])
+    )
     return {
         "artifact_type": "accurate_intake_fooddb_manager_packet_smoke",
         "artifact_schema_version": "1.0",
@@ -65,6 +73,8 @@ def build_fooddb_manager_packet_smoke(
         "runtime_truth_changed": False,
         "live_provider_used": False,
         "manager_context_changed": False,
+        "runtime_packetizer_contract_changed": False,
+        "manager_recall_packet_shape_changed": True,
         "packetizer_format_changed": False,
         "product_loop_integration_claimed": False,
         "cases": case_results,
@@ -74,12 +84,13 @@ def build_fooddb_manager_packet_smoke(
             "raw_source_rows_included": False,
             "candidate_only_records_included": False,
             "full_fooddb_included": False,
+            "compact_packet_structural_leak_check": "enabled",
         },
         "non_claims": [
             "no_runtime_truth_promotion",
             "no_live_provider_call",
             "no_manager_context_change",
-            "no_packetizer_format_change",
+            "no_runtime_packetizer_contract_change",
             "no_product_loop_integration",
             "no_readiness_claim",
         ],
@@ -107,65 +118,15 @@ def _manager_evidence_packet(
     case: FoodDBPacketSmokeCase,
     retrieval_result: dict[str, Any],
 ) -> dict[str, Any]:
-    evidence_items = [_compact_candidate(item) for item in retrieval_result.get("accepted_candidates") or []]
-    return {
-        "packet_type": "fooddb_manager_evidence_packet_v1",
-        "case_id": case.case_id,
-        "raw_user_input": case.raw_input,
-        "retrieval_scope": retrieval_result.get("retrieval_scope"),
-        "retrieval_boundary": retrieval_result.get("retrieval_boundary"),
-        "manager_expected_behavior": case.expected_behavior,
-        "runtime_mutation_allowed": False,
-        "truth_selection_forbidden": True,
-        "raw_source_rows_included": False,
-        "candidate_only_records_included": False,
-        "full_fooddb_included": False,
-        "modifier_hints": (retrieval_result.get("normalized_query") or {}).get("modifier_hints") or {},
-        "evidence_items": evidence_items,
-        "rejected_candidate_count": len(retrieval_result.get("rejected_candidates") or []),
-        "ambiguity_reason": retrieval_result.get("ambiguity_reason"),
-        "followup_hints": list(retrieval_result.get("followup_hints") or []),
-        "vector_search_policy": retrieval_result.get("vector_search_policy"),
-        "manager_may_use_for": [
-            "grounded_food_evidence",
-            "followup_or_uncertainty_decision",
-            "disambiguation",
-        ],
-        "manager_must_not_use_for": [
-            "runtime_mutation",
-            "creating_fooddb_truth",
-            "inventing_source",
-        ],
-    }
-
-
-def _compact_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "anchor_id": candidate.get("anchor_id"),
-        "canonical_name": candidate.get("canonical_name"),
-        "query_component": candidate.get("query_component"),
-        "match_path": candidate.get("match_path"),
-        "confidence": candidate.get("confidence"),
-        "requires_manager_disambiguation": candidate.get("requires_manager_disambiguation"),
-        "runtime_role": candidate.get("runtime_role"),
-        "runtime_truth_allowed": candidate.get("runtime_truth_allowed"),
-        "kcal_point": candidate.get("kcal_point"),
-        "kcal_range": candidate.get("kcal_range"),
-        "serving_basis": candidate.get("serving_basis"),
-        "portion_basis": candidate.get("portion_basis"),
-        "runtime_usage_boundary": candidate.get("runtime_usage_boundary"),
-        "followup_hints": list(candidate.get("followup_hints") or []),
-        "source_provenance": dict(candidate.get("source_provenance") or {}),
-        "approval_metadata": dict(candidate.get("approval_metadata") or {}),
-    }
-
-
-def _is_compact_packet(packet: dict[str, Any]) -> bool:
-    return (
-        packet.get("raw_source_rows_included") is False
-        and packet.get("candidate_only_records_included") is False
-        and packet.get("full_fooddb_included") is False
+    packet = build_food_evidence_recall_packet(
+        packet_id=case.case_id,
+        raw_user_input=case.raw_input,
+        retrieval_result=retrieval_result,
+        manager_expected_behavior=case.expected_behavior,
+        packet_type="fooddb_manager_evidence_packet_v1",
     )
+    packet["case_id"] = case.case_id
+    return packet
 
 
 def _now() -> str:
