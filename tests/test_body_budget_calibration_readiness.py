@@ -27,6 +27,7 @@ def test_body_budget_calibration_readiness_artifact_freezes_plce_read_model_cont
     assert stable_names == [
         "current_budget_view",
         "body_budget_deficit_summary",
+        "body_budget_weekly_progress",
         "body_budget_effective_budget_view",
         "active_body_plan_view",
         "calibration_proposal_inbox",
@@ -39,14 +40,21 @@ def test_body_budget_calibration_readiness_artifact_freezes_plce_read_model_cont
     assert artifact["plce_contract"]["manager_context_packet_changed"] is False
     assert "estimated_daily_deficit_kcal" in deficit_summary["stable_fields"]
     assert "latest_weight_kg" in deficit_summary["stable_fields"]
-    effective_budget = artifact["stable_read_models"][2]
+    weekly_progress = artifact["stable_read_models"][2]
+    assert weekly_progress["backend_route"] == "/today/weekly-progress"
+    assert weekly_progress["read_function"] == "app.composition.body_budget_weekly_progress.build_body_budget_weekly_progress"
+    assert "estimated_weekly_deficit_kcal" in weekly_progress["stable_fields"]
+    assert "weight_delta_kg" in weekly_progress["stable_fields"]
+    assert "compute_weekly_deficit" in weekly_progress["plce_forbidden"]
+    assert "infer_calibration_eligibility" in weekly_progress["plce_forbidden"]
+    effective_budget = artifact["stable_read_models"][3]
     assert effective_budget["backend_route"] == "/today/effective-budget"
     assert "runtime_effective_budget_kcal" in effective_budget["stable_fields"]
     assert "adjustment_layers.runtime_adjustment_total_from_entries_kcal" in effective_budget["stable_fields"]
     assert "sign_policy" in effective_budget["stable_fields"]
     assert "calculate_effective_budget" in effective_budget["plce_forbidden"]
     assert artifact["calibration_flow_contract"]["effective_budget_math"]["canonical_l3m_formula_enabled"] is True
-    proposal_history = artifact["stable_read_models"][5]
+    proposal_history = artifact["stable_read_models"][6]
     assert proposal_history["backend_route"] == "/calibration/proposals/history"
     assert proposal_history["read_function"] == "app.composition.calibration_proposal_inbox.load_calibration_proposal_history"
     assert "expired_at" in proposal_history["stable_fields"]
