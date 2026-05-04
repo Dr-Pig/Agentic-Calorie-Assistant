@@ -2,24 +2,26 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
 import re
 import sys
 from typing import Any
-from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.nutrition.application.evidence_candidate_packetizer import add_hard_recheck_metadata_many
-from app.nutrition.application.evidence_packet_consumption import consume_rechecked_packets
-from app.nutrition.application.retrieval_intent import build_retrieval_intent
-from app.nutrition.application.web_extract_packetizer import _extract_requested_size_kcal, build_web_extract_packets, _KCAL_FIELD_KEYS, _parse_single_kcal_value
-from app.providers.tavily_extract_port import TavilyExtractPort
+from app.nutrition.application.evidence_candidate_packetizer import add_hard_recheck_metadata_many  # noqa: E402
+from app.nutrition.application.evidence_packet_consumption import consume_rechecked_packets  # noqa: E402
+from app.nutrition.application.retrieval_intent import build_retrieval_intent  # noqa: E402
+from app.nutrition.application.selected_extract_policy import choose_selected_extract_packet  # noqa: E402
+from app.nutrition.application.web_extract_packetizer import _KCAL_FIELD_KEYS  # noqa: E402
+from app.nutrition.application.web_extract_packetizer import _extract_requested_size_kcal  # noqa: E402
+from app.nutrition.application.web_extract_packetizer import _parse_single_kcal_value  # noqa: E402
+from app.nutrition.application.web_extract_packetizer import build_web_extract_packets  # noqa: E402
+from app.providers.tavily_extract_port import TavilyExtractPort  # noqa: E402
 
 DEFAULT_ARTIFACT_DIR = ROOT / "artifacts"
 DEFAULT_OUTPUT = DEFAULT_ARTIFACT_DIR / "wave1_phase_b2_exact_brand_positive_acceptance_diagnostic.json"
@@ -101,6 +103,18 @@ async def diagnose_positive_case(
     if not source_url:
         return {"error": "selected_candidate_missing_url"}
 
+    selected_search_packet = _selected_search_packet_from_trace(
+        selected_search_packet_id=selected_search_packet_id,
+        selected_candidate=selected_candidate,
+    )
+    extract_policy = choose_selected_extract_packet((selected_search_packet,))
+    if not extract_policy.extract_allowed_by_policy:
+        return {
+            "error": "selected_extract_policy_blocked",
+            "extract_policy": extract_policy.to_trace(),
+            "source_policy_block_reasons": list(extract_policy.source_policy_block_reasons),
+        }
+
     # Re-run extraction
     extract_rows = []
     try:
@@ -132,16 +146,9 @@ async def diagnose_positive_case(
             if parsed_field_values:
                 kcal_candidates_found = True
             else:
-                for pattern in _KCAL_FIELD_KEYS: pass # not doing full regex manually if not needed, just rely on the packetizer internals
+                # Do not duplicate extractor regexes here; packetizer internals own kcal parsing.
+                pass
     
-    # Check packetization
-    selected_search_packet = {
-        "packet_id": selected_search_packet_id,
-        "url": source_url,
-        "title": selected_candidate.get("source_title"),
-        "canonical_name": selected_candidate.get("candidate_identity"),
-        "matched_name": selected_candidate.get("candidate_identity"),
-    }
     extracted_packets_raw = build_web_extract_packets(
         intent,
         selected_search_packet=selected_search_packet,
@@ -242,6 +249,37 @@ async def diagnose_positive_case(
         "primary_root_cause": primary_root_cause,
         "contributing_factors": contributing_factors,
         "recommended_next_step": recommended_next_step,
+    }
+
+
+def _selected_search_packet_from_trace(
+    *,
+    selected_search_packet_id: object,
+    selected_candidate: dict[str, Any],
+) -> dict[str, object]:
+    candidate_identity = selected_candidate.get("candidate_identity")
+    return {
+        "packet_id": selected_search_packet_id,
+        "packet_type": "SearchCandidatePacket",
+        "truth_level": "candidate",
+        "source_type": "web_search",
+        "source_quality_label": selected_candidate.get("source_quality_label"),
+        "officialness_hint": selected_candidate.get("officialness_hint"),
+        "license_status": selected_candidate.get("license_status"),
+        "robots_status": selected_candidate.get("robots_status"),
+        "identity_confidence": selected_candidate.get("identity_confidence"),
+        "serving_basis_candidate": selected_candidate.get("serving_basis_candidate"),
+        "nutrition_fields_present": list(selected_candidate.get("nutrition_fields_present") or []),
+        "url": selected_candidate.get("source_url"),
+        "title": selected_candidate.get("source_title"),
+        "canonical_name": candidate_identity,
+        "matched_name": candidate_identity,
+        "match_type": selected_candidate.get("match_type"),
+        "brand_match": selected_candidate.get("brand_match"),
+        "size_or_serving_match": selected_candidate.get("size_or_serving_match"),
+        "modifier_match": selected_candidate.get("modifier_match"),
+        "sibling_variant_risk": selected_candidate.get("sibling_variant_risk") or {"present": False},
+        "hard_recheck_risks": [],
     }
 
 
