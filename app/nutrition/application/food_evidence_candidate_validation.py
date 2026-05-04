@@ -10,6 +10,7 @@ ALLOWED_SOURCE_CLASSES = {
     "existing_repo_seed",
     "taiwan_tfda_open_data",
     "official_brand_chain_page",
+    "local_taiwan_packaged_extract",
     "open_food_facts",
     "usda_fallback",
 }
@@ -17,6 +18,7 @@ SOURCE_CLASS_COMPATIBILITY = {
     "existing_repo_seed": {"alias_coverage_prior", "generic_anchor_candidate"},
     "taiwan_tfda_open_data": {"generic_anchor_candidate", "listed_component_anchor_candidate"},
     "official_brand_chain_page": {"exact_card_candidate"},
+    "local_taiwan_packaged_extract": {"exact_card_candidate"},
     "open_food_facts": {"packaged_candidate"},
     "usda_fallback": {"fallback_anchor_candidate"},
 }

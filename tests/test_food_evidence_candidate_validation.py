@@ -143,6 +143,67 @@ def test_validator_accepts_tfda_listed_component_candidate_without_truth_promoti
     assert artifact["runtime_truth_changed"] is False
 
 
+def test_validator_accepts_local_packaged_exact_candidate_without_truth_promotion() -> None:
+    artifact = build_food_evidence_candidate_validation_artifact(
+        candidate_artifact=_candidate_artifact(
+            [
+                _candidate(
+                    "local_exact",
+                    "Brown Sugar Milk Tea",
+                    source_id="local_tw_packaged_extract_188_2",
+                    source_class="local_taiwan_packaged_extract",
+                    evidence_role="exact_card_candidate",
+                    source_file="188_2.csv",
+                )
+            ]
+        ),
+        gap_register=None,
+    )
+
+    result = artifact["validated_candidates"][0]
+    assert result["validation_status"] == "validator_passed"
+    assert result["source_class"] == "local_taiwan_packaged_extract"
+    assert result["evidence_role"] == "exact_card_candidate"
+    assert result["promotion_status"] == "validator_passed"
+    assert result["runtime_truth_allowed"] is False
+
+
+def test_validator_does_not_treat_shared_company_name_as_alias_collision_for_local_exact_rows() -> None:
+    artifact = build_food_evidence_candidate_validation_artifact(
+        candidate_artifact=_candidate_artifact(
+            [
+                {
+                    **_candidate(
+                        "local_exact_1",
+                        "Brown Sugar Milk Tea",
+                        source_id="local_tw_packaged_extract_188_2",
+                        source_class="local_taiwan_packaged_extract",
+                        evidence_role="exact_card_candidate",
+                        source_file="188_2.csv",
+                    ),
+                    "aliases": ["Tea Co Brown Sugar Milk Tea", "Brown Sugar Milk Tea 500 ml"],
+                },
+                {
+                    **_candidate(
+                        "local_exact_2",
+                        "Jasmine Green Tea",
+                        source_id="local_tw_packaged_extract_188_2",
+                        source_class="local_taiwan_packaged_extract",
+                        evidence_role="exact_card_candidate",
+                        source_file="188_2.csv",
+                    ),
+                    "aliases": ["Tea Co Jasmine Green Tea", "Jasmine Green Tea 500 ml"],
+                },
+            ]
+        ),
+        gap_register=None,
+    )
+
+    by_id = {item["candidate_id"]: item for item in artifact["validated_candidates"]}
+    assert by_id["local_exact_1"]["validation_status"] == "validator_passed"
+    assert by_id["local_exact_2"]["validation_status"] == "validator_passed"
+
+
 def test_validator_rejects_missing_provenance_invalid_kcal_and_unsupported_source() -> None:
     missing_provenance = _candidate("missing_provenance", "bad")
     missing_provenance["source_provenance"] = {}
