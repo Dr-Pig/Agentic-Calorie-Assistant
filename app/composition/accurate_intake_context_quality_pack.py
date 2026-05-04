@@ -90,13 +90,17 @@ def _replay_blockers(payload: dict[str, Any]) -> list[str]:
     blockers = []
     if _status(payload) != "generated":
         blockers.append("context_replay.not_generated")
-    if _int_value(payload.get("scenario_count")) < 7:
+    if _int_value(payload.get("scenario_count")) < 12:
         blockers.append("context_replay.scenario_count_too_low")
     summary = _object_dict(payload.get("summary"))
-    if _int_value(summary.get("pending_pin_scenarios")) < 1:
-        blockers.append("context_replay.pending_pin_scenarios_missing")
+    if _int_value(summary.get("pending_pin_scenarios")) < 3:
+        blockers.append("context_replay.pending_pin_scenarios_too_low")
     if _int_value(summary.get("ambiguous_scenarios")) < 1:
         blockers.append("context_replay.ambiguous_scenarios_missing")
+    if _int_value(summary.get("manager_semantic_required_scenarios")) < 1:
+        blockers.append("context_replay.manager_semantic_required_missing")
+    if _int_value(summary.get("outside_current_day_omitted_scenarios")) < 1:
+        blockers.append("context_replay.outside_current_day_omitted_missing")
     return blockers
 
 
@@ -162,6 +166,12 @@ def build_context_quality_pack_artifact(
                 ),
                 "pending_pin_scenarios": _int_value(
                     replay_summary.get("pending_pin_scenarios")
+                ),
+                "manager_semantic_required_scenarios": _int_value(
+                    replay_summary.get("manager_semantic_required_scenarios")
+                ),
+                "outside_current_day_omitted_scenarios": _int_value(
+                    replay_summary.get("outside_current_day_omitted_scenarios")
                 ),
             },
             "local_only": True,

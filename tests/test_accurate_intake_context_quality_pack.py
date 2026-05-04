@@ -61,10 +61,12 @@ def test_context_quality_pack_combines_ce_diagnostics_without_fault_claims() -> 
     assert pack["deterministic_selected_target"] is False
     assert pack["deterministic_semantic_inference_used"] is False
     assert pack["mutation_authority"] is False
-    assert pack["summary"]["context_replay_scenario_count"] == 7
+    assert pack["summary"]["context_replay_scenario_count"] == 12
     assert pack["summary"]["target_candidate_scenario_count"] == 5
     assert pack["summary"]["ambiguous_target_scenarios"] >= 2
     assert pack["summary"]["pending_pin_scenarios"] >= 2
+    assert pack["summary"]["manager_semantic_required_scenarios"] == 1
+    assert pack["summary"]["outside_current_day_omitted_scenarios"] == 1
     assert pack["ready_for_live_diagnostic_decision"] is False
     assert pack["private_self_use_approved"] is False
 
@@ -103,6 +105,32 @@ def test_context_quality_pack_rejects_forbidden_context_or_schema_change() -> No
     assert pack["status"] == "fail"
     assert "context_review.manager_context_packet_schema_changed" in pack["blockers"]
     assert "context_review.forbidden_context_detected" in pack["blockers"]
+
+
+def test_context_quality_pack_rejects_stale_context_replay_coverage() -> None:
+    stale_replay = build_context_replay_pack_artifact()
+    stale_replay["scenario_count"] = 7
+    stale_replay["summary"] = {
+        **stale_replay["summary"],
+        "scenario_count": 7,
+        "pending_pin_scenarios": 2,
+        "manager_semantic_required_scenarios": 0,
+        "outside_current_day_omitted_scenarios": 0,
+    }
+
+    pack = build_context_quality_pack_artifact(
+        context_review=_context_review(),
+        target_candidate_eval=build_context_target_candidate_eval_artifact(),
+        context_window_diagnostic=build_context_window_diagnostic_artifact(),
+        context_replay=stale_replay,
+        fake_provider_context_smoke=build_fake_provider_context_smoke_artifact(),
+    )
+
+    assert pack["status"] == "fail"
+    assert "context_replay.scenario_count_too_low" in pack["blockers"]
+    assert "context_replay.pending_pin_scenarios_too_low" in pack["blockers"]
+    assert "context_replay.manager_semantic_required_missing" in pack["blockers"]
+    assert "context_replay.outside_current_day_omitted_missing" in pack["blockers"]
 
 
 def test_context_quality_pack_cli_writes_artifact(tmp_path: Path, capsys) -> None:
