@@ -1,11 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-import re
 from typing import Any
-
-from app.providers.builderspace_runtime_contract import validate_manager_payload
-from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 
 
 WEBSEARCH_MANAGER_CONTRACT_PROBE_NON_CLAIMS = [
@@ -20,7 +16,16 @@ WEBSEARCH_MANAGER_CONTRACT_PROBE_NON_CLAIMS = [
     "no_readiness_claim",
 ]
 
-_MISSING_FIELDS_RE = re.compile(r"missing required fields.*: \[(?P<fields>.*)]")
+_REQUIRED_MANAGER_OUTPUT_FIELDS = (
+    "manager_action",
+    "intent",
+    "workflow_effect",
+    "target_attachment",
+    "exactness",
+    "confidence",
+    "evidence_posture",
+    "repair_ack",
+)
 
 
 def build_fixture_websearch_manager_contract_probe_cases() -> list[dict[str, Any]]:
@@ -149,16 +154,10 @@ def build_websearch_manager_contract_probe(
 
 def _evaluate_contract_case(case: dict[str, Any]) -> dict[str, Any]:
     observed_output = dict(case.get("observed_manager_output") or {})
-    error_message = None
-    try:
-        validate_manager_payload(MANAGER_LOOP_STAGE, observed_output, constraints={})
-    except Exception as exc:  # noqa: BLE001 - diagnostics classify contract failures
-        error_message = str(exc)
-
-    missing_fields = _missing_fields_from_error(error_message)
+    missing_fields = _missing_required_fields(observed_output)
     shape_patterns = _shape_patterns(observed_output=observed_output, missing_fields=missing_fields)
     failure_families: list[str] = []
-    if error_message:
+    if missing_fields:
         failure_families.append("manager_output_contract_violation")
     if "intent_type_present_intent_missing" in shape_patterns:
         failure_families.append("manager_intent_alias_gap")
@@ -173,7 +172,7 @@ def _evaluate_contract_case(case: dict[str, Any]) -> dict[str, Any]:
         "observed_keys": sorted(observed_output.keys()),
         "missing_required_fields": missing_fields,
         "shape_patterns": shape_patterns,
-        "validation_error_family": "manager_output_contract_violation" if error_message else None,
+        "validation_error_family": "manager_output_contract_violation" if missing_fields else None,
         "raw_manager_output_included": False,
         "provider_trace_included": False,
     }
@@ -216,17 +215,11 @@ def _candidate_attachment_present(observed_output: dict[str, Any]) -> bool:
     )
 
 
-def _missing_fields_from_error(error_message: str | None) -> list[str]:
-    if not error_message:
-        return []
-    match = _MISSING_FIELDS_RE.search(error_message)
-    if not match:
-        return []
-    fields_text = match.group("fields")
+def _missing_required_fields(observed_output: dict[str, Any]) -> list[str]:
     return sorted(
-        field.strip().strip("'\"")
-        for field in fields_text.split(",")
-        if field.strip()
+        field
+        for field in _REQUIRED_MANAGER_OUTPUT_FIELDS
+        if field not in observed_output
     )
 
 
