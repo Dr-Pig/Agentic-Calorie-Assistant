@@ -199,6 +199,14 @@ python scripts/build_accurate_intake_food_gap_register.py --operator-review-json
 
 This register turns `food_evidence_gap` review turns into `review_candidate` records only. It may carry display-only user text for human review, but it must not update Food KB truth, create nutrition seeds, create exact cards, create packet truth, or promote canonical eval oracles. Manager context/runtime gaps and query/no-mutation turns remain non-candidates until the upstream blocker is reviewed.
 
+Refresh the Food KB source-quality inventory with:
+
+```powershell
+python scripts/build_accurate_intake_food_kb_inventory.py --food-gap-register artifacts/accurate_intake_food_kb_gap_register.json --output docs/quality/accurate_intake_food_kb_v1_inventory.json
+```
+
+This inventory is the pre-expansion source-quality gate. It records source classes, required provenance, confidence posture, current seed/card counts, basket component count, missing source metadata, and optional PR112 gap candidate counts. It does not promote a gap candidate into Food KB truth; any future promotion needs human review and a source class that satisfies the policy.
+
 Windows operators should run SQLite-backed commands sequentially. If `.pytest_tmp_local` reports a temporary SQLite lock, wait for the previous process to exit and rerun the affected command before classifying the result. Do not run the reset and keep-db shell commands concurrently against the same DB path.
 
 macOS, Linux, Docker, and devcontainer operators should use the same commands after the Python 3.12 environment is active. Docker/devcontainer usage is for environment parity only; it does not change the local deterministic claim scope.
