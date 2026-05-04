@@ -56,6 +56,17 @@ def _evidence(**overrides: dict) -> dict:
             "long_term_memory_used": False,
             "proactive_or_rescue_used": False,
         },
+        "local_operator_data_hygiene_bundle": {
+            "artifact_type": "accurate_intake_local_operator_data_hygiene_bundle",
+            "status": "local_operator_data_hygiene_ready",
+            "local_only": True,
+            "contains_personal_diet_logs": True,
+            "do_not_commit": True,
+            "writes_performed": False,
+            "import_allowed": False,
+            "production_db_used": False,
+            "fooddb_truth_updated": False,
+        },
         "mvp_gate": {"status": "pass"},
     }
     evidence.update(overrides)
@@ -80,7 +91,7 @@ def test_pl_ce_local_review_pack_prepares_human_review_without_live_or_fooddb_cl
     assert pack["blockers"] == []
 
 
-def test_pl_ce_local_review_pack_blocks_overclaim_and_missing_context_bundle() -> None:
+def test_pl_ce_local_review_pack_blocks_overclaim_and_missing_context_or_hygiene_bundle() -> None:
     pack = build_pl_ce_local_review_decision_pack(
         _evidence(
             browser_realistic_dogfood={
@@ -88,12 +99,36 @@ def test_pl_ce_local_review_pack_blocks_overclaim_and_missing_context_bundle() -
                 "real_fooddb_pass_claimed": True,
             },
             pl_ce_review_bundle={"status": "missing"},
+            local_operator_data_hygiene_bundle={},
         )
     )
 
     assert pack["status"] == "blocked"
     assert "pl_ce_review_bundle" in pack["missing_evidence"]
+    assert "local_operator_data_hygiene_bundle" in pack["missing_evidence"]
     assert "browser_realistic_dogfood_real_fooddb_overclaim" in pack["blockers"]
+    assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pl_ce_local_review_pack_blocks_unsafe_local_operator_hygiene_flags() -> None:
+    pack = build_pl_ce_local_review_decision_pack(
+        _evidence(
+            local_operator_data_hygiene_bundle={
+                "artifact_type": "accurate_intake_local_operator_data_hygiene_bundle",
+                "status": "local_operator_data_hygiene_ready",
+                "writes_performed": True,
+                "import_allowed": True,
+                "production_db_used": True,
+                "fooddb_truth_updated": True,
+            }
+        )
+    )
+
+    assert pack["status"] == "blocked"
+    assert "local_operator_data_hygiene_bundle_writes_performed" in pack["blockers"]
+    assert "local_operator_data_hygiene_bundle_import_allowed" in pack["blockers"]
+    assert "local_operator_data_hygiene_bundle_production_db_used" in pack["blockers"]
+    assert "local_operator_data_hygiene_bundle_fooddb_truth_updated" in pack["blockers"]
     assert pack["ready_for_live_diagnostic_decision"] is False
 
 
