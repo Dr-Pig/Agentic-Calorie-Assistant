@@ -278,6 +278,52 @@ def test_channel_sensitivity_records_background_delivery_as_higher_interrupt_cos
     assert "permission_no_push_allowed" not in app_open["suppression_reasons"]
 
 
+def test_trigger_requires_user_relevant_reason_not_only_wake_source() -> None:
+    artifact = build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="weekly_insight",
+                wake_source="scheduled_check",
+            ),
+            ProactiveNoSendShadowInput(
+                trigger_type="weekly_insight",
+                wake_source="scheduled_check",
+                user_relevant_reason="weekly_summary_expected_after_enough_data",
+            ),
+        ]
+    )
+
+    rows = artifact["trigger_evaluations"]
+    missing_reason = rows[0]
+    reasoned = rows[1]
+
+    assert missing_reason["wake_source"] == "scheduled_check"
+    assert missing_reason["suppression_status"] == "suppressed"
+    assert "missing_user_relevant_reason" in missing_reason["suppression_reasons"]
+    assert missing_reason["why_now"] == "missing_user_relevant_reason"
+
+    assert reasoned["wake_source"] == "scheduled_check"
+    assert reasoned["suppression_status"] == "not_suppressed"
+    assert reasoned["why_now"] == "weekly_summary_expected_after_enough_data"
+
+
+def test_manual_shadow_review_without_reason_records_review_context_not_missing_reason() -> None:
+    artifact = build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="weekly_insight",
+                wake_source="manual_shadow_review",
+            )
+        ]
+    )
+
+    row = artifact["trigger_evaluations"][0]
+
+    assert row["suppression_status"] == "not_suppressed"
+    assert "missing_user_relevant_reason" not in row["suppression_reasons"]
+    assert row["why_now"] == "manual_shadow_review_for_weekly_insight"
+
+
 def test_calibration_and_rescue_related_triggers_are_invitations_not_decisions() -> None:
     artifact = build_proactive_no_send_simulation(
         [
@@ -394,6 +440,12 @@ def test_default_artifact_covers_canonical_and_shadow_trigger_sets(tmp_path: Pat
     assert '"interaction_feedback_lower_frequency_required"' in artifact_text
     assert '"interaction_feedback_dismissed_recently"' in artifact_text
     assert '"explicit_trigger_opt_out"' in artifact_text
+    assert '"wake_source": "scheduled_check"' in artifact_text
+    assert '"wake_source": "state_threshold"' in artifact_text
+    assert '"wake_source": "app_open"' in artifact_text
+    assert '"weekly_summary_expected_after_enough_data"' in artifact_text
+    assert '"budget_threshold_may_help_next_meal_decision"' in artifact_text
+    assert '"app_open_dinner_context_can_reduce_decision_cost"' in artifact_text
 
 
 def test_no_send_summary_groups_review_candidates_and_promotion_blockers() -> None:
@@ -433,3 +485,14 @@ def test_no_send_summary_groups_review_candidates_and_promotion_blockers() -> No
         "live_scheduler_not_enabled",
         "no_send_shadow_only",
     ]
+
+
+def test_proactive_spec_requires_user_relevant_reason_separate_from_wake_source() -> None:
+    source = (Path(__file__).resolve().parents[1] / "docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md").read_text(
+        encoding="utf-8-sig"
+    )
+
+    assert "### 4.11 Wake Source Is Not User Benefit" in source
+    assert "`wake_source` records why the system evaluated a trigger" in source
+    assert "`user_relevant_reason` records why this moment may help the user" in source
+    assert "`missing_user_relevant_reason`" in source

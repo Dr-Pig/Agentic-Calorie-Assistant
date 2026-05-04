@@ -282,6 +282,23 @@ Default promotion blockers:
 
 Even after repeated clean no-send runs, live delivery still requires an explicit activation plan and human approval.
 
+### 4.11 Wake Source Is Not User Benefit
+
+No-send shadow artifacts must separate the technical reason the evaluator woke up from the UX reason a proactive message might help.
+
+- `wake_source` records why the system evaluated a trigger, such as `scheduled_check`, `state_threshold`, `event_driven`, or `app_open`
+- `user_relevant_reason` records why this moment may help the user rather than merely interrupt them
+
+For non-manual evaluations, a missing `user_relevant_reason` must suppress the trigger with `missing_user_relevant_reason`.
+
+Examples:
+
+- scheduled weekly insight can evaluate because of `scheduled_check`, but its user-relevant reason should be weekly summary expected after enough data
+- overshoot risk can evaluate because of `state_threshold`, but its user-relevant reason should be helping the next meal decision
+- recommendation prompt can evaluate because of `app_open`, but its user-relevant reason should be reducing decision cost on a low-interrupt surface
+
+This rule prevents proactive from becoming a blind scheduler, state threshold alarm, or location/event push system. The trigger must still prove a user-benefit reason, permission posture, data sufficiency, cooldown, quiet-hours safety, and no-send review readiness.
+
 ---
 
 ## 5. Trigger-Specific Rules

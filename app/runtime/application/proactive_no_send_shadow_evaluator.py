@@ -22,6 +22,7 @@ UserBenefitStrength = Literal["weak", "moderate", "strong"]
 RiskLevel = Literal["low", "medium", "high"]
 DeliverySurface = Literal["background", "app_open", "chat_open"]
 FeedbackAdaptation = Literal["none", "lower_frequency", "suppress_once", "category_suppressed"]
+WakeSource = Literal["scheduled_check", "state_threshold", "event_driven", "app_open", "manual_shadow_review"]
 
 
 LEVEL_2_TRIGGERS = {
@@ -88,6 +89,8 @@ class ProactiveNoSendShadowInput(BaseModel):
     dismissed_count: int = 0
     accepted_count: int = 0
     explicit_trigger_opt_out: bool = False
+    wake_source: WakeSource = "manual_shadow_review"
+    user_relevant_reason: str | None = None
     confidence: float = 0.0
     annoyance_risk: RiskLevel = "medium"
     harm_if_wrong: RiskLevel = "low"
@@ -133,6 +136,7 @@ def _evaluate_trigger(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
         }
     suppression_reasons.extend(_permission_suppression_reasons(item))
     suppression_reasons.extend(_interaction_feedback_suppression_reasons(item))
+    suppression_reasons.extend(_reason_suppression_reasons(item))
     if _deferred_later_only(item) and "later_only_trigger_not_live_eligible" not in suppression_reasons:
         suppression_reasons.append("later_only_trigger_not_live_eligible")
 
@@ -142,9 +146,10 @@ def _evaluate_trigger(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
 
     row: dict[str, Any] = {
         "trigger_type": item.trigger_type,
+        "wake_source": item.wake_source,
         "ux_intent": _ux_intent(item.trigger_type),
         "user_benefit": _user_benefit(item.trigger_type),
-        "why_now": _why_now(item.trigger_type),
+        "why_now": _why_now(item),
         "data_sufficiency_status": item.data_sufficiency_status,
         "confidence": item.confidence,
         "annoyance_risk": item.annoyance_risk,
@@ -226,6 +231,14 @@ def _interaction_feedback_suppression_reasons(item: ProactiveNoSendShadowInput) 
     if item.ignored_count >= 2:
         reasons.append("interaction_feedback_lower_frequency_required")
     return reasons
+
+
+def _reason_suppression_reasons(item: ProactiveNoSendShadowInput) -> list[str]:
+    if item.wake_source == "manual_shadow_review":
+        return []
+    if not str(item.user_relevant_reason or "").strip():
+        return ["missing_user_relevant_reason"]
+    return []
 
 
 def _interaction_feedback(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
@@ -355,8 +368,13 @@ def _user_benefit(trigger_type: str) -> str:
     return f"estimate_whether_{trigger_type}_could_help_without_sending"
 
 
-def _why_now(trigger_type: str) -> str:
-    return f"trigger_window_observed_for_{trigger_type}_in_no_send_shadow"
+def _why_now(item: ProactiveNoSendShadowInput) -> str:
+    reason = str(item.user_relevant_reason or "").strip()
+    if reason:
+        return reason
+    if item.wake_source == "manual_shadow_review":
+        return f"manual_shadow_review_for_{item.trigger_type}"
+    return "missing_user_relevant_reason"
 
 
 __all__ = [
