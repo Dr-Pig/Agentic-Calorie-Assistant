@@ -18,6 +18,13 @@ def _evidence(**overrides: dict) -> dict:
         "free_text_manual_target_gate": {"status": "pass"},
         "dogfood_review_queue": {"status": "generated"},
         "local_dogfood_data_hygiene": {"status": "pass"},
+        "local_operator_data_hygiene_bundle": {
+            "status": "local_operator_data_hygiene_ready",
+            "writes_performed": False,
+            "import_allowed": False,
+            "production_db_used": False,
+            "fooddb_truth_updated": False,
+        },
     }
     evidence.update(overrides)
     return evidence
@@ -36,6 +43,7 @@ def test_pre_live_decision_pack_lists_required_evidence_without_approving_live()
     assert pack["kimi_active_runtime_default_allowed"] is False
     assert pack["product_readiness_claimed"] is False
     assert pack["runtime_web_activation_approved"] is False
+    assert pack["blockers"] == []
 
 
 def test_pre_live_decision_pack_stays_local_when_review_or_data_hygiene_evidence_missing() -> None:
@@ -43,6 +51,7 @@ def test_pre_live_decision_pack_stays_local_when_review_or_data_hygiene_evidence
         _evidence(
             dogfood_review_queue={"status": "missing"},
             local_dogfood_data_hygiene={"status": "blocked"},
+            local_operator_data_hygiene_bundle={},
         )
     )
 
@@ -51,7 +60,29 @@ def test_pre_live_decision_pack_stays_local_when_review_or_data_hygiene_evidence
     assert pack["missing_evidence"] == [
         "dogfood_review_queue",
         "local_dogfood_data_hygiene",
+        "local_operator_data_hygiene_bundle",
     ]
+
+
+def test_pre_live_decision_pack_blocks_unsafe_operator_data_hygiene_flags() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            local_operator_data_hygiene_bundle={
+                "status": "local_operator_data_hygiene_ready",
+                "writes_performed": True,
+                "import_allowed": True,
+                "production_db_used": True,
+                "fooddb_truth_updated": True,
+            },
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "local_operator_data_hygiene_bundle_writes_performed" in pack["blockers"]
+    assert "local_operator_data_hygiene_bundle_import_allowed" in pack["blockers"]
+    assert "local_operator_data_hygiene_bundle_production_db_used" in pack["blockers"]
+    assert "local_operator_data_hygiene_bundle_fooddb_truth_updated" in pack["blockers"]
+    assert pack["live_canary_approved"] is False
 
 
 def test_pre_live_decision_pack_requires_browser_executed_evidence_before_human_live_decision() -> None:

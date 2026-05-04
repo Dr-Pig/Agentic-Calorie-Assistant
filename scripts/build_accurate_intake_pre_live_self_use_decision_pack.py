@@ -14,9 +14,10 @@ REQUIRED_PRE_LIVE_EVIDENCE = (
     "free_text_manual_target_gate",
     "dogfood_review_queue",
     "local_dogfood_data_hygiene",
+    "local_operator_data_hygiene_bundle",
 )
 
-_PASS_STATUSES = {"pass", "generated"}
+_PASS_STATUSES = {"pass", "generated", "local_operator_data_hygiene_ready"}
 
 
 def _json_safe(value: Any) -> Any:
@@ -31,6 +32,24 @@ def _evidence_missing(group_id: str, payload: dict[str, Any]) -> bool:
     return False
 
 
+def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    for flag in (
+        "writes_performed",
+        "import_allowed",
+        "production_db_used",
+        "fooddb_truth_updated",
+        "live_llm_invoked",
+        "web_tavily_used",
+        "web_tavily_invoked",
+        "private_self_use_approved",
+        "product_readiness_claimed",
+    ):
+        if payload.get(flag) is True:
+            blockers.append(f"{group_id}_{flag}")
+    return blockers
+
+
 def build_pre_live_self_use_decision_pack(evidence: dict[str, Any]) -> dict[str, Any]:
     evidence_status = {
         group_id: dict(evidence.get(group_id) or {})
@@ -41,9 +60,12 @@ def build_pre_live_self_use_decision_pack(evidence: dict[str, Any]) -> dict[str,
         for group_id, payload in evidence_status.items()
         if _evidence_missing(group_id, payload)
     ]
+    blockers: list[str] = []
+    for group_id, payload in evidence_status.items():
+        blockers.extend(_evidence_blockers(group_id, payload))
     selected_option = (
         "stay_local_self_use"
-        if missing_evidence
+        if missing_evidence or blockers
         else "ready_for_human_limited_live_canary_decision"
     )
     return _json_safe(
@@ -55,10 +77,13 @@ def build_pre_live_self_use_decision_pack(evidence: dict[str, Any]) -> dict[str,
             "required_evidence": list(REQUIRED_PRE_LIVE_EVIDENCE),
             "evidence_status": evidence_status,
             "missing_evidence": missing_evidence,
+            "blockers": blockers,
             "selected_option": selected_option,
             "selection_reason": (
                 "pre_live_evidence_missing"
                 if missing_evidence
+                else "pre_live_evidence_blocked"
+                if blockers
                 else "local_web_self_use_evidence_ready_for_human_live_decision"
             ),
             "live_llm_invoked": False,
