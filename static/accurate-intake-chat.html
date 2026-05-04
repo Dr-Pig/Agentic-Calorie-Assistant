@@ -276,6 +276,9 @@
               <label>Date
                 <input id="local-date" type="date" />
               </label>
+              <label>Local access token
+                <input id="local-access-token" type="password" autocomplete="off" />
+              </label>
             </div>
           </details>
         </header>
@@ -314,6 +317,19 @@
     function setStatus(value) {
       el("chat-history-status").textContent = `Conversation ${value}.`;
     }
+    function localDebugHeaders(url) {
+      const inputToken = el("local-access-token")?.value.trim() || "";
+      const globalToken = typeof window.LOCAL_DEBUG_API_TOKEN === "string" ? window.LOCAL_DEBUG_API_TOKEN.trim() : "";
+      const token = inputToken || globalToken;
+      if (!token) {
+        return {};
+      }
+      const pathname = new URL(url, window.location.href).pathname;
+      if (pathname !== endpoints.chatHistory) {
+        return {};
+      }
+      return { "X-Local-Debug-Token": token };
+    }
     function appendMessage(role, text) {
       const row = document.createElement("div");
       row.className = `message ${role}`;
@@ -335,8 +351,9 @@
     function clearHistory() {
       el("chat-scroll").innerHTML = "";
     }
-    async function requestJson(url, options) {
-      const response = await fetch(url, options);
+    async function requestJson(url, options = {}) {
+      const headers = { ...(options.headers || {}), ...localDebugHeaders(url) };
+      const response = await fetch(url, { ...options, headers });
       const text = await response.text();
       const payload = text ? JSON.parse(text) : {};
       if (!response.ok) {

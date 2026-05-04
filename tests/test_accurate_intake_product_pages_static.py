@@ -47,6 +47,19 @@ def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() ->
     assert "sessionStorage" not in html
 
 
+def test_chat_page_can_send_local_access_header_for_history_without_storage() -> None:
+    html = _html(CHAT)
+
+    assert 'id="local-access-token"' in html
+    assert "window.LOCAL_DEBUG_API_TOKEN" in html
+    assert '"X-Local-Debug-Token": token' in html
+    assert "localDebugHeaders" in html
+    assert "localDebugHeaders(url)" in html
+    assert "local_debug_token" not in html
+    assert "localStorage" not in html
+    assert "sessionStorage" not in html
+
+
 def test_today_page_is_daily_diary_with_date_navigation_and_no_trace_panel() -> None:
     html = _html(TODAY)
 
