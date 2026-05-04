@@ -147,6 +147,7 @@ def test_context_quality_pack_combines_ce_diagnostics_without_fault_claims() -> 
     assert pack["summary"]["manager_semantic_required_scenarios"] == 1
     assert pack["summary"]["outside_current_day_omitted_scenarios"] == 1
     assert pack["summary"]["short_term_runtime_replay_scenario_count"] == 7
+    assert pack["summary"]["fake_provider_handoff_scenario_count"] >= 3
     assert pack["short_term_context_runtime_replay_checked"] is True
     assert pack["short_term_context_current_gap_scenarios"] == 0
     assert pack["short_term_context_known_gap_signals"] == []
@@ -217,6 +218,26 @@ def test_context_quality_pack_rejects_stale_context_replay_coverage() -> None:
     assert "context_replay.pending_pin_scenarios_too_low" in pack["blockers"]
     assert "context_replay.manager_semantic_required_missing" in pack["blockers"]
     assert "context_replay.outside_current_day_omitted_missing" in pack["blockers"]
+
+
+def test_context_quality_pack_rejects_missing_fake_provider_handoff_matrix() -> None:
+    fake_provider = build_fake_provider_context_smoke_artifact()
+    fake_provider.pop("manager_handoff_matrix_checked", None)
+    fake_provider["summary"] = {}
+
+    pack = build_context_quality_pack_artifact(
+        context_review=_context_review(),
+        target_candidate_eval=build_context_target_candidate_eval_artifact(),
+        context_window_diagnostic=build_context_window_diagnostic_artifact(),
+        context_replay=build_context_replay_pack_artifact(),
+        fake_provider_context_smoke=fake_provider,
+        short_term_context_runtime_replay=build_short_term_context_runtime_replay_artifact(),
+    )
+
+    assert pack["status"] == "fail"
+    assert "fake_provider_context_smoke.manager_handoff_matrix_missing" in pack["blockers"]
+    assert "fake_provider_context_smoke.manager_handoff_scenario_count_too_low" in pack["blockers"]
+    assert "fake_provider_context_smoke.ambiguous_back_reference_missing" in pack["blockers"]
 
 
 def test_context_quality_pack_rejects_missing_short_term_runtime_replay() -> None:

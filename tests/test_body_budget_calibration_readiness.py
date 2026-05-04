@@ -163,8 +163,9 @@ def test_body_budget_calibration_readiness_artifact_names_self_use_journey_smoke
     gate = artifact["journey_smoke_gates"]["calibration_self_use_journey"]
     assert gate["script"] == "scripts/run_body_budget_calibration_self_use_journey_smoke.py"
     assert gate["test"] == "tests/test_body_budget_calibration_self_use_journey_smoke.py"
-    assert "history_to_calibration_preview" in gate["covers"]
-    assert "explicit_stored_action_accept" in gate["covers"]
+    assert "estimate_route_history_to_calibration_preview" in gate["covers"]
+    assert "estimate_route_raw_text_noop" in gate["covers"]
+    assert "estimate_route_explicit_stored_action_accept" in gate["covers"]
     assert "automatic_calibration" in gate["does_not_claim"]
     assert "private_self_use_approval" in gate["does_not_claim"]
 
