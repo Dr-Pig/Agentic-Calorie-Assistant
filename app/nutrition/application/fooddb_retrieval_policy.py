@@ -74,6 +74,8 @@ def retrieve_fooddb_candidates(
     limit: int = 5,
 ) -> dict[str, Any]:
     normalized = _normalized_query(query)
+    candidate_terms = _candidate_query_terms(normalized)
+    normalized = {**normalized, "candidate_terms": candidate_terms}
     semantic_basket = _bare_basket_match(normalized["lookup_key"], retrieval_records)
     listed_components = _listed_basket_components(normalized["normalized_text"])
 
@@ -99,7 +101,13 @@ def retrieve_fooddb_candidates(
                     }
                 )
                 continue
-            component_candidates.append(_candidate_payload(match, query_component=component))
+            component_candidates.append(
+                _candidate_payload(
+                    match,
+                    query_component=component,
+                    modifier_hints=normalized["modifier_hints"],
+                )
+            )
         component_candidates.sort(key=lambda item: str(item["anchor_id"]))
         return _result(
             normalized_query=normalized,
@@ -111,12 +119,16 @@ def retrieve_fooddb_candidates(
 
     candidates = []
     rejected = []
-    for term in _candidate_query_terms(normalized):
+    for term in candidate_terms:
         match = _best_match(term, retrieval_records)
         if match is None:
             rejected.append({"query_term": term, "reason": "no_runtime_anchor_match"})
             continue
-        payload = _candidate_payload(match, query_component=term)
+        payload = _candidate_payload(
+            match,
+            query_component=term,
+            modifier_hints=normalized["modifier_hints"],
+        )
         if payload not in candidates:
             candidates.append(payload)
     candidates = _rank_candidates(candidates)[:limit]
@@ -230,6 +242,7 @@ def _result(
         "ambiguity_reason": _ambiguity_reason(accepted),
         "followup_hints": followup_hints,
         "vector_search_policy": _vector_search_policy(),
+        "ranking_policy": _ranking_policy(),
     }
 
 
@@ -294,8 +307,8 @@ def _retrieval_records(payload: dict[str, Any]) -> tuple[IndexedFoodRecord, ...]
 
 def _best_match(term: str, records: tuple[IndexedFoodRecord, ...]) -> dict[str, Any] | None:
     term_key = _lookup_key(term)
-    expanded = ALIAS_EXPANSIONS.get(term) or ALIAS_EXPANSIONS.get(term_key)
-    expanded_key = _lookup_key(expanded or "")
+    expansion = _alias_expansion_match(term, term_key)
+    expanded_key = _lookup_key(str(expansion.get("expanded") or ""))
     best: dict[str, Any] | None = None
     for record in records:
         names = (record.canonical_name, *record.aliases)
@@ -311,10 +324,10 @@ def _best_match(term: str, records: tuple[IndexedFoodRecord, ...]) -> dict[str, 
         elif expanded_key and expanded_key in name_keys:
             candidate = {
                 "record": record,
-                "match_path": "alias_expansion_exact",
-                "score": 96,
-                "confidence": "high",
-                "requires_manager_disambiguation": False,
+                "match_path": expansion["match_path"],
+                "score": expansion["score"],
+                "confidence": expansion["confidence"],
+                "requires_manager_disambiguation": expansion["requires_manager_disambiguation"],
             }
         else:
             score = max((_similarity(term_key, key) for key in name_keys), default=0)
@@ -335,8 +348,14 @@ def _best_match(term: str, records: tuple[IndexedFoodRecord, ...]) -> dict[str, 
     return best
 
 
-def _candidate_payload(match: dict[str, Any], *, query_component: str) -> dict[str, Any]:
+def _candidate_payload(
+    match: dict[str, Any],
+    *,
+    query_component: str,
+    modifier_hints: dict[str, str],
+) -> dict[str, Any]:
     record: IndexedFoodRecord = match["record"]
+    modifier_compatibility = _modifier_compatibility(record, modifier_hints)
     return {
         "anchor_id": record.anchor_id,
         "canonical_name": record.canonical_name,
@@ -355,7 +374,88 @@ def _candidate_payload(match: dict[str, Any], *, query_component: str) -> dict[s
         "followup_hints": list(record.followup_hints),
         "source_provenance": record.source_provenance,
         "approval_metadata": record.approval_metadata,
+        "modifier_compatibility": modifier_compatibility,
+        "ranking_reasons": _ranking_reasons(
+            match,
+            record=record,
+            modifier_compatibility=modifier_compatibility,
+        ),
     }
+
+
+def _alias_expansion_match(term: str, term_key: str) -> dict[str, Any]:
+    direct = ALIAS_EXPANSIONS.get(term) or ALIAS_EXPANSIONS.get(term_key)
+    if direct:
+        return {
+            "expanded": direct,
+            "match_path": "alias_expansion_exact",
+            "score": 96,
+            "confidence": "high",
+            "requires_manager_disambiguation": False,
+        }
+
+    best_alias: tuple[int, str] | None = None
+    for alias, expanded in ALIAS_EXPANSIONS.items():
+        score = _similarity(term_key, _lookup_key(alias))
+        if score < 85:
+            continue
+        if best_alias is None or score > best_alias[0]:
+            best_alias = (score, expanded)
+    if best_alias:
+        return {
+            "expanded": best_alias[1],
+            "match_path": "fuzzy_alias_expansion",
+            "score": best_alias[0],
+            "confidence": "medium_high",
+            "requires_manager_disambiguation": True,
+        }
+    return {
+        "expanded": "",
+        "match_path": "no_alias_expansion",
+        "score": 0,
+        "confidence": "none",
+        "requires_manager_disambiguation": True,
+    }
+
+
+def _modifier_compatibility(
+    record: IndexedFoodRecord,
+    modifier_hints: dict[str, str],
+) -> dict[str, str]:
+    compatibility: dict[str, str] = {}
+    modifier_values = {
+        str(modifier.get("name") or ""): {str(value) for value in modifier.get("values") or []}
+        for modifier in record.major_modifiers
+        if isinstance(modifier, dict)
+    }
+    for modifier_name, modifier_value in modifier_hints.items():
+        supported_values = modifier_values.get(modifier_name)
+        if supported_values and modifier_value in supported_values:
+            compatibility[modifier_name] = "compatible"
+        else:
+            compatibility[modifier_name] = "unsupported"
+    return compatibility
+
+
+def _ranking_reasons(
+    match: dict[str, Any],
+    *,
+    record: IndexedFoodRecord,
+    modifier_compatibility: dict[str, str],
+) -> list[str]:
+    reasons = [str(match["match_path"])]
+    if record.runtime_truth_allowed:
+        reasons.append("runtime_truth_allowed")
+    if record.kcal_range:
+        reasons.append("kcal_range_present")
+    if record.serving_basis and record.serving_basis != "not_applicable":
+        reasons.append("serving_basis_present")
+    if record.portion_basis and record.portion_basis != "not_applicable":
+        reasons.append("portion_basis_present")
+    for modifier_name, status in modifier_compatibility.items():
+        if status == "compatible":
+            reasons.append(f"modifier_compatible:{modifier_name}")
+    return reasons
 
 
 def _candidate_query_terms(normalized: dict[str, Any]) -> list[str]:
@@ -427,13 +527,39 @@ def _modifier_hints(text: str) -> dict[str, str]:
 
 
 def _rank_candidates(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    def key(item: dict[str, Any]) -> tuple[int, int, str]:
+    def key(item: dict[str, Any]) -> tuple[int, int, int, int, int, int, int, int, int, str]:
         path_rank = {
             "canonical_or_alias_exact": 0,
             "alias_expansion_exact": 1,
-            "fuzzy_alias": 2,
+            "fuzzy_alias_expansion": 2,
+            "fuzzy_alias": 3,
         }.get(str(item.get("match_path")), 9)
-        return (path_rank, -int(item.get("match_score") or 0), str(item.get("anchor_id") or ""))
+        modifier_compatibility = item.get("modifier_compatibility") or {}
+        if not isinstance(modifier_compatibility, dict):
+            modifier_compatibility = {}
+        unsupported_modifier_count = sum(
+            1 for status in modifier_compatibility.values() if status == "unsupported"
+        )
+        compatible_modifier_count = sum(
+            1 for status in modifier_compatibility.values() if status == "compatible"
+        )
+        source_quality_score = 1 if item.get("source_provenance") else 0
+        runtime_truth_score = 1 if item.get("runtime_truth_allowed") is True else 0
+        serving_basis_score = 1 if item.get("serving_basis") else 0
+        portion_basis_score = 1 if item.get("portion_basis") else 0
+        ambiguity_penalty = 1 if item.get("requires_manager_disambiguation") else 0
+        return (
+            path_rank,
+            unsupported_modifier_count,
+            -compatible_modifier_count,
+            -runtime_truth_score,
+            -source_quality_score,
+            -serving_basis_score,
+            -portion_basis_score,
+            -int(item.get("match_score") or 0),
+            ambiguity_penalty,
+            str(item.get("anchor_id") or ""),
+        )
 
     return sorted(candidates, key=key)
 
@@ -490,6 +616,22 @@ def _vector_search_policy() -> dict[str, Any]:
             "kcal_decision",
             "runtime_mutation",
         ],
+    }
+
+
+def _ranking_policy() -> dict[str, Any]:
+    return {
+        "features": [
+            "lexical_match",
+            "runtime_truth_allowed",
+            "source_quality",
+            "serving_basis",
+            "portion_basis",
+            "modifier_compatibility",
+            "ambiguity_risk",
+        ],
+        "truth_selection": "forbidden",
+        "manager_role": "disambiguate_or_synthesize_from_candidates",
     }
 
 
