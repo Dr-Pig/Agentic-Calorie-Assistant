@@ -25,10 +25,15 @@ def test_body_budget_calibration_self_use_journey_smoke_exercises_closed_loop(tm
     assert report["product_readiness_claimed"] is False
     assert report["live_tool_calling"] is False
     assert report["automatic_calibration_enabled"] is False
+    assert report["proposal_preview"]["entrypoint"] == "/estimate"
     assert report["proposal_preview"]["workflow_effect"] == "preview_calibration_proposal_without_plan_mutation"
     assert report["proposal_preview"]["proposal_actions_enabled"] is True
+    assert report["proposal_preview"]["calibration_preview_requested"] is True
+    assert report["proposal_preview"]["persist_calibration_proposal"] is True
     assert report["proposal_preview"]["plan_mutated"] is False
     assert report["proposal_preview"]["ledger_mutated"] is False
+    assert report["proposal_preview"]["ledger_entry_mutated"] is False
+    assert report["proposal_preview"]["ledger_entry_count_changed"] is False
     assert report["proposal_inbox_before_accept"]["open_count"] == 1
     before_history_item = report["proposal_history_before_accept"]["proposals"][0]
     assert report["proposal_history_before_accept"]["history_count"] == 1
@@ -36,18 +41,32 @@ def test_body_budget_calibration_self_use_journey_smoke_exercises_closed_loop(tm
     assert FORBIDDEN_HISTORY_FIELDS.isdisjoint(before_history_item)
     assert report["boundaries"]["history_projection_safe_before_accept"] is True
     assert report["raw_text_apply_attempt"] == {
-        "workflow_effect": "calibration_action_unavailable_without_state_mutation",
+        "entrypoint": "/estimate",
+        "workflow_effect": "raw_text_route_fallback_without_calibration_state_mutation",
         "proposal_status_after_attempt": "open",
+        "proposal_count_changed": False,
         "plan_mutated": False,
         "ledger_mutated": False,
+        "calibration_preview_requested_supplied": False,
+        "persist_calibration_proposal_supplied": True,
         "proposal_container_id_supplied": False,
         "calibration_action_supplied": False,
         "raw_text_authorized_mutation": False,
     }
+    assert report["proposal_action"]["entrypoint"] == "/estimate"
     assert report["proposal_action"]["workflow_effect"] == "apply_calibration_proposal_action_with_state_mutation"
     assert report["proposal_action"]["proposal_status"] == "accepted"
     assert report["proposal_action"]["plan_mutated"] is True
     assert report["proposal_action"]["ledger_mutated"] is True
+    assert report["proposal_action"]["db_plan_mutated"] is True
+    assert report["proposal_action"]["db_ledger_mutated"] is True
+    assert report["proposal_action"]["db_proposal_status"] == "accepted"
+    assert report["proposal_action"]["active_body_plan_daily_budget_kcal"] == report["proposal_preview"][
+        "effect_payload_summary"
+    ]["new_daily_budget_kcal"]
+    assert report["proposal_action"]["active_body_plan_estimated_tdee"] == report["proposal_preview"][
+        "effect_payload_summary"
+    ]["new_estimated_tdee_kcal"]
     assert report["proposal_inbox_after_accept"]["open_count"] == 0
 
     history_item = report["proposal_history_after_accept"]["proposals"][0]
