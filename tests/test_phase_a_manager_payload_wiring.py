@@ -1173,7 +1173,7 @@ async def test_process_intake_execution_turn_does_not_create_draft_support_witho
 
 
 @pytest.mark.asyncio
-async def test_process_intake_execution_turn_skips_shadow_when_back_reference_resolves_before_manager(
+async def test_process_intake_execution_turn_surfaces_shadow_when_back_reference_needs_manager(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.composition import intake_execution_orchestrator as module
@@ -1247,11 +1247,17 @@ async def test_process_intake_execution_turn_skips_shadow_when_back_reference_re
         phase_a_trace=None,
     )
 
-    assert captured["phase_a_shadow_hypothesis"] is None
+    shadow = captured["phase_a_shadow_hypothesis"]
+    assert shadow is not None
+    assert shadow["role"] == "tentative_non_authoritative"
+    assert shadow["candidate_target_object_id"] == "77"
+    assert shadow["candidate_intent"] == "manager_review_required"
+    assert shadow["mutation_authority"] is False
     trace = result["captured_phase_a_trace"]["shadow_hypothesis_runtime"]
-    assert trace["created"] is False
-    assert trace["skip_reason"] == "already_safe_pass"
-    assert trace["candidate_target_object_id"] is None
+    assert trace["created"] is True
+    assert trace["skip_reason"] is None
+    assert trace["candidate_target_object_id"] == "77"
+    assert trace["mutation_authority"] is False
 
 
 @pytest.mark.asyncio

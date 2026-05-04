@@ -12,7 +12,7 @@ def test_short_term_context_runtime_replay_matrix_reports_runtime_context_withou
     artifact = build_short_term_context_runtime_replay_artifact()
 
     assert artifact["artifact_type"] == "accurate_intake_short_term_context_runtime_replay"
-    assert artifact["status"] == "diagnostic_has_known_context_gaps"
+    assert artifact["status"] == "runtime_replay_diagnostic_pass"
     assert artifact["scenario_count"] == 7
     assert artifact["runtime_trace_backed"] is True
     assert artifact["diagnostic_only"] is True
@@ -26,7 +26,7 @@ def test_short_term_context_runtime_replay_matrix_reports_runtime_context_withou
     assert artifact["fooddb_truth_updated"] is False
     assert artifact["summary"]["pending_pin_scenarios"] >= 2
     assert artifact["summary"]["target_candidate_scenarios"] >= 4
-    assert artifact["summary"]["current_gap_scenarios"] >= 1
+    assert artifact["summary"]["current_gap_scenarios"] == 0
 
 
 def test_short_term_context_runtime_replay_scenarios_keep_target_candidates_read_only() -> None:
@@ -47,14 +47,17 @@ def test_short_term_context_runtime_replay_scenarios_keep_target_candidates_read
             assert "selected_target" not in candidate
 
 
-def test_short_term_context_runtime_replay_marks_known_back_reference_heuristic_gap() -> None:
+def test_short_term_context_runtime_replay_keeps_back_reference_ambiguous_until_manager_decision() -> None:
     artifact = build_short_term_context_runtime_replay_artifact()
     by_id = {scenario["scenario_id"]: scenario for scenario in artifact["scenarios"]}
 
-    assert by_id["remove_previous_item"]["runtime_attachment_reason"] == "identified_back_reference_target"
+    assert by_id["remove_previous_item"]["runtime_attachment_reason"] == "ambiguous_back_reference_requires_manager"
+    assert by_id["remove_previous_item"]["runtime_attachment_disposition"] == "answer_only"
     assert by_id["remove_previous_item"]["expected_context_posture"] == "ambiguous_until_manager_decision"
-    assert by_id["remove_previous_item"]["gap_signals"] == ["runtime_back_reference_heuristic_attached_target"]
-    assert by_id["correct_previous_identity"]["gap_signals"] == ["runtime_back_reference_heuristic_attached_target"]
+    assert by_id["remove_previous_item"]["gap_signals"] == []
+    assert by_id["correct_previous_identity"]["runtime_attachment_reason"] == "ambiguous_back_reference_requires_manager"
+    assert by_id["correct_previous_identity"]["runtime_attachment_disposition"] == "answer_only"
+    assert by_id["correct_previous_identity"]["gap_signals"] == []
     assert by_id["remove_named_item"]["gap_signals"] == []
     assert by_id["pending_followup_answer"]["pending_followup_present"] is True
     assert by_id["long_chat_with_pinned_pending_draft"]["pending_draft_present"] is True
@@ -74,7 +77,7 @@ def test_short_term_context_runtime_replay_script_writes_artifact(tmp_path: Path
     assert exit_code == 0
     assert printed["status"] == artifact["status"]
     assert artifact["runtime_trace_backed"] is True
-    assert artifact["status"] == "diagnostic_has_known_context_gaps"
+    assert artifact["status"] == "runtime_replay_diagnostic_pass"
 
 
 def test_short_term_context_runtime_replay_stays_out_of_fooddb_websearch_live_and_schema_boundaries() -> None:
