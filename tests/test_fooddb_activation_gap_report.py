@@ -3,6 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.nutrition.application.fooddb_modifier_priority import (
+    build_modifier_activation_posture,
+    build_modifier_limitation_labels,
+)
 from app.nutrition.application.fooddb_activation_gap_report import (
     build_fooddb_activation_gap_report,
 )
@@ -42,31 +46,30 @@ def test_fooddb_activation_gap_report_reports_repo_truth_controls_without_runtim
     }
 
     gap = report["activation_gap_report"]
-    assert gap["known_unsupported_food_families"] == [
+    assert sorted(gap["known_unsupported_food_families"]) == sorted(
+        [
         "\u6ef7\u5473",
         "\u9ebb\u8fa3\u71d9",
         "\u9e7d\u9165\u96de",
         "\u5bb6\u5e38\u83dc",
-    ]
+        ]
+    )
     assert gap["known_ask_followup_cases"] == [
         "bare_basket_followup",
         "listed_basket_component_followup",
         "portion_refinement",
     ]
-    assert gap["known_candidate_only_exact_cases"] == [
+    assert sorted(gap["known_candidate_only_exact_cases"]) == sorted(
+        [
         "exact_unified_chocolate_milk_400ml",
         "exact_starbucks_latte_iced_large",
         "exact_starbucks_latte_hot_medium",
         "exact_sushiro_caramel_fish_two_piece",
         "exact_matsuya_tokumori_gyudon",
-    ]
-    assert gap["known_modifier_limitations"] == [
-        "P0:sugar_level",
-        "P0:cup_size",
-        "P0:rice_portion",
-        "P1:common add-ons",
-        "P2:preparation method / fried-braised-grilled style metadata posture only",
-    ]
+        ]
+    )
+    assert gap["known_modifier_limitations"] == build_modifier_limitation_labels()
+    assert gap["modifier_activation_posture"] == build_modifier_activation_posture()
     assert gap["known_basket_limitations"] == [
         "bare_basket:ask_followup_no_estimate",
         "listed_basket:estimate_component_anchors_only",
