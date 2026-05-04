@@ -27,6 +27,20 @@ def test_product_pages_are_three_separate_static_surfaces_with_shared_nav() -> N
         assert "private_self_use_approved=false" in html
 
 
+def test_product_pages_preserve_user_and_date_in_nav_without_token_query() -> None:
+    for path in (CHAT, TODAY, BODY):
+        html = _html(path)
+
+        assert 'data-nav-target="chat"' in html
+        assert 'data-nav-target="today"' in html
+        assert 'data-nav-target="body"' in html
+        assert "function updateNavigationLinks()" in html
+        assert "encodeURIComponent(userId())" in html
+        assert "local_date=${encodeURIComponent(selectedDate())}" in html
+        assert "updateNavigationLinks();" in html
+        assert "local_debug_token" not in html
+
+
 def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() -> None:
     html = _html(CHAT)
 
@@ -43,6 +57,19 @@ def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() ->
     assert 'estimate: "/estimate"' in html
     assert "history:" not in html
     assert "messages.sort" not in html
+    assert "localStorage" not in html
+    assert "sessionStorage" not in html
+
+
+def test_chat_page_can_send_local_access_header_for_history_without_storage() -> None:
+    html = _html(CHAT)
+
+    assert 'id="local-access-token"' in html
+    assert "window.LOCAL_DEBUG_API_TOKEN" in html
+    assert '"X-Local-Debug-Token": token' in html
+    assert "localDebugHeaders" in html
+    assert "localDebugHeaders(url)" in html
+    assert "local_debug_token" not in html
     assert "localStorage" not in html
     assert "sessionStorage" not in html
 

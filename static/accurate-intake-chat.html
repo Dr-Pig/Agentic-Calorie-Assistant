@@ -255,9 +255,9 @@
     <header class="topbar">
       <div class="brand">Accurate Intake</div>
       <nav aria-label="Accurate Intake pages">
-        <a href="/static/accurate-intake-chat.html" aria-current="page">Chat</a>
-        <a href="/static/accurate-intake-today.html">Today</a>
-        <a href="/static/accurate-intake-body.html">Body</a>
+        <a data-nav-target="chat" href="/static/accurate-intake-chat.html" aria-current="page">Chat</a>
+        <a data-nav-target="today" href="/static/accurate-intake-today.html">Today</a>
+        <a data-nav-target="body" href="/static/accurate-intake-body.html">Body</a>
       </nav>
     </header>
     <main>
@@ -275,6 +275,9 @@
               </label>
               <label>Date
                 <input id="local-date" type="date" />
+              </label>
+              <label>Local access token
+                <input id="local-access-token" type="password" autocomplete="off" />
               </label>
             </div>
           </details>
@@ -311,8 +314,32 @@
     function selectedDate() {
       return el("local-date").value || todayIso();
     }
+    function pageUrl(page) {
+      return `/static/accurate-intake-${page}.html?user_id=${encodeURIComponent(userId())}&local_date=${encodeURIComponent(selectedDate())}`;
+    }
+    function updateNavigationLinks() {
+      document.querySelectorAll("[data-nav-target]").forEach((link) => {
+        const target = link.getAttribute("data-nav-target");
+        if (target) {
+          link.href = pageUrl(target);
+        }
+      });
+    }
     function setStatus(value) {
       el("chat-history-status").textContent = `Conversation ${value}.`;
+    }
+    function localDebugHeaders(url) {
+      const inputToken = el("local-access-token")?.value.trim() || "";
+      const globalToken = typeof window.LOCAL_DEBUG_API_TOKEN === "string" ? window.LOCAL_DEBUG_API_TOKEN.trim() : "";
+      const token = inputToken || globalToken;
+      if (!token) {
+        return {};
+      }
+      const pathname = new URL(url, window.location.href).pathname;
+      if (pathname !== endpoints.chatHistory) {
+        return {};
+      }
+      return { "X-Local-Debug-Token": token };
     }
     function appendMessage(role, text) {
       const row = document.createElement("div");
@@ -335,8 +362,9 @@
     function clearHistory() {
       el("chat-scroll").innerHTML = "";
     }
-    async function requestJson(url, options) {
-      const response = await fetch(url, options);
+    async function requestJson(url, options = {}) {
+      const headers = { ...(options.headers || {}), ...localDebugHeaders(url) };
+      const response = await fetch(url, { ...options, headers });
       const text = await response.text();
       const payload = text ? JSON.parse(text) : {};
       if (!response.ok) {
@@ -384,8 +412,15 @@
       }
     }
     el("composer").addEventListener("submit", submitMessage);
-    el("local-date").addEventListener("change", () => loadHistory().catch((error) => setStatus(`failed ${error.message}`)));
-    el("user-id").addEventListener("change", () => loadHistory().catch((error) => setStatus(`failed ${error.message}`)));
+    el("local-date").addEventListener("change", () => {
+      updateNavigationLinks();
+      loadHistory().catch((error) => setStatus(`failed ${error.message}`));
+    });
+    el("user-id").addEventListener("change", () => {
+      updateNavigationLinks();
+      loadHistory().catch((error) => setStatus(`failed ${error.message}`));
+    });
+    updateNavigationLinks();
     loadHistory().catch((error) => setStatus(`failed ${error.message}`));
   </script>
 </body>
