@@ -255,9 +255,9 @@
     <header class="topbar">
       <div class="brand">Accurate Intake</div>
       <nav aria-label="Accurate Intake pages">
-        <a href="/static/accurate-intake-chat.html" aria-current="page">Chat</a>
-        <a href="/static/accurate-intake-today.html">Today</a>
-        <a href="/static/accurate-intake-body.html">Body</a>
+        <a data-nav-target="chat" href="/static/accurate-intake-chat.html" aria-current="page">Chat</a>
+        <a data-nav-target="today" href="/static/accurate-intake-today.html">Today</a>
+        <a data-nav-target="body" href="/static/accurate-intake-body.html">Body</a>
       </nav>
     </header>
     <main>
@@ -313,6 +313,17 @@
     }
     function selectedDate() {
       return el("local-date").value || todayIso();
+    }
+    function pageUrl(page) {
+      return `/static/accurate-intake-${page}.html?user_id=${encodeURIComponent(userId())}&local_date=${encodeURIComponent(selectedDate())}`;
+    }
+    function updateNavigationLinks() {
+      document.querySelectorAll("[data-nav-target]").forEach((link) => {
+        const target = link.getAttribute("data-nav-target");
+        if (target) {
+          link.href = pageUrl(target);
+        }
+      });
     }
     function setStatus(value) {
       el("chat-history-status").textContent = `Conversation ${value}.`;
@@ -401,8 +412,15 @@
       }
     }
     el("composer").addEventListener("submit", submitMessage);
-    el("local-date").addEventListener("change", () => loadHistory().catch((error) => setStatus(`failed ${error.message}`)));
-    el("user-id").addEventListener("change", () => loadHistory().catch((error) => setStatus(`failed ${error.message}`)));
+    el("local-date").addEventListener("change", () => {
+      updateNavigationLinks();
+      loadHistory().catch((error) => setStatus(`failed ${error.message}`));
+    });
+    el("user-id").addEventListener("change", () => {
+      updateNavigationLinks();
+      loadHistory().catch((error) => setStatus(`failed ${error.message}`));
+    });
+    updateNavigationLinks();
     loadHistory().catch((error) => setStatus(`failed ${error.message}`));
   </script>
 </body>

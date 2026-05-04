@@ -39,6 +39,7 @@ def _passing_report() -> dict[str, object]:
         "mobile_populated_state_checked": True,
         "mobile_no_debug_trace": True,
         "product_cjk_copy_rendered": True,
+        "nav_session_query_preserved": True,
         "forbidden_storage_used": False,
         "frontend_semantic_owner": False,
         "live_llm_invoked": False,
@@ -124,6 +125,7 @@ def test_product_pages_browser_smoke_validator_rejects_missing_reload_body_user_
     report["body_query_user_id_honored"] = False
     report["mobile_no_overflow"] = False
     report["mobile_populated_state_checked"] = False
+    report["nav_session_query_preserved"] = False
 
     status, blockers = module._validate(report)
 
@@ -133,6 +135,7 @@ def test_product_pages_browser_smoke_validator_rejects_missing_reload_body_user_
     assert "body_query_user_id_not_honored" in blockers
     assert "mobile_overflow_detected" in blockers
     assert "mobile_populated_state_not_checked" in blockers
+    assert "nav_session_query_not_preserved" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sync() -> None:
@@ -199,6 +202,7 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
     assert report["today_current_day_restored_checked"] is True
     assert report["body_plan_readback_checked"] is True
     assert report["today_manual_target_readback_checked"] is True
+    assert report["nav_session_query_preserved"] is True
 
 
 def test_ci_requires_product_pages_browser_execution() -> None:
