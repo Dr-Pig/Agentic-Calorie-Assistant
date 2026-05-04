@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Literal
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord
@@ -13,6 +13,7 @@ from app.composition.canonical_persistence import (
     load_active_body_plan_record,
     recompute_day_budget_ledger,
 )
+from app.composition.calibration_proposal_artifacts import ACTIVE_CALIBRATION_PROPOSAL_STATUSES
 from app.body.application.active_body_plan_read_model import build_active_body_plan_view
 from app.body.infrastructure.models import BodyPlanRecord
 from app.composition.current_budget_read_model import build_current_budget_view
@@ -33,6 +34,12 @@ MAX_DAILY_BUDGET_KCAL = 5000
 MIN_ESTIMATED_TDEE_KCAL = 800
 MAX_ESTIMATED_TDEE_KCAL = 6000
 MAX_TARGET_PACE_KG_PER_WEEK = 2.0
+
+
+class StoredCalibrationProposalNotActionable(ValueError):
+    def __init__(self, status: str) -> None:
+        self.status = status or "missing"
+        super().__init__(f"stored calibration proposal is not actionable: {self.status}")
 
 
 @dataclass(frozen=True)
@@ -236,6 +243,47 @@ def _load_calibration_proposal_or_raise(
     return proposal
 
 
+def _ensure_stored_proposal_actionable(proposal: ProposalContainerRecord) -> None:
+    status = str(proposal.proposal_status or "").strip()
+    if status not in ACTIVE_CALIBRATION_PROPOSAL_STATUSES:
+        raise StoredCalibrationProposalNotActionable(status)
+
+
+def _transition_active_stored_proposal_or_raise(
+    db: Session,
+    *,
+    user: User,
+    proposal: ProposalContainerRecord,
+    decision: CalibrationCommitDecision,
+    metadata: dict[str, Any],
+    accepted_at: datetime | None,
+) -> ProposalContainerRecord:
+    result = db.execute(
+        update(ProposalContainerRecord)
+        .where(
+            ProposalContainerRecord.id == proposal.id,
+            ProposalContainerRecord.user_id == user.id,
+            ProposalContainerRecord.proposal_type == "calibration",
+            ProposalContainerRecord.proposal_status.in_(ACTIVE_CALIBRATION_PROPOSAL_STATUSES),
+        )
+        .values(
+            proposal_status=decision,
+            accepted_at=accepted_at if decision == "accepted" else proposal.accepted_at,
+            metadata_json=metadata,
+        )
+        .execution_options(synchronize_session=False)
+    )
+    if result.rowcount != 1:
+        db.rollback()
+        current_status = db.execute(
+            select(ProposalContainerRecord.proposal_status).where(ProposalContainerRecord.id == proposal.id)
+        ).scalar_one_or_none()
+        raise StoredCalibrationProposalNotActionable(str(current_status or "missing"))
+    db.flush()
+    db.refresh(proposal)
+    return proposal
+
+
 def _stored_top_option_payload(proposal: ProposalContainerRecord) -> tuple[str, dict[str, Any]]:
     top_option = next((option for option in proposal.options if option.id == proposal.top_option_id), None)
     if top_option is None:
@@ -257,6 +305,7 @@ def apply_calibration_proposal_commit(
     decision: CalibrationCommitDecision,
     accepted_at: datetime | None = None,
     proposal_container_id: int | None = None,
+    require_active_stored_proposal: bool = False,
 ) -> CalibrationCommitResult:
     resolved_now = accepted_at or datetime.now()
     plan_change_accepted = decision == "accepted" and proposal_family in PLAN_CHANGING_CALIBRATION_FAMILIES
@@ -294,21 +343,35 @@ def apply_calibration_proposal_commit(
                 }
             ],
         )
+        proposal.proposal_status = decision
+        if decision == "accepted":
+            proposal.accepted_at = resolved_now
     else:
         proposal = _load_calibration_proposal_or_raise(
             db,
             user=user,
             proposal_container_id=proposal_container_id,
         )
-        proposal.metadata_json = {
+        metadata = {
             **dict(proposal.metadata_json or {}),
             "proposal_family": proposal_family,
             "effective_from": effective_from,
             "decision": decision,
         }
-    proposal.proposal_status = decision
-    if decision == "accepted":
-        proposal.accepted_at = resolved_now
+        if require_active_stored_proposal:
+            proposal = _transition_active_stored_proposal_or_raise(
+                db,
+                user=user,
+                proposal=proposal,
+                decision=decision,
+                metadata=metadata,
+                accepted_at=resolved_now,
+            )
+        else:
+            proposal.metadata_json = metadata
+            proposal.proposal_status = decision
+            if decision == "accepted":
+                proposal.accepted_at = resolved_now
 
     body_plan_id: int | None = None
     if plan_change_accepted:
@@ -356,6 +419,7 @@ def apply_stored_calibration_proposal_action(
         user=user,
         proposal_container_id=proposal_container_id,
     )
+    _ensure_stored_proposal_actionable(proposal)
     local_date = str((proposal.metadata_json or {}).get("local_date") or "").strip()
     if not local_date:
         raise ValueError("stored calibration proposal is missing local_date")
@@ -369,4 +433,5 @@ def apply_stored_calibration_proposal_action(
         decision=decision,
         accepted_at=accepted_at,
         proposal_container_id=proposal.id,
+        require_active_stored_proposal=True,
     )

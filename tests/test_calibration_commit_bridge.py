@@ -8,7 +8,11 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.body.infrastructure.models import BodyPlanRecord
 from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord
-from app.composition.calibration_commit_bridge import apply_calibration_proposal_commit
+from app.composition import calibration_commit_bridge
+from app.composition.calibration_commit_bridge import (
+    apply_calibration_proposal_commit,
+    apply_stored_calibration_proposal_action,
+)
 from app.database import get_or_create_user
 from app.models import Base
 from app.shared.infra.models import ProposalContainerRecord, ProposalOptionRecord
@@ -49,6 +53,37 @@ def _effect_payload(*, budget: int = 1650) -> dict[str, object]:
     }
 
 
+def _stored_calibration_proposal(
+    db: Session,
+    *,
+    user_id: int,
+    status: str = "open",
+) -> ProposalContainerRecord:
+    proposal = ProposalContainerRecord(
+        user_id=user_id,
+        proposal_type="calibration",
+        proposal_status=status,
+        metadata_json={"local_date": "2026-05-04", "proposal_family": "budget_adjustment"},
+    )
+    db.add(proposal)
+    db.flush()
+    option = ProposalOptionRecord(
+        proposal_container_id=proposal.id,
+        option_type="budget_adjustment",
+        option_label="Budget adjustment",
+        option_summary="Stored proposal option",
+        rank_order=0,
+        is_primary=True,
+        effect_payload_json=_effect_payload(budget=1650),
+    )
+    db.add(option)
+    db.flush()
+    proposal.top_option_id = option.id
+    db.commit()
+    db.refresh(proposal)
+    return proposal
+
+
 def _counts(db: Session) -> dict[str, int]:
     return {
         "body_plans": len(db.execute(select(BodyPlanRecord)).scalars().all()),
@@ -57,6 +92,87 @@ def _counts(db: Session) -> dict[str, int]:
         "proposals": len(db.execute(select(ProposalContainerRecord)).scalars().all()),
         "proposal_options": len(db.execute(select(ProposalOptionRecord)).scalars().all()),
     }
+
+
+@pytest.mark.parametrize("status", ["accepted", "rejected", "deferred_pending_reminder", "expired", "dismissed"])
+def test_stored_calibration_action_rejects_terminal_proposal_without_side_effects(status: str) -> None:
+    db = _session()
+    user = get_or_create_user(db, f"calibration-terminal-{status}")
+    _active_body_plan(db, user_id=user.id)
+    proposal = _stored_calibration_proposal(db, user_id=user.id, status=status)
+    before_counts = _counts(db)
+
+    with pytest.raises(ValueError, match=f"stored calibration proposal is not actionable: {status}"):
+        apply_stored_calibration_proposal_action(
+            db,
+            user=user,
+            proposal_container_id=proposal.id,
+            decision="accepted",
+            accepted_at=datetime(2026, 5, 4, 10, 30, 0),
+        )
+
+    active_plan = db.execute(select(BodyPlanRecord).where(BodyPlanRecord.plan_status == "active")).scalar_one()
+    assert active_plan.daily_budget_kcal == 1800
+    assert _counts(db) == before_counts
+
+
+def test_stored_calibration_action_rechecks_active_status_at_commit_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    db = _session()
+    user = get_or_create_user(db, "calibration-race-guard")
+    _active_body_plan(db, user_id=user.id)
+    proposal = _stored_calibration_proposal(db, user_id=user.id, status="open")
+    before_counts = _counts(db)
+    original_stored_payload = calibration_commit_bridge._stored_top_option_payload
+
+    def mark_terminal_before_commit(loaded_proposal: ProposalContainerRecord) -> tuple[str, dict[str, object]]:
+        loaded_proposal.proposal_status = "accepted"
+        db.commit()
+        db.refresh(loaded_proposal)
+        return original_stored_payload(loaded_proposal)
+
+    monkeypatch.setattr(
+        calibration_commit_bridge,
+        "_stored_top_option_payload",
+        mark_terminal_before_commit,
+    )
+
+    with pytest.raises(ValueError, match="stored calibration proposal is not actionable: accepted"):
+        apply_stored_calibration_proposal_action(
+            db,
+            user=user,
+            proposal_container_id=proposal.id,
+            decision="accepted",
+            accepted_at=datetime(2026, 5, 4, 10, 30, 0),
+        )
+
+    active_plan = db.execute(select(BodyPlanRecord).where(BodyPlanRecord.plan_status == "active")).scalar_one()
+    assert active_plan.daily_budget_kcal == 1800
+    assert _counts(db) == before_counts
+
+
+@pytest.mark.parametrize("status", ["open", "presented", "negotiating"])
+def test_stored_calibration_action_accepts_active_proposal_statuses(status: str) -> None:
+    db = _session()
+    user = get_or_create_user(db, f"calibration-active-{status}")
+    _active_body_plan(db, user_id=user.id)
+    proposal = _stored_calibration_proposal(db, user_id=user.id, status=status)
+
+    result = apply_stored_calibration_proposal_action(
+        db,
+        user=user,
+        proposal_container_id=proposal.id,
+        decision="accepted",
+        accepted_at=datetime(2026, 5, 4, 10, 30, 0),
+    )
+
+    plans = db.execute(select(BodyPlanRecord).order_by(BodyPlanRecord.id.asc())).scalars().all()
+    assert result.proposal_status == "accepted"
+    assert len(plans) == 2
+    assert plans[0].plan_status == "superseded"
+    assert plans[1].plan_status == "active"
+    assert plans[1].daily_budget_kcal == 1650
 
 
 @pytest.mark.parametrize("decision", ["rejected", "deferred_pending_reminder"])
