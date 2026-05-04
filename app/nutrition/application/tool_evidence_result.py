@@ -68,6 +68,11 @@ _SEARCH_CANDIDATE_MANAGER_VISIBLE_KEYS = frozenset(
         "snippet",
         "tavily_score",
         "query",
+        "officialness_hint",
+        "license_status",
+        "robots_status",
+        "identity_confidence",
+        "nutrition_fields_present",
         "matched_terms",
         "matched_name",
         "canonical_name",
@@ -76,6 +81,7 @@ _SEARCH_CANDIDATE_MANAGER_VISIBLE_KEYS = frozenset(
         "size_or_serving_match",
         "modifier_match",
         "serving_basis",
+        "serving_basis_candidate",
         "sibling_variant_risk",
     }
 )

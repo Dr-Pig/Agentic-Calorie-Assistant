@@ -35,6 +35,11 @@ def _search_packet(
         "size_or_serving_match": size_or_serving_match,
         "modifier_match": modifier_match,
         "serving_basis": "per_cup",
+        "serving_basis_candidate": "per_cup",
+        "identity_confidence": "high",
+        "license_status": "public_menu_page",
+        "robots_status": "allowed",
+        "nutrition_fields_present": ["kcal"],
         "sibling_variant_risk": {"present": sibling_present, "reason": "same_brand_nearby_variant" if sibling_present else None},
     }
     if hard_recheck_risks is not None:
@@ -100,3 +105,57 @@ def test_selected_extract_policy_allows_identity_safe_official_candidate_for_ext
     assert decision.extract_allowed_by_policy is True
     assert decision.selected_search_packet_id == "pkt_web_search_identity_safe"
     assert decision.extract_reason == "selected_same_item_official_candidate"
+
+
+def test_selected_extract_policy_blocks_unknown_license_or_serving_basis() -> None:
+    unknown_license = _search_packet(packet_id="pkt_web_search_unknown_license")
+    unknown_license["license_status"] = "Unknown"
+
+    decision = choose_selected_extract_packet((unknown_license,))
+
+    assert decision.extract_allowed_by_policy is False
+    assert decision.selected_search_packet_id is None
+    assert decision.selected_urls == []
+    assert decision.extract_reason == "source_policy_blocked_selected_extract"
+    assert "license_unknown" in decision.source_policy_block_reasons
+
+    missing_serving = _search_packet(packet_id="pkt_web_search_unknown_serving")
+    missing_serving["serving_basis_candidate"] = "unknown"
+    missing_serving["serving_basis"] = "unknown"
+
+    decision = choose_selected_extract_packet((missing_serving,))
+
+    assert decision.extract_allowed_by_policy is False
+    assert decision.selected_search_packet_id is None
+    assert decision.extract_reason == "source_policy_blocked_selected_extract"
+    assert "serving_basis_missing" in decision.source_policy_block_reasons
+
+    blocked_license = _search_packet(packet_id="pkt_web_search_blocked_license")
+    blocked_license["license_status"] = "Blocked"
+
+    decision = choose_selected_extract_packet((blocked_license,))
+
+    assert decision.extract_allowed_by_policy is False
+    assert decision.selected_search_packet_id is None
+    assert decision.extract_reason == "source_policy_blocked_selected_extract"
+    assert "license_not_allowed" in decision.source_policy_block_reasons
+
+
+def test_selected_extract_policy_exact_candidate_remains_candidate_only() -> None:
+    exact_packet = _search_packet(packet_id="pkt_web_search_exact")
+
+    decision = choose_selected_extract_packet((exact_packet,))
+
+    assert decision.extract_allowed_by_policy is True
+    assert decision.selected_search_packet_id == "pkt_web_search_exact"
+    assert decision.selected_urls == ["https://milksha.example/menu/pearl-black-tea-latte"]
+    assert decision.to_trace() == {
+        "selected_search_packet_id": "pkt_web_search_exact",
+        "extract_reason": "selected_same_item_official_candidate",
+        "extract_allowed_by_policy": True,
+        "max_extract_urls": 1,
+        "extract_count": 1,
+    }
+    assert exact_packet["truth_level"] == "candidate"
+    assert "runtime_truth_allowed" not in exact_packet
+    assert "mutation_allowed" not in exact_packet

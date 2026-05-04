@@ -14,7 +14,7 @@ from app.composition.calibration_routes import router as calibration_router
 from app.database import get_db, get_or_create_user
 from app.intake.infrastructure.models import MealThreadRecord, MealVersionRecord
 from app.models import Base
-from app.shared.infra.models import ProposalContainerRecord, ProposalOptionRecord
+from app.shared.infra.models import ProposalContainerRecord, ProposalOptionRecord, User
 
 
 def _session() -> Session:
@@ -451,6 +451,88 @@ def test_stored_calibration_accept_rejects_already_accepted_proposal_without_sec
     assert plans[1].plan_status == "active"
     assert plans[1].daily_budget_kcal == 2000
     assert ledger.budget_kcal == 2000
+
+
+def test_calibration_expiry_bookkeeping_route_expires_stale_open_proposals_without_plan_or_ledger_mutation() -> None:
+    db = _session()
+    client = _client(db)
+    user = get_or_create_user(db, "calibration-expiry-route")
+    baseline_plan = _active_body_plan(db, user_id=user.id)
+    preview = client.post(
+        "/calibration/proposal/preview",
+        json={
+            "user_id": "calibration-expiry-route",
+            "local_date": "2026-05-04",
+            "current_budget_status": "over_budget",
+            "rescue_recovery_viability": "non_viable",
+            "persist_proposal": True,
+            "model_inputs": {
+                "body_plan_estimated_tdee_kcal": 2100,
+                "observation_window_days": 21,
+                "body_observation_count": 9,
+                "intake_coverage": 0.93,
+                "operating_expenditure_shift_kcal": 340,
+                "trend_mismatch_consistency": 0.9,
+                "trend_volatility": 0.1,
+                "logging_gap_ratio": 0.05,
+                "late_logged_meal_ratio": 0.05,
+            },
+        },
+    )
+    proposal_id = preview.json()["proposal_artifact"]["proposal_container_id"]
+    proposal = db.get(ProposalContainerRecord, proposal_id)
+    assert proposal is not None
+    proposal.metadata_json = {
+        **dict(proposal.metadata_json or {}),
+        "expires_at": "2026-05-04T09:00:00",
+    }
+    db.commit()
+    before_plan_count = len(db.execute(select(BodyPlanRecord)).scalars().all())
+    before_ledger_count = len(db.execute(select(DayBudgetLedgerRecord)).scalars().all())
+
+    response = client.post(
+        "/calibration/proposals/expire-stale",
+        json={
+            "user_id": "calibration-expiry-route",
+            "now_at": "2026-05-04T10:30:00",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload == {
+        "expired_count": 1,
+        "expired_proposal_container_ids": [proposal_id],
+    }
+    db.refresh(proposal)
+    assert proposal.proposal_status == "expired"
+    assert proposal.accepted_at is None
+    assert proposal.metadata_json["expired_at"] == "2026-05-04T10:30:00"
+    plans = db.execute(select(BodyPlanRecord).order_by(BodyPlanRecord.id.asc())).scalars().all()
+    assert len(plans) == before_plan_count
+    assert plans[0].id == baseline_plan.id
+    assert plans[0].plan_status == "active"
+    assert len(db.execute(select(DayBudgetLedgerRecord)).scalars().all()) == before_ledger_count
+
+
+def test_calibration_expiry_bookkeeping_route_does_not_create_unknown_user() -> None:
+    db = _session()
+    client = _client(db)
+
+    response = client.post(
+        "/calibration/proposals/expire-stale",
+        json={
+            "user_id": "calibration-expiry-unknown-user",
+            "now_at": "2026-05-04T10:30:00",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "expired_count": 0,
+        "expired_proposal_container_ids": [],
+    }
+    assert db.query(User).count() == 0
 
 
 def test_calibration_preview_blocks_duplicate_when_open_stored_proposal_exists() -> None:

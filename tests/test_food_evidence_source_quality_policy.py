@@ -19,6 +19,7 @@ def test_food_evidence_source_quality_policy_defines_required_source_classes() -
         "existing_repo_seed",
         "taiwan_tfda_open_data",
         "official_brand_chain_page",
+        "local_taiwan_packaged_extract",
         "open_food_facts",
         "usda_fallback",
         "dogfood_user_correction",
@@ -40,6 +41,7 @@ def test_food_evidence_source_quality_policy_prevents_user_correction_as_truth()
 def test_food_evidence_source_quality_policy_separates_exact_and_fallback_sources() -> None:
     policy = build_food_evidence_source_quality_policy()
     official = policy["source_classes"]["official_brand_chain_page"]
+    local_extract = policy["source_classes"]["local_taiwan_packaged_extract"]
     usda = policy["source_classes"]["usda_fallback"]
     off = policy["source_classes"]["open_food_facts"]
 
@@ -48,6 +50,13 @@ def test_food_evidence_source_quality_policy_separates_exact_and_fallback_source
     assert {"source_url", "reviewed_date", "variant_name", "portion_size"} <= set(
         official["required_provenance"]
     )
+
+    assert local_extract["role"] == "local_packaged_exact_candidate"
+    assert local_extract["can_support"] == ["exact_item_candidate_evidence"]
+    assert {"source_file", "record_id", "product_name", "package_size", "nutrition_basis"} <= set(
+        local_extract["required_provenance"]
+    )
+    assert local_extract["human_review_required"] is True
 
     assert usda["role"] == "fallback_generic_normalization"
     assert usda["confidence_posture"] == "medium"

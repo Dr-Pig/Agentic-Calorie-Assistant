@@ -33,6 +33,13 @@ def test_bodybudget_plce_integration_matrix_names_backend_read_models_and_routes
             "estimated_daily_deficit_kcal",
             "latest_weight_kg",
         ],
+        "body_budget_effective_budget_view": [
+            "/today/effective-budget",
+            "app.composition.body_budget_effective_budget.build_body_budget_effective_budget_view",
+            "runtime_effective_budget_kcal",
+            "adjustment_layers",
+            "sign_policy",
+        ],
         "active_body_plan_view": [
             "/body-plan/active",
             "app.body.application.active_body_plan_read_model.build_active_body_plan_view",
@@ -42,11 +49,19 @@ def test_bodybudget_plce_integration_matrix_names_backend_read_models_and_routes
         ],
         "calibration_proposal_inbox": [
             "/calibration/proposals/open",
-            "root app mount deferred until activation plan",
+            "public_router",
             "app.composition.calibration_proposal_inbox.load_open_calibration_proposal_inbox",
             "proposal_container_id",
             "proposal_status",
             "options[].effect_payload",
+        ],
+        "calibration_proposal_history": [
+            "/calibration/proposals/history",
+            "public_router",
+            "app.composition.calibration_proposal_inbox.load_calibration_proposal_history",
+            "expired_at",
+            "primary_option_summary",
+            "does not expose `options[]` or `effect_payload`",
         ],
     }
 
@@ -63,9 +78,19 @@ def test_bodybudget_plce_integration_matrix_keeps_plce_render_only() -> None:
     assert "must not calculate BodyBudget truth" in matrix
     assert "must preserve backend-provided proposal order" in matrix
     assert "option `rank_order`, `is_primary`, and `proposal_status`" in matrix
+    assert "`EstimateRequest.calibration_preview_requested=true`" in matrix
+    assert "`persist_calibration_proposal=true` is ignored unless the explicit preview flag is present" in matrix
+    assert "`calibration_proposal_container_id` and `calibration_action`" in matrix
+    assert "`calibration_action_accepted_at`" in matrix
+    assert "PL/CE must not calculate the effective date" in matrix
+    assert "must not authorize preview persistence" in matrix
+    assert "raw chat text, chip label text, or reply wording must not authorize calibration mutation" in matrix
+    assert "Chat-primary calibration proposal preview" in matrix
+    assert "Chat-primary calibration proposal action" in matrix
     forbidden_tokens = [
         "Do not recompute consumed, remaining",
         "Do not calculate TDEE, target kcal, remaining kcal",
+        "Do not calculate effective budget, adjustment layer totals, or sign policy in PL/CE",
         "Do not run BMR/TDEE formulas",
         "do not create, rank, rewrite, accept, defer, or reject proposals",
         "does not add fields to `ManagerContextPacket`",
@@ -78,8 +103,10 @@ def test_bodybudget_plce_integration_matrix_references_importable_backend_read_m
     for dotted_path in [
         "app.composition.current_budget_read_model.build_current_budget_view",
         "app.composition.body_budget_deficit_summary.build_body_budget_deficit_summary",
+        "app.composition.body_budget_effective_budget.build_body_budget_effective_budget_view",
         "app.body.application.active_body_plan_read_model.build_active_body_plan_view",
         "app.composition.calibration_proposal_inbox.load_open_calibration_proposal_inbox",
+        "app.composition.calibration_proposal_inbox.load_calibration_proposal_history",
     ]:
         assert callable(_resolve_symbol(dotted_path))
 
@@ -87,14 +114,21 @@ def test_bodybudget_plce_integration_matrix_references_importable_backend_read_m
 def test_bodybudget_plce_integration_matrix_tracks_calibration_router_activation_status() -> None:
     matrix = MATRIX_PATH.read_text(encoding="utf-8-sig")
     root_routes = ROOT_ROUTES_PATH.read_text(encoding="utf-8")
-    calibration_router = _resolve_symbol("app.composition.calibration_routes.router")
-    calibration_paths = {route.path for route in calibration_router.routes}
+    public_router = _resolve_symbol("app.composition.calibration_routes.public_router")
+    internal_router = _resolve_symbol("app.composition.calibration_routes.router")
+    public_paths = {route.path for route in public_router.routes}
+    internal_paths = {route.path for route in internal_router.routes}
 
-    assert "/calibration/proposals/open" in calibration_paths
-    assert "/calibration/proposal/stored-action" in calibration_paths
-    assert "calibration_routes" not in root_routes
-    assert "root app mount deferred until activation plan" in matrix
-    assert "do not mount into the root app without a separate activation plan" in matrix
+    assert "/calibration/proposals/open" in public_paths
+    assert "/calibration/proposals/history" in public_paths
+    assert "/calibration/proposal/preview-from-history" in public_paths
+    assert "/calibration/proposal/stored-action" in public_paths
+    assert "/calibration/proposal/action" not in public_paths
+    assert "/calibration/proposal/preview" not in public_paths
+    assert "/calibration/proposal/action" in internal_paths
+    assert "public_router as calibration_router" in root_routes
+    assert "root app mounts `public_router`" in matrix
+    assert "do not mount the full internal calibration router into the root app" in matrix
 
 
 def test_bodybudget_plce_integration_matrix_distinguishes_proposal_route_projection() -> None:
@@ -104,6 +138,8 @@ def test_bodybudget_plce_integration_matrix_distinguishes_proposal_route_project
     assert "Route projection fields:" in matrix
     assert "Read function domain fields:" in matrix
     assert "metadata-derived fields are not direct read-function fields" in matrix
+    assert "`calibration_proposal_history` is read-only audit" in matrix
+    assert "History route projection must not expose `options[]`, `effect_payload`" in matrix
     assert "metadata" in proposal_container.model_fields
     assert "local_date" not in proposal_container.model_fields
     assert "proposal_family" not in proposal_container.model_fields

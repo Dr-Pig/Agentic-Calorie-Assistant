@@ -23,6 +23,9 @@ def test_fake_provider_context_smoke_reuses_live_shape_without_live_provider() -
     assert artifact["deterministic_semantic_inference_used"] is False
     assert artifact["raw_text_intent_router_used"] is False
     assert artifact["tool_loop_trace_attributable"] is True
+    assert artifact["manager_handoff_matrix_checked"] is True
+    assert artifact["summary"]["manager_handoff_scenario_count"] >= 3
+    assert artifact["summary"]["ambiguous_back_reference_scenarios"] >= 1
 
     provider_input = artifact["provider_input_summary"]
     assert provider_input["context_policy_version_present"] is True
@@ -31,6 +34,26 @@ def test_fake_provider_context_smoke_reuses_live_shape_without_live_provider() -
     assert provider_input["target_candidates_present"] is True
     assert provider_input["forbidden_context_excluded"] is True
     assert provider_input["manager_context_packet_schema_changed"] is False
+
+    by_id = {scenario["scenario_id"]: scenario for scenario in artifact["manager_handoff_scenarios"]}
+    ambiguous = by_id["ambiguous_back_reference"]
+    assert ambiguous["pre_attachment_disposition"] == "answer_only"
+    assert ambiguous["pre_attachment_reason"] == "ambiguous_back_reference_requires_manager"
+    assert ambiguous["shadow_created"] is True
+    assert ambiguous["shadow_role"] == "tentative_non_authoritative"
+    assert ambiguous["fixture_manager_decision_source"] == "fixture_manager_structured_decision"
+    assert ambiguous["deterministic_selected_target"] is False
+    assert ambiguous["mutation_authority"] is False
+
+    named = by_id["named_item_correction"]
+    assert named["pre_attachment_disposition"] == "target_committed_thread"
+    assert named["shadow_created"] is False
+    assert named["shadow_skip_reason"] == "already_safe_pass"
+
+    pending = by_id["pending_followup_answer"]
+    assert pending["pre_attachment_disposition"] == "attach_existing_thread"
+    assert pending["shadow_created"] is False
+    assert pending["shadow_skip_reason"] == "resolved_pending_followup"
 
 
 def test_fake_provider_context_smoke_script_writes_artifact(tmp_path: Path) -> None:

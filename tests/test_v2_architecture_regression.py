@@ -146,10 +146,13 @@ def test_root_compatibility_files_do_not_absorb_sidecar_stack() -> None:
     assert not violations, "Protected root files must not absorb sidecar contracts: " + ", ".join(violations)
 
 
-def test_calibration_action_router_stays_unmounted_until_activation_plan() -> None:
+def test_root_routes_mount_only_public_calibration_router_after_activation_plan() -> None:
     root_routes = ROOT / "app" / "routes.py"
     source = root_routes.read_text(encoding="utf-8")
+    imports = _absolute_imports(root_routes)
 
-    assert "calibration_routes" not in source
-    assert "calibration_router" not in source
+    assert "from app.composition.calibration_routes import public_router as calibration_router" in source
+    assert "from app.composition.calibration_routes import router as calibration_router" not in source
+    assert "router.include_router(calibration_router)" in source
+    assert "app.composition.calibration_routes" in imports
     assert "app.body.interface.calibration_routes" not in _absolute_imports(root_routes)

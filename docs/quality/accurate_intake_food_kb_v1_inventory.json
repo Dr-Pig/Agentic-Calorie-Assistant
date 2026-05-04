@@ -1,7 +1,7 @@
 {
   "artifact_type": "accurate_intake_food_kb_v1_inventory",
   "artifact_schema_version": "1.0",
-  "generated_at_utc": "2026-05-04T02:49:14.828890Z",
+  "generated_at_utc": "2026-05-04T22:55:08.492787Z",
   "scope": "local_evidence_support_inventory",
   "truth_owner": "none",
   "mutation_authority": "none",
@@ -10,11 +10,11 @@
   "web_tavily_required": false,
   "production_db_required": false,
   "repo_contained_seed_counts": {
-    "small_anchor_total": 44,
-    "generic_anchor": 40,
+    "small_anchor_total": 55,
+    "generic_anchor": 51,
     "generic_semantic_only": 4,
     "exact_item_cards": 5,
-    "basket_components": 19
+    "basket_components": 30
   },
   "source_quality_policy": {
     "artifact_schema_version": "1.0",
@@ -66,6 +66,24 @@
         ],
         "caveats": [
           "only_valid_for_matching_brand_variant_and_portion"
+        ],
+        "human_review_required": true
+      },
+      "local_taiwan_packaged_extract": {
+        "role": "local_packaged_exact_candidate",
+        "can_support": [
+          "exact_item_candidate_evidence"
+        ],
+        "confidence_posture": "medium_high",
+        "required_provenance": [
+          "source_file",
+          "record_id",
+          "product_name",
+          "package_size",
+          "nutrition_basis"
+        ],
+        "caveats": [
+          "candidate_only_until_exact_review_and portion_match_confirmation"
         ],
         "human_review_required": true
       },
@@ -137,8 +155,8 @@
     "private_self_use_approved": false
   },
   "source_class_breakdown": {
-    "existing_repo_seed": 49,
-    "taiwan_tfda_open_data": 0,
+    "existing_repo_seed": 60,
+    "taiwan_tfda_open_data": 11,
     "official_brand_chain_page": 0,
     "open_food_facts": 0,
     "usda_fallback": 0,

@@ -43,6 +43,10 @@ def test_policy_manifest_separates_exact_cards_fallbacks_and_review_only_sources
     }
     assert manifest["source_posture"]["usda_fallback"] == "fallback_generic_normalization_only"
     assert manifest["source_posture"]["open_food_facts"] == "packaged_candidate_only"
+    assert (
+        manifest["source_posture"]["local_taiwan_packaged_extract"]
+        == "exact_card_candidate_only_until_review_and_identity_match"
+    )
     assert manifest["source_posture"]["dogfood_user_correction"] == "review_candidate_only"
     assert manifest["truth_promotion_policy"]["approval_unit"] == "item_level"
     assert manifest["truth_promotion_policy"]["family_level_bulk_approval_allowed"] is False
