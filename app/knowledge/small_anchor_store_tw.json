@@ -20,20 +20,82 @@
       "record_kind": "generic_anchor",
       "anchor_id": "custom_drink_boba_milk_tea",
       "canonical_name": "\u73cd\u73e0\u5976\u8336",
-      "aliases": ["\u73cd\u73e0\u5976\u8336"],
+      "aliases": [
+        "\u73cd\u73e0\u5976\u8336"
+      ],
       "dish_type": "customizable_drink",
       "composition_posture": "estimable_with_modifier_refinement",
       "variance_level": "high",
-      "semantic_hints": ["customizable_drink"],
-      "followup_hints": ["ask_sugar_level", "ask_cup_size"],
+      "semantic_hints": [
+        "customizable_drink"
+      ],
+      "followup_hints": [
+        "ask_sugar_level",
+        "ask_cup_size"
+      ],
       "clarify_required": false,
-      "baseline_kcal_range": [350, 550],
+      "baseline_kcal_range": [
+        350,
+        550
+      ],
       "baseline_likely_kcal": 450,
       "major_modifiers": [
-        {"name": "sugar_level", "values": ["unsweetened", "half_sugar", "full_sugar"]},
-        {"name": "cup_size", "values": ["small", "medium", "large"]}
+        {
+          "name": "sugar_level",
+          "values": [
+            "unsweetened",
+            "half_sugar",
+            "full_sugar"
+          ]
+        },
+        {
+          "name": "cup_size",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        }
       ],
-      "composition_hints": ["milk_tea", "tapioca_pearls"]
+      "composition_hints": [
+        "milk_tea",
+        "tapioca_pearls"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_quantity": 1,
+        "portion_unit": "large_cup",
+        "portion_grams": 500,
+        "label": "\u4e00\u676f\u5927\u676f\u73cd\u73e0\u5976\u8336",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "mvp_portion_default_policy"
+        ]
+      },
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_0f36e40da072",
+          "source_candidate_id": "cand_tfda_fda_food_nutrition_2024_2234411ab64c",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "kcal_per_100g": 75.3154
+        }
+      ],
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "selected_mvp_portion_default_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "high_variance_customizable_drink_or_meal",
+        "range_multiplier": 0.3,
+        "range_basis": "category_policy"
+      }
     },
     {
       "record_kind": "generic_anchor",
@@ -265,17 +327,61 @@
       "record_kind": "generic_anchor",
       "anchor_id": "listed_item_tofu_dried",
       "canonical_name": "\u8c46\u5e72",
-      "aliases": ["\u8c46\u5e72"],
+      "aliases": [
+        "\u8c46\u5e72"
+      ],
       "dish_type": "listed_item",
       "composition_posture": "listed_item_component",
       "variance_level": "low",
-      "semantic_hints": ["luwei_component"],
+      "semantic_hints": [
+        "luwei_component"
+      ],
       "followup_hints": [],
       "clarify_required": false,
-      "baseline_kcal_range": [70, 120],
+      "baseline_kcal_range": [
+        70,
+        120
+      ],
       "baseline_likely_kcal": 95,
       "major_modifiers": [],
-      "composition_hints": ["soy_product"]
+      "composition_hints": [
+        "soy_product"
+      ],
+      "runtime_role": "common_serving_anchor",
+      "runtime_estimate_allowed": true,
+      "serving_basis": "common_serving",
+      "portion_basis": {
+        "portion_quantity": 1,
+        "portion_unit": "piece",
+        "portion_grams": 50,
+        "label": "\u4e00\u584a\u6ef7\u5473\u8c46\u5e72",
+        "derived_from": [
+          "tfda_per_100g_source_evidence",
+          "mvp_portion_default_policy"
+        ]
+      },
+      "source_refs": [
+        {
+          "source_evidence_id": "tfda_per100g_399e1bac7499",
+          "source_candidate_id": "cand_tfda_fda_food_nutrition_2024_b095b8c3e84f",
+          "runtime_role": "source_evidence_only",
+          "serving_basis": "per_100g",
+          "kcal_per_100g": 192.358
+        }
+      ],
+      "approval_metadata": {
+        "approval_mode": "batch_policy_approved",
+        "approval_scope": "selected_mvp_portion_default_anchor",
+        "policy_version": "food_evidence_tfda_batch_promotion_v1",
+        "approved_by": "user_batch_policy",
+        "approved_at": null,
+        "runtime_truth_allowed": true
+      },
+      "range_policy": {
+        "uncertainty_category": "moderate_prepared_item",
+        "range_multiplier": 0.2,
+        "range_basis": "category_policy"
+      }
     },
     {
       "record_kind": "generic_anchor",

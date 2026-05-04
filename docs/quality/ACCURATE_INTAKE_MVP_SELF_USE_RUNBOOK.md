@@ -255,6 +255,16 @@ python scripts/build_accurate_intake_food_auto_eligible_batch.py --validation-js
 
 The generated auto-eligible artifact is local-only and ignored. It may classify a subset of `validator_passed` rows as `auto_eligible_packet_candidate` and attach approval metadata for batch review, exception reporting, and sample audit. `auto_eligible_packet_candidate` is still not packet-ready truth: `runtime_truth_allowed=false` remains mandatory, and PR121 must not begin until the batch policy, exception report, and sample audit are reviewed. PR120 must not update FoodDB truth, create nutrition seeds, exact cards, packet truth, runtime truth, or canonical eval oracles.
 
+PR121 promotes selected TFDA-backed MVP evidence in two separate runtime roles:
+
+```powershell
+python scripts/build_accurate_intake_tfda_batch_promotion.py --candidate-json artifacts/accurate_intake_food_evidence_candidates.json --auto-eligible-json artifacts/accurate_intake_food_auto_eligible_batch.json --source-evidence-output app/knowledge/tfda_per100g_source_evidence_tw.json --anchor-output artifacts/accurate_intake_tfda_selected_common_serving_anchors.json --report-output artifacts/accurate_intake_tfda_batch_promotion.json --update-small-anchor-store
+```
+
+The tracked TFDA per-100g file is `source_evidence_only`: it may preserve TFDA provenance and kcal-per-100g evidence, but it must keep `runtime_estimate_allowed=false` and `packetizer_common_serving_allowed=false`. It is not a user-facing serving estimate, packet truth, exact card, nutrition seed, or canonical eval oracle.
+
+Only selected MVP portion-default anchors may become `common_serving_anchor` records in the small-anchor store. Each selected runtime anchor must carry a portion basis, source refs back to `source_evidence_only`, range policy, and batch approval metadata. PR121 must not promote all TFDA rows to runtime truth, must not consume official brand/Open Food Facts/USDA/old base candidates, and must not change basket semantics: bare baskets still ask follow-up, while listed baskets can only estimate components that already have approved runtime anchors.
+
 SQLite-backed route/integration tests should use the shared `LocalSQLiteRouteHarness` when adding new route-level tests. JSON artifact producers should use `write_json_artifact` / `read_json_artifact` to avoid producer-consumer drift such as literal `"\\n"` suffixes. Unit tests should consume fixed artifact dictionaries where possible; DB-heavy scenario runners should be integration-scoped and run sequentially on Windows.
 
 Windows operators should run SQLite-backed commands sequentially. If `.pytest_tmp_local` reports a temporary SQLite lock, wait for the previous process to exit and rerun the affected command before classifying the result. Do not run the reset and keep-db shell commands concurrently against the same DB path.
