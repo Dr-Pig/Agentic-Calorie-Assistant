@@ -6,6 +6,9 @@ from app.memory.application.long_term_context_shadow_lab import (
     SHADOW_NON_CLAIM_FLAGS,
     artifact_review_contract,
 )
+from app.memory.application.external_memory_reference_catalog import (
+    current_agent_memory_reference_sources,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -47,7 +50,7 @@ def build_external_memory_framework_research(
 
 
 def _research_sources() -> list[dict[str, Any]]:
-    return [
+    sources = [
         {
             "source_id": "claude-code-official-memory-docs",
             "framework_id": "claude_code",
@@ -203,6 +206,19 @@ def _research_sources() -> list[dict[str, Any]]:
             ),
         },
     ]
+    sources.extend(current_agent_memory_reference_sources())
+    return [_with_reference_review_fields(source) for source in sources]
+
+
+def _with_reference_review_fields(source: dict[str, Any]) -> dict[str, Any]:
+    reviewed = dict(source)
+    reviewed.setdefault("product_capability_helped", "architecture_governance")
+    reviewed.setdefault("adopt_defer_or_reject", "adopt")
+    reviewed.setdefault(
+        "risk_if_misapplied",
+        "Could over-adopt framework behavior before repo L4A/L4C/L4D review.",
+    )
+    return reviewed
 
 
 def _adopted_design_pressure() -> list[str]:

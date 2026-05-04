@@ -152,13 +152,19 @@ def test_memory_extraction_storage_rag_plan_separates_raw_and_canonical_truth() 
     assert artifact["runtime_effect_allowed"] is False
     assert artifact["source_references_checked"] == [
         "docs/specs/L4A_MEMORY_MODEL_SPEC.md",
+        "docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md",
         "docs/specs/L4C_CONTEXT_PACKING_SPEC.md",
         "docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md",
+        "https://openai.github.io/openai-agents-python/sessions/",
+        "https://openai.github.io/openai-agents-python/sandbox/memory/",
+        "https://openai.github.io/openai-agents-python/guardrails/",
         "https://code.claude.com/docs/en/memory",
         "https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool",
+        "https://docs.langchain.com/oss/python/concepts/memory",
         "https://github.com/openclaw/openclaw/blob/main/docs/concepts/memory.md",
         "https://docs.openclaw.ai/concepts/memory-search",
         "https://hermes-agent.nousresearch.com/docs/user-guide/features/memory-providers",
+        "local_hindsight_docs_read_only",
         "local_agent_runtime_skills_read_only",
     ]
 

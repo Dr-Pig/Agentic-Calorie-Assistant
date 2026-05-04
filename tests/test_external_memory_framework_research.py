@@ -20,8 +20,11 @@ def test_external_framework_research_records_current_best_practices_without_runt
     assert review["external_framework_adopted_as_canonical"] is False
     assert {source["framework_id"] for source in review["research_sources"]} == {
         "claude_code",
+        "openai_agents",
+        "langgraph",
         "hermes",
         "openclaw",
+        "hindsight",
         "local_agent_runtime_skills",
     }
     assert review["legal_source_policy"] == {

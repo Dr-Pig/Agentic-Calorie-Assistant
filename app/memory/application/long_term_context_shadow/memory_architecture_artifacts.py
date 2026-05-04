@@ -15,6 +15,8 @@ def _memory_extraction_storage_rag_artifact(
         artifact_type="memory_extraction_storage_rag_shadow_plan",
         fixture=fixture,
         extra={
+            "external_framework_adopted_as_canonical": False,
+            "repo_specs_remain_source_of_truth": True,
             "source_references_checked": _source_references_checked(),
             "raw_vs_canonical_policy": _raw_vs_canonical_policy(),
             "storage_zones": _storage_zones(),
@@ -23,6 +25,7 @@ def _memory_extraction_storage_rag_artifact(
             "product_capability_fit": _product_capability_fit(),
             "blocked_runtime_dependencies": _blocked_runtime_dependencies(),
             "external_reference_translation": _external_reference_translation(),
+            "reference_recommendations": _reference_recommendations(),
         },
     )
 
@@ -30,13 +33,19 @@ def _memory_extraction_storage_rag_artifact(
 def _source_references_checked() -> list[str]:
     return [
         "docs/specs/L4A_MEMORY_MODEL_SPEC.md",
+        "docs/specs/L4B_RETRIEVAL_POLICY_SPEC.md",
         "docs/specs/L4C_CONTEXT_PACKING_SPEC.md",
         "docs/specs/L4D_MEMORY_PROMOTION_DEMOTION_SPEC.md",
+        "https://openai.github.io/openai-agents-python/sessions/",
+        "https://openai.github.io/openai-agents-python/sandbox/memory/",
+        "https://openai.github.io/openai-agents-python/guardrails/",
         "https://code.claude.com/docs/en/memory",
         "https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool",
+        "https://docs.langchain.com/oss/python/concepts/memory",
         "https://github.com/openclaw/openclaw/blob/main/docs/concepts/memory.md",
         "https://docs.openclaw.ai/concepts/memory-search",
         "https://hermes-agent.nousresearch.com/docs/user-guide/features/memory-providers",
+        "local_hindsight_docs_read_only",
         "local_agent_runtime_skills_read_only",
     ]
 
@@ -173,6 +182,35 @@ def _external_reference_translation() -> list[dict[str, str]]:
             "reference": "local_agent_runtime_skills",
             "adopt": "future utility, novelty, factuality, safety gates",
             "reject_or_defer": "automatic memory_add or memory_update operations",
+        },
+    ]
+
+
+def _reference_recommendations() -> list[dict[str, str]]:
+    return [
+        {
+            "reference": "openai_agents_sessions",
+            "adopt": "explicit session scope and transcript-vs-memory separation",
+            "defer": "",
+            "reject": "treating full session history as automatic memory",
+        },
+        {
+            "reference": "openai_agents_guardrails",
+            "adopt": "tripwire-style activation guards before runtime use",
+            "defer": "",
+            "reject": "shadow guard output as runtime permission",
+        },
+        {
+            "reference": "langgraph_memory_concepts",
+            "adopt": "short-term vs long-term and semantic/episodic/procedural review vocabulary",
+            "defer": "",
+            "reject": "replacing L4A memory taxonomy",
+        },
+        {
+            "reference": "local_hindsight_docs",
+            "adopt": "",
+            "defer": "hybrid semantic/keyword/graph/temporal retrieval until store/index gates exist",
+            "reject": "early graph/vector index in this shadow PR",
         },
     ]
 
