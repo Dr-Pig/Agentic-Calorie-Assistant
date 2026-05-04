@@ -7,9 +7,12 @@ import pytest
 from scripts import run_accurate_intake_product_pages_browser_smoke as module
 
 
-def _passing_report() -> dict[str, object]:
+def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
+    previous_local_date = module._previous_local_date(local_date)
     return {
         "browser_executed": True,
+        "local_date": local_date,
+        "previous_local_date": previous_local_date,
         "chat_page_loaded": True,
         "chat_sent_cjk_message": True,
         "chat_assistant_bubble_rendered": True,
@@ -65,16 +68,27 @@ def _passing_report() -> dict[str, object]:
                 {"url": "/accurate-intake/chat-history?user_id=product-pages", "method": "GET"},
                 {"url": "/estimate", "method": "POST", "body": '{"allow_search":false}'},
                 {"url": "/today/current-budget?user_id=product-pages", "method": "GET"},
-                {"url": "/today/current-budget?user_id=product-pages&local_date=2026-05-03", "method": "GET"},
-                {"url": "/today/current-budget?user_id=product-pages&local_date=2026-05-04", "method": "GET"},
+                {
+                    "url": f"/today/current-budget?user_id=product-pages&local_date={previous_local_date}",
+                    "method": "GET",
+                },
+                {"url": f"/today/current-budget?user_id=product-pages&local_date={local_date}", "method": "GET"},
                 {"url": "/body-plan/active?user_id=product-pages", "method": "GET"},
                 {"url": "/weight/observations?user_id=product-pages", "method": "GET"},
-                {"url": "/weight/observation", "method": "POST", "body": '{"user_id":"product-pages","local_date":"2026-05-04"}'},
-                {"url": "/onboarding/bootstrap", "method": "POST", "body": '{"user_id":"product-pages","local_date":"2026-05-04"}'},
+                {
+                    "url": "/weight/observation",
+                    "method": "POST",
+                    "body": f'{{"user_id":"product-pages","local_date":"{local_date}"}}',
+                },
+                {
+                    "url": "/onboarding/bootstrap",
+                    "method": "POST",
+                    "body": f'{{"user_id":"product-pages","local_date":"{local_date}"}}',
+                },
                 {
                     "url": "/body-plan/manual-daily-target",
                     "method": "POST",
-                    "body": '{"user_id":"product-pages","local_date":"2026-05-04","source":"user_ui"}',
+                    "body": f'{{"user_id":"product-pages","local_date":"{local_date}","source":"user_ui"}}',
                 },
             ],
             "storage": {"localStorageKeys": [], "sessionStorageKeys": []},
@@ -124,7 +138,7 @@ def test_product_pages_browser_smoke_can_require_browser_execution(monkeypatch, 
 
 
 def test_product_pages_browser_smoke_validator_requires_cross_page_evidence() -> None:
-    status, blockers = module._validate(_passing_report())
+    status, blockers = module._validate(_passing_report(local_date="2026-05-05"))
 
     assert status == "pass"
     assert blockers == []
@@ -197,8 +211,9 @@ def test_product_pages_browser_smoke_validator_rejects_debug_trace_or_frontend_t
     report["frontend_semantic_owner"] = True
     report["product_cjk_copy_rendered"] = False
     report["browser"]["fetch_sequence"][1]["body"] = '{"allow_search":true}'
+    previous_local_date = str(report["previous_local_date"])
     report["browser"]["fetch_sequence"] = [
-        item for item in report["browser"]["fetch_sequence"] if "2026-05-03" not in str(item.get("url"))
+        item for item in report["browser"]["fetch_sequence"] if previous_local_date not in str(item.get("url"))
     ]
 
     status, blockers = module._validate(report)
