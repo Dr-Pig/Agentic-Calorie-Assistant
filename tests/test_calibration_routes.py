@@ -400,6 +400,59 @@ def test_stored_calibration_accept_uses_persisted_option_and_updates_same_propos
     assert ledger.budget_kcal == 2000
 
 
+def test_stored_calibration_accept_rejects_already_accepted_proposal_without_second_plan() -> None:
+    db = _session()
+    client = _client(db)
+    user = get_or_create_user(db, "calibration-stored-accept-once")
+    baseline_plan = _active_body_plan(db, user_id=user.id)
+    preview = client.post(
+        "/calibration/proposal/preview",
+        json={
+            "user_id": "calibration-stored-accept-once",
+            "local_date": "2026-05-04",
+            "current_budget_status": "over_budget",
+            "rescue_recovery_viability": "non_viable",
+            "persist_proposal": True,
+            "model_inputs": {
+                "body_plan_estimated_tdee_kcal": 2100,
+                "observation_window_days": 21,
+                "body_observation_count": 9,
+                "intake_coverage": 0.93,
+                "operating_expenditure_shift_kcal": 340,
+                "trend_mismatch_consistency": 0.9,
+                "trend_volatility": 0.1,
+                "logging_gap_ratio": 0.05,
+                "late_logged_meal_ratio": 0.05,
+            },
+        },
+    )
+    proposal_id = preview.json()["proposal_artifact"]["proposal_container_id"]
+    action_payload = {
+        "user_id": "calibration-stored-accept-once",
+        "proposal_container_id": proposal_id,
+        "action": "accept_calibration_proposal",
+        "accepted_at": "2026-05-04T10:30:00",
+    }
+
+    first = client.post("/calibration/proposal/stored-action", json=action_payload)
+    second = client.post("/calibration/proposal/stored-action", json=action_payload)
+
+    assert first.status_code == 200
+    assert second.status_code == 409
+    assert second.json()["detail"] == "stored calibration proposal is not actionable: accepted"
+    proposals = db.execute(select(ProposalContainerRecord)).scalars().all()
+    plans = db.execute(select(BodyPlanRecord).order_by(BodyPlanRecord.id.asc())).scalars().all()
+    ledger = db.execute(select(DayBudgetLedgerRecord)).scalar_one()
+    assert len(proposals) == 1
+    assert proposals[0].proposal_status == "accepted"
+    assert len(plans) == 2
+    assert plans[0].id == baseline_plan.id
+    assert plans[0].plan_status == "superseded"
+    assert plans[1].plan_status == "active"
+    assert plans[1].daily_budget_kcal == 2000
+    assert ledger.budget_kcal == 2000
+
+
 def test_calibration_preview_blocks_duplicate_when_open_stored_proposal_exists() -> None:
     db = _session()
     client = _client(db)
