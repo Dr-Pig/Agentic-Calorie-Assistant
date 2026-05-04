@@ -137,6 +137,22 @@ def _fixture_payload() -> dict:
                 "topic_tags": ["late_logging", "followup_preference"],
             }
         ],
+        "review_actions": [
+            {
+                "action_id": "review-accept-language",
+                "target_candidate_ids": ["user-language-正常便當"],
+                "action_type": "accept_candidate",
+                "actor": "fixture_human_reviewer",
+                "rationale": "Useful phrase for future intake clarification.",
+            },
+            {
+                "action_id": "review-reject-usage",
+                "target_candidate_ids": ["app-usage-style-pattern"],
+                "action_type": "reject_candidate",
+                "actor": "fixture_human_reviewer",
+                "rationale": "Insufficient evidence for app usage style.",
+            },
+        ],
         "trace_metadata": [
             {"trace_id": "meal-1", "source_object_ref": "MealThread:m1"},
             {"trace_id": "budget-1", "source_object_ref": "DayBudgetLedger:2026-04-01"},
@@ -165,6 +181,8 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
         "proactive_no_send_simulation",
         "recommendation_shadow_eval",
         "rescue_shadow_candidates",
+        "memory_review_action_shadow_result",
+        "conversation_recall_shadow_eval",
     }
 
     for artifact in artifacts.values():
@@ -396,6 +414,74 @@ def test_context_value_queue_explains_usefulness_and_early_injection_harm() -> N
         }
 
 
+def test_review_actions_create_shadow_records_without_durable_memory_write() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "memory_review_action_shadow_result"
+    ]
+
+    assert artifact["artifact_type"] == "memory_review_action_shadow_result"
+    assert artifact["durable_memory_written"] is False
+    assert artifact["manager_context_injected"] is False
+    assert artifact["summary"] == {
+        "action_count": 2,
+        "accepted_count": 1,
+        "rejected_count": 1,
+        "shadow_memory_record_count": 1,
+        "missing_target_count": 0,
+    }
+
+    accepted = next(
+        result
+        for result in artifact["candidate_review_results"]
+        if result["candidate_id"] == "user-language-正常便當"
+    )
+    assert accepted["review_status_after"] == "accepted"
+    assert accepted["runtime_effect_allowed"] is False
+    assert accepted["durable_memory_write_allowed"] is False
+
+    record = artifact["shadow_memory_records"][0]
+    assert record["source_candidate_id"] == "user-language-正常便當"
+    assert record["record_state"] == "accepted_shadow"
+    assert record["can_be_runtime_loaded"] is False
+    assert record["durable_memory_written"] is False
+    assert record["provenance"]["source_trace_ids"] == ["lang-1"]
+
+
+def test_conversation_recall_shadow_eval_is_summary_first_and_tool_call_disabled() -> (
+    None
+):
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "conversation_recall_shadow_eval"
+    ]
+
+    assert artifact["artifact_type"] == "conversation_recall_shadow_eval"
+    assert artifact["summary_first"] is True
+    assert artifact["raw_transcript_included"] is False
+    assert artifact["retrieval_tool_called"] is False
+    assert artifact["manager_tool_call_allowed"] is False
+    assert artifact["manager_context_injected"] is False
+    assert (
+        artifact["selected_context_candidates"][0]["candidate_type"]
+        == "conversation_recall_context"
+    )
+    assert (
+        artifact["selected_context_candidates"][0]["would_load_full_history"] is False
+    )
+    assert artifact["omission_trace"] == {
+        "raw_transcript_omitted": True,
+        "full_history_dump_omitted": True,
+        "runtime_packet_injection_omitted": True,
+    }
+
+
 def test_shadow_simulations_never_send_serve_or_commit() -> None:
     from app.memory.application.long_term_context_shadow_lab import (
         build_shadow_lab_artifacts,
@@ -449,6 +535,8 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "proactive_no_send_simulation.json",
         "recommendation_shadow_eval.json",
         "rescue_shadow_candidates.json",
+        "memory_review_action_shadow_result.json",
+        "conversation_recall_shadow_eval.json",
     }
     assert {path.name for path in output_dir.iterdir()} == expected_files
     for path in output_dir.iterdir():

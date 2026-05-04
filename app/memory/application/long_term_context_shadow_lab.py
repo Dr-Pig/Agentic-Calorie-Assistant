@@ -56,6 +56,14 @@ def build_shadow_lab_artifacts(
             fixture, candidates
         ),
         "rescue_shadow_candidates": _rescue_shadow_artifact(fixture, candidates),
+        "memory_review_action_shadow_result": _memory_review_action_shadow_artifact(
+            fixture,
+            candidates,
+        ),
+        "conversation_recall_shadow_eval": _conversation_recall_shadow_artifact(
+            fixture,
+            candidates,
+        ),
     }
 
 
@@ -894,6 +902,167 @@ def _rescue_shadow_artifact(
             "candidate_packets": packets,
         },
     )
+
+
+def _memory_review_action_shadow_artifact(
+    fixture: dict[str, Any],
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    actions = _list_of_dicts(fixture.get("review_actions"))
+    candidates_by_id = {candidate.candidate_id: candidate for candidate in candidates}
+    action_records: list[dict[str, Any]] = []
+    candidate_results: list[dict[str, Any]] = []
+    shadow_records: list[dict[str, Any]] = []
+    missing_targets: list[dict[str, Any]] = []
+
+    for action in actions:
+        action_id = str(
+            action.get("action_id") or f"review-action-{len(action_records) + 1}"
+        )
+        action_type = str(action.get("action_type") or "keep_shadowing")
+        target_ids = [str(value) for value in action.get("target_candidate_ids") or []]
+        action_records.append(
+            {
+                "action_id": action_id,
+                "action_type": action_type,
+                "target_candidate_ids": target_ids,
+                "actor": str(action.get("actor") or "fixture_reviewer"),
+                "rationale": str(action.get("rationale") or ""),
+                "creates_runtime_effect": False,
+                "durable_memory_write_allowed": False,
+                "manager_context_injection_allowed": False,
+            }
+        )
+        for candidate_id in target_ids:
+            candidate = candidates_by_id.get(candidate_id)
+            if candidate is None:
+                missing_targets.append(
+                    {"action_id": action_id, "candidate_id": candidate_id}
+                )
+                continue
+            review_status_after = _review_status_for_action(action_type)
+            candidate_results.append(
+                {
+                    "action_id": action_id,
+                    "candidate_id": candidate_id,
+                    "candidate_type": candidate.candidate_type,
+                    "review_status_before": candidate.review_status,
+                    "review_status_after": review_status_after,
+                    "runtime_effect_allowed": False,
+                    "durable_memory_write_allowed": False,
+                    "manager_context_injection_allowed": False,
+                }
+            )
+            if review_status_after == "accepted":
+                shadow_records.append(_shadow_memory_record(candidate, action_id))
+
+    return _base_artifact(
+        artifact_type="memory_review_action_shadow_result",
+        fixture=fixture,
+        extra={
+            "summary": {
+                "action_count": len(action_records),
+                "accepted_count": sum(
+                    1
+                    for result in candidate_results
+                    if result["review_status_after"] == "accepted"
+                ),
+                "rejected_count": sum(
+                    1
+                    for result in candidate_results
+                    if result["review_status_after"] == "rejected"
+                ),
+                "shadow_memory_record_count": len(shadow_records),
+                "missing_target_count": len(missing_targets),
+            },
+            "action_records": action_records,
+            "candidate_review_results": candidate_results,
+            "shadow_memory_records": shadow_records,
+            "missing_targets": missing_targets,
+        },
+    )
+
+
+def _conversation_recall_shadow_artifact(
+    fixture: dict[str, Any],
+    candidates: list[LongTermContextCandidate],
+) -> dict[str, Any]:
+    recall_candidates = [
+        candidate
+        for candidate in candidates
+        if candidate.candidate_type == "conversation_recall_context"
+    ]
+    selected = [
+        {
+            "candidate_id": candidate.candidate_id,
+            "candidate_type": candidate.candidate_type,
+            "source_trace_ids": candidate.source_trace_ids,
+            "source_object_refs": candidate.source_object_refs,
+            "summary_preview": _conversation_summary_preview(candidate),
+            "would_load_full_history": False,
+            "manager_tool_call_allowed": False,
+            "runtime_effect_allowed": False,
+        }
+        for candidate in recall_candidates
+    ]
+    return _base_artifact(
+        artifact_type="conversation_recall_shadow_eval",
+        fixture=fixture,
+        extra={
+            "summary_first": True,
+            "raw_transcript_included": False,
+            "retrieval_tool_called": False,
+            "manager_tool_call_allowed": False,
+            "selected_context_candidates": selected,
+            "rejected_context_candidates": [],
+            "omission_trace": {
+                "raw_transcript_omitted": True,
+                "full_history_dump_omitted": True,
+                "runtime_packet_injection_omitted": True,
+            },
+        },
+    )
+
+
+def _review_status_for_action(action_type: str) -> str:
+    if action_type == "accept_candidate":
+        return "accepted"
+    if action_type == "reject_candidate":
+        return "rejected"
+    if action_type == "expire_candidate":
+        return "expired"
+    return "pending"
+
+
+def _shadow_memory_record(
+    candidate: LongTermContextCandidate,
+    action_id: str,
+) -> dict[str, Any]:
+    return {
+        "memory_record_id": f"shadow-memory-record-{candidate.candidate_id}",
+        "source_candidate_id": candidate.candidate_id,
+        "source_action_id": action_id,
+        "record_state": "accepted_shadow",
+        "memory_text": candidate.proposed_memory_text,
+        "candidate_type": candidate.candidate_type,
+        "scope_keys": candidate.scope_keys,
+        "intended_consumers": candidate.intended_consumers,
+        "can_be_runtime_loaded": False,
+        "durable_memory_written": False,
+        "runtime_effect_allowed": False,
+        "provenance": {
+            "source_trace_ids": candidate.source_trace_ids,
+            "source_object_refs": candidate.source_object_refs,
+            "evidence_count": candidate.evidence_count,
+        },
+    }
+
+
+def _conversation_summary_preview(candidate: LongTermContextCandidate) -> str:
+    summaries = candidate.payload.get("conversation_summaries")
+    if isinstance(summaries, list) and summaries and isinstance(summaries[0], dict):
+        return str(summaries[0].get("summary") or "")[:280]
+    return str(candidate.proposed_memory_text or "")[:280]
 
 
 def _trigger_type(candidate: LongTermContextCandidate) -> str:

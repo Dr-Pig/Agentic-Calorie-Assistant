@@ -24,6 +24,8 @@ ARTIFACT_FILENAMES = {
     "proactive_no_send_simulation": "proactive_no_send_simulation.json",
     "recommendation_shadow_eval": "recommendation_shadow_eval.json",
     "rescue_shadow_candidates": "rescue_shadow_candidates.json",
+    "memory_review_action_shadow_result": "memory_review_action_shadow_result.json",
+    "conversation_recall_shadow_eval": "conversation_recall_shadow_eval.json",
 }
 
 
