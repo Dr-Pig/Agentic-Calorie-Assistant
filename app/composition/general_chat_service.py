@@ -30,6 +30,13 @@ CalibrationChatAction = Literal[
     "defer_calibration_proposal",
     "reject_calibration_proposal",
 ]
+_STORED_CALIBRATION_ACTIONS = frozenset(
+    {
+        "accept_calibration_proposal",
+        "defer_calibration_proposal",
+        "reject_calibration_proposal",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -46,6 +53,7 @@ class GeneralChatPassResult:
     calibration_diagnostic: dict[str, Any] | None = None
     calibration_action_result: dict[str, Any] | None = None
     input_assembly: dict[str, Any] | None = None
+    proposal_response: dict[str, Any] | None = None
     proposal_artifact: dict[str, Any] | None = None
 
 
@@ -178,6 +186,52 @@ def _calibration_action_unavailable_response(*, reason: str) -> GeneralChatPassR
             "ledger_mutation_authorized": False,
         },
     )
+
+
+def _shape_calibration_preview_quick_action(
+    action: dict[str, Any],
+    *,
+    proposal_container_id: int | None,
+) -> dict[str, Any]:
+    shaped = dict(action)
+    action_id = str(shaped.get("action") or "")
+    if action_id in _STORED_CALIBRATION_ACTIONS:
+        enabled = proposal_container_id is not None
+        shaped["enabled"] = enabled
+        shaped["proposal_container_id"] = proposal_container_id
+        if not enabled:
+            shaped["disabled_reason"] = "stored_proposal_required"
+        return shaped
+
+    shaped["enabled"] = True
+    shaped.setdefault("proposal_container_id", None)
+    return shaped
+
+
+def _shape_calibration_preview_proposal_response(
+    *,
+    response: dict[str, Any],
+    proposal_artifact: dict[str, Any] | None,
+) -> dict[str, Any]:
+    proposal_container_id = (
+        int(proposal_artifact["proposal_container_id"])
+        if isinstance(proposal_artifact, dict) and proposal_artifact.get("proposal_container_id") is not None
+        else None
+    )
+    return {
+        "surfaced": response.get("surfaced") is True,
+        "proposal_family": response.get("proposal_family"),
+        "proposal_cards": list(response.get("proposal_cards") or []),
+        "quick_actions": [
+            _shape_calibration_preview_quick_action(dict(action), proposal_container_id=proposal_container_id)
+            for action in (response.get("quick_actions") or [])
+            if isinstance(action, dict)
+        ],
+        "ui_hints": dict(response.get("ui_hints") or {}),
+        "proposal_container_id": proposal_container_id,
+        "stored_action_required": True,
+        "raw_text_authorized_mutation": False,
+    }
 
 
 def _calibration_decision_from_action(action: CalibrationChatAction) -> CalibrationCommitDecision:
@@ -333,6 +387,10 @@ def _calibration_preview_response(
             "trace_envelope": preview.trace_envelope,
         },
         input_assembly=preview.input_assembly,
+        proposal_response=_shape_calibration_preview_proposal_response(
+            response=response,
+            proposal_artifact=preview.proposal_artifact,
+        ),
         proposal_artifact=preview.proposal_artifact,
     )
 
