@@ -19,6 +19,7 @@ def load_active_body_plan_view(
             BodyPlanRecord.plan_status == "active",
         )
         .order_by(BodyPlanRecord.id.desc())
+        .limit(1)
     ).scalar_one_or_none()
 
     if body_plan is None:
@@ -36,6 +37,7 @@ def load_active_body_plan_view(
             BodyProfileRecord.profile_status == "active",
         )
         .order_by(BodyProfileRecord.id.desc())
+        .limit(1)
     ).scalar_one_or_none()
     plan_source = metadata.get("plan_source")
     goal_type = metadata.get("goal_type")
