@@ -32,9 +32,9 @@ def test_listed_component_expansion_plan_reports_runtime_source_backed_and_missi
     assert artifact["live_provider_used"] is False
     assert artifact["summary"] == {
         "target_component_count": len(LISTED_COMPONENT_TARGETS),
-        "runtime_visible_count": 16,
-        "source_backed_not_runtime_count": 2,
-        "source_missing_count": 7,
+        "runtime_visible_count": 18,
+        "source_backed_not_runtime_count": 1,
+        "source_missing_count": 6,
     }
 
 
@@ -50,9 +50,8 @@ def test_listed_component_expansion_plan_uses_safe_exact_alias_matching() -> Non
     assert by_label["粉絲"]["status"] == "runtime_visible_existing_anchor"
     assert by_label["粉絲"]["runtime_anchor_id"] == "listed_item_glass_noodles"
 
-    assert by_label["魚板"]["status"] == "source_evidence_match_available_not_runtime"
-    assert by_label["魚板"]["source_evidence_match"]["canonical_name"] == "魚板"
-    assert by_label["魚板"]["recommended_next_action"] == "add_small_anchor_then_selected_promotion"
+    assert by_label["魚板"]["status"] == "runtime_visible_existing_anchor"
+    assert by_label["魚板"]["runtime_anchor_id"] == "listed_item_fishcake"
 
     assert by_label["蟹肉棒"]["status"] == "source_evidence_match_available_not_runtime"
     assert by_label["蟹肉棒"]["source_evidence_match"]["alias_matched"] == "蟹肉棒"
@@ -70,8 +69,8 @@ def test_listed_component_expansion_plan_next_batch_recommendation_is_narrow() -
 
     recommendation = artifact["next_batch_recommendation"]
     assert recommendation["max_new_runtime_anchors_before_activation"] == 12
-    assert set(recommendation["candidate_labels"]) == {"魚板", "蟹肉棒"}
-    assert {"油豆腐", "白蘿蔔", "金針菇", "凍豆腐", "玉米筍", "花椰菜", "魚豆腐"} == set(
+    assert set(recommendation["candidate_labels"]) == {"蟹肉棒"}
+    assert {"白蘿蔔", "金針菇", "凍豆腐", "玉米筍", "花椰菜", "魚豆腐"} == set(
         recommendation["blocked_labels"]
     )
 

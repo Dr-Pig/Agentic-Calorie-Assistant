@@ -23,7 +23,7 @@ def test_modifier_catalog_reports_runtime_modifier_coverage_without_schema_chang
     assert catalog["runtime_truth_changed"] is False
     assert catalog["manager_context_changed"] is False
     assert catalog["packetizer_format_changed"] is False
-    assert catalog["summary"]["runtime_common_serving_anchor_count"] == 40
+    assert catalog["summary"]["runtime_common_serving_anchor_count"] == 51
     assert catalog["summary"]["modifier_aware_anchor_count"] == 20
     assert catalog["summary"]["modifier_name_count"] >= 10
 
