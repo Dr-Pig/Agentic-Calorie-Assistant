@@ -170,6 +170,45 @@ def test_grokfast_websearch_packet_diagnostic_surfaces_provider_failures() -> No
     assert "provider_response_error" in diagnostic["summary"]["failure_families"]
 
 
+def test_grokfast_websearch_packet_diagnostic_summarizes_success_transport_metadata() -> None:
+    packet_artifact = _manager_packet_artifact()
+    packet_case = packet_artifact["cases"][0]
+    manager_outputs = build_fixture_grokfast_websearch_manager_outputs(
+        packet_artifact=packet_artifact
+    )
+    manager_outputs[0]["provider_trace"].update(
+        {
+            "structured_output_transport_mode": "json_schema",
+            "decision_transport_mode": "synthetic_tool_transport",
+            "decision_transport_attempted": True,
+            "decision_transport_contract_breach": False,
+            "schema_name": "founder_live_manager_contract",
+            "schema_version": "v1",
+            "transport_attempts": [{"attempt": 1}],
+            "parse_attempts": [{"attempt": 1}],
+        }
+    )
+
+    diagnostic = build_grokfast_websearch_packet_diagnostic(
+        packet_artifact=packet_artifact,
+        manager_outputs=[manager_outputs[0]],
+        live_provider_used=True,
+    )
+
+    trace_summary = diagnostic["cases"][0]["provider_trace"]["trace_summary"]
+    assert diagnostic["cases"][0]["case_id"] == packet_case["case_id"]
+    assert trace_summary["structured_output_transport_mode"] == "json_schema"
+    assert trace_summary["decision_transport_mode"] == "synthetic_tool_transport"
+    assert trace_summary["decision_transport_attempted"] is True
+    assert trace_summary["decision_transport_contract_breach"] is False
+    assert trace_summary["schema_name"] == "founder_live_manager_contract"
+    assert trace_summary["schema_version"] == "v1"
+    assert trace_summary["transport_attempt_count"] == 1
+    assert trace_summary["parse_attempt_count"] == 1
+    assert "transport_attempts" not in str(diagnostic["cases"][0])
+    assert "parse_attempts" not in str(diagnostic["cases"][0])
+
+
 def test_grokfast_websearch_live_payload_is_candidate_only_and_compact() -> None:
     packet_case = _manager_packet_artifact()["cases"][0]
     payload = build_live_websearch_manager_payload(packet_case=packet_case)
@@ -183,6 +222,28 @@ def test_grokfast_websearch_live_payload_is_candidate_only_and_compact() -> None
     assert "tavily_score" not in payload_text
     assert "snippet" not in payload_text
     assert "storage_backend" not in payload_text
+
+
+def test_grokfast_websearch_live_script_adds_manager_contract_constraints() -> None:
+    from scripts.run_accurate_intake_grokfast_websearch_packet_smoke import (
+        _build_live_manager_payload_with_contract,
+    )
+
+    packet_case = _manager_packet_artifact()["cases"][0]
+    payload = _build_live_manager_payload_with_contract(packet_case=packet_case)
+
+    constraints = payload["constraints"]
+    assert constraints["manager_contract_profile_id"] == "founder_live_contract"
+    assert constraints["manager_contract_transport_policy"] == "synthetic_tool_transport"
+    assert constraints["manager_contract_provider_profile_id"] == (
+        GROKFAST_WEBSEARCH_PACKET_PROFILE["provider_profile_id"]
+    )
+    assert constraints["websearch_packet_smoke"] is True
+    assert constraints["websearch_runtime_truth_allowed"] is False
+    assert constraints["runtime_mutation_allowed"] is False
+    assert constraints["manager_contract_evidence_state"]["nutrition_evidence_present"] is False
+    assert payload["manager_contract_diagnostic"]["runtime_truth_changed"] is False
+    assert "manager_contract_policy" in constraints
 
 
 def test_grokfast_websearch_packet_smoke_cli_defaults_to_fixture_and_blocks_accidental_live(
