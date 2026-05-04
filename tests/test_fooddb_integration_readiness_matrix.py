@@ -33,7 +33,7 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
     }
 
     assert edges["manager_decision_to_retrieval_intent"]["current_status"] == "contract_backed"
-    assert edges["retrieval_router_to_sqlite_fts_adapter"]["current_status"] == "missing"
+    assert edges["retrieval_router_to_sqlite_fts_adapter"]["current_status"] == "draft"
     assert edges["retrieval_router_to_websearch_candidate"]["current_status"] == "contract_backed"
     assert edges["packet_to_manager_seam"]["current_status"] == "contract_backed"
     assert (
