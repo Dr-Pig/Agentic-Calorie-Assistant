@@ -39,6 +39,11 @@ def test_chat_history_reload_gate_reads_messages_from_reopened_sqlite(tmp_path: 
     assert after_history["runtime_turn_trace_present"] is True
     assert after_history["context_snapshot_present"] is True
     assert after_history["trace_chain_complete"] is True
+    assert after_history["context_policy_version"]
+    assert after_history["loaded_context_summary_present"] is True
+    assert after_history["omitted_context_summary_present"] is True
+    assert after_history["pending_pins_present"] in {True, False}
+    assert isinstance(after_history["target_candidate_count"], int)
     assert after_history["message_local_dates"] == [report["backend_local_date"]]
 
 

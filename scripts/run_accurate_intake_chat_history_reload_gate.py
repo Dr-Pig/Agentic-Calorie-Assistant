@@ -39,6 +39,16 @@ def _message_contents(payload: dict[str, Any]) -> list[str]:
 
 def _history_summary(payload: dict[str, Any]) -> dict[str, Any]:
     messages = [message for message in payload.get("messages", []) if isinstance(message, dict)]
+    context_versions = [
+        str(message.get("context_policy_version"))
+        for message in messages
+        if message.get("context_policy_version")
+    ]
+    target_candidate_counts = [
+        int(message.get("target_candidate_count") or 0)
+        for message in messages
+        if isinstance(message.get("target_candidate_count"), int)
+    ]
     return {
         "source": payload.get("source"),
         "frontend_semantic_owner": payload.get("frontend_semantic_owner"),
@@ -50,6 +60,15 @@ def _history_summary(payload: dict[str, Any]) -> dict[str, Any]:
         "runtime_turn_trace_present": any(message.get("runtime_turn_trace_present") is True for message in messages),
         "context_snapshot_present": any(message.get("context_snapshot_present") is True for message in messages),
         "trace_chain_complete": any(message.get("trace_chain_complete") is True for message in messages),
+        "context_policy_version": context_versions[-1] if context_versions else None,
+        "loaded_context_summary_present": any(
+            isinstance(message.get("loaded_context_summary"), dict) for message in messages
+        ),
+        "omitted_context_summary_present": any(
+            isinstance(message.get("omitted_context_summary"), dict) for message in messages
+        ),
+        "pending_pins_present": any(message.get("pending_pins_present") is True for message in messages),
+        "target_candidate_count": max(target_candidate_counts) if target_candidate_counts else 0,
         "message_local_dates": sorted({str(message.get("local_date")) for message in messages if message.get("local_date")}),
         "mutation_authority": any(message.get("mutation_authority") is True for message in messages),
     }
