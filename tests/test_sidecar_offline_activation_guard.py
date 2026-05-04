@@ -23,6 +23,7 @@ SIDECAR_MODULES = [
     "app.rescue",
     "app.rescue.domain",
     "app.rescue.domain.proposal_read_models",
+    "app.rescue.domain.shadow_status",
     "app.rescue.application",
     "app.rescue.application.proposal_read_model",
     "app.runtime.contracts.pending_meal_intent",
