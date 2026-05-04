@@ -140,6 +140,28 @@ def test_mvp_foods_flow_through_evidence_store_port_before_packet_consumption() 
     assert "exact_item_card" in store.calls
 
 
+def test_accepted_exact_candidate_stays_draft_without_write_authority() -> None:
+    intent = build_retrieval_intent("\u661f\u5df4\u514b\u51b0\u90a3\u5802\u5927\u676f")
+    exact_result = lookup_exact_item_card_candidates(intent)
+    exact_seeds = packetizer_input_seeds_from_exact_item_lookup_result(exact_result)
+    exact_packets = tuple(add_hard_recheck_metadata(build_candidate_packet(seed)) for seed in exact_seeds)
+    exact_consumption = consume_rechecked_packets(exact_packets)
+
+    manager_pass = synthesize_local_manager_pass(intent, exact_consumption)
+    item = manager_pass["item_results"][0]
+    final_mapping = map_final_item_result(
+        item,
+        canonical_write_decision={"can_write_canonical": False},
+        interaction_type="food_logging",
+    )
+
+    assert exact_consumption.accepted_packets
+    assert exact_consumption.accepted_packets[0]["accepted_usage"] == "exact"
+    assert item["exactness_posture"] == "exact"
+    assert final_mapping["external_outcome"] == "draft"
+    assert final_mapping["mutation_allowed"] is False
+
+
 def test_rejected_exact_candidate_is_not_cited_and_maps_to_draft() -> None:
     intent = build_retrieval_intent("\u661f\u5df4\u514b\u51b0\u90a3\u5802\u5927\u676f")
     exact_result = lookup_exact_item_card_candidates(intent)
