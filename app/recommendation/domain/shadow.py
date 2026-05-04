@@ -184,6 +184,14 @@ class RecommendationShadowEvalArtifact(BaseModel):
     evals: list[RecommendationShadowEvalResult] = Field(default_factory=list)
 
 
+class RecommendationShadowArtifactGateResult(BaseModel):
+    passed: bool
+    failure_codes: list[str] = Field(default_factory=list)
+    warning_codes: list[str] = Field(default_factory=list)
+    summary: dict[str, Any] = Field(default_factory=dict)
+    scenario_reports: list[dict[str, Any]] = Field(default_factory=list)
+
+
 __all__ = [
     "CandidateSourceSummary",
     "CandidateSpec",
@@ -191,6 +199,7 @@ __all__ = [
     "RankedRecommendationCandidate",
     "RecommendationCandidateFixture",
     "RecommendationHintPacket",
+    "RecommendationShadowArtifactGateResult",
     "RecommendationShadowContextFixture",
     "RecommendationShadowEvalArtifact",
     "RecommendationShadowEvalResult",
