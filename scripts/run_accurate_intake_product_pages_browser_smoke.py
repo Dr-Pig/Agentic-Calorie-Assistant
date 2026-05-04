@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import secrets
 import sys
 import time
 from datetime import UTC, datetime
@@ -13,6 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.database import get_or_create_user  # noqa: E402
+from app.runtime.interface.local_debug_auth import LOCAL_DEBUG_API_TOKEN_ENV  # noqa: E402
 from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
     BrowserSmokeDependencyMissing,
     _build_app,
@@ -185,9 +188,17 @@ def _chat_scroll_state(page: Any) -> dict[str, Any]:
     )
 
 
-def _open_page(browser: Any, *, viewport: dict[str, int], url: str, timeout_ms: int) -> Any:
+def _open_page(
+    browser: Any,
+    *,
+    viewport: dict[str, int],
+    url: str,
+    timeout_ms: int,
+    local_debug_token: str,
+) -> Any:
     page = browser.new_page(viewport=viewport)
     _install_fetch_recorder(page)
+    page.add_init_script(f"window.LOCAL_DEBUG_API_TOKEN = {json.dumps(local_debug_token)};")
     page.goto(url, wait_until="networkidle", timeout=timeout_ms)
     return page
 
@@ -200,6 +211,7 @@ def _run_browser_sequence(
     cjk_message: str,
     timeout_ms: int,
     headless: bool,
+    local_debug_token: str,
 ) -> dict[str, Any]:
     sync_playwright = _load_sync_playwright()
     result: dict[str, Any] = {
@@ -226,6 +238,7 @@ def _run_browser_sequence(
                 viewport=desktop_viewport,
                 url=_page_url(base_url, "chat", user_external_id=user_external_id, local_date=local_date),
                 timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
             )
             chat.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
             result["chat_page_loaded"] = True
@@ -282,6 +295,7 @@ def _run_browser_sequence(
                 viewport=desktop_viewport,
                 url=_page_url(base_url, "today", user_external_id=user_external_id, local_date=local_date),
                 timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
             )
             today.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
             today.wait_for_function(
@@ -348,6 +362,7 @@ def _run_browser_sequence(
                 viewport=desktop_viewport,
                 url=_page_url(base_url, "body", user_external_id=user_external_id, local_date=local_date),
                 timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
             )
             body.wait_for_selector('[data-surface-role="body-plan"]', timeout=timeout_ms)
             body.wait_for_function(
@@ -408,6 +423,7 @@ def _run_browser_sequence(
                     viewport=mobile_viewport,
                     url=_page_url(base_url, page_name, user_external_id=user_external_id, local_date=local_date),
                     timeout_ms=timeout_ms,
+                    local_debug_token=local_debug_token,
                 )
                 if page_name == "chat":
                     mobile.wait_for_function(
@@ -608,6 +624,9 @@ def build_product_pages_browser_smoke_report(
     db = SessionLocal()
     app = _build_app(db, provider)
     port = _free_port()
+    previous_debug_token = os.environ.get(LOCAL_DEBUG_API_TOKEN_ENV)
+    local_debug_token = secrets.token_urlsafe(24)
+    os.environ[LOCAL_DEBUG_API_TOKEN_ENV] = local_debug_token
     server, thread = _run_uvicorn_in_thread(app, port=port)
     try:
         base_url = f"http://127.0.0.1:{port}"
@@ -622,6 +641,7 @@ def build_product_pages_browser_smoke_report(
                 cjk_message=cjk_message,
                 timeout_ms=timeout_ms,
                 headless=headless,
+                local_debug_token=local_debug_token,
             )
         except Exception as exc:
             report["browser_sequence_error"] = f"{type(exc).__name__}: {exc}"
@@ -645,6 +665,10 @@ def build_product_pages_browser_smoke_report(
         server.should_exit = True
         thread.join(timeout=5)
         _restore_runtime(app)
+        if previous_debug_token is None:
+            os.environ.pop(LOCAL_DEBUG_API_TOKEN_ENV, None)
+        else:
+            os.environ[LOCAL_DEBUG_API_TOKEN_ENV] = previous_debug_token
         db.close()
         engine.dispose()
         time.sleep(0.1)
