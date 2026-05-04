@@ -282,7 +282,9 @@
     };
     const todayIso = () => new Date().toISOString().slice(0, 10);
     const el = (id) => document.getElementById(id);
-    el("local-date").value = new URLSearchParams(window.location.search).get("local_date") || todayIso();
+    const params = new URLSearchParams(window.location.search);
+    el("user-id").value = params.get("user_id") || el("user-id").value;
+    el("local-date").value = params.get("local_date") || todayIso();
 
     function userId() {
       return el("user-id").value.trim() || "default_user";
