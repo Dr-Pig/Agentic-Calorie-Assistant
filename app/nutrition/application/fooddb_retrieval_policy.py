@@ -40,6 +40,7 @@ MODIFIER_PATTERNS = {
     },
     "rice_portion": {
         "少飯": "less_rice",
+        "飯少一點": "less_rice",
         "半飯": "half_rice",
         "飯半碗": "half_rice",
         "飯少": "less_rice",
@@ -58,10 +59,12 @@ class IndexedFoodRecord:
     kcal_point: int | None
     kcal_range: tuple[int, int] | None
     serving_basis: str
-    portion_basis: str
+    portion_basis: Any
     followup_hints: tuple[str, ...]
     major_modifiers: tuple[dict[str, Any], ...]
     runtime_usage_boundary: str
+    source_provenance: dict[str, Any]
+    approval_metadata: dict[str, Any]
 
 
 def retrieve_fooddb_candidates(
@@ -253,6 +256,8 @@ def _retrieval_records(payload: dict[str, Any]) -> tuple[IndexedFoodRecord, ...]
                     ),
                     major_modifiers=(),
                     runtime_usage_boundary="bare_basket_ask_followup_no_estimate",
+                    source_provenance={},
+                    approval_metadata={},
                 )
             )
             continue
@@ -274,12 +279,14 @@ def _retrieval_records(payload: dict[str, Any]) -> tuple[IndexedFoodRecord, ...]
                 kcal_point=_optional_int(item.get("kcal_point") or item.get("baseline_likely_kcal")),
                 kcal_range=_range_tuple(kcal_range),
                 serving_basis=str(item.get("serving_basis") or ""),
-                portion_basis=str(item.get("portion_basis") or ""),
+                portion_basis=item.get("portion_basis") or "",
                 followup_hints=tuple(str(hint) for hint in item.get("followup_hints") or [] if str(hint).strip()),
                 major_modifiers=tuple(
                     modifier for modifier in item.get("major_modifiers") or [] if isinstance(modifier, dict)
                 ),
                 runtime_usage_boundary=str(item.get("runtime_usage_boundary") or ""),
+                source_provenance=dict(item.get("source_provenance") or {}),
+                approval_metadata=dict(item.get("approval_metadata") or {}),
             )
         )
     return tuple(sorted(records, key=lambda record: record.anchor_id))
@@ -346,17 +353,29 @@ def _candidate_payload(match: dict[str, Any], *, query_component: str) -> dict[s
         "portion_basis": record.portion_basis,
         "runtime_usage_boundary": record.runtime_usage_boundary,
         "followup_hints": list(record.followup_hints),
+        "source_provenance": record.source_provenance,
+        "approval_metadata": record.approval_metadata,
     }
 
 
 def _candidate_query_terms(normalized: dict[str, Any]) -> list[str]:
     text = normalized["normalized_text"]
     terms = [text]
-    compact = re.sub(r"(我|吃了|喝了|一杯|一份|一個|一顆|大杯|中杯|小杯|半糖|無糖|全糖)", "", text)
+    compact = _strip_known_modifier_terms(text)
+    compact = re.sub(r"(我|吃了|喝了|一杯|一份|一個|一顆|大杯|中杯|小杯|半糖|無糖|全糖)", "", compact)
     compact = compact.strip(" ，,。")
     if compact and compact not in terms:
         terms.append(compact)
     return [term for term in terms if term]
+
+
+def _strip_known_modifier_terms(text: str) -> str:
+    compact = text
+    for patterns in MODIFIER_PATTERNS.values():
+        for pattern in patterns:
+            if pattern:
+                compact = compact.replace(pattern, "")
+    return compact
 
 
 def _listed_basket_components(text: str) -> list[str]:
