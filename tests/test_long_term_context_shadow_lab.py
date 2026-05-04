@@ -183,6 +183,7 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
         "rescue_shadow_candidates",
         "memory_review_action_shadow_result",
         "conversation_recall_shadow_eval",
+        "long_term_context_pack_shadow_eval",
     }
 
     for artifact in artifacts.values():
@@ -482,6 +483,58 @@ def test_conversation_recall_shadow_eval_is_summary_first_and_tool_call_disabled
     }
 
 
+def test_consumer_specific_context_packs_are_summary_first_and_non_injecting() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "long_term_context_pack_shadow_eval"
+    ]
+
+    assert artifact["artifact_type"] == "long_term_context_pack_shadow_eval"
+    assert artifact["manager_context_injected"] is False
+    assert artifact["runtime_context_loaded"] is False
+    assert set(artifact["context_packs"]) == {
+        "recommendation",
+        "intake_chat_context",
+        "calibration_context",
+    }
+
+    for pack in artifact["context_packs"].values():
+        assert pack["summary_first"] is True
+        assert pack["structured_state_first"] is True
+        assert pack["raw_full_history_dumped"] is False
+        assert pack["runtime_effect_allowed"] is False
+        assert pack["manager_context_injection_allowed"] is False
+        assert pack["token_estimate"] >= 0
+        assert pack["omission_trace"]["raw_transcript_omitted"] is True
+        assert pack["omission_trace"]["unselected_candidates_omitted"] >= 0
+
+    recommendation = artifact["context_packs"]["recommendation"]
+    assert (
+        "golden-order-morning-bar-oatmeal-latte"
+        in recommendation["selected_candidate_ids"]
+    )
+    assert "preference-drink-latte" in recommendation["selected_candidate_ids"]
+
+    intake_chat = artifact["context_packs"]["intake_chat_context"]
+    assert any(
+        candidate_id.startswith("user-language-")
+        for candidate_id in intake_chat["selected_candidate_ids"]
+    )
+    assert (
+        "conversation-recall-context-summary" in intake_chat["selected_candidate_ids"]
+    )
+
+    calibration = artifact["context_packs"]["calibration_context"]
+    assert (
+        "intake-estimation-bias-likely-underestimate"
+        in calibration["selected_candidate_ids"]
+    )
+    assert "pattern-budget-overshoot-frequency" in calibration["selected_candidate_ids"]
+
+
 def test_shadow_simulations_never_send_serve_or_commit() -> None:
     from app.memory.application.long_term_context_shadow_lab import (
         build_shadow_lab_artifacts,
@@ -537,6 +590,7 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "rescue_shadow_candidates.json",
         "memory_review_action_shadow_result.json",
         "conversation_recall_shadow_eval.json",
+        "long_term_context_pack_shadow_eval.json",
     }
     assert {path.name for path in output_dir.iterdir()} == expected_files
     for path in output_dir.iterdir():
