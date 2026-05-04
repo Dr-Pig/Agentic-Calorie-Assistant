@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import csv
 from datetime import UTC, datetime
 import hashlib
 import json
 from pathlib import Path
+import re
 from typing import Any, Iterable
 
 from openpyxl import load_workbook
@@ -22,6 +24,7 @@ NO_TRUTH_FLAGS = {
 
 EVIDENCE_ROLE_BY_SOURCE_ID = {
     "newtaipei_brand_candidates": "exact_card_candidate",
+    "local_tw_packaged_extract_188_2": "exact_card_candidate",
     "openfoodfacts_taiwan_small": "packaged_candidate",
     "usda_food_list_sample": "fallback_anchor_candidate",
     "base_nutrition_db": "alias_coverage_prior",
@@ -137,13 +140,18 @@ def _normalize_source(
     try:
         if path.suffix.lower() == ".xlsx":
             candidates, rejections, schema_keys, parsed_count = _normalize_xlsx(definition, path)
+        elif path.suffix.lower() == ".csv":
+            records = _csv_records(path)
+            schema_keys = _schema_keys(records)
+            candidates, rejections = _normalize_csv_records(definition, records)
+            parsed_count = len(records)
         else:
             payload = json.loads(path.read_text(encoding="utf-8-sig"))
             records = _json_records(payload)
             schema_keys = _schema_keys(records)
             candidates, rejections = _normalize_json_records(definition, records)
             parsed_count = len(records)
-    except (json.JSONDecodeError, OSError, UnicodeError) as exc:
+    except (csv.Error, json.JSONDecodeError, OSError, UnicodeError) as exc:
         report["parse_error"] = type(exc).__name__
         return report, [], []
 
@@ -191,6 +199,24 @@ def _normalize_json_records(
     return candidates, rejections
 
 
+def _normalize_csv_records(
+    definition: RawSourceDefinition,
+    records: list[Any],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    candidates: list[dict[str, Any]] = []
+    rejections: list[dict[str, Any]] = []
+    for index, record in enumerate(records, start=2):
+        if not isinstance(record, dict):
+            rejections.append(_rejection(definition, index, None, ["invalid_record_shape"]))
+            continue
+        candidate, reasons = _candidate_from_csv_record(definition, record, index)
+        if reasons:
+            rejections.append(_rejection(definition, index, _record_id(record), reasons))
+            continue
+        candidates.append(candidate)
+    return candidates, rejections
+
+
 def _candidate_from_json_record(
     definition: RawSourceDefinition,
     record: dict[str, Any],
@@ -218,6 +244,65 @@ def _candidate_from_json_record(
             serving_basis=serving_basis,
             source_url=_first_text(record, ("source_url", "url")),
             raw_record=record,
+            extra_provenance=None,
+        ),
+        [],
+    )
+
+
+def _candidate_from_csv_record(
+    definition: RawSourceDefinition,
+    record: dict[str, Any],
+    row_index: int,
+) -> tuple[dict[str, Any], list[str]]:
+    source_id = definition.source_id
+    label = _label_for_csv_record(source_id, record)
+    serving_basis, nutrition_basis, basis_candidates, kcal = _serving_basis_and_kcal_for_csv_record(
+        source_id,
+        record,
+    )
+    reasons = _basic_rejection_reasons(label=label, kcal=kcal)
+    if not _serving_basis_is_present(serving_basis):
+        reasons.append("missing_serving_basis")
+    if reasons:
+        return {}, _dedupe(reasons)
+
+    brand = _brand_for_csv_record(source_id, record)
+    image_urls = _split_multivalue_field(
+        _csv_value(
+            record,
+            "正面外包裝照片",
+            "反面外包裝照片",
+            "側面外包裝照片",
+            "營養標示圖片",
+            "內容物標示圖片",
+            "image_urls",
+            "image_url",
+            "images",
+            "image",
+        )
+    )
+    return (
+        _candidate(
+            definition=definition,
+            label=label,
+            row_index=row_index,
+            record_id=_record_id(record),
+            kcal=kcal,
+            aliases=_aliases_for_csv_record(source_id, record, label),
+            category=_csv_value(record, "產品分類", "category"),
+            brand=brand,
+            serving_basis=serving_basis,
+            source_url=image_urls[0] if image_urls else None,
+            raw_record=record,
+            extra_provenance={
+                "company_name": brand,
+                "product_name": label,
+                "package_size": _csv_value(record, "包裝規格", "package_size", "package", "spec"),
+                "nutrition_basis": nutrition_basis,
+                "basis_candidates": basis_candidates,
+                "image_urls": image_urls,
+            },
         ),
         [],
     )
@@ -270,6 +355,7 @@ def _normalize_xlsx(
                 },
                 source_url=None,
                 raw_record=record,
+                extra_provenance=None,
             )
         )
     return candidates, rejections, schema_keys, parsed_count
@@ -288,6 +374,7 @@ def _candidate(
     serving_basis: dict[str, Any],
     source_url: str | None,
     raw_record: dict[str, Any],
+    extra_provenance: dict[str, Any] | None,
 ) -> dict[str, Any]:
     candidate_hash = _stable_hash(
         {
@@ -320,6 +407,7 @@ def _candidate(
             "record_id": record_id,
             "source_url": source_url,
             "raw_row_hash": _stable_hash(raw_record),
+            **(extra_provenance or {}),
         },
         "quality_flags": [],
     }
@@ -381,6 +469,11 @@ def _schema_keys(records: list[Any]) -> list[str]:
     )
 
 
+def _csv_records(path: Path) -> list[dict[str, Any]]:
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        return [dict(record) for record in csv.DictReader(handle)]
+
+
 def _label_for_json_record(source_id: str, record: dict[str, Any]) -> str:
     if source_id == "base_nutrition_db":
         return _first_text(record, ("title", "name", "label"))
@@ -391,6 +484,12 @@ def _label_for_json_record(source_id: str, record: dict[str, Any]) -> str:
     if source_id == "tfda_base_candidates":
         return _first_text(record, ("variant", "title", "name"))
     return _first_text(record, ("title", "variant", "name", "label"))
+
+
+def _label_for_csv_record(source_id: str, record: dict[str, Any]) -> str:
+    if source_id == "local_tw_packaged_extract_188_2":
+        return _csv_value(record, "產品名稱", "product_name", "product", "name", "item_name")
+    return _first_text(record, ("title", "name", "label"))
 
 
 def _aliases_for_json_record(
@@ -423,11 +522,36 @@ def _aliases_for_json_record(
     )
 
 
+def _aliases_for_csv_record(
+    source_id: str,
+    record: dict[str, Any],
+    label: str,
+) -> list[str]:
+    if source_id != "local_tw_packaged_extract_188_2":
+        return []
+    company = _csv_value(record, "公司名稱", "company_name", "company", "brand", "manufacturer")
+    package_size = _csv_value(record, "包裝規格", "package_size", "package", "spec")
+    return _dedupe(
+        alias
+        for alias in (
+            f"{company} {label}".strip(),
+            f"{label} {package_size}".strip(),
+        )
+        if alias and alias != label
+    )
+
+
 def _brand_for_json_record(source_id: str, record: dict[str, Any]) -> str | None:
     if source_id == "openfoodfacts_taiwan_small":
         return _first_text(record, ("brands", "brand"))
     if source_id == "newtaipei_brand_candidates":
         return _first_text(record, ("brand", "brands"))
+    return None
+
+
+def _brand_for_csv_record(source_id: str, record: dict[str, Any]) -> str | None:
+    if source_id == "local_tw_packaged_extract_188_2":
+        return _csv_value(record, "公司名稱", "company_name", "company", "brand", "manufacturer") or None
     return None
 
 
@@ -438,6 +562,52 @@ def _serving_basis_for_json_record(source_id: str, record: dict[str, Any]) -> di
     if source_id in {"openfoodfacts_taiwan_small", "usda_food_list_sample"}:
         return {"unit_type": "g", "amount": 100, "label": "per_100g"}
     return {"unit_type": "g", "amount": 100, "label": "per_100g"}
+
+
+def _serving_basis_and_kcal_for_csv_record(
+    source_id: str,
+    record: dict[str, Any],
+) -> tuple[dict[str, Any], str, dict[str, float], float | None]:
+    if source_id != "local_tw_packaged_extract_188_2":
+        return {"unit_type": "", "amount": None, "label": ""}, "", {}, None
+
+    per_serving = _number(_csv_value(record, "每份熱量", "kcal_per_serving", "calories_per_serving"))
+    per_100g = _number(_csv_value(record, "每100公克熱量", "kcal_per_100g", "calories_per_100g"))
+    per_100ml = _number(_csv_value(record, "每100毫升熱量", "kcal_per_100ml", "calories_per_100ml"))
+    basis_candidates: dict[str, float] = {}
+    if per_serving is not None:
+        basis_candidates["per_serving"] = per_serving
+    if per_100g is not None:
+        basis_candidates["per_100g"] = per_100g
+    if per_100ml is not None:
+        basis_candidates["per_100ml"] = per_100ml
+
+    if per_serving is not None:
+        amount, unit_type = _parse_amount_and_unit(
+            _csv_value(record, "每一份量", "serving_size", "serving", "serving_amount")
+        )
+        if amount is not None and unit_type:
+            return (
+                {"unit_type": unit_type, "amount": amount, "label": "per_serving"},
+                "per_serving",
+                basis_candidates,
+                per_serving,
+            )
+    if per_100g is not None:
+        return (
+            {"unit_type": "g", "amount": 100, "label": "per_100g"},
+            "per_100g",
+            basis_candidates,
+            per_100g,
+        )
+    if per_100ml is not None:
+        return (
+            {"unit_type": "ml", "amount": 100, "label": "per_100ml"},
+            "per_100ml",
+            basis_candidates,
+            per_100ml,
+        )
+    return {"unit_type": "", "amount": None, "label": ""}, "", basis_candidates, None
 
 
 def _kcal_for_json_record(source_id: str, record: dict[str, Any]) -> float | None:
@@ -472,6 +642,7 @@ def _record_id(record: dict[str, Any]) -> str | None:
         or record.get("code")
         or record.get("fdcId")
         or record.get("source_id")
+        or record.get("產品追溯系統串接碼")
     )
     if value is None:
         return None
@@ -485,6 +656,12 @@ def _basic_rejection_reasons(label: str, kcal: float | None) -> list[str]:
     if kcal is None:
         reasons.append("missing_kcal")
     return reasons
+
+
+def _serving_basis_is_present(serving_basis: dict[str, Any]) -> bool:
+    if not isinstance(serving_basis, dict):
+        return False
+    return bool(serving_basis.get("unit_type")) and serving_basis.get("amount") not in (None, "")
 
 
 def _evidence_role(
@@ -554,10 +731,24 @@ def _first_text(record: dict[str, Any], keys: tuple[str, ...]) -> str:
     return ""
 
 
+def _csv_value(record: dict[str, Any], *keys: str) -> str:
+    normalized = {_normalize_key(key): value for key, value in record.items()}
+    for key in keys:
+        value = _text(normalized.get(_normalize_key(key)))
+        if value:
+            return value
+    return ""
+
+
 def _text(value: Any) -> str:
     if value is None:
         return ""
     return str(value).strip()
+
+
+def _normalize_key(value: Any) -> str:
+    text = str(value or "").strip().casefold()
+    return re.sub(r"[\s\-_()（）/]+", "", text)
 
 
 def _number(value: Any) -> float | None:
@@ -569,6 +760,22 @@ def _number(value: Any) -> float | None:
         return None
 
 
+def _parse_amount_and_unit(value: str) -> tuple[float | None, str]:
+    normalized = (
+        _text(value)
+        .replace("毫升", "ml")
+        .replace("公克", "g")
+        .replace("Ｇ", "g")
+        .replace("ｇ", "g")
+        .replace("ＭＬ", "ml")
+        .replace("ｍｌ", "ml")
+    )
+    match = re.search(r"(?P<amount>\d+(?:\.\d+)?)\s*(?P<unit>[a-zA-Z]+)", normalized)
+    if not match:
+        return None, ""
+    return float(match.group("amount")), match.group("unit").casefold()
+
+
 def _split_aliases(value: Any) -> list[str]:
     if value is None:
         return []
@@ -578,6 +785,19 @@ def _split_aliases(value: Any) -> list[str]:
     if not text:
         return []
     for delimiter in ("、", "，", ",", ";", "；", "/"):
+        text = text.replace(delimiter, "\n")
+    return _dedupe(part.strip() for part in text.splitlines() if part.strip())
+
+
+def _split_multivalue_field(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return _dedupe(_text(item) for item in value if _text(item))
+    text = str(value).strip()
+    if not text:
+        return []
+    for delimiter in ("、", "，", ",", ";", "|"):
         text = text.replace(delimiter, "\n")
     return _dedupe(part.strip() for part in text.splitlines() if part.strip())
 

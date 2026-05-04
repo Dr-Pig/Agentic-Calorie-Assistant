@@ -58,6 +58,12 @@ def _validation_artifact() -> dict:
             evidence_role="exact_card_candidate",
         ),
         _validated_candidate(
+            "local_exact",
+            "local packaged dessert",
+            source_class="local_taiwan_packaged_extract",
+            evidence_role="exact_card_candidate",
+        ),
+        _validated_candidate(
             "repair_entry",
             "repair me",
             source_class="taiwan_tfda_open_data",
@@ -76,8 +82,8 @@ def _validation_artifact() -> dict:
         "artifact_type": "accurate_intake_food_evidence_candidate_validation",
         "claim_scope": "food_evidence_candidate_validation_only",
         "summary": {
-            "candidate_count": 5,
-            "validator_passed_count": 3,
+            "candidate_count": 6,
+            "validator_passed_count": 4,
             "rejected_count": 1,
             "needs_source_repair_count": 1,
             "source_parse_error_count": 1,
@@ -102,9 +108,9 @@ def _auto_eligible_artifact() -> dict:
         "artifact_type": "accurate_intake_food_auto_eligible_candidate_batch",
         "claim_scope": "food_evidence_auto_eligible_candidates_only",
         "summary": {
-            "validated_candidate_count": 5,
+            "validated_candidate_count": 6,
             "auto_eligible_count": 3,
-            "exception_count": 2,
+            "exception_count": 3,
             "sample_audit_group_count": 3,
         },
         "auto_eligible_candidates": [
@@ -149,6 +155,17 @@ def _auto_eligible_artifact() -> dict:
             },
         ],
         "exception_report": [
+            {
+                "candidate_id": "local_exact",
+                "source_id": "local_exact_source",
+                "source_class": "local_taiwan_packaged_extract",
+                "evidence_role": "exact_card_candidate",
+                "validation_status": "validator_passed",
+                "validation_reasons": [],
+                "exception_reason": "source_class_not_auto_eligible",
+                "runtime_truth_allowed": False,
+                "packet_ready": False,
+            },
             {
                 "candidate_id": "repair_entry",
                 "source_id": "repair_entry_source",
@@ -245,22 +262,23 @@ def test_candidate_triage_report_classifies_lanes_and_stop_rules() -> None:
         "listed_basket_components_max_before_activation": 60,
     }
     assert report["validation_summary_compact"] == {
-        "candidate_count": 5,
-        "validator_passed_count": 3,
+        "candidate_count": 6,
+        "validator_passed_count": 4,
         "rejected_count": 1,
         "needs_source_repair_count": 1,
         "source_parse_error_count": 1,
     }
     assert report["auto_eligible_summary_compact"] == {
-        "validated_candidate_count": 5,
+        "validated_candidate_count": 6,
         "auto_eligible_count": 3,
-        "exception_count": 2,
+        "exception_count": 3,
         "sample_audit_group_count": 3,
     }
     assert report["summary"] == {
         "tfda_generic_auto_eligible_count": 1,
         "tfda_listed_component_auto_eligible_count": 1,
         "official_exact_candidate_only_count": 1,
+        "local_packaged_exact_candidate_only_count": 1,
         "source_repair_required_count": 1,
         "rejected_count": 1,
     }
@@ -284,6 +302,7 @@ def test_candidate_triage_report_classifies_lanes_and_stop_rules() -> None:
     tfda_lane = report["lane_map"]["tfda_generic_runtime_batch_candidates"]
     listed_lane = report["lane_map"]["tfda_listed_component_runtime_batch_candidates"]
     exact_lane = report["lane_map"]["official_exact_candidate_only"]
+    local_exact_lane = report["lane_map"]["local_packaged_exact_candidate_only"]
     repair_lane = report["lane_map"]["source_repair_required"]
     rejected_lane = report["lane_map"]["rejected"]
 
@@ -301,6 +320,11 @@ def test_candidate_triage_report_classifies_lanes_and_stop_rules() -> None:
     assert exact_lane["candidate_ids"] == ["official_exact"]
     assert exact_lane["runtime_truth_allowed"] is False
     assert exact_lane["next_action"] == "exact-candidate-review"
+
+    assert local_exact_lane["lane_count"] == 1
+    assert local_exact_lane["candidate_ids"] == ["local_exact"]
+    assert local_exact_lane["runtime_truth_allowed"] is False
+    assert local_exact_lane["next_action"] == "local-packaged-exact-candidate-review"
 
     assert repair_lane["lane_count"] == 1
     assert repair_lane["candidate_ids"] == ["repair_entry"]

@@ -199,6 +199,100 @@ def test_candidate_normalization_maps_off_and_usda_samples(tmp_path: Path) -> No
     assert by_source["usda_food_list_sample"]["kcal_point"] == 54
 
 
+def test_candidate_normalization_maps_local_extracted_csv_packaged_rows(tmp_path: Path) -> None:
+    source = tmp_path / "188_2.csv"
+    source.write_text(
+        "\n".join(
+            [
+                "company_name,product_name,package_size,serving_size,kcal_per_serving,kcal_per_100g,kcal_per_100ml,image_url",
+                "Tea Co,Brown Sugar Milk Tea,500 ml,250 ml,150,,60,https://example.test/milk-tea.jpg",
+                "Snack Co,Crispy Seaweed,36 g,18 g,,520,,https://example.test/seaweed.jpg",
+                "Juice Co,Lemon Juice,900 ml,,,,44,https://example.test/lemon-juice.jpg",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    artifact = build_food_evidence_candidate_artifact(scan_roots=[tmp_path])
+    by_label = {candidate["canonical_label"]: candidate for candidate in artifact["candidates"]}
+
+    milk_tea = by_label["Brown Sugar Milk Tea"]
+    assert milk_tea["source_id"] == "local_tw_packaged_extract_188_2"
+    assert milk_tea["source_class"] == "local_taiwan_packaged_extract"
+    assert milk_tea["evidence_role"] == "exact_card_candidate"
+    assert milk_tea["brand"] == "Tea Co"
+    assert milk_tea["serving_basis"] == {
+        "unit_type": "ml",
+        "amount": 250,
+        "label": "per_serving",
+    }
+    assert milk_tea["kcal_point"] == 150
+    assert milk_tea["runtime_truth_allowed"] is False
+    assert milk_tea["source_provenance"]["package_size"] == "500 ml"
+    assert milk_tea["source_provenance"]["nutrition_basis"] == "per_serving"
+    assert milk_tea["source_provenance"]["image_urls"] == ["https://example.test/milk-tea.jpg"]
+    assert milk_tea["source_provenance"]["basis_candidates"] == {
+        "per_serving": 150.0,
+        "per_100ml": 60.0,
+    }
+
+    seaweed = by_label["Crispy Seaweed"]
+    assert seaweed["serving_basis"] == {
+        "unit_type": "g",
+        "amount": 100,
+        "label": "per_100g",
+    }
+    assert seaweed["kcal_point"] == 520
+    assert seaweed["source_provenance"]["nutrition_basis"] == "per_100g"
+
+    lemon_juice = by_label["Lemon Juice"]
+    assert lemon_juice["serving_basis"] == {
+        "unit_type": "ml",
+        "amount": 100,
+        "label": "per_100ml",
+    }
+    assert lemon_juice["kcal_point"] == 44
+    assert lemon_juice["source_provenance"]["nutrition_basis"] == "per_100ml"
+    assert all(candidate["runtime_truth_allowed"] is False for candidate in by_label.values())
+
+
+def test_candidate_normalization_prefers_explicit_normalized_basis_when_serving_size_is_missing(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "188_2.csv"
+    source.write_text(
+        "\n".join(
+            [
+                "公司名稱,產品名稱,包裝規格,每一份量,每份熱量,每100公克熱量,每100毫升熱量,正面外包裝照片",
+                "Tea Co,Brown Sugar Milk Tea,500 ml,,150,60,,https://example.test/milk-tea.jpg",
+                "Tea Co,Lemon Juice,900 ml,,120,,44,https://example.test/lemon-juice.jpg",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    artifact = build_food_evidence_candidate_artifact(scan_roots=[tmp_path])
+    by_label = {candidate["canonical_label"]: candidate for candidate in artifact["candidates"]}
+
+    milk_tea = by_label["Brown Sugar Milk Tea"]
+    assert milk_tea["serving_basis"] == {
+        "unit_type": "g",
+        "amount": 100,
+        "label": "per_100g",
+    }
+    assert milk_tea["kcal_point"] == 60
+    assert milk_tea["source_provenance"]["nutrition_basis"] == "per_100g"
+
+    lemon_juice = by_label["Lemon Juice"]
+    assert lemon_juice["serving_basis"] == {
+        "unit_type": "ml",
+        "amount": 100,
+        "label": "per_100ml",
+    }
+    assert lemon_juice["kcal_point"] == 44
+    assert lemon_juice["source_provenance"]["nutrition_basis"] == "per_100ml"
+
+
 def test_candidate_normalization_reports_parse_errors_and_rejections(
     tmp_path: Path,
 ) -> None:

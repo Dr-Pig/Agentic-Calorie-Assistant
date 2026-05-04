@@ -68,6 +68,17 @@
       "notes": "Official page-derived brand candidates only; no runtime truth."
     },
     {
+      "source_id": "local_tw_packaged_extract_188_2",
+      "filename": "188_2.csv",
+      "source_class": "local_taiwan_packaged_extract",
+      "source_role": "staging_candidate_only",
+      "intended_roles": [
+        "exact_card_candidate"
+      ],
+      "runtime_truth": false,
+      "notes": "Local extracted CSV packaged-product trace only; candidate review only and never runtime truth in this slice."
+    },
+    {
       "source_id": "openfoodfacts_taiwan_small",
       "filename": "openfoodfacts_taiwan_small.json",
       "source_class": "open_food_facts",

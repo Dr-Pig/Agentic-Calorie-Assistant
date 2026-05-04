@@ -33,6 +33,20 @@ FOOD_EVIDENCE_SOURCE_CLASSES: dict[str, dict[str, Any]] = {
         "caveats": ["only_valid_for_matching_brand_variant_and_portion"],
         "human_review_required": True,
     },
+    "local_taiwan_packaged_extract": {
+        "role": "local_packaged_exact_candidate",
+        "can_support": ["exact_item_candidate_evidence"],
+        "confidence_posture": "medium_high",
+        "required_provenance": [
+            "source_file",
+            "record_id",
+            "product_name",
+            "package_size",
+            "nutrition_basis",
+        ],
+        "caveats": ["candidate_only_until_exact_review_and portion_match_confirmation"],
+        "human_review_required": True,
+    },
     "open_food_facts": {
         "role": "packaged_candidate",
         "can_support": ["candidate_only_unless_quality_flags_pass"],
