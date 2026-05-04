@@ -5,7 +5,7 @@ import json
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -18,7 +18,7 @@ if str(ROOT) not in sys.path:
 
 from app.body.infrastructure.models import BodyObservationRecord, BodyPlanRecord, BodyProfileRecord  # noqa: E402
 from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord  # noqa: E402
-from app.composition.general_chat_service import build_general_chat_response_pass  # noqa: E402
+from app.composition import intake_routes as intake_routes_module  # noqa: E402
 from app.database import get_db, get_or_create_user  # noqa: E402
 from app.intake.infrastructure.models import MealThreadRecord, MealVersionRecord  # noqa: E402
 from app.models import Base  # noqa: E402
@@ -45,6 +45,34 @@ def _session(db_path: Path, *, reset_db: bool) -> Session:
     testing_session = sessionmaker(bind=engine, autocommit=False, autoflush=False)
     Base.metadata.create_all(bind=engine)
     return testing_session()
+
+
+def _install_local_noop_estimate_fallback() -> Callable[[], None]:
+    original_parse_weight_or_budget_intent = intake_routes_module.parse_weight_or_budget_intent
+    original_execute_intake_turn = intake_routes_module.execute_intake_turn
+
+    async def local_noop_parse_weight_or_budget_intent(_llm: Any, _text: str) -> dict[str, Any]:
+        return {"weight_kg": None, "delta_kcal": None}
+
+    async def local_noop_execute_intake_turn(*_args: Any, **kwargs: Any) -> dict[str, Any]:
+        return {
+            "request_id": kwargs.get("request_id") or "calibration-smoke-raw-text-noop",
+            "assistant_message": "No calibration state change from raw text.",
+            "manager_decision": {
+                "intent_type": "intake",
+                "workflow_effect": "raw_text_route_fallback_without_calibration_state_mutation",
+            },
+            "state_after": kwargs.get("state_before"),
+        }
+
+    intake_routes_module.parse_weight_or_budget_intent = local_noop_parse_weight_or_budget_intent
+    intake_routes_module.execute_intake_turn = local_noop_execute_intake_turn
+
+    def restore() -> None:
+        intake_routes_module.parse_weight_or_budget_intent = original_parse_weight_or_budget_intent
+        intake_routes_module.execute_intake_turn = original_execute_intake_turn
+
+    return restore
 
 
 def _client(db: Session) -> TestClient:
@@ -183,6 +211,16 @@ def _get_json(client: TestClient, path: str, *, params: dict[str, Any]) -> dict[
     return payload
 
 
+def _post_json(client: TestClient, path: str, *, payload: dict[str, Any]) -> dict[str, Any]:
+    response = client.post(path, json=payload)
+    if response.status_code != 200:
+        raise RuntimeError(f"{path} returned {response.status_code}: {response.text}")
+    response_payload = response.json()
+    if not isinstance(response_payload, dict):
+        raise RuntimeError(f"{path} did not return a JSON object")
+    return response_payload
+
+
 def _body_plan_counts(db: Session) -> dict[str, int]:
     plans = db.execute(select(BodyPlanRecord)).scalars().all()
     return {
@@ -224,6 +262,30 @@ def _ledger_snapshot(db: Session, *, user_id: int, local_date: str) -> dict[str,
         "adjustment_kcal": ledger.adjustment_kcal,
         "remaining_kcal": ledger.remaining_kcal,
     }
+
+
+def _ledger_entry_snapshot(db: Session, *, user_id: int) -> list[dict[str, Any]]:
+    entries = (
+        db.execute(
+            select(LedgerEntryRecord)
+            .where(LedgerEntryRecord.user_id == user_id)
+            .order_by(LedgerEntryRecord.id.asc())
+        )
+        .scalars()
+        .all()
+    )
+    return [
+        {
+            "id": entry.id,
+            "local_date": entry.local_date,
+            "entry_type": entry.entry_type,
+            "source_type": entry.source_type,
+            "source_id": entry.source_id,
+            "delta_kcal": entry.delta_kcal,
+            "metadata_json": dict(entry.metadata_json or {}),
+        }
+        for entry in entries
+    ]
 
 
 def _proposal_status(db: Session, proposal_container_id: int) -> str:
@@ -284,8 +346,14 @@ def _evaluate_invariants(report: dict[str, Any]) -> list[str]:
     _add_invariant(blockers, preview["proposal_actions_enabled"] is True, "preview did not surface proposal actions")
     _add_invariant(blockers, preview["plan_mutated"] is False, "preview mutated active BodyPlan")
     _add_invariant(blockers, preview["ledger_mutated"] is False, "preview mutated DayBudgetLedger")
+    _add_invariant(blockers, preview["ledger_entry_mutated"] is False, "preview mutated LedgerEntry")
     _add_invariant(blockers, preview["plan_count_changed"] is False, "preview changed BodyPlan row count")
     _add_invariant(blockers, preview["ledger_count_changed"] is False, "preview changed DayBudgetLedger row count")
+    _add_invariant(
+        blockers,
+        preview["ledger_entry_count_changed"] is False,
+        "preview changed LedgerEntry row count",
+    )
 
     _add_invariant(blockers, inbox_before.get("open_count") == 1, "open proposal inbox missing preview proposal")
     _add_invariant(blockers, history_before.get("history_count") == 1, "history missing open preview proposal")
@@ -298,10 +366,11 @@ def _evaluate_invariants(report: dict[str, Any]) -> list[str]:
 
     _add_invariant(
         blockers,
-        raw_apply["workflow_effect"] == "calibration_action_unavailable_without_state_mutation",
-        "raw apply text did not stay unavailable without explicit stored action",
+        raw_apply["workflow_effect"] == "raw_text_route_fallback_without_calibration_state_mutation",
+        "raw apply text did not stay on route fallback without calibration state mutation",
     )
     _add_invariant(blockers, raw_apply["proposal_status_after_attempt"] == "open", "raw apply text changed proposal status")
+    _add_invariant(blockers, raw_apply["proposal_count_changed"] is False, "raw apply text changed proposal count")
     _add_invariant(blockers, raw_apply["plan_mutated"] is False, "raw apply text mutated active BodyPlan")
     _add_invariant(blockers, raw_apply["ledger_mutated"] is False, "raw apply text mutated DayBudgetLedger")
     _add_invariant(
@@ -318,6 +387,42 @@ def _evaluate_invariants(report: dict[str, Any]) -> list[str]:
     _add_invariant(blockers, action["proposal_status"] == "accepted", "explicit stored action did not accept proposal")
     _add_invariant(blockers, action["plan_mutated"] is True, "explicit stored action did not authorize plan mutation")
     _add_invariant(blockers, action["ledger_mutated"] is True, "explicit stored action did not authorize ledger refresh")
+    _add_invariant(blockers, action["db_plan_mutated"] is True, "explicit stored action did not change active BodyPlan")
+    _add_invariant(blockers, action["db_ledger_mutated"] is True, "explicit stored action did not change DayBudgetLedger")
+    _add_invariant(blockers, action["db_proposal_status"] == "accepted", "proposal status was not persisted as accepted")
+    _add_invariant(
+        blockers,
+        action["active_body_plan_daily_budget_kcal"] == preview["effect_payload_summary"]["new_daily_budget_kcal"],
+        "active BodyPlan daily budget does not match proposal effect",
+    )
+    _add_invariant(
+        blockers,
+        action["active_body_plan_estimated_tdee"] == preview["effect_payload_summary"]["new_estimated_tdee_kcal"],
+        "active BodyPlan TDEE does not match proposal effect",
+    )
+    _add_invariant(
+        blockers,
+        action["current_budget_kcal"] == preview["effect_payload_summary"]["new_daily_budget_kcal"],
+        "current budget does not match proposal effect",
+    )
+    if preview["effect_payload_summary"]["calibration_adjustment_delta_kcal_present"]:
+        _add_invariant(
+            blockers,
+            action["calibration_adjustment_entry_count"] == 1,
+            "accepted proposal did not create calibration adjustment ledger entry",
+        )
+        _add_invariant(
+            blockers,
+            action["calibration_adjustment_delta_kcal"]
+            == preview["effect_payload_summary"]["calibration_adjustment_delta_kcal"],
+            "calibration adjustment ledger entry delta does not match proposal effect",
+        )
+    else:
+        _add_invariant(
+            blockers,
+            action["calibration_adjustment_entry_count"] == 0,
+            "accepted proposal created unexpected calibration adjustment ledger entry",
+        )
     _add_invariant(blockers, inbox_after.get("open_count") == 0, "accepted proposal remained in open inbox")
     _add_invariant(blockers, history_after.get("history_count") == 1, "history after accept missing proposal")
     _add_invariant(
@@ -393,29 +498,39 @@ def build_body_budget_calibration_self_use_journey_report(
 ) -> dict[str, Any]:
     db = _session(db_path, reset_db=reset_db)
     engine = db.get_bind()
+    restore_route_fallback = _install_local_noop_estimate_fallback()
     try:
         user_id = _seed_calibration_history(db, user_external_id=user_external_id, local_date=local_date)
         client = _client(db)
         before_preview_plan_counts = _body_plan_counts(db)
         before_preview_ledger_count = db.query(DayBudgetLedgerRecord).count()
+        before_preview_ledger_entries = _ledger_entry_snapshot(db, user_id=user_id)
         before_preview_plan_snapshot = _active_plan_snapshot(db, user_id=user_id)
         before_preview_ledger_snapshot = _ledger_snapshot(db, user_id=user_id, local_date=local_date)
 
-        preview = build_general_chat_response_pass(
-            db,
-            user_external_id=user_external_id,
-            raw_user_input="Should we adjust my calorie target from the last two weeks?",
-            mode="calibration_preview",
-            local_date=local_date,
-            persist_calibration_proposal=True,
+        preview_response = _post_json(
+            client,
+            "/estimate",
+            payload={
+                "text": "Should we adjust my calorie target from the last two weeks?",
+                "allow_search": False,
+                "user_id": user_external_id,
+                "local_date": local_date,
+                "calibration_preview_requested": True,
+                "persist_calibration_proposal": True,
+            },
         )
-        if preview.proposal_artifact is None:
+        preview_payload = dict(preview_response["payload"])
+        preview_ui_hints = dict(preview_payload.get("ui_hints") or {})
+        preview_artifact = preview_payload.get("proposal_artifact")
+        if not isinstance(preview_artifact, dict):
             raise RuntimeError("calibration_self_use_journey_expected_persisted_proposal")
         after_preview_plan_counts = _body_plan_counts(db)
         after_preview_ledger_count = db.query(DayBudgetLedgerRecord).count()
+        after_preview_ledger_entries = _ledger_entry_snapshot(db, user_id=user_id)
         after_preview_plan_snapshot = _active_plan_snapshot(db, user_id=user_id)
         after_preview_ledger_snapshot = _ledger_snapshot(db, user_id=user_id, local_date=local_date)
-        proposal_container_id = int(preview.proposal_artifact["proposal_container_id"])
+        proposal_container_id = int(preview_artifact["proposal_container_id"])
         proposal_record = db.get(ProposalContainerRecord, proposal_container_id)
         if proposal_record is None:
             raise RuntimeError("calibration_self_use_journey_missing_persisted_proposal")
@@ -434,26 +549,47 @@ def build_body_budget_calibration_self_use_journey_report(
         )
         before_raw_apply_plan_snapshot = _active_plan_snapshot(db, user_id=user_id)
         before_raw_apply_ledger_snapshot = _ledger_snapshot(db, user_id=user_id, local_date=local_date)
-        raw_apply_attempt = build_general_chat_response_pass(
-            db,
-            user_external_id=user_external_id,
-            raw_user_input="Apply that calibration proposal.",
-            mode="calibration_action",
-            local_date=local_date,
+        before_raw_apply_proposal_count = db.query(ProposalContainerRecord).count()
+        raw_apply_response = _post_json(
+            client,
+            "/estimate",
+            payload={
+                "text": "Apply that calibration proposal.",
+                "allow_search": False,
+                "user_id": user_external_id,
+                "local_date": local_date,
+                "persist_calibration_proposal": True,
+            },
         )
+        raw_apply_payload = dict(raw_apply_response["payload"])
+        raw_apply_manager_decision = dict(raw_apply_payload.get("manager_decision") or {})
         after_raw_apply_plan_snapshot = _active_plan_snapshot(db, user_id=user_id)
         after_raw_apply_ledger_snapshot = _ledger_snapshot(db, user_id=user_id, local_date=local_date)
         after_raw_apply_proposal_status = _proposal_status(db, proposal_container_id)
-        action = build_general_chat_response_pass(
-            db,
-            user_external_id=user_external_id,
-            raw_user_input="Apply that calibration proposal.",
-            mode="calibration_action",
-            local_date=local_date,
-            calibration_proposal_container_id=proposal_container_id,
-            calibration_action="accept_calibration_proposal",
-            accepted_at=datetime(2026, 5, 14, 10, 30, 0),
+        after_raw_apply_proposal_count = db.query(ProposalContainerRecord).count()
+        before_action_plan_counts = _body_plan_counts(db)
+        before_action_plan_snapshot = _active_plan_snapshot(db, user_id=user_id)
+        before_action_ledger_snapshot = _ledger_snapshot(db, user_id=user_id, local_date=local_date)
+        before_action_ledger_entries = _ledger_entry_snapshot(db, user_id=user_id)
+        action_response = _post_json(
+            client,
+            "/estimate",
+            payload={
+                "text": "Apply that calibration proposal.",
+                "allow_search": False,
+                "user_id": user_external_id,
+                "local_date": local_date,
+                "calibration_proposal_container_id": proposal_container_id,
+                "calibration_action": "accept_calibration_proposal",
+            },
         )
+        action_payload = dict(action_response["payload"])
+        action_ui_hints = dict(action_payload.get("ui_hints") or {})
+        after_action_plan_counts = _body_plan_counts(db)
+        after_action_plan_snapshot = _active_plan_snapshot(db, user_id=user_id)
+        after_action_ledger_snapshot = _ledger_snapshot(db, user_id=user_id, local_date=local_date)
+        after_action_ledger_entries = _ledger_entry_snapshot(db, user_id=user_id)
+        after_action_proposal_status = _proposal_status(db, proposal_container_id)
         inbox_after = _get_json(
             client,
             "/calibration/proposals/open",
@@ -486,13 +622,17 @@ def build_body_budget_calibration_self_use_journey_report(
         )
         weekly_current_day = _weekly_current_day(weekly_progress, local_date=local_date)
 
-        after_action_plan_counts = _body_plan_counts(db)
-        ledger_entries = db.execute(
-            select(LedgerEntryRecord).where(LedgerEntryRecord.user_id == user_id)
-        ).scalars().all()
-        preview_input = preview.input_assembly or {}
+        ledger_entries = (
+            db.execute(select(LedgerEntryRecord).where(LedgerEntryRecord.user_id == user_id))
+            .scalars()
+            .all()
+        )
+        calibration_adjustment_entries = [
+            entry for entry in ledger_entries if entry.entry_type == "calibration_adjustment"
+        ]
+        preview_input = dict(preview_payload.get("input_assembly") or {})
         preview_trace = dict(preview_input.get("trace") or {})
-        action_result = dict(action.calibration_action_result or {})
+        action_result = dict(action_payload.get("calibration_action_result") or {})
         report: dict[str, Any] = {
             "artifact_type": "body_budget_calibration_self_use_journey_smoke",
             "claim_scope": "local_deterministic_body_budget_calibration_smoke",
@@ -510,13 +650,16 @@ def build_body_budget_calibration_self_use_journey_report(
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
             "proposal_preview": {
-                "workflow_effect": preview.workflow_effect,
-                "reply_text": preview.reply_text,
-                "proposal_surface": bool(preview.ui_hints.get("proposal_surface")),
-                "proposal_actions_enabled": bool(preview.ui_hints.get("proposal_actions_enabled")),
+                "entrypoint": "/estimate",
+                "workflow_effect": preview_payload["manager_decision"]["workflow_effect"],
+                "reply_text": preview_response["coach_message"],
+                "proposal_surface": bool(preview_ui_hints.get("proposal_surface")),
+                "proposal_actions_enabled": bool(preview_ui_hints.get("proposal_actions_enabled")),
                 "proposal_container_id": proposal_container_id,
-                "proposal_family": preview.ui_hints.get("proposal_family"),
-                "calibration_posture": (preview.calibration_diagnostic or {})
+                "proposal_family": preview_ui_hints.get("proposal_family"),
+                "calibration_preview_requested": True,
+                "persist_calibration_proposal": True,
+                "calibration_posture": (preview_payload.get("calibration_diagnostic") or {})
                 .get("calibration_result", {})
                 .get("calibration_posture"),
                 "operating_expenditure_shift_kcal": preview_trace.get("operating_expenditure_shift_kcal"),
@@ -525,12 +668,16 @@ def build_body_budget_calibration_self_use_journey_report(
                 "weight_delta_kg": preview_trace.get("weight_delta_kg"),
                 "plan_mutated": after_preview_plan_snapshot != before_preview_plan_snapshot,
                 "ledger_mutated": after_preview_ledger_snapshot != before_preview_ledger_snapshot,
+                "ledger_entry_mutated": after_preview_ledger_entries != before_preview_ledger_entries,
                 "plan_count_changed": after_preview_plan_counts["total"] != before_preview_plan_counts["total"],
                 "ledger_count_changed": after_preview_ledger_count != before_preview_ledger_count,
+                "ledger_entry_count_changed": len(after_preview_ledger_entries)
+                != len(before_preview_ledger_entries),
                 "effect_payload_summary": {
                     "new_daily_budget_kcal": effect_payload.get("new_daily_budget_kcal"),
                     "new_estimated_tdee_kcal": effect_payload.get("new_estimated_tdee_kcal"),
                     "delta_kcal": effect_payload.get("delta_kcal"),
+                    "calibration_adjustment_delta_kcal": effect_payload.get("calibration_adjustment_delta_kcal"),
                     "calibration_adjustment_delta_kcal_present": "calibration_adjustment_delta_kcal"
                     in effect_payload,
                 },
@@ -538,25 +685,46 @@ def build_body_budget_calibration_self_use_journey_report(
             "proposal_inbox_before_accept": inbox_before,
             "proposal_history_before_accept": history_before,
             "raw_text_apply_attempt": {
-                "workflow_effect": raw_apply_attempt.workflow_effect,
+                "entrypoint": "/estimate",
+                "workflow_effect": raw_apply_manager_decision.get("workflow_effect"),
                 "proposal_status_after_attempt": after_raw_apply_proposal_status,
+                "proposal_count_changed": after_raw_apply_proposal_count != before_raw_apply_proposal_count,
                 "plan_mutated": after_raw_apply_plan_snapshot != before_raw_apply_plan_snapshot,
                 "ledger_mutated": after_raw_apply_ledger_snapshot != before_raw_apply_ledger_snapshot,
+                "calibration_preview_requested_supplied": False,
+                "persist_calibration_proposal_supplied": True,
                 "proposal_container_id_supplied": False,
                 "calibration_action_supplied": False,
                 "raw_text_authorized_mutation": False,
             },
             "proposal_action": {
-                "workflow_effect": action.workflow_effect,
-                "reply_text": action.reply_text,
-                "proposal_status": action.ui_hints.get("proposal_status"),
-                "proposal_container_id": action.ui_hints.get("proposal_container_id"),
-                "effective_from": action.ui_hints.get("effective_from"),
-                "plan_mutated": bool(action.ui_hints.get("plan_mutation_authorized")),
-                "ledger_mutated": bool(action.ui_hints.get("ledger_mutation_authorized")),
+                "entrypoint": "/estimate",
+                "workflow_effect": action_payload["manager_decision"]["workflow_effect"],
+                "reply_text": action_response["coach_message"],
+                "proposal_status": action_ui_hints.get("proposal_status"),
+                "proposal_container_id": action_ui_hints.get("proposal_container_id"),
+                "effective_from": action_ui_hints.get("effective_from"),
+                "plan_mutated": bool(action_ui_hints.get("plan_mutation_authorized")),
+                "ledger_mutated": bool(action_ui_hints.get("ledger_mutation_authorized")),
+                "db_plan_mutated": after_action_plan_snapshot != before_action_plan_snapshot
+                and after_action_plan_counts["total"] == before_action_plan_counts["total"] + 1
+                and after_action_plan_counts["active"] == 1
+                and after_action_plan_counts["superseded"] == before_action_plan_counts["superseded"] + 1,
+                "db_ledger_mutated": after_action_ledger_snapshot != before_action_ledger_snapshot,
+                "db_ledger_entry_count_changed": len(after_action_ledger_entries)
+                != len(before_action_ledger_entries),
+                "db_proposal_status": after_action_proposal_status,
+                "active_body_plan_id": after_action_plan_snapshot["id"],
                 "current_budget_kcal": (action_result.get("current_budget_view") or {}).get("budget_kcal"),
                 "active_body_plan_daily_budget_kcal": (action_result.get("active_body_plan_view") or {}).get(
                     "daily_budget_kcal"
+                ),
+                "active_body_plan_estimated_tdee": (action_result.get("active_body_plan_view") or {}).get(
+                    "estimated_tdee"
+                ),
+                "calibration_adjustment_entry_count": len(calibration_adjustment_entries),
+                "calibration_adjustment_delta_kcal": (
+                    calibration_adjustment_entries[0].delta_kcal if calibration_adjustment_entries else None
                 ),
             },
             "proposal_inbox_after_accept": inbox_after,
@@ -579,9 +747,7 @@ def build_body_budget_calibration_self_use_journey_report(
                 "weekly_progress_current_day_target_kcal": weekly_current_day["active_daily_target_kcal"],
                 "weekly_progress_current_day_consumed_kcal": weekly_current_day["consumed_kcal"],
                 "weekly_progress_current_day_remaining_kcal": weekly_current_day["remaining_kcal"],
-                "calibration_adjustment_entry_count": sum(
-                    1 for entry in ledger_entries if entry.entry_type == "calibration_adjustment"
-                ),
+                "calibration_adjustment_entry_count": len(calibration_adjustment_entries),
             },
             "boundaries": {
                 "preview_mutation_authority": "proposal_artifact_only",
@@ -600,6 +766,7 @@ def build_body_budget_calibration_self_use_journey_report(
             write_json_artifact(output_path, report)
         return report
     finally:
+        restore_route_fallback()
         db.close()
         engine.dispose()
 
