@@ -63,6 +63,8 @@ class EstimateRequest(BaseModel):
     user_id: str = "default_user"
     local_date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     session_state: EstimateSessionState | None = None
+    calibration_preview_requested: bool = False
+    persist_calibration_proposal: bool = False
     calibration_proposal_container_id: int | None = Field(default=None, ge=1)
     calibration_action: CalibrationEstimateAction | None = None
 
