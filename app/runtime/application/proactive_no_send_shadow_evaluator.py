@@ -21,6 +21,7 @@ DataSufficiencyStatus = Literal["missing", "basic", "higher"]
 UserBenefitStrength = Literal["weak", "moderate", "strong"]
 RiskLevel = Literal["low", "medium", "high"]
 DeliverySurface = Literal["background", "app_open", "chat_open"]
+FeedbackAdaptation = Literal["none", "lower_frequency", "suppress_once", "category_suppressed"]
 
 
 LEVEL_2_TRIGGERS = {
@@ -83,6 +84,10 @@ class ProactiveNoSendShadowInput(BaseModel):
     lower_frequency_ready: bool = False
     explicit_consent_ready: bool = False
     delivery_surface: DeliverySurface = "background"
+    ignored_count: int = 0
+    dismissed_count: int = 0
+    accepted_count: int = 0
+    explicit_trigger_opt_out: bool = False
     confidence: float = 0.0
     annoyance_risk: RiskLevel = "medium"
     harm_if_wrong: RiskLevel = "low"
@@ -125,6 +130,7 @@ def _evaluate_trigger(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
             "passed": not level_2_reasons,
         }
     suppression_reasons.extend(_permission_suppression_reasons(item))
+    suppression_reasons.extend(_interaction_feedback_suppression_reasons(item))
     if _deferred_later_only(item) and "later_only_trigger_not_live_eligible" not in suppression_reasons:
         suppression_reasons.append("later_only_trigger_not_live_eligible")
 
@@ -150,6 +156,10 @@ def _evaluate_trigger(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
         "sent": False,
         "runtime_effect_allowed": False,
         "permission_posture": _permission_posture(item.trigger_type),
+        "interrupt_cost": _interrupt_cost(item.delivery_surface),
+        "interaction_feedback": _interaction_feedback(item),
+        "user_callable_when_suppressed": True,
+        "stay_silent_until_signal": _stay_silent_until_signal(item),
     }
     if level_2_gate is not None:
         row["level_2_gate"] = level_2_gate
@@ -203,6 +213,51 @@ def _permission_suppression_reasons(item: ProactiveNoSendShadowInput) -> list[st
     if posture == "later_requires_explicit_consent" and not item.explicit_consent_ready:
         return ["permission_explicit_consent_required"]
     return []
+
+
+def _interaction_feedback_suppression_reasons(item: ProactiveNoSendShadowInput) -> list[str]:
+    reasons: list[str] = []
+    if item.explicit_trigger_opt_out:
+        reasons.append("explicit_trigger_opt_out")
+    if item.dismissed_count > 0:
+        reasons.append("interaction_feedback_dismissed_recently")
+    if item.ignored_count >= 2:
+        reasons.append("interaction_feedback_lower_frequency_required")
+    return reasons
+
+
+def _interaction_feedback(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
+    return {
+        "ignored_count": item.ignored_count,
+        "dismissed_count": item.dismissed_count,
+        "accepted_count": item.accepted_count,
+        "explicit_trigger_opt_out": item.explicit_trigger_opt_out,
+        "adaptation": _feedback_adaptation(item),
+    }
+
+
+def _feedback_adaptation(item: ProactiveNoSendShadowInput) -> FeedbackAdaptation:
+    if item.explicit_trigger_opt_out:
+        return "category_suppressed"
+    if item.dismissed_count > 0:
+        return "suppress_once"
+    if item.ignored_count >= 2:
+        return "lower_frequency"
+    return "none"
+
+
+def _stay_silent_until_signal(item: ProactiveNoSendShadowInput) -> str:
+    if _feedback_adaptation(item) == "none":
+        return "not_applicable"
+    return "next_user_engagement_or_cooldown_window"
+
+
+def _interrupt_cost(delivery_surface: DeliverySurface) -> RiskLevel:
+    if delivery_surface == "background":
+        return "high"
+    if delivery_surface == "app_open":
+        return "low"
+    return "medium"
 
 
 def _permission_posture(trigger_type: str) -> str:

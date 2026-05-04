@@ -206,6 +206,78 @@ def test_user_opted_in_triggers_require_trigger_opt_in_signal() -> None:
     assert rows["low_frequency_weight_log_reminder"]["suppression_status"] == "not_suppressed"
 
 
+def test_ignored_or_dismissed_proactive_feedback_lowers_future_trigger_strength() -> None:
+    artifact = build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="missing_log_reminder_with_cooldown",
+                ignored_count=2,
+            ),
+            ProactiveNoSendShadowInput(
+                trigger_type="weekly_insight",
+                dismissed_count=1,
+            ),
+        ]
+    )
+
+    rows = _by_type(artifact)
+
+    meal_reminder = rows["missing_log_reminder_with_cooldown"]
+    weekly = rows["weekly_insight"]
+
+    assert meal_reminder["suppression_status"] == "suppressed"
+    assert "interaction_feedback_lower_frequency_required" in meal_reminder["suppression_reasons"]
+    assert meal_reminder["interaction_feedback"]["adaptation"] == "lower_frequency"
+    assert meal_reminder["stay_silent_until_signal"] == "next_user_engagement_or_cooldown_window"
+
+    assert weekly["suppression_status"] == "suppressed"
+    assert "interaction_feedback_dismissed_recently" in weekly["suppression_reasons"]
+    assert weekly["interaction_feedback"]["adaptation"] == "suppress_once"
+
+
+def test_explicit_trigger_opt_out_suppresses_but_keeps_capability_user_callable() -> None:
+    artifact = build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="meal_reminder",
+                explicit_trigger_opt_out=True,
+            )
+        ]
+    )
+
+    row = _by_type(artifact)["meal_reminder"]
+
+    assert row["suppression_status"] == "suppressed"
+    assert "explicit_trigger_opt_out" in row["suppression_reasons"]
+    assert row["interaction_feedback"]["adaptation"] == "category_suppressed"
+    assert row["user_callable_when_suppressed"] is True
+
+
+def test_channel_sensitivity_records_background_delivery_as_higher_interrupt_cost() -> None:
+    artifact = build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="recommendation_nudge_nearby",
+                delivery_surface="background",
+            ),
+            ProactiveNoSendShadowInput(
+                trigger_type="recommendation_nudge_nearby",
+                delivery_surface="app_open",
+            ),
+        ]
+    )
+
+    rows = artifact["trigger_evaluations"]
+    background = rows[0]
+    app_open = rows[1]
+
+    assert background["interrupt_cost"] == "high"
+    assert background["suppression_status"] == "suppressed"
+    assert "permission_no_push_allowed" in background["suppression_reasons"]
+    assert app_open["interrupt_cost"] == "low"
+    assert "permission_no_push_allowed" not in app_open["suppression_reasons"]
+
+
 def test_calibration_and_rescue_related_triggers_are_invitations_not_decisions() -> None:
     artifact = build_proactive_no_send_simulation(
         [
@@ -318,3 +390,7 @@ def test_default_artifact_covers_canonical_and_shadow_trigger_sets(tmp_path: Pat
     ]:
         assert '"suppression_status": "deferred_later_only"' in artifact_text
         assert '"later_only_trigger_not_live_eligible"' in artifact_text
+
+    assert '"interaction_feedback_lower_frequency_required"' in artifact_text
+    assert '"interaction_feedback_dismissed_recently"' in artifact_text
+    assert '"explicit_trigger_opt_out"' in artifact_text

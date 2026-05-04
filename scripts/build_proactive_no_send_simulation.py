@@ -38,6 +38,7 @@ def default_proactive_no_send_inputs() -> list[ProactiveNoSendShadowInput]:
             local_time="20:30",
             data_sufficiency_status="basic",
             user_benefit_strength="moderate",
+            ignored_count=2,
         ),
         ProactiveNoSendShadowInput(
             trigger_type="low_frequency_weight_log_reminder",
@@ -50,6 +51,7 @@ def default_proactive_no_send_inputs() -> list[ProactiveNoSendShadowInput]:
             local_time="08:00",
             data_sufficiency_status="higher",
             user_benefit_strength="strong",
+            dismissed_count=1,
         ),
         ProactiveNoSendShadowInput(
             trigger_type="pre_meal_budget_awareness",
@@ -103,6 +105,7 @@ def default_proactive_no_send_inputs() -> list[ProactiveNoSendShadowInput]:
             local_time="09:30",
             data_sufficiency_status="higher",
             user_benefit_strength="strong",
+            explicit_trigger_opt_out=True,
         ),
         ProactiveNoSendShadowInput(
             trigger_type="rescue_nudge",

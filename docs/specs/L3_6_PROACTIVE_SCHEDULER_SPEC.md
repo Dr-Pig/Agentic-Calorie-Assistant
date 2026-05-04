@@ -203,6 +203,42 @@ Level 2 candidates include:
 
 If any Level 2 candidate is skipped, the artifact must include an explicit suppression reason.
 
+### 4.7 Interaction Feedback Adaptation
+
+Proactive should learn to stay quiet before it learns to send more.
+
+No-send shadow evaluation must record interaction feedback signals:
+
+- ignored count
+- dismissed count
+- accepted count
+- explicit trigger opt-out
+
+Default adaptation rules:
+
+| Signal | Required Adaptation |
+| --- | --- |
+| repeated ignored trigger | lower future frequency |
+| recent dismiss | suppress once or wait for a materially new context |
+| explicit trigger opt-out | suppress that category until the user re-enables it |
+| accepted trigger | keep as positive evidence only; it does not bypass cooldown, permission, or data gates |
+
+Suppressed categories must remain user-callable. For example, if a user disables meal reminders, the user may still ask the chat to help log a meal or review the day.
+
+### 4.8 Channel Sensitivity
+
+Delivery surface changes the interruption cost.
+
+Default interrupt cost:
+
+| Delivery Surface | Interrupt Cost | Implication |
+| --- | --- | --- |
+| `background` / push-like surface | high | requires the strictest permission and suppression posture |
+| `chat_open` | medium | may show lightweight suggestions if contextual gates pass |
+| `app_open` | low | best first surface for recommendation invitations |
+
+No-send shadow artifacts must record `interrupt_cost` so future promotion review can distinguish app-open helpfulness from background interruption risk.
+
 ---
 
 ## 5. Trigger-Specific Rules
