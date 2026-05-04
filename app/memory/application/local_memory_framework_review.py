@@ -11,6 +11,9 @@ from app.memory.application.long_term_context_shadow_lab import (
 from app.memory.application.local_memory_skill_review import (
     build_local_skill_reference_summary,
 )
+from app.memory.application.local_memory_zip_review import (
+    build_local_zip_reference_summary,
+)
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
@@ -84,6 +87,7 @@ def build_local_framework_deep_review(root: Path | str) -> dict[str, Any]:
         ],
         "framework_scorecards": scorecards,
         "local_skill_reference_summary": build_local_skill_reference_summary(root_path),
+        "zip_reference_summary": build_local_zip_reference_summary(root_path),
         "global_adoptable_patterns": _global_deep_adoptable_patterns(scorecards),
         "global_deferred_patterns": _global_deep_deferred_patterns(scorecards),
     }
