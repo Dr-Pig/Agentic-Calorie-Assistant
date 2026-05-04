@@ -134,6 +134,14 @@ python scripts/run_accurate_intake_browser_shell_smoke.py --db-path .pytest_tmp_
 
 This smoke executes the local shell in a real Chromium browser only when Playwright is available in the operator environment. If Playwright is not installed, the artifact is `blocked` with `browser_executed=false`; that blocked artifact is allowed for local deterministic PR evidence and still must not claim `web_ready`. To require browser execution explicitly, add `--require-browser-execution`. A passing browser artifact only proves local browser fetch/render/CJK behavior for this shell; it is not a product, rollout, live LLM, Web/Tavily, or production DB readiness claim.
 
+Run the browser realistic local dogfood diagnostic v2 with:
+
+```powershell
+python scripts/run_accurate_intake_browser_realistic_web_dogfood_v2.py --require-browser-execution --db-path .pytest_tmp_local/accurate_intake_browser_realistic_web_dogfood_v2.sqlite3 --output artifacts/accurate_intake_browser_realistic_web_dogfood_v2.json
+```
+
+This browser diagnostic drives the local shell through a target update and CJK food/query turns with deterministic fixture Manager decisions and fixture evidence only. Its success status is `browser_diagnostic_pass_with_fixture_evidence_gap` or `browser_diagnostic_pass_with_evidence_gap`; it must not emit `pass`, `dogfood_pass`, `realistic_pass`, or `fooddb_pass`. The fixture Manager can provide structured Manager decisions, and fixture evidence can simulate packet-ready evidence for local diagnostics only; those fixtures must not become FoodDB truth or update app knowledge.
+
 Run a fresh local shell pass with:
 
 ```powershell
