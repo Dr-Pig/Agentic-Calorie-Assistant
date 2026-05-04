@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from ...logging import get_full_trace, get_trace_summaries, read_recent_events
+from .local_debug_auth import require_local_debug_access
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_local_debug_access)])
 
 
 @router.get("/logs")

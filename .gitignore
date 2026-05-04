@@ -13,6 +13,10 @@ tmp_pytest*/
 
 # Local secrets
 .env
+.evomap_credentials.json
+.evomap-node.json
+evomap_credentials.json
+evomap-node.json
 
 # Runtime output
 .logs/

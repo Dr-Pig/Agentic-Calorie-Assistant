@@ -1,14 +1,21 @@
 import asyncio
+import os
 import httpx
 
 BASE = "http://127.0.0.1:8011"
 USER_ID = "tester_antigravity"
 
+
+def _debug_headers():
+    token = os.environ.get("LOCAL_DEBUG_API_TOKEN", "").strip()
+    return {"X-Local-Debug-Token": token} if token else {}
+
+
 async def main():
     async with httpx.AsyncClient(timeout=60) as client:
         # 0. Reset context
         print("Resetting context...")
-        await client.post(f"{BASE}/user/{USER_ID}/context/reset")
+        await client.post(f"{BASE}/user/{USER_ID}/context/reset", headers=_debug_headers())
 
         # 1. Turn 1: Burger
         print("\n--- Turn 1: 漢堡 ---")

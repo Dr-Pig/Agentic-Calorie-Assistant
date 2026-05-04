@@ -238,6 +238,11 @@
             } catch(e) {}
         }
 
+        function localDebugHeaders() {
+            const token = typeof window.LOCAL_DEBUG_API_TOKEN === 'string' ? window.LOCAL_DEBUG_API_TOKEN.trim() : '';
+            return token ? { 'X-Local-Debug-Token': token } : {};
+        }
+
         async function submitOnboarding() {
             const btn = document.getElementById('btn-onboard');
             btn.innerText = "Processing...";
@@ -453,7 +458,7 @@
         async function resetData() {
             if(!confirm("Reset User context?")) return;
             try {
-                await fetch(`/user/${USER_ID}/context/reset`, { method: 'POST' });
+                await fetch(`/user/${USER_ID}/context/reset`, { method: 'POST', headers: localDebugHeaders() });
                 localStorage.removeItem(CHAT_STORAGE_KEY);
                 sessionStorage.removeItem('e2e_user_id');
                 alert("Reset Complete!");

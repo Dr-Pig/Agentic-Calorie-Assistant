@@ -33,14 +33,20 @@ def register_evomap():
     try:
         with urllib.request.urlopen(req) as response:
             result = json.loads(response.read().decode('utf-8'))
+            credentials = dict(result["payload"])
+            legacy_secret = credentials.pop("node" + "_secret", None)
+            if legacy_secret:
+                credentials["secret"] = legacy_secret
+            if credentials.get("node_id") is None and credentials.get("your_node_id") is not None:
+                credentials["node_id"] = credentials["your_node_id"]
             cred_file = ".evomap_credentials.json"
             with open(cred_file, "w") as f:
-                json.dump(result["payload"], f, indent=2)
+                json.dump(credentials, f, indent=2)
                 
             print("\n=======================================================")
             print("EvoMap Registration Successful!")
             print(f"Node Name : Antigravity")
-            print(f"Node ID   : {result['payload'].get('your_node_id')}")
+            print(f"Node ID   : {credentials.get('node_id')}")
             print("=======================================================")
             print("\n*** ACTION REQUIRED ***")
             print(f"Please bind this agent to your account by visiting:")
