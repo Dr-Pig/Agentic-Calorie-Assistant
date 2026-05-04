@@ -21,6 +21,7 @@ REQUIRED_PL_CE_LOCAL_REVIEW_EVIDENCE = (
     "context_review",
     "context_target_candidate_eval",
     "context_window_diagnostic",
+    "local_operator_data_hygiene_bundle",
     "mvp_gate",
 )
 
@@ -31,6 +32,7 @@ _PASS_STATUSES = {
     "browser_diagnostic_pass_with_fixture_evidence_gap",
     "browser_diagnostic_pass_with_evidence_gap",
     "product_loop_context_diagnostic_ready_for_human_review",
+    "local_operator_data_hygiene_ready",
 }
 
 
@@ -70,6 +72,14 @@ def _overclaim_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         blockers.append(f"{group_id}_live_llm_invoked")
     if payload.get("web_tavily_used") is True or payload.get("web_tavily_invoked") is True:
         blockers.append(f"{group_id}_web_tavily_used")
+    if payload.get("production_db_used") is True:
+        blockers.append(f"{group_id}_production_db_used")
+    if payload.get("fooddb_truth_updated") is True:
+        blockers.append(f"{group_id}_fooddb_truth_updated")
+    if payload.get("writes_performed") is True:
+        blockers.append(f"{group_id}_writes_performed")
+    if payload.get("import_allowed") is True:
+        blockers.append(f"{group_id}_import_allowed")
     return blockers
 
 
