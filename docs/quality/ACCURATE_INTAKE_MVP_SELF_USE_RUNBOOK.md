@@ -247,6 +247,14 @@ python scripts/build_accurate_intake_food_evidence_validation.py --candidate-jso
 
 The generated validation artifact is local-only and ignored. It may mark candidate rows as `validator_passed`, `rejected`, or `needs_source_repair` using provenance, serving basis, kcal sanity, source class compatibility, parse-error repair, and duplicate/alias collision checks. `validator_passed` is still not packet-ready truth: every validated row keeps `runtime_truth_allowed=false`, does not update FoodDB truth, and cannot create nutrition seeds, exact cards, packet truth, runtime truth, or canonical eval oracles.
 
+PR120 builds the stop-gate batch report before any FoodDB truth promotion:
+
+```powershell
+python scripts/build_accurate_intake_food_auto_eligible_batch.py --validation-json artifacts/accurate_intake_food_evidence_validation.json --output artifacts/accurate_intake_food_auto_eligible_batch.json --sample-size-per-group 10
+```
+
+The generated auto-eligible artifact is local-only and ignored. It may classify a subset of `validator_passed` rows as `auto_eligible_packet_candidate` and attach approval metadata for batch review, exception reporting, and sample audit. `auto_eligible_packet_candidate` is still not packet-ready truth: `runtime_truth_allowed=false` remains mandatory, and PR121 must not begin until the batch policy, exception report, and sample audit are reviewed. PR120 must not update FoodDB truth, create nutrition seeds, exact cards, packet truth, runtime truth, or canonical eval oracles.
+
 SQLite-backed route/integration tests should use the shared `LocalSQLiteRouteHarness` when adding new route-level tests. JSON artifact producers should use `write_json_artifact` / `read_json_artifact` to avoid producer-consumer drift such as literal `"\\n"` suffixes. Unit tests should consume fixed artifact dictionaries where possible; DB-heavy scenario runners should be integration-scoped and run sequentially on Windows.
 
 Windows operators should run SQLite-backed commands sequentially. If `.pytest_tmp_local` reports a temporary SQLite lock, wait for the previous process to exit and rerun the affected command before classifying the result. Do not run the reset and keep-db shell commands concurrently against the same DB path.
