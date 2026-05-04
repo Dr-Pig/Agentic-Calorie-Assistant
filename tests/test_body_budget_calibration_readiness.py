@@ -71,7 +71,7 @@ def test_body_budget_calibration_readiness_artifact_records_preview_and_action_m
     assert non_claims["live_tool_calling"] is False
 
 
-def test_body_budget_calibration_readiness_artifact_keeps_calibration_router_activation_deferred() -> None:
+def test_body_budget_calibration_readiness_artifact_records_calibration_router_activation() -> None:
     from app.composition.body_budget_calibration_readiness import (
         build_body_budget_calibration_readiness_artifact,
     )
@@ -79,14 +79,14 @@ def test_body_budget_calibration_readiness_artifact_keeps_calibration_router_act
     artifact = build_body_budget_calibration_readiness_artifact()
     route_activation = artifact["route_activation"]
 
-    assert route_activation["root_app_mounted"] is False
-    assert route_activation["root_mount_status"] == "deferred_until_activation_plan"
+    assert route_activation["root_app_mounted"] is True
+    assert route_activation["root_mount_status"] == "activated_for_calibration_contract_routes"
     assert "/calibration/proposals/open" in route_activation["router_contract_paths"]
     assert "/calibration/proposal/stored-action" in route_activation["router_contract_paths"]
 
     root_routes_source = (ROOT / "app" / "routes.py").read_text(encoding="utf-8")
-    assert "calibration_routes" not in root_routes_source
-    assert "calibration_router" not in root_routes_source
+    assert "from app.composition.calibration_routes import public_router as calibration_router" in root_routes_source
+    assert "router.include_router(calibration_router)" in root_routes_source
 
 
 def test_body_budget_calibration_readiness_script_writes_artifact(tmp_path: Path) -> None:

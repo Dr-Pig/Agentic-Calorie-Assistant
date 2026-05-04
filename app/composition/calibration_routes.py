@@ -22,6 +22,7 @@ from app.shared.domain import ProposalContainer
 from app.shared.infra.models import User
 
 router = APIRouter()
+public_router = APIRouter()
 
 
 class CalibrationProposalPreviewRequest(BaseModel):
@@ -76,6 +77,7 @@ def _proposal_inbox_payload(proposal: ProposalContainer) -> dict[str, object]:
 
 
 @router.get("/calibration/proposals/open")
+@public_router.get("/calibration/proposals/open")
 def open_calibration_proposals(
     user_id: str,
     limit: int = Query(default=20, ge=1, le=50),
@@ -126,6 +128,7 @@ def calibration_proposal_preview(
 
 
 @router.post("/calibration/proposal/preview-from-history")
+@public_router.post("/calibration/proposal/preview-from-history")
 def calibration_proposal_preview_from_history(
     request: CalibrationProposalPreviewFromHistoryRequest,
     db=Depends(get_db),
@@ -192,6 +195,7 @@ def calibration_proposal_action(
 
 
 @router.post("/calibration/proposal/stored-action")
+@public_router.post("/calibration/proposal/stored-action")
 def stored_calibration_proposal_action(
     request: StoredCalibrationProposalActionRequest,
     db=Depends(get_db),
@@ -222,3 +226,6 @@ def stored_calibration_proposal_action(
         "current_budget_view": result.current_budget_view.model_dump(mode="json"),
         "active_body_plan_view": result.active_body_plan_view.model_dump(mode="json"),
     }
+
+
+__all__ = ["public_router", "router"]
