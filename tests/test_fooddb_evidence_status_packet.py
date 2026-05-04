@@ -45,8 +45,8 @@ def test_fooddb_evidence_status_packet_summarizes_current_fdb_without_runtime_ch
         "semantic_only_basket_family_count": 4,
         "exact_card_staging_candidate_count": 1,
         "exact_card_existing_report_only_count": 5,
-        "integration_edges_contract_backed": 8,
-        "integration_edges_draft": 1,
+        "integration_edges_contract_backed": 9,
+        "integration_edges_draft": 0,
     }
     assert packet["activation_thresholds"] == {
         "minimum_common_serving_anchors": 40,
@@ -55,7 +55,7 @@ def test_fooddb_evidence_status_packet_summarizes_current_fdb_without_runtime_ch
         "meets_listed_component_minimum": True,
     }
     assert packet["next_required_slices"] == [
-        "packet_to_mutation_guard_hardening",
+        "manager_fooddb_packet_seam_smoke",
     ]
 
 
