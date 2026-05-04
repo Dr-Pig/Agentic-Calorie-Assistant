@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 
 from pydantic import BaseModel
@@ -15,7 +16,9 @@ router = APIRouter()
 class WeightObservationRequest(BaseModel):
     user_id: str
     weight_kg: float
-    local_date: str
+    unit: str | None = None
+    observed_at: datetime | None = None
+    local_date: str | None = None
 
 
 
@@ -74,18 +77,27 @@ async def weight(
 @router.post("/weight/observation")
 async def post_weight_observation(req: WeightObservationRequest, db: Any = Depends(get_db)) -> dict:
     user = get_or_create_user(db, req.user_id)
-    obs = record_body_observation_to_canonical(
-        db,
-        user=user,
-        value=req.weight_kg,
-        unit="kg",
-        observation_type="weight",
-        local_date=req.local_date
-    )
+    try:
+        obs = record_body_observation_to_canonical(
+            db,
+            user=user,
+            value=req.weight_kg,
+            unit=req.unit or "kg",
+            observation_type="weight",
+            observed_at=req.observed_at,
+            local_date=req.local_date,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    observation_payload = obs.model_dump(mode="json")
 
     return {
         "status": "ok",
         "observation_id": obs.observation_id,
-        "weight_kg": req.weight_kg,
+        "weight_kg": obs.value,
+        "unit": obs.unit,
+        "observed_at": observation_payload["observed_at"],
+        "local_date": obs.local_date,
+        "observation": observation_payload,
         "recomputed_target_kcal": None,
     }

@@ -6,12 +6,14 @@ __all__ = [
     "TargetCalculationInputs",
     "build_active_body_plan_view",
     "calculate_recommended_target_kcal",
+    "get_latest_weight_observation",
 ]
 
 _EXPORT_MAP = {
     "TargetCalculationInputs": (".target_calculation", "TargetCalculationInputs"),
     "build_active_body_plan_view": (".active_body_plan_read_model", "build_active_body_plan_view"),
     "calculate_recommended_target_kcal": (".target_calculation", "calculate_recommended_target_kcal"),
+    "get_latest_weight_observation": (".body_observation_service", "get_latest_weight_observation"),
 }
 
 

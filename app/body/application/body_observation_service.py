@@ -53,11 +53,12 @@ def _upsert_observation_skeleton(
         observed_at=observed_at,
         local_date=local_date,
     )
+    normalized_unit = _normalize_body_observation_unit(unit=unit, observation_type=observation_type)
     record = BodyObservationRecord(
         user_id=user.id,
         observation_type=observation_type,
         value=value,
-        unit=unit,
+        unit=normalized_unit,
         observed_at=normalized_observed_at,
         local_date=normalized_local_date,
         source=source,
@@ -81,7 +82,7 @@ def record_body_observation_skeleton(
     local_date: str | None = None,
     metadata: dict[str, object] | None = None,
 ) -> int:
-    _validate_body_observation_value(value=value, observation_type=observation_type)
+    _validate_body_observation(value=value, unit=unit, observation_type=observation_type)
     observation = _upsert_observation_skeleton(
         db,
         user=user,
@@ -108,7 +109,7 @@ def record_body_observation_to_canonical(
     local_date: str | None = None,
     metadata: dict[str, object] | None = None,
 ) -> BodyObservation:
-    _validate_body_observation_value(value=value, observation_type=observation_type)
+    _validate_body_observation(value=value, unit=unit, observation_type=observation_type)
     observation = _upsert_observation_skeleton(
         db,
         user=user,
@@ -151,6 +152,24 @@ def load_body_observation_history(
     return [_body_observation_from_record(record) for record in rows]
 
 
+def get_latest_weight_observation(
+    db: Session,
+    *,
+    user_id: int,
+    local_date: str | None = None,
+) -> BodyObservation | None:
+    stmt = select(BodyObservationRecord).where(
+        BodyObservationRecord.user_id == user_id,
+        BodyObservationRecord.observation_type == "weight",
+    )
+    if isinstance(local_date, str) and local_date.strip():
+        stmt = stmt.where(BodyObservationRecord.local_date == local_date.strip())
+    record = db.execute(
+        stmt.order_by(BodyObservationRecord.observed_at.desc(), BodyObservationRecord.id.desc())
+    ).scalars().first()
+    return _body_observation_from_record(record) if record is not None else None
+
+
 def get_active_body_profile_record(
     db: Session,
     *,
@@ -163,7 +182,18 @@ def get_active_body_profile_record(
     ).scalars().first()
 
 
-def _validate_body_observation_value(*, value: float, observation_type: str) -> None:
+def _normalize_body_observation_unit(*, unit: str | None, observation_type: str) -> str:
+    normalized_unit = unit.strip().casefold() if isinstance(unit, str) else ""
+    if observation_type == "weight":
+        if not normalized_unit:
+            return "kg"
+        if normalized_unit != "kg":
+            raise ValueError("weight observation unit must be kg")
+    return normalized_unit
+
+
+def _validate_body_observation(*, value: float, unit: str | None, observation_type: str) -> None:
     normalized = float(value)
     if observation_type == "weight" and (not isfinite(normalized) or normalized <= 0):
         raise ValueError("weight observation value must be positive finite")
+    _normalize_body_observation_unit(unit=unit, observation_type=observation_type)
