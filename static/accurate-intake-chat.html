@@ -129,11 +129,11 @@
       text-transform: uppercase;
       letter-spacing: 0;
     }
-    input, button {
+    input, textarea, button {
       font: inherit;
       min-height: 44px;
     }
-    input {
+    input, textarea {
       width: 100%;
       border: 1px solid rgba(23, 33, 29, 0.14);
       border-radius: 8px;
@@ -141,7 +141,13 @@
       color: var(--ink);
       background: #fff;
     }
+    textarea {
+      resize: vertical;
+      max-height: 132px;
+      line-height: 1.45;
+    }
     input:focus-visible,
+    textarea:focus-visible,
     button:focus-visible,
     a:focus-visible {
       outline: 3px solid rgba(31, 122, 61, 0.34);
@@ -289,7 +295,7 @@
           </div>
         </div>
         <form id="composer" class="composer">
-          <input id="message-input" name="message" autocomplete="off" aria-label="Message" placeholder="例如：早餐吃茶葉蛋和拿鐵" />
+          <textarea id="message-input" name="message" rows="1" autocomplete="off" aria-label="Message" placeholder="例如：早餐吃茶葉蛋和拿鐵"></textarea>
           <button id="send-button" type="submit">送出</button>
         </form>
         <div id="chat-history-status" class="status" aria-live="polite">Conversation history not loaded.</div>
@@ -412,6 +418,12 @@
       }
     }
     el("composer").addEventListener("submit", submitMessage);
+    el("message-input").addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+        event.preventDefault();
+        el("composer").requestSubmit();
+      }
+    });
     el("local-date").addEventListener("change", () => {
       updateNavigationLinks();
       loadHistory().catch((error) => setStatus(`failed ${error.message}`));

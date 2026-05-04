@@ -14,6 +14,8 @@ def _passing_report() -> dict[str, object]:
         "chat_sent_cjk_message": True,
         "chat_assistant_bubble_rendered": True,
         "chat_history_reloaded": True,
+        "chat_enter_key_send_checked": True,
+        "chat_shift_enter_multiline_checked": True,
         "chat_scrollable": True,
         "chat_scroll_behavior_checked": True,
         "chat_reload_scroll_behavior_checked": True,
@@ -121,6 +123,8 @@ def test_product_pages_browser_smoke_validator_requires_cross_page_evidence() ->
 def test_product_pages_browser_smoke_validator_rejects_missing_reload_body_user_and_overflow() -> None:
     report = _passing_report()
     report["chat_history_reloaded"] = False
+    report["chat_enter_key_send_checked"] = False
+    report["chat_shift_enter_multiline_checked"] = False
     report["chat_scroll_behavior_checked"] = False
     report["body_query_user_id_honored"] = False
     report["mobile_no_overflow"] = False
@@ -131,6 +135,8 @@ def test_product_pages_browser_smoke_validator_rejects_missing_reload_body_user_
 
     assert status == "fail"
     assert "chat_history_not_reloaded" in blockers
+    assert "chat_enter_key_send_not_checked" in blockers
+    assert "chat_shift_enter_multiline_not_checked" in blockers
     assert "chat_scroll_behavior_not_checked" in blockers
     assert "body_query_user_id_not_honored" in blockers
     assert "mobile_overflow_detected" in blockers
@@ -196,6 +202,8 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
 
     assert report["status"] == "pass"
     assert report["browser_executed"] is True
+    assert report["chat_enter_key_send_checked"] is True
+    assert report["chat_shift_enter_multiline_checked"] is True
     assert report["chat_scroll_behavior_checked"] is True
     assert report["chat_reload_scroll_behavior_checked"] is True
     assert report["today_previous_day_empty_checked"] is True
