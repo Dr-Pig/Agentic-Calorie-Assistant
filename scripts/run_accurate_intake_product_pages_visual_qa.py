@@ -362,8 +362,14 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         if path.stat().st_size <= 0:
             blockers.append(f"screenshot_file_empty:{viewport_name}:{page_name}")
             return
-        if png_dimensions(path) is None:
+        dimensions = png_dimensions(path)
+        if dimensions is None:
             blockers.append(f"screenshot_invalid_png:{viewport_name}:{page_name}")
+            return
+        width, height = dimensions
+        minimum = (1000, 700) if viewport_name == "desktop" else (320, 600)
+        if width < minimum[0] or height < minimum[1]:
+            blockers.append(f"screenshot_too_small:{viewport_name}:{page_name}:{width}x{height}")
 
     require_true("browser_executed", "browser_not_executed")
     require_true("desktop_screenshots_captured", "desktop_screenshots_not_captured")
@@ -503,7 +509,7 @@ def main(argv: list[str] | None = None) -> int:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    print(json.dumps(report, ensure_ascii=True, indent=2))
     if report["status"] == "pass":
         return 0
     if report["status"] == "blocked" and not args.require_browser_execution:
