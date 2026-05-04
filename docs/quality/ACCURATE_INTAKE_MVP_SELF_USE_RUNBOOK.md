@@ -231,6 +231,14 @@ python scripts/build_accurate_intake_food_raw_source_inventory.py --scan-root pa
 
 The generated inventory is local-only and ignored. The tracked registry is `docs/quality/accurate_intake_food_raw_source_registry.json`; it records known source filenames, source classes, and intended candidate roles only. This PR117 boundary does not create candidates, packet-ready anchors/cards, nutrition seeds, exact cards, packet truth, runtime truth, or canonical eval oracles.
 
+PR118 advances one stage to `FoodEvidenceCandidate` normalization only:
+
+```powershell
+python scripts/build_accurate_intake_food_evidence_candidates.py --scan-root path\to\local\data --scan-root path\to\local\staging --output artifacts/accurate_intake_food_evidence_candidates.json
+```
+
+The generated candidate artifact is local-only and ignored. `FoodEvidenceCandidate` rows may normalize labels, aliases, source class, serving basis, kcal point, and provenance from known raw/staging sources, but every row remains `promotion_status=candidate` with `runtime_truth_allowed=false`. This PR118 boundary does not create validator-passed rows, auto-eligible packet candidates, packet-ready anchors/cards, nutrition seeds, exact cards, packet truth, runtime truth, or canonical eval oracles.
+
 SQLite-backed route/integration tests should use the shared `LocalSQLiteRouteHarness` when adding new route-level tests. JSON artifact producers should use `write_json_artifact` / `read_json_artifact` to avoid producer-consumer drift such as literal `"\\n"` suffixes. Unit tests should consume fixed artifact dictionaries where possible; DB-heavy scenario runners should be integration-scoped and run sequentially on Windows.
 
 Windows operators should run SQLite-backed commands sequentially. If `.pytest_tmp_local` reports a temporary SQLite lock, wait for the previous process to exit and rerun the affected command before classifying the result. Do not run the reset and keep-db shell commands concurrently against the same DB path.
