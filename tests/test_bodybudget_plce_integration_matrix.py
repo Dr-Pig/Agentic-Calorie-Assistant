@@ -42,7 +42,7 @@ def test_bodybudget_plce_integration_matrix_names_backend_read_models_and_routes
         ],
         "calibration_proposal_inbox": [
             "/calibration/proposals/open",
-            "root app mount deferred until activation plan",
+            "public_router",
             "app.composition.calibration_proposal_inbox.load_open_calibration_proposal_inbox",
             "proposal_container_id",
             "proposal_status",
@@ -87,14 +87,20 @@ def test_bodybudget_plce_integration_matrix_references_importable_backend_read_m
 def test_bodybudget_plce_integration_matrix_tracks_calibration_router_activation_status() -> None:
     matrix = MATRIX_PATH.read_text(encoding="utf-8-sig")
     root_routes = ROOT_ROUTES_PATH.read_text(encoding="utf-8")
-    calibration_router = _resolve_symbol("app.composition.calibration_routes.router")
-    calibration_paths = {route.path for route in calibration_router.routes}
+    public_router = _resolve_symbol("app.composition.calibration_routes.public_router")
+    internal_router = _resolve_symbol("app.composition.calibration_routes.router")
+    public_paths = {route.path for route in public_router.routes}
+    internal_paths = {route.path for route in internal_router.routes}
 
-    assert "/calibration/proposals/open" in calibration_paths
-    assert "/calibration/proposal/stored-action" in calibration_paths
-    assert "calibration_routes" not in root_routes
-    assert "root app mount deferred until activation plan" in matrix
-    assert "do not mount into the root app without a separate activation plan" in matrix
+    assert "/calibration/proposals/open" in public_paths
+    assert "/calibration/proposal/preview-from-history" in public_paths
+    assert "/calibration/proposal/stored-action" in public_paths
+    assert "/calibration/proposal/action" not in public_paths
+    assert "/calibration/proposal/preview" not in public_paths
+    assert "/calibration/proposal/action" in internal_paths
+    assert "public_router as calibration_router" in root_routes
+    assert "root app mounts `public_router`" in matrix
+    assert "do not mount the full internal calibration router into the root app" in matrix
 
 
 def test_bodybudget_plce_integration_matrix_distinguishes_proposal_route_projection() -> None:

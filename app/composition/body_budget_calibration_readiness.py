@@ -168,7 +168,7 @@ def _readiness_claim() -> dict[str, Any]:
                 "docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md#BodyBudget PL/CE Integration Readiness Matrix",
             ],
         },
-        allowed_next_stage="pl_ce_render_contract_or_calibration_route_activation_plan",
+        allowed_next_stage="pl_ce_render_contract_or_weekly_progress_read_model",
         forbidden_claims=[
             "product_ready",
             "private_self_use_approved",
@@ -250,17 +250,19 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
             },
         },
         "route_activation": {
-            "root_app_mounted": False,
-            "root_mount_status": "deferred_until_activation_plan",
-            "router_module": "app.composition.calibration_routes.router",
+            "root_app_mounted": True,
+            "root_mount_status": "activated_for_calibration_contract_routes",
+            "router_module": "app.composition.calibration_routes.public_router",
             "router_contract_paths": [
                 "/calibration/proposals/open",
-                "/calibration/proposal/preview",
                 "/calibration/proposal/preview-from-history",
-                "/calibration/proposal/action",
                 "/calibration/proposal/stored-action",
             ],
-            "frontend_route_call_allowed_before_activation": False,
+            "internal_diagnostic_paths_not_root_mounted": [
+                "/calibration/proposal/preview",
+                "/calibration/proposal/action",
+            ],
+            "frontend_route_call_allowed_after_activation": True,
         },
         "runtime_truth_changed": {
             "scope": "readiness_contract_only",
