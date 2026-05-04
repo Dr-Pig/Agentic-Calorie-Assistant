@@ -27,6 +27,9 @@ from app.composition.accurate_intake_context_window_diagnostic import (  # noqa:
 from app.composition.accurate_intake_fake_provider_context_smoke import (  # noqa: E402
     build_fake_provider_context_smoke_artifact,
 )
+from app.composition.accurate_intake_short_term_context_runtime_replay import (  # noqa: E402
+    build_short_term_context_runtime_replay_artifact,
+)
 
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_context_quality_pack.json"
 
@@ -197,6 +200,7 @@ def build_context_quality_pack_report(
         context_window_diagnostic=build_context_window_diagnostic_artifact(),
         context_replay=build_context_replay_pack_artifact(),
         fake_provider_context_smoke=build_fake_provider_context_smoke_artifact(),
+        short_term_context_runtime_replay=build_short_term_context_runtime_replay_artifact(),
     )
     return _with_runtime_trace_metadata(
         artifact,
