@@ -12,12 +12,28 @@ REQUIRED_EVIDENCE = (
     "dogfood_review_queue",
     "local_dogfood_data_hygiene",
     "pre_live_decision_pack",
+    "pl_ce_local_review_decision_pack",
     "mvp_gate",
     "phase_c_gate",
 )
 
+EXPECTED_STATUS_BY_GROUP = {
+    "browser_shell_smoke": "pass",
+    "chat_history_reload": "pass",
+    "free_text_manual_target": "pass",
+    "dogfood_review_queue": "generated",
+    "local_dogfood_data_hygiene": "pass",
+    "pre_live_decision_pack": "generated",
+    "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
+    "mvp_gate": "pass",
+    "phase_c_gate": "pass",
+}
+
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
+
+def _truthy_claim(payload: dict[str, Any], *keys: str) -> bool:
+    return any(payload.get(key) is True for key in keys)
 
 def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str, Any]:
     required_evidence_output = {}
@@ -38,7 +54,7 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
         if not present:
             blockers.append(f"missing evidence: {group_id}")
         else:
-            expected_status = "generated" if group_id in ("dogfood_review_queue", "pre_live_decision_pack") else "pass"
+            expected_status = EXPECTED_STATUS_BY_GROUP[group_id]
             if status != expected_status:
                 blockers.append(f"failed evidence: {group_id} status={status}")
 
@@ -56,14 +72,37 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
         if payload.get("web_ready") is True:
             blockers.append("readiness overclaim")
 
-        if payload.get("live_provider_called") is True or payload.get("live_provider_used") is True:
+        if _truthy_claim(payload, "live_provider_called", "live_provider_used", "live_llm_invoked"):
             blockers.append("live provider used")
             
-        if payload.get("kimi_activated") is True:
+        if _truthy_claim(payload, "kimi_activated"):
             blockers.append("Kimi activated")
+
+        if _truthy_claim(payload, "grokfast_activated", "GrokFast"):
+            blockers.append("GrokFast activated")
+
+        if _truthy_claim(
+            payload,
+            "web_tavily_used",
+            "web_tavily_invoked",
+            "web_tavily",
+            "websearch_evidence_used",
+            "WebSearch",
+        ):
+            blockers.append("websearch used")
             
         if payload.get("production_db_touched") is True:
             blockers.append("production DB touched")
+
+        if (
+            payload.get("ready_for_fdb_integration") is True
+            or payload.get("fooddb_truth_updated") is True
+            or payload.get("fooddb_evidence_used") is True
+            or payload.get("real_fooddb_pass_claimed") is True
+            or payload.get("fooddb_schema_changed") is True
+            or payload.get("food_evidence_promotion_policy_changed") is True
+        ):
+            blockers.append("FoodDB overclaim")
 
         if payload.get("production_selected") is True:
             blockers.append("readiness overclaim")
@@ -73,6 +112,24 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
 
         if payload.get("live_manager_required") is True:
             blockers.append("readiness overclaim")
+
+    pre_live_pack = dict(evidence.get("pre_live_decision_pack") or {})
+    if pre_live_pack:
+        if pre_live_pack.get("ready_for_pl_ce_local_review") is not True:
+            blockers.append("pre-live missing PL+CE local review gate")
+        if (
+            pre_live_pack.get("ready_for_live_diagnostic_decision") is True
+            or pre_live_pack.get("live_canary_approved") is True
+        ):
+            blockers.append("pre-live overclaim")
+
+    pl_ce_pack = dict(evidence.get("pl_ce_local_review_decision_pack") or {})
+    if pl_ce_pack and (
+        pl_ce_pack.get("ready_for_live_diagnostic_decision") is True
+        or pl_ce_pack.get("ready_for_fdb_integration") is True
+        or pl_ce_pack.get("real_fooddb_pass_claimed") is True
+    ):
+        blockers.append("PL+CE local review overclaim")
 
     blockers = sorted(list(set(blockers)))
     candidate_prepared = len(blockers) == 0
