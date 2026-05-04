@@ -134,6 +134,15 @@ def _validate_context_replay(payload: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
     if _status(payload) != "generated":
         blockers.append("context_replay_not_generated")
+    if int(payload.get("scenario_count") or 0) < 12:
+        blockers.append("context_replay_scenario_count_too_low")
+    summary = _object_dict(payload.get("summary"))
+    if int(summary.get("pending_pin_scenarios") or 0) < 3:
+        blockers.append("context_replay_pending_pin_scenarios_too_low")
+    if int(summary.get("manager_semantic_required_scenarios") or 0) < 1:
+        blockers.append("context_replay_manager_semantic_required_missing")
+    if int(summary.get("outside_current_day_omitted_scenarios") or 0) < 1:
+        blockers.append("context_replay_outside_current_day_omitted_missing")
     if payload.get("deterministic_supplies_candidates_and_pins_only") is not True:
         blockers.append("context_replay_candidate_pin_boundary_missing")
     if payload.get("deterministic_semantic_inference_used") is not False:

@@ -84,7 +84,13 @@ def _context_replay() -> dict[str, object]:
         "deterministic_semantic_inference_used": False,
         "raw_text_intent_router_used": False,
         "mutation_authority": False,
-        "scenario_count": 7,
+        "scenario_count": 12,
+        "summary": {
+            "scenario_count": 12,
+            "pending_pin_scenarios": 3,
+            "manager_semantic_required_scenarios": 1,
+            "outside_current_day_omitted_scenarios": 1,
+        },
     }
 
 
@@ -171,6 +177,33 @@ def test_fixture_full_product_loop_e2e_rejects_real_fooddb_or_readiness_overclai
     assert "browser_realistic.real_fooddb_pass_claimed" in artifact["blockers"]
     assert "browser_realistic.dogfood_pass" in artifact["blockers"]
     assert "browser_realistic.private_self_use_approved" in artifact["blockers"]
+
+
+def test_fixture_full_product_loop_e2e_rejects_stale_context_replay_coverage() -> None:
+    context_replay = {
+        **_context_replay(),
+        "scenario_count": 7,
+        "summary": {
+            "scenario_count": 7,
+            "pending_pin_scenarios": 2,
+            "manager_semantic_required_scenarios": 0,
+            "outside_current_day_omitted_scenarios": 0,
+        },
+    }
+
+    artifact = build_fixture_full_product_loop_e2e_artifact(
+        one_day_wall=_one_day_wall(),
+        reopen_continuity=_reopen_continuity(),
+        browser_realistic=_browser_realistic(),
+        context_replay=context_replay,
+        fake_provider_context_smoke=_fake_provider_smoke(),
+    )
+
+    assert artifact["status"] == "fail"
+    assert "context_replay_scenario_count_too_low" in artifact["blockers"]
+    assert "context_replay_pending_pin_scenarios_too_low" in artifact["blockers"]
+    assert "context_replay_manager_semantic_required_missing" in artifact["blockers"]
+    assert "context_replay_outside_current_day_omitted_missing" in artifact["blockers"]
 
 
 def test_fixture_full_product_loop_e2e_cli_writes_artifact(monkeypatch, tmp_path: Path, capsys) -> None:

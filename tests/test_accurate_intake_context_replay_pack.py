@@ -37,6 +37,18 @@ def test_context_replay_pack_covers_sensitive_turns_without_deterministic_semant
         scenario["raw_user_input_role"] == "display_only"
         for scenario in artifact["scenarios"]
     )
+    assert all(
+        scenario["deterministic_semantic_inference_used"] is False
+        for scenario in artifact["scenarios"]
+    )
+    assert all(
+        scenario["raw_text_intent_router_used"] is False
+        for scenario in artifact["scenarios"]
+    )
+    assert all(
+        scenario["mutation_authority"] is False
+        for scenario in artifact["scenarios"]
+    )
     assert artifact["summary"]["ambiguous_scenarios"] >= 2
     assert artifact["summary"]["pending_pin_scenarios"] == 3
     assert artifact["summary"]["manager_semantic_required_scenarios"] == 1
