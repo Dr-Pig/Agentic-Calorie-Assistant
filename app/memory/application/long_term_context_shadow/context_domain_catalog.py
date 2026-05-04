@@ -143,6 +143,23 @@ def _context_domain_group_3() -> list[dict[str, Any]]:
 def _context_domain_group_4() -> list[dict[str, Any]]:
     return [
         {
+            "context_domain_id": "menu_highlight_context",
+            "candidate_types": [
+                "food_preference",
+                "negative_preference",
+                "temporary_preference",
+                "golden_order",
+            ],
+            "truth_owner": "current_menu_input_plus_reviewed_memory_candidates",
+            "primary_consumers": [
+                "recommendation",
+                "intake_clarification",
+                "chat_context",
+            ],
+            "risk_if_wrong": "Could make menu highlights noisy or hide acceptable choices.",
+            "runtime_injection_allowed": False,
+        },
+        {
             "context_domain_id": "calibration_quality_context",
             "candidate_types": ["intake_estimation_bias", "logging_adherence_pattern"],
             "truth_owner": "calibration_model_context_summary",

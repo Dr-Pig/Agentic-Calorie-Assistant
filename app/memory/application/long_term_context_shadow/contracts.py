@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.memory.application.long_term_context_shadow.artifact_consumer_catalog import (
+    ARTIFACT_CONSUMER_CATALOG,
+)
 from app.memory.application.long_term_context_shadow.utils import (
     _artifact_non_runtime_truth_reason,
     _artifact_promotion_path,
@@ -49,149 +52,6 @@ CHAT_TRACE_SECTION_ALIASES: tuple[str, ...] = (
     "chat_traces",
     "conversation_trace_metadata",
 )
-
-ARTIFACT_CONSUMER_CATALOG: dict[str, list[str]] = {
-    "artifact_registry_manifest": ["human_review", "architecture_governance"],
-    "long_term_memory_candidate_review": [
-        "human_review",
-        "recommendation",
-        "intake_clarification",
-        "calibration",
-        "chat_context",
-    ],
-    "context_value_review_queue": ["human_review", "architecture_governance"],
-    "context_signal_quality_scorecard": [
-        "human_review",
-        "architecture_governance",
-    ],
-    "candidate_extraction_engine_v2": [
-        "human_review",
-        "architecture_governance",
-        "recommendation",
-        "intake_clarification",
-        "calibration",
-    ],
-    "derived_memory_views_shadow_eval": [
-        "human_review",
-        "architecture_governance",
-        "recommendation",
-        "intake_clarification",
-        "calibration",
-        "proactive",
-        "rescue_later",
-    ],
-    "context_signal_lifecycle_shadow_eval": [
-        "human_review",
-        "architecture_governance",
-        "recommendation",
-        "intake_clarification",
-        "calibration",
-        "proactive",
-        "rescue_later",
-    ],
-    "user_context_profile_shadow_eval": [
-        "human_review",
-        "architecture_governance",
-        "recommendation",
-        "intake_clarification",
-        "chat_context",
-        "calibration",
-        "proactive",
-    ],
-    "scope_isolation_shadow_eval": [
-        "architecture_governance",
-        "privacy_review",
-        "future_manager_context_retrieval",
-        "chat_context",
-    ],
-    "context_value_scoring_v2": [
-        "human_review",
-        "architecture_governance",
-        "recommendation",
-        "intake_clarification",
-        "calibration",
-    ],
-    "shadow_replay_evaluators": [
-        "human_review",
-        "recommendation",
-        "intake_clarification",
-        "calibration",
-    ],
-    "review_queue_reducer": ["human_review", "architecture_governance"],
-    "context_pack_token_pressure_shadow_eval": [
-        "context_packing_review",
-        "architecture_governance",
-    ],
-    "proactive_no_send_simulation": ["proactive", "human_review"],
-    "recommendation_shadow_eval": ["recommendation", "human_review"],
-    "rescue_shadow_candidates": ["rescue_later", "human_review"],
-    "memory_review_action_shadow_result": ["human_review", "memory_governance"],
-    "memory_promotion_demotion_shadow_eval": ["human_review", "memory_governance"],
-    "semantic_pattern_extraction_shadow_plan": [
-        "recommendation",
-        "nightly_insight",
-        "confirmed_memory_candidate_review",
-    ],
-    "conversation_recall_shadow_eval": [
-        "chat_context",
-        "intake_clarification",
-        "recommendation",
-        "calibration",
-    ],
-    "conversation_recall_tool_shadow_plan": [
-        "chat_context",
-        "future_manager_context_retrieval",
-    ],
-    "conversation_recall_retrieval_shadow_eval": [
-        "chat_context",
-        "intake_clarification",
-        "recommendation",
-        "calibration",
-    ],
-    "context_ingress_decision_shadow_eval": [
-        "architecture_governance",
-        "future_manager_context_retrieval",
-        "chat_context",
-        "intake_clarification",
-        "calibration",
-    ],
-    "entity_normalization_shadow_plan": [
-        "architecture_governance",
-        "recommendation",
-        "intake_clarification",
-        "calibration",
-    ],
-    "context_quality_contradiction_review_queue": [
-        "human_review",
-        "architecture_governance",
-    ],
-    "capability_scenario_fixture_pack": [
-        "human_review",
-        "architecture_governance",
-    ],
-    "pr_review_autopilot_closeout": ["human_review", "delivery_governance"],
-    "long_term_context_pack_shadow_eval": [
-        "recommendation",
-        "intake_clarification",
-        "chat_context",
-        "calibration",
-        "proactive",
-        "rescue_later",
-    ],
-    "product_capability_context_map": [
-        "architecture_governance",
-        "human_review",
-    ],
-    "external_memory_framework_research_review": [
-        "architecture_governance",
-        "human_review",
-    ],
-    "local_memory_framework_review": ["architecture_governance", "human_review"],
-    "local_memory_framework_deep_review": [
-        "architecture_governance",
-        "human_review",
-    ],
-}
 
 
 def _base_artifact(

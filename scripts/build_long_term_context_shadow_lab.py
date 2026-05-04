@@ -35,6 +35,11 @@ ARTIFACT_FILENAMES = {
     ),
     "user_context_profile_shadow_eval": "user_context_profile_shadow_eval.json",
     "scope_isolation_shadow_eval": "scope_isolation_shadow_eval.json",
+    "proactive_intelligence_shadow_eval": "proactive_intelligence_shadow_eval.json",
+    "contextual_friction_budget_shadow_eval": (
+        "contextual_friction_budget_shadow_eval.json"
+    ),
+    "menu_highlight_shadow_eval": "menu_highlight_shadow_eval.json",
     "context_value_scoring_v2": "context_value_scoring_v2.json",
     "shadow_replay_evaluators": "shadow_replay_evaluators.json",
     "review_queue_reducer": "review_queue_reducer.json",
