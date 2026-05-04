@@ -30,6 +30,11 @@ def build_food_evidence_candidate_triage_report(
         source_class="taiwan_tfda_open_data",
         evidence_role="generic_anchor_candidate",
     )
+    tfda_listed_component_candidates = _filter_candidates(
+        auto_eligible_candidates,
+        source_class="taiwan_tfda_open_data",
+        evidence_role="listed_component_anchor_candidate",
+    )
     official_exact_candidates = _filter_candidates(
         auto_eligible_candidates,
         source_class="official_brand_chain_page",
@@ -68,6 +73,7 @@ def build_food_evidence_candidate_triage_report(
         "auto_eligible_group_counts": _group_counts(auto_eligible_candidates),
         "summary": {
             "tfda_generic_auto_eligible_count": len(tfda_generic_candidates),
+            "tfda_listed_component_auto_eligible_count": len(tfda_listed_component_candidates),
             "official_exact_candidate_only_count": len(official_exact_candidates),
             "source_repair_required_count": len(repair_candidates),
             "rejected_count": len(rejected_candidates),
@@ -80,6 +86,16 @@ def build_food_evidence_candidate_triage_report(
                 "runtime_truth_allowed": False,
                 "next_action": "runtime-batch-plan",
                 "records": tfda_generic_candidates,
+            },
+            "tfda_listed_component_runtime_batch_candidates": {
+                "lane_kind": "runtime_batch_candidate",
+                "lane_count": len(tfda_listed_component_candidates),
+                "candidate_ids": [
+                    candidate["candidate_id"] for candidate in tfda_listed_component_candidates
+                ],
+                "runtime_truth_allowed": False,
+                "next_action": "listed-component-runtime-batch-plan",
+                "records": tfda_listed_component_candidates,
             },
             "official_exact_candidate_only": {
                 "lane_kind": "candidate_only",

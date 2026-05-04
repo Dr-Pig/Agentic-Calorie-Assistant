@@ -26,6 +26,53 @@ EVIDENCE_ROLE_BY_SOURCE_ID = {
     "usda_food_list_sample": "fallback_anchor_candidate",
     "base_nutrition_db": "alias_coverage_prior",
 }
+TFDA_LISTED_COMPONENT_PREFIXES = (
+    "豆干",
+    "豆乾",
+    "海帶",
+    "海帶芽",
+    "貢丸",
+    "高麗菜",
+    "四季豆",
+    "青江菜",
+    "小白菜",
+    "空心菜",
+    "A菜",
+    "大陸妹",
+    "萵苣",
+    "花椰菜",
+    "豆皮",
+    "豆腐皮",
+    "百頁豆腐",
+    "米血",
+    "豬血糕",
+    "黑輪",
+    "甜不辣",
+    "香菇",
+    "金針菇",
+    "杏鮑菇",
+    "鴨血",
+    "凍豆腐",
+    "白蘿蔔",
+    "蘿蔔",
+    "玉米筍",
+    "木耳",
+    "冬粉",
+)
+TFDA_LISTED_COMPONENT_DISQUALIFIERS = (
+    "奶茶",
+    "飲料",
+    "水餃",
+    "壽司",
+    "蒸蛋",
+    "魚",
+    "雞",
+    "罐頭",
+    "料理包",
+    "蘿蔔糕",
+    "麵",
+    "酥",
+)
 
 
 def build_food_evidence_candidate_artifact(
@@ -256,7 +303,7 @@ def _candidate(
         "source_id": definition.source_id,
         "source_class": definition.source_class,
         "source_role": definition.source_role,
-        "evidence_role": _evidence_role(definition),
+        "evidence_role": _evidence_role(definition, label=label, aliases=aliases),
         "promotion_status": "candidate",
         "runtime_truth_allowed": False,
         "canonical_label": label,
@@ -440,12 +487,34 @@ def _basic_rejection_reasons(label: str, kcal: float | None) -> list[str]:
     return reasons
 
 
-def _evidence_role(definition: RawSourceDefinition) -> str:
+def _evidence_role(
+    definition: RawSourceDefinition,
+    *,
+    label: str,
+    aliases: list[str],
+) -> str:
     if definition.source_id in EVIDENCE_ROLE_BY_SOURCE_ID:
         return EVIDENCE_ROLE_BY_SOURCE_ID[definition.source_id]
     if definition.source_class == "taiwan_tfda_open_data":
+        if _is_tfda_listed_component_candidate(label=label, aliases=aliases):
+            return "listed_component_anchor_candidate"
         return "generic_anchor_candidate"
     return f"{definition.intended_roles[0]}_candidate"
+
+
+def _is_tfda_listed_component_candidate(*, label: str, aliases: list[str]) -> bool:
+    tokens = [label] if label else list(aliases)
+    for token in tokens:
+        normalized = str(token or "").strip()
+        if not normalized:
+            continue
+        if any(disqualifier in normalized for disqualifier in TFDA_LISTED_COMPONENT_DISQUALIFIERS):
+            continue
+        if normalized.endswith("乾") and not normalized.startswith(("豆干", "豆乾")):
+            continue
+        if any(normalized.startswith(prefix) for prefix in TFDA_LISTED_COMPONENT_PREFIXES):
+            return True
+    return False
 
 
 def _detect_tfda_header(rows: list[tuple[Any, ...]]) -> tuple[int, dict[str, int]]:

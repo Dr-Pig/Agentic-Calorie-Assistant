@@ -120,6 +120,29 @@ def test_validator_passes_schema_provenance_unit_kcal_and_source_class() -> None
     assert result["packet_ready"] is False
 
 
+def test_validator_accepts_tfda_listed_component_candidate_without_truth_promotion() -> None:
+    artifact = build_food_evidence_candidate_validation_artifact(
+        candidate_artifact=_candidate_artifact(
+            [
+                _candidate(
+                    "dougan",
+                    "豆干",
+                    evidence_role="listed_component_anchor_candidate",
+                )
+            ]
+        ),
+        gap_register=None,
+    )
+
+    result = artifact["validated_candidates"][0]
+    assert result["validation_status"] == "validator_passed"
+    assert result["evidence_role"] == "listed_component_anchor_candidate"
+    assert result["promotion_status"] == "validator_passed"
+    assert result["runtime_truth_allowed"] is False
+    assert artifact["packet_truth_created"] is False
+    assert artifact["runtime_truth_changed"] is False
+
+
 def test_validator_rejects_missing_provenance_invalid_kcal_and_unsupported_source() -> None:
     missing_provenance = _candidate("missing_provenance", "bad")
     missing_provenance["source_provenance"] = {}
