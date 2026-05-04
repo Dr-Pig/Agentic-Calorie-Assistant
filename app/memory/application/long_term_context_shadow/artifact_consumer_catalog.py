@@ -142,6 +142,17 @@ ARTIFACT_CONSUMER_CATALOG: dict[str, list[str]] = {
         "chat_context",
         "human_review",
     ],
+    "retrieval_ranking_policy_shadow_eval": [
+        "architecture_governance",
+        "future_manager_context_retrieval",
+        "recommendation",
+        "intake_clarification",
+        "chat_context",
+        "calibration",
+        "proactive",
+        "rescue_later",
+        "human_review",
+    ],
     "manager_memory_contract_shadow_plan": [
         "architecture_governance",
         "future_manager_context_retrieval",

@@ -30,6 +30,9 @@ from app.memory.application.long_term_context_shadow.quality_artifacts import (
     _entity_normalization_shadow_artifact,
     _pr_review_autopilot_closeout_artifact,
 )
+from app.memory.application.long_term_context_shadow.retrieval_ranking_policy_artifact import (
+    _retrieval_ranking_policy_shadow_artifact,
+)
 from app.memory.application.long_term_context_shadow.simulation_artifacts import (
     _memory_promotion_demotion_shadow_artifact,
     _memory_review_action_shadow_artifact,
@@ -57,6 +60,9 @@ def build_future_shadow_artifacts(
         ),
         "memory_extraction_storage_rag_shadow_plan": (
             _memory_extraction_storage_rag_artifact(fixture)
+        ),
+        "retrieval_ranking_policy_shadow_eval": (
+            _retrieval_ranking_policy_shadow_artifact(fixture)
         ),
         "manager_memory_contract_shadow_plan": (
             _manager_memory_contract_shadow_artifact(fixture)
@@ -147,6 +153,7 @@ __all__ = [
     "_proactive_no_send_artifact",
     "_product_capability_context_map_artifact",
     "_recommendation_shadow_artifact",
+    "_retrieval_ranking_policy_shadow_artifact",
     "_rescue_shadow_artifact",
     "_semantic_pattern_extraction_shadow_artifact",
 ]
