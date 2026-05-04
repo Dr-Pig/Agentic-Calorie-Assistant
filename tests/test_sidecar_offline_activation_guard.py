@@ -10,8 +10,11 @@ SIDECAR_MODULES = [
     "app.memory",
     "app.memory.domain",
     "app.memory.domain.summaries",
+    "app.memory.domain.long_term_context_candidates",
     "app.memory.application",
     "app.memory.application.derived_summaries",
+    "app.memory.application.long_term_context_shadow_lab",
+    "app.memory.application.local_memory_framework_review",
     "app.recommendation",
     "app.recommendation.domain",
     "app.recommendation.domain.candidate_quality",
@@ -73,7 +76,9 @@ def test_sidecar_modules_are_not_imported_by_active_runtime_surfaces() -> None:
     for relative_path in ACTIVE_RUNTIME_SURFACES:
         text = (ROOT / relative_path).read_text(encoding="utf-8-sig")
         for token in forbidden_tokens:
-            assert token not in text, f"{relative_path} imports or references sidecar token {token!r}"
+            assert token not in text, (
+                f"{relative_path} imports or references sidecar token {token!r}"
+            )
 
 
 def test_sidecar_modules_are_not_b2_readiness_inputs() -> None:
@@ -92,4 +97,6 @@ def test_sidecar_modules_are_not_b2_readiness_inputs() -> None:
             continue
         text = path.read_text(encoding="utf-8-sig")
         for token in forbidden_tokens:
-            assert token not in text, f"{relative_path} couples B2 readiness to sidecar token {token!r}"
+            assert token not in text, (
+                f"{relative_path} couples B2 readiness to sidecar token {token!r}"
+            )
