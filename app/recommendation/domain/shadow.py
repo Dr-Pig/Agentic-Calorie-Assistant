@@ -141,6 +141,8 @@ class RecommendationShadowEvalResult(BaseModel):
     presentation_policy: str = "standard"
     runtime_effect_allowed: Literal[False] = False
     shadow_mode: Literal[True] = True
+    selection_owner: Literal["offline_shadow_evaluator_only"] = "offline_shadow_evaluator_only"
+    manager_selection_required_before_runtime_serving: Literal[True] = True
     recommendation_served: Literal[False] = False
     intake_committed: Literal[False] = False
     flags: RecommendationShadowFlags = Field(default_factory=RecommendationShadowFlags)
@@ -150,6 +152,8 @@ class RecommendationShadowEvalArtifact(BaseModel):
     artifact_type: Literal["recommendation_shadow_eval"] = "recommendation_shadow_eval"
     shadow_mode: Literal[True] = True
     real_runtime_effect: Literal[False] = False
+    selection_owner: Literal["offline_shadow_evaluator_only"] = "offline_shadow_evaluator_only"
+    manager_selection_required_before_runtime_serving: Literal[True] = True
     recommendation_served: Literal[False] = False
     intake_committed: Literal[False] = False
     meal_thread_mutated: Literal[False] = False

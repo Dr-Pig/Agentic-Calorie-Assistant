@@ -59,6 +59,8 @@ def test_cold_start_shadow_eval_uses_fallback_candidates_without_runtime_effect(
     assert result.top_pick is not None
     assert result.hint_packet is not None
     assert result.hint_packet.is_canonical_truth is False
+    assert result.selection_owner == "offline_shadow_evaluator_only"
+    assert result.manager_selection_required_before_runtime_serving is True
     assert result.flags == RecommendationShadowFlags()
 
 
@@ -237,7 +239,10 @@ def test_shadow_eval_artifact_contains_required_non_claim_flags() -> None:
     assert artifact.live_provider_used is False
     assert artifact.product_readiness_claimed is False
     assert artifact.private_self_use_approved is False
+    assert artifact.selection_owner == "offline_shadow_evaluator_only"
+    assert artifact.manager_selection_required_before_runtime_serving is True
     assert artifact.evals[0].runtime_effect_allowed is False
+    assert artifact.evals[0].manager_selection_required_before_runtime_serving is True
 
 
 def test_default_shadow_eval_writer_creates_requested_artifact(tmp_path: Path) -> None:
@@ -249,8 +254,11 @@ def test_default_shadow_eval_writer_creates_requested_artifact(tmp_path: Path) -
     assert output == output_path
     assert payload["artifact_type"] == "recommendation_shadow_eval"
     assert payload["shadow_mode"] is True
+    assert payload["selection_owner"] == "offline_shadow_evaluator_only"
+    assert payload["manager_selection_required_before_runtime_serving"] is True
     assert len(payload["evals"]) >= 6
     assert all(eval_item["recommendation_served"] is False for eval_item in payload["evals"])
+    assert all(eval_item["manager_selection_required_before_runtime_serving"] is True for eval_item in payload["evals"])
     assert all(eval_item["hint_packet"]["is_canonical_truth"] is False for eval_item in payload["evals"])
 
 
