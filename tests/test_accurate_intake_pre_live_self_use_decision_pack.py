@@ -27,6 +27,7 @@ def _evidence(**overrides: dict) -> dict:
         },
         "pl_ce_local_review_decision_pack": {
             "status": "ready_for_human_pl_ce_review",
+            "shared_contract_changed": False,
             "ready_for_live_diagnostic_decision": False,
             "ready_for_fdb_integration": False,
             "live_llm_invoked": False,
@@ -43,6 +44,7 @@ def test_pre_live_decision_pack_lists_required_evidence_without_approving_live()
     pack = build_pre_live_self_use_decision_pack(_evidence())
 
     assert pack["artifact_type"] == "accurate_intake_pre_live_self_use_decision_pack"
+    assert pack["status"] == "generated"
     assert pack["claim_scope"] == "pre_live_local_web_self_use_decision_pack"
     assert pack["required_evidence"] == list(REQUIRED_PRE_LIVE_EVIDENCE)
     assert pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
@@ -149,8 +151,31 @@ def test_pre_live_decision_pack_blocks_pl_ce_local_review_overclaims() -> None:
     assert "pl_ce_local_review_decision_pack_ready_for_fdb_integration" in pack["blockers"]
     assert "pl_ce_local_review_decision_pack_real_fooddb_pass_claimed" in pack["blockers"]
     assert "pl_ce_local_review_decision_pack_private_self_use_approved" in pack["blockers"]
-    assert pack["ready_for_pl_ce_local_review"] is True
+    assert pack["ready_for_pl_ce_local_review"] is False
     assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_blocks_shared_contract_changes() -> None:
+    for flag in (
+        "shared_contract_changed",
+        "manager_context_packet_schema_changed",
+        "nutrition_evidence_store_port_changed",
+        "food_evidence_record_schema_changed",
+        "packet_ready_anchor_schema_changed",
+        "packetizer_format_changed",
+        "basket_semantics_changed",
+        "food_evidence_promotion_policy_changed",
+    ):
+        pack = build_pre_live_self_use_decision_pack(
+            _evidence(pl_ce_local_review_decision_pack={
+                "status": "ready_for_human_pl_ce_review",
+                flag: True,
+            })
+        )
+
+        assert pack["selected_option"] == "stay_local_self_use"
+        assert f"pl_ce_local_review_decision_pack_{flag}" in pack["blockers"]
+        assert pack["ready_for_pl_ce_local_review"] is False
 
 
 def test_pre_live_decision_pack_does_not_accept_pl_ce_status_for_other_evidence() -> None:
