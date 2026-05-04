@@ -79,6 +79,9 @@ def test_body_budget_calibration_readiness_artifact_records_preview_and_action_m
     ]
     assert stored_action["active_statuses"] == ["negotiating", "open", "presented"]
     assert "accepted" in stored_action["terminal_statuses"]
+    assert "dismissed" in stored_action["terminal_statuses"]
+    assert "deferred_pending_reminder" not in stored_action["terminal_statuses"]
+    assert stored_action["legacy_terminal_status_aliases"] == ["deferred_pending_reminder"]
     chat_action = artifact["calibration_flow_contract"]["chat_action_surface"]
     assert chat_action["mode"] == "calibration_action"
     assert chat_action["chat_primary_surface"] is True

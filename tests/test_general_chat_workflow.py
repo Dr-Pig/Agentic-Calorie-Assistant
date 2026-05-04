@@ -483,6 +483,32 @@ def test_general_chat_calibration_action_rejects_explicit_stored_proposal_withou
     assert db.query(LedgerEntryRecord).count() == 0
 
 
+def test_general_chat_calibration_action_defer_dismisses_current_proposal_without_plan_or_ledger_mutation() -> None:
+    db = _session()
+    user, baseline_plan = _seed_calibration_history(db, external_id="general-chat-calibration-action-defer")
+    proposal = _stored_calibration_action_proposal(db, user_id=user.id, calibration_adjustment_delta_kcal=-60)
+
+    result = build_general_chat_response_pass(
+        db,
+        user_external_id="general-chat-calibration-action-defer",
+        raw_user_input="decide later",
+        mode="calibration_action",
+        local_date="2026-05-14",
+        calibration_proposal_container_id=proposal.id,
+        calibration_action="defer_calibration_proposal",
+        accepted_at=datetime(2026, 5, 14, 10, 30, 0),
+    )
+
+    active_plan = db.query(BodyPlanRecord).filter(BodyPlanRecord.plan_status == "active").one()
+    proposal_after = db.get(ProposalContainerRecord, proposal.id)
+    assert result.workflow_effect == "apply_calibration_proposal_action_without_plan_mutation"
+    assert result.ui_hints["proposal_status"] == "dismissed"
+    assert active_plan.id == baseline_plan.id
+    assert proposal_after is not None
+    assert proposal_after.proposal_status == "dismissed"
+    assert db.query(LedgerEntryRecord).count() == 0
+
+
 def test_general_chat_calibration_action_requires_explicit_proposal_target() -> None:
     db = _session()
     user, baseline_plan = _seed_calibration_history(db, external_id="general-chat-calibration-action-missing")

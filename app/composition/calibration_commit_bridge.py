@@ -22,7 +22,7 @@ from app.shared.infra.models import ProposalContainerRecord
 from app.shared.domain import ActiveBodyPlanView, CurrentBudgetView
 from app.shared.infra.models import User
 
-CalibrationCommitDecision = Literal["accepted", "rejected", "deferred_pending_reminder"]
+CalibrationCommitDecision = Literal["accepted", "rejected", "dismissed"]
 PLAN_CHANGING_CALIBRATION_FAMILIES = frozenset(
     {
         "budget_adjustment",

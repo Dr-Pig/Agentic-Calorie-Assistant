@@ -186,7 +186,7 @@ def test_stored_calibration_action_accepts_active_proposal_statuses(status: str)
     assert plans[1].daily_budget_kcal == 1650
 
 
-@pytest.mark.parametrize("decision", ["rejected", "deferred_pending_reminder"])
+@pytest.mark.parametrize("decision", ["rejected", "dismissed"])
 def test_rejecting_or_deferring_plan_changing_calibration_only_commits_proposal_bookkeeping(decision: str) -> None:
     db = _session()
     user = get_or_create_user(db, f"calibration-{decision}")

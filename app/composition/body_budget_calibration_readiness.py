@@ -11,10 +11,10 @@ from app.shared.contracts.readiness_claim import build_readiness_claim
 _TERMINAL_CALIBRATION_PROPOSAL_STATUSES = [
     "accepted",
     "rejected",
-    "deferred_pending_reminder",
     "expired",
     "dismissed",
 ]
+_LEGACY_TERMINAL_CALIBRATION_PROPOSAL_STATUSES = ["deferred_pending_reminder"]
 
 
 def _stable_read_models() -> list[dict[str, Any]]:
@@ -303,6 +303,7 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
                 "mutation_requires": "explicit_accept_on_active_stored_proposal",
                 "active_statuses": sorted(ACTIVE_CALIBRATION_PROPOSAL_STATUSES),
                 "terminal_statuses": _TERMINAL_CALIBRATION_PROPOSAL_STATUSES,
+                "legacy_terminal_status_aliases": _LEGACY_TERMINAL_CALIBRATION_PROPOSAL_STATUSES,
                 "conflict_status_code": 409,
                 "plan_changing_families": sorted(PLAN_CHANGING_CALIBRATION_FAMILIES),
                 "body_plan_mutation_authorized_on_accept": True,
