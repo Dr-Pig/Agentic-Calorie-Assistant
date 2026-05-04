@@ -61,6 +61,18 @@ def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() ->
     assert "sessionStorage" not in html
 
 
+def test_chat_composer_supports_enter_send_and_shift_enter_multiline() -> None:
+    html = _html(CHAT)
+
+    assert '<textarea id="message-input"' in html
+    assert 'rows="1"' in html
+    assert 'addEventListener("keydown"' in html
+    assert 'event.key === "Enter"' in html
+    assert "!event.shiftKey" in html
+    assert "event.isComposing" in html
+    assert "requestSubmit()" in html
+
+
 def test_chat_page_can_send_local_access_header_for_history_without_storage() -> None:
     html = _html(CHAT)
 
