@@ -44,8 +44,8 @@ def _seed_adjusted_day(db: Session) -> int:
         local_date="2026-05-08",
         budget_kcal=1800,
         consumed_kcal=0,
-        adjustment_kcal=70,
-        remaining_kcal=1730,
+        adjustment_kcal=170,
+        remaining_kcal=1630,
     )
     db.add(ledger)
     db.flush()
@@ -92,13 +92,15 @@ def test_effective_budget_read_model_layers_entries_and_preserves_current_budget
     assert view["ledger_present"] is True
     assert view["base_budget_kcal"] == 1800
     assert view["consumed_kcal"] == current_budget.consumed_kcal
-    assert view["runtime_adjustment_total_kcal"] == current_budget.adjustment_kcal == 70
-    assert view["runtime_effective_budget_kcal"] == 1730
-    assert view["remaining_kcal"] == current_budget.remaining_kcal == 1730
+    assert view["runtime_adjustment_total_kcal"] == current_budget.adjustment_kcal == 170
+    assert view["runtime_effective_budget_kcal"] == 1630
+    assert view["remaining_kcal"] == current_budget.remaining_kcal == 1630
     assert view["remaining_formula"] == "runtime_effective_budget_kcal - consumed_kcal"
     assert view["adjustment_layers"]["manual_adjustment_total_kcal"] == 120
     assert view["adjustment_layers"]["calibration_adjustment_total_kcal"] == -50
     assert view["adjustment_layers"]["rescue_overlay_total_kcal"] == 0
+    assert view["adjustment_layers"]["signed_effective_budget_delta_kcal"] == -170
+    assert view["adjustment_layers"]["runtime_adjustment_total_from_entries_kcal"] == 170
     assert view["adjustment_layers"]["known_adjustment_entry_total_kcal"] == 70
     assert view["adjustment_layers"]["unclassified_adjustment_total_kcal"] == 0
     assert view["entry_breakdown"] == [
@@ -117,9 +119,9 @@ def test_effective_budget_read_model_layers_entries_and_preserves_current_budget
             "delta_kcal": -50,
         },
     ]
-    assert view["sign_policy"]["current_runtime_policy"] == "positive_adjustment_reduces_available_budget"
+    assert view["sign_policy"]["current_runtime_policy"] == "type_aware_signed_layers_to_legacy_subtractive_adjustment"
     assert view["sign_policy"]["canonical_l3m_policy"] == "base_budget_plus_signed_rescue_and_calibration_layers"
-    assert view["sign_policy"]["canonical_l3m_formula_enabled"] is False
+    assert view["sign_policy"]["canonical_l3m_formula_enabled"] is True
     assert view["calibration_adjustment_ledger_entry_enabled"] is False
     assert view["rescue_enabled"] is False
     assert view["recommendation_enabled"] is False
@@ -142,10 +144,10 @@ def test_today_effective_budget_route_returns_backend_owned_read_model() -> None
     payload = response.json()
     assert payload["source_kind"] == "body_budget_effective_budget_view"
     assert payload["base_budget_kcal"] == 1800
-    assert payload["runtime_effective_budget_kcal"] == 1730
-    assert payload["remaining_kcal"] == 1730
+    assert payload["runtime_effective_budget_kcal"] == 1630
+    assert payload["remaining_kcal"] == 1630
     assert payload["adjustment_layers"]["calibration_adjustment_total_kcal"] == -50
-    assert payload["sign_policy"]["canonical_l3m_formula_enabled"] is False
+    assert payload["sign_policy"]["canonical_l3m_formula_enabled"] is True
 
 
 def test_bodybudget_plce_matrix_lists_effective_budget_as_backend_owned_read_model() -> None:
