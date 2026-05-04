@@ -107,6 +107,15 @@ def test_today_page_is_daily_diary_with_date_navigation_and_no_trace_panel() -> 
     assert "/accurate-intake/debug" not in html
 
 
+def test_today_page_updates_current_url_when_selected_date_changes() -> None:
+    html = _html(TODAY)
+
+    assert "function updateCurrentUrl()" in html
+    assert "window.history.replaceState" in html
+    assert 'pageUrl("today")' in html
+    assert "updateCurrentUrl();" in html
+
+
 def test_body_page_covers_plan_weight_goal_activity_inputs_without_frontend_tdee_math() -> None:
     html = _html(BODY)
 
