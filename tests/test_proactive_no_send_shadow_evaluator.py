@@ -391,6 +391,57 @@ def test_safe_candidate_copy_is_reviewable_but_still_no_send() -> None:
     assert row["sent"] is False
 
 
+def test_review_decision_taxonomy_prioritizes_why_trigger_is_not_reviewable() -> None:
+    artifact = build_proactive_no_send_simulation(
+        [
+            ProactiveNoSendShadowInput(
+                trigger_type="recommendation_prompt",
+                wake_source="app_open",
+                user_relevant_reason="app_open_dinner_context_can_reduce_decision_cost",
+                data_sufficiency_status="higher",
+                user_benefit_strength="strong",
+                lower_frequency_ready=True,
+                delivery_surface="app_open",
+                candidate_copy="If you are choosing dinner, I can help pick a few steady options.",
+                copy_posture="invitation",
+            ),
+            ProactiveNoSendShadowInput(
+                trigger_type="calibration_insight",
+                data_sufficiency_status="higher",
+                user_benefit_strength="strong",
+                lower_frequency_ready=True,
+            ),
+            ProactiveNoSendShadowInput(
+                trigger_type="missing_log_reminder_with_cooldown",
+                ignored_count=2,
+            ),
+            ProactiveNoSendShadowInput(
+                trigger_type="weekly_insight",
+                wake_source="scheduled_check",
+                user_relevant_reason="weekly_summary_expected_after_enough_data",
+                candidate_copy="You must stop eating like this.",
+                copy_posture="directive",
+            ),
+            ProactiveNoSendShadowInput(trigger_type="memory_driven_intervention"),
+        ]
+    )
+
+    rows = _by_type(artifact)
+
+    assert rows["recommendation_prompt"]["review_decision"]["status"] == "candidate_for_human_review"
+    assert rows["calibration_insight"]["review_decision"]["status"] == "suppressed_permission"
+    assert rows["missing_log_reminder_with_cooldown"]["review_decision"]["status"] == "suppressed_feedback"
+    assert rows["weekly_insight"]["review_decision"]["status"] == "suppressed_copy_safety"
+    assert rows["memory_driven_intervention"]["review_decision"]["status"] == "deferred_later_only"
+    assert artifact["summary"]["review_decision_counts"] == {
+        "candidate_for_human_review": 1,
+        "suppressed_permission": 1,
+        "suppressed_feedback": 1,
+        "suppressed_copy_safety": 1,
+        "deferred_later_only": 1,
+    }
+
+
 def test_calibration_and_rescue_related_triggers_are_invitations_not_decisions() -> None:
     artifact = build_proactive_no_send_simulation(
         [
@@ -575,3 +626,15 @@ def test_proactive_spec_requires_copy_safety_rubric() -> None:
     assert "must not rewrite candidate copy" in source
     assert "`copy_suppressed_count`" in source
     assert "`copy_review_issues_present`" in source
+
+
+def test_proactive_spec_requires_review_decision_taxonomy() -> None:
+    source = (Path(__file__).resolve().parents[1] / "docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md").read_text(
+        encoding="utf-8-sig"
+    )
+
+    assert "### 4.13 Review Decision Taxonomy" in source
+    assert "`candidate_for_human_review`" in source
+    assert "`suppressed_copy_safety`" in source
+    assert "`suppressed_permission`" in source
+    assert "`review_decision_counts`" in source

@@ -81,6 +81,7 @@ def test_decision_pack_surfaces_copy_review_suppression_risk() -> None:
     pack = build_proactive_no_send_decision_pack([_artifact_with_copy_suppression()])
 
     assert pack["summary"]["copy_suppressed_count"] == 1
+    assert pack["summary"]["review_decision_counts"] == {"suppressed_copy_safety": 1}
     assert "weekly_insight" in pack["summary"]["suppressed_trigger_types"]
     assert "copy_review_issues_present" in pack["promotion_gate"]["promotion_blockers"]
     assert pack["promotion_allowed"] is False

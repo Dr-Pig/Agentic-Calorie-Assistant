@@ -317,6 +317,30 @@ If candidate copy fails this rubric, the trigger must be suppressed with a `copy
 
 This rubric is intentionally not a language-generation system. LLMs may write or judge candidate copy before it enters the no-send artifact, but this evaluator only records checklist evidence, suppresses unsafe copy, and keeps `sent=false`.
 
+### 4.13 Review Decision Taxonomy
+
+Each no-send trigger row must include `review_decision` so reviewers can understand the dominant reason a trigger is or is not reviewable without reverse-engineering raw suppression reasons.
+
+Allowed statuses:
+
+- `candidate_for_human_review`
+- `suppressed_copy_safety`
+- `suppressed_permission`
+- `suppressed_feedback`
+- `suppressed_context_or_data`
+- `deferred_later_only`
+
+Classification priority should be:
+
+1. later-only trigger
+2. copy safety failure
+3. permission or surface failure
+4. interaction feedback or opt-out
+5. context, evidence, threshold, cooldown, quiet-hours, or reason failure
+6. candidate for human review
+
+The no-send summary and decision pack must aggregate `review_decision_counts`. These counts are review diagnostics only and do not approve live delivery.
+
 ---
 
 ## 5. Trigger-Specific Rules

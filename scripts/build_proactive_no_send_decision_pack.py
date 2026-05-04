@@ -123,6 +123,10 @@ def _summary(no_send_artifacts: list[dict[str, Any]]) -> dict[str, Any]:
         "candidate_for_human_review_trigger_types": candidate_types,
         "suppressed_trigger_types": suppressed_types,
         "deferred_later_only_trigger_types": deferred_types,
+        "review_decision_counts": _aggregate_summary_counts(
+            no_send_artifacts,
+            "review_decision_counts",
+        ),
         "copy_suppressed_count": sum(
             _artifact_summary_int(artifact, "copy_suppressed_count")
             for artifact in no_send_artifacts
@@ -186,6 +190,18 @@ def _artifact_summary_int(artifact: dict[str, Any], key: str) -> int:
     if not isinstance(value, int):
         return 0
     return value
+
+
+def _aggregate_summary_counts(no_send_artifacts: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for artifact in no_send_artifacts:
+        value = _artifact_summary_mapping(artifact, key)
+        for count_key, count_value in value.items():
+            if not isinstance(count_value, int):
+                continue
+            normalized_key = str(count_key)
+            counts[normalized_key] = counts.get(normalized_key, 0) + count_value
+    return counts
 
 
 def main() -> int:

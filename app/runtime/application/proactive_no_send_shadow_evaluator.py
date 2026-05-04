@@ -173,6 +173,10 @@ def _evaluate_trigger(item: ProactiveNoSendShadowInput) -> dict[str, Any]:
         "harm_if_wrong": item.harm_if_wrong,
         "suppression_status": suppression_status,
         "suppression_reasons": suppression_reasons,
+        "review_decision": _review_decision(
+            suppression_status=suppression_status,
+            suppression_reasons=suppression_reasons,
+        ),
         "cooldown_checked": True,
         "quiet_hours_checked": True,
         "user_agency_copy": "You can ignore this or change proactive settings any time.",
@@ -355,11 +359,19 @@ def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         if row.get("suppression_status") == "suppressed"
         for reason in list(row.get("suppression_reasons") or [])
     ]
+    review_decision_counts: dict[str, int] = {}
+    for row in rows:
+        review_decision = row.get("review_decision")
+        if not isinstance(review_decision, dict):
+            continue
+        status = str(review_decision.get("status") or "unknown")
+        review_decision_counts[status] = review_decision_counts.get(status, 0) + 1
     return {
         "trigger_count": len(rows),
         "candidate_for_human_review_trigger_types": reviewable,
         "suppressed_trigger_types": suppressed,
         "deferred_later_only_trigger_types": deferred,
+        "review_decision_counts": review_decision_counts,
         "suppressed_count": len(suppressed),
         "later_only_count": len(deferred),
         "permission_suppressed_count": sum(
@@ -391,6 +403,41 @@ def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 def _permission_posture(trigger_type: str) -> str:
     return PERMISSION_POSTURE_BY_TRIGGER.get(trigger_type, "no_push_allowed")
+
+
+def _review_decision(*, suppression_status: str, suppression_reasons: list[str]) -> dict[str, str]:
+    if suppression_status == "deferred_later_only":
+        return {
+            "status": "deferred_later_only",
+            "reviewer_next_step": "do_not_promote_later_only",
+        }
+    if any(reason.startswith("copy_") for reason in suppression_reasons):
+        return {
+            "status": "suppressed_copy_safety",
+            "reviewer_next_step": "revise_candidate_copy_before_review",
+        }
+    if any(reason.startswith("permission_") for reason in suppression_reasons):
+        return {
+            "status": "suppressed_permission",
+            "reviewer_next_step": "keep_silent_until_consent_or_safe_surface",
+        }
+    if any(
+        reason.startswith("interaction_feedback_") or reason == "explicit_trigger_opt_out"
+        for reason in suppression_reasons
+    ):
+        return {
+            "status": "suppressed_feedback",
+            "reviewer_next_step": "keep_silent_until_user_engagement_or_cooldown",
+        }
+    if suppression_status == "suppressed":
+        return {
+            "status": "suppressed_context_or_data",
+            "reviewer_next_step": "collect_more_context_or_evidence",
+        }
+    return {
+        "status": "candidate_for_human_review",
+        "reviewer_next_step": "review_copy_context_and_permission_before_live_plan",
+    }
 
 
 def _add_trigger_boundaries(row: dict[str, Any], trigger_type: str) -> None:
