@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.body.infrastructure.models import BodyObservationRecord, BodyPlanRecord, BodyProfileRecord
+from app.budget.application.effective_budget_math import summarize_budget_adjustment_layers
 from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord
 from app.intake.infrastructure.models import MealThreadRecord, MealVersionRecord
 from app.shared.infra.models import User
@@ -216,15 +217,16 @@ def recompute_day_budget_ledger(
             MealVersionRecord.resolution_status == "completed_meal",
         )
     ).scalars().all()
-    adjustment_deltas = db.execute(
-        select(LedgerEntryRecord.delta_kcal).where(
+    adjustment_entries = db.execute(
+        select(LedgerEntryRecord).where(
             LedgerEntryRecord.user_id == user_id,
             LedgerEntryRecord.local_date == local_date,
             LedgerEntryRecord.entry_type != "meal_consumption",
         )
     ).scalars().all()
     consumed = sum(delta for delta in active_meal_kcal if delta > 0)
-    adjustments = sum(adjustment_deltas)
+    adjustment_summary = summarize_budget_adjustment_layers(adjustment_entries)
+    adjustments = adjustment_summary.runtime_adjustment_total_kcal
     ledger.budget_kcal = resolved_budget_kcal
     ledger.consumed_kcal = consumed
     ledger.adjustment_kcal = adjustments

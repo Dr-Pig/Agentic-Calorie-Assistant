@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+import csv
 import hashlib
 import json
 from pathlib import Path
@@ -81,6 +82,14 @@ RAW_SOURCE_DEFINITIONS: tuple[RawSourceDefinition, ...] = (
         source_role="staging_candidate_only",
         intended_roles=("exact_card_candidate",),
         notes="Official page-derived brand candidates only; no runtime truth.",
+    ),
+    RawSourceDefinition(
+        source_id="local_tw_packaged_extract_188_2",
+        filename="188_2.csv",
+        source_class="local_taiwan_packaged_extract",
+        source_role="staging_candidate_only",
+        intended_roles=("exact_card_candidate",),
+        notes="Local extracted CSV packaged-product trace only; candidate review only and never runtime truth in this slice.",
     ),
     RawSourceDefinition(
         source_id="openfoodfacts_taiwan_small",
@@ -207,6 +216,8 @@ def _inventory_entry(definition: RawSourceDefinition, scan_roots: list[Path]) ->
     suffix = path.suffix.lower()
     if suffix == ".json":
         base.update(_inspect_json(path))
+    elif suffix == ".csv":
+        base.update(_inspect_csv(path))
     elif suffix == ".xlsx":
         base.update(_inspect_xlsx(path))
     return base
@@ -245,6 +256,22 @@ def _inspect_json(path: Path) -> dict[str, Any]:
     )
     return {
         "row_count": len(records),
+        "schema_keys": schema_keys,
+        "schema_fingerprint": _schema_fingerprint(schema_keys),
+    }
+
+
+def _inspect_csv(path: Path) -> dict[str, Any]:
+    try:
+        with path.open("r", encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            rows = list(reader)
+    except (csv.Error, OSError, UnicodeError) as exc:
+        return {"parse_error": type(exc).__name__}
+
+    schema_keys = sorted(str(name) for name in (reader.fieldnames or []) if name)
+    return {
+        "row_count": len(rows),
         "schema_keys": schema_keys,
         "schema_fingerprint": _schema_fingerprint(schema_keys),
     }

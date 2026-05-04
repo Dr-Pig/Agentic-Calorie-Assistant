@@ -20,6 +20,7 @@ _PRIMARY_FAMILY_ORDER: tuple[CalibrationProposalOptionFamily, ...] = (
     "pace_adjustment",
     "plan_reset",
 )
+_PLAN_CHANGING_FAMILIES = frozenset({"budget_adjustment", "pace_adjustment", "plan_reset"})
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,7 @@ class CalibrationProposalResponseResult:
     reply_text: str
     top_option: ProposalOption | None
     backup_options: list[ProposalOption]
+    proposal_cards: list[dict[str, Any]]
     quick_actions: list[dict[str, Any]]
     ui_hints: dict[str, Any]
 
@@ -53,11 +55,16 @@ def _build_budget_adjustment_effect_payload(
     signed_step = step if delta_tdee >= 0 else -step
     safety_floor = int(active_body_plan_view.safety_floor_kcal or 0)
     new_daily_budget = max(safety_floor, current_budget + signed_step)
+    delta_kcal = new_daily_budget - current_budget
     return {
         "new_daily_budget_kcal": new_daily_budget,
         "new_estimated_tdee_kcal": shifted_tdee,
+        "delta_kcal": delta_kcal,
+        "effective_from_policy": "accepted_before_11_local_today_else_next_day",
         "review_after_days": 14,
         "rationale_summary": "calibration budget adjustment from expenditure mismatch evidence",
+        "expected_effect_summary": f"Daily target changes by {delta_kcal:+d} kcal.",
+        "guardrail_summary": f"Target remains at or above safety floor {safety_floor} kcal.",
     }
 
 
@@ -70,11 +77,16 @@ def _build_pace_adjustment_effect_payload(
     current_budget = int(active_body_plan_view.daily_budget_kcal or active_body_plan_view.recommended_target_kcal or 0)
     safety_floor = int(active_body_plan_view.safety_floor_kcal or 0)
     new_daily_budget = max(safety_floor, current_budget + 150)
+    delta_kcal = new_daily_budget - current_budget
     return {
         "new_target_pace_kg_per_week": slower_pace,
         "new_daily_budget_kcal": new_daily_budget,
+        "delta_kcal": delta_kcal,
+        "effective_from_policy": "accepted_before_11_local_today_else_next_day",
         "review_after_days": 21,
         "rationale_summary": "pace adjustment toward a more sustainable deficit target",
+        "expected_effect_summary": f"Weekly target pace changes to {slower_pace} kg.",
+        "guardrail_summary": f"Target remains at or above safety floor {safety_floor} kcal.",
     }
 
 
@@ -85,18 +97,26 @@ def _build_plan_reset_effect_payload(
     current_budget = int(active_body_plan_view.daily_budget_kcal or active_body_plan_view.recommended_target_kcal or 0)
     safety_floor = int(active_body_plan_view.safety_floor_kcal or 0)
     new_daily_budget = max(safety_floor, current_budget + 200)
+    delta_kcal = new_daily_budget - current_budget
     return {
         "new_daily_budget_kcal": new_daily_budget,
         "new_target_pace_kg_per_week": 0.25,
+        "delta_kcal": delta_kcal,
+        "effective_from_policy": "accepted_before_11_local_today_else_next_day",
         "review_after_days": 28,
         "rationale_summary": "plan reset because short-horizon recovery is no longer viable",
+        "expected_effect_summary": "Reset to a slower, more sustainable plan.",
+        "guardrail_summary": f"Target remains at or above safety floor {safety_floor} kcal.",
         "plan_source": "calibration_plan_reset",
     }
 
 
 def _build_logging_quality_effect_payload() -> dict[str, Any]:
     return {
-        "logging_window_days": 7,
+        "recording_window_days": 7,
+        "required_weight_check_count": 3,
+        "required_intake_coverage_target": 0.8,
+        "follow_up_strategy": "clean_logging_window",
         "plan_change_required": False,
         "rationale_summary": "improve logging quality before changing the active plan",
     }
@@ -114,33 +134,36 @@ def _build_option(
             calibration_result=calibration_result,
             active_body_plan_view=active_body_plan_view,
         )
-        summary = f"把每日目標調到 {effect_payload['new_daily_budget_kcal']} kcal，先跑 14 天再看。"
+        summary = (
+            f"Adjust daily target to {effect_payload['new_daily_budget_kcal']} kcal "
+            "and review again after 14 days."
+        )
     elif family == "pace_adjustment":
         effect_payload = _build_pace_adjustment_effect_payload(active_body_plan_view=active_body_plan_view)
         summary = (
-            f"把每週目標速度放慢到 {effect_payload['new_target_pace_kg_per_week']} kg，"
-            f"同時把每日目標調到 {effect_payload['new_daily_budget_kcal']} kcal。"
+            f"Slow weekly target pace to {effect_payload['new_target_pace_kg_per_week']} kg "
+            f"and set daily target to {effect_payload['new_daily_budget_kcal']} kcal."
         )
     elif family == "plan_reset":
         effect_payload = _build_plan_reset_effect_payload(active_body_plan_view=active_body_plan_view)
         summary = (
-            f"重設成較可持續的 plan，新的每日目標先用 {effect_payload['new_daily_budget_kcal']} kcal，"
-            f"之後 28 天再 review。"
+            f"Reset to a more sustainable plan at {effect_payload['new_daily_budget_kcal']} kcal "
+            "and review again after 28 days."
         )
     elif family == "logging_quality_first":
         effect_payload = _build_logging_quality_effect_payload()
-        summary = "先做 7 天乾淨記錄，暫時不直接改 body plan。"
+        summary = "Run a 7-day clean logging window before changing the active body plan."
     else:
         effect_payload = {"plan_change_required": False}
-        summary = "先維持現況觀察，不立即修改 active body plan。"
+        summary = "Keep monitoring; do not change the active body plan yet."
 
     return ProposalOption(
         proposal_option_id=option_id_seed,
         option_type=family,
         option_label=family,
         option_summary=summary,
-        rank_order=0,
-        is_primary=True,
+        rank_order=option_id_seed - 1,
+        is_primary=option_id_seed == 1,
         effect_payload=effect_payload,
     )
 
@@ -166,28 +189,85 @@ def _build_reply_text(
     backup_options: list[ProposalOption],
 ) -> str:
     if top_option.option_type == "logging_quality_first":
-        return "這一輪我不建議直接改 plan。先做 7 天比較乾淨的記錄，之後再決定要不要校準每日目標。"
+        return "Logging quality is not clean enough for a plan change yet. Start with a 7-day clean logging window."
     if top_option.option_type == "plan_reset":
-        return f"我建議直接重設成較可持續的 plan。主方案是：{top_option.option_summary}"
+        return f"Calibration suggests a plan reset. {top_option.option_summary}"
     if top_option.option_type == "pace_adjustment":
-        return f"我建議先把節奏放緩。主方案是：{top_option.option_summary}"
+        return f"Calibration suggests a pace adjustment. {top_option.option_summary}"
     if top_option.option_type == "budget_adjustment":
-        backup_text = f" 備選：{backup_options[0].option_summary}" if backup_options else ""
-        return f"我建議先做一個單一主方案校準：{top_option.option_summary}{backup_text}"
-    return "目前先維持不變，再繼續觀察。"
+        backup_text = f" Hidden alternative: {backup_options[0].option_summary}" if backup_options else ""
+        return f"Calibration suggests one primary budget adjustment. {top_option.option_summary}{backup_text}"
+    return "Calibration should stay in monitor mode for now."
 
 
 def _quick_actions(*, top_option: ProposalOption | None) -> list[dict[str, Any]]:
     if top_option is None:
         return []
-    actions = [
-        {"action": "accept_calibration_proposal", "label": "套用這個方案"},
-        {"action": "defer_calibration_proposal", "label": "先維持不變"},
-        {"action": "reject_calibration_proposal", "label": "不要這個"},
+    actions: list[dict[str, Any]] = [
+        {
+            "action": "accept_calibration_proposal",
+            "label": "Apply this plan",
+            "action_kind": "stored_proposal_action",
+            "requires_proposal_container_id": True,
+            "mutation_authorized": top_option.option_type in _PLAN_CHANGING_FAMILIES,
+            "raw_text_authorized_mutation": False,
+        },
+        {
+            "action": "view_calibration_alternatives",
+            "label": "View other options",
+            "action_kind": "reveal_hidden_alternatives",
+            "requires_proposal_container_id": False,
+            "mutation_authorized": False,
+            "raw_text_authorized_mutation": False,
+        },
+        {
+            "action": "reject_calibration_proposal",
+            "label": "Keep current plan",
+            "action_kind": "stored_proposal_action",
+            "requires_proposal_container_id": True,
+            "mutation_authorized": False,
+            "raw_text_authorized_mutation": False,
+        },
+        {
+            "action": "defer_calibration_proposal",
+            "label": "Decide later",
+            "action_kind": "stored_proposal_action",
+            "requires_proposal_container_id": True,
+            "mutation_authorized": False,
+            "raw_text_authorized_mutation": False,
+        },
     ]
     if top_option.option_type == "logging_quality_first":
-        actions[0]["label"] = "開始 7 天乾淨記錄"
+        actions[0]["label"] = "Start 7-day clean logging"
     return actions
+
+
+def _proposal_card(*, option: ProposalOption, is_primary: bool) -> dict[str, Any]:
+    plan_changing = option.option_type in _PLAN_CHANGING_FAMILIES
+    effect_payload = dict(option.effect_payload or {})
+    return {
+        "proposal_option_id": option.proposal_option_id,
+        "option_type": option.option_type,
+        "option_label": option.option_label,
+        "option_summary": option.option_summary,
+        "rank_order": option.rank_order,
+        "is_primary": is_primary,
+        "default_visibility": "primary_visible" if is_primary else "hidden_alternative",
+        "effect_payload": effect_payload,
+        "expected_effect_summary": effect_payload.get("expected_effect_summary"),
+        "guardrail_summary": effect_payload.get("guardrail_summary"),
+        "requires_accept_before_plan_mutation": plan_changing,
+        "stored_action_required": True,
+        "raw_text_authorized_mutation": False,
+    }
+
+
+def _proposal_cards(*, top_option: ProposalOption | None, backup_options: list[ProposalOption]) -> list[dict[str, Any]]:
+    if top_option is None:
+        return []
+    cards = [_proposal_card(option=top_option, is_primary=True)]
+    cards.extend(_proposal_card(option=option, is_primary=False) for option in backup_options)
+    return cards
 
 
 def build_calibration_proposal_response(
@@ -205,9 +285,10 @@ def build_calibration_proposal_response(
         return CalibrationProposalResponseResult(
             surfaced=False,
             proposal_family=None,
-            reply_text="目前還不適合進 proposal lane，先維持觀察或補強資料品質。",
+            reply_text="Calibration did not enter the proposal lane. Keep monitoring before changing the active plan.",
             top_option=None,
             backup_options=[],
+            proposal_cards=[],
             quick_actions=[],
             ui_hints={
                 "mode": "calibration_no_surface",
@@ -232,10 +313,13 @@ def build_calibration_proposal_response(
         reply_text=_build_reply_text(top_option=top_option, backup_options=backup_options),
         top_option=top_option,
         backup_options=backup_options,
+        proposal_cards=_proposal_cards(top_option=top_option, backup_options=backup_options),
         quick_actions=_quick_actions(top_option=top_option),
         ui_hints={
             "mode": "calibration_single_primary_proposal",
             "delivery": "chat_primary_ui_mirror",
+            "presentation_policy": "single_primary_recommendation",
+            "backup_options_default_visibility": "hidden",
             "current_budget_kcal": current_budget_view.budget_kcal,
             "active_daily_budget_kcal": active_body_plan_view.daily_budget_kcal,
             "primary_policy_posture": gate_result.primary_policy_posture,

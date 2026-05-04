@@ -8,6 +8,7 @@ from app.database import get_db
 from app.runtime.interface.base_routes import router as base_router
 from app.composition.accurate_intake_debug_routes import router as accurate_intake_debug_router
 from app.composition.body_plan_routes import router as body_plan_router
+from app.composition.calibration_routes import public_router as calibration_router
 from app.composition.intake_routes import router as intake_router
 from app.composition.onboarding_routes import router as onboarding_router
 from app.composition.user_routes import router as user_router
@@ -23,6 +24,7 @@ router = APIRouter()
 router.include_router(base_router)
 router.include_router(accurate_intake_debug_router)
 router.include_router(body_plan_router)
+router.include_router(calibration_router)
 router.include_router(intake_router)
 router.include_router(onboarding_router)
 router.include_router(user_router)

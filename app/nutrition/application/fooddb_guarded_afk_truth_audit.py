@@ -99,8 +99,14 @@ def _audit_runtime_anchors(runtime_anchors: list[dict[str, Any]]) -> list[dict[s
         for source_ref in anchor.get("source_refs") or []:
             if not isinstance(source_ref, dict):
                 continue
-            source_id = str(source_ref.get("source_id") or source_ref.get("source_evidence_id") or "")
-            if source_id.startswith("tfda_") and (
+            source_id = str(source_ref.get("source_id") or "")
+            source_evidence_id = str(source_ref.get("source_evidence_id") or "")
+            is_tfda_per100g_ref = (
+                source_id == "taiwan_tfda_open_data"
+                or source_id.startswith("tfda_")
+                or source_evidence_id.startswith("tfda_")
+            )
+            if is_tfda_per100g_ref and (
                 source_ref.get("runtime_role") != "source_evidence_only"
                 or source_ref.get("serving_basis") != "per_100g"
                 or source_ref.get("external_source_role") == "common_serving_anchor"

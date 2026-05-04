@@ -90,7 +90,10 @@ async def test_runner_writes_live_trace_report_without_secret_or_readiness_claim
                 "officialness": "official",
                 "brand_detected": "starbucks",
                 "serving_basis": "per_cup",
-                "identity_confidence": "medium",
+                "identity_confidence": "high",
+                "license_status": "public_menu_page",
+                "robots_status": "allowed",
+                "nutrition_fields_present": ["kcal"],
             }
         ]
     )

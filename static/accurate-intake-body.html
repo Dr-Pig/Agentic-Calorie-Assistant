@@ -78,6 +78,12 @@
     .page-header, .card {
       padding: 18px;
     }
+    .page-header {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+    }
     h1 {
       margin: 0 0 6px;
       font-size: 30px;
@@ -90,6 +96,25 @@
     .subtle, .status {
       color: var(--muted);
       line-height: 1.45;
+    }
+    .page-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .action-link {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--ink);
+      background: #fff;
+      text-decoration: none;
+      font-weight: 800;
     }
     .grid {
       display: grid;
@@ -147,6 +172,19 @@
     .full {
       grid-column: 1 / -1;
     }
+    .hint {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      text-transform: none;
+      font-weight: 700;
+    }
+    .section-intro {
+      margin: -4px 0 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
     .list {
       display: grid;
       gap: 8px;
@@ -162,9 +200,15 @@
       overflow-wrap: anywhere;
     }
     @media (max-width: 860px) {
-      .topbar, .grid, .summary-grid, form {
+      .topbar, .page-header, .grid, .summary-grid, form {
         display: grid;
         grid-template-columns: 1fr;
+      }
+      .page-actions {
+        justify-content: stretch;
+      }
+      .action-link {
+        width: 100%;
       }
     }
   </style>
@@ -173,16 +217,22 @@
   <header class="topbar">
     <div class="brand">Accurate Intake</div>
     <nav aria-label="Accurate Intake pages">
-      <a href="/static/accurate-intake-chat.html">Chat</a>
-      <a href="/static/accurate-intake-today.html">Today</a>
-      <a href="/static/accurate-intake-body.html" aria-current="page">Body</a>
+      <a data-nav-target="chat" href="/static/accurate-intake-chat.html">Chat</a>
+      <a data-nav-target="today" href="/static/accurate-intake-today.html">Today</a>
+      <a data-nav-target="body" href="/static/accurate-intake-body.html" aria-current="page">Body</a>
     </nav>
   </header>
   <main data-surface-role="body-plan">
     <section class="page-header">
-      <span class="eyebrow">Body plan</span>
-      <h1>Body / Goal / TDEE</h1>
-      <p class="subtle">先把體重、目標、活動量和每日熱量目標整理清楚；這頁只顯示已保存的計畫與紀錄。</p>
+      <div>
+        <span class="eyebrow">Body plan</span>
+        <h1>Body / Goal / TDEE</h1>
+        <p class="subtle">先把體重、目標、活動量和每日熱量目標整理清楚；這頁只顯示已保存的計畫與紀錄。</p>
+      </div>
+      <div class="page-actions">
+        <a class="action-link" data-nav-target="today" href="/static/accurate-intake-today.html">Open Today</a>
+        <a class="action-link" data-nav-target="chat" href="/static/accurate-intake-chat.html">Open Chat</a>
+      </div>
     </section>
     <section class="card" id="body-plan-summary">
       <h2>Current plan</h2>
@@ -199,6 +249,7 @@
     <section class="grid">
       <article class="card">
         <h2>Check in weight</h2>
+        <p class="section-intro">紀錄當天量到的體重，之後可以回看趨勢。</p>
         <form id="weight-form">
           <label>User ID
             <input id="user-id" value="local-self-use-001" autocomplete="off" />
@@ -207,48 +258,54 @@
             <input id="local-date" type="date" />
           </label>
           <label>Weight kg
-            <input id="weight-kg" type="number" min="20" max="300" step="0.1" placeholder="70.0" />
+            <input id="weight-kg" type="number" min="20" max="300" step="0.1" inputmode="decimal" placeholder="e.g. 70.0" aria-describedby="weight-kg-hint" />
+            <span id="weight-kg-hint" class="hint">Use the weight from this date.</span>
           </label>
           <button class="primary" type="submit">Save weight</button>
         </form>
       </article>
       <article class="card">
         <h2>Goal setup</h2>
+        <p class="section-intro">調整身體資料、活動量與每週目標；保存後這頁會讀回最新計畫。</p>
         <form id="onboarding-form">
           <label>Sex
-            <select id="sex">
+            <select id="sex" required>
+              <option value="" selected disabled>Select sex</option>
               <option value="female">female</option>
               <option value="male">male</option>
             </select>
           </label>
           <label>Age
-            <input id="age-years" type="number" min="13" max="100" value="34" />
+            <input id="age-years" type="number" min="13" max="100" placeholder="e.g. 34" required />
           </label>
           <label>Height cm
-            <input id="height-cm" type="number" min="100" max="240" step="0.1" value="170" />
+            <input id="height-cm" type="number" min="100" max="240" step="0.1" inputmode="decimal" placeholder="e.g. 170" required />
           </label>
           <label>Current weight kg
-            <input id="current-weight-kg" type="number" min="20" max="300" step="0.1" value="70" />
+            <input id="current-weight-kg" type="number" min="20" max="300" step="0.1" inputmode="decimal" placeholder="e.g. 70" required />
           </label>
           <label>Target weight kg
-            <input id="target-weight-kg" type="number" min="20" max="300" step="0.1" placeholder="65" />
+            <input id="target-weight-kg" type="number" min="20" max="300" step="0.1" inputmode="decimal" placeholder="e.g. 65" />
           </label>
           <label>Goal
-            <select id="goal-type">
+            <select id="goal-type" required>
+              <option value="" selected disabled>Select goal</option>
               <option value="lose_weight">Lose weight</option>
               <option value="maintain_weight">Maintain weight</option>
               <option value="gain_weight">Gain weight</option>
             </select>
           </label>
           <label>Daily lifestyle
-            <select id="daily-lifestyle">
+            <select id="daily-lifestyle" required>
+              <option value="" selected disabled>Select lifestyle</option>
               <option value="sedentary_with_some_walking">Mostly sitting, some walking</option>
               <option value="mostly_sitting">Mostly sitting</option>
               <option value="standing_or_light_activity">Standing or light activity</option>
             </select>
           </label>
           <label>Weekly exercise
-            <select id="weekly-exercise-days-band">
+            <select id="weekly-exercise-days-band" required>
+              <option value="" selected disabled>Select exercise</option>
               <option value="0">0 days</option>
               <option value="1_2">1-2 days</option>
               <option value="3_4">3-4 days</option>
@@ -256,13 +313,17 @@
             </select>
           </label>
           <label>Weekly target kg
-            <input id="weekly-target-rate-kg" type="number" min="0" max="1" step="0.1" value="0.5" />
-          </label>
-          <label>Manual daily target
-            <input id="manual-daily-target" type="number" min="800" max="5000" placeholder="1600" />
+            <input id="weekly-target-rate-kg" type="number" min="0" max="1" step="0.1" inputmode="decimal" placeholder="e.g. 0.5" required aria-describedby="weekly-target-rate-hint" />
+            <span id="weekly-target-rate-hint" class="hint">A small weekly rate is easier to sustain.</span>
           </label>
           <button class="primary full" type="submit">Rebuild plan</button>
-          <button id="save-manual-target" class="full" type="button">Save manual daily target</button>
+        </form>
+        <form id="manual-target-form">
+          <label>Manual daily target
+            <input id="manual-daily-target" type="number" min="800" max="5000" inputmode="numeric" placeholder="e.g. 1600" aria-describedby="manual-daily-target-hint" />
+            <span id="manual-daily-target-hint" class="hint">Optional override for the selected date.</span>
+          </label>
+          <button id="save-manual-target" class="full" type="submit">Save manual daily target</button>
         </form>
       </article>
     </section>
@@ -282,13 +343,33 @@
     };
     const todayIso = () => new Date().toISOString().slice(0, 10);
     const el = (id) => document.getElementById(id);
-    el("local-date").value = new URLSearchParams(window.location.search).get("local_date") || todayIso();
+    const params = new URLSearchParams(window.location.search);
+    el("user-id").value = params.get("user_id") || el("user-id").value;
+    el("local-date").value = params.get("local_date") || todayIso();
 
     function userId() {
       return el("user-id").value.trim() || "default_user";
     }
     function selectedDate() {
       return el("local-date").value || todayIso();
+    }
+    function pageUrl(page) {
+      return `/static/accurate-intake-${page}.html?user_id=${encodeURIComponent(userId())}&local_date=${encodeURIComponent(selectedDate())}`;
+    }
+    function updateNavigationLinks() {
+      document.querySelectorAll("[data-nav-target]").forEach((link) => {
+        const target = link.getAttribute("data-nav-target");
+        if (target) {
+          link.href = pageUrl(target);
+        }
+      });
+    }
+    function updateCurrentUrl() {
+      const nextUrl = pageUrl("body");
+      const resolved = new URL(nextUrl, window.location.href);
+      if (window.location.search !== resolved.search) {
+        window.history.replaceState(null, "", nextUrl);
+      }
     }
     function numberOrNull(id) {
       const value = el(id).value.trim();
@@ -343,6 +424,7 @@
       }
     }
     async function loadBody() {
+      updateNavigationLinks();
       el("body-status").textContent = "Loading body plan...";
       const plan = await requestJson(`${endpoints.bodyPlan}?${new URLSearchParams({ user_id: userId() }).toString()}`);
       renderPlan(plan);
@@ -387,7 +469,8 @@
       renderPlan(payload.active_body_plan || {});
       el("body-status").textContent = `Plan saved${payload.target_kcal == null ? "" : `: ${payload.target_kcal} kcal target`}.`;
     });
-    el("save-manual-target").addEventListener("click", async () => {
+    el("manual-target-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
       const target = Number(el("manual-daily-target").value);
       if (!Number.isFinite(target)) {
         el("body-status").textContent = "Enter a manual daily target first.";
@@ -406,6 +489,16 @@
       renderPlan(payload.active_body_plan || {});
       el("body-status").textContent = `Manual daily target saved${payload.current_budget?.budget_kcal == null ? "" : `: ${payload.current_budget.budget_kcal} kcal`}.`;
     });
+    el("local-date").addEventListener("change", () => {
+      updateCurrentUrl();
+      updateNavigationLinks();
+    });
+    el("user-id").addEventListener("change", () => {
+      updateCurrentUrl();
+      updateNavigationLinks();
+      loadBody().catch((error) => { el("body-status").textContent = `Could not load body plan: ${error.message}`; });
+    });
+    updateNavigationLinks();
     loadBody().catch((error) => { el("body-status").textContent = `Could not load body plan: ${error.message}`; });
   </script>
 </body>

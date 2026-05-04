@@ -8,6 +8,8 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from app.budget.interface.today_surface import render_today_surface, resolve_today_local_date
 from app.composition.body_budget_deficit_summary import build_body_budget_deficit_summary
+from app.composition.body_budget_effective_budget import build_body_budget_effective_budget_view
+from app.composition.body_budget_weekly_progress import build_body_budget_weekly_progress
 from app.composition.canonical_commit_bridge import record_budget_adjustment_to_canonical
 from app.composition.current_budget_read_model import build_current_budget_view
 from app.database import get_db, get_or_create_user
@@ -51,6 +53,36 @@ async def today_deficit_summary(
 ) -> dict:
     user = get_or_create_user(db, user_id)
     return build_body_budget_deficit_summary(
+        db,
+        user_id=user.id,
+        local_date=resolve_today_local_date(local_date),
+    )
+
+
+@router.get("/today/weekly-progress")
+async def today_weekly_progress(
+    user_id: str = "default_user",
+    local_date: str | None = None,
+    window_days: int = 7,
+    db: Any = Depends(get_db),
+) -> dict:
+    user = get_or_create_user(db, user_id)
+    return build_body_budget_weekly_progress(
+        db,
+        user_id=user.id,
+        local_date=resolve_today_local_date(local_date),
+        window_days=window_days,
+    )
+
+
+@router.get("/today/effective-budget")
+async def today_effective_budget(
+    user_id: str = "default_user",
+    local_date: str | None = None,
+    db: Any = Depends(get_db),
+) -> dict:
+    user = get_or_create_user(db, user_id)
+    return build_body_budget_effective_budget_view(
         db,
         user_id=user.id,
         local_date=resolve_today_local_date(local_date),

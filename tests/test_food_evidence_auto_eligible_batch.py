@@ -89,6 +89,28 @@ def test_auto_eligible_batch_adds_approval_metadata_without_runtime_truth() -> N
     }
 
 
+def test_auto_eligible_includes_validated_tfda_listed_component_candidates() -> None:
+    artifact = build_food_evidence_auto_eligible_batch(
+        validation_artifact=_validation_artifact(
+            [
+                _validated_candidate(
+                    "dougan",
+                    "豆干",
+                    evidence_role="listed_component_anchor_candidate",
+                )
+            ]
+        ),
+        sample_size_per_group=2,
+    )
+
+    assert artifact["summary"]["auto_eligible_count"] == 1
+    candidate = artifact["auto_eligible_candidates"][0]
+    assert candidate["evidence_role"] == "listed_component_anchor_candidate"
+    assert candidate["promotion_status"] == "auto_eligible_packet_candidate"
+    assert candidate["runtime_truth_allowed"] is False
+    assert candidate["packet_ready"] is False
+
+
 def test_auto_eligible_blocks_validator_failures_and_non_auto_sources() -> None:
     artifact = build_food_evidence_auto_eligible_batch(
         validation_artifact=_validation_artifact(
@@ -100,6 +122,13 @@ def test_auto_eligible_blocks_validator_failures_and_non_auto_sources() -> None:
                     source_class="open_food_facts",
                     source_id="openfoodfacts_taiwan_small",
                     evidence_role="packaged_candidate",
+                ),
+                _validated_candidate(
+                    "local_exact",
+                    "local packaged exact",
+                    source_class="local_taiwan_packaged_extract",
+                    source_id="local_tw_packaged_extract_188_2",
+                    evidence_role="exact_card_candidate",
                 ),
                 _validated_candidate(
                     "usda",
@@ -129,6 +158,7 @@ def test_auto_eligible_blocks_validator_failures_and_non_auto_sources() -> None:
     assert artifact["summary"]["auto_eligible_count"] == 1
     exceptions = {item["candidate_id"]: item for item in artifact["exception_report"]}
     assert exceptions["off"]["exception_reason"] == "source_class_not_auto_eligible"
+    assert exceptions["local_exact"]["exception_reason"] == "source_class_not_auto_eligible"
     assert exceptions["usda"]["exception_reason"] == "source_class_not_auto_eligible"
     assert exceptions["old"]["exception_reason"] == "source_class_not_auto_eligible"
     assert exceptions["repair"]["exception_reason"] == "validation_not_passed"

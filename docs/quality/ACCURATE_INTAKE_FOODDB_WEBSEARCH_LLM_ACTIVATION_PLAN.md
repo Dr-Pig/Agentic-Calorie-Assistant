@@ -73,6 +73,45 @@ activation_ladder:
     readiness_claimed: false
 ```
 
+## Coverage Stop Rule
+
+```yaml
+coverage_stop_rule:
+  common_serving_anchor_max_before_activation: 80
+  listed_basket_components_max_before_activation: 60
+```
+
+## Modifier Priority
+
+```yaml
+modifier_priority:
+  P0: sugar_level, cup_size, rice_portion
+  P1: common add-ons
+  P2: preparation method / fried-braised-grilled style metadata posture only
+```
+
+## Exact Lane Guard
+
+```yaml
+exact_lane_guard:
+  - exact_card_candidate.runtime_truth_allowed == false
+  - selected_extract.runtime_truth_allowed == false
+  - no_ledger_mutation_from_exact_candidate
+```
+
+## Activation Gap Report
+
+activation can proceed with known bounded gaps.
+
+```yaml
+activation_gap_report:
+  known_unsupported_food_families: runtime_supported_but_basket_semantic_only
+  known_ask_followup_cases: runtime_supported_but_require_clarification
+  known_candidate_only_exact_cases: runtime_supported_candidate_only_exact_cards
+  known_modifier_limitations: staged_modifier_priority_p0_p1_p2
+  known_basket_limitations: bare_and_listed_basket_bounding_rules
+```
+
 ## Manager Packet Boundary
 
 Manager receives compact evidence packets only:
@@ -100,6 +139,24 @@ manager_packet_forbidden:
   - WebSearch snippets as truth
   - FoodDB gap candidates as truth
 ```
+
+## Integration Readiness Matrix
+
+```yaml
+integration_readiness_matrix_update:
+  check_edges:
+    - Manager decision -> retrieval intent from manager decision
+    - retrieval router -> FoodDB local adapter
+    - retrieval router -> SQLite FTS adapter
+    - retrieval router -> WebSearch candidate
+    - retriever output -> compact packet
+    - packet -> Manager seam
+    - packet -> mutation guard
+    - exact candidate -> no mutation
+    - basket listed components -> approved anchors only
+```
+
+This matrix is a dependency-inversion gate. It exists to stop single-slice green checks from hiding a broken integration seam.
 
 ## LLM / Deterministic Boundary
 

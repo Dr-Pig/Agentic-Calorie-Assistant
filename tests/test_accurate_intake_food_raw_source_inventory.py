@@ -33,6 +33,15 @@ def test_raw_source_registry_contains_expected_sources_and_non_claim_flags() -> 
     assert sources["tfda_tnfcds_consumer_items"]["filename"] == "tnfcds_consumer_items.xlsx"
     assert sources["newtaipei_brand_candidates"]["source_class"] == "official_brand_chain_page"
     assert sources["newtaipei_brand_candidates"]["intended_roles"] == ["exact_card_candidate"]
+    assert sources["local_tw_packaged_extract_188_2"]["filename"] == "188_2.csv"
+    assert (
+        sources["local_tw_packaged_extract_188_2"]["source_class"]
+        == "local_taiwan_packaged_extract"
+    )
+    assert sources["local_tw_packaged_extract_188_2"]["source_role"] == "staging_candidate_only"
+    assert sources["local_tw_packaged_extract_188_2"]["intended_roles"] == [
+        "exact_card_candidate"
+    ]
     assert sources["openfoodfacts_taiwan_small"]["source_class"] == "open_food_facts"
     assert sources["usda_food_list_sample"]["source_class"] == "usda_fallback"
     assert sources["base_nutrition_db"]["intended_roles"] == ["alias_coverage_prior"]
@@ -90,6 +99,40 @@ def test_raw_source_inventory_reports_malformed_json_per_entry(tmp_path: Path) -
     assert entry["parse_error"] == "JSONDecodeError"
     assert entry["row_count"] is None
     assert inventory["scan_summary"]["present_count"] == 1
+
+
+def test_raw_source_inventory_scans_extracted_csv_without_absolute_paths(tmp_path: Path) -> None:
+    source = tmp_path / "188_2.csv"
+    source.write_text(
+        "\n".join(
+            [
+                "company_name,product_name,package_size,serving_size,kcal_per_serving,image_url",
+                "Tea Co,Brown Sugar Milk Tea,500 ml,250 ml,150,https://example.test/milk-tea.jpg",
+                "Snack Co,Crispy Seaweed,36 g,18 g,95,https://example.test/seaweed.jpg",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    inventory = build_food_raw_source_inventory(scan_roots=[tmp_path])
+    entry = _entry(inventory, "local_tw_packaged_extract_188_2")
+
+    assert entry["local_path_present"] is True
+    assert entry["filename"] == "188_2.csv"
+    assert entry["extension"] == ".csv"
+    assert entry["source_class"] == "local_taiwan_packaged_extract"
+    assert entry["row_count"] == 2
+    assert entry["schema_keys"] == [
+        "company_name",
+        "image_url",
+        "kcal_per_serving",
+        "package_size",
+        "product_name",
+        "serving_size",
+    ]
+    assert entry["schema_fingerprint"]
+    assert entry["relative_to_scan_root"] == "188_2.csv"
+    assert str(tmp_path) not in json.dumps(inventory, ensure_ascii=False)
 
 
 def test_raw_source_inventory_scans_xlsx_without_absolute_paths(tmp_path: Path) -> None:

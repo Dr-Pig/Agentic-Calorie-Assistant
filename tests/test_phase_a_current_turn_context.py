@@ -489,6 +489,31 @@ def test_resolve_attachment_decision_targets_recent_committed_meal_for_correctio
     assert decision.allowed_transition_class == "interpretation_update"
 
 
+def test_resolve_attachment_decision_does_not_pick_recent_meal_from_raw_back_reference() -> None:
+    context = build_current_turn_context_v1(
+        raw_user_input="change that to half sugar",
+        resolved_state=_resolved_state(
+            recent_committed_meals=[
+                {
+                    "meal_thread_id": 55,
+                    "meal_version_id": 56,
+                    "meal_title": "milk tea",
+                    "occurred_at": "2026-04-28T19:00:00",
+                }
+            ],
+        ),
+    )
+
+    decision = resolve_attachment_decision(context)
+    guard = resolve_transition_guard(context, decision)
+
+    assert decision.disposition == "answer_only"
+    assert decision.target_object_id is None
+    assert decision.reason == "ambiguous_back_reference_requires_manager"
+    assert decision.ambiguity_flag is True
+    assert guard.verdict == "answer_only"
+
+
 def test_current_turn_context_uses_resolved_target_reference_not_correction_keywords() -> None:
     context = build_current_turn_context_v1(
         raw_user_input="half sugar",

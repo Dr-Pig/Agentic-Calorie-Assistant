@@ -9,6 +9,8 @@ from .retrieval_intent import RetrievalIntent
 from .selected_extract_policy import choose_selected_extract_packet
 from .web_search_candidate_producer import produce_web_search_candidates
 from .web_search_packetizer import build_web_search_candidate_packets
+from .websearch_source_policy import classify_websearch_source_candidate
+from .websearch_source_policy import build_websearch_source_policy_artifact
 
 
 WEBSEARCH_CANDIDATE_PIPELINE_NON_CLAIMS = [
@@ -47,6 +49,7 @@ def build_websearch_candidate_pipeline_diagnostic(
         "classification": "offline_candidate_pipeline_only",
         "claim_scope": "deterministic_websearch_candidate_query_and_classification",
         "source_policy_version": "websearch_candidate_pipeline_v1",
+        "source_policy": build_websearch_source_policy_artifact(),
         "max_search_attempts": 2,
         "live_websearch_used": False,
         "live_provider_used": False,
@@ -91,6 +94,10 @@ def _case_result(case: WebSearchPipelineCase) -> dict[str, Any]:
         )
         for packet in rechecked_packets
     ]
+    extract_decision_trace = _source_policy_filtered_extract_decision_trace(
+        extract_decision_trace=extract_decision.to_trace(),
+        classifications=classifications,
+    )
     return {
         "case_id": case.case_id,
         "live_websearch_used": False,
@@ -98,7 +105,7 @@ def _case_result(case: WebSearchPipelineCase) -> dict[str, Any]:
         "query_plan": query_plan,
         "candidate_packets": list(rechecked_packets),
         "candidate_classifications": classifications,
-        "selected_extract_decision": extract_decision.to_trace(),
+        "selected_extract_decision": extract_decision_trace,
     }
 
 
@@ -138,36 +145,54 @@ def _classify_candidate_packet(
     *,
     selected_extract_packet_id: str | None,
 ) -> dict[str, Any]:
+    source_policy = classify_websearch_source_candidate(
+        {
+            "source_url": packet.get("source_url"),
+            "source_class": _source_class_from_packet(packet),
+            "license_status": packet.get("license_status"),
+            "robots_status": packet.get("robots_status"),
+            "identity_confidence": packet.get("identity_confidence"),
+            "serving_basis_candidate": packet.get("serving_basis_candidate"),
+            "nutrition_fields_present": packet.get("nutrition_fields_present"),
+        }
+    )
     risks = [str(risk) for risk in packet.get("hard_recheck_risks", [])]
     packet_id = str(packet.get("packet_id") or "")
     source_quality = str(packet.get("source_quality_label") or "")
     match_type = str(packet.get("match_type") or "")
     size_match = str(packet.get("size_or_serving_match") or "")
     sibling_risk = bool((packet.get("sibling_variant_risk") or {}).get("present"))
-    if source_quality == "third_party":
+    if source_policy["candidate_class"] == "blocked_source_policy_candidate":
+        candidate_class = "blocked_source_policy_candidate"
+        manager_signal = "source_policy_blocked"
+    elif source_quality == "third_party":
         candidate_class = "weak_or_unusable_candidate"
-        manager_expected_behavior = "reject_or_request_better_source"
+        manager_signal = "source_not_sufficient"
     elif "wrong_size" in risks or size_match == "different":
         candidate_class = "near_exact_wrong_size_candidate"
-        manager_expected_behavior = "ask_followup"
+        manager_signal = "needs_disambiguation"
     elif sibling_risk or "sibling_variant" in risks or match_type == "related":
         candidate_class = "near_exact_sibling_candidate"
-        manager_expected_behavior = "ask_followup"
-    elif packet_id == selected_extract_packet_id:
+        manager_signal = "needs_disambiguation"
+    elif packet_id == selected_extract_packet_id and source_policy["extract_candidate_allowed"] is True:
         candidate_class = "exact_candidate_for_extract_review"
-        manager_expected_behavior = "candidate_review_no_commit"
+        manager_signal = "candidate_review_no_commit"
     elif match_type == "exact":
         candidate_class = "exact_candidate_blocked_by_policy"
-        manager_expected_behavior = "candidate_review_no_commit"
+        manager_signal = "candidate_review_no_commit"
     else:
         candidate_class = "weak_or_unusable_candidate"
-        manager_expected_behavior = "reject_or_request_better_source"
+        manager_signal = "source_not_sufficient"
 
     return {
         "packet_id": packet_id,
         "candidate_class": candidate_class,
-        "manager_expected_behavior": manager_expected_behavior,
-        "extract_candidate_allowed": packet_id == selected_extract_packet_id,
+        "manager_signal": manager_signal,
+        "extract_candidate_allowed": (
+            packet_id == selected_extract_packet_id
+            and candidate_class == "exact_candidate_for_extract_review"
+            and source_policy["extract_candidate_allowed"] is True
+        ),
         "runtime_truth_allowed": False,
         "packet_ready_truth_allowed": False,
         "requires_later_promotion_path": True,
@@ -175,6 +200,52 @@ def _classify_candidate_packet(
         "match_type": match_type,
         "size_or_serving_match": size_match,
         "hard_recheck_risks": risks,
+        "source_policy_block_reasons": list(source_policy["block_reasons"]),
+    }
+
+
+def _source_class_from_packet(packet: dict[str, Any]) -> str:
+    source_quality = str(packet.get("source_quality_label") or "")
+    officialness = str(packet.get("officialness_hint") or "")
+    if source_quality == "third_party" or officialness == "unknown":
+        return "third_party_blog_or_scrape"
+    if officialness == "official":
+        return "official_brand_or_chain_page"
+    return "high_quality_search_candidate"
+
+
+def _source_policy_filtered_extract_decision_trace(
+    *,
+    extract_decision_trace: dict[str, object],
+    classifications: list[dict[str, Any]],
+) -> dict[str, object]:
+    selected_packet_id = str(extract_decision_trace.get("selected_search_packet_id") or "")
+    if not selected_packet_id:
+        return dict(extract_decision_trace)
+
+    selected_classification = next(
+        (
+            classification
+            for classification in classifications
+            if str(classification.get("packet_id") or "") == selected_packet_id
+        ),
+        None,
+    )
+    if (
+        selected_classification is not None
+        and selected_classification.get("extract_candidate_allowed") is True
+    ):
+        return dict(extract_decision_trace)
+
+    return {
+        **extract_decision_trace,
+        "selected_search_packet_id": None,
+        "extract_reason": "source_policy_blocked_selected_extract",
+        "extract_allowed_by_policy": False,
+        "extract_count": 0,
+        "source_policy_block_reasons": list(
+            (selected_classification or {}).get("source_policy_block_reasons") or []
+        ),
     }
 
 
@@ -303,6 +374,8 @@ def _hit(
         "channel_detected": "handmade_foodservice",
         "serving_basis": "per_cup",
         "nutrition_fields_present": ["kcal"],
+        "license_status": "public_menu_page",
+        "robots_status": "allowed",
         "customization_slots_present": ["size"],
         "identity_confidence": identity_confidence,
         "applicability_confidence": "medium",

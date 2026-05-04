@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
@@ -154,6 +153,18 @@ def dummy_canary_json():
                             "source_url": "https://example.com/starbucks",
                             "source_title": "Starbucks Latte",
                             "candidate_identity": "Starbucks Latte",
+                            "source_quality_label": "brand_menu",
+                            "officialness_hint": "official",
+                            "license_status": "public_menu_page",
+                            "robots_status": "allowed",
+                            "identity_confidence": "high",
+                            "serving_basis_candidate": "per_cup",
+                            "nutrition_fields_present": ["kcal"],
+                            "match_type": "exact",
+                            "brand_match": "same",
+                            "size_or_serving_match": "same",
+                            "modifier_match": "same",
+                            "sibling_variant_risk": {"present": False},
                         }
                     ]
                 }
@@ -213,3 +224,28 @@ async def test_diagnose_positive_case_has_item_size_but_no_kcal(dummy_canary_jso
     assert result["extract"]["kcal_candidates_found"] is False
     assert result["extract_packet"]["created"] is False
     assert result["recommended_next_step"] == "defer_exact_brand_positive_acceptance"
+
+
+@pytest.mark.asyncio
+async def test_diagnose_positive_case_blocks_stale_canary_without_source_policy_metadata(dummy_canary_json):
+    stale = json.loads(json.dumps(dummy_canary_json))
+    selected_candidate = stale["cases"][0]["trace"]["candidate_traces"][0]
+    for key in (
+        "license_status",
+        "robots_status",
+        "identity_confidence",
+        "serving_basis_candidate",
+        "nutrition_fields_present",
+    ):
+        selected_candidate.pop(key, None)
+    mock_port = AsyncMock()
+
+    result = await diagnose_positive_case(
+        canary_json=stale,
+        case_id="starbucks_latte_positive",
+        extract_port=mock_port,
+    )
+
+    assert result["error"] == "selected_extract_policy_blocked"
+    assert "license_unknown" in result["source_policy_block_reasons"]
+    mock_port.extract_rows.assert_not_called()

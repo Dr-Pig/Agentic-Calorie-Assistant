@@ -7,6 +7,8 @@ from app.composition.calibration_proposal_artifacts import ACTIVE_CALIBRATION_PR
 from app.shared.domain import ProposalContainer, ProposalOption
 from app.shared.infra.models import ProposalContainerRecord, ProposalOptionRecord
 
+CALIBRATION_PROPOSAL_HISTORY_STATUSES = frozenset({"open", "accepted", "rejected", "dismissed", "expired"})
+
 
 def _to_domain_option(option: ProposalOptionRecord) -> ProposalOption:
     return ProposalOption(
@@ -63,4 +65,28 @@ def load_open_calibration_proposal_inbox(
     return [_to_domain_container(db, proposal) for proposal in proposals]
 
 
-__all__ = ["load_open_calibration_proposal_inbox"]
+def load_calibration_proposal_history(
+    db: Session,
+    *,
+    user_id: int,
+    limit: int = 50,
+) -> list[ProposalContainer]:
+    bounded_limit = max(1, min(int(limit), 100))
+    proposals = db.execute(
+        select(ProposalContainerRecord)
+        .where(
+            ProposalContainerRecord.user_id == user_id,
+            ProposalContainerRecord.proposal_type == "calibration",
+            ProposalContainerRecord.proposal_status.in_(CALIBRATION_PROPOSAL_HISTORY_STATUSES),
+        )
+        .order_by(ProposalContainerRecord.created_at.desc(), ProposalContainerRecord.id.desc())
+        .limit(bounded_limit)
+    ).scalars().all()
+    return [_to_domain_container(db, proposal) for proposal in proposals]
+
+
+__all__ = [
+    "CALIBRATION_PROPOSAL_HISTORY_STATUSES",
+    "load_calibration_proposal_history",
+    "load_open_calibration_proposal_inbox",
+]
