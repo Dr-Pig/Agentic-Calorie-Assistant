@@ -1,0 +1,45 @@
+name: merge-governance
+
+on:
+  workflow_dispatch:
+  pull_request:
+  schedule:
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  merge-debt-matrix:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONUTF8: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch branch refs for drift checks
+        run: git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build merge debt matrix
+        run: python scripts/merge_governance/build_merge_debt_matrix.py
+
+      - name: Upload merge debt matrix
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: merge-debt-matrix
+          path: |
+            artifacts/merge_debt_matrix.json
+            artifacts/merge_debt_matrix.md
+          if-no-files-found: error
