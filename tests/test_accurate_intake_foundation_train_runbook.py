@@ -14,6 +14,8 @@ def test_foundation_train_runbook_mentions_context_policy_harness_and_fooddb_pla
     assert "write_json_artifact" in text
     assert "build_accurate_intake_fooddb_quality_plan.py" in text
     assert "build_accurate_intake_food_evidence_candidates.py" in text
+    assert "build_accurate_intake_food_evidence_validation.py" in text
     assert "FoodEvidenceCandidate" in text
+    assert "validator_passed" in text
     assert "FoodDB truth" in text
     assert "review packets only" in text

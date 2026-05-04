@@ -239,6 +239,14 @@ python scripts/build_accurate_intake_food_evidence_candidates.py --scan-root pat
 
 The generated candidate artifact is local-only and ignored. `FoodEvidenceCandidate` rows may normalize labels, aliases, source class, serving basis, kcal point, and provenance from known raw/staging sources, but every row remains `promotion_status=candidate` with `runtime_truth_allowed=false`. This PR118 boundary does not create validator-passed rows, auto-eligible packet candidates, packet-ready anchors/cards, nutrition seeds, exact cards, packet truth, runtime truth, or canonical eval oracles.
 
+PR119 validates candidates and reports PR110 coverage diagnostics only:
+
+```powershell
+python scripts/build_accurate_intake_food_evidence_validation.py --candidate-json artifacts/accurate_intake_food_evidence_candidates.json --food-gap-register artifacts/accurate_intake_food_kb_gap_register.json --output artifacts/accurate_intake_food_evidence_validation.json
+```
+
+The generated validation artifact is local-only and ignored. It may mark candidate rows as `validator_passed`, `rejected`, or `needs_source_repair` using provenance, serving basis, kcal sanity, source class compatibility, parse-error repair, and duplicate/alias collision checks. `validator_passed` is still not packet-ready truth: every validated row keeps `runtime_truth_allowed=false`, does not update FoodDB truth, and cannot create nutrition seeds, exact cards, packet truth, runtime truth, or canonical eval oracles.
+
 SQLite-backed route/integration tests should use the shared `LocalSQLiteRouteHarness` when adding new route-level tests. JSON artifact producers should use `write_json_artifact` / `read_json_artifact` to avoid producer-consumer drift such as literal `"\\n"` suffixes. Unit tests should consume fixed artifact dictionaries where possible; DB-heavy scenario runners should be integration-scoped and run sequentially on Windows.
 
 Windows operators should run SQLite-backed commands sequentially. If `.pytest_tmp_local` reports a temporary SQLite lock, wait for the previous process to exit and rerun the affected command before classifying the result. Do not run the reset and keep-db shell commands concurrently against the same DB path.
