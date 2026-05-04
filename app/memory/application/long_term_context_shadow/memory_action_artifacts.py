@@ -227,9 +227,14 @@ def _correction_deletion_suppression_policy() -> dict[str, Any]:
         "durable_delete_allowed": False,
         "manager_context_injection_allowed": False,
         "source_trace_retained_for_audit": True,
+        "future_review_surface": {
+            "primary_surface": "chat",
+            "ui_review_inbox_allowed": False,
+            "ui_usage_events_are_source_evidence_only": True,
+        },
         "future_runtime_requirements": [
             "human_confirmed_memory_store",
-            "user_visible_correction_surface",
+            "chat_review_correction_commands",
             "delete_or_suppress_audit_log",
             "context_pack_exclusion_filter",
         ],

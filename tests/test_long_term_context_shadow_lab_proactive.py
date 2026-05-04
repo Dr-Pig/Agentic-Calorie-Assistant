@@ -24,7 +24,8 @@ def test_proactive_intelligence_shadow_eval_prefers_useful_silence_over_noise() 
         "ask_approval_before_user_visible_send": True,
     }
     assert artifact["suppression_policy"]["quiet_window_suppresses_push"] is True
-    assert artifact["suppression_policy"]["prefer_inbox_digest_before_push"] is True
+    assert artifact["suppression_policy"]["prefer_chat_draft_before_push"] is True
+    assert artifact["suppression_policy"]["ui_inbox_surface_required"] is False
     assert artifact["suppression_policy"]["dismiss_snooze_correction_required"] is True
     assert artifact["agentic_product_pattern_basis"] == [
         "guardrails_before_user_visible_action",
@@ -43,7 +44,7 @@ def test_proactive_intelligence_shadow_eval_prefers_useful_silence_over_noise() 
     )
     assert decisions["pattern-budget-overshoot-frequency"][
         "recommended_shadow_surface"
-    ] in {"inbox_digest_candidate", "future_nudge_candidate"}
+    ] in {"chat_review_candidate", "future_nudge_candidate"}
     assert all(
         decision["annoyance_risk_score"] >= 0
         for decision in artifact["candidate_trigger_decisions"]

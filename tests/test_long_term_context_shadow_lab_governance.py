@@ -20,6 +20,11 @@ def test_memory_promotion_demotion_declares_correction_deletion_suppression_poli
     assert policy["durable_delete_allowed"] is False
     assert policy["manager_context_injection_allowed"] is False
     assert policy["source_trace_retained_for_audit"] is True
+    assert policy["future_review_surface"] == {
+        "primary_surface": "chat",
+        "ui_review_inbox_allowed": False,
+        "ui_usage_events_are_source_evidence_only": True,
+    }
     assert policy["supported_shadow_actions"] == [
         "correct_candidate",
         "suppress_candidate",
@@ -28,7 +33,7 @@ def test_memory_promotion_demotion_declares_correction_deletion_suppression_poli
     ]
     assert policy["future_runtime_requirements"] == [
         "human_confirmed_memory_store",
-        "user_visible_correction_surface",
+        "chat_review_correction_commands",
         "delete_or_suppress_audit_log",
         "context_pack_exclusion_filter",
     ]

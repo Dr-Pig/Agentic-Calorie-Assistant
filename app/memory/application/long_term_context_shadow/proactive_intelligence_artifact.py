@@ -29,7 +29,8 @@ def _proactive_intelligence_shadow_artifact(
             },
             "suppression_policy": {
                 "quiet_window_suppresses_push": True,
-                "prefer_inbox_digest_before_push": True,
+                "prefer_chat_draft_before_push": True,
+                "ui_inbox_surface_required": False,
                 "dismiss_snooze_correction_required": True,
                 "cooldown_after_dismissal_required": True,
                 "low_confidence_requires_more_evidence": True,
@@ -119,7 +120,7 @@ def _recommended_surface(
         return "silent_observe"
     if user_value >= 0.7:
         return "future_nudge_candidate"
-    return "inbox_digest_candidate"
+    return "chat_review_candidate"
 
 
 def _trigger_family(candidate: LongTermContextCandidate) -> str:
@@ -140,10 +141,10 @@ def _decision_rollup(decisions: list[dict[str, Any]]) -> dict[str, int]:
             for decision in decisions
             if decision["recommended_shadow_surface"] == "silent_observe"
         ),
-        "inbox_digest_candidate": sum(
+        "chat_review_candidate": sum(
             1
             for decision in decisions
-            if decision["recommended_shadow_surface"] == "inbox_digest_candidate"
+            if decision["recommended_shadow_surface"] == "chat_review_candidate"
         ),
         "future_nudge_candidate": sum(
             1
