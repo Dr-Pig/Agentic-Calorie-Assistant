@@ -262,6 +262,16 @@ def test_pr_review_autopilot_closeout_is_draft_pr_only() -> None:
     assert artifact["continue_same_draft_pr_after_ci_green"] is True
     assert artifact["stop_after_pr_push"] is False
     assert artifact["merge_still_requires_human_approval"] is True
+    assert artifact["offline_shadow_completion_audit"] == {
+        "completion_status": "complete_for_no_runtime_scope",
+        "remaining_buildable_without_runtime_dependencies": [],
+        "runtime_or_storage_dependency_required_for_next_stage": True,
+    }
+    assert {
+        "durable_memory_write_service",
+        "manager_context_retrieval_tool",
+        "active_context_pack_injection",
+    }.issubset(set(artifact["blocked_future_runtime_slices"]))
     assert artifact["runtime_effect_allowed"] is False
 
 
