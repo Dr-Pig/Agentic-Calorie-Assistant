@@ -34,6 +34,17 @@ def _evidence(**overrides: dict) -> dict:
             "real_fooddb_pass_claimed": False,
             "dogfood_pass": False,
         },
+        "fixture_full_product_loop_e2e": {
+            "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
+            "status": "fixture_product_loop_e2e_diagnostic_pass",
+            "fixture_evidence_used": True,
+            "fooddb_evidence_used": False,
+            "websearch_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
         "pl_ce_review_bundle": {
             "artifact_type": "accurate_intake_product_loop_review_bundle_v1",
             "status": "product_loop_context_diagnostic_ready_for_human_review",
@@ -50,11 +61,59 @@ def _evidence(**overrides: dict) -> dict:
             "status": "generated",
             "deterministic_selected_target": False,
         },
+        "context_replay_pack": {
+            "artifact_type": "accurate_intake_context_replay_pack",
+            "status": "generated",
+            "deterministic_semantic_inference_used": False,
+            "raw_text_intent_router_used": False,
+            "mutation_authority": False,
+            "manager_context_packet_schema_changed": False,
+        },
         "context_window_diagnostic": {
             "artifact_type": "accurate_intake_context_window_diagnostic",
             "status": "generated",
             "long_term_memory_used": False,
             "proactive_or_rescue_used": False,
+        },
+        "context_quality_pack": {
+            "artifact_type": "accurate_intake_context_quality_pack",
+            "status": "context_quality_diagnostic_pass",
+            "context_engineering_fault_claimed": False,
+            "manager_context_packet_schema_changed": False,
+            "deterministic_semantic_inference_used": False,
+            "mutation_authority": False,
+            "ready_for_live_diagnostic_decision": False,
+        },
+        "fixture_evidence_packet_emulator": {
+            "artifact_type": "accurate_intake_fixture_evidence_packet_emulator",
+            "status": "fixture_packet_emulator_ready",
+            "fixture_evidence_used": True,
+            "fixture_packet_truth": False,
+            "fooddb_evidence_used": False,
+            "websearch_evidence_used": False,
+            "web_tavily_used": False,
+            "ready_for_fdb_integration": False,
+        },
+        "fake_provider_tool_loop_smoke": {
+            "artifact_type": "accurate_intake_fake_provider_tool_loop_smoke",
+            "status": "fake_provider_tool_loop_smoke_pass",
+            "provider_mode": "fake_provider_contract_test",
+            "final_semantic_decision_source": "fixture_manager_structured_decision",
+            "deterministic_semantic_inference_used": False,
+            "raw_text_intent_router_used": False,
+            "mutation_authority": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "evidence_packet_truth": False,
+            "ready_for_live_diagnostic_decision": False,
+        },
+        "review_eval_candidate_pipeline": {
+            "artifact_type": "accurate_intake_review_eval_candidate_pipeline",
+            "status": "review_eval_candidate_pipeline_ready",
+            "raw_traces_review_input_only": True,
+            "canonical_eval_promoted": False,
+            "fooddb_truth_updated": False,
+            "ready_for_live_diagnostic_decision": False,
         },
         "local_operator_data_hygiene_bundle": {
             "artifact_type": "accurate_intake_local_operator_data_hygiene_bundle",
@@ -129,6 +188,33 @@ def test_pl_ce_local_review_pack_blocks_unsafe_local_operator_hygiene_flags() ->
     assert "local_operator_data_hygiene_bundle_import_allowed" in pack["blockers"]
     assert "local_operator_data_hygiene_bundle_production_db_used" in pack["blockers"]
     assert "local_operator_data_hygiene_bundle_fooddb_truth_updated" in pack["blockers"]
+    assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pl_ce_local_review_pack_blocks_missing_or_overclaimed_evidence_closure_artifacts() -> None:
+    pack = build_pl_ce_local_review_decision_pack(
+        _evidence(
+            fixture_full_product_loop_e2e={},
+            fixture_evidence_packet_emulator={
+                "status": "fixture_packet_emulator_ready",
+                "fixture_packet_truth": True,
+            },
+            fake_provider_tool_loop_smoke={
+                "status": "fake_provider_tool_loop_smoke_pass",
+                "live_llm_invoked": True,
+            },
+            review_eval_candidate_pipeline={
+                "status": "review_eval_candidate_pipeline_ready",
+                "canonical_eval_promoted": True,
+            },
+        )
+    )
+
+    assert pack["status"] == "blocked"
+    assert "fixture_full_product_loop_e2e" in pack["missing_evidence"]
+    assert "fixture_evidence_packet_emulator_fixture_packet_truth" in pack["blockers"]
+    assert "fake_provider_tool_loop_smoke_live_llm_invoked" in pack["blockers"]
+    assert "review_eval_candidate_pipeline_canonical_eval_promoted" in pack["blockers"]
     assert pack["ready_for_live_diagnostic_decision"] is False
 
 
