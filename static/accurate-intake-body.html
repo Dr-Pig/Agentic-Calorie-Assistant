@@ -173,9 +173,9 @@
   <header class="topbar">
     <div class="brand">Accurate Intake</div>
     <nav aria-label="Accurate Intake pages">
-      <a href="/static/accurate-intake-chat.html">Chat</a>
-      <a href="/static/accurate-intake-today.html">Today</a>
-      <a href="/static/accurate-intake-body.html" aria-current="page">Body</a>
+      <a data-nav-target="chat" href="/static/accurate-intake-chat.html">Chat</a>
+      <a data-nav-target="today" href="/static/accurate-intake-today.html">Today</a>
+      <a data-nav-target="body" href="/static/accurate-intake-body.html" aria-current="page">Body</a>
     </nav>
   </header>
   <main data-surface-role="body-plan">
@@ -292,6 +292,17 @@
     function selectedDate() {
       return el("local-date").value || todayIso();
     }
+    function pageUrl(page) {
+      return `/static/accurate-intake-${page}.html?user_id=${encodeURIComponent(userId())}&local_date=${encodeURIComponent(selectedDate())}`;
+    }
+    function updateNavigationLinks() {
+      document.querySelectorAll("[data-nav-target]").forEach((link) => {
+        const target = link.getAttribute("data-nav-target");
+        if (target) {
+          link.href = pageUrl(target);
+        }
+      });
+    }
     function numberOrNull(id) {
       const value = el(id).value.trim();
       return value ? Number(value) : null;
@@ -345,6 +356,7 @@
       }
     }
     async function loadBody() {
+      updateNavigationLinks();
       el("body-status").textContent = "Loading body plan...";
       const plan = await requestJson(`${endpoints.bodyPlan}?${new URLSearchParams({ user_id: userId() }).toString()}`);
       renderPlan(plan);
@@ -408,6 +420,12 @@
       renderPlan(payload.active_body_plan || {});
       el("body-status").textContent = `Manual daily target saved${payload.current_budget?.budget_kcal == null ? "" : `: ${payload.current_budget.budget_kcal} kcal`}.`;
     });
+    el("local-date").addEventListener("change", updateNavigationLinks);
+    el("user-id").addEventListener("change", () => {
+      updateNavigationLinks();
+      loadBody().catch((error) => { el("body-status").textContent = `Could not load body plan: ${error.message}`; });
+    });
+    updateNavigationLinks();
     loadBody().catch((error) => { el("body-status").textContent = `Could not load body plan: ${error.message}`; });
   </script>
 </body>

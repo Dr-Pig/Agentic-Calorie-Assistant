@@ -104,6 +104,7 @@ def _base_report(
         "mobile_populated_state_checked": False,
         "mobile_no_debug_trace": False,
         "product_cjk_copy_rendered": False,
+        "nav_session_query_preserved": False,
         "forbidden_storage_used": False,
         "frontend_semantic_owner": False,
         "live_llm_invoked": False,
@@ -188,6 +189,26 @@ def _chat_scroll_state(page: Any) -> dict[str, Any]:
     )
 
 
+def _nav_session_query_preserved(page: Any, *, user_external_id: str, local_date: str) -> bool:
+    return bool(
+        page.evaluate(
+            """({ userExternalId, localDate }) => {
+              const links = Array.from(document.querySelectorAll("[data-nav-target]"));
+              if (links.length < 3) {
+                return false;
+              }
+              return links.every((link) => {
+                const url = new URL(link.href, window.location.href);
+                return url.searchParams.get("user_id") === userExternalId
+                  && url.searchParams.get("local_date") === localDate
+                  && !url.searchParams.has("local_debug_token");
+              });
+            }""",
+            {"userExternalId": user_external_id, "localDate": local_date},
+        )
+    )
+
+
 def _open_page(
     browser: Any,
     *,
@@ -229,6 +250,7 @@ def _run_browser_sequence(
             mobile_viewport = {"width": 390, "height": 844}
             desktop_overflows: list[dict[str, Any]] = []
             mobile_overflows: list[dict[str, Any]] = []
+            nav_checks: list[bool] = []
             storage_keys = {"localStorageKeys": [], "sessionStorageKeys": []}
             page_texts: list[str] = []
 
@@ -241,6 +263,9 @@ def _run_browser_sequence(
                 local_debug_token=local_debug_token,
             )
             chat.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
+            nav_checks.append(
+                _nav_session_query_preserved(chat, user_external_id=user_external_id, local_date=local_date)
+            )
             result["chat_page_loaded"] = True
             result["current_step"] = "submit_chat_message"
             chat_messages = [cjk_message] + [f"{cjk_message} 第{i}筆" for i in range(2, 11)]
@@ -298,6 +323,9 @@ def _run_browser_sequence(
                 local_debug_token=local_debug_token,
             )
             today.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
+            nav_checks.append(
+                _nav_session_query_preserved(today, user_external_id=user_external_id, local_date=local_date)
+            )
             today.wait_for_function(
                 """() => document.querySelector("#budget-kcal")?.textContent?.trim() !== "--" """,
                 timeout=timeout_ms,
@@ -349,6 +377,9 @@ def _run_browser_sequence(
                 timeout=timeout_ms
             )
             result["today_date_switch_checked"] = True
+            nav_checks.append(
+                _nav_session_query_preserved(today, user_external_id=user_external_id, local_date=local_date)
+            )
             result["fetch_sequence"].extend(_capture_fetches(today))
             desktop_overflows.append(_overflow_state(today))
             storage_keys["localStorageKeys"].extend(_storage_state(today).get("localStorageKeys", []))
@@ -365,6 +396,9 @@ def _run_browser_sequence(
                 local_debug_token=local_debug_token,
             )
             body.wait_for_selector('[data-surface-role="body-plan"]', timeout=timeout_ms)
+            nav_checks.append(
+                _nav_session_query_preserved(body, user_external_id=user_external_id, local_date=local_date)
+            )
             body.wait_for_function(
                 """() => document.querySelector("#plan-daily-target")?.textContent?.trim() !== "--" """,
                 timeout=timeout_ms,
@@ -466,6 +500,7 @@ def _run_browser_sequence(
             result["storage"] = storage_keys
             result["forbidden_storage_used"] = bool(storage_keys["localStorageKeys"] or storage_keys["sessionStorageKeys"])
             result["product_page_text"] = "\n".join(page_texts)
+            result["nav_session_query_preserved"] = bool(nav_checks) and all(nav_checks)
             result["product_cjk_copy_rendered"] = all(
                 fragment in result["product_page_text"]
                 for fragment in ("像 LINE", "每天一頁", "先把體重")
@@ -516,6 +551,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("mobile_populated_state_checked", "mobile_populated_state_not_checked")
     require_true("mobile_no_debug_trace", "mobile_debug_trace_leaked")
     require_true("product_cjk_copy_rendered", "product_cjk_copy_not_rendered")
+    require_true("nav_session_query_preserved", "nav_session_query_not_preserved")
 
     if report.get("frontend_semantic_owner") is True:
         blockers.append("frontend_semantic_owner")
