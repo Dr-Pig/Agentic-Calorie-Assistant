@@ -39,6 +39,8 @@ def test_websearch_candidate_packet_smoke_is_candidate_only_even_for_exact_suppo
         "requires_later_promotion_path": True,
         "truth_field_violations": [],
     }
+    assert all(case["candidate_boundary"]["runtime_truth_allowed"] is False for case in artifact["cases"])
+    assert all(case["candidate_boundary"]["snippet_truth_allowed"] is False for case in artifact["cases"])
 
 
 def test_websearch_candidate_packet_smoke_reports_rejected_risks_without_promotion() -> None:
