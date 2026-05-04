@@ -76,7 +76,7 @@ def test_all_green_pr_with_stale_contract_requires_rebase() -> None:
     assert entry["recommended_verdict"] == "rebase_required"
 
 
-def test_future_shadow_large_implementation_is_held_even_when_green() -> None:
+def test_future_shadow_large_inactive_implementation_can_be_dormant_candidate() -> None:
     matrix = build_matrix_from_prs(
         [
             _pr(
@@ -93,7 +93,26 @@ def test_future_shadow_large_implementation_is_held_even_when_green() -> None:
     entry = matrix["entries"][0]
     assert entry["mainline_status"] == "future_shadow"
     assert entry["fat_file_status"] == "warning"
-    assert entry["recommended_verdict"] == "hold_as_shadow"
+    assert entry["runtime_activation_status"] == "inactive"
+    assert entry["recommended_verdict"] == "dormant_shadow_candidate"
+
+
+def test_future_shadow_without_track_report_is_fix_gate() -> None:
+    entry = build_matrix_from_prs(
+        [
+            _pr(
+                title="Add long-term context shadow lab",
+                head="codex/long-term-context-shadow-lab",
+                body="track: LongTermContextLab\nruntime_truth_changed: false\n",
+                additions=100,
+                files=[{"path": "app/memory/application/long_term_context_shadow_lab.py", "additions": 100}],
+            )
+        ],
+        DEFAULT_CONFIG,
+    )["entries"][0]
+
+    assert entry["recommended_verdict"] == "fix_gate"
+    assert "missing_track_report_key:manager_context_packet_changed" in entry["blocking_reasons"]
 
 
 def test_future_shadow_guard_only_pr_is_extract_only() -> None:
@@ -114,6 +133,16 @@ def test_future_shadow_guard_only_pr_is_extract_only() -> None:
     )
 
     assert matrix["entries"][0]["recommended_verdict"] == "extract_only"
+
+
+def test_plce_track_alias_is_mvp_mainline() -> None:
+    entry = build_matrix_from_prs([_pr(body=_pr()["body"].replace("BodyBudgetCalibration", "PL_CE"))], DEFAULT_CONFIG)[
+        "entries"
+    ][0]
+
+    assert entry["track"] == "PLCE"
+    assert entry["mainline_status"] == "mvp_mainline"
+    assert entry["recommended_verdict"] == "merge_candidate"
 
 
 def test_runtime_contract_failure_is_fix_gate() -> None:
@@ -401,7 +430,15 @@ def test_matrix_entries_are_sorted_and_verdicts_are_schema_guarded() -> None:
 
     assert [entry["pr_number"] for entry in matrix["entries"]] == [3, 2, 1]
     assert {entry["recommended_verdict"] for entry in matrix["entries"]} <= ALLOWED_VERDICTS
-    assert ALLOWED_VERDICTS == {"merge_candidate", "extract_only", "rebase_required", "fix_gate", "hold_as_shadow", "stop"}
+    assert ALLOWED_VERDICTS == {
+        "merge_candidate",
+        "dormant_shadow_candidate",
+        "extract_only",
+        "rebase_required",
+        "fix_gate",
+        "hold_as_shadow",
+        "stop",
+    }
 
 
 def test_input_json_path_does_not_consult_local_git_state(tmp_path: Path, monkeypatch) -> None:

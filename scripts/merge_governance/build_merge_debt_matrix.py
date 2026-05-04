@@ -44,12 +44,21 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "size_budget": {
         "mvp_mainline_max_additions": 600,
         "future_shadow_merge_max_additions": 250,
+        "dormant_shadow_max_additions": 15000,
         "max_stack_depth": 2,
         "max_branch_age_days_without_realign": 2,
     },
 }
 
-ALLOWED_VERDICTS = {"merge_candidate", "extract_only", "rebase_required", "fix_gate", "hold_as_shadow", "stop"}
+ALLOWED_VERDICTS = {
+    "merge_candidate",
+    "dormant_shadow_candidate",
+    "extract_only",
+    "rebase_required",
+    "fix_gate",
+    "hold_as_shadow",
+    "stop",
+}
 
 REQUIRED_TRACK_REPORT_KEYS = (
     "track",
@@ -66,6 +75,13 @@ STALE_CONTRACT_PATTERNS: tuple[tuple[str, str], ...] = (
     ("legacy_calibration_unmounted_route_gate", r"calibration_action_router_stays_unmounted_until_activation_plan"),
     ("legacy_calibration_unmounted_route_gate", r'calibration_router"\s+not\s+in\s+source'),
     ("legacy_calibration_unmounted_route_gate", r"calibration_router'\s+not\s+in\s+source"),
+)
+
+CONTRACT_DRIFT_SCAN_EXCLUDES = (
+    ".merge-governance.yml",
+    ".github/workflows/merge-governance.yml",
+    "scripts/merge_governance/",
+    "tests/test_merge_governance_",
 )
 
 FUTURE_ACTIVE_SURFACE_PATTERNS = (
@@ -252,11 +268,19 @@ def _contract_findings_from_ref(head: str) -> list[str]:
         completed = subprocess.run(
             ["git", "grep", "-n", "-E", pattern, ref, "--", "tests", "app", "docs", "scripts"],
             cwd=ROOT,
-            stdout=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
+            text=True,
             check=False,
         )
-        if completed.returncode == 0:
+        if completed.returncode != 0:
+            continue
+        relevant_lines = [
+            line
+            for line in completed.stdout.splitlines()
+            if not any(excluded in line for excluded in CONTRACT_DRIFT_SCAN_EXCLUDES)
+        ]
+        if relevant_lines:
             findings.append(code)
     return sorted(set(findings))
 
@@ -276,11 +300,22 @@ def _string_blob(pr: dict[str, Any]) -> str:
     return "\n".join(str(pr.get(key) or "") for key in ("title", "headRefName", "body", "diff_text"))
 
 
+def normalize_track(track: str) -> str:
+    normalized = track.strip()
+    aliases = {
+        "PL_CE": "PLCE",
+        "PL/CE": "PLCE",
+        "PL-CE": "PLCE",
+        "ProductLifecycleContextEngineering": "PLCE",
+    }
+    return aliases.get(normalized, normalized)
+
+
 def infer_track(pr: dict[str, Any]) -> str:
     flags = extract_track_report(str(pr.get("body") or ""))
     explicit = str(flags.get("track") or "").strip()
     if explicit:
-        return explicit
+        return normalize_track(explicit)
     blob = "\n".join(str(pr.get(key) or "") for key in ("title", "headRefName")).lower()
     if "recommendation" in blob:
         return "RecommendationShadow"
@@ -595,7 +630,13 @@ def _recommended_verdict(
     if base_drift_status != "current":
         return "rebase_required"
     if mainline_status == "future_shadow":
-        return "extract_only" if guard_only_future_pr else "hold_as_shadow"
+        if track_report_status == "missing":
+            return "fix_gate"
+        if guard_only_future_pr:
+            return "extract_only"
+        if runtime_activation_status == "inactive":
+            return "dormant_shadow_candidate"
+        return "hold_as_shadow"
     if mainline_status in {"mvp_mainline", "governance_guard", "dependency_bump"}:
         return "merge_candidate"
     return "stop"
@@ -704,6 +745,7 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
 def _safe_next_action(verdict: str) -> str:
     return {
         "merge_candidate": "Queue for human review and merge only after fresh required checks on latest main.",
+        "dormant_shadow_candidate": "Queue as dormant shadow only; verify no runtime activation before merge.",
         "extract_only": "Extract only guard, contract, or matrix slices; keep feature implementation in draft.",
         "rebase_required": "Realign the branch to current main and update stale contracts before review.",
         "fix_gate": "Fix failing governance, runtime, or CI gate before any merge decision.",
