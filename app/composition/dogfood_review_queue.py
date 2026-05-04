@@ -101,6 +101,61 @@ def build_review_candidate_from_runtime_trace(
     }
 
 
+def _flags_from_product_loop_diagnostic(diagnostic: dict[str, Any]) -> list[str]:
+    artifact_type = str(diagnostic.get("artifact_type") or "")
+    status = str(diagnostic.get("status") or "")
+    summary = _object_dict(diagnostic.get("summary"))
+    flags: list[str] = []
+
+    if artifact_type == "accurate_intake_context_target_candidate_eval":
+        if int(summary.get("ambiguous_scenarios") or 0) > 0:
+            flags.append("target_ambiguity")
+    elif artifact_type == "accurate_intake_context_review_artifact":
+        if int(summary.get("forbidden_context_trace_count") or 0) > 0:
+            flags.append("manager_context_gap")
+    elif artifact_type == "accurate_intake_context_window_diagnostic":
+        if diagnostic.get("long_term_memory_used") is True:
+            flags.append("manager_context_gap")
+        if diagnostic.get("proactive_or_rescue_used") is True:
+            flags.append("manager_context_gap")
+    elif artifact_type == "accurate_intake_browser_realistic_web_dogfood_v2":
+        if "evidence_gap" in status:
+            flags.append("evidence_gap")
+
+    return list(dict.fromkeys(flags or ["manager_context_gap"]))
+
+
+def build_review_candidate_from_product_loop_diagnostic(
+    diagnostic: dict[str, Any],
+) -> dict[str, Any]:
+    artifact_type = str(diagnostic.get("artifact_type") or "unknown_product_loop_diagnostic")
+    record = build_dogfood_review_record(
+        trace_id=artifact_type,
+        raw_trace={
+            "artifact_type": artifact_type,
+            "status": diagnostic.get("status"),
+            "summary": diagnostic.get("summary"),
+            "raw_trace_is_truth": False,
+        },
+        auto_flags=_flags_from_product_loop_diagnostic(diagnostic),
+        reviewer_agent_suggestion={
+            "review_candidate": True,
+            "likely_failure_family": "product_loop_context_diagnostic",
+        },
+    )
+    return {
+        **record,
+        "taxonomy": REVIEW_QUEUE_TAXONOMY,
+        "canonical_eval_promotion": validate_canonical_eval_promotion(record),
+        "truth_owner": {
+            "raw_trace": "system_auto_logger",
+            "review_candidate": "deterministic_rules_or_optional_reviewer_agent",
+            "human_labeled": "human_reviewer",
+            "canonical_eval_case": "human_reviewer",
+        },
+    }
+
+
 def build_dogfood_review_queue_artifact(
     *,
     review_candidates: list[dict[str, Any]],
@@ -133,5 +188,6 @@ def build_dogfood_review_queue_artifact(
 __all__ = [
     "REVIEW_QUEUE_TAXONOMY",
     "build_dogfood_review_queue_artifact",
+    "build_review_candidate_from_product_loop_diagnostic",
     "build_review_candidate_from_runtime_trace",
 ]
