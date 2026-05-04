@@ -422,7 +422,10 @@ def _should_generate_spread_candidate(
 def _is_repeated_overshoot_strategy_candidate(
     trigger: RescueTriggerDetectionResult,
 ) -> bool:
-    return trigger.trigger_candidate == "repeated_overshoot_pattern"
+    return (
+        trigger.trigger_candidate == "repeated_overshoot_pattern"
+        or "repeated_overshoot" in trigger.trigger_reason_codes
+    )
 
 
 def _exceeds_soft_spread_capacity(context: RescueContextFixture) -> bool:
