@@ -24,10 +24,12 @@ SIDECAR_MODULES = [
     "app.rescue.domain.shadow_status",
     "app.rescue.domain.shadow_trigger",
     "app.rescue.domain.shadow_viability",
+    "app.rescue.domain.shadow_options",
     "app.rescue.application",
     "app.rescue.application.proposal_read_model",
     "app.rescue.application.shadow_trigger_detector",
     "app.rescue.application.shadow_viability_scorer",
+    "app.rescue.application.shadow_option_generator",
     "app.runtime.contracts.pending_meal_intent",
     "app.runtime.contracts.proactive_gate",
     "app.runtime.application.proactive_deterministic_gate",
@@ -44,6 +46,9 @@ ACTIVE_RUNTIME_SURFACES = [
     "app/runtime/application/manager_service.py",
     "app/composition/intake_manager_tool_batch.py",
     "app/runtime/interface/provider_runtime.py",
+    "app/composition/manager_context_runtime.py",
+    "app/intake/application/manager_context_policy.py",
+    "app/runtime/agent/manager_context_payload.py",
 ]
 
 B2_READINESS_SURFACES = [
