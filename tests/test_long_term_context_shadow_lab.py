@@ -184,6 +184,7 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
         "memory_review_action_shadow_result",
         "conversation_recall_shadow_eval",
         "long_term_context_pack_shadow_eval",
+        "conversation_recall_tool_shadow_plan",
     }
 
     for artifact in artifacts.values():
@@ -483,6 +484,48 @@ def test_conversation_recall_shadow_eval_is_summary_first_and_tool_call_disabled
     }
 
 
+def test_conversation_recall_tool_shadow_plan_keeps_future_retrieval_disabled() -> None:
+    from app.memory.application.long_term_context_shadow_lab import (
+        build_shadow_lab_artifacts,
+    )
+
+    artifact = build_shadow_lab_artifacts(_fixture_payload())[
+        "conversation_recall_tool_shadow_plan"
+    ]
+
+    assert artifact["artifact_type"] == "conversation_recall_tool_shadow_plan"
+    assert artifact["context_entry_mode"] == (
+        "future_tool_mediated_retrieval_candidate"
+    )
+    assert artifact["manager_tool_registered"] is False
+    assert artifact["manager_tool_called"] is False
+    assert artifact["runtime_tool_available"] is False
+    assert artifact["retrieval_tool_call_allowed_now"] is False
+    assert artifact["raw_transcript_access_allowed_now"] is False
+    assert artifact["runtime_effect_allowed"] is False
+    assert artifact["manager_context_injected"] is False
+
+    contract = artifact["future_tool_contract"]
+    assert contract["tool_name"] == "conversation_recall.search"
+    assert contract["request_schema"]["required"] == [
+        "user_id",
+        "retrieval_query",
+        "scope",
+        "reason_for_recall",
+    ]
+    assert contract["response_contract"]["summary_first"] is True
+    assert contract["response_contract"]["source_refs_required"] is True
+    assert contract["response_contract"]["raw_transcript_returned"] is False
+    assert contract["response_contract"]["manager_context_injection_allowed"] is False
+    assert artifact["selected_conversation_refs"][0]["candidate_id"] == (
+        "conversation-recall-context-summary"
+    )
+    assert (
+        "ManagerContextPacket injection remains forbidden"
+        in artifact["safety_boundaries"]
+    )
+
+
 def test_consumer_specific_context_packs_are_summary_first_and_non_injecting() -> None:
     from app.memory.application.long_term_context_shadow_lab import (
         build_shadow_lab_artifacts,
@@ -591,6 +634,7 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "memory_review_action_shadow_result.json",
         "conversation_recall_shadow_eval.json",
         "long_term_context_pack_shadow_eval.json",
+        "conversation_recall_tool_shadow_plan.json",
         "external_memory_framework_research_review.json",
     }
     assert {path.name for path in output_dir.iterdir()} == expected_files
