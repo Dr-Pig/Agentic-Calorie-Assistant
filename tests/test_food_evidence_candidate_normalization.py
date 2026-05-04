@@ -87,6 +87,71 @@ def test_candidate_normalization_maps_tfda_xlsx_rows(tmp_path: Path) -> None:
     assert candidate["source_provenance"]["source_file"] == "FDA_food_nutrition_2024.xlsx"
 
 
+def test_candidate_normalization_applies_listed_component_policy_to_tfda_xlsx_rows(
+    tmp_path: Path,
+) -> None:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "nutrition"
+    sheet.append(["食品營養成分資料庫(每100 g可食部分)"])
+    sheet.append(["樣品類別", "食品名稱", "俗名", "熱量(kcal)", "修正熱量(kcal)"])
+    sheet.append(["豆類", "豆干", "滷味豆干", 170, 160])
+    sheet.append(["魚類", "高麗馬加鰆", "", 120, 118])
+    source = tmp_path / "FDA_food_nutrition_2024.xlsx"
+    workbook.save(source)
+
+    artifact = build_food_evidence_candidate_artifact(scan_roots=[tmp_path])
+    by_label = {candidate["canonical_label"]: candidate for candidate in artifact["candidates"]}
+
+    assert by_label["豆干"]["evidence_role"] == "listed_component_anchor_candidate"
+    assert by_label["高麗馬加鰆"]["evidence_role"] == "generic_anchor_candidate"
+
+
+def test_candidate_normalization_infers_listed_component_role_for_tfda_labels(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "tfda_base_review_candidates.json"
+    source.write_text(
+        json.dumps(
+            {
+                "records": [
+                    {"id": "dougan", "title": "豆干", "kcal": 160},
+                    {"id": "haidai", "title": "海帶", "kcal": 28},
+                    {"id": "gongwan", "title": "貢丸", "kcal": 210},
+                    {"id": "gaolicai", "title": "高麗菜", "kcal": 23},
+                    {"id": "sijidou", "title": "四季豆", "kcal": 31},
+                    {"id": "bubble-tea", "title": "珍珠奶茶", "kcal": 190},
+                    {"id": "danbing", "title": "蛋餅", "kcal": 280},
+                    {"id": "fish", "title": "高麗馬加鰆", "kcal": 118},
+                    {"id": "drink", "title": "維生素強化飲料(胡蘿蔔素)", "kcal": 39},
+                    {"id": "cake", "title": "冷藏廣式蘿蔔糕", "kcal": 109},
+                    {"id": "egg", "title": "蒸蛋(市售)", "kcal": 31},
+                    {"id": "dried-cabbage", "title": "甘藍乾", "kcal": 188},
+                ]
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    artifact = build_food_evidence_candidate_artifact(scan_roots=[tmp_path])
+    by_label = {candidate["canonical_label"]: candidate for candidate in artifact["candidates"]}
+
+    assert by_label["豆干"]["evidence_role"] == "listed_component_anchor_candidate"
+    assert by_label["海帶"]["evidence_role"] == "listed_component_anchor_candidate"
+    assert by_label["貢丸"]["evidence_role"] == "listed_component_anchor_candidate"
+    assert by_label["高麗菜"]["evidence_role"] == "listed_component_anchor_candidate"
+    assert by_label["四季豆"]["evidence_role"] == "listed_component_anchor_candidate"
+    assert by_label["珍珠奶茶"]["evidence_role"] == "generic_anchor_candidate"
+    assert by_label["蛋餅"]["evidence_role"] == "generic_anchor_candidate"
+    assert by_label["高麗馬加鰆"]["evidence_role"] == "generic_anchor_candidate"
+    assert by_label["維生素強化飲料(胡蘿蔔素)"]["evidence_role"] == "generic_anchor_candidate"
+    assert by_label["冷藏廣式蘿蔔糕"]["evidence_role"] == "generic_anchor_candidate"
+    assert by_label["蒸蛋(市售)"]["evidence_role"] == "generic_anchor_candidate"
+    assert by_label["甘藍乾"]["evidence_role"] == "generic_anchor_candidate"
+    assert all(candidate["runtime_truth_allowed"] is False for candidate in by_label.values())
+
+
 def test_candidate_normalization_maps_off_and_usda_samples(tmp_path: Path) -> None:
     off = tmp_path / "openfoodfacts_taiwan_small.json"
     off.write_text(
