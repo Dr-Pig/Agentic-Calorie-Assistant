@@ -204,9 +204,9 @@ def test_product_pages_cjk_copy_bytes_are_not_mojibake_or_replacement_text() -> 
         html = _html(path)
         assert expected in html
         assert "\ufffd" not in html
-        assert "�" not in html
-        assert "?" not in html
-        assert "瘥予" not in html
+        assert chr(0xFFFD) not in html
+        assert "?" + chr(0xF696) not in html
+        assert chr(0x7625) + chr(0xE431) + chr(0x4E88) not in html
 
 
 def test_product_pages_do_not_claim_fooddb_websearch_live_or_debug_truth() -> None:
