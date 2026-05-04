@@ -12,18 +12,7 @@ if str(ROOT) not in sys.path:
 from app.composition.dogfood_operator_review import (  # noqa: E402
     build_dogfood_operator_review_surface,
 )
-
-
-def _read_json(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -42,8 +31,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    artifact = build_dogfood_operator_review_surface(_read_json(Path(args.dogfood_json)))
-    _write_json(Path(args.output), artifact)
+    artifact = build_dogfood_operator_review_surface(read_json_artifact(Path(args.dogfood_json)))
+    write_json_artifact(Path(args.output), artifact)
     print(
         json.dumps(
             {

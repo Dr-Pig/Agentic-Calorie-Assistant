@@ -106,6 +106,8 @@ This browser shell is an operator mirror for local dogfood only. It is backend-c
 
 Conversation context for this shell is current-session/current-day only. Backend `/estimate` writes user and assistant messages to local SQLite `message_buffer` with a runtime-turn trace that links chat message, Manager decision, evidence packet, final mapping, state-before, state-after, and context snapshot. `/accurate-intake/chat-history` reads that SQLite surface back for rendering. This is not long-term memory, proactive behavior, rescue, or recommendation.
 
+Manager Context Policy v1 is the MVP manager-input policy for this current-session/current-day shell. It keeps context structured-state-first: current turn, bounded recent chat, pending follow-up/draft pins, active day state, budget summary, and structured correction/removal target candidates may enter the Manager packet as read-only support evidence. Debug artifacts, dogfood review artifacts, raw trace dumps, FoodDB gap candidates, full-day transcript by default, long-term memory, proactive context, rescue context, and recommendation context are omitted from Manager input. The helper is `build_manager_context_packet_v1`; it does not authorize mutation, promote FoodDB truth, or create a parallel persistence truth surface.
+
 Free-text daily target updates may enter through `/estimate` only when the Manager structured decision returns `intent_type=set_manual_daily_target` with an explicit `daily_target_kcal`. The browser shell must not keyword-route target text. The backend validates the target through the existing manual target service, blocks unsafe or ambiguous targets without food mutation, and keeps target calculation / TDEE automation out of this MVP.
 
 Run the local browser-shell route-bridge smoke with:
@@ -206,6 +208,16 @@ python scripts/build_accurate_intake_food_kb_inventory.py --food-gap-register ar
 ```
 
 This inventory is the pre-expansion source-quality gate. It records source classes, required provenance, confidence posture, current seed/card counts, basket component count, missing source metadata, and optional PR112 gap candidate counts. It does not promote a gap candidate into Food KB truth; any future promotion needs human review and a source class that satisfies the policy.
+
+Build the FoodDB quality improvement plan with:
+
+```powershell
+python scripts/build_accurate_intake_fooddb_quality_plan.py --inventory-json docs/quality/accurate_intake_food_kb_v1_inventory.json --food-gap-register artifacts/accurate_intake_food_kb_gap_register.json --output artifacts/accurate_intake_fooddb_quality_plan.json
+```
+
+This plan is review packets only. It may identify the first review batch families such as breakfast combo, chicken bento rice modifier, bubble tea sugar/size modifier, and luwei listed components, but it must not update FoodDB truth, create nutrition seeds, create exact cards, or claim one-day dogfood pass. LLM extraction may normalize candidate labels, source hints, or portion candidates for review, but deterministic promotion policy and human approval are required before any seed, exact card, or packet truth promotion.
+
+SQLite-backed route/integration tests should use the shared `LocalSQLiteRouteHarness` when adding new route-level tests. JSON artifact producers should use `write_json_artifact` / `read_json_artifact` to avoid producer-consumer drift such as literal `"\\n"` suffixes. Unit tests should consume fixed artifact dictionaries where possible; DB-heavy scenario runners should be integration-scoped and run sequentially on Windows.
 
 Windows operators should run SQLite-backed commands sequentially. If `.pytest_tmp_local` reports a temporary SQLite lock, wait for the previous process to exit and rerun the affected command before classifying the result. Do not run the reset and keep-db shell commands concurrently against the same DB path.
 
