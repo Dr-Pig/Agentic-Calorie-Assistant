@@ -24,6 +24,12 @@ def test_pre_edd_command_plan_excludes_business_eval_suites() -> None:
     assert "scripts/audit_architecture_dependency_debt.py" in command_text
 
 
+def test_pre_edd_command_plan_includes_long_term_context_architecture_guards() -> None:
+    command_text = "\n".join(" ".join(item.command) for item in COMMAND_PLAN)
+
+    assert "tests/test_long_term_context_shadow_lab_guards.py" in command_text
+
+
 def test_docs_encoding_policy_is_windows_only_auxiliary_check() -> None:
     command_names = {item.name for item in COMMAND_PLAN}
 
@@ -33,7 +39,9 @@ def test_docs_encoding_policy_is_windows_only_auxiliary_check() -> None:
         assert "docs_encoding_policy" not in command_names
 
 
-def test_fat_audit_classifier_blocks_protected_overage_but_not_watchlist_overage() -> None:
+def test_fat_audit_classifier_blocks_protected_overage_but_not_watchlist_overage() -> (
+    None
+):
     stdout = "\n".join(
         [
             "[OK] app/composition/intake_execution_orchestrator.py lines=162 threshold=400 kind=application-service",
@@ -70,7 +78,9 @@ def test_summarize_status_returns_not_ready_on_any_failure() -> None:
     assert summary["status"] == "not_ready_for_edd"
 
 
-def test_pre_edd_readiness_report_includes_single_manager_guardrail_statuses(monkeypatch) -> None:
+def test_pre_edd_readiness_report_includes_single_manager_guardrail_statuses(
+    monkeypatch,
+) -> None:
     def fake_run_command(*args, **kwargs):
         return {
             "name": "fake",

@@ -141,7 +141,7 @@ def test_long_term_context_shadow_lab_facade_stays_thin_by_responsibility() -> N
     facade = ROOT / "app" / "memory" / "application" / "long_term_context_shadow_lab.py"
     shadow_parts = ROOT / "app" / "memory" / "application" / "long_term_context_shadow"
 
-    assert _line_count(facade) <= 300
+    assert _line_count(facade) <= 120
 
     expected_owner_modules = {
         "contracts.py",
@@ -167,10 +167,20 @@ def test_long_term_context_shadow_lab_facade_stays_thin_by_responsibility() -> N
             oversized_modules[path.name] = "unmapped"
             continue
         line_count = _line_count(path)
-        if line_count > target_cap:
-            oversized_modules[path.name] = f"{line_count}>{target_cap}"
+        strict_lab_cap = min(target_cap, 260)
+        if line_count > strict_lab_cap:
+            oversized_modules[path.name] = f"{line_count}>{strict_lab_cap}"
 
     assert oversized_modules == {}
+
+
+def test_long_term_context_shadow_lab_tests_stay_split_by_responsibility() -> None:
+    test_paths = sorted(ROOT.glob("tests/test_long_term_context_shadow_lab*.py"))
+    oversized_tests = {
+        path.name: _line_count(path) for path in test_paths if _line_count(path) > 420
+    }
+
+    assert oversized_tests == {}
 
 
 def test_long_term_context_shadow_lab_functions_stay_focused() -> None:

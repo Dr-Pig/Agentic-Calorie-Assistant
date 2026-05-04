@@ -6,13 +6,15 @@ from app.memory.application.long_term_context_shadow.candidate_extraction import
     _build_candidates,
     _build_context_value_items,
 )
+from app.memory.application.long_term_context_shadow.artifact_registry import (
+    build_artifact_registry_manifest,
+)
 from app.memory.application.long_term_context_shadow.contracts import (
     ARTIFACT_CONSUMER_CATALOG,
     CHAT_TRACE_SECTION_ALIASES,
     DOGFOOD_EXPORT_SECTIONS,
     SHADOW_NON_CLAIM_FLAGS,
     artifact_review_contract,
-    build_artifact_registry_manifest,
 )
 from app.memory.application.long_term_context_shadow.fixture_reader import (
     _normalize_dogfood_export_payload,

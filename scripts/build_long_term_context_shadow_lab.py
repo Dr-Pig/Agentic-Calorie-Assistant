@@ -29,6 +29,7 @@ ARTIFACT_FILENAMES = {
     "context_value_review_queue": "context_value_review_queue.json",
     "context_signal_quality_scorecard": "context_signal_quality_scorecard.json",
     "candidate_extraction_engine_v2": "candidate_extraction_engine_v2.json",
+    "derived_memory_views_shadow_eval": "derived_memory_views_shadow_eval.json",
     "context_value_scoring_v2": "context_value_scoring_v2.json",
     "shadow_replay_evaluators": "shadow_replay_evaluators.json",
     "review_queue_reducer": "review_queue_reducer.json",
@@ -57,6 +58,9 @@ ARTIFACT_FILENAMES = {
     "capability_scenario_fixture_pack": "capability_scenario_fixture_pack.json",
     "pr_review_autopilot_closeout": "pr_review_autopilot_closeout.json",
     "long_term_context_pack_shadow_eval": "long_term_context_pack_shadow_eval.json",
+    "context_ingress_decision_shadow_eval": (
+        "context_ingress_decision_shadow_eval.json"
+    ),
     "product_capability_context_map": "product_capability_context_map.json",
     "external_memory_framework_research_review": (
         "external_memory_framework_research_review.json"

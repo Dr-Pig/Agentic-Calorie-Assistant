@@ -7,6 +7,9 @@ from app.memory.application.long_term_context_shadow.context_pack_artifacts impo
     _context_pack_token_pressure_shadow_artifact,
     _long_term_context_pack_shadow_artifact,
 )
+from app.memory.application.long_term_context_shadow.context_ingress_artifact import (
+    _context_ingress_decision_shadow_artifact,
+)
 from app.memory.application.long_term_context_shadow.conversation_artifacts import (
     _conversation_recall_retrieval_shadow_artifact,
     _conversation_recall_shadow_artifact,
@@ -39,6 +42,9 @@ def build_future_shadow_artifacts(
         "long_term_context_pack_shadow_eval": _long_term_context_pack_shadow_artifact(
             fixture,
             candidates,
+        ),
+        "context_ingress_decision_shadow_eval": (
+            _context_ingress_decision_shadow_artifact(fixture)
         ),
         "product_capability_context_map": _product_capability_context_map_artifact(
             fixture,
@@ -107,6 +113,7 @@ __all__ = [
     "build_future_shadow_artifacts",
     "_capability_scenario_fixture_pack_artifact",
     "_context_pack_token_pressure_shadow_artifact",
+    "_context_ingress_decision_shadow_artifact",
     "_context_quality_contradiction_review_artifact",
     "_conversation_recall_retrieval_shadow_artifact",
     "_conversation_recall_shadow_artifact",
