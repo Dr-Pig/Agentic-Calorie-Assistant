@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.nutrition.application.fooddb_modifier_priority import (
+    build_modifier_activation_posture,
+    build_modifier_limitation_labels,
+)
+
 
 def build_fooddb_activation_gap_report(
     *,
@@ -20,13 +25,8 @@ def build_fooddb_activation_gap_report(
             "portion_refinement",
         ],
         "known_candidate_only_exact_cases": [item["item_id"] for item in exact_candidate_cases],
-        "known_modifier_limitations": [
-            "P0:sugar_level",
-            "P0:cup_size",
-            "P0:rice_portion",
-            "P1:common add-ons",
-            "P2:preparation method / fried-braised-grilled style metadata posture only",
-        ],
+        "known_modifier_limitations": build_modifier_limitation_labels(),
+        "modifier_activation_posture": build_modifier_activation_posture(),
         "known_basket_limitations": [
             "bare_basket:ask_followup_no_estimate",
             "listed_basket:estimate_component_anchors_only",
@@ -99,4 +99,6 @@ def _source_evidence_only_count(payload: dict[str, Any]) -> int:
 
 def _listed_component_anchor_count(runtime_anchors: list[dict[str, Any]]) -> int:
     return sum(1 for anchor in runtime_anchors if str(anchor.get("dish_type") or "") == "listed_item")
+
+
 __all__ = ["build_fooddb_activation_gap_report"]
