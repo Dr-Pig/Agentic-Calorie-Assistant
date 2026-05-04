@@ -437,6 +437,10 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
                     "calibration_action",
                     "stored_action_contract",
                 ],
+                "accepted_at_field": "calibration_action_accepted_at",
+                "accepted_at_role": "optional_backend_effective_date_input",
+                "effective_from_owner": "stored_action_contract",
+                "frontend_effective_date_calculation_authorized": False,
                 "accepted_actions": [
                     "accept_calibration_proposal",
                     "defer_calibration_proposal",

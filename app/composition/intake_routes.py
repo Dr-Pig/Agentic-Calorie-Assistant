@@ -45,6 +45,15 @@ def _request_local_date(request: EstimateRequest) -> str:
     return request.local_date or datetime.now().date().isoformat()
 
 
+def _parse_calibration_action_accepted_at(request: EstimateRequest) -> datetime | None:
+    if request.calibration_action_accepted_at is None:
+        return None
+    try:
+        return datetime.fromisoformat(request.calibration_action_accepted_at)
+    except ValueError as exc:
+        raise ValueError("calibration_action_accepted_at must be an ISO datetime") from exc
+
+
 def _build_calibration_action_route_payload(general_chat_result: Any) -> dict[str, Any]:
     ui_hints = dict(general_chat_result.ui_hints or {})
     action_result = general_chat_result.calibration_action_result
@@ -208,6 +217,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                 local_date=local_date,
                 calibration_proposal_container_id=request.calibration_proposal_container_id,
                 calibration_action=request.calibration_action,
+                accepted_at=_parse_calibration_action_accepted_at(request),
             )
             state_after = resolve_intake_state(
                 db,
@@ -220,7 +230,9 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                     "present": True,
                     "proposal_container_id": request.calibration_proposal_container_id,
                     "calibration_action": request.calibration_action,
+                    "calibration_action_accepted_at": request.calibration_action_accepted_at,
                     "raw_text_authorized_mutation": False,
+                    "frontend_effective_date_calculation_authorized": False,
                 },
             }
             route_payload = _build_calibration_action_route_payload(general_chat_result)

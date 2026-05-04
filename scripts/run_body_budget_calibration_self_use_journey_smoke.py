@@ -31,6 +31,7 @@ DEFAULT_DB_PATH = ROOT / "artifacts" / "body_budget_calibration_self_use_journey
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "body_budget_calibration_self_use_journey_smoke.json"
 DEFAULT_USER_ID = "body-budget-calibration-self-use-journey"
 DEFAULT_LOCAL_DATE = "2026-05-14"
+DEFAULT_CALIBRATION_ACTION_ACCEPTED_AT = "2026-05-14T10:30:00"
 WINDOW_START = datetime(2026, 5, 1)
 
 
@@ -581,6 +582,7 @@ def build_body_budget_calibration_self_use_journey_report(
                 "local_date": local_date,
                 "calibration_proposal_container_id": proposal_container_id,
                 "calibration_action": "accept_calibration_proposal",
+                "calibration_action_accepted_at": DEFAULT_CALIBRATION_ACTION_ACCEPTED_AT,
             },
         )
         action_payload = dict(action_response["payload"])
@@ -703,6 +705,7 @@ def build_body_budget_calibration_self_use_journey_report(
                 "reply_text": action_response["coach_message"],
                 "proposal_status": action_ui_hints.get("proposal_status"),
                 "proposal_container_id": action_ui_hints.get("proposal_container_id"),
+                "calibration_action_accepted_at": DEFAULT_CALIBRATION_ACTION_ACCEPTED_AT,
                 "effective_from": action_ui_hints.get("effective_from"),
                 "plan_mutated": bool(action_ui_hints.get("plan_mutation_authorized")),
                 "ledger_mutated": bool(action_ui_hints.get("ledger_mutation_authorized")),
