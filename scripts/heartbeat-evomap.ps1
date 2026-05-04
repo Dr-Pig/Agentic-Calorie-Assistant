@@ -8,6 +8,16 @@ if (-not (Test-Path $configPath)) {
 }
 
 $config = Get-Content -Raw $configPath | ConvertFrom-Json
+$legacySecretProperty = "node" + "_secret"
+$secret = $config.secret
+if (-not $secret) {
+  $secret = $config.$legacySecretProperty
+}
+
+if (-not $secret) {
+  throw "Missing EvoMap secret in local config: $configPath"
+}
+
 $tmpBody = Join-Path $env:TEMP "evomap-heartbeat-body.json"
 $body = @{ node_id = $config.node_id } | ConvertTo-Json -Compress
 $body | Set-Content -LiteralPath $tmpBody -Encoding utf8
@@ -28,7 +38,7 @@ try {
       -X POST `
       "$($config.hub_url)/a2a/heartbeat" `
       -H "Content-Type: application/json" `
-      -H "Authorization: Bearer $($config.secret)" `
+      -H "Authorization: Bearer $secret" `
       --data-binary "@$tmpBody"
   }
   finally {
