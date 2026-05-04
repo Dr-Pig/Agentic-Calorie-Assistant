@@ -18,6 +18,18 @@ _DEFERRED_CONTEXT_REASONS = {
     "recommendation_context": "out_of_scope_for_mvp",
 }
 
+_POLICY_EXCLUDED_CONTEXT_IDS = (
+    "debug_artifacts",
+    "dogfood_review_artifacts",
+    "raw_trace_dump",
+    "food_gap_candidates_as_truth",
+    "full_day_transcript_by_default",
+    "long_term_memory",
+    "proactive_context",
+    "rescue_context",
+    "recommendation_context",
+)
+
 _INTERACTION_EVENT_FIELDS = (
     "source",
     "surface_mode",
@@ -215,6 +227,7 @@ def _bounded_recent_chat_turns_with_artifact(
             "recent_chat_messages_omitted": omitted_count,
             "omitted_by_message_limit": omitted_by_message_limit,
             "omitted_by_char_cap": omitted_by_char_cap,
+            "policy_excluded_context_ids": list(_POLICY_EXCLUDED_CONTEXT_IDS),
         },
     }
     return messages, artifact
@@ -298,8 +311,8 @@ def _readonly_copy(value: Any) -> Any:
         return None
     copied = deepcopy(value)
     if isinstance(copied, dict):
-        copied.setdefault("read_only", True)
-        copied.setdefault("mutation_authority", False)
+        copied["read_only"] = True
+        copied["mutation_authority"] = False
     return copied
 
 

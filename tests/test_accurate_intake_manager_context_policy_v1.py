@@ -89,6 +89,17 @@ def test_manager_context_packet_defaults_to_last_20_messages_and_6000_char_cap()
         "target_candidate_count": 2,
         "interaction_event_present": True,
     }
+    assert artifact["omitted_context_summary"]["policy_excluded_context_ids"] == [
+        "debug_artifacts",
+        "dogfood_review_artifacts",
+        "raw_trace_dump",
+        "food_gap_candidates_as_truth",
+        "full_day_transcript_by_default",
+        "long_term_memory",
+        "proactive_context",
+        "rescue_context",
+        "recommendation_context",
+    ]
 
 
 def test_manager_context_packet_records_char_truncation_and_omitted_count() -> None:
@@ -136,6 +147,42 @@ def test_manager_context_packet_hard_pins_pending_followup_and_draft() -> None:
     assert packet["hard_pins"]["last_assistant_question"] == "請列出滷味品項。"
 
 
+def test_manager_context_packet_overrides_nested_mutation_authority_flags() -> None:
+    context = _context(
+        recent_chat_turns=[
+            {
+                "message_id": "unsafe-history",
+                "role": "assistant",
+                "content": "historical text",
+                "read_only": False,
+                "mutation_authority": True,
+            }
+        ]
+    )
+    context.pending_followup["read_only"] = False
+    context.pending_followup["mutation_authority"] = True
+
+    packet = build_manager_context_packet_v1(
+        current_turn_context=context,
+        user_id="local-user",
+        local_date="2026-05-04",
+        session_id="session-1",
+        pending_draft={
+            "draft_id": "unsafe-draft",
+            "read_only": False,
+            "mutation_authority": True,
+        },
+    )
+
+    recent_message = packet["recent_chat_window"]["messages"][0]
+    assert recent_message["read_only"] is True
+    assert recent_message["mutation_authority"] is False
+    assert packet["hard_pins"]["pending_followup"]["read_only"] is True
+    assert packet["hard_pins"]["pending_followup"]["mutation_authority"] is False
+    assert packet["hard_pins"]["pending_draft"]["read_only"] is True
+    assert packet["hard_pins"]["pending_draft"]["mutation_authority"] is False
+
+
 def test_manager_context_packet_excludes_review_debug_and_deferred_memory_context() -> None:
     packet = build_manager_context_packet_v1(
         current_turn_context=_context(),
@@ -170,6 +217,17 @@ def test_manager_context_packet_excludes_review_debug_and_deferred_memory_contex
         "rescue_context",
         "recommendation_context",
     }
+    assert packet["context_loading_artifact"]["omitted_context_summary"]["policy_excluded_context_ids"] == [
+        "debug_artifacts",
+        "dogfood_review_artifacts",
+        "raw_trace_dump",
+        "food_gap_candidates_as_truth",
+        "full_day_transcript_by_default",
+        "long_term_memory",
+        "proactive_context",
+        "rescue_context",
+        "recommendation_context",
+    ]
 
 
 def test_manager_context_packet_structures_target_candidates_without_authority() -> None:
