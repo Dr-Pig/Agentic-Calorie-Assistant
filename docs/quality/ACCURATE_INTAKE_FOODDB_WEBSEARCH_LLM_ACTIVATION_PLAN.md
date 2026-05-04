@@ -140,6 +140,24 @@ manager_packet_forbidden:
   - FoodDB gap candidates as truth
 ```
 
+## Integration Readiness Matrix
+
+```yaml
+integration_readiness_matrix_update:
+  check_edges:
+    - Manager decision -> retrieval intent from manager decision
+    - retrieval router -> FoodDB local adapter
+    - retrieval router -> SQLite FTS adapter
+    - retrieval router -> WebSearch candidate
+    - retriever output -> compact packet
+    - packet -> Manager seam
+    - packet -> mutation guard
+    - exact candidate -> no mutation
+    - basket listed components -> approved anchors only
+```
+
+This matrix is a dependency-inversion gate. It exists to stop single-slice green checks from hiding a broken integration seam.
+
 ## LLM / Deterministic Boundary
 
 ```yaml
