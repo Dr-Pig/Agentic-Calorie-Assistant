@@ -83,6 +83,79 @@ def test_websearch_live_diagnostic_report_blocks_expansion_after_provider_contra
     assert report["runtime_truth_changed"] is False
 
 
+def test_websearch_live_diagnostic_report_distinguishes_post_contract_candidate_boundary_failures() -> None:
+    diagnostic = {
+        "artifact_type": "accurate_intake_grokfast_websearch_packet_smoke",
+        "status": "diagnostic_fail",
+        "live_provider_used": True,
+        "live_websearch_used": False,
+        "summary": {
+            "case_count": 4,
+            "pass_count": 0,
+            "fail_count": 4,
+            "failure_families": [
+                "provider_response_error",
+                "websearch_candidate_not_used",
+                "websearch_weak_candidate_not_rejected",
+            ],
+        },
+        "cases": [
+            {
+                "case_id": "pkt_web_search_milksha_exact",
+                "status": "fail",
+                "failure_families": ["websearch_candidate_not_used"],
+                "provider_trace": {
+                    "trace_summary": {
+                        "structured_output_transport_mode": "json_schema",
+                        "decision_transport_mode": "synthetic_tool_transport",
+                        "decision_transport_attempted": True,
+                        "decision_transport_contract_breach": False,
+                        "schema_name": "founder_live_manager_contract",
+                        "schema_version": "v1",
+                    }
+                },
+            },
+            {
+                "case_id": "pkt_web_search_third_party_weak",
+                "status": "fail",
+                "failure_families": [
+                    "provider_response_error",
+                    "websearch_weak_candidate_not_rejected",
+                ],
+                "provider_trace": {
+                    "failure_family": "provider_response_error",
+                    "trace_summary": {
+                        "failing_component": "builderspace_adapter.complete_with_trace",
+                        "structured_output_transport_mode": "json_schema",
+                        "decision_transport_mode": "synthetic_tool_transport",
+                        "decision_transport_attempted": True,
+                        "decision_transport_contract_breach": False,
+                        "schema_name": "founder_live_manager_contract",
+                        "schema_version": "v1",
+                    },
+                },
+            },
+        ],
+    }
+
+    report = build_websearch_live_diagnostic_report(diagnostic_artifact=diagnostic)
+
+    assert report["seam_status"] == "candidate_boundary_blocked"
+    assert report["provider_contract_blocked"] is False
+    assert report["provider_runtime_residual_blocked"] is True
+    assert report["candidate_boundary_blocked"] is True
+    assert report["can_expand_websearch_candidate_pipeline"] is False
+    assert report["next_recommended_slice"] == "narrow_websearch_packet_boundary_or_prompt_probe"
+    assert report["contract_transport"]["healthy"] is True
+    assert report["contract_transport"]["healthy_case_count"] == 2
+    assert report["contract_transport"]["observed_decision_transport_modes"] == [
+        "synthetic_tool_transport"
+    ]
+    assert report["contract_transport"]["observed_schema_names"] == [
+        "founder_live_manager_contract"
+    ]
+
+
 def test_websearch_live_diagnostic_report_treats_fixture_pass_as_live_not_checked() -> None:
     packet_artifact = _manager_packet_artifact()
     diagnostic = build_grokfast_websearch_packet_diagnostic(

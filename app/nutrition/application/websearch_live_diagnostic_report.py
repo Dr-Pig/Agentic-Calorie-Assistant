@@ -46,8 +46,11 @@ def build_websearch_live_diagnostic_report(
     live_provider_used = diagnostic_artifact.get("live_provider_used") is True
     live_websearch_used = diagnostic_artifact.get("live_websearch_used") is True
     diagnostic_status = str(diagnostic_artifact.get("status") or "")
-    provider_contract_blocked = any(
-        family in failure_counts for family in _PROVIDER_CONTRACT_FAILURES
+    contract_transport = _contract_transport_summary(diagnostic_artifact)
+    provider_contract_blocked = _provider_contract_blocked(
+        diagnostic_artifact=diagnostic_artifact,
+        failure_counts=failure_counts,
+        contract_transport_healthy=contract_transport["healthy"],
     )
     candidate_boundary_blocked = any(
         family in failure_counts for family in _CANDIDATE_BOUNDARY_FAILURES
@@ -84,6 +87,9 @@ def build_websearch_live_diagnostic_report(
         "can_expand_websearch_candidate_pipeline": can_expand_websearch,
         "should_run_websearch_live_tool_loop": False,
         "provider_contract_blocked": provider_contract_blocked,
+        "provider_runtime_residual_blocked": (
+            "provider_response_error" in failure_counts and not provider_contract_blocked
+        ),
         "candidate_boundary_blocked": candidate_boundary_blocked,
         "next_recommended_slice": next_recommended_slice,
         "runtime_truth_changed": False,
@@ -97,6 +103,7 @@ def build_websearch_live_diagnostic_report(
             "fail_count": _summary_int(diagnostic_artifact, "fail_count"),
             "failure_counts": failure_counts,
         },
+        "contract_transport": contract_transport,
         "sanitization": {
             "raw_manager_output_included": False,
             "raw_provider_trace_included": False,
@@ -142,6 +149,86 @@ def _provider_trace_failure_families(provider_trace: dict[str, Any]) -> list[str
             if family:
                 families.append(family)
     return families
+
+
+def _provider_contract_blocked(
+    *,
+    diagnostic_artifact: dict[str, Any],
+    failure_counts: dict[str, int],
+    contract_transport_healthy: bool,
+) -> bool:
+    if "manager_output_contract_violation" in failure_counts:
+        return True
+    if "provider_response_error" not in failure_counts:
+        return False
+    return not contract_transport_healthy or _provider_trace_reports_contract_failure(diagnostic_artifact)
+
+
+def _provider_trace_reports_contract_failure(diagnostic_artifact: dict[str, Any]) -> bool:
+    for case in diagnostic_artifact.get("cases") or []:
+        if not isinstance(case, dict):
+            continue
+        provider_trace = case.get("provider_trace")
+        if not isinstance(provider_trace, dict):
+            continue
+        summary = provider_trace.get("trace_summary")
+        if not isinstance(summary, dict):
+            continue
+        failure_family = str(summary.get("failure_family") or "").strip()
+        failing_component = str(summary.get("failing_component") or "").strip()
+        if failure_family == "manager_output_contract_violation":
+            return True
+        if "validate_manager_payload" in failing_component:
+            return True
+        if summary.get("decision_transport_contract_breach") is True:
+            return True
+    return False
+
+
+def _contract_transport_summary(diagnostic_artifact: dict[str, Any]) -> dict[str, Any]:
+    observed_modes: set[str] = set()
+    schema_names: set[str] = set()
+    schema_versions: set[str] = set()
+    decision_transport_attempted = False
+    contract_breach_observed = False
+    healthy_case_count = 0
+    for case in diagnostic_artifact.get("cases") or []:
+        if not isinstance(case, dict):
+            continue
+        provider_trace = case.get("provider_trace")
+        if not isinstance(provider_trace, dict):
+            continue
+        summary = provider_trace.get("trace_summary")
+        if not isinstance(summary, dict):
+            continue
+        mode = str(summary.get("decision_transport_mode") or "").strip()
+        if mode:
+            observed_modes.add(mode)
+        schema_name = str(summary.get("schema_name") or "").strip()
+        if schema_name:
+            schema_names.add(schema_name)
+        schema_version = str(summary.get("schema_version") or "").strip()
+        if schema_version:
+            schema_versions.add(schema_version)
+        if summary.get("decision_transport_attempted") is True:
+            decision_transport_attempted = True
+        if summary.get("decision_transport_contract_breach") is True:
+            contract_breach_observed = True
+        if (
+            mode == "synthetic_tool_transport"
+            and schema_name == "founder_live_manager_contract"
+            and summary.get("decision_transport_contract_breach") is False
+        ):
+            healthy_case_count += 1
+    return {
+        "decision_transport_attempted": decision_transport_attempted,
+        "observed_decision_transport_modes": sorted(observed_modes),
+        "observed_schema_names": sorted(schema_names),
+        "observed_schema_versions": sorted(schema_versions),
+        "contract_breach_observed": contract_breach_observed,
+        "healthy_case_count": healthy_case_count,
+        "healthy": healthy_case_count > 0 and not contract_breach_observed,
+    }
 
 
 def _summary_int(diagnostic_artifact: dict[str, Any], key: str) -> int:
