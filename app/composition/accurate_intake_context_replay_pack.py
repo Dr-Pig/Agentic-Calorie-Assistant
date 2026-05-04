@@ -15,14 +15,17 @@ def _scenario(
     raw_user_input: str,
     target_resolution_status: str,
     pending_pin_present: bool = False,
+    context_candidates_present: bool = True,
+    omitted_context_expected: bool = False,
 ) -> dict[str, Any]:
     return {
         "scenario_id": scenario_id,
         "raw_user_input": raw_user_input,
         "raw_user_input_role": "display_only",
         "semantic_source": "fixture_manager_structured_decision",
-        "context_candidates_present": True,
+        "context_candidates_present": context_candidates_present,
         "pending_pin_present": pending_pin_present,
+        "omitted_context_expected": omitted_context_expected,
         "target_resolution_status": target_resolution_status,
         "ambiguity_preserved": target_resolution_status == "ambiguous",
         "deterministic_supplies_candidates_and_pins_only": True,
@@ -71,6 +74,35 @@ def _scenarios() -> list[dict[str, Any]]:
             target_resolution_status="pending_draft_supported",
             pending_pin_present=True,
         ),
+        _scenario(
+            scenario_id="remove_lunch_rice_scoped",
+            raw_user_input="\u5348\u9910\u90a3\u500b\u98ef\u62ff\u6389",
+            target_resolution_status="candidate_supported",
+        ),
+        _scenario(
+            scenario_id="modify_previous_drink_unsweetened",
+            raw_user_input="\u525b\u525b\u90a3\u676f\u6539\u7121\u7cd6",
+            target_resolution_status="candidate_supported",
+        ),
+        _scenario(
+            scenario_id="pending_quantity_answer",
+            raw_user_input="\u5169\u584a\u8c46\u5e72\u4e00\u4efd\u6d77\u5e36",
+            target_resolution_status="pending_draft_supported",
+            pending_pin_present=True,
+        ),
+        _scenario(
+            scenario_id="cancel_logging_intent_requires_manager",
+            raw_user_input="\u4e0d\u662f\u8981\u8a18\uff0c\u6211\u53ea\u662f\u554f",
+            target_resolution_status="manager_semantic_required",
+            context_candidates_present=False,
+        ),
+        _scenario(
+            scenario_id="outside_current_day_reference_omitted",
+            raw_user_input="\u6628\u5929\u90a3\u676f\u4e0d\u8981\u7b97",
+            target_resolution_status="outside_current_day_omitted",
+            context_candidates_present=False,
+            omitted_context_expected=True,
+        ),
     ]
 
 
@@ -102,6 +134,16 @@ def build_context_replay_pack_artifact() -> dict[str, Any]:
                 ),
                 "pending_pin_scenarios": sum(
                     1 for scenario in scenarios if scenario["pending_pin_present"] is True
+                ),
+                "manager_semantic_required_scenarios": sum(
+                    1
+                    for scenario in scenarios
+                    if scenario["target_resolution_status"] == "manager_semantic_required"
+                ),
+                "outside_current_day_omitted_scenarios": sum(
+                    1
+                    for scenario in scenarios
+                    if scenario["target_resolution_status"] == "outside_current_day_omitted"
                 ),
             },
             "scenarios": scenarios,
