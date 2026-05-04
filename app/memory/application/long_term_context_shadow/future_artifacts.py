@@ -47,6 +47,9 @@ from app.memory.application.long_term_context_shadow.simulation_artifacts import
     _rescue_shadow_artifact,
     _semantic_pattern_extraction_shadow_artifact,
 )
+from app.memory.application.long_term_context_shadow.weekly_insight_artifact import (
+    _weekly_insight_shadow_artifact,
+)
 
 
 def build_future_shadow_artifacts(
@@ -79,6 +82,7 @@ def build_future_shadow_artifacts(
         "memory_do_not_save_policy_shadow_eval": (
             _memory_do_not_save_policy_shadow_artifact(fixture)
         ),
+        "weekly_insight_shadow_plan": _weekly_insight_shadow_artifact(fixture),
         "product_capability_context_map": _product_capability_context_map_artifact(
             fixture,
             candidates,
@@ -170,4 +174,5 @@ __all__ = [
     "_retrieval_ranking_policy_shadow_artifact",
     "_rescue_shadow_artifact",
     "_semantic_pattern_extraction_shadow_artifact",
+    "_weekly_insight_shadow_artifact",
 ]

@@ -180,6 +180,13 @@ ARTIFACT_CONSUMER_CATALOG: dict[str, list[str]] = {
         "calibration",
         "human_review",
     ],
+    "weekly_insight_shadow_plan": [
+        "proactive",
+        "chat_context",
+        "calibration",
+        "human_review",
+        "architecture_governance",
+    ],
     "memory_dependency_graph_shadow_eval": [
         "architecture_governance",
         "recommendation",

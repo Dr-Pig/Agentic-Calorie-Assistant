@@ -87,6 +87,7 @@ ARTIFACT_FILENAMES = {
     "memory_do_not_save_policy_shadow_eval": (
         "memory_do_not_save_policy_shadow_eval.json"
     ),
+    "weekly_insight_shadow_plan": "weekly_insight_shadow_plan.json",
     "product_capability_context_map": "product_capability_context_map.json",
     "memory_dependency_graph_shadow_eval": "memory_dependency_graph_shadow_eval.json",
     "external_memory_framework_research_review": (
