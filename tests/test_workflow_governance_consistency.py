@@ -59,3 +59,18 @@ def test_wave1_runtime_smoke_stays_manual_only() -> None:
     assert "workflow_dispatch" in workflow
     assert "pull_request" not in workflow
     assert "push:" not in workflow
+
+
+def test_merge_governance_workflow_builds_and_uploads_advisory_matrix() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "merge-governance.yml").read_text(encoding="utf-8")
+
+    assert "workflow_dispatch" in workflow
+    assert "pull_request" in workflow
+    assert "schedule:" in workflow
+    assert "pull-requests: read" in workflow
+    assert "fetch-depth: 0" in workflow
+    assert "git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune" in workflow
+    assert "python scripts/merge_governance/build_merge_debt_matrix.py" in workflow
+    assert "name: merge-debt-matrix" in workflow
+    assert "artifacts/merge_debt_matrix.json" in workflow
+    assert "artifacts/merge_debt_matrix.md" in workflow

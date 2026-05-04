@@ -18,6 +18,9 @@ from app.composition.accurate_intake_context_window_diagnostic import (
 from app.composition.accurate_intake_fake_provider_context_smoke import (
     build_fake_provider_context_smoke_artifact,
 )
+from app.composition.accurate_intake_short_term_context_runtime_replay import (
+    build_short_term_context_runtime_replay_artifact,
+)
 from scripts import build_accurate_intake_context_quality_pack as module
 
 
@@ -127,6 +130,7 @@ def test_context_quality_pack_combines_ce_diagnostics_without_fault_claims() -> 
         context_window_diagnostic=build_context_window_diagnostic_artifact(),
         context_replay=build_context_replay_pack_artifact(),
         fake_provider_context_smoke=build_fake_provider_context_smoke_artifact(),
+        short_term_context_runtime_replay=build_short_term_context_runtime_replay_artifact(),
     )
 
     assert pack["artifact_type"] == "accurate_intake_context_quality_pack"
@@ -142,6 +146,10 @@ def test_context_quality_pack_combines_ce_diagnostics_without_fault_claims() -> 
     assert pack["summary"]["pending_pin_scenarios"] >= 2
     assert pack["summary"]["manager_semantic_required_scenarios"] == 1
     assert pack["summary"]["outside_current_day_omitted_scenarios"] == 1
+    assert pack["summary"]["short_term_runtime_replay_scenario_count"] == 7
+    assert pack["short_term_context_runtime_replay_checked"] is True
+    assert pack["short_term_context_current_gap_scenarios"] >= 1
+    assert "runtime_back_reference_heuristic_attached_target" in pack["short_term_context_known_gap_signals"]
     assert pack["ready_for_live_diagnostic_decision"] is False
     assert pack["private_self_use_approved"] is False
 
@@ -157,6 +165,7 @@ def test_context_quality_pack_rejects_deterministic_target_selection_or_mutation
         context_window_diagnostic=build_context_window_diagnostic_artifact(),
         context_replay=build_context_replay_pack_artifact(),
         fake_provider_context_smoke=build_fake_provider_context_smoke_artifact(),
+        short_term_context_runtime_replay=build_short_term_context_runtime_replay_artifact(),
     )
 
     assert pack["status"] == "fail"
@@ -175,6 +184,7 @@ def test_context_quality_pack_rejects_forbidden_context_or_schema_change() -> No
         context_window_diagnostic=build_context_window_diagnostic_artifact(),
         context_replay=build_context_replay_pack_artifact(),
         fake_provider_context_smoke=build_fake_provider_context_smoke_artifact(),
+        short_term_context_runtime_replay=build_short_term_context_runtime_replay_artifact(),
     )
 
     assert pack["status"] == "fail"
@@ -199,6 +209,7 @@ def test_context_quality_pack_rejects_stale_context_replay_coverage() -> None:
         context_window_diagnostic=build_context_window_diagnostic_artifact(),
         context_replay=stale_replay,
         fake_provider_context_smoke=build_fake_provider_context_smoke_artifact(),
+        short_term_context_runtime_replay=build_short_term_context_runtime_replay_artifact(),
     )
 
     assert pack["status"] == "fail"
@@ -206,6 +217,20 @@ def test_context_quality_pack_rejects_stale_context_replay_coverage() -> None:
     assert "context_replay.pending_pin_scenarios_too_low" in pack["blockers"]
     assert "context_replay.manager_semantic_required_missing" in pack["blockers"]
     assert "context_replay.outside_current_day_omitted_missing" in pack["blockers"]
+
+
+def test_context_quality_pack_rejects_missing_short_term_runtime_replay() -> None:
+    pack = build_context_quality_pack_artifact(
+        context_review=_context_review(),
+        target_candidate_eval=build_context_target_candidate_eval_artifact(),
+        context_window_diagnostic=build_context_window_diagnostic_artifact(),
+        context_replay=build_context_replay_pack_artifact(),
+        fake_provider_context_smoke=build_fake_provider_context_smoke_artifact(),
+    )
+
+    assert pack["status"] == "fail"
+    assert "short_term_context_runtime_replay.not_generated" in pack["blockers"]
+    assert pack["short_term_context_runtime_replay_checked"] is False
 
 
 def test_context_quality_pack_cli_writes_artifact(tmp_path: Path, capsys) -> None:
@@ -218,6 +243,7 @@ def test_context_quality_pack_cli_writes_artifact(tmp_path: Path, capsys) -> Non
     assert exit_code == 0
     assert artifact == printed
     assert artifact["status"] == "context_quality_diagnostic_pass"
+    assert artifact["short_term_context_runtime_replay_checked"] is True
 
 
 def test_context_quality_pack_can_be_backed_by_product_page_runtime_trace() -> None:
