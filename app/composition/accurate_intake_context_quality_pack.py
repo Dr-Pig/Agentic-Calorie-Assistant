@@ -51,6 +51,14 @@ def _overclaim_blockers(artifact_id: str, payload: dict[str, Any]) -> list[str]:
     ]
 
 
+def _upstream_blockers(artifact_id: str, payload: dict[str, Any]) -> list[str]:
+    return [
+        f"{artifact_id}.{blocker}"
+        for blocker in _list_value(payload.get("blockers"))
+        if str(blocker or "").strip()
+    ]
+
+
 def _context_review_blockers(payload: dict[str, Any]) -> list[str]:
     blockers = []
     if _status(payload) != "generated":
@@ -112,6 +120,7 @@ def _fake_provider_blockers(payload: dict[str, Any]) -> list[str]:
     blockers = []
     if _status(payload) != "pass":
         blockers.append("fake_provider_context_smoke.not_pass")
+    blockers.extend(_upstream_blockers("fake_provider_context_smoke", payload))
     if payload.get("final_semantic_decision_source") != "fixture_manager_structured_decision":
         blockers.append("fake_provider_context_smoke.semantic_source_not_fixture_manager")
     summary = _object_dict(payload.get("summary"))

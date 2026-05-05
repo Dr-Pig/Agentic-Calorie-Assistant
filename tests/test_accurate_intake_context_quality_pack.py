@@ -277,6 +277,33 @@ def test_context_quality_pack_rejects_inconsistent_fake_provider_handoff_count()
     assert "fake_provider_context_smoke.manager_handoff_scenario_count_mismatch" in pack["blockers"]
 
 
+def test_context_quality_pack_propagates_fake_provider_handoff_blockers() -> None:
+    fake_provider = build_fake_provider_context_smoke_artifact()
+    fake_provider["blockers"] = [
+        "named_item_correction.candidate_supported_preselected_target",
+        "named_item_correction.deterministic_selected_target",
+    ]
+
+    pack = build_context_quality_pack_artifact(
+        context_review=_context_review(),
+        target_candidate_eval=build_context_target_candidate_eval_artifact(),
+        context_window_diagnostic=build_context_window_diagnostic_artifact(),
+        context_replay=build_context_replay_pack_artifact(),
+        fake_provider_context_smoke=fake_provider,
+        short_term_context_runtime_replay=build_short_term_context_runtime_replay_artifact(),
+    )
+
+    assert pack["status"] == "fail"
+    assert (
+        "fake_provider_context_smoke.named_item_correction.candidate_supported_preselected_target"
+        in pack["blockers"]
+    )
+    assert (
+        "fake_provider_context_smoke.named_item_correction.deterministic_selected_target"
+        in pack["blockers"]
+    )
+
+
 def test_context_quality_pack_rejects_missing_short_term_runtime_replay() -> None:
     pack = build_context_quality_pack_artifact(
         context_review=_context_review(),

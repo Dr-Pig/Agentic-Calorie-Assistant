@@ -130,6 +130,11 @@ def _input_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         blockers.append(f"{group_id}.unexpected_status:{payload.get('status')}")
     if payload.get("blockers") not in (None, []):
         blockers.append(f"{group_id}.upstream_blockers_present")
+        blockers.extend(
+            f"{group_id}.{blocker}"
+            for blocker in _list_value(payload.get("blockers"))
+            if str(blocker or "").strip()
+        )
     for flag in FORBIDDEN_TRUTHY_FLAGS:
         if _claim_is_true(payload.get(flag)):
             blockers.append(f"{group_id}.{flag}")
