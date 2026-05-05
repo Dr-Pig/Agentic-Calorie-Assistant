@@ -45,6 +45,9 @@ from scripts.build_accurate_intake_context_quality_pack import (  # noqa: E402
 
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_review_eval_candidate_pipeline.json"
 DEFAULT_SHELL_PATH = ROOT / "static" / "accurate-intake-local-shell.html"
+DEFAULT_SHORT_TERM_CONTEXT_SMOKE_PATH = (
+    ROOT / "artifacts" / "accurate_intake_product_pages_short_term_context_smoke_ci.json"
+)
 DEFAULT_TARGET_CANDIDATE_UI_SMOKE_PATH = (
     ROOT / "artifacts" / "accurate_intake_product_pages_target_candidate_ui_smoke_ci.json"
 )
@@ -130,6 +133,7 @@ def _read_json_artifact_or_fixture(path: Path, fixture: dict[str, object]) -> di
 def build_review_eval_candidate_pipeline_report(
     *,
     shell_path: Path = DEFAULT_SHELL_PATH,
+    short_term_context_smoke_path: Path = DEFAULT_SHORT_TERM_CONTEXT_SMOKE_PATH,
     target_candidate_ui_smoke_path: Path = DEFAULT_TARGET_CANDIDATE_UI_SMOKE_PATH,
 ) -> dict[str, object]:
     fixture_packets = build_fixture_evidence_packet_emulator_artifact()
@@ -150,7 +154,10 @@ def build_review_eval_candidate_pipeline_report(
             "context_conditioned_intent_wall": intent_wall,
             "context_coverage_matrix": context_coverage,
             "product_pages_short_term_context_smoke": (
-                _product_pages_short_term_context_smoke()
+                _read_json_artifact_or_fixture(
+                    short_term_context_smoke_path,
+                    _product_pages_short_term_context_smoke(),
+                )
             ),
             "product_pages_target_candidate_ui_smoke": (
                 _read_json_artifact_or_fixture(
@@ -181,12 +188,14 @@ def main(argv: list[str] | None = None) -> int:
         description="Build local review candidates from PL+CE diagnostic artifacts."
     )
     parser.add_argument("--shell-path", default=str(DEFAULT_SHELL_PATH))
+    parser.add_argument("--short-term-context-smoke", default=str(DEFAULT_SHORT_TERM_CONTEXT_SMOKE_PATH))
     parser.add_argument("--target-candidate-ui-smoke", default=str(DEFAULT_TARGET_CANDIDATE_UI_SMOKE_PATH))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT_PATH))
     args = parser.parse_args(argv)
 
     artifact = build_review_eval_candidate_pipeline_report(
         shell_path=Path(args.shell_path),
+        short_term_context_smoke_path=Path(args.short_term_context_smoke),
         target_candidate_ui_smoke_path=Path(args.target_candidate_ui_smoke),
     )
     output_path = Path(args.output)
