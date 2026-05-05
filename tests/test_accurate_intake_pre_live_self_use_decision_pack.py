@@ -120,6 +120,30 @@ def _evidence(**overrides: dict) -> dict:
                 "pending_pin_inputs": 2,
             },
         },
+        "context_live_response_contract_dry_run": {
+            "status": "pass",
+            "plan_only": True,
+            "fixture_only": True,
+            "provider_call_ready": False,
+            "human_approval_required_before_live_provider": True,
+            "response_schema_strict": True,
+            "deterministic_selected_intent": False,
+            "raw_text_intent_router_used": False,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "fooddb_used": False,
+            "web_tavily_used": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "summary": {
+                "case_count": 11,
+                "validated_response_count": 11,
+                "blocked_response_count": 0,
+                "target_candidate_response_count": 4,
+                "ambiguity_preserved_response_count": 1,
+                "mutation_request_count": 0,
+            },
+        },
     }
     evidence.update(overrides)
     return evidence
@@ -307,6 +331,16 @@ def test_pre_live_decision_pack_requires_context_live_provider_input_preflight()
     assert pack["ready_for_live_diagnostic_decision"] is False
 
 
+def test_pre_live_decision_pack_requires_context_live_response_contract_dry_run() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(context_live_response_contract_dry_run={})
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "context_live_response_contract_dry_run" in pack["missing_evidence"]
+    assert pack["ready_for_live_diagnostic_decision"] is False
+
+
 def test_pre_live_decision_pack_blocks_unsafe_context_live_provider_input_preflight() -> None:
     pack = build_pre_live_self_use_decision_pack(
         _evidence(
@@ -352,6 +386,54 @@ def test_pre_live_decision_pack_blocks_unsafe_context_live_provider_input_prefli
     assert "context_live_provider_input_preflight_strict_schema_count_too_low" in pack["blockers"]
     assert "context_live_provider_input_preflight_target_candidate_inputs_missing" in pack["blockers"]
     assert "context_live_provider_input_preflight_pending_pin_inputs_missing" in pack["blockers"]
+
+
+def test_pre_live_decision_pack_blocks_unsafe_context_live_response_contract_dry_run() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            context_live_response_contract_dry_run={
+                "status": "pass",
+                "plan_only": False,
+                "fixture_only": False,
+                "provider_call_ready": True,
+                "human_approval_required_before_live_provider": False,
+                "response_schema_strict": False,
+                "deterministic_selected_intent": True,
+                "raw_text_intent_router_used": True,
+                "live_provider_invoked": True,
+                "fooddb_used": True,
+                "manager_context_packet_schema_changed": True,
+                "mutation_changed": True,
+                "summary": {
+                    "case_count": 1,
+                    "validated_response_count": 1,
+                    "blocked_response_count": 1,
+                    "target_candidate_response_count": 0,
+                    "ambiguity_preserved_response_count": 0,
+                    "mutation_request_count": 1,
+                },
+            }
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "context_live_response_contract_dry_run" in pack["missing_evidence"]
+    assert "context_live_response_contract_dry_run_live_provider_invoked" in pack["blockers"]
+    assert "context_live_response_contract_dry_run_fooddb_used" in pack["blockers"]
+    assert "context_live_response_contract_dry_run_manager_context_packet_schema_changed" in pack[
+        "blockers"
+    ]
+    assert "context_live_response_contract_dry_run_mutation_changed" in pack["blockers"]
+    assert "context_live_response_contract_dry_run_provider_call_ready" in pack["blockers"]
+    assert "context_live_response_contract_dry_run_response_schema_not_strict" in pack["blockers"]
+    assert "context_live_response_contract_dry_run_deterministic_selected_intent" in pack["blockers"]
+    assert "context_live_response_contract_dry_run_raw_text_intent_router_used" in pack["blockers"]
+    assert "context_live_response_contract_dry_run_case_count_too_low" in pack["blockers"]
+    assert "context_live_response_contract_dry_run_blocked_response_count_nonzero" in pack["blockers"]
+    assert "context_live_response_contract_dry_run_validated_response_count_too_low" in pack["blockers"]
+    assert "context_live_response_contract_dry_run_target_candidate_response_missing" in pack["blockers"]
+    assert "context_live_response_contract_dry_run_ambiguity_response_missing" in pack["blockers"]
+    assert "context_live_response_contract_dry_run_mutation_request_count_nonzero" in pack["blockers"]
 
 
 def test_pre_live_decision_pack_blocks_unsafe_context_live_anti_overfit_guard() -> None:
