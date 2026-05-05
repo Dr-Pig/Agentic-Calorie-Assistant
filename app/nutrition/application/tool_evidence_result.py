@@ -61,6 +61,7 @@ _SEARCH_CANDIDATE_MANAGER_VISIBLE_KEYS = frozenset(
         "truth_level",
         "source_type",
         "source_quality_label",
+        "source_class_hint",
         "raw_ref",
         "title",
         "truth_level",
