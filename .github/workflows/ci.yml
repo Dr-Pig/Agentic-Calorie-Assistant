@@ -337,6 +337,8 @@ jobs:
           python scripts/run_accurate_intake_responder_input_contract_fake_smoke.py --output artifacts/accurate_intake_responder_input_contract_fake_smoke_ci.json
           python scripts/build_accurate_intake_context_live_diagnostic_case_matrix.py --output artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json
           python scripts/build_accurate_intake_context_live_diagnostic_anti_overfit_guard.py --matrix-json artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json --output artifacts/accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json
+          python scripts/build_accurate_intake_context_live_provider_input_preflight.py --matrix-json artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json --anti-overfit-json artifacts/accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json --output artifacts/accurate_intake_context_live_provider_input_preflight_ci.json
+          python scripts/build_accurate_intake_context_live_response_contract_dry_run.py --provider-input-preflight-json artifacts/accurate_intake_context_live_provider_input_preflight_ci.json --output artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json
           python scripts/build_accurate_intake_fixture_evidence_packet_emulator.py --output artifacts/accurate_intake_fixture_evidence_packet_emulator_ci.json
           python scripts/run_accurate_intake_fake_provider_tool_loop_smoke.py --output artifacts/accurate_intake_fake_provider_tool_loop_smoke_ci.json
           python scripts/build_accurate_intake_review_eval_candidate_pipeline.py --output artifacts/accurate_intake_review_eval_candidate_pipeline_ci.json
