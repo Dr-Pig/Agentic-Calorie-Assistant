@@ -114,10 +114,13 @@ def _base_report(
         "body_user_url_state_preserved_after_user_change": False,
         "body_reload_preserved_user_id": False,
         "body_active_plan_rendered": False,
+        "body_plan_read_model_fields_rendered": False,
         "body_weight_checkin_saved": False,
+        "body_latest_weight_rendered_from_backend": False,
         "body_plan_form_saved": False,
         "body_manual_target_saved": False,
         "body_plan_readback_checked": False,
+        "body_manual_target_read_model_rendered": False,
         "today_manual_target_readback_checked": False,
         "body_session_status_rendered": False,
         "body_no_debug_trace": False,
@@ -136,6 +139,7 @@ def _base_report(
         "product_readiness_claimed": False,
         "private_self_use_approved": False,
         "fetch_sequence": [],
+        "body_plan_read_model_values": {},
     }
 
 
@@ -730,7 +734,34 @@ def _run_browser_sequence(
                 """() => document.querySelector("#plan-daily-target")?.textContent?.trim() === "1550 kcal" """,
                 timeout=timeout_ms,
             )
+            body.wait_for_function(
+                """(expected) => (document.querySelector("#weight-history")?.textContent || "").includes(expected) """,
+                arg=f"{local_date} | 70.4 kg",
+                timeout=timeout_ms,
+            )
             result["body_plan_readback_checked"] = True
+            body_plan_values = {
+                "daily_target": body.locator("#plan-daily-target").inner_text(timeout=timeout_ms).strip(),
+                "tdee": body.locator("#plan-tdee").inner_text(timeout=timeout_ms).strip(),
+                "current_weight": body.locator("#plan-current-weight").inner_text(timeout=timeout_ms).strip(),
+                "target_weight": body.locator("#plan-target-weight").inner_text(timeout=timeout_ms).strip(),
+                "activity": body.locator("#plan-activity").inner_text(timeout=timeout_ms).strip(),
+                "goal": body.locator("#plan-goal").inner_text(timeout=timeout_ms).strip(),
+                "weight_history": body.locator("#weight-history").inner_text(timeout=timeout_ms).strip(),
+            }
+            result["body_plan_read_model_values"] = body_plan_values
+            result["body_plan_read_model_fields_rendered"] = (
+                body_plan_values["daily_target"] == "1550 kcal"
+                and body_plan_values["tdee"] == "1819 kcal"
+                and body_plan_values["current_weight"] == "70 kg"
+                and body_plan_values["target_weight"] == "65 kg"
+                and body_plan_values["activity"] == "light"
+                and body_plan_values["goal"] == "Lose weight"
+            )
+            result["body_latest_weight_rendered_from_backend"] = f"{local_date} | 70.4 kg" in body_plan_values[
+                "weight_history"
+            ]
+            result["body_manual_target_read_model_rendered"] = True
             body_text_after = body.locator("body").inner_text(timeout=timeout_ms)
             result["body_no_debug_trace"] = _is_visible_product_text_clean(body_text_after)
             result["fetch_sequence"].extend(_capture_fetches(body))
@@ -859,10 +890,16 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     )
     require_true("body_reload_preserved_user_id", "body_reload_did_not_preserve_user_id")
     require_true("body_active_plan_rendered", "body_active_plan_not_rendered")
+    require_true("body_plan_read_model_fields_rendered", "body_plan_read_model_fields_not_rendered")
     require_true("body_weight_checkin_saved", "body_weight_checkin_not_saved")
+    require_true(
+        "body_latest_weight_rendered_from_backend",
+        "body_latest_weight_not_rendered_from_backend",
+    )
     require_true("body_plan_form_saved", "body_plan_form_not_saved")
     require_true("body_manual_target_saved", "body_manual_target_not_saved")
     require_true("body_plan_readback_checked", "body_plan_readback_not_checked")
+    require_true("body_manual_target_read_model_rendered", "body_manual_target_read_model_not_rendered")
     require_true("today_manual_target_readback_checked", "today_manual_target_readback_not_checked")
     require_true("body_session_status_rendered", "body_session_status_not_rendered")
     require_true("body_no_debug_trace", "body_debug_trace_leaked")
@@ -888,6 +925,24 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
             blockers.append(key)
 
     browser = dict(report.get("browser") or {})
+    body_values = dict(report.get("body_plan_read_model_values") or browser.get("body_plan_read_model_values") or {})
+    local_date = str(report.get("local_date") or DEFAULT_LOCAL_DATE)
+    if not body_values:
+        blockers.append("body_read_model_values_missing")
+    expected_body_values = {
+        "daily_target": "1550 kcal",
+        "tdee": "1819 kcal",
+        "current_weight": "70 kg",
+        "target_weight": "65 kg",
+        "activity": "light",
+        "goal": "Lose weight",
+    }
+    for field, expected_value in expected_body_values.items():
+        if body_values and body_values.get(field) != expected_value:
+            blockers.append(f"body_read_model_value_mismatch:{field}")
+    if body_values:
+        if f"{local_date} | 70.4 kg" not in str(body_values.get("weight_history") or ""):
+            blockers.append("body_read_model_value_mismatch:weight_history")
     fetches = list(report.get("fetch_sequence") or browser.get("fetch_sequence") or [])
     for expected, method in REQUIRED_FETCH_METHODS.items():
         if not any(
@@ -897,7 +952,6 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         ):
             blockers.append(f"fetch_missing:{method} {expected}")
     fetch_urls = [str(item.get("url") or "") for item in fetches if isinstance(item, dict)]
-    local_date = str(report.get("local_date") or DEFAULT_LOCAL_DATE)
     previous_local_date = str(report.get("previous_local_date") or _previous_local_date(local_date))
     if not any("/today/current-budget" in url and f"local_date={previous_local_date}" in url for url in fetch_urls):
         blockers.append("today_previous_day_fetch_missing")

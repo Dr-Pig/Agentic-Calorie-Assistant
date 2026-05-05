@@ -48,10 +48,13 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "body_user_url_state_preserved_after_user_change": True,
         "body_reload_preserved_user_id": True,
         "body_active_plan_rendered": True,
+        "body_plan_read_model_fields_rendered": True,
         "body_weight_checkin_saved": True,
+        "body_latest_weight_rendered_from_backend": True,
         "body_plan_form_saved": True,
         "body_manual_target_saved": True,
         "body_plan_readback_checked": True,
+        "body_manual_target_read_model_rendered": True,
         "today_manual_target_readback_checked": True,
         "body_session_status_rendered": True,
         "body_no_debug_trace": True,
@@ -69,6 +72,15 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "web_readiness_claimed": False,
         "product_readiness_claimed": False,
         "private_self_use_approved": False,
+        "body_plan_read_model_values": {
+            "daily_target": "1550 kcal",
+            "tdee": "1819 kcal",
+            "current_weight": "70 kg",
+            "target_weight": "65 kg",
+            "activity": "light",
+            "goal": "Lose weight",
+            "weight_history": f"{local_date} | 70.4 kg",
+        },
         "browser": {
             "fetch_sequence": [
                 {"url": "/accurate-intake/chat-history?user_id=product-pages", "method": "GET"},
@@ -203,6 +215,9 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     report["today_user_url_state_preserved_after_user_change"] = False
     report["today_reload_preserved_user_id"] = False
     report["body_plan_readback_checked"] = False
+    report["body_plan_read_model_fields_rendered"] = False
+    report["body_latest_weight_rendered_from_backend"] = False
+    report["body_manual_target_read_model_rendered"] = False
     report["today_manual_target_readback_checked"] = False
     report["today_session_status_rendered"] = False
     report["body_session_status_rendered"] = False
@@ -217,9 +232,40 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     assert "today_user_url_state_not_preserved_after_user_change" in blockers
     assert "today_reload_did_not_preserve_user_id" in blockers
     assert "body_plan_readback_not_checked" in blockers
+    assert "body_plan_read_model_fields_not_rendered" in blockers
+    assert "body_latest_weight_not_rendered_from_backend" in blockers
+    assert "body_manual_target_read_model_not_rendered" in blockers
     assert "today_manual_target_readback_not_checked" in blockers
     assert "today_session_status_not_rendered" in blockers
     assert "body_session_status_not_rendered" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_stale_body_read_model_values() -> None:
+    report = _passing_report()
+    values = dict(report["body_plan_read_model_values"])
+    values.update(
+        {
+            "daily_target": "1312 kcal",
+            "tdee": "9999 kcal",
+            "current_weight": "69 kg",
+            "target_weight": "64 kg",
+            "activity": "sedentary",
+            "goal": "Maintain weight",
+            "weight_history": "",
+        }
+    )
+    report["body_plan_read_model_values"] = values
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "body_read_model_value_mismatch:daily_target" in blockers
+    assert "body_read_model_value_mismatch:tdee" in blockers
+    assert "body_read_model_value_mismatch:current_weight" in blockers
+    assert "body_read_model_value_mismatch:target_weight" in blockers
+    assert "body_read_model_value_mismatch:activity" in blockers
+    assert "body_read_model_value_mismatch:goal" in blockers
+    assert "body_read_model_value_mismatch:weight_history" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_debug_trace_or_frontend_truth() -> None:
@@ -284,6 +330,16 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
     assert report["today_reload_preserved_user_id"] is True
     assert report["body_plan_readback_checked"] is True
     assert report["body_session_status_rendered"] is True
+    assert report["body_plan_read_model_fields_rendered"] is True
+    assert report["body_latest_weight_rendered_from_backend"] is True
+    assert report["body_manual_target_read_model_rendered"] is True
+    assert report["body_plan_read_model_values"]["daily_target"] == "1550 kcal"
+    assert report["body_plan_read_model_values"]["tdee"] == "1819 kcal"
+    assert report["body_plan_read_model_values"]["current_weight"] == "70 kg"
+    assert report["body_plan_read_model_values"]["target_weight"] == "65 kg"
+    assert report["body_plan_read_model_values"]["activity"] == "light"
+    assert report["body_plan_read_model_values"]["goal"] == "Lose weight"
+    assert f'{report["local_date"]} | 70.4 kg' in report["body_plan_read_model_values"]["weight_history"]
     assert report["body_url_state_preserved_after_date_change"] is True
     assert report["body_reload_preserved_selected_date"] is True
     assert report["body_user_url_state_preserved_after_user_change"] is True

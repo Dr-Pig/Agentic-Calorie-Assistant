@@ -80,6 +80,18 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "body_page_loaded": True,
             "body_active_plan_rendered": True,
             "body_plan_readback_checked": True,
+            "body_plan_read_model_fields_rendered": True,
+            "body_latest_weight_rendered_from_backend": True,
+            "body_manual_target_read_model_rendered": True,
+            "body_plan_read_model_values": {
+                "daily_target": "1550 kcal",
+                "tdee": "1819 kcal",
+                "current_weight": "70 kg",
+                "target_weight": "65 kg",
+                "activity": "light",
+                "goal": "Lose weight",
+                "weight_history": "2026-05-05 | 70.4 kg",
+            },
             "desktop_no_overflow": True,
             "mobile_no_overflow": True,
             "nav_session_query_preserved": True,
@@ -234,6 +246,9 @@ def test_ui_context_alignment_pack_accepts_context_known_runtime_gap_status_with
 def test_ui_context_alignment_pack_blocks_browser_or_page_alignment_gaps() -> None:
     inputs = _valid_inputs()
     inputs["product_pages_browser_smoke"]["body_plan_readback_checked"] = False
+    inputs["product_pages_browser_smoke"]["body_plan_read_model_fields_rendered"] = False
+    inputs["product_pages_browser_smoke"]["body_latest_weight_rendered_from_backend"] = False
+    inputs["product_pages_browser_smoke"]["body_manual_target_read_model_rendered"] = False
     inputs["product_pages_seven_day_diary_smoke"]["day_count_checked"] = 6
     inputs["product_pages_short_term_context_smoke"]["chat_history_context_fields_reloaded"] = False
     inputs["product_pages_visual_qa"]["today_surface_verified"] = False
@@ -242,12 +257,39 @@ def test_ui_context_alignment_pack_blocks_browser_or_page_alignment_gaps() -> No
 
     assert artifact["status"] == "blocked"
     assert "product_pages_browser_smoke.body_plan_readback_checked_not_true" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_plan_read_model_fields_rendered_not_true" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_latest_weight_rendered_from_backend_not_true" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_manual_target_read_model_rendered_not_true" in artifact["blockers"]
     assert "product_pages_seven_day_diary_smoke.seven_day_window_incomplete" in artifact["blockers"]
     assert (
         "product_pages_short_term_context_smoke.chat_history_context_fields_reloaded_not_true"
         in artifact["blockers"]
     )
     assert "product_pages_visual_qa.today_surface_verified_not_true" in artifact["blockers"]
+
+
+def test_ui_context_alignment_pack_blocks_stale_body_read_model_values() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_browser_smoke"]["body_plan_read_model_values"] = {
+        "daily_target": "1312 kcal",
+        "tdee": "9999 kcal",
+        "current_weight": "69 kg",
+        "target_weight": "64 kg",
+        "activity": "sedentary",
+        "goal": "Maintain weight",
+        "weight_history": "",
+    }
+
+    artifact = build_pl_ce_ui_context_alignment_pack_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:daily_target" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:tdee" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:current_weight" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:target_weight" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:activity" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:goal" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:weight_history" in artifact["blockers"]
 
 
 def test_ui_context_alignment_pack_blocks_frontend_or_live_truth_overclaims() -> None:

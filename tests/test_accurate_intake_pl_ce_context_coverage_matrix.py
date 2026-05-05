@@ -371,6 +371,28 @@ def test_context_coverage_matrix_blocks_inconsistent_fake_provider_handoff_count
     )
 
 
+def test_context_coverage_matrix_propagates_fake_provider_handoff_blockers() -> None:
+    from app.composition.accurate_intake_pl_ce_context_coverage_matrix import (
+        build_pl_ce_context_coverage_matrix_artifact,
+    )
+
+    inputs = _inputs()
+    fake_provider = dict(inputs["fake_provider_context_smoke"])
+    fake_provider["blockers"] = [
+        "named_item_correction.candidate_supported_preselected_target"
+    ]
+    inputs["fake_provider_context_smoke"] = fake_provider
+
+    artifact = build_pl_ce_context_coverage_matrix_artifact(**inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "fake_provider_context_smoke.upstream_blockers_present" in artifact["blockers"]
+    assert (
+        "fake_provider_context_smoke.named_item_correction.candidate_supported_preselected_target"
+        in artifact["blockers"]
+    )
+
+
 def test_context_coverage_matrix_cli_writes_artifact(tmp_path: Path, capsys) -> None:
     from scripts.build_accurate_intake_pl_ce_context_coverage_matrix import main
 

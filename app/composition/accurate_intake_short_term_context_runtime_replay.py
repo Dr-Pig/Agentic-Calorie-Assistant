@@ -10,6 +10,17 @@ from app.intake.application.current_turn_context_assembler import build_current_
 from app.intake.application.manager_context_policy import build_manager_context_packet_v1
 
 
+_REQUIRED_SCENARIO_IDS = (
+    "remove_previous_item",
+    "remove_named_item",
+    "modify_drink_sugar",
+    "modify_rice_portion",
+    "correct_previous_identity",
+    "pending_followup_answer",
+    "long_chat_with_pinned_pending_draft",
+)
+
+
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
 
@@ -165,42 +176,18 @@ def _scenario_specs() -> list[dict[str, Any]]:
             "raw_user_input": "豆干拿掉",
             "expected_context_posture": "candidate_supported",
             "recent_committed_meals": [luwei_meal],
-            "target_meal_reference": _target_reference(
-                thread_id=51,
-                version_id=510,
-                title="luwei",
-                source="history_expansion",
-                item_id=5101,
-                canonical_name="tofu",
-            ),
         },
         {
             "scenario_id": "modify_drink_sugar",
             "raw_user_input": "那杯改半糖",
             "expected_context_posture": "candidate_supported",
             "recent_committed_meals": [drink_meal],
-            "target_meal_reference": _target_reference(
-                thread_id=31,
-                version_id=310,
-                title="bubble tea",
-                source="history_expansion",
-                item_id=3101,
-                canonical_name="bubble tea",
-            ),
         },
         {
             "scenario_id": "modify_rice_portion",
             "raw_user_input": "飯改少一點",
             "expected_context_posture": "candidate_supported",
             "recent_committed_meals": [rice_meal],
-            "target_meal_reference": _target_reference(
-                thread_id=41,
-                version_id=410,
-                title="lunch rice",
-                source="history_expansion",
-                item_id=4101,
-                canonical_name="rice",
-            ),
         },
         {
             "scenario_id": "correct_previous_identity",
@@ -307,6 +294,10 @@ def _scenario_result(spec: dict[str, Any]) -> dict[str, Any]:
         and attachment.reason == "identified_back_reference_target"
     ):
         gap_signals.append("runtime_back_reference_heuristic_attached_target")
+    deterministic_selected_target = (
+        spec["expected_context_posture"] == "candidate_supported"
+        and attachment.target_object_id is not None
+    )
     return {
         "scenario_id": spec["scenario_id"],
         "raw_user_input": spec["raw_user_input"],
@@ -328,7 +319,7 @@ def _scenario_result(spec: dict[str, Any]) -> dict[str, Any]:
         "forbidden_context_detected": forbidden_detected,
         "context_packet_read_only": packet["current_turn"]["read_only"] is True,
         "context_packet_mutation_authority": packet["current_turn"]["mutation_authority"],
-        "deterministic_selected_target": False,
+        "deterministic_selected_target": deterministic_selected_target,
         "deterministic_semantic_inference_used": False,
         "raw_text_intent_router_used": False,
         "mutation_authority": False,
@@ -336,16 +327,90 @@ def _scenario_result(spec: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _validate_scenarios(scenarios: list[dict[str, Any]]) -> list[str]:
+    blockers: list[str] = []
+    scenario_ids = [str(scenario.get("scenario_id") or "") for scenario in scenarios]
+    if scenario_ids != list(_REQUIRED_SCENARIO_IDS):
+        blockers.append("required_scenario_order_mismatch")
+    for scenario in scenarios:
+        scenario_id = str(scenario.get("scenario_id") or "unknown")
+        expected_posture = str(scenario.get("expected_context_posture") or "")
+        if scenario.get("context_policy_version_present") is not True:
+            blockers.append(f"{scenario_id}.context_policy_version_missing")
+        if scenario.get("loaded_context_summary_present") is not True:
+            blockers.append(f"{scenario_id}.loaded_context_summary_missing")
+        if scenario.get("omitted_context_summary_present") is not True:
+            blockers.append(f"{scenario_id}.omitted_context_summary_missing")
+        if scenario.get("forbidden_context_detected") is not False:
+            blockers.append(f"{scenario_id}.forbidden_context_detected")
+        if scenario.get("context_packet_read_only") is not True:
+            blockers.append(f"{scenario_id}.context_packet_not_read_only")
+        if scenario.get("context_packet_mutation_authority") is not False:
+            blockers.append(f"{scenario_id}.context_packet_mutation_authority")
+        if scenario.get("deterministic_selected_target") is not False:
+            blockers.append(f"{scenario_id}.deterministic_selected_target")
+        if scenario.get("deterministic_semantic_inference_used") is not False:
+            blockers.append(f"{scenario_id}.deterministic_semantic_inference_used")
+        if scenario.get("raw_text_intent_router_used") is not False:
+            blockers.append(f"{scenario_id}.raw_text_intent_router_used")
+        if scenario.get("mutation_authority") is not False:
+            blockers.append(f"{scenario_id}.mutation_authority")
+        if scenario.get("semantic_source") != "manager_or_fixture_structured_decision_required":
+            blockers.append(f"{scenario_id}.semantic_source_not_manager_or_fixture")
+        for candidate in scenario.get("target_candidates") or []:
+            if isinstance(candidate, dict):
+                if candidate.get("read_only") is not True:
+                    blockers.append(f"{scenario_id}.target_candidate_not_read_only")
+                if candidate.get("mutation_authority") is not False:
+                    blockers.append(f"{scenario_id}.target_candidate_mutation_authority")
+                if "selected_target" in candidate:
+                    blockers.append(f"{scenario_id}.target_candidate_selected_by_runtime")
+        if expected_posture == "ambiguous_until_manager_decision":
+            if scenario.get("runtime_attachment_reason") != "ambiguous_back_reference_requires_manager":
+                blockers.append(f"{scenario_id}.back_reference_not_ambiguous")
+            if scenario.get("runtime_attachment_disposition") != "answer_only":
+                blockers.append(f"{scenario_id}.ambiguous_back_reference_not_answer_only")
+        if expected_posture == "candidate_supported":
+            if int(scenario.get("target_candidate_count") or 0) < 1:
+                blockers.append(f"{scenario_id}.candidate_target_missing")
+            if scenario.get("runtime_attachment_target_object_id") is not None:
+                blockers.append(f"{scenario_id}.candidate_supported_runtime_selected_target")
+        if expected_posture == "pending_followup_pinned":
+            if scenario.get("pending_followup_present") is not True:
+                blockers.append(f"{scenario_id}.pending_followup_missing")
+            if scenario.get("runtime_attachment_reason") != "pending_followup_answer":
+                blockers.append(f"{scenario_id}.pending_followup_attachment_missing")
+        if expected_posture == "pending_draft_pinned_despite_recent_window":
+            if scenario.get("pending_draft_present") is not True:
+                blockers.append(f"{scenario_id}.pending_draft_missing")
+            if int(scenario.get("recent_chat_messages_loaded") or 0) != 20:
+                blockers.append(f"{scenario_id}.recent_chat_window_not_bounded")
+            if int(scenario.get("recent_chat_messages_omitted") or 0) <= 0:
+                blockers.append(f"{scenario_id}.recent_chat_omission_not_recorded")
+            if scenario.get("runtime_attachment_reason") != "resolved_target_reference":
+                blockers.append(f"{scenario_id}.pending_draft_attachment_missing")
+    return list(dict.fromkeys(blockers))
+
+
 def build_short_term_context_runtime_replay_artifact() -> dict[str, Any]:
     scenarios = [_scenario_result(spec) for spec in _scenario_specs()]
     gap_scenarios = [scenario for scenario in scenarios if scenario["gap_signals"]]
+    blockers = _validate_scenarios(scenarios)
+    status = (
+        "fail"
+        if blockers
+        else "diagnostic_has_known_context_gaps"
+        if gap_scenarios
+        else "runtime_replay_diagnostic_pass"
+    )
     return _json_safe(
         {
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_short_term_context_runtime_replay",
-            "status": "diagnostic_has_known_context_gaps" if gap_scenarios else "runtime_replay_diagnostic_pass",
+            "status": status,
             "generated_at_utc": datetime.now(UTC).isoformat(),
             "claim_scope": "pl_ce_short_term_context_runtime_replay_diagnostic",
+            "blockers": blockers,
             "local_only": True,
             "diagnostic_only": True,
             "runtime_trace_backed": True,

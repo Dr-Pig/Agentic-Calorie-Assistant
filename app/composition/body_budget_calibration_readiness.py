@@ -291,6 +291,7 @@ def _readiness_claim() -> dict[str, Any]:
 
 
 def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
+    stable_read_models = _stable_read_models()
     return {
         "artifact_schema_version": "body_budget_calibration_readiness.v1",
         "artifact_type": "body_budget_calibration_readiness",
@@ -301,7 +302,7 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
         "diagnostic_only": True,
         "readiness_claimed": False,
         "readiness_claim": _readiness_claim(),
-        "stable_read_models": _stable_read_models(),
+        "stable_read_models": stable_read_models,
         "plce_contract": {
             "stable_backend_read_models_required": True,
             "frontend_math_allowed": False,
@@ -310,6 +311,22 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
             "deficit_summary_official_name": "body_budget_deficit_summary",
             "deficit_summary_alias_role": "shorthand_only",
             "proposal_inbox_order_owned_by_backend": True,
+            "integration_readiness_matrix": {
+                "doc_path": (
+                    "docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md"
+                    "#BodyBudget PL/CE Integration Readiness Matrix"
+                ),
+                "canonical_read_model_names": [read_model["name"] for read_model in stable_read_models],
+                "backend_routes": {
+                    read_model["name"]: read_model["backend_route"] for read_model in stable_read_models
+                },
+                "read_functions": {
+                    read_model["name"]: read_model["read_function"] for read_model in stable_read_models
+                },
+                "frontend_fallback_calculation_authorized": False,
+                "manager_context_packet_changed": False,
+                "missing_field_policy": "extend_backend_read_model_first",
+            },
         },
         "calibration_flow_contract": {
             "effective_budget_math": {
