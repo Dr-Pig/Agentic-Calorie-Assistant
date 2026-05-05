@@ -3,6 +3,7 @@ name: merge-governance
 on:
   workflow_dispatch:
   pull_request:
+  merge_group:
   schedule:
     - cron: "17 3 * * *"
 
