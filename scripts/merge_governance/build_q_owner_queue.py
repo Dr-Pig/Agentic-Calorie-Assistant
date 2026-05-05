@@ -37,9 +37,12 @@ Rules:
    manager_context_packet_changed: false
    mutation_changed: false
    product_readiness_claimed: false
-6. Add READY_FOR_QUEUE in the PR body or a PR comment, then wait for the queue owner.
-7. Future/shadow work must explicitly stay no-runtime, no-route, no-scheduler, no-DB-migration, no-ManagerContextPacket, and no-mutation.
-8. Do not retarget or split stacked PRs unless the queue owner asks.
+6. Add READY_FOR_QUEUE in the PR body.
+7. If you are authorized to request main promotion, trigger the serialized lock:
+   gh workflow run main-merge-lock.yml -f pr_number=<PR_NUMBER>
+8. After triggering the lock, wait for the workflow result; do not merge manually.
+9. Future/shadow work must explicitly stay no-runtime, no-route, no-scheduler, no-DB-migration, no-ManagerContextPacket, and no-mutation.
+10. Do not retarget or split stacked PRs unless the queue owner asks.
 """
 
 
