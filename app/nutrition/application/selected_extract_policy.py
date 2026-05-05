@@ -80,11 +80,12 @@ def choose_selected_extract_packet(
 
 
 def _has_identity_safe_extract_shape(packet: dict[str, object]) -> bool:
+    modifier_match = str(packet.get("modifier_match") or "").strip()
     identity_safe = (
         str(packet.get("match_type") or "").strip() == "exact"
         and not bool((packet.get("sibling_variant_risk") or {}).get("present"))
         and str(packet.get("size_or_serving_match") or "").strip() != "different"
-        and str(packet.get("modifier_match") or "").strip() != "different"
+        and modifier_match not in {"different", "unknown"}
         and not tuple(
             risk
             for risk in (str(risk).strip() for risk in packet.get("hard_recheck_risks", []) if str(risk).strip())

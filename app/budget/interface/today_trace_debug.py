@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from html import escape
 
-from app.logging import find_latest_trace_for_user_date, find_latest_traces_for_user_date
+from app.logging import find_latest_traces_for_user_date
 from app.shared.domain import CurrentBudgetView
 
 

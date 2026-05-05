@@ -97,3 +97,6 @@ def test_activation_plan_documents_integration_readiness_matrix() -> None:
     assert "exact-card review packet -> live extract preflight" in content
     assert "packet -> mutation guard" in content
     assert "exact candidate -> no mutation" in content
+    assert "2026-05-05_grokfast_websearch_packet_live_diagnostic" in content
+    assert "seam_status: live_diagnostic_pass" in content
+    assert "can_expand_websearch_candidate_pipeline: true" in content

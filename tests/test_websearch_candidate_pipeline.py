@@ -30,7 +30,7 @@ def test_websearch_candidate_pipeline_builds_offline_query_plan_and_classificati
     assert artifact["source_policy"]["license_policy"]["unknown_license_behavior"] == (
         "candidate_only_requires_review"
     )
-    assert artifact["summary"]["case_count"] == 9
+    assert artifact["summary"]["case_count"] == 12
     assert artifact["summary"]["runtime_truth_allowed_count"] == 0
     assert artifact["summary"]["source_class_counts"]["official_brand_or_chain_page"] >= 4
     assert artifact["summary"]["source_class_counts"]["official_nutrition_pdf"] == 1
@@ -79,6 +79,32 @@ def test_websearch_candidate_pipeline_builds_offline_query_plan_and_classificati
     assert missing_kcal["candidate_classifications"][0]["candidate_class"] == "blocked_source_policy_candidate"
     assert "kcal_missing" in missing_kcal["candidate_classifications"][0]["source_policy_block_reasons"]
 
+    modifier_missing = _case_by_id(artifact, "pipeline_modifier_missing")
+    assert modifier_missing["candidate_classifications"][0]["candidate_class"] == (
+        "near_exact_modifier_unknown_candidate"
+    )
+    assert modifier_missing["candidate_classifications"][0]["manager_signal"] == "needs_disambiguation"
+    assert modifier_missing["candidate_classifications"][0]["extract_candidate_allowed"] is False
+    assert modifier_missing["candidate_classifications"][0]["runtime_truth_allowed"] is False
+    assert modifier_missing["selected_extract_decision"]["selected_search_packet_id"] is None
+    assert modifier_missing["selected_extract_decision"]["extract_allowed_by_policy"] is False
+    assert modifier_missing["selected_extract_decision"]["extract_count"] == 0
+
+    wrong_brand = _case_by_id(artifact, "pipeline_wrong_brand_official")
+    assert wrong_brand["candidate_classifications"][0]["candidate_class"] == "weak_or_unusable_candidate"
+    assert wrong_brand["candidate_classifications"][0]["manager_signal"] == "source_not_sufficient"
+    assert wrong_brand["candidate_classifications"][0]["extract_candidate_allowed"] is False
+    assert wrong_brand["candidate_classifications"][0]["runtime_truth_allowed"] is False
+    assert wrong_brand["selected_extract_decision"]["selected_search_packet_id"] is None
+    assert wrong_brand["selected_extract_decision"]["extract_count"] == 0
+
+    social = _case_by_id(artifact, "pipeline_social_media_untrusted")
+    assert social["candidate_classifications"][0]["candidate_class"] == "blocked_source_policy_candidate"
+    assert social["candidate_classifications"][0]["extract_candidate_allowed"] is False
+    assert social["candidate_classifications"][0]["runtime_truth_allowed"] is False
+    assert "source_class_not_trusted" in social["candidate_classifications"][0][
+        "source_policy_block_reasons"
+    ]
 
 def test_websearch_candidate_pipeline_excludes_raw_hits_and_truth_fields() -> None:
     artifact = build_websearch_candidate_pipeline_diagnostic()
