@@ -366,6 +366,7 @@ def test_render_latest_trace_debug_uses_single_trace_lookup(monkeypatch: pytest.
         module,
         "find_latest_trace_for_user_date",
         lambda **kwargs: (_ for _ in ()).throw(AssertionError("should not scan trace files once per bundle")),
+        raising=False,
     )
 
     html = module.render_latest_trace_debug(user_id="user-1", local_date="2026-04-29")
