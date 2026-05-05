@@ -146,6 +146,44 @@
       font-weight: 900;
       line-height: 1.2;
     }
+    .target-candidate-panel {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+      padding: 10px;
+      border: 1px solid rgba(23, 33, 29, 0.10);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .target-candidate-panel h2 {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.1;
+      text-transform: uppercase;
+    }
+    .target-candidate-list {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .target-candidate-list li {
+      min-height: 30px;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(23, 33, 29, 0.12);
+      border-radius: 8px;
+      padding: 5px 8px;
+      color: var(--ink);
+      background: #f8faf9;
+      font-size: 12px;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
     #chat-context-policy {
       white-space: nowrap;
     }
@@ -355,6 +393,12 @@
               <div class="context-chip"><strong>Latest pins</strong><span id="chat-context-pins">not_checked</span></div>
               <div class="context-chip"><strong>Latest targets</strong><span id="chat-context-targets">not_checked</span></div>
             </div>
+            <section id="chat-target-candidate-surface" class="target-candidate-panel" aria-label="Read-only target candidates">
+              <h2>Read-only target candidates</h2>
+              <ul id="chat-target-candidate-list" class="target-candidate-list" aria-readonly="true">
+                <li>not_checked</li>
+              </ul>
+            </section>
           </div>
           <details class="setup-panel">
             <summary>Conversation settings</summary>
@@ -449,7 +493,8 @@
           (message.loaded_context_summary && Object.keys(message.loaded_context_summary).length) ||
           (message.omitted_context_summary && Object.keys(message.omitted_context_summary).length) ||
           message.pending_pins_present === true ||
-          Number.isFinite(Number(message.target_candidate_count))
+          Number.isFinite(Number(message.target_candidate_count)) ||
+          Array.isArray(message.target_candidate_names)
         );
       });
       if (!latestContext) {
@@ -458,17 +503,33 @@
           loaded: messages.length ? "not_available" : "not_checked",
           omitted: messages.length ? "not_available" : "not_checked",
           pins: messages.length ? "not_available" : "not_checked",
-          targets: messages.length ? "not_available" : "not_checked"
+          targets: messages.length ? "not_available" : "not_checked",
+          targetNames: []
         };
       }
       const targetCount = Number(latestContext.target_candidate_count);
+      const targetNames = Array.isArray(latestContext.target_candidate_names)
+        ? latestContext.target_candidate_names.filter((value) => typeof value === "string" && value.trim())
+        : [];
       return {
         policy: latestContext.context_policy_version || "not_available",
         loaded: latestContext.loaded_context_summary && Object.keys(latestContext.loaded_context_summary).length ? "present" : "not_available",
         omitted: latestContext.omitted_context_summary && Object.keys(latestContext.omitted_context_summary).length ? "present" : "not_available",
         pins: latestContext.pending_pins_present === true ? "present" : "not_available",
-        targets: Number.isFinite(targetCount) ? String(targetCount) : "not_available"
+        targets: Number.isFinite(targetCount) ? String(targetCount) : "not_available",
+        targetNames
       };
+    }
+    function renderTargetCandidates(names) {
+      const list = el("chat-target-candidate-list");
+      list.innerHTML = "";
+      const safeNames = Array.isArray(names) ? names.filter((name) => typeof name === "string" && name.trim()) : [];
+      const values = safeNames.length ? safeNames : ["not_available"];
+      values.forEach((name) => {
+        const item = document.createElement("li");
+        item.textContent = name;
+        list.append(item);
+      });
     }
     function renderSessionAndContext(payload = {}) {
       writeText("chat-session-user", userId());
@@ -479,6 +540,7 @@
       writeText("chat-context-omitted", summary.omitted);
       writeText("chat-context-pins", summary.pins);
       writeText("chat-context-targets", summary.targets);
+      renderTargetCandidates(summary.targetNames);
     }
     function localDebugHeaders(url) {
       const globalToken = typeof window.LOCAL_DEBUG_API_TOKEN === "string" ? window.LOCAL_DEBUG_API_TOKEN.trim() : "";

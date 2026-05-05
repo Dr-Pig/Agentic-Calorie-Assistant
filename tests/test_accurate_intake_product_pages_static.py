@@ -55,6 +55,9 @@ def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() ->
     assert 'id="chat-context-omitted"' in html
     assert 'id="chat-context-pins"' in html
     assert 'id="chat-context-targets"' in html
+    assert 'id="chat-target-candidate-surface"' in html
+    assert 'id="chat-target-candidate-list"' in html
+    assert 'aria-readonly="true"' in html
     assert "Latest policy" in html
     assert "Latest pins" in html
     assert "Latest targets" in html
@@ -86,6 +89,9 @@ def test_chat_page_context_status_renders_only_chat_history_structured_fields() 
     assert "latestContext.omitted_context_summary" in html
     assert "latestContext.pending_pins_present === true" in html
     assert "Number(latestContext.target_candidate_count)" in html
+    assert "Array.isArray(message.target_candidate_names)" in html
+    assert "latestContext.target_candidate_names" in html
+    assert "function renderTargetCandidates(names)" in html
     assert "not_available" in html
     assert "not_checked" in html
     assert "reduce((count" not in html
