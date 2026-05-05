@@ -135,6 +135,7 @@ def _handoff_specs() -> list[dict[str, Any]]:
             "fixture_manager_decision": {
                 "semantic_source": "fixture_manager_structured_decision",
                 "target_resolution_status": "requires_manager_review",
+                "workflow_effect": "correction_candidate",
             },
         },
         {
@@ -150,6 +151,7 @@ def _handoff_specs() -> list[dict[str, Any]]:
             "fixture_manager_decision": {
                 "semantic_source": "fixture_manager_structured_decision",
                 "target_resolution_status": "candidate_supported",
+                "workflow_effect": "correction_candidate",
             },
         },
         {
@@ -170,6 +172,43 @@ def _handoff_specs() -> list[dict[str, Any]]:
             "fixture_manager_decision": {
                 "semantic_source": "fixture_manager_structured_decision",
                 "target_resolution_status": "pending_followup_answer",
+                "workflow_effect": "complete_pending_draft",
+            },
+        },
+        {
+            "scenario_id": "previous_drink_calorie_query",
+            "raw_user_input": "how many calories was that drink?",
+            "recent_committed_meals": [_meal(thread_id=77, version_id=78, title="milk tea")],
+            "target_meal_reference": _target_reference(
+                thread_id=77,
+                version_id=78,
+                title="milk tea",
+                source="recent_committed_meal",
+            ),
+            "query_no_mutation": True,
+            "fixture_manager_decision": {
+                "semantic_source": "fixture_manager_structured_decision",
+                "target_resolution_status": "query_supported",
+                "workflow_effect": "query_no_mutation",
+            },
+        },
+        {
+            "scenario_id": "explicit_daily_target_1800",
+            "raw_user_input": "set today's target to 1800",
+            "target_update_requires_manager_decision": True,
+            "fixture_manager_decision": {
+                "semantic_source": "fixture_manager_structured_decision",
+                "target_resolution_status": "no_meal_target_required",
+                "workflow_effect": "daily_target_update_candidate",
+            },
+        },
+        {
+            "scenario_id": "meal_estimate_800_not_target",
+            "raw_user_input": "this meal was about 800",
+            "fixture_manager_decision": {
+                "semantic_source": "fixture_manager_structured_decision",
+                "target_resolution_status": "meal_estimate_supported",
+                "workflow_effect": "meal_estimate_context",
             },
         },
     ]
@@ -218,6 +257,12 @@ def _handoff_scenario(spec: dict[str, Any]) -> dict[str, Any]:
         "omitted_context_summary_present": bool(packet["context_loading_artifact"]["omitted_context_summary"]),
         "fixture_manager_decision_source": decision["semantic_source"],
         "fixture_manager_target_resolution_status": decision["target_resolution_status"],
+        "fixture_manager_workflow_effect": decision.get("workflow_effect", "not_available"),
+        "query_no_mutation": spec.get("query_no_mutation", False),
+        "target_update_requires_manager_decision": spec.get(
+            "target_update_requires_manager_decision",
+            False,
+        ),
         "deterministic_selected_target": False,
         "deterministic_semantic_inference_used": False,
         "raw_text_intent_router_used": False,
@@ -279,6 +324,15 @@ def build_fake_provider_context_smoke_artifact() -> dict[str, Any]:
             "summary": {
                 "manager_handoff_scenario_count": len(handoff_scenarios),
                 "ambiguous_back_reference_scenarios": len(ambiguous_handoffs),
+                "query_no_mutation_scenarios": sum(
+                    1 for scenario in handoff_scenarios if scenario["query_no_mutation"]
+                ),
+                "target_update_boundary_scenarios": sum(
+                    1
+                    for scenario in handoff_scenarios
+                    if scenario["fixture_manager_workflow_effect"]
+                    in {"daily_target_update_candidate", "meal_estimate_context"}
+                ),
                 "shadow_candidate_scenarios": sum(
                     1 for scenario in handoff_scenarios if scenario["shadow_created"]
                 ),
