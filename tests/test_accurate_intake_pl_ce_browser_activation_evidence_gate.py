@@ -41,6 +41,18 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "today_meal_list_rendered": True,
             "body_active_plan_rendered": True,
             "body_plan_readback_checked": True,
+            "body_plan_read_model_fields_rendered": True,
+            "body_latest_weight_rendered_from_backend": True,
+            "body_manual_target_read_model_rendered": True,
+            "body_plan_read_model_values": {
+                "daily_target": "1550 kcal",
+                "tdee": "1819 kcal",
+                "current_weight": "70 kg",
+                "target_weight": "65 kg",
+                "activity": "light",
+                "goal": "Lose weight",
+                "weight_history": "2026-05-05 | 70.4 kg",
+            },
             "today_manual_target_readback_checked": True,
             "desktop_no_overflow": True,
             "mobile_no_overflow": True,
@@ -199,6 +211,30 @@ def test_browser_activation_gate_blocks_frontend_semantics_live_or_fooddb_claims
     assert "product_pages_visual_qa.frontend_semantic_owner" in artifact["blockers"]
     assert "product_pages_browser_smoke.fooddb_evidence_used" in artifact["blockers"]
     assert "product_pages_seven_day_diary_smoke.manager_provider_called" in artifact["blockers"]
+
+
+def test_browser_activation_gate_blocks_stale_body_read_model_values() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_browser_smoke"]["body_plan_read_model_values"] = {
+        "daily_target": "1312 kcal",
+        "tdee": "9999 kcal",
+        "current_weight": "69 kg",
+        "target_weight": "64 kg",
+        "activity": "sedentary",
+        "goal": "Maintain weight",
+        "weight_history": "",
+    }
+
+    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:daily_target" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:tdee" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:current_weight" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:target_weight" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:activity" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:goal" in artifact["blockers"]
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:weight_history" in artifact["blockers"]
 
 
 def test_browser_activation_gate_cli_writes_from_existing_artifacts(tmp_path: Path) -> None:

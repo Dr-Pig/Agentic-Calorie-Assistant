@@ -277,6 +277,33 @@ def test_context_quality_pack_rejects_inconsistent_fake_provider_handoff_count()
     assert "fake_provider_context_smoke.manager_handoff_scenario_count_mismatch" in pack["blockers"]
 
 
+def test_context_quality_pack_propagates_fake_provider_handoff_blockers() -> None:
+    fake_provider = build_fake_provider_context_smoke_artifact()
+    fake_provider["blockers"] = [
+        "named_item_correction.candidate_supported_preselected_target",
+        "named_item_correction.deterministic_selected_target",
+    ]
+
+    pack = build_context_quality_pack_artifact(
+        context_review=_context_review(),
+        target_candidate_eval=build_context_target_candidate_eval_artifact(),
+        context_window_diagnostic=build_context_window_diagnostic_artifact(),
+        context_replay=build_context_replay_pack_artifact(),
+        fake_provider_context_smoke=fake_provider,
+        short_term_context_runtime_replay=build_short_term_context_runtime_replay_artifact(),
+    )
+
+    assert pack["status"] == "fail"
+    assert (
+        "fake_provider_context_smoke.named_item_correction.candidate_supported_preselected_target"
+        in pack["blockers"]
+    )
+    assert (
+        "fake_provider_context_smoke.named_item_correction.deterministic_selected_target"
+        in pack["blockers"]
+    )
+
+
 def test_context_quality_pack_rejects_missing_short_term_runtime_replay() -> None:
     pack = build_context_quality_pack_artifact(
         context_review=_context_review(),
@@ -291,8 +318,9 @@ def test_context_quality_pack_rejects_missing_short_term_runtime_replay() -> Non
     assert pack["short_term_context_runtime_replay_checked"] is False
 
 
-def test_context_quality_pack_cli_writes_artifact(tmp_path: Path, capsys) -> None:
+def test_context_quality_pack_cli_writes_artifact(tmp_path: Path, capsys, monkeypatch) -> None:
     output_path = tmp_path / "context-quality.json"
+    monkeypatch.setattr(module, "DEFAULT_SHORT_TERM_CONTEXT_SMOKE_PATHS", (tmp_path / "missing.json",))
 
     exit_code = module.main(["--output", str(output_path)])
     printed = json.loads(capsys.readouterr().out)
@@ -302,6 +330,45 @@ def test_context_quality_pack_cli_writes_artifact(tmp_path: Path, capsys) -> Non
     assert artifact == printed
     assert artifact["status"] == "context_quality_diagnostic_pass"
     assert artifact["short_term_context_runtime_replay_checked"] is True
+    assert artifact["runtime_trace_input_used"] is False
+
+
+def test_context_quality_pack_cli_autoloads_default_runtime_trace_smoke(
+    tmp_path: Path, capsys, monkeypatch
+) -> None:
+    smoke_path = tmp_path / "default-short-term-context-smoke.json"
+    output_path = tmp_path / "context-quality.json"
+    smoke_path.write_text(json.dumps(_short_term_context_smoke()), encoding="utf-8")
+    monkeypatch.setattr(module, "DEFAULT_SHORT_TERM_CONTEXT_SMOKE_PATHS", (smoke_path,))
+
+    exit_code = module.main(["--output", str(output_path)])
+    printed = json.loads(capsys.readouterr().out)
+    artifact = json.loads(output_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert artifact == printed
+    assert artifact["status"] == "context_quality_diagnostic_pass"
+    assert artifact["runtime_trace_input_used"] is True
+    assert artifact["context_review_source"] == "product_pages_short_term_context_smoke"
+    assert artifact["runtime_trace_source_artifact"] == (
+        "accurate_intake_product_pages_short_term_context_smoke_v1"
+    )
+
+
+def test_context_quality_pack_cli_requires_autoloaded_runtime_trace_when_flagged(
+    tmp_path: Path, capsys, monkeypatch
+) -> None:
+    output_path = tmp_path / "context-quality.json"
+    monkeypatch.setattr(module, "DEFAULT_SHORT_TERM_CONTEXT_SMOKE_PATHS", (tmp_path / "missing.json",))
+
+    exit_code = module.main(["--require-runtime-trace-input", "--output", str(output_path)])
+    printed = json.loads(capsys.readouterr().out)
+    artifact = json.loads(output_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert artifact == printed
+    assert artifact["runtime_trace_input_used"] is False
+    assert "runtime_trace_input.required_missing" in artifact["blockers"]
 
 
 def test_context_quality_pack_can_be_backed_by_product_page_runtime_trace() -> None:

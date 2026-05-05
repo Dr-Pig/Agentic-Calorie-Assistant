@@ -165,6 +165,8 @@ This matrix freezes the BodyBudget read-model names that Product Loop, WebCell, 
 
 It does not authorize frontend math, CE packet changes, ManagerContextPacket changes, automatic calibration, recommendation, rescue, proactive behavior, or new mutation paths. If PL/CE needs a BodyBudget field not listed here, stop and add or extend a backend read model first.
 
+The machine-readable readiness artifact mirrors this matrix through `plce_contract.integration_readiness_matrix`; the artifact is a contract check, not a frontend fallback or alternate truth store.
+
 | Stable Read Model Name | Backend Route / Read Function | Truth Owner | PL/CE Allowed Use | Stable Field Contract | Forbidden PL/CE Behavior | Readiness Gate |
 |---|---|---|---|---|---|---|
 | `current_budget_view` | `/today/current-budget`; `app.composition.current_budget_read_model.build_current_budget_view` | `budget` domain for budget math; `intake` domain for active meal truth | Render today's budget, consumed, remaining, meal count, meal summaries, and macro visibility exactly as supplied. | `budget_kcal`, `consumed_kcal`, `adjustment_kcal`, `remaining_kcal`, `active_meal_count`, `meals[]`, `show_macro`, `macro_guard_reason`, `last_recomputed_at` | Do not recompute consumed, remaining, meal inclusion, overshoot, adjustment sign, or macro visibility. | `tests/test_budget_ledger_truth_boundary.py`; `tests/test_product_loop_mvp_read_model.py`; `/today/current-budget` smoke |
