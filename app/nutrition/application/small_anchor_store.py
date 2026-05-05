@@ -93,13 +93,41 @@ class AnchorLookupResult:
     clarify_support: GenericClarifySupport | None
 
 
+@dataclass(frozen=True)
+class _AnchorIndexEntry:
+    record_order: int
+    alias_order: int
+    rank: int
+    candidate: AnchorCandidate
+
+
+@dataclass(frozen=True)
+class _SemanticSupportIndexEntry:
+    record_order: int
+    alias_order: int
+    rank: int
+    support: GenericClarifySupport
+
+
+@dataclass(frozen=True)
+class _AnchorLookupIndex:
+    anchor_canonical: dict[str, tuple[_AnchorIndexEntry, ...]]
+    anchor_aliases: dict[str, tuple[_AnchorIndexEntry, ...]]
+    semantic_support: dict[str, tuple[_SemanticSupportIndexEntry, ...]]
+
+
 def lookup_anchor_candidates(
     intent: RetrievalIntent,
     *,
     limit: int = 4,
     evidence_store: NutritionEvidenceStorePort | None = None,
 ) -> AnchorLookupResult:
-    store = evidence_store or default_nutrition_evidence_store()
+    if evidence_store is None:
+        store = default_nutrition_evidence_store()
+        use_default_store = True
+    else:
+        store = evidence_store
+        use_default_store = False
     retrieval_context: AnchorLookupContext = (
         "query_only_support" if intent.retrieval_goal == "query_only_answer" else "logging_support"
     )
@@ -114,14 +142,25 @@ def lookup_anchor_candidates(
 
     clarify_support = None
     if intent.retrieval_goal in {"composition_clarification", "query_only_answer"}:
-        clarify_support = _match_semantic_only_support(query_texts, evidence_store=store)
+        clarify_support = _match_semantic_only_support(
+            query_texts,
+            evidence_store=store,
+            use_default_store=use_default_store,
+        )
     if clarify_support is not None:
         return AnchorLookupResult((), retrieval_context, "none", None, clarify_support)
 
     if intent.retrieval_goal == "composition_clarification":
         return AnchorLookupResult((), retrieval_context, "none", "composition_clarification_deferred", None)
 
-    candidates = tuple(_match_anchor_candidates(query_texts, limit=limit, evidence_store=store))
+    candidates = tuple(
+        _match_anchor_candidates(
+            query_texts,
+            limit=limit,
+            evidence_store=store,
+            use_default_store=use_default_store,
+        )
+    )
     if not candidates:
         return AnchorLookupResult((), retrieval_context, "none", "no_anchor_match", None)
     return AnchorLookupResult(candidates, retrieval_context, "none", None, None)
@@ -140,10 +179,14 @@ def _match_anchor_candidates(
     *,
     limit: int,
     evidence_store: NutritionEvidenceStorePort,
+    use_default_store: bool,
 ) -> list[AnchorCandidate]:
-    query_keys = {lookup_key(text) for text in query_texts if lookup_key(text)}
+    query_keys = _lookup_keys_for_texts(query_texts)
     if not query_keys:
         return []
+
+    if use_default_store:
+        return _match_default_anchor_candidates(query_keys, limit=limit)
 
     matched: list[tuple[int, AnchorCandidate]] = []
     for record in _load_anchor_records(evidence_store):
@@ -178,84 +221,269 @@ def _match_anchor_candidates(
     return [candidate for _, candidate in matched[:limit]]
 
 
+def _match_default_anchor_candidates(query_keys: set[str], *, limit: int) -> list[AnchorCandidate]:
+    index = _load_default_anchor_lookup_index()
+    matched: dict[int, _AnchorIndexEntry] = {}
+    for key in query_keys:
+        for entry in index.anchor_canonical.get(key, ()):
+            _keep_best_anchor_entry(matched, entry)
+    for key in query_keys:
+        for entry in index.anchor_aliases.get(key, ()):
+            _keep_best_anchor_entry(matched, entry)
+
+    ordered = sorted(
+        matched.values(),
+        key=lambda entry: (entry.rank, entry.record_order, entry.alias_order),
+    )
+    return [entry.candidate for entry in ordered[:limit]]
+
+
+def _keep_best_anchor_entry(matched: dict[int, _AnchorIndexEntry], entry: _AnchorIndexEntry) -> None:
+    current = matched.get(entry.record_order)
+    if current is None or (entry.rank, entry.alias_order) < (current.rank, current.alias_order):
+        matched[entry.record_order] = entry
+
+
 def _match_semantic_only_support(
     query_texts: tuple[str, ...],
     *,
     evidence_store: NutritionEvidenceStorePort,
+    use_default_store: bool,
 ) -> GenericClarifySupport | None:
-    query_keys = {lookup_key(text) for text in query_texts if lookup_key(text)}
+    query_keys = _lookup_keys_for_texts(query_texts)
     if not query_keys:
         return None
 
+    if use_default_store:
+        return _match_default_semantic_only_support(query_keys)
+
+    return _scan_semantic_only_support(query_keys, evidence_store=evidence_store)
+
+
+def _scan_semantic_only_support(
+    query_keys: set[str],
+    *,
+    evidence_store: NutritionEvidenceStorePort,
+) -> GenericClarifySupport | None:
     for item in evidence_store.load_small_anchor_records():
-        if str(item.get("record_kind") or "").strip() != "generic_semantic_only":
-            continue
-        canonical_name = str(item.get("canonical_name") or "").strip()
-        canonical_key = lookup_key(canonical_name)
-        if canonical_key in query_keys:
+        support = _semantic_support_from_item(item, query_keys)
+        if support is not None:
+            return support
+    return None
+
+
+def _semantic_support_from_item(
+    item: dict[str, object],
+    query_keys: set[str],
+) -> GenericClarifySupport | None:
+    if str(item.get("record_kind") or "").strip() != "generic_semantic_only":
+        return None
+    canonical_name = str(item.get("canonical_name") or "").strip()
+    canonical_key = lookup_key(canonical_name)
+    if canonical_key in query_keys:
+        return _clarify_support_from_item(
+            item,
+            matched_alias=canonical_name,
+            match_path="canonical_name_exact",
+        )
+    aliases = [str(alias).strip() for alias in item.get("aliases", []) if str(alias).strip()]
+    for alias in aliases:
+        if lookup_key(alias) in query_keys:
             return _clarify_support_from_item(
                 item,
-                matched_alias=canonical_name,
-                match_path="canonical_name_exact",
+                matched_alias=alias,
+                match_path="alias_exact",
             )
-        aliases = [str(alias).strip() for alias in item.get("aliases", []) if str(alias).strip()]
-        for alias in aliases:
-            if lookup_key(alias) in query_keys:
-                return _clarify_support_from_item(
-                    item,
-                    matched_alias=alias,
-                    match_path="alias_exact",
-                )
     return None
+
+
+def _match_default_semantic_only_support(query_keys: set[str]) -> GenericClarifySupport | None:
+    index = _load_default_anchor_lookup_index()
+    matches = [entry for key in query_keys for entry in index.semantic_support.get(key, ())]
+    if not matches:
+        return None
+    return min(matches, key=lambda entry: (entry.record_order, entry.rank, entry.alias_order)).support
+
+
+def _lookup_keys_for_texts(query_texts: tuple[str, ...]) -> set[str]:
+    keys: set[str] = set()
+    for text in query_texts:
+        key = lookup_key(text)
+        if key:
+            keys.add(key)
+    return keys
+
+
+@lru_cache(maxsize=1)
+def _load_default_small_anchor_items() -> tuple[dict[str, object], ...]:
+    return tuple(default_nutrition_evidence_store().load_small_anchor_records())
 
 
 @lru_cache(maxsize=1)
 def _load_default_anchor_records() -> tuple[AnchorRecord, ...]:
-    return _anchor_records_from_items(default_nutrition_evidence_store().load_small_anchor_records())
+    return _anchor_records_from_items(_load_default_small_anchor_items())
+
+
+@lru_cache(maxsize=1)
+def _load_default_anchor_lookup_index() -> _AnchorLookupIndex:
+    return _build_anchor_lookup_index(
+        _load_default_anchor_records(),
+        semantic_items=_load_default_small_anchor_items(),
+    )
 
 
 def _load_anchor_records(evidence_store: NutritionEvidenceStorePort) -> tuple[AnchorRecord, ...]:
-    if evidence_store is default_nutrition_evidence_store():
-        return _load_default_anchor_records()
     return _anchor_records_from_items(evidence_store.load_small_anchor_records())
+
+
+def _build_anchor_lookup_index(
+    records: tuple[AnchorRecord, ...],
+    *,
+    semantic_items: tuple[dict[str, object], ...],
+) -> _AnchorLookupIndex:
+    anchor_canonical: dict[str, list[_AnchorIndexEntry]] = {}
+    anchor_aliases: dict[str, list[_AnchorIndexEntry]] = {}
+    semantic_support: dict[str, list[_SemanticSupportIndexEntry]] = {}
+
+    for record_order, record in enumerate(records):
+        _index_anchor_record(record, record_order, anchor_canonical, anchor_aliases)
+
+    for record_order, item in enumerate(semantic_items):
+        _index_semantic_support_item(item, record_order, semantic_support)
+
+    return _AnchorLookupIndex(
+        anchor_canonical={key: tuple(entries) for key, entries in anchor_canonical.items()},
+        anchor_aliases={key: tuple(entries) for key, entries in anchor_aliases.items()},
+        semantic_support={key: tuple(entries) for key, entries in semantic_support.items()},
+    )
+
+
+def _index_anchor_record(
+    record: AnchorRecord,
+    record_order: int,
+    anchor_canonical: dict[str, list[_AnchorIndexEntry]],
+    anchor_aliases: dict[str, list[_AnchorIndexEntry]],
+) -> None:
+    canonical_key = lookup_key(record.canonical_name)
+    if canonical_key:
+        anchor_canonical.setdefault(canonical_key, []).append(
+            _AnchorIndexEntry(
+                record_order=record_order,
+                alias_order=-1,
+                rank=0,
+                candidate=_candidate_from_record(
+                    record,
+                    matched_alias=record.canonical_name,
+                    match_path="canonical_name_exact",
+                ),
+            )
+        )
+    for alias_order, alias in enumerate(record.aliases):
+        alias_key = lookup_key(alias)
+        if not alias_key:
+            continue
+        anchor_aliases.setdefault(alias_key, []).append(
+            _AnchorIndexEntry(
+                record_order=record_order,
+                alias_order=alias_order,
+                rank=1,
+                candidate=_candidate_from_record(
+                    record,
+                    matched_alias=alias,
+                    match_path="alias_exact",
+                ),
+            )
+        )
+
+
+def _index_semantic_support_item(
+    item: dict[str, object],
+    record_order: int,
+    semantic_support: dict[str, list[_SemanticSupportIndexEntry]],
+) -> None:
+    if str(item.get("record_kind") or "").strip() != "generic_semantic_only":
+        return
+    canonical_name = str(item.get("canonical_name") or "").strip()
+    canonical_key = lookup_key(canonical_name)
+    if canonical_key:
+        semantic_support.setdefault(canonical_key, []).append(
+            _SemanticSupportIndexEntry(
+                record_order=record_order,
+                alias_order=-1,
+                rank=0,
+                support=_clarify_support_from_item(
+                    item,
+                    matched_alias=canonical_name,
+                    match_path="canonical_name_exact",
+                ),
+            )
+        )
+    aliases = [str(alias).strip() for alias in item.get("aliases", []) if str(alias).strip()]
+    for alias_order, alias in enumerate(aliases):
+        alias_key = lookup_key(alias)
+        if not alias_key:
+            continue
+        semantic_support.setdefault(alias_key, []).append(
+            _SemanticSupportIndexEntry(
+                record_order=record_order,
+                alias_order=alias_order,
+                rank=1,
+                support=_clarify_support_from_item(
+                    item,
+                    matched_alias=alias,
+                    match_path="alias_exact",
+                ),
+            )
+        )
 
 
 def _anchor_records_from_items(items: object) -> tuple[AnchorRecord, ...]:
     records: list[AnchorRecord] = []
     for item in items or []:
-        if str(item.get("record_kind") or "generic_anchor").strip() != "generic_anchor":
-            continue
-        modifiers = tuple(
-            AnchorModifierSchema(
-                name=str(modifier.get("name") or "").strip(),
-                values=tuple(str(value).strip() for value in modifier.get("values", []) if str(value).strip()),
-            )
-            for modifier in item.get("major_modifiers", [])
-            if str(modifier.get("name") or "").strip()
-        )
-        kcal_range = item.get("baseline_kcal_range") or [0, 0]
-        low = int(kcal_range[0]) if len(kcal_range) > 0 else 0
-        high = int(kcal_range[1]) if len(kcal_range) > 1 else low
-        records.append(
-            AnchorRecord(
-                record_kind="generic_anchor",
-                anchor_id=str(item.get("anchor_id") or "").strip(),
-                canonical_name=str(item.get("canonical_name") or "").strip(),
-                aliases=tuple(str(alias).strip() for alias in item.get("aliases", []) if str(alias).strip()),
-                dish_type=str(item.get("dish_type") or "").strip(),
-                composition_posture=_optional_text(item.get("composition_posture")),
-                variance_level=_optional_text(item.get("variance_level")),
-                semantic_hints=_tuple_texts(item.get("semantic_hints", [])),
-                followup_hints=_tuple_texts(item.get("followup_hints", [])),
-                clarify_required=bool(item.get("clarify_required") is True),
-                source_posture="generic_anchor_seed",
-                baseline_kcal_range=(low, high),
-                baseline_likely_kcal=int(item.get("baseline_likely_kcal") or 0),
-                major_modifiers=modifiers,
-                composition_hints=_tuple_texts(item.get("composition_hints", [])),
-            )
-        )
+        record = _anchor_record_from_item(item)
+        if record is not None:
+            records.append(record)
     return tuple(records)
+
+
+def _anchor_record_from_item(item: dict[str, object]) -> AnchorRecord | None:
+    if str(item.get("record_kind") or "generic_anchor").strip() != "generic_anchor":
+        return None
+    low, high = _baseline_kcal_range(item.get("baseline_kcal_range") or [0, 0])
+    return AnchorRecord(
+        record_kind="generic_anchor",
+        anchor_id=str(item.get("anchor_id") or "").strip(),
+        canonical_name=str(item.get("canonical_name") or "").strip(),
+        aliases=tuple(str(alias).strip() for alias in item.get("aliases", []) if str(alias).strip()),
+        dish_type=str(item.get("dish_type") or "").strip(),
+        composition_posture=_optional_text(item.get("composition_posture")),
+        variance_level=_optional_text(item.get("variance_level")),
+        semantic_hints=_tuple_texts(item.get("semantic_hints", [])),
+        followup_hints=_tuple_texts(item.get("followup_hints", [])),
+        clarify_required=bool(item.get("clarify_required") is True),
+        source_posture="generic_anchor_seed",
+        baseline_kcal_range=(low, high),
+        baseline_likely_kcal=int(item.get("baseline_likely_kcal") or 0),
+        major_modifiers=_modifier_schemas_from_items(item.get("major_modifiers", [])),
+        composition_hints=_tuple_texts(item.get("composition_hints", [])),
+    )
+
+
+def _modifier_schemas_from_items(values: object) -> tuple[AnchorModifierSchema, ...]:
+    return tuple(
+        AnchorModifierSchema(
+            name=str(modifier.get("name") or "").strip(),
+            values=tuple(str(value).strip() for value in modifier.get("values", []) if str(value).strip()),
+        )
+        for modifier in values
+        if str(modifier.get("name") or "").strip()
+    )
+
+
+def _baseline_kcal_range(kcal_range: object) -> tuple[int, int]:
+    low = int(kcal_range[0]) if len(kcal_range) > 0 else 0
+    high = int(kcal_range[1]) if len(kcal_range) > 1 else low
+    return low, high
 
 
 def _candidate_from_record(
