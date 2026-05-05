@@ -58,6 +58,8 @@ def default_trace() -> dict[str, object]:
         "manager_pass_2_saw_search_packet": False,
         "extract_attempted": False,
         "retrieval_goal": None,
+        "raw_text_retrieval_hint_goal": None,
+        "semantic_authority_source": None,
         "exact_db_miss_confirmed": False,
         "truth_boundary": {
             "trace_only": True,
