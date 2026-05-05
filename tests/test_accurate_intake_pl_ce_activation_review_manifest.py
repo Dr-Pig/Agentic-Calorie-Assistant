@@ -18,6 +18,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "required_inputs": [
                 "ui_same_truth_contract",
                 "context_quality_pack",
+                "short_term_context_runtime_replay",
                 "context_coverage_matrix",
                 "context_conditioned_intent_wall",
                 "correction_removal_fixture_flow",
@@ -32,6 +33,10 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "included_artifact_statuses": {
                 "ui_same_truth_contract": {"status": "pass", "present": True},
                 "context_quality_pack": {"status": "context_quality_diagnostic_pass", "present": True},
+                "short_term_context_runtime_replay": {
+                    "status": "runtime_replay_diagnostic_pass",
+                    "present": True,
+                },
                 "context_coverage_matrix": {
                     "artifact_type": "accurate_intake_pl_ce_context_coverage_matrix",
                     "status": "context_coverage_matrix_ready_for_human_review",
