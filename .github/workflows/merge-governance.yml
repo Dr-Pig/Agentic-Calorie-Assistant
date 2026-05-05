@@ -32,6 +32,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Check pre-queue readiness
+        run: python scripts/merge_governance/check_pre_queue_readiness.py --output artifacts/pre_queue_readiness_report.json
+
       - name: Build merge debt matrix
         run: python scripts/merge_governance/build_merge_debt_matrix.py
 
@@ -48,4 +51,5 @@ jobs:
             artifacts/merge_debt_matrix.md
             artifacts/q_owner_queue_status.json
             artifacts/q_owner_queue_status.md
+            artifacts/pre_queue_readiness_report.json
           if-no-files-found: error

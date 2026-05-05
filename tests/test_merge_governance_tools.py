@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from scripts.merge_governance import (
+    check_pre_queue_readiness,
     check_pr_contract_drift,
     check_pr_size_budget,
     check_sidecar_activation,
@@ -141,6 +142,98 @@ def test_check_sidecar_activation_cli_accepts_string_file_entries(tmp_path: Path
     output = json.loads(capsys.readouterr().out)
     assert output["boundary_status"] == "fail"
     assert output["runtime_activation_status"] == "active"
+
+
+def test_pre_queue_readiness_passes_current_product_pages_artifact_chain(tmp_path: Path, capsys) -> None:
+    output = tmp_path / "pre-queue.json"
+
+    assert check_pre_queue_readiness.main(["--output", str(output)]) == 0
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["status"] == "pass"
+    assert report["checked_job"] == "product-pages-browser-e2e"
+    assert report["blockers"] == []
+    assert json.loads(capsys.readouterr().out)["status"] == "pass"
+
+
+def test_pre_queue_readiness_fails_missing_product_pages_dry_run_command(
+    tmp_path: Path,
+) -> None:
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    prefix, marker, suffix = workflow.partition("  product-pages-browser-e2e:")
+    suffix = suffix.replace(
+        "          python scripts/build_accurate_intake_context_live_diagnostic_dry_run_evaluator.py "
+        "--matrix-json artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json "
+        "--output artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json\n",
+        "",
+        1,
+    )
+    workflow = prefix + marker + suffix
+    workflow_path = tmp_path / "ci.yml"
+    workflow_path.write_text(workflow, encoding="utf-8")
+
+    assert (
+        check_pre_queue_readiness.main(
+            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
+        )
+        == 1
+    )
+
+    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
+    assert "missing_product_pages_command.context_live_diagnostic_dry_run_evaluator" in report["blockers"]
+    assert "missing_activation_manifest_input.context_live_diagnostic_dry_run_evaluator" not in report["blockers"]
+
+
+def test_pre_queue_readiness_fails_missing_response_contract_upload(tmp_path: Path) -> None:
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    workflow = workflow.replace(
+        "            artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json\n",
+        "",
+        1,
+    )
+    workflow_path = tmp_path / "ci.yml"
+    workflow_path.write_text(workflow, encoding="utf-8")
+
+    assert (
+        check_pre_queue_readiness.main(
+            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
+        )
+        == 1
+    )
+
+    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
+    assert "missing_product_pages_upload_artifact.context_live_response_contract_dry_run" in report[
+        "blockers"
+    ]
+
+
+def test_pre_queue_readiness_fails_product_pages_chain_order_drift(tmp_path: Path) -> None:
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    provider_line = (
+        "          python scripts/build_accurate_intake_context_live_provider_input_preflight.py "
+        "--matrix-json artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json "
+        "--anti-overfit-json artifacts/accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json "
+        "--output artifacts/accurate_intake_context_live_provider_input_preflight_ci.json\n"
+    )
+    response_line = (
+        "          python scripts/build_accurate_intake_context_live_response_contract_dry_run.py "
+        "--provider-input-preflight-json "
+        "artifacts/accurate_intake_context_live_provider_input_preflight_ci.json "
+        "--output artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json\n"
+    )
+    workflow = workflow.replace(provider_line + response_line, response_line + provider_line, 1)
+    workflow_path = tmp_path / "ci.yml"
+    workflow_path.write_text(workflow, encoding="utf-8")
+
+    assert (
+        check_pre_queue_readiness.main(
+            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
+        )
+        == 1
+    )
+
+    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
+    assert "product_pages_context_live_artifact_chain_order_invalid" in report["blockers"]
 
 
 def test_simulate_merge_candidate_uses_temp_worktree_and_runs_gates(monkeypatch) -> None:
