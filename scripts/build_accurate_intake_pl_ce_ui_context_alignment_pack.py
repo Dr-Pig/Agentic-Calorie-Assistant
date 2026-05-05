@@ -18,6 +18,9 @@ from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
 DEFAULT_ARTIFACT_PATHS = {
     "ui_same_truth_contract": ROOT / "artifacts" / "accurate_intake_ui_same_truth_render_contract.json",
+    "product_pages_renderer_source_map": ROOT
+    / "artifacts"
+    / "accurate_intake_product_pages_renderer_source_map.json",
     "context_coverage_matrix": ROOT / "artifacts" / "accurate_intake_pl_ce_context_coverage_matrix.json",
     "product_pages_browser_smoke": ROOT
     / "artifacts"
