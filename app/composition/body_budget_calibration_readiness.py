@@ -392,6 +392,8 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
                 "terminal_statuses": _TERMINAL_CALIBRATION_PROPOSAL_STATUSES,
                 "legacy_terminal_status_aliases": _LEGACY_TERMINAL_CALIBRATION_PROPOSAL_STATUSES,
                 "conflict_status_code": 409,
+                "unknown_user_status_code": 404,
+                "user_creation_authorized": False,
                 "accepted_at_request_validation": "iso_datetime_with_date_and_time",
                 "plan_changing_families": sorted(PLAN_CHANGING_CALIBRATION_FAMILIES),
                 "body_plan_mutation_authorized_on_accept": True,

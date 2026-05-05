@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.body.infrastructure.models import BodyObservationRecord, BodyPlanRecord, BodyProfileRecord
-from app.budget.infrastructure.models import DayBudgetLedgerRecord
+from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord
 from app.composition.calibration_routes import router as calibration_router
 from app.database import get_db, get_or_create_user
 from app.intake.infrastructure.models import MealThreadRecord, MealVersionRecord
@@ -410,6 +410,29 @@ def test_stored_calibration_accept_uses_persisted_option_and_updates_same_propos
     assert ledger.budget_kcal == 2000
 
 
+def test_stored_calibration_action_rejects_unknown_user_without_creating_user_or_mutating_state() -> None:
+    db = _session()
+    client = _client(db)
+
+    response = client.post(
+        "/calibration/proposal/stored-action",
+        json={
+            "user_id": "missing-stored-action-user",
+            "proposal_container_id": 999,
+            "action": "accept_calibration_proposal",
+            "accepted_at": "2026-05-04T10:30:00",
+        },
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "user not found"
+    assert db.query(User).count() == 0
+    assert db.execute(select(ProposalContainerRecord)).scalars().all() == []
+    assert db.execute(select(BodyPlanRecord)).scalars().all() == []
+    assert db.execute(select(DayBudgetLedgerRecord)).scalars().all() == []
+    assert db.execute(select(LedgerEntryRecord)).scalars().all() == []
+
+
 @pytest.mark.parametrize("invalid_accepted_at", ["not-a-date", "2026-05-04"])
 def test_calibration_action_rejects_invalid_accepted_at_without_mutation(invalid_accepted_at: str) -> None:
     db = _session()
@@ -485,6 +508,58 @@ def test_stored_calibration_action_rejects_invalid_accepted_at_without_mutation(
     assert active_plan.id == baseline_plan.id
     assert active_plan.daily_budget_kcal == 1800
     assert db.execute(select(DayBudgetLedgerRecord)).scalars().all() == []
+
+
+def test_stored_calibration_action_rejects_wrong_existing_user_without_mutating_proposal_or_plan() -> None:
+    db = _session()
+    client = _client(db)
+    owner = get_or_create_user(db, "stored-action-owner")
+    other = get_or_create_user(db, "stored-action-other")
+    baseline_plan = _active_body_plan(db, user_id=owner.id)
+    preview = client.post(
+        "/calibration/proposal/preview",
+        json={
+            "user_id": owner.user_id,
+            "local_date": "2026-05-04",
+            "current_budget_status": "over_budget",
+            "rescue_recovery_viability": "non_viable",
+            "persist_proposal": True,
+            "model_inputs": {
+                "body_plan_estimated_tdee_kcal": 2100,
+                "observation_window_days": 21,
+                "body_observation_count": 9,
+                "intake_coverage": 0.93,
+                "operating_expenditure_shift_kcal": 340,
+                "trend_mismatch_consistency": 0.9,
+                "trend_volatility": 0.1,
+                "logging_gap_ratio": 0.05,
+                "late_logged_meal_ratio": 0.05,
+            },
+        },
+    )
+    proposal_id = preview.json()["proposal_artifact"]["proposal_container_id"]
+
+    response = client.post(
+        "/calibration/proposal/stored-action",
+        json={
+            "user_id": other.user_id,
+            "proposal_container_id": proposal_id,
+            "action": "accept_calibration_proposal",
+            "accepted_at": "2026-05-04T10:30:00",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "calibration proposal not found"
+    proposal = db.get(ProposalContainerRecord, proposal_id)
+    assert proposal is not None
+    assert proposal.proposal_status == "open"
+    assert proposal.accepted_at is None
+    active_plan = db.execute(select(BodyPlanRecord).where(BodyPlanRecord.plan_status == "active")).scalar_one()
+    assert active_plan.id == baseline_plan.id
+    assert active_plan.daily_budget_kcal == 1800
+    assert db.execute(select(DayBudgetLedgerRecord)).scalars().all() == []
+    assert db.execute(select(LedgerEntryRecord)).scalars().all() == []
 
 
 def test_stored_calibration_accept_rejects_already_accepted_proposal_without_second_plan() -> None:
