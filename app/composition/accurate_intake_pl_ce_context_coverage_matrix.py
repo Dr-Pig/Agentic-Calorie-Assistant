@@ -204,7 +204,8 @@ def _coverage_entry(
     evidence: list[str],
 ) -> dict[str, Any]:
     blockers: list[str] = []
-    if not intent_wall and capability_id not in {"forbidden_context_exclusion"}:
+    intent_wall_required = capability_id not in {"forbidden_context_exclusion"}
+    if not intent_wall and intent_wall_required:
         blockers.append(f"coverage.{capability_id}.missing_intent_wall")
     if not runtime_replay and capability_id not in {"query_no_mutation", "target_update_boundary"}:
         blockers.append(f"coverage.{capability_id}.missing_runtime_replay")
@@ -213,11 +214,17 @@ def _coverage_entry(
         "correction_target_candidates",
         "removal_target_candidates",
         "ambiguity_preserved",
+        "query_no_mutation",
+        "target_update_boundary",
         "semantic_owner_boundary",
     }:
         blockers.append(f"coverage.{capability_id}.missing_fake_provider")
-    if intent_wall and runtime_replay and fake_provider:
+    if not intent_wall and intent_wall_required:
+        coverage_status = "not_checked"
+    elif intent_wall and runtime_replay and fake_provider:
         coverage_status = "fixture_runtime_and_fake_provider_checked"
+    elif intent_wall and fake_provider:
+        coverage_status = "fixture_and_fake_provider_checked"
     elif intent_wall and runtime_replay:
         coverage_status = "fixture_runtime_checked"
     elif runtime_replay and fake_provider:
@@ -312,8 +319,11 @@ def _build_matrix(inputs: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]
             label="query turns do not become mutation authority",
             intent_wall="previous_drink_calorie_query" in wall_ids,
             runtime_replay=False,
-            fake_provider=False,
-            evidence=["context wall: previous_drink_calorie_query"],
+            fake_provider="previous_drink_calorie_query" in fake_ids,
+            evidence=[
+                "context wall: previous_drink_calorie_query",
+                "fake provider: previous_drink_calorie_query",
+            ],
         ),
         "target_update_boundary": _coverage_entry(
             capability_id="target_update_boundary",
@@ -321,8 +331,13 @@ def _build_matrix(inputs: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]
             intent_wall="explicit_daily_target_1800" in wall_ids
             and "meal_estimate_800_not_target" in wall_ids,
             runtime_replay=False,
-            fake_provider=False,
-            evidence=["context wall: explicit_daily_target_1800 vs meal_estimate_800_not_target"],
+            fake_provider={"explicit_daily_target_1800", "meal_estimate_800_not_target"}.issubset(
+                fake_ids
+            ),
+            evidence=[
+                "context wall: explicit_daily_target_1800 vs meal_estimate_800_not_target",
+                "fake provider: explicit_daily_target_1800, meal_estimate_800_not_target",
+            ],
         ),
         "long_session_bounded_context": _coverage_entry(
             capability_id="long_session_bounded_context",
