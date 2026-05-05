@@ -41,6 +41,7 @@ class LocalSmallAnchorFoodEvidenceIndex:
             "adapter_type": "local_small_anchor_json",
             "source_label": self.source_label,
             "record_contract": "IndexedFoodRecord",
+            "runtime_truth_boundary": "adapter_returns_indexed_records_not_truth_decisions",
             "runtime_record_count": len(runtime_records),
             "semantic_record_count": len(semantic_records),
             "future_backends": ["sqlite_fts", "supabase"],
