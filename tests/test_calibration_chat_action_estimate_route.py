@@ -239,6 +239,19 @@ def test_estimate_route_can_preview_calibration_from_history_without_provider_or
     ]
     assert payload["input_assembly"]["trace"]["window_days"] == 14
     assert payload["input_assembly"]["trace"]["body_observation_count"] == 5
+    assert payload["proposal_response"]["surfaced"] is True
+    assert "reply_text" not in payload["proposal_response"]
+    assert "top_option" not in payload["proposal_response"]
+    assert "backup_options" not in payload["proposal_response"]
+    assert payload["proposal_response"]["proposal_cards"][0]["is_primary"] is True
+    assert payload["proposal_response"]["proposal_cards"][0]["stored_action_required"] is True
+    assert "proposal_response" not in payload["sidecar"]
+    preview_actions = {action["action"]: action for action in payload["proposal_response"]["quick_actions"]}
+    assert preview_actions["accept_calibration_proposal"]["requires_proposal_container_id"] is True
+    assert preview_actions["accept_calibration_proposal"]["raw_text_authorized_mutation"] is False
+    assert preview_actions["accept_calibration_proposal"]["enabled"] is True
+    assert preview_actions["accept_calibration_proposal"]["proposal_container_id"] == proposal.id
+    assert preview_actions["view_calibration_alternatives"]["mutation_authorized"] is False
     assert payload["proposal_artifact"]["proposal_container_id"] == proposal.id
     assert proposal.proposal_status == "open"
     assert active_plan.id == baseline_plan.id
@@ -275,9 +288,58 @@ def test_estimate_route_calibration_preview_missing_history_is_unavailable_witho
     assert payload["ui_hints"]["mode"] == "general_chat_calibration_preview_unavailable"
     assert payload["ui_hints"]["plan_mutation_authorized"] is False
     assert payload["ui_hints"]["ledger_mutation_authorized"] is False
+    unavailable_reason = payload["ui_hints"]["reason"]
+    assert payload["proposal_response"] == {
+        "surfaced": False,
+        "proposal_family": None,
+        "proposal_cards": [],
+        "quick_actions": [],
+        "ui_hints": {
+            "reason": unavailable_reason,
+            "proposal_actions_enabled": False,
+        },
+        "proposal_container_id": None,
+        "stored_action_required": True,
+        "raw_text_authorized_mutation": False,
+    }
     assert db.query(ProposalContainerRecord).count() == 0
     assert db.query(BodyPlanRecord).count() == 0
     assert db.query(DayBudgetLedgerRecord).count() == 0
+    assert db.query(LedgerEntryRecord).count() == 0
+
+
+def test_estimate_route_preview_without_persistence_disables_stored_action_quick_actions(monkeypatch) -> None:
+    db = _session()
+    user_external_id = "estimate-route-calibration-preview-no-persist"
+    _seed_calibration_history(db, user_external_id=user_external_id)
+    client = _client(db, monkeypatch)
+
+    response = client.post(
+        "/estimate",
+        json={
+            "text": "preview calibration from backend history",
+            "allow_search": False,
+            "user_id": user_external_id,
+            "local_date": ROUTE_LOCAL_DATE,
+            "calibration_preview_requested": True,
+            "persist_calibration_proposal": False,
+        },
+    )
+
+    payload = response.json()["payload"]
+    preview_actions = {action["action"]: action for action in payload["proposal_response"]["quick_actions"]}
+    assert response.status_code == 200
+    assert payload["state_delta"]["proposal_persisted"] is False
+    assert payload["proposal_artifact"] is None
+    assert preview_actions["accept_calibration_proposal"]["enabled"] is False
+    assert preview_actions["accept_calibration_proposal"]["disabled_reason"] == "stored_proposal_required"
+    assert preview_actions["accept_calibration_proposal"]["proposal_container_id"] is None
+    assert preview_actions["accept_calibration_proposal"]["mutation_authorized"] is False
+    assert preview_actions["reject_calibration_proposal"]["enabled"] is False
+    assert preview_actions["defer_calibration_proposal"]["enabled"] is False
+    assert preview_actions["view_calibration_alternatives"]["enabled"] is True
+    assert db.query(ProposalContainerRecord).count() == 0
+    assert db.query(BodyPlanRecord).filter(BodyPlanRecord.plan_status == "active").one().daily_budget_kcal == 1800
     assert db.query(LedgerEntryRecord).count() == 0
 
 
