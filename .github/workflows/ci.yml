@@ -62,7 +62,7 @@ jobs:
 
       - name: Upload pre-EDD readiness report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pre-edd-readiness-report
           path: artifacts/pre_edd_readiness_report.json
@@ -196,7 +196,7 @@ jobs:
 
       - name: Upload Accurate Intake MVP gate report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: accurate-intake-mvp-gate-report
           path: artifacts/accurate_intake_mvp_gate.json
@@ -231,7 +231,7 @@ jobs:
 
       - name: Upload product pages browser E2E report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: accurate-intake-product-pages-browser-smoke-report
           path: |
