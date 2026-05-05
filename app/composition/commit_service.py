@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from .canonical_commit_bridge import build_commit_request_candidate, resolve_commit_candidate_target
-from app.schemas import EstimatePayload
-from app.composition.canonical_persistence import get_legacy_mapping_for_meal_log
+from app.composition.canonical_commit_support import get_legacy_mapping_for_meal_log
 from app.composition.meal_log_persistence import persist_text_meal_result
+from app.schemas import EstimatePayload
+
+from .canonical_commit_bridge import (
+    build_commit_request_candidate,
+    resolve_commit_candidate_target,
+)
 
 
 def persist_text_meal_payload(

@@ -7,24 +7,39 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
 
-from app.composition.canonical_commit_bridge import (
+from app.body.application.body_observation_service import (
     record_body_observation_to_canonical,
+)
+from app.composition.canonical_commit_bridge import (
     record_budget_adjustment_to_canonical,
 )
 from app.composition.conversation_turn_trace import record_runtime_turn_messages
 from app.composition.general_chat_service import build_general_chat_response_pass
 from app.composition.intake_turn_orchestrator import execute_intake_turn
-from app.composition.manager_context_runtime import build_runtime_manager_context_packet_v1
-from app.composition.phase_a_boundary_projection import attach_boundary_projection, build_budget_boundary_projection
+from app.composition.manager_context_runtime import (
+    build_runtime_manager_context_packet_v1,
+)
+from app.composition.phase_a_boundary_projection import (
+    attach_boundary_projection,
+    build_budget_boundary_projection,
+)
 from app.composition.state_resolver import resolve_intake_state
 from app.database import get_db, get_or_create_user
 from app.intake.application.boundary_output_honesty import enforce_budget_output_honesty
 from app.intake.application.chat_intents import parse_weight_or_budget_intent
-from app.intake.application.current_turn_context_assembler import build_current_turn_context_v1
+from app.intake.application.current_turn_context_assembler import (
+    build_current_turn_context_v1,
+)
 from app.intake.application.workflow_routing import build_workflow_routing_decision
 from app.intake.interface.intake_error_response import build_estimate_error_response
-from app.runtime.application.request_trace_artifacts import write_general_chat_request_trace_artifact
-from app.runtime.interface.provider_runtime import extract_provider, manager_provider, search_provider
+from app.runtime.application.request_trace_artifacts import (
+    write_general_chat_request_trace_artifact,
+)
+from app.runtime.interface.provider_runtime import (
+    extract_provider,
+    manager_provider,
+    search_provider,
+)
 from app.schemas import EstimateRequest
 
 router = APIRouter()

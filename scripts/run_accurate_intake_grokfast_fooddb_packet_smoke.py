@@ -18,7 +18,11 @@ from app.nutrition.application.grokfast_fooddb_packet_smoke import (  # noqa: E4
     build_live_manager_payload,
     build_packet_artifact_from_tool_evidence_result,
 )
+from app.nutrition.application.grokfast_fooddb_diagnostic_preflight import (  # noqa: E402
+    is_grokfast_fooddb_preflight_clear,
+)
 from app.providers.builderspace_adapter import BuilderSpaceAdapter, BuilderSpaceResponseError  # noqa: E402
+from app.providers.builderspace_runtime_contract import validate_manager_payload  # noqa: E402
 from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT  # noqa: E402
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE  # noqa: E402
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
@@ -26,6 +30,7 @@ from app.shared.infra.json_artifacts import read_json_artifact, write_json_artif
 
 DEFAULT_PACKET_SMOKE = ROOT / "artifacts" / "accurate_intake_fooddb_manager_packet_smoke.json"
 DEFAULT_TOOL_EVIDENCE_RESULT = ROOT / "artifacts" / "accurate_intake_tool_evidence_result_smoke.json"
+DEFAULT_PREFLIGHT = ROOT / "artifacts" / "accurate_intake_grokfast_fooddb_diagnostic_preflight.json"
 DEFAULT_OUTPUT = ROOT / "artifacts" / "accurate_intake_grokfast_fooddb_packet_smoke.json"
 
 FOODDB_PACKET_MANAGER_SYSTEM_PROMPT = (
@@ -44,6 +49,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--allow-live", action="store_true")
     parser.add_argument("--packet-smoke", default=str(DEFAULT_PACKET_SMOKE))
     parser.add_argument("--tool-evidence-result", default=None)
+    parser.add_argument("--preflight-artifact", default=str(DEFAULT_PREFLIGHT))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
@@ -67,12 +73,33 @@ def main(argv: list[str] | None = None) -> int:
         write_json_artifact(output_path, artifact)
         return 2
 
+    if args.mode == "live":
+        preflight_path = Path(args.preflight_artifact)
+        if not preflight_path.exists():
+            artifact = _blocked_live_artifact(
+                failure_family="missing_clear_grokfast_fooddb_preflight",
+                preflight_artifact=str(preflight_path),
+            )
+            write_json_artifact(output_path, artifact)
+            return 2
+        preflight = read_json_artifact(preflight_path)
+        if not is_grokfast_fooddb_preflight_clear(preflight):
+            artifact = _blocked_live_artifact(
+                failure_family="grokfast_fooddb_preflight_not_clear",
+                preflight_artifact=str(preflight_path),
+                preflight_status=preflight.get("status"),
+                preflight_blockers=list(preflight.get("blockers") or []),
+            )
+            write_json_artifact(output_path, artifact)
+            return 2
+
     if args.mode == "fixture":
         manager_outputs = build_fixture_manager_outputs(packet_artifact=packet_artifact)
         artifact = build_grokfast_fooddb_packet_diagnostic(
             packet_artifact=packet_artifact,
             manager_outputs=manager_outputs,
             live_provider_used=False,
+            manager_contract_validator=_manager_contract_validation_errors,
         )
         write_json_artifact(output_path, artifact)
         _print_summary(output_path, artifact)
@@ -158,9 +185,25 @@ async def _run_live(*, packet_artifact: dict[str, Any]) -> tuple[dict[str, Any],
         packet_artifact=packet_artifact,
         manager_outputs=manager_outputs,
         live_provider_used=True,
+        manager_contract_validator=_manager_contract_validation_errors,
     )
     artifact["provider_readiness"] = readiness
     return artifact, 0
+
+
+def _manager_contract_validation_errors(
+    packet_case: dict[str, Any],
+    manager_output: dict[str, Any],
+) -> list[str]:
+    try:
+        validate_manager_payload(
+            MANAGER_LOOP_STAGE,
+            manager_output,
+            constraints=build_live_manager_payload(packet_case=packet_case)["constraints"],
+        )
+    except Exception as exc:
+        return [f"{type(exc).__name__}: {exc}"]
+    return []
 
 
 def _print_summary(output_path: Path, artifact: dict[str, Any]) -> None:
@@ -176,6 +219,31 @@ def _print_summary(output_path: Path, artifact: dict[str, Any]) -> None:
             ensure_ascii=False,
         )
     )
+
+
+def _blocked_live_artifact(
+    *,
+    failure_family: str,
+    preflight_artifact: str,
+    preflight_status: str | None = None,
+    preflight_blockers: list[Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
+        "classification": "live_diagnostic_only",
+        "status": "blocked",
+        "failure_family": failure_family,
+        "live_provider_used": False,
+        "readiness_claimed": False,
+        "self_use_approved": False,
+        "production_selected": False,
+        "runtime_mutation_attempted": False,
+        "runtime_truth_changed": False,
+        "provider_profile": dict(GROKFAST_FOODDB_PACKET_PROFILE),
+        "preflight_artifact": preflight_artifact,
+        "preflight_status": preflight_status,
+        "preflight_blockers": preflight_blockers or [],
+    }
 
 
 def _load_packet_artifact(args: argparse.Namespace) -> dict[str, Any]:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
@@ -10,6 +10,9 @@ from pydantic import BaseModel
 from app.body.application.body_observation_service import load_body_observation_history, record_body_observation_to_canonical
 from app.body.interface.weight_surface import render_weight_surface
 from app.database import get_db, get_or_create_user
+
+if TYPE_CHECKING:
+    from app.shared.domain import BodyObservation
 
 router = APIRouter()
 

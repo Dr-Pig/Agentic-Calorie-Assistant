@@ -51,6 +51,7 @@ def build_web_search_candidate_packet(
         "source_type": "web_search",
         "source_quality_label": source_quality_label,
         "officialness_hint": _text(candidate.get("officialness_hint")),
+        "source_class_hint": _text(candidate.get("source_class_hint")),
         "license_status": _text(candidate.get("license_status")) or "unknown",
         "robots_status": _text(candidate.get("robots_status")) or "unknown",
         "raw_ref": _text(candidate.get("raw_ref")),
@@ -144,6 +145,9 @@ def _match_type(
     requested_name: str,
     brand_match: str,
 ) -> str:
+    if brand_match == "different":
+        return "no_match"
+
     title = _text(candidate.get("source_title"))
     identity_confidence = _text(candidate.get("identity_confidence")).lower() or "unknown"
     requested_core = _identity_core(

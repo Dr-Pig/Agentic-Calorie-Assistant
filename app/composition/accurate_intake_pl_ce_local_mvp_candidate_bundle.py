@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 import json
+from datetime import UTC, datetime
 from typing import Any
-
 
 REQUIRED_INPUTS = (
     "ui_same_truth_contract",
