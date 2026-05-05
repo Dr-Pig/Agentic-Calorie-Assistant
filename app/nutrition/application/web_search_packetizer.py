@@ -145,6 +145,9 @@ def _match_type(
     requested_name: str,
     brand_match: str,
 ) -> str:
+    if brand_match == "different":
+        return "no_match"
+
     title = _text(candidate.get("source_title"))
     identity_confidence = _text(candidate.get("identity_confidence")).lower() or "unknown"
     requested_core = _identity_core(
