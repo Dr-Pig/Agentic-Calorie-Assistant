@@ -115,6 +115,64 @@ def test_context_conditioned_intent_wall_rejects_candidate_posture_without_candi
     assert "remove_tofu_one_luwei.candidate_target_missing" in blockers
 
 
+def test_context_conditioned_intent_wall_rejects_clarification_with_target_candidates() -> None:
+    artifact = build_context_conditioned_intent_wall_artifact()
+    scenarios = list(artifact["scenarios"])  # type: ignore[index]
+    no_drink = next(
+        scenario for scenario in scenarios if scenario["scenario_id"] == "half_sugar_no_prior_drink"
+    )
+    no_drink["target_candidate_count"] = 1
+    no_drink["target_candidates_present"] = True
+
+    blockers = module._validate(scenarios)
+
+    assert "half_sugar_no_prior_drink.clarification_has_unexpected_target_candidates" in blockers
+
+
+def test_context_conditioned_intent_wall_rejects_fixture_decision_posture_drift() -> None:
+    artifact = build_context_conditioned_intent_wall_artifact()
+    scenarios = list(artifact["scenarios"])  # type: ignore[index]
+    query = next(
+        scenario for scenario in scenarios if scenario["scenario_id"] == "previous_drink_calorie_query"
+    )
+    query["fixture_manager_decision"] = {
+        **dict(query["fixture_manager_decision"]),  # type: ignore[arg-type]
+        "expected_semantic_posture": "correction_candidate_available",
+        "mutation_intent_candidate": "correction_candidate",
+    }
+
+    blockers = module._validate(scenarios)
+
+    assert "previous_drink_calorie_query.fixture_decision_posture_mismatch" in blockers
+    assert "previous_drink_calorie_query.query_mutation_intent_not_no_mutation" in blockers
+
+
+def test_context_conditioned_intent_wall_rejects_target_update_and_meal_estimate_drift() -> None:
+    artifact = build_context_conditioned_intent_wall_artifact()
+    scenarios = list(artifact["scenarios"])  # type: ignore[index]
+    target_update = next(
+        scenario for scenario in scenarios if scenario["scenario_id"] == "explicit_daily_target_1800"
+    )
+    meal_estimate = next(
+        scenario for scenario in scenarios if scenario["scenario_id"] == "meal_estimate_800_not_target"
+    )
+    target_update["fixture_manager_decision"] = {
+        **dict(target_update["fixture_manager_decision"]),  # type: ignore[arg-type]
+        "mutation_intent_candidate": "meal_estimate_candidate",
+    }
+    meal_estimate["target_update_requires_manager_decision"] = True
+    meal_estimate["fixture_manager_decision"] = {
+        **dict(meal_estimate["fixture_manager_decision"]),  # type: ignore[arg-type]
+        "mutation_intent_candidate": "target_update_candidate",
+    }
+
+    blockers = module._validate(scenarios)
+
+    assert "explicit_daily_target_1800.target_update_mutation_candidate_missing" in blockers
+    assert "meal_estimate_800_not_target.meal_estimate_marked_as_target_update" in blockers
+    assert "meal_estimate_800_not_target.meal_estimate_mutation_candidate_missing" in blockers
+
+
 def test_context_conditioned_intent_wall_cli_writes_artifact(tmp_path: Path) -> None:
     output_path = tmp_path / "context_conditioned_intent_wall.json"
 
