@@ -7,6 +7,7 @@ from typing import Any
 
 REQUIRED_INPUTS = (
     "ui_same_truth_contract",
+    "product_pages_renderer_source_map",
     "context_coverage_matrix",
     "product_pages_browser_smoke",
     "product_pages_seven_day_diary_smoke",
@@ -16,6 +17,7 @@ REQUIRED_INPUTS = (
 
 EXPECTED_STATUSES = {
     "ui_same_truth_contract": "pass",
+    "product_pages_renderer_source_map": "product_pages_renderer_source_map_ready_for_human_review",
     "context_coverage_matrix": {
         "context_coverage_matrix_ready_for_human_review",
         "context_coverage_matrix_ready_with_known_runtime_gaps",
@@ -28,6 +30,7 @@ EXPECTED_STATUSES = {
 
 EXPECTED_ARTIFACT_TYPES = {
     "ui_same_truth_contract": "accurate_intake_ui_same_truth_render_contract",
+    "product_pages_renderer_source_map": "accurate_intake_product_pages_renderer_source_map",
     "context_coverage_matrix": "accurate_intake_pl_ce_context_coverage_matrix",
     "product_pages_visual_qa": "accurate_intake_product_pages_visual_qa",
 }
@@ -69,6 +72,9 @@ FORBIDDEN_TRUTHY_FLAGS = (
 REQUIRED_TRUE_FLAGS = {
     "ui_same_truth_contract": (
         "frontend_render_only",
+    ),
+    "product_pages_renderer_source_map": (
+        "render_only_boundary_ok",
     ),
     "product_pages_browser_smoke": (
         "browser_executed",
@@ -247,6 +253,7 @@ def build_pl_ce_ui_context_alignment_pack_artifact(
         blockers.extend(_group_specific_blockers(group_id, payload))
 
     matrix_summary = _object_dict(inputs["context_coverage_matrix"].get("summary"))
+    source_map_summary = _object_dict(inputs["product_pages_renderer_source_map"].get("summary"))
     status = "ui_context_alignment_ready_for_human_review" if not blockers else "blocked"
     return _json_safe(
         {
@@ -265,6 +272,15 @@ def build_pl_ce_ui_context_alignment_pack_artifact(
                 ),
                 "context_known_runtime_gap_count": _int_value(
                     matrix_summary.get("known_runtime_gap_count")
+                ),
+                "renderer_source_map_page_count": _int_value(
+                    source_map_summary.get("page_count")
+                ),
+                "renderer_source_map_selector_count": _int_value(
+                    source_map_summary.get("selector_count")
+                ),
+                "renderer_source_map_endpoint_count": _int_value(
+                    source_map_summary.get("endpoint_count")
                 ),
                 "seven_day_diary_checked": inputs["product_pages_seven_day_diary_smoke"].get(
                     "seven_day_window_checked"

@@ -142,6 +142,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "status": "ui_context_alignment_ready_for_human_review",
             "required_inputs": [
                 "ui_same_truth_contract",
+                "product_pages_renderer_source_map",
                 "context_coverage_matrix",
                 "product_pages_browser_smoke",
                 "product_pages_seven_day_diary_smoke",
@@ -151,6 +152,10 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "blockers": [],
             "included_artifact_statuses": {
                 "ui_same_truth_contract": {"status": "pass", "present": True},
+                "product_pages_renderer_source_map": {
+                    "status": "product_pages_renderer_source_map_ready_for_human_review",
+                    "present": True,
+                },
                 "context_coverage_matrix": {
                     "status": "context_coverage_matrix_ready_for_human_review",
                     "present": True,
@@ -170,6 +175,9 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "pages_verified": ["chat", "today", "body"],
                 "context_covered_capabilities": 9,
                 "context_known_runtime_gap_count": 0,
+                "renderer_source_map_page_count": 3,
+                "renderer_source_map_selector_count": 33,
+                "renderer_source_map_endpoint_count": 8,
                 "seven_day_diary_checked": True,
                 "chat_context_reload_checked": True,
                 "body_read_model_checked": True,
@@ -340,6 +348,37 @@ def test_activation_review_manifest_blocks_undercovered_ui_context_pack() -> Non
 
     assert artifact["status"] == "blocked"
     assert "pl_ce_ui_context_alignment_pack.context_capabilities_not_covered" in artifact["blockers"]
+
+
+def test_activation_review_manifest_blocks_invalid_renderer_source_map_gate() -> None:
+    inputs = _valid_inputs()
+    inputs["pl_ce_ui_context_alignment_pack"]["included_artifact_statuses"][
+        "product_pages_renderer_source_map"
+    ]["status"] = "blocked"
+    inputs["pl_ce_ui_context_alignment_pack"]["summary"]["renderer_source_map_page_count"] = 0
+    inputs["pl_ce_ui_context_alignment_pack"]["summary"]["renderer_source_map_selector_count"] = 0
+    inputs["pl_ce_ui_context_alignment_pack"]["summary"]["renderer_source_map_endpoint_count"] = 0
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert (
+        "pl_ce_ui_context_alignment_pack.included_artifact_statuses."
+        "product_pages_renderer_source_map.unexpected_status:blocked"
+        in artifact["blockers"]
+    )
+    assert (
+        "pl_ce_ui_context_alignment_pack.renderer_source_map_page_count_mismatch"
+        in artifact["blockers"]
+    )
+    assert (
+        "pl_ce_ui_context_alignment_pack.renderer_source_map_selector_count_too_low"
+        in artifact["blockers"]
+    )
+    assert (
+        "pl_ce_ui_context_alignment_pack.renderer_source_map_endpoint_count_too_low"
+        in artifact["blockers"]
+    )
 
 
 def test_activation_review_manifest_accepts_context_matrix_known_runtime_gap_status() -> None:
