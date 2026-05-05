@@ -4,7 +4,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.intake.application.shadow_hypothesis_dialogue import apply_shadow_hypothesis_dialogue_cue
+from app.intake.application.shadow_hypothesis_dialogue import (
+    apply_shadow_hypothesis_dialogue_cue,
+)
 
 
 def _trace(
@@ -72,8 +74,9 @@ def test_dialogue_cue_never_applies_when_shadow_has_mutation_authority() -> None
 async def test_intake_execution_response_applies_shadow_dialogue_cue_without_state_changes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from app.composition.current_budget_answer import RemainingBudgetAnswerContract
     from app.composition import intake_execution_response as module
+
+    assert not hasattr(module, "build_remaining_budget_answer_contract")
 
     class _View:
         user_id = 1
@@ -100,19 +103,6 @@ async def test_intake_execution_response_applies_shadow_dialogue_cue_without_sta
         "new_meal_version_created": False,
         "old_version_superseded": False,
     }
-    monkeypatch.setattr(
-        module,
-        "build_remaining_budget_answer_contract",
-        lambda *_, **__: RemainingBudgetAnswerContract(
-            status="ready",
-            user_id=1,
-            local_date="2026-04-29",
-            daily_target_kcal=1800,
-            consumed_kcal=900,
-            remaining_kcal=900,
-            meal_count=1,
-        ),
-    )
     monkeypatch.setattr(module, "render_intake_reply", lambda **_: "Base reply.")
     monkeypatch.setattr(module, "write_intake_execution_trace_artifact", lambda **_: None)
     monkeypatch.setattr(module, "build_trace_refs", lambda **_: {"request_id": "req-shadow-dialogue"})
