@@ -17,7 +17,6 @@ from app.nutrition.infrastructure.sqlite_food_evidence_index import (
     SQLiteFtsFoodEvidenceIndex,
 )
 
-
 SMALL_ANCHOR_STORE = Path("app/knowledge/small_anchor_store_tw.json")
 
 
@@ -243,7 +242,9 @@ def test_retriever_execution_smoke_fails_closed_when_websearch_scope_is_empty(
 
 def test_retriever_execution_smoke_script_roundtrip(tmp_path: Path) -> None:
     from app.shared.infra.json_artifacts import read_json_artifact
-    from scripts.build_accurate_intake_food_evidence_retriever_execution_smoke import main
+    from scripts.build_accurate_intake_food_evidence_retriever_execution_smoke import (
+        main,
+    )
 
     output = tmp_path / "retriever_execution.json"
     sqlite_db = tmp_path / "food.sqlite"
