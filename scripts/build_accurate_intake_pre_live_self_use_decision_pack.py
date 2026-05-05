@@ -20,6 +20,7 @@ REQUIRED_PRE_LIVE_EVIDENCE = (
     "context_live_diagnostic_case_matrix",
     "context_live_diagnostic_anti_overfit_guard",
     "context_live_provider_input_preflight",
+    "context_live_response_contract_dry_run",
 )
 
 _EXPECTED_STATUS_BY_GROUP = {
@@ -36,6 +37,7 @@ _EXPECTED_STATUS_BY_GROUP = {
     "context_live_diagnostic_case_matrix": "pass",
     "context_live_diagnostic_anti_overfit_guard": "pass",
     "context_live_provider_input_preflight": "pass",
+    "context_live_response_contract_dry_run": "pass",
 }
 
 
@@ -53,6 +55,8 @@ def _evidence_missing(group_id: str, payload: dict[str, Any]) -> bool:
     if group_id == "context_live_diagnostic_anti_overfit_guard" and payload.get("plan_only") is not True:
         return True
     if group_id == "context_live_provider_input_preflight" and payload.get("plan_only") is not True:
+        return True
+    if group_id == "context_live_response_contract_dry_run" and payload.get("plan_only") is not True:
         return True
     return False
 
@@ -156,6 +160,36 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
             blockers.append("context_live_provider_input_preflight_target_candidate_inputs_missing")
         if int(summary.get("pending_pin_inputs") or 0) < 1:
             blockers.append("context_live_provider_input_preflight_pending_pin_inputs_missing")
+    if group_id == "context_live_response_contract_dry_run":
+        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        if payload.get("plan_only") is not True:
+            blockers.append("context_live_response_contract_dry_run_plan_only_not_true")
+        if payload.get("fixture_only") is not True:
+            blockers.append("context_live_response_contract_dry_run_fixture_only_not_true")
+        if payload.get("provider_call_ready") is not False:
+            blockers.append("context_live_response_contract_dry_run_provider_call_ready")
+        if payload.get("human_approval_required_before_live_provider") is not True:
+            blockers.append(
+                "context_live_response_contract_dry_run_human_approval_before_live_missing"
+            )
+        if payload.get("response_schema_strict") is not True:
+            blockers.append("context_live_response_contract_dry_run_response_schema_not_strict")
+        if payload.get("deterministic_selected_intent") is not False:
+            blockers.append("context_live_response_contract_dry_run_deterministic_selected_intent")
+        if payload.get("raw_text_intent_router_used") is not False:
+            blockers.append("context_live_response_contract_dry_run_raw_text_intent_router_used")
+        if int(summary.get("case_count") or 0) < 10:
+            blockers.append("context_live_response_contract_dry_run_case_count_too_low")
+        if int(summary.get("blocked_response_count") or 0) != 0:
+            blockers.append("context_live_response_contract_dry_run_blocked_response_count_nonzero")
+        if int(summary.get("validated_response_count") or 0) < 10:
+            blockers.append("context_live_response_contract_dry_run_validated_response_count_too_low")
+        if int(summary.get("target_candidate_response_count") or 0) < 1:
+            blockers.append("context_live_response_contract_dry_run_target_candidate_response_missing")
+        if int(summary.get("ambiguity_preserved_response_count") or 0) < 1:
+            blockers.append("context_live_response_contract_dry_run_ambiguity_response_missing")
+        if int(summary.get("mutation_request_count") or 0) != 0:
+            blockers.append("context_live_response_contract_dry_run_mutation_request_count_nonzero")
     if group_id == "manager_intent_readiness_review_pack":
         summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
         if payload.get("review_required_before_provider_call") is not True:
