@@ -80,6 +80,18 @@ def _required_payloads() -> dict[str, dict[str, object]]:
             "real_fooddb_pass_claimed": False,
             "private_self_use_approved": False,
         },
+        "context_live_diagnostic_case_matrix": {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_context_live_diagnostic_case_matrix",
+            "status": "pass",
+            "plan_only": True,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "fooddb_used": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "summary": {"case_count": 11, "compound_cases": 1},
+        },
     }
 
 
@@ -175,6 +187,7 @@ def test_local_web_self_use_candidate_v2_gate_runner_derives_phase_c_identity_fr
         "local_dogfood_data_hygiene",
         "local_operator_data_hygiene_bundle",
         "pl_ce_local_review_decision_pack",
+        "context_live_diagnostic_case_matrix",
     ]
     assert evidence["phase_c_gate"]["artifact_type"] == "accurate_intake_phase_c_gate_from_mvp_gate"
     assert evidence["phase_c_gate"]["status"] == "pass"
@@ -221,6 +234,45 @@ def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_artifact_wit
     assert pre_live_evidence["pl_ce_local_review_decision_pack"]["autofix_attempted"] is False
     assert "missing evidence: pl_ce_local_review_decision_pack" in candidate["local_web_self_use_candidate_v2"]["blockers"]
     assert "local web candidate gate evidence blocked" in candidate["local_web_self_use_candidate_v2"]["blockers"]
+
+
+def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_context_live_matrix(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts.run_accurate_intake_local_web_self_use_candidate_v2_gate import (
+        DEFAULT_EVIDENCE_PATHS,
+        main,
+    )
+
+    artifact_dir = tmp_path / "artifacts"
+    payloads = _required_payloads()
+    payloads.pop("context_live_diagnostic_case_matrix")
+    for group_id, payload in payloads.items():
+        _write(artifact_dir / f"{group_id}.json", payload)
+    candidate_output = tmp_path / "candidate.json"
+
+    exit_code = main(
+        [
+            "--pre-live-evidence-output",
+            str(tmp_path / "pre_live_evidence.json"),
+            "--pre-live-output",
+            str(tmp_path / "pre_live_decision_pack.json"),
+            "--candidate-output",
+            str(candidate_output),
+            *_artifact_args(artifact_dir, tuple(DEFAULT_EVIDENCE_PATHS)),
+        ]
+    )
+    printed = json.loads(capsys.readouterr().out)
+    candidate = json.loads(candidate_output.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["candidate_prepared"] is False
+    assert printed["missing_evidence"] == ["context_live_diagnostic_case_matrix"]
+    assert (
+        "missing evidence: context_live_diagnostic_case_matrix"
+        in candidate["local_web_self_use_candidate_v2"]["blockers"]
+    )
 
 
 def test_local_web_self_use_candidate_v2_gate_runner_blocks_pl_ce_overclaim(
