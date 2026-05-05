@@ -35,6 +35,38 @@ def _evidence(**overrides: dict) -> dict:
             "real_fooddb_pass_claimed": False,
             "private_self_use_approved": False,
         },
+        "manager_intent_readiness_review_pack": {
+            "status": "manager_intent_readiness_ready_for_human_review",
+            "review_required_before_provider_call": True,
+            "semantic_owner": "fixture_manager_structured_decision",
+            "shared_contract_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "live_provider_called": False,
+            "web_tavily_used": False,
+            "websearch_evidence_used": False,
+            "fooddb_evidence_used": False,
+            "fooddb_truth_updated": False,
+            "real_fooddb_pass_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "summary": {
+                "intent_wall_scenarios": 11,
+                "contextual_interactions": 11,
+                "fake_provider_handoff_scenarios": 6,
+                "responder_allowed_fact_scenarios": 5,
+                "context_covered_capabilities": 9,
+                "context_blocked_capabilities": 0,
+                "context_known_runtime_gaps": 0,
+                "session_pending_followup_carryover_checked": True,
+                "session_target_candidate_ui_checked": True,
+                "session_long_context_checked": True,
+            },
+        },
         "context_live_diagnostic_case_matrix": {
             "status": "pass",
             "plan_only": True,
@@ -178,6 +210,81 @@ def test_pre_live_decision_pack_requires_context_live_case_matrix_before_human_l
     assert pack["selected_option"] == "stay_local_self_use"
     assert "context_live_diagnostic_case_matrix" in pack["missing_evidence"]
     assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_requires_manager_intent_readiness_pack() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(manager_intent_readiness_review_pack={})
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "manager_intent_readiness_review_pack" in pack["missing_evidence"]
+    assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_blocks_manager_intent_readiness_overclaims() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            manager_intent_readiness_review_pack={
+                "status": "manager_intent_readiness_ready_for_human_review",
+                "review_required_before_provider_call": True,
+                "semantic_owner": "fixture_manager_structured_decision",
+                "ready_for_live_diagnostic_decision": True,
+                "live_llm_invoked": True,
+                "fooddb_evidence_used": True,
+                "mutation_changed": True,
+                "summary": {
+                    "intent_wall_scenarios": 11,
+                    "contextual_interactions": 11,
+                    "fake_provider_handoff_scenarios": 6,
+                    "responder_allowed_fact_scenarios": 5,
+                    "context_covered_capabilities": 9,
+                    "context_blocked_capabilities": 0,
+                    "context_known_runtime_gaps": 0,
+                    "session_pending_followup_carryover_checked": True,
+                    "session_target_candidate_ui_checked": True,
+                    "session_long_context_checked": True,
+                },
+            }
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "manager_intent_readiness_review_pack_ready_for_live_diagnostic_decision" in pack["blockers"]
+    assert "manager_intent_readiness_review_pack_live_llm_invoked" in pack["blockers"]
+    assert "manager_intent_readiness_review_pack_fooddb_evidence_used" in pack["blockers"]
+    assert "manager_intent_readiness_review_pack_mutation_changed" in pack["blockers"]
+    assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_blocks_manager_intent_readiness_weak_coverage() -> None:
+    evidence = _evidence()
+    evidence["manager_intent_readiness_review_pack"]["summary"] = {
+        "intent_wall_scenarios": 10,
+        "contextual_interactions": 10,
+        "fake_provider_handoff_scenarios": 5,
+        "responder_allowed_fact_scenarios": 4,
+        "context_covered_capabilities": 8,
+        "context_blocked_capabilities": 1,
+        "context_known_runtime_gaps": 1,
+        "session_pending_followup_carryover_checked": False,
+        "session_target_candidate_ui_checked": False,
+        "session_long_context_checked": False,
+    }
+
+    pack = build_pre_live_self_use_decision_pack(evidence)
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "manager_intent_readiness_review_pack_intent_wall_scenarios_too_low" in pack["blockers"]
+    assert "manager_intent_readiness_review_pack_contextual_interactions_too_low" in pack["blockers"]
+    assert "manager_intent_readiness_review_pack_fake_provider_handoffs_too_low" in pack["blockers"]
+    assert "manager_intent_readiness_review_pack_responder_scenarios_too_low" in pack["blockers"]
+    assert "manager_intent_readiness_review_pack_context_capabilities_too_low" in pack["blockers"]
+    assert "manager_intent_readiness_review_pack_context_blocked_capabilities_present" in pack["blockers"]
+    assert "manager_intent_readiness_review_pack_context_known_runtime_gaps_present" in pack["blockers"]
+    assert "manager_intent_readiness_review_pack_pending_followup_not_checked" in pack["blockers"]
+    assert "manager_intent_readiness_review_pack_target_candidate_ui_not_checked" in pack["blockers"]
+    assert "manager_intent_readiness_review_pack_long_context_not_checked" in pack["blockers"]
 
 
 def test_pre_live_decision_pack_requires_context_live_anti_overfit_guard() -> None:

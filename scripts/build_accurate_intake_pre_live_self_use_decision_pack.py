@@ -16,6 +16,7 @@ REQUIRED_PRE_LIVE_EVIDENCE = (
     "local_dogfood_data_hygiene",
     "local_operator_data_hygiene_bundle",
     "pl_ce_local_review_decision_pack",
+    "manager_intent_readiness_review_pack",
     "context_live_diagnostic_case_matrix",
     "context_live_diagnostic_anti_overfit_guard",
     "context_live_provider_input_preflight",
@@ -31,6 +32,7 @@ _EXPECTED_STATUS_BY_GROUP = {
     "local_dogfood_data_hygiene": "pass",
     "local_operator_data_hygiene_bundle": "local_operator_data_hygiene_ready",
     "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
+    "manager_intent_readiness_review_pack": "manager_intent_readiness_ready_for_human_review",
     "context_live_diagnostic_case_matrix": "pass",
     "context_live_diagnostic_anti_overfit_guard": "pass",
     "context_live_provider_input_preflight": "pass",
@@ -154,6 +156,34 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
             blockers.append("context_live_provider_input_preflight_target_candidate_inputs_missing")
         if int(summary.get("pending_pin_inputs") or 0) < 1:
             blockers.append("context_live_provider_input_preflight_pending_pin_inputs_missing")
+    if group_id == "manager_intent_readiness_review_pack":
+        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        if payload.get("review_required_before_provider_call") is not True:
+            blockers.append(
+                "manager_intent_readiness_review_pack_review_required_before_provider_call_missing"
+            )
+        if payload.get("semantic_owner") != "fixture_manager_structured_decision":
+            blockers.append("manager_intent_readiness_review_pack_semantic_owner_not_fixture_manager")
+        if int(summary.get("intent_wall_scenarios") or 0) < 11:
+            blockers.append("manager_intent_readiness_review_pack_intent_wall_scenarios_too_low")
+        if int(summary.get("contextual_interactions") or 0) < 11:
+            blockers.append("manager_intent_readiness_review_pack_contextual_interactions_too_low")
+        if int(summary.get("fake_provider_handoff_scenarios") or 0) < 6:
+            blockers.append("manager_intent_readiness_review_pack_fake_provider_handoffs_too_low")
+        if int(summary.get("responder_allowed_fact_scenarios") or 0) < 5:
+            blockers.append("manager_intent_readiness_review_pack_responder_scenarios_too_low")
+        if int(summary.get("context_covered_capabilities") or 0) < 9:
+            blockers.append("manager_intent_readiness_review_pack_context_capabilities_too_low")
+        if int(summary.get("context_blocked_capabilities") or 0) > 0:
+            blockers.append("manager_intent_readiness_review_pack_context_blocked_capabilities_present")
+        if int(summary.get("context_known_runtime_gaps") or 0) > 0:
+            blockers.append("manager_intent_readiness_review_pack_context_known_runtime_gaps_present")
+        if summary.get("session_pending_followup_carryover_checked") is not True:
+            blockers.append("manager_intent_readiness_review_pack_pending_followup_not_checked")
+        if summary.get("session_target_candidate_ui_checked") is not True:
+            blockers.append("manager_intent_readiness_review_pack_target_candidate_ui_not_checked")
+        if summary.get("session_long_context_checked") is not True:
+            blockers.append("manager_intent_readiness_review_pack_long_context_not_checked")
     return blockers
 
 
