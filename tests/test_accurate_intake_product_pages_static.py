@@ -278,3 +278,35 @@ def test_product_pages_do_not_claim_fooddb_websearch_live_or_debug_truth() -> No
     ]
     for fragment in forbidden:
         assert fragment not in combined
+
+
+def test_product_pages_do_not_use_browser_storage_or_operator_debug_routes() -> None:
+    for path in (CHAT, TODAY, BODY):
+        html = _html(path)
+        lower = html.lower()
+
+        assert "localStorage" not in html
+        assert "sessionStorage" not in html
+        assert "/accurate-intake/debug" not in html
+        assert "last runtime payload" not in lower
+        assert "last turn trace" not in lower
+        assert "operator review" not in lower
+
+
+def test_product_pages_do_not_own_semantic_or_mutation_decisions() -> None:
+    combined = "\n".join(_html(path) for path in (CHAT, TODAY, BODY))
+
+    forbidden = [
+        "final_action",
+        "workflow_effect",
+        "mutation_legality",
+        "deterministic_selected_target",
+        "raw_text_intent_router",
+        "message.content.includes",
+        "message.content.match",
+        "ready_for_fdb_integration=true",
+        "product_readiness_claimed=true",
+        "private_self_use_approved=true",
+    ]
+    for fragment in forbidden:
+        assert fragment not in combined
