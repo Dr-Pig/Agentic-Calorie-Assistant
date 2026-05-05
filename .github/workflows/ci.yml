@@ -301,7 +301,7 @@ jobs:
 
       - name: Run product pages browser E2E diagnostic
         run: |
-          python -m pytest tests/test_accurate_intake_product_pages_browser_smoke.py tests/test_accurate_intake_product_pages_seven_day_diary_smoke.py tests/test_accurate_intake_product_pages_short_term_context_smoke.py tests/test_accurate_intake_product_pages_visual_qa.py tests/test_accurate_intake_product_pages_static.py tests/test_accurate_intake_pl_ce_browser_activation_evidence_gate.py -q
+          python -m pytest tests/test_accurate_intake_product_pages_browser_smoke.py tests/test_accurate_intake_product_pages_seven_day_diary_smoke.py tests/test_accurate_intake_product_pages_short_term_context_smoke.py tests/test_accurate_intake_product_pages_visual_qa.py tests/test_accurate_intake_product_pages_static.py tests/test_accurate_intake_pl_ce_browser_activation_evidence_gate.py tests/test_accurate_intake_pl_ce_activation_review_manifest.py -q
           python scripts/run_accurate_intake_product_pages_browser_smoke.py --require-browser-execution --output artifacts/accurate_intake_product_pages_browser_smoke_ci.json --timeout-ms 25000
           python scripts/run_accurate_intake_product_pages_seven_day_diary_smoke.py --require-browser-execution --output artifacts/accurate_intake_product_pages_seven_day_diary_smoke_ci.json --timeout-ms 25000
           python scripts/run_accurate_intake_product_pages_short_term_context_smoke.py --require-browser-execution --output artifacts/accurate_intake_product_pages_short_term_context_smoke_ci.json --timeout-ms 25000
@@ -336,6 +336,10 @@ jobs:
             --artifact product_pages_short_term_context_smoke=artifacts/accurate_intake_product_pages_short_term_context_smoke_ci.json \
             --artifact product_pages_visual_qa=artifacts/accurate_intake_product_pages_visual_qa_ci.json \
             --output artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json
+          python scripts/build_accurate_intake_pl_ce_activation_review_manifest.py \
+            --artifact pl_ce_local_mvp_candidate_bundle=artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json \
+            --artifact pl_ce_browser_activation_evidence_gate=artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json \
+            --output artifacts/accurate_intake_pl_ce_activation_review_manifest_ci.json
 
       - name: Upload product pages browser E2E report
         if: always()
@@ -349,6 +353,7 @@ jobs:
             artifacts/accurate_intake_product_pages_visual_qa_ci.json
             artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json
             artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json
+            artifacts/accurate_intake_pl_ce_activation_review_manifest_ci.json
             artifacts/product_pages_visual_qa_ci
           if-no-files-found: error
 
