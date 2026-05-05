@@ -8,7 +8,6 @@ from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
     build_pl_ce_local_mvp_candidate_bundle_artifact,
 )
 
-
 REQUIRED_INPUTS = [
     "ui_same_truth_contract",
     "context_quality_pack",

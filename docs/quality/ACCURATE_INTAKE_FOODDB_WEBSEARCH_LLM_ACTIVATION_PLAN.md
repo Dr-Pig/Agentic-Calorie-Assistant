@@ -149,6 +149,10 @@ integration_readiness_matrix_update:
     - retrieval router -> FoodDB local adapter
     - retrieval router -> SQLite FTS adapter
     - retrieval router -> WebSearch candidate
+    - WebSearch candidate -> selected extract request
+    - selected extract request -> extract result review candidate
+    - extract result review candidate -> exact-card review packet
+    - exact-card review packet -> live extract preflight
     - retriever output -> compact packet
     - packet -> Manager seam
     - packet -> mutation guard
@@ -157,6 +161,28 @@ integration_readiness_matrix_update:
 ```
 
 This matrix is a dependency-inversion gate. It exists to stop single-slice green checks from hiding a broken integration seam.
+
+## Diagnostic Evidence Log
+
+```yaml
+2026-05-05_grokfast_websearch_packet_live_diagnostic:
+  artifact_path: artifacts/accurate_intake_grokfast_websearch_packet_smoke_live_rerun.json
+  report_path: artifacts/accurate_intake_websearch_live_diagnostic_report_live_rerun.json
+  classification: live_diagnostic_only
+  live_provider_used: true
+  live_websearch_used: false
+  status: pass
+  case_count: 1
+  pass_count: 1
+  fail_count: 0
+  seam_status: live_diagnostic_pass
+  can_expand_websearch_candidate_pipeline: true
+  non_claims:
+    - no_websearch_runtime_truth
+    - no_exact_card_truth_promotion
+    - no_runtime_mutation
+    - no_readiness_claim
+```
 
 ## LLM / Deterministic Boundary
 
