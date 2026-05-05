@@ -5,12 +5,12 @@ from types import SimpleNamespace
 import pytest
 
 from app.composition.current_budget_answer import RemainingBudgetAnswerContract
-from app.runtime.contracts.phase_a import CurrentTurnContextV1, InteractionEvent
+from app.composition.general_chat_service import GeneralChatPassResult
 from app.intake.application.boundary_output_honesty import (
     enforce_budget_output_honesty,
     enforce_intake_output_honesty,
 )
-from app.composition.general_chat_service import GeneralChatPassResult
+from app.runtime.contracts.phase_a import CurrentTurnContextV1, InteractionEvent
 from app.shared.contracts.common import EstimateRequest
 
 
@@ -134,19 +134,6 @@ def test_intake_execution_response_applies_output_honesty_to_structured_surfaces
                 "show_macro": False,
             }
 
-    monkeypatch.setattr(
-        module,
-        "build_remaining_budget_answer_contract",
-        lambda *_, **__: RemainingBudgetAnswerContract(
-            status="ready",
-            user_id=1,
-            local_date="2026-04-29",
-            daily_target_kcal=1800,
-            consumed_kcal=900,
-            remaining_kcal=900,
-            meal_count=1,
-        ),
-    )
     monkeypatch.setattr(module, "render_intake_reply", lambda **_: "Logged. milk tea 420 kcal.")
     monkeypatch.setattr(module, "write_intake_execution_trace_artifact", lambda **_: None)
     monkeypatch.setattr(module, "build_trace_refs", lambda **_: {"request_id": "req-output-honesty"})

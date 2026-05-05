@@ -5,10 +5,10 @@ from types import SimpleNamespace
 import pytest
 from sqlalchemy import create_engine
 
+import app.composition.conversation_state_loader as conversation_state_loader
 import app.nutrition.application.small_anchor_store as small_anchor_store
 import app.nutrition.infrastructure.exact_item_search as exact_item_search
 import app.runtime.interface.base_routes as base_routes
-import app.composition.conversation_state_loader as conversation_state_loader
 from app.database import get_meal_log_history
 
 
@@ -204,6 +204,8 @@ def test_get_meal_log_history_does_not_count_before_limited_fetch() -> None:
 def test_intake_execution_response_uses_preloaded_budget_views(monkeypatch: pytest.MonkeyPatch) -> None:
     from app.composition import intake_execution_response as module
 
+    assert not hasattr(module, "build_remaining_budget_answer_contract")
+
     class _PlanView:
         body_plan_id = 10
 
@@ -237,10 +239,6 @@ def test_intake_execution_response_uses_preloaded_budget_views(monkeypatch: pyte
             self.active_body_plan_view = _PlanView()
             self.current_budget_view = _BudgetView()
 
-    def _raise_requery(*args, **kwargs):
-        raise AssertionError("Intake execution response should use preloaded state views, not re-query budget views")
-
-    monkeypatch.setattr(module, "build_remaining_budget_answer_contract", _raise_requery)
     monkeypatch.setattr(module, "render_intake_reply", lambda **kwargs: f"remaining {kwargs['remaining_budget'].remaining_kcal}")
     monkeypatch.setattr(module, "build_deterministic_sidecar", lambda **kwargs: {"state_mutation_summary": kwargs["state_mutation_summary"]})
     monkeypatch.setattr(
@@ -347,6 +345,8 @@ async def test_tavily_search_reuses_one_client_for_search_and_extract(monkeypatc
 def test_render_latest_trace_debug_uses_single_trace_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
     from app.budget.interface import today_trace_debug as module
 
+    assert not hasattr(module, "find_latest_trace_for_user_date")
+
     calls: list[tuple[str, str, tuple[str, ...]]] = []
 
     def _fake_batch_lookup(*, user_id: str, local_date: str, bundles):
@@ -362,11 +362,6 @@ def test_render_latest_trace_debug_uses_single_trace_lookup(monkeypatch: pytest.
         }
 
     monkeypatch.setattr(module, "find_latest_traces_for_user_date", _fake_batch_lookup, raising=False)
-    monkeypatch.setattr(
-        module,
-        "find_latest_trace_for_user_date",
-        lambda **kwargs: (_ for _ in ()).throw(AssertionError("should not scan trace files once per bundle")),
-    )
 
     html = module.render_latest_trace_debug(user_id="user-1", local_date="2026-04-29")
 
