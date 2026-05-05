@@ -34,6 +34,8 @@ def test_context_live_anti_overfit_guard_accepts_fixed_plan_only_matrix() -> Non
     assert guard["summary"]["ambiguity_cases"] >= 1
     assert guard["summary"]["pending_pin_cases"] >= 1
     assert guard["summary"]["target_candidate_cases"] >= 1
+    assert guard["summary"]["distinct_intent_count"] >= 8
+    assert guard["summary"]["distinct_workflow_effect_count"] >= 8
 
 
 def test_context_live_anti_overfit_guard_blocks_ad_hoc_or_easy_case_selection() -> None:
@@ -48,6 +50,21 @@ def test_context_live_anti_overfit_guard_blocks_ad_hoc_or_easy_case_selection() 
     assert "case_count_too_low" in guard["blockers"]
     assert "compound_case_missing" in guard["blockers"]
     assert "ambiguity_case_missing" in guard["blockers"]
+    assert "intent_diversity_too_low" in guard["blockers"]
+    assert "workflow_effect_diversity_too_low" in guard["blockers"]
+
+
+def test_context_live_anti_overfit_guard_blocks_homogeneous_case_selection() -> None:
+    matrix = build_context_live_diagnostic_case_matrix_artifact()
+    for case in matrix["cases"]:
+        case["expected_manager_intent"] = "general_chat"
+        case["expected_workflow_effect"] = "no_mutation"
+
+    guard = build_context_live_diagnostic_anti_overfit_guard_artifact(matrix)
+
+    assert guard["status"] == "blocked"
+    assert "intent_diversity_too_low" in guard["blockers"]
+    assert "workflow_effect_diversity_too_low" in guard["blockers"]
 
 
 def test_context_live_anti_overfit_guard_blocks_live_or_fooddb_overclaims() -> None:

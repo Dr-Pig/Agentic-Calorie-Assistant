@@ -31,9 +31,23 @@ def _case_ids(matrix: dict[str, Any]) -> list[str]:
     return [str(_object_dict(case).get("case_id") or "") for case in cases]
 
 
+def _distinct_case_values(matrix: dict[str, Any], key: str) -> set[str]:
+    cases = matrix.get("cases")
+    if not isinstance(cases, list):
+        return set()
+    values: set[str] = set()
+    for case in cases:
+        value = _object_dict(case).get(key)
+        if value:
+            values.add(str(value))
+    return values
+
+
 def _blockers(matrix: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
     summary = _object_dict(matrix.get("summary"))
+    distinct_intents = _distinct_case_values(matrix, "expected_manager_intent")
+    distinct_workflow_effects = _distinct_case_values(matrix, "expected_workflow_effect")
     if matrix.get("artifact_type") != "accurate_intake_context_live_diagnostic_case_matrix":
         blockers.append("unexpected_matrix_artifact_type")
     if matrix.get("status") != "pass":
@@ -67,6 +81,10 @@ def _blockers(matrix: dict[str, Any]) -> list[str]:
         blockers.append("pending_pin_case_missing")
     if _int_value(summary.get("target_candidate_cases")) < 1:
         blockers.append("target_candidate_case_missing")
+    if len(distinct_intents) < 8:
+        blockers.append("intent_diversity_too_low")
+    if len(distinct_workflow_effects) < 8:
+        blockers.append("workflow_effect_diversity_too_low")
     return blockers
 
 
@@ -104,6 +122,12 @@ def build_context_live_diagnostic_anti_overfit_guard_artifact(
                 "ambiguity_cases": _int_value(summary.get("ambiguity_cases")),
                 "pending_pin_cases": _int_value(summary.get("pending_pin_cases")),
                 "target_candidate_cases": _int_value(summary.get("target_candidate_cases")),
+                "distinct_intent_count": len(
+                    _distinct_case_values(matrix, "expected_manager_intent")
+                ),
+                "distinct_workflow_effect_count": len(
+                    _distinct_case_values(matrix, "expected_workflow_effect")
+                ),
             },
         }
     )
