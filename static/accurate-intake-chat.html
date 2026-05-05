@@ -273,6 +273,10 @@
       font-weight: 900;
       cursor: pointer;
     }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
     button.secondary {
       background: #e3efe8;
       color: var(--ink);
@@ -370,7 +374,7 @@
             <div class="bubble">今天想記什麼？我會接著你的飲食對話繼續記錄。</div>
           </div>
         </div>
-        <form id="composer" class="composer">
+        <form id="composer" class="composer" aria-busy="false">
           <textarea id="message-input" name="message" rows="1" autocomplete="off" aria-label="Message" placeholder="例如：早餐吃茶葉蛋和拿鐵"></textarea>
           <button id="send-button" type="submit">送出</button>
         </form>
@@ -416,6 +420,17 @@
     }
     function setStatus(value) {
       el("chat-history-status").textContent = `Conversation ${value}.`;
+    }
+    function setComposerBusy(isBusy) {
+      el("composer").setAttribute("aria-busy", isBusy ? "true" : "false");
+      el("message-input").disabled = isBusy;
+      el("send-button").disabled = isBusy;
+      el("send-button").textContent = isBusy ? "Sending" : "送出";
+    }
+    function fitComposerInput() {
+      const input = el("message-input");
+      input.style.height = "auto";
+      input.style.height = `${Math.min(input.scrollHeight, 132)}px`;
     }
     function writeText(id, value) {
       const raw = value == null || value === "" ? "not_available" : String(value);
@@ -534,8 +549,10 @@
       const input = el("message-input");
       const text = input.value.trim();
       if (!text) return;
+      setComposerBusy(true);
       appendMessage("user", text);
       input.value = "";
+      fitComposerInput();
       const pending = appendMessage("bot", "處理中...");
       try {
         const payload = await requestJson(endpoints.estimate, {
@@ -547,6 +564,9 @@
         await loadHistory();
       } catch (error) {
         pending.textContent = `送出失敗：${error.message}`;
+      } finally {
+        setComposerBusy(false);
+        input.focus();
       }
     }
     el("composer").addEventListener("submit", submitMessage);
@@ -556,6 +576,7 @@
         el("composer").requestSubmit();
       }
     });
+    el("message-input").addEventListener("input", fitComposerInput);
     el("local-date").addEventListener("change", () => {
       updateCurrentUrl();
       updateNavigationLinks();
@@ -568,6 +589,7 @@
     });
     updateNavigationLinks();
     renderSessionAndContext();
+    fitComposerInput();
     loadHistory().catch((error) => setStatus(`failed ${error.message}`));
   </script>
 </body>

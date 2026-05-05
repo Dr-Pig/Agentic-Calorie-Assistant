@@ -16,24 +16,32 @@ from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
 from app.composition.accurate_intake_pl_ce_ui_context_alignment_pack import (
     REQUIRED_INPUTS as UI_CONTEXT_REQUIRED_INPUTS,
 )
+from app.composition.accurate_intake_context_live_diagnostic_case_matrix import (
+    REQUIRED_CASE_IDS as CONTEXT_LIVE_REQUIRED_CASE_IDS,
+)
 
 
 REQUIRED_INPUTS = (
     "pl_ce_local_mvp_candidate_bundle",
     "pl_ce_browser_activation_evidence_gate",
     "pl_ce_ui_context_alignment_pack",
+    "context_live_diagnostic_dry_run_evaluator",
 )
 
 EXPECTED_STATUSES = {
     "pl_ce_local_mvp_candidate_bundle": "pl_ce_local_mvp_candidate_ready_for_human_review",
     "pl_ce_browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
     "pl_ce_ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
+    "context_live_diagnostic_dry_run_evaluator": "pass",
 }
 
 EXPECTED_ARTIFACT_TYPES = {
     "pl_ce_local_mvp_candidate_bundle": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
     "pl_ce_browser_activation_evidence_gate": "accurate_intake_pl_ce_browser_activation_evidence_gate",
     "pl_ce_ui_context_alignment_pack": "accurate_intake_pl_ce_ui_context_alignment_pack",
+    "context_live_diagnostic_dry_run_evaluator": (
+        "accurate_intake_context_live_diagnostic_dry_run_evaluator"
+    ),
 }
 
 EXPECTED_UPSTREAM_REQUIRED_INPUTS = {
@@ -83,6 +91,13 @@ FORBIDDEN_TRUTHY_FLAGS = (
     "deterministic_semantic_inference_used",
     "raw_text_intent_router_used",
     "canonical_eval_promoted",
+    "live_provider_invoked",
+    "fooddb_used",
+    "fooddb_truth_used",
+    "readiness_claimed",
+    "deterministic_selected_intent",
+    "deterministic_selected_target",
+    "raw_text_intent_router_used",
 )
 
 
@@ -157,6 +172,9 @@ def _structural_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     if upstream_blockers != []:
         suffix = "upstream_blockers_present" if upstream_blockers else "upstream_blockers_missing"
         blockers.append(f"{group_id}.{suffix}")
+
+    if group_id == "context_live_diagnostic_dry_run_evaluator":
+        return blockers
 
     if not _list_contains_all(
         payload.get("required_inputs"),
@@ -262,6 +280,30 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
             blockers.append("pl_ce_ui_context_alignment_pack.renderer_source_map_selector_count_too_low")
         if _int_value(summary.get("renderer_source_map_endpoint_count")) < 7:
             blockers.append("pl_ce_ui_context_alignment_pack.renderer_source_map_endpoint_count_too_low")
+    if group_id == "context_live_diagnostic_dry_run_evaluator":
+        summary = _object_dict(payload.get("summary"))
+        if payload.get("diagnostic_only") is not True:
+            blockers.append("context_live_diagnostic_dry_run_evaluator.diagnostic_only_not_true")
+        if payload.get("fixture_only") is not True:
+            blockers.append("context_live_diagnostic_dry_run_evaluator.fixture_only_not_true")
+        if payload.get("plan_only") is not True:
+            blockers.append("context_live_diagnostic_dry_run_evaluator.plan_only_not_true")
+        if payload.get("fixed_case_matrix_used") is not True:
+            blockers.append("context_live_diagnostic_dry_run_evaluator.fixed_case_matrix_not_used")
+        if payload.get("semantic_owner") != "fixture_manager_structured_decision":
+            blockers.append("context_live_diagnostic_dry_run_evaluator.semantic_owner_not_fixture_manager")
+        if _int_value(summary.get("case_count")) != len(CONTEXT_LIVE_REQUIRED_CASE_IDS):
+            blockers.append("context_live_diagnostic_dry_run_evaluator.case_count_mismatch")
+        if _int_value(summary.get("evaluated_case_count")) != len(CONTEXT_LIVE_REQUIRED_CASE_IDS):
+            blockers.append("context_live_diagnostic_dry_run_evaluator.evaluated_case_count_mismatch")
+        if _int_value(summary.get("blocked_case_count")) != 0:
+            blockers.append("context_live_diagnostic_dry_run_evaluator.blocked_case_count_nonzero")
+        if _int_value(summary.get("target_candidate_cases")) < 1:
+            blockers.append("context_live_diagnostic_dry_run_evaluator.target_candidate_cases_missing")
+        if _int_value(summary.get("pending_pin_cases")) < 1:
+            blockers.append("context_live_diagnostic_dry_run_evaluator.pending_pin_cases_missing")
+        if _int_value(summary.get("ambiguity_cases")) < 1:
+            blockers.append("context_live_diagnostic_dry_run_evaluator.ambiguity_cases_missing")
     return blockers
 
 
@@ -319,10 +361,22 @@ def build_pl_ce_activation_review_manifest_artifact(
                     == EXPECTED_STATUSES["pl_ce_ui_context_alignment_pack"]
                     else "blocked_or_missing"
                 ),
+                "context_live_diagnostic_dry_run_evaluator": (
+                    "pass"
+                    if inputs["context_live_diagnostic_dry_run_evaluator"].get("status")
+                    == EXPECTED_STATUSES["context_live_diagnostic_dry_run_evaluator"]
+                    else "blocked_or_missing"
+                ),
             },
             "remaining_stop_gates": {
                 "fooddb_artifact_status": "blocked_waiting_for_fdb_artifact",
                 "live_provider_status": "blocked_pending_human_approval",
+                "context_live_dry_run_status": (
+                    "passed_fixture_dry_run_only"
+                    if inputs["context_live_diagnostic_dry_run_evaluator"].get("status")
+                    == EXPECTED_STATUSES["context_live_diagnostic_dry_run_evaluator"]
+                    else "blocked_before_live_diagnostic"
+                ),
                 "websearch_runtime_status": "blocked_out_of_scope_for_pl_ce",
                 "readiness_claim_status": "blocked_not_requested",
                 "mutation_status": "blocked_no_mutation_authority",
@@ -330,6 +384,7 @@ def build_pl_ce_activation_review_manifest_artifact(
             "next_allowed_actions": [
                 "human_review_local_candidate_bundle",
                 "human_review_browser_activation_evidence",
+                "human_review_context_live_diagnostic_dry_run",
                 "prepare_limited_live_diagnostic_plan_only_after_human_approval",
             ],
             "local_only": True,

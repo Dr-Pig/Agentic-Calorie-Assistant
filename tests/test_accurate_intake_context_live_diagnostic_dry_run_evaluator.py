@@ -111,6 +111,17 @@ def test_context_live_dry_run_evaluator_cli_writes_artifact(tmp_path: Path) -> N
     assert artifact["summary"]["case_count"] == len(REQUIRED_CASE_IDS)
 
 
+def test_context_live_dry_run_evaluator_is_wired_into_product_pages_ci() -> None:
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+
+    assert "build_accurate_intake_context_live_diagnostic_dry_run_evaluator.py" in workflow
+    assert "accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json" in workflow
+    assert (
+        "--artifact context_live_diagnostic_dry_run_evaluator="
+        "artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json"
+    ) in workflow
+
+
 def test_context_live_dry_run_evaluator_source_stays_out_of_forbidden_boundaries() -> None:
     source_paths = [
         Path("app/composition/accurate_intake_context_live_diagnostic_dry_run_evaluator.py"),
