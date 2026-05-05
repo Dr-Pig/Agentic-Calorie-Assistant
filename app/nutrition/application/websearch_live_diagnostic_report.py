@@ -171,64 +171,101 @@ def _provider_trace_reports_contract_failure(diagnostic_artifact: dict[str, Any]
         provider_trace = case.get("provider_trace")
         if not isinstance(provider_trace, dict):
             continue
-        summary = provider_trace.get("trace_summary")
-        if not isinstance(summary, dict):
-            continue
-        failure_family = str(summary.get("failure_family") or "").strip()
-        failing_component = str(summary.get("failing_component") or "").strip()
-        if failure_family == "manager_output_contract_violation":
-            return True
-        if "validate_manager_payload" in failing_component:
-            return True
-        if summary.get("decision_transport_contract_breach") is True:
-            return True
+        for summary in _provider_trace_contract_views(provider_trace):
+            failure_family = str(summary.get("failure_family") or "").strip()
+            request_failure_family = str(summary.get("request_failure_family") or "").strip()
+            failing_component = str(summary.get("failing_component") or "").strip()
+            if failure_family == "manager_output_contract_violation":
+                return True
+            if request_failure_family == "manager_output_contract_violation":
+                return True
+            if "validate_manager_payload" in failing_component:
+                return True
+            if summary.get("decision_transport_contract_breach") is True:
+                return True
     return False
 
 
 def _contract_transport_summary(diagnostic_artifact: dict[str, Any]) -> dict[str, Any]:
     observed_modes: set[str] = set()
+    observed_structured_modes: set[str] = set()
     schema_names: set[str] = set()
     schema_versions: set[str] = set()
     decision_transport_attempted = False
+    structured_output_attempted = False
     contract_breach_observed = False
     healthy_case_count = 0
+    structured_output_healthy_case_count = 0
     for case in diagnostic_artifact.get("cases") or []:
         if not isinstance(case, dict):
             continue
         provider_trace = case.get("provider_trace")
         if not isinstance(provider_trace, dict):
             continue
-        summary = provider_trace.get("trace_summary")
-        if not isinstance(summary, dict):
-            continue
-        mode = str(summary.get("decision_transport_mode") or "").strip()
-        if mode:
-            observed_modes.add(mode)
-        schema_name = str(summary.get("schema_name") or "").strip()
-        if schema_name:
-            schema_names.add(schema_name)
-        schema_version = str(summary.get("schema_version") or "").strip()
-        if schema_version:
-            schema_versions.add(schema_version)
-        if summary.get("decision_transport_attempted") is True:
-            decision_transport_attempted = True
-        if summary.get("decision_transport_contract_breach") is True:
-            contract_breach_observed = True
-        if (
-            mode == "synthetic_tool_transport"
-            and schema_name == "founder_live_manager_contract"
-            and summary.get("decision_transport_contract_breach") is False
-        ):
-            healthy_case_count += 1
+        for summary in _provider_trace_contract_views(provider_trace):
+            mode = str(summary.get("decision_transport_mode") or "").strip()
+            if mode:
+                observed_modes.add(mode)
+            structured_mode = str(summary.get("structured_output_transport_mode") or "").strip()
+            if structured_mode:
+                observed_structured_modes.add(structured_mode)
+            schema_name = str(
+                summary.get("schema_name")
+                or summary.get("decision_transport_schema_name")
+                or ""
+            ).strip()
+            if schema_name:
+                schema_names.add(schema_name)
+            schema_version = str(
+                summary.get("schema_version")
+                or summary.get("decision_transport_schema_version")
+                or ""
+            ).strip()
+            if schema_version:
+                schema_versions.add(schema_version)
+            if summary.get("decision_transport_attempted") is True:
+                decision_transport_attempted = True
+            if summary.get("structured_output_transport_attempted") is True:
+                structured_output_attempted = True
+            if summary.get("decision_transport_contract_breach") is True:
+                contract_breach_observed = True
+            if (
+                mode == "synthetic_tool_transport"
+                and schema_name == "founder_live_manager_contract"
+                and summary.get("decision_transport_contract_breach") is False
+            ):
+                healthy_case_count += 1
+            if (
+                structured_mode == "json_schema"
+                and schema_name == "phase_b1_pass2_manager_contract"
+                and summary.get("structured_output_transport_accepted") is True
+                and summary.get("decision_transport_contract_breach") is not True
+            ):
+                structured_output_healthy_case_count += 1
     return {
         "decision_transport_attempted": decision_transport_attempted,
+        "structured_output_transport_attempted": structured_output_attempted,
         "observed_decision_transport_modes": sorted(observed_modes),
+        "observed_structured_output_transport_modes": sorted(observed_structured_modes),
         "observed_schema_names": sorted(schema_names),
         "observed_schema_versions": sorted(schema_versions),
         "contract_breach_observed": contract_breach_observed,
         "healthy_case_count": healthy_case_count,
-        "healthy": healthy_case_count > 0 and not contract_breach_observed,
+        "structured_output_healthy_case_count": structured_output_healthy_case_count,
+        "healthy": (
+            healthy_case_count + structured_output_healthy_case_count > 0
+            and not contract_breach_observed
+        ),
     }
+
+
+def _provider_trace_contract_views(provider_trace: dict[str, Any]) -> list[dict[str, Any]]:
+    views: list[dict[str, Any]] = []
+    trace_summary = provider_trace.get("trace_summary")
+    if isinstance(trace_summary, dict):
+        views.append(trace_summary)
+    views.append(provider_trace)
+    return views
 
 
 def _summary_int(diagnostic_artifact: dict[str, Any], key: str) -> int:
