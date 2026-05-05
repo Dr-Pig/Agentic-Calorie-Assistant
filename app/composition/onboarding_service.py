@@ -6,17 +6,21 @@ from typing import Literal
 from sqlalchemy.orm import Session
 
 from app.body.application.active_body_plan_read_model import build_active_body_plan_view
-from app.body.application.target_calculation import TargetCalculationInputs, TargetCalculationResult, calculate_recommended_target_kcal
+from app.body.application.target_calculation import (
+    TargetCalculationInputs,
+    TargetCalculationResult,
+    calculate_recommended_target_kcal,
+)
 from app.body.infrastructure.body_plan_persistence import (
     BodyPlanBootstrapWriteInput,
     BodyProfileUpsertInput,
     upsert_active_body_plan_from_bootstrap,
     upsert_active_body_profile,
 )
-from app.composition.canonical_persistence import recompute_day_budget_ledger
+from app.composition.canonical_body_support import recompute_day_budget_ledger
 from app.composition.current_budget_read_model import build_current_budget_view
-from app.shared.infra.models import User
 from app.shared.domain import ActiveBodyPlanView, BodyProfile, CurrentBudgetView
+from app.shared.infra.models import User
 
 GoalType = Literal["lose_weight", "maintain", "gain_weight"]
 ProfileSex = Literal["female", "male"]
