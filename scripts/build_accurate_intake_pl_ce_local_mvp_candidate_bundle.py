@@ -27,6 +27,9 @@ DEFAULT_ARTIFACT_PATHS = {
     "context_live_diagnostic_case_matrix": ROOT
     / "artifacts"
     / "accurate_intake_context_live_diagnostic_case_matrix.json",
+    "context_live_diagnostic_anti_overfit_guard": ROOT
+    / "artifacts"
+    / "accurate_intake_context_live_diagnostic_anti_overfit_guard.json",
     "context_conditioned_intent_wall": ROOT
     / "artifacts"
     / "accurate_intake_context_conditioned_intent_wall_ci.json",

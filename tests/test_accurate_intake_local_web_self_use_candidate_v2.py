@@ -44,6 +44,22 @@ def _clean_evidence() -> dict:
             "mutation_changed": False,
             "manager_context_packet_schema_changed": False,
         },
+        "context_live_diagnostic_anti_overfit_guard": {
+            "status": "pass",
+            "source": "test",
+            "plan_only": True,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "fooddb_used": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "summary": {
+                "fixed_case_matrix_used": True,
+                "case_count": 11,
+                "compound_cases": 1,
+                "ambiguity_cases": 1,
+            },
+        },
         "mvp_gate": {"status": "pass"},
         "phase_c_gate": {"status": "pass"},
     }
@@ -120,6 +136,16 @@ def test_candidate_blocks_context_live_case_matrix_overclaims() -> None:
     assert "context live case matrix not plan-only" in pack["local_web_self_use_candidate_v2"]["blockers"]
     assert "live provider used" in pack["local_web_self_use_candidate_v2"]["blockers"]
     assert "FoodDB overclaim" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+def test_candidate_blocked_when_context_live_anti_overfit_guard_missing() -> None:
+    evidence = _clean_evidence()
+    del evidence["context_live_diagnostic_anti_overfit_guard"]
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert (
+        "missing evidence: context_live_diagnostic_anti_overfit_guard"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
 
 def test_candidate_requires_pre_live_pack_to_reference_pl_ce_local_review() -> None:
     evidence = _clean_evidence()
