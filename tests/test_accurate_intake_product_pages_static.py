@@ -48,6 +48,11 @@ def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() ->
     assert 'id="chat-scroll"' in html
     assert 'id="chat-day-link"' in html
     assert 'class="action-link" data-nav-target="today"' in html
+    assert 'id="context-target-strip"' in html
+    assert 'data-context-target-surface="candidate-list"' in html
+    assert 'id="target-candidate-list"' in html
+    assert "renderContextSurface(messages)" in html
+    assert "Number(message.target_candidate_count" not in html
     assert "overflow-y: auto" in html
     assert 'id="chat-history-status"' in html
     assert "clip: rect(0 0 0 0)" not in html

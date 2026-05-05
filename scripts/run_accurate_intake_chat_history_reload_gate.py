@@ -50,6 +50,13 @@ def _history_summary(payload: dict[str, Any]) -> dict[str, Any]:
         for message in messages
         if isinstance(message.get("target_candidate_count"), int)
     ]
+    target_candidates = [
+        candidate
+        for message in messages
+        if isinstance(message.get("target_candidates"), list)
+        for candidate in message.get("target_candidates", [])
+        if isinstance(candidate, dict)
+    ]
     return {
         "source": payload.get("source"),
         "frontend_semantic_owner": payload.get("frontend_semantic_owner"),
@@ -70,6 +77,7 @@ def _history_summary(payload: dict[str, Any]) -> dict[str, Any]:
         ),
         "pending_pins_present": any(message.get("pending_pins_present") is True for message in messages),
         "target_candidate_count": max(target_candidate_counts) if target_candidate_counts else 0,
+        "target_candidates": target_candidates,
         "message_local_dates": sorted({str(message.get("local_date")) for message in messages if message.get("local_date")}),
         "mutation_authority": any(message.get("mutation_authority") is True for message in messages),
     }

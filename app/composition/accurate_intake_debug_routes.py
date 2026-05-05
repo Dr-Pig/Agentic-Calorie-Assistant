@@ -120,6 +120,31 @@ def _dict_or_empty(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
 
 
+def _target_candidate_view(candidate: Any) -> dict[str, Any] | None:
+    if not isinstance(candidate, dict):
+        return None
+    target_object_id = candidate.get("target_object_id") or candidate.get("meal_thread_id")
+    label = (
+        candidate.get("display_name")
+        or candidate.get("meal_title")
+        or candidate.get("title")
+        or candidate.get("canonical_name")
+        or target_object_id
+    )
+    if label is None:
+        return None
+    return {
+        "target_object_type": str(candidate.get("target_object_type") or "meal_thread"),
+        "target_object_id": str(target_object_id or ""),
+        "display_name": str(label),
+        "source": str(candidate.get("source") or "manager_context_packet"),
+        "confidence": str(candidate.get("confidence") or "not_available"),
+        "read_only": True,
+        "mutation_authority": False,
+        "selected_target": False,
+    }
+
+
 def _manager_context_summary(trace: dict[str, Any]) -> dict[str, Any]:
     packet = _dict_or_empty(trace.get("manager_context_packet_v1"))
     hard_pins = _dict_or_empty(packet.get("hard_pins"))
@@ -127,6 +152,11 @@ def _manager_context_summary(trace: dict[str, Any]) -> dict[str, Any]:
     correction_targets = target_candidates.get("for_correction_or_removal")
     if not isinstance(correction_targets, list):
         correction_targets = []
+    candidate_views = [
+        view
+        for view in (_target_candidate_view(candidate) for candidate in correction_targets)
+        if view is not None
+    ]
     pending_pin_keys = ("pending_followup", "pending_draft")
     return {
         "context_policy_version": trace.get("context_policy_version"),
@@ -134,7 +164,8 @@ def _manager_context_summary(trace: dict[str, Any]) -> dict[str, Any]:
         "omitted_context_summary": _dict_or_empty(trace.get("omitted_context_summary")),
         "pending_pins_present": any(bool(_dict_or_empty(hard_pins.get(key))) for key in pending_pin_keys),
         "target_candidates_present": bool(correction_targets),
-        "target_candidate_count": len(correction_targets),
+        "target_candidate_count": len(candidate_views),
+        "target_candidates": candidate_views,
     }
 
 
