@@ -129,5 +129,6 @@ def test_main_merge_lock_workflow_serializes_main_promotion() -> None:
     assert "group: main-merge-lock-main" in workflow
     assert "cancel-in-progress: false" in workflow
     assert "MAIN_MERGE_TOKEN" in workflow
+    assert "persist-credentials: false" in workflow
     assert "python scripts/merge_governance/main_merge_lock.py assert-candidate" in workflow
     assert "gh pr merge" in workflow
