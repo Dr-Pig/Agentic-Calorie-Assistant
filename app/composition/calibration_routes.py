@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.body.application.calibration_model import CalibrationModelInputs
 from app.composition.calibration_commit_bridge import (
+    CalibrationCommitResult,
     StoredCalibrationProposalNotActionable,
     apply_calibration_proposal_commit,
     apply_stored_calibration_proposal_action,
@@ -127,6 +128,17 @@ def _proposal_history_payload(proposal: ProposalContainer) -> dict[str, object]:
         "primary_option_type": primary_option.option_type if primary_option is not None else None,
         "primary_option_label": primary_option.option_label if primary_option is not None else None,
         "primary_option_summary": primary_option.option_summary if primary_option is not None else None,
+    }
+
+
+def _calibration_action_state_delta(result: CalibrationCommitResult) -> dict[str, object]:
+    plan_mutated = result.body_plan_id is not None
+    return {
+        "proposal_status": result.proposal_status,
+        "body_plan_id": result.body_plan_id,
+        "effective_from": result.effective_from,
+        "plan_mutated": plan_mutated,
+        "ledger_mutated": plan_mutated,
     }
 
 
@@ -299,6 +311,7 @@ def stored_calibration_proposal_action(
         "proposal_status": result.proposal_status,
         "body_plan_id": result.body_plan_id,
         "effective_from": result.effective_from,
+        "state_delta": _calibration_action_state_delta(result),
         "current_budget_view": result.current_budget_view.model_dump(mode="json"),
         "active_body_plan_view": result.active_body_plan_view.model_dump(mode="json"),
     }

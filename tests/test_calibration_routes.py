@@ -393,6 +393,13 @@ def test_stored_calibration_accept_uses_persisted_option_and_updates_same_propos
     assert payload["proposal_container_id"] == proposal_id
     assert payload["proposal_status"] == "accepted"
     assert payload["effective_from"] == "2026-05-04"
+    assert payload["state_delta"] == {
+        "proposal_status": "accepted",
+        "body_plan_id": payload["body_plan_id"],
+        "effective_from": "2026-05-04",
+        "plan_mutated": True,
+        "ledger_mutated": True,
+    }
     assert payload["current_budget_view"]["budget_kcal"] == 2000
     assert payload["active_body_plan_view"]["daily_budget_kcal"] == 2000
 
@@ -408,6 +415,76 @@ def test_stored_calibration_accept_uses_persisted_option_and_updates_same_propos
     assert plans[1].plan_status == "active"
     assert plans[1].daily_budget_kcal == 2000
     assert ledger.budget_kcal == 2000
+
+
+@pytest.mark.parametrize(
+    ("action", "expected_status"),
+    [
+        ("reject_calibration_proposal", "rejected"),
+        ("defer_calibration_proposal", "dismissed"),
+    ],
+)
+def test_stored_calibration_reject_or_defer_returns_no_mutation_state_delta(
+    action: str,
+    expected_status: str,
+) -> None:
+    db = _session()
+    client = _client(db)
+    user = get_or_create_user(db, f"calibration-stored-{expected_status}")
+    baseline_plan = _active_body_plan(db, user_id=user.id)
+    preview = client.post(
+        "/calibration/proposal/preview",
+        json={
+            "user_id": user.user_id,
+            "local_date": "2026-05-04",
+            "current_budget_status": "over_budget",
+            "rescue_recovery_viability": "non_viable",
+            "persist_proposal": True,
+            "model_inputs": {
+                "body_plan_estimated_tdee_kcal": 2100,
+                "observation_window_days": 21,
+                "body_observation_count": 9,
+                "intake_coverage": 0.93,
+                "operating_expenditure_shift_kcal": 340,
+                "trend_mismatch_consistency": 0.9,
+                "trend_volatility": 0.1,
+                "logging_gap_ratio": 0.05,
+                "late_logged_meal_ratio": 0.05,
+            },
+        },
+    )
+    proposal_id = preview.json()["proposal_artifact"]["proposal_container_id"]
+
+    response = client.post(
+        "/calibration/proposal/stored-action",
+        json={
+            "user_id": user.user_id,
+            "proposal_container_id": proposal_id,
+            "action": action,
+            "accepted_at": "2026-05-04T10:30:00",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["proposal_container_id"] == proposal_id
+    assert payload["proposal_status"] == expected_status
+    assert payload["body_plan_id"] is None
+    assert payload["state_delta"] == {
+        "proposal_status": expected_status,
+        "body_plan_id": None,
+        "effective_from": "2026-05-04",
+        "plan_mutated": False,
+        "ledger_mutated": False,
+    }
+    proposal = db.get(ProposalContainerRecord, proposal_id)
+    assert proposal is not None
+    assert proposal.proposal_status == expected_status
+    assert proposal.accepted_at is None
+    active_plan = db.execute(select(BodyPlanRecord).where(BodyPlanRecord.plan_status == "active")).scalar_one()
+    assert active_plan.id == baseline_plan.id
+    assert active_plan.daily_budget_kcal == 1800
+    assert db.execute(select(DayBudgetLedgerRecord)).scalars().all() == []
 
 
 @pytest.mark.parametrize("invalid_accepted_at", ["not-a-date", "2026-05-04"])

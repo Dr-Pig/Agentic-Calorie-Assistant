@@ -393,6 +393,13 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
                 "legacy_terminal_status_aliases": _LEGACY_TERMINAL_CALIBRATION_PROPOSAL_STATUSES,
                 "conflict_status_code": 409,
                 "accepted_at_request_validation": "iso_datetime_with_date_and_time",
+                "response_state_delta_fields": [
+                    "proposal_status",
+                    "body_plan_id",
+                    "effective_from",
+                    "plan_mutated",
+                    "ledger_mutated",
+                ],
                 "plan_changing_families": sorted(PLAN_CHANGING_CALIBRATION_FAMILIES),
                 "body_plan_mutation_authorized_on_accept": True,
                 "day_budget_ledger_refresh_authorized_on_accept": True,
