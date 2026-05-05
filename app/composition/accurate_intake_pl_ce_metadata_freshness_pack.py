@@ -36,7 +36,7 @@ MIN_CONTEXT_SUMMARY_COUNTS = {
     "pending_pin_scenarios": 3,
     "manager_semantic_required_scenarios": 1,
     "short_term_runtime_replay_scenario_count": 7,
-    "fake_provider_handoff_scenario_count": 3,
+    "fake_provider_handoff_scenario_count": 6,
 }
 
 OVERCLAIM_FLAGS = (
