@@ -8,6 +8,7 @@ from typing import Any
 REQUIRED_INPUTS = (
     "ui_same_truth_contract",
     "context_quality_pack",
+    "context_coverage_matrix",
     "context_conditioned_intent_wall",
     "correction_removal_fixture_flow",
     "responder_input_contract_fake_smoke",
@@ -21,6 +22,10 @@ REQUIRED_INPUTS = (
 EXPECTED_STATUSES = {
     "ui_same_truth_contract": "pass",
     "context_quality_pack": "context_quality_diagnostic_pass",
+    "context_coverage_matrix": {
+        "context_coverage_matrix_ready_for_human_review",
+        "context_coverage_matrix_ready_with_known_runtime_gaps",
+    },
     "context_conditioned_intent_wall": "pass",
     "correction_removal_fixture_flow": "pass",
     "responder_input_contract_fake_smoke": "pass",
@@ -34,6 +39,7 @@ EXPECTED_STATUSES = {
 EXPECTED_ARTIFACT_TYPES = {
     "ui_same_truth_contract": "accurate_intake_ui_same_truth_render_contract",
     "context_quality_pack": "accurate_intake_context_quality_pack",
+    "context_coverage_matrix": "accurate_intake_pl_ce_context_coverage_matrix",
     "context_conditioned_intent_wall": "accurate_intake_context_conditioned_intent_wall",
     "correction_removal_fixture_flow": "accurate_intake_correction_removal_fixture_flow",
     "responder_input_contract_fake_smoke": "accurate_intake_responder_input_contract_fake_smoke",
@@ -57,6 +63,7 @@ FORBIDDEN_TRUE_FLAGS = (
     "websearch_evidence_used",
     "fooddb_evidence_used",
     "fooddb_truth_updated",
+    "context_engineering_fault_claimed",
     "real_fooddb_pass_claimed",
     "dogfood_pass",
     "web_readiness_claimed",
@@ -69,9 +76,11 @@ FORBIDDEN_TRUE_FLAGS = (
     "mutation_changed",
     "writes_performed",
     "import_allowed",
+    "live_websearch_used",
     "canonical_eval_promoted",
     "canonical_eval_promotion_allowed",
     "deterministic_semantic_inference_used",
+    "deterministic_selected_target",
     "raw_text_intent_router_used",
     "fixture_packet_truth",
     "evidence_packet_truth",
@@ -91,6 +100,27 @@ def _status(payload: dict[str, Any]) -> str:
     return str(payload.get("status") or "")
 
 
+def _claim_is_true(value: Any) -> bool:
+    if value is True:
+        return True
+    if value is False or value is None:
+        return False
+    if isinstance(value, int | float):
+        return value != 0
+    if isinstance(value, str):
+        return value.strip().lower() not in {
+            "",
+            "0",
+            "false",
+            "no",
+            "none",
+            "null",
+            "not_available",
+            "not_checked",
+        }
+    return True
+
+
 def _validate_input_artifacts(
     payloads: dict[str, dict[str, Any]],
 ) -> tuple[list[str], list[str]]:
@@ -99,7 +129,8 @@ def _validate_input_artifacts(
     for artifact_id in REQUIRED_INPUTS:
         payload = _object_dict(payloads.get(artifact_id))
         expected_status = EXPECTED_STATUSES[artifact_id]
-        if _status(payload) != expected_status:
+        expected_statuses = expected_status if isinstance(expected_status, set) else {expected_status}
+        if _status(payload) not in expected_statuses:
             blockers.append(f"{artifact_id}.unexpected_status:{_status(payload)}")
         expected_artifact_type = EXPECTED_ARTIFACT_TYPES.get(artifact_id)
         if expected_artifact_type and payload.get("artifact_type") != expected_artifact_type:
@@ -109,8 +140,10 @@ def _validate_input_artifacts(
         expected_gate_id = EXPECTED_GATE_IDS.get(artifact_id)
         if expected_gate_id and payload.get("gate_id") != expected_gate_id:
             blockers.append(f"{artifact_id}.unexpected_gate_id:{payload.get('gate_id')}")
+        if payload.get("blockers") not in (None, []):
+            blockers.append(f"{artifact_id}.upstream_blockers_present")
         for flag in FORBIDDEN_TRUE_FLAGS:
-            if payload.get(flag) is True:
+            if _claim_is_true(payload.get(flag)):
                 blockers.append(f"{artifact_id}.{flag}")
 
     optional_browser = _object_dict(payloads.get("optional_browser_evidence"))
@@ -146,6 +179,7 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
     }
     blockers, activation_gap_signals = _validate_input_artifacts(inputs)
     context_wall_summary = _object_dict(inputs["context_conditioned_intent_wall"].get("summary"))
+    context_matrix_summary = _object_dict(inputs["context_coverage_matrix"].get("summary"))
     correction_summary = _object_dict(inputs["correction_removal_fixture_flow"].get("summary"))
     responder_summary = _object_dict(inputs["responder_input_contract_fake_smoke"].get("summary"))
     review_pipeline = inputs["review_eval_candidate_pipeline"]
@@ -166,6 +200,7 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
             "fixture_only": True,
             "aggregate_only": True,
             "self_generated_evidence_used": False,
+            "context_engineering_fault_claimed": False,
             "review_required_before_provider_call": True,
             "ready_for_live_diagnostic_decision": False,
             "ready_for_fdb_integration": False,
@@ -205,6 +240,12 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
             "included_artifact_statuses": _artifact_statuses(inputs),
             "summary": {
                 "context_wall_scenarios": int(context_wall_summary.get("scenario_count") or 0),
+                "context_covered_capabilities": int(
+                    context_matrix_summary.get("covered_capability_count") or 0
+                ),
+                "context_known_runtime_gap_count": int(
+                    context_matrix_summary.get("known_runtime_gap_count") or 0
+                ),
                 "correction_removal_scenarios": int(
                     correction_summary.get("scenario_count") or 0
                 ),

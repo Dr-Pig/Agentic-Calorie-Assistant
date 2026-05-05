@@ -20,6 +20,7 @@ from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 DEFAULT_ARTIFACT_PATHS = {
     "ui_same_truth_contract": ROOT / "artifacts" / "accurate_intake_ui_same_truth_render_contract.json",
     "context_quality_pack": ROOT / "artifacts" / "accurate_intake_context_quality_pack.json",
+    "context_coverage_matrix": ROOT / "artifacts" / "accurate_intake_pl_ce_context_coverage_matrix.json",
     "context_conditioned_intent_wall": ROOT
     / "artifacts"
     / "accurate_intake_context_conditioned_intent_wall_ci.json",

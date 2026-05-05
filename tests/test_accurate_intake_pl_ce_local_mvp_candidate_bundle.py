@@ -12,6 +12,7 @@ from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
 REQUIRED_INPUTS = [
     "ui_same_truth_contract",
     "context_quality_pack",
+    "context_coverage_matrix",
     "context_conditioned_intent_wall",
     "correction_removal_fixture_flow",
     "responder_input_contract_fake_smoke",
@@ -39,6 +40,27 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "raw_text_intent_router_used": False,
             "mutation_authority": False,
             "ready_for_live_diagnostic_decision": False,
+        },
+        "context_coverage_matrix": {
+            "artifact_type": "accurate_intake_pl_ce_context_coverage_matrix",
+            "status": "context_coverage_matrix_ready_for_human_review",
+            "blockers": [],
+            "context_engineering_fault_claimed": False,
+            "manager_context_packet_schema_changed": False,
+            "deterministic_selected_target": False,
+            "deterministic_semantic_inference_used": False,
+            "raw_text_intent_router_used": False,
+            "mutation_authority": False,
+            "live_websearch_used": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "summary": {
+                "capability_count": 9,
+                "covered_capability_count": 9,
+                "known_runtime_gap_count": 0,
+            },
         },
         "context_conditioned_intent_wall": {
             "artifact_type": "accurate_intake_context_conditioned_intent_wall",
@@ -125,10 +147,13 @@ def test_pl_ce_local_mvp_candidate_bundle_includes_new_context_and_responder_sli
     artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(_valid_inputs())
     included = artifact["included_artifact_statuses"]
 
+    assert included["context_coverage_matrix"]["status"] == "context_coverage_matrix_ready_for_human_review"  # type: ignore[index]
     assert included["context_conditioned_intent_wall"]["status"] == "pass"  # type: ignore[index]
     assert included["correction_removal_fixture_flow"]["status"] == "pass"  # type: ignore[index]
     assert included["responder_input_contract_fake_smoke"]["status"] == "pass"  # type: ignore[index]
     assert artifact["summary"]["context_wall_scenarios"] >= 11
+    assert artifact["summary"]["context_covered_capabilities"] >= 9
+    assert artifact["summary"]["context_known_runtime_gap_count"] == 0
     assert artifact["summary"]["correction_removal_scenarios"] == 5
     assert artifact["summary"]["responder_fake_smoke_scenarios"] == 5
     assert artifact["summary"]["review_candidate_count"] >= 5
@@ -138,24 +163,62 @@ def test_pl_ce_local_mvp_candidate_bundle_blocks_overclaim_inputs() -> None:
     inputs = _valid_inputs()
     inputs["responder_input_contract_fake_smoke"]["live_llm_invoked"] = True
     inputs["correction_removal_fixture_flow"]["mutation_authority"] = True
+    inputs["context_coverage_matrix"]["ready_for_live_diagnostic_decision"] = "ready"
+    inputs["context_coverage_matrix"]["context_engineering_fault_claimed"] = True
+    inputs["context_coverage_matrix"]["live_websearch_used"] = True
+    inputs["context_coverage_matrix"]["deterministic_selected_target"] = True
 
     artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "responder_input_contract_fake_smoke.live_llm_invoked" in artifact["blockers"]
     assert "correction_removal_fixture_flow.mutation_authority" in artifact["blockers"]
+    assert "context_coverage_matrix.ready_for_live_diagnostic_decision" in artifact["blockers"]
+    assert "context_coverage_matrix.context_engineering_fault_claimed" in artifact["blockers"]
+    assert "context_coverage_matrix.live_websearch_used" in artifact["blockers"]
+    assert "context_coverage_matrix.deterministic_selected_target" in artifact["blockers"]
     assert artifact["ready_for_live_diagnostic_decision"] is False
     assert artifact["ready_for_fdb_integration"] is False
 
 
-def test_pl_ce_local_mvp_candidate_bundle_blocks_missing_required_input() -> None:
+def test_pl_ce_local_mvp_candidate_bundle_blocks_upstream_blockers() -> None:
     inputs = _valid_inputs()
-    inputs["context_conditioned_intent_wall"] = {"status": "missing"}
+    inputs["context_coverage_matrix"]["blockers"] = ["coverage.semantic_owner_boundary.missing_fake_provider"]
 
     artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
 
     assert artifact["status"] == "blocked"
-    assert "context_conditioned_intent_wall.unexpected_status:missing" in artifact["blockers"]
+    assert "context_coverage_matrix.upstream_blockers_present" in artifact["blockers"]
+
+
+def test_pl_ce_local_mvp_candidate_bundle_blocks_missing_required_input() -> None:
+    inputs = _valid_inputs()
+    inputs["context_coverage_matrix"] = {"status": "missing"}
+
+    artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "context_coverage_matrix.unexpected_status:missing" in artifact["blockers"]
+
+
+def test_pl_ce_local_mvp_candidate_bundle_allows_context_matrix_known_runtime_gaps() -> None:
+    inputs = _valid_inputs()
+    inputs["context_coverage_matrix"] = {
+        **inputs["context_coverage_matrix"],
+        "status": "context_coverage_matrix_ready_with_known_runtime_gaps",
+        "summary": {
+            "capability_count": 9,
+            "covered_capability_count": 9,
+            "known_runtime_gap_count": 1,
+        },
+        "known_runtime_gap_signals": ["runtime_back_reference_heuristic_attached_target"],
+    }
+
+    artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
+
+    assert artifact["status"] == "pl_ce_local_mvp_candidate_ready_for_human_review"
+    assert artifact["summary"]["context_known_runtime_gap_count"] == 1
+    assert artifact["context_engineering_fault_claimed"] is False
 
 
 def test_pl_ce_local_mvp_candidate_bundle_blocks_swapped_artifact_identity() -> None:
@@ -283,6 +346,8 @@ def test_ci_runs_pl_ce_local_mvp_candidate_bundle() -> None:
     assert "test_accurate_intake_pl_ce_local_mvp_candidate_bundle.py" in workflow
     assert "build_accurate_intake_pl_ce_local_mvp_candidate_bundle.py" in workflow
     assert "accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json" in workflow
+    assert "accurate_intake_pl_ce_context_coverage_matrix_ci.json" in workflow
+    assert "--artifact context_coverage_matrix=artifacts/accurate_intake_pl_ce_context_coverage_matrix_ci.json" in workflow
     assert "accurate-intake-pl-ce-local-mvp-candidate-bundle-report" in workflow
     assert "accurate_intake_ui_same_truth_render_contract_ci.json" in workflow
     assert "plce_candidate_fixture_smoke.sqlite3" in workflow
