@@ -24,6 +24,9 @@ DEFAULT_ARTIFACT_PATHS = {
     "pl_ce_browser_activation_evidence_gate": ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_browser_activation_evidence_gate.json",
+    "pl_ce_ui_context_alignment_pack": ROOT
+    / "artifacts"
+    / "accurate_intake_pl_ce_ui_context_alignment_pack.json",
 }
 
 

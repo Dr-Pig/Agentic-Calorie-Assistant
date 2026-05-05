@@ -293,6 +293,7 @@ def build_pl_ce_ui_context_alignment_pack_artifact(
             "render_only_boundary_ok": not blockers,
             "context_engineering_fault_claimed": False,
             "human_review_required": True,
+            "review_required_before_provider_call": True,
             "ready_for_live_diagnostic_decision": False,
             "ready_for_fdb_integration": False,
             "shared_contract_changed": False,

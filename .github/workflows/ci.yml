@@ -369,6 +369,7 @@ jobs:
           python scripts/build_accurate_intake_pl_ce_activation_review_manifest.py \
             --artifact pl_ce_local_mvp_candidate_bundle=artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json \
             --artifact pl_ce_browser_activation_evidence_gate=artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json \
+            --artifact pl_ce_ui_context_alignment_pack=artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json \
             --output artifacts/accurate_intake_pl_ce_activation_review_manifest_ci.json
           python - <<'PY'
           import json
