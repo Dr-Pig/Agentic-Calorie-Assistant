@@ -26,6 +26,8 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "chat_scrollable": True,
         "chat_scroll_behavior_checked": True,
         "chat_reload_scroll_behavior_checked": True,
+        "chat_session_status_rendered": True,
+        "chat_context_status_rendered": True,
         "chat_no_debug_trace": True,
         "today_page_loaded": True,
         "today_date_switch_checked": True,
@@ -37,6 +39,7 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "today_reload_preserved_user_id": True,
         "today_summary_rendered": True,
         "today_meal_list_rendered": True,
+        "today_session_status_rendered": True,
         "today_no_debug_trace": True,
         "body_page_loaded": True,
         "body_query_user_id_honored": True,
@@ -50,6 +53,7 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "body_manual_target_saved": True,
         "body_plan_readback_checked": True,
         "today_manual_target_readback_checked": True,
+        "body_session_status_rendered": True,
         "body_no_debug_trace": True,
         "desktop_no_overflow": True,
         "mobile_no_overflow": True,
@@ -156,6 +160,8 @@ def test_product_pages_browser_smoke_validator_rejects_missing_reload_body_user_
     report["chat_enter_key_send_checked"] = False
     report["chat_shift_enter_multiline_checked"] = False
     report["chat_scroll_behavior_checked"] = False
+    report["chat_session_status_rendered"] = False
+    report["chat_context_status_rendered"] = False
     report["body_query_user_id_honored"] = False
     report["body_url_state_preserved_after_date_change"] = False
     report["body_reload_preserved_selected_date"] = False
@@ -176,6 +182,8 @@ def test_product_pages_browser_smoke_validator_rejects_missing_reload_body_user_
     assert "chat_enter_key_send_not_checked" in blockers
     assert "chat_shift_enter_multiline_not_checked" in blockers
     assert "chat_scroll_behavior_not_checked" in blockers
+    assert "chat_session_status_not_rendered" in blockers
+    assert "chat_context_status_not_rendered" in blockers
     assert "body_query_user_id_not_honored" in blockers
     assert "body_url_state_not_preserved_after_date_change" in blockers
     assert "body_reload_did_not_preserve_selected_date" in blockers
@@ -196,6 +204,8 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     report["today_reload_preserved_user_id"] = False
     report["body_plan_readback_checked"] = False
     report["today_manual_target_readback_checked"] = False
+    report["today_session_status_rendered"] = False
+    report["body_session_status_rendered"] = False
 
     status, blockers = module._validate(report)
 
@@ -208,6 +218,8 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     assert "today_reload_did_not_preserve_user_id" in blockers
     assert "body_plan_readback_not_checked" in blockers
     assert "today_manual_target_readback_not_checked" in blockers
+    assert "today_session_status_not_rendered" in blockers
+    assert "body_session_status_not_rendered" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_debug_trace_or_frontend_truth() -> None:
@@ -255,6 +267,8 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
     assert report["browser_executed"] is True
     assert report["chat_enter_key_send_checked"] is True
     assert report["chat_shift_enter_multiline_checked"] is True
+    assert report["chat_session_status_rendered"] is True
+    assert report["chat_context_status_rendered"] is True
     assert report["chat_url_state_preserved_after_date_change"] is True
     assert report["chat_reload_preserved_selected_date"] is True
     assert report["chat_user_url_state_preserved_after_user_change"] is True
@@ -263,11 +277,13 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
     assert report["chat_reload_scroll_behavior_checked"] is True
     assert report["today_previous_day_empty_checked"] is True
     assert report["today_current_day_restored_checked"] is True
+    assert report["today_session_status_rendered"] is True
     assert report["today_url_state_preserved_after_date_change"] is True
     assert report["today_reload_preserved_selected_date"] is True
     assert report["today_user_url_state_preserved_after_user_change"] is True
     assert report["today_reload_preserved_user_id"] is True
     assert report["body_plan_readback_checked"] is True
+    assert report["body_session_status_rendered"] is True
     assert report["body_url_state_preserved_after_date_change"] is True
     assert report["body_reload_preserved_selected_date"] is True
     assert report["body_user_url_state_preserved_after_user_change"] is True

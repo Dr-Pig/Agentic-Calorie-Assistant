@@ -92,6 +92,8 @@ def _base_report(
         "chat_scrollable": False,
         "chat_scroll_behavior_checked": False,
         "chat_reload_scroll_behavior_checked": False,
+        "chat_session_status_rendered": False,
+        "chat_context_status_rendered": False,
         "chat_no_debug_trace": False,
         "today_page_loaded": False,
         "today_date_switch_checked": False,
@@ -103,6 +105,7 @@ def _base_report(
         "today_reload_preserved_user_id": False,
         "today_summary_rendered": False,
         "today_meal_list_rendered": False,
+        "today_session_status_rendered": False,
         "today_no_debug_trace": False,
         "body_page_loaded": False,
         "body_query_user_id_honored": False,
@@ -116,6 +119,7 @@ def _base_report(
         "body_manual_target_saved": False,
         "body_plan_readback_checked": False,
         "today_manual_target_readback_checked": False,
+        "body_session_status_rendered": False,
         "body_no_debug_trace": False,
         "desktop_no_overflow": False,
         "mobile_no_overflow": False,
@@ -290,6 +294,10 @@ def _run_browser_sequence(
                 _nav_session_query_preserved(chat, user_external_id=user_external_id, local_date=local_date)
             )
             result["chat_page_loaded"] = True
+            result["chat_session_status_rendered"] = (
+                chat.locator("#chat-session-user").inner_text(timeout=timeout_ms).strip() == user_external_id
+                and chat.locator("#chat-session-date").inner_text(timeout=timeout_ms).strip() == local_date
+            )
             result["current_step"] = "submit_chat_message"
             enter_message = f"{cjk_message} keyboard enter"
             multiline_first_line = f"{cjk_message} shift enter"
@@ -360,6 +368,25 @@ def _run_browser_sequence(
             )
             reload_chat_text = chat.locator("#chat-scroll").inner_text(timeout=timeout_ms)
             result["chat_history_reloaded"] = cjk_message in reload_chat_text and chat_messages[-1] in reload_chat_text
+            context_policy = chat.locator("#chat-context-policy").inner_text(timeout=timeout_ms).strip()
+            context_loaded = chat.locator("#chat-context-loaded").inner_text(timeout=timeout_ms).strip()
+            context_omitted = chat.locator("#chat-context-omitted").inner_text(timeout=timeout_ms).strip()
+            context_pins = chat.locator("#chat-context-pins").inner_text(timeout=timeout_ms).strip()
+            context_targets = chat.locator("#chat-context-targets").inner_text(timeout=timeout_ms).strip()
+            result["chat_context_status"] = {
+                "policy": context_policy,
+                "loaded": context_loaded,
+                "omitted": context_omitted,
+                "pins": context_pins,
+                "targets": context_targets,
+            }
+            result["chat_context_status_rendered"] = (
+                context_policy not in {"", "not_checked"}
+                and context_loaded in {"present", "not_available"}
+                and context_omitted in {"present", "not_available"}
+                and context_pins in {"present", "not_available"}
+                and context_targets not in {"", "not_checked"}
+            )
             reload_scroll_state = _chat_scroll_state(chat)
             result["chat_reload_scroll_state"] = reload_scroll_state
             result["chat_reload_scroll_behavior_checked"] = (
@@ -466,6 +493,11 @@ def _run_browser_sequence(
             )
             today_text = today.locator("body").inner_text(timeout=timeout_ms)
             result["today_page_loaded"] = True
+            result["today_session_status_rendered"] = (
+                today.locator("#today-session-user").inner_text(timeout=timeout_ms).strip() == user_external_id
+                and today.locator("#today-session-date").inner_text(timeout=timeout_ms).strip() == local_date
+                and today.locator("#today-chat-state").inner_text(timeout=timeout_ms).strip() == "same user/date"
+            )
             result["today_summary_rendered"] = all(
                 today.locator(selector).inner_text(timeout=timeout_ms).strip() != "--"
                 for selector in ("#budget-kcal", "#consumed-kcal", "#remaining-kcal")
@@ -588,9 +620,13 @@ def _run_browser_sequence(
                 """() => document.querySelector("#plan-daily-target")?.textContent?.trim() !== "--" """,
                 timeout=timeout_ms,
             )
-            body_text = body.locator("body").inner_text(timeout=timeout_ms)
             result["body_page_loaded"] = True
             result["body_query_user_id_honored"] = body.locator("#user-id").input_value(timeout=timeout_ms) == user_external_id
+            result["body_session_status_rendered"] = (
+                body.locator("#body-session-user").inner_text(timeout=timeout_ms).strip() == user_external_id
+                and body.locator("#body-session-date").inner_text(timeout=timeout_ms).strip() == local_date
+                and body.locator("#body-plan-source").inner_text(timeout=timeout_ms).strip() == "backend read model"
+            )
             result["body_active_plan_rendered"] = all(
                 body.locator(selector).inner_text(timeout=timeout_ms).strip() != "--"
                 for selector in ("#plan-daily-target", "#plan-tdee", "#plan-current-weight")
@@ -792,6 +828,8 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("chat_scrollable", "chat_not_scrollable")
     require_true("chat_scroll_behavior_checked", "chat_scroll_behavior_not_checked")
     require_true("chat_reload_scroll_behavior_checked", "chat_reload_scroll_behavior_not_checked")
+    require_true("chat_session_status_rendered", "chat_session_status_not_rendered")
+    require_true("chat_context_status_rendered", "chat_context_status_not_rendered")
     require_true("chat_no_debug_trace", "chat_debug_trace_leaked")
     require_true("today_page_loaded", "today_page_not_loaded")
     require_true("today_date_switch_checked", "today_date_switch_not_checked")
@@ -809,6 +847,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("today_reload_preserved_user_id", "today_reload_did_not_preserve_user_id")
     require_true("today_summary_rendered", "today_summary_not_rendered")
     require_true("today_meal_list_rendered", "today_meal_list_not_rendered")
+    require_true("today_session_status_rendered", "today_session_status_not_rendered")
     require_true("today_no_debug_trace", "today_debug_trace_leaked")
     require_true("body_page_loaded", "body_page_not_loaded")
     require_true("body_query_user_id_honored", "body_query_user_id_not_honored")
@@ -825,6 +864,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("body_manual_target_saved", "body_manual_target_not_saved")
     require_true("body_plan_readback_checked", "body_plan_readback_not_checked")
     require_true("today_manual_target_readback_checked", "today_manual_target_readback_not_checked")
+    require_true("body_session_status_rendered", "body_session_status_not_rendered")
     require_true("body_no_debug_trace", "body_debug_trace_leaked")
     require_true("desktop_no_overflow", "desktop_overflow_detected")
     require_true("mobile_no_overflow", "mobile_overflow_detected")
