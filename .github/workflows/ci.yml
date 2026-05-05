@@ -204,6 +204,11 @@ jobs:
           python -m pytest tests/test_accurate_intake_correction_removal_fixture_flow.py -q
           python scripts/run_accurate_intake_correction_removal_fixture_flow.py --output artifacts/accurate_intake_correction_removal_fixture_flow_ci.json
 
+      - name: Run PL+CE responder input contract fake smoke
+        run: |
+          python -m pytest tests/test_accurate_intake_responder_input_contract_fake_smoke.py -q
+          python scripts/run_accurate_intake_responder_input_contract_fake_smoke.py --output artifacts/accurate_intake_responder_input_contract_fake_smoke_ci.json
+
       - name: Upload Accurate Intake MVP gate report
         if: always()
         uses: actions/upload-artifact@v4
@@ -226,6 +231,14 @@ jobs:
         with:
           name: accurate-intake-correction-removal-fixture-flow-report
           path: artifacts/accurate_intake_correction_removal_fixture_flow_ci.json
+          if-no-files-found: error
+
+      - name: Upload PL+CE responder input contract fake smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accurate-intake-responder-input-contract-fake-smoke-report
+          path: artifacts/accurate_intake_responder_input_contract_fake_smoke_ci.json
           if-no-files-found: error
 
   product-pages-browser-e2e:
