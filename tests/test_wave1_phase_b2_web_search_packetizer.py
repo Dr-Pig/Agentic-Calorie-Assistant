@@ -175,6 +175,34 @@ def test_official_wrong_item_candidate_is_no_match_and_rejected() -> None:
     assert result.rejected_candidates[0]["risk_type"] == "wrong_item"
 
 
+def test_official_same_item_name_from_different_brand_is_no_match() -> None:
+    intent = _intent(
+        base_dish="pearl black tea latte",
+        alias="Milksha pearl black tea latte",
+        brand_hint="Milksha",
+    )
+    candidate = _candidate(
+        candidate_id="web_search_candidate:wrong_brand_same_name",
+        title="Other Tea pearl black tea latte",
+        url="https://other-tea.example/menu/pearl-black-tea-latte",
+        query="Milksha pearl black tea latte",
+        brand_detected="Other Tea",
+        identity_confidence="high",
+        raw_ref="raw/tavily/wrong_brand_same_name.json#0",
+    )
+
+    packet = build_web_search_candidate_packet(intent, candidate)
+    rechecked = add_hard_recheck_metadata(packet)
+    result = consume_rechecked_packets((rechecked,))
+
+    assert packet["brand_match"] == "different"
+    assert packet["match_type"] == "no_match"
+    assert rechecked["supports_exact_claim"] is False
+    assert "wrong_item" in rechecked["hard_recheck_risks"]
+    assert result.accepted_packets == ()
+    assert result.rejected_candidates[0]["risk_type"] == "wrong_item"
+
+
 def test_explicit_conflicting_size_is_rejected_as_wrong_size() -> None:
     intent = _intent(
         base_dish="冰那堤",

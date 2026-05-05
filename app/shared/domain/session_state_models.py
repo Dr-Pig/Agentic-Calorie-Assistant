@@ -4,7 +4,11 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from .conversation_archive_models import ConversationMessage, ConversationRetrievalHit, MealRecord, RetrievedContextChunk
+from .conversation_archive_models import (
+    ConversationMessage,
+    ConversationRetrievalHit,
+    RetrievedContextChunk,
+)
 
 
 class ConversationDigest(BaseModel):

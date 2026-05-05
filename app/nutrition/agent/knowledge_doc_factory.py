@@ -2,24 +2,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base_nutrition_aliases import merged_base_nutrition_aliases
-from .knowledge_loader import (
-    _base_nutrition_records,
-    _common_dish_priors,
-    _exact_item_cards,
-    _load_json,
-    _main_knowledge_dir,
-)
-from .knowledge_lookup_normalizer import (
-    _compact_text,
-    _expand_aliases,
-    _format_kcal_band,
-    _parse_kcal_band_value,
-)
 from .knowledge_doc_loaders import (
     load_base_nutrition_docs,
     load_common_dish_prior_docs,
     load_selected_main_docs,
+)
+from .knowledge_loader import _exact_item_cards
+from .knowledge_lookup_normalizer import (
+    _compact_text,
+    _expand_aliases,
+    _parse_kcal_band_value,
 )
 
 
