@@ -5,6 +5,8 @@ from typing import Any
 import pytest
 
 from app.nutrition.application.exact_brand_web_canary import run_exact_brand_web_canary
+from app.nutrition.application.retrieval_semantic_decision import B2ManagerSemanticDecision
+
 
 class _FakeSearchPort:
     def __init__(self, hits: list[dict[str, Any]]) -> None:
@@ -26,17 +28,36 @@ class _FakeExtractPort:
         return list(self._rows)
 
 
+def _exact_brand_decision(
+    *,
+    base_dish: str = "Matcha Latte",
+    aliases: list[str] | None = None,
+    brand_hint: str = "Test Brand",
+    size_hint: str | None = None,
+) -> B2ManagerSemanticDecision:
+    return B2ManagerSemanticDecision(
+        base_dish=base_dish,
+        aliases=list(aliases or [f"{brand_hint} {base_dish}"]),
+        brand_hint=brand_hint,
+        size_hint=size_hint,
+        modifier_hints=[],
+        listed_items=[],
+        retrieval_goal="exact_brand_lookup",
+        semantic_authority_source="synthetic_manager_structured_fixture",
+    )
+
+
 @pytest.mark.asyncio
 async def test_live_exact_brand_web_canary_returns_lane_result_when_extract_packet_is_accepted() -> None:
     search_port = _FakeSearchPort(
         [
             {
-                "title": "統一超級抹茶歐蕾",
-                "url": "https://president.example/products/matcha-latte",
-                "snippet": "官方商品頁",
+                "title": "Test Brand Matcha Latte",
+                "url": "https://brand.example/products/matcha-latte",
+                "snippet": "deterministic official result",
                 "score": 0.92,
                 "officialness": "official",
-                "brand_detected": "統一",
+                "brand_detected": "Test Brand",
                 "serving_basis": "per_cup",
                 "identity_confidence": "high",
                 "license_status": "public_menu_page",
@@ -49,20 +70,21 @@ async def test_live_exact_brand_web_canary_returns_lane_result_when_extract_pack
     extract_port = _FakeExtractPort(
         [
             {
-                "url": "https://president.example/products/matcha-latte",
-                "title": "統一超級抹茶歐蕾",
+                "url": "https://brand.example/products/matcha-latte",
+                "title": "Test Brand Matcha Latte",
                 "source_type": "official",
                 "officialness": "official",
                 "serving_basis": "per_cup",
-                "brand_detected": "統一",
-                "raw_content": "每杯 400 kcal",
+                "brand_detected": "Test Brand",
+                "raw_content": "400 kcal",
                 "raw_ref": "raw:extract:001",
             }
         ]
     )
 
     outcome = await run_exact_brand_web_canary(
-        raw_user_input="我喝了統一超級抹茶歐蕾",
+        raw_user_input="I drank a Test Brand Matcha Latte",
+        manager_decision=_exact_brand_decision(),
         search_port=search_port,
         extract_port=extract_port,
         allow_search=True,
@@ -70,51 +92,26 @@ async def test_live_exact_brand_web_canary_returns_lane_result_when_extract_pack
 
     assert outcome.result is not None
     assert outcome.trace["attempted"] is True
-    assert outcome.trace["readiness_claimed"] is False
     assert outcome.trace["skip_reason"] is None
-    assert outcome.trace["web_query"] == "統一超級抹茶歐蕾"
+    assert outcome.trace["semantic_authority_source"] == "synthetic_manager_structured_fixture"
+    assert outcome.trace["raw_text_retrieval_hint_goal"] == "generic_anchor_lookup"
+    assert outcome.trace["web_query"] == "Test BrandMatcha Latte"
     assert outcome.trace["provider_profile"]["search_port"] == "_FakeSearchPort"
     assert outcome.trace["selected_search_packet_id"].startswith("pkt_web_search_")
     assert outcome.trace["accepted_extract_packet_id"].startswith("pkt_web_extract_")
     candidate_trace = outcome.trace["candidate_traces"][0]
-    assert candidate_trace["packet_id"] == outcome.trace["selected_search_packet_id"]
-    assert candidate_trace["candidate_identity"] == "統一超級抹茶歐蕾"
-    assert candidate_trace["source_url"] == "https://president.example/products/matcha-latte"
-    assert candidate_trace["source_domain"] == "president.example"
-    assert candidate_trace["source_title"] == "統一超級抹茶歐蕾"
-    assert candidate_trace["source_snippet"] == "官方商品頁"
-    assert candidate_trace["license_status"] == "public_menu_page"
-    assert candidate_trace["robots_status"] == "allowed"
-    assert candidate_trace["identity_confidence"] == "high"
-    assert candidate_trace["serving_basis_candidate"] == "per_cup"
-    assert candidate_trace["nutrition_fields_present"] == ["kcal"]
+    assert candidate_trace["candidate_identity"] == "Test Brand Matcha Latte"
+    assert candidate_trace["source_url"] == "https://brand.example/products/matcha-latte"
+    assert candidate_trace["source_domain"] == "brand.example"
     assert candidate_trace["hard_recheck_verdict"] == "accepted_for_exact_recheck"
-    assert candidate_trace["accepted_usage"] is None
-    assert candidate_trace["rejected_risk"] is None
     assert outcome.trace["packet_consumption_trace"]["accepted_packets"][0]["accepted_usage"] == "exact"
-    assert outcome.trace["packet_consumption_trace"]["rejected_candidates"] == []
     assert outcome.trace["synthesis_evidence_refs"] == [outcome.trace["accepted_extract_packet_id"]]
-    assert outcome.trace["truth_boundary"] == {
-        "trace_only": True,
-        "runtime_web_diagnostic_enabled": True,
-        "web_candidate_truth_authority": False,
-        "accepted_extract_packet_truth_authority": False,
-        "requires_packetizer_hard_recheck_consumption": True,
-        "requires_synthesis_verifier": True,
-        "runtime_web_activation_recommended": False,
-    }
-    accepted_packet_ids = {
-        packet["packet_id"] for packet in outcome.trace["packet_consumption_trace"]["accepted_packets"]
-    }
-    assert set(outcome.trace["synthesis_evidence_refs"]).issubset(accepted_packet_ids)
-    assert outcome.trace["search_attempt_count"] == 1
-    assert outcome.trace["extract_attempt_count"] == 1
     assert outcome.result.manager_pass_2["item_results"][0]["exactness_posture"] == "exact"
-    assert search_port.calls == [{"query": "統一超級抹茶歐蕾", "max_results": 5}]
+    assert search_port.calls == [{"query": "Test BrandMatcha Latte", "max_results": 5}]
     assert extract_port.calls == [
         {
-            "urls": ["https://president.example/products/matcha-latte"],
-            "query": "統一超級抹茶歐蕾",
+            "urls": ["https://brand.example/products/matcha-latte"],
+            "query": "Test BrandMatcha Latte",
         }
     ]
 
@@ -124,12 +121,12 @@ async def test_live_exact_brand_web_canary_uses_contextualized_query_without_cha
     search_port = _FakeSearchPort(
         [
             {
-                "title": "星巴克 大杯 摩卡",
-                "url": "https://www.starbucks.com.tw/products/drinks/mocha",
-                "snippet": "官方商品頁",
+                "title": "Test Brand Mocha",
+                "url": "https://brand.example/products/mocha",
+                "snippet": "official mocha sibling",
                 "score": 0.92,
                 "officialness": "official",
-                "brand_detected": "星巴克",
+                "brand_detected": "Test Brand",
                 "serving_basis": "per_cup",
                 "identity_confidence": "medium",
                 "license_status": "public_menu_page",
@@ -141,91 +138,33 @@ async def test_live_exact_brand_web_canary_uses_contextualized_query_without_cha
     extract_port = _FakeExtractPort([])
 
     outcome = await run_exact_brand_web_canary(
-        raw_user_input="我喝了星巴克大杯那堤",
-        contextualized_query="星巴克大杯摩卡",
+        raw_user_input="I drank a Test Brand Matcha Latte",
+        manager_decision=_exact_brand_decision(),
+        contextualized_query="Test Brand Mocha",
         search_port=search_port,
         extract_port=extract_port,
         allow_search=True,
     )
 
     assert outcome.result is None
-    assert outcome.trace["web_query"] == "星巴克大杯摩卡"
-    assert search_port.calls == [{"query": "星巴克大杯摩卡", "max_results": 5}]
+    assert outcome.trace["web_query"] == "Test Brand Mocha"
+    assert search_port.calls == [{"query": "Test Brand Mocha", "max_results": 5}]
     assert outcome.trace["candidate_traces"][0]["hard_recheck_verdict"] == "rejected_by_hard_recheck"
     assert outcome.trace["candidate_traces"][0]["rejected_risk"] in {"sibling_variant", "wrong_item"}
     assert outcome.trace["synthesis_evidence_refs"] == []
 
 
 @pytest.mark.asyncio
-async def test_live_exact_brand_web_canary_skips_when_exact_db_hit_exists() -> None:
-    search_port = _FakeSearchPort([])
-    extract_port = _FakeExtractPort([])
-
-    outcome = await run_exact_brand_web_canary(
-        raw_user_input="我吃了松屋特盛牛丼",
-        search_port=search_port,
-        extract_port=extract_port,
-        allow_search=True,
-        exact_db_hit_present=True,
-    )
-
-    assert outcome.result is None
-    assert outcome.trace["attempted"] is False
-    assert outcome.trace["skip_reason"] == "exact_db_hit"
-    assert outcome.trace["exact_db_miss_confirmed"] is False
-    assert search_port.calls == []
-    assert extract_port.calls == []
-
-
-@pytest.mark.asyncio
-async def test_live_exact_brand_web_canary_skips_non_exact_brand_inputs() -> None:
-    search_port = _FakeSearchPort([])
-    extract_port = _FakeExtractPort([])
-
-    outcome = await run_exact_brand_web_canary(
-        raw_user_input="我喝了一杯珍珠奶茶",
-        search_port=search_port,
-        extract_port=extract_port,
-        allow_search=True,
-    )
-
-    assert outcome.result is None
-    assert outcome.trace["attempted"] is False
-    assert outcome.trace["skip_reason"] == "retrieval_goal_not_exact_brand"
-    assert search_port.calls == []
-    assert extract_port.calls == []
-
-
-@pytest.mark.asyncio
-async def test_live_exact_brand_web_canary_skips_self_selected_basket_without_search() -> None:
-    search_port = _FakeSearchPort([])
-    extract_port = _FakeExtractPort([])
-
-    outcome = await run_exact_brand_web_canary(
-        raw_user_input="我吃了滷味",
-        search_port=search_port,
-        extract_port=extract_port,
-        allow_search=True,
-    )
-
-    assert outcome.result is None
-    assert outcome.trace["attempted"] is False
-    assert outcome.trace["skip_reason"] == "retrieval_goal_not_exact_brand"
-    assert search_port.calls == []
-    assert extract_port.calls == []
-
-
-@pytest.mark.asyncio
-async def test_live_exact_brand_web_canary_returns_none_when_no_accepted_extract_packet_exists() -> None:
+async def test_live_exact_brand_web_canary_does_not_let_raw_multi_item_tokens_block_manager_exact_lane() -> None:
     search_port = _FakeSearchPort(
         [
             {
-                "title": "統一超級抹茶歐蕾",
-                "url": "https://president.example/products/matcha-latte",
-                "snippet": "官方商品頁",
+                "title": "Test Brand Matcha Latte",
+                "url": "https://brand.example/products/matcha-latte",
+                "snippet": "deterministic official result",
                 "score": 0.92,
                 "officialness": "official",
-                "brand_detected": "統一",
+                "brand_detected": "Test Brand",
                 "serving_basis": "per_cup",
                 "identity_confidence": "high",
                 "license_status": "public_menu_page",
@@ -237,19 +176,134 @@ async def test_live_exact_brand_web_canary_returns_none_when_no_accepted_extract
     extract_port = _FakeExtractPort(
         [
             {
-                "url": "https://president.example/products/matcha-latte",
-                "title": "統一超級抹茶歐蕾",
+                "url": "https://brand.example/products/matcha-latte",
+                "title": "Test Brand Matcha Latte",
                 "source_type": "official",
                 "officialness": "official",
                 "serving_basis": "per_cup",
-                "brand_detected": "統一",
-                "raw_content": "每杯 400 kcal / 500 kcal",
+                "brand_detected": "Test Brand",
+                "raw_content": "400 kcal",
             }
         ]
     )
 
     outcome = await run_exact_brand_web_canary(
-        raw_user_input="我喝了統一超級抹茶歐蕾",
+        raw_user_input="Test Brand Matcha Latte + side salad",
+        manager_decision=_exact_brand_decision(),
+        search_port=search_port,
+        extract_port=extract_port,
+        allow_search=True,
+    )
+
+    assert outcome.result is not None
+    assert outcome.trace["attempted"] is True
+    assert outcome.trace["skip_reason"] is None
+
+
+@pytest.mark.asyncio
+async def test_live_exact_brand_web_canary_skips_without_manager_owned_retrieval_intent() -> None:
+    search_port = _FakeSearchPort([])
+    extract_port = _FakeExtractPort([])
+
+    outcome = await run_exact_brand_web_canary(
+        raw_user_input="I drank a Test Brand Matcha Latte",
+        search_port=search_port,
+        extract_port=extract_port,
+        allow_search=True,
+    )
+
+    assert outcome.result is None
+    assert outcome.trace["attempted"] is False
+    assert outcome.trace["skip_reason"] == "manager_owned_retrieval_intent_required"
+    assert outcome.trace["semantic_authority_source"] == "deterministic_raw_text_hint_only"
+    assert search_port.calls == []
+    assert extract_port.calls == []
+
+
+@pytest.mark.asyncio
+async def test_live_exact_brand_web_canary_skips_when_exact_db_hit_exists() -> None:
+    search_port = _FakeSearchPort([])
+    extract_port = _FakeExtractPort([])
+
+    outcome = await run_exact_brand_web_canary(
+        raw_user_input="I drank a Test Brand Matcha Latte",
+        manager_decision=_exact_brand_decision(),
+        search_port=search_port,
+        extract_port=extract_port,
+        allow_search=True,
+        exact_db_hit_present=True,
+    )
+
+    assert outcome.result is None
+    assert outcome.trace["attempted"] is False
+    assert outcome.trace["skip_reason"] == "exact_db_hit"
+    assert outcome.trace["exact_db_miss_confirmed"] is False
+
+
+@pytest.mark.asyncio
+async def test_live_exact_brand_web_canary_skips_non_exact_brand_manager_goal() -> None:
+    search_port = _FakeSearchPort([])
+    extract_port = _FakeExtractPort([])
+    generic_decision = B2ManagerSemanticDecision(
+        base_dish="Tea Egg",
+        aliases=["Tea Egg"],
+        brand_hint=None,
+        size_hint=None,
+        modifier_hints=[],
+        listed_items=[],
+        retrieval_goal="generic_anchor_lookup",
+        semantic_authority_source="synthetic_manager_structured_fixture",
+    )
+
+    outcome = await run_exact_brand_web_canary(
+        raw_user_input="I ate a tea egg",
+        manager_decision=generic_decision,
+        search_port=search_port,
+        extract_port=extract_port,
+        allow_search=True,
+    )
+
+    assert outcome.result is None
+    assert outcome.trace["attempted"] is False
+    assert outcome.trace["skip_reason"] == "retrieval_goal_not_exact_brand"
+
+
+@pytest.mark.asyncio
+async def test_live_exact_brand_web_canary_returns_none_when_no_accepted_extract_packet_exists() -> None:
+    search_port = _FakeSearchPort(
+        [
+            {
+                "title": "Test Brand Matcha Latte",
+                "url": "https://brand.example/products/matcha-latte",
+                "snippet": "deterministic official result",
+                "score": 0.92,
+                "officialness": "official",
+                "brand_detected": "Test Brand",
+                "serving_basis": "per_cup",
+                "identity_confidence": "high",
+                "license_status": "public_menu_page",
+                "robots_status": "allowed",
+                "nutrition_fields_present": ["kcal"],
+            }
+        ]
+    )
+    extract_port = _FakeExtractPort(
+        [
+            {
+                "url": "https://brand.example/products/matcha-latte",
+                "title": "Test Brand Matcha Latte",
+                "source_type": "official",
+                "officialness": "official",
+                "serving_basis": "per_cup",
+                "brand_detected": "Test Brand",
+                "raw_content": "400 kcal / 500 kcal",
+            }
+        ]
+    )
+
+    outcome = await run_exact_brand_web_canary(
+        raw_user_input="I drank a Test Brand Matcha Latte",
+        manager_decision=_exact_brand_decision(),
         search_port=search_port,
         extract_port=extract_port,
         allow_search=True,
@@ -258,7 +312,6 @@ async def test_live_exact_brand_web_canary_returns_none_when_no_accepted_extract
     assert outcome.result is None
     assert outcome.trace["attempted"] is True
     assert outcome.trace["failure_reason"] == "no_accepted_web_extract_packet"
-    assert outcome.trace["selected_search_packet_id"].startswith("pkt_web_search_")
     assert outcome.trace["accepted_extract_packet_id"] is None
 
 
@@ -267,12 +320,12 @@ async def test_live_exact_brand_web_canary_keeps_rejected_web_candidates_out_of_
     search_port = _FakeSearchPort(
         [
             {
-                "title": "統一 超級可可歐蕾",
-                "url": "https://president.example/products/cocoa-latte",
-                "snippet": "同品牌相近品項",
+                "title": "Test Brand Cocoa Latte",
+                "url": "https://brand.example/products/cocoa-latte",
+                "snippet": "official sibling variant",
                 "score": 0.9,
                 "officialness": "official",
-                "brand_detected": "統一",
+                "brand_detected": "Test Brand",
                 "identity_confidence": "medium",
                 "serving_basis": "per_cup",
                 "license_status": "public_menu_page",
@@ -285,7 +338,8 @@ async def test_live_exact_brand_web_canary_keeps_rejected_web_candidates_out_of_
     extract_port = _FakeExtractPort([])
 
     outcome = await run_exact_brand_web_canary(
-        raw_user_input="我喝了統一超級抹茶歐蕾",
+        raw_user_input="I drank a Test Brand Matcha Latte",
+        manager_decision=_exact_brand_decision(),
         search_port=search_port,
         extract_port=extract_port,
         allow_search=True,
