@@ -5,14 +5,10 @@ from typing import Sequence
 
 from .context_normalizer import lookup_key, lookup_tokens, normalize_text
 from .retrieval_intent import RetrievalIntent
-
-_SIZE_ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
-    "\u7279\u76db": ("\u7279\u76db",),
-    "\u5927\u676f": ("\u5927\u676f", "large", "venti"),
-    "\u4e2d\u676f": ("\u4e2d\u676f", "medium", "grande"),
-    "\u5c0f\u676f": ("\u5c0f\u676f", "small", "tall"),
-}
-_VARIANT_TOKENS = ("抹茶", "摩卡", "可可", "焦糖", "香草", "榛果", "醇濃")
+from .web_search_packetizer_policy import (
+    SIZE_ALIAS_GROUPS as _SIZE_ALIAS_GROUPS,
+    VARIANT_TOKENS as _VARIANT_TOKENS,
+)
 
 
 def build_web_search_candidate_packet(
@@ -51,6 +47,7 @@ def build_web_search_candidate_packet(
         "source_type": "web_search",
         "source_quality_label": source_quality_label,
         "officialness_hint": _text(candidate.get("officialness_hint")),
+        "source_class_hint": _text(candidate.get("source_class_hint")),
         "license_status": _text(candidate.get("license_status")) or "unknown",
         "robots_status": _text(candidate.get("robots_status")) or "unknown",
         "raw_ref": _text(candidate.get("raw_ref")),
@@ -144,6 +141,9 @@ def _match_type(
     requested_name: str,
     brand_match: str,
 ) -> str:
+    if brand_match == "different":
+        return "no_match"
+
     title = _text(candidate.get("source_title"))
     identity_confidence = _text(candidate.get("identity_confidence")).lower() or "unknown"
     requested_core = _identity_core(

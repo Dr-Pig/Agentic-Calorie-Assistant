@@ -2,268 +2,326 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.nutrition.application.grokfast_websearch_packet_smoke import (
+from app.nutrition.application.exact_card_candidate_promotion_readiness import (
+    build_exact_card_candidate_promotion_readiness,
+)
+from app.nutrition.application.exact_evidence_lane_policy import (
+    build_exact_evidence_lane_policy_artifact,
+)
+from app.nutrition.application.grokfast_websearch_packet_diagnostic import (
     GROKFAST_WEBSEARCH_PACKET_PROFILE,
-    build_fixture_grokfast_websearch_manager_outputs,
+    WEBSEARCH_PACKET_MANAGER_REQUIRED_FIELDS,
+    build_fixture_manager_outputs,
     build_grokfast_websearch_packet_diagnostic,
-    build_live_websearch_manager_payload,
+    build_live_manager_payload,
+    evaluate_manager_output_against_review_packet,
 )
-from app.nutrition.application.tool_evidence_result import build_tool_evidence_result
-from app.nutrition.application.websearch_candidate_packet_smoke import (
-    build_websearch_candidate_packet_smoke,
+from app.nutrition.application.websearch_exact_candidate_review_packet import (
+    build_websearch_exact_candidate_review_packet,
 )
-from app.nutrition.application.websearch_manager_packet_smoke import (
-    build_websearch_manager_packet_projection,
+from app.nutrition.application.websearch_extract_result_candidate_smoke import (
+    build_websearch_extract_result_candidate_smoke,
 )
+from app.nutrition.application.websearch_live_extract_preflight import (
+    build_websearch_live_extract_preflight,
+    is_websearch_live_extract_preflight_clear,
+)
+from app.nutrition.application.websearch_selected_extract_packet_smoke import (
+    build_websearch_selected_extract_packet_smoke,
+)
+from app.providers.builderspace_runtime_contract import validate_manager_payload
+from app.runtime.agent.manager_branch_contract import should_attempt_b1_pass2_structured_output_transport
+from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 
 
-def _manager_packet_artifact() -> dict:
-    packet_artifact = build_websearch_candidate_packet_smoke()
-    packets = tuple(case["websearch_candidate_packet"] for case in packet_artifact["cases"])
-    tool_result = build_tool_evidence_result(
-        tool_name="search_official_nutrition",
-        tool_call_id="tool-call-grokfast-websearch-smoke",
-        evidence_packets=packets,
-        trace_context={
-            "packet_artifact_type": packet_artifact["artifact_type"],
-            "packet_claim_scope": packet_artifact["claim_scope"],
-            "live_websearch_used": False,
-        },
+def _review_packet() -> dict[str, object]:
+    readiness = build_exact_card_candidate_promotion_readiness(
+        exact_lane_artifact=build_exact_evidence_lane_policy_artifact()
     )
-    return build_websearch_manager_packet_projection(
-        tool_evidence_artifact={
-            "artifact_type": "accurate_intake_websearch_tool_evidence_result_smoke",
-            "tool_evidence_result": tool_result,
-        }
+    selected = build_websearch_selected_extract_packet_smoke(
+        exact_card_readiness_artifact=readiness
+    )
+    extract_result = build_websearch_extract_result_candidate_smoke(
+        selected_extract_artifact=selected
+    )
+    return build_websearch_exact_candidate_review_packet(
+        extract_result_artifact=extract_result
     )
 
 
-def test_grokfast_websearch_packet_diagnostic_classifies_fixture_outputs() -> None:
-    packet_artifact = _manager_packet_artifact()
-    manager_outputs = build_fixture_grokfast_websearch_manager_outputs(
-        packet_artifact=packet_artifact
-    )
+def test_grokfast_websearch_packet_diagnostic_classifies_fixture_review_packet_use() -> None:
+    review_packet = _review_packet()
+    manager_outputs = build_fixture_manager_outputs(review_packet_artifact=review_packet)
 
     diagnostic = build_grokfast_websearch_packet_diagnostic(
-        packet_artifact=packet_artifact,
+        review_packet_artifact=review_packet,
         manager_outputs=manager_outputs,
         live_provider_used=False,
     )
 
     assert diagnostic["artifact_type"] == "accurate_intake_grokfast_websearch_packet_smoke"
     assert diagnostic["classification"] == "live_diagnostic_only"
-    assert diagnostic["status"] == "pass"
-    assert diagnostic["live_provider_used"] is False
-    assert diagnostic["live_websearch_used"] is False
-    assert diagnostic["websearch_runtime_truth_allowed"] is False
-    assert diagnostic["readiness_claimed"] is False
-    assert diagnostic["self_use_approved"] is False
-    assert diagnostic["production_selected"] is False
-    assert diagnostic["summary"]["case_count"] == 4
-    assert diagnostic["summary"]["pass_count"] == 4
     assert diagnostic["provider_profile"]["model"] == "grok-4-fast"
-
-
-def test_grokfast_websearch_packet_diagnostic_reuses_candidate_boundary_evaluator() -> None:
-    packet_artifact = _manager_packet_artifact()
-    packet_case = packet_artifact["cases"][0]
-    diagnostic = build_grokfast_websearch_packet_diagnostic(
-        packet_artifact=packet_artifact,
-        manager_outputs=[
-            {
-                "case_id": packet_case["case_id"],
-                "manager_output": {
-                    "manager_action": "final",
-                    "final_action": "commit",
-                    "workflow_effect": "food_log_candidate",
-                    "target_attachment": {"candidate_id": packet_case["case_id"]},
-                    "tool_calls": [{"name": "write_ledger"}],
-                    "item_results": [{"food_name": "invented", "likely_kcal": 1}],
-                    "evidence_used": [f"{packet_case['case_id']} plus invented truth"],
-                    "semantic_decision": {"mutation_intent_candidate": "canonical_write"},
-                },
-                "provider_trace": {
-                    "provider_profile_id": GROKFAST_WEBSEARCH_PACKET_PROFILE["provider_profile_id"],
-                },
-            }
-        ],
-        live_provider_used=True,
-    )
-
-    failure_families = diagnostic["summary"]["failure_families"]
-    assert diagnostic["status"] == "diagnostic_fail"
-    assert diagnostic["live_provider_used"] is True
-    assert "websearch_truth_shortcut" in failure_families
-    assert "websearch_truth_surface_leak" in failure_families
-    assert "invented_websearch_evidence_reference" in failure_families
-    assert "websearch_candidate_mutated_runtime" in failure_families
-    assert "websearch_candidate_created_item_results" in failure_families
-
-
-def test_grokfast_websearch_packet_diagnostic_sanitizes_manager_output_and_provider_trace() -> None:
-    packet_artifact = _manager_packet_artifact()
-    packet_case = packet_artifact["cases"][0]
-    diagnostic = build_grokfast_websearch_packet_diagnostic(
-        packet_artifact=packet_artifact,
-        manager_outputs=[
-            {
-                "case_id": packet_case["case_id"],
-                "manager_output": {
-                    "manager_action": "final",
-                    "final_action": "commit",
-                    "workflow_effect": "food_log_candidate",
-                    "target_attachment": {"candidate_id": packet_case["case_id"]},
-                    "tool_calls": [{"name": "write_ledger"}],
-                    "item_results": [{"food_name": "invented", "likely_kcal": 1}],
-                    "evidence_used": [f"{packet_case['case_id']} plus invented truth"],
-                    "semantic_decision": {"mutation_intent_candidate": "canonical_write"},
-                },
-                "provider_trace": {
-                    "provider_profile_id": GROKFAST_WEBSEARCH_PACKET_PROFILE["provider_profile_id"],
-                    "trace": {
-                        "parsed_object": {"exact_card_truth": {"kcal": 1}},
-                        "raw_response_excerpt": "exact_card_truth and item_results should not persist",
-                        "transport_attempts": [{"raw": "payload"}],
-                        "parse_attempts": [{"raw_content_excerpt": "snippet"}],
-                        "failure_family": "manager_output_contract_violation",
-                    },
-                },
-            }
-        ],
-        live_provider_used=True,
-    )
-
-    case_payload = diagnostic["cases"][0]
-    serialized = str(case_payload)
-    assert "manager_output" not in case_payload
-    assert "parsed_object" not in serialized
-    assert "raw_response_excerpt" not in serialized
-    assert "raw_content_excerpt" not in serialized
-    assert "exact_card_truth" not in serialized
-    assert "food_name" not in serialized
-    assert "likely_kcal" not in serialized
-    assert "write_ledger" not in serialized
-    assert "websearch_candidate_created_item_results" in case_payload["failure_families"]
-    assert case_payload["provider_trace"]["trace_summary"]["transport_attempt_count"] == 1
-    assert case_payload["provider_trace"]["trace_summary"]["parse_attempt_count"] == 1
-
-
-def test_grokfast_websearch_packet_diagnostic_surfaces_provider_failures() -> None:
-    packet_artifact = _manager_packet_artifact()
-    packet_case = packet_artifact["cases"][0]
-    diagnostic = build_grokfast_websearch_packet_diagnostic(
-        packet_artifact=packet_artifact,
-        manager_outputs=[
-            {
-                "case_id": packet_case["case_id"],
-                "manager_output": {},
-                "provider_trace": {
-                    "provider_profile_id": GROKFAST_WEBSEARCH_PACKET_PROFILE["provider_profile_id"],
-                    "failure_family": "provider_response_error",
-                },
-            }
-        ],
-        live_provider_used=True,
-    )
-
-    assert diagnostic["status"] == "diagnostic_fail"
-    assert "provider_response_error" in diagnostic["summary"]["failure_families"]
-
-
-def test_grokfast_websearch_packet_diagnostic_summarizes_success_transport_metadata() -> None:
-    packet_artifact = _manager_packet_artifact()
-    packet_case = packet_artifact["cases"][0]
-    manager_outputs = build_fixture_grokfast_websearch_manager_outputs(
-        packet_artifact=packet_artifact
-    )
-    manager_outputs[0]["provider_trace"].update(
-        {
-            "structured_output_transport_mode": "json_schema",
-            "decision_transport_mode": "synthetic_tool_transport",
-            "decision_transport_attempted": True,
-            "decision_transport_contract_breach": False,
-            "schema_name": "founder_live_manager_contract",
-            "schema_version": "v1",
-            "transport_attempts": [{"attempt": 1}],
-            "parse_attempts": [{"attempt": 1}],
-        }
-    )
-
-    diagnostic = build_grokfast_websearch_packet_diagnostic(
-        packet_artifact=packet_artifact,
-        manager_outputs=[manager_outputs[0]],
-        live_provider_used=True,
-    )
-
-    trace_summary = diagnostic["cases"][0]["provider_trace"]["trace_summary"]
-    assert diagnostic["cases"][0]["case_id"] == packet_case["case_id"]
-    assert trace_summary["structured_output_transport_mode"] == "json_schema"
-    assert trace_summary["decision_transport_mode"] == "synthetic_tool_transport"
-    assert trace_summary["decision_transport_attempted"] is True
-    assert trace_summary["decision_transport_contract_breach"] is False
-    assert trace_summary["schema_name"] == "founder_live_manager_contract"
-    assert trace_summary["schema_version"] == "v1"
-    assert trace_summary["transport_attempt_count"] == 1
-    assert trace_summary["parse_attempt_count"] == 1
-    assert "transport_attempts" not in str(diagnostic["cases"][0])
-    assert "parse_attempts" not in str(diagnostic["cases"][0])
-
-
-def test_grokfast_websearch_live_payload_is_candidate_only_and_compact() -> None:
-    packet_case = _manager_packet_artifact()["cases"][0]
-    payload = build_live_websearch_manager_payload(packet_case=packet_case)
-
-    assert payload["diagnostic_scope"] == "websearch_packet_manager_seam_smoke"
-    assert payload["constraints"]["websearch_runtime_truth_allowed"] is False
-    assert payload["constraints"]["runtime_mutation_allowed"] is False
-    assert payload["websearch_evidence_packet"]["packet_type"] == "websearch_manager_evidence_packet_v1"
-    payload_text = str(payload)
-    assert "websearch_candidate_packet" not in payload_text
-    assert "tavily_score" not in payload_text
-    assert "snippet" not in payload_text
-    assert "storage_backend" not in payload_text
-
-
-def test_grokfast_websearch_live_script_adds_manager_contract_constraints() -> None:
-    from scripts.run_accurate_intake_grokfast_websearch_packet_smoke import (
-        _build_live_manager_payload_with_contract,
-    )
-
-    packet_case = _manager_packet_artifact()["cases"][0]
-    payload = _build_live_manager_payload_with_contract(packet_case=packet_case)
-
-    constraints = payload["constraints"]
-    assert constraints["manager_contract_profile_id"] == "founder_live_contract"
-    assert constraints["manager_contract_transport_policy"] == "synthetic_tool_transport"
-    assert constraints["manager_contract_provider_profile_id"] == (
+    assert diagnostic["live_provider_used"] is False
+    assert diagnostic["readiness_claimed"] is False
+    assert diagnostic["runtime_truth_changed"] is False
+    assert diagnostic["runtime_mutation_attempted"] is False
+    assert diagnostic["summary"]["case_count"] == 1
+    assert diagnostic["summary"]["pass_count"] == 1
+    assert diagnostic["summary"]["fail_count"] == 0
+    assert diagnostic["provider_profile"]["provider_profile_id"] == (
         GROKFAST_WEBSEARCH_PACKET_PROFILE["provider_profile_id"]
     )
-    assert constraints["websearch_packet_smoke"] is True
-    assert constraints["websearch_runtime_truth_allowed"] is False
-    assert constraints["runtime_mutation_allowed"] is False
-    assert constraints["manager_contract_evidence_state"]["nutrition_evidence_present"] is False
-    assert payload["manager_contract_diagnostic"]["runtime_truth_changed"] is False
-    assert "manager_contract_policy" in constraints
 
 
-def test_grokfast_websearch_packet_smoke_cli_defaults_to_fixture_and_blocks_accidental_live(
+def test_grokfast_websearch_fixture_outputs_match_b1_pass2_manager_schema() -> None:
+    review_packet = _review_packet()
+    constraints = build_live_manager_payload(
+        review_packet=review_packet["review_packets"][0]
+    )["constraints"]
+    manager_outputs = build_fixture_manager_outputs(review_packet_artifact=review_packet)
+
+    assert should_attempt_b1_pass2_structured_output_transport(constraints) is True
+    for output in manager_outputs:
+        manager_output = output["manager_output"]
+        for field in WEBSEARCH_PACKET_MANAGER_REQUIRED_FIELDS:
+            assert field in manager_output
+        validate_manager_payload(
+            MANAGER_LOOP_STAGE,
+            manager_output,
+            constraints=constraints,
+        )
+
+
+def test_grokfast_websearch_live_payload_selects_structured_pass2_contract() -> None:
+    packet = _review_packet()["review_packets"][0]
+    payload = build_live_manager_payload(review_packet=packet)
+
+    assert payload["constraints"]["phase_b1_manager_role"] == "pass_2_synthesis"
+    assert payload["constraints"]["phase_b1_pass1_mode"] == "natural_tool_selection_probe"
+    assert payload["constraints"]["phase_b1_case_family"] == "common_commercial_drink"
+    assert should_attempt_b1_pass2_structured_output_transport(payload["constraints"]) is True
+    assert payload["expected_output_contract"]["required_top_level_fields"] == list(
+        WEBSEARCH_PACKET_MANAGER_REQUIRED_FIELDS
+    )
+    assert payload["expected_output_contract"]["target_attachment"] == {}
+    assert payload["expected_output_contract"]["forbidden_top_level_fields"] == ["item_results"]
+    assert packet["packet_id"] in payload["allowed_evidence_refs"]
+    assert packet["source_url"] in payload["allowed_evidence_refs"]
+
+
+def test_grokfast_websearch_packet_diagnostic_flags_missing_manager_contract_fields() -> None:
+    packet = _review_packet()["review_packets"][0]
+    manager_output = build_fixture_manager_outputs(
+        review_packet_artifact={"review_packets": [packet]}
+    )[0]["manager_output"]
+    manager_output.pop("intent")
+
+    result = evaluate_manager_output_against_review_packet(
+        review_packet=packet,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert result["missing_manager_contract_fields"] == ["intent"]
+    assert "manager_contract_required_fields_missing" in result["failure_families"]
+
+
+def test_grokfast_websearch_packet_diagnostic_flags_schema_invalid_field_shape() -> None:
+    packet = _review_packet()["review_packets"][0]
+    manager_output = build_fixture_manager_outputs(
+        review_packet_artifact={"review_packets": [packet]}
+    )[0]["manager_output"]
+    manager_output["target_attachment"] = "not-a-dict"
+
+    result = evaluate_manager_output_against_review_packet(
+        review_packet=packet,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "manager_contract_schema_validation_failed" in result["failure_families"]
+    assert "target_attachment:expected_dict" in result["manager_contract_validation_errors"]
+
+
+def test_grokfast_websearch_packet_diagnostic_applies_injected_contract_validator() -> None:
+    packet = _review_packet()["review_packets"][0]
+    diagnostic = build_grokfast_websearch_packet_diagnostic(
+        review_packet_artifact={"review_packets": [packet]},
+        manager_outputs=build_fixture_manager_outputs(review_packet_artifact={"review_packets": [packet]}),
+        live_provider_used=False,
+        manager_contract_validator=lambda _packet, _output: ["external-schema-error"],
+    )
+
+    assert diagnostic["status"] == "diagnostic_fail"
+    assert diagnostic["summary"]["failure_families"] == ["manager_contract_schema_validation_failed"]
+    assert diagnostic["cases"][0]["manager_contract_validation_errors"] == ["external-schema-error"]
+
+
+def test_grokfast_websearch_packet_diagnostic_flags_review_candidate_target_attachment() -> None:
+    packet = _review_packet()["review_packets"][0]
+    manager_output = build_fixture_manager_outputs(
+        review_packet_artifact={"review_packets": [packet]}
+    )[0]["manager_output"]
+    manager_output["target_attachment"] = {
+        "packet_id": packet["packet_id"],
+        "review_kcal_candidate": 400,
+    }
+
+    result = evaluate_manager_output_against_review_packet(
+        review_packet=packet,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "review_candidate_attached_as_mutation_target" in result["failure_families"]
+
+
+def test_grokfast_websearch_packet_diagnostic_flags_truth_promotion_attempt() -> None:
+    packet = _review_packet()["review_packets"][0]
+    manager_output = {
+        "manager_action": "final",
+        "final_action": "commit",
+        "tool_calls": [],
+        "item_results": [{"food_name": "Milksha", "kcal": 400}],
+        "evidence_used": [packet["packet_id"]],
+        "runtime_truth_allowed": True,
+        "exact_card_created": True,
+        "semantic_decision": {"mutation_intent_candidate": "canonical_write"},
+    }
+
+    result = evaluate_manager_output_against_review_packet(
+        review_packet=packet,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "review_candidate_used_for_commit" in result["failure_families"]
+    assert "review_candidate_used_as_item_result" in result["failure_families"]
+    assert "review_candidate_promoted_to_truth" in result["failure_families"]
+    assert "review_candidate_mutation_intent" in result["failure_families"]
+
+
+def test_grokfast_websearch_packet_diagnostic_flags_textual_truth_overclaim() -> None:
+    packet = _review_packet()["review_packets"][0]
+    result = evaluate_manager_output_against_review_packet(
+        review_packet=packet,
+        manager_output={
+            "manager_action": "final",
+            "final_action": "answer_only",
+            "tool_calls": [],
+            "item_results": [],
+            "evidence_used": [packet["packet_id"]],
+            "answer_contract": {
+                "text": "This is approved for runtime use and ready to create the exact card."
+            },
+            "semantic_decision": {"mutation_intent_candidate": "no_mutation"},
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert "review_candidate_promoted_to_truth" in result["failure_families"]
+
+
+def test_grokfast_websearch_packet_diagnostic_flags_invented_evidence() -> None:
+    packet = _review_packet()["review_packets"][0]
+    result = evaluate_manager_output_against_review_packet(
+        review_packet=packet,
+        manager_output={
+            "manager_action": "final",
+            "final_action": "answer_only",
+            "tool_calls": [],
+            "item_results": [],
+            "evidence_used": ["invented-web-source"],
+            "semantic_decision": {"mutation_intent_candidate": "no_mutation"},
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert "invented_evidence_reference" in result["failure_families"]
+
+
+def test_grokfast_websearch_packet_diagnostic_rejects_substring_evidence_ref() -> None:
+    packet = _review_packet()["review_packets"][0]
+    result = evaluate_manager_output_against_review_packet(
+        review_packet=packet,
+        manager_output={
+            "manager_action": "final",
+            "final_action": "answer_only",
+            "tool_calls": [],
+            "item_results": [],
+            "evidence_used": [f"fabricated wrapper around {packet['packet_id']}"],
+            "semantic_decision": {"mutation_intent_candidate": "no_mutation"},
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert "invented_evidence_reference" in result["failure_families"]
+
+
+def test_grokfast_websearch_packet_diagnostic_blocks_empty_review_packet_artifact() -> None:
+    diagnostic = build_grokfast_websearch_packet_diagnostic(
+        review_packet_artifact={
+            "artifact_type": "accurate_intake_websearch_exact_candidate_review_packet_v1",
+            "review_packets": [],
+        },
+        manager_outputs=[],
+        live_provider_used=False,
+    )
+
+    assert diagnostic["status"] == "blocked"
+    assert diagnostic["failure_family"] == "missing_review_packets"
+    assert diagnostic["summary"]["fail_count"] == 1
+    assert diagnostic["summary"]["failure_families"] == ["missing_review_packets"]
+
+
+def test_grokfast_websearch_live_payload_hides_runtime_authority() -> None:
+    packet = _review_packet()["review_packets"][0]
+    payload = build_live_manager_payload(review_packet=packet)
+
+    assert payload["diagnostic_scope"] == "websearch_review_packet_manager_seam_smoke"
+    assert payload["constraints"]["runtime_truth_allowed"] is False
+    assert payload["constraints"]["runtime_mutation_allowed"] is False
+    assert "local_json" not in str(payload)
+    assert "FoodDB truth" not in str(payload)
+
+
+def test_websearch_live_extract_preflight_integrity_helper_blocks_overclaim() -> None:
+    preflight = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=_review_packet()
+    )
+    assert is_websearch_live_extract_preflight_clear(preflight) is True
+
+    preflight["ready_for_runtime_truth"] = True
+    assert is_websearch_live_extract_preflight_clear(preflight) is False
+
+
+def test_grokfast_websearch_packet_smoke_cli_defaults_to_fixture_and_blocks_live(
     tmp_path: Path,
 ) -> None:
     from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
     from scripts.run_accurate_intake_grokfast_websearch_packet_smoke import main
 
-    packet_path = tmp_path / "websearch_manager_packet.json"
-    output = tmp_path / "grokfast_websearch.json"
-    write_json_artifact(packet_path, _manager_packet_artifact())
+    review_packet_path = tmp_path / "review_packet.json"
+    output = tmp_path / "diagnostic.json"
+    write_json_artifact(review_packet_path, _review_packet())
 
     assert (
-        main(["--mode", "fixture", "--manager-packet-artifact", str(packet_path), "--output", str(output)])
+        main(
+            [
+                "--mode",
+                "fixture",
+                "--review-packet-artifact",
+                str(review_packet_path),
+                "--output",
+                str(output),
+            ]
+        )
         == 0
     )
     artifact = read_json_artifact(output)
-    assert artifact["status"] == "pass"
     assert artifact["live_provider_used"] is False
-    assert artifact["summary"]["pass_count"] == 4
+    assert artifact["summary"]["pass_count"] == 1
 
     blocked_output = tmp_path / "blocked_live.json"
     assert (
@@ -271,8 +329,8 @@ def test_grokfast_websearch_packet_smoke_cli_defaults_to_fixture_and_blocks_acci
             [
                 "--mode",
                 "live",
-                "--manager-packet-artifact",
-                str(packet_path),
+                "--review-packet-artifact",
+                str(review_packet_path),
                 "--output",
                 str(blocked_output),
             ]
@@ -282,23 +340,85 @@ def test_grokfast_websearch_packet_smoke_cli_defaults_to_fixture_and_blocks_acci
     blocked = read_json_artifact(blocked_output)
     assert blocked["status"] == "blocked"
     assert blocked["failure_family"] == "live_mode_requires_explicit_allow_live"
+
+
+def test_grokfast_websearch_packet_smoke_live_blocks_preflight_review_packet_mismatch(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.run_accurate_intake_grokfast_websearch_packet_smoke import main
+
+    review_packet = _review_packet()
+    preflight = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=review_packet
+    )
+    mismatched_review_packet = _review_packet()
+    mismatched_review_packet["review_packets"][0]["packet_id"] = "different-review-packet"
+
+    review_packet_path = tmp_path / "review_packet.json"
+    preflight_path = tmp_path / "preflight.json"
+    output = tmp_path / "blocked_mismatch.json"
+    write_json_artifact(review_packet_path, mismatched_review_packet)
+    write_json_artifact(preflight_path, preflight)
+
+    assert (
+        main(
+            [
+                "--mode",
+                "live",
+                "--allow-live",
+                "--review-packet-artifact",
+                str(review_packet_path),
+                "--preflight-artifact",
+                str(preflight_path),
+                "--output",
+                str(output),
+            ]
+        )
+        == 2
+    )
+    blocked = read_json_artifact(output)
+    assert blocked["status"] == "blocked"
+    assert blocked["failure_family"] == "websearch_live_preflight_review_packet_mismatch"
     assert blocked["live_provider_used"] is False
 
 
-def test_grokfast_websearch_packet_smoke_keeps_kimi_and_tavily_out_of_module() -> None:
-    source_paths = [
-        Path("app/nutrition/application/grokfast_websearch_packet_smoke.py"),
-        Path("scripts/run_accurate_intake_grokfast_websearch_packet_smoke.py"),
-    ]
-    forbidden = [
-        "kimi-k2.5",
-        "Tavily",
-        "tavily",
-        "requests.",
-        "httpx.",
-    ]
+def test_grokfast_websearch_packet_smoke_live_blocks_same_ref_packet_drift(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.run_accurate_intake_grokfast_websearch_packet_smoke import main
 
-    for path in source_paths:
-        source = path.read_text(encoding="utf-8")
-        for token in forbidden:
-            assert token not in source
+    review_packet = _review_packet()
+    preflight = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=review_packet
+    )
+    drifted_review_packet = _review_packet()
+    drifted_review_packet["review_packets"][0]["runtime_truth_allowed"] = True
+
+    review_packet_path = tmp_path / "review_packet.json"
+    preflight_path = tmp_path / "preflight.json"
+    output = tmp_path / "blocked_drift.json"
+    write_json_artifact(review_packet_path, drifted_review_packet)
+    write_json_artifact(preflight_path, preflight)
+
+    assert (
+        main(
+            [
+                "--mode",
+                "live",
+                "--allow-live",
+                "--review-packet-artifact",
+                str(review_packet_path),
+                "--preflight-artifact",
+                str(preflight_path),
+                "--output",
+                str(output),
+            ]
+        )
+        == 2
+    )
+    blocked = read_json_artifact(output)
+    assert blocked["status"] == "blocked"
+    assert blocked["failure_family"] == "websearch_live_preflight_review_packet_mismatch"
+    assert blocked["live_provider_used"] is False

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from .context_normalizer import has_packaged_drink_identity_cue, lookup_key
 
 

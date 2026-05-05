@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from app.nutrition.application.tool_evidence_result import build_tool_evidence_result
 from app.nutrition.application.websearch_candidate_packet_smoke import (
     build_websearch_candidate_packet_smoke,
 )
@@ -13,7 +14,6 @@ from app.nutrition.application.websearch_manager_output_diagnostic import (
 from app.nutrition.application.websearch_manager_packet_smoke import (
     build_websearch_manager_packet_projection,
 )
-from app.nutrition.application.tool_evidence_result import build_tool_evidence_result
 
 
 def _manager_packet_artifact() -> dict:
@@ -248,10 +248,10 @@ def test_websearch_manager_output_diagnostic_requires_followup_for_related_candi
 
 def test_websearch_manager_output_diagnostic_script_roundtrip(tmp_path: Path) -> None:
     from app.shared.infra.json_artifacts import read_json_artifact
+    from scripts.build_accurate_intake_websearch_manager_output_diagnostic import main
     from scripts.build_accurate_intake_websearch_manager_packet_smoke import (
         main as build_manager_packet_smoke,
     )
-    from scripts.build_accurate_intake_websearch_manager_output_diagnostic import main
 
     packet_output = tmp_path / "websearch_manager_packet.json"
     output = tmp_path / "websearch_manager_output.json"
