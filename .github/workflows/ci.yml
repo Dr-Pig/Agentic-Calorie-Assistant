@@ -194,12 +194,89 @@ jobs:
         run: |
           python scripts/verify_accurate_intake_mvp.py --python python --output artifacts/accurate_intake_mvp_gate.json
 
+      - name: Run PL+CE context-conditioned intent wall
+        run: |
+          python -m pytest tests/test_accurate_intake_context_conditioned_intent_wall.py -q
+          python scripts/run_accurate_intake_context_conditioned_intent_wall.py --output artifacts/accurate_intake_context_conditioned_intent_wall_ci.json
+
+      - name: Run PL+CE correction/removal fixture flow
+        run: |
+          python -m pytest tests/test_accurate_intake_correction_removal_fixture_flow.py -q
+          python scripts/run_accurate_intake_correction_removal_fixture_flow.py --output artifacts/accurate_intake_correction_removal_fixture_flow_ci.json
+
+      - name: Run PL+CE responder input contract fake smoke
+        run: |
+          python -m pytest tests/test_accurate_intake_responder_input_contract_fake_smoke.py -q
+          python scripts/run_accurate_intake_responder_input_contract_fake_smoke.py --output artifacts/accurate_intake_responder_input_contract_fake_smoke_ci.json
+
+      - name: Run PL+CE local MVP candidate bundle
+        run: |
+          python scripts/build_accurate_intake_ui_same_truth_render_contract.py --output artifacts/accurate_intake_ui_same_truth_render_contract_ci.json
+          python scripts/build_accurate_intake_context_quality_pack.py --output artifacts/accurate_intake_context_quality_pack_ci.json
+          python scripts/build_accurate_intake_fixture_evidence_packet_emulator.py --output artifacts/accurate_intake_fixture_evidence_packet_emulator_ci.json
+          python scripts/run_accurate_intake_fake_provider_tool_loop_smoke.py --output artifacts/accurate_intake_fake_provider_tool_loop_smoke_ci.json
+          python scripts/build_accurate_intake_review_eval_candidate_pipeline.py --output artifacts/accurate_intake_review_eval_candidate_pipeline_ci.json
+          python -c "from pathlib import Path; p=Path('artifacts/plce_candidate_fixture_smoke.sqlite3'); p.parent.mkdir(parents=True, exist_ok=True); p.touch()"
+          python scripts/build_accurate_intake_local_operator_data_hygiene_bundle.py --db-path artifacts/plce_candidate_fixture_smoke.sqlite3 --output artifacts/accurate_intake_local_operator_data_hygiene_bundle_ci.json
+          python -m pytest tests/test_accurate_intake_pl_ce_local_mvp_candidate_bundle.py -q
+          python scripts/build_accurate_intake_pl_ce_local_mvp_candidate_bundle.py \
+            --artifact ui_same_truth_contract=artifacts/accurate_intake_ui_same_truth_render_contract_ci.json \
+            --artifact context_quality_pack=artifacts/accurate_intake_context_quality_pack_ci.json \
+            --artifact context_conditioned_intent_wall=artifacts/accurate_intake_context_conditioned_intent_wall_ci.json \
+            --artifact correction_removal_fixture_flow=artifacts/accurate_intake_correction_removal_fixture_flow_ci.json \
+            --artifact responder_input_contract_fake_smoke=artifacts/accurate_intake_responder_input_contract_fake_smoke_ci.json \
+            --artifact fixture_packet_emulator=artifacts/accurate_intake_fixture_evidence_packet_emulator_ci.json \
+            --artifact fake_provider_tool_loop_smoke=artifacts/accurate_intake_fake_provider_tool_loop_smoke_ci.json \
+            --artifact review_eval_candidate_pipeline=artifacts/accurate_intake_review_eval_candidate_pipeline_ci.json \
+            --artifact local_operator_data_hygiene_bundle=artifacts/accurate_intake_local_operator_data_hygiene_bundle_ci.json \
+            --artifact mvp_gate_summary=artifacts/accurate_intake_mvp_gate.json \
+            --output artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json
+
       - name: Upload Accurate Intake MVP gate report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: accurate-intake-mvp-gate-report
           path: artifacts/accurate_intake_mvp_gate.json
+          if-no-files-found: error
+
+      - name: Upload PL+CE context-conditioned intent wall report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accurate-intake-context-conditioned-intent-wall-report
+          path: artifacts/accurate_intake_context_conditioned_intent_wall_ci.json
+          if-no-files-found: error
+
+      - name: Upload PL+CE correction/removal fixture flow report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accurate-intake-correction-removal-fixture-flow-report
+          path: artifacts/accurate_intake_correction_removal_fixture_flow_ci.json
+          if-no-files-found: error
+
+      - name: Upload PL+CE responder input contract fake smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accurate-intake-responder-input-contract-fake-smoke-report
+          path: artifacts/accurate_intake_responder_input_contract_fake_smoke_ci.json
+          if-no-files-found: error
+
+      - name: Upload PL+CE local MVP candidate bundle report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accurate-intake-pl-ce-local-mvp-candidate-bundle-report
+          path: |
+            artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json
+            artifacts/accurate_intake_ui_same_truth_render_contract_ci.json
+            artifacts/accurate_intake_context_quality_pack_ci.json
+            artifacts/accurate_intake_fixture_evidence_packet_emulator_ci.json
+            artifacts/accurate_intake_fake_provider_tool_loop_smoke_ci.json
+            artifacts/accurate_intake_review_eval_candidate_pipeline_ci.json
+            artifacts/accurate_intake_local_operator_data_hygiene_bundle_ci.json
           if-no-files-found: error
 
   product-pages-browser-e2e:
