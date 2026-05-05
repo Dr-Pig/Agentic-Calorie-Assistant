@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,7 +15,6 @@ from app.composition.accurate_intake_pl_ce_context_coverage_matrix import (  # n
     build_pl_ce_context_coverage_matrix_artifact,
 )
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
-
 
 DEFAULT_ARTIFACT_PATHS = {
     "context_conditioned_intent_wall": ROOT

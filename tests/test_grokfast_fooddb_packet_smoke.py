@@ -10,6 +10,7 @@ from app.nutrition.application.fooddb_retrieval_policy import (
     build_runtime_retrieval_records_from_small_anchor_payload,
 )
 from app.nutrition.application.grokfast_fooddb_packet_smoke import (
+    FOODDB_PACKET_MANAGER_REQUIRED_FIELDS,
     build_fixture_manager_outputs,
     build_grokfast_fooddb_packet_diagnostic,
     build_live_manager_payload,
@@ -17,6 +18,9 @@ from app.nutrition.application.grokfast_fooddb_packet_smoke import (
     evaluate_manager_output_against_packet,
 )
 from app.nutrition.application.tool_evidence_result import build_tool_evidence_result
+from app.providers.builderspace_runtime_contract import validate_manager_payload
+from app.runtime.agent.manager_branch_contract import should_attempt_b1_pass2_structured_output_transport
+from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 
 
 def _packet_artifact() -> dict:
@@ -69,6 +73,38 @@ def test_grokfast_fooddb_packet_diagnostic_classifies_fixture_evidence_use() -> 
     assert diagnostic["provider_profile"]["model"] == "grok-4-fast"
 
 
+def test_grokfast_fooddb_fixture_outputs_match_b1_pass2_manager_schema() -> None:
+    packet_artifact = _packet_artifact()
+    manager_outputs = build_fixture_manager_outputs(packet_artifact=packet_artifact)
+
+    for packet_case, output in zip(packet_artifact["cases"], manager_outputs, strict=True):
+        constraints = build_live_manager_payload(packet_case=packet_case)["constraints"]
+        assert should_attempt_b1_pass2_structured_output_transport(constraints) is True
+        manager_output = output["manager_output"]
+        for field in FOODDB_PACKET_MANAGER_REQUIRED_FIELDS:
+            assert field in manager_output
+        validate_manager_payload(
+            MANAGER_LOOP_STAGE,
+            manager_output,
+            constraints=constraints,
+        )
+
+
+def test_grokfast_fooddb_live_payload_selects_structured_pass2_contract() -> None:
+    packet_case = _packet_artifact()["cases"][0]
+    payload = build_live_manager_payload(packet_case=packet_case)
+
+    assert payload["constraints"]["phase_b1_manager_role"] == "pass_2_synthesis"
+    assert payload["constraints"]["phase_b1_pass1_mode"] == "natural_tool_selection_probe"
+    assert should_attempt_b1_pass2_structured_output_transport(payload["constraints"]) is True
+    assert payload["expected_output_contract"]["required_top_level_fields"] == list(
+        FOODDB_PACKET_MANAGER_REQUIRED_FIELDS
+    )
+    assert payload["expected_output_contract"]["runtime_mutation_allowed"] is False
+    assert payload["expected_output_contract"]["runtime_truth_changed"] is False
+    assert packet_case["case_id"] in payload["allowed_evidence_refs"]
+
+
 def test_grokfast_fooddb_packet_diagnostic_flags_invented_evidence() -> None:
     packet_case = _packet_artifact()["cases"][0]
     manager_output = {
@@ -96,6 +132,171 @@ def test_grokfast_fooddb_packet_diagnostic_flags_invented_evidence() -> None:
     assert "invented_evidence_reference" in result["failure_families"]
 
 
+def test_grokfast_fooddb_packet_diagnostic_rejects_pass2_tool_calls_after_packet() -> None:
+    packet_case = _packet_artifact()["cases"][0]
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    manager_output["tool_calls"] = [{"tool_name": "lookup_food_evidence", "arguments": {}}]
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "packet_pass2_reopened_tool_calls" in result["failure_families"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_rejects_textual_invented_source_ref() -> None:
+    packet_case = _packet_artifact()["cases"][0]
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    manager_output["answer_contract"] = {
+        "text": "Grounded in provided packet plus alias_expansion_exact and kcal_range_adjusted_for_less_rice."
+    }
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "invented_text_evidence_reference" in result["failure_families"]
+    assert result["invented_text_evidence_refs"] == [
+        "alias_expansion_exact",
+        "kcal_range_adjusted_for_less_rice",
+    ]
+
+
+def test_grokfast_fooddb_packet_diagnostic_rejects_nested_textual_source_ref() -> None:
+    packet_case = _packet_artifact()["cases"][0]
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    manager_output["semantic_decision"]["followup_question"] = (
+        "Please confirm based on alias_expansion_exact."
+    )
+    manager_output["target_attachment"] = {
+        "label": "candidate from kcal_range_adjusted_for_less_rice"
+    }
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "invented_text_evidence_reference" in result["failure_families"]
+    assert result["invented_text_evidence_refs"] == [
+        "alias_expansion_exact",
+        "kcal_range_adjusted_for_less_rice",
+    ]
+
+
+def test_grokfast_fooddb_packet_diagnostic_allows_plain_text_kcal_summary() -> None:
+    packet_case = _packet_artifact()["cases"][0]
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    manager_output["answer_contract"] = {
+        "text": "大杯半糖珍奶約450kcal（範圍350-550kcal），基於提供的 FoodDB packet。"
+    }
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "pass"
+    assert result["invented_text_evidence_refs"] == []
+
+
+def test_grokfast_fooddb_packet_diagnostic_flags_missing_manager_contract_fields() -> None:
+    packet_case = _packet_artifact()["cases"][0]
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    manager_output.pop("intent")
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert result["missing_manager_contract_fields"] == ["intent"]
+    assert "manager_contract_required_fields_missing" in result["failure_families"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_flags_schema_invalid_field_shape() -> None:
+    packet_case = _packet_artifact()["cases"][0]
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    manager_output["target_attachment"] = "not-a-dict"
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "manager_contract_schema_validation_failed" in result["failure_families"]
+    assert "target_attachment:expected_dict" in result["manager_contract_validation_errors"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_applies_injected_contract_validator() -> None:
+    packet_case = _packet_artifact()["cases"][0]
+    diagnostic = build_grokfast_fooddb_packet_diagnostic(
+        packet_artifact={"cases": [packet_case]},
+        manager_outputs=build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]}),
+        live_provider_used=False,
+        manager_contract_validator=lambda _case, _output: ["external-schema-error"],
+    )
+
+    assert diagnostic["status"] == "diagnostic_fail"
+    assert diagnostic["summary"]["failure_families"] == ["manager_contract_schema_validation_failed"]
+    assert diagnostic["cases"][0]["manager_contract_validation_errors"] == ["external-schema-error"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_rejects_substring_evidence_ref() -> None:
+    packet_case = _packet_artifact()["cases"][0]
+    anchor_id = packet_case["manager_evidence_packet"]["evidence_items"][0]["anchor_id"]
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    manager_output["evidence_used"] = [f"fabricated wrapper around {anchor_id}"]
+    manager_output["item_results"][0]["evidence_used"] = [f"fabricated wrapper around {anchor_id}"]
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "invented_evidence_reference" in result["failure_families"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_blocks_unsupported_modifier_kcal_adjustment() -> None:
+    packet_case = next(
+        case for case in _packet_artifact()["cases"] if case["case_id"] == "chicken_bento_less_rice"
+    )
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    manager_output["item_results"][0]["kcal_range"] = [600, 750]
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "unsupported_modifier_adjusted_kcal_range" in result["failure_families"]
+
+
 def test_grokfast_fooddb_packet_projection_can_use_tool_evidence_result_without_backend_leak() -> None:
     packet_artifact = build_packet_artifact_from_tool_evidence_result(
         tool_evidence_artifact=_tool_evidence_artifact()
@@ -108,6 +309,10 @@ def test_grokfast_fooddb_packet_projection_can_use_tool_evidence_result_without_
     assert payload["tool_results"][0]["truth_level"] == "read_only_food_evidence_result"
     assert payload["tool_evidence_result"]["result_type"] == "tool_evidence_result_v1"
     assert payload["fooddb_evidence_packet"]["packet_type"] == "fooddb_manager_evidence_packet_v1"
+    assert payload["expected_output_contract"]["required_top_level_fields"] == list(
+        FOODDB_PACKET_MANAGER_REQUIRED_FIELDS
+    )
+    assert payload["expected_output_contract"]["forbidden_top_level_fields"] == ["tool_calls"]
     assert "local_json" not in str(payload)
     assert "adapter_diagnostics" not in str(payload)
 

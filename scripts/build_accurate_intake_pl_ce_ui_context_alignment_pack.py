@@ -16,7 +16,6 @@ from app.composition.accurate_intake_pl_ce_ui_context_alignment_pack import (  #
 )
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
-
 DEFAULT_ARTIFACT_PATHS = {
     "ui_same_truth_contract": ROOT / "artifacts" / "accurate_intake_ui_same_truth_render_contract.json",
     "product_pages_renderer_source_map": ROOT
