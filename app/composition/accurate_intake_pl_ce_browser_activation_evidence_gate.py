@@ -81,6 +81,9 @@ REQUIRED_TRUE_FLAGS = {
         "body_page_loaded",
         "body_active_plan_rendered",
         "body_plan_readback_checked",
+        "body_plan_read_model_fields_rendered",
+        "body_latest_weight_rendered_from_backend",
+        "body_manual_target_read_model_rendered",
         "today_manual_target_readback_checked",
         "desktop_no_overflow",
         "mobile_no_overflow",
@@ -198,6 +201,23 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
     if group_id == "pl_ce_local_mvp_candidate_bundle":
         if payload.get("activation_gate_status") != "blocked_pending_human_and_browser_activation":
             blockers.append("pl_ce_local_mvp_candidate_bundle.unexpected_activation_gate_status")
+    if group_id == "product_pages_browser_smoke":
+        body_values = _object_dict(payload.get("body_plan_read_model_values"))
+        if not body_values:
+            blockers.append("product_pages_browser_smoke.body_read_model_values_missing")
+        expected_body_values = {
+            "daily_target": "1550 kcal",
+            "tdee": "1819 kcal",
+            "current_weight": "70 kg",
+            "target_weight": "65 kg",
+            "activity": "light",
+            "goal": "Lose weight",
+        }
+        for field, expected_value in expected_body_values.items():
+            if body_values and body_values.get(field) != expected_value:
+                blockers.append(f"product_pages_browser_smoke.body_read_model_value_mismatch:{field}")
+        if body_values and "2026-05-05 | 70.4 kg" not in str(body_values.get("weight_history") or ""):
+            blockers.append("product_pages_browser_smoke.body_read_model_value_mismatch:weight_history")
     if group_id == "product_pages_seven_day_diary_smoke":
         if _int_value(payload.get("day_count_checked")) < 7:
             blockers.append("product_pages_seven_day_diary_smoke.seven_day_window_incomplete")

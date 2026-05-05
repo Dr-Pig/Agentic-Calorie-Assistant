@@ -44,6 +44,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Configure authenticated push
         run: |
@@ -83,6 +84,13 @@ jobs:
 
       - name: Wait for required checks on updated PR
         run: gh pr checks "${PR_NUMBER}" --required --watch --fail-fast --interval 15
+
+      - name: Wait for clean merge state and governance checks
+        run: |
+          python scripts/merge_governance/main_merge_lock.py wait-ready \
+            --pr-number "${PR_NUMBER}" \
+            --timeout-seconds 900 \
+            --interval-seconds 15
 
       - name: Build merge debt matrix
         run: |

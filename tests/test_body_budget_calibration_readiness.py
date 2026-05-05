@@ -38,6 +38,36 @@ def test_body_budget_calibration_readiness_artifact_freezes_plce_read_model_cont
     assert deficit_summary["canonical_name_required_for_plce"] is True
     assert artifact["plce_contract"]["frontend_math_allowed"] is False
     assert artifact["plce_contract"]["manager_context_packet_changed"] is False
+    integration_matrix = artifact["plce_contract"]["integration_readiness_matrix"]
+    assert integration_matrix["doc_path"] == (
+        "docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md#BodyBudget PL/CE Integration Readiness Matrix"
+    )
+    assert integration_matrix["canonical_read_model_names"] == stable_names
+    assert integration_matrix["frontend_fallback_calculation_authorized"] is False
+    assert integration_matrix["manager_context_packet_changed"] is False
+    assert integration_matrix["missing_field_policy"] == "extend_backend_read_model_first"
+    assert integration_matrix["backend_routes"] == {
+        "current_budget_view": "/today/current-budget",
+        "body_budget_deficit_summary": "/today/deficit-summary",
+        "body_budget_weekly_progress": "/today/weekly-progress",
+        "body_budget_effective_budget_view": "/today/effective-budget",
+        "active_body_plan_view": "/body-plan/active",
+        "calibration_proposal_inbox": "/calibration/proposals/open",
+        "calibration_proposal_history": "/calibration/proposals/history",
+    }
+    assert integration_matrix["read_functions"] == {
+        "current_budget_view": "app.composition.current_budget_read_model.build_current_budget_view",
+        "body_budget_deficit_summary": (
+            "app.composition.body_budget_deficit_summary.build_body_budget_deficit_summary"
+        ),
+        "body_budget_weekly_progress": "app.composition.body_budget_weekly_progress.build_body_budget_weekly_progress",
+        "body_budget_effective_budget_view": (
+            "app.composition.body_budget_effective_budget.build_body_budget_effective_budget_view"
+        ),
+        "active_body_plan_view": "app.body.application.active_body_plan_read_model.build_active_body_plan_view",
+        "calibration_proposal_inbox": "app.composition.calibration_proposal_inbox.load_open_calibration_proposal_inbox",
+        "calibration_proposal_history": "app.composition.calibration_proposal_inbox.load_calibration_proposal_history",
+    }
     assert "estimated_daily_deficit_kcal" in deficit_summary["stable_fields"]
     assert "latest_weight_kg" in deficit_summary["stable_fields"]
     weekly_progress = artifact["stable_read_models"][2]
