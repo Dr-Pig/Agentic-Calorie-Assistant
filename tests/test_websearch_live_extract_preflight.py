@@ -74,6 +74,7 @@ def test_live_extract_preflight_contract_requires_explicit_live_flag_and_cache()
     assert contract["extract_result_role"] == "review_candidate_only"
     assert contract["ledger_mutation_allowed"] is False
     assert contract["exact_card_creation_allowed"] is False
+    assert artifact["review_packet_refs"][0]["packet_digest"]
 
 
 def test_live_extract_preflight_blocks_review_packet_truth_leak() -> None:
