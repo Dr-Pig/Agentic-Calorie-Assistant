@@ -65,6 +65,69 @@ def test_short_term_context_runtime_replay_keeps_back_reference_ambiguous_until_
     assert by_id["long_chat_with_pinned_pending_draft"]["recent_chat_messages_omitted"] > 0
 
 
+def test_short_term_context_runtime_replay_validator_rejects_missing_required_context() -> None:
+    artifact = build_short_term_context_runtime_replay_artifact()
+    scenarios = list(artifact["scenarios"])
+    named_item = next(scenario for scenario in scenarios if scenario["scenario_id"] == "remove_named_item")
+    named_item["target_candidate_count"] = 0
+    named_item["target_candidates"] = []
+    pending = next(scenario for scenario in scenarios if scenario["scenario_id"] == "pending_followup_answer")
+    pending["pending_followup_present"] = False
+    pending["runtime_attachment_reason"] = "none"
+
+    from app.composition import accurate_intake_short_term_context_runtime_replay as module
+
+    blockers = module._validate_scenarios(scenarios)
+
+    assert "remove_named_item.candidate_target_missing" in blockers
+    assert "pending_followup_answer.pending_followup_missing" in blockers
+    assert "pending_followup_answer.pending_followup_attachment_missing" in blockers
+
+
+def test_short_term_context_runtime_replay_validator_rejects_semantic_or_mutation_drift() -> None:
+    artifact = build_short_term_context_runtime_replay_artifact()
+    scenarios = list(artifact["scenarios"])
+    previous = next(scenario for scenario in scenarios if scenario["scenario_id"] == "remove_previous_item")
+    previous["runtime_attachment_reason"] = "identified_back_reference_target"
+    previous["runtime_attachment_disposition"] = "attach"
+    previous["deterministic_selected_target"] = True
+    previous["mutation_authority"] = True
+
+    from app.composition import accurate_intake_short_term_context_runtime_replay as module
+
+    blockers = module._validate_scenarios(scenarios)
+
+    assert "remove_previous_item.back_reference_not_ambiguous" in blockers
+    assert "remove_previous_item.deterministic_selected_target" in blockers
+    assert "remove_previous_item.mutation_authority" in blockers
+
+
+def test_short_term_context_runtime_replay_validator_rejects_candidate_supported_runtime_target_selection() -> None:
+    artifact = build_short_term_context_runtime_replay_artifact()
+    scenarios = list(artifact["scenarios"])
+    named_item = next(scenario for scenario in scenarios if scenario["scenario_id"] == "remove_named_item")
+    named_item["runtime_attachment_target_object_id"] = 51
+    named_item["deterministic_selected_target"] = True
+
+    from app.composition import accurate_intake_short_term_context_runtime_replay as module
+
+    blockers = module._validate_scenarios(scenarios)
+
+    assert "remove_named_item.candidate_supported_runtime_selected_target" in blockers
+    assert "remove_named_item.deterministic_selected_target" in blockers
+
+
+def test_short_term_context_runtime_replay_artifact_blocks_when_validation_fails(monkeypatch) -> None:
+    from app.composition import accurate_intake_short_term_context_runtime_replay as module
+
+    monkeypatch.setattr(module, "_validate_scenarios", lambda scenarios: ["runtime_replay_fixture_failure"])
+
+    artifact = module.build_short_term_context_runtime_replay_artifact()
+
+    assert artifact["status"] == "fail"
+    assert artifact["blockers"] == ["runtime_replay_fixture_failure"]
+
+
 def test_short_term_context_runtime_replay_script_writes_artifact(tmp_path: Path, capsys) -> None:
     output_path = tmp_path / "runtime-replay.json"
 
