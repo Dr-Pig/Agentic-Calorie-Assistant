@@ -1,19 +1,24 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 import json
+from datetime import UTC, datetime
 from typing import Any
 
 from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (
     BROWSER_ARTIFACTS,
+)
+from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (
     EXPECTED_STATUSES as BROWSER_GATE_EXPECTED_STATUSES,
+)
+from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (
     REQUIRED_INPUTS as BROWSER_GATE_REQUIRED_INPUTS,
 )
 from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
     EXPECTED_STATUSES as LOCAL_MVP_EXPECTED_STATUSES,
+)
+from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
     REQUIRED_INPUTS as LOCAL_MVP_REQUIRED_INPUTS,
 )
-
 
 REQUIRED_INPUTS = (
     "pl_ce_local_mvp_candidate_bundle",
@@ -91,6 +96,14 @@ def _claim_is_true(value: Any) -> bool:
     return False
 
 
+def _allowed_statuses(expected_status: Any) -> set[str]:
+    if isinstance(expected_status, str):
+        return {expected_status}
+    if isinstance(expected_status, set | frozenset | tuple | list):
+        return {str(status) for status in expected_status}
+    return {str(expected_status)}
+
+
 def _identity_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
     if _status(payload) != EXPECTED_STATUSES[group_id]:
@@ -138,7 +151,8 @@ def _structural_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     else:
         for input_id, expected_status in EXPECTED_NESTED_STATUSES[group_id].items():
             nested_status = _object_dict(included_statuses.get(input_id))
-            if nested_status.get("status") != expected_status:
+            nested_status_value = str(nested_status.get("status") or "")
+            if nested_status_value not in _allowed_statuses(expected_status):
                 blockers.append(
                     f"{group_id}.included_artifact_statuses."
                     f"{input_id}.unexpected_status:{nested_status.get('status')}"
