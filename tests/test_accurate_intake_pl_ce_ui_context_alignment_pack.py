@@ -24,6 +24,26 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "product_pages_renderer_source_map": {
+            "artifact_type": "accurate_intake_product_pages_renderer_source_map",
+            "status": "product_pages_renderer_source_map_ready_for_human_review",
+            "blockers": [],
+            "render_only_boundary_ok": True,
+            "frontend_semantic_owner": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "summary": {
+                "page_count": 3,
+                "selector_count": 33,
+                "endpoint_count": 8,
+                "backend_field_count": 30,
+            },
+        },
         "context_coverage_matrix": {
             "artifact_type": "accurate_intake_pl_ce_context_coverage_matrix",
             "status": "context_coverage_matrix_ready_for_human_review",
@@ -156,6 +176,9 @@ def test_ui_context_alignment_pack_summarizes_three_pages_and_context_evidence()
     assert artifact["summary"]["pages_verified"] == ["chat", "today", "body"]
     assert artifact["summary"]["context_covered_capabilities"] == 9
     assert artifact["summary"]["context_known_runtime_gap_count"] == 0
+    assert artifact["summary"]["renderer_source_map_page_count"] == 3
+    assert artifact["summary"]["renderer_source_map_selector_count"] >= 30
+    assert artifact["summary"]["renderer_source_map_endpoint_count"] >= 7
     assert artifact["summary"]["seven_day_diary_checked"] is True
     assert artifact["summary"]["chat_context_reload_checked"] is True
     assert artifact["summary"]["body_read_model_checked"] is True
@@ -179,6 +202,16 @@ def test_ui_context_alignment_pack_blocks_missing_or_blocked_context_matrix() ->
 
     assert artifact["status"] == "blocked"
     assert "context_coverage_matrix.upstream_blockers_present" in artifact["blockers"]
+
+
+def test_ui_context_alignment_pack_blocks_missing_or_blocked_renderer_source_map() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_renderer_source_map"]["blockers"] = ["today.missing_selector:#meal-list"]
+
+    artifact = build_pl_ce_ui_context_alignment_pack_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "product_pages_renderer_source_map.upstream_blockers_present" in artifact["blockers"]
 
 
 def test_ui_context_alignment_pack_accepts_context_known_runtime_gap_status_without_fault_claim() -> None:
@@ -283,6 +316,8 @@ def test_ci_builds_ui_context_alignment_pack() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
     assert "test_accurate_intake_pl_ce_ui_context_alignment_pack.py" in workflow
+    assert "build_accurate_intake_product_pages_renderer_source_map.py" in workflow
     assert "build_accurate_intake_pl_ce_ui_context_alignment_pack.py" in workflow
     assert "accurate_intake_pl_ce_ui_context_alignment_pack_ci.json" in workflow
+    assert "product_pages_renderer_source_map=artifacts/accurate_intake_product_pages_renderer_source_map_ci.json" in workflow
     assert "accurate-intake-pl-ce-ui-context-alignment-pack-report" in workflow
