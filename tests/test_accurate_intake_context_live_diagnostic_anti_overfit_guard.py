@@ -30,6 +30,7 @@ def test_context_live_anti_overfit_guard_accepts_fixed_plan_only_matrix() -> Non
     assert guard["blockers"] == []
     assert guard["summary"]["fixed_case_matrix_used"] is True
     assert guard["summary"]["case_count"] >= 11
+    assert guard["summary"]["holdout_utterance_variant_count"] >= 22
     assert guard["summary"]["compound_cases"] >= 1
     assert guard["summary"]["ambiguity_cases"] >= 1
     assert guard["summary"]["pending_pin_cases"] >= 1
@@ -48,6 +49,7 @@ def test_context_live_anti_overfit_guard_blocks_ad_hoc_or_easy_case_selection() 
     assert guard["status"] == "blocked"
     assert "fixed_case_matrix_mismatch" in guard["blockers"]
     assert "case_count_too_low" in guard["blockers"]
+    assert "holdout_utterance_variant_count_too_low" in guard["blockers"]
     assert "compound_case_missing" in guard["blockers"]
     assert "ambiguity_case_missing" in guard["blockers"]
     assert "intent_diversity_too_low" in guard["blockers"]
@@ -65,6 +67,21 @@ def test_context_live_anti_overfit_guard_blocks_homogeneous_case_selection() -> 
     assert guard["status"] == "blocked"
     assert "intent_diversity_too_low" in guard["blockers"]
     assert "workflow_effect_diversity_too_low" in guard["blockers"]
+
+
+def test_context_live_anti_overfit_guard_blocks_missing_holdout_variants() -> None:
+    matrix = build_context_live_diagnostic_case_matrix_artifact()
+    matrix["cases"][0]["holdout_utterance_variants"] = []
+    matrix["cases"][1]["holdout_utterance_variants"] = [
+        matrix["cases"][1]["utterance"],
+        "different",
+    ]
+
+    guard = build_context_live_diagnostic_anti_overfit_guard_artifact(matrix)
+
+    assert guard["status"] == "blocked"
+    assert "context_live_001_general_chat_no_mutation.holdout_utterance_variants_too_low" in guard["blockers"]
+    assert "context_live_002_simple_food_log_candidate.holdout_repeats_primary_utterance" in guard["blockers"]
 
 
 def test_context_live_anti_overfit_guard_blocks_live_or_fooddb_overclaims() -> None:
