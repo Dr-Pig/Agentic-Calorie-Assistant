@@ -169,7 +169,7 @@ def _upstream_invariant_blockers(group_id: str, payload: dict[str, Any]) -> list
     elif group_id == "fake_provider_context_smoke":
         if payload.get("manager_handoff_matrix_checked") is not True:
             blockers.append(f"{group_id}.manager_handoff_matrix_missing")
-        if _int_value(summary.get("manager_handoff_scenario_count")) < 3:
+        if _int_value(summary.get("manager_handoff_scenario_count")) < 6:
             blockers.append(f"{group_id}.manager_handoff_scenario_count_too_low")
         if _int_value(summary.get("ambiguous_back_reference_scenarios")) < 1:
             blockers.append(f"{group_id}.ambiguous_back_reference_missing")
@@ -178,7 +178,7 @@ def _upstream_invariant_blockers(group_id: str, payload: dict[str, Any]) -> list
             blockers.append(f"{group_id}.runtime_replay_not_checked")
         if _int_value(summary.get("short_term_runtime_replay_scenario_count")) < 7:
             blockers.append(f"{group_id}.short_term_runtime_replay_scenario_count_too_low")
-        if _int_value(summary.get("fake_provider_handoff_scenario_count")) < 3:
+        if _int_value(summary.get("fake_provider_handoff_scenario_count")) < 6:
             blockers.append(f"{group_id}.fake_provider_handoff_scenario_count_too_low")
     return blockers
 
@@ -377,7 +377,7 @@ def _build_matrix(inputs: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]
             runtime_replay=runtime.get("deterministic_semantic_inference_used") is False,
             fake_provider=fake_provider.get("final_semantic_decision_source")
             == "fixture_manager_structured_decision"
-            and _int_value(quality_summary.get("fake_provider_handoff_scenario_count")) >= 3,
+            and _int_value(quality_summary.get("fake_provider_handoff_scenario_count")) >= 6,
             evidence=[
                 "context wall: manager_fixture_semantic_source_used",
                 "runtime replay: deterministic_semantic_inference_used false",

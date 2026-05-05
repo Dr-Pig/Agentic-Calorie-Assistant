@@ -48,7 +48,7 @@ def _fresh_evidence() -> dict[str, dict[str, object]]:
                 "manager_semantic_required_scenarios": 1,
                 "short_term_runtime_replay_scenario_count": 7,
                 "short_term_runtime_replay_current_gap_scenarios": 0,
-                "fake_provider_handoff_scenario_count": 3,
+                "fake_provider_handoff_scenario_count": 6,
             },
             "short_term_context_current_gap_scenarios": 0,
         },
@@ -231,6 +231,19 @@ def test_pl_ce_metadata_freshness_pack_blocks_context_regression_thresholds() ->
     assert "context_quality_pack.manager_semantic_required_scenarios_missing" in pack["blockers"]
     assert "context_quality_pack.short_term_runtime_replay_scenario_count_too_low" in pack["blockers"]
     assert "context_quality_pack.short_term_context_current_gap_scenarios_present" in pack["blockers"]
+    assert "context_quality_pack.fake_provider_handoff_scenario_count_too_low" in pack["blockers"]
+
+
+def test_pl_ce_metadata_freshness_pack_blocks_partial_fake_provider_handoff_coverage() -> None:
+    evidence = _fresh_evidence()
+    evidence["context_quality_pack"]["summary"] = {
+        **dict(evidence["context_quality_pack"]["summary"]),
+        "fake_provider_handoff_scenario_count": 5,
+    }
+
+    pack = build_pl_ce_metadata_freshness_pack(evidence=evidence)
+
+    assert pack["status"] == "blocked"
     assert "context_quality_pack.fake_provider_handoff_scenario_count_too_low" in pack["blockers"]
 
 
