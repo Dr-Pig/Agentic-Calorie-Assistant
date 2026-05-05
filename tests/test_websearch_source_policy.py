@@ -135,6 +135,25 @@ def test_third_party_source_stays_weak_candidate() -> None:
     assert classification["runtime_truth_allowed"] is False
 
 
+def test_official_social_media_source_class_is_not_extract_trusted() -> None:
+    classification = classify_websearch_source_candidate(
+        {
+            "source_url": "https://social.example/brand/boba",
+            "source_class": "social_media_page",
+            "license_status": "public_menu_page",
+            "robots_status": "allowed",
+            "identity_confidence": "high",
+            "serving_basis_candidate": "per_cup",
+            "nutrition_fields_present": ["kcal"],
+        }
+    )
+
+    assert classification["candidate_class"] == "weak_or_unusable_candidate"
+    assert classification["extract_candidate_allowed"] is False
+    assert classification["runtime_truth_allowed"] is False
+    assert "source_class_not_trusted" in classification["block_reasons"]
+
+
 def test_unknown_serving_basis_blocks_extract_candidate() -> None:
     classification = classify_websearch_source_candidate(
         {
