@@ -30,7 +30,7 @@ def test_websearch_candidate_pipeline_builds_offline_query_plan_and_classificati
     assert artifact["source_policy"]["license_policy"]["unknown_license_behavior"] == (
         "candidate_only_requires_review"
     )
-    assert artifact["summary"]["case_count"] == 9
+    assert artifact["summary"]["case_count"] == 10
     assert artifact["summary"]["runtime_truth_allowed_count"] == 0
     assert artifact["summary"]["source_class_counts"]["official_brand_or_chain_page"] >= 4
     assert artifact["summary"]["source_class_counts"]["official_nutrition_pdf"] == 1
@@ -78,6 +78,17 @@ def test_websearch_candidate_pipeline_builds_offline_query_plan_and_classificati
     missing_kcal = _case_by_id(artifact, "pipeline_missing_kcal")
     assert missing_kcal["candidate_classifications"][0]["candidate_class"] == "blocked_source_policy_candidate"
     assert "kcal_missing" in missing_kcal["candidate_classifications"][0]["source_policy_block_reasons"]
+
+    modifier_missing = _case_by_id(artifact, "pipeline_modifier_missing")
+    assert modifier_missing["candidate_classifications"][0]["candidate_class"] == (
+        "near_exact_modifier_unknown_candidate"
+    )
+    assert modifier_missing["candidate_classifications"][0]["manager_signal"] == "needs_disambiguation"
+    assert modifier_missing["candidate_classifications"][0]["extract_candidate_allowed"] is False
+    assert modifier_missing["candidate_classifications"][0]["runtime_truth_allowed"] is False
+    assert modifier_missing["selected_extract_decision"]["selected_search_packet_id"] is None
+    assert modifier_missing["selected_extract_decision"]["extract_allowed_by_policy"] is False
+    assert modifier_missing["selected_extract_decision"]["extract_count"] == 0
 
 
 def test_websearch_candidate_pipeline_excludes_raw_hits_and_truth_fields() -> None:
