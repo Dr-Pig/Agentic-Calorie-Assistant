@@ -45,9 +45,11 @@ def test_worker_prompt_forbids_agent_self_merge() -> None:
 
     assert report["policy"]["parallel_build_allowed"] is True
     assert report["policy"]["self_merge_allowed"] is False
+    assert report["policy"]["merge_queue_request_allowed"] is True
+    assert report["policy"]["main_promotion_path"] == "official_github_merge_queue"
     assert report["policy"]["ready_marker"] == "READY_FOR_QUEUE"
-    assert "Do not run gh pr merge" in report["worker_prompt"]
-    assert "gh workflow run main-merge-lock.yml -f pr_number=<PR_NUMBER>" in report["worker_prompt"]
+    assert "official GitHub Merge Queue" in report["worker_prompt"]
+    assert "Add to merge queue" in report["worker_prompt"]
     assert "READY_FOR_QUEUE" in report["worker_prompt"]
 
 

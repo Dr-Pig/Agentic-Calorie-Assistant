@@ -24,11 +24,11 @@ DEFAULT_MD_OUT = ROOT / "artifacts" / "q_owner_queue_status.md"
 READY_MARKER = "READY_FOR_QUEUE"
 ALLOWED_QUEUE_VERDICTS = {"merge_candidate", "dormant_shadow_candidate"}
 
-WORKER_PROMPT = """You can continue development, push, open PRs, and fix CI, but do not merge to main.
+WORKER_PROMPT = """You can continue development, push, open PRs, and fix CI, but do not bypass the official GitHub Merge Queue.
 
 Rules:
-1. Do not run gh pr merge.
-2. Do not enable auto-merge.
+1. Do not use the normal merge button or any admin/bypass merge path.
+2. Do not enable direct auto-merge outside the official queue.
 3. Do not force push or rebase.
 4. If syncing main, use a non-destructive merge from origin/main; do not reset.
 5. Add the Required Report to the PR body:
@@ -38,9 +38,8 @@ Rules:
    mutation_changed: false
    product_readiness_claimed: false
 6. Add READY_FOR_QUEUE in the PR body.
-7. If you are authorized to request main promotion, trigger the serialized lock:
-   gh workflow run main-merge-lock.yml -f pr_number=<PR_NUMBER>
-8. After triggering the lock, wait for the workflow result; do not merge manually.
+7. After required checks pass, request promotion with GitHub's Add to merge queue action.
+8. After adding to the queue, wait for the queue result; do not merge manually.
 9. Future/shadow work must explicitly stay no-runtime, no-route, no-scheduler, no-DB-migration, no-ManagerContextPacket, and no-mutation.
 10. Do not retarget or split stacked PRs unless the queue owner asks.
 """
@@ -127,8 +126,9 @@ def build_queue_report(matrix: dict[str, Any], *, pr_bodies: dict[int, str]) -> 
         "policy": {
             "parallel_build_allowed": True,
             "self_merge_allowed": False,
+            "merge_queue_request_allowed": True,
             "ready_marker": READY_MARKER,
-            "fallback_queue": "single_queue_owner_serial_merge",
+            "main_promotion_path": "official_github_merge_queue",
         },
         "script_mutates_repository": False,
         "worker_prompt": WORKER_PROMPT,
