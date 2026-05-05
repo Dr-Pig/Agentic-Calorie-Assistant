@@ -141,6 +141,21 @@ def test_retrieval_policy_exposes_ranking_features_and_modifier_compatibility() 
     assert candidate["modifier_compatibility"] == {"cup_size": "compatible"}
 
 
+def test_retrieval_policy_marks_normalized_rice_modifier_as_equivalent_not_semantic_truth() -> None:
+    records = build_runtime_retrieval_records_from_small_anchor_payload(_small_anchor_payload())
+    result = retrieve_fooddb_candidates(
+        "雞腿便當少飯",
+        retrieval_records=records,
+    )
+
+    candidate = result["accepted_candidates"][0]
+    assert candidate["anchor_id"] == "generic_meal_chicken_bento"
+    assert candidate["modifier_compatibility"] == {
+        "rice_portion": "compatible_via_normalized_equivalent"
+    }
+    assert "modifier_compatible:rice_portion" not in candidate["ranking_reasons"]
+
+
 def test_retrieval_policy_fuzzy_matches_alias_expansion_keys_without_vector_truth() -> None:
     records = build_runtime_retrieval_records_from_small_anchor_payload(_small_anchor_payload())
     result = retrieve_fooddb_candidates(
