@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import secrets
 import socket
 import sys
 import threading
@@ -127,7 +129,7 @@ def _base_report(*, db_path: Path, browser_execution_required: bool) -> dict[str
     }
 
 
-def _run_browser_sequence(*, base_url: str, timeout_ms: int, headless: bool) -> dict[str, Any]:
+def _run_browser_sequence(*, base_url: str, local_debug_token: str, timeout_ms: int, headless: bool) -> dict[str, Any]:
     sync_playwright = _load_sync_playwright()
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=headless)
@@ -136,15 +138,26 @@ def _run_browser_sequence(*, base_url: str, timeout_ms: int, headless: bool) -> 
             f"""
             (() => {{
               const fixtureUserId = {json.dumps(USER_EXTERNAL_ID)};
+              const localDebugToken = {json.dumps(local_debug_token)};
               const primeUserId = () => {{
                 const input = document.querySelector("#user-id");
                 if (input && input.value !== fixtureUserId) {{
                   input.value = fixtureUserId;
                 }}
               }};
-              const observer = new MutationObserver(primeUserId);
+              const primeLocalDebugToken = () => {{
+                const input = document.querySelector("#local-debug-token");
+                if (input && input.value !== localDebugToken) {{
+                  input.value = localDebugToken;
+                }}
+              }};
+              const observer = new MutationObserver(() => {{
+                primeUserId();
+                primeLocalDebugToken();
+              }});
               observer.observe(document, {{ childList: true, subtree: true }});
               primeUserId();
+              primeLocalDebugToken();
             }})();
             """
         )
@@ -152,6 +165,12 @@ def _run_browser_sequence(*, base_url: str, timeout_ms: int, headless: bool) -> 
         try:
             page.goto(f"{base_url}/static/accurate-intake-local-shell.html", wait_until="networkidle", timeout=timeout_ms)
             page.fill("#user-id", USER_EXTERNAL_ID)
+            page.fill("#local-debug-token", local_debug_token)
+            page.wait_for_function(
+                """(token) => document.querySelector("#local-debug-token")?.value === token""",
+                arg=local_debug_token,
+                timeout=timeout_ms,
+            )
             page.evaluate("""async () => { await syncSurfaces(); }""")
             page.wait_for_function(
                 """() => {
@@ -285,14 +304,24 @@ def build_browser_one_day_fixture_dogfood_report(
 
     engine, SessionLocal = _session_factory(db_path)
     db = SessionLocal()
-    app = _build_app(db)
-    port = _free_port()
-    server, thread = _run_uvicorn_in_thread(app, port=port)
+    local_debug_token = secrets.token_urlsafe(24)
+    previous_debug_token = os.environ.get("LOCAL_DEBUG_API_TOKEN")
+    os.environ["LOCAL_DEBUG_API_TOKEN"] = local_debug_token
+    server: uvicorn.Server | None = None
+    thread: threading.Thread | None = None
     try:
+        app = _build_app(db)
+        port = _free_port()
+        server, thread = _run_uvicorn_in_thread(app, port=port)
         base_url = f"http://127.0.0.1:{port}"
         _wait_for_http(f"{base_url}/static/accurate-intake-local-shell.html")
         try:
-            report["browser"] = _run_browser_sequence(base_url=base_url, timeout_ms=timeout_ms, headless=headless)
+            report["browser"] = _run_browser_sequence(
+                base_url=base_url,
+                local_debug_token=local_debug_token,
+                timeout_ms=timeout_ms,
+                headless=headless,
+            )
         except Exception as exc:
             report["browser_sequence_error"] = f"{type(exc).__name__}: {exc}"
             report["status"] = "fail"
@@ -304,10 +333,16 @@ def build_browser_one_day_fixture_dogfood_report(
         report["blockers"] = blockers
         return report
     finally:
-        server.should_exit = True
-        thread.join(timeout=5)
+        if server is not None:
+            server.should_exit = True
+        if thread is not None:
+            thread.join(timeout=5)
         db.close()
         engine.dispose()
+        if previous_debug_token is None:
+            os.environ.pop("LOCAL_DEBUG_API_TOKEN", None)
+        else:
+            os.environ["LOCAL_DEBUG_API_TOKEN"] = previous_debug_token
 
 
 def main(argv: list[str] | None = None) -> int:
