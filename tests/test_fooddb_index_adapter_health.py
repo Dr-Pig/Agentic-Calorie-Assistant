@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
+from app.nutrition.application.food_evidence_index_port import FoodEvidenceIndexPort
 from app.nutrition.application.fooddb_index_adapter_health import (
     DEFAULT_ADAPTER_HEALTH_SEARCH_CASES,
     build_fooddb_index_adapter_health,
 )
+from app.nutrition.application.fooddb_retrieval_policy import IndexedFoodRecord
 from app.nutrition.infrastructure.local_food_evidence_index import (
     LocalSmallAnchorFoodEvidenceIndex,
 )
@@ -28,6 +31,71 @@ def _sqlite_index(tmp_path: Path) -> SQLiteFtsFoodEvidenceIndex:
     )
 
 
+class _FakeIndex:
+    def __init__(
+        self,
+        records: tuple[IndexedFoodRecord, ...],
+        *,
+        runtime_truth_boundary: str | None = "adapter_returns_indexed_records_not_truth_decisions",
+    ) -> None:
+        self._records = records
+        self._runtime_truth_boundary = runtime_truth_boundary
+
+    def load_records(self) -> tuple[IndexedFoodRecord, ...]:
+        return self._records
+
+    def describe_index(self) -> dict[str, Any]:
+        metadata = {
+            "adapter_type": "fake_test_index",
+            "record_contract": "IndexedFoodRecord",
+            "runtime_record_count": len(
+                [
+                    record
+                    for record in self._records
+                    if record.runtime_role == "common_serving_anchor"
+                ]
+            ),
+            "semantic_record_count": len(
+                [
+                    record
+                    for record in self._records
+                    if record.runtime_role == "basket_family_semantic_only"
+                ]
+            ),
+            "forbidden_policy_dependencies": [
+                "sqlite_file_path",
+                "supabase_client",
+                "webshell",
+                "manager_context_packet",
+            ],
+        }
+        if self._runtime_truth_boundary is not None:
+            metadata["runtime_truth_boundary"] = self._runtime_truth_boundary
+        return metadata
+
+
+def _indexed_record(**overrides: Any) -> IndexedFoodRecord:
+    base = {
+        "anchor_id": "test_anchor",
+        "canonical_name": "Test Anchor",
+        "aliases": ("test",),
+        "dish_type": "test",
+        "runtime_truth_allowed": True,
+        "runtime_role": "common_serving_anchor",
+        "kcal_point": 100,
+        "kcal_range": (90, 110),
+        "serving_basis": "common_serving",
+        "portion_basis": {"amount": 1, "unit": "serving"},
+        "followup_hints": (),
+        "major_modifiers": (),
+        "runtime_usage_boundary": "single_item_or_listed_component",
+        "source_provenance": {"source_class": "internal_seed"},
+        "approval_metadata": {"approval_mode": "batch_policy_approved"},
+    }
+    base.update(overrides)
+    return IndexedFoodRecord(**base)
+
+
 def test_fooddb_index_adapter_health_proves_local_and_sqlite_contract_parity(
     tmp_path: Path,
 ) -> None:
@@ -47,6 +115,7 @@ def test_fooddb_index_adapter_health_proves_local_and_sqlite_contract_parity(
     assert artifact["readiness_claimed"] is False
     assert artifact["summary"]["local_record_count"] == artifact["summary"]["sqlite_record_count"]
     assert artifact["summary"]["record_contract_parity"] is True
+    assert artifact["summary"]["runtime_boundary_passed"] is True
     assert artifact["summary"]["search_case_fail_count"] == 0
     assert artifact["next_required_slice"] == "grokfast_fooddb_diagnostic_preflight"
 
@@ -102,6 +171,78 @@ def test_fooddb_index_adapter_health_exposes_supabase_adapter_contract_without_u
     assert "canonical_name" in supabase["minimum_columns"]
     assert "kcal_range" in supabase["minimum_columns"]
     assert "source_provenance" in supabase["minimum_columns"]
+
+
+def test_fooddb_index_adapter_health_blocks_source_only_runtime_truth_leak() -> None:
+    unsafe = _indexed_record(
+        anchor_id="tfda_source_evidence",
+        runtime_role="source_evidence_only",
+        runtime_truth_allowed=True,
+        serving_basis="per_100g",
+    )
+    index: FoodEvidenceIndexPort = _FakeIndex((unsafe,))
+
+    artifact = build_fooddb_index_adapter_health(
+        local_index=index,
+        sqlite_index=index,
+        search_cases=(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["summary"]["runtime_boundary_passed"] is False
+    assert artifact["summary"]["record_boundary_passed"] is False
+    assert artifact["summary"]["adapter_metadata_boundary_passed"] is True
+    assert (
+        "local:tfda_source_evidence:runtime_truth_allowed_forbidden_role:source_evidence_only"
+        in artifact["blockers"]
+    )
+    assert (
+        "sqlite:tfda_source_evidence:runtime_truth_allowed_forbidden_role:source_evidence_only"
+        in artifact["blockers"]
+    )
+
+
+def test_fooddb_index_adapter_health_blocks_incomplete_runtime_anchor() -> None:
+    incomplete = _indexed_record(
+        anchor_id="incomplete_anchor",
+        kcal_range=None,
+        approval_metadata={},
+    )
+    index: FoodEvidenceIndexPort = _FakeIndex((incomplete,))
+
+    artifact = build_fooddb_index_adapter_health(
+        local_index=index,
+        sqlite_index=index,
+        search_cases=(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["summary"]["record_boundary_passed"] is False
+    assert artifact["summary"]["adapter_metadata_boundary_passed"] is True
+    assert "local:incomplete_anchor:missing_kcal_range" in artifact["blockers"]
+    assert "local:incomplete_anchor:missing_approval_metadata" in artifact["blockers"]
+    assert "sqlite:incomplete_anchor:missing_kcal_range" in artifact["blockers"]
+    assert "sqlite:incomplete_anchor:missing_approval_metadata" in artifact["blockers"]
+
+
+def test_fooddb_index_adapter_health_blocks_missing_runtime_boundary_metadata() -> None:
+    index: FoodEvidenceIndexPort = _FakeIndex(
+        (_indexed_record(),),
+        runtime_truth_boundary=None,
+    )
+
+    artifact = build_fooddb_index_adapter_health(
+        local_index=index,
+        sqlite_index=index,
+        search_cases=(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["summary"]["record_boundary_passed"] is True
+    assert artifact["summary"]["adapter_metadata_boundary_passed"] is False
+    assert artifact["summary"]["runtime_boundary_passed"] is False
+    assert "local_index_runtime_truth_boundary_missing" in artifact["blockers"]
+    assert "sqlite_index_runtime_truth_boundary_missing" in artifact["blockers"]
 
 
 def test_fooddb_index_adapter_health_script_roundtrip(tmp_path: Path) -> None:
