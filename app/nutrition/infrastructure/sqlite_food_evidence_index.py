@@ -113,6 +113,7 @@ class SQLiteFtsFoodEvidenceIndex:
             "adapter_type": "sqlite_fts_food_evidence_index",
             "db_path": str(self.db_path),
             "record_contract": "IndexedFoodRecord",
+            "runtime_truth_boundary": "adapter_returns_indexed_records_not_truth_decisions",
             "runtime_record_count": len(runtime_records),
             "semantic_record_count": len(semantic_records),
             "fts_table": "food_evidence_fts",

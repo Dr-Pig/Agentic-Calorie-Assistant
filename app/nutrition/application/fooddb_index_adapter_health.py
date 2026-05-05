@@ -48,9 +48,15 @@ def build_fooddb_index_adapter_health(
     local_records = local_index.load_records()
     sqlite_records = sqlite_index.load_records()
     search_results = _search_case_results(sqlite_index=sqlite_index, search_cases=search_cases)
+    record_boundary_blockers = [
+        *_record_boundary_blockers(label="local", records=local_records),
+        *_record_boundary_blockers(label="sqlite", records=sqlite_records),
+    ]
+    metadata_blockers = _metadata_blockers(local_index=local_index, sqlite_index=sqlite_index)
     blockers = [
         *_record_parity_blockers(local_records=local_records, sqlite_records=sqlite_records),
-        *_metadata_blockers(local_index=local_index, sqlite_index=sqlite_index),
+        *record_boundary_blockers,
+        *metadata_blockers,
         *_search_blockers(search_results),
     ]
     clear = not blockers
@@ -76,6 +82,9 @@ def build_fooddb_index_adapter_health(
             "record_contract_parity": local_records == sqlite_records,
             "local_adapter_type": _adapter_type(local_index),
             "sqlite_adapter_type": _adapter_type(sqlite_index),
+            "record_boundary_passed": not record_boundary_blockers,
+            "adapter_metadata_boundary_passed": not metadata_blockers,
+            "runtime_boundary_passed": not record_boundary_blockers and not metadata_blockers,
             "search_case_count": len(search_results),
             "search_case_pass_count": sum(1 for case in search_results if case["status"] == "pass"),
             "search_case_fail_count": sum(1 for case in search_results if case["status"] != "pass"),
@@ -132,6 +141,64 @@ def _record_parity_blockers(
     return blockers
 
 
+def _record_boundary_blockers(
+    *,
+    label: str,
+    records: tuple[IndexedFoodRecord, ...],
+) -> list[str]:
+    blockers: list[str] = []
+    for record in records:
+        prefix = f"{label}:{record.anchor_id or 'unknown_anchor'}"
+        role = record.runtime_role
+        if record.runtime_truth_allowed and role != "common_serving_anchor":
+            blockers.append(f"{prefix}:runtime_truth_allowed_forbidden_role:{role}")
+        if role == "common_serving_anchor":
+            blockers.extend(_common_serving_anchor_blockers(prefix=prefix, record=record))
+        elif role == "basket_family_semantic_only":
+            blockers.extend(_semantic_only_blockers(prefix=prefix, record=record))
+        elif role not in {
+            "source_evidence_only",
+            "fallback_only",
+            "candidate_only",
+            "websearch_candidate",
+            "exact_card_candidate",
+        }:
+            blockers.append(f"{prefix}:unknown_runtime_role:{role}")
+    return blockers
+
+
+def _common_serving_anchor_blockers(*, prefix: str, record: IndexedFoodRecord) -> list[str]:
+    blockers: list[str] = []
+    if record.runtime_truth_allowed is not True:
+        blockers.append(f"{prefix}:runtime_truth_not_allowed")
+    if record.kcal_point is None:
+        blockers.append(f"{prefix}:missing_kcal_point")
+    if record.kcal_range is None or len(record.kcal_range) != 2:
+        blockers.append(f"{prefix}:missing_kcal_range")
+    if not _has_text(record.serving_basis):
+        blockers.append(f"{prefix}:missing_serving_basis")
+    if record.portion_basis in (None, "", {}, []):
+        blockers.append(f"{prefix}:missing_portion_basis")
+    if not record.source_provenance:
+        blockers.append(f"{prefix}:missing_source_provenance")
+    if not record.approval_metadata:
+        blockers.append(f"{prefix}:missing_approval_metadata")
+    if not _has_text(record.runtime_usage_boundary):
+        blockers.append(f"{prefix}:missing_runtime_usage_boundary")
+    return blockers
+
+
+def _semantic_only_blockers(*, prefix: str, record: IndexedFoodRecord) -> list[str]:
+    blockers: list[str] = []
+    if record.runtime_truth_allowed is not False:
+        blockers.append(f"{prefix}:semantic_only_runtime_truth_allowed")
+    if record.kcal_point is not None or record.kcal_range is not None:
+        blockers.append(f"{prefix}:semantic_only_kcal_present")
+    if record.serving_basis != "not_applicable":
+        blockers.append(f"{prefix}:semantic_only_serving_basis_not_applicable")
+    return blockers
+
+
 def _metadata_blockers(
     *,
     local_index: FoodEvidenceIndexPort,
@@ -144,6 +211,10 @@ def _metadata_blockers(
         blockers.append("local_index_record_contract_mismatch")
     if sqlite_metadata.get("record_contract") != "IndexedFoodRecord":
         blockers.append("sqlite_index_record_contract_mismatch")
+    if local_metadata.get("runtime_truth_boundary") != "adapter_returns_indexed_records_not_truth_decisions":
+        blockers.append("local_index_runtime_truth_boundary_missing")
+    if sqlite_metadata.get("runtime_truth_boundary") != "adapter_returns_indexed_records_not_truth_decisions":
+        blockers.append("sqlite_index_runtime_truth_boundary_missing")
     forbidden_leaks = {"supabase_client", "webshell", "manager_context_packet"}
     for label, metadata in (("local", local_metadata), ("sqlite", sqlite_metadata)):
         forbidden = set(metadata.get("forbidden_policy_dependencies") or [])
@@ -221,6 +292,10 @@ def _adapter_type(index: FoodEvidenceIndexPort) -> str:
 
 def _anchor_ids(records: tuple[IndexedFoodRecord, ...]) -> tuple[str, ...]:
     return tuple(record.anchor_id for record in records)
+
+
+def _has_text(value: object) -> bool:
+    return bool(str(value or "").strip())
 
 
 def _now() -> str:
