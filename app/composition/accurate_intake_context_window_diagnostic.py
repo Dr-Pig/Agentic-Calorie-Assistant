@@ -5,7 +5,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.intake.application.manager_context_policy import (
-    MANAGER_CONTEXT_POLICY_VERSION,
     build_manager_context_packet_v1,
 )
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, InteractionEvent
