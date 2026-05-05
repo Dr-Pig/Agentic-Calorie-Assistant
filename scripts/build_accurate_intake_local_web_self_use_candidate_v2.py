@@ -14,6 +14,7 @@ REQUIRED_EVIDENCE = (
     "pre_live_decision_pack",
     "pl_ce_local_review_decision_pack",
     "context_live_diagnostic_case_matrix",
+    "context_live_diagnostic_anti_overfit_guard",
     "mvp_gate",
     "phase_c_gate",
 )
@@ -27,6 +28,7 @@ EXPECTED_STATUS_BY_GROUP = {
     "pre_live_decision_pack": "generated",
     "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
     "context_live_diagnostic_case_matrix": "pass",
+    "context_live_diagnostic_anti_overfit_guard": "pass",
     "mvp_gate": "pass",
     "phase_c_gate": "pass",
 }
@@ -140,6 +142,19 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
 
         if group_id == "context_live_diagnostic_case_matrix" and payload.get("plan_only") is not True:
             blockers.append("context live case matrix not plan-only")
+
+        if group_id == "context_live_diagnostic_anti_overfit_guard":
+            summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+            if payload.get("plan_only") is not True:
+                blockers.append("context live anti-overfit guard not plan-only")
+            if summary.get("fixed_case_matrix_used") is not True:
+                blockers.append("context live anti-overfit guard missing fixed matrix")
+            if int(summary.get("case_count") or 0) < 10:
+                blockers.append("context live anti-overfit guard case count too low")
+            if int(summary.get("compound_cases") or 0) < 1:
+                blockers.append("context live anti-overfit guard compound case missing")
+            if int(summary.get("ambiguity_cases") or 0) < 1:
+                blockers.append("context live anti-overfit guard ambiguity case missing")
 
         if payload.get("production_selected") is True:
             blockers.append("readiness overclaim")

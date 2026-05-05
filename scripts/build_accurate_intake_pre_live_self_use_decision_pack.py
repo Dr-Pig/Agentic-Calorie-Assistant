@@ -17,6 +17,7 @@ REQUIRED_PRE_LIVE_EVIDENCE = (
     "local_operator_data_hygiene_bundle",
     "pl_ce_local_review_decision_pack",
     "context_live_diagnostic_case_matrix",
+    "context_live_diagnostic_anti_overfit_guard",
 )
 
 _EXPECTED_STATUS_BY_GROUP = {
@@ -30,6 +31,7 @@ _EXPECTED_STATUS_BY_GROUP = {
     "local_operator_data_hygiene_bundle": "local_operator_data_hygiene_ready",
     "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
     "context_live_diagnostic_case_matrix": "pass",
+    "context_live_diagnostic_anti_overfit_guard": "pass",
 }
 
 
@@ -43,6 +45,8 @@ def _evidence_missing(group_id: str, payload: dict[str, Any]) -> bool:
     if group_id == "browser_shell_smoke" and payload.get("browser_executed") is not True:
         return True
     if group_id == "context_live_diagnostic_case_matrix" and payload.get("plan_only") is not True:
+        return True
+    if group_id == "context_live_diagnostic_anti_overfit_guard" and payload.get("plan_only") is not True:
         return True
     return False
 
@@ -104,6 +108,18 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
             blockers.append("context_live_diagnostic_case_matrix_case_count_too_low")
         if int(summary.get("compound_cases") or 0) < 1:
             blockers.append("context_live_diagnostic_case_matrix_compound_case_missing")
+    if group_id == "context_live_diagnostic_anti_overfit_guard":
+        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        if payload.get("plan_only") is not True:
+            blockers.append("context_live_diagnostic_anti_overfit_guard_plan_only_not_true")
+        if summary.get("fixed_case_matrix_used") is not True:
+            blockers.append("context_live_diagnostic_anti_overfit_guard_fixed_case_matrix_missing")
+        if int(summary.get("case_count") or 0) < 10:
+            blockers.append("context_live_diagnostic_anti_overfit_guard_case_count_too_low")
+        if int(summary.get("compound_cases") or 0) < 1:
+            blockers.append("context_live_diagnostic_anti_overfit_guard_compound_case_missing")
+        if int(summary.get("ambiguity_cases") or 0) < 1:
+            blockers.append("context_live_diagnostic_anti_overfit_guard_ambiguity_case_missing")
     return blockers
 
 

@@ -15,6 +15,7 @@ REQUIRED_INPUTS = [
     "short_term_context_runtime_replay",
     "context_coverage_matrix",
     "context_live_diagnostic_case_matrix",
+    "context_live_diagnostic_anti_overfit_guard",
     "context_conditioned_intent_wall",
     "correction_removal_fixture_flow",
     "responder_input_contract_fake_smoke",
@@ -93,6 +94,22 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "summary": {
                 "case_count": 11,
                 "compound_cases": 1,
+            },
+        },
+        "context_live_diagnostic_anti_overfit_guard": {
+            "artifact_type": "accurate_intake_context_live_diagnostic_anti_overfit_guard",
+            "status": "pass",
+            "plan_only": True,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "fooddb_used": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "summary": {
+                "fixed_case_matrix_used": True,
+                "case_count": 11,
+                "compound_cases": 1,
+                "ambiguity_cases": 1,
             },
         },
         "context_conditioned_intent_wall": {
@@ -183,6 +200,7 @@ def test_pl_ce_local_mvp_candidate_bundle_includes_new_context_and_responder_sli
     assert included["short_term_context_runtime_replay"]["status"] == "runtime_replay_diagnostic_pass"  # type: ignore[index]
     assert included["context_coverage_matrix"]["status"] == "context_coverage_matrix_ready_for_human_review"  # type: ignore[index]
     assert included["context_live_diagnostic_case_matrix"]["status"] == "pass"  # type: ignore[index]
+    assert included["context_live_diagnostic_anti_overfit_guard"]["status"] == "pass"  # type: ignore[index]
     assert included["context_conditioned_intent_wall"]["status"] == "pass"  # type: ignore[index]
     assert included["correction_removal_fixture_flow"]["status"] == "pass"  # type: ignore[index]
     assert included["responder_input_contract_fake_smoke"]["status"] == "pass"  # type: ignore[index]
@@ -193,6 +211,10 @@ def test_pl_ce_local_mvp_candidate_bundle_includes_new_context_and_responder_sli
     assert artifact["summary"]["context_known_runtime_gap_count"] == 0
     assert artifact["summary"]["context_live_case_matrix_cases"] >= 11
     assert artifact["summary"]["context_live_case_matrix_compound_cases"] >= 1
+    assert artifact["summary"]["context_live_anti_overfit_fixed_case_matrix_used"] is True
+    assert artifact["summary"]["context_live_anti_overfit_case_count"] >= 11
+    assert artifact["summary"]["context_live_anti_overfit_compound_cases"] >= 1
+    assert artifact["summary"]["context_live_anti_overfit_ambiguity_cases"] >= 1
     assert artifact["summary"]["correction_removal_scenarios"] == 5
     assert artifact["summary"]["responder_fake_smoke_scenarios"] == 5
     assert artifact["summary"]["review_candidate_count"] >= 5
@@ -296,6 +318,54 @@ def test_pl_ce_local_mvp_candidate_bundle_blocks_context_live_matrix_overclaims(
     assert "context_live_diagnostic_case_matrix.plan_only_not_true" in artifact["blockers"]
     assert "context_live_diagnostic_case_matrix.live_provider_invoked" in artifact["blockers"]
     assert "context_live_diagnostic_case_matrix.fooddb_used" in artifact["blockers"]
+
+
+def test_pl_ce_local_mvp_candidate_bundle_blocks_missing_context_live_anti_overfit_guard() -> None:
+    inputs = _valid_inputs()
+    inputs["context_live_diagnostic_anti_overfit_guard"] = {"status": "missing"}
+
+    artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert (
+        "context_live_diagnostic_anti_overfit_guard.unexpected_status:missing"
+        in artifact["blockers"]
+    )
+
+
+def test_pl_ce_local_mvp_candidate_bundle_blocks_context_live_anti_overfit_guard_gaps() -> None:
+    inputs = _valid_inputs()
+    inputs["context_live_diagnostic_anti_overfit_guard"]["plan_only"] = False
+    inputs["context_live_diagnostic_anti_overfit_guard"]["summary"] = {
+        "fixed_case_matrix_used": False,
+        "case_count": 3,
+        "compound_cases": 0,
+        "ambiguity_cases": 0,
+    }
+
+    artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert (
+        "context_live_diagnostic_anti_overfit_guard.plan_only_not_true"
+        in artifact["blockers"]
+    )
+    assert (
+        "context_live_diagnostic_anti_overfit_guard.fixed_case_matrix_missing"
+        in artifact["blockers"]
+    )
+    assert (
+        "context_live_diagnostic_anti_overfit_guard.case_count_too_low"
+        in artifact["blockers"]
+    )
+    assert (
+        "context_live_diagnostic_anti_overfit_guard.compound_cases_missing"
+        in artifact["blockers"]
+    )
+    assert (
+        "context_live_diagnostic_anti_overfit_guard.ambiguity_cases_missing"
+        in artifact["blockers"]
+    )
 
 
 def test_pl_ce_local_mvp_candidate_bundle_allows_context_matrix_known_runtime_gaps() -> None:
@@ -455,6 +525,11 @@ def test_ci_runs_pl_ce_local_mvp_candidate_bundle() -> None:
     assert "accurate_intake_context_live_diagnostic_case_matrix_ci.json" in workflow
     assert (
         "--artifact context_live_diagnostic_case_matrix=artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json"
+        in workflow
+    )
+    assert "accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json" in workflow
+    assert (
+        "--artifact context_live_diagnostic_anti_overfit_guard=artifacts/accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json"
         in workflow
     )
     assert "accurate-intake-pl-ce-local-mvp-candidate-bundle-report" in workflow

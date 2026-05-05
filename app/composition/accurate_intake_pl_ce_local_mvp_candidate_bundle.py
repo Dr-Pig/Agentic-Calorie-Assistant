@@ -11,6 +11,7 @@ REQUIRED_INPUTS = (
     "short_term_context_runtime_replay",
     "context_coverage_matrix",
     "context_live_diagnostic_case_matrix",
+    "context_live_diagnostic_anti_overfit_guard",
     "context_conditioned_intent_wall",
     "correction_removal_fixture_flow",
     "responder_input_contract_fake_smoke",
@@ -33,6 +34,7 @@ EXPECTED_STATUSES = {
         "context_coverage_matrix_ready_with_known_runtime_gaps",
     },
     "context_live_diagnostic_case_matrix": "pass",
+    "context_live_diagnostic_anti_overfit_guard": "pass",
     "context_conditioned_intent_wall": "pass",
     "correction_removal_fixture_flow": "pass",
     "responder_input_contract_fake_smoke": "pass",
@@ -49,6 +51,9 @@ EXPECTED_ARTIFACT_TYPES = {
     "short_term_context_runtime_replay": "accurate_intake_short_term_context_runtime_replay",
     "context_coverage_matrix": "accurate_intake_pl_ce_context_coverage_matrix",
     "context_live_diagnostic_case_matrix": "accurate_intake_context_live_diagnostic_case_matrix",
+    "context_live_diagnostic_anti_overfit_guard": (
+        "accurate_intake_context_live_diagnostic_anti_overfit_guard"
+    ),
     "context_conditioned_intent_wall": "accurate_intake_context_conditioned_intent_wall",
     "correction_removal_fixture_flow": "accurate_intake_correction_removal_fixture_flow",
     "responder_input_contract_fake_smoke": "accurate_intake_responder_input_contract_fake_smoke",
@@ -199,6 +204,22 @@ def _context_live_matrix_blockers(payload: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def _context_live_anti_overfit_blockers(payload: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    if payload.get("plan_only") is not True:
+        blockers.append("context_live_diagnostic_anti_overfit_guard.plan_only_not_true")
+    summary = _object_dict(payload.get("summary"))
+    if summary.get("fixed_case_matrix_used") is not True:
+        blockers.append("context_live_diagnostic_anti_overfit_guard.fixed_case_matrix_missing")
+    if _int_value(summary.get("case_count")) < 10:
+        blockers.append("context_live_diagnostic_anti_overfit_guard.case_count_too_low")
+    if _int_value(summary.get("compound_cases")) < 1:
+        blockers.append("context_live_diagnostic_anti_overfit_guard.compound_cases_missing")
+    if _int_value(summary.get("ambiguity_cases")) < 1:
+        blockers.append("context_live_diagnostic_anti_overfit_guard.ambiguity_cases_missing")
+    return blockers
+
+
 def _artifact_statuses(payloads: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     statuses: dict[str, dict[str, Any]] = {}
     for artifact_id, payload in payloads.items():
@@ -224,6 +245,9 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
     context_live_matrix_summary = _object_dict(
         inputs["context_live_diagnostic_case_matrix"].get("summary")
     )
+    context_live_anti_overfit_summary = _object_dict(
+        inputs["context_live_diagnostic_anti_overfit_guard"].get("summary")
+    )
     runtime_replay_summary = _object_dict(
         inputs["short_term_context_runtime_replay"].get("summary")
     )
@@ -233,6 +257,11 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
     review_pipeline = inputs["review_eval_candidate_pipeline"]
     blockers.extend(_runtime_replay_blockers(inputs["short_term_context_runtime_replay"]))
     blockers.extend(_context_live_matrix_blockers(inputs["context_live_diagnostic_case_matrix"]))
+    blockers.extend(
+        _context_live_anti_overfit_blockers(
+            inputs["context_live_diagnostic_anti_overfit_guard"]
+        )
+    )
     status = "pl_ce_local_mvp_candidate_ready_for_human_review" if not blockers else "blocked"
     return _json_safe(
         {
@@ -307,6 +336,18 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
                 ),
                 "context_live_case_matrix_compound_cases": int(
                     context_live_matrix_summary.get("compound_cases") or 0
+                ),
+                "context_live_anti_overfit_fixed_case_matrix_used": (
+                    context_live_anti_overfit_summary.get("fixed_case_matrix_used") is True
+                ),
+                "context_live_anti_overfit_case_count": int(
+                    context_live_anti_overfit_summary.get("case_count") or 0
+                ),
+                "context_live_anti_overfit_compound_cases": int(
+                    context_live_anti_overfit_summary.get("compound_cases") or 0
+                ),
+                "context_live_anti_overfit_ambiguity_cases": int(
+                    context_live_anti_overfit_summary.get("ambiguity_cases") or 0
                 ),
                 "correction_removal_scenarios": int(
                     correction_summary.get("scenario_count") or 0
