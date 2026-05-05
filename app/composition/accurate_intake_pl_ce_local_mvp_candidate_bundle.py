@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime
+import json
 from typing import Any
+
 
 REQUIRED_INPUTS = (
     "ui_same_truth_contract",
     "context_quality_pack",
+    "short_term_context_runtime_replay",
     "context_coverage_matrix",
     "context_conditioned_intent_wall",
     "correction_removal_fixture_flow",
@@ -21,6 +23,10 @@ REQUIRED_INPUTS = (
 EXPECTED_STATUSES = {
     "ui_same_truth_contract": "pass",
     "context_quality_pack": "context_quality_diagnostic_pass",
+    "short_term_context_runtime_replay": {
+        "runtime_replay_diagnostic_pass",
+        "diagnostic_has_known_context_gaps",
+    },
     "context_coverage_matrix": {
         "context_coverage_matrix_ready_for_human_review",
         "context_coverage_matrix_ready_with_known_runtime_gaps",
@@ -38,6 +44,7 @@ EXPECTED_STATUSES = {
 EXPECTED_ARTIFACT_TYPES = {
     "ui_same_truth_contract": "accurate_intake_ui_same_truth_render_contract",
     "context_quality_pack": "accurate_intake_context_quality_pack",
+    "short_term_context_runtime_replay": "accurate_intake_short_term_context_runtime_replay",
     "context_coverage_matrix": "accurate_intake_pl_ce_context_coverage_matrix",
     "context_conditioned_intent_wall": "accurate_intake_context_conditioned_intent_wall",
     "correction_removal_fixture_flow": "accurate_intake_correction_removal_fixture_flow",
@@ -99,6 +106,13 @@ def _status(payload: dict[str, Any]) -> str:
     return str(payload.get("status") or "")
 
 
+def _int_value(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 def _claim_is_true(value: Any) -> bool:
     if value is True:
         return True
@@ -156,6 +170,18 @@ def _validate_input_artifacts(
     return blockers, activation_gap_signals
 
 
+def _runtime_replay_blockers(payload: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    if payload.get("runtime_trace_backed") is not True:
+        blockers.append("short_term_context_runtime_replay.runtime_trace_backed_not_true")
+    if _int_value(payload.get("scenario_count")) < 7:
+        blockers.append("short_term_context_runtime_replay.scenario_count_too_low")
+    summary = _object_dict(payload.get("summary"))
+    if _int_value(summary.get("current_gap_scenarios")) > 0:
+        blockers.append("short_term_context_runtime_replay.current_gap_scenarios_present")
+    return blockers
+
+
 def _artifact_statuses(payloads: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     statuses: dict[str, dict[str, Any]] = {}
     for artifact_id, payload in payloads.items():
@@ -178,10 +204,14 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
     }
     blockers, activation_gap_signals = _validate_input_artifacts(inputs)
     context_wall_summary = _object_dict(inputs["context_conditioned_intent_wall"].get("summary"))
+    runtime_replay_summary = _object_dict(
+        inputs["short_term_context_runtime_replay"].get("summary")
+    )
     context_matrix_summary = _object_dict(inputs["context_coverage_matrix"].get("summary"))
     correction_summary = _object_dict(inputs["correction_removal_fixture_flow"].get("summary"))
     responder_summary = _object_dict(inputs["responder_input_contract_fake_smoke"].get("summary"))
     review_pipeline = inputs["review_eval_candidate_pipeline"]
+    blockers.extend(_runtime_replay_blockers(inputs["short_term_context_runtime_replay"]))
     status = "pl_ce_local_mvp_candidate_ready_for_human_review" if not blockers else "blocked"
     return _json_safe(
         {
@@ -239,6 +269,12 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
             "included_artifact_statuses": _artifact_statuses(inputs),
             "summary": {
                 "context_wall_scenarios": int(context_wall_summary.get("scenario_count") or 0),
+                "short_term_runtime_replay_scenarios": int(
+                    runtime_replay_summary.get("scenario_count") or 0
+                ),
+                "short_term_runtime_replay_current_gap_count": int(
+                    runtime_replay_summary.get("current_gap_scenarios") or 0
+                ),
                 "context_covered_capabilities": int(
                     context_matrix_summary.get("covered_capability_count") or 0
                 ),
