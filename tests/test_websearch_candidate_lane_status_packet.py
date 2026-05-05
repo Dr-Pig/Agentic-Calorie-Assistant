@@ -1,0 +1,146 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from app.nutrition.application.websearch_candidate_lane_status_packet import (
+    build_websearch_candidate_lane_status_packet,
+)
+
+
+def _fooddb_status_packet() -> dict:
+    return {
+        "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+        "next_required_slices": ["await_manager_contract_owner_repair"],
+    }
+
+
+def test_websearch_candidate_lane_status_packet_summarizes_deterministic_lane() -> None:
+    artifact = build_websearch_candidate_lane_status_packet()
+
+    assert artifact["artifact_type"] == "accurate_intake_websearch_candidate_lane_status_packet_v1"
+    assert artifact["classification"] == "deterministic_websearch_candidate_lane_status_only"
+    assert artifact["runtime_truth_changed"] is False
+    assert artifact["live_provider_used"] is False
+    assert artifact["live_websearch_used"] is False
+    assert artifact["readiness_claimed"] is False
+    assert artifact["summary"]["source_policy_max_search_attempts"] == 2
+    assert artifact["summary"]["source_policy_max_results"] == 5
+    assert artifact["summary"]["pipeline_case_count"] >= 4
+    assert artifact["summary"]["extract_candidate_allowed_count"] >= 1
+    assert artifact["summary"]["candidate_packet_case_count"] == 4
+    assert artifact["summary"]["candidate_only_packet_count"] == 4
+    assert artifact["summary"]["manager_projection_case_count"] == 4
+    assert artifact["summary"]["manager_projection_compact_count"] == 4
+    assert artifact["summary"]["upstream_fooddb_gate_status"] == "not_provided"
+    assert artifact["next_required_slices"] == ["inspect_fooddb_status_packet"]
+
+
+def test_websearch_candidate_lane_status_packet_blocks_on_fooddb_manager_contract_gate() -> None:
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet=_fooddb_status_packet()
+    )
+
+    assert artifact["summary"]["upstream_fooddb_gate_status"] == "blocked_on_fooddb_upstream_gate"
+    assert artifact["summary"]["upstream_fooddb_next_required_slice"] == "await_manager_contract_owner_repair"
+    assert artifact["next_required_slices"] == ["await_manager_contract_owner_repair"]
+
+
+def test_websearch_candidate_lane_status_packet_allows_live_only_when_fooddb_explicitly_points_to_websearch() -> None:
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        }
+    )
+
+    assert artifact["summary"]["upstream_fooddb_gate_status"] == "clear_for_websearch_lane"
+    assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
+
+
+def test_websearch_candidate_lane_status_packet_blocks_other_fooddb_pending_states() -> None:
+    for next_required in (
+        "common_serving_anchor_expansion",
+        "manager_fooddb_packet_seam_smoke",
+        "grokfast_fooddb_packet_live_diagnostic",
+    ):
+        artifact = build_websearch_candidate_lane_status_packet(
+            fooddb_status_packet={
+                "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+                "next_required_slices": [next_required],
+            }
+        )
+        assert artifact["summary"]["upstream_fooddb_gate_status"] == "blocked_on_fooddb_upstream_gate"
+        assert artifact["next_required_slices"] == [next_required]
+
+
+def test_websearch_candidate_lane_status_packet_excludes_raw_and_truth_payloads() -> None:
+    artifact = build_websearch_candidate_lane_status_packet()
+    serialized = str(artifact)
+
+    for token in (
+        "raw_hits",
+        "raw_search_results",
+        "runtime_truth_allowed': True",
+        "likely_kcal",
+        "kcal_range",
+        "adapter_kind",
+        "storage_backend",
+        "supabase",
+        "snippet",
+    ):
+        assert token not in serialized
+
+
+def test_websearch_candidate_lane_status_packet_script_roundtrip(tmp_path: Path) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.build_accurate_intake_websearch_candidate_lane_status_packet import main
+
+    fooddb_input = tmp_path / "fooddb_status.json"
+    output = tmp_path / "websearch_status.json"
+    write_json_artifact(fooddb_input, _fooddb_status_packet())
+
+    assert (
+        main(
+            [
+                "--fooddb-status-packet",
+                str(fooddb_input),
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+
+    artifact = read_json_artifact(output)
+    assert artifact["artifact_type"] == "accurate_intake_websearch_candidate_lane_status_packet_v1"
+    assert artifact["next_required_slices"] == ["await_manager_contract_owner_repair"]
+
+
+def test_websearch_candidate_lane_status_packet_rejects_unexpected_fooddb_artifact_type() -> None:
+    try:
+        build_websearch_candidate_lane_status_packet(
+            fooddb_status_packet={"artifact_type": "wrong", "next_required_slices": []}
+        )
+    except ValueError as exc:
+        assert "unsupported_websearch_status_fooddb_packet" in str(exc)
+    else:
+        raise AssertionError("unexpected FoodDB status packet type must fail")
+
+
+def test_websearch_candidate_lane_status_packet_has_no_live_imports() -> None:
+    source_paths = [
+        Path("app/nutrition/application/websearch_candidate_lane_status_packet.py"),
+        Path("scripts/build_accurate_intake_websearch_candidate_lane_status_packet.py"),
+    ]
+    forbidden = [
+        "BuilderSpaceAdapter",
+        "Tavily",
+        "requests.",
+        "httpx.",
+        "allow_live",
+        "run_live",
+    ]
+    for path in source_paths:
+        source = path.read_text(encoding="utf-8")
+        for token in forbidden:
+            assert token not in source

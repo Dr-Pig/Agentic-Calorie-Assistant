@@ -30,6 +30,9 @@ def test_router_prefers_sqlite_fts_when_available_for_runtime_fooddb_lookup() ->
     assert plan.websearch_candidate_enabled is False
     assert plan.runtime_truth_source == "approved_fooddb_only"
     assert plan.mutation_allowed is True
+    assert plan.retrieval_intent_source == "manager_decision"
+    assert plan.manager_owned_intent_required is True
+    assert plan.raw_text_hint_executed is False
 
 
 def test_router_keeps_exact_brand_websearch_in_candidate_lane_only() -> None:
@@ -105,3 +108,32 @@ def test_router_keeps_query_only_read_only_even_when_fooddb_lookup_is_allowed() 
     assert plan.read_only is True
     assert plan.mutation_allowed is False
     assert plan.decides_logged_or_draft is False
+
+
+def test_router_blocks_raw_text_hint_from_executing_evidence_backends() -> None:
+    plan = build_food_evidence_retriever_route_plan(
+        RetrievalIntent(
+            base_dish="珍珠奶茶",
+            aliases=["珍奶"],
+            brand_hint=None,
+            size_hint=None,
+            modifier_hints=[],
+            listed_items=[],
+            retrieval_goal="generic_anchor_lookup",
+        ),
+        availability=RetrieverBackendAvailability(
+            local_fooddb_index=True,
+            sqlite_fts_index=True,
+            websearch_candidate_lane=True,
+        ),
+        intent_source="raw_text_hint",
+    )
+
+    assert plan.primary_backend == "blocked_no_execution"
+    assert plan.backend_sequence == ()
+    assert plan.retrieval_intent_source == "raw_text_hint"
+    assert plan.manager_owned_intent_required is True
+    assert plan.raw_text_hint_executed is False
+    assert plan.runtime_truth_source == "manager_owned_retrieval_intent_required"
+    assert plan.mutation_allowed is False
+    assert "manager-owned retrieval intent is required before evidence backend execution" in plan.routing_reasons

@@ -9,9 +9,14 @@ from .retrieval_intent import RetrievalIntent
 from .selected_extract_policy import choose_selected_extract_packet
 from .web_search_candidate_producer import produce_web_search_candidates
 from .web_search_packetizer import build_web_search_candidate_packets
-from .websearch_source_policy import classify_websearch_source_candidate
+from .websearch_candidate_classification import (
+    classify_candidate_packet,
+    source_policy_filtered_extract_decision_trace,
+)
+from .websearch_candidate_pipeline_fixtures import (
+    build_default_websearch_pipeline_cases,
+)
 from .websearch_source_policy import build_websearch_source_policy_artifact
-
 
 WEBSEARCH_CANDIDATE_PIPELINE_NON_CLAIMS = [
     "no_live_websearch_call",
@@ -70,6 +75,7 @@ def build_websearch_candidate_pipeline_diagnostic(
                 if classification["extract_candidate_allowed"] is True
             ),
             "classification_counts": _classification_counts(classifications),
+            "source_class_counts": _source_class_counts(classifications),
         },
         "non_claims": list(WEBSEARCH_CANDIDATE_PIPELINE_NON_CLAIMS),
     }
@@ -88,13 +94,13 @@ def _case_result(case: WebSearchPipelineCase) -> dict[str, Any]:
     rechecked_packets = add_hard_recheck_metadata_many(packets)
     extract_decision = choose_selected_extract_packet(rechecked_packets)
     classifications = [
-        _classify_candidate_packet(
+        classify_candidate_packet(
             packet,
             selected_extract_packet_id=extract_decision.selected_search_packet_id,
         )
         for packet in rechecked_packets
     ]
-    extract_decision_trace = _source_policy_filtered_extract_decision_trace(
+    extract_decision_trace = source_policy_filtered_extract_decision_trace(
         extract_decision_trace=extract_decision.to_trace(),
         classifications=classifications,
     )
@@ -140,119 +146,18 @@ def build_websearch_query_plan(intent: RetrievalIntent) -> dict[str, Any]:
     }
 
 
-def _classify_candidate_packet(
-    packet: dict[str, Any],
-    *,
-    selected_extract_packet_id: str | None,
-) -> dict[str, Any]:
-    source_policy = classify_websearch_source_candidate(
-        {
-            "source_url": packet.get("source_url"),
-            "source_class": _source_class_from_packet(packet),
-            "license_status": packet.get("license_status"),
-            "robots_status": packet.get("robots_status"),
-            "identity_confidence": packet.get("identity_confidence"),
-            "serving_basis_candidate": packet.get("serving_basis_candidate"),
-            "nutrition_fields_present": packet.get("nutrition_fields_present"),
-        }
-    )
-    risks = [str(risk) for risk in packet.get("hard_recheck_risks", [])]
-    packet_id = str(packet.get("packet_id") or "")
-    source_quality = str(packet.get("source_quality_label") or "")
-    match_type = str(packet.get("match_type") or "")
-    size_match = str(packet.get("size_or_serving_match") or "")
-    sibling_risk = bool((packet.get("sibling_variant_risk") or {}).get("present"))
-    if source_policy["candidate_class"] == "blocked_source_policy_candidate":
-        candidate_class = "blocked_source_policy_candidate"
-        manager_signal = "source_policy_blocked"
-    elif source_quality == "third_party":
-        candidate_class = "weak_or_unusable_candidate"
-        manager_signal = "source_not_sufficient"
-    elif "wrong_size" in risks or size_match == "different":
-        candidate_class = "near_exact_wrong_size_candidate"
-        manager_signal = "needs_disambiguation"
-    elif sibling_risk or "sibling_variant" in risks or match_type == "related":
-        candidate_class = "near_exact_sibling_candidate"
-        manager_signal = "needs_disambiguation"
-    elif packet_id == selected_extract_packet_id and source_policy["extract_candidate_allowed"] is True:
-        candidate_class = "exact_candidate_for_extract_review"
-        manager_signal = "candidate_review_no_commit"
-    elif match_type == "exact":
-        candidate_class = "exact_candidate_blocked_by_policy"
-        manager_signal = "candidate_review_no_commit"
-    else:
-        candidate_class = "weak_or_unusable_candidate"
-        manager_signal = "source_not_sufficient"
-
-    return {
-        "packet_id": packet_id,
-        "candidate_class": candidate_class,
-        "manager_signal": manager_signal,
-        "extract_candidate_allowed": (
-            packet_id == selected_extract_packet_id
-            and candidate_class == "exact_candidate_for_extract_review"
-            and source_policy["extract_candidate_allowed"] is True
-        ),
-        "runtime_truth_allowed": False,
-        "packet_ready_truth_allowed": False,
-        "requires_later_promotion_path": True,
-        "source_quality_label": source_quality,
-        "match_type": match_type,
-        "size_or_serving_match": size_match,
-        "hard_recheck_risks": risks,
-        "source_policy_block_reasons": list(source_policy["block_reasons"]),
-    }
-
-
-def _source_class_from_packet(packet: dict[str, Any]) -> str:
-    source_quality = str(packet.get("source_quality_label") or "")
-    officialness = str(packet.get("officialness_hint") or "")
-    if source_quality == "third_party" or officialness == "unknown":
-        return "third_party_blog_or_scrape"
-    if officialness == "official":
-        return "official_brand_or_chain_page"
-    return "high_quality_search_candidate"
-
-
-def _source_policy_filtered_extract_decision_trace(
-    *,
-    extract_decision_trace: dict[str, object],
-    classifications: list[dict[str, Any]],
-) -> dict[str, object]:
-    selected_packet_id = str(extract_decision_trace.get("selected_search_packet_id") or "")
-    if not selected_packet_id:
-        return dict(extract_decision_trace)
-
-    selected_classification = next(
-        (
-            classification
-            for classification in classifications
-            if str(classification.get("packet_id") or "") == selected_packet_id
-        ),
-        None,
-    )
-    if (
-        selected_classification is not None
-        and selected_classification.get("extract_candidate_allowed") is True
-    ):
-        return dict(extract_decision_trace)
-
-    return {
-        **extract_decision_trace,
-        "selected_search_packet_id": None,
-        "extract_reason": "source_policy_blocked_selected_extract",
-        "extract_allowed_by_policy": False,
-        "extract_count": 0,
-        "source_policy_block_reasons": list(
-            (selected_classification or {}).get("source_policy_block_reasons") or []
-        ),
-    }
-
-
 def _classification_counts(classifications: Iterable[dict[str, Any]]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for classification in classifications:
         key = str(classification.get("candidate_class") or "unknown")
+        counts[key] = counts.get(key, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _source_class_counts(classifications: Iterable[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for classification in classifications:
+        key = str(classification.get("source_class") or "unknown")
         counts[key] = counts.get(key, 0) + 1
     return dict(sorted(counts.items()))
 
@@ -265,123 +170,7 @@ def _identity_target(intent: RetrievalIntent) -> str:
 
 
 def _default_cases() -> tuple[WebSearchPipelineCase, ...]:
-    milksha_intent = _intent(
-        base_dish="pearl black tea latte",
-        alias="Milksha pearl black tea latte",
-        brand_hint="Milksha",
-    )
-    starbucks_intent = _intent(
-        base_dish="iced latte",
-        alias="Starbucks iced latte large",
-        brand_hint="Starbucks",
-        size_hint="large",
-    )
-    return (
-        WebSearchPipelineCase(
-            case_id="pipeline_milksha_exact",
-            intent=milksha_intent,
-            raw_hits=(
-                _hit(
-                    title="Milksha pearl black tea latte",
-                    url="https://milksha.example/menu/pearl-black-tea-latte",
-                    brand_detected="Milksha",
-                    identity_confidence="high",
-                    raw_ref="raw/websearch/pipeline_milksha_exact.json#0",
-                ),
-            ),
-        ),
-        WebSearchPipelineCase(
-            case_id="pipeline_milksha_sibling",
-            intent=milksha_intent,
-            raw_hits=(
-                _hit(
-                    title="Milksha pearl fresh milk tea",
-                    url="https://milksha.example/menu/pearl-fresh-milk-tea",
-                    brand_detected="Milksha",
-                    identity_confidence="medium",
-                    raw_ref="raw/websearch/pipeline_milksha_sibling.json#0",
-                ),
-            ),
-        ),
-        WebSearchPipelineCase(
-            case_id="pipeline_third_party_weak",
-            intent=milksha_intent,
-            raw_hits=(
-                _hit(
-                    title="Milksha pearl black tea latte calories",
-                    url="https://third-party.example/milksha",
-                    brand_detected="Milksha",
-                    officialness="unknown",
-                    source_quality_label="low",
-                    identity_confidence="high",
-                    raw_ref="raw/websearch/pipeline_third_party_weak.json#0",
-                ),
-            ),
-        ),
-        WebSearchPipelineCase(
-            case_id="pipeline_starbucks_wrong_size",
-            intent=starbucks_intent,
-            raw_hits=(
-                _hit(
-                    title="Starbucks iced latte medium",
-                    url="https://starbucks.example/menu/iced-latte-medium",
-                    brand_detected="Starbucks",
-                    identity_confidence="high",
-                    raw_ref="raw/websearch/pipeline_starbucks_wrong_size.json#0",
-                ),
-            ),
-        ),
-    )
-
-
-def _intent(
-    *,
-    base_dish: str,
-    alias: str,
-    brand_hint: str,
-    size_hint: str | None = None,
-) -> RetrievalIntent:
-    return RetrievalIntent(
-        base_dish=base_dish,
-        aliases=[alias],
-        brand_hint=brand_hint,
-        size_hint=size_hint,
-        modifier_hints=[],
-        listed_items=[],
-        retrieval_goal="exact_brand_lookup",
-    )
-
-
-def _hit(
-    *,
-    title: str,
-    url: str,
-    brand_detected: str,
-    officialness: str = "official",
-    source_quality_label: str = "high",
-    identity_confidence: str = "medium",
-    raw_ref: str,
-) -> dict[str, Any]:
-    return {
-        "url": url,
-        "domain": "example.test",
-        "title": title,
-        "snippet": "deterministic search candidate",
-        "score": 0.93,
-        "officialness": officialness,
-        "source_quality_label": source_quality_label,
-        "brand_detected": brand_detected,
-        "channel_detected": "handmade_foodservice",
-        "serving_basis": "per_cup",
-        "nutrition_fields_present": ["kcal"],
-        "license_status": "public_menu_page",
-        "robots_status": "allowed",
-        "customization_slots_present": ["size"],
-        "identity_confidence": identity_confidence,
-        "applicability_confidence": "medium",
-        "applicability_notes": "deterministic fixture candidate",
-        "raw_ref": raw_ref,
-    }
+    return build_default_websearch_pipeline_cases(case_factory=WebSearchPipelineCase)
 
 
 def _now() -> str:

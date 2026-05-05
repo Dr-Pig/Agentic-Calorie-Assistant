@@ -3,8 +3,6 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-import httpx
-
 from .deepseek_parsing import extract_json_object, extract_text_content
 
 
