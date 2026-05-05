@@ -106,7 +106,6 @@ def test_websearch_candidate_pipeline_builds_offline_query_plan_and_classificati
         "source_policy_block_reasons"
     ]
 
-
 def test_websearch_candidate_pipeline_excludes_raw_hits_and_truth_fields() -> None:
     artifact = build_websearch_candidate_pipeline_diagnostic()
 
