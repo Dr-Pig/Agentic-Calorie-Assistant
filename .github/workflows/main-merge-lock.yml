@@ -1,5 +1,8 @@
 name: main-merge-lock
 
+# Deprecated: official GitHub Merge Queue now owns main promotion.
+# Keep this workflow only as historical fallback tooling; do not trigger it
+# during normal FoodDB / Product Loop development.
 on:
   workflow_dispatch:
     inputs:
