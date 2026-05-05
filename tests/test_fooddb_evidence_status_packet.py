@@ -24,11 +24,13 @@ def _exact_card_payload() -> dict:
 
 
 def _contract_handoff_artifact() -> dict:
-    return json.loads(
-        Path("artifacts/accurate_intake_fooddb_manager_contract_handoff.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    return {
+        "artifact_type": "accurate_intake_fooddb_manager_contract_handoff_v1",
+        "status": "ready_for_manager_contract_owner",
+        "handoff_ready": True,
+        "selected_next_step": "tighten_fooddb_manager_contract_prompt_or_transport",
+        "summary": {"live_seam_status": "provider_contract_blocked"},
+    }
 
 
 def test_fooddb_evidence_status_packet_summarizes_current_fdb_without_runtime_change() -> None:
