@@ -69,6 +69,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "smoke_id": "accurate_intake_product_pages_browser_smoke_v1",
             "status": "pass",
             "browser_executed": True,
+            "local_date": "2026-05-05",
             "chat_page_loaded": True,
             "chat_history_reloaded": True,
             "chat_scroll_behavior_checked": True,
@@ -290,6 +291,19 @@ def test_ui_context_alignment_pack_blocks_stale_body_read_model_values() -> None
     assert "product_pages_browser_smoke.body_read_model_value_mismatch:activity" in artifact["blockers"]
     assert "product_pages_browser_smoke.body_read_model_value_mismatch:goal" in artifact["blockers"]
     assert "product_pages_browser_smoke.body_read_model_value_mismatch:weight_history" in artifact["blockers"]
+
+
+def test_ui_context_alignment_pack_accepts_browser_smoke_local_date_weight_history() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_browser_smoke"]["local_date"] = "2026-05-06"
+    inputs["product_pages_browser_smoke"]["body_plan_read_model_values"]["weight_history"] = (  # type: ignore[index]
+        "2026-05-06 | 70.4 kg"
+    )
+
+    artifact = build_pl_ce_ui_context_alignment_pack_artifact(inputs)
+
+    assert artifact["status"] == "ui_context_alignment_ready_for_human_review"
+    assert "product_pages_browser_smoke.body_read_model_value_mismatch:weight_history" not in artifact["blockers"]
 
 
 def test_ui_context_alignment_pack_blocks_frontend_or_live_truth_overclaims() -> None:
