@@ -113,6 +113,58 @@ def _evidence(**overrides: dict) -> dict:
             "artifact_type": "accurate_intake_review_eval_candidate_pipeline",
             "status": "review_eval_candidate_pipeline_ready",
             "raw_traces_review_input_only": True,
+            "review_candidate_count": 7,
+            "review_candidates": [
+                {
+                    "source_artifact_id": "product_loop_e2e",
+                    "suggested_taxonomy": "evidence_gap",
+                    "human_approval_required": True,
+                    "canonical_eval_promoted": False,
+                    "fooddb_truth_updated": False,
+                },
+                {
+                    "source_artifact_id": "ui_same_truth_contract",
+                    "suggested_taxonomy": "frontend_display_bug",
+                    "human_approval_required": True,
+                    "canonical_eval_promoted": False,
+                    "fooddb_truth_updated": False,
+                },
+                {
+                    "source_artifact_id": "context_quality_pack",
+                    "suggested_taxonomy": "manager_context_gap",
+                    "human_approval_required": True,
+                    "canonical_eval_promoted": False,
+                    "fooddb_truth_updated": False,
+                },
+                {
+                    "source_artifact_id": "contextual_interaction_matrix",
+                    "suggested_taxonomy": "context_conditioned_intent_gap",
+                    "human_approval_required": True,
+                    "canonical_eval_promoted": False,
+                    "fooddb_truth_updated": False,
+                },
+                {
+                    "source_artifact_id": "session_context_carryover_qa_bundle",
+                    "suggested_taxonomy": "session_context_carryover_gap",
+                    "human_approval_required": True,
+                    "canonical_eval_promoted": False,
+                    "fooddb_truth_updated": False,
+                },
+                {
+                    "source_artifact_id": "fixture_packet_emulator",
+                    "suggested_taxonomy": "evidence_gap",
+                    "human_approval_required": True,
+                    "canonical_eval_promoted": False,
+                    "fooddb_truth_updated": False,
+                },
+                {
+                    "source_artifact_id": "fake_provider_tool_loop_smoke",
+                    "suggested_taxonomy": "final_mapping_gap",
+                    "human_approval_required": True,
+                    "canonical_eval_promoted": False,
+                    "fooddb_truth_updated": False,
+                },
+            ],
             "canonical_eval_promoted": False,
             "fooddb_truth_updated": False,
             "ready_for_live_diagnostic_decision": False,
@@ -246,6 +298,65 @@ def test_pl_ce_local_review_pack_blocks_missing_or_overclaimed_evidence_closure_
     assert "fake_provider_tool_loop_smoke_live_llm_invoked" in pack["blockers"]
     assert "review_eval_candidate_pipeline_canonical_eval_promoted" in pack["blockers"]
     assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pl_ce_local_review_pack_requires_context_review_candidate_families() -> None:
+    evidence = _evidence()
+    evidence["review_eval_candidate_pipeline"]["review_candidates"] = [
+        candidate
+        for candidate in evidence["review_eval_candidate_pipeline"]["review_candidates"]
+        if candidate["source_artifact_id"]
+        not in {"contextual_interaction_matrix", "session_context_carryover_qa_bundle"}
+    ]
+
+    pack = build_pl_ce_local_review_decision_pack(evidence)
+
+    assert pack["status"] == "blocked"
+    assert (
+        "review_eval_candidate_pipeline_missing_candidate:contextual_interaction_matrix"
+        in pack["blockers"]
+    )
+    assert (
+        "review_eval_candidate_pipeline_missing_candidate:session_context_carryover_qa_bundle"
+        in pack["blockers"]
+    )
+    assert (
+        "review_eval_candidate_pipeline_contextual_interaction_taxonomy_missing"
+        in pack["blockers"]
+    )
+    assert (
+        "review_eval_candidate_pipeline_session_carryover_taxonomy_missing"
+        in pack["blockers"]
+    )
+
+
+def test_pl_ce_local_review_pack_blocks_review_candidate_promotion() -> None:
+    evidence = _evidence()
+    evidence["review_eval_candidate_pipeline"]["review_candidates"][3][
+        "canonical_eval_promoted"
+    ] = True
+    evidence["review_eval_candidate_pipeline"]["review_candidates"][4][
+        "human_approval_required"
+    ] = False
+    evidence["review_eval_candidate_pipeline"]["review_candidates"][4][
+        "fooddb_truth_updated"
+    ] = True
+
+    pack = build_pl_ce_local_review_decision_pack(evidence)
+
+    assert pack["status"] == "blocked"
+    assert (
+        "review_eval_candidate_pipeline_contextual_interaction_matrix_canonical_eval_promoted"
+        in pack["blockers"]
+    )
+    assert (
+        "review_eval_candidate_pipeline_session_context_carryover_qa_bundle_human_approval_missing"
+        in pack["blockers"]
+    )
+    assert (
+        "review_eval_candidate_pipeline_session_context_carryover_qa_bundle_fooddb_truth_updated"
+        in pack["blockers"]
+    )
 
 
 def test_pl_ce_local_review_pack_script_writes_artifact(tmp_path: Path) -> None:
