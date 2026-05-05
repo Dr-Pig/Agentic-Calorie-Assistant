@@ -82,16 +82,6 @@ def _fixture_response_for_input(provider_input: dict[str, Any]) -> dict[str, Any
             },
             "clarification_question": clarification_question,
             "confidence_notes": "fixture manager decision used only to validate response contract shape",
-            "semantic_source": "fixture_manager_structured_decision",
-            "live_llm_invoked": False,
-            "live_provider_invoked": False,
-            "fooddb_used": False,
-            "web_tavily_used": False,
-            "runtime_truth_changed": False,
-            "mutation_changed": False,
-            "manager_context_packet_schema_changed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
         }
     )
 
@@ -126,12 +116,8 @@ def _response_blockers(
     blockers: list[str] = []
     required_fields = set(REQUIRED_RESPONSE_FIELDS)
     response_fields = set(response)
-    allowed_fixture_fields = {
-        "semantic_source",
-        *FORBIDDEN_TRUTHY_FLAGS,
-    }
     missing = required_fields - response_fields
-    extras = response_fields - required_fields - allowed_fixture_fields
+    extras = response_fields - required_fields
     for field in sorted(missing):
         blockers.append(f"{case_id}.response_missing_field:{field}")
     for field in sorted(extras):
@@ -143,14 +129,34 @@ def _response_blockers(
         blockers.append(f"{case_id}.manager_intent_mismatch")
     if response.get("workflow_effect") != expected.get("workflow_effect"):
         blockers.append(f"{case_id}.workflow_effect_mismatch")
-    if response.get("semantic_source") != "fixture_manager_structured_decision":
-        blockers.append(f"{case_id}.semantic_source_not_fixture_manager")
     mutation_request = _object_dict(response.get("mutation_request"))
+    mutation_fields = set(mutation_request)
+    if mutation_fields != {"requested", "reason"}:
+        for field in sorted({"requested", "reason"} - mutation_fields):
+            blockers.append(f"{case_id}.mutation_request_missing_field:{field}")
+        for field in sorted(mutation_fields - {"requested", "reason"}):
+            blockers.append(f"{case_id}.mutation_request_extra_field:{field}")
+    if not isinstance(mutation_request.get("requested"), bool):
+        blockers.append(f"{case_id}.mutation_request_requested_not_boolean")
+    if not isinstance(mutation_request.get("reason"), str):
+        blockers.append(f"{case_id}.mutation_request_reason_not_string")
     if mutation_request.get("requested") is not False:
         blockers.append(f"{case_id}.mutation_requested")
     target_resolution = _object_dict(response.get("target_resolution"))
+    target_fields = set(target_resolution)
+    if target_fields != {"status", "candidate_ids"}:
+        for field in sorted({"status", "candidate_ids"} - target_fields):
+            blockers.append(f"{case_id}.target_resolution_missing_field:{field}")
+        for field in sorted(target_fields - {"status", "candidate_ids"}):
+            blockers.append(f"{case_id}.target_resolution_extra_field:{field}")
+    if not isinstance(target_resolution.get("status"), str):
+        blockers.append(f"{case_id}.target_resolution_status_not_string")
     sidecar = _object_dict(provider_input.get("manager_context_sidecar"))
     candidate_ids = [str(candidate) for candidate in _list_value(target_resolution.get("candidate_ids"))]
+    if not isinstance(target_resolution.get("candidate_ids"), list):
+        blockers.append(f"{case_id}.target_resolution_candidate_ids_not_array")
+    elif any(not isinstance(candidate, str) for candidate in target_resolution.get("candidate_ids", [])):
+        blockers.append(f"{case_id}.target_resolution_candidate_ids_not_strings")
     if sidecar.get("ambiguity_expected") is True:
         if target_resolution.get("status") != "ambiguous":
             blockers.append(f"{case_id}.ambiguity_not_preserved")
@@ -161,8 +167,12 @@ def _response_blockers(
             blockers.append(f"{case_id}.target_candidate_ids_missing")
     elif candidate_ids:
         blockers.append(f"{case_id}.unexpected_target_candidate_ids")
+    if not (isinstance(response.get("clarification_question"), str) or response.get("clarification_question") is None):
+        blockers.append(f"{case_id}.clarification_question_not_string_or_null")
     if response.get("clarification_question") and sidecar.get("ambiguity_expected") is not True:
         blockers.append(f"{case_id}.unexpected_clarification_question")
+    if not isinstance(response.get("confidence_notes"), str):
+        blockers.append(f"{case_id}.confidence_notes_not_string")
     for flag in FORBIDDEN_TRUTHY_FLAGS:
         if _claim_is_true(response.get(flag)):
             blockers.append(f"{case_id}.{flag}")

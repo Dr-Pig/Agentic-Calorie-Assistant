@@ -49,8 +49,19 @@ def test_context_live_response_contract_dry_run_rejects_schema_extra_fields_and_
     responses[0] = {
         **dict(responses[0]),
         "manager_intent": "food_log_candidate",
-        "mutation_request": {"requested": True, "reason": "bad_live_probe_mutation"},
+        "mutation_request": {
+            "requested": True,
+            "reason": "bad_live_probe_mutation",
+            "unapproved_extra": "not allowed",
+        },
         "unapproved_extra_field": "not allowed",
+    }
+    responses[3] = {
+        **dict(responses[3]),
+        "target_resolution": {
+            **dict(responses[3]["target_resolution"]),
+            "selected_target_id": "boba",
+        },
     }
 
     blocked = build_context_live_response_contract_dry_run_artifact(fixture_responses=responses)
@@ -59,7 +70,11 @@ def test_context_live_response_contract_dry_run_rejects_schema_extra_fields_and_
     assert blocked["status"] == "blocked"
     assert f"{case_id}.manager_intent_mismatch" in blocked["blockers"]
     assert f"{case_id}.mutation_requested" in blocked["blockers"]
+    assert f"{case_id}.mutation_request_extra_field:unapproved_extra" in blocked["blockers"]
     assert f"{case_id}.response_extra_field:unapproved_extra_field" in blocked["blockers"]
+    assert "context_live_004_remove_previous_item.target_resolution_extra_field:selected_target_id" in blocked[
+        "blockers"
+    ]
 
 
 def test_context_live_response_contract_dry_run_rejects_missing_target_or_ambiguity_contract() -> None:
