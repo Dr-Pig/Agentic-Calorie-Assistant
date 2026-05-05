@@ -87,6 +87,8 @@ def test_body_budget_calibration_readiness_artifact_records_preview_and_action_m
     stored_action = artifact["calibration_flow_contract"]["stored_action"]
     assert stored_action["mutation_requires"] == "explicit_accept_on_active_stored_proposal"
     assert stored_action["conflict_status_code"] == 409
+    assert stored_action["unknown_user_status_code"] == 404
+    assert stored_action["user_creation_authorized"] is False
     assert stored_action["body_plan_mutation_authorized_on_accept"] is True
     assert stored_action["ledger_entry_calibration_adjustment_enabled"] is True
     assert "explicit_effect_payload_calibration_adjustment_delta_kcal" in stored_action[

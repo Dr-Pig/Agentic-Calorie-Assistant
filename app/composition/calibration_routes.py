@@ -253,7 +253,9 @@ def stored_calibration_proposal_action(
     request: StoredCalibrationProposalActionRequest,
     db=Depends(get_db),
 ) -> dict[str, object]:
-    user = get_or_create_user(db, request.user_id)
+    user = db.query(User).filter(User.user_id == request.user_id).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="user not found")
     decision = {
         "accept_calibration_proposal": "accepted",
         "defer_calibration_proposal": "dismissed",
