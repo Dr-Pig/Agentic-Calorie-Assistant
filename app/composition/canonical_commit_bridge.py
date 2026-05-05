@@ -2,22 +2,21 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.body.application.body_observation_service import (
-    get_active_body_profile_record,
-    load_body_observation_history,
-    record_body_observation_skeleton,
-    record_body_observation_to_canonical,
-)
+from app.budget.infrastructure.models import LedgerEntryRecord
 from app.composition.canonical_persistence import (
-    CanonicalMealCommitResult,
     CanonicalCommitTarget,
+    CanonicalMealCommitResult,
     commit_meal_payload_to_canonical,
     resolve_canonical_commit_target,
     upsert_budget_adjustment_skeleton,
 )
-from app.budget.infrastructure.models import LedgerEntryRecord
+from app.schemas import (
+    CommitRequestCandidate,
+    CommitVersionReason,
+    EstimatePayload,
+    MealItemPayload,
+)
 from app.shared.infra.models import User
-from app.schemas import CommitRequestCandidate, CommitVersionReason, EstimatePayload, MealItemPayload
 
 
 def build_commit_request_candidate(
