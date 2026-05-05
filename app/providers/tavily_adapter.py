@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from collections.abc import Callable
+from contextlib import asynccontextmanager
+from typing import Any, AsyncIterator
 from urllib.parse import urlparse
 
 import httpx
@@ -23,11 +25,16 @@ class TavilyAdapter:
         *,
         search_profile: TavilyRuntimeSearchProfile | None = None,
         extract_profile: TavilySelectedExtractProfile | None = None,
+        async_client: httpx.AsyncClient | None = None,
+        async_client_factory: Callable[..., httpx.AsyncClient] | None = None,
     ) -> None:
         self.api_key = os.getenv("TAVILY_API_KEY", "")
         self.timeout_seconds = min(int(os.getenv("TAVILY_TIMEOUT_SECONDS", "15")), 15)
         self._search_profile = search_profile or runtime_search_profile()
         self._extract_profile = extract_profile or selected_extract_profile()
+        self._async_client = async_client
+        self._async_client_factory = async_client_factory or httpx.AsyncClient
+        self._owns_client = async_client is None
 
     def readiness(self) -> dict[str, Any]:
         return {"provider": "tavily", "configured": self._is_configured(), "timeout_seconds": self.timeout_seconds}
@@ -189,8 +196,19 @@ class TavilyAdapter:
             )
         return merged
 
-    def _client(self) -> httpx.AsyncClient:
-        return httpx.AsyncClient(timeout=self.timeout_seconds)
+    @asynccontextmanager
+    async def _client(self) -> AsyncIterator[httpx.AsyncClient]:
+        if self._async_client is None:
+            self._async_client = self._async_client_factory(timeout=self.timeout_seconds)
+        yield self._async_client
+
+    async def aclose(self) -> None:
+        if not self._owns_client or self._async_client is None:
+            return
+        close = getattr(self._async_client, "aclose", None)
+        if close is not None:
+            await close()
+        self._async_client = None
 
     def _uses_overridden_search_steps(self) -> bool:
         return (

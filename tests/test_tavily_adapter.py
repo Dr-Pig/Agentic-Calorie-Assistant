@@ -54,6 +54,58 @@ async def test_search_merges_extracted_metadata(monkeypatch: pytest.MonkeyPatch)
     assert row["customization_slots_present"] == ["size", "sugar"]
 
 
+@pytest.mark.asyncio
+async def test_search_candidates_reuse_owned_async_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    created_clients: list[object] = []
+    closed_clients: list[object] = []
+
+    class _FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"results": []}
+
+    class _FakeAsyncClient:
+        def __init__(self, *, timeout: int) -> None:
+            created_clients.append(self)
+
+        async def post(self, url: str, *, json: dict[str, object]) -> _FakeResponse:
+            return _FakeResponse()
+
+        async def aclose(self) -> None:
+            closed_clients.append(self)
+
+    adapter = TavilyAdapter(async_client_factory=_FakeAsyncClient)
+    monkeypatch.setattr(adapter, "_is_configured", lambda: True)
+
+    await adapter.search_candidates("milk tea")
+    await adapter.search_candidates("latte")
+    await adapter.aclose()
+
+    assert len(created_clients) == 1
+    assert closed_clients == created_clients
+
+
+@pytest.mark.asyncio
+async def test_adapter_does_not_close_injected_async_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _InjectedClient:
+        closed = False
+
+        async def post(self, url: str, *, json: dict[str, object]):
+            raise AssertionError("not used")
+
+        async def aclose(self) -> None:
+            self.closed = True
+
+    client = _InjectedClient()
+    adapter = TavilyAdapter(async_client=client)  # type: ignore[arg-type]
+
+    await adapter.aclose()
+
+    assert client.closed is False
+
+
 def test_extract_helpers_classify_fields() -> None:
     adapter = TavilyAdapter()
     raw = "per cup 400 kcal sugar ice protein 3g"
