@@ -6,37 +6,6 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .canonical_body_support import (
-    body_observation_from_record as _body_observation_from_record,
-    ensure_body_plan_skeleton,
-    load_active_body_plan_record,
-    load_active_body_profile_record,
-    load_body_observations,
-    recompute_day_budget_ledger,
-    resolve_active_budget_kcal,
-    resolved_body_observation_time as _resolved_body_observation_time,
-    should_refresh_day_budget_ledger,
-    upsert_observation_skeleton,
-)
-from .canonical_commit_support import (
-    CanonicalCommitTarget,
-    CanonicalMealCommitResult,
-    commit_candidate_from_payload as _commit_candidate_from_payload,
-    get_legacy_mapping_for_meal_log,
-    legacy_resolved_local_date as _legacy_resolved_local_date,
-    legacy_resolved_occurred_at as _legacy_resolved_occurred_at,
-    load_active_meal_version,
-    resolve_canonical_commit_target,
-    resolved_local_date as _resolved_local_date,
-    resolved_occurred_at as _resolved_occurred_at,
-)
-from .canonical_proposal_support import (
-    ensure_proactive_trigger_skeleton,
-    ensure_proposal_artifact_skeleton,
-    ensure_proposal_skeleton,
-)
-from .phase_c_transaction_ports import PhaseCUnitOfWorkPort
-from app.body.infrastructure.models import BodyObservationRecord
 from app.budget.infrastructure.models import LedgerEntryRecord
 from app.intake.infrastructure.models import (
     LegacyMealLogMapRecord,
@@ -44,8 +13,28 @@ from app.intake.infrastructure.models import (
     MealThreadRecord,
     MealVersionRecord,
 )
+from app.schemas import CommitRequestCandidate, EstimatePayload
 from app.shared.infra.models import User
-from app.schemas import CommitRequestCandidate, CommitVersionReason, EstimatePayload
+
+from .canonical_body_support import (
+    recompute_day_budget_ledger,
+    should_refresh_day_budget_ledger,
+)
+from .canonical_commit_support import (
+    CanonicalMealCommitResult,
+    get_legacy_mapping_for_meal_log,
+    resolve_canonical_commit_target,
+)
+from .canonical_commit_support import (
+    commit_candidate_from_payload as _commit_candidate_from_payload,
+)
+from .canonical_commit_support import (
+    resolved_local_date as _resolved_local_date,
+)
+from .canonical_commit_support import (
+    resolved_occurred_at as _resolved_occurred_at,
+)
+from .phase_c_transaction_ports import PhaseCUnitOfWorkPort
 
 
 class _SQLAlchemyPhaseCUnitOfWork(PhaseCUnitOfWorkPort):
@@ -179,6 +168,29 @@ def _candidate_with_item_removal_totals(db: Session, candidate: CommitRequestCan
     )
 
 
+def _item_record_from_existing_item(
+    version_id: int,
+    item_index: int,
+    old_item: MealItemRecord,
+) -> MealItemRecord:
+    return MealItemRecord(
+        meal_version_id=version_id,
+        item_index=item_index,
+        name=old_item.name,
+        quantity_hint=old_item.quantity_hint,
+        source=old_item.source,
+        evidence_role=old_item.evidence_role,
+        estimate_basis=old_item.estimate_basis,
+        confidence_tier=old_item.confidence_tier,
+        estimated_kcal=old_item.estimated_kcal,
+        protein_g=old_item.protein_g,
+        carb_g=old_item.carb_g,
+        fat_g=old_item.fat_g,
+        evidence_ids_json=list(old_item.evidence_ids_json or []),
+        classification_json=dict(old_item.classification_json or {}),
+    )
+
+
 def _item_records_for_candidate(
     db: Session,
     *,
@@ -210,22 +222,7 @@ def _item_records_for_candidate(
             if not remaining_items:
                 raise ValueError("item_removal_cannot_empty_meal_thread")
             return [
-                MealItemRecord(
-                    meal_version_id=version_id,
-                    item_index=new_index,
-                    name=old_item.name,
-                    quantity_hint=old_item.quantity_hint,
-                    source=old_item.source,
-                    evidence_role=old_item.evidence_role,
-                    estimate_basis=old_item.estimate_basis,
-                    confidence_tier=old_item.confidence_tier,
-                    estimated_kcal=old_item.estimated_kcal,
-                    protein_g=old_item.protein_g,
-                    carb_g=old_item.carb_g,
-                    fat_g=old_item.fat_g,
-                    evidence_ids_json=list(old_item.evidence_ids_json or []),
-                    classification_json=dict(old_item.classification_json or {}),
-                )
+                _item_record_from_existing_item(version_id, new_index, old_item)
                 for new_index, old_item in enumerate(remaining_items)
             ]
         replacements = list(candidate.items)
@@ -236,24 +233,7 @@ def _item_records_for_candidate(
             if old_item.id == target_item.id:
                 records.append(_item_record_from_candidate_item(version_id, new_index, replacements[0]))
             else:
-                records.append(
-                    MealItemRecord(
-                        meal_version_id=version_id,
-                        item_index=new_index,
-                        name=old_item.name,
-                        quantity_hint=old_item.quantity_hint,
-                        source=old_item.source,
-                        evidence_role=old_item.evidence_role,
-                        estimate_basis=old_item.estimate_basis,
-                        confidence_tier=old_item.confidence_tier,
-                        estimated_kcal=old_item.estimated_kcal,
-                        protein_g=old_item.protein_g,
-                        carb_g=old_item.carb_g,
-                        fat_g=old_item.fat_g,
-                        evidence_ids_json=list(old_item.evidence_ids_json or []),
-                        classification_json=dict(old_item.classification_json or {}),
-                    )
-                )
+                records.append(_item_record_from_existing_item(version_id, new_index, old_item))
         return records
     if source_payload is not None:
         return _item_records_from_payload(version_id, source_payload)
