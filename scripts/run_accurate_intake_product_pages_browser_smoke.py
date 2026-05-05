@@ -56,6 +56,9 @@ REQUIRED_FETCH_METHODS = {
     "/weight/observation": "POST",
     "/onboarding/bootstrap": "POST",
     "/body-plan/manual-daily-target": "POST",
+    "/today/deficit-summary": "GET",
+    "/today/weekly-progress": "GET",
+    "/today/effective-budget": "GET",
 }
 FORBIDDEN_VISIBLE_TERMS = ("trace", "debug", "last payload", "last turn trace", "status:")
 
@@ -118,6 +121,10 @@ def _base_report(
         "body_manual_target_saved": False,
         "body_plan_readback_checked": False,
         "body_manual_target_read_model_rendered": False,
+        "body_deficit_summary_rendered": False,
+        "body_weekly_progress_rendered": False,
+        "body_effective_budget_rendered": False,
+        "body_bodybudget_read_model_fetches_checked": False,
         "today_manual_target_readback_checked": False,
         "body_no_debug_trace": False,
         "desktop_no_overflow": False,
@@ -699,6 +706,22 @@ def _run_browser_sequence(
                 timeout=timeout_ms,
             )
             body.wait_for_function(
+                """() => document.querySelector("#deficit-active-target")?.textContent?.trim() === "1550 kcal" """,
+                timeout=timeout_ms,
+            )
+            body.wait_for_function(
+                """() => document.querySelector("#deficit-remaining")?.textContent?.trim() === "1150 kcal" """,
+                timeout=timeout_ms,
+            )
+            body.wait_for_function(
+                """() => document.querySelector("#effective-budget")?.textContent?.trim() === "1550 kcal" """,
+                timeout=timeout_ms,
+            )
+            body.wait_for_function(
+                """() => (document.querySelector("#weekly-progress-list")?.textContent || "").includes("target") """,
+                timeout=timeout_ms,
+            )
+            body.wait_for_function(
                 """(expected) => (document.querySelector("#weight-history")?.textContent || "").includes(expected) """,
                 arg=f"{local_date} | 70.4 kg",
                 timeout=timeout_ms,
@@ -712,6 +735,16 @@ def _run_browser_sequence(
                 "activity": body.locator("#plan-activity").inner_text(timeout=timeout_ms).strip(),
                 "goal": body.locator("#plan-goal").inner_text(timeout=timeout_ms).strip(),
                 "weight_history": body.locator("#weight-history").inner_text(timeout=timeout_ms).strip(),
+                "deficit_active_target": body.locator("#deficit-active-target").inner_text(timeout=timeout_ms).strip(),
+                "deficit_consumed": body.locator("#deficit-consumed").inner_text(timeout=timeout_ms).strip(),
+                "deficit_remaining": body.locator("#deficit-remaining").inner_text(timeout=timeout_ms).strip(),
+                "deficit_latest_weight": body.locator("#deficit-latest-weight").inner_text(timeout=timeout_ms).strip(),
+                "weekly_deficit": body.locator("#weekly-deficit").inner_text(timeout=timeout_ms).strip(),
+                "weekly_weight_delta": body.locator("#weekly-weight-delta").inner_text(timeout=timeout_ms).strip(),
+                "weekly_logged_days": body.locator("#weekly-logged-days").inner_text(timeout=timeout_ms).strip(),
+                "effective_budget": body.locator("#effective-budget").inner_text(timeout=timeout_ms).strip(),
+                "effective_adjustment": body.locator("#effective-adjustment").inner_text(timeout=timeout_ms).strip(),
+                "effective_base": body.locator("#effective-base").inner_text(timeout=timeout_ms).strip(),
             }
             result["body_plan_read_model_values"] = body_plan_values
             result["body_plan_read_model_fields_rendered"] = (
@@ -726,6 +759,31 @@ def _run_browser_sequence(
                 "weight_history"
             ]
             result["body_manual_target_read_model_rendered"] = True
+            result["body_deficit_summary_rendered"] = (
+                body_plan_values["deficit_active_target"] == "1550 kcal"
+                and body_plan_values["deficit_consumed"] == "400 kcal"
+                and body_plan_values["deficit_remaining"] == "1150 kcal"
+                and body_plan_values["deficit_latest_weight"] == "70.4 kg"
+            )
+            result["body_weekly_progress_rendered"] = (
+                body_plan_values["weekly_deficit"] != "--"
+                and body_plan_values["weekly_weight_delta"] == "0 kg"
+                and body_plan_values["weekly_logged_days"] == "1"
+            )
+            result["body_effective_budget_rendered"] = (
+                body_plan_values["effective_budget"] == "1550 kcal"
+                and body_plan_values["effective_adjustment"] == "0 kcal"
+                and body_plan_values["effective_base"] == "1550 kcal"
+            )
+            body_fetch_urls = [
+                str(item.get("url") or "")
+                for item in _capture_fetches(body)
+                if isinstance(item, dict)
+            ]
+            result["body_bodybudget_read_model_fetches_checked"] = all(
+                any(endpoint in url for url in body_fetch_urls)
+                for endpoint in ("/today/deficit-summary", "/today/weekly-progress", "/today/effective-budget")
+            )
             body_text_after = body.locator("body").inner_text(timeout=timeout_ms)
             result["body_no_debug_trace"] = _is_visible_product_text_clean(body_text_after)
             result["fetch_sequence"].extend(_capture_fetches(body))
@@ -861,6 +919,13 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("body_manual_target_saved", "body_manual_target_not_saved")
     require_true("body_plan_readback_checked", "body_plan_readback_not_checked")
     require_true("body_manual_target_read_model_rendered", "body_manual_target_read_model_not_rendered")
+    require_true("body_deficit_summary_rendered", "body_deficit_summary_not_rendered")
+    require_true("body_weekly_progress_rendered", "body_weekly_progress_not_rendered")
+    require_true("body_effective_budget_rendered", "body_effective_budget_not_rendered")
+    require_true(
+        "body_bodybudget_read_model_fetches_checked",
+        "body_bodybudget_read_model_fetches_not_checked",
+    )
     require_true("today_manual_target_readback_checked", "today_manual_target_readback_not_checked")
     require_true("body_no_debug_trace", "body_debug_trace_leaked")
     require_true("desktop_no_overflow", "desktop_overflow_detected")
@@ -896,6 +961,16 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         "target_weight": "65 kg",
         "activity": "light",
         "goal": "Lose weight",
+        "deficit_active_target": "1550 kcal",
+        "deficit_consumed": "400 kcal",
+        "deficit_remaining": "1150 kcal",
+        "deficit_latest_weight": "70.4 kg",
+        "weekly_deficit": "1883 kcal",
+        "weekly_weight_delta": "0 kg",
+        "weekly_logged_days": "1",
+        "effective_budget": "1550 kcal",
+        "effective_adjustment": "0 kcal",
+        "effective_base": "1550 kcal",
     }
     for field, expected_value in expected_body_values.items():
         if body_values and body_values.get(field) != expected_value:

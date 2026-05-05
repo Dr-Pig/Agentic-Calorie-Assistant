@@ -127,6 +127,11 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
     }
+    .budget-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
     .metric {
       border: 1px solid rgba(23, 33, 29, 0.10);
       border-radius: 8px;
@@ -199,8 +204,11 @@
       background: var(--surface);
       overflow-wrap: anywhere;
     }
+    .list .muted-row {
+      color: var(--muted);
+    }
     @media (max-width: 860px) {
-      .topbar, .page-header, .grid, .summary-grid, form {
+      .topbar, .page-header, .grid, .summary-grid, .budget-grid, form {
         display: grid;
         grid-template-columns: 1fr;
       }
@@ -327,6 +335,39 @@
         </form>
       </article>
     </section>
+    <section class="grid" id="body-budget-dashboard">
+      <article class="card" id="deficit-summary-card">
+        <h2>Body budget</h2>
+        <p class="section-intro">Read-only daily deficit and weight snapshot from backend read models.</p>
+        <div class="budget-grid">
+          <div class="metric"><strong>Active target</strong><span id="deficit-active-target">--</span></div>
+          <div class="metric"><strong>Consumed</strong><span id="deficit-consumed">--</span></div>
+          <div class="metric"><strong>Remaining</strong><span id="deficit-remaining">--</span></div>
+          <div class="metric"><strong>Latest weight</strong><span id="deficit-latest-weight">--</span></div>
+        </div>
+        <p id="deficit-status" class="status">Body budget not loaded yet.</p>
+      </article>
+      <article class="card" id="effective-budget-card">
+        <h2>Effective budget</h2>
+        <p class="section-intro">Backend effective budget and adjustment-layer readback.</p>
+        <div class="summary-grid">
+          <div class="metric"><strong>Effective</strong><span id="effective-budget">--</span></div>
+          <div class="metric"><strong>Adjustment</strong><span id="effective-adjustment">--</span></div>
+          <div class="metric"><strong>Base</strong><span id="effective-base">--</span></div>
+        </div>
+        <p id="effective-status" class="status">Effective budget not loaded yet.</p>
+      </article>
+    </section>
+    <section class="card" id="weekly-progress-card">
+      <h2>Seven-day progress</h2>
+      <p class="section-intro">Backend weekly rows for the selected date window.</p>
+      <div class="summary-grid">
+        <div class="metric"><strong>Estimated deficit</strong><span id="weekly-deficit">--</span></div>
+        <div class="metric"><strong>Weight change</strong><span id="weekly-weight-delta">--</span></div>
+        <div class="metric"><strong>Logged days</strong><span id="weekly-logged-days">--</span></div>
+      </div>
+      <ul id="weekly-progress-list" class="list"></ul>
+    </section>
     <section class="card">
       <h2>Weight history</h2>
       <ul id="weight-history" class="list"></ul>
@@ -339,7 +380,10 @@
       weightHistory: "/weight/observations",
       weightObservation: "/weight/observation",
       onboarding: "/onboarding/bootstrap",
-      manualTarget: "/body-plan/manual-daily-target"
+      manualTarget: "/body-plan/manual-daily-target",
+      deficitSummary: "/today/deficit-summary",
+      weeklyProgress: "/today/weekly-progress",
+      effectiveBudget: "/today/effective-budget"
     };
     const todayIso = () => new Date().toISOString().slice(0, 10);
     const el = (id) => document.getElementById(id);
@@ -407,6 +451,50 @@
       writeText("plan-goal", labelFor(plan.goal_type));
       el("body-status").textContent = isActive ? "Plan loaded." : "Set up your body plan to see targets.";
     }
+    function renderDeficitSummary(payload) {
+      writeText("deficit-active-target", payload.active_daily_target_kcal, " kcal");
+      writeText("deficit-consumed", payload.consumed_kcal, " kcal");
+      writeText("deficit-remaining", payload.remaining_kcal, " kcal");
+      writeText("deficit-latest-weight", payload.latest_weight_kg, " kg");
+      el("deficit-status").textContent = payload.read_only ? "Read-only daily body budget loaded." : "Body budget unavailable.";
+    }
+    function renderWeeklyProgress(payload) {
+      writeText("weekly-deficit", payload.estimated_weekly_deficit_kcal, " kcal");
+      writeText("weekly-weight-delta", payload.weight_delta_kg, " kg");
+      writeText("weekly-logged-days", payload.logged_day_count);
+      const list = el("weekly-progress-list");
+      list.innerHTML = "";
+      const rows = Array.isArray(payload.days) ? payload.days : [];
+      if (!rows.length) {
+        const empty = document.createElement("li");
+        empty.className = "muted-row";
+        empty.textContent = "No weekly read-model rows available.";
+        list.append(empty);
+        return;
+      }
+      for (const day of rows) {
+        const item = document.createElement("li");
+        item.textContent = `${day.local_date || "--"} | target ${day.active_daily_target_kcal ?? "--"} kcal | consumed ${day.consumed_kcal ?? "--"} kcal | remaining ${day.remaining_kcal ?? "--"} kcal`;
+        list.append(item);
+      }
+    }
+    function renderEffectiveBudget(payload) {
+      writeText("effective-budget", payload.runtime_effective_budget_kcal, " kcal");
+      writeText("effective-adjustment", payload.runtime_adjustment_total_kcal, " kcal");
+      writeText("effective-base", payload.base_budget_kcal, " kcal");
+      el("effective-status").textContent = payload.read_only ? "Read-only effective budget loaded." : "Effective budget unavailable.";
+    }
+    async function loadBodyBudget() {
+      const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() }).toString();
+      const [deficit, weekly, effective] = await Promise.all([
+        requestJson(`${endpoints.deficitSummary}?${query}`),
+        requestJson(`${endpoints.weeklyProgress}?${query}`),
+        requestJson(`${endpoints.effectiveBudget}?${query}`)
+      ]);
+      renderDeficitSummary(deficit);
+      renderWeeklyProgress(weekly);
+      renderEffectiveBudget(effective);
+    }
     function renderWeights(payload) {
       const list = el("weight-history");
       list.innerHTML = "";
@@ -430,6 +518,7 @@
       renderPlan(plan);
       const history = await requestJson(`${endpoints.weightHistory}?${new URLSearchParams({ user_id: userId() }).toString()}`);
       renderWeights(history);
+      await loadBodyBudget();
     }
     el("weight-form").addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -467,6 +556,7 @@
         })
       });
       renderPlan(payload.active_body_plan || {});
+      await loadBodyBudget();
       el("body-status").textContent = `Plan saved${payload.target_kcal == null ? "" : `: ${payload.target_kcal} kcal target`}.`;
     });
     el("manual-target-form").addEventListener("submit", async (event) => {
@@ -487,11 +577,13 @@
         })
       });
       renderPlan(payload.active_body_plan || {});
+      await loadBodyBudget();
       el("body-status").textContent = `Manual daily target saved${payload.current_budget?.budget_kcal == null ? "" : `: ${payload.current_budget.budget_kcal} kcal`}.`;
     });
     el("local-date").addEventListener("change", () => {
       updateCurrentUrl();
       updateNavigationLinks();
+      loadBody().catch((error) => { el("body-status").textContent = `Could not load body plan: ${error.message}`; });
     });
     el("user-id").addEventListener("change", () => {
       updateCurrentUrl();

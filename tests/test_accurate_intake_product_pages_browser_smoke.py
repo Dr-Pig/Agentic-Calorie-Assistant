@@ -52,6 +52,10 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "body_manual_target_saved": True,
         "body_plan_readback_checked": True,
         "body_manual_target_read_model_rendered": True,
+        "body_deficit_summary_rendered": True,
+        "body_weekly_progress_rendered": True,
+        "body_effective_budget_rendered": True,
+        "body_bodybudget_read_model_fetches_checked": True,
         "today_manual_target_readback_checked": True,
         "body_no_debug_trace": True,
         "desktop_no_overflow": True,
@@ -76,6 +80,16 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "activity": "light",
             "goal": "Lose weight",
             "weight_history": f"{local_date} | 70.4 kg",
+            "deficit_active_target": "1550 kcal",
+            "deficit_consumed": "400 kcal",
+            "deficit_remaining": "1150 kcal",
+            "deficit_latest_weight": "70.4 kg",
+            "weekly_deficit": "1883 kcal",
+            "weekly_weight_delta": "0 kg",
+            "weekly_logged_days": "1",
+            "effective_budget": "1550 kcal",
+            "effective_adjustment": "0 kcal",
+            "effective_base": "1550 kcal",
         },
         "browser": {
             "fetch_sequence": [
@@ -104,6 +118,9 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
                     "method": "POST",
                     "body": f'{{"user_id":"product-pages","local_date":"{local_date}","source":"user_ui"}}',
                 },
+                {"url": f"/today/deficit-summary?user_id=product-pages&local_date={local_date}", "method": "GET"},
+                {"url": f"/today/weekly-progress?user_id=product-pages&local_date={local_date}", "method": "GET"},
+                {"url": f"/today/effective-budget?user_id=product-pages&local_date={local_date}", "method": "GET"},
             ],
             "storage": {"localStorageKeys": [], "sessionStorageKeys": []},
             "product_page_text": "Chat Today Body",
@@ -210,6 +227,10 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     report["body_plan_read_model_fields_rendered"] = False
     report["body_latest_weight_rendered_from_backend"] = False
     report["body_manual_target_read_model_rendered"] = False
+    report["body_deficit_summary_rendered"] = False
+    report["body_weekly_progress_rendered"] = False
+    report["body_effective_budget_rendered"] = False
+    report["body_bodybudget_read_model_fetches_checked"] = False
     report["today_manual_target_readback_checked"] = False
 
     status, blockers = module._validate(report)
@@ -225,6 +246,10 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     assert "body_plan_read_model_fields_not_rendered" in blockers
     assert "body_latest_weight_not_rendered_from_backend" in blockers
     assert "body_manual_target_read_model_not_rendered" in blockers
+    assert "body_deficit_summary_not_rendered" in blockers
+    assert "body_weekly_progress_not_rendered" in blockers
+    assert "body_effective_budget_not_rendered" in blockers
+    assert "body_bodybudget_read_model_fetches_not_checked" in blockers
     assert "today_manual_target_readback_not_checked" in blockers
 
 
