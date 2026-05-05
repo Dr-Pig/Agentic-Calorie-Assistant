@@ -127,6 +127,15 @@ def test_body_budget_calibration_readiness_artifact_records_preview_and_action_m
     assert estimate_preview["raw_text_authorized_proposal_persistence"] is False
     assert estimate_preview["manager_provider_invoked"] is False
     assert "calibration_preview_requested" in estimate_preview["requires"]
+    assert estimate_preview["surfaces_proposal_response"] is True
+    assert "reply_text" not in estimate_preview["proposal_response_fields"]
+    assert "top_option" not in estimate_preview["proposal_response_fields"]
+    assert "backup_options" not in estimate_preview["proposal_response_fields"]
+    assert "proposal_cards" in estimate_preview["proposal_response_fields"]
+    assert "quick_actions" in estimate_preview["proposal_response_fields"]
+    assert "proposal_container_id" in estimate_preview["proposal_response_fields"]
+    assert "stored_action_required" in estimate_preview["proposal_response_fields"]
+    assert "raw_text_authorized_mutation" in estimate_preview["proposal_response_fields"]
     estimate_bridge = artifact["calibration_flow_contract"]["estimate_route_action_bridge"]
     assert estimate_bridge["route"] == "/estimate"
     assert estimate_bridge["mode"] == "calibration_action"
