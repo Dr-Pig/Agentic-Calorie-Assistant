@@ -13,6 +13,7 @@ REQUIRED_EVIDENCE = (
     "local_dogfood_data_hygiene",
     "pre_live_decision_pack",
     "pl_ce_local_review_decision_pack",
+    "context_live_diagnostic_case_matrix",
     "mvp_gate",
     "phase_c_gate",
 )
@@ -25,6 +26,7 @@ EXPECTED_STATUS_BY_GROUP = {
     "local_dogfood_data_hygiene": "pass",
     "pre_live_decision_pack": "generated",
     "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
+    "context_live_diagnostic_case_matrix": "pass",
     "mvp_gate": "pass",
     "phase_c_gate": "pass",
 }
@@ -72,7 +74,13 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
         if payload.get("web_ready") is True:
             blockers.append("readiness overclaim")
 
-        if _truthy_claim(payload, "live_provider_called", "live_provider_used", "live_llm_invoked"):
+        if _truthy_claim(
+            payload,
+            "live_provider_called",
+            "live_provider_used",
+            "live_provider_invoked",
+            "live_llm_invoked",
+        ):
             blockers.append("live provider used")
 
         if _truthy_claim(
@@ -123,11 +131,15 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
             payload.get("ready_for_fdb_integration") is True
             or payload.get("fooddb_truth_updated") is True
             or payload.get("fooddb_evidence_used") is True
+            or payload.get("fooddb_used") is True
             or payload.get("real_fooddb_pass_claimed") is True
             or payload.get("fooddb_schema_changed") is True
             or payload.get("food_evidence_promotion_policy_changed") is True
         ):
             blockers.append("FoodDB overclaim")
+
+        if group_id == "context_live_diagnostic_case_matrix" and payload.get("plan_only") is not True:
+            blockers.append("context live case matrix not plan-only")
 
         if payload.get("production_selected") is True:
             blockers.append("readiness overclaim")
