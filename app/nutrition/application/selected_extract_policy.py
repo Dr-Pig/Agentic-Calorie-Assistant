@@ -114,6 +114,9 @@ def _source_policy_for_packet(packet: dict[str, object]) -> dict[str, object]:
 
 
 def _source_class_from_packet(packet: dict[str, object]) -> str:
+    explicit_source_class = str(packet.get("source_class_hint") or "").strip().lower()
+    if explicit_source_class:
+        return explicit_source_class
     source_quality = str(packet.get("source_quality_label") or "").strip().lower()
     officialness = str(packet.get("officialness_hint") or "").strip().lower()
     if source_quality == "third_party" or officialness == "unknown":
