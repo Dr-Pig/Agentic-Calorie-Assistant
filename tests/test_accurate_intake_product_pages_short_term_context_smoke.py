@@ -9,6 +9,7 @@ from scripts import run_accurate_intake_product_pages_short_term_context_smoke a
 
 def _passing_report() -> dict[str, object]:
     return {
+        "local_date": "2026-05-05",
         "browser_executed": True,
         "browser_reload_checked": True,
         "fixture_manager_used": True,
@@ -229,7 +230,6 @@ def test_product_pages_short_term_context_validator_requires_fetches_and_product
 
 def test_product_pages_short_term_context_validator_requires_two_browser_posts_with_selected_date() -> None:
     report = _passing_report()
-    report["local_date"] = "2026-05-05"
     report["browser"]["fetch_sequence"] = [
         {"url": "/accurate-intake/chat-history?user_id=short-term-context", "method": "GET"},
         {
@@ -245,4 +245,14 @@ def test_product_pages_short_term_context_validator_requires_two_browser_posts_w
 
     assert status == "fail"
     assert "estimate_post_missing:followup_answer" in blockers
+    assert "estimate_post_missing_selected_local_date" in blockers
+
+
+def test_product_pages_short_term_context_validator_rejects_stale_report_date() -> None:
+    report = _passing_report()
+    report["local_date"] = "2026-05-06"
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
     assert "estimate_post_missing_selected_local_date" in blockers
