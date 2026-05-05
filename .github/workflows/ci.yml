@@ -454,6 +454,8 @@ jobs:
             artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json
             artifacts/accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json
             artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json
+            artifacts/accurate_intake_context_live_provider_input_preflight_ci.json
+            artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json
             artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json
             artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json
             artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json
