@@ -121,6 +121,62 @@ def _overclaim_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         blockers.append("context_quality_pack_runtime_trace_input_missing")
     if group_id == "context_quality_pack" and payload.get("short_term_context_runtime_replay_checked") is not True:
         blockers.append("context_quality_pack_short_term_runtime_replay_missing")
+    if group_id == "review_eval_candidate_pipeline":
+        candidates = payload.get("review_candidates")
+        if not isinstance(candidates, list):
+            blockers.append("review_eval_candidate_pipeline_candidates_missing")
+        else:
+            candidate_ids = {
+                str(candidate.get("source_artifact_id") or "")
+                for candidate in candidates
+                if isinstance(candidate, dict)
+            }
+            required_candidate_ids = {
+                "contextual_interaction_matrix",
+                "session_context_carryover_qa_bundle",
+            }
+            missing_candidate_ids = sorted(required_candidate_ids - candidate_ids)
+            blockers.extend(
+                f"review_eval_candidate_pipeline_missing_candidate:{candidate_id}"
+                for candidate_id in missing_candidate_ids
+            )
+            taxonomy_by_id = {
+                str(candidate.get("source_artifact_id") or ""): str(
+                    candidate.get("suggested_taxonomy") or ""
+                )
+                for candidate in candidates
+                if isinstance(candidate, dict)
+            }
+            if (
+                taxonomy_by_id.get("contextual_interaction_matrix")
+                != "context_conditioned_intent_gap"
+            ):
+                blockers.append(
+                    "review_eval_candidate_pipeline_contextual_interaction_taxonomy_missing"
+                )
+            if (
+                taxonomy_by_id.get("session_context_carryover_qa_bundle")
+                != "session_context_carryover_gap"
+            ):
+                blockers.append(
+                    "review_eval_candidate_pipeline_session_carryover_taxonomy_missing"
+                )
+            for candidate in candidates:
+                if not isinstance(candidate, dict):
+                    continue
+                candidate_id = str(candidate.get("source_artifact_id") or "unknown")
+                if candidate.get("human_approval_required") is not True:
+                    blockers.append(
+                        f"review_eval_candidate_pipeline_{candidate_id}_human_approval_missing"
+                    )
+                if candidate.get("canonical_eval_promoted") is True:
+                    blockers.append(
+                        f"review_eval_candidate_pipeline_{candidate_id}_canonical_eval_promoted"
+                    )
+                if candidate.get("fooddb_truth_updated") is True:
+                    blockers.append(
+                        f"review_eval_candidate_pipeline_{candidate_id}_fooddb_truth_updated"
+                    )
     return blockers
 
 
