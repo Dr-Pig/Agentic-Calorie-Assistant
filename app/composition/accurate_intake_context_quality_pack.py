@@ -39,6 +39,10 @@ def _int_value(value: Any) -> int:
         return 0
 
 
+def _list_value(value: Any) -> list[Any]:
+    return list(value) if isinstance(value, list) else []
+
+
 def _overclaim_blockers(artifact_id: str, payload: dict[str, Any]) -> list[str]:
     return [
         f"{artifact_id}.{flag}"
@@ -113,7 +117,11 @@ def _fake_provider_blockers(payload: dict[str, Any]) -> list[str]:
     summary = _object_dict(payload.get("summary"))
     if payload.get("manager_handoff_matrix_checked") is not True:
         blockers.append("fake_provider_context_smoke.manager_handoff_matrix_missing")
-    if _int_value(summary.get("manager_handoff_scenario_count")) < 6:
+    scenario_count = _int_value(summary.get("manager_handoff_scenario_count"))
+    actual_scenario_count = len(_list_value(payload.get("manager_handoff_scenarios")))
+    if scenario_count != actual_scenario_count:
+        blockers.append("fake_provider_context_smoke.manager_handoff_scenario_count_mismatch")
+    if scenario_count < 6:
         blockers.append("fake_provider_context_smoke.manager_handoff_scenario_count_too_low")
     if _int_value(summary.get("ambiguous_back_reference_scenarios")) < 1:
         blockers.append("fake_provider_context_smoke.ambiguous_back_reference_missing")
