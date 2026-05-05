@@ -18,6 +18,7 @@ REQUIRED_PRE_LIVE_EVIDENCE = (
     "pl_ce_local_review_decision_pack",
     "context_live_diagnostic_case_matrix",
     "context_live_diagnostic_anti_overfit_guard",
+    "context_live_provider_input_preflight",
 )
 
 _EXPECTED_STATUS_BY_GROUP = {
@@ -32,6 +33,7 @@ _EXPECTED_STATUS_BY_GROUP = {
     "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
     "context_live_diagnostic_case_matrix": "pass",
     "context_live_diagnostic_anti_overfit_guard": "pass",
+    "context_live_provider_input_preflight": "pass",
 }
 
 
@@ -47,6 +49,8 @@ def _evidence_missing(group_id: str, payload: dict[str, Any]) -> bool:
     if group_id == "context_live_diagnostic_case_matrix" and payload.get("plan_only") is not True:
         return True
     if group_id == "context_live_diagnostic_anti_overfit_guard" and payload.get("plan_only") is not True:
+        return True
+    if group_id == "context_live_provider_input_preflight" and payload.get("plan_only") is not True:
         return True
     return False
 
@@ -120,6 +124,36 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
             blockers.append("context_live_diagnostic_anti_overfit_guard_compound_case_missing")
         if int(summary.get("ambiguity_cases") or 0) < 1:
             blockers.append("context_live_diagnostic_anti_overfit_guard_ambiguity_case_missing")
+    if group_id == "context_live_provider_input_preflight":
+        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        if payload.get("plan_only") is not True:
+            blockers.append("context_live_provider_input_preflight_plan_only_not_true")
+        if payload.get("fixture_only") is not True:
+            blockers.append("context_live_provider_input_preflight_fixture_only_not_true")
+        if payload.get("provider_call_ready") is not False:
+            blockers.append("context_live_provider_input_preflight_provider_call_ready")
+        if payload.get("human_approval_required_before_live_provider") is not True:
+            blockers.append(
+                "context_live_provider_input_preflight_human_approval_before_live_missing"
+            )
+        if payload.get("fixed_case_matrix_used") is not True:
+            blockers.append("context_live_provider_input_preflight_fixed_case_matrix_missing")
+        if payload.get("response_schema_strict") is not True:
+            blockers.append("context_live_provider_input_preflight_response_schema_not_strict")
+        if payload.get("deterministic_selected_intent") is not False:
+            blockers.append("context_live_provider_input_preflight_deterministic_selected_intent")
+        if payload.get("raw_text_intent_router_used") is not False:
+            blockers.append("context_live_provider_input_preflight_raw_text_intent_router_used")
+        if int(summary.get("case_count") or 0) < 10:
+            blockers.append("context_live_provider_input_preflight_case_count_too_low")
+        if int(summary.get("blocked_input_count") or 0) != 0:
+            blockers.append("context_live_provider_input_preflight_blocked_input_count_nonzero")
+        if int(summary.get("strict_schema_input_count") or 0) < 10:
+            blockers.append("context_live_provider_input_preflight_strict_schema_count_too_low")
+        if int(summary.get("target_candidate_inputs") or 0) < 1:
+            blockers.append("context_live_provider_input_preflight_target_candidate_inputs_missing")
+        if int(summary.get("pending_pin_inputs") or 0) < 1:
+            blockers.append("context_live_provider_input_preflight_pending_pin_inputs_missing")
     return blockers
 
 
