@@ -171,6 +171,9 @@ def _classify_candidate_packet(
     elif source_quality == "third_party":
         candidate_class = "weak_or_unusable_candidate"
         manager_signal = "source_not_sufficient"
+    elif source_policy["block_reasons"]:
+        candidate_class = "blocked_source_policy_candidate"
+        manager_signal = "source_policy_blocked"
     elif "wrong_size" in risks or size_match == "different":
         candidate_class = "near_exact_wrong_size_candidate"
         manager_signal = "needs_disambiguation"
@@ -436,6 +439,33 @@ def _default_cases() -> tuple[WebSearchPipelineCase, ...]:
                     brand_detected="Milksha",
                     identity_confidence="high",
                     raw_ref="raw/websearch/pipeline_modifier_missing.json#0",
+                ),
+            ),
+        ),
+        WebSearchPipelineCase(
+            case_id="pipeline_wrong_brand_official",
+            intent=milksha_intent,
+            raw_hits=(
+                _hit(
+                    title="Other Tea pearl black tea latte",
+                    url="https://other-tea.example/menu/pearl-black-tea-latte",
+                    brand_detected="Other Tea",
+                    identity_confidence="high",
+                    raw_ref="raw/websearch/pipeline_wrong_brand_official.json#0",
+                ),
+            ),
+        ),
+        WebSearchPipelineCase(
+            case_id="pipeline_social_media_untrusted",
+            intent=milksha_intent,
+            raw_hits=(
+                _hit(
+                    title="Milksha pearl black tea latte social post",
+                    url="https://social.example/milksha/pearl-black-tea-latte",
+                    brand_detected="Milksha",
+                    source_class="social_media_page",
+                    identity_confidence="high",
+                    raw_ref="raw/websearch/pipeline_social_media_untrusted.json#0",
                 ),
             ),
         ),
