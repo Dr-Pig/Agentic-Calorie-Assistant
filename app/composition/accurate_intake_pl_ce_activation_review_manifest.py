@@ -52,6 +52,7 @@ EXPECTED_NESTED_STATUSES = {
     "pl_ce_browser_activation_evidence_gate": dict(BROWSER_GATE_EXPECTED_STATUSES),
     "pl_ce_ui_context_alignment_pack": {
         "ui_same_truth_contract": "pass",
+        "product_pages_renderer_source_map": "product_pages_renderer_source_map_ready_for_human_review",
         "context_coverage_matrix": {
             "context_coverage_matrix_ready_for_human_review",
             "context_coverage_matrix_ready_with_known_runtime_gaps",
@@ -190,7 +191,7 @@ def _structural_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
                     )
             if group_id == "pl_ce_ui_context_alignment_pack" and input_id.startswith(
                 "product_pages_"
-            ):
+            ) and input_id != "product_pages_renderer_source_map":
                 if nested_status.get("browser_executed") is not True:
                     blockers.append(
                         f"{group_id}.included_artifact_statuses."
@@ -260,6 +261,12 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
             blockers.append("pl_ce_ui_context_alignment_pack.body_read_model_not_checked")
         if _int_value(summary.get("context_covered_capabilities")) < 9:
             blockers.append("pl_ce_ui_context_alignment_pack.context_capabilities_not_covered")
+        if summary.get("renderer_source_map_page_count") != 3:
+            blockers.append("pl_ce_ui_context_alignment_pack.renderer_source_map_page_count_mismatch")
+        if _int_value(summary.get("renderer_source_map_selector_count")) < 30:
+            blockers.append("pl_ce_ui_context_alignment_pack.renderer_source_map_selector_count_too_low")
+        if _int_value(summary.get("renderer_source_map_endpoint_count")) < 7:
+            blockers.append("pl_ce_ui_context_alignment_pack.renderer_source_map_endpoint_count_too_low")
     return blockers
 
 
