@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from sqlalchemy import Integer, String, DateTime, JSON, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.shared.infra.models import Base, utcnow
+
+if TYPE_CHECKING:
+    from app.shared.infra.models import User
 
 
 class DayBudgetLedgerRecord(Base):
