@@ -57,6 +57,7 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "body_effective_budget_rendered": True,
         "body_bodybudget_read_model_fetches_checked": True,
         "today_manual_target_readback_checked": True,
+        "today_body_cross_page_same_truth_checked": True,
         "body_no_debug_trace": True,
         "desktop_no_overflow": True,
         "mobile_no_overflow": True,
@@ -90,6 +91,11 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "effective_budget": "1550 kcal",
             "effective_adjustment": "0 kcal",
             "effective_base": "1550 kcal",
+        },
+        "today_read_model_values": {
+            "target": "1550",
+            "consumed": "400",
+            "remaining": "1150",
         },
         "browser": {
             "fetch_sequence": [
@@ -232,6 +238,7 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     report["body_effective_budget_rendered"] = False
     report["body_bodybudget_read_model_fetches_checked"] = False
     report["today_manual_target_readback_checked"] = False
+    report["today_body_cross_page_same_truth_checked"] = False
 
     status, blockers = module._validate(report)
 
@@ -251,6 +258,7 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     assert "body_effective_budget_not_rendered" in blockers
     assert "body_bodybudget_read_model_fetches_not_checked" in blockers
     assert "today_manual_target_readback_not_checked" in blockers
+    assert "today_body_cross_page_same_truth_not_checked" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_stale_body_read_model_values() -> None:
@@ -279,6 +287,26 @@ def test_product_pages_browser_smoke_validator_rejects_stale_body_read_model_val
     assert "body_read_model_value_mismatch:activity" in blockers
     assert "body_read_model_value_mismatch:goal" in blockers
     assert "body_read_model_value_mismatch:weight_history" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_today_body_same_truth_mismatch() -> None:
+    report = _passing_report()
+    report["today_read_model_values"] = {
+        "target": "1312",
+        "consumed": "399",
+        "remaining": "913",
+    }
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "today_read_model_value_mismatch:target" in blockers
+    assert "today_read_model_value_mismatch:consumed" in blockers
+    assert "today_read_model_value_mismatch:remaining" in blockers
+    assert "today_body_cross_page_same_truth_mismatch:target" in blockers
+    assert "today_body_cross_page_same_truth_mismatch:consumed" in blockers
+    assert "today_body_cross_page_same_truth_mismatch:remaining" in blockers
+    assert "today_body_cross_page_same_truth_mismatch:effective_budget" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_debug_trace_or_frontend_truth() -> None:
@@ -354,6 +382,12 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
     assert report["body_user_url_state_preserved_after_user_change"] is True
     assert report["body_reload_preserved_user_id"] is True
     assert report["today_manual_target_readback_checked"] is True
+    assert report["today_body_cross_page_same_truth_checked"] is True
+    assert report["today_read_model_values"] == {
+        "target": "1550",
+        "consumed": "400",
+        "remaining": "1150",
+    }
     assert report["nav_session_query_preserved"] is True
 
 
