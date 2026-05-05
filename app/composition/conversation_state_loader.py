@@ -5,17 +5,31 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
+from app.database import (
+    append_message,
+    get_conversation_archive,
+    get_latest_log,
+    get_meal_log_history,
+    get_or_create_user,
+    get_recent_messages,
+)
 from app.runtime.application.conversation_state_assembler import (
     assemble_conversation_state,
-    build_archive_records,
     build_session_meal_records,
+)
+from app.runtime.application.conversation_state_summaries import (
+    build_archive_records,
     build_session_transcript_records,
 )
-from app.database import append_message, get_conversation_archive, get_latest_log, get_meal_log_history, get_or_create_user, get_recent_messages
+from app.runtime.infrastructure.conversation_archive_retriever import (
+    ConversationArchiveRetriever,
+)
+from app.runtime.infrastructure.session_state_store import (
+    retrieve_manager_context_from_records,
+    sync_session_records,
+)
 from app.shared.domain import ConversationState
 from app.shared.infra.models import MealLog, MessageBuffer, User
-from app.runtime.infrastructure.conversation_archive_retriever import ConversationArchiveRetriever
-from app.runtime.infrastructure.session_state_store import retrieve_manager_context_from_records, sync_session_records
 
 DEFAULT_CONVERSATION_ARCHIVE_LIMIT = 120
 

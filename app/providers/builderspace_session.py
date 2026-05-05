@@ -15,7 +15,7 @@ from .builderspace_attempts import (
     run_structured_attempt,
 )
 from .builderspace_parsing import BuilderSpaceParseError, extract_finish_reason, extract_json_object, extract_text_content
-from .builderspace_trace import build_failure_trace, build_success_trace, new_transport_attempt
+from .builderspace_trace import build_success_trace, new_transport_attempt
 from .builderspace_transport import (
     DECISION_TRANSPORT_TOOL_NAME,
     extract_tool_call_decision,
