@@ -12,6 +12,9 @@ if str(ROOT) not in sys.path:
 from app.nutrition.application.grokfast_fooddb_contract_probe import (  # noqa: E402
     build_grokfast_fooddb_contract_probe,
 )
+from app.nutrition.application.grokfast_fooddb_profile_schema import (  # noqa: E402
+    build_grokfast_fooddb_profile_schema,
+)
 from app.providers.builderspace_runtime_contract import response_schema_for_stage  # noqa: E402
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE  # noqa: E402
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
@@ -29,6 +32,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--packet-smoke", default=str(DEFAULT_PACKET_SMOKE))
     parser.add_argument("--diagnostic-artifact", default=str(DEFAULT_DIAGNOSTIC))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
+    parser.add_argument(
+        "--schema-mode",
+        choices=("shared", "fooddb-profile"),
+        default="shared",
+        help="Use shared Manager schema or diagnostic-only FoodDB profile overlay.",
+    )
     args = parser.parse_args(argv)
 
     packet_artifact = read_json_artifact(Path(args.packet_smoke))
@@ -36,12 +45,10 @@ def main(argv: list[str] | None = None) -> int:
     diagnostic_artifact = read_json_artifact(diagnostic_path) if diagnostic_path.exists() else None
     artifact = build_grokfast_fooddb_contract_probe(
         packet_artifact=packet_artifact,
-        response_schema_for_constraints=lambda constraints: response_schema_for_stage(
-            MANAGER_LOOP_STAGE,
-            constraints=constraints,
-        ),
+        response_schema_for_constraints=_schema_provider(args.schema_mode),
         diagnostic_artifact=diagnostic_artifact,
     )
+    artifact["schema_mode"] = args.schema_mode
     output_path = Path(args.output)
     write_json_artifact(output_path, artifact)
     print(
@@ -56,6 +63,22 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     return 0
+
+
+def _schema_provider(schema_mode: str):
+    def _shared_schema(constraints: dict) -> dict | None:
+        return response_schema_for_stage(MANAGER_LOOP_STAGE, constraints=constraints)
+
+    def _fooddb_profile_schema(constraints: dict) -> dict | None:
+        return build_grokfast_fooddb_profile_schema(
+            stage=MANAGER_LOOP_STAGE,
+            base_schema=response_schema_for_stage(MANAGER_LOOP_STAGE, constraints),
+            constraints=constraints,
+        )
+
+    if schema_mode == "fooddb-profile":
+        return _fooddb_profile_schema
+    return _shared_schema
 
 
 if __name__ == "__main__":

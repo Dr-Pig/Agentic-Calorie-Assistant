@@ -21,8 +21,14 @@ from app.nutrition.application.grokfast_fooddb_packet_smoke import (  # noqa: E4
 from app.nutrition.application.grokfast_fooddb_diagnostic_preflight import (  # noqa: E402
     is_grokfast_fooddb_preflight_clear,
 )
+from app.nutrition.application.grokfast_fooddb_profile_schema import (  # noqa: E402
+    build_grokfast_fooddb_profile_schema,
+    is_grokfast_fooddb_profile_constraints,
+    profile_schema_transport_meta,
+)
 from app.providers.builderspace_adapter import BuilderSpaceAdapter, BuilderSpaceResponseError  # noqa: E402
-from app.providers.builderspace_runtime_contract import validate_manager_payload  # noqa: E402
+from app.providers.builderspace_runtime_contract import response_schema_for_stage, validate_manager_payload  # noqa: E402
+from app.providers.builderspace_transport import response_format_request_for_stage  # noqa: E402
 from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT  # noqa: E402
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE  # noqa: E402
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
@@ -39,6 +45,34 @@ FOODDB_PACKET_MANAGER_SYSTEM_PROMPT = (
     "ToolEvidenceResult with compact FoodDB evidence packets. Use only packet evidence. Do not invent source IDs. "
     "Do not write ledger state. This is diagnostic-only and not readiness evidence.\n"
 )
+
+
+class FoodDBPacketProfileBuilderSpaceAdapter(BuilderSpaceAdapter):
+    def _response_schema_for_stage(
+        self,
+        stage: str,
+        constraints: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        return build_grokfast_fooddb_profile_schema(
+            stage=stage,
+            base_schema=response_schema_for_stage(stage, constraints),
+            constraints=constraints,
+        )
+
+    def _response_format_request_for_stage(
+        self,
+        stage: str,
+        constraints: dict[str, Any] | None = None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        response_format, transport_meta = response_format_request_for_stage(
+            stage,
+            constraints=constraints,
+            schema=self._response_schema_for_stage(stage, constraints),
+        )
+        if is_grokfast_fooddb_profile_constraints(constraints):
+            _apply_fooddb_profile_schema_name(response_format)
+            transport_meta.update(profile_schema_transport_meta())
+        return response_format, transport_meta
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -112,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 async def _run_live(*, packet_artifact: dict[str, Any]) -> tuple[dict[str, Any], int]:
-    adapter = BuilderSpaceAdapter(
+    adapter = FoodDBPacketProfileBuilderSpaceAdapter(
         manager_model_override=GROKFAST_FOODDB_PACKET_PROFILE["model"],
         role_label="fooddb_packet_smoke_manager",
     )
@@ -189,6 +223,16 @@ async def _run_live(*, packet_artifact: dict[str, Any]) -> tuple[dict[str, Any],
     )
     artifact["provider_readiness"] = readiness
     return artifact, 0
+
+
+def _apply_fooddb_profile_schema_name(response_format: dict[str, Any]) -> None:
+    if response_format.get("type") != "json_schema":
+        return
+    json_schema = response_format.get("json_schema")
+    if not isinstance(json_schema, dict):
+        return
+    meta = profile_schema_transport_meta()
+    json_schema["name"] = meta["schema_name"]
 
 
 def _manager_contract_validation_errors(

@@ -91,13 +91,101 @@ def test_grokfast_fooddb_contract_probe_script_roundtrip(tmp_path: Path) -> None
 
     packet_path = tmp_path / "packet.json"
     output_path = tmp_path / "probe.json"
+    profile_output_path = tmp_path / "profile_probe.json"
+    missing_diagnostic_path = tmp_path / "missing_diagnostic.json"
     write_json_artifact(packet_path, _packet_artifact())
 
-    assert main(["--packet-smoke", str(packet_path), "--output", str(output_path)]) == 0
+    assert (
+        main(
+            [
+                "--packet-smoke",
+                str(packet_path),
+                "--diagnostic-artifact",
+                str(missing_diagnostic_path),
+                "--output",
+                str(output_path),
+            ]
+        )
+        == 0
+    )
 
     artifact = read_json_artifact(output_path)
     assert artifact["status"] == "contract_drift_detected"
+    assert artifact["schema_mode"] == "shared"
     assert artifact["non_claims"]
+
+    assert (
+        main(
+            [
+                "--packet-smoke",
+                str(packet_path),
+                "--diagnostic-artifact",
+                str(missing_diagnostic_path),
+                "--output",
+                str(profile_output_path),
+                "--schema-mode",
+                "fooddb-profile",
+            ]
+        )
+        == 0
+    )
+
+    profile_artifact = read_json_artifact(profile_output_path)
+    assert profile_artifact["status"] == "pass"
+    assert profile_artifact["schema_mode"] == "fooddb-profile"
+    assert profile_artifact["summary"]["issue_counts"] == {}
+
+
+def test_grokfast_fooddb_contract_probe_profile_schema_keeps_provider_output_drift(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.build_accurate_intake_grokfast_fooddb_contract_probe import main
+
+    packet_path = tmp_path / "packet.json"
+    diagnostic_path = tmp_path / "diagnostic.json"
+    output_path = tmp_path / "probe.json"
+    write_json_artifact(packet_path, _packet_artifact())
+    write_json_artifact(
+        diagnostic_path,
+        {
+            "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
+            "live_provider_used": True,
+            "cases": [
+                {
+                    "case_id": "bare_luwei",
+                    "manager_output": {
+                        "manager_action": "final",
+                        "evidence_used": [],
+                        "answer_contract": {},
+                    },
+                }
+            ],
+        },
+    )
+
+    assert (
+        main(
+            [
+                "--packet-smoke",
+                str(packet_path),
+                "--diagnostic-artifact",
+                str(diagnostic_path),
+                "--schema-mode",
+                "fooddb-profile",
+                "--output",
+                str(output_path),
+            ]
+        )
+        == 0
+    )
+
+    artifact = read_json_artifact(output_path)
+    assert artifact["status"] == "contract_drift_detected"
+    assert artifact["schema_mode"] == "fooddb-profile"
+    assert artifact["summary"]["issue_counts"] == {
+        "provider_emitted_forbidden_top_level_evidence_used": 1
+    }
 
 
 def test_grokfast_fooddb_contract_probe_has_no_live_imports() -> None:

@@ -472,11 +472,14 @@ def _single_packet_tool_result(*, tool_result: dict[str, Any], packet: dict[str,
 
 
 def _manager_constraints_for_case(packet_case: dict[str, Any]) -> dict[str, Any]:
+    packet = packet_case.get("manager_evidence_packet")
+    evidence_items = packet.get("evidence_items") if isinstance(packet, dict) else []
     return {
         "phase_b1_manager_role": "pass_2_synthesis",
         "phase_b1_pass1_mode": "natural_tool_selection_probe",
         "phase_b1_case_family": _b1_case_family_for_packet_case(packet_case),
         "fooddb_packet_smoke": True,
+        "fooddb_packet_requires_item_results": bool(evidence_items),
     }
 
 
