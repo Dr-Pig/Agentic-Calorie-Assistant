@@ -113,7 +113,7 @@ def _fake_provider_blockers(payload: dict[str, Any]) -> list[str]:
     summary = _object_dict(payload.get("summary"))
     if payload.get("manager_handoff_matrix_checked") is not True:
         blockers.append("fake_provider_context_smoke.manager_handoff_matrix_missing")
-    if _int_value(summary.get("manager_handoff_scenario_count")) < 3:
+    if _int_value(summary.get("manager_handoff_scenario_count")) < 6:
         blockers.append("fake_provider_context_smoke.manager_handoff_scenario_count_too_low")
     if _int_value(summary.get("ambiguous_back_reference_scenarios")) < 1:
         blockers.append("fake_provider_context_smoke.ambiguous_back_reference_missing")
