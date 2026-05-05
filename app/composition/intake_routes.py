@@ -124,6 +124,7 @@ def _build_calibration_preview_route_payload(general_chat_result: Any) -> dict[s
         "required_read_surfaces": list(general_chat_result.required_read_surfaces),
         "calibration_diagnostic": general_chat_result.calibration_diagnostic,
         "input_assembly": general_chat_result.input_assembly,
+        "proposal_response": general_chat_result.proposal_response,
         "proposal_artifact": proposal_artifact,
     }
 
