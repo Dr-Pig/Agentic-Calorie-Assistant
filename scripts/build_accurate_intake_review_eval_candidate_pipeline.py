@@ -45,6 +45,9 @@ from scripts.build_accurate_intake_context_quality_pack import (  # noqa: E402
 
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_review_eval_candidate_pipeline.json"
 DEFAULT_SHELL_PATH = ROOT / "static" / "accurate-intake-local-shell.html"
+DEFAULT_TARGET_CANDIDATE_UI_SMOKE_PATH = (
+    ROOT / "artifacts" / "accurate_intake_product_pages_target_candidate_ui_smoke_ci.json"
+)
 
 
 def _fixture_product_loop_e2e() -> dict[str, object]:
@@ -116,7 +119,19 @@ def _product_pages_target_candidate_ui_smoke() -> dict[str, object]:
     }
 
 
-def build_review_eval_candidate_pipeline_report(*, shell_path: Path = DEFAULT_SHELL_PATH) -> dict[str, object]:
+def _read_json_artifact_or_fixture(path: Path, fixture: dict[str, object]) -> dict[str, object]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return fixture
+    return payload if isinstance(payload, dict) else fixture
+
+
+def build_review_eval_candidate_pipeline_report(
+    *,
+    shell_path: Path = DEFAULT_SHELL_PATH,
+    target_candidate_ui_smoke_path: Path = DEFAULT_TARGET_CANDIDATE_UI_SMOKE_PATH,
+) -> dict[str, object]:
     fixture_packets = build_fixture_evidence_packet_emulator_artifact()
     context_quality = build_context_quality_pack_report()
     intent_wall = build_context_conditioned_intent_wall_artifact()
@@ -138,7 +153,10 @@ def build_review_eval_candidate_pipeline_report(*, shell_path: Path = DEFAULT_SH
                 _product_pages_short_term_context_smoke()
             ),
             "product_pages_target_candidate_ui_smoke": (
-                _product_pages_target_candidate_ui_smoke()
+                _read_json_artifact_or_fixture(
+                    target_candidate_ui_smoke_path,
+                    _product_pages_target_candidate_ui_smoke(),
+                )
             ),
         }
     )
@@ -163,10 +181,14 @@ def main(argv: list[str] | None = None) -> int:
         description="Build local review candidates from PL+CE diagnostic artifacts."
     )
     parser.add_argument("--shell-path", default=str(DEFAULT_SHELL_PATH))
+    parser.add_argument("--target-candidate-ui-smoke", default=str(DEFAULT_TARGET_CANDIDATE_UI_SMOKE_PATH))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT_PATH))
     args = parser.parse_args(argv)
 
-    artifact = build_review_eval_candidate_pipeline_report(shell_path=Path(args.shell_path))
+    artifact = build_review_eval_candidate_pipeline_report(
+        shell_path=Path(args.shell_path),
+        target_candidate_ui_smoke_path=Path(args.target_candidate_ui_smoke),
+    )
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(

@@ -127,6 +127,12 @@ def _manager_context_summary(trace: dict[str, Any]) -> dict[str, Any]:
     correction_targets = target_candidates.get("for_correction_or_removal")
     if not isinstance(correction_targets, list):
         correction_targets = []
+    target_candidate_names = [
+        str(candidate.get("display_name") or candidate.get("canonical_name") or candidate.get("target_object_id"))
+        for candidate in correction_targets
+        if isinstance(candidate, dict)
+        and str(candidate.get("display_name") or candidate.get("canonical_name") or candidate.get("target_object_id") or "").strip()
+    ]
     pending_pin_keys = ("pending_followup", "pending_draft")
     return {
         "context_policy_version": trace.get("context_policy_version"),
@@ -135,6 +141,7 @@ def _manager_context_summary(trace: dict[str, Any]) -> dict[str, Any]:
         "pending_pins_present": any(bool(_dict_or_empty(hard_pins.get(key))) for key in pending_pin_keys),
         "target_candidates_present": bool(correction_targets),
         "target_candidate_count": len(correction_targets),
+        "target_candidate_names": target_candidate_names,
     }
 
 
