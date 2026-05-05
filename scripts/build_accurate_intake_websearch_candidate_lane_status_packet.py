@@ -23,13 +23,19 @@ def main(argv: list[str] | None = None) -> int:
         description="Build WebSearch candidate lane status packet."
     )
     parser.add_argument("--fooddb-status-packet")
+    parser.add_argument("--live-diagnostic-report")
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
     artifact = build_websearch_candidate_lane_status_packet(
         fooddb_status_packet=(
             read_json_artifact(Path(args.fooddb_status_packet)) if args.fooddb_status_packet else None
-        )
+        ),
+        live_diagnostic_report=(
+            read_json_artifact(Path(args.live_diagnostic_report))
+            if args.live_diagnostic_report
+            else None
+        ),
     )
     output_path = Path(args.output)
     write_json_artifact(output_path, artifact)
@@ -39,6 +45,9 @@ def main(argv: list[str] | None = None) -> int:
                 "artifact": str(output_path),
                 "claim_scope": artifact["claim_scope"],
                 "upstream_fooddb_gate_status": artifact["summary"]["upstream_fooddb_gate_status"],
+                "grokfast_websearch_seam_status": artifact["summary"][
+                    "grokfast_websearch_seam_status"
+                ],
                 "next_required_slices": artifact["next_required_slices"],
             },
             ensure_ascii=False,

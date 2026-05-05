@@ -13,6 +13,7 @@ from .websearch_source_policy import build_websearch_source_policy_artifact
 def build_websearch_candidate_lane_status_packet(
     *,
     fooddb_status_packet: dict[str, Any] | None = None,
+    live_diagnostic_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_policy = build_websearch_source_policy_artifact()
     candidate_pipeline = build_websearch_candidate_pipeline_diagnostic()
@@ -22,6 +23,10 @@ def build_websearch_candidate_lane_status_packet(
         tool_evidence_artifact=tool_evidence_artifact
     )
     upstream_gate = _compact_fooddb_gate(fooddb_status_packet)
+    live_diagnostic_gate = _compact_live_diagnostic_gate(
+        live_diagnostic_report=live_diagnostic_report,
+        upstream_gate=upstream_gate,
+    )
 
     return {
         "artifact_type": "accurate_intake_websearch_candidate_lane_status_packet_v1",
@@ -52,9 +57,18 @@ def build_websearch_candidate_lane_status_packet(
             ),
             "upstream_fooddb_gate_status": upstream_gate["status"],
             "upstream_fooddb_next_required_slice": upstream_gate["next_required_slice"],
+            "grokfast_websearch_seam_status": live_diagnostic_gate["status"],
+            "grokfast_websearch_can_expand": live_diagnostic_gate["can_expand"],
+            "grokfast_websearch_next_required_slice": live_diagnostic_gate[
+                "next_required_slice"
+            ],
         },
         "upstream_gate": upstream_gate,
-        "next_required_slices": _next_required_slices(upstream_gate=upstream_gate),
+        "live_diagnostic_gate": live_diagnostic_gate,
+        "next_required_slices": _next_required_slices(
+            upstream_gate=upstream_gate,
+            live_diagnostic_gate=live_diagnostic_gate,
+        ),
         "non_claims": [
             "no_live_websearch_call",
             "no_live_provider_call",
@@ -112,10 +126,91 @@ def _compact_fooddb_gate(fooddb_status_packet: dict[str, Any] | None) -> dict[st
     }
 
 
-def _next_required_slices(*, upstream_gate: dict[str, Any]) -> list[str]:
+def _compact_live_diagnostic_gate(
+    *,
+    live_diagnostic_report: dict[str, Any] | None,
+    upstream_gate: dict[str, Any],
+) -> dict[str, Any]:
+    if upstream_gate["blocked"]:
+        return {
+            "status": "not_checked_upstream_blocked",
+            "next_required_slice": upstream_gate["next_required_slice"],
+            "blocked": True,
+            "can_expand": False,
+        }
+    if not isinstance(live_diagnostic_report, dict):
+        return {
+            "status": "not_provided",
+            "next_required_slice": "run_explicit_grokfast_websearch_packet_live_diagnostic",
+            "blocked": True,
+            "can_expand": False,
+        }
+    if (
+        str(live_diagnostic_report.get("artifact_type") or "")
+        != "accurate_intake_websearch_live_diagnostic_report"
+    ):
+        raise ValueError("unsupported_websearch_status_live_diagnostic_report")
+    if (
+        live_diagnostic_report.get("source_live_websearch_used") is True
+        or live_diagnostic_report.get("live_websearch_used") is True
+        or live_diagnostic_report.get("runtime_truth_changed") is True
+        or live_diagnostic_report.get("readiness_claimed") is True
+    ):
+        return {
+            "status": "unsupported_live_diagnostic_boundary",
+            "next_required_slice": "inspect_websearch_live_diagnostic_report",
+            "blocked": True,
+            "can_expand": False,
+        }
+    if (
+        live_diagnostic_report.get("provider_contract_blocked") is True
+        or live_diagnostic_report.get("provider_runtime_residual_blocked") is True
+        or live_diagnostic_report.get("candidate_boundary_blocked") is True
+    ):
+        return {
+            "status": "blocked_live_diagnostic_report",
+            "next_required_slice": str(
+                live_diagnostic_report.get("next_recommended_slice")
+                or "inspect_websearch_live_diagnostic_report"
+            ),
+            "blocked": True,
+            "can_expand": False,
+        }
+    can_expand = live_diagnostic_report.get("can_expand_websearch_candidate_pipeline") is True
+    seam_status = str(live_diagnostic_report.get("seam_status") or "").strip()
+    if seam_status == "live_diagnostic_pass" and can_expand:
+        return {
+            "status": seam_status,
+            "next_required_slice": "websearch_live_search_preflight_or_candidate_source_adapter",
+            "blocked": False,
+            "can_expand": True,
+        }
+    return {
+        "status": seam_status or "live_diagnostic_report_blocked",
+        "next_required_slice": str(
+            live_diagnostic_report.get("next_recommended_slice")
+            or "inspect_websearch_live_diagnostic_report"
+        ),
+        "blocked": True,
+        "can_expand": False,
+    }
+
+
+def _next_required_slices(
+    *,
+    upstream_gate: dict[str, Any],
+    live_diagnostic_gate: dict[str, Any],
+) -> list[str]:
     if upstream_gate["blocked"]:
         return [str(upstream_gate["next_required_slice"] or "inspect_fooddb_status_packet")]
-    return ["grokfast_websearch_packet_live_diagnostic"]
+    if live_diagnostic_gate["blocked"]:
+        return [
+            str(
+                live_diagnostic_gate["next_required_slice"]
+                or "run_explicit_grokfast_websearch_packet_live_diagnostic"
+            )
+        ]
+    return ["websearch_live_search_preflight_or_candidate_source_adapter"]
 
 
 def _now() -> str:
