@@ -70,6 +70,7 @@ def build_websearch_candidate_pipeline_diagnostic(
                 if classification["extract_candidate_allowed"] is True
             ),
             "classification_counts": _classification_counts(classifications),
+            "source_class_counts": _source_class_counts(classifications),
         },
         "non_claims": list(WEBSEARCH_CANDIDATE_PIPELINE_NON_CLAIMS),
     }
@@ -145,10 +146,11 @@ def _classify_candidate_packet(
     *,
     selected_extract_packet_id: str | None,
 ) -> dict[str, Any]:
+    source_class = _source_class_from_packet(packet)
     source_policy = classify_websearch_source_candidate(
         {
             "source_url": packet.get("source_url"),
-            "source_class": _source_class_from_packet(packet),
+            "source_class": source_class,
             "license_status": packet.get("license_status"),
             "robots_status": packet.get("robots_status"),
             "identity_confidence": packet.get("identity_confidence"),
@@ -197,6 +199,7 @@ def _classify_candidate_packet(
         "packet_ready_truth_allowed": False,
         "requires_later_promotion_path": True,
         "source_quality_label": source_quality,
+        "source_class": source_class,
         "match_type": match_type,
         "size_or_serving_match": size_match,
         "hard_recheck_risks": risks,
@@ -205,6 +208,9 @@ def _classify_candidate_packet(
 
 
 def _source_class_from_packet(packet: dict[str, Any]) -> str:
+    explicit_source_class = str(packet.get("source_class_hint") or "").strip().lower()
+    if explicit_source_class:
+        return explicit_source_class
     source_quality = str(packet.get("source_quality_label") or "")
     officialness = str(packet.get("officialness_hint") or "")
     if source_quality == "third_party" or officialness == "unknown":
@@ -253,6 +259,14 @@ def _classification_counts(classifications: Iterable[dict[str, Any]]) -> dict[st
     counts: dict[str, int] = {}
     for classification in classifications:
         key = str(classification.get("candidate_class") or "unknown")
+        counts[key] = counts.get(key, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _source_class_counts(classifications: Iterable[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for classification in classifications:
+        key = str(classification.get("source_class") or "unknown")
         counts[key] = counts.get(key, 0) + 1
     return dict(sorted(counts.items()))
 
@@ -331,6 +345,76 @@ def _default_cases() -> tuple[WebSearchPipelineCase, ...]:
                 ),
             ),
         ),
+        WebSearchPipelineCase(
+            case_id="pipeline_official_pdf_exact",
+            intent=milksha_intent,
+            raw_hits=(
+                _hit(
+                    title="Milksha pearl black tea latte nutrition PDF",
+                    url="https://milksha.example/nutrition/pearl-black-tea-latte.pdf",
+                    brand_detected="Milksha",
+                    source_class="official_nutrition_pdf",
+                    identity_confidence="high",
+                    raw_ref="raw/websearch/pipeline_official_pdf_exact.json#0",
+                ),
+            ),
+        ),
+        WebSearchPipelineCase(
+            case_id="pipeline_brand_menu_exact",
+            intent=milksha_intent,
+            raw_hits=(
+                _hit(
+                    title="Milksha pearl black tea latte",
+                    url="https://milksha.example/menu/pearl-black-tea-latte",
+                    brand_detected="Milksha",
+                    source_class="brand_menu_page",
+                    identity_confidence="high",
+                    raw_ref="raw/websearch/pipeline_brand_menu_exact.json#0",
+                ),
+            ),
+        ),
+        WebSearchPipelineCase(
+            case_id="pipeline_robots_blocked",
+            intent=milksha_intent,
+            raw_hits=(
+                _hit(
+                    title="Milksha pearl black tea latte",
+                    url="https://milksha.example/menu/robots-blocked",
+                    brand_detected="Milksha",
+                    identity_confidence="high",
+                    robots_status="blocked",
+                    raw_ref="raw/websearch/pipeline_robots_blocked.json#0",
+                ),
+            ),
+        ),
+        WebSearchPipelineCase(
+            case_id="pipeline_missing_serving_basis",
+            intent=milksha_intent,
+            raw_hits=(
+                _hit(
+                    title="Milksha pearl black tea latte",
+                    url="https://milksha.example/menu/missing-serving",
+                    brand_detected="Milksha",
+                    identity_confidence="high",
+                    serving_basis="unknown",
+                    raw_ref="raw/websearch/pipeline_missing_serving_basis.json#0",
+                ),
+            ),
+        ),
+        WebSearchPipelineCase(
+            case_id="pipeline_missing_kcal",
+            intent=milksha_intent,
+            raw_hits=(
+                _hit(
+                    title="Milksha pearl black tea latte",
+                    url="https://milksha.example/menu/missing-kcal",
+                    brand_detected="Milksha",
+                    identity_confidence="high",
+                    nutrition_fields_present=[],
+                    raw_ref="raw/websearch/pipeline_missing_kcal.json#0",
+                ),
+            ),
+        ),
     )
 
 
@@ -357,9 +441,13 @@ def _hit(
     title: str,
     url: str,
     brand_detected: str,
+    source_class: str | None = None,
     officialness: str = "official",
     source_quality_label: str = "high",
     identity_confidence: str = "medium",
+    robots_status: str = "allowed",
+    serving_basis: str = "per_cup",
+    nutrition_fields_present: list[str] | None = None,
     raw_ref: str,
 ) -> dict[str, Any]:
     return {
@@ -369,13 +457,14 @@ def _hit(
         "snippet": "deterministic search candidate",
         "score": 0.93,
         "officialness": officialness,
+        "source_class": source_class,
         "source_quality_label": source_quality_label,
         "brand_detected": brand_detected,
         "channel_detected": "handmade_foodservice",
-        "serving_basis": "per_cup",
-        "nutrition_fields_present": ["kcal"],
+        "serving_basis": serving_basis,
+        "nutrition_fields_present": ["kcal"] if nutrition_fields_present is None else nutrition_fields_present,
         "license_status": "public_menu_page",
-        "robots_status": "allowed",
+        "robots_status": robots_status,
         "customization_slots_present": ["size"],
         "identity_confidence": identity_confidence,
         "applicability_confidence": "medium",
