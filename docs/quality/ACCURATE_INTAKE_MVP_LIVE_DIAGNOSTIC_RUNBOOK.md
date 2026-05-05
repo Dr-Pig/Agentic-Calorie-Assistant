@@ -253,8 +253,13 @@ The required evidence keys are:
 - `free_text_manual_target_gate`
 - `dogfood_review_queue`
 - `local_dogfood_data_hygiene`
+- `context_live_diagnostic_case_matrix`
 
 The `browser_shell_smoke` evidence must have `browser_executed=true` before the pack can select `ready_for_human_limited_live_canary_decision`. Missing evidence keeps the selected option at `stay_local_self_use`.
+
+The `context_live_diagnostic_case_matrix` evidence must be generated before any Stage 4 or Stage 5 live diagnostic. It is a plan-only anti-overfit gate: live probes must select from the fixed matrix instead of ad hoc easy cases. The matrix must keep `plan_only=true`, `live_llm_invoked=false`, `live_provider_invoked=false`, `fooddb_used=false`, `mutation_changed=false`, and `manager_context_packet_schema_changed=false`.
+
+The matrix must include at least one compound log-and-modify case. Missing matrix evidence, provider-invoked matrix evidence, FoodDB-backed matrix evidence, or a matrix with too few cases keeps the selected option at `stay_local_self_use`.
 
 ## Semantic Ownership Boundary
 
