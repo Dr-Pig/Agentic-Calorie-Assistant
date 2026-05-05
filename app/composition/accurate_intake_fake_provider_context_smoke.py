@@ -142,12 +142,6 @@ def _handoff_specs() -> list[dict[str, Any]]:
             "scenario_id": "named_item_correction",
             "raw_user_input": "remove tofu",
             "recent_committed_meals": [_meal(thread_id=51, version_id=52, title="luwei")],
-            "target_meal_reference": _target_reference(
-                thread_id=51,
-                version_id=52,
-                title="luwei",
-                source="history_expansion",
-            ),
             "fixture_manager_decision": {
                 "semantic_source": "fixture_manager_structured_decision",
                 "target_resolution_status": "candidate_supported",
@@ -240,6 +234,7 @@ def _handoff_scenario(spec: dict[str, Any]) -> dict[str, Any]:
         long_term_memory={"excluded": True},
     )
     decision = dict(spec["fixture_manager_decision"])
+    target_status = str(decision["target_resolution_status"])
     return {
         "scenario_id": spec["scenario_id"],
         "raw_user_input_role": "display_only",
@@ -263,11 +258,81 @@ def _handoff_scenario(spec: dict[str, Any]) -> dict[str, Any]:
             "target_update_requires_manager_decision",
             False,
         ),
-        "deterministic_selected_target": False,
+        "deterministic_selected_target": bool(
+            target_status == "candidate_supported" and attachment.target_object_id is not None
+        ),
         "deterministic_semantic_inference_used": False,
         "raw_text_intent_router_used": False,
         "mutation_authority": False,
     }
+
+
+def _validate_handoff_scenarios(scenarios: list[dict[str, Any]]) -> list[str]:
+    blockers: list[str] = []
+    required_ids = {
+        "ambiguous_back_reference",
+        "named_item_correction",
+        "pending_followup_answer",
+        "previous_drink_calorie_query",
+        "explicit_daily_target_1800",
+        "meal_estimate_800_not_target",
+    }
+    by_id = {str(scenario.get("scenario_id") or ""): scenario for scenario in scenarios}
+    missing_ids = sorted(required_ids - set(by_id))
+    blockers.extend(f"missing_scenario.{scenario_id}" for scenario_id in missing_ids)
+
+    for scenario in scenarios:
+        scenario_id = str(scenario.get("scenario_id") or "unknown")
+        target_status = str(scenario.get("fixture_manager_target_resolution_status") or "")
+        workflow_effect = str(scenario.get("fixture_manager_workflow_effect") or "")
+
+        if scenario.get("fixture_manager_decision_source") != "fixture_manager_structured_decision":
+            blockers.append(f"{scenario_id}.fixture_manager_source_missing")
+        if scenario.get("deterministic_selected_target") is not False:
+            blockers.append(f"{scenario_id}.deterministic_selected_target")
+        if scenario.get("deterministic_semantic_inference_used") is not False:
+            blockers.append(f"{scenario_id}.deterministic_semantic_inference_used")
+        if scenario.get("raw_text_intent_router_used") is not False:
+            blockers.append(f"{scenario_id}.raw_text_intent_router_used")
+        if scenario.get("mutation_authority") is not False:
+            blockers.append(f"{scenario_id}.mutation_authority")
+        if scenario.get("manager_context_policy_version_present") is not True:
+            blockers.append(f"{scenario_id}.context_policy_version_missing")
+        if scenario.get("loaded_context_summary_present") is not True:
+            blockers.append(f"{scenario_id}.loaded_context_summary_missing")
+        if scenario.get("omitted_context_summary_present") is not True:
+            blockers.append(f"{scenario_id}.omitted_context_summary_missing")
+
+        if target_status == "candidate_supported":
+            if int(scenario.get("manager_context_target_candidate_count") or 0) < 1:
+                blockers.append(f"{scenario_id}.candidate_supported_without_candidates")
+            if scenario.get("pre_attachment_target_object_id") is not None:
+                blockers.append(f"{scenario_id}.candidate_supported_preselected_target")
+            if scenario.get("pre_attachment_disposition") != "answer_only":
+                blockers.append(f"{scenario_id}.candidate_supported_not_answer_only")
+        if target_status == "requires_manager_review":
+            if scenario.get("pre_attachment_reason") != "ambiguous_back_reference_requires_manager":
+                blockers.append(f"{scenario_id}.manager_review_reason_missing")
+            if scenario.get("pre_attachment_disposition") != "answer_only":
+                blockers.append(f"{scenario_id}.manager_review_not_answer_only")
+        if target_status == "pending_followup_answer":
+            if scenario.get("pre_attachment_reason") != "pending_followup_answer":
+                blockers.append(f"{scenario_id}.pending_followup_reason_missing")
+            if scenario.get("pre_attachment_disposition") != "attach_existing_thread":
+                blockers.append(f"{scenario_id}.pending_followup_not_attached")
+        if target_status == "query_supported":
+            if scenario.get("query_no_mutation") is not True:
+                blockers.append(f"{scenario_id}.query_no_mutation_missing")
+            if scenario.get("mutation_authority") is not False:
+                blockers.append(f"{scenario_id}.query_mutation_authority")
+        if workflow_effect == "daily_target_update_candidate":
+            if scenario.get("target_update_requires_manager_decision") is not True:
+                blockers.append(f"{scenario_id}.target_update_manager_decision_missing")
+        if workflow_effect == "meal_estimate_context":
+            if scenario.get("target_update_requires_manager_decision") is not False:
+                blockers.append(f"{scenario_id}.meal_estimate_marked_target_update")
+
+    return blockers
 
 
 def build_fake_provider_context_smoke_artifact() -> dict[str, Any]:
@@ -297,6 +362,7 @@ def build_fake_provider_context_smoke_artifact() -> dict[str, Any]:
         if isinstance(item, dict)
     }
     handoff_scenarios = [_handoff_scenario(spec) for spec in _handoff_specs()]
+    blockers = _validate_handoff_scenarios(handoff_scenarios)
     ambiguous_handoffs = [
         scenario
         for scenario in handoff_scenarios
@@ -307,7 +373,8 @@ def build_fake_provider_context_smoke_artifact() -> dict[str, Any]:
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_fake_provider_context_smoke",
             "claim_scope": "fake_provider_context_smoke",
-            "status": "pass",
+            "status": "pass" if not blockers else "fail",
+            "blockers": blockers,
             "generated_at_utc": datetime.now(UTC).isoformat(),
             "provider_mode": "fake_provider_contract_test",
             "provider_profile_id": "fake-provider-pl-ce-context-smoke",

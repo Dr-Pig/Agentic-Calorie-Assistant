@@ -48,9 +48,11 @@ def test_fake_provider_context_smoke_reuses_live_shape_without_live_provider() -
     assert ambiguous["mutation_authority"] is False
 
     named = by_id["named_item_correction"]
-    assert named["pre_attachment_disposition"] == "target_committed_thread"
-    assert named["shadow_created"] is False
-    assert named["shadow_skip_reason"] == "already_safe_pass"
+    assert named["pre_attachment_disposition"] == "answer_only"
+    assert named["pre_attachment_target_object_id"] is None
+    assert named["manager_context_target_candidate_count"] >= 1
+    assert named["fixture_manager_target_resolution_status"] == "candidate_supported"
+    assert named["deterministic_selected_target"] is False
 
     pending = by_id["pending_followup_answer"]
     assert pending["pre_attachment_disposition"] == "attach_existing_thread"
@@ -84,3 +86,30 @@ def test_fake_provider_context_smoke_script_writes_artifact(tmp_path: Path) -> N
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
     assert artifact["status"] == "pass"
     assert artifact["live_provider_called"] is False
+
+
+def test_fake_provider_context_smoke_validator_rejects_preselected_candidate_target() -> None:
+    from app.composition import accurate_intake_fake_provider_context_smoke as module
+
+    artifact = build_fake_provider_context_smoke_artifact()
+    scenarios = list(artifact["manager_handoff_scenarios"])
+    named = next(scenario for scenario in scenarios if scenario["scenario_id"] == "named_item_correction")
+    named["pre_attachment_target_object_id"] = 51
+    named["pre_attachment_disposition"] = "target_committed_thread"
+    named["deterministic_selected_target"] = True
+
+    blockers = module._validate_handoff_scenarios(scenarios)
+
+    assert "named_item_correction.candidate_supported_preselected_target" in blockers
+    assert "named_item_correction.deterministic_selected_target" in blockers
+
+
+def test_fake_provider_context_smoke_artifact_fails_when_handoff_validation_fails(monkeypatch) -> None:
+    from app.composition import accurate_intake_fake_provider_context_smoke as module
+
+    monkeypatch.setattr(module, "_validate_handoff_scenarios", lambda scenarios: ["fake_handoff_failure"])
+
+    artifact = module.build_fake_provider_context_smoke_artifact()
+
+    assert artifact["status"] == "fail"
+    assert artifact["blockers"] == ["fake_handoff_failure"]
