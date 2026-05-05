@@ -294,7 +294,295 @@ def test_grokfast_fooddb_packet_diagnostic_blocks_unsupported_modifier_kcal_adju
     )
 
     assert result["status"] == "fail"
+    assert "unsupported_modifier_adjusted_kcal_range" not in result["failure_families"]
+    assert "modifier_adjusted_kcal_without_packet_adjustment" in result["failure_families"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_blocks_compatible_modifier_kcal_adjustment() -> None:
+    packet_case = next(
+        case for case in _packet_artifact()["cases"] if case["case_id"] == "boba_large_half_sugar"
+    )
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    manager_output["item_results"][0]["kcal_range"] = [400, 520]
+    manager_output["item_results"][0]["likely_kcal"] = 460
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "modifier_adjusted_kcal_without_packet_adjustment" in result["failure_families"]
+    assert "unsupported_modifier_adjusted_kcal_range" not in result["failure_families"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_blocks_adjustment_with_non_anchor_ref() -> None:
+    packet_case = next(
+        case for case in _packet_artifact()["cases"] if case["case_id"] == "boba_large_half_sugar"
+    )
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    canonical_name = packet_case["manager_evidence_packet"]["evidence_items"][0]["canonical_name"]
+    manager_output["item_results"][0]["evidence_used"] = [canonical_name]
+    manager_output["item_results"][0]["kcal_range"] = [400, 520]
+    manager_output["item_results"][0]["likely_kcal"] = 460
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "modifier_adjusted_kcal_without_packet_adjustment" in result["failure_families"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_normalizes_refs_before_modifier_guard() -> None:
+    packet_case = next(
+        case for case in _packet_artifact()["cases"] if case["case_id"] == "boba_large_half_sugar"
+    )
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    anchor_id = packet_case["manager_evidence_packet"]["evidence_items"][0]["anchor_id"]
+    manager_output["item_results"][0]["evidence_used"] = [anchor_id.upper()]
+    manager_output["item_results"][0]["kcal_range"] = [400, 520]
+    manager_output["item_results"][0]["likely_kcal"] = 460
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "modifier_adjusted_kcal_without_packet_adjustment" in result["failure_families"]
+    assert "invented_evidence_reference" not in result["failure_families"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_does_not_false_flag_shared_source_ref() -> None:
+    packet_case = next(
+        case for case in _packet_artifact()["cases"] if case["case_id"] == "listed_luwei_components"
+    )
+    evidence_items = packet_case["manager_evidence_packet"]["evidence_items"]
+    shared_source_id = evidence_items[0]["source_provenance"]["source_id"]
+    packet_case = {
+        **packet_case,
+        "manager_evidence_packet": {
+            **packet_case["manager_evidence_packet"],
+            "evidence_items": [
+                {
+                    **item,
+                    "modifier_compatibility": {"seasoning": "compatible"},
+                    "source_provenance": {
+                        **item["source_provenance"],
+                        "source_id": shared_source_id,
+                    },
+                }
+                for item in evidence_items[:2]
+            ],
+        },
+    }
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    for index, item in enumerate(packet_case["manager_evidence_packet"]["evidence_items"]):
+        manager_output["item_results"][index]["evidence_used"] = [shared_source_id]
+        manager_output["item_results"][index]["kcal_range"] = item["kcal_range"]
+        manager_output["item_results"][index]["likely_kcal"] = item["kcal_point"]
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "pass"
+    assert "modifier_adjusted_kcal_without_packet_adjustment" not in result["failure_families"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_uses_unique_food_name_when_source_ref_shared() -> None:
+    packet_case = next(
+        case for case in _packet_artifact()["cases"] if case["case_id"] == "listed_luwei_components"
+    )
+    evidence_items = packet_case["manager_evidence_packet"]["evidence_items"]
+    shared_source_id = evidence_items[0]["source_provenance"]["source_id"]
+    packet_case = {
+        **packet_case,
+        "manager_evidence_packet": {
+            **packet_case["manager_evidence_packet"],
+            "evidence_items": [
+                {
+                    **item,
+                    "modifier_compatibility": {"seasoning": "compatible"},
+                    "source_provenance": {
+                        **item["source_provenance"],
+                        "source_id": shared_source_id,
+                    },
+                }
+                for item in evidence_items[:2]
+            ],
+        },
+    }
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    first_result = manager_output["item_results"][0]
+    first_result["evidence_used"] = [shared_source_id]
+    first_result["food_name"] = packet_case["manager_evidence_packet"]["evidence_items"][0][
+        "canonical_name"
+    ]
+    first_result["kcal_range"] = [999, 1000]
+    first_result["likely_kcal"] = 999
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "modifier_adjusted_kcal_without_packet_adjustment" in result["failure_families"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_ignores_empty_modifier_maps() -> None:
+    packet_case = next(
+        case for case in _packet_artifact()["cases"] if case["case_id"] == "boba_large_half_sugar"
+    )
+    packet_case = {
+        **packet_case,
+        "manager_evidence_packet": {
+            **packet_case["manager_evidence_packet"],
+            "evidence_items": [
+                {
+                    **packet_case["manager_evidence_packet"]["evidence_items"][0],
+                    "modifier_compatibility": {},
+                }
+            ],
+        },
+    }
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    manager_output["item_results"][0]["kcal_range"] = [400, 520]
+    manager_output["item_results"][0]["likely_kcal"] = 460
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "pass"
+    assert "modifier_adjusted_kcal_without_packet_adjustment" not in result["failure_families"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_counts_shared_refs_from_unguarded_items() -> None:
+    packet_case = next(
+        case for case in _packet_artifact()["cases"] if case["case_id"] == "listed_luwei_components"
+    )
+    evidence_items = packet_case["manager_evidence_packet"]["evidence_items"]
+    shared_source_id = evidence_items[0]["source_provenance"]["source_id"]
+    packet_case = {
+        **packet_case,
+        "manager_evidence_packet": {
+            **packet_case["manager_evidence_packet"],
+            "evidence_items": [
+                {
+                    **evidence_items[0],
+                    "modifier_compatibility": {"seasoning": "compatible"},
+                    "source_provenance": {
+                        **evidence_items[0]["source_provenance"],
+                        "source_id": shared_source_id,
+                    },
+                },
+                {
+                    **evidence_items[1],
+                    "modifier_compatibility": {},
+                    "source_provenance": {
+                        **evidence_items[1]["source_provenance"],
+                        "source_id": shared_source_id,
+                    },
+                },
+            ],
+        },
+    }
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    unguarded_item = packet_case["manager_evidence_packet"]["evidence_items"][1]
+    manager_output["item_results"][1]["evidence_used"] = [shared_source_id]
+    manager_output["item_results"][1]["kcal_range"] = unguarded_item["kcal_range"]
+    manager_output["item_results"][1]["likely_kcal"] = unguarded_item["kcal_point"]
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "pass"
+    assert "modifier_adjusted_kcal_without_packet_adjustment" not in result["failure_families"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_preserves_legacy_unsupported_modifier_family() -> None:
+    packet_case = next(
+        case for case in _packet_artifact()["cases"] if case["case_id"] == "boba_large_half_sugar"
+    )
+    packet_case = {
+        **packet_case,
+        "manager_evidence_packet": {
+            **packet_case["manager_evidence_packet"],
+            "evidence_items": [
+                {
+                    **packet_case["manager_evidence_packet"]["evidence_items"][0],
+                    "modifier_compatibility": {"cup_size": "unsupported"},
+                }
+            ],
+        },
+    }
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    manager_output["item_results"][0]["kcal_range"] = [400, 520]
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "modifier_adjusted_kcal_without_packet_adjustment" in result["failure_families"]
     assert "unsupported_modifier_adjusted_kcal_range" in result["failure_families"]
+
+
+def test_grokfast_fooddb_packet_diagnostic_allows_packet_authorized_modifier_adjustment() -> None:
+    packet_case = next(
+        case for case in _packet_artifact()["cases"] if case["case_id"] == "boba_large_half_sugar"
+    )
+    packet_case = {
+        **packet_case,
+        "manager_evidence_packet": {
+            **packet_case["manager_evidence_packet"],
+            "evidence_items": [
+                {
+                    **packet_case["manager_evidence_packet"]["evidence_items"][0],
+                    "adjusted_kcal_range": [400, 520],
+                    "adjusted_kcal_point": 460,
+                    "modifier_adjustment_authority": "packet_authorized",
+                }
+            ],
+        },
+    }
+    manager_output = build_fixture_manager_outputs(packet_artifact={"cases": [packet_case]})[0][
+        "manager_output"
+    ]
+    manager_output["item_results"][0]["kcal_range"] = [400, 520]
+    manager_output["item_results"][0]["likely_kcal"] = 460
+
+    result = evaluate_manager_output_against_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "pass"
 
 
 def test_grokfast_fooddb_packet_projection_can_use_tool_evidence_result_without_backend_leak() -> None:
