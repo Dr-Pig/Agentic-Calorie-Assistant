@@ -12,6 +12,14 @@ from .websearch_source_policy import build_websearch_source_policy_artifact
 
 MINIMUM_COMMON_SERVING_ANCHORS = 40
 MINIMUM_LISTED_COMPONENT_ANCHORS = 30
+_ALLOWED_CONTRACT_HANDOFF_STATUSES = {
+    "not_run",
+    "blocked_contract_handoff_alignment",
+    "ready_for_manager_contract_owner",
+    "return_to_fooddb_packet_boundary",
+    "fooddb_contract_unblocked",
+    "insufficient_contract_handoff_evidence",
+}
 
 
 def build_fooddb_evidence_status_packet(
@@ -19,6 +27,7 @@ def build_fooddb_evidence_status_packet(
     small_anchor_payload: dict[str, Any],
     tfda_source_payload: dict[str, Any],
     exact_card_payload: dict[str, Any],
+    contract_handoff_artifact: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     truth_audit = build_fooddb_guarded_afk_truth_audit(
         small_anchor_payload=small_anchor_payload,
@@ -41,6 +50,7 @@ def build_fooddb_evidence_status_packet(
     integration_summary = integration["summary"]
     listed_count = gap_summary["listed_component_anchor_count"]
     runtime_anchor_count = truth_summary["runtime_common_serving_anchor_count"]
+    contract_handoff = _compact_contract_handoff_status(contract_handoff_artifact)
 
     return {
         "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
@@ -65,6 +75,9 @@ def build_fooddb_evidence_status_packet(
             "integration_edges_contract_backed": integration_summary["contract_backed"],
             "integration_edges_draft": integration_summary["draft"],
             "manager_fooddb_packet_seam_gate_status": manager_seam_gate["status"],
+            "manager_contract_live_seam_status": contract_handoff["live_seam_status"],
+            "manager_contract_handoff_status": contract_handoff["handoff_status"],
+            "manager_contract_owner_handoff_ready": contract_handoff["handoff_ready"],
         },
         "activation_thresholds": {
             "minimum_common_serving_anchors": MINIMUM_COMMON_SERVING_ANCHORS,
@@ -105,12 +118,19 @@ def build_fooddb_evidence_status_packet(
             "draft_edge_count": integration_summary["draft"],
             "websearch_runtime_truth_allowed": integration["websearch_runtime_truth_allowed"],
             "manager_fooddb_packet_seam_gate_status": manager_seam_gate["status"],
+            "manager_contract_live_seam_status": contract_handoff["live_seam_status"],
+            "manager_contract_handoff_status": contract_handoff["handoff_status"],
+            "manager_contract_owner_handoff_ready": contract_handoff["handoff_ready"],
+            "manager_contract_selected_next_step": contract_handoff["selected_next_step"],
         },
         "next_required_slices": _next_required_slices(
             runtime_anchor_count=runtime_anchor_count,
             listed_component_count=listed_count,
             integration_summary=integration_summary,
             manager_seam_gate_status=manager_seam_gate["status"],
+            contract_handoff_status=contract_handoff["handoff_status"],
+            contract_handoff_ready=contract_handoff["handoff_ready"],
+            contract_handoff_next_step=contract_handoff["selected_next_step"],
         ),
         "non_claims": [
             "no_product_loop_integration",
@@ -130,6 +150,9 @@ def _next_required_slices(
     listed_component_count: int,
     integration_summary: dict[str, Any],
     manager_seam_gate_status: str = "not_run",
+    contract_handoff_status: str = "not_run",
+    contract_handoff_ready: bool = False,
+    contract_handoff_next_step: str | None = None,
 ) -> list[str]:
     slices: list[str] = []
     if runtime_anchor_count < MINIMUM_COMMON_SERVING_ANCHORS:
@@ -140,9 +163,44 @@ def _next_required_slices(
         slices.append("packet_to_mutation_guard_hardening")
     if not slices and manager_seam_gate_status != "pass":
         slices.append("manager_fooddb_packet_seam_smoke")
-    if not slices:
+    if not slices and contract_handoff_status == "not_run":
         slices.append("grokfast_fooddb_packet_live_diagnostic")
+    if not slices and contract_handoff_status == "blocked_contract_handoff_alignment":
+        slices.append(contract_handoff_next_step or "repair_artifact_alignment_required")
+    if not slices and contract_handoff_ready:
+        slices.append("await_manager_contract_owner_repair")
+    if not slices and contract_handoff_status == "fooddb_contract_unblocked":
+        slices.append("grokfast_websearch_packet_live_diagnostic")
+    if not slices and contract_handoff_status != "not_run":
+        slices.append("inspect_contract_handoff_status")
     return slices
+
+
+def _compact_contract_handoff_status(contract_handoff_artifact: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(contract_handoff_artifact, dict):
+        return {
+            "live_seam_status": "not_run",
+            "handoff_status": "not_run",
+            "handoff_ready": False,
+            "selected_next_step": None,
+        }
+    if (
+        str(contract_handoff_artifact.get("artifact_type") or "")
+        != "accurate_intake_fooddb_manager_contract_handoff_v1"
+    ):
+        raise ValueError("unsupported_fooddb_evidence_status_contract_handoff")
+    summary = dict(contract_handoff_artifact.get("summary") or {})
+    handoff_status = str(contract_handoff_artifact.get("status") or "unknown")
+    selected_next_step = str(contract_handoff_artifact.get("selected_next_step") or "").strip() or None
+    if handoff_status not in _ALLOWED_CONTRACT_HANDOFF_STATUSES:
+        handoff_status = "blocked_contract_handoff_alignment"
+        selected_next_step = "inspect_contract_handoff_status"
+    return {
+        "live_seam_status": str(summary.get("live_seam_status") or "unknown"),
+        "handoff_status": handoff_status,
+        "handoff_ready": contract_handoff_artifact.get("handoff_ready") is True,
+        "selected_next_step": selected_next_step,
+    }
 
 
 def _now() -> str:

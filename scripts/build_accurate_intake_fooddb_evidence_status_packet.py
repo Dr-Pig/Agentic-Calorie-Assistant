@@ -28,13 +28,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--small-anchor-store", default=str(DEFAULT_SMALL_ANCHOR_STORE))
     parser.add_argument("--tfda-source", default=str(DEFAULT_TFDA_SOURCE))
     parser.add_argument("--exact-cards", default=str(DEFAULT_EXACT_CARDS))
+    parser.add_argument("--contract-handoff-artifact")
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
+
+    contract_handoff_path = Path(args.contract_handoff_artifact) if args.contract_handoff_artifact else None
 
     packet = build_fooddb_evidence_status_packet(
         small_anchor_payload=read_json_artifact(Path(args.small_anchor_store)),
         tfda_source_payload=read_json_artifact(Path(args.tfda_source)),
         exact_card_payload=read_json_artifact(Path(args.exact_cards)),
+        contract_handoff_artifact=(
+            read_json_artifact(contract_handoff_path) if contract_handoff_path is not None else None
+        ),
     )
     write_json_artifact(Path(args.output), packet)
     print(
