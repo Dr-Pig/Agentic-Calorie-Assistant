@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Callable
 
 
 GROKFAST_WEBSEARCH_PACKET_PROFILE = {
@@ -25,6 +25,22 @@ NON_CLAIMS = [
     "no_websearch_runtime_truth",
 ]
 
+WEBSEARCH_PACKET_MANAGER_REQUIRED_FIELDS = (
+    "manager_action",
+    "response_mode",
+    "intent",
+    "workflow_effect",
+    "target_attachment",
+    "exactness",
+    "confidence",
+    "evidence_posture",
+    "repair_ack",
+    "operations",
+    "answer_contract",
+)
+
+ManagerContractValidator = Callable[[dict[str, Any], dict[str, Any]], list[str]]
+
 
 def build_fixture_manager_outputs(*, review_packet_artifact: dict[str, Any]) -> list[dict[str, Any]]:
     outputs = []
@@ -36,16 +52,37 @@ def build_fixture_manager_outputs(*, review_packet_artifact: dict[str, Any]) -> 
                 "packet_id": packet.get("packet_id"),
                 "manager_output": {
                     "manager_action": "final",
+                    "response_mode": "info_answer",
+                    "intent": "query_food_calories",
                     "final_action": "answer_only",
                     "workflow_effect": "no_mutation_review_candidate_only",
                     "target_attachment": {},
-                    "tool_calls": [],
+                    "exactness": "candidate_only",
+                    "confidence": "medium",
+                    "evidence_posture": "candidate_review_only",
+                    "repair_ack": False,
+                    "operations": [],
                     "item_results": [],
                     "evidence_used": [packet.get("packet_id"), packet.get("source_url")],
                     "answer_contract": {
                         "text": "WebSearch packet is an exact-card review candidate only; approval is required before runtime use."
                     },
-                    "semantic_decision": {"mutation_intent_candidate": "no_mutation"},
+                    "semantic_decision": {
+                        "semantic_authority": "deterministic_fake_provider",
+                        "current_turn_intent": "answer_query",
+                        "target_attachment": {},
+                        "workflow_effect": "no_mutation_review_candidate_only",
+                        "final_action_candidate": "answer_only",
+                        "estimation_posture": "review_candidate_only",
+                        "followup_posture": "none",
+                        "followup_question": None,
+                        "followup_targets": [],
+                        "mutation_intent_candidate": "no_mutation",
+                        "uncertainty_posture": "candidate_only",
+                        "source": "fixture_websearch_packet_diagnostic",
+                        "semantic_owner": "deterministic_fake_provider",
+                        "deterministic_role": "schema_fixture_only",
+                    },
                 },
                 "provider_trace": {
                     "fixture_provider": True,
@@ -64,6 +101,7 @@ def build_grokfast_websearch_packet_diagnostic(
     live_provider_used: bool,
     status: str | None = None,
     failure_family: str | None = None,
+    manager_contract_validator: ManagerContractValidator | None = None,
 ) -> dict[str, Any]:
     outputs_by_packet = {
         str(item.get("packet_id")): item
@@ -121,6 +159,11 @@ def build_grokfast_websearch_packet_diagnostic(
         evaluation = evaluate_manager_output_against_review_packet(
             review_packet=packet,
             manager_output=dict(output.get("manager_output") or {}),
+            manager_contract_validation_errors=(
+                manager_contract_validator(packet, dict(output.get("manager_output") or {}))
+                if manager_contract_validator is not None
+                else []
+            ),
         )
         evaluation["provider_trace"] = dict(output.get("provider_trace") or {})
         case_results.append(evaluation)
@@ -168,12 +211,20 @@ def evaluate_manager_output_against_review_packet(
     *,
     review_packet: dict[str, Any],
     manager_output: dict[str, Any],
+    manager_contract_validation_errors: list[str] | None = None,
 ) -> dict[str, Any]:
     allowed_refs = _allowed_refs(review_packet)
     used_refs = _used_evidence_refs(manager_output)
     invented_refs = sorted(ref for ref in used_refs if not _ref_is_allowed(ref, allowed_refs))
+    missing_contract_fields = _missing_manager_contract_fields(manager_output)
+    contract_shape_errors = _manager_contract_shape_errors(manager_output)
+    external_contract_errors = list(manager_contract_validation_errors or [])
     failure_families: list[str] = []
 
+    if missing_contract_fields:
+        failure_families.append("manager_contract_required_fields_missing")
+    if contract_shape_errors or external_contract_errors:
+        failure_families.append("manager_contract_schema_validation_failed")
     if invented_refs:
         failure_families.append("invented_evidence_reference")
     if not any(_ref_is_allowed(ref, allowed_refs) for ref in used_refs):
@@ -182,6 +233,8 @@ def evaluate_manager_output_against_review_packet(
         failure_families.append("manager_did_not_finalize_after_packet")
     if str(manager_output.get("final_action") or "") in {"commit", "log_food", "add_food"}:
         failure_families.append("review_candidate_used_for_commit")
+    if _review_candidate_attached_as_target(manager_output):
+        failure_families.append("review_candidate_attached_as_mutation_target")
     if any(bool(item) for item in _recursive_values_for_key(manager_output, "item_results")):
         failure_families.append("review_candidate_used_as_item_result")
     if manager_output.get("tool_calls"):
@@ -201,6 +254,8 @@ def evaluate_manager_output_against_review_packet(
         "manager_action": manager_output.get("manager_action"),
         "final_action": manager_output.get("final_action"),
         "runtime_mutation_attempted": False,
+        "missing_manager_contract_fields": missing_contract_fields,
+        "manager_contract_validation_errors": contract_shape_errors + external_contract_errors,
         "manager_output": manager_output,
     }
 
@@ -210,15 +265,38 @@ def build_live_manager_payload(*, review_packet: dict[str, Any]) -> dict[str, An
         "diagnostic_scope": "websearch_review_packet_manager_seam_smoke",
         "raw_user_input": review_packet.get("matched_name") or review_packet.get("canonical_name"),
         "websearch_exact_candidate_review_packet": dict(review_packet),
+        "allowed_evidence_refs": sorted(_allowed_refs(review_packet)),
         "instructions": [
+            "Return one JSON object matching the active B1 pass-2 manager schema.",
+            "Include the required top-level manager fields: manager_action, response_mode, intent, workflow_effect, target_attachment, exactness, confidence, evidence_posture, repair_ack, operations, and answer_contract.",
+            "Use manager_action=final, response_mode=info_answer, intent=query_food_calories, final_action=answer_only, target_attachment={}, operations=[].",
             "Use only the provided WebSearch exact-card review packet for source references.",
+            "If you include evidence_used, every value must exactly equal one allowed_evidence_refs value; do not add prefixes, policy labels, or paraphrased source ids.",
             "Treat extracted kcal/serving values as review candidates, not runtime truth.",
+            "Do not include item_results, kcal_range, likely_kcal, or any user-facing estimate fields.",
             "Do not create an exact card or claim runtime nutrition truth.",
             "Do not mutate or write ledger state.",
             "Return a final answer-only diagnostic decision that states approval is required before runtime use.",
         ],
+        "expected_output_contract": {
+            "required_top_level_fields": list(WEBSEARCH_PACKET_MANAGER_REQUIRED_FIELDS),
+            "manager_action": "final",
+            "response_mode": "info_answer",
+            "intent": "query_food_calories",
+            "final_action": "answer_only",
+            "target_attachment": {},
+            "operations": [],
+            "forbidden_top_level_fields": ["item_results"],
+            "forbidden_nested_fields": ["kcal_range", "likely_kcal"],
+            "allowed_evidence_refs": sorted(_allowed_refs(review_packet)),
+            "runtime_mutation_allowed": False,
+            "runtime_truth_allowed": False,
+        },
         "constraints": {
             "phase_b1_manager_role": "pass_2_synthesis",
+            "phase_b1_pass1_mode": "natural_tool_selection_probe",
+            "phase_b1_case_family": "common_commercial_drink",
+            "phase_b1_provider_profile_id": GROKFAST_WEBSEARCH_PACKET_PROFILE["provider_profile_id"],
             "websearch_review_packet_smoke": True,
             "runtime_truth_allowed": False,
             "runtime_mutation_allowed": False,
@@ -258,6 +336,58 @@ def _used_evidence_refs(manager_output: dict[str, Any]) -> set[str]:
             if cleaned:
                 refs.add(cleaned)
     return refs
+
+
+def _missing_manager_contract_fields(manager_output: dict[str, Any]) -> list[str]:
+    return sorted(
+        field
+        for field in WEBSEARCH_PACKET_MANAGER_REQUIRED_FIELDS
+        if field not in manager_output
+    )
+
+
+def _manager_contract_shape_errors(manager_output: dict[str, Any]) -> list[str]:
+    expected_types: dict[str, type[Any] | tuple[type[Any], ...]] = {
+        "manager_action": str,
+        "response_mode": str,
+        "intent": str,
+        "workflow_effect": str,
+        "target_attachment": dict,
+        "exactness": str,
+        "confidence": str,
+        "evidence_posture": str,
+        "repair_ack": bool,
+        "operations": list,
+        "answer_contract": dict,
+    }
+    errors: list[str] = []
+    for field, expected_type in expected_types.items():
+        if field not in manager_output:
+            continue
+        if not isinstance(manager_output.get(field), expected_type):
+            type_name = (
+                "|".join(item.__name__ for item in expected_type)
+                if isinstance(expected_type, tuple)
+                else expected_type.__name__
+            )
+            errors.append(f"{field}:expected_{type_name}")
+    return sorted(errors)
+
+
+def _review_candidate_attached_as_target(manager_output: dict[str, Any]) -> bool:
+    attachment = manager_output.get("target_attachment")
+    if not isinstance(attachment, dict):
+        return False
+    risky_keys = {
+        "packet_id",
+        "candidate_packet_id",
+        "review_kcal_candidate",
+        "review_serving_basis_candidate",
+        "kcal_value_candidate",
+        "serving_basis_candidate",
+        "candidate_boundary",
+    }
+    return any(key in attachment for key in risky_keys)
 
 
 def _has_truth_or_promotion_claim(value: Any) -> bool:
@@ -326,7 +456,9 @@ def _now() -> str:
 
 __all__ = [
     "GROKFAST_WEBSEARCH_PACKET_PROFILE",
+    "ManagerContractValidator",
     "NON_CLAIMS",
+    "WEBSEARCH_PACKET_MANAGER_REQUIRED_FIELDS",
     "build_fixture_manager_outputs",
     "build_grokfast_websearch_packet_diagnostic",
     "build_live_manager_payload",
