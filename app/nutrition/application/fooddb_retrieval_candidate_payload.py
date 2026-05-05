@@ -5,6 +5,14 @@ from typing import Any
 from .fooddb_retrieval_records import IndexedFoodRecord
 
 
+MODIFIER_VALUE_EQUIVALENTS = {
+    "rice_portion": {
+        "less_rice": {"half", "small"},
+        "half_rice": {"half", "small"},
+    },
+}
+
+
 def _candidate_payload(
     match: dict[str, Any],
     *,
@@ -52,8 +60,14 @@ def _modifier_compatibility(
     }
     for modifier_name, modifier_value in modifier_hints.items():
         supported_values = modifier_values.get(modifier_name)
+        equivalent_values = MODIFIER_VALUE_EQUIVALENTS.get(modifier_name, {}).get(
+            modifier_value,
+            set(),
+        )
         if supported_values and modifier_value in supported_values:
             compatibility[modifier_name] = "compatible"
+        elif supported_values and bool(equivalent_values & supported_values):
+            compatibility[modifier_name] = "compatible_via_normalized_equivalent"
         else:
             compatibility[modifier_name] = "unsupported"
     return compatibility

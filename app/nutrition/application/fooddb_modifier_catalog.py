@@ -194,7 +194,7 @@ def _manager_modifier_catalog(anchors: list[dict[str, Any]]) -> dict[str, Any]:
             {
                 "anchor_id": anchor.get("anchor_id"),
                 "canonical_name": anchor.get("canonical_name"),
-                "modifiers": list(anchor.get("major_modifiers") or []),
+                "modifiers": _compact_modifiers(anchor.get("major_modifiers") or []),
                 "followup_hints": list(anchor.get("followup_hints") or []),
             }
         )
@@ -204,6 +204,27 @@ def _manager_modifier_catalog(anchors: list[dict[str, Any]]) -> dict[str, Any]:
         "candidate_only_records_included": False,
         "anchors": compact,
     }
+
+
+def _compact_modifiers(modifiers: list[Any]) -> list[dict[str, Any]]:
+    compact = []
+    for modifier in modifiers:
+        if not isinstance(modifier, dict):
+            continue
+        name = str(modifier.get("name") or "").strip()
+        if not name:
+            continue
+        compact.append(
+            {
+                "name": name,
+                "values": [
+                    str(value)
+                    for value in modifier.get("values") or []
+                    if str(value).strip()
+                ],
+            }
+        )
+    return compact
 
 
 def _now() -> str:
