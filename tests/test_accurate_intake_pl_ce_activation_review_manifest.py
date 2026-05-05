@@ -20,6 +20,8 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "context_quality_pack",
                 "short_term_context_runtime_replay",
                 "context_coverage_matrix",
+                "context_live_diagnostic_case_matrix",
+                "context_live_diagnostic_anti_overfit_guard",
                 "context_conditioned_intent_wall",
                 "context_live_diagnostic_case_matrix",
                 "context_live_diagnostic_anti_overfit_guard",
@@ -42,6 +44,16 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "context_coverage_matrix": {
                     "artifact_type": "accurate_intake_pl_ce_context_coverage_matrix",
                     "status": "context_coverage_matrix_ready_for_human_review",
+                    "present": True,
+                },
+                "context_live_diagnostic_case_matrix": {
+                    "artifact_type": "accurate_intake_context_live_diagnostic_case_matrix",
+                    "status": "pass",
+                    "present": True,
+                },
+                "context_live_diagnostic_anti_overfit_guard": {
+                    "artifact_type": "accurate_intake_context_live_diagnostic_anti_overfit_guard",
+                    "status": "pass",
                     "present": True,
                 },
                 "context_conditioned_intent_wall": {"status": "pass", "present": True},

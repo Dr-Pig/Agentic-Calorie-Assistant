@@ -66,6 +66,28 @@ def test_ui_same_truth_render_contract_rejects_frontend_semantic_or_kcal_inferen
     assert "selectTarget" in artifact["forbidden_semantic_fragments_present"]
 
 
+def test_ui_same_truth_render_contract_requires_real_function_declarations() -> None:
+    html = """
+    <main data-frontend-semantic-owner="false" data-live-llm-required="false" data-production-readiness-claimed="false">
+      <span id="budget-kcal"></span><span id="consumed-kcal"></span><span id="remaining-kcal"></span>
+      <ul id="meal-thread-list"></ul><ul id="pending-followup-list"></ul>
+      <ul id="runtime-status-list"></ul><ul id="failure-signal-list"></ul><ul id="same-truth-list"></ul>
+      <script>
+        function renderBudget() {}
+        function renderDebug() {}
+        // function renderChatHistory() {}
+        const fake = "function renderReviewPanel() {}";
+      </script>
+    </main>
+    """
+
+    artifact = build_ui_same_truth_render_contract(html)
+
+    assert artifact["status"] == "fail"
+    assert "renderChatHistory" in artifact["missing_render_functions"]
+    assert "renderReviewPanel" in artifact["missing_render_functions"]
+
+
 def test_ui_same_truth_render_contract_cli_writes_artifact(tmp_path: Path, capsys) -> None:
     output_path = tmp_path / "ui-contract.json"
 

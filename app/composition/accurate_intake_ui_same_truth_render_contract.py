@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 import json
+import re
 from typing import Any
 
 REQUIRED_BACKEND_TRUTH_SELECTORS = (
@@ -66,8 +67,76 @@ def _selector_present(html: str, selector: str) -> bool:
     return f'id="{selector.lstrip("#")}"' in html
 
 
+def _strip_js_non_code(script: str) -> str:
+    output: list[str] = []
+    index = 0
+    state = "code"
+    quote = ""
+    while index < len(script):
+        char = script[index]
+        next_char = script[index + 1] if index + 1 < len(script) else ""
+        if state == "code":
+            if char == "/" and next_char == "/":
+                output.extend((" ", " "))
+                index += 2
+                state = "line_comment"
+                continue
+            if char == "/" and next_char == "*":
+                output.extend((" ", " "))
+                index += 2
+                state = "block_comment"
+                continue
+            if char in {"'", '"', "`"}:
+                output.append(" ")
+                quote = char
+                index += 1
+                state = "string"
+                continue
+            output.append(char)
+            index += 1
+            continue
+        if state == "line_comment":
+            output.append("\n" if char == "\n" else " ")
+            index += 1
+            if char == "\n":
+                state = "code"
+            continue
+        if state == "block_comment":
+            if char == "*" and next_char == "/":
+                output.extend((" ", " "))
+                index += 2
+                state = "code"
+                continue
+            output.append("\n" if char == "\n" else " ")
+            index += 1
+            continue
+        if state == "string":
+            if char == "\\":
+                output.append("\n" if char == "\n" else " ")
+                if next_char:
+                    output.append("\n" if next_char == "\n" else " ")
+                    index += 2
+                else:
+                    index += 1
+                continue
+            if char == quote:
+                output.append(" ")
+                index += 1
+                state = "code"
+                continue
+            output.append("\n" if char == "\n" else " ")
+            index += 1
+            continue
+    return "".join(output)
+
+
 def _function_present(html: str, function_name: str) -> bool:
-    return f"function {function_name}" in html or f"{function_name}(" in html
+    scripts = re.findall(r"<script\b[^>]*>(.*?)</script>", html, flags=re.IGNORECASE | re.DOTALL)
+    declaration = re.compile(
+        rf"^\s*(?:async\s+)?function\s+{re.escape(function_name)}\s*\(",
+        re.MULTILINE,
+    )
+    return any(declaration.search(_strip_js_non_code(script)) is not None for script in scripts)
 
 
 def build_ui_same_truth_render_contract(html: str) -> dict[str, Any]:
