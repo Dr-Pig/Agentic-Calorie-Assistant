@@ -69,6 +69,32 @@ def test_context_live_diagnostic_case_matrix_covers_user_intent_boundaries() -> 
     assert by_id["context_live_011_ambiguous_back_reference"]["ambiguity_expected"] is True
 
 
+def test_context_live_diagnostic_case_matrix_keeps_cjk_utterances_intact() -> None:
+    by_id = _by_id(build_context_live_diagnostic_case_matrix_artifact())
+    expected_utterances = {
+        "context_live_001_general_chat_no_mutation": "\u4eca\u5929\u597d\u7d2f\u5594",
+        "context_live_002_simple_food_log_candidate": "\u6211\u65e9\u9910\u5403\u4e00\u9846\u8336\u8449\u86cb",
+        "context_live_003_pending_followup_answer": "\u8c46\u5e72\u3001\u6d77\u5e36\u3001\u8ca2\u4e38",
+        "context_live_004_remove_previous_item": "\u628a\u525b\u525b\u90a3\u500b\u62ff\u6389",
+        "context_live_005_remove_older_meal_item": "\u4e2d\u5348\u90a3\u500b\u8c46\u5e72\u62ff\u6389",
+        "context_live_006_query_previous_drink_no_mutation": "\u525b\u525b\u90a3\u676f\u591a\u5c11\u71b1\u91cf\uff1f",
+        "context_live_007_daily_target_update": "\u4eca\u5929\u76ee\u6a19\u6539\u6210 1800",
+        "context_live_008_meal_estimate_not_target": "\u9019\u9910\u5927\u6982 800",
+        "context_live_009_simultaneous_log_and_modify": (
+            "\u6211\u665a\u9910\u5403\u6ef7\u5473\uff0c\u7136\u5f8c\u628a"
+            "\u4e2d\u5348\u98ef\u6539\u5c11\u4e00\u9ede"
+        ),
+        "context_live_010_cancel_do_not_log": "\u7b97\u4e86\u4e0d\u8981\u8a18",
+        "context_live_011_ambiguous_back_reference": "\u90a3\u500b\u6539\u5c11\u4e00\u9ede",
+    }
+    mojibake_markers = ("\ufffd", "\u00c3", "\u00e2", "\u00ef")
+
+    for case_id, expected in expected_utterances.items():
+        utterance = str(by_id[case_id]["utterance"])
+        assert utterance == expected
+        assert not any(marker in utterance for marker in mojibake_markers)
+
+
 def test_context_live_diagnostic_case_matrix_rejects_ad_hoc_or_unsafe_cases() -> None:
     artifact = build_context_live_diagnostic_case_matrix_artifact()
     cases = list(artifact["cases"])  # type: ignore[index]
