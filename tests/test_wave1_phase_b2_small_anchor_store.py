@@ -5,6 +5,12 @@ from app.nutrition.application.retrieval_intent import RetrievalIntent, build_re
 from app.nutrition.application.small_anchor_store import lookup_anchor_candidates
 
 
+def _clear_default_small_anchor_caches() -> None:
+    small_anchor_store._load_default_small_anchor_items.cache_clear()
+    small_anchor_store._load_default_anchor_records.cache_clear()
+    small_anchor_store._load_default_anchor_lookup_index.cache_clear()
+
+
 class _FakeEvidenceStore:
     def load_small_anchor_records(self) -> list[dict[str, object]]:
         return [
@@ -68,6 +74,59 @@ def test_small_anchor_lookup_with_injected_store_does_not_touch_default_factory(
     )
 
     assert [candidate.anchor_id for candidate in result.candidates] == ["anchor_test_food"]
+
+
+def test_small_anchor_default_index_preserves_seed_order_for_equal_rank(monkeypatch) -> None:
+    class _OrderedFakeEvidenceStore:
+        def load_small_anchor_records(self) -> list[dict[str, object]]:
+            return [
+                {
+                    "record_kind": "generic_anchor",
+                    "anchor_id": "anchor_first",
+                    "canonical_name": "z food",
+                    "aliases": ["shared alias"],
+                    "dish_type": "single_item",
+                    "baseline_kcal_range": [10, 20],
+                    "baseline_likely_kcal": 15,
+                    "major_modifiers": [],
+                },
+                {
+                    "record_kind": "generic_anchor",
+                    "anchor_id": "anchor_second",
+                    "canonical_name": "a food",
+                    "aliases": ["shared alias"],
+                    "dish_type": "single_item",
+                    "baseline_kcal_range": [30, 40],
+                    "baseline_likely_kcal": 35,
+                    "major_modifiers": [],
+                },
+            ]
+
+        def load_exact_item_card_records(self) -> list[dict[str, object]]:
+            return []
+
+    _clear_default_small_anchor_caches()
+    monkeypatch.setattr(
+        small_anchor_store,
+        "default_nutrition_evidence_store",
+        lambda: _OrderedFakeEvidenceStore(),
+    )
+    try:
+        result = lookup_anchor_candidates(
+            RetrievalIntent(
+                base_dish="shared alias",
+                aliases=[],
+                brand_hint=None,
+                size_hint=None,
+                modifier_hints=[],
+                listed_items=[],
+                retrieval_goal="generic_anchor_lookup",
+            ),
+        )
+
+        assert [candidate.anchor_id for candidate in result.candidates] == ["anchor_first", "anchor_second"]
+    finally:
+        _clear_default_small_anchor_caches()
 
 
 def test_small_anchor_store_matches_generic_single_item_anchor() -> None:

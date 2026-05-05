@@ -233,7 +233,7 @@ def _match_default_anchor_candidates(query_keys: set[str], *, limit: int) -> lis
 
     ordered = sorted(
         matched.values(),
-        key=lambda entry: (entry.rank, entry.candidate.canonical_name, entry.record_order),
+        key=lambda entry: (entry.rank, entry.record_order, entry.alias_order),
     )
     return [entry.candidate for entry in ordered[:limit]]
 
