@@ -47,6 +47,7 @@ def test_fooddb_evidence_status_packet_summarizes_current_fdb_without_runtime_ch
         "exact_card_existing_report_only_count": 5,
         "integration_edges_contract_backed": 9,
         "integration_edges_draft": 0,
+        "manager_fooddb_packet_seam_gate_status": "pass",
     }
     assert packet["activation_thresholds"] == {
         "minimum_common_serving_anchors": 40,
@@ -55,7 +56,7 @@ def test_fooddb_evidence_status_packet_summarizes_current_fdb_without_runtime_ch
         "meets_listed_component_minimum": True,
     }
     assert packet["next_required_slices"] == [
-        "manager_fooddb_packet_seam_smoke",
+        "grokfast_fooddb_packet_live_diagnostic",
     ]
 
 
@@ -115,6 +116,15 @@ def test_fooddb_evidence_status_packet_does_not_unlock_seam_before_all_threshold
         listed_component_count=30,
         integration_summary={"draft": 0},
     ) == ["common_serving_anchor_expansion"]
+
+
+def test_fooddb_evidence_status_packet_requires_manager_seam_before_live_diagnostic() -> None:
+    assert _next_required_slices(
+        runtime_anchor_count=40,
+        listed_component_count=30,
+        integration_summary={"draft": 0},
+        manager_seam_gate_status="not_run",
+    ) == ["manager_fooddb_packet_seam_smoke"]
 
 
 def _contains_key(value: object, key: str) -> bool:
