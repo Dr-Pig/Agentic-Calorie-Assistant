@@ -35,6 +35,20 @@ def _evidence(**overrides: dict) -> dict:
             "real_fooddb_pass_claimed": False,
             "private_self_use_approved": False,
         },
+        "context_live_diagnostic_case_matrix": {
+            "status": "pass",
+            "plan_only": True,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "live_provider_approved": False,
+            "fooddb_used": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "summary": {
+                "case_count": 11,
+                "compound_cases": 1,
+            },
+        },
     }
     evidence.update(overrides)
     return evidence
@@ -115,6 +129,39 @@ def test_pre_live_decision_pack_requires_pl_ce_local_review_gate_before_human_li
     assert "pl_ce_local_review_decision_pack" in pack["missing_evidence"]
     assert pack["ready_for_pl_ce_local_review"] is False
     assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_requires_context_live_case_matrix_before_human_live_decision() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(context_live_diagnostic_case_matrix={})
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "context_live_diagnostic_case_matrix" in pack["missing_evidence"]
+    assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_blocks_unsafe_context_live_case_matrix() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            context_live_diagnostic_case_matrix={
+                "status": "pass",
+                "plan_only": False,
+                "live_provider_invoked": True,
+                "live_provider_approved": True,
+                "fooddb_used": True,
+                "summary": {"case_count": 3, "compound_cases": 0},
+            }
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "context_live_diagnostic_case_matrix" in pack["missing_evidence"]
+    assert "context_live_diagnostic_case_matrix_live_provider_invoked" in pack["blockers"]
+    assert "context_live_diagnostic_case_matrix_live_provider_approved" in pack["blockers"]
+    assert "context_live_diagnostic_case_matrix_fooddb_used" in pack["blockers"]
+    assert "context_live_diagnostic_case_matrix_case_count_too_low" in pack["blockers"]
+    assert "context_live_diagnostic_case_matrix_compound_case_missing" in pack["blockers"]
 
 
 def test_pre_live_decision_pack_blocks_when_pl_ce_local_review_gate_is_blocked() -> None:
