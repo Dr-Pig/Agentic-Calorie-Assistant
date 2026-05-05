@@ -119,6 +119,7 @@ def _base_report(
         "body_plan_readback_checked": False,
         "body_manual_target_read_model_rendered": False,
         "today_manual_target_readback_checked": False,
+        "today_body_cross_page_same_truth_checked": False,
         "body_no_debug_trace": False,
         "desktop_no_overflow": False,
         "mobile_no_overflow": False,
@@ -136,6 +137,7 @@ def _base_report(
         "private_self_use_approved": False,
         "fetch_sequence": [],
         "body_plan_read_model_values": {},
+        "today_read_model_values": {},
     }
 
 
@@ -734,6 +736,43 @@ def _run_browser_sequence(
             page_texts.append(body_text_after)
             body.close()
 
+            result["current_step"] = "reopen_today_after_body_budget_update"
+            today_after_body = _open_page(
+                browser,
+                viewport=desktop_viewport,
+                url=_page_url(base_url, "today", user_external_id=user_external_id, local_date=local_date),
+                timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
+            )
+            today_after_body.wait_for_selector('[data-surface-role="today-diary"]', timeout=timeout_ms)
+            today_after_body.wait_for_function(
+                """() => document.querySelector("#budget-kcal")?.textContent?.trim() === "1550" """,
+                timeout=timeout_ms,
+            )
+            today_after_body.wait_for_function(
+                """() => document.querySelector("#remaining-kcal")?.textContent?.trim() === "1150" """,
+                timeout=timeout_ms,
+            )
+            today_after_body_values = {
+                "target": today_after_body.locator("#budget-kcal").inner_text(timeout=timeout_ms).strip(),
+                "consumed": today_after_body.locator("#consumed-kcal").inner_text(timeout=timeout_ms).strip(),
+                "remaining": today_after_body.locator("#remaining-kcal").inner_text(timeout=timeout_ms).strip(),
+            }
+            result["today_read_model_values"] = today_after_body_values
+            result["today_manual_target_readback_checked"] = today_after_body_values["target"] == "1550"
+            result["today_body_cross_page_same_truth_checked"] = (
+                today_after_body_values["target"] == body_plan_values["deficit_active_target"].removesuffix(" kcal")
+                and today_after_body_values["consumed"] == body_plan_values["deficit_consumed"].removesuffix(" kcal")
+                and today_after_body_values["remaining"] == body_plan_values["deficit_remaining"].removesuffix(" kcal")
+            )
+            today_after_body_text = today_after_body.locator("body").inner_text(timeout=timeout_ms)
+            result["fetch_sequence"].extend(_capture_fetches(today_after_body))
+            desktop_overflows.append(_overflow_state(today_after_body))
+            storage_keys["localStorageKeys"].extend(_storage_state(today_after_body).get("localStorageKeys", []))
+            storage_keys["sessionStorageKeys"].extend(_storage_state(today_after_body).get("sessionStorageKeys", []))
+            page_texts.append(today_after_body_text)
+            today_after_body.close()
+
             result["current_step"] = "mobile_overflow_check"
             for page_name in ("chat", "today", "body"):
                 mobile = _open_page(
@@ -754,7 +793,6 @@ def _run_browser_sequence(
                         """() => document.querySelector("#budget-kcal")?.textContent?.trim() === "1550" """,
                         timeout=timeout_ms,
                     )
-                    result["today_manual_target_readback_checked"] = True
                 if page_name == "body":
                     mobile.wait_for_function(
                         """() => document.querySelector("#plan-daily-target")?.textContent?.trim() === "1550 kcal" """,
@@ -861,6 +899,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("body_plan_readback_checked", "body_plan_readback_not_checked")
     require_true("body_manual_target_read_model_rendered", "body_manual_target_read_model_not_rendered")
     require_true("today_manual_target_readback_checked", "today_manual_target_readback_not_checked")
+    require_true(
+        "today_body_cross_page_same_truth_checked",
+        "today_body_cross_page_same_truth_not_checked",
+    )
     require_true("body_no_debug_trace", "body_debug_trace_leaked")
     require_true("desktop_no_overflow", "desktop_overflow_detected")
     require_true("mobile_no_overflow", "mobile_overflow_detected")
@@ -885,6 +927,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
 
     browser = dict(report.get("browser") or {})
     body_values = dict(report.get("body_plan_read_model_values") or browser.get("body_plan_read_model_values") or {})
+    today_values = dict(report.get("today_read_model_values") or browser.get("today_read_model_values") or {})
     local_date = str(report.get("local_date") or DEFAULT_LOCAL_DATE)
     if not body_values:
         blockers.append("body_read_model_values_missing")
@@ -902,6 +945,30 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     if body_values:
         if f"{local_date} | 70.4 kg" not in str(body_values.get("weight_history") or ""):
             blockers.append("body_read_model_value_mismatch:weight_history")
+    expected_today_values = {
+        "target": "1550",
+        "consumed": "400",
+        "remaining": "1150",
+    }
+    if not today_values:
+        blockers.append("today_read_model_values_missing")
+    for field, expected_value in expected_today_values.items():
+        if today_values and today_values.get(field) != expected_value:
+            blockers.append(f"today_read_model_value_mismatch:{field}")
+    cross_page_pairs = {
+        "target": ("target", "deficit_active_target"),
+        "consumed": ("consumed", "deficit_consumed"),
+        "remaining": ("remaining", "deficit_remaining"),
+    }
+    for field, (today_field, body_field) in cross_page_pairs.items():
+        if today_values and body_values:
+            body_value = str(body_values.get(body_field) or "").removesuffix(" kcal")
+            if str(today_values.get(today_field) or "") != body_value:
+                blockers.append(f"today_body_cross_page_same_truth_mismatch:{field}")
+    if today_values and body_values:
+        effective_budget = str(body_values.get("effective_budget") or "").removesuffix(" kcal")
+        if str(today_values.get("target") or "") != effective_budget:
+            blockers.append("today_body_cross_page_same_truth_mismatch:effective_budget")
     fetches = list(report.get("fetch_sequence") or browser.get("fetch_sequence") or [])
     for expected, method in REQUIRED_FETCH_METHODS.items():
         if not any(
