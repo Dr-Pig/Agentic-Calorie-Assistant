@@ -6,11 +6,18 @@ from types import SimpleNamespace
 import pytest
 from sqlalchemy import create_engine
 
+import app.composition.conversation_state_loader as conversation_state_loader
 import app.nutrition.application.small_anchor_store as small_anchor_store
 import app.nutrition.infrastructure.exact_item_search as exact_item_search
 import app.runtime.interface.base_routes as base_routes
-import app.composition.conversation_state_loader as conversation_state_loader
 from app.database import get_meal_log_history
+from app.nutrition.application.retrieval_intent import RetrievalIntent
+
+
+def _clear_small_anchor_store_default_caches() -> None:
+    small_anchor_store._load_default_small_anchor_items.cache_clear()
+    small_anchor_store._load_default_anchor_records.cache_clear()
+    small_anchor_store._load_default_anchor_lookup_index.cache_clear()
 
 
 def test_exact_item_search_card_index_is_cached(monkeypatch) -> None:
@@ -74,7 +81,7 @@ def test_exact_item_search_accepts_injected_engine(monkeypatch) -> None:
 
 
 def test_small_anchor_store_anchor_record_conversion_is_cached(monkeypatch) -> None:
-    small_anchor_store._load_default_anchor_records.cache_clear()
+    _clear_small_anchor_store_default_caches()
     calls = {"count": 0}
 
     def _fake_loader() -> list[dict[str, object]]:
@@ -113,7 +120,77 @@ def test_small_anchor_store_anchor_record_conversion_is_cached(monkeypatch) -> N
         assert first[0].canonical_name == "茶葉蛋"
         assert calls["count"] == 1
     finally:
-        small_anchor_store._load_default_anchor_records.cache_clear()
+        _clear_small_anchor_store_default_caches()
+
+
+def test_small_anchor_store_default_lookup_index_is_cached(monkeypatch) -> None:
+    _clear_small_anchor_store_default_caches()
+    calls = {"count": 0}
+
+    def _fake_loader() -> list[dict[str, object]]:
+        calls["count"] += 1
+        return [
+            {
+                "record_kind": "generic_anchor",
+                "anchor_id": "test-food",
+                "canonical_name": "test food",
+                "aliases": ["tf"],
+                "dish_type": "snack",
+                "semantic_hints": [],
+                "followup_hints": [],
+                "clarify_required": False,
+                "baseline_kcal_range": [10, 20],
+                "baseline_likely_kcal": 15,
+                "major_modifiers": [],
+                "composition_hints": [],
+            },
+            {
+                "record_kind": "generic_semantic_only",
+                "canonical_name": "test basket",
+                "aliases": ["basket"],
+                "dish_type": "mixed_basket",
+                "composition_posture": "composition_unknown",
+                "variance_level": "high",
+                "semantic_hints": ["test_semantic_only"],
+                "followup_hints": ["ask_listed_items"],
+                "clarify_required": True,
+            },
+        ]
+
+    class _FakeEvidenceStore:
+        def load_small_anchor_records(self) -> list[dict[str, object]]:
+            return _fake_loader()
+
+        def load_exact_item_card_records(self) -> list[dict[str, object]]:
+            return []
+
+    def _intent(base_dish: str, retrieval_goal: str = "generic_anchor_lookup") -> RetrievalIntent:
+        return RetrievalIntent(
+            base_dish=base_dish,
+            aliases=[],
+            brand_hint=None,
+            size_hint=None,
+            modifier_hints=[],
+            listed_items=[],
+            retrieval_goal=retrieval_goal,
+        )
+
+    store = _FakeEvidenceStore()
+    monkeypatch.setattr(small_anchor_store, "default_nutrition_evidence_store", lambda: store)
+
+    try:
+        canonical = small_anchor_store.lookup_anchor_candidates(_intent("test food"))
+        alias = small_anchor_store.lookup_anchor_candidates(_intent("tf"))
+        semantic = small_anchor_store.lookup_anchor_candidates(_intent("test basket", "composition_clarification"))
+
+        assert [candidate.canonical_name for candidate in canonical.candidates] == ["test food"]
+        assert alias.candidates[0].matched_alias == "tf"
+        assert alias.candidates[0].match_path == "alias_exact"
+        assert semantic.clarify_support is not None
+        assert semantic.clarify_support.canonical_name == "test basket"
+        assert calls["count"] == 1
+    finally:
+        _clear_small_anchor_store_default_caches()
 
 
 def test_load_conversation_state_uses_bounded_in_memory_retrieval_without_request_sidecar_sync(monkeypatch) -> None:
@@ -205,6 +282,8 @@ def test_get_meal_log_history_does_not_count_before_limited_fetch() -> None:
 def test_intake_execution_response_uses_preloaded_budget_views(monkeypatch: pytest.MonkeyPatch) -> None:
     from app.composition import intake_execution_response as module
 
+    assert not hasattr(module, "build_remaining_budget_answer_contract")
+
     class _PlanView:
         body_plan_id = 10
 
@@ -238,10 +317,6 @@ def test_intake_execution_response_uses_preloaded_budget_views(monkeypatch: pyte
             self.active_body_plan_view = _PlanView()
             self.current_budget_view = _BudgetView()
 
-    def _raise_requery(*args, **kwargs):
-        raise AssertionError("Intake execution response should use preloaded state views, not re-query budget views")
-
-    monkeypatch.setattr(module, "build_remaining_budget_answer_contract", _raise_requery)
     monkeypatch.setattr(module, "render_intake_reply", lambda **kwargs: f"remaining {kwargs['remaining_budget'].remaining_kcal}")
     monkeypatch.setattr(module, "build_deterministic_sidecar", lambda **kwargs: {"state_mutation_summary": kwargs["state_mutation_summary"]})
     monkeypatch.setattr(
@@ -347,6 +422,8 @@ async def test_tavily_search_reuses_one_client_for_search_and_extract(monkeypatc
 
 def test_render_latest_trace_debug_uses_single_trace_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
     from app.budget.interface import today_trace_debug as module
+
+    assert not hasattr(module, "find_latest_trace_for_user_date")
 
     calls: list[tuple[str, str, tuple[str, ...]]] = []
 
