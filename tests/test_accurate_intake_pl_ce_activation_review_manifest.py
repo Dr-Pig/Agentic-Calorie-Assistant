@@ -621,6 +621,11 @@ def test_ci_builds_activation_review_manifest() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
     assert "test_accurate_intake_pl_ce_activation_review_manifest.py" in workflow
+    assert "build_accurate_intake_context_live_diagnostic_dry_run_evaluator.py" in workflow
     assert "build_accurate_intake_pl_ce_activation_review_manifest.py" in workflow
     assert "pl_ce_ui_context_alignment_pack=artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json" in workflow
+    assert (
+        "context_live_diagnostic_dry_run_evaluator="
+        "artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json"
+    ) in workflow
     assert "accurate_intake_pl_ce_activation_review_manifest_ci.json" in workflow
