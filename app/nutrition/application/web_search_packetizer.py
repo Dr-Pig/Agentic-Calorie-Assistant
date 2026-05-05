@@ -5,14 +5,10 @@ from typing import Sequence
 
 from .context_normalizer import lookup_key, lookup_tokens, normalize_text
 from .retrieval_intent import RetrievalIntent
-
-_SIZE_ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
-    "\u7279\u76db": ("\u7279\u76db",),
-    "\u5927\u676f": ("\u5927\u676f", "large", "venti"),
-    "\u4e2d\u676f": ("\u4e2d\u676f", "medium", "grande"),
-    "\u5c0f\u676f": ("\u5c0f\u676f", "small", "tall"),
-}
-_VARIANT_TOKENS = ("抹茶", "摩卡", "可可", "焦糖", "香草", "榛果", "醇濃")
+from .web_search_packetizer_policy import (
+    SIZE_ALIAS_GROUPS as _SIZE_ALIAS_GROUPS,
+    VARIANT_TOKENS as _VARIANT_TOKENS,
+)
 
 
 def build_web_search_candidate_packet(
