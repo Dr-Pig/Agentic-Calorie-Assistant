@@ -162,6 +162,8 @@ def build_live_websearch_manager_payload(*, packet_case: dict[str, Any]) -> dict
         ],
         "constraints": {
             "phase_b1_manager_role": "pass_2_synthesis",
+            "phase_b1_pass1_mode": "natural_tool_selection_probe",
+            "phase_b1_case_family": "common_commercial_drink",
             "websearch_packet_smoke": True,
             "websearch_runtime_truth_allowed": False,
             "runtime_mutation_allowed": False,

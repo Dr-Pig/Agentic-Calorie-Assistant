@@ -248,10 +248,16 @@ def evaluate_manager_output_against_websearch_packet(
     if any(bool(item) for item in item_results):
         failure_families.append("websearch_candidate_created_item_results")
 
-    final_action = str(manager_output.get("final_action") or "")
-    if expected_behavior == "ask_followup_or_keep_candidate_pending" and final_action not in _FOLLOWUP_FINAL_ACTIONS:
+    final_actions = _final_action_candidates(manager_output)
+    if (
+        expected_behavior == "ask_followup_or_keep_candidate_pending"
+        and not final_actions.intersection(_FOLLOWUP_FINAL_ACTIONS)
+    ):
         failure_families.append("websearch_ambiguous_candidate_missing_followup")
-    if expected_behavior == "reject_or_request_better_source" and final_action not in _REJECTION_FINAL_ACTIONS:
+    if (
+        expected_behavior == "reject_or_request_better_source"
+        and not final_actions.intersection(_REJECTION_FINAL_ACTIONS)
+    ):
         failure_families.append("websearch_weak_candidate_not_rejected")
 
     return {
@@ -263,7 +269,7 @@ def evaluate_manager_output_against_websearch_packet(
         "allowed_evidence_ref_count": len(allowed_refs),
         "invented_evidence_refs": invented_refs,
         "manager_action": manager_output.get("manager_action"),
-        "final_action": final_action,
+        "final_action": _resolved_final_action(manager_output),
         "runtime_mutation_attempted": mutation_attempted,
         "mutation_signal": _mutation_signal(manager_output),
         "manager_output": manager_output,
@@ -272,11 +278,11 @@ def evaluate_manager_output_against_websearch_packet(
 
 def _mutation_attempted(manager_output: dict[str, Any]) -> bool:
     signal = _mutation_signal(manager_output)
-    final_action = signal["final_action"]
+    final_actions = _final_action_candidates(manager_output)
     workflow_effect = signal["workflow_effect"]
     mutation_intent = signal["mutation_intent_candidate"]
     return (
-        final_action in _MUTATING_FINAL_ACTIONS
+        bool(final_actions.intersection(_MUTATING_FINAL_ACTIONS))
         or (
             workflow_effect not in _NON_MUTATING_WORKFLOW_EFFECTS
             and any(fragment in workflow_effect for fragment in _MUTATING_WORKFLOW_EFFECT_FRAGMENTS)
@@ -296,9 +302,35 @@ def _mutation_signal(manager_output: dict[str, Any]) -> dict[str, str]:
     )
     return {
         "final_action": final_action,
+        "semantic_final_action_candidate": _semantic_final_action_candidate(manager_output),
         "workflow_effect": workflow_effect,
         "mutation_intent_candidate": mutation_intent,
     }
+
+
+def _final_action_candidates(manager_output: dict[str, Any]) -> set[str]:
+    actions = {
+        str(manager_output.get("final_action") or "").strip(),
+        _semantic_final_action_candidate(manager_output),
+    }
+    response_mode = str(manager_output.get("response_mode") or "").strip()
+    if response_mode == "ask_followup":
+        actions.add("ask_followup")
+    return {action for action in actions if action}
+
+
+def _resolved_final_action(manager_output: dict[str, Any]) -> str:
+    top_level = str(manager_output.get("final_action") or "").strip()
+    if top_level:
+        return top_level
+    return _semantic_final_action_candidate(manager_output)
+
+
+def _semantic_final_action_candidate(manager_output: dict[str, Any]) -> str:
+    semantic_decision = manager_output.get("semantic_decision")
+    if not isinstance(semantic_decision, dict):
+        return ""
+    return str(semantic_decision.get("final_action_candidate") or "").strip()
 
 
 def _allowed_candidate_refs(manager_packet: dict[str, Any]) -> set[str]:

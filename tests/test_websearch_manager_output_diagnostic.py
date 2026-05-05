@@ -105,6 +105,7 @@ def test_websearch_manager_output_diagnostic_flags_truth_and_mutation_shortcuts(
     assert evaluation["runtime_mutation_attempted"] is True
     assert evaluation["mutation_signal"] == {
         "final_action": "commit",
+        "semantic_final_action_candidate": "",
         "workflow_effect": "food_log_candidate",
         "mutation_intent_candidate": "canonical_write",
     }
@@ -244,6 +245,77 @@ def test_websearch_manager_output_diagnostic_requires_followup_for_related_candi
     )
     assert evaluation["status"] == "fail"
     assert "websearch_ambiguous_candidate_missing_followup" in evaluation["failure_families"]
+
+
+def test_websearch_manager_output_diagnostic_accepts_b1_pass2_semantic_final_action_candidate() -> None:
+    packet_artifact = _manager_packet_artifact()
+    cases = {case["case_id"]: case for case in packet_artifact["cases"]}
+    related = cases["pkt_web_search_milksha_sibling"]
+    weak = cases["pkt_web_search_third_party_weak"]
+
+    related_output = {
+        "manager_action": "final",
+        "response_mode": "answer_only",
+        "workflow_effect": "no_mutation",
+        "item_results": [],
+        "answer_contract": {"source_candidate_refs": [related["case_id"]]},
+        "semantic_decision": {
+            "final_action_candidate": "ask_followup",
+            "mutation_intent_candidate": "no_mutation",
+        },
+    }
+    related_evaluation = evaluate_manager_output_against_websearch_packet(
+        packet_case=related,
+        manager_output=related_output,
+    )
+
+    assert related_evaluation["status"] == "pass"
+    assert related_evaluation["final_action"] == "ask_followup"
+    assert related_evaluation["mutation_signal"]["semantic_final_action_candidate"] == "ask_followup"
+
+    weak_output = {
+        "manager_action": "final",
+        "response_mode": "answer_only",
+        "workflow_effect": "no_mutation",
+        "item_results": [],
+        "answer_contract": {"source_candidate_refs": [weak["case_id"]]},
+        "semantic_decision": {
+            "final_action_candidate": "no_commit",
+            "mutation_intent_candidate": "no_mutation",
+        },
+    }
+    weak_evaluation = evaluate_manager_output_against_websearch_packet(
+        packet_case=weak,
+        manager_output=weak_output,
+    )
+
+    assert weak_evaluation["status"] == "pass"
+    assert weak_evaluation["final_action"] == "no_commit"
+
+
+def test_websearch_manager_output_diagnostic_flags_semantic_final_action_commit() -> None:
+    packet_case = _manager_packet_artifact()["cases"][0]
+    manager_output = {
+        "manager_action": "final",
+        "response_mode": "answer_only",
+        "workflow_effect": "no_mutation",
+        "item_results": [],
+        "answer_contract": {"source_candidate_refs": [packet_case["case_id"]]},
+        "semantic_decision": {
+            "final_action_candidate": "commit",
+            "mutation_intent_candidate": "no_mutation",
+        },
+    }
+
+    evaluation = evaluate_manager_output_against_websearch_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert evaluation["status"] == "fail"
+    assert evaluation["runtime_mutation_attempted"] is True
+    assert "websearch_candidate_mutated_runtime" in evaluation["failure_families"]
+    assert evaluation["mutation_signal"]["semantic_final_action_candidate"] == "commit"
 
 
 def test_websearch_manager_output_diagnostic_script_roundtrip(tmp_path: Path) -> None:
