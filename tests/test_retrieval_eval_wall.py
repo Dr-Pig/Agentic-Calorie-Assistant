@@ -3,8 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.nutrition.application.retrieval_eval_wall import build_retrieval_eval_wall
-from app.nutrition.infrastructure.local_food_evidence_index import LocalSmallAnchorFoodEvidenceIndex
-
+from app.nutrition.infrastructure.local_food_evidence_index import (
+    LocalSmallAnchorFoodEvidenceIndex,
+)
 
 SMALL_ANCHOR_STORE = Path("app/knowledge/small_anchor_store_tw.json")
 
