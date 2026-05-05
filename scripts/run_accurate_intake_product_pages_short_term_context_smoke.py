@@ -265,6 +265,9 @@ def _base_report(
         "omitted_context_summary_present": False,
         "pending_pins_present_after_followup": False,
         "target_candidates_present_or_not_checked": "not_checked",
+        "target_candidate_surface_status": "not_checked_pending_followup_only",
+        "target_candidate_surface_checked": False,
+        "target_candidate_count_after_followup": 0,
         "chat_history_context_fields_reloaded": False,
         "chat_cjk_roundtrip_rendered": False,
         "assistant_followup_bubble_rendered": False,
@@ -273,6 +276,7 @@ def _base_report(
         "today_summary_rendered": False,
         "product_pages_no_debug_trace": False,
         "frontend_semantic_owner": False,
+        "deterministic_selected_target": False,
         "deterministic_semantic_inference_used": False,
         "raw_text_intent_router_used": False,
         "mutation_authority": False,
@@ -523,6 +527,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
 
     false_flags = {
         "frontend_semantic_owner": "frontend_semantic_owner_claimed",
+        "deterministic_selected_target": "deterministic_selected_target",
         "deterministic_semantic_inference_used": "deterministic_semantic_inference_used",
         "raw_text_intent_router_used": "raw_text_intent_router_used",
         "mutation_authority": "mutation_authority_claimed",
@@ -538,6 +543,18 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     for key, blocker in false_flags.items():
         if report.get(key) is True:
             blockers.append(blocker)
+
+    target_surface_status = str(report.get("target_candidate_surface_status") or "")
+    if target_surface_status not in {
+        "not_checked_pending_followup_only",
+        "checked_candidate_surface",
+    }:
+        blockers.append("target_candidate_surface_status_invalid")
+    if target_surface_status == "checked_candidate_surface":
+        if report.get("target_candidate_surface_checked") is not True:
+            blockers.append("target_candidate_surface_checked_not_true")
+        if int(report.get("target_candidate_count_after_followup") or 0) < 1:
+            blockers.append("target_candidate_surface_candidate_count_missing")
 
     provider_calls = [item for item in _list(report.get("fake_provider_calls")) if isinstance(item, dict)]
     if not any(

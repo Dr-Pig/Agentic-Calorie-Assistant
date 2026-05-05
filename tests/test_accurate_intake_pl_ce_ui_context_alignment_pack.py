@@ -136,6 +136,9 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "loaded_context_summary_present": True,
             "omitted_context_summary_present": True,
             "pending_pins_present_after_followup": True,
+            "target_candidate_surface_status": "not_checked_pending_followup_only",
+            "target_candidate_surface_checked": False,
+            "target_candidate_count_after_followup": 0,
             "chat_history_context_fields_reloaded": True,
             "chat_cjk_roundtrip_rendered": True,
             "assistant_followup_bubble_rendered": True,
@@ -193,6 +196,9 @@ def test_ui_context_alignment_pack_summarizes_three_pages_and_context_evidence()
     assert artifact["summary"]["renderer_source_map_endpoint_count"] >= 7
     assert artifact["summary"]["seven_day_diary_checked"] is True
     assert artifact["summary"]["chat_context_reload_checked"] is True
+    assert artifact["summary"]["chat_target_candidate_surface_status"] == (
+        "not_checked_pending_followup_only"
+    )
     assert artifact["summary"]["body_read_model_checked"] is True
     assert artifact["render_only_boundary_ok"] is True
     assert artifact["context_engineering_fault_claimed"] is False
@@ -266,6 +272,27 @@ def test_ui_context_alignment_pack_blocks_browser_or_page_alignment_gaps() -> No
         in artifact["blockers"]
     )
     assert "product_pages_visual_qa.today_surface_verified_not_true" in artifact["blockers"]
+
+
+def test_ui_context_alignment_pack_blocks_unproven_target_candidate_surface_claim() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_short_term_context_smoke"]["target_candidate_surface_status"] = (
+        "checked_candidate_surface"
+    )
+    inputs["product_pages_short_term_context_smoke"]["target_candidate_surface_checked"] = False
+    inputs["product_pages_short_term_context_smoke"]["target_candidate_count_after_followup"] = 0
+
+    artifact = build_pl_ce_ui_context_alignment_pack_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert (
+        "product_pages_short_term_context_smoke.target_candidate_surface_checked_not_true"
+        in artifact["blockers"]
+    )
+    assert (
+        "product_pages_short_term_context_smoke.target_candidate_surface_candidate_count_missing"
+        in artifact["blockers"]
+    )
 
 
 def test_ui_context_alignment_pack_blocks_stale_body_read_model_values() -> None:

@@ -19,6 +19,9 @@ def _passing_report() -> dict[str, object]:
         "omitted_context_summary_present": True,
         "pending_pins_present_after_followup": True,
         "target_candidates_present_or_not_checked": "not_checked",
+        "target_candidate_surface_status": "not_checked_pending_followup_only",
+        "target_candidate_surface_checked": False,
+        "target_candidate_count_after_followup": 0,
         "chat_history_context_fields_reloaded": True,
         "chat_cjk_roundtrip_rendered": True,
         "assistant_followup_bubble_rendered": True,
@@ -27,6 +30,7 @@ def _passing_report() -> dict[str, object]:
         "today_summary_rendered": True,
         "product_pages_no_debug_trace": True,
         "frontend_semantic_owner": False,
+        "deterministic_selected_target": False,
         "deterministic_semantic_inference_used": False,
         "raw_text_intent_router_used": False,
         "mutation_authority": False,
@@ -160,6 +164,7 @@ def test_product_pages_short_term_context_validator_rejects_missing_context_supp
 def test_product_pages_short_term_context_validator_rejects_frontend_or_deterministic_semantics() -> None:
     report = _passing_report()
     report["frontend_semantic_owner"] = True
+    report["deterministic_selected_target"] = True
     report["deterministic_semantic_inference_used"] = True
     report["raw_text_intent_router_used"] = True
     report["mutation_authority"] = True
@@ -169,10 +174,35 @@ def test_product_pages_short_term_context_validator_rejects_frontend_or_determin
 
     assert status == "fail"
     assert "frontend_semantic_owner_claimed" in blockers
+    assert "deterministic_selected_target" in blockers
     assert "deterministic_semantic_inference_used" in blockers
     assert "raw_text_intent_router_used" in blockers
     assert "mutation_authority_claimed" in blockers
     assert "fake_provider_used_raw_user_input_for_fixture_selection" in blockers
+
+
+def test_product_pages_short_term_context_validator_keeps_target_candidate_surface_honest() -> None:
+    report = _passing_report()
+
+    status, blockers = module._validate(report)
+
+    assert status == "pass"
+    assert blockers == []
+    assert report["target_candidate_surface_status"] == "not_checked_pending_followup_only"
+    assert report["target_candidate_surface_checked"] is False
+
+
+def test_product_pages_short_term_context_validator_rejects_unproven_target_candidate_surface() -> None:
+    report = _passing_report()
+    report["target_candidate_surface_status"] = "checked_candidate_surface"
+    report["target_candidate_surface_checked"] = False
+    report["target_candidate_count_after_followup"] = 0
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "target_candidate_surface_checked_not_true" in blockers
+    assert "target_candidate_surface_candidate_count_missing" in blockers
 
 
 def test_product_pages_short_term_context_validator_rejects_readiness_or_evidence_truth_claims() -> None:

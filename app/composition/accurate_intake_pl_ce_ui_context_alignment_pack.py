@@ -242,6 +242,22 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
     if group_id == "product_pages_seven_day_diary_smoke":
         if _int_value(payload.get("day_count_checked")) < 7:
             blockers.append("product_pages_seven_day_diary_smoke.seven_day_window_incomplete")
+    if group_id == "product_pages_short_term_context_smoke":
+        target_surface_status = str(payload.get("target_candidate_surface_status") or "")
+        if target_surface_status not in {
+            "not_checked_pending_followup_only",
+            "checked_candidate_surface",
+        }:
+            blockers.append("product_pages_short_term_context_smoke.target_candidate_surface_status_invalid")
+        if target_surface_status == "checked_candidate_surface":
+            if payload.get("target_candidate_surface_checked") is not True:
+                blockers.append(
+                    "product_pages_short_term_context_smoke.target_candidate_surface_checked_not_true"
+                )
+            if _int_value(payload.get("target_candidate_count_after_followup")) < 1:
+                blockers.append(
+                    "product_pages_short_term_context_smoke.target_candidate_surface_candidate_count_missing"
+                )
     return blockers
 
 
@@ -310,6 +326,10 @@ def build_pl_ce_ui_context_alignment_pack_artifact(
                     "product_pages_short_term_context_smoke"
                 ].get("chat_history_context_fields_reloaded")
                 is True,
+                "chat_target_candidate_surface_status": inputs[
+                    "product_pages_short_term_context_smoke"
+                ].get("target_candidate_surface_status")
+                or "not_available",
                 "body_read_model_checked": inputs["product_pages_browser_smoke"].get(
                     "body_plan_readback_checked"
                 )
