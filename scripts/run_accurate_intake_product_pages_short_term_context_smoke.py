@@ -266,6 +266,7 @@ def _base_report(
         "pending_pins_present_after_followup": False,
         "target_candidates_present_or_not_checked": "not_checked",
         "chat_history_context_fields_reloaded": False,
+        "chat_context_status_ui_rendered": False,
         "chat_cjk_roundtrip_rendered": False,
         "assistant_followup_bubble_rendered": False,
         "assistant_commit_bubble_rendered": False,
@@ -414,6 +415,25 @@ def _run_browser_sequence(
                     "omitted_context_summary_present",
                 )
             )
+            ui_policy = chat.locator("#chat-context-policy").inner_text(timeout=timeout_ms).strip()
+            ui_loaded = chat.locator("#chat-context-loaded").inner_text(timeout=timeout_ms).strip()
+            ui_omitted = chat.locator("#chat-context-omitted").inner_text(timeout=timeout_ms).strip()
+            ui_pins = chat.locator("#chat-context-pins").inner_text(timeout=timeout_ms).strip()
+            ui_targets = chat.locator("#chat-context-targets").inner_text(timeout=timeout_ms).strip()
+            result["chat_context_status_ui"] = {
+                "policy": ui_policy,
+                "loaded": ui_loaded,
+                "omitted": ui_omitted,
+                "pins": ui_pins,
+                "targets": ui_targets,
+            }
+            result["chat_context_status_ui_rendered"] = (
+                ui_policy not in {"", "not_checked"}
+                and ui_loaded in {"present", "not_available"}
+                and ui_omitted in {"present", "not_available"}
+                and ui_pins in {"present", "not_available"}
+                and ui_targets not in {"", "not_checked"}
+            )
 
             result["current_step"] = "answer_pending_followup"
             chat.fill("#message-input", FOLLOWUP_ANSWER_MESSAGE)
@@ -514,6 +534,7 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("omitted_context_summary_present", "omitted_context_summary_missing")
     require_true("pending_pins_present_after_followup", "pending_pins_not_present_after_followup")
     require_true("chat_history_context_fields_reloaded", "chat_history_context_fields_not_reloaded")
+    require_true("chat_context_status_ui_rendered", "chat_context_status_ui_not_rendered")
     require_true("chat_cjk_roundtrip_rendered", "chat_cjk_roundtrip_not_rendered")
     require_true("assistant_followup_bubble_rendered", "assistant_followup_bubble_not_rendered")
     require_true("assistant_commit_bubble_rendered", "assistant_commit_bubble_not_rendered")
