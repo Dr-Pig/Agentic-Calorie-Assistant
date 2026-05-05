@@ -14,6 +14,7 @@ from .database import init_db
 from .logger import logger
 from .readiness import validate_config
 from .routes import router
+from .runtime.interface.provider_runtime import close_provider_clients
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,6 +22,7 @@ async def lifespan(app: FastAPI):
     validate_config()
     init_db()
     yield
+    await close_provider_clients()
     logger.info("Shutting down Canary application...")
 
 app = FastAPI(title="Text Meal Canary", lifespan=lifespan)

@@ -52,3 +52,12 @@ def test_readiness_is_forwarded_as_operational_health_only() -> None:
     port = TavilySearchPort(adapter=adapter)
 
     assert port.readiness() == {"provider": "tavily", "configured": True, "timeout_seconds": 15}
+
+
+def test_search_and_extract_runtime_ports_can_share_adapter() -> None:
+    adapter = _FakeTavilyAdapter([])
+
+    search_port = TavilySearchPort(adapter=adapter)
+    extract_port = search_port.extract_port()
+
+    assert search_port._adapter is extract_port._adapter

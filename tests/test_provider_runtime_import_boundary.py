@@ -16,8 +16,9 @@ def test_provider_runtime_import_does_not_reference_gemini_adapter() -> None:
     assert "GeminiAdapter" not in source
     assert "search_provider = TavilyAdapter()" not in source
     assert "TavilySearchPort" in source
-    assert "extract_provider = TavilyExtractPort()" in source
-    assert "TavilyExtractPort" in source
+    assert "TavilyAdapter" not in source
+    assert "search_provider = TavilySearchPort()" in source
+    assert "extract_provider = search_provider.extract_port()" in source
 
 
 def test_provider_runtime_import_succeeds_without_gemini_adapter(monkeypatch: pytest.MonkeyPatch) -> None:
