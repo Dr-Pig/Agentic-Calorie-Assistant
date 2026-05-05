@@ -301,10 +301,41 @@ jobs:
 
       - name: Run product pages browser E2E diagnostic
         run: |
-          python -m pytest tests/test_accurate_intake_product_pages_browser_smoke.py tests/test_accurate_intake_product_pages_seven_day_diary_smoke.py tests/test_accurate_intake_product_pages_visual_qa.py tests/test_accurate_intake_product_pages_static.py -q
+          python -m pytest tests/test_accurate_intake_product_pages_browser_smoke.py tests/test_accurate_intake_product_pages_seven_day_diary_smoke.py tests/test_accurate_intake_product_pages_short_term_context_smoke.py tests/test_accurate_intake_product_pages_visual_qa.py tests/test_accurate_intake_product_pages_static.py tests/test_accurate_intake_pl_ce_browser_activation_evidence_gate.py -q
           python scripts/run_accurate_intake_product_pages_browser_smoke.py --require-browser-execution --output artifacts/accurate_intake_product_pages_browser_smoke_ci.json --timeout-ms 25000
           python scripts/run_accurate_intake_product_pages_seven_day_diary_smoke.py --require-browser-execution --output artifacts/accurate_intake_product_pages_seven_day_diary_smoke_ci.json --timeout-ms 25000
+          python scripts/run_accurate_intake_product_pages_short_term_context_smoke.py --require-browser-execution --output artifacts/accurate_intake_product_pages_short_term_context_smoke_ci.json --timeout-ms 25000
           python scripts/run_accurate_intake_product_pages_visual_qa.py --require-browser-execution --output artifacts/accurate_intake_product_pages_visual_qa_ci.json --screenshot-dir artifacts/product_pages_visual_qa_ci --timeout-ms 25000
+          python scripts/verify_accurate_intake_mvp.py --python python --output artifacts/accurate_intake_mvp_gate.json
+          python scripts/build_accurate_intake_ui_same_truth_render_contract.py --output artifacts/accurate_intake_ui_same_truth_render_contract_ci.json
+          python scripts/build_accurate_intake_context_quality_pack.py --output artifacts/accurate_intake_context_quality_pack_ci.json
+          python scripts/run_accurate_intake_context_conditioned_intent_wall.py --output artifacts/accurate_intake_context_conditioned_intent_wall_ci.json
+          python scripts/run_accurate_intake_correction_removal_fixture_flow.py --output artifacts/accurate_intake_correction_removal_fixture_flow_ci.json
+          python scripts/run_accurate_intake_responder_input_contract_fake_smoke.py --output artifacts/accurate_intake_responder_input_contract_fake_smoke_ci.json
+          python scripts/build_accurate_intake_fixture_evidence_packet_emulator.py --output artifacts/accurate_intake_fixture_evidence_packet_emulator_ci.json
+          python scripts/run_accurate_intake_fake_provider_tool_loop_smoke.py --output artifacts/accurate_intake_fake_provider_tool_loop_smoke_ci.json
+          python scripts/build_accurate_intake_review_eval_candidate_pipeline.py --output artifacts/accurate_intake_review_eval_candidate_pipeline_ci.json
+          python -c "from pathlib import Path; p=Path('artifacts/plce_candidate_fixture_smoke.sqlite3'); p.parent.mkdir(parents=True, exist_ok=True); p.touch()"
+          python scripts/build_accurate_intake_local_operator_data_hygiene_bundle.py --db-path artifacts/plce_candidate_fixture_smoke.sqlite3 --output artifacts/accurate_intake_local_operator_data_hygiene_bundle_ci.json
+          python scripts/build_accurate_intake_pl_ce_local_mvp_candidate_bundle.py \
+            --artifact ui_same_truth_contract=artifacts/accurate_intake_ui_same_truth_render_contract_ci.json \
+            --artifact context_quality_pack=artifacts/accurate_intake_context_quality_pack_ci.json \
+            --artifact context_conditioned_intent_wall=artifacts/accurate_intake_context_conditioned_intent_wall_ci.json \
+            --artifact correction_removal_fixture_flow=artifacts/accurate_intake_correction_removal_fixture_flow_ci.json \
+            --artifact responder_input_contract_fake_smoke=artifacts/accurate_intake_responder_input_contract_fake_smoke_ci.json \
+            --artifact fixture_packet_emulator=artifacts/accurate_intake_fixture_evidence_packet_emulator_ci.json \
+            --artifact fake_provider_tool_loop_smoke=artifacts/accurate_intake_fake_provider_tool_loop_smoke_ci.json \
+            --artifact review_eval_candidate_pipeline=artifacts/accurate_intake_review_eval_candidate_pipeline_ci.json \
+            --artifact local_operator_data_hygiene_bundle=artifacts/accurate_intake_local_operator_data_hygiene_bundle_ci.json \
+            --artifact mvp_gate_summary=artifacts/accurate_intake_mvp_gate.json \
+            --output artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json
+          python scripts/build_accurate_intake_pl_ce_browser_activation_evidence_gate.py \
+            --artifact pl_ce_local_mvp_candidate_bundle=artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json \
+            --artifact product_pages_browser_smoke=artifacts/accurate_intake_product_pages_browser_smoke_ci.json \
+            --artifact product_pages_seven_day_diary_smoke=artifacts/accurate_intake_product_pages_seven_day_diary_smoke_ci.json \
+            --artifact product_pages_short_term_context_smoke=artifacts/accurate_intake_product_pages_short_term_context_smoke_ci.json \
+            --artifact product_pages_visual_qa=artifacts/accurate_intake_product_pages_visual_qa_ci.json \
+            --output artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json
 
       - name: Upload product pages browser E2E report
         if: always()
@@ -314,7 +345,10 @@ jobs:
           path: |
             artifacts/accurate_intake_product_pages_browser_smoke_ci.json
             artifacts/accurate_intake_product_pages_seven_day_diary_smoke_ci.json
+            artifacts/accurate_intake_product_pages_short_term_context_smoke_ci.json
             artifacts/accurate_intake_product_pages_visual_qa_ci.json
+            artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json
+            artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json
             artifacts/product_pages_visual_qa_ci
           if-no-files-found: error
 
