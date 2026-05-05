@@ -3,10 +3,17 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from app.nutrition.application.fooddb_grokfast_live_diagnostic_case_matrix import (
+    REQUIRED_CASE_IDS as REQUIRED_FOODDB_GROKFAST_CASE_IDS,
+)
+
 
 EXPECTED_RETRIEVAL_EVAL_ARTIFACT = "accurate_intake_retrieval_eval_wall_v1"
 EXPECTED_FOODDB_STATUS_ARTIFACT = "accurate_intake_fooddb_evidence_status_packet_v1"
 EXPECTED_MANAGER_PACKET_ARTIFACT = "accurate_intake_fooddb_manager_packet_smoke"
+EXPECTED_CASE_MATRIX_ARTIFACT = (
+    "accurate_intake_fooddb_grokfast_packet_live_diagnostic_case_matrix"
+)
 NEXT_GROKFAST_FOODDB_DIAGNOSTIC = "grokfast_fooddb_packet_live_diagnostic"
 
 
@@ -15,14 +22,17 @@ def build_grokfast_fooddb_diagnostic_preflight(
     retrieval_eval_wall_artifact: dict[str, Any],
     fooddb_status_packet: dict[str, Any],
     manager_packet_smoke_artifact: dict[str, Any],
+    case_matrix_artifact: dict[str, Any],
 ) -> dict[str, Any]:
     retrieval_summary = _summary(retrieval_eval_wall_artifact)
     fooddb_summary = _summary(fooddb_status_packet)
     packet_summary = _summary(manager_packet_smoke_artifact)
+    case_matrix_summary = _summary(case_matrix_artifact)
     blockers = [
         *_retrieval_eval_blockers(retrieval_eval_wall_artifact),
         *_fooddb_status_blockers(fooddb_status_packet),
         *_manager_packet_blockers(manager_packet_smoke_artifact),
+        *_case_matrix_blockers(case_matrix_artifact),
     ]
     clear = not blockers
 
@@ -60,6 +70,7 @@ def build_grokfast_fooddb_diagnostic_preflight(
             "manager_packet_smoke_artifact_type": manager_packet_smoke_artifact.get(
                 "artifact_type"
             ),
+            "case_matrix_artifact_type": case_matrix_artifact.get("artifact_type"),
         },
         "summary": {
             "retrieval_eval_fail_count": int(retrieval_summary.get("fail_count", 0) or 0),
@@ -86,6 +97,30 @@ def build_grokfast_fooddb_diagnostic_preflight(
             "manager_packet_compact_pass_count": int(
                 packet_summary.get("compact_packet_pass_count", 0) or 0
             ),
+            "case_matrix_status": case_matrix_artifact.get("status"),
+            "case_matrix_plan_only": case_matrix_artifact.get("plan_only") is True,
+            "case_matrix_case_count": int(case_matrix_summary.get("case_count", 0) or 0),
+            "case_matrix_modifier_guard_cases": int(
+                case_matrix_summary.get("modifier_guard_cases", 0) or 0
+            ),
+            "case_matrix_bare_basket_cases": int(
+                case_matrix_summary.get("bare_basket_cases", 0) or 0
+            ),
+            "case_matrix_listed_basket_cases": int(
+                case_matrix_summary.get("listed_basket_cases", 0) or 0
+            ),
+            "case_matrix_websearch_cases": int(case_matrix_summary.get("websearch_cases", 0) or 0),
+            "case_matrix_exact_card_cases": int(case_matrix_summary.get("exact_card_cases", 0) or 0),
+            "case_matrix_live_provider_invoked": case_matrix_artifact.get(
+                "live_provider_invoked"
+            )
+            is True,
+            "case_matrix_websearch_invoked": case_matrix_artifact.get("websearch_invoked") is True,
+            "case_matrix_shared_contract_changed": case_matrix_artifact.get(
+                "shared_contract_changed"
+            )
+            is True,
+            "case_matrix_non_claim_count": len(case_matrix_artifact.get("non_claims") or []),
         },
         "best_practice_basis": {
             "trace_level_eval": "run stage-specific preflight before provider diagnostic",
@@ -194,6 +229,68 @@ def _manager_packet_blockers(artifact: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def _case_matrix_blockers(artifact: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    if artifact.get("artifact_type") != EXPECTED_CASE_MATRIX_ARTIFACT:
+        blockers.append("unsupported_fooddb_grokfast_case_matrix_artifact")
+        return blockers
+    summary = _summary(artifact)
+    if artifact.get("status") != "pass":
+        blockers.append("fooddb_grokfast_case_matrix_not_pass")
+    if artifact.get("plan_only") is not True:
+        blockers.append("fooddb_grokfast_case_matrix_not_plan_only")
+    if artifact.get("live_llm_invoked") is not False:
+        blockers.append("fooddb_grokfast_case_matrix_invoked_live_llm")
+    if artifact.get("live_provider_invoked") is not False:
+        blockers.append("fooddb_grokfast_case_matrix_invoked_live_provider")
+    if artifact.get("websearch_invoked") is not False:
+        blockers.append("fooddb_grokfast_case_matrix_invoked_websearch")
+    if artifact.get("runtime_truth_changed") is not False:
+        blockers.append("fooddb_grokfast_case_matrix_changed_runtime_truth")
+    if artifact.get("mutation_changed") is not False:
+        blockers.append("fooddb_grokfast_case_matrix_changed_mutation")
+    if artifact.get("manager_context_packet_changed") is not False:
+        blockers.append("fooddb_grokfast_case_matrix_changed_manager_context")
+    if artifact.get("shared_contract_changed") is not False:
+        blockers.append("fooddb_grokfast_case_matrix_changed_shared_contract")
+    if artifact.get("product_readiness_claimed") is not False:
+        blockers.append("fooddb_grokfast_case_matrix_claimed_readiness")
+    if artifact.get("private_self_use_approved") is not False:
+        blockers.append("fooddb_grokfast_case_matrix_claimed_self_use_approval")
+    if int(summary.get("case_count", 0) or 0) < 5:
+        blockers.append("fooddb_grokfast_case_matrix_too_few_cases")
+    case_ids = [
+        str(case.get("case_id") or "")
+        for case in artifact.get("cases") or []
+        if isinstance(case, dict)
+    ]
+    if case_ids != list(REQUIRED_FOODDB_GROKFAST_CASE_IDS):
+        blockers.append("fooddb_grokfast_case_matrix_required_case_order_mismatch")
+    if int(summary.get("modifier_guard_cases", 0) or 0) < 2:
+        blockers.append("fooddb_grokfast_case_matrix_missing_modifier_guard_cases")
+    if int(summary.get("bare_basket_cases", 0) or 0) < 1:
+        blockers.append("fooddb_grokfast_case_matrix_missing_bare_basket_case")
+    if int(summary.get("listed_basket_cases", 0) or 0) < 1:
+        blockers.append("fooddb_grokfast_case_matrix_missing_listed_basket_case")
+    if int(summary.get("websearch_cases", 0) or 0) != 0:
+        blockers.append("fooddb_grokfast_case_matrix_includes_websearch_cases")
+    if int(summary.get("exact_card_cases", 0) or 0) != 0:
+        blockers.append("fooddb_grokfast_case_matrix_includes_exact_card_cases")
+    non_claims = set(artifact.get("non_claims") or [])
+    for required in (
+        "not_full_self_use_gate",
+        "not_websearch_exact_card_gate",
+        "not_final_response_quality_gate",
+        "not_production_readiness",
+        "not_private_self_use_approval",
+        "not_kimi_activation",
+        "not_runtime_mutation_gate",
+    ):
+        if required not in non_claims:
+            blockers.append(f"fooddb_grokfast_case_matrix_missing_non_claim.{required}")
+    return blockers
+
+
 def _preflight_artifact_integrity_blockers(artifact: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
     if artifact.get("status") != "clear_for_grokfast_fooddb_packet_live_diagnostic":
@@ -242,6 +339,30 @@ def _preflight_artifact_integrity_blockers(artifact: dict[str, Any]) -> list[str
         blockers.append("preflight_summary_packet_cases_missing")
     if compact_pass_count != case_count:
         blockers.append("preflight_summary_packet_compact_count_mismatch")
+    if summary.get("case_matrix_status") != "pass":
+        blockers.append("preflight_summary_case_matrix_not_pass")
+    if summary.get("case_matrix_plan_only") is not True:
+        blockers.append("preflight_summary_case_matrix_not_plan_only")
+    if int(summary.get("case_matrix_case_count", 0) or 0) < 5:
+        blockers.append("preflight_summary_case_matrix_too_few_cases")
+    if int(summary.get("case_matrix_modifier_guard_cases", 0) or 0) < 2:
+        blockers.append("preflight_summary_case_matrix_missing_modifier_cases")
+    if int(summary.get("case_matrix_bare_basket_cases", 0) or 0) < 1:
+        blockers.append("preflight_summary_case_matrix_missing_bare_basket")
+    if int(summary.get("case_matrix_listed_basket_cases", 0) or 0) < 1:
+        blockers.append("preflight_summary_case_matrix_missing_listed_basket")
+    if int(summary.get("case_matrix_websearch_cases", 0) or 0) != 0:
+        blockers.append("preflight_summary_case_matrix_websearch_cases")
+    if int(summary.get("case_matrix_exact_card_cases", 0) or 0) != 0:
+        blockers.append("preflight_summary_case_matrix_exact_card_cases")
+    if summary.get("case_matrix_live_provider_invoked") is not False:
+        blockers.append("preflight_summary_case_matrix_live_provider_invoked")
+    if summary.get("case_matrix_websearch_invoked") is not False:
+        blockers.append("preflight_summary_case_matrix_websearch_invoked")
+    if summary.get("case_matrix_shared_contract_changed") is not False:
+        blockers.append("preflight_summary_case_matrix_shared_contract_changed")
+    if int(summary.get("case_matrix_non_claim_count", 0) or 0) < 7:
+        blockers.append("preflight_summary_case_matrix_missing_non_claims")
     return blockers
 
 
