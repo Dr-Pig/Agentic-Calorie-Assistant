@@ -4,7 +4,6 @@ import os
 
 from ...providers.builderspace_adapter import BuilderSpaceAdapter
 from ...providers.deepseek_adapter import DeepSeekAdapter
-from ...providers.tavily_extract_port import TavilyExtractPort
 from ...providers.tavily_search_port import TavilySearchPort
 
 
@@ -29,11 +28,16 @@ manager_provider = _create_provider(
 )
 provider = manager_provider
 search_provider = TavilySearchPort()
-extract_provider = TavilyExtractPort()
+extract_provider = search_provider.extract_port()
+
+
+async def close_provider_clients() -> None:
+    await search_provider.aclose()
 
 __all__ = [
     "manager_provider",
     "provider",
     "search_provider",
     "extract_provider",
+    "close_provider_clients",
 ]

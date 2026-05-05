@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 from typing import Any
+from typing import TYPE_CHECKING
 
 from .tavily_adapter import TavilyAdapter
+
+if TYPE_CHECKING:
+    from .tavily_extract_port import TavilyExtractPort
 
 
 class TavilySearchPort:
@@ -27,6 +31,16 @@ class TavilySearchPort:
     def readiness(self) -> dict[str, Any]:
         """Operational health only; not a capability or evidence-quality claim."""
         return dict(self._adapter.readiness())
+
+    def extract_port(self) -> "TavilyExtractPort":
+        from .tavily_extract_port import TavilyExtractPort
+
+        return TavilyExtractPort(adapter=self._adapter)
+
+    async def aclose(self) -> None:
+        close = getattr(self._adapter, "aclose", None)
+        if close is not None:
+            await close()
 
 
 __all__ = ["TavilySearchPort"]
