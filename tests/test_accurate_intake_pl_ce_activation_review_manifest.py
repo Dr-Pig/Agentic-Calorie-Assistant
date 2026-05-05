@@ -18,6 +18,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "required_inputs": [
                 "ui_same_truth_contract",
                 "context_quality_pack",
+                "context_coverage_matrix",
                 "context_conditioned_intent_wall",
                 "correction_removal_fixture_flow",
                 "responder_input_contract_fake_smoke",
@@ -31,6 +32,11 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "included_artifact_statuses": {
                 "ui_same_truth_contract": {"status": "pass", "present": True},
                 "context_quality_pack": {"status": "context_quality_diagnostic_pass", "present": True},
+                "context_coverage_matrix": {
+                    "artifact_type": "accurate_intake_pl_ce_context_coverage_matrix",
+                    "status": "context_coverage_matrix_ready_for_human_review",
+                    "present": True,
+                },
                 "context_conditioned_intent_wall": {"status": "pass", "present": True},
                 "correction_removal_fixture_flow": {"status": "pass", "present": True},
                 "responder_input_contract_fake_smoke": {"status": "pass", "present": True},
@@ -130,6 +136,58 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "pl_ce_ui_context_alignment_pack": {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_pl_ce_ui_context_alignment_pack",
+            "status": "ui_context_alignment_ready_for_human_review",
+            "required_inputs": [
+                "ui_same_truth_contract",
+                "context_coverage_matrix",
+                "product_pages_browser_smoke",
+                "product_pages_seven_day_diary_smoke",
+                "product_pages_short_term_context_smoke",
+                "product_pages_visual_qa",
+            ],
+            "blockers": [],
+            "included_artifact_statuses": {
+                "ui_same_truth_contract": {"status": "pass", "present": True},
+                "context_coverage_matrix": {
+                    "status": "context_coverage_matrix_ready_for_human_review",
+                    "present": True,
+                },
+                "product_pages_browser_smoke": {"status": "pass", "browser_executed": True},
+                "product_pages_seven_day_diary_smoke": {
+                    "status": "pass",
+                    "browser_executed": True,
+                },
+                "product_pages_short_term_context_smoke": {
+                    "status": "pass",
+                    "browser_executed": True,
+                },
+                "product_pages_visual_qa": {"status": "pass", "browser_executed": True},
+            },
+            "summary": {
+                "pages_verified": ["chat", "today", "body"],
+                "context_covered_capabilities": 9,
+                "context_known_runtime_gap_count": 0,
+                "seven_day_diary_checked": True,
+                "chat_context_reload_checked": True,
+                "body_read_model_checked": True,
+            },
+            "aggregate_only": True,
+            "self_generated_evidence_used": False,
+            "human_review_required": True,
+            "review_required_before_provider_call": True,
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
     }
 
 
@@ -154,6 +212,10 @@ def test_activation_review_manifest_summarizes_human_review_ready_evidence_only(
     assert artifact["private_self_use_approved"] is False
     assert artifact["review_checkpoints"]["local_mvp_candidate_bundle"] == "ready_for_human_review"
     assert artifact["review_checkpoints"]["browser_activation_evidence_gate"] == "ready_for_human_review"
+    assert artifact["review_checkpoints"]["ui_context_alignment_pack"] == "ready_for_human_review"
+    assert artifact["included_artifact_statuses"]["pl_ce_ui_context_alignment_pack"]["status"] == (
+        "ui_context_alignment_ready_for_human_review"
+    )
     assert artifact["remaining_stop_gates"]["fooddb_artifact_status"] == "blocked_waiting_for_fdb_artifact"
     assert artifact["remaining_stop_gates"]["live_provider_status"] == "blocked_pending_human_approval"
     assert artifact["blockers"] == []
@@ -181,6 +243,7 @@ def test_activation_review_manifest_blocks_swapped_identity_or_readiness_overcla
     inputs["pl_ce_local_mvp_candidate_bundle"]["artifact_type"] = "wrong"
     inputs["pl_ce_browser_activation_evidence_gate"]["ready_for_live_diagnostic_decision"] = True
     inputs["pl_ce_browser_activation_evidence_gate"]["product_readiness_claimed"] = True
+    inputs["pl_ce_ui_context_alignment_pack"]["product_readiness_claimed"] = True
 
     artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
 
@@ -188,6 +251,7 @@ def test_activation_review_manifest_blocks_swapped_identity_or_readiness_overcla
     assert "pl_ce_local_mvp_candidate_bundle.unexpected_artifact_type:wrong" in artifact["blockers"]
     assert "pl_ce_browser_activation_evidence_gate.ready_for_live_diagnostic_decision" in artifact["blockers"]
     assert "pl_ce_browser_activation_evidence_gate.product_readiness_claimed" in artifact["blockers"]
+    assert "pl_ce_ui_context_alignment_pack.product_readiness_claimed" in artifact["blockers"]
     assert artifact["product_readiness_claimed"] is False
 
 
@@ -228,6 +292,10 @@ def test_activation_review_manifest_blocks_nested_status_or_browser_contradictio
     inputs["pl_ce_browser_activation_evidence_gate"]["included_artifact_statuses"][
         "product_pages_visual_qa"
     ]["browser_executed"] = False
+    inputs["pl_ce_ui_context_alignment_pack"]["summary"]["chat_context_reload_checked"] = False
+    inputs["pl_ce_ui_context_alignment_pack"]["included_artifact_statuses"][
+        "product_pages_short_term_context_smoke"
+    ]["browser_executed"] = False
 
     artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
 
@@ -244,6 +312,46 @@ def test_activation_review_manifest_blocks_nested_status_or_browser_contradictio
         "pl_ce_browser_activation_evidence_gate.included_artifact_statuses.product_pages_visual_qa.browser_not_executed"
         in artifact["blockers"]
     )
+    assert "pl_ce_ui_context_alignment_pack.chat_context_reload_not_checked" in artifact["blockers"]
+    assert (
+        "pl_ce_ui_context_alignment_pack.included_artifact_statuses."
+        "product_pages_short_term_context_smoke.browser_not_executed"
+        in artifact["blockers"]
+    )
+
+
+def test_activation_review_manifest_blocks_missing_ui_context_alignment_pack() -> None:
+    inputs = _valid_inputs()
+    inputs.pop("pl_ce_ui_context_alignment_pack")
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "pl_ce_ui_context_alignment_pack.unexpected_status:" in artifact["blockers"]
+    assert "pl_ce_ui_context_alignment_pack.unexpected_artifact_type:None" in artifact["blockers"]
+    assert "pl_ce_ui_context_alignment_pack.required_inputs_incomplete" in artifact["blockers"]
+
+
+def test_activation_review_manifest_blocks_undercovered_ui_context_pack() -> None:
+    inputs = _valid_inputs()
+    inputs["pl_ce_ui_context_alignment_pack"]["summary"]["context_covered_capabilities"] = 1
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "pl_ce_ui_context_alignment_pack.context_capabilities_not_covered" in artifact["blockers"]
+
+
+def test_activation_review_manifest_accepts_context_matrix_known_runtime_gap_status() -> None:
+    inputs = _valid_inputs()
+    inputs["pl_ce_local_mvp_candidate_bundle"]["included_artifact_statuses"][
+        "context_coverage_matrix"
+    ]["status"] = "context_coverage_matrix_ready_with_known_runtime_gaps"
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["blockers"] == []
 
 
 def test_activation_review_manifest_cli_writes_from_existing_artifacts(tmp_path: Path) -> None:
@@ -330,4 +438,5 @@ def test_ci_builds_activation_review_manifest() -> None:
 
     assert "test_accurate_intake_pl_ce_activation_review_manifest.py" in workflow
     assert "build_accurate_intake_pl_ce_activation_review_manifest.py" in workflow
+    assert "pl_ce_ui_context_alignment_pack=artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json" in workflow
     assert "accurate_intake_pl_ce_activation_review_manifest_ci.json" in workflow

@@ -1,43 +1,66 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 import json
+from datetime import UTC, datetime
 from typing import Any
 
 from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (
     BROWSER_ARTIFACTS,
+)
+from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (
     EXPECTED_STATUSES as BROWSER_GATE_EXPECTED_STATUSES,
+)
+from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (
     REQUIRED_INPUTS as BROWSER_GATE_REQUIRED_INPUTS,
 )
 from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
     EXPECTED_STATUSES as LOCAL_MVP_EXPECTED_STATUSES,
+)
+from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
     REQUIRED_INPUTS as LOCAL_MVP_REQUIRED_INPUTS,
 )
-
+from app.composition.accurate_intake_pl_ce_ui_context_alignment_pack import (
+    REQUIRED_INPUTS as UI_CONTEXT_REQUIRED_INPUTS,
+)
 
 REQUIRED_INPUTS = (
     "pl_ce_local_mvp_candidate_bundle",
     "pl_ce_browser_activation_evidence_gate",
+    "pl_ce_ui_context_alignment_pack",
 )
 
 EXPECTED_STATUSES = {
     "pl_ce_local_mvp_candidate_bundle": "pl_ce_local_mvp_candidate_ready_for_human_review",
     "pl_ce_browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
+    "pl_ce_ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
 }
 
 EXPECTED_ARTIFACT_TYPES = {
     "pl_ce_local_mvp_candidate_bundle": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
     "pl_ce_browser_activation_evidence_gate": "accurate_intake_pl_ce_browser_activation_evidence_gate",
+    "pl_ce_ui_context_alignment_pack": "accurate_intake_pl_ce_ui_context_alignment_pack",
 }
 
 EXPECTED_UPSTREAM_REQUIRED_INPUTS = {
     "pl_ce_local_mvp_candidate_bundle": tuple(LOCAL_MVP_REQUIRED_INPUTS),
     "pl_ce_browser_activation_evidence_gate": tuple(BROWSER_GATE_REQUIRED_INPUTS),
+    "pl_ce_ui_context_alignment_pack": tuple(UI_CONTEXT_REQUIRED_INPUTS),
 }
 
 EXPECTED_NESTED_STATUSES = {
     "pl_ce_local_mvp_candidate_bundle": dict(LOCAL_MVP_EXPECTED_STATUSES),
     "pl_ce_browser_activation_evidence_gate": dict(BROWSER_GATE_EXPECTED_STATUSES),
+    "pl_ce_ui_context_alignment_pack": {
+        "ui_same_truth_contract": "pass",
+        "context_coverage_matrix": {
+            "context_coverage_matrix_ready_for_human_review",
+            "context_coverage_matrix_ready_with_known_runtime_gaps",
+        },
+        "product_pages_browser_smoke": "pass",
+        "product_pages_seven_day_diary_smoke": "pass",
+        "product_pages_short_term_context_smoke": "pass",
+        "product_pages_visual_qa": "pass",
+    },
 }
 
 FORBIDDEN_TRUTHY_FLAGS = (
@@ -79,6 +102,13 @@ def _status(payload: dict[str, Any]) -> str:
     return str(payload.get("status") or "")
 
 
+def _int_value(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 def _claim_is_true(value: Any) -> bool:
     if value is True:
         return True
@@ -89,6 +119,14 @@ def _claim_is_true(value: Any) -> bool:
     if isinstance(value, str):
         return value.strip().lower() in {"1", "true", "yes", "claimed", "enabled"}
     return False
+
+
+def _allowed_statuses(expected_status: Any) -> set[str]:
+    if isinstance(expected_status, str):
+        return {expected_status}
+    if isinstance(expected_status, set | frozenset | tuple | list):
+        return {str(status) for status in expected_status}
+    return {str(expected_status)}
 
 
 def _identity_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
@@ -138,12 +176,21 @@ def _structural_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     else:
         for input_id, expected_status in EXPECTED_NESTED_STATUSES[group_id].items():
             nested_status = _object_dict(included_statuses.get(input_id))
-            if nested_status.get("status") != expected_status:
+            nested_status_value = str(nested_status.get("status") or "")
+            if nested_status_value not in _allowed_statuses(expected_status):
                 blockers.append(
                     f"{group_id}.included_artifact_statuses."
                     f"{input_id}.unexpected_status:{nested_status.get('status')}"
                 )
             if group_id == "pl_ce_browser_activation_evidence_gate" and input_id in BROWSER_ARTIFACTS:
+                if nested_status.get("browser_executed") is not True:
+                    blockers.append(
+                        f"{group_id}.included_artifact_statuses."
+                        f"{input_id}.browser_not_executed"
+                    )
+            if group_id == "pl_ce_ui_context_alignment_pack" and input_id.startswith(
+                "product_pages_"
+            ):
                 if nested_status.get("browser_executed") is not True:
                     blockers.append(
                         f"{group_id}.included_artifact_statuses."
@@ -201,6 +248,18 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
         ):
             if summary.get(flag) is not True:
                 blockers.append(f"pl_ce_browser_activation_evidence_gate.{flag}_not_true")
+    if group_id == "pl_ce_ui_context_alignment_pack":
+        summary = _object_dict(payload.get("summary"))
+        if summary.get("pages_verified") != ["chat", "today", "body"]:
+            blockers.append("pl_ce_ui_context_alignment_pack.pages_verified_mismatch")
+        if summary.get("seven_day_diary_checked") is not True:
+            blockers.append("pl_ce_ui_context_alignment_pack.seven_day_diary_not_checked")
+        if summary.get("chat_context_reload_checked") is not True:
+            blockers.append("pl_ce_ui_context_alignment_pack.chat_context_reload_not_checked")
+        if summary.get("body_read_model_checked") is not True:
+            blockers.append("pl_ce_ui_context_alignment_pack.body_read_model_not_checked")
+        if _int_value(summary.get("context_covered_capabilities")) < 9:
+            blockers.append("pl_ce_ui_context_alignment_pack.context_capabilities_not_covered")
     return blockers
 
 
@@ -250,6 +309,12 @@ def build_pl_ce_activation_review_manifest_artifact(
                     "ready_for_human_review"
                     if inputs["pl_ce_browser_activation_evidence_gate"].get("status")
                     == EXPECTED_STATUSES["pl_ce_browser_activation_evidence_gate"]
+                    else "blocked_or_missing"
+                ),
+                "ui_context_alignment_pack": (
+                    "ready_for_human_review"
+                    if inputs["pl_ce_ui_context_alignment_pack"].get("status")
+                    == EXPECTED_STATUSES["pl_ce_ui_context_alignment_pack"]
                     else "blocked_or_missing"
                 ),
             },

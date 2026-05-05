@@ -10,22 +10,25 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.composition.accurate_intake_pl_ce_activation_review_manifest import (  # noqa: E402
+from app.composition.accurate_intake_pl_ce_ui_context_alignment_pack import (  # noqa: E402
     REQUIRED_INPUTS,
-    build_pl_ce_activation_review_manifest_artifact,
+    build_pl_ce_ui_context_alignment_pack_artifact,
 )
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
 DEFAULT_ARTIFACT_PATHS = {
-    "pl_ce_local_mvp_candidate_bundle": ROOT
+    "ui_same_truth_contract": ROOT / "artifacts" / "accurate_intake_ui_same_truth_render_contract.json",
+    "context_coverage_matrix": ROOT / "artifacts" / "accurate_intake_pl_ce_context_coverage_matrix.json",
+    "product_pages_browser_smoke": ROOT
     / "artifacts"
-    / "accurate_intake_pl_ce_local_mvp_candidate_bundle.json",
-    "pl_ce_browser_activation_evidence_gate": ROOT
+    / "accurate_intake_product_pages_browser_smoke.json",
+    "product_pages_seven_day_diary_smoke": ROOT
     / "artifacts"
-    / "accurate_intake_pl_ce_browser_activation_evidence_gate.json",
-    "pl_ce_ui_context_alignment_pack": ROOT
+    / "accurate_intake_product_pages_seven_day_diary_smoke.json",
+    "product_pages_short_term_context_smoke": ROOT
     / "artifacts"
-    / "accurate_intake_pl_ce_ui_context_alignment_pack.json",
+    / "accurate_intake_product_pages_short_term_context_smoke.json",
+    "product_pages_visual_qa": ROOT / "artifacts" / "accurate_intake_product_pages_visual_qa.json",
 }
 
 
@@ -68,14 +71,14 @@ def _read_payload(path: Path) -> dict[str, Any]:
 
 
 def build_input_artifacts(path_overrides: dict[str, Path] | None = None) -> dict[str, dict[str, Any]]:
-    paths = {group_id: Path(path) for group_id, path in DEFAULT_ARTIFACT_PATHS.items()}
+    paths = {artifact_id: Path(path) for artifact_id, path in DEFAULT_ARTIFACT_PATHS.items()}
     paths.update(dict(path_overrides or {}))
-    return {group_id: _read_payload(paths[group_id]) for group_id in REQUIRED_INPUTS}
+    return {artifact_id: _read_payload(paths[artifact_id]) for artifact_id in REQUIRED_INPUTS}
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Build the PL+CE activation review manifest from existing gate artifacts."
+        description="Build the PL+CE UI/context alignment pack from existing artifacts."
     )
     parser.add_argument(
         "--artifact",
@@ -86,7 +89,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--output",
-        default="artifacts/accurate_intake_pl_ce_activation_review_manifest.json",
+        default="artifacts/accurate_intake_pl_ce_ui_context_alignment_pack.json",
     )
     args = parser.parse_args(argv)
 
@@ -105,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
-    artifact = build_pl_ce_activation_review_manifest_artifact(
+    artifact = build_pl_ce_ui_context_alignment_pack_artifact(
         build_input_artifacts(path_overrides=path_overrides)
     )
     write_json_artifact(Path(args.output), artifact)
