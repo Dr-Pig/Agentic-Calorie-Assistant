@@ -8,9 +8,11 @@ from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
     build_pl_ce_local_mvp_candidate_bundle_artifact,
 )
 
+
 REQUIRED_INPUTS = [
     "ui_same_truth_contract",
     "context_quality_pack",
+    "short_term_context_runtime_replay",
     "context_coverage_matrix",
     "context_conditioned_intent_wall",
     "correction_removal_fixture_flow",
@@ -39,6 +41,23 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "raw_text_intent_router_used": False,
             "mutation_authority": False,
             "ready_for_live_diagnostic_decision": False,
+        },
+        "short_term_context_runtime_replay": {
+            "artifact_type": "accurate_intake_short_term_context_runtime_replay",
+            "status": "runtime_replay_diagnostic_pass",
+            "runtime_trace_backed": True,
+            "scenario_count": 7,
+            "context_engineering_fault_claimed": False,
+            "manager_context_packet_schema_changed": False,
+            "deterministic_semantic_inference_used": False,
+            "raw_text_intent_router_used": False,
+            "mutation_authority": False,
+            "summary": {
+                "scenario_count": 7,
+                "pending_pin_scenarios": 2,
+                "target_candidate_scenarios": 4,
+                "current_gap_scenarios": 0,
+            },
         },
         "context_coverage_matrix": {
             "artifact_type": "accurate_intake_pl_ce_context_coverage_matrix",
@@ -146,11 +165,14 @@ def test_pl_ce_local_mvp_candidate_bundle_includes_new_context_and_responder_sli
     artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(_valid_inputs())
     included = artifact["included_artifact_statuses"]
 
+    assert included["short_term_context_runtime_replay"]["status"] == "runtime_replay_diagnostic_pass"  # type: ignore[index]
     assert included["context_coverage_matrix"]["status"] == "context_coverage_matrix_ready_for_human_review"  # type: ignore[index]
     assert included["context_conditioned_intent_wall"]["status"] == "pass"  # type: ignore[index]
     assert included["correction_removal_fixture_flow"]["status"] == "pass"  # type: ignore[index]
     assert included["responder_input_contract_fake_smoke"]["status"] == "pass"  # type: ignore[index]
     assert artifact["summary"]["context_wall_scenarios"] >= 11
+    assert artifact["summary"]["short_term_runtime_replay_scenarios"] >= 7
+    assert artifact["summary"]["short_term_runtime_replay_current_gap_count"] == 0
     assert artifact["summary"]["context_covered_capabilities"] >= 9
     assert artifact["summary"]["context_known_runtime_gap_count"] == 0
     assert artifact["summary"]["correction_removal_scenarios"] == 5
@@ -188,6 +210,37 @@ def test_pl_ce_local_mvp_candidate_bundle_blocks_upstream_blockers() -> None:
 
     assert artifact["status"] == "blocked"
     assert "context_coverage_matrix.upstream_blockers_present" in artifact["blockers"]
+
+
+def test_pl_ce_local_mvp_candidate_bundle_blocks_missing_runtime_replay() -> None:
+    inputs = _valid_inputs()
+    inputs["short_term_context_runtime_replay"] = {"status": "missing"}
+
+    artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "short_term_context_runtime_replay.unexpected_status:missing" in artifact["blockers"]
+    assert (
+        "short_term_context_runtime_replay.unexpected_artifact_type:None"
+        in artifact["blockers"]
+    )
+
+
+def test_pl_ce_local_mvp_candidate_bundle_blocks_runtime_replay_without_trace_or_coverage() -> None:
+    inputs = _valid_inputs()
+    inputs["short_term_context_runtime_replay"]["runtime_trace_backed"] = False
+    inputs["short_term_context_runtime_replay"]["scenario_count"] = 3
+    inputs["short_term_context_runtime_replay"]["summary"]["current_gap_scenarios"] = 1  # type: ignore[index]
+
+    artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "short_term_context_runtime_replay.runtime_trace_backed_not_true" in artifact["blockers"]
+    assert "short_term_context_runtime_replay.scenario_count_too_low" in artifact["blockers"]
+    assert (
+        "short_term_context_runtime_replay.current_gap_scenarios_present"
+        in artifact["blockers"]
+    )
 
 
 def test_pl_ce_local_mvp_candidate_bundle_blocks_missing_required_input() -> None:
@@ -346,6 +399,11 @@ def test_ci_runs_pl_ce_local_mvp_candidate_bundle() -> None:
     assert "build_accurate_intake_pl_ce_local_mvp_candidate_bundle.py" in workflow
     assert "accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json" in workflow
     assert "accurate_intake_pl_ce_context_coverage_matrix_ci.json" in workflow
+    assert "accurate_intake_short_term_context_runtime_replay_ci.json" in workflow
+    assert (
+        "--artifact short_term_context_runtime_replay=artifacts/accurate_intake_short_term_context_runtime_replay_ci.json"
+        in workflow
+    )
     assert "--artifact context_coverage_matrix=artifacts/accurate_intake_pl_ce_context_coverage_matrix_ci.json" in workflow
     assert "accurate-intake-pl-ce-local-mvp-candidate-bundle-report" in workflow
     assert "accurate_intake_ui_same_truth_render_contract_ci.json" in workflow

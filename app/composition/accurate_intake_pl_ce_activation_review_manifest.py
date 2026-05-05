@@ -1,27 +1,22 @@
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime
+import json
 from typing import Any
 
 from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (
     BROWSER_ARTIFACTS,
-)
-from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (
     EXPECTED_STATUSES as BROWSER_GATE_EXPECTED_STATUSES,
-)
-from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (
     REQUIRED_INPUTS as BROWSER_GATE_REQUIRED_INPUTS,
 )
 from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
     EXPECTED_STATUSES as LOCAL_MVP_EXPECTED_STATUSES,
-)
-from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
     REQUIRED_INPUTS as LOCAL_MVP_REQUIRED_INPUTS,
 )
 from app.composition.accurate_intake_pl_ce_ui_context_alignment_pack import (
     REQUIRED_INPUTS as UI_CONTEXT_REQUIRED_INPUTS,
 )
+
 
 REQUIRED_INPUTS = (
     "pl_ce_local_mvp_candidate_bundle",
