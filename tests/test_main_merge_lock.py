@@ -49,6 +49,12 @@ def test_main_merge_lock_rejects_missing_ready_marker() -> None:
 
     assert result["status"] == "fail"
     assert "missing_ready_marker:READY_FOR_QUEUE" in result["blocking_reasons"]
+    report = result["integrator_blocker_report"]
+    assert report["artifact_type"] == "main_merge_lock_integrator_blocker_report"
+    assert report["blocker_type"] == "mechanical"
+    assert report["owning_track"] == "FoodDB"
+    assert report["can_integrator_fix"] is True
+    assert report["next_integrator_action"] == "fix_and_retry"
 
 
 def test_main_merge_lock_rejects_matrix_blocking_reasons_even_with_merge_candidate() -> None:
@@ -60,6 +66,11 @@ def test_main_merge_lock_rejects_matrix_blocking_reasons_even_with_merge_candida
 
     assert result["status"] == "fail"
     assert "matrix_blocking_reason:missing_track_report_key:track" in result["blocking_reasons"]
+    report = result["integrator_blocker_report"]
+    assert report["blocker_type"] == "semantic"
+    assert report["owning_track"] == "FoodDB"
+    assert report["can_integrator_fix"] is False
+    assert report["next_integrator_action"] == "block_until_owner_fix"
 
 
 def test_main_merge_lock_rejects_stale_draft_or_unstable_candidate() -> None:
@@ -95,6 +106,19 @@ def test_main_merge_lock_rejects_boundary_runtime_and_size_failures() -> None:
 
         assert result["status"] == "fail"
         assert expected in result["blocking_reasons"]
+
+
+def test_main_merge_lock_marks_boundary_failures_as_contract_gap() -> None:
+    result = main_merge_lock.evaluate_candidate(
+        _entry(boundary_status="needs_review"),
+        pr_body="READY_FOR_QUEUE\n",
+        main_branch="main",
+    )
+
+    report = result["integrator_blocker_report"]
+    assert report["blocker_type"] == "contract_gap"
+    assert report["can_integrator_fix"] is False
+    assert "boundary_status_not_pass:needs_review" in report["evidence"]
 
 
 def test_main_merge_lock_allows_dormant_shadow_only_when_explicitly_enabled() -> None:
@@ -192,4 +216,6 @@ def test_main_merge_lock_workflow_serializes_main_promotion() -> None:
     assert "persist-credentials: false" in workflow
     assert "main_merge_lock.py wait-ready" in workflow
     assert "python scripts/merge_governance/main_merge_lock.py assert-candidate" in workflow
+    assert "expected_base_sha" in workflow
+    assert "queue_race_retry" in workflow
     assert "gh pr merge" in workflow

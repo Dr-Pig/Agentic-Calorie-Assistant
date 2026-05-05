@@ -93,10 +93,12 @@ jobs:
             --interval-seconds 15
 
       - name: Build merge debt matrix
+        id: merge_base
         run: |
           git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune
           git checkout main
           git merge --ff-only origin/main
+          echo "expected_base_sha=$(git rev-parse origin/main)" >> "${GITHUB_OUTPUT}"
           python scripts/merge_governance/build_merge_debt_matrix.py
 
       - name: Assert PR is allowed by main merge lock
@@ -120,6 +122,16 @@ jobs:
           if [ "${state}" != "CLEAN" ]; then
             echo "::error::PR #${PR_NUMBER} mergeStateStatus is ${state}, not CLEAN."
             exit 1
+          fi
+
+      - name: Re-fetch main before squash merge
+        run: |
+          git fetch origin main
+          current_base_sha="$(git rev-parse origin/main)"
+          expected_base_sha="${{ steps.merge_base.outputs.expected_base_sha }}"
+          if [ "${current_base_sha}" != "${expected_base_sha}" ]; then
+            echo "::notice title=queue_race_retry::origin/main advanced from ${expected_base_sha} to ${current_base_sha}; rerun main-merge-lock for PR #${PR_NUMBER}."
+            exit 78
           fi
 
       - name: Squash merge through lock

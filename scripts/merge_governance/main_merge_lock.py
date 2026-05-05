@@ -51,6 +51,58 @@ def _fat_file_allowed(entry: dict[str, Any], *, allow_dormant_shadow: bool) -> b
     )
 
 
+def build_integrator_blocker_report(
+    *,
+    pr_number: int,
+    blocker_type: str,
+    owning_track: str,
+    can_integrator_fix: bool,
+    required_owner_action: str,
+    tests_run: list[str] | None = None,
+    evidence: list[str] | None = None,
+    next_integrator_action: str = "wait_for_owner_fix",
+) -> dict[str, Any]:
+    return {
+        "artifact_type": "main_merge_lock_integrator_blocker_report",
+        "pr": pr_number,
+        "blocker_type": blocker_type,
+        "owning_track": owning_track,
+        "can_integrator_fix": can_integrator_fix,
+        "required_owner_action": required_owner_action,
+        "tests_run": list(tests_run or []),
+        "evidence": list(evidence or []),
+        "next_integrator_action": next_integrator_action,
+    }
+
+
+def _candidate_blocker_report(entry: dict[str, Any], blockers: list[str]) -> dict[str, Any]:
+    blocker_type = "mechanical"
+    can_integrator_fix = True
+    required_owner_action = "repair queue metadata or refresh the branch, then rerun main-merge-lock"
+    if any(
+        token in blocker
+        for blocker in blockers
+        for token in ("boundary_status", "deterministic_boundary_status", "runtime_activation_status")
+    ):
+        blocker_type = "contract_gap"
+        can_integrator_fix = False
+        required_owner_action = "owning track must resolve boundary or activation gap before queue retry"
+    elif any("matrix_blocking_reason" in blocker for blocker in blockers):
+        blocker_type = "semantic"
+        can_integrator_fix = False
+        required_owner_action = "owning track must clear merge debt matrix blocker before queue retry"
+
+    return build_integrator_blocker_report(
+        pr_number=int(entry.get("pr_number") or 0),
+        blocker_type=blocker_type,
+        owning_track=_text(entry.get("track")) or "unknown",
+        can_integrator_fix=can_integrator_fix,
+        required_owner_action=required_owner_action,
+        evidence=blockers,
+        next_integrator_action="fix_and_retry" if can_integrator_fix else "block_until_owner_fix",
+    )
+
+
 def evaluate_candidate(
     entry: dict[str, Any],
     *,
@@ -102,7 +154,7 @@ def evaluate_candidate(
     if verdict == "dormant_shadow_candidate" and _text(entry.get("mainline_status")) != "future_shadow":
         blockers.append(f"mainline_status_not_future_shadow:{_text(entry.get('mainline_status'))}")
 
-    return {
+    result = {
         "artifact_type": "main_merge_lock_candidate_evaluation",
         "pr_number": int(entry.get("pr_number") or 0),
         "status": "pass" if not blockers else "fail",
@@ -112,6 +164,9 @@ def evaluate_candidate(
         "head_branch": _text(entry.get("head_branch")),
         "base_branch": _text(entry.get("base_branch")),
     }
+    if blockers:
+        result["integrator_blocker_report"] = _candidate_blocker_report(entry, blockers)
+    return result
 
 
 def _load_entry(matrix_path: Path, pr_number: int) -> dict[str, Any]:
