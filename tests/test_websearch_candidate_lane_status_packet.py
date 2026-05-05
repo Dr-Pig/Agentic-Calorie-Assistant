@@ -27,10 +27,10 @@ def test_websearch_candidate_lane_status_packet_summarizes_deterministic_lane() 
     assert artifact["summary"]["source_policy_max_results"] == 5
     assert artifact["summary"]["pipeline_case_count"] >= 4
     assert artifact["summary"]["extract_candidate_allowed_count"] >= 1
-    assert artifact["summary"]["candidate_packet_case_count"] == 4
-    assert artifact["summary"]["candidate_only_packet_count"] == 4
-    assert artifact["summary"]["manager_projection_case_count"] == 4
-    assert artifact["summary"]["manager_projection_compact_count"] == 4
+    assert artifact["summary"]["candidate_packet_case_count"] == 7
+    assert artifact["summary"]["candidate_only_packet_count"] == 7
+    assert artifact["summary"]["manager_projection_case_count"] == 7
+    assert artifact["summary"]["manager_projection_compact_count"] == 7
     assert artifact["summary"]["upstream_fooddb_gate_status"] == "not_provided"
     assert artifact["next_required_slices"] == ["inspect_fooddb_status_packet"]
 

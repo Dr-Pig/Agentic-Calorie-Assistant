@@ -40,20 +40,18 @@ def test_websearch_manager_packet_projection_stays_candidate_only() -> None:
     assert artifact["live_websearch_used"] is False
     assert artifact["live_provider_used"] is False
     assert artifact["websearch_runtime_truth_allowed"] is False
-    assert artifact["summary"]["case_count"] == 4
-    assert artifact["summary"]["candidate_only_count"] == 4
+    assert artifact["summary"]["case_count"] == 7
+    assert artifact["summary"]["candidate_only_count"] == 7
     assert artifact["summary"]["runtime_truth_allowed_count"] == 0
 
     for case in artifact["cases"]:
         manager_packet = case["manager_evidence_packet"]
         assert is_compact_websearch_manager_packet(manager_packet)
         assert case["compact_manager_packet"] is True
-        assert case["candidate_boundary"] == {
-            "candidate_only": True,
-            "runtime_truth_allowed": False,
-            "snippet_truth_allowed": False,
-            "requires_later_promotion_path": True,
-        }
+        assert case["candidate_boundary"]["candidate_only"] is True
+        assert case["candidate_boundary"]["runtime_truth_allowed"] is False
+        assert case["candidate_boundary"]["snippet_truth_allowed"] is False
+        assert case["candidate_boundary"]["requires_later_promotion_path"] is True
         assert manager_packet["truth_selection_forbidden"] is True
         assert manager_packet["runtime_mutation_allowed"] is False
         assert manager_packet["websearch_runtime_truth_allowed"] is False
@@ -72,6 +70,23 @@ def test_websearch_manager_packet_projection_classifies_exact_and_related_candid
     assert sibling["manager_expected_behavior"] == "ask_followup_or_keep_candidate_pending"
     assert sibling["manager_evidence_packet"]["ambiguity_reason"] == "same_brand_nearby_variant"
     assert "confirm_exact_menu_item_or_variant" in sibling["manager_evidence_packet"]["followup_hints"]
+
+    wrong_size = cases["pkt_web_search_starbucks_wrong_size"]
+    assert wrong_size["manager_expected_behavior"] == "ask_followup_or_keep_candidate_pending"
+    assert "confirm_serving_size" in wrong_size["manager_evidence_packet"]["followup_hints"]
+    assert "serving_size_mismatch" in wrong_size["manager_evidence_packet"]["evidence_items"][0]["source_policy_blockers"]
+
+    brand_mismatch = cases["pkt_web_search_brand_mismatch"]
+    assert brand_mismatch["manager_expected_behavior"] == "reject_or_request_better_source"
+    assert "identity_not_exact" in brand_mismatch["manager_evidence_packet"]["evidence_items"][0]["source_policy_blockers"]
+
+    missing_nutrition = cases["pkt_web_search_official_missing_nutrition"]
+    assert missing_nutrition["manager_expected_behavior"] == "reject_or_request_better_source"
+    assert "missing_nutrition_fields" in missing_nutrition["manager_evidence_packet"]["evidence_items"][0]["source_policy_blockers"]
+
+    packaged = cases["pkt_web_search_packaged_label"]
+    assert packaged["manager_expected_behavior"] == "candidate_review_or_later_exact_card_promotion_path"
+    assert packaged["manager_evidence_packet"]["evidence_items"][0]["source_class_hint"] == "packaged_label"
 
 
 def test_websearch_manager_packet_projection_excludes_truth_and_backend_leakage() -> None:
@@ -99,6 +114,17 @@ def test_websearch_manager_packet_projection_excludes_truth_and_backend_leakage(
         assert "raw_ref" not in str(case)
 
 
+def test_websearch_manager_packet_compact_validator_rejects_raw_surfaces() -> None:
+    artifact = build_websearch_manager_packet_projection(tool_evidence_artifact=_tool_evidence_artifact())
+    manager_packet = dict(artifact["cases"][0]["manager_evidence_packet"])
+
+    for key in ("raw_search_results", "snippet", "candidate_only_records", "tool_evidence_result"):
+        drifted = dict(manager_packet)
+        drifted[key] = {"leaked": True}
+
+        assert is_compact_websearch_manager_packet(drifted) is False
+
+
 def test_websearch_manager_packet_smoke_script_roundtrip(tmp_path: Path) -> None:
     from app.shared.infra.json_artifacts import read_json_artifact
     from scripts.build_accurate_intake_websearch_tool_evidence_result_smoke import (
@@ -114,8 +140,8 @@ def test_websearch_manager_packet_smoke_script_roundtrip(tmp_path: Path) -> None
 
     artifact = read_json_artifact(output)
     assert artifact["artifact_type"] == "accurate_intake_websearch_manager_packet_projection"
-    assert artifact["summary"]["case_count"] == 4
-    assert artifact["summary"]["candidate_only_count"] == 4
+    assert artifact["summary"]["case_count"] == 7
+    assert artifact["summary"]["candidate_only_count"] == 7
 
 
 def test_websearch_manager_packet_smoke_has_no_live_search_or_provider_imports() -> None:

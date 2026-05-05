@@ -95,13 +95,39 @@ def derive_websearch_candidate_boundary(packet: dict[str, object]) -> dict[str, 
         and source_type == "web_search"
         and not truth_field_violations
     )
+    source_policy_blockers = _source_policy_blockers(packet, truth_field_violations=truth_field_violations)
     return {
         "candidate_only": candidate_only,
         "runtime_truth_allowed": False,
         "snippet_truth_allowed": False,
         "requires_later_promotion_path": True,
         "truth_field_violations": truth_field_violations,
+        "exact_candidate_input_complete": candidate_only and not source_policy_blockers,
+        "source_policy_blockers": source_policy_blockers,
     }
+
+
+def _source_policy_blockers(
+    packet: dict[str, object],
+    *,
+    truth_field_violations: list[str],
+) -> list[str]:
+    blockers: list[str] = []
+    if truth_field_violations:
+        blockers.append("truth_field_leak")
+    if packet.get("match_type") != "exact":
+        blockers.append("identity_not_exact")
+    if packet.get("source_quality_label") not in {"brand_menu", "official"}:
+        blockers.append("source_not_official_or_brand_menu")
+    if packet.get("size_or_serving_match") == "different":
+        blockers.append("serving_size_mismatch")
+    if packet.get("modifier_match") == "unknown":
+        blockers.append("modifier_mismatch_or_unknown")
+    if packet.get("serving_basis") == "unknown":
+        blockers.append("missing_serving_basis")
+    if not packet.get("nutrition_fields_present"):
+        blockers.append("missing_nutrition_fields")
+    return blockers
 
 
 def _default_cases() -> tuple[WebSearchCandidateSmokeCase, ...]:
@@ -175,6 +201,57 @@ def _default_cases() -> tuple[WebSearchCandidateSmokeCase, ...]:
             ),
             expected_boundary="candidate_only_wrong_size_rejected_by_hard_recheck",
         ),
+        WebSearchCandidateSmokeCase(
+            case_id="brand_mismatch_candidate",
+            intent=exact_intent,
+            candidate=_candidate(
+                candidate_id="web_search_candidate:brand_mismatch",
+                title="Starbucks pearl black tea latte",
+                url="https://starbucks.example/menu/pearl-black-tea-latte",
+                query="Milksha pearl black tea latte",
+                brand_detected="Starbucks",
+                identity_confidence="high",
+                raw_ref="raw/websearch/brand_mismatch.json#0",
+            ),
+            expected_boundary="candidate_only_brand_mismatch_rejected",
+        ),
+        WebSearchCandidateSmokeCase(
+            case_id="official_missing_nutrition_candidate",
+            intent=exact_intent,
+            candidate=_candidate(
+                candidate_id="web_search_candidate:official_missing_nutrition",
+                title="Milksha pearl black tea latte",
+                url="https://milksha.example/menu/pearl-black-tea-latte-about",
+                query="Milksha pearl black tea latte",
+                brand_detected="Milksha",
+                identity_confidence="high",
+                nutrition_fields_present=[],
+                raw_ref="raw/websearch/official_missing_nutrition.json#0",
+            ),
+            expected_boundary="candidate_only_official_missing_nutrition_rejected",
+        ),
+        WebSearchCandidateSmokeCase(
+            case_id="packaged_label_candidate",
+            intent=_intent(
+                base_dish="protein milk",
+                alias="7-11 protein milk chocolate",
+                brand_hint="7-11",
+                size_hint="bottle",
+            ),
+            candidate=_candidate(
+                candidate_id="web_search_candidate:packaged_label",
+                title="7-11 protein milk chocolate bottle",
+                url="https://7-11.example/product/protein-milk-chocolate",
+                query="7-11 protein milk chocolate bottle",
+                brand_detected="7-11",
+                source_class_hint="packaged_label",
+                channel_detected="packaged_product",
+                serving_basis_candidate="per_bottle",
+                identity_confidence="high",
+                raw_ref="raw/websearch/packaged_label.json#0",
+            ),
+            expected_boundary="candidate_only_packaged_label_pending_exact_card_lane",
+        ),
     )
 
 
@@ -205,11 +282,14 @@ def _candidate(
     brand_detected: str = "",
     officialness_hint: str = "official",
     source_quality_hint: str = "high",
+    source_class_hint: str = "",
     snippet: str = "official menu result",
     score: float = 0.93,
     serving_basis_candidate: str = "per_cup",
     identity_confidence: str = "medium",
     applicability_confidence: str = "medium",
+    nutrition_fields_present: list[str] | None = None,
+    channel_detected: str = "handmade_foodservice",
     raw_ref: str = "raw/websearch/test.json#0",
 ) -> dict[str, object]:
     return {
@@ -224,10 +304,13 @@ def _candidate(
         "score": score,
         "source_quality_hint": source_quality_hint,
         "officialness_hint": officialness_hint,
+        "source_class_hint": source_class_hint,
         "brand_detected": brand_detected,
-        "channel_detected": "handmade_foodservice",
+        "channel_detected": channel_detected,
         "serving_basis_candidate": serving_basis_candidate,
-        "nutrition_fields_present": ["kcal"],
+        "nutrition_fields_present": nutrition_fields_present
+        if nutrition_fields_present is not None
+        else ["kcal"],
         "customization_slots_present": ["size"],
         "identity_confidence": identity_confidence,
         "applicability_confidence": applicability_confidence,

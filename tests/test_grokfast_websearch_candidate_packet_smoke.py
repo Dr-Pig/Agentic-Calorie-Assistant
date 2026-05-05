@@ -75,10 +75,16 @@ def test_grokfast_websearch_candidate_live_payload_uses_compact_candidate_packet
     assert payload["constraints"]["websearch_runtime_truth_allowed"] is False
     assert payload["constraints"]["runtime_mutation_allowed"] is False
     assert should_attempt_b1_pass2_structured_output_transport(payload["constraints"]) is True
+    assert any(
+        "semantic_decision.target_attachment empty" in instruction
+        for instruction in payload["instructions"]
+    )
 
     manager_packet = payload["websearch_evidence_packet"]
+    source_url = manager_packet["evidence_items"][0]["source_url"]
     assert manager_packet["packet_type"] == "websearch_manager_evidence_packet_v1"
     assert is_compact_websearch_manager_packet(manager_packet)
+    assert payload["allowed_evidence_refs"] == [manager_packet["packet_id"], source_url]
     assert manager_packet["truth_selection_forbidden"] is True
     assert manager_packet["raw_search_results_included"] is False
     assert manager_packet["candidate_only_records_included"] is False

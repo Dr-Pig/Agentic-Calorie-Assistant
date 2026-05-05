@@ -153,8 +153,9 @@ def build_live_websearch_manager_payload(*, packet_case: dict[str, Any]) -> dict
             "Do not invent source IDs, kcal values, exact-card truth, FoodDB truth, item_results, or ledger writes.",
             "Do not call tools for WebSearch candidate-only packets; this is source candidate review, not nutrition estimation.",
             "Use final_action='no_commit' for candidate review or weak-source rejection; use final_action='ask_followup' when identity, size, or variant is ambiguous.",
-            "Cite candidate packet IDs only in answer_contract.source_candidate_refs.",
+            "Cite only provided candidate packet IDs or provided source_url values in answer_contract.source_candidate_refs.",
             "Keep top-level target_attachment empty for candidate-only WebSearch evidence.",
+            "Keep semantic_decision.target_attachment empty too; do not attach candidate packets as mutation or correction targets.",
             "Set semantic_decision.mutation_intent_candidate='no_mutation' for every WebSearch candidate-only response.",
             "For exact brand/menu candidates, keep the source candidate pending for later promotion review.",
             "For related or weak candidates, ask follow-up or reject/request a better source.",
@@ -170,7 +171,23 @@ def build_live_websearch_manager_payload(*, packet_case: dict[str, Any]) -> dict
             "expected_behavior": packet_case.get("manager_expected_behavior"),
             "case_id": packet_case.get("case_id"),
         },
+        "allowed_evidence_refs": _allowed_evidence_refs(packet),
     }
+
+
+def _allowed_evidence_refs(packet: dict[str, Any]) -> list[str]:
+    refs: list[str] = []
+    packet_id = str(packet.get("packet_id") or "").strip()
+    if packet_id:
+        refs.append(packet_id)
+    for item in packet.get("evidence_items") or []:
+        if not isinstance(item, dict):
+            continue
+        for key in ("candidate_packet_id", "source_url"):
+            value = str(item.get(key) or "").strip()
+            if value and value not in refs:
+                refs.append(value)
+    return refs
 
 
 def blocked_live_artifact() -> dict[str, Any]:

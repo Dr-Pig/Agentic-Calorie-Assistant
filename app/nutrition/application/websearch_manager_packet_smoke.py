@@ -67,6 +67,10 @@ def is_compact_websearch_manager_packet(packet: dict[str, Any]) -> bool:
                 "kcal_range",
                 "ledger_mutation_result",
                 "raw_source_rows",
+                "raw_search_results",
+                "snippet",
+                "candidate_only_records",
+                "tool_evidence_result",
                 "runtime_truth_allowed",
                 "storage_backend",
                 "supabase",
@@ -99,12 +103,15 @@ def _manager_packet_for_search_candidate(*, packet: dict[str, Any], index: int) 
         "matched_name": packet.get("matched_name"),
         "match_type": packet.get("match_type"),
         "source_quality_label": packet.get("source_quality_label"),
+        "source_class_hint": packet.get("source_class_hint"),
         "source_url": packet.get("url"),
         "serving_basis": packet.get("serving_basis"),
+        "nutrition_fields_present": list(packet.get("nutrition_fields_present") or []),
         "brand_match": packet.get("brand_match"),
         "size_or_serving_match": packet.get("size_or_serving_match"),
         "modifier_match": packet.get("modifier_match"),
         "sibling_variant_risk": packet.get("sibling_variant_risk"),
+        "source_policy_blockers": _source_policy_blockers(packet),
         "manager_may_use_for": [
             "source_candidate_review",
             "identity_disambiguation",
@@ -147,11 +154,37 @@ def _manager_packet_for_search_candidate(*, packet: dict[str, Any], index: int) 
 
 
 def _expected_behavior(packet: dict[str, Any]) -> str:
-    if packet.get("match_type") == "exact" and packet.get("source_quality_label") in {"brand_menu", "official"}:
-        return "candidate_review_or_later_exact_card_promotion_path"
     if packet.get("match_type") == "related":
         return "ask_followup_or_keep_candidate_pending"
+    if packet.get("size_or_serving_match") == "different":
+        return "ask_followup_or_keep_candidate_pending"
+    if packet.get("modifier_match") == "unknown":
+        return "ask_followup_or_keep_candidate_pending"
+    if (
+        packet.get("match_type") == "exact"
+        and packet.get("source_quality_label") in {"brand_menu", "official"}
+        and packet.get("serving_basis") != "unknown"
+        and bool(packet.get("nutrition_fields_present"))
+    ):
+        return "candidate_review_or_later_exact_card_promotion_path"
     return "reject_or_request_better_source"
+
+
+def _source_policy_blockers(packet: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    if packet.get("match_type") != "exact":
+        blockers.append("identity_not_exact")
+    if packet.get("source_quality_label") not in {"brand_menu", "official"}:
+        blockers.append("source_not_official_or_brand_menu")
+    if packet.get("size_or_serving_match") == "different":
+        blockers.append("serving_size_mismatch")
+    if packet.get("modifier_match") == "unknown":
+        blockers.append("modifier_mismatch_or_unknown")
+    if packet.get("serving_basis") == "unknown":
+        blockers.append("missing_serving_basis")
+    if not packet.get("nutrition_fields_present"):
+        blockers.append("missing_nutrition_fields")
+    return blockers
 
 
 def _ambiguity_reason(packet: dict[str, Any]) -> str | None:

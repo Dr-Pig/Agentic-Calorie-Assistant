@@ -54,8 +54,8 @@ def test_websearch_manager_output_diagnostic_passes_fixture_outputs_without_muta
     assert diagnostic["live_websearch_used"] is False
     assert diagnostic["runtime_truth_changed"] is False
     assert diagnostic["runtime_mutation_attempted"] is False
-    assert diagnostic["summary"]["case_count"] == 4
-    assert diagnostic["summary"]["pass_count"] == 4
+    assert diagnostic["summary"]["case_count"] == 7
+    assert diagnostic["summary"]["pass_count"] == 7
     assert diagnostic["summary"]["fail_count"] == 0
     assert diagnostic["summary"]["failure_families"] == []
 
@@ -153,6 +153,27 @@ def test_websearch_manager_output_diagnostic_flags_invented_evidence_refs() -> N
 
     assert evaluation["status"] == "fail"
     assert "invented_websearch_evidence_reference" in evaluation["failure_families"]
+
+
+def test_websearch_manager_output_diagnostic_allows_packet_source_url_refs() -> None:
+    packet_case = _manager_packet_artifact()["cases"][0]
+    source_url = packet_case["manager_evidence_packet"]["evidence_items"][0]["source_url"]
+    manager_output = {
+        "manager_action": "final",
+        "final_action": "no_commit",
+        "workflow_effect": "source_candidate_review",
+        "item_results": [],
+        "answer_contract": {"source_candidate_refs": [source_url]},
+        "semantic_decision": {"mutation_intent_candidate": "no_mutation"},
+    }
+
+    evaluation = evaluate_manager_output_against_websearch_packet(
+        packet_case=packet_case,
+        manager_output=manager_output,
+    )
+
+    assert evaluation["status"] == "pass"
+    assert evaluation["invented_evidence_refs"] == []
 
 
 def test_websearch_manager_output_diagnostic_rejects_substring_evidence_refs() -> None:
@@ -318,23 +339,58 @@ def test_websearch_manager_output_diagnostic_flags_semantic_final_action_commit(
     assert evaluation["mutation_signal"]["semantic_final_action_candidate"] == "commit"
 
 
+def test_websearch_manager_output_diagnostic_flags_semantic_persistence_actions() -> None:
+    packet_case = _manager_packet_artifact()["cases"][0]
+    for action in ("correction_applied", "overshoot_note", "remove_item", "mutation_applied"):
+        manager_output = {
+            "manager_action": "final",
+            "response_mode": "answer_only",
+            "workflow_effect": "no_mutation",
+            "item_results": [],
+            "answer_contract": {"source_candidate_refs": [packet_case["case_id"]]},
+            "semantic_decision": {
+                "final_action_candidate": action,
+                "mutation_intent_candidate": "no_mutation",
+            },
+        }
+
+        evaluation = evaluate_manager_output_against_websearch_packet(
+            packet_case=packet_case,
+            manager_output=manager_output,
+        )
+
+        assert evaluation["status"] == "fail"
+        assert evaluation["runtime_mutation_attempted"] is True
+        assert "websearch_candidate_mutated_runtime" in evaluation["failure_families"]
+
+
 def test_websearch_manager_output_diagnostic_script_roundtrip(tmp_path: Path) -> None:
     from app.shared.infra.json_artifacts import read_json_artifact
+    from scripts.build_accurate_intake_websearch_tool_evidence_result_smoke import (
+        main as build_tool_evidence_result_smoke,
+    )
     from scripts.build_accurate_intake_websearch_manager_packet_smoke import (
         main as build_manager_packet_smoke,
     )
     from scripts.build_accurate_intake_websearch_manager_output_diagnostic import main
 
+    tool_output = tmp_path / "websearch_tool_evidence_result.json"
     packet_output = tmp_path / "websearch_manager_packet.json"
     output = tmp_path / "websearch_manager_output.json"
-    assert build_manager_packet_smoke(["--output", str(packet_output)]) == 0
+    assert build_tool_evidence_result_smoke(["--output", str(tool_output)]) == 0
+    assert (
+        build_manager_packet_smoke(
+            ["--tool-evidence-result", str(tool_output), "--output", str(packet_output)]
+        )
+        == 0
+    )
 
     assert main(["--manager-packet-artifact", str(packet_output), "--output", str(output)]) == 0
 
     artifact = read_json_artifact(output)
     assert artifact["artifact_type"] == "accurate_intake_websearch_manager_output_diagnostic"
     assert artifact["status"] == "pass"
-    assert artifact["summary"]["pass_count"] == 4
+    assert artifact["summary"]["pass_count"] == 7
 
 
 def test_websearch_manager_output_diagnostic_has_no_live_search_or_provider_imports() -> None:

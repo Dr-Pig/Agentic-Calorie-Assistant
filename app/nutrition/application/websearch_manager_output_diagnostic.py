@@ -22,7 +22,18 @@ WEBSEARCH_MANAGER_OUTPUT_NON_CLAIMS = [
     "no_readiness_claim",
 ]
 
-_MUTATING_FINAL_ACTIONS = frozenset({"commit", "log_food", "write_ledger", "canonical_write"})
+_MUTATING_FINAL_ACTIONS = frozenset(
+    {
+        "canonical_write",
+        "commit",
+        "correction_applied",
+        "log_food",
+        "mutation_applied",
+        "overshoot_note",
+        "remove_item",
+        "write_ledger",
+    }
+)
 _NON_MUTATING_WORKFLOW_EFFECTS = frozenset(
     {
         "answer_only",
@@ -341,7 +352,7 @@ def _allowed_candidate_refs(manager_packet: dict[str, Any]) -> set[str]:
     for item in manager_packet.get("evidence_items") or []:
         if not isinstance(item, dict):
             continue
-        for key in ("candidate_packet_id",):
+        for key in ("candidate_packet_id", "source_url"):
             value = str(item.get(key) or "").strip()
             if value:
                 refs.add(value)
