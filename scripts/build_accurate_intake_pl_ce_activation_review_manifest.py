@@ -27,6 +27,9 @@ DEFAULT_ARTIFACT_PATHS = {
     "pl_ce_ui_context_alignment_pack": ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_ui_context_alignment_pack.json",
+    "context_live_diagnostic_dry_run_evaluator": ROOT
+    / "artifacts"
+    / "accurate_intake_context_live_diagnostic_dry_run_evaluator.json",
 }
 
 
