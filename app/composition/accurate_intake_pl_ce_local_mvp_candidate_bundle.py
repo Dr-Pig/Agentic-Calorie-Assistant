@@ -10,6 +10,7 @@ REQUIRED_INPUTS = (
     "context_quality_pack",
     "short_term_context_runtime_replay",
     "context_coverage_matrix",
+    "context_live_diagnostic_case_matrix",
     "context_conditioned_intent_wall",
     "correction_removal_fixture_flow",
     "responder_input_contract_fake_smoke",
@@ -31,6 +32,7 @@ EXPECTED_STATUSES = {
         "context_coverage_matrix_ready_for_human_review",
         "context_coverage_matrix_ready_with_known_runtime_gaps",
     },
+    "context_live_diagnostic_case_matrix": "pass",
     "context_conditioned_intent_wall": "pass",
     "correction_removal_fixture_flow": "pass",
     "responder_input_contract_fake_smoke": "pass",
@@ -46,6 +48,7 @@ EXPECTED_ARTIFACT_TYPES = {
     "context_quality_pack": "accurate_intake_context_quality_pack",
     "short_term_context_runtime_replay": "accurate_intake_short_term_context_runtime_replay",
     "context_coverage_matrix": "accurate_intake_pl_ce_context_coverage_matrix",
+    "context_live_diagnostic_case_matrix": "accurate_intake_context_live_diagnostic_case_matrix",
     "context_conditioned_intent_wall": "accurate_intake_context_conditioned_intent_wall",
     "correction_removal_fixture_flow": "accurate_intake_correction_removal_fixture_flow",
     "responder_input_contract_fake_smoke": "accurate_intake_responder_input_contract_fake_smoke",
@@ -64,10 +67,12 @@ FORBIDDEN_TRUE_FLAGS = (
     "ready_for_fdb_integration",
     "live_llm_invoked",
     "live_provider_called",
+    "live_provider_invoked",
     "web_tavily_used",
     "web_tavily_invoked",
     "websearch_evidence_used",
     "fooddb_evidence_used",
+    "fooddb_used",
     "fooddb_truth_updated",
     "context_engineering_fault_claimed",
     "real_fooddb_pass_claimed",
@@ -182,6 +187,18 @@ def _runtime_replay_blockers(payload: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def _context_live_matrix_blockers(payload: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    if payload.get("plan_only") is not True:
+        blockers.append("context_live_diagnostic_case_matrix.plan_only_not_true")
+    summary = _object_dict(payload.get("summary"))
+    if _int_value(summary.get("case_count")) < 10:
+        blockers.append("context_live_diagnostic_case_matrix.case_count_too_low")
+    if _int_value(summary.get("compound_cases")) < 1:
+        blockers.append("context_live_diagnostic_case_matrix.compound_cases_missing")
+    return blockers
+
+
 def _artifact_statuses(payloads: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     statuses: dict[str, dict[str, Any]] = {}
     for artifact_id, payload in payloads.items():
@@ -204,6 +221,9 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
     }
     blockers, activation_gap_signals = _validate_input_artifacts(inputs)
     context_wall_summary = _object_dict(inputs["context_conditioned_intent_wall"].get("summary"))
+    context_live_matrix_summary = _object_dict(
+        inputs["context_live_diagnostic_case_matrix"].get("summary")
+    )
     runtime_replay_summary = _object_dict(
         inputs["short_term_context_runtime_replay"].get("summary")
     )
@@ -212,6 +232,7 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
     responder_summary = _object_dict(inputs["responder_input_contract_fake_smoke"].get("summary"))
     review_pipeline = inputs["review_eval_candidate_pipeline"]
     blockers.extend(_runtime_replay_blockers(inputs["short_term_context_runtime_replay"]))
+    blockers.extend(_context_live_matrix_blockers(inputs["context_live_diagnostic_case_matrix"]))
     status = "pl_ce_local_mvp_candidate_ready_for_human_review" if not blockers else "blocked"
     return _json_safe(
         {
@@ -280,6 +301,12 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
                 ),
                 "context_known_runtime_gap_count": int(
                     context_matrix_summary.get("known_runtime_gap_count") or 0
+                ),
+                "context_live_case_matrix_cases": int(
+                    context_live_matrix_summary.get("case_count") or 0
+                ),
+                "context_live_case_matrix_compound_cases": int(
+                    context_live_matrix_summary.get("compound_cases") or 0
                 ),
                 "correction_removal_scenarios": int(
                     correction_summary.get("scenario_count") or 0
