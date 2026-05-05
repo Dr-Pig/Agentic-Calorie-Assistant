@@ -161,6 +161,7 @@ def test_ui_context_alignment_pack_summarizes_three_pages_and_context_evidence()
     assert artifact["summary"]["body_read_model_checked"] is True
     assert artifact["render_only_boundary_ok"] is True
     assert artifact["context_engineering_fault_claimed"] is False
+    assert artifact["review_required_before_provider_call"] is True
     assert artifact["ready_for_live_diagnostic_decision"] is False
     assert artifact["ready_for_fdb_integration"] is False
     assert artifact["live_llm_invoked"] is False
