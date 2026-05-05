@@ -34,6 +34,22 @@ def _clean_evidence() -> dict:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "pl_ce_artifact_refresh": {
+            "status": "pl_ce_artifact_refresh_ready_for_human_review",
+            "source": "test",
+            "browser_execution_required": True,
+            "completed_step_count": 20,
+            "required_step_count": 20,
+            "blockers": [],
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
         "mvp_gate": {"status": "pass"},
         "phase_c_gate": {"status": "pass"},
     }
@@ -92,6 +108,53 @@ def test_candidate_blocked_when_pl_ce_local_review_decision_pack_missing() -> No
     pack = build_local_web_self_use_candidate_v2(evidence)
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert "missing evidence: pl_ce_local_review_decision_pack" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+
+def test_candidate_blocked_when_pl_ce_artifact_refresh_missing() -> None:
+    evidence = _clean_evidence()
+    del evidence["pl_ce_artifact_refresh"]
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "missing evidence: pl_ce_artifact_refresh" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+
+def test_candidate_requires_required_browser_artifact_refresh() -> None:
+    evidence = _clean_evidence()
+    evidence["pl_ce_artifact_refresh"]["browser_execution_required"] = False
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert (
+        "PL+CE artifact refresh invalid: pl_ce_artifact_refresh_required_browser_missing"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
+
+
+def test_candidate_blocks_incomplete_artifact_refresh() -> None:
+    evidence = _clean_evidence()
+    evidence["pl_ce_artifact_refresh"]["completed_step_count"] = 19
+    evidence["pl_ce_artifact_refresh"]["blockers"] = ["metadata_freshness.returncode_1"]
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert (
+        "PL+CE artifact refresh invalid: pl_ce_artifact_refresh_incomplete"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
+    assert (
+        "PL+CE artifact refresh invalid: pl_ce_artifact_refresh_blocked"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
+
+
+def test_candidate_blocks_malformed_artifact_refresh_counts() -> None:
+    evidence = _clean_evidence()
+    evidence["pl_ce_artifact_refresh"]["completed_step_count"] = "not-a-number"
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert (
+        "PL+CE artifact refresh invalid: pl_ce_artifact_refresh_completed_step_count_invalid"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
+
 
 def test_candidate_requires_pre_live_pack_to_reference_pl_ce_local_review() -> None:
     evidence = _clean_evidence()

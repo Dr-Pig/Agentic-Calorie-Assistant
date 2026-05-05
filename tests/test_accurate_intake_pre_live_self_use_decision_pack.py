@@ -35,6 +35,19 @@ def _evidence(**overrides: dict) -> dict:
             "real_fooddb_pass_claimed": False,
             "private_self_use_approved": False,
         },
+        "pl_ce_artifact_refresh": {
+            "status": "pl_ce_artifact_refresh_ready_for_human_review",
+            "browser_execution_required": True,
+            "completed_step_count": 20,
+            "required_step_count": 20,
+            "blockers": [],
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "real_fooddb_pass_claimed": False,
+            "private_self_use_approved": False,
+        },
     }
     evidence.update(overrides)
     return evidence
@@ -131,6 +144,58 @@ def test_pre_live_decision_pack_blocks_when_pl_ce_local_review_gate_is_blocked()
     assert "pl_ce_local_review_decision_pack" in pack["missing_evidence"]
     assert pack["ready_for_pl_ce_local_review"] is False
     assert pack["live_canary_approved"] is False
+
+
+def test_pre_live_decision_pack_requires_required_browser_artifact_refresh() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            pl_ce_artifact_refresh={
+                "status": "pl_ce_artifact_refresh_ready_for_human_review",
+                "browser_execution_required": False,
+                "completed_step_count": 20,
+                "required_step_count": 20,
+                "blockers": [],
+            }
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "pl_ce_artifact_refresh" in pack["missing_evidence"]
+    assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_blocks_incomplete_artifact_refresh() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            pl_ce_artifact_refresh={
+                "status": "pl_ce_artifact_refresh_ready_for_human_review",
+                "browser_execution_required": True,
+                "completed_step_count": 19,
+                "required_step_count": 20,
+                "blockers": ["product_pages_visual_qa.returncode_1"],
+            }
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "pl_ce_artifact_refresh" in pack["missing_evidence"]
+
+
+def test_pre_live_decision_pack_blocks_malformed_artifact_refresh_counts() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            pl_ce_artifact_refresh={
+                "status": "pl_ce_artifact_refresh_ready_for_human_review",
+                "browser_execution_required": True,
+                "completed_step_count": "not-a-number",
+                "required_step_count": 20,
+                "blockers": [],
+            }
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "pl_ce_artifact_refresh" in pack["missing_evidence"]
 
 
 def test_pre_live_decision_pack_blocks_pl_ce_local_review_overclaims() -> None:

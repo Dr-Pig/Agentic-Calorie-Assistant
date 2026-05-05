@@ -80,6 +80,23 @@ def _required_payloads() -> dict[str, dict[str, object]]:
             "real_fooddb_pass_claimed": False,
             "private_self_use_approved": False,
         },
+        "pl_ce_artifact_refresh": {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_pl_ce_artifact_refresh",
+            "claim_scope": "pl_ce_local_artifact_refresh_diagnostic",
+            "status": "pl_ce_artifact_refresh_ready_for_human_review",
+            "browser_execution_required": True,
+            "completed_step_count": 20,
+            "required_step_count": 20,
+            "blockers": [],
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "private_self_use_approved": False,
+        },
     }
 
 
@@ -175,6 +192,7 @@ def test_local_web_self_use_candidate_v2_gate_runner_derives_phase_c_identity_fr
         "local_dogfood_data_hygiene",
         "local_operator_data_hygiene_bundle",
         "pl_ce_local_review_decision_pack",
+        "pl_ce_artifact_refresh",
     ]
     assert evidence["phase_c_gate"]["artifact_type"] == "accurate_intake_phase_c_gate_from_mvp_gate"
     assert evidence["phase_c_gate"]["status"] == "pass"
@@ -257,6 +275,168 @@ def test_local_web_self_use_candidate_v2_gate_runner_blocks_pl_ce_overclaim(
     assert printed["candidate_prepared"] is False
     assert "PL+CE local review overclaim" in candidate["local_web_self_use_candidate_v2"]["blockers"]
     assert candidate["local_web_self_use_candidate_v2"]["private_self_use_approved"] is False
+
+
+def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_artifact_refresh(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts.run_accurate_intake_local_web_self_use_candidate_v2_gate import (
+        DEFAULT_EVIDENCE_PATHS,
+        main,
+    )
+
+    artifact_dir = tmp_path / "artifacts"
+    payloads = _required_payloads()
+    payloads.pop("pl_ce_artifact_refresh")
+    for group_id, payload in payloads.items():
+        _write(artifact_dir / f"{group_id}.json", payload)
+    candidate_output = tmp_path / "candidate.json"
+
+    exit_code = main(
+        [
+            "--pre-live-evidence-output",
+            str(tmp_path / "pre_live_evidence.json"),
+            "--pre-live-output",
+            str(tmp_path / "pre_live_decision_pack.json"),
+            "--candidate-output",
+            str(candidate_output),
+            *_artifact_args(artifact_dir, tuple(DEFAULT_EVIDENCE_PATHS)),
+        ]
+    )
+    printed = json.loads(capsys.readouterr().out)
+    candidate = json.loads(candidate_output.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["missing_evidence"] == ["pl_ce_artifact_refresh"]
+    assert "missing evidence: pl_ce_artifact_refresh" in candidate["local_web_self_use_candidate_v2"]["blockers"]
+
+
+def test_local_web_self_use_candidate_v2_gate_runner_requires_required_browser_artifact_refresh(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts.run_accurate_intake_local_web_self_use_candidate_v2_gate import (
+        DEFAULT_EVIDENCE_PATHS,
+        main,
+    )
+
+    artifact_dir = tmp_path / "artifacts"
+    payloads = _required_payloads()
+    payloads["pl_ce_artifact_refresh"]["browser_execution_required"] = False
+    for group_id, payload in payloads.items():
+        _write(artifact_dir / f"{group_id}.json", payload)
+    candidate_output = tmp_path / "candidate.json"
+
+    exit_code = main(
+        [
+            "--pre-live-evidence-output",
+            str(tmp_path / "pre_live_evidence.json"),
+            "--pre-live-output",
+            str(tmp_path / "pre_live_decision_pack.json"),
+            "--candidate-output",
+            str(candidate_output),
+            *_artifact_args(artifact_dir, tuple(DEFAULT_EVIDENCE_PATHS)),
+        ]
+    )
+    printed = json.loads(capsys.readouterr().out)
+    pre_live_evidence = json.loads((tmp_path / "pre_live_evidence.json").read_text(encoding="utf-8"))
+    candidate = json.loads(candidate_output.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["evidence_status"] == "blocked_invalid_evidence"
+    assert pre_live_evidence["_evidence_metadata"]["invalid_evidence"] == ["pl_ce_artifact_refresh"]
+    assert "pl_ce_artifact_refresh_required_browser_missing" in pre_live_evidence["_evidence_metadata"]["blockers"]
+    assert (
+        "PL+CE artifact refresh invalid: pl_ce_artifact_refresh_required_browser_missing"
+        in candidate["local_web_self_use_candidate_v2"]["blockers"]
+    )
+
+
+def test_local_web_self_use_candidate_v2_gate_runner_blocks_incomplete_artifact_refresh(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts.run_accurate_intake_local_web_self_use_candidate_v2_gate import (
+        DEFAULT_EVIDENCE_PATHS,
+        main,
+    )
+
+    artifact_dir = tmp_path / "artifacts"
+    payloads = _required_payloads()
+    payloads["pl_ce_artifact_refresh"]["completed_step_count"] = 19
+    payloads["pl_ce_artifact_refresh"]["blockers"] = ["metadata_freshness.returncode_1"]
+    for group_id, payload in payloads.items():
+        _write(artifact_dir / f"{group_id}.json", payload)
+    candidate_output = tmp_path / "candidate.json"
+
+    exit_code = main(
+        [
+            "--pre-live-evidence-output",
+            str(tmp_path / "pre_live_evidence.json"),
+            "--pre-live-output",
+            str(tmp_path / "pre_live_decision_pack.json"),
+            "--candidate-output",
+            str(candidate_output),
+            *_artifact_args(artifact_dir, tuple(DEFAULT_EVIDENCE_PATHS)),
+        ]
+    )
+    printed = json.loads(capsys.readouterr().out)
+    pre_live_evidence = json.loads((tmp_path / "pre_live_evidence.json").read_text(encoding="utf-8"))
+    candidate = json.loads(candidate_output.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["evidence_status"] == "blocked_invalid_evidence"
+    assert pre_live_evidence["_evidence_metadata"]["invalid_evidence"] == ["pl_ce_artifact_refresh"]
+    assert "pl_ce_artifact_refresh_incomplete" in pre_live_evidence["_evidence_metadata"]["blockers"]
+    assert "pl_ce_artifact_refresh_blocked" in pre_live_evidence["_evidence_metadata"]["blockers"]
+    assert (
+        "PL+CE artifact refresh invalid: pl_ce_artifact_refresh_incomplete"
+        in candidate["local_web_self_use_candidate_v2"]["blockers"]
+    )
+
+
+def test_local_web_self_use_candidate_v2_gate_runner_blocks_malformed_artifact_refresh_counts(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts.run_accurate_intake_local_web_self_use_candidate_v2_gate import (
+        DEFAULT_EVIDENCE_PATHS,
+        main,
+    )
+
+    artifact_dir = tmp_path / "artifacts"
+    payloads = _required_payloads()
+    payloads["pl_ce_artifact_refresh"]["completed_step_count"] = "not-a-number"
+    for group_id, payload in payloads.items():
+        _write(artifact_dir / f"{group_id}.json", payload)
+    candidate_output = tmp_path / "candidate.json"
+
+    exit_code = main(
+        [
+            "--pre-live-evidence-output",
+            str(tmp_path / "pre_live_evidence.json"),
+            "--pre-live-output",
+            str(tmp_path / "pre_live_decision_pack.json"),
+            "--candidate-output",
+            str(candidate_output),
+            *_artifact_args(artifact_dir, tuple(DEFAULT_EVIDENCE_PATHS)),
+        ]
+    )
+    printed = json.loads(capsys.readouterr().out)
+    pre_live_evidence = json.loads((tmp_path / "pre_live_evidence.json").read_text(encoding="utf-8"))
+    candidate = json.loads(candidate_output.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["evidence_status"] == "blocked_invalid_evidence"
+    assert (
+        "pl_ce_artifact_refresh_completed_step_count_invalid"
+        in pre_live_evidence["_evidence_metadata"]["blockers"]
+    )
+    assert (
+        "PL+CE artifact refresh invalid: pl_ce_artifact_refresh_completed_step_count_invalid"
+        in candidate["local_web_self_use_candidate_v2"]["blockers"]
+    )
 
 
 def test_local_web_self_use_candidate_v2_gate_runner_blocks_status_only_artifacts(

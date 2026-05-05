@@ -12,6 +12,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
+from scripts.accurate_intake_pl_ce_artifact_refresh_validation import (  # noqa: E402
+    validate_pl_ce_artifact_refresh_evidence,
+)
 from scripts.build_accurate_intake_local_web_self_use_candidate_v2 import (  # noqa: E402
     build_local_web_self_use_candidate_v2,
 )
@@ -31,6 +34,9 @@ DEFAULT_EVIDENCE_PATHS = {
     / "artifacts"
     / "accurate_intake_local_operator_data_hygiene_bundle.json",
     "pl_ce_local_review_decision_pack": ROOT / "artifacts" / "accurate_intake_pl_ce_local_review_decision_pack.json",
+    "pl_ce_artifact_refresh": ROOT
+    / "artifacts"
+    / "accurate_intake_pl_ce_artifact_refresh_required_browser.json",
 }
 DEFAULT_PRE_LIVE_EVIDENCE_OUTPUT = ROOT / "artifacts" / "accurate_intake_pre_live_evidence.json"
 DEFAULT_PRE_LIVE_OUTPUT = ROOT / "artifacts" / "accurate_intake_pre_live_self_use_decision_pack.json"
@@ -52,6 +58,8 @@ def _artifact_identity_blockers(group_id: str, payload: dict[str, Any]) -> list[
         ).lower()
         if "phase_c" not in identity_text and "same_truth" not in identity_text:
             blockers.append("phase_c_gate_artifact_identity_mismatch")
+    if group_id == "pl_ce_artifact_refresh":
+        blockers.extend(validate_pl_ce_artifact_refresh_evidence(payload))
     return blockers
 
 
@@ -190,6 +198,7 @@ def _candidate_evidence(pre_live_evidence: dict[str, Any], pre_live_pack: dict[s
         "local_dogfood_data_hygiene": pre_live_evidence["local_dogfood_data_hygiene"],
         "pre_live_decision_pack": pre_live_pack,
         "pl_ce_local_review_decision_pack": pre_live_evidence["pl_ce_local_review_decision_pack"],
+        "pl_ce_artifact_refresh": pre_live_evidence["pl_ce_artifact_refresh"],
         "local_operator_data_hygiene_bundle": pre_live_evidence["local_operator_data_hygiene_bundle"],
         "local_web_candidate_gate_evidence": pre_live_evidence["_evidence_metadata"],
         "mvp_gate": pre_live_evidence["accurate_intake_mvp_gate"],

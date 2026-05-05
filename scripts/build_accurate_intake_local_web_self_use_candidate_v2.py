@@ -5,6 +5,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from scripts.accurate_intake_pl_ce_artifact_refresh_validation import (
+    validate_pl_ce_artifact_refresh_evidence,
+)
+
 REQUIRED_EVIDENCE = (
     "browser_shell_smoke",
     "chat_history_reload",
@@ -13,6 +17,7 @@ REQUIRED_EVIDENCE = (
     "local_dogfood_data_hygiene",
     "pre_live_decision_pack",
     "pl_ce_local_review_decision_pack",
+    "pl_ce_artifact_refresh",
     "mvp_gate",
     "phase_c_gate",
 )
@@ -25,6 +30,7 @@ EXPECTED_STATUS_BY_GROUP = {
     "local_dogfood_data_hygiene": "pass",
     "pre_live_decision_pack": "generated",
     "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
+    "pl_ce_artifact_refresh": "pl_ce_artifact_refresh_ready_for_human_review",
     "mvp_gate": "pass",
     "phase_c_gate": "pass",
 }
@@ -57,6 +63,9 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
             expected_status = EXPECTED_STATUS_BY_GROUP[group_id]
             if status != expected_status:
                 blockers.append(f"failed evidence: {group_id} status={status}")
+            if group_id == "pl_ce_artifact_refresh":
+                for blocker in validate_pl_ce_artifact_refresh_evidence(payload):
+                    blockers.append(f"PL+CE artifact refresh invalid: {blocker}")
 
     # 2. Check for blockers in any artifact claims
     for group_id, payload in evidence.items():

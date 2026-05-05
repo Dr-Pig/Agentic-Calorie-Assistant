@@ -6,6 +6,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from scripts.accurate_intake_pl_ce_artifact_refresh_validation import (
+    is_pl_ce_artifact_refresh_ready,
+)
+
 REQUIRED_PRE_LIVE_EVIDENCE = (
     "phase_c_gate",
     "accurate_intake_mvp_gate",
@@ -16,6 +20,7 @@ REQUIRED_PRE_LIVE_EVIDENCE = (
     "local_dogfood_data_hygiene",
     "local_operator_data_hygiene_bundle",
     "pl_ce_local_review_decision_pack",
+    "pl_ce_artifact_refresh",
 )
 
 _EXPECTED_STATUS_BY_GROUP = {
@@ -28,6 +33,7 @@ _EXPECTED_STATUS_BY_GROUP = {
     "local_dogfood_data_hygiene": "pass",
     "local_operator_data_hygiene_bundle": "local_operator_data_hygiene_ready",
     "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
+    "pl_ce_artifact_refresh": "pl_ce_artifact_refresh_ready_for_human_review",
 }
 
 
@@ -39,6 +45,8 @@ def _evidence_missing(group_id: str, payload: dict[str, Any]) -> bool:
     if str(payload.get("status") or "") != _EXPECTED_STATUS_BY_GROUP[group_id]:
         return True
     if group_id == "browser_shell_smoke" and payload.get("browser_executed") is not True:
+        return True
+    if group_id == "pl_ce_artifact_refresh" and not is_pl_ce_artifact_refresh_ready(payload):
         return True
     return False
 
