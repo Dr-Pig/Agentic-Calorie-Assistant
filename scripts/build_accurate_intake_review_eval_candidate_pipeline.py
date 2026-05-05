@@ -18,8 +18,23 @@ from app.composition.accurate_intake_fake_provider_tool_loop_smoke import (  # n
 from app.composition.accurate_intake_fixture_evidence_packet_emulator import (  # noqa: E402
     build_fixture_evidence_packet_emulator_artifact,
 )
+from app.composition.accurate_intake_context_conditioned_intent_wall import (  # noqa: E402
+    build_context_conditioned_intent_wall_artifact,
+)
+from app.composition.accurate_intake_contextual_interaction_matrix import (  # noqa: E402
+    build_contextual_interaction_matrix_artifact,
+)
+from app.composition.accurate_intake_pl_ce_context_coverage_matrix import (  # noqa: E402
+    build_pl_ce_context_coverage_matrix_artifact,
+)
 from app.composition.accurate_intake_review_eval_candidate_pipeline import (  # noqa: E402
     build_review_eval_candidate_pipeline_artifact,
+)
+from app.composition.accurate_intake_session_context_carryover_qa_bundle import (  # noqa: E402
+    build_session_context_carryover_qa_bundle_artifact,
+)
+from app.composition.accurate_intake_short_term_context_runtime_replay import (  # noqa: E402
+    build_short_term_context_runtime_replay_artifact,
 )
 from app.composition.accurate_intake_ui_same_truth_render_contract import (  # noqa: E402
     build_ui_same_truth_render_contract,
@@ -47,17 +62,97 @@ def _fixture_product_loop_e2e() -> dict[str, object]:
     }
 
 
+def _product_pages_short_term_context_smoke() -> dict[str, object]:
+    return {
+        "smoke_id": "accurate_intake_product_pages_short_term_context_smoke_v1",
+        "status": "pass",
+        "browser_executed": True,
+        "browser_reload_checked": True,
+        "fixture_manager_used": True,
+        "pending_followup_created": True,
+        "pending_followup_reloaded": True,
+        "context_policy_version_present": True,
+        "loaded_context_summary_present": True,
+        "omitted_context_summary_present": True,
+        "pending_pins_present_after_followup": True,
+        "chat_history_context_fields_reloaded": True,
+        "assistant_followup_bubble_rendered": True,
+        "assistant_commit_bubble_rendered": True,
+        "product_pages_no_debug_trace": True,
+        "frontend_semantic_owner": False,
+        "deterministic_semantic_inference_used": False,
+        "raw_text_intent_router_used": False,
+        "mutation_authority": False,
+        "live_llm_invoked": False,
+        "web_tavily_used": False,
+        "fooddb_evidence_used": False,
+    }
+
+
+def _product_pages_target_candidate_ui_smoke() -> dict[str, object]:
+    return {
+        "smoke_id": "accurate_intake_product_pages_target_candidate_ui_smoke_v1",
+        "status": "pass",
+        "browser_executed": True,
+        "browser_reload_checked": True,
+        "chat_page_loaded": True,
+        "chat_history_reloaded": True,
+        "target_candidate_surface_checked": True,
+        "target_candidate_count_rendered": 2,
+        "target_candidate_names_rendered": ["luwei", "milk tea"],
+        "target_candidate_list_read_only": True,
+        "context_strip_read_only": True,
+        "product_pages_no_debug_trace": True,
+        "manager_provider_call_count": 0,
+        "frontend_selected_target": False,
+        "frontend_semantic_owner": False,
+        "deterministic_selected_target": False,
+        "deterministic_semantic_inference_used": False,
+        "raw_text_intent_router_used": False,
+        "mutation_authority": False,
+        "live_llm_invoked": False,
+        "web_tavily_used": False,
+        "fooddb_evidence_used": False,
+    }
+
+
 def build_review_eval_candidate_pipeline_report(*, shell_path: Path = DEFAULT_SHELL_PATH) -> dict[str, object]:
     fixture_packets = build_fixture_evidence_packet_emulator_artifact()
+    context_quality = build_context_quality_pack_report()
+    intent_wall = build_context_conditioned_intent_wall_artifact()
+    runtime_replay = build_short_term_context_runtime_replay_artifact()
+    fake_provider_context = build_fake_provider_context_smoke_artifact()
+    context_coverage = build_pl_ce_context_coverage_matrix_artifact(
+        context_conditioned_intent_wall=intent_wall,
+        short_term_context_runtime_replay=runtime_replay,
+        fake_provider_context_smoke=fake_provider_context,
+        context_quality_pack=context_quality,
+    )
+    session_carryover = build_session_context_carryover_qa_bundle_artifact(
+        {
+            "context_quality_pack": context_quality,
+            "short_term_context_runtime_replay": runtime_replay,
+            "context_conditioned_intent_wall": intent_wall,
+            "context_coverage_matrix": context_coverage,
+            "product_pages_short_term_context_smoke": (
+                _product_pages_short_term_context_smoke()
+            ),
+            "product_pages_target_candidate_ui_smoke": (
+                _product_pages_target_candidate_ui_smoke()
+            ),
+        }
+    )
     return build_review_eval_candidate_pipeline_artifact(
         product_loop_e2e=_fixture_product_loop_e2e(),
         ui_same_truth_contract=build_ui_same_truth_render_contract(
             shell_path.read_text(encoding="utf-8")
         ),
-        context_quality_pack=build_context_quality_pack_report(),
+        context_quality_pack=context_quality,
+        contextual_interaction_matrix=build_contextual_interaction_matrix_artifact(),
+        session_context_carryover_qa_bundle=session_carryover,
         fixture_packet_emulator=fixture_packets,
         fake_provider_tool_loop_smoke=build_fake_provider_tool_loop_smoke_artifact(
-            context_smoke=build_fake_provider_context_smoke_artifact(),
+            context_smoke=fake_provider_context,
             fixture_packet_emulator=fixture_packets,
         ),
     )
