@@ -78,12 +78,53 @@ def _ui_contract() -> dict[str, object]:
     )
 
 
+def _contextual_interaction_matrix() -> dict[str, object]:
+    return {
+        "artifact_type": "accurate_intake_contextual_interaction_matrix",
+        "status": "pass",
+        "semantic_owner": "fixture_manager_structured_decision",
+        "deterministic_selected_intent": False,
+        "deterministic_selected_target": False,
+        "deterministic_semantic_inference_used": False,
+        "frontend_semantic_owner": False,
+        "mutation_authority": False,
+        "summary": {
+            "interaction_count": 11,
+            "pending_followup_interactions": 1,
+            "target_candidate_interactions": 4,
+            "ambiguity_preserved_interactions": 2,
+            "query_no_mutation_interactions": 1,
+            "target_update_manager_decision_interactions": 1,
+        },
+    }
+
+
+def _session_carryover() -> dict[str, object]:
+    return {
+        "artifact_type": "accurate_intake_session_context_carryover_qa_bundle",
+        "status": "session_context_carryover_qa_ready_for_human_review",
+        "frontend_semantic_owner": False,
+        "deterministic_semantic_inference_used": False,
+        "mutation_authority": False,
+        "ready_for_live_diagnostic_decision": False,
+        "summary": {
+            "pending_followup_carryover_checked": True,
+            "target_candidate_ui_checked": True,
+            "long_session_pinned_draft_checked": True,
+            "context_conditioned_intent_wall_checked": True,
+            "coverage_known_runtime_gap_count": 0,
+        },
+    }
+
+
 def test_review_eval_candidate_pipeline_converts_diagnostics_to_review_candidates_only() -> None:
     fixture_packets = build_fixture_evidence_packet_emulator_artifact()
     artifact = build_review_eval_candidate_pipeline_artifact(
         product_loop_e2e=_product_loop_e2e(),
         ui_same_truth_contract=_ui_contract(),
         context_quality_pack=_context_quality(),
+        contextual_interaction_matrix=_contextual_interaction_matrix(),
+        session_context_carryover_qa_bundle=_session_carryover(),
         fixture_packet_emulator=fixture_packets,
         fake_provider_tool_loop_smoke=build_fake_provider_tool_loop_smoke_artifact(
             context_smoke=build_fake_provider_context_smoke_artifact(),
@@ -93,7 +134,7 @@ def test_review_eval_candidate_pipeline_converts_diagnostics_to_review_candidate
 
     assert artifact["artifact_type"] == "accurate_intake_review_eval_candidate_pipeline"
     assert artifact["status"] == "review_eval_candidate_pipeline_ready"
-    assert artifact["review_candidate_count"] == 5
+    assert artifact["review_candidate_count"] == 7
     assert artifact["canonical_eval_promoted"] is False
     assert artifact["human_approval_required"] is True
     assert artifact["raw_traces_review_input_only"] is True
@@ -104,6 +145,12 @@ def test_review_eval_candidate_pipeline_converts_diagnostics_to_review_candidate
         assert candidate["human_approval_required"] is True
         assert candidate["canonical_eval_promoted"] is False
         assert candidate["fooddb_truth_updated"] is False
+    taxonomy = {
+        candidate["source_artifact_id"]: candidate["suggested_taxonomy"]
+        for candidate in artifact["review_candidates"]
+    }
+    assert taxonomy["contextual_interaction_matrix"] == "context_conditioned_intent_gap"
+    assert taxonomy["session_context_carryover_qa_bundle"] == "session_context_carryover_gap"
 
 
 def test_review_eval_candidate_pipeline_rejects_readiness_or_truth_overclaims() -> None:
@@ -115,6 +162,8 @@ def test_review_eval_candidate_pipeline_rejects_readiness_or_truth_overclaims() 
         product_loop_e2e=product_loop,
         ui_same_truth_contract=_ui_contract(),
         context_quality_pack=context_quality,
+        contextual_interaction_matrix=_contextual_interaction_matrix(),
+        session_context_carryover_qa_bundle=_session_carryover(),
         fixture_packet_emulator=fixture_packets,
         fake_provider_tool_loop_smoke=build_fake_provider_tool_loop_smoke_artifact(
             context_smoke=build_fake_provider_context_smoke_artifact(),
@@ -125,6 +174,32 @@ def test_review_eval_candidate_pipeline_rejects_readiness_or_truth_overclaims() 
     assert artifact["status"] == "fail"
     assert "product_loop_e2e.dogfood_pass" in artifact["blockers"]
     assert "context_quality_pack.private_self_use_approved" in artifact["blockers"]
+
+
+def test_review_eval_candidate_pipeline_rejects_context_semantic_overclaims() -> None:
+    fixture_packets = build_fixture_evidence_packet_emulator_artifact()
+    context_matrix = {
+        **_contextual_interaction_matrix(),
+        "deterministic_selected_target": True,
+    }
+    session_carryover = {**_session_carryover(), "frontend_semantic_owner": True}
+
+    artifact = build_review_eval_candidate_pipeline_artifact(
+        product_loop_e2e=_product_loop_e2e(),
+        ui_same_truth_contract=_ui_contract(),
+        context_quality_pack=_context_quality(),
+        contextual_interaction_matrix=context_matrix,
+        session_context_carryover_qa_bundle=session_carryover,
+        fixture_packet_emulator=fixture_packets,
+        fake_provider_tool_loop_smoke=build_fake_provider_tool_loop_smoke_artifact(
+            context_smoke=build_fake_provider_context_smoke_artifact(),
+            fixture_packet_emulator=fixture_packets,
+        ),
+    )
+
+    assert artifact["status"] == "fail"
+    assert "contextual_interaction_matrix.deterministic_selected_target" in artifact["blockers"]
+    assert "session_context_carryover_qa_bundle.frontend_semantic_owner" in artifact["blockers"]
 
 
 def test_review_eval_candidate_pipeline_cli_writes_artifact(tmp_path: Path, capsys) -> None:
