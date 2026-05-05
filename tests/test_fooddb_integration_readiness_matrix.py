@@ -39,6 +39,10 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         "packet_to_manager_seam",
         "packet_to_mutation_guard",
         "exact_candidate_to_no_mutation",
+        "websearch_candidate_to_selected_extract_request",
+        "selected_extract_request_to_extract_result_candidate",
+        "extract_result_candidate_to_exact_review_packet",
+        "exact_review_packet_to_live_extract_preflight",
         "listed_components_to_approved_runtime_anchors",
     }
 
@@ -56,10 +60,26 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         == "exact_candidate_packets_remain_candidate_only_until_separate_promotion_lane"
     )
     assert (
+        edges["websearch_candidate_to_selected_extract_request"]["manager_style_guard"]
+        == "websearch_candidate_may_request_bounded_extract_but_cannot_become_truth"
+    )
+    assert (
+        edges["selected_extract_request_to_extract_result_candidate"]["manager_style_guard"]
+        == "bounded_extract_result_is_evidence_candidate_not_exact_card_truth"
+    )
+    assert (
+        edges["extract_result_candidate_to_exact_review_packet"]["manager_style_guard"]
+        == "exact_review_packet_is_review_only_not_manager_truth"
+    )
+    assert (
+        edges["exact_review_packet_to_live_extract_preflight"]["manager_style_guard"]
+        == "live_extract_preflight_authorizes_diagnostic_only_not_runtime_truth"
+    )
+    assert (
         edges["listed_components_to_approved_runtime_anchors"]["manager_style_guard"]
         == "listed_basket_components_may_estimate_only_when_runtime_anchor_is_approved"
     )
-    assert matrix["summary"]["contract_backed"] == 9
+    assert matrix["summary"]["contract_backed"] == 13
     assert matrix["summary"]["draft"] == 0
     assert matrix["summary"]["missing"] == 0
     assert matrix["summary"]["next_required_slices"] == ["manager_fooddb_packet_seam_smoke"]
@@ -71,5 +91,12 @@ def test_activation_plan_documents_integration_readiness_matrix() -> None:
     assert "integration_readiness_matrix_update" in content
     assert "Manager decision -> retrieval intent from manager decision" in content
     assert "retrieval router -> SQLite FTS adapter" in content
+    assert "WebSearch candidate -> selected extract request" in content
+    assert "selected extract request -> extract result review candidate" in content
+    assert "extract result review candidate -> exact-card review packet" in content
+    assert "exact-card review packet -> live extract preflight" in content
     assert "packet -> mutation guard" in content
     assert "exact candidate -> no mutation" in content
+    assert "2026-05-05_grokfast_websearch_packet_live_diagnostic" in content
+    assert "seam_status: live_diagnostic_pass" in content
+    assert "can_expand_websearch_candidate_pipeline: true" in content

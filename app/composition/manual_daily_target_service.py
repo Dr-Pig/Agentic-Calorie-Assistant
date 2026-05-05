@@ -11,7 +11,7 @@ from app.body.infrastructure.body_plan_persistence import (
     load_active_body_plan_record,
     upsert_active_body_plan_from_bootstrap,
 )
-from app.composition.canonical_persistence import recompute_day_budget_ledger
+from app.composition.canonical_body_support import recompute_day_budget_ledger
 from app.composition.current_budget_read_model import build_current_budget_view
 from app.shared.domain import ActiveBodyPlanView, CurrentBudgetView
 from app.shared.infra.models import User

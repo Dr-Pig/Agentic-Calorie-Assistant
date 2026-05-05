@@ -4,18 +4,26 @@ from dataclasses import asdict
 from typing import Any
 
 from app.composition.current_budget_answer import (
-    build_remaining_budget_answer_contract,
     build_remaining_budget_answer_contract_from_views,
 )
-from app.composition.phase_a_boundary_projection import attach_boundary_projection, build_intake_boundary_projection
+from app.composition.phase_a_boundary_projection import (
+    attach_boundary_projection,
+    build_intake_boundary_projection,
+)
 from app.intake.application.boundary_output_honesty import enforce_intake_output_honesty
 from app.intake.application.intake_trace_tools import append_trace_event_tool
 from app.intake.application.phase_c_mutation_projection import build_phase_c_trace
 from app.intake.application.phase_c_same_truth_gate import build_phase_c_same_truth_gate
-from app.intake.application.shadow_hypothesis_dialogue import apply_shadow_hypothesis_dialogue_cue
+from app.intake.application.shadow_hypothesis_dialogue import (
+    apply_shadow_hypothesis_dialogue_cue,
+)
 from app.runtime.application.reply_renderer import render_intake_reply
-from app.runtime.application.request_trace_artifacts import build_trace_refs, write_intake_execution_trace_artifact
+from app.runtime.application.request_trace_artifacts import (
+    build_trace_refs,
+    write_intake_execution_trace_artifact,
+)
 from app.runtime.application.sidecar_service import build_deterministic_sidecar
+
 from .intake_manager_tool_batch import evidence_summary, macro_summary
 
 

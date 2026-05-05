@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-
 from app.intake.application.phase_c_mutation_projection import build_phase_c_trace
 
 
@@ -110,7 +109,6 @@ def test_phase_c_projection_reports_structured_surface_contradictions_without_fi
 def test_intake_execution_response_exposes_phase_c_trace_in_response_and_trace_artifact(
     monkeypatch,
 ) -> None:
-    from app.composition.current_budget_answer import RemainingBudgetAnswerContract
     from app.composition import intake_execution_response as module
 
     class _View:
@@ -133,19 +131,6 @@ def test_intake_execution_response_exposes_phase_c_trace_in_response_and_trace_a
 
     captured_trace_kwargs: dict[str, object] = {}
 
-    monkeypatch.setattr(
-        module,
-        "build_remaining_budget_answer_contract",
-        lambda *_, **__: RemainingBudgetAnswerContract(
-            status="ready",
-            user_id=1,
-            local_date="2026-04-29",
-            daily_target_kcal=1800,
-            consumed_kcal=900,
-            remaining_kcal=900,
-            meal_count=1,
-        ),
-    )
     monkeypatch.setattr(module, "render_intake_reply", lambda **_: "Logged. milk tea 420 kcal.")
     monkeypatch.setattr(module, "write_intake_execution_trace_artifact", lambda **kwargs: captured_trace_kwargs.update(kwargs))
     monkeypatch.setattr(module, "build_trace_refs", lambda **_: {"request_id": "req-phase-c"})
@@ -206,7 +191,6 @@ def test_intake_execution_response_exposes_phase_c_trace_in_response_and_trace_a
 def test_intake_execution_response_reports_same_truth_hard_fail_without_rewriting_output(
     monkeypatch,
 ) -> None:
-    from app.composition.current_budget_answer import RemainingBudgetAnswerContract
     from app.composition import intake_execution_response as module
 
     class _View:
@@ -231,19 +215,6 @@ def test_intake_execution_response_reports_same_truth_hard_fail_without_rewritin
 
     captured_trace_kwargs: dict[str, object] = {}
 
-    monkeypatch.setattr(
-        module,
-        "build_remaining_budget_answer_contract",
-        lambda *_, **__: RemainingBudgetAnswerContract(
-            status="ready",
-            user_id=1,
-            local_date="2026-04-29",
-            daily_target_kcal=1800,
-            consumed_kcal=900,
-            remaining_kcal=1000,
-            meal_count=1,
-        ),
-    )
     monkeypatch.setattr(module, "render_intake_reply", lambda **_: "Logged. milk tea 420 kcal.")
     monkeypatch.setattr(module, "write_intake_execution_trace_artifact", lambda **kwargs: captured_trace_kwargs.update(kwargs))
     monkeypatch.setattr(module, "build_trace_refs", lambda **_: {"request_id": "req-phase-c-hard-fail"})
