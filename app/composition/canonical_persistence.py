@@ -7,36 +7,18 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .canonical_body_support import (
-    body_observation_from_record as _body_observation_from_record,
-    ensure_body_plan_skeleton,
-    load_active_body_plan_record,
-    load_active_body_profile_record,
-    load_body_observations,
     recompute_day_budget_ledger,
-    resolve_active_budget_kcal,
-    resolved_body_observation_time as _resolved_body_observation_time,
     should_refresh_day_budget_ledger,
-    upsert_observation_skeleton,
 )
 from .canonical_commit_support import (
-    CanonicalCommitTarget,
     CanonicalMealCommitResult,
     commit_candidate_from_payload as _commit_candidate_from_payload,
     get_legacy_mapping_for_meal_log,
-    legacy_resolved_local_date as _legacy_resolved_local_date,
-    legacy_resolved_occurred_at as _legacy_resolved_occurred_at,
-    load_active_meal_version,
     resolve_canonical_commit_target,
     resolved_local_date as _resolved_local_date,
     resolved_occurred_at as _resolved_occurred_at,
 )
-from .canonical_proposal_support import (
-    ensure_proactive_trigger_skeleton,
-    ensure_proposal_artifact_skeleton,
-    ensure_proposal_skeleton,
-)
 from .phase_c_transaction_ports import PhaseCUnitOfWorkPort
-from app.body.infrastructure.models import BodyObservationRecord
 from app.budget.infrastructure.models import LedgerEntryRecord
 from app.intake.infrastructure.models import (
     LegacyMealLogMapRecord,
@@ -45,7 +27,7 @@ from app.intake.infrastructure.models import (
     MealVersionRecord,
 )
 from app.shared.infra.models import User
-from app.schemas import CommitRequestCandidate, CommitVersionReason, EstimatePayload
+from app.schemas import CommitRequestCandidate, EstimatePayload
 
 
 class _SQLAlchemyPhaseCUnitOfWork(PhaseCUnitOfWorkPort):
