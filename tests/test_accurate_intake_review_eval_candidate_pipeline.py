@@ -27,6 +27,9 @@ from app.composition.accurate_intake_fixture_evidence_packet_emulator import (
 from app.composition.accurate_intake_review_eval_candidate_pipeline import (
     build_review_eval_candidate_pipeline_artifact,
 )
+from app.composition.accurate_intake_short_term_context_runtime_replay import (
+    build_short_term_context_runtime_replay_artifact,
+)
 from app.composition.accurate_intake_ui_same_truth_render_contract import (
     build_ui_same_truth_render_contract,
 )
@@ -51,6 +54,7 @@ def _context_quality() -> dict[str, object]:
         context_window_diagnostic=build_context_window_diagnostic_artifact(),
         context_replay=build_context_replay_pack_artifact(),
         fake_provider_context_smoke=build_fake_provider_context_smoke_artifact(),
+        short_term_context_runtime_replay=build_short_term_context_runtime_replay_artifact(),
     )
 
 
