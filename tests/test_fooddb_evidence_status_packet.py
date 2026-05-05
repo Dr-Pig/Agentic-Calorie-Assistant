@@ -23,6 +23,14 @@ def _exact_card_payload() -> dict:
     return json.loads(Path("app/knowledge/exact_item_cards_tw.json").read_text(encoding="utf-8-sig"))
 
 
+def _contract_handoff_artifact() -> dict:
+    return json.loads(
+        Path("artifacts/accurate_intake_fooddb_manager_contract_handoff.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+
 def test_fooddb_evidence_status_packet_summarizes_current_fdb_without_runtime_change() -> None:
     packet = build_fooddb_evidence_status_packet(
         small_anchor_payload=_small_anchor_payload(),
@@ -48,6 +56,9 @@ def test_fooddb_evidence_status_packet_summarizes_current_fdb_without_runtime_ch
         "integration_edges_contract_backed": 9,
         "integration_edges_draft": 0,
         "manager_fooddb_packet_seam_gate_status": "pass",
+        "manager_contract_live_seam_status": "not_run",
+        "manager_contract_handoff_status": "not_run",
+        "manager_contract_owner_handoff_ready": False,
     }
     assert packet["activation_thresholds"] == {
         "minimum_common_serving_anchors": 40,
@@ -58,6 +69,23 @@ def test_fooddb_evidence_status_packet_summarizes_current_fdb_without_runtime_ch
     assert packet["next_required_slices"] == [
         "grokfast_fooddb_packet_live_diagnostic",
     ]
+
+
+def test_fooddb_evidence_status_packet_exposes_manager_contract_handoff_when_available() -> None:
+    packet = build_fooddb_evidence_status_packet(
+        small_anchor_payload=_small_anchor_payload(),
+        tfda_source_payload=_tfda_source_payload(),
+        exact_card_payload=_exact_card_payload(),
+        contract_handoff_artifact=_contract_handoff_artifact(),
+    )
+
+    assert packet["summary"]["manager_contract_live_seam_status"] == "provider_contract_blocked"
+    assert packet["summary"]["manager_contract_handoff_status"] == "ready_for_manager_contract_owner"
+    assert packet["summary"]["manager_contract_owner_handoff_ready"] is True
+    assert packet["integration_status"]["manager_contract_selected_next_step"] == (
+        "tighten_fooddb_manager_contract_prompt_or_transport"
+    )
+    assert packet["next_required_slices"] == ["await_manager_contract_owner_repair"]
 
 
 def test_fooddb_evidence_status_packet_exposes_only_compact_downstream_metadata() -> None:
@@ -108,6 +136,7 @@ def test_fooddb_evidence_status_packet_script_roundtrip(tmp_path: Path) -> None:
     assert packet["artifact_type"] == "accurate_intake_fooddb_evidence_status_packet_v1"
     assert packet["summary"]["runtime_common_serving_anchor_count"] == 51
     assert packet["summary"]["exact_card_staging_candidate_count"] == 1
+    assert packet["summary"]["manager_contract_handoff_status"] == "not_run"
 
 
 def test_fooddb_evidence_status_packet_does_not_unlock_seam_before_all_thresholds() -> None:
@@ -125,6 +154,35 @@ def test_fooddb_evidence_status_packet_requires_manager_seam_before_live_diagnos
         integration_summary={"draft": 0},
         manager_seam_gate_status="not_run",
     ) == ["manager_fooddb_packet_seam_smoke"]
+
+
+def test_fooddb_evidence_status_packet_blocks_on_contract_handoff_alignment_failure() -> None:
+    assert _next_required_slices(
+        runtime_anchor_count=40,
+        listed_component_count=30,
+        integration_summary={"draft": 0},
+        manager_seam_gate_status="pass",
+        contract_handoff_status="blocked_contract_handoff_alignment",
+        contract_handoff_next_step="repair_artifact_alignment_required",
+    ) == ["repair_artifact_alignment_required"]
+
+
+def test_fooddb_evidence_status_packet_unknown_handoff_status_fails_closed() -> None:
+    packet = build_fooddb_evidence_status_packet(
+        small_anchor_payload=_small_anchor_payload(),
+        tfda_source_payload=_tfda_source_payload(),
+        exact_card_payload=_exact_card_payload(),
+        contract_handoff_artifact={
+            "artifact_type": "accurate_intake_fooddb_manager_contract_handoff_v1",
+            "status": "foo",
+            "handoff_ready": False,
+            "selected_next_step": "bar",
+            "summary": {"live_seam_status": "provider_contract_blocked"},
+        },
+    )
+
+    assert packet["summary"]["manager_contract_handoff_status"] == "blocked_contract_handoff_alignment"
+    assert packet["next_required_slices"] == ["inspect_contract_handoff_status"]
 
 
 def _contains_key(value: object, key: str) -> bool:
