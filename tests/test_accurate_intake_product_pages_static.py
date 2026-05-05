@@ -47,6 +47,17 @@ def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() ->
     assert 'data-surface-role="chat"' in html
     assert 'id="chat-scroll"' in html
     assert 'id="chat-day-link"' in html
+    assert 'id="chat-session-user"' in html
+    assert 'id="chat-session-date"' in html
+    assert 'id="chat-context-strip"' in html
+    assert 'id="chat-context-policy"' in html
+    assert 'id="chat-context-loaded"' in html
+    assert 'id="chat-context-omitted"' in html
+    assert 'id="chat-context-pins"' in html
+    assert 'id="chat-context-targets"' in html
+    assert "Latest policy" in html
+    assert "Latest pins" in html
+    assert "Latest targets" in html
     assert 'class="action-link" data-nav-target="today"' in html
     assert "overflow-y: auto" in html
     assert 'id="chat-history-status"' in html
@@ -63,6 +74,36 @@ def test_chat_page_is_line_like_scrollable_conversation_not_trace_dashboard() ->
     assert "messages.sort" not in html
     assert "localStorage" not in html
     assert "sessionStorage" not in html
+
+
+def test_chat_page_context_status_renders_only_chat_history_structured_fields() -> None:
+    html = _html(CHAT)
+
+    assert "function contextSummaryFromHistory(payload)" in html
+    assert "const latestContext = [...messages].reverse().find" in html
+    assert "latestContext.context_policy_version" in html
+    assert "latestContext.loaded_context_summary" in html
+    assert "latestContext.omitted_context_summary" in html
+    assert "latestContext.pending_pins_present === true" in html
+    assert "Number(latestContext.target_candidate_count)" in html
+    assert "not_available" in html
+    assert "not_checked" in html
+    assert "reduce((count" not in html
+    assert "pending_followup_linkage_present === true" not in html
+
+    forbidden = [
+        "message.content.includes",
+        "message.content.match",
+        "raw text intent",
+        "context_snapshot_present ?",
+        "manager_context_gap",
+        "final_action",
+        "workflow_effect",
+        "calculate",
+        "mutation_legality",
+    ]
+    for fragment in forbidden:
+        assert fragment not in html
 
 
 def test_chat_composer_supports_enter_send_and_shift_enter_multiline() -> None:
@@ -97,6 +138,9 @@ def test_today_page_is_daily_diary_with_date_navigation_and_no_trace_panel() -> 
     assert 'data-surface-role="today-diary"' in html
     assert 'id="selected-date"' in html
     assert 'id="user-id"' in html
+    assert 'id="today-session-user"' in html
+    assert 'id="today-session-date"' in html
+    assert 'id="today-chat-state"' in html
     assert 'el("user-id").value = params.get("user_id") || el("user-id").value;' in html
     assert 'return el("user-id").value.trim() || "default_user";' in html
     assert 'id="previous-day"' in html
@@ -116,6 +160,9 @@ def test_today_page_is_daily_diary_with_date_navigation_and_no_trace_panel() -> 
     assert "overflow-x: auto" in html
     assert 'currentBudget: "/today/current-budget"' in html
     assert 'chatLink.href = `/static/accurate-intake-chat.html?user_id=${encodeURIComponent(userId())}&local_date=${selectedDate()}`;' in html
+    assert "function updateSessionStrip()" in html
+    assert 'el("today-session-user").textContent = userId();' in html
+    assert 'el("today-session-date").textContent = selectedDate();' in html
     assert "status:" not in html
     assert "trace" not in html.lower()
     assert "/accurate-intake/debug" not in html
@@ -149,6 +196,9 @@ def test_body_page_covers_plan_weight_goal_activity_inputs_without_frontend_tdee
     assert 'class="page-actions"' in html
     assert 'data-nav-target="today"' in html
     assert 'data-nav-target="chat"' in html
+    assert 'id="body-session-user"' in html
+    assert 'id="body-session-date"' in html
+    assert 'id="body-plan-source"' in html
     assert 'id="body-plan-summary"' in html
     assert 'id="weight-history"' in html
     assert 'id="weight-kg"' in html
@@ -177,6 +227,10 @@ def test_body_page_covers_plan_weight_goal_activity_inputs_without_frontend_tdee
     assert 'placeholder="e.g. 70" required' in html
     assert 'placeholder="e.g. 0.5" required' in html
     assert 'placeholder="e.g. 1600"' in html
+    assert "function updateSessionStrip()" in html
+    assert 'el("body-session-user").textContent = userId();' in html
+    assert 'el("body-session-date").textContent = selectedDate();' in html
+    assert 'el("body-plan-source").textContent = "backend read model";' in html
     assert 'value="34"' not in html
     assert 'value="170"' not in html
     assert 'value="70"' not in html

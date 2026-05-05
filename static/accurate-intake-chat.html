@@ -109,6 +109,46 @@
       flex-wrap: wrap;
       align-items: center;
     }
+    .session-strip,
+    .context-strip {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .session-strip {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .context-strip {
+      grid-template-columns: minmax(150px, 1.4fr) repeat(4, minmax(0, 1fr));
+    }
+    .context-chip {
+      min-height: 52px;
+      display: grid;
+      gap: 3px;
+      align-content: center;
+      padding: 9px 10px;
+      border: 1px solid rgba(23, 33, 29, 0.10);
+      border-radius: 8px;
+      background: #fff;
+      overflow-wrap: anywhere;
+    }
+    .context-chip strong {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      line-height: 1.1;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+    .context-chip span {
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+    #chat-context-policy {
+      white-space: nowrap;
+    }
     .action-link {
       min-height: 36px;
       display: inline-flex;
@@ -258,6 +298,10 @@
         min-width: 0;
         grid-template-columns: 1fr;
       }
+      .session-strip,
+      .context-strip {
+        grid-template-columns: 1fr;
+      }
       .setup-panel {
         justify-self: stretch;
       }
@@ -296,6 +340,17 @@
             <p class="chat-meta">
               <a id="chat-day-link" class="action-link" data-nav-target="today" href="/static/accurate-intake-today.html">Open this day</a>
             </p>
+            <div class="session-strip" aria-label="Current chat session">
+              <div class="context-chip"><strong>User</strong><span id="chat-session-user">--</span></div>
+              <div class="context-chip"><strong>Date</strong><span id="chat-session-date">--</span></div>
+            </div>
+            <div id="chat-context-strip" class="context-strip" aria-label="Short term context read model">
+              <div class="context-chip"><strong>Latest policy</strong><span id="chat-context-policy">not_checked</span></div>
+              <div class="context-chip"><strong>Latest loaded</strong><span id="chat-context-loaded">not_checked</span></div>
+              <div class="context-chip"><strong>Latest omitted</strong><span id="chat-context-omitted">not_checked</span></div>
+              <div class="context-chip"><strong>Latest pins</strong><span id="chat-context-pins">not_checked</span></div>
+              <div class="context-chip"><strong>Latest targets</strong><span id="chat-context-targets">not_checked</span></div>
+            </div>
           </div>
           <details class="setup-panel">
             <summary>Conversation settings</summary>
@@ -362,6 +417,54 @@
     function setStatus(value) {
       el("chat-history-status").textContent = `Conversation ${value}.`;
     }
+    function writeText(id, value) {
+      const raw = value == null || value === "" ? "not_available" : String(value);
+      const display = id === "chat-context-policy" && raw === "accurate_intake_mvp_context_policy_v1"
+        ? "context_policy_v1"
+        : raw;
+      el(id).textContent = display;
+      el(id).title = raw;
+    }
+    function contextSummaryFromHistory(payload) {
+      const messages = Array.isArray(payload.messages) ? payload.messages : [];
+      const latestContext = [...messages].reverse().find((message) => {
+        if (!message) return false;
+        return Boolean(
+          message.context_policy_version ||
+          (message.loaded_context_summary && Object.keys(message.loaded_context_summary).length) ||
+          (message.omitted_context_summary && Object.keys(message.omitted_context_summary).length) ||
+          message.pending_pins_present === true ||
+          Number.isFinite(Number(message.target_candidate_count))
+        );
+      });
+      if (!latestContext) {
+        return {
+          policy: messages.length ? "not_available" : "not_checked",
+          loaded: messages.length ? "not_available" : "not_checked",
+          omitted: messages.length ? "not_available" : "not_checked",
+          pins: messages.length ? "not_available" : "not_checked",
+          targets: messages.length ? "not_available" : "not_checked"
+        };
+      }
+      const targetCount = Number(latestContext.target_candidate_count);
+      return {
+        policy: latestContext.context_policy_version || "not_available",
+        loaded: latestContext.loaded_context_summary && Object.keys(latestContext.loaded_context_summary).length ? "present" : "not_available",
+        omitted: latestContext.omitted_context_summary && Object.keys(latestContext.omitted_context_summary).length ? "present" : "not_available",
+        pins: latestContext.pending_pins_present === true ? "present" : "not_available",
+        targets: Number.isFinite(targetCount) ? String(targetCount) : "not_available"
+      };
+    }
+    function renderSessionAndContext(payload = {}) {
+      writeText("chat-session-user", userId());
+      writeText("chat-session-date", selectedDate());
+      const summary = contextSummaryFromHistory(payload);
+      writeText("chat-context-policy", summary.policy);
+      writeText("chat-context-loaded", summary.loaded);
+      writeText("chat-context-omitted", summary.omitted);
+      writeText("chat-context-pins", summary.pins);
+      writeText("chat-context-targets", summary.targets);
+    }
     function localDebugHeaders(url) {
       const globalToken = typeof window.LOCAL_DEBUG_API_TOKEN === "string" ? window.LOCAL_DEBUG_API_TOKEN.trim() : "";
       const token = globalToken;
@@ -419,9 +522,11 @@
     }
     async function loadHistory() {
       setStatus("loading");
+      renderSessionAndContext();
       const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
       const payload = await requestJson(`${endpoints.chatHistory}?${query.toString()}`);
       renderHistory(payload);
+      renderSessionAndContext(payload);
       setStatus(`loaded ${payload.message_count || 0}`);
     }
     async function submitMessage(event) {
@@ -462,6 +567,7 @@
       loadHistory().catch((error) => setStatus(`failed ${error.message}`));
     });
     updateNavigationLinks();
+    renderSessionAndContext();
     loadHistory().catch((error) => setStatus(`failed ${error.message}`));
   </script>
 </body>
