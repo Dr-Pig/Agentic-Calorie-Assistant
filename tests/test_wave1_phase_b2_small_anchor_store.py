@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import app.nutrition.application.small_anchor_store as small_anchor_store
 from app.nutrition.application.retrieval_intent import RetrievalIntent, build_retrieval_intent
 from app.nutrition.application.small_anchor_store import lookup_anchor_candidates
 
@@ -45,6 +46,28 @@ def test_small_anchor_lookup_accepts_injected_evidence_store_port() -> None:
 
     assert [candidate.anchor_id for candidate in result.candidates] == ["anchor_test_food"]
     assert result.candidates[0].baseline_likely_kcal == 15
+
+
+def test_small_anchor_lookup_with_injected_store_does_not_touch_default_factory(monkeypatch) -> None:
+    def _raise_default_factory():
+        raise AssertionError("injected evidence_store must not touch default factory")
+
+    monkeypatch.setattr(small_anchor_store, "default_nutrition_evidence_store", _raise_default_factory)
+
+    result = lookup_anchor_candidates(
+        RetrievalIntent(
+            base_dish="test food",
+            aliases=[],
+            brand_hint=None,
+            size_hint=None,
+            modifier_hints=[],
+            listed_items=[],
+            retrieval_goal="generic_anchor_lookup",
+        ),
+        evidence_store=_FakeEvidenceStore(),
+    )
+
+    assert [candidate.anchor_id for candidate in result.candidates] == ["anchor_test_food"]
 
 
 def test_small_anchor_store_matches_generic_single_item_anchor() -> None:

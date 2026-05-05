@@ -127,7 +127,7 @@ def lookup_anchor_candidates(
         use_default_store = True
     else:
         store = evidence_store
-        use_default_store = store is default_nutrition_evidence_store()
+        use_default_store = False
     retrieval_context: AnchorLookupContext = (
         "query_only_support" if intent.retrieval_goal == "query_only_answer" else "logging_support"
     )
@@ -333,8 +333,6 @@ def _load_default_anchor_lookup_index() -> _AnchorLookupIndex:
 
 
 def _load_anchor_records(evidence_store: NutritionEvidenceStorePort) -> tuple[AnchorRecord, ...]:
-    if evidence_store is default_nutrition_evidence_store():
-        return _load_default_anchor_records()
     return _anchor_records_from_items(evidence_store.load_small_anchor_records())
 
 
