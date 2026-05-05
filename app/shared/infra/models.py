@@ -2,10 +2,19 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
-from sqlalchemy import Integer, String, Text, DateTime, JSON, Float, ForeignKey, Boolean
+from sqlalchemy import Integer, String, Text, DateTime, JSON, ForeignKey, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from app.body.infrastructure.models import (
+        BodyObservationRecord,
+        BodyPlanRecord,
+        BodyProfileRecord,
+    )
+    from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord
+    from app.intake.infrastructure.models import MealThreadRecord
 
 
 class Base(DeclarativeBase):
