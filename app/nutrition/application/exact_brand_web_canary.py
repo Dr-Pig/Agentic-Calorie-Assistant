@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import time
 
 from .evidence_candidate_packetizer import add_hard_recheck_metadata_many
+from .evidence_packet_consumption import EvidencePacketConsumptionResult, consume_rechecked_packets
 from .exact_brand_web_canary_trace import (
     LANE_ID,
     default_trace,
@@ -14,16 +15,17 @@ from .exact_brand_web_canary_trace import (
     synthesis_evidence_refs,
 )
 from .local_synthesis import synthesize_local_manager_pass
-from .evidence_packet_consumption import EvidencePacketConsumptionResult, consume_rechecked_packets
 from .retrieval_intent import RetrievalIntent, build_retrieval_intent
+from .retrieval_semantic_decision import (
+    B2ManagerSemanticDecision,
+    build_retrieval_intent_from_manager_decision,
+)
 from .selected_extract_policy import SelectedExtractDecision, choose_selected_extract_packet
 from .web_extract_packetizer import build_web_extract_packets
 from .web_extract_port import WebExtractPort
 from .web_search_candidate_producer import collect_web_search_candidates
 from .web_search_packetizer import build_web_search_candidate_packets
 from .web_search_port import WebSearchPort
-
-_MULTI_ITEM_TOKENS = ("和", "、", ",", "，", "+", "還有")
 
 
 @dataclass(frozen=True)
@@ -46,6 +48,7 @@ class ExactBrandWebCanaryOutcome:
 async def run_exact_brand_web_canary(
     *,
     raw_user_input: str,
+    manager_decision: B2ManagerSemanticDecision | None = None,
     search_port: WebSearchPort | None,
     extract_port: WebExtractPort | None,
     allow_search: bool,
@@ -55,13 +58,23 @@ async def run_exact_brand_web_canary(
     trace = default_trace()
     trace["raw_user_input"] = raw_user_input
     start = time.perf_counter()
-    intent = build_retrieval_intent(raw_user_input)
-    trace["retrieval_goal"] = intent.retrieval_goal
-    trace["exact_db_miss_confirmed"] = not exact_db_hit_present
+    raw_hint = build_retrieval_intent(raw_user_input)
+    trace["raw_text_retrieval_hint_goal"] = raw_hint.retrieval_goal
     trace["provider_profile"] = provider_profile(search_port)
+    trace["exact_db_miss_confirmed"] = not exact_db_hit_present
+
+    if manager_decision is None:
+        trace["semantic_authority_source"] = "deterministic_raw_text_hint_only"
+        trace["retrieval_goal"] = None
+        trace["skip_reason"] = "manager_owned_retrieval_intent_required"
+        trace["total_latency_ms"] = elapsed_ms(start)
+        return ExactBrandWebCanaryOutcome(result=None, trace=trace)
+
+    intent = build_retrieval_intent_from_manager_decision(manager_decision)
+    trace["semantic_authority_source"] = manager_decision.semantic_authority_source
+    trace["retrieval_goal"] = intent.retrieval_goal
 
     skip_reason = _skip_reason(
-        raw_user_input=raw_user_input,
         intent=intent,
         allow_search=allow_search,
         search_port=search_port,
@@ -99,9 +112,7 @@ async def run_exact_brand_web_canary(
     trace["search_attempt_count"] = 1
     trace["search_latency_ms"] = elapsed_ms(search_start)
     search_packets = tuple(
-        add_hard_recheck_metadata_many(
-            build_web_search_candidate_packets(intent, candidates)
-        )
+        add_hard_recheck_metadata_many(build_web_search_candidate_packets(intent, candidates))
     )
     trace["packetized_candidate_present"] = bool(search_packets)
     trace["candidate_traces"] = [search_candidate_trace(packet) for packet in search_packets]
@@ -196,7 +207,6 @@ async def run_exact_brand_web_canary(
 
 def _skip_reason(
     *,
-    raw_user_input: str,
     intent: RetrievalIntent,
     allow_search: bool,
     search_port: WebSearchPort | None,
@@ -207,8 +217,6 @@ def _skip_reason(
         return "exact_db_hit"
     if intent.listed_items:
         return "listed_items_not_supported"
-    if any(token in str(raw_user_input or "") for token in _MULTI_ITEM_TOKENS):
-        return "multi_item_not_supported"
     if intent.retrieval_goal != "exact_brand_lookup":
         return "retrieval_goal_not_exact_brand"
     if not allow_search:

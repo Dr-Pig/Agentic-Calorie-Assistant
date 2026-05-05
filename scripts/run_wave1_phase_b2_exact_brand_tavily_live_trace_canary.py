@@ -13,8 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.nutrition.application.exact_brand_web_canary import run_exact_brand_web_canary
-from app.shared.contracts.readiness_claim import build_readiness_claim
+from app.nutrition.application.exact_brand_web_canary import run_exact_brand_web_canary  # noqa: E402
+from app.nutrition.application.retrieval_semantic_decision import B2ManagerSemanticDecision  # noqa: E402
+from app.shared.contracts.readiness_claim import build_readiness_claim  # noqa: E402
 
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
 DEFAULT_CASE_IDS = ("starbucks_latte_positive", "starbucks_latte_sibling_negative")
@@ -25,16 +26,34 @@ DECISION_PACK_OPTIONS = [
     "defer_web_and_continue_B2_local",
 ]
 
-_CASES: dict[str, dict[str, str]] = {
+_CASES: dict[str, dict[str, Any]] = {
     "starbucks_latte_positive": {
-        "raw_user_input": "我喝了星巴克大杯那堤",
-        "web_query": "星巴克大杯那堤",
+        "raw_user_input": "我喝了星巴克大杯拿鐵",
+        "web_query": "星巴克大杯拿鐵",
         "case_kind": "exact_brand_positive",
+        "manager_decision": {
+            "base_dish": "拿鐵",
+            "aliases": ["星巴克拿鐵"],
+            "brand_hint": "星巴克",
+            "size_hint": "大杯",
+            "modifier_hints": [],
+            "listed_items": [],
+            "retrieval_goal": "exact_brand_lookup",
+        },
     },
     "starbucks_latte_sibling_negative": {
-        "raw_user_input": "我喝了星巴克大杯那堤",
+        "raw_user_input": "我喝了星巴克大杯拿鐵",
         "web_query": "星巴克大杯摩卡",
         "case_kind": "sibling_wrong_variant_negative",
+        "manager_decision": {
+            "base_dish": "拿鐵",
+            "aliases": ["星巴克拿鐵"],
+            "brand_hint": "星巴克",
+            "size_hint": "大杯",
+            "modifier_hints": [],
+            "listed_items": [],
+            "retrieval_goal": "exact_brand_lookup",
+        },
     },
 }
 
@@ -75,6 +94,7 @@ async def run_tavily_live_trace_canary(
         case = _case(case_id)
         outcome = await run_exact_brand_web_canary(
             raw_user_input=case["raw_user_input"],
+            manager_decision=_manager_decision_fixture(case["manager_decision"]),
             contextualized_query=case["web_query"],
             search_port=active_search_port,
             extract_port=active_extract_port,
@@ -116,11 +136,24 @@ async def run_tavily_live_trace_canary(
     return _write_report(output_dir, report)
 
 
-def _case(case_id: str) -> dict[str, str]:
+def _case(case_id: str) -> dict[str, Any]:
     if case_id not in _CASES:
         supported = ", ".join(sorted(_CASES))
         raise ValueError(f"Unsupported Tavily exact-brand canary case: {case_id}. Supported: {supported}")
     return dict(_CASES[case_id])
+
+
+def _manager_decision_fixture(payload: dict[str, Any]) -> B2ManagerSemanticDecision:
+    return B2ManagerSemanticDecision(
+        base_dish=str(payload["base_dish"]),
+        aliases=list(payload["aliases"]),
+        brand_hint=str(payload["brand_hint"]),
+        size_hint=str(payload["size_hint"]),
+        modifier_hints=list(payload["modifier_hints"]),
+        listed_items=list(payload["listed_items"]),
+        retrieval_goal=str(payload["retrieval_goal"]),
+        semantic_authority_source="synthetic_manager_structured_fixture",
+    )
 
 
 def _tavily_search_port() -> Any:

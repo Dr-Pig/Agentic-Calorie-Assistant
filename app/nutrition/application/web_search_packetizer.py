@@ -51,6 +51,7 @@ def build_web_search_candidate_packet(
         "source_type": "web_search",
         "source_quality_label": source_quality_label,
         "officialness_hint": _text(candidate.get("officialness_hint")),
+        "source_class_hint": _text(candidate.get("source_class_hint")),
         "license_status": _text(candidate.get("license_status")) or "unknown",
         "robots_status": _text(candidate.get("robots_status")) or "unknown",
         "raw_ref": _text(candidate.get("raw_ref")),
