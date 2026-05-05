@@ -85,11 +85,68 @@ def _manager_packet_smoke(
     }
 
 
+def _activation_wall(
+    *,
+    status: str = "pass",
+    next_required_slices: list[str] | None = None,
+    readiness_claimed: bool = False,
+    manager_context_changed: bool = False,
+    packetizer_format_changed: bool = False,
+) -> dict:
+    return {
+        "artifact_type": "accurate_intake_fooddb_activation_wall_v1",
+        "status": status,
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "manager_context_changed": manager_context_changed,
+        "packetizer_format_changed": packetizer_format_changed,
+        "live_provider_used": False,
+        "live_websearch_used": False,
+        "readiness_claimed": readiness_claimed,
+        "upstream_next_required_slices": next_required_slices
+        or ["grokfast_fooddb_packet_live_diagnostic"],
+        "summary": {"p0_supported_modifier_count": 3},
+    }
+
+
+def _local_activation_scenario_wall(
+    *,
+    status: str = "pass",
+    next_required_slices: list[str] | None = None,
+    readiness_claimed: bool = False,
+    inferred_semantics: bool = False,
+    required_turn_count: int = 6,
+    pass_turn_count: int = 6,
+    manager_context_changed: bool = False,
+    packetizer_format_changed: bool = False,
+) -> dict:
+    return {
+        "artifact_type": "accurate_intake_fooddb_local_activation_scenario_wall_v1",
+        "status": status,
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "manager_context_changed": manager_context_changed,
+        "packetizer_format_changed": packetizer_format_changed,
+        "live_provider_used": False,
+        "live_websearch_used": False,
+        "readiness_claimed": readiness_claimed,
+        "runner_inferred_semantics": inferred_semantics,
+        "upstream_next_required_slices": next_required_slices
+        or ["grokfast_fooddb_packet_live_diagnostic"],
+        "summary": {
+            "fooddb_packet_required_turn_count": required_turn_count,
+            "fooddb_packet_pass_turn_count": pass_turn_count,
+        },
+    }
+
+
 def test_grokfast_fooddb_diagnostic_preflight_clears_only_when_all_upstream_gates_pass() -> None:
     artifact = build_grokfast_fooddb_diagnostic_preflight(
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        fooddb_activation_wall_artifact=_activation_wall(),
+        local_activation_scenario_wall_artifact=_local_activation_scenario_wall(),
     )
 
     assert artifact["artifact_type"] == "accurate_intake_grokfast_fooddb_diagnostic_preflight_v1"
@@ -108,6 +165,8 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_retrieval_eval_failures() -
         retrieval_eval_wall_artifact=_retrieval_eval_wall(fail_count=1),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        fooddb_activation_wall_artifact=_activation_wall(),
+        local_activation_scenario_wall_artifact=_local_activation_scenario_wall(),
     )
 
     assert artifact["status"] == "blocked"
@@ -125,6 +184,8 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_manager_contract_handoff_re
             handoff_ready=True,
         ),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        fooddb_activation_wall_artifact=_activation_wall(),
+        local_activation_scenario_wall_artifact=_local_activation_scenario_wall(),
     )
 
     assert artifact["status"] == "blocked"
@@ -138,6 +199,8 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_noncompact_packet_smoke() -
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(leak=True),
+        fooddb_activation_wall_artifact=_activation_wall(),
+        local_activation_scenario_wall_artifact=_local_activation_scenario_wall(),
     )
 
     assert artifact["status"] == "blocked"
@@ -153,6 +216,8 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_packet_overclaims() -> None
             readiness_claimed=True,
             runtime_mutation_attempted=True,
         ),
+        fooddb_activation_wall_artifact=_activation_wall(),
+        local_activation_scenario_wall_artifact=_local_activation_scenario_wall(),
     )
 
     assert artifact["status"] == "blocked"
@@ -160,11 +225,90 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_packet_overclaims() -> None
     assert "manager_packet_smoke_attempted_mutation" in artifact["blockers"]
 
 
+def test_grokfast_fooddb_diagnostic_preflight_requires_activation_walls() -> None:
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "missing_fooddb_activation_wall_artifact" in artifact["blockers"]
+    assert "missing_local_activation_scenario_wall_artifact" in artifact["blockers"]
+    assert is_grokfast_fooddb_preflight_clear(artifact) is False
+
+
+def test_grokfast_fooddb_diagnostic_preflight_blocks_activation_wall_failures() -> None:
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        fooddb_activation_wall_artifact=_activation_wall(status="blocked"),
+        local_activation_scenario_wall_artifact=_local_activation_scenario_wall(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "fooddb_activation_wall_not_pass" in artifact["blockers"]
+
+
+def test_grokfast_fooddb_diagnostic_preflight_blocks_activation_wall_shape_drift() -> None:
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        fooddb_activation_wall_artifact=_activation_wall(
+            manager_context_changed=True,
+            packetizer_format_changed=True,
+        ),
+        local_activation_scenario_wall_artifact=_local_activation_scenario_wall(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "fooddb_activation_wall_changed_manager_context" in artifact["blockers"]
+    assert "fooddb_activation_wall_changed_packetizer_format" in artifact["blockers"]
+
+
+def test_grokfast_fooddb_diagnostic_preflight_blocks_local_scenario_wall_failures() -> None:
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        fooddb_activation_wall_artifact=_activation_wall(),
+        local_activation_scenario_wall_artifact=_local_activation_scenario_wall(
+            pass_turn_count=5,
+            inferred_semantics=True,
+        ),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "local_activation_scenario_wall_inferred_semantics" in artifact["blockers"]
+    assert "local_activation_scenario_wall_packet_turn_failures" in artifact["blockers"]
+
+
+def test_grokfast_fooddb_diagnostic_preflight_blocks_local_scenario_wall_shape_drift() -> None:
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        fooddb_activation_wall_artifact=_activation_wall(),
+        local_activation_scenario_wall_artifact=_local_activation_scenario_wall(
+            manager_context_changed=True,
+            packetizer_format_changed=True,
+        ),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "local_activation_scenario_wall_changed_manager_context" in artifact["blockers"]
+    assert "local_activation_scenario_wall_changed_packetizer_format" in artifact["blockers"]
+
+
 def test_grokfast_fooddb_preflight_clear_helper_rejects_forged_summary() -> None:
     artifact = build_grokfast_fooddb_diagnostic_preflight(
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        fooddb_activation_wall_artifact=_activation_wall(),
+        local_activation_scenario_wall_artifact=_local_activation_scenario_wall(),
     )
     forged = {
         **artifact,
@@ -180,6 +324,25 @@ def test_grokfast_fooddb_preflight_clear_helper_rejects_forged_summary() -> None
     assert is_grokfast_fooddb_preflight_clear(forged) is False
 
 
+def test_grokfast_fooddb_preflight_clear_helper_rechecks_activation_modifier_coverage() -> None:
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        fooddb_activation_wall_artifact=_activation_wall(),
+        local_activation_scenario_wall_artifact=_local_activation_scenario_wall(),
+    )
+    forged = {
+        **artifact,
+        "summary": {
+            **artifact["summary"],
+            "fooddb_activation_wall_p0_supported_modifier_count": 0,
+        },
+    }
+
+    assert is_grokfast_fooddb_preflight_clear(forged) is False
+
+
 def test_grokfast_fooddb_diagnostic_preflight_script_roundtrip(tmp_path: Path) -> None:
     from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
     from scripts.build_accurate_intake_grokfast_fooddb_diagnostic_preflight import main
@@ -191,6 +354,10 @@ def test_grokfast_fooddb_diagnostic_preflight_script_roundtrip(tmp_path: Path) -
     write_json_artifact(retrieval_path, _retrieval_eval_wall())
     write_json_artifact(fooddb_status_path, _fooddb_status())
     write_json_artifact(packet_path, _manager_packet_smoke())
+    activation_path = tmp_path / "activation.json"
+    scenario_path = tmp_path / "scenario.json"
+    write_json_artifact(activation_path, _activation_wall())
+    write_json_artifact(scenario_path, _local_activation_scenario_wall())
 
     assert (
         main(
@@ -201,6 +368,10 @@ def test_grokfast_fooddb_diagnostic_preflight_script_roundtrip(tmp_path: Path) -
                 str(fooddb_status_path),
                 "--manager-packet-smoke",
                 str(packet_path),
+                "--fooddb-activation-wall",
+                str(activation_path),
+                "--local-activation-scenario-wall",
+                str(scenario_path),
                 "--output",
                 str(output),
             ]
@@ -266,6 +437,8 @@ def test_grokfast_fooddb_packet_live_script_rejects_forged_clear_preflight(tmp_p
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        fooddb_activation_wall_artifact=_activation_wall(),
+        local_activation_scenario_wall_artifact=_local_activation_scenario_wall(),
     )
     write_json_artifact(
         preflight_path,

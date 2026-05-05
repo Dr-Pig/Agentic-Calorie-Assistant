@@ -22,6 +22,12 @@ DEFAULT_FOODDB_STATUS_PACKET = (
 DEFAULT_MANAGER_PACKET_SMOKE = (
     ROOT / "artifacts" / "accurate_intake_fooddb_manager_packet_smoke.json"
 )
+DEFAULT_FOODDB_ACTIVATION_WALL = (
+    ROOT / "artifacts" / "accurate_intake_fooddb_activation_wall.json"
+)
+DEFAULT_LOCAL_ACTIVATION_SCENARIO_WALL = (
+    ROOT / "artifacts" / "accurate_intake_fooddb_local_activation_scenario_wall.json"
+)
 DEFAULT_OUTPUT = (
     ROOT / "artifacts" / "accurate_intake_grokfast_fooddb_diagnostic_preflight.json"
 )
@@ -34,6 +40,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--retrieval-eval-wall", default=str(DEFAULT_RETRIEVAL_EVAL_WALL))
     parser.add_argument("--fooddb-status-packet", default=str(DEFAULT_FOODDB_STATUS_PACKET))
     parser.add_argument("--manager-packet-smoke", default=str(DEFAULT_MANAGER_PACKET_SMOKE))
+    parser.add_argument("--fooddb-activation-wall", default=str(DEFAULT_FOODDB_ACTIVATION_WALL))
+    parser.add_argument(
+        "--local-activation-scenario-wall",
+        default=str(DEFAULT_LOCAL_ACTIVATION_SCENARIO_WALL),
+    )
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
@@ -41,6 +52,10 @@ def main(argv: list[str] | None = None) -> int:
         retrieval_eval_wall_artifact=read_json_artifact(Path(args.retrieval_eval_wall)),
         fooddb_status_packet=read_json_artifact(Path(args.fooddb_status_packet)),
         manager_packet_smoke_artifact=read_json_artifact(Path(args.manager_packet_smoke)),
+        fooddb_activation_wall_artifact=read_json_artifact(Path(args.fooddb_activation_wall)),
+        local_activation_scenario_wall_artifact=read_json_artifact(
+            Path(args.local_activation_scenario_wall)
+        ),
     )
     output_path = Path(args.output)
     write_json_artifact(output_path, artifact)

@@ -7,6 +7,10 @@ from typing import Any
 EXPECTED_RETRIEVAL_EVAL_ARTIFACT = "accurate_intake_retrieval_eval_wall_v1"
 EXPECTED_FOODDB_STATUS_ARTIFACT = "accurate_intake_fooddb_evidence_status_packet_v1"
 EXPECTED_MANAGER_PACKET_ARTIFACT = "accurate_intake_fooddb_manager_packet_smoke"
+EXPECTED_FOODDB_ACTIVATION_WALL_ARTIFACT = "accurate_intake_fooddb_activation_wall_v1"
+EXPECTED_LOCAL_ACTIVATION_SCENARIO_WALL_ARTIFACT = (
+    "accurate_intake_fooddb_local_activation_scenario_wall_v1"
+)
 NEXT_GROKFAST_FOODDB_DIAGNOSTIC = "grokfast_fooddb_packet_live_diagnostic"
 
 
@@ -15,14 +19,20 @@ def build_grokfast_fooddb_diagnostic_preflight(
     retrieval_eval_wall_artifact: dict[str, Any],
     fooddb_status_packet: dict[str, Any],
     manager_packet_smoke_artifact: dict[str, Any],
+    fooddb_activation_wall_artifact: dict[str, Any] | None = None,
+    local_activation_scenario_wall_artifact: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     retrieval_summary = _summary(retrieval_eval_wall_artifact)
     fooddb_summary = _summary(fooddb_status_packet)
     packet_summary = _summary(manager_packet_smoke_artifact)
+    activation_summary = _summary(fooddb_activation_wall_artifact or {})
+    scenario_summary = _summary(local_activation_scenario_wall_artifact or {})
     blockers = [
         *_retrieval_eval_blockers(retrieval_eval_wall_artifact),
         *_fooddb_status_blockers(fooddb_status_packet),
         *_manager_packet_blockers(manager_packet_smoke_artifact),
+        *_fooddb_activation_wall_blockers(fooddb_activation_wall_artifact),
+        *_local_activation_scenario_wall_blockers(local_activation_scenario_wall_artifact),
     ]
     clear = not blockers
 
@@ -60,6 +70,12 @@ def build_grokfast_fooddb_diagnostic_preflight(
             "manager_packet_smoke_artifact_type": manager_packet_smoke_artifact.get(
                 "artifact_type"
             ),
+            "fooddb_activation_wall_artifact_type": (
+                fooddb_activation_wall_artifact or {}
+            ).get("artifact_type"),
+            "local_activation_scenario_wall_artifact_type": (
+                local_activation_scenario_wall_artifact or {}
+            ).get("artifact_type"),
         },
         "summary": {
             "retrieval_eval_fail_count": int(retrieval_summary.get("fail_count", 0) or 0),
@@ -85,6 +101,29 @@ def build_grokfast_fooddb_diagnostic_preflight(
             "manager_packet_case_count": int(packet_summary.get("case_count", 0) or 0),
             "manager_packet_compact_pass_count": int(
                 packet_summary.get("compact_packet_pass_count", 0) or 0
+            ),
+            "fooddb_activation_wall_status": (fooddb_activation_wall_artifact or {}).get("status"),
+            "fooddb_activation_wall_upstream_next_required_slices": list(
+                (fooddb_activation_wall_artifact or {}).get("upstream_next_required_slices")
+                or []
+            ),
+            "local_activation_scenario_wall_status": (
+                local_activation_scenario_wall_artifact or {}
+            ).get("status"),
+            "local_activation_scenario_wall_upstream_next_required_slices": list(
+                (local_activation_scenario_wall_artifact or {}).get(
+                    "upstream_next_required_slices"
+                )
+                or []
+            ),
+            "local_activation_scenario_wall_fooddb_packet_pass_turn_count": int(
+                scenario_summary.get("fooddb_packet_pass_turn_count", 0) or 0
+            ),
+            "local_activation_scenario_wall_fooddb_packet_required_turn_count": int(
+                scenario_summary.get("fooddb_packet_required_turn_count", 0) or 0
+            ),
+            "fooddb_activation_wall_p0_supported_modifier_count": int(
+                activation_summary.get("p0_supported_modifier_count", 0) or 0
             ),
         },
         "best_practice_basis": {
@@ -194,6 +233,76 @@ def _manager_packet_blockers(artifact: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def _fooddb_activation_wall_blockers(artifact: dict[str, Any] | None) -> list[str]:
+    blockers: list[str] = []
+    if not isinstance(artifact, dict):
+        return ["missing_fooddb_activation_wall_artifact"]
+    if artifact.get("artifact_type") != EXPECTED_FOODDB_ACTIVATION_WALL_ARTIFACT:
+        blockers.append("unsupported_fooddb_activation_wall_artifact")
+        return blockers
+    if artifact.get("status") != "pass":
+        blockers.append("fooddb_activation_wall_not_pass")
+    if artifact.get("runtime_truth_changed") is not False:
+        blockers.append("fooddb_activation_wall_changed_runtime_truth")
+    if artifact.get("mutation_changed") is not False:
+        blockers.append("fooddb_activation_wall_changed_mutation")
+    if artifact.get("manager_context_changed") is not False:
+        blockers.append("fooddb_activation_wall_changed_manager_context")
+    if artifact.get("packetizer_format_changed") is not False:
+        blockers.append("fooddb_activation_wall_changed_packetizer_format")
+    if artifact.get("live_provider_used") is not False:
+        blockers.append("fooddb_activation_wall_used_live_provider")
+    if artifact.get("live_websearch_used") is not False:
+        blockers.append("fooddb_activation_wall_used_live_websearch")
+    if artifact.get("readiness_claimed") is not False:
+        blockers.append("fooddb_activation_wall_claimed_readiness")
+    next_required = list(artifact.get("upstream_next_required_slices") or [])
+    if next_required != [NEXT_GROKFAST_FOODDB_DIAGNOSTIC]:
+        blockers.append("fooddb_activation_wall_next_step_not_grokfast_fooddb_diagnostic")
+    summary = _summary(artifact)
+    if int(summary.get("p0_supported_modifier_count", 0) or 0) < 3:
+        blockers.append("fooddb_activation_wall_p0_modifier_coverage_missing")
+    return blockers
+
+
+def _local_activation_scenario_wall_blockers(artifact: dict[str, Any] | None) -> list[str]:
+    blockers: list[str] = []
+    if not isinstance(artifact, dict):
+        return ["missing_local_activation_scenario_wall_artifact"]
+    if artifact.get("artifact_type") != EXPECTED_LOCAL_ACTIVATION_SCENARIO_WALL_ARTIFACT:
+        blockers.append("unsupported_local_activation_scenario_wall_artifact")
+        return blockers
+    if artifact.get("status") != "pass":
+        blockers.append("local_activation_scenario_wall_not_pass")
+    if artifact.get("runtime_truth_changed") is not False:
+        blockers.append("local_activation_scenario_wall_changed_runtime_truth")
+    if artifact.get("mutation_changed") is not False:
+        blockers.append("local_activation_scenario_wall_changed_mutation")
+    if artifact.get("manager_context_changed") is not False:
+        blockers.append("local_activation_scenario_wall_changed_manager_context")
+    if artifact.get("packetizer_format_changed") is not False:
+        blockers.append("local_activation_scenario_wall_changed_packetizer_format")
+    if artifact.get("live_provider_used") is not False:
+        blockers.append("local_activation_scenario_wall_used_live_provider")
+    if artifact.get("live_websearch_used") is not False:
+        blockers.append("local_activation_scenario_wall_used_live_websearch")
+    if artifact.get("readiness_claimed") is not False:
+        blockers.append("local_activation_scenario_wall_claimed_readiness")
+    if artifact.get("runner_inferred_semantics") is not False:
+        blockers.append("local_activation_scenario_wall_inferred_semantics")
+    next_required = list(artifact.get("upstream_next_required_slices") or [])
+    if next_required != [NEXT_GROKFAST_FOODDB_DIAGNOSTIC]:
+        blockers.append("local_activation_scenario_wall_next_step_not_grokfast_fooddb_diagnostic")
+    summary = _summary(artifact)
+    required_turns = int(summary.get("fooddb_packet_required_turn_count", 0) or 0)
+    pass_turns = int(summary.get("fooddb_packet_pass_turn_count", 0) or 0)
+    if required_turns <= 0:
+        blockers.append("local_activation_scenario_wall_missing_fooddb_packet_turns")
+    if pass_turns != required_turns:
+        blockers.append("local_activation_scenario_wall_packet_turn_failures")
+    return blockers
+
+
 def _preflight_artifact_integrity_blockers(artifact: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
     if artifact.get("status") != "clear_for_grokfast_fooddb_packet_live_diagnostic":
@@ -242,6 +351,30 @@ def _preflight_artifact_integrity_blockers(artifact: dict[str, Any]) -> list[str
         blockers.append("preflight_summary_packet_cases_missing")
     if compact_pass_count != case_count:
         blockers.append("preflight_summary_packet_compact_count_mismatch")
+    if summary.get("fooddb_activation_wall_status") != "pass":
+        blockers.append("preflight_summary_activation_wall_not_pass")
+    if list(summary.get("fooddb_activation_wall_upstream_next_required_slices") or []) != [
+        NEXT_GROKFAST_FOODDB_DIAGNOSTIC
+    ]:
+        blockers.append("preflight_summary_activation_wall_next_slice_mismatch")
+    if summary.get("local_activation_scenario_wall_status") != "pass":
+        blockers.append("preflight_summary_local_scenario_wall_not_pass")
+    if list(summary.get("local_activation_scenario_wall_upstream_next_required_slices") or []) != [
+        NEXT_GROKFAST_FOODDB_DIAGNOSTIC
+    ]:
+        blockers.append("preflight_summary_local_scenario_wall_next_slice_mismatch")
+    scenario_required_turns = int(
+        summary.get("local_activation_scenario_wall_fooddb_packet_required_turn_count", 0) or 0
+    )
+    scenario_pass_turns = int(
+        summary.get("local_activation_scenario_wall_fooddb_packet_pass_turn_count", 0) or 0
+    )
+    if scenario_required_turns <= 0:
+        blockers.append("preflight_summary_local_scenario_missing_fooddb_packet_turns")
+    if scenario_pass_turns != scenario_required_turns:
+        blockers.append("preflight_summary_local_scenario_packet_turn_mismatch")
+    if int(summary.get("fooddb_activation_wall_p0_supported_modifier_count", 0) or 0) < 3:
+        blockers.append("preflight_summary_activation_wall_p0_modifier_coverage_missing")
     return blockers
 
 

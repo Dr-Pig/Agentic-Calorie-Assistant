@@ -252,7 +252,10 @@ def evaluate_manager_output_against_packet(
     used_refs = _used_evidence_refs(manager_output)
     expected_behavior = str(packet_case.get("manager_expected_behavior") or "")
     missing_contract_fields = _missing_manager_contract_fields(manager_output)
-    contract_shape_errors = _manager_contract_shape_errors(manager_output)
+    contract_shape_errors = _manager_contract_shape_errors(
+        manager_output,
+        top_level_item_results_required=bool(evidence_items),
+    )
     external_contract_errors = list(manager_contract_validation_errors or [])
     failure_families: list[str] = []
 
@@ -295,6 +298,7 @@ def evaluate_manager_output_against_packet(
         if str(manager_output.get("exactness") or "").lower() == "exact":
             failure_families.append("generic_meal_overclaimed_exact")
         if _unsupported_modifier_adjusted_kcal_range(
+            packet_case=packet_case,
             evidence_items=evidence_items,
             manager_output=manager_output,
         ):
@@ -354,9 +358,11 @@ def build_live_manager_payload(*, packet_case: dict[str, Any]) -> dict[str, Any]
         "raw_user_input": packet_case.get("raw_user_input"),
         "fooddb_evidence_packet": packet,
         "tool_evidence_result": tool_result,
+        "case_level_contract": _case_level_contract(packet.get("evidence_items") or []),
         "allowed_evidence_refs": sorted(
             _allowed_refs_for_packet_case(packet_case=packet_case, evidence_items=packet.get("evidence_items") or [])
         ),
+        "preferred_evidence_refs": _preferred_evidence_refs(packet.get("evidence_items") or []),
         "tool_results": [
             {
                 "tool_name": tool_result.get("tool_name") or "lookup_food_evidence",
@@ -370,11 +376,17 @@ def build_live_manager_payload(*, packet_case: dict[str, Any]) -> dict[str, Any]
             "Use only the provided ToolEvidenceResult and FoodDB evidence packet for nutrition evidence.",
             "Do not invent nutrition sources or evidence IDs.",
             "If you include evidence_used, every value must exactly equal one allowed_evidence_refs value; do not add prefixes, ranking labels, match_path labels, or modifier-policy labels.",
+            "Do not include a top-level evidence_used field. evidence_used is allowed only inside item_results entries.",
+            "For each item_results entry, include at most two evidence_used values. Prefer preferred_evidence_refs; never enumerate the full allowed_evidence_refs list.",
+            "Never put raw_user_input phrases, modifier_hints, modifier values, followup_hints, followup target labels, ranking_reasons, or target labels in evidence_used.",
+            "If you need to mention a modifier such as less_rice or a follow-up hint such as ask_rice_portion, mention it only in target_attachment or answer_contract, not in evidence_used.",
+            "If you are not certain a string is an allowed evidence reference, omit it from evidence_used.",
             "Do not combine source IDs with file extensions or rewrite source refs; for example, tfda_fda_food_nutrition_2024.xlsx is forbidden unless that exact value appears in allowed_evidence_refs.",
             "If evidence_items is empty for a bare basket, ask follow-up and do not mutate.",
-            "If evidence_items exist, synthesize item_results from those packet items with uncertainty.",
+            "If evidence_items exist, synthesize top-level item_results from those packet items with uncertainty. Do not put the only item_results inside answer_contract.",
+            "answer_contract must not contain item_results or evidence_used. Put packet-grounded item_results only at the top level.",
             "Do not include tool_calls in this pass-2 response; the FoodDB evidence packet has already been provided.",
-            "If a packet modifier_compatibility value is unsupported, do not adjust kcal_point or kcal_range for that modifier; keep the packet range and use followup_hints.",
+            "If a packet modifier_compatibility value is unsupported or compatible_via_normalized_equivalent, do not adjust kcal_point or kcal_range for that modifier; keep the packet range and use followup_hints.",
             "This diagnostic writes no ledger and grants no product readiness.",
         ],
         "expected_output_contract": {
@@ -383,6 +395,10 @@ def build_live_manager_payload(*, packet_case: dict[str, Any]) -> dict[str, Any]
                 "ranking_reasons",
                 "match_path_labels",
                 "modifier_policy_labels",
+                "modifier_hints",
+                "followup_hints",
+                "raw_user_input",
+                "target_labels",
                 "derived_adjustment_labels",
             ],
             "forbidden_top_level_fields": ["tool_calls"],
@@ -394,6 +410,12 @@ def build_live_manager_payload(*, packet_case: dict[str, Any]) -> dict[str, Any]
                     evidence_items=packet.get("evidence_items") or [],
                 )
             ),
+            "preferred_evidence_refs": _preferred_evidence_refs(packet.get("evidence_items") or []),
+            "case_level_contract": _case_level_contract(packet.get("evidence_items") or []),
+            "top_level_evidence_used_allowed": False,
+            "answer_contract_item_results_allowed": False,
+            "answer_contract_evidence_used_allowed": False,
+            "evidence_used_max_refs_per_item": 2,
         },
         "constraints": _manager_constraints_for_case(packet_case),
     }
@@ -528,18 +550,63 @@ def _allowed_refs_for_packet_case(*, packet_case: dict[str, Any], evidence_items
     return refs
 
 
+def _preferred_evidence_refs(evidence_items: list[Any]) -> list[str]:
+    refs: list[str] = []
+    for item in evidence_items:
+        if not isinstance(item, dict):
+            continue
+        for value in (
+            item.get("anchor_id"),
+            (item.get("source_provenance") or {}).get("source_file")
+            if isinstance(item.get("source_provenance"), dict)
+            else None,
+        ):
+            ref = str(value or "").strip()
+            if ref and ref not in refs:
+                refs.append(ref)
+        if len(refs) >= 2:
+            break
+    return refs
+
+
+def _case_level_contract(evidence_items: list[Any]) -> dict[str, Any]:
+    return {
+        "top_level_item_results_required": bool(evidence_items),
+        "answer_contract_item_results_allowed": False,
+        "answer_contract_evidence_used_allowed": False,
+        "top_level_evidence_used_allowed": False,
+    }
+
+
 def _used_evidence_refs(manager_output: dict[str, Any]) -> set[str]:
     refs: set[str] = set()
-    for value in _recursive_values_for_key(manager_output, "evidence_used"):
-        if isinstance(value, list):
-            values = value
-        else:
-            values = [value]
-        for ref in values:
+    for result in _item_result_dicts(manager_output):
+        for ref in result.get("evidence_used") or []:
             value = str(ref or "").strip()
             if value:
                 refs.add(value)
     return refs
+
+
+def _misplaced_evidence_used_paths(value: Any, *, path: str = "$") -> list[str]:
+    paths: list[str] = []
+    if isinstance(value, dict):
+        for key, item_value in value.items():
+            child_path = f"{path}.{key}"
+            if key == "evidence_used" and child_path != "$.item_results[].evidence_used":
+                paths.append(child_path)
+            paths.extend(_misplaced_evidence_used_paths(item_value, path=child_path))
+    elif isinstance(value, list):
+        for item in value:
+            paths.extend(_misplaced_evidence_used_paths(item, path=f"{path}[]"))
+    return paths
+
+
+def _forbidden_answer_contract_keys(manager_output: dict[str, Any]) -> list[str]:
+    answer_contract = manager_output.get("answer_contract")
+    if not isinstance(answer_contract, dict):
+        return []
+    return sorted(key for key in ("evidence_used", "item_results") if key in answer_contract)
 
 
 def _recursive_values_for_key(value: Any, key: str) -> list[Any]:
@@ -615,6 +682,7 @@ _TEXT_EVIDENCE_REF_SCAN_SKIP_KEYS = {
     "final_action",
     "final_action_candidate",
     "food_name",
+    "match_path",
     "intent",
     "intent_type",
     "manager_action",
@@ -698,7 +766,11 @@ def _missing_manager_contract_fields(manager_output: dict[str, Any]) -> list[str
     )
 
 
-def _manager_contract_shape_errors(manager_output: dict[str, Any]) -> list[str]:
+def _manager_contract_shape_errors(
+    manager_output: dict[str, Any],
+    *,
+    top_level_item_results_required: bool,
+) -> list[str]:
     expected_types: dict[str, type[Any] | tuple[type[Any], ...]] = {
         "manager_action": str,
         "response_mode": str,
@@ -713,6 +785,21 @@ def _manager_contract_shape_errors(manager_output: dict[str, Any]) -> list[str]:
         "answer_contract": dict,
     }
     errors: list[str] = []
+    if "evidence_used" in manager_output:
+        errors.append("evidence_used:forbidden_top_level_field")
+    if top_level_item_results_required and "item_results" not in manager_output:
+        errors.append("item_results:required_top_level_field")
+    elif not isinstance(manager_output.get("item_results"), list):
+        if "item_results" in manager_output:
+            errors.append("item_results:expected_list")
+    misplaced_evidence_paths = _misplaced_evidence_used_paths(manager_output)
+    forbidden_answer_contract_keys = _forbidden_answer_contract_keys(manager_output)
+    if misplaced_evidence_paths:
+        errors.append("evidence_used:misplaced_nested_field")
+    if forbidden_answer_contract_keys:
+        errors.extend(
+            f"answer_contract.{key}:forbidden_field" for key in forbidden_answer_contract_keys
+        )
     for field, expected_type in expected_types.items():
         if field not in manager_output:
             continue
@@ -723,40 +810,72 @@ def _manager_contract_shape_errors(manager_output: dict[str, Any]) -> list[str]:
                 else expected_type.__name__
             )
             errors.append(f"{field}:expected_{type_name}")
+    for result in _item_result_dicts(manager_output):
+        evidence_used = result.get("evidence_used")
+        if not isinstance(evidence_used, list):
+            errors.append("item_results.evidence_used:expected_list")
+        elif len(evidence_used) > 2:
+            errors.append("item_results.evidence_used:too_many_refs")
     return sorted(errors)
 
 
 def _unsupported_modifier_adjusted_kcal_range(
     *,
+    packet_case: dict[str, Any],
     evidence_items: list[Any],
     manager_output: dict[str, Any],
 ) -> bool:
-    unsupported_ranges: dict[str, list[Any]] = {}
+    unsupported_ranges: list[dict[str, Any]] = []
     for item in evidence_items:
         if not isinstance(item, dict):
             continue
         modifier_compatibility = item.get("modifier_compatibility")
         if not isinstance(modifier_compatibility, dict):
             continue
-        if "unsupported" not in {str(value) for value in modifier_compatibility.values()}:
+        compatibility_values = {str(value) for value in modifier_compatibility.values()}
+        if compatibility_values == {"compatible"}:
             continue
         anchor_id = str(item.get("anchor_id") or "").strip()
+        ref_set = _allowed_evidence_refs([item])
+        case_id = str(packet_case.get("case_id") or "").strip()
+        if case_id:
+            ref_set.add(case_id)
+            ref_set.add(f"fooddb_packet case_id {case_id}")
         if anchor_id:
-            unsupported_ranges[anchor_id] = list(item.get("kcal_range") or [])
+            ref_set.add(anchor_id)
+        if ref_set:
+            unsupported_ranges.append(
+                {
+                    "refs": ref_set,
+                    "kcal_range": list(item.get("kcal_range") or []),
+                }
+            )
 
     if not unsupported_ranges:
         return False
 
-    for item_result in _recursive_values_for_key(manager_output, "item_results"):
-        results = item_result if isinstance(item_result, list) else [item_result]
-        for result in results:
-            if not isinstance(result, dict):
-                continue
-            evidence_refs = {str(ref or "").strip() for ref in result.get("evidence_used") or []}
-            for anchor_id, packet_range in unsupported_ranges.items():
-                if anchor_id in evidence_refs and list(result.get("kcal_range") or []) != packet_range:
-                    return True
+    for result in _item_result_dicts(manager_output):
+        evidence_refs = _coerce_evidence_refs(result.get("evidence_used"))
+        for protected in unsupported_ranges:
+            protected_refs = protected.get("refs") or set()
+            if evidence_refs & protected_refs and list(result.get("kcal_range") or []) != list(
+                protected.get("kcal_range") or []
+            ):
+                return True
     return False
+
+
+def _coerce_evidence_refs(value: Any) -> set[str]:
+    values = value if isinstance(value, list) else [value]
+    return {str(ref or "").strip() for ref in values if str(ref or "").strip()}
+
+
+def _item_result_dicts(manager_output: dict[str, Any]) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
+    item_results = manager_output.get("item_results")
+    if isinstance(item_results, list):
+        results.extend(item for item in item_results if isinstance(item, dict))
+    return results
 
 
 def _now() -> str:
