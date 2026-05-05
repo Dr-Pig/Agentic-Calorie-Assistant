@@ -12,7 +12,11 @@ from ..runtime.agent.manager_branch_contract import (
 from ..runtime.contracts.trace import MANAGER_LOOP_STAGE
 from .deepseek_config import check_encoding_safety, format_user_message
 from .deepseek_parsing import extract_json_object, extract_text_content
-from .deepseek_runtime_contract import ManagerPass1BranchContractError, response_format_request_for_stage, response_schema_for_stage, validate_manager_payload
+from .deepseek_runtime_contract import (
+    response_format_request_for_stage,
+    response_schema_for_stage,
+    validate_manager_payload,
+)
 from .deepseek_session import complete_deepseek_with_trace
 
 

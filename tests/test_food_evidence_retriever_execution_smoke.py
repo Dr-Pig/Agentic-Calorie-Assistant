@@ -51,8 +51,9 @@ def test_retriever_execution_smoke_unifies_fooddb_and_websearch_candidate_paths(
     assert artifact["live_provider_used"] is False
     assert artifact["live_websearch_used"] is False
     assert artifact["readiness_claimed"] is False
-    assert artifact["summary"]["case_count"] == 3
+    assert artifact["summary"]["case_count"] == 4
     assert artifact["summary"]["fail_count"] == 0
+    assert artifact["summary"]["blocked_no_execution_case_count"] == 1
     assert artifact["next_required_slice"] == "grokfast_fooddb_diagnostic_preflight"
 
 
@@ -75,6 +76,9 @@ def test_retriever_execution_smoke_keeps_fooddb_backend_manager_invisible(
         "sqlite_fts_index",
         "local_fooddb_index",
     ]
+    assert fooddb["route_plan"]["retrieval_intent_source"] == "manager_decision"
+    assert fooddb["route_plan"]["manager_owned_intent_required"] is True
+    assert fooddb["route_plan"]["raw_text_hint_executed"] is False
     assert fooddb["tool_evidence_result"]["tool_name"] == "lookup_food_evidence"
     assert fooddb["tool_evidence_result"]["runtime_mutation_allowed"] is False
     assert fooddb["tool_evidence_result"]["source_implementation_visible"] is False
@@ -140,6 +144,29 @@ def test_retriever_execution_smoke_composition_clarification_does_not_call_tools
     assert clarification["tool_evidence_result"] is None
     assert clarification["runtime_mutation_allowed"] is False
     assert clarification["truth_selection_forbidden"] is True
+
+
+def test_retriever_execution_smoke_blocks_raw_text_hint_before_backend_execution(
+    tmp_path: Path,
+) -> None:
+    artifact = build_food_evidence_retriever_execution_smoke(
+        index=_sqlite_index(tmp_path),
+        availability=RetrieverBackendAvailability(
+            local_fooddb_index=True,
+            sqlite_fts_index=True,
+            websearch_candidate_lane=True,
+        ),
+    )
+    cases = {case["case_id"]: case for case in artifact["cases"]}
+    raw_hint = cases["raw_text_hint_does_not_execute_backend"]
+
+    assert raw_hint["status"] == "pass"
+    assert raw_hint["route_plan"]["primary_backend"] == "blocked_no_execution"
+    assert raw_hint["route_plan"]["backend_sequence"] == []
+    assert raw_hint["route_plan"]["retrieval_intent_source"] == "raw_text_hint"
+    assert raw_hint["route_plan"]["manager_owned_intent_required"] is True
+    assert raw_hint["route_plan"]["raw_text_hint_executed"] is False
+    assert raw_hint["tool_evidence_result"] is None
 
 
 def test_retriever_execution_smoke_uses_manager_owned_intent_not_raw_query(

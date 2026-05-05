@@ -5,11 +5,6 @@ from typing import Any
 from copy import deepcopy
 
 from .manager_branch_constraints import (
-    B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY,
-    B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
-    B1_COMMON_FOOD_ITEM_CASE_FAMILY,
-    B1_COMPOSITION_UNKNOWN_CASE_FAMILY,
-    B1_LISTED_INGREDIENT_CASE_FAMILY,
     is_b1_clarification_branch_constraint as _is_b1_clarification_branch_constraint,
     is_b1_clarification_pass2_constraint as _is_b1_clarification_pass2_constraint,
     is_b1_common_commercial_meal_pass2_constraint as _is_b1_common_commercial_meal_pass2_constraint,
@@ -18,21 +13,12 @@ from .manager_branch_constraints import (
     is_b1_generic_tool_call_constraint as _is_b1_generic_tool_call_constraint,
     is_b1_listed_ingredient_pass2_constraint as _is_b1_listed_ingredient_pass2_constraint,
     is_b1_listed_ingredient_tool_call_constraint as _is_b1_listed_ingredient_tool_call_constraint,
-    should_attempt_b1_common_commercial_meal_pass1_decision_transport,
-    should_attempt_b1_pass1_structured_output_transport,
-    should_attempt_b1_pass2_structured_output_transport,
-    should_attempt_b1_profile_pass1_decision_transport,
-    should_attempt_b1_generic_pass1_structured_output_transport,
 )
 from .manager_branch_shapes import (
     manager_item_results_schema as _manager_item_results_schema,
     manager_semantic_decision_schema as _manager_semantic_decision_schema,
 )
 from .manager_branch_validation import (
-    CLARIFICATION_BRANCH_CONFLICTING_FIELDS,
-    ManagerPass1BranchContractError,
-    MANAGER_OUTPUT_CONTRACT_VIOLATION,
-    TOOL_CALL_BRANCH_CONFLICTING_FIELDS,
     validate_b1_clarification_branch as _delegate_validate_b1_clarification_branch,
     validate_b1_clarification_pass2_branch as _delegate_validate_b1_clarification_pass2_branch,
     validate_b1_generic_tool_call_branch as _delegate_validate_b1_generic_tool_call_branch,

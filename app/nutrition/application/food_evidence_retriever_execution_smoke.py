@@ -8,6 +8,7 @@ from .food_evidence_index_port import FoodEvidenceIndexPort
 from .food_evidence_packet_builder import build_food_evidence_recall_packet
 from .food_evidence_retriever_router import (
     RetrieverBackendAvailability,
+    RetrievalIntentSource,
     build_food_evidence_retriever_route_plan,
 )
 from .fooddb_retrieval_policy import IndexedFoodRecord, retrieve_fooddb_candidates
@@ -22,6 +23,7 @@ class RetrieverExecutionCase:
     raw_query: str
     intent: RetrievalIntent
     expected_primary_backend: str
+    intent_source: RetrievalIntentSource = "manager_decision"
 
 
 def build_food_evidence_retriever_execution_smoke(
@@ -70,6 +72,11 @@ def build_food_evidence_retriever_execution_smoke(
             "ask_followup_case_count": sum(
                 1 for case in case_results if case["route_plan"]["primary_backend"] == "ask_followup"
             ),
+            "blocked_no_execution_case_count": sum(
+                1
+                for case in case_results
+                if case["route_plan"]["primary_backend"] == "blocked_no_execution"
+            ),
         },
         "dependency_inversion": {
             "intent_source": "manager_owned_retrieval_intent_or_fixture_in_tests",
@@ -106,7 +113,13 @@ def _case_result(
     index: FoodEvidenceIndexPort,
     availability: RetrieverBackendAvailability,
 ) -> dict[str, Any]:
-    route_plan = build_food_evidence_retriever_route_plan(case.intent, availability=availability)
+    route_plan = build_food_evidence_retriever_route_plan(
+        case.intent,
+        availability=availability,
+        intent_source=case.intent_source,
+    )
+    if route_plan.primary_backend == "blocked_no_execution":
+        return _blocked_no_execution_case(case=case, route_plan=route_plan)
     if route_plan.primary_backend == "ask_followup":
         return _ask_followup_case(case=case, route_plan=route_plan)
     if route_plan.websearch_candidate_enabled:
@@ -214,6 +227,29 @@ def _ask_followup_case(*, case: RetrieverExecutionCase, route_plan: Any) -> dict
     )
 
 
+def _blocked_no_execution_case(*, case: RetrieverExecutionCase, route_plan: Any) -> dict[str, Any]:
+    checks = {
+        "expected_primary_backend": route_plan.primary_backend == case.expected_primary_backend,
+        "no_backend_execution": route_plan.backend_sequence == (),
+        "route_does_not_decide_logged_or_draft": route_plan.decides_logged_or_draft is False,
+        "raw_text_hint_not_executed": route_plan.raw_text_hint_executed is False,
+        "mutation_forbidden": route_plan.mutation_allowed is False,
+        "requires_manager_owned_intent": route_plan.manager_owned_intent_required is True,
+    }
+    return _base_case_payload(
+        case=case,
+        route_plan=route_plan,
+        checks=checks,
+        tool_name=None,
+        tool_result=None,
+        extra={
+            "runtime_mutation_allowed": False,
+            "truth_selection_forbidden": True,
+            "websearch_runtime_truth_allowed": False,
+        },
+    )
+
+
 def _base_case_payload(
     *,
     case: RetrieverExecutionCase,
@@ -231,6 +267,9 @@ def _base_case_payload(
         "route_plan": {
             "primary_backend": route_plan.primary_backend,
             "backend_sequence": list(route_plan.backend_sequence),
+            "retrieval_intent_source": route_plan.retrieval_intent_source,
+            "manager_owned_intent_required": route_plan.manager_owned_intent_required,
+            "raw_text_hint_executed": route_plan.raw_text_hint_executed,
             "read_only": route_plan.read_only,
             "mutation_allowed": route_plan.mutation_allowed,
             "decides_logged_or_draft": route_plan.decides_logged_or_draft,
@@ -340,6 +379,21 @@ def _default_cases() -> tuple[RetrieverExecutionCase, ...]:
                 modifier_hints=[],
                 listed_items=[],
                 retrieval_goal="composition_clarification",
+            ),
+        ),
+        RetrieverExecutionCase(
+            case_id="raw_text_hint_does_not_execute_backend",
+            raw_query="boba",
+            expected_primary_backend="blocked_no_execution",
+            intent_source="raw_text_hint",
+            intent=RetrievalIntent(
+                base_dish="bubble milk tea",
+                aliases=["boba"],
+                brand_hint=None,
+                size_hint=None,
+                modifier_hints=[],
+                listed_items=[],
+                retrieval_goal="generic_anchor_lookup",
             ),
         ),
     )

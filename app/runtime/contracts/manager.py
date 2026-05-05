@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Literal
+from typing import Any
+
 from pydantic import BaseModel, Field
+
 
 class ManagerAction(str, Enum):
     call_tools = "call_tools"

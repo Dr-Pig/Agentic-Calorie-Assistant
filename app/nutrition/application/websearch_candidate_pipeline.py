@@ -163,6 +163,7 @@ def _classify_candidate_packet(
     source_quality = str(packet.get("source_quality_label") or "")
     match_type = str(packet.get("match_type") or "")
     size_match = str(packet.get("size_or_serving_match") or "")
+    modifier_match = str(packet.get("modifier_match") or "")
     sibling_risk = bool((packet.get("sibling_variant_risk") or {}).get("present"))
     if source_policy["candidate_class"] == "blocked_source_policy_candidate":
         candidate_class = "blocked_source_policy_candidate"
@@ -170,8 +171,14 @@ def _classify_candidate_packet(
     elif source_quality == "third_party":
         candidate_class = "weak_or_unusable_candidate"
         manager_signal = "source_not_sufficient"
+    elif source_policy["block_reasons"]:
+        candidate_class = "blocked_source_policy_candidate"
+        manager_signal = "source_policy_blocked"
     elif "wrong_size" in risks or size_match == "different":
         candidate_class = "near_exact_wrong_size_candidate"
+        manager_signal = "needs_disambiguation"
+    elif modifier_match == "unknown":
+        candidate_class = "near_exact_modifier_unknown_candidate"
         manager_signal = "needs_disambiguation"
     elif sibling_risk or "sibling_variant" in risks or match_type == "related":
         candidate_class = "near_exact_sibling_candidate"
@@ -202,6 +209,7 @@ def _classify_candidate_packet(
         "source_class": source_class,
         "match_type": match_type,
         "size_or_serving_match": size_match,
+        "modifier_match": modifier_match,
         "hard_recheck_risks": risks,
         "source_policy_block_reasons": list(source_policy["block_reasons"]),
     }
@@ -289,6 +297,12 @@ def _default_cases() -> tuple[WebSearchPipelineCase, ...]:
         alias="Starbucks iced latte large",
         brand_hint="Starbucks",
         size_hint="large",
+    )
+    milksha_half_sugar_intent = _intent(
+        base_dish="pearl black tea latte",
+        alias="Milksha pearl black tea latte half sugar",
+        brand_hint="Milksha",
+        modifier_hints=("half sugar",),
     )
     return (
         WebSearchPipelineCase(
@@ -415,6 +429,46 @@ def _default_cases() -> tuple[WebSearchPipelineCase, ...]:
                 ),
             ),
         ),
+        WebSearchPipelineCase(
+            case_id="pipeline_modifier_missing",
+            intent=milksha_half_sugar_intent,
+            raw_hits=(
+                _hit(
+                    title="Milksha pearl black tea latte",
+                    url="https://milksha.example/menu/pearl-black-tea-latte",
+                    brand_detected="Milksha",
+                    identity_confidence="high",
+                    raw_ref="raw/websearch/pipeline_modifier_missing.json#0",
+                ),
+            ),
+        ),
+        WebSearchPipelineCase(
+            case_id="pipeline_wrong_brand_official",
+            intent=milksha_intent,
+            raw_hits=(
+                _hit(
+                    title="Other Tea pearl black tea latte",
+                    url="https://other-tea.example/menu/pearl-black-tea-latte",
+                    brand_detected="Other Tea",
+                    identity_confidence="high",
+                    raw_ref="raw/websearch/pipeline_wrong_brand_official.json#0",
+                ),
+            ),
+        ),
+        WebSearchPipelineCase(
+            case_id="pipeline_social_media_untrusted",
+            intent=milksha_intent,
+            raw_hits=(
+                _hit(
+                    title="Milksha pearl black tea latte social post",
+                    url="https://social.example/milksha/pearl-black-tea-latte",
+                    brand_detected="Milksha",
+                    source_class="social_media_page",
+                    identity_confidence="high",
+                    raw_ref="raw/websearch/pipeline_social_media_untrusted.json#0",
+                ),
+            ),
+        ),
     )
 
 
@@ -424,13 +478,14 @@ def _intent(
     alias: str,
     brand_hint: str,
     size_hint: str | None = None,
+    modifier_hints: tuple[str, ...] = (),
 ) -> RetrievalIntent:
     return RetrievalIntent(
         base_dish=base_dish,
         aliases=[alias],
         brand_hint=brand_hint,
         size_hint=size_hint,
-        modifier_hints=[],
+        modifier_hints=list(modifier_hints),
         listed_items=[],
         retrieval_goal="exact_brand_lookup",
     )
