@@ -10,6 +10,7 @@ from app.nutrition.application.exact_evidence_lane_policy import (
 )
 from app.nutrition.application.grokfast_websearch_packet_diagnostic import (
     GROKFAST_WEBSEARCH_PACKET_PROFILE,
+    WEBSEARCH_PACKET_MANAGER_REQUIRED_FIELDS,
     build_fixture_manager_outputs,
     build_grokfast_websearch_packet_diagnostic,
     build_live_manager_payload,
@@ -28,6 +29,9 @@ from app.nutrition.application.websearch_live_extract_preflight import (
 from app.nutrition.application.websearch_selected_extract_packet_smoke import (
     build_websearch_selected_extract_packet_smoke,
 )
+from app.providers.builderspace_runtime_contract import validate_manager_payload
+from app.runtime.agent.manager_branch_contract import should_attempt_b1_pass2_structured_output_transport
+from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 
 
 def _review_packet() -> dict[str, object]:
@@ -68,6 +72,109 @@ def test_grokfast_websearch_packet_diagnostic_classifies_fixture_review_packet_u
     assert diagnostic["provider_profile"]["provider_profile_id"] == (
         GROKFAST_WEBSEARCH_PACKET_PROFILE["provider_profile_id"]
     )
+
+
+def test_grokfast_websearch_fixture_outputs_match_b1_pass2_manager_schema() -> None:
+    review_packet = _review_packet()
+    constraints = build_live_manager_payload(
+        review_packet=review_packet["review_packets"][0]
+    )["constraints"]
+    manager_outputs = build_fixture_manager_outputs(review_packet_artifact=review_packet)
+
+    assert should_attempt_b1_pass2_structured_output_transport(constraints) is True
+    for output in manager_outputs:
+        manager_output = output["manager_output"]
+        for field in WEBSEARCH_PACKET_MANAGER_REQUIRED_FIELDS:
+            assert field in manager_output
+        validate_manager_payload(
+            MANAGER_LOOP_STAGE,
+            manager_output,
+            constraints=constraints,
+        )
+
+
+def test_grokfast_websearch_live_payload_selects_structured_pass2_contract() -> None:
+    packet = _review_packet()["review_packets"][0]
+    payload = build_live_manager_payload(review_packet=packet)
+
+    assert payload["constraints"]["phase_b1_manager_role"] == "pass_2_synthesis"
+    assert payload["constraints"]["phase_b1_pass1_mode"] == "natural_tool_selection_probe"
+    assert payload["constraints"]["phase_b1_case_family"] == "common_commercial_drink"
+    assert should_attempt_b1_pass2_structured_output_transport(payload["constraints"]) is True
+    assert payload["expected_output_contract"]["required_top_level_fields"] == list(
+        WEBSEARCH_PACKET_MANAGER_REQUIRED_FIELDS
+    )
+    assert payload["expected_output_contract"]["target_attachment"] == {}
+    assert payload["expected_output_contract"]["forbidden_top_level_fields"] == ["item_results"]
+    assert packet["packet_id"] in payload["allowed_evidence_refs"]
+    assert packet["source_url"] in payload["allowed_evidence_refs"]
+
+
+def test_grokfast_websearch_packet_diagnostic_flags_missing_manager_contract_fields() -> None:
+    packet = _review_packet()["review_packets"][0]
+    manager_output = build_fixture_manager_outputs(
+        review_packet_artifact={"review_packets": [packet]}
+    )[0]["manager_output"]
+    manager_output.pop("intent")
+
+    result = evaluate_manager_output_against_review_packet(
+        review_packet=packet,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert result["missing_manager_contract_fields"] == ["intent"]
+    assert "manager_contract_required_fields_missing" in result["failure_families"]
+
+
+def test_grokfast_websearch_packet_diagnostic_flags_schema_invalid_field_shape() -> None:
+    packet = _review_packet()["review_packets"][0]
+    manager_output = build_fixture_manager_outputs(
+        review_packet_artifact={"review_packets": [packet]}
+    )[0]["manager_output"]
+    manager_output["target_attachment"] = "not-a-dict"
+
+    result = evaluate_manager_output_against_review_packet(
+        review_packet=packet,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "manager_contract_schema_validation_failed" in result["failure_families"]
+    assert "target_attachment:expected_dict" in result["manager_contract_validation_errors"]
+
+
+def test_grokfast_websearch_packet_diagnostic_applies_injected_contract_validator() -> None:
+    packet = _review_packet()["review_packets"][0]
+    diagnostic = build_grokfast_websearch_packet_diagnostic(
+        review_packet_artifact={"review_packets": [packet]},
+        manager_outputs=build_fixture_manager_outputs(review_packet_artifact={"review_packets": [packet]}),
+        live_provider_used=False,
+        manager_contract_validator=lambda _packet, _output: ["external-schema-error"],
+    )
+
+    assert diagnostic["status"] == "diagnostic_fail"
+    assert diagnostic["summary"]["failure_families"] == ["manager_contract_schema_validation_failed"]
+    assert diagnostic["cases"][0]["manager_contract_validation_errors"] == ["external-schema-error"]
+
+
+def test_grokfast_websearch_packet_diagnostic_flags_review_candidate_target_attachment() -> None:
+    packet = _review_packet()["review_packets"][0]
+    manager_output = build_fixture_manager_outputs(
+        review_packet_artifact={"review_packets": [packet]}
+    )[0]["manager_output"]
+    manager_output["target_attachment"] = {
+        "packet_id": packet["packet_id"],
+        "review_kcal_candidate": 400,
+    }
+
+    result = evaluate_manager_output_against_review_packet(
+        review_packet=packet,
+        manager_output=manager_output,
+    )
+
+    assert result["status"] == "fail"
+    assert "review_candidate_attached_as_mutation_target" in result["failure_families"]
 
 
 def test_grokfast_websearch_packet_diagnostic_flags_truth_promotion_attempt() -> None:
