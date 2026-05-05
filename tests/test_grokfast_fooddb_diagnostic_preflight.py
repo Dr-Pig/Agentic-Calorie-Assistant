@@ -6,6 +6,9 @@ from app.nutrition.application.grokfast_fooddb_diagnostic_preflight import (
     build_grokfast_fooddb_diagnostic_preflight,
     is_grokfast_fooddb_preflight_clear,
 )
+from app.nutrition.application.fooddb_grokfast_live_diagnostic_case_matrix import (
+    REQUIRED_CASE_IDS as REQUIRED_FOODDB_GROKFAST_CASE_IDS,
+)
 
 
 def _retrieval_eval_wall(*, fail_count: int = 0) -> dict:
@@ -85,11 +88,54 @@ def _manager_packet_smoke(
     }
 
 
+def _case_matrix(
+    *,
+    status: str = "pass",
+    plan_only: bool = True,
+    live_provider_invoked: bool = False,
+    websearch_invoked: bool = False,
+    case_count: int = 5,
+) -> dict:
+    return {
+        "artifact_type": "accurate_intake_fooddb_grokfast_packet_live_diagnostic_case_matrix",
+        "status": status,
+        "plan_only": plan_only,
+        "live_llm_invoked": False,
+        "live_provider_invoked": live_provider_invoked,
+        "websearch_invoked": websearch_invoked,
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "manager_context_packet_changed": False,
+        "shared_contract_changed": False,
+        "product_readiness_claimed": False,
+        "private_self_use_approved": False,
+        "non_claims": [
+            "not_full_self_use_gate",
+            "not_websearch_exact_card_gate",
+            "not_final_response_quality_gate",
+            "not_production_readiness",
+            "not_private_self_use_approval",
+            "not_kimi_activation",
+            "not_runtime_mutation_gate",
+        ],
+        "summary": {
+            "case_count": case_count,
+            "modifier_guard_cases": 2,
+            "bare_basket_cases": 1,
+            "listed_basket_cases": 1,
+            "websearch_cases": 0,
+            "exact_card_cases": 0,
+        },
+        "cases": [{"case_id": case_id} for case_id in REQUIRED_FOODDB_GROKFAST_CASE_IDS],
+    }
+
+
 def test_grokfast_fooddb_diagnostic_preflight_clears_only_when_all_upstream_gates_pass() -> None:
     artifact = build_grokfast_fooddb_diagnostic_preflight(
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        case_matrix_artifact=_case_matrix(),
     )
 
     assert artifact["artifact_type"] == "accurate_intake_grokfast_fooddb_diagnostic_preflight_v1"
@@ -100,6 +146,10 @@ def test_grokfast_fooddb_diagnostic_preflight_clears_only_when_all_upstream_gate
     assert artifact["runtime_truth_changed"] is False
     assert artifact["mutation_changed"] is False
     assert artifact["next_required_slice"] == "grokfast_fooddb_packet_live_diagnostic"
+    assert artifact["summary"]["case_matrix_status"] == "pass"
+    assert artifact["summary"]["case_matrix_plan_only"] is True
+    assert artifact["summary"]["case_matrix_case_count"] == 5
+    assert artifact["summary"]["case_matrix_non_claim_count"] == 7
     assert is_grokfast_fooddb_preflight_clear(artifact) is True
 
 
@@ -108,6 +158,7 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_retrieval_eval_failures() -
         retrieval_eval_wall_artifact=_retrieval_eval_wall(fail_count=1),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        case_matrix_artifact=_case_matrix(),
     )
 
     assert artifact["status"] == "blocked"
@@ -125,6 +176,7 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_manager_contract_handoff_re
             handoff_ready=True,
         ),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        case_matrix_artifact=_case_matrix(),
     )
 
     assert artifact["status"] == "blocked"
@@ -138,6 +190,7 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_noncompact_packet_smoke() -
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(leak=True),
+        case_matrix_artifact=_case_matrix(),
     )
 
     assert artifact["status"] == "blocked"
@@ -153,6 +206,7 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_packet_overclaims() -> None
             readiness_claimed=True,
             runtime_mutation_attempted=True,
         ),
+        case_matrix_artifact=_case_matrix(),
     )
 
     assert artifact["status"] == "blocked"
@@ -165,12 +219,15 @@ def test_grokfast_fooddb_preflight_clear_helper_rejects_forged_summary() -> None
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        case_matrix_artifact=_case_matrix(),
     )
     forged = {
         **artifact,
         "summary": {
             **artifact["summary"],
             "retrieval_eval_fail_count": 1,
+            "case_matrix_shared_contract_changed": True,
+            "case_matrix_non_claim_count": 1,
         },
     }
 
@@ -180,6 +237,93 @@ def test_grokfast_fooddb_preflight_clear_helper_rejects_forged_summary() -> None
     assert is_grokfast_fooddb_preflight_clear(forged) is False
 
 
+def test_grokfast_fooddb_diagnostic_preflight_requires_case_matrix() -> None:
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        case_matrix_artifact={
+            "artifact_type": "unexpected",
+            "summary": {},
+        },
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "unsupported_fooddb_grokfast_case_matrix_artifact" in artifact["blockers"]
+    assert is_grokfast_fooddb_preflight_clear(artifact) is False
+
+
+def test_grokfast_fooddb_diagnostic_preflight_blocks_ad_hoc_case_matrix() -> None:
+    case_matrix = _case_matrix()
+    case_matrix["cases"] = [{"case_id": "ad_hoc_easy_fooddb_live_case"}]
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        case_matrix_artifact=case_matrix,
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "fooddb_grokfast_case_matrix_required_case_order_mismatch" in artifact["blockers"]
+    assert is_grokfast_fooddb_preflight_clear(artifact) is False
+
+
+def test_grokfast_fooddb_diagnostic_preflight_blocks_case_matrix_overclaims() -> None:
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        case_matrix_artifact=_case_matrix(
+            plan_only=False,
+            live_provider_invoked=True,
+            websearch_invoked=True,
+        ),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "fooddb_grokfast_case_matrix_not_plan_only" in artifact["blockers"]
+    assert "fooddb_grokfast_case_matrix_invoked_live_provider" in artifact["blockers"]
+    assert "fooddb_grokfast_case_matrix_invoked_websearch" in artifact["blockers"]
+    assert is_grokfast_fooddb_preflight_clear(artifact) is False
+
+
+def test_grokfast_fooddb_diagnostic_preflight_blocks_case_matrix_contract_changes() -> None:
+    case_matrix = _case_matrix()
+    case_matrix["shared_contract_changed"] = True
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        case_matrix_artifact=case_matrix,
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "fooddb_grokfast_case_matrix_changed_shared_contract" in artifact["blockers"]
+    assert is_grokfast_fooddb_preflight_clear(artifact) is False
+
+
+def test_grokfast_fooddb_diagnostic_preflight_blocks_missing_case_matrix_non_claims() -> None:
+    case_matrix = _case_matrix()
+    case_matrix["non_claims"] = ["not_full_self_use_gate"]
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        case_matrix_artifact=case_matrix,
+    )
+
+    assert artifact["status"] == "blocked"
+    assert (
+        "fooddb_grokfast_case_matrix_missing_non_claim.not_websearch_exact_card_gate"
+        in artifact["blockers"]
+    )
+    assert (
+        "fooddb_grokfast_case_matrix_missing_non_claim.not_runtime_mutation_gate"
+        in artifact["blockers"]
+    )
+    assert is_grokfast_fooddb_preflight_clear(artifact) is False
+
+
 def test_grokfast_fooddb_diagnostic_preflight_script_roundtrip(tmp_path: Path) -> None:
     from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
     from scripts.build_accurate_intake_grokfast_fooddb_diagnostic_preflight import main
@@ -187,10 +331,12 @@ def test_grokfast_fooddb_diagnostic_preflight_script_roundtrip(tmp_path: Path) -
     retrieval_path = tmp_path / "retrieval.json"
     fooddb_status_path = tmp_path / "fooddb_status.json"
     packet_path = tmp_path / "packet.json"
+    case_matrix_path = tmp_path / "case_matrix.json"
     output = tmp_path / "preflight.json"
     write_json_artifact(retrieval_path, _retrieval_eval_wall())
     write_json_artifact(fooddb_status_path, _fooddb_status())
     write_json_artifact(packet_path, _manager_packet_smoke())
+    write_json_artifact(case_matrix_path, _case_matrix())
 
     assert (
         main(
@@ -201,6 +347,8 @@ def test_grokfast_fooddb_diagnostic_preflight_script_roundtrip(tmp_path: Path) -
                 str(fooddb_status_path),
                 "--manager-packet-smoke",
                 str(packet_path),
+                "--case-matrix",
+                str(case_matrix_path),
                 "--output",
                 str(output),
             ]
@@ -266,6 +414,7 @@ def test_grokfast_fooddb_packet_live_script_rejects_forged_clear_preflight(tmp_p
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        case_matrix_artifact=_case_matrix(),
     )
     write_json_artifact(
         preflight_path,
