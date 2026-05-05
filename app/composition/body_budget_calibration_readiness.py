@@ -394,6 +394,7 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
                 "conflict_status_code": 409,
                 "unknown_user_status_code": 404,
                 "user_creation_authorized": False,
+                "accepted_at_request_validation": "iso_datetime_with_date_and_time",
                 "plan_changing_families": sorted(PLAN_CHANGING_CALIBRATION_FAMILIES),
                 "body_plan_mutation_authorized_on_accept": True,
                 "day_budget_ledger_refresh_authorized_on_accept": True,
@@ -478,6 +479,7 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
                 ],
                 "accepted_at_field": "calibration_action_accepted_at",
                 "accepted_at_role": "optional_backend_effective_date_input",
+                "accepted_at_format": "iso_datetime_with_date_and_time",
                 "effective_from_owner": "stored_action_contract",
                 "frontend_effective_date_calculation_authorized": False,
                 "accepted_actions": [

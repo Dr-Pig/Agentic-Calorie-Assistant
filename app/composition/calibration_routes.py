@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.body.application.calibration_model import CalibrationModelInputs
 from app.composition.calibration_commit_bridge import (
@@ -27,6 +27,19 @@ from app.shared.infra.models import User
 
 router = APIRouter()
 public_router = APIRouter()
+
+
+def _validate_accepted_at(value: str | None) -> str | None:
+    if value is None:
+        return None
+    candidate = value.strip()
+    if not candidate or ("T" not in candidate and " " not in candidate):
+        raise ValueError("accepted_at must include a date and time")
+    try:
+        datetime.fromisoformat(candidate)
+    except ValueError as exc:
+        raise ValueError("accepted_at must be an ISO datetime") from exc
+    return candidate
 
 
 class CalibrationProposalPreviewRequest(BaseModel):
@@ -57,12 +70,22 @@ class CalibrationProposalActionRequest(BaseModel):
     action: Literal["accept_calibration_proposal", "defer_calibration_proposal", "reject_calibration_proposal"]
     accepted_at: str | None = None
 
+    @field_validator("accepted_at")
+    @classmethod
+    def _validate_accepted_at_field(cls, value: str | None) -> str | None:
+        return _validate_accepted_at(value)
+
 
 class StoredCalibrationProposalActionRequest(BaseModel):
     user_id: str
     proposal_container_id: int
     action: Literal["accept_calibration_proposal", "defer_calibration_proposal", "reject_calibration_proposal"]
     accepted_at: str | None = None
+
+    @field_validator("accepted_at")
+    @classmethod
+    def _validate_accepted_at_field(cls, value: str | None) -> str | None:
+        return _validate_accepted_at(value)
 
 
 class CalibrationProposalExpiryRequest(BaseModel):

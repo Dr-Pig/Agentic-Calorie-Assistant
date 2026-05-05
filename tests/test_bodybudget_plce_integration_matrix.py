@@ -138,6 +138,7 @@ def test_bodybudget_plce_integration_matrix_tracks_calibration_router_activation
     assert "root app mounts `public_router`" in matrix
     assert "do not mount the full internal calibration router into the root app" in matrix
     assert "must not create unknown users" in matrix
+    assert "`accepted_at` must include date and time" in matrix
 
 
 def test_bodybudget_plce_integration_matrix_distinguishes_proposal_route_projection() -> None:

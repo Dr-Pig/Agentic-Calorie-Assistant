@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -134,6 +135,15 @@ def _meal(db: Session, *, user_id: int, local_date: str, kcal: int = 1800) -> Me
     db.commit()
     db.refresh(version)
     return version
+
+
+def _calibration_effect_payload(*, budget: int = 2000) -> dict[str, object]:
+    return {
+        "new_daily_budget_kcal": budget,
+        "new_estimated_tdee_kcal": 2100,
+        "review_after_days": 14,
+        "rationale_summary": "route test calibration effect",
+    }
 
 
 def test_calibration_preview_route_preserves_existing_fields_and_adds_diagnostic_packet() -> None:
@@ -421,6 +431,83 @@ def test_stored_calibration_action_rejects_unknown_user_without_creating_user_or
     assert db.execute(select(BodyPlanRecord)).scalars().all() == []
     assert db.execute(select(DayBudgetLedgerRecord)).scalars().all() == []
     assert db.execute(select(LedgerEntryRecord)).scalars().all() == []
+
+
+@pytest.mark.parametrize("invalid_accepted_at", ["not-a-date", "2026-05-04"])
+def test_calibration_action_rejects_invalid_accepted_at_without_mutation(invalid_accepted_at: str) -> None:
+    db = _session()
+    client = _client(db)
+    user = get_or_create_user(db, f"calibration-action-invalid-accepted-at-{invalid_accepted_at}")
+    baseline_plan = _active_body_plan(db, user_id=user.id)
+
+    response = client.post(
+        "/calibration/proposal/action",
+        json={
+            "user_id": user.user_id,
+            "local_date": "2026-05-04",
+            "proposal_family": "budget_adjustment",
+            "effect_payload": _calibration_effect_payload(),
+            "action": "accept_calibration_proposal",
+            "accepted_at": invalid_accepted_at,
+        },
+    )
+
+    assert response.status_code == 422
+    active_plan = db.execute(select(BodyPlanRecord).where(BodyPlanRecord.plan_status == "active")).scalar_one()
+    assert active_plan.id == baseline_plan.id
+    assert active_plan.daily_budget_kcal == 1800
+    assert db.execute(select(ProposalContainerRecord)).scalars().all() == []
+    assert db.execute(select(DayBudgetLedgerRecord)).scalars().all() == []
+
+
+@pytest.mark.parametrize("invalid_accepted_at", ["not-a-date", "2026-05-04"])
+def test_stored_calibration_action_rejects_invalid_accepted_at_without_mutation(invalid_accepted_at: str) -> None:
+    db = _session()
+    client = _client(db)
+    user = get_or_create_user(db, f"stored-calibration-action-invalid-accepted-at-{invalid_accepted_at}")
+    baseline_plan = _active_body_plan(db, user_id=user.id)
+    preview = client.post(
+        "/calibration/proposal/preview",
+        json={
+            "user_id": user.user_id,
+            "local_date": "2026-05-04",
+            "current_budget_status": "over_budget",
+            "rescue_recovery_viability": "non_viable",
+            "persist_proposal": True,
+            "model_inputs": {
+                "body_plan_estimated_tdee_kcal": 2100,
+                "observation_window_days": 21,
+                "body_observation_count": 9,
+                "intake_coverage": 0.93,
+                "operating_expenditure_shift_kcal": 340,
+                "trend_mismatch_consistency": 0.9,
+                "trend_volatility": 0.1,
+                "logging_gap_ratio": 0.05,
+                "late_logged_meal_ratio": 0.05,
+            },
+        },
+    )
+    proposal_id = preview.json()["proposal_artifact"]["proposal_container_id"]
+
+    response = client.post(
+        "/calibration/proposal/stored-action",
+        json={
+            "user_id": user.user_id,
+            "proposal_container_id": proposal_id,
+            "action": "accept_calibration_proposal",
+            "accepted_at": invalid_accepted_at,
+        },
+    )
+
+    assert response.status_code == 422
+    proposal = db.get(ProposalContainerRecord, proposal_id)
+    assert proposal is not None
+    assert proposal.proposal_status == "open"
+    assert proposal.accepted_at is None
+    active_plan = db.execute(select(BodyPlanRecord).where(BodyPlanRecord.plan_status == "active")).scalar_one()
+    assert active_plan.id == baseline_plan.id
+    assert active_plan.daily_budget_kcal == 1800
+    assert db.execute(select(DayBudgetLedgerRecord)).scalars().all() == []
 
 
 def test_stored_calibration_action_rejects_wrong_existing_user_without_mutating_proposal_or_plan() -> None:
