@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import fields
 from types import SimpleNamespace
 
 import pytest
@@ -439,6 +440,12 @@ def test_render_latest_trace_debug_uses_single_trace_lookup(monkeypatch: pytest.
         }
 
     monkeypatch.setattr(module, "find_latest_traces_for_user_date", _fake_batch_lookup, raising=False)
+    monkeypatch.setattr(
+        module,
+        "find_latest_trace_for_user_date",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("should not scan trace files once per bundle")),
+        raising=False,
+    )
 
     html = module.render_latest_trace_debug(user_id="user-1", local_date="2026-04-29")
 
@@ -446,6 +453,15 @@ def test_render_latest_trace_debug_uses_single_trace_lookup(monkeypatch: pytest.
     legacy_execution_trace = "v2_" + "bundle2"
     legacy_turn_trace = "v2_" + "bundle1"
     assert calls == [("user-1", "2026-04-29", ("intake_execution", "intake_turn", legacy_execution_trace, legacy_turn_trace))]
+
+
+def test_trace_debug_fields_do_not_carry_prerendered_html() -> None:
+    from app.budget.interface import today_trace_debug as module
+
+    field_names = {field.name for field in fields(module._TraceDebugFields)}
+
+    assert "manager_decision_html" not in field_names
+    assert "trace_link_html" not in field_names
 
 
 def test_index_html_loader_caches_disk_read(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
