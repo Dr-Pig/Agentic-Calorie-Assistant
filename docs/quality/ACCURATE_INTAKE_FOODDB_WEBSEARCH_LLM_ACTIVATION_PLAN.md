@@ -149,6 +149,10 @@ integration_readiness_matrix_update:
     - retrieval router -> FoodDB local adapter
     - retrieval router -> SQLite FTS adapter
     - retrieval router -> WebSearch candidate
+    - WebSearch candidate -> selected extract request
+    - selected extract request -> extract result review candidate
+    - extract result review candidate -> exact-card review packet
+    - exact-card review packet -> live extract preflight
     - retriever output -> compact packet
     - packet -> Manager seam
     - packet -> mutation guard
