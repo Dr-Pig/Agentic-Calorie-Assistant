@@ -159,6 +159,13 @@ def _int_value(value: Any) -> int:
         return 0
 
 
+def _expected_weight_history_value(payload: dict[str, Any]) -> str:
+    local_date = payload.get("local_date")
+    if isinstance(local_date, str) and local_date:
+        return f"{local_date} | 70.4 kg"
+    return "2026-05-05 | 70.4 kg"
+
+
 def _allowed_statuses(expected_status: Any) -> set[str]:
     if isinstance(expected_status, str):
         return {expected_status}
@@ -237,7 +244,9 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
         for field, expected_value in expected_body_values.items():
             if body_values and body_values.get(field) != expected_value:
                 blockers.append(f"product_pages_browser_smoke.body_read_model_value_mismatch:{field}")
-        if body_values and "2026-05-05 | 70.4 kg" not in str(body_values.get("weight_history") or ""):
+        if body_values and _expected_weight_history_value(payload) not in str(
+            body_values.get("weight_history") or ""
+        ):
             blockers.append("product_pages_browser_smoke.body_read_model_value_mismatch:weight_history")
     if group_id == "product_pages_seven_day_diary_smoke":
         if _int_value(payload.get("day_count_checked")) < 7:
