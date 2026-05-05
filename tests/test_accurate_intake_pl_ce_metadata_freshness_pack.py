@@ -86,6 +86,47 @@ def _fresh_evidence() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "pl_ce_local_mvp_candidate_bundle": {
+            "artifact_type": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
+            "artifact_schema_version": "1.0",
+            "status": "pl_ce_local_mvp_candidate_ready_for_human_review",
+            "generated_at_utc": _fresh_timestamp(),
+            "activation_gate_status": "blocked_pending_human_and_browser_activation",
+            "fooddb_dependency": {
+                "fooddb_artifact_status": "blocked_waiting_for_fdb_artifact",
+                "ready_for_fdb_integration": False,
+            },
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_truth_updated": False,
+            "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
+        "pl_ce_activation_review_manifest": {
+            "artifact_type": "accurate_intake_pl_ce_activation_review_manifest",
+            "artifact_schema_version": "1.0",
+            "status": "pl_ce_activation_review_manifest_ready",
+            "generated_at_utc": _fresh_timestamp(),
+            "human_review_required": True,
+            "live_diagnostic_human_approval_required": True,
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_truth_updated": False,
+            "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "remaining_stop_gates": {
+                "fooddb_artifact_status": "blocked_waiting_for_fdb_artifact",
+                "live_provider_status": "blocked_pending_human_approval",
+            },
+        },
         "ui_same_truth_render_contract": {
             "artifact_type": "accurate_intake_ui_same_truth_render_contract",
             "artifact_schema_version": "1.0",
@@ -126,6 +167,8 @@ def test_pl_ce_metadata_freshness_pack_accepts_current_local_diagnostic_metadata
     assert pack["summary"]["context_replay_scenario_count"] == 12
     assert pack["summary"]["short_term_context_current_gap_scenarios"] == 0
     assert pack["fresh_artifact_count"] == pack["required_artifact_count"]
+    assert "pl_ce_local_mvp_candidate_bundle" in pack["required_artifacts"]
+    assert "pl_ce_activation_review_manifest" in pack["required_artifacts"]
     assert pack["blockers"] == []
 
 
@@ -207,6 +250,37 @@ def test_pl_ce_metadata_freshness_pack_blocks_readiness_and_live_overclaims() ->
     assert pack["product_readiness_claimed"] is False
 
 
+def test_pl_ce_metadata_freshness_pack_blocks_broken_checkpoint_chain() -> None:
+    evidence = _fresh_evidence()
+    evidence["pl_ce_local_mvp_candidate_bundle"]["status"] = "blocked"
+    evidence["pl_ce_local_mvp_candidate_bundle"]["ready_for_fdb_integration"] = True
+    evidence["pl_ce_activation_review_manifest"]["status"] = "blocked"
+    evidence["pl_ce_activation_review_manifest"]["remaining_stop_gates"] = {
+        "fooddb_artifact_status": "ready",
+        "live_provider_status": "ready",
+    }
+
+    pack = build_pl_ce_metadata_freshness_pack(evidence=evidence)
+
+    assert pack["status"] == "blocked"
+    assert "pl_ce_local_mvp_candidate_bundle.unexpected_status" in pack["blockers"]
+    assert "pl_ce_local_mvp_candidate_bundle.ready_for_fdb_integration" in pack["blockers"]
+    assert "pl_ce_activation_review_manifest.unexpected_status" in pack["blockers"]
+    assert "pl_ce_activation_review_manifest.fooddb_stop_gate_missing" in pack["blockers"]
+    assert "pl_ce_activation_review_manifest.live_provider_stop_gate_missing" in pack["blockers"]
+
+
+def test_pl_ce_metadata_freshness_pack_blocks_missing_local_mvp_fooddb_dependency() -> None:
+    evidence = _fresh_evidence()
+    evidence["pl_ce_local_mvp_candidate_bundle"].pop("fooddb_dependency")
+
+    pack = build_pl_ce_metadata_freshness_pack(evidence=evidence)
+
+    assert pack["status"] == "blocked"
+    assert "pl_ce_local_mvp_candidate_bundle.fooddb_stop_gate_missing" in pack["blockers"]
+    assert "pl_ce_local_mvp_candidate_bundle.fooddb_integration_not_blocked" in pack["blockers"]
+
+
 def test_pl_ce_metadata_freshness_pack_cli_writes_output(tmp_path: Path, capsys) -> None:
     from scripts import build_accurate_intake_pl_ce_metadata_freshness_pack as module
 
@@ -224,7 +298,7 @@ def test_pl_ce_metadata_freshness_pack_cli_writes_output(tmp_path: Path, capsys)
 
     assert exit_code == 0
     assert printed["status"] == "metadata_freshness_ready_for_pl_ce_local_review"
-    assert printed["fresh_artifact_count"] == 4
+    assert printed["fresh_artifact_count"] == 6
     assert pack["status"] == "metadata_freshness_ready_for_pl_ce_local_review"
     assert pack["ready_for_fdb_integration"] is False
 
