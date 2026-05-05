@@ -35,6 +35,9 @@ jobs:
       - name: Build merge debt matrix
         run: python scripts/merge_governance/build_merge_debt_matrix.py
 
+      - name: Build Q-owner queue status
+        run: python scripts/merge_governance/build_q_owner_queue.py
+
       - name: Upload merge debt matrix
         if: always()
         uses: actions/upload-artifact@v4
@@ -43,4 +46,6 @@ jobs:
           path: |
             artifacts/merge_debt_matrix.json
             artifacts/merge_debt_matrix.md
+            artifacts/q_owner_queue_status.json
+            artifacts/q_owner_queue_status.md
           if-no-files-found: error
