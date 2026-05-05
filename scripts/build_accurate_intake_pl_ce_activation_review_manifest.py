@@ -16,6 +16,7 @@ from app.composition.accurate_intake_pl_ce_activation_review_manifest import (  
 )
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
+
 DEFAULT_ARTIFACT_PATHS = {
     "pl_ce_local_mvp_candidate_bundle": ROOT
     / "artifacts"

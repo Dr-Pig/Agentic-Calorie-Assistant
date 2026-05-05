@@ -231,6 +231,7 @@ jobs:
           python scripts/build_accurate_intake_pl_ce_local_mvp_candidate_bundle.py \
             --artifact ui_same_truth_contract=artifacts/accurate_intake_ui_same_truth_render_contract_ci.json \
             --artifact context_quality_pack=artifacts/accurate_intake_context_quality_pack_ci.json \
+            --artifact short_term_context_runtime_replay=artifacts/accurate_intake_short_term_context_runtime_replay_ci.json \
             --artifact context_coverage_matrix=artifacts/accurate_intake_pl_ce_context_coverage_matrix_ci.json \
             --artifact context_conditioned_intent_wall=artifacts/accurate_intake_context_conditioned_intent_wall_ci.json \
             --artifact correction_removal_fixture_flow=artifacts/accurate_intake_correction_removal_fixture_flow_ci.json \
@@ -351,6 +352,7 @@ jobs:
           python scripts/build_accurate_intake_pl_ce_local_mvp_candidate_bundle.py \
             --artifact ui_same_truth_contract=artifacts/accurate_intake_ui_same_truth_render_contract_ci.json \
             --artifact context_quality_pack=artifacts/accurate_intake_context_quality_pack_ci.json \
+            --artifact short_term_context_runtime_replay=artifacts/accurate_intake_short_term_context_runtime_replay_ci.json \
             --artifact context_coverage_matrix=artifacts/accurate_intake_pl_ce_context_coverage_matrix_ci.json \
             --artifact context_conditioned_intent_wall=artifacts/accurate_intake_context_conditioned_intent_wall_ci.json \
             --artifact correction_removal_fixture_flow=artifacts/accurate_intake_correction_removal_fixture_flow_ci.json \
