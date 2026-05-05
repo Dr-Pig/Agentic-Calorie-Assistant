@@ -87,6 +87,8 @@ def test_body_budget_calibration_readiness_artifact_records_preview_and_action_m
     stored_action = artifact["calibration_flow_contract"]["stored_action"]
     assert stored_action["mutation_requires"] == "explicit_accept_on_active_stored_proposal"
     assert stored_action["conflict_status_code"] == 409
+    assert stored_action["unknown_user_status_code"] == 404
+    assert stored_action["user_creation_authorized"] is False
     assert stored_action["body_plan_mutation_authorized_on_accept"] is True
     assert stored_action["ledger_entry_calibration_adjustment_enabled"] is True
     assert "explicit_effect_payload_calibration_adjustment_delta_kcal" in stored_action[
@@ -125,16 +127,28 @@ def test_body_budget_calibration_readiness_artifact_records_preview_and_action_m
     assert estimate_preview["raw_text_authorized_proposal_persistence"] is False
     assert estimate_preview["manager_provider_invoked"] is False
     assert "calibration_preview_requested" in estimate_preview["requires"]
+    assert estimate_preview["surfaces_proposal_response"] is True
+    assert "reply_text" not in estimate_preview["proposal_response_fields"]
+    assert "top_option" not in estimate_preview["proposal_response_fields"]
+    assert "backup_options" not in estimate_preview["proposal_response_fields"]
+    assert "proposal_cards" in estimate_preview["proposal_response_fields"]
+    assert "quick_actions" in estimate_preview["proposal_response_fields"]
+    assert "proposal_container_id" in estimate_preview["proposal_response_fields"]
+    assert "stored_action_required" in estimate_preview["proposal_response_fields"]
+    assert "raw_text_authorized_mutation" in estimate_preview["proposal_response_fields"]
     estimate_bridge = artifact["calibration_flow_contract"]["estimate_route_action_bridge"]
     assert estimate_bridge["route"] == "/estimate"
     assert estimate_bridge["mode"] == "calibration_action"
     assert estimate_bridge["raw_text_authorized_mutation"] is False
     assert estimate_bridge["manager_provider_invoked"] is False
     assert estimate_bridge["accepted_at_field"] == "calibration_action_accepted_at"
+    assert estimate_bridge["accepted_at_format"] == "iso_datetime_with_date_and_time"
     assert estimate_bridge["effective_from_owner"] == "stored_action_contract"
     assert estimate_bridge["frontend_effective_date_calculation_authorized"] is False
     assert "calibration_proposal_container_id" in estimate_bridge["requires"]
     assert "accept_calibration_proposal" in estimate_bridge["accepted_actions"]
+    stored_action = artifact["calibration_flow_contract"]["stored_action"]
+    assert stored_action["accepted_at_request_validation"] == "iso_datetime_with_date_and_time"
 
     non_claims = artifact["non_claims"]
     assert non_claims["automatic_calibration_enabled"] is False
