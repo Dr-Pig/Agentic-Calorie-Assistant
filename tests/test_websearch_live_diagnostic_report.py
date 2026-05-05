@@ -156,6 +156,51 @@ def test_websearch_live_diagnostic_report_distinguishes_post_contract_candidate_
     ]
 
 
+def test_websearch_live_diagnostic_report_recognizes_b1_pass2_json_schema_transport() -> None:
+    diagnostic = {
+        "artifact_type": "accurate_intake_grokfast_websearch_packet_smoke",
+        "status": "pass",
+        "live_provider_used": True,
+        "live_websearch_used": False,
+        "summary": {
+            "case_count": 1,
+            "pass_count": 1,
+            "fail_count": 0,
+            "failure_families": [],
+        },
+        "cases": [
+            {
+                "packet_id": "pkt_exact_card_review",
+                "status": "pass",
+                "failure_families": [],
+                "provider_trace": {
+                    "structured_output_transport_attempted": True,
+                    "structured_output_transport_mode": "json_schema",
+                    "structured_output_transport_accepted": True,
+                    "schema_name": "phase_b1_pass2_manager_contract",
+                    "decision_transport_attempted": False,
+                    "decision_transport_contract_breach": False,
+                    "parse_contract_status": "strict_json",
+                },
+            }
+        ],
+    }
+
+    report = build_websearch_live_diagnostic_report(diagnostic_artifact=diagnostic)
+
+    assert report["seam_status"] == "live_diagnostic_pass"
+    assert report["can_expand_websearch_candidate_pipeline"] is True
+    assert report["contract_transport"]["healthy"] is True
+    assert report["contract_transport"]["structured_output_transport_attempted"] is True
+    assert report["contract_transport"]["structured_output_healthy_case_count"] == 1
+    assert report["contract_transport"]["observed_structured_output_transport_modes"] == [
+        "json_schema"
+    ]
+    assert report["contract_transport"]["observed_schema_names"] == [
+        "phase_b1_pass2_manager_contract"
+    ]
+
+
 def test_websearch_live_diagnostic_report_treats_fixture_pass_as_live_not_checked() -> None:
     packet_artifact = _manager_packet_artifact()
     diagnostic = build_grokfast_websearch_packet_diagnostic(
