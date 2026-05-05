@@ -72,7 +72,6 @@ def test_grokfast_websearch_packet_diagnostic_classifies_fixture_review_packet_u
     assert diagnostic["provider_profile"]["provider_profile_id"] == (
         GROKFAST_WEBSEARCH_PACKET_PROFILE["provider_profile_id"]
     )
-
 def test_grokfast_websearch_fixture_outputs_match_b1_pass2_manager_schema() -> None:
     review_packet = _review_packet()
     constraints = build_live_manager_payload(
