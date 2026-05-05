@@ -294,11 +294,13 @@ def evaluate_manager_output_against_packet(
     if expected_behavior == "generic_range_estimate_with_followup_hints":
         if str(manager_output.get("exactness") or "").lower() == "exact":
             failure_families.append("generic_meal_overclaimed_exact")
-        if _unsupported_modifier_adjusted_kcal_range(
+
+    failure_families.extend(
+        _modifier_kcal_adjustment_failure_families(
             evidence_items=evidence_items,
             manager_output=manager_output,
-        ):
-            failure_families.append("unsupported_modifier_adjusted_kcal_range")
+        )
+    )
 
     return {
         "case_id": packet_case.get("case_id"),
@@ -726,37 +728,132 @@ def _manager_contract_shape_errors(manager_output: dict[str, Any]) -> list[str]:
     return sorted(errors)
 
 
-def _unsupported_modifier_adjusted_kcal_range(
+def _modifier_kcal_adjustment_failure_families(
     *,
     evidence_items: list[Any],
     manager_output: dict[str, Any],
-) -> bool:
-    unsupported_ranges: dict[str, list[Any]] = {}
-    for item in evidence_items:
-        if not isinstance(item, dict):
-            continue
-        modifier_compatibility = item.get("modifier_compatibility")
-        if not isinstance(modifier_compatibility, dict):
-            continue
-        if "unsupported" not in {str(value) for value in modifier_compatibility.values()}:
-            continue
-        anchor_id = str(item.get("anchor_id") or "").strip()
-        if anchor_id:
-            unsupported_ranges[anchor_id] = list(item.get("kcal_range") or [])
+) -> list[str]:
+    failure_families: list[str] = []
+    ref_counts = _packet_ref_counts(evidence_items)
+    modifier_guarded_items = [
+        item
+        for item in evidence_items
+        if isinstance(item, dict)
+        and isinstance(item.get("modifier_compatibility"), dict)
+        and bool(item.get("modifier_compatibility"))
+    ]
+    if not modifier_guarded_items:
+        return failure_families
 
-    if not unsupported_ranges:
-        return False
+    guarded_items_by_unique_ref: dict[str, dict[str, Any]] = {}
+    for item in modifier_guarded_items:
+        for ref in _refs_for_packet_item(item):
+            normalized_ref = _normalize_ref(ref)
+            if ref_counts.get(normalized_ref) == 1:
+                guarded_items_by_unique_ref[normalized_ref] = item
+
+    if not guarded_items_by_unique_ref:
+        return failure_families
 
     for item_result in _recursive_values_for_key(manager_output, "item_results"):
         results = item_result if isinstance(item_result, list) else [item_result]
         for result in results:
             if not isinstance(result, dict):
                 continue
-            evidence_refs = {str(ref or "").strip() for ref in result.get("evidence_used") or []}
-            for anchor_id, packet_range in unsupported_ranges.items():
-                if anchor_id in evidence_refs and list(result.get("kcal_range") or []) != packet_range:
-                    return True
-    return False
+            matched_item = _unique_packet_item_for_result(
+                item_result=result,
+                guarded_items_by_unique_ref=guarded_items_by_unique_ref,
+            )
+            if matched_item is None:
+                continue
+            if not _manager_kcal_matches_authorized_packet_values(
+                item_result=result,
+                packet_item=matched_item,
+            ):
+                if "modifier_adjusted_kcal_without_packet_adjustment" not in failure_families:
+                    failure_families.append("modifier_adjusted_kcal_without_packet_adjustment")
+                if _has_literal_unsupported_modifier(matched_item):
+                    if "unsupported_modifier_adjusted_kcal_range" not in failure_families:
+                        failure_families.append("unsupported_modifier_adjusted_kcal_range")
+    return failure_families
+
+
+def _packet_ref_counts(evidence_items: list[Any]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in evidence_items:
+        if not isinstance(item, dict):
+            continue
+        for ref in _refs_for_packet_item(item):
+            normalized_ref = _normalize_ref(ref)
+            counts[normalized_ref] = counts.get(normalized_ref, 0) + 1
+    return counts
+
+
+def _refs_for_packet_item(item: dict[str, Any]) -> set[str]:
+    return _allowed_evidence_refs([item])
+
+
+def _unique_packet_item_for_result(
+    *,
+    item_result: dict[str, Any],
+    guarded_items_by_unique_ref: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    evidence_refs = {
+        _normalize_ref(str(ref or ""))
+        for ref in item_result.get("evidence_used") or []
+        if ref
+    }
+    for key in ("food_name", "canonical_name"):
+        value = str(item_result.get(key) or "").strip()
+        if value:
+            evidence_refs.add(_normalize_ref(value))
+    matched_items = {
+        id(guarded_items_by_unique_ref[ref]): guarded_items_by_unique_ref[ref]
+        for ref in evidence_refs
+        if ref in guarded_items_by_unique_ref
+    }
+    if len(matched_items) != 1:
+        return None
+    return next(iter(matched_items.values()))
+
+
+def _manager_kcal_matches_authorized_packet_values(
+    *,
+    item_result: dict[str, Any],
+    packet_item: dict[str, Any],
+) -> bool:
+    authorized_range = _authorized_kcal_range(packet_item)
+    if authorized_range is not None and list(item_result.get("kcal_range") or []) != authorized_range:
+        return False
+
+    authorized_point = _authorized_kcal_point(packet_item)
+    if authorized_point is not None:
+        result_point = item_result.get("likely_kcal")
+        if result_point != authorized_point:
+            return False
+    return True
+
+
+def _authorized_kcal_range(packet_item: dict[str, Any]) -> list[Any] | None:
+    for key in ("adjusted_kcal_range", "modifier_adjusted_kcal_range", "kcal_range"):
+        value = packet_item.get(key)
+        if isinstance(value, list):
+            return list(value)
+    return None
+
+
+def _authorized_kcal_point(packet_item: dict[str, Any]) -> Any:
+    for key in ("adjusted_kcal_point", "modifier_adjusted_kcal_point", "kcal_point"):
+        if key in packet_item:
+            return packet_item.get(key)
+    return None
+
+
+def _has_literal_unsupported_modifier(packet_item: dict[str, Any]) -> bool:
+    modifier_compatibility = packet_item.get("modifier_compatibility")
+    if not isinstance(modifier_compatibility, dict):
+        return False
+    return "unsupported" in {str(value) for value in modifier_compatibility.values()}
 
 
 def _now() -> str:
