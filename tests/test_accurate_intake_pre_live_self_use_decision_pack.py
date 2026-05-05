@@ -96,6 +96,30 @@ def _evidence(**overrides: dict) -> dict:
                 "ambiguity_cases": 1,
             },
         },
+        "context_live_provider_input_preflight": {
+            "status": "pass",
+            "plan_only": True,
+            "fixture_only": True,
+            "provider_call_ready": False,
+            "human_approval_required_before_live_provider": True,
+            "fixed_case_matrix_used": True,
+            "response_schema_strict": True,
+            "deterministic_selected_intent": False,
+            "raw_text_intent_router_used": False,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "fooddb_used": False,
+            "web_tavily_used": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "summary": {
+                "case_count": 11,
+                "blocked_input_count": 0,
+                "strict_schema_input_count": 11,
+                "target_candidate_inputs": 4,
+                "pending_pin_inputs": 2,
+            },
+        },
     }
     evidence.update(overrides)
     return evidence
@@ -271,6 +295,63 @@ def test_pre_live_decision_pack_requires_context_live_anti_overfit_guard() -> No
     assert pack["selected_option"] == "stay_local_self_use"
     assert "context_live_diagnostic_anti_overfit_guard" in pack["missing_evidence"]
     assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_requires_context_live_provider_input_preflight() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(context_live_provider_input_preflight={})
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "context_live_provider_input_preflight" in pack["missing_evidence"]
+    assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_blocks_unsafe_context_live_provider_input_preflight() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            context_live_provider_input_preflight={
+                "status": "pass",
+                "plan_only": False,
+                "fixture_only": False,
+                "provider_call_ready": True,
+                "human_approval_required_before_live_provider": False,
+                "fixed_case_matrix_used": False,
+                "response_schema_strict": False,
+                "deterministic_selected_intent": True,
+                "raw_text_intent_router_used": True,
+                "live_provider_invoked": True,
+                "fooddb_used": True,
+                "manager_context_packet_schema_changed": True,
+                "summary": {
+                    "case_count": 1,
+                    "blocked_input_count": 1,
+                    "strict_schema_input_count": 1,
+                    "target_candidate_inputs": 0,
+                    "pending_pin_inputs": 0,
+                },
+            }
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "context_live_provider_input_preflight" in pack["missing_evidence"]
+    assert "context_live_provider_input_preflight_live_provider_invoked" in pack["blockers"]
+    assert "context_live_provider_input_preflight_fooddb_used" in pack["blockers"]
+    assert (
+        "context_live_provider_input_preflight_manager_context_packet_schema_changed"
+        in pack["blockers"]
+    )
+    assert "context_live_provider_input_preflight_provider_call_ready" in pack["blockers"]
+    assert "context_live_provider_input_preflight_fixed_case_matrix_missing" in pack["blockers"]
+    assert "context_live_provider_input_preflight_response_schema_not_strict" in pack["blockers"]
+    assert "context_live_provider_input_preflight_deterministic_selected_intent" in pack["blockers"]
+    assert "context_live_provider_input_preflight_raw_text_intent_router_used" in pack["blockers"]
+    assert "context_live_provider_input_preflight_case_count_too_low" in pack["blockers"]
+    assert "context_live_provider_input_preflight_blocked_input_count_nonzero" in pack["blockers"]
+    assert "context_live_provider_input_preflight_strict_schema_count_too_low" in pack["blockers"]
+    assert "context_live_provider_input_preflight_target_candidate_inputs_missing" in pack["blockers"]
+    assert "context_live_provider_input_preflight_pending_pin_inputs_missing" in pack["blockers"]
 
 
 def test_pre_live_decision_pack_blocks_unsafe_context_live_anti_overfit_guard() -> None:
