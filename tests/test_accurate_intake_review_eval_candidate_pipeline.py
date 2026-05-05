@@ -238,6 +238,25 @@ def test_review_eval_candidate_pipeline_consumes_real_target_candidate_ui_smoke_
     assert session_candidate["source_status"] == "session_context_carryover_qa_ready_for_human_review"
 
 
+def test_review_eval_candidate_pipeline_consumes_real_short_term_context_smoke_when_available(
+    tmp_path: Path,
+) -> None:
+    short_term_path = tmp_path / "short-term-context-smoke.json"
+    smoke = {
+        **module._product_pages_short_term_context_smoke(),
+        "pending_followup_reloaded": False,
+        "source": "browser_artifact_under_test",
+    }
+    short_term_path.write_text(json.dumps(smoke), encoding="utf-8")
+
+    artifact = module.build_review_eval_candidate_pipeline_report(
+        short_term_context_smoke_path=short_term_path,
+    )
+
+    assert artifact["status"] == "fail"
+    assert "session_context_carryover_qa_bundle.unexpected_status:blocked" in artifact["blockers"]
+
+
 def test_review_eval_candidate_pipeline_script_stays_out_of_fooddb_websearch_and_live_boundaries() -> None:
     source = Path("scripts/build_accurate_intake_review_eval_candidate_pipeline.py").read_text(encoding="utf-8")
 
