@@ -311,8 +311,21 @@ def _validate(scenarios: list[dict[str, Any]]) -> list[str]:
         blockers.append("required_scenario_order_mismatch")
     for scenario in scenarios:
         scenario_id = str(scenario.get("scenario_id") or "unknown")
+        expected_posture = str(scenario.get("expected_semantic_posture") or "")
+        fixture_decision = scenario.get("fixture_manager_decision")
+        fixture_decision = fixture_decision if isinstance(fixture_decision, dict) else {}
+        fixture_posture = str(fixture_decision.get("expected_semantic_posture") or "")
+        mutation_candidate = str(fixture_decision.get("mutation_intent_candidate") or "")
         if scenario.get("semantic_owner") != "fixture_manager_structured_decision":
             blockers.append(f"{scenario_id}.semantic_owner_not_fixture_manager")
+        if scenario.get("raw_user_input_role") != "display_only":
+            blockers.append(f"{scenario_id}.raw_user_input_role_not_display_only")
+        if fixture_decision.get("semantic_source") != "fixture_manager_structured_decision":
+            blockers.append(f"{scenario_id}.fixture_decision_semantic_source_not_manager")
+        if fixture_posture != expected_posture:
+            blockers.append(f"{scenario_id}.fixture_decision_posture_mismatch")
+        if scenario.get("deterministic_supplies_candidates_and_pins_only") is not True:
+            blockers.append(f"{scenario_id}.deterministic_not_limited_to_context_support")
         if scenario.get("deterministic_selected_intent") is not False:
             blockers.append(f"{scenario_id}.deterministic_selected_intent")
         if scenario.get("deterministic_selected_target") is not False:
@@ -323,20 +336,31 @@ def _validate(scenarios: list[dict[str, Any]]) -> list[str]:
             blockers.append(f"{scenario_id}.mutation_authority")
         if scenario.get("manager_context_packet_schema_changed") is not False:
             blockers.append(f"{scenario_id}.manager_context_packet_schema_changed")
-        if scenario.get("expected_semantic_posture") == "attach_to_pending_draft":
+        if expected_posture == "attach_to_pending_draft":
             if scenario.get("pending_followup_carryover") is not True:
                 blockers.append(f"{scenario_id}.pending_followup_missing")
             if scenario.get("pending_draft_present") is not True:
                 blockers.append(f"{scenario_id}.pending_draft_missing")
-        if scenario.get("expected_semantic_posture") == "ambiguous_target":
+            if mutation_candidate != "complete_pending_draft":
+                blockers.append(f"{scenario_id}.pending_followup_mutation_candidate_missing")
+        if expected_posture == "clarification_required":
+            if int(scenario.get("target_candidate_count") or 0) != 0:
+                blockers.append(f"{scenario_id}.clarification_has_unexpected_target_candidates")
+            if scenario.get("target_candidates_present") is not False:
+                blockers.append(f"{scenario_id}.clarification_has_unexpected_target_candidates")
+        if expected_posture == "ambiguous_target":
             if scenario.get("ambiguity_preserved") is not True:
                 blockers.append(f"{scenario_id}.ambiguity_not_preserved")
             if int(scenario.get("target_candidate_count") or 0) < 2:
                 blockers.append(f"{scenario_id}.ambiguous_candidates_too_low")
-        if scenario.get("expected_semantic_posture") == "query_no_mutation":
+            if mutation_candidate != "clarification_required":
+                blockers.append(f"{scenario_id}.ambiguous_mutation_candidate_not_clarification")
+        if expected_posture == "query_no_mutation":
             if scenario.get("query_no_mutation") is not True:
                 blockers.append(f"{scenario_id}.query_no_mutation_missing")
-        if scenario.get("expected_semantic_posture") in {
+            if mutation_candidate != "no_mutation":
+                blockers.append(f"{scenario_id}.query_mutation_intent_not_no_mutation")
+        if expected_posture in {
             "correction_candidate_available",
             "removal_candidate_available",
         }:
@@ -344,9 +368,23 @@ def _validate(scenarios: list[dict[str, Any]]) -> list[str]:
                 blockers.append(f"{scenario_id}.candidate_target_missing")
             if int(scenario.get("target_candidate_count") or 0) < 1:
                 blockers.append(f"{scenario_id}.candidate_target_missing")
-        if scenario.get("expected_semantic_posture") == "daily_target_update_candidate":
+            expected_mutation = (
+                "removal_candidate"
+                if expected_posture == "removal_candidate_available"
+                else "correction_candidate"
+            )
+            if mutation_candidate != expected_mutation:
+                blockers.append(f"{scenario_id}.candidate_mutation_intent_mismatch")
+        if expected_posture == "daily_target_update_candidate":
             if scenario.get("target_update_requires_manager_decision") is not True:
                 blockers.append(f"{scenario_id}.target_update_manager_decision_missing")
+            if mutation_candidate != "target_update_candidate":
+                blockers.append(f"{scenario_id}.target_update_mutation_candidate_missing")
+        if expected_posture == "meal_estimate_context":
+            if scenario.get("target_update_requires_manager_decision") is not False:
+                blockers.append(f"{scenario_id}.meal_estimate_marked_as_target_update")
+            if mutation_candidate != "meal_estimate_candidate":
+                blockers.append(f"{scenario_id}.meal_estimate_mutation_candidate_missing")
         if scenario.get("long_session_expected") is True:
             if int(scenario.get("recent_chat_message_count") or 0) != 20:
                 blockers.append(f"{scenario_id}.recent_chat_window_not_bounded")
