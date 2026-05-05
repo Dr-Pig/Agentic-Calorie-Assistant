@@ -8,6 +8,8 @@ REQUIRED_PL_CE_METADATA_ARTIFACTS = (
     "context_quality_pack",
     "product_pages_visual_qa",
     "pl_ce_local_review_decision_pack",
+    "pl_ce_local_mvp_candidate_bundle",
+    "pl_ce_activation_review_manifest",
     "ui_same_truth_render_contract",
 )
 
@@ -15,6 +17,8 @@ EXPECTED_ARTIFACT_TYPES = {
     "context_quality_pack": "accurate_intake_context_quality_pack",
     "product_pages_visual_qa": "accurate_intake_product_pages_visual_qa",
     "pl_ce_local_review_decision_pack": "accurate_intake_pl_ce_local_review_decision_pack",
+    "pl_ce_local_mvp_candidate_bundle": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
+    "pl_ce_activation_review_manifest": "accurate_intake_pl_ce_activation_review_manifest",
     "ui_same_truth_render_contract": "accurate_intake_ui_same_truth_render_contract",
 }
 
@@ -22,6 +26,8 @@ EXPECTED_STATUSES = {
     "context_quality_pack": "context_quality_diagnostic_pass",
     "product_pages_visual_qa": "pass",
     "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
+    "pl_ce_local_mvp_candidate_bundle": "pl_ce_local_mvp_candidate_ready_for_human_review",
+    "pl_ce_activation_review_manifest": "pl_ce_activation_review_manifest_ready",
     "ui_same_truth_render_contract": "pass",
 }
 
@@ -248,6 +254,32 @@ def _decision_pack_blockers(payload: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def _local_mvp_candidate_blockers(payload: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    if payload.get("activation_gate_status") != "blocked_pending_human_and_browser_activation":
+        blockers.append("pl_ce_local_mvp_candidate_bundle.activation_gate_status_missing")
+    fooddb_dependency = _object_dict(payload.get("fooddb_dependency"))
+    if fooddb_dependency.get("fooddb_artifact_status") != "blocked_waiting_for_fdb_artifact":
+        blockers.append("pl_ce_local_mvp_candidate_bundle.fooddb_stop_gate_missing")
+    if fooddb_dependency.get("ready_for_fdb_integration") is not False:
+        blockers.append("pl_ce_local_mvp_candidate_bundle.fooddb_integration_not_blocked")
+    return blockers
+
+
+def _activation_manifest_blockers(payload: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    if payload.get("human_review_required") is not True:
+        blockers.append("pl_ce_activation_review_manifest.human_review_required_not_true")
+    if payload.get("live_diagnostic_human_approval_required") is not True:
+        blockers.append("pl_ce_activation_review_manifest.live_human_approval_not_required")
+    stop_gates = _object_dict(payload.get("remaining_stop_gates"))
+    if stop_gates.get("fooddb_artifact_status") != "blocked_waiting_for_fdb_artifact":
+        blockers.append("pl_ce_activation_review_manifest.fooddb_stop_gate_missing")
+    if stop_gates.get("live_provider_status") != "blocked_pending_human_approval":
+        blockers.append("pl_ce_activation_review_manifest.live_provider_stop_gate_missing")
+    return blockers
+
+
 def _ui_same_truth_blockers(payload: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
     if payload.get("frontend_semantic_owner") is not False:
@@ -268,6 +300,10 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
         return _product_pages_visual_qa_blockers(payload)
     if group_id == "pl_ce_local_review_decision_pack":
         return _decision_pack_blockers(payload)
+    if group_id == "pl_ce_local_mvp_candidate_bundle":
+        return _local_mvp_candidate_blockers(payload)
+    if group_id == "pl_ce_activation_review_manifest":
+        return _activation_manifest_blockers(payload)
     if group_id == "ui_same_truth_render_contract":
         return _ui_same_truth_blockers(payload)
     return []

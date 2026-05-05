@@ -23,6 +23,12 @@ DEFAULT_EVIDENCE_PATHS = {
     "pl_ce_local_review_decision_pack": ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_local_review_decision_pack.json",
+    "pl_ce_local_mvp_candidate_bundle": ROOT
+    / "artifacts"
+    / "accurate_intake_pl_ce_local_mvp_candidate_bundle.json",
+    "pl_ce_activation_review_manifest": ROOT
+    / "artifacts"
+    / "accurate_intake_pl_ce_activation_review_manifest.json",
     "ui_same_truth_render_contract": ROOT
     / "artifacts"
     / "accurate_intake_ui_same_truth_render_contract.json",
