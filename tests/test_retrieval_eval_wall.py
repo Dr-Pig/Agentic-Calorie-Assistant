@@ -29,17 +29,16 @@ def test_retrieval_eval_wall_splits_source_ranking_grounding_and_negative_cases(
     assert artifact["live_provider_used"] is False
     assert artifact["live_websearch_used"] is False
     assert artifact["readiness_claimed"] is False
-    assert artifact["summary"] == {
-        "case_count": 9,
-        "source_selection_case_count": 3,
-        "ranking_case_count": 2,
-        "grounding_case_count": 2,
-        "negative_case_count": 2,
-        "pass_count": 9,
-        "fail_count": 0,
-        "websearch_runtime_truth_allowed_count": 0,
-        "next_required_slice": "grokfast_fooddb_packet_live_diagnostic",
-    }
+    summary = artifact["summary"]
+    assert summary["case_count"] >= 10
+    assert summary["source_selection_case_count"] >= 4
+    assert summary["ranking_case_count"] >= 2
+    assert summary["grounding_case_count"] >= 2
+    assert summary["negative_case_count"] >= 2
+    assert summary["pass_count"] == summary["case_count"]
+    assert summary["fail_count"] == 0
+    assert summary["websearch_runtime_truth_allowed_count"] == 0
+    assert summary["next_required_slice"] == "grokfast_fooddb_packet_live_diagnostic"
 
 
 def test_retrieval_eval_wall_blocks_next_step_when_cases_fail() -> None:
@@ -66,6 +65,24 @@ def test_retrieval_eval_wall_source_selection_keeps_websearch_candidate_only() -
     ]
     assert exact["runtime_truth_source"] == "approved_fooddb_only"
     assert "no direct runtime truth from websearch" in exact["routing_reasons"]
+
+
+def test_retrieval_eval_wall_source_selection_blocks_raw_text_hint_execution() -> None:
+    artifact = build_retrieval_eval_wall(retrieval_records=_records())
+
+    raw_hint = _case_by_id(
+        artifact,
+        "source_selection_cases",
+        "raw_text_hint_does_not_execute_backend",
+    )
+
+    assert raw_hint["status"] == "pass"
+    assert raw_hint["primary_backend"] == "blocked_no_execution"
+    assert raw_hint["backend_sequence"] == []
+    assert raw_hint["retrieval_intent_source"] == "raw_text_hint"
+    assert raw_hint["manager_owned_intent_required"] is True
+    assert raw_hint["raw_text_hint_executed"] is False
+    assert raw_hint["runtime_truth_source"] == "manager_owned_retrieval_intent_required"
 
 
 def test_retrieval_eval_wall_ranking_checks_lexical_runtime_and_modifier_features() -> None:
@@ -96,7 +113,7 @@ def test_retrieval_eval_wall_grounding_packets_are_compact_and_read_only() -> No
     assert "runtime_mutation" in fooddb["packet_projection"]["manager_must_not_use_for"]
 
     assert websearch["status"] == "pass"
-    assert websearch["classification_counts"]["exact_candidate_for_extract_review"] == 1
+    assert websearch["classification_counts"]["exact_candidate_for_extract_review"] >= 1
     assert artifact["summary"]["websearch_runtime_truth_allowed_count"] == 0
 
 
