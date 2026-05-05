@@ -47,6 +47,7 @@ def test_worker_prompt_forbids_agent_self_merge() -> None:
     assert report["policy"]["self_merge_allowed"] is False
     assert report["policy"]["ready_marker"] == "READY_FOR_QUEUE"
     assert "Do not run gh pr merge" in report["worker_prompt"]
+    assert "gh workflow run main-merge-lock.yml -f pr_number=<PR_NUMBER>" in report["worker_prompt"]
     assert "READY_FOR_QUEUE" in report["worker_prompt"]
 
 
