@@ -43,11 +43,35 @@ def _distinct_case_values(matrix: dict[str, Any], key: str) -> set[str]:
     return values
 
 
+def _holdout_variant_blockers(matrix: dict[str, Any]) -> tuple[int, list[str]]:
+    cases = matrix.get("cases")
+    if not isinstance(cases, list):
+        return 0, ["holdout_cases_missing"]
+    blockers: list[str] = []
+    total = 0
+    for case in cases:
+        row = _object_dict(case)
+        case_id = str(row.get("case_id") or "unknown")
+        variants = row.get("holdout_utterance_variants")
+        if not isinstance(variants, list) or len(variants) < 2:
+            blockers.append(f"{case_id}.holdout_utterance_variants_too_low")
+            continue
+        primary = str(row.get("utterance") or "")
+        normalized = {str(value).strip() for value in variants if str(value).strip()}
+        total += len(normalized)
+        if len(normalized) < 2:
+            blockers.append(f"{case_id}.holdout_utterance_variants_too_low")
+        if primary in normalized:
+            blockers.append(f"{case_id}.holdout_repeats_primary_utterance")
+    return total, blockers
+
+
 def _blockers(matrix: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
     summary = _object_dict(matrix.get("summary"))
     distinct_intents = _distinct_case_values(matrix, "expected_manager_intent")
     distinct_workflow_effects = _distinct_case_values(matrix, "expected_workflow_effect")
+    holdout_variant_count, holdout_blockers = _holdout_variant_blockers(matrix)
     if matrix.get("artifact_type") != "accurate_intake_context_live_diagnostic_case_matrix":
         blockers.append("unexpected_matrix_artifact_type")
     if matrix.get("status") != "pass":
@@ -73,6 +97,9 @@ def _blockers(matrix: dict[str, Any]) -> list[str]:
         blockers.append("fixed_case_matrix_mismatch")
     if _int_value(summary.get("case_count")) < len(REQUIRED_CASE_IDS):
         blockers.append("case_count_too_low")
+    if holdout_variant_count < len(REQUIRED_CASE_IDS) * 2:
+        blockers.append("holdout_utterance_variant_count_too_low")
+    blockers.extend(holdout_blockers)
     if _int_value(summary.get("compound_cases")) < 1:
         blockers.append("compound_case_missing")
     if _int_value(summary.get("ambiguity_cases")) < 1:
@@ -118,6 +145,7 @@ def build_context_live_diagnostic_anti_overfit_guard_artifact(
             "summary": {
                 "fixed_case_matrix_used": _case_ids(matrix) == list(REQUIRED_CASE_IDS),
                 "case_count": _int_value(summary.get("case_count")),
+                "holdout_utterance_variant_count": _holdout_variant_blockers(matrix)[0],
                 "compound_cases": _int_value(summary.get("compound_cases")),
                 "ambiguity_cases": _int_value(summary.get("ambiguity_cases")),
                 "pending_pin_cases": _int_value(summary.get("pending_pin_cases")),

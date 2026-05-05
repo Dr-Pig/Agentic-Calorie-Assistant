@@ -44,6 +44,12 @@ def test_context_live_diagnostic_case_matrix_defines_required_cases_without_live
     assert artifact["mutation_changed"] is False
     assert artifact["manager_context_packet_schema_changed"] is False
     assert [case["case_id"] for case in artifact["cases"]] == REQUIRED_CASE_IDS
+    assert artifact["summary"]["holdout_utterance_variant_count"] >= len(REQUIRED_CASE_IDS) * 2
+    for case in artifact["cases"]:
+        holdouts = case["holdout_utterance_variants"]
+        assert isinstance(holdouts, list)
+        assert len(holdouts) >= 2
+        assert case["utterance"] not in holdouts
 
 
 def test_context_live_diagnostic_case_matrix_covers_user_intent_boundaries() -> None:
@@ -124,6 +130,21 @@ def test_context_live_diagnostic_case_matrix_rejects_missing_context_requirement
     assert "context_live_004_remove_previous_item.target_candidates_not_required" in blockers
 
 
+def test_context_live_diagnostic_case_matrix_rejects_missing_holdout_variants() -> None:
+    artifact = build_context_live_diagnostic_case_matrix_artifact()
+    cases = list(artifact["cases"])  # type: ignore[index]
+    cases[0] = {**dict(cases[0]), "holdout_utterance_variants": []}
+    cases[1] = {
+        **dict(cases[1]),
+        "holdout_utterance_variants": [dict(cases[1])["utterance"], "different"],
+    }
+
+    blockers = module._validate(cases)
+
+    assert "context_live_001_general_chat_no_mutation.holdout_utterance_variants_too_low" in blockers
+    assert "context_live_002_simple_food_log_candidate.holdout_repeats_primary_utterance" in blockers
+
+
 def test_context_live_diagnostic_case_matrix_cli_writes_artifact(tmp_path: Path) -> None:
     output_path = tmp_path / "context_live_matrix.json"
 
@@ -135,6 +156,7 @@ def test_context_live_diagnostic_case_matrix_cli_writes_artifact(tmp_path: Path)
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
     assert artifact["status"] == "pass"
     assert artifact["summary"]["case_count"] == len(REQUIRED_CASE_IDS)
+    assert artifact["summary"]["holdout_utterance_variant_count"] >= len(REQUIRED_CASE_IDS) * 2
     assert artifact["summary"]["compound_cases"] == 1
 
 

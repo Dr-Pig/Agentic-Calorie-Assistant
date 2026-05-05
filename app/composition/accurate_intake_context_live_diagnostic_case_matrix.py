@@ -39,11 +39,13 @@ def _case(
     ambiguity_expected: bool = False,
     target_candidates_expected: bool = False,
     pending_pin_expected: bool = False,
+    holdout_utterance_variants: list[str] | None = None,
 ) -> dict[str, Any]:
     return _json_safe(
         {
             "case_id": case_id,
             "utterance": utterance,
+            "holdout_utterance_variants": list(holdout_utterance_variants or []),
             "prior_context": prior_context,
             "expected_manager_intent": expected_manager_intent,
             "expected_workflow_effect": expected_workflow_effect,
@@ -88,6 +90,10 @@ def _cases() -> list[dict[str, Any]]:
             expected_workflow_effect="no_mutation",
             expected_context_fields=common_context,
             must_not_happen=[*no_semantic_shortcuts, "meal_logged"],
+            holdout_utterance_variants=[
+                "Can you just talk with me about today?",
+                "\u4eca\u5929\u6709\u9ede\u7d2f\uff0c\u5148\u4e0d\u8a18\u98df\u7269",
+            ],
         ),
         _case(
             case_id="context_live_002_simple_food_log_candidate",
@@ -97,6 +103,10 @@ def _cases() -> list[dict[str, Any]]:
             expected_workflow_effect="route_to_intake_or_need_evidence",
             expected_context_fields=common_context + ["active_day_state"],
             must_not_happen=[*no_semantic_shortcuts, "claim_fooddb_exact_truth"],
+            holdout_utterance_variants=[
+                "\u6211\u525b\u525b\u5403\u4e86\u4e00\u4efd\u4e09\u660e\u6cbb",
+                "Log one sandwich for this meal",
+            ],
         ),
         _case(
             case_id="context_live_003_pending_followup_answer",
@@ -110,6 +120,10 @@ def _cases() -> list[dict[str, Any]]:
             expected_context_fields=common_context + ["pending_followup_pin", "pending_draft_pin"],
             must_not_happen=[*no_semantic_shortcuts, "new_unrelated_meal"],
             pending_pin_expected=True,
+            holdout_utterance_variants=[
+                "\u5c31\u8c46\u5e72\u3001\u6d77\u5e36\u548c\u8ca2\u4e38",
+                "Answer the pending luwei question with tofu, seaweed, and fish ball",
+            ],
         ),
         _case(
             case_id="context_live_004_remove_previous_item",
@@ -120,6 +134,10 @@ def _cases() -> list[dict[str, Any]]:
             expected_context_fields=common_context + ["target_candidates"],
             must_not_happen=[*no_semantic_shortcuts, "delete_without_manager_decision"],
             target_candidates_expected=True,
+            holdout_utterance_variants=[
+                "\u628a\u524d\u9762\u90a3\u500b\u62ff\u6389",
+                "Remove the last drink from the log",
+            ],
         ),
         _case(
             case_id="context_live_005_remove_older_meal_item",
@@ -133,6 +151,10 @@ def _cases() -> list[dict[str, Any]]:
             expected_context_fields=common_context + ["active_day_state", "target_candidates"],
             must_not_happen=[*no_semantic_shortcuts, "remove_latest_item_by_default"],
             target_candidates_expected=True,
+            holdout_utterance_variants=[
+                "\u4e2d\u5348\u6ef7\u5473\u7684\u8c46\u5e72\u4e0d\u8981\u4e86",
+                "Remove tofu from the older luwei meal, not dinner",
+            ],
         ),
         _case(
             case_id="context_live_006_query_previous_drink_no_mutation",
@@ -143,6 +165,10 @@ def _cases() -> list[dict[str, Any]]:
             expected_context_fields=common_context + ["target_candidates"],
             must_not_happen=[*no_semantic_shortcuts, "ledger_mutation"],
             target_candidates_expected=True,
+            holdout_utterance_variants=[
+                "\u525b\u525b\u90a3\u676f\u5927\u6982\u591a\u5c11\u71b1\u91cf",
+                "How many calories was the boba I logged earlier?",
+            ],
         ),
         _case(
             case_id="context_live_007_daily_target_update",
@@ -152,6 +178,10 @@ def _cases() -> list[dict[str, Any]]:
             expected_workflow_effect="target_update_candidate",
             expected_context_fields=common_context + ["budget_summary"],
             must_not_happen=[*no_semantic_shortcuts, "treat_as_meal_kcal_estimate"],
+            holdout_utterance_variants=[
+                "\u4eca\u5929\u71b1\u91cf\u76ee\u6a19\u6539\u70ba 1800",
+                "Set today's daily calorie budget to 1800",
+            ],
         ),
         _case(
             case_id="context_live_008_meal_estimate_not_target",
@@ -161,6 +191,10 @@ def _cases() -> list[dict[str, Any]]:
             expected_workflow_effect="meal_estimate_context",
             expected_context_fields=common_context + ["active_day_state"],
             must_not_happen=[*no_semantic_shortcuts, "daily_target_update"],
+            holdout_utterance_variants=[
+                "\u9019\u4e00\u9910\u5148\u7b97 800 \u5927\u5361",
+                "This meal is probably about 800 calories",
+            ],
         ),
         _case(
             case_id="context_live_009_simultaneous_log_and_modify",
@@ -174,6 +208,10 @@ def _cases() -> list[dict[str, Any]]:
             expected_context_fields=common_context + ["active_day_state", "target_candidates"],
             must_not_happen=[*no_semantic_shortcuts, "drop_one_intent_silently"],
             target_candidates_expected=True,
+            holdout_utterance_variants=[
+                "\u5e6b\u6211\u52a0\u4e00\u676f\u62ff\u9435\uff0c\u7136\u5f8c\u628a\u5348\u9910\u98ef\u6539\u5c11",
+                "Log a latte and also reduce the rice from lunch",
+            ],
         ),
         _case(
             case_id="context_live_010_cancel_do_not_log",
@@ -184,6 +222,10 @@ def _cases() -> list[dict[str, Any]]:
             expected_context_fields=common_context + ["pending_followup_pin", "pending_draft_pin"],
             must_not_happen=[*no_semantic_shortcuts, "commit_pending_draft"],
             pending_pin_expected=True,
+            holdout_utterance_variants=[
+                "\u7b97\u4e86\uff0c\u90a3\u7b46\u4e0d\u8981\u8a18",
+                "Cancel that pending meal, do not log it",
+            ],
         ),
         _case(
             case_id="context_live_011_ambiguous_back_reference",
@@ -195,6 +237,10 @@ def _cases() -> list[dict[str, Any]]:
             must_not_happen=[*no_semantic_shortcuts, "choose_first_target"],
             ambiguity_expected=True,
             target_candidates_expected=True,
+            holdout_utterance_variants=[
+                "\u628a\u90a3\u4efd\u6539\u6210\u5c11\u4e00\u9ede",
+                "Make that one smaller, but I did not say which one",
+            ],
         ),
     ]
 
@@ -210,6 +256,13 @@ def _validate(cases: list[dict[str, Any]]) -> list[str]:
             blockers.append(f"{case_id}.utterance_missing")
         if not isinstance(case.get("prior_context"), dict):
             blockers.append(f"{case_id}.prior_context_missing")
+        holdouts = case.get("holdout_utterance_variants")
+        if not isinstance(holdouts, list) or len(holdouts) < 2:
+            blockers.append(f"{case_id}.holdout_utterance_variants_too_low")
+        elif any(not str(value or "").strip() for value in holdouts):
+            blockers.append(f"{case_id}.holdout_utterance_variant_empty")
+        elif str(case.get("utterance") or "") in {str(value) for value in holdouts}:
+            blockers.append(f"{case_id}.holdout_repeats_primary_utterance")
         if not case.get("expected_manager_intent"):
             blockers.append(f"{case_id}.expected_manager_intent_missing")
         if not case.get("expected_workflow_effect"):
@@ -271,6 +324,11 @@ def build_context_live_diagnostic_case_matrix_artifact() -> dict[str, Any]:
             "blockers": blockers,
             "summary": {
                 "case_count": len(cases),
+                "holdout_utterance_variant_count": sum(
+                    len(case.get("holdout_utterance_variants") or [])
+                    for case in cases
+                    if isinstance(case.get("holdout_utterance_variants"), list)
+                ),
                 "target_candidate_cases": sum(1 for case in cases if case["target_candidates_expected"]),
                 "pending_pin_cases": sum(1 for case in cases if case["pending_pin_expected"]),
                 "ambiguity_cases": sum(1 for case in cases if case["ambiguity_expected"]),
