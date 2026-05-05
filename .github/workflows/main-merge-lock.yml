@@ -1,0 +1,122 @@
+name: main-merge-lock
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull request number to serialize through the main merge lock"
+        required: true
+        type: string
+      allow_dormant_shadow:
+        description: "Allow dormant shadow candidate verdicts"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+
+concurrency:
+  group: main-merge-lock-main
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.MAIN_MERGE_TOKEN }}
+      MAIN_MERGE_TOKEN: ${{ secrets.MAIN_MERGE_TOKEN }}
+      PR_NUMBER: ${{ inputs.pr_number }}
+      ALLOW_DORMANT_SHADOW: ${{ inputs.allow_dormant_shadow }}
+      PYTHONUTF8: "1"
+
+    steps:
+      - name: Require explicit merge token
+        run: |
+          if [ -z "${MAIN_MERGE_TOKEN}" ]; then
+            echo "::error::MAIN_MERGE_TOKEN secret is required so PR branch updates trigger normal CI."
+            exit 1
+          fi
+
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure authenticated push
+        run: |
+          git remote set-url origin "https://x-access-token:${MAIN_MERGE_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git config user.name "main-merge-lock"
+          git config user.email "main-merge-lock@users.noreply.github.com"
+
+      - name: Validate PR shape
+        id: pr
+        run: |
+          gh pr view "${PR_NUMBER}" --json number,state,isDraft,baseRefName,headRefName,body \
+            > artifacts_main_merge_lock_pr.json
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          pr = json.loads(Path("artifacts_main_merge_lock_pr.json").read_text(encoding="utf-8"))
+          if pr["state"] != "OPEN":
+              raise SystemExit(f"PR #{pr['number']} is not open: {pr['state']}")
+          if pr["isDraft"]:
+              raise SystemExit(f"PR #{pr['number']} is still draft")
+          if pr["baseRefName"] != "main":
+              raise SystemExit(f"PR #{pr['number']} base must be main, got {pr['baseRefName']}")
+          Path("artifacts").mkdir(exist_ok=True)
+          Path("artifacts/main_merge_lock_pr_body.txt").write_text(pr.get("body") or "", encoding="utf-8")
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
+              output.write(f"head_branch={pr['headRefName']}\n")
+          PY
+
+      - name: Sync PR branch to latest main
+        run: |
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune
+          git checkout -B "${{ steps.pr.outputs.head_branch }}" "origin/${{ steps.pr.outputs.head_branch }}"
+          git merge origin/main --no-edit
+          git push origin "HEAD:${{ steps.pr.outputs.head_branch }}"
+
+      - name: Wait for required checks on updated PR
+        run: gh pr checks "${PR_NUMBER}" --required --watch --fail-fast --interval 15
+
+      - name: Build merge debt matrix
+        run: |
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune
+          git checkout main
+          git merge --ff-only origin/main
+          python scripts/merge_governance/build_merge_debt_matrix.py
+
+      - name: Assert PR is allowed by main merge lock
+        run: |
+          if [ "${ALLOW_DORMANT_SHADOW}" = "true" ]; then
+            python scripts/merge_governance/main_merge_lock.py assert-candidate \
+              --pr-number "${PR_NUMBER}" \
+              --matrix-json artifacts/merge_debt_matrix.json \
+              --pr-body-file artifacts/main_merge_lock_pr_body.txt \
+              --allow-dormant-shadow
+          else
+            python scripts/merge_governance/main_merge_lock.py assert-candidate \
+              --pr-number "${PR_NUMBER}" \
+              --matrix-json artifacts/merge_debt_matrix.json \
+              --pr-body-file artifacts/main_merge_lock_pr_body.txt
+          fi
+
+      - name: Re-check clean merge state
+        run: |
+          state="$(gh pr view "${PR_NUMBER}" --json mergeStateStatus --jq '.mergeStateStatus')"
+          if [ "${state}" != "CLEAN" ]; then
+            echo "::error::PR #${PR_NUMBER} mergeStateStatus is ${state}, not CLEAN."
+            exit 1
+          fi
+
+      - name: Squash merge through lock
+        run: |
+          gh pr merge "${PR_NUMBER}" \
+            --squash \
+            --subject "Merge PR #${PR_NUMBER} through main merge lock" \
+            --body "Merged by serialized main-merge-lock after current-base checks and merge governance passed."
