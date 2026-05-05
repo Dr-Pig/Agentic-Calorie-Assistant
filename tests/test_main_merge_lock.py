@@ -122,6 +122,66 @@ def test_main_merge_lock_allows_dormant_shadow_only_when_explicitly_enabled() ->
     assert allowed["allowed_verdicts"] == ["merge_candidate", "dormant_shadow_candidate"]
 
 
+def test_main_merge_lock_expected_check_names_include_required_and_advisory() -> None:
+    names = main_merge_lock.expected_lock_check_names(
+        {
+            "required_checks": ["repo-hygiene-and-architecture", "runtime-contract-tests"],
+            "advisory_checks": ["phase-c-environment-gate", "repo-hygiene-and-architecture"],
+        }
+    )
+
+    assert names == ["repo-hygiene-and-architecture", "runtime-contract-tests", "phase-c-environment-gate"]
+
+
+def test_main_merge_lock_wait_readiness_accepts_clean_passed_checks() -> None:
+    result = main_merge_lock.evaluate_wait_readiness(
+        {
+            "mergeStateStatus": "CLEAN",
+            "statusCheckRollup": [
+                {"name": "repo-hygiene-and-architecture", "status": "COMPLETED", "conclusion": "SUCCESS"},
+                {"name": "phase-c-environment-gate", "status": "COMPLETED", "conclusion": "SUCCESS"},
+            ],
+        },
+        expected_checks=["repo-hygiene-and-architecture", "phase-c-environment-gate"],
+    )
+
+    assert result["status"] == "pass"
+
+
+def test_main_merge_lock_wait_readiness_waits_for_unknown_state_and_missing_checks() -> None:
+    result = main_merge_lock.evaluate_wait_readiness(
+        {
+            "mergeStateStatus": "UNKNOWN",
+            "statusCheckRollup": [
+                {"name": "repo-hygiene-and-architecture", "status": "IN_PROGRESS", "conclusion": ""},
+            ],
+        },
+        expected_checks=["repo-hygiene-and-architecture", "phase-c-environment-gate"],
+    )
+
+    assert result["status"] == "pending"
+    assert "pending_check:repo-hygiene-and-architecture" in result["pending_reasons"]
+    assert "missing_check:phase-c-environment-gate" in result["pending_reasons"]
+    assert "merge_state_not_clean:UNKNOWN" in result["pending_reasons"]
+
+
+def test_main_merge_lock_wait_readiness_fails_failed_checks_and_dirty_state() -> None:
+    result = main_merge_lock.evaluate_wait_readiness(
+        {
+            "mergeStateStatus": "DIRTY",
+            "statusCheckRollup": [
+                {"name": "repo-hygiene-and-architecture", "status": "COMPLETED", "conclusion": "FAILURE"},
+                {"name": "phase-c-environment-gate", "status": "COMPLETED", "conclusion": "SUCCESS"},
+            ],
+        },
+        expected_checks=["repo-hygiene-and-architecture", "phase-c-environment-gate"],
+    )
+
+    assert result["status"] == "fail"
+    assert "failed_check:repo-hygiene-and-architecture" in result["failed_reasons"]
+    assert "merge_state_not_clean:DIRTY" in result["failed_reasons"]
+
+
 def test_main_merge_lock_workflow_serializes_main_promotion() -> None:
     workflow = Path(".github/workflows/main-merge-lock.yml").read_text(encoding="utf-8")
 
@@ -129,5 +189,7 @@ def test_main_merge_lock_workflow_serializes_main_promotion() -> None:
     assert "group: main-merge-lock-main" in workflow
     assert "cancel-in-progress: false" in workflow
     assert "MAIN_MERGE_TOKEN" in workflow
+    assert "persist-credentials: false" in workflow
+    assert "main_merge_lock.py wait-ready" in workflow
     assert "python scripts/merge_governance/main_merge_lock.py assert-candidate" in workflow
     assert "gh pr merge" in workflow
