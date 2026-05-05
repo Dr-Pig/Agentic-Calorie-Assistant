@@ -194,12 +194,25 @@ jobs:
         run: |
           python scripts/verify_accurate_intake_mvp.py --python python --output artifacts/accurate_intake_mvp_gate.json
 
+      - name: Run PL+CE context-conditioned intent wall
+        run: |
+          python -m pytest tests/test_accurate_intake_context_conditioned_intent_wall.py -q
+          python scripts/run_accurate_intake_context_conditioned_intent_wall.py --output artifacts/accurate_intake_context_conditioned_intent_wall_ci.json
+
       - name: Upload Accurate Intake MVP gate report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: accurate-intake-mvp-gate-report
           path: artifacts/accurate_intake_mvp_gate.json
+          if-no-files-found: error
+
+      - name: Upload PL+CE context-conditioned intent wall report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accurate-intake-context-conditioned-intent-wall-report
+          path: artifacts/accurate_intake_context_conditioned_intent_wall_ci.json
           if-no-files-found: error
 
   product-pages-browser-e2e:
