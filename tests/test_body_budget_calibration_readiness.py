@@ -131,10 +131,13 @@ def test_body_budget_calibration_readiness_artifact_records_preview_and_action_m
     assert estimate_bridge["raw_text_authorized_mutation"] is False
     assert estimate_bridge["manager_provider_invoked"] is False
     assert estimate_bridge["accepted_at_field"] == "calibration_action_accepted_at"
+    assert estimate_bridge["accepted_at_format"] == "iso_datetime_with_date_and_time"
     assert estimate_bridge["effective_from_owner"] == "stored_action_contract"
     assert estimate_bridge["frontend_effective_date_calculation_authorized"] is False
     assert "calibration_proposal_container_id" in estimate_bridge["requires"]
     assert "accept_calibration_proposal" in estimate_bridge["accepted_actions"]
+    stored_action = artifact["calibration_flow_contract"]["stored_action"]
+    assert stored_action["accepted_at_request_validation"] == "iso_datetime_with_date_and_time"
 
     non_claims = artifact["non_claims"]
     assert non_claims["automatic_calibration_enabled"] is False
