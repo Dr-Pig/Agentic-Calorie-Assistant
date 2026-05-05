@@ -361,8 +361,19 @@ def test_general_chat_calibration_preview_can_persist_open_proposal_without_plan
     assert result.ui_hints["proposal_actions_enabled"] is True
     assert result.ui_hints["root_route_activation"] == "active"
     assert result.ui_hints["stored_action_route_contract"] == "/calibration/proposal/stored-action"
+    assert result.proposal_response is not None
+    assert result.proposal_response["surfaced"] is True
+    assert result.proposal_response["proposal_cards"][0]["is_primary"] is True
+    assert "reply_text" not in result.proposal_response
+    assert "top_option" not in result.proposal_response
+    assert "backup_options" not in result.proposal_response
+    actions_by_id = {action["action"]: action for action in result.proposal_response["quick_actions"]}
+    assert actions_by_id["accept_calibration_proposal"]["requires_proposal_container_id"] is True
+    assert actions_by_id["accept_calibration_proposal"]["raw_text_authorized_mutation"] is False
+    assert actions_by_id["accept_calibration_proposal"]["enabled"] is True
     assert result.proposal_artifact is not None
     proposal_id = result.proposal_artifact["proposal_container_id"]
+    assert actions_by_id["accept_calibration_proposal"]["proposal_container_id"] == proposal_id
     proposal = db.get(ProposalContainerRecord, proposal_id)
     assert proposal is not None
     assert proposal.user_id == user.id
