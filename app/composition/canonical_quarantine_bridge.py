@@ -5,14 +5,16 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.budget.infrastructure.models import LedgerEntryRecord
-from app.shared.infra.models import User
-from app.composition.canonical_persistence import (
+from app.composition.canonical_body_support import (
     ensure_body_plan_skeleton,
+    recompute_day_budget_ledger,
+)
+from app.composition.canonical_proposal_support import (
     ensure_proactive_trigger_skeleton,
     ensure_proposal_artifact_skeleton,
     ensure_proposal_skeleton,
-    recompute_day_budget_ledger,
 )
+from app.shared.infra.models import User
 
 
 def apply_rescue_overlay_skeleton(
