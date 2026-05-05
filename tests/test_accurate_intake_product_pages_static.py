@@ -111,11 +111,20 @@ def test_chat_composer_supports_enter_send_and_shift_enter_multiline() -> None:
 
     assert '<textarea id="message-input"' in html
     assert 'rows="1"' in html
+    assert '<form id="composer" class="composer" aria-busy="false">' in html
     assert 'addEventListener("keydown"' in html
     assert 'event.key === "Enter"' in html
     assert "!event.shiftKey" in html
     assert "event.isComposing" in html
     assert "requestSubmit()" in html
+    assert "function setComposerBusy(isBusy)" in html
+    assert 'el("composer").setAttribute("aria-busy", isBusy ? "true" : "false");' in html
+    assert 'el("message-input").disabled = isBusy;' in html
+    assert 'el("send-button").disabled = isBusy;' in html
+    assert "function fitComposerInput()" in html
+    assert 'el("message-input").addEventListener("input", fitComposerInput);' in html
+    assert "setComposerBusy(true);" in html
+    assert "setComposerBusy(false);" in html
 
 
 def test_chat_page_can_send_local_access_header_for_history_without_visible_debug_control() -> None:
