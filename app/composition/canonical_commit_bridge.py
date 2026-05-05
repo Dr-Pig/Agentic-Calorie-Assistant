@@ -3,11 +3,13 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.budget.infrastructure.models import LedgerEntryRecord
-from app.composition.canonical_persistence import (
+from app.composition.canonical_commit_support import (
     CanonicalCommitTarget,
     CanonicalMealCommitResult,
-    commit_meal_payload_to_canonical,
     resolve_canonical_commit_target,
+)
+from app.composition.canonical_persistence import (
+    commit_meal_payload_to_canonical,
     upsert_budget_adjustment_skeleton,
 )
 from app.schemas import (
