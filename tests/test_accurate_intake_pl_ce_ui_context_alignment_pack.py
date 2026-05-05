@@ -158,6 +158,36 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "product_pages_target_candidate_ui_smoke": {
+            "smoke_id": "accurate_intake_product_pages_target_candidate_ui_smoke_v1",
+            "status": "pass",
+            "browser_executed": True,
+            "browser_reload_checked": True,
+            "chat_page_loaded": True,
+            "chat_history_reloaded": True,
+            "target_candidate_surface_checked": True,
+            "target_candidate_count_rendered": 2,
+            "target_candidate_names_rendered": ["luwei", "milk tea"],
+            "target_candidate_list_read_only": True,
+            "context_strip_read_only": True,
+            "manager_provider_call_count": 0,
+            "product_pages_no_debug_trace": True,
+            "frontend_selected_target": False,
+            "frontend_semantic_owner": False,
+            "deterministic_selected_target": False,
+            "deterministic_semantic_inference_used": False,
+            "raw_text_intent_router_used": False,
+            "mutation_authority": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "web_readiness_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "forbidden_storage_used": False,
+        },
         "product_pages_visual_qa": {
             "artifact_type": "accurate_intake_product_pages_visual_qa",
             "status": "pass",
@@ -199,6 +229,9 @@ def test_ui_context_alignment_pack_summarizes_three_pages_and_context_evidence()
     assert artifact["summary"]["chat_target_candidate_surface_status"] == (
         "not_checked_pending_followup_only"
     )
+    assert artifact["summary"]["chat_target_candidate_ui_checked"] is True
+    assert artifact["summary"]["chat_target_candidate_ui_count"] == 2
+    assert artifact["summary"]["chat_target_candidate_ui_names"] == ["luwei", "milk tea"]
     assert artifact["summary"]["body_read_model_checked"] is True
     assert artifact["render_only_boundary_ok"] is True
     assert artifact["context_engineering_fault_claimed"] is False
@@ -295,6 +328,34 @@ def test_ui_context_alignment_pack_blocks_unproven_target_candidate_surface_clai
     )
 
 
+def test_ui_context_alignment_pack_blocks_unproven_target_candidate_ui_smoke() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_target_candidate_ui_smoke"]["target_candidate_surface_checked"] = False
+    inputs["product_pages_target_candidate_ui_smoke"]["target_candidate_count_rendered"] = 1
+    inputs["product_pages_target_candidate_ui_smoke"]["target_candidate_list_read_only"] = False
+    inputs["product_pages_target_candidate_ui_smoke"]["manager_provider_call_count"] = 1
+
+    artifact = build_pl_ce_ui_context_alignment_pack_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert (
+        "product_pages_target_candidate_ui_smoke.target_candidate_surface_checked_not_true"
+        in artifact["blockers"]
+    )
+    assert (
+        "product_pages_target_candidate_ui_smoke.target_candidate_count_rendered_mismatch"
+        in artifact["blockers"]
+    )
+    assert (
+        "product_pages_target_candidate_ui_smoke.target_candidate_list_read_only_not_true"
+        in artifact["blockers"]
+    )
+    assert (
+        "product_pages_target_candidate_ui_smoke.manager_provider_call_count_not_zero"
+        in artifact["blockers"]
+    )
+
+
 def test_ui_context_alignment_pack_blocks_stale_body_read_model_values() -> None:
     inputs = _valid_inputs()
     inputs["product_pages_browser_smoke"]["body_plan_read_model_values"] = {
@@ -385,8 +446,17 @@ def test_ci_builds_ui_context_alignment_pack() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
     assert "test_accurate_intake_pl_ce_ui_context_alignment_pack.py" in workflow
+    assert "test_accurate_intake_product_pages_target_candidate_ui_smoke.py" in workflow
+    assert (
+        "run_accurate_intake_product_pages_target_candidate_ui_smoke.py --require-browser-execution"
+        in workflow
+    )
     assert "build_accurate_intake_product_pages_renderer_source_map.py" in workflow
     assert "build_accurate_intake_pl_ce_ui_context_alignment_pack.py" in workflow
     assert "accurate_intake_pl_ce_ui_context_alignment_pack_ci.json" in workflow
     assert "product_pages_renderer_source_map=artifacts/accurate_intake_product_pages_renderer_source_map_ci.json" in workflow
+    assert (
+        "product_pages_target_candidate_ui_smoke=artifacts/accurate_intake_product_pages_target_candidate_ui_smoke_ci.json"
+        in workflow
+    )
     assert "accurate-intake-pl-ce-ui-context-alignment-pack-report" in workflow

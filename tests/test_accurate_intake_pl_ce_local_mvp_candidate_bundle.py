@@ -11,6 +11,7 @@ from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
 
 REQUIRED_INPUTS = [
     "ui_same_truth_contract",
+    "pl_ce_ui_context_alignment_pack",
     "context_quality_pack",
     "short_term_context_runtime_replay",
     "context_coverage_matrix",
@@ -31,6 +32,30 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "artifact_type": "accurate_intake_ui_same_truth_render_contract",
             "status": "pass",
             "frontend_semantic_owner": False,
+        },
+        "pl_ce_ui_context_alignment_pack": {
+            "artifact_type": "accurate_intake_pl_ce_ui_context_alignment_pack",
+            "status": "ui_context_alignment_ready_for_human_review",
+            "blockers": [],
+            "render_only_boundary_ok": True,
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "frontend_semantic_owner": False,
+            "deterministic_semantic_inference_used": False,
+            "raw_text_intent_router_used": False,
+            "mutation_authority": False,
+            "summary": {
+                "chat_target_candidate_ui_checked": True,
+                "chat_target_candidate_ui_count": 2,
+                "chat_target_candidate_ui_names": ["luwei", "milk tea"],
+            },
         },
         "context_quality_pack": {
             "artifact_type": "accurate_intake_context_quality_pack",
@@ -166,6 +191,7 @@ def test_pl_ce_local_mvp_candidate_bundle_includes_new_context_and_responder_sli
     included = artifact["included_artifact_statuses"]
 
     assert included["short_term_context_runtime_replay"]["status"] == "runtime_replay_diagnostic_pass"  # type: ignore[index]
+    assert included["pl_ce_ui_context_alignment_pack"]["status"] == "ui_context_alignment_ready_for_human_review"  # type: ignore[index]
     assert included["context_coverage_matrix"]["status"] == "context_coverage_matrix_ready_for_human_review"  # type: ignore[index]
     assert included["context_conditioned_intent_wall"]["status"] == "pass"  # type: ignore[index]
     assert included["correction_removal_fixture_flow"]["status"] == "pass"  # type: ignore[index]
@@ -178,6 +204,8 @@ def test_pl_ce_local_mvp_candidate_bundle_includes_new_context_and_responder_sli
     assert artifact["summary"]["correction_removal_scenarios"] == 5
     assert artifact["summary"]["responder_fake_smoke_scenarios"] == 5
     assert artifact["summary"]["review_candidate_count"] >= 5
+    assert artifact["summary"]["chat_target_candidate_ui_checked"] is True
+    assert artifact["summary"]["chat_target_candidate_ui_count"] == 2
 
 
 def test_pl_ce_local_mvp_candidate_bundle_blocks_overclaim_inputs() -> None:
@@ -205,11 +233,27 @@ def test_pl_ce_local_mvp_candidate_bundle_blocks_overclaim_inputs() -> None:
 def test_pl_ce_local_mvp_candidate_bundle_blocks_upstream_blockers() -> None:
     inputs = _valid_inputs()
     inputs["context_coverage_matrix"]["blockers"] = ["coverage.semantic_owner_boundary.missing_fake_provider"]
+    inputs["pl_ce_ui_context_alignment_pack"]["blockers"] = ["target_candidate_ui.missing"]
 
     artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "context_coverage_matrix.upstream_blockers_present" in artifact["blockers"]
+    assert "pl_ce_ui_context_alignment_pack.upstream_blockers_present" in artifact["blockers"]
+
+
+def test_pl_ce_local_mvp_candidate_bundle_blocks_missing_target_candidate_ui_alignment() -> None:
+    inputs = _valid_inputs()
+    inputs["pl_ce_ui_context_alignment_pack"]["summary"] = {
+        "chat_target_candidate_ui_checked": False,
+        "chat_target_candidate_ui_count": 0,
+    }
+
+    artifact = build_pl_ce_local_mvp_candidate_bundle_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "pl_ce_ui_context_alignment_pack.chat_target_candidate_ui_not_checked" in artifact["blockers"]
+    assert "pl_ce_ui_context_alignment_pack.chat_target_candidate_ui_count_mismatch" in artifact["blockers"]
 
 
 def test_pl_ce_local_mvp_candidate_bundle_blocks_missing_runtime_replay() -> None:
@@ -397,6 +441,11 @@ def test_ci_runs_pl_ce_local_mvp_candidate_bundle() -> None:
 
     assert "test_accurate_intake_pl_ce_local_mvp_candidate_bundle.py" in workflow
     assert "build_accurate_intake_pl_ce_local_mvp_candidate_bundle.py" in workflow
+    assert "accurate_intake_pl_ce_ui_context_alignment_pack_ci.json" in workflow
+    assert (
+        "--artifact pl_ce_ui_context_alignment_pack=artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json"
+        in workflow
+    )
     assert "accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json" in workflow
     assert "accurate_intake_pl_ce_context_coverage_matrix_ci.json" in workflow
     assert "accurate_intake_short_term_context_runtime_replay_ci.json" in workflow

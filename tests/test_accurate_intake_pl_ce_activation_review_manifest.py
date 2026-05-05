@@ -17,6 +17,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "activation_gate_status": "blocked_pending_human_and_browser_activation",
             "required_inputs": [
                 "ui_same_truth_contract",
+                "pl_ce_ui_context_alignment_pack",
                 "context_quality_pack",
                 "short_term_context_runtime_replay",
                 "context_coverage_matrix",
@@ -32,6 +33,10 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "blockers": [],
             "included_artifact_statuses": {
                 "ui_same_truth_contract": {"status": "pass", "present": True},
+                "pl_ce_ui_context_alignment_pack": {
+                    "status": "ui_context_alignment_ready_for_human_review",
+                    "present": True,
+                },
                 "context_quality_pack": {"status": "context_quality_diagnostic_pass", "present": True},
                 "short_term_context_runtime_replay": {
                     "status": "runtime_replay_diagnostic_pass",
@@ -92,12 +97,14 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "product_pages_browser_smoke",
                 "product_pages_seven_day_diary_smoke",
                 "product_pages_short_term_context_smoke",
+                "product_pages_target_candidate_ui_smoke",
                 "product_pages_visual_qa",
             ],
             "browser_required_inputs": [
                 "product_pages_browser_smoke",
                 "product_pages_seven_day_diary_smoke",
                 "product_pages_short_term_context_smoke",
+                "product_pages_target_candidate_ui_smoke",
                 "product_pages_visual_qa",
             ],
             "blockers": [],
@@ -115,6 +122,10 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                     "status": "pass",
                     "browser_executed": True,
                 },
+                "product_pages_target_candidate_ui_smoke": {
+                    "status": "pass",
+                    "browser_executed": True,
+                },
                 "product_pages_visual_qa": {"status": "pass", "browser_executed": True},
             },
             "all_required_browser_artifacts_executed": True,
@@ -123,11 +134,12 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "self_generated_evidence_used": False,
             "review_required_before_provider_call": True,
             "summary": {
-                "browser_artifact_count": 4,
-                "browser_executed_count": 4,
+                "browser_artifact_count": 5,
+                "browser_executed_count": 5,
                 "requires_three_distinct_pages": True,
                 "requires_seven_day_today_diary": True,
                 "requires_short_term_context_render": True,
+                "requires_target_candidate_ui_render": True,
                 "requires_visual_qa": True,
                 "requires_no_debug_trace_leak": True,
             },
@@ -152,6 +164,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "product_pages_browser_smoke",
                 "product_pages_seven_day_diary_smoke",
                 "product_pages_short_term_context_smoke",
+                "product_pages_target_candidate_ui_smoke",
                 "product_pages_visual_qa",
             ],
             "blockers": [],
@@ -174,6 +187,10 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                     "status": "pass",
                     "browser_executed": True,
                 },
+                "product_pages_target_candidate_ui_smoke": {
+                    "status": "pass",
+                    "browser_executed": True,
+                },
                 "product_pages_visual_qa": {"status": "pass", "browser_executed": True},
             },
             "summary": {
@@ -185,6 +202,9 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "renderer_source_map_endpoint_count": 8,
                 "seven_day_diary_checked": True,
                 "chat_context_reload_checked": True,
+                "chat_target_candidate_ui_checked": True,
+                "chat_target_candidate_ui_count": 2,
+                "chat_target_candidate_ui_names": ["luwei", "milk tea"],
                 "body_read_model_checked": True,
             },
             "aggregate_only": True,

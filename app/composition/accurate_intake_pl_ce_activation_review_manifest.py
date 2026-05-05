@@ -14,6 +14,7 @@ from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (
     REQUIRED_INPUTS as LOCAL_MVP_REQUIRED_INPUTS,
 )
 from app.composition.accurate_intake_pl_ce_ui_context_alignment_pack import (
+    EXPECTED_STATUSES as UI_CONTEXT_EXPECTED_STATUSES,
     REQUIRED_INPUTS as UI_CONTEXT_REQUIRED_INPUTS,
 )
 
@@ -45,18 +46,7 @@ EXPECTED_UPSTREAM_REQUIRED_INPUTS = {
 EXPECTED_NESTED_STATUSES = {
     "pl_ce_local_mvp_candidate_bundle": dict(LOCAL_MVP_EXPECTED_STATUSES),
     "pl_ce_browser_activation_evidence_gate": dict(BROWSER_GATE_EXPECTED_STATUSES),
-    "pl_ce_ui_context_alignment_pack": {
-        "ui_same_truth_contract": "pass",
-        "product_pages_renderer_source_map": "product_pages_renderer_source_map_ready_for_human_review",
-        "context_coverage_matrix": {
-            "context_coverage_matrix_ready_for_human_review",
-            "context_coverage_matrix_ready_with_known_runtime_gaps",
-        },
-        "product_pages_browser_smoke": "pass",
-        "product_pages_seven_day_diary_smoke": "pass",
-        "product_pages_short_term_context_smoke": "pass",
-        "product_pages_visual_qa": "pass",
-    },
+    "pl_ce_ui_context_alignment_pack": dict(UI_CONTEXT_EXPECTED_STATUSES),
 }
 
 FORBIDDEN_TRUTHY_FLAGS = (
@@ -239,6 +229,7 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
             "requires_three_distinct_pages",
             "requires_seven_day_today_diary",
             "requires_short_term_context_render",
+            "requires_target_candidate_ui_render",
             "requires_visual_qa",
             "requires_no_debug_trace_leak",
         ):
@@ -252,6 +243,10 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
             blockers.append("pl_ce_ui_context_alignment_pack.seven_day_diary_not_checked")
         if summary.get("chat_context_reload_checked") is not True:
             blockers.append("pl_ce_ui_context_alignment_pack.chat_context_reload_not_checked")
+        if summary.get("chat_target_candidate_ui_checked") is not True:
+            blockers.append("pl_ce_ui_context_alignment_pack.chat_target_candidate_ui_not_checked")
+        if _int_value(summary.get("chat_target_candidate_ui_count")) != 2:
+            blockers.append("pl_ce_ui_context_alignment_pack.chat_target_candidate_ui_count_mismatch")
         if summary.get("body_read_model_checked") is not True:
             blockers.append("pl_ce_ui_context_alignment_pack.body_read_model_not_checked")
         if _int_value(summary.get("context_covered_capabilities")) < 9:

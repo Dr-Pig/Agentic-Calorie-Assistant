@@ -7,6 +7,7 @@ from typing import Any
 
 REQUIRED_INPUTS = (
     "ui_same_truth_contract",
+    "pl_ce_ui_context_alignment_pack",
     "context_quality_pack",
     "short_term_context_runtime_replay",
     "context_coverage_matrix",
@@ -22,6 +23,7 @@ REQUIRED_INPUTS = (
 
 EXPECTED_STATUSES = {
     "ui_same_truth_contract": "pass",
+    "pl_ce_ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
     "context_quality_pack": "context_quality_diagnostic_pass",
     "short_term_context_runtime_replay": {
         "runtime_replay_diagnostic_pass",
@@ -43,6 +45,7 @@ EXPECTED_STATUSES = {
 
 EXPECTED_ARTIFACT_TYPES = {
     "ui_same_truth_contract": "accurate_intake_ui_same_truth_render_contract",
+    "pl_ce_ui_context_alignment_pack": "accurate_intake_pl_ce_ui_context_alignment_pack",
     "context_quality_pack": "accurate_intake_context_quality_pack",
     "short_term_context_runtime_replay": "accurate_intake_short_term_context_runtime_replay",
     "context_coverage_matrix": "accurate_intake_pl_ce_context_coverage_matrix",
@@ -182,6 +185,16 @@ def _runtime_replay_blockers(payload: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def _ui_alignment_blockers(payload: dict[str, Any]) -> list[str]:
+    summary = _object_dict(payload.get("summary"))
+    blockers: list[str] = []
+    if summary.get("chat_target_candidate_ui_checked") is not True:
+        blockers.append("pl_ce_ui_context_alignment_pack.chat_target_candidate_ui_not_checked")
+    if _int_value(summary.get("chat_target_candidate_ui_count")) != 2:
+        blockers.append("pl_ce_ui_context_alignment_pack.chat_target_candidate_ui_count_mismatch")
+    return blockers
+
+
 def _artifact_statuses(payloads: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     statuses: dict[str, dict[str, Any]] = {}
     for artifact_id, payload in payloads.items():
@@ -212,6 +225,7 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
     responder_summary = _object_dict(inputs["responder_input_contract_fake_smoke"].get("summary"))
     review_pipeline = inputs["review_eval_candidate_pipeline"]
     blockers.extend(_runtime_replay_blockers(inputs["short_term_context_runtime_replay"]))
+    blockers.extend(_ui_alignment_blockers(inputs["pl_ce_ui_context_alignment_pack"]))
     status = "pl_ce_local_mvp_candidate_ready_for_human_review" if not blockers else "blocked"
     return _json_safe(
         {
@@ -289,6 +303,15 @@ def build_pl_ce_local_mvp_candidate_bundle_artifact(
                 ),
                 "review_candidate_count": int(
                     review_pipeline.get("review_candidate_count") or 0
+                ),
+                "chat_target_candidate_ui_checked": _object_dict(
+                    inputs["pl_ce_ui_context_alignment_pack"].get("summary")
+                ).get("chat_target_candidate_ui_checked")
+                is True,
+                "chat_target_candidate_ui_count": _int_value(
+                    _object_dict(inputs["pl_ce_ui_context_alignment_pack"].get("summary")).get(
+                        "chat_target_candidate_ui_count"
+                    )
                 ),
                 "activation_browser_required": True,
                 "human_review_required": True,

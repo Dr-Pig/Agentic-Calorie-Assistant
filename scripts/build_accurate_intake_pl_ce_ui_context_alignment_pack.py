@@ -32,6 +32,9 @@ DEFAULT_ARTIFACT_PATHS = {
     "product_pages_short_term_context_smoke": ROOT
     / "artifacts"
     / "accurate_intake_product_pages_short_term_context_smoke.json",
+    "product_pages_target_candidate_ui_smoke": ROOT
+    / "artifacts"
+    / "accurate_intake_product_pages_target_candidate_ui_smoke.json",
     "product_pages_visual_qa": ROOT / "artifacts" / "accurate_intake_product_pages_visual_qa.json",
 }
 

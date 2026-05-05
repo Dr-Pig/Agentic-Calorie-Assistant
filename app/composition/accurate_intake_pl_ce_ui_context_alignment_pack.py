@@ -12,6 +12,7 @@ REQUIRED_INPUTS = (
     "product_pages_browser_smoke",
     "product_pages_seven_day_diary_smoke",
     "product_pages_short_term_context_smoke",
+    "product_pages_target_candidate_ui_smoke",
     "product_pages_visual_qa",
 )
 
@@ -25,6 +26,7 @@ EXPECTED_STATUSES = {
     "product_pages_browser_smoke": "pass",
     "product_pages_seven_day_diary_smoke": "pass",
     "product_pages_short_term_context_smoke": "pass",
+    "product_pages_target_candidate_ui_smoke": "pass",
     "product_pages_visual_qa": "pass",
 }
 
@@ -39,6 +41,7 @@ EXPECTED_SMOKE_IDS = {
     "product_pages_browser_smoke": "accurate_intake_product_pages_browser_smoke_v1",
     "product_pages_seven_day_diary_smoke": "accurate_intake_product_pages_seven_day_diary_smoke_v1",
     "product_pages_short_term_context_smoke": "accurate_intake_product_pages_short_term_context_smoke_v1",
+    "product_pages_target_candidate_ui_smoke": "accurate_intake_product_pages_target_candidate_ui_smoke_v1",
 }
 
 FORBIDDEN_TRUTHY_FLAGS = (
@@ -63,6 +66,7 @@ FORBIDDEN_TRUTHY_FLAGS = (
     "mutation_changed",
     "mutation_authority",
     "frontend_semantic_owner",
+    "frontend_selected_target",
     "deterministic_semantic_inference_used",
     "deterministic_selected_target",
     "raw_text_intent_router_used",
@@ -123,6 +127,16 @@ REQUIRED_TRUE_FLAGS = {
         "assistant_commit_bubble_rendered",
         "today_same_day_meal_rendered",
         "today_summary_rendered",
+        "product_pages_no_debug_trace",
+    ),
+    "product_pages_target_candidate_ui_smoke": (
+        "browser_executed",
+        "browser_reload_checked",
+        "chat_page_loaded",
+        "chat_history_reloaded",
+        "target_candidate_surface_checked",
+        "target_candidate_list_read_only",
+        "context_strip_read_only",
         "product_pages_no_debug_trace",
     ),
     "product_pages_visual_qa": (
@@ -258,6 +272,13 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
                 blockers.append(
                     "product_pages_short_term_context_smoke.target_candidate_surface_candidate_count_missing"
                 )
+    if group_id == "product_pages_target_candidate_ui_smoke":
+        if _int_value(payload.get("target_candidate_count_rendered")) != 2:
+            blockers.append("product_pages_target_candidate_ui_smoke.target_candidate_count_rendered_mismatch")
+        if list(payload.get("target_candidate_names_rendered") or []) != ["luwei", "milk tea"]:
+            blockers.append("product_pages_target_candidate_ui_smoke.target_candidate_names_rendered_mismatch")
+        if payload.get("manager_provider_call_count") != 0:
+            blockers.append("product_pages_target_candidate_ui_smoke.manager_provider_call_count_not_zero")
     return blockers
 
 
@@ -330,6 +351,21 @@ def build_pl_ce_ui_context_alignment_pack_artifact(
                     "product_pages_short_term_context_smoke"
                 ].get("target_candidate_surface_status")
                 or "not_available",
+                "chat_target_candidate_ui_checked": inputs[
+                    "product_pages_target_candidate_ui_smoke"
+                ].get("target_candidate_surface_checked")
+                is True,
+                "chat_target_candidate_ui_count": _int_value(
+                    inputs["product_pages_target_candidate_ui_smoke"].get(
+                        "target_candidate_count_rendered"
+                    )
+                ),
+                "chat_target_candidate_ui_names": list(
+                    inputs["product_pages_target_candidate_ui_smoke"].get(
+                        "target_candidate_names_rendered"
+                    )
+                    or []
+                ),
                 "body_read_model_checked": inputs["product_pages_browser_smoke"].get(
                     "body_plan_readback_checked"
                 )

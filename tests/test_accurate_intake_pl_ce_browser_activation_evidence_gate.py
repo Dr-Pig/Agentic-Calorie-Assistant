@@ -125,6 +125,36 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "product_pages_target_candidate_ui_smoke": {
+            "smoke_id": "accurate_intake_product_pages_target_candidate_ui_smoke_v1",
+            "status": "pass",
+            "browser_executed": True,
+            "browser_reload_checked": True,
+            "chat_page_loaded": True,
+            "chat_history_reloaded": True,
+            "target_candidate_surface_checked": True,
+            "target_candidate_count_rendered": 2,
+            "target_candidate_names_rendered": ["luwei", "milk tea"],
+            "target_candidate_list_read_only": True,
+            "context_strip_read_only": True,
+            "manager_provider_call_count": 0,
+            "product_pages_no_debug_trace": True,
+            "frontend_selected_target": False,
+            "frontend_semantic_owner": False,
+            "deterministic_selected_target": False,
+            "deterministic_semantic_inference_used": False,
+            "raw_text_intent_router_used": False,
+            "mutation_authority": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "web_readiness_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "forbidden_storage_used": False,
+        },
         "product_pages_visual_qa": {
             "artifact_type": "accurate_intake_product_pages_visual_qa",
             "status": "pass",
@@ -158,6 +188,7 @@ def test_browser_activation_gate_requires_real_browser_evidence_without_readines
     assert artifact["status"] == "browser_activation_evidence_ready_for_human_review"
     assert artifact["browser_executed_required"] is True
     assert artifact["all_required_browser_artifacts_executed"] is True
+    assert "product_pages_target_candidate_ui_smoke" in artifact["browser_required_inputs"]
     assert artifact["ready_for_live_diagnostic_decision"] is False
     assert artifact["ready_for_fdb_integration"] is False
     assert artifact["live_llm_invoked"] is False
@@ -200,6 +231,8 @@ def test_browser_activation_gate_blocks_swapped_identity_and_unknown_mvp_candida
 def test_browser_activation_gate_blocks_frontend_semantics_live_or_fooddb_claims() -> None:
     inputs = _valid_inputs()
     inputs["product_pages_short_term_context_smoke"]["deterministic_semantic_inference_used"] = True
+    inputs["product_pages_target_candidate_ui_smoke"]["frontend_selected_target"] = True
+    inputs["product_pages_target_candidate_ui_smoke"]["manager_provider_call_count"] = 1
     inputs["product_pages_visual_qa"]["frontend_semantic_owner"] = True
     inputs["product_pages_browser_smoke"]["fooddb_evidence_used"] = True
     inputs["product_pages_seven_day_diary_smoke"]["manager_provider_call_count"] = 1
@@ -208,6 +241,8 @@ def test_browser_activation_gate_blocks_frontend_semantics_live_or_fooddb_claims
 
     assert artifact["status"] == "blocked"
     assert "product_pages_short_term_context_smoke.deterministic_semantic_inference_used" in artifact["blockers"]
+    assert "product_pages_target_candidate_ui_smoke.frontend_selected_target" in artifact["blockers"]
+    assert "product_pages_target_candidate_ui_smoke.manager_provider_call_count_not_zero" in artifact["blockers"]
     assert "product_pages_visual_qa.frontend_semantic_owner" in artifact["blockers"]
     assert "product_pages_browser_smoke.fooddb_evidence_used" in artifact["blockers"]
     assert "product_pages_seven_day_diary_smoke.manager_provider_called" in artifact["blockers"]
@@ -305,5 +340,10 @@ def test_ci_builds_browser_activation_evidence_gate() -> None:
 
     assert "test_accurate_intake_pl_ce_browser_activation_evidence_gate.py" in workflow
     assert "run_accurate_intake_product_pages_short_term_context_smoke.py --require-browser-execution" in workflow
+    assert "run_accurate_intake_product_pages_target_candidate_ui_smoke.py --require-browser-execution" in workflow
     assert "build_accurate_intake_pl_ce_browser_activation_evidence_gate.py" in workflow
     assert "accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json" in workflow
+    assert (
+        "product_pages_target_candidate_ui_smoke=artifacts/accurate_intake_product_pages_target_candidate_ui_smoke_ci.json"
+        in workflow
+    )
