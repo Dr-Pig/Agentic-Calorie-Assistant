@@ -7,20 +7,23 @@ from typing import Any, Literal
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from app.budget.application.effective_budget_math import summarize_budget_adjustment_layers
+from app.body.application.active_body_plan_read_model import build_active_body_plan_view
+from app.body.infrastructure.models import BodyPlanRecord
+from app.budget.application.effective_budget_math import (
+    summarize_budget_adjustment_layers,
+)
 from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord
-from app.composition.canonical_persistence import (
-    ensure_proposal_artifact_skeleton,
+from app.composition.calibration_proposal_artifacts import (
+    ACTIVE_CALIBRATION_PROPOSAL_STATUSES,
+)
+from app.composition.canonical_body_support import (
     load_active_body_plan_record,
     recompute_day_budget_ledger,
 )
-from app.composition.calibration_proposal_artifacts import ACTIVE_CALIBRATION_PROPOSAL_STATUSES
-from app.body.application.active_body_plan_read_model import build_active_body_plan_view
-from app.body.infrastructure.models import BodyPlanRecord
+from app.composition.canonical_proposal_support import ensure_proposal_artifact_skeleton
 from app.composition.current_budget_read_model import build_current_budget_view
-from app.shared.infra.models import ProposalContainerRecord
 from app.shared.domain import ActiveBodyPlanView, CurrentBudgetView
-from app.shared.infra.models import User
+from app.shared.infra.models import ProposalContainerRecord, User
 
 CalibrationCommitDecision = Literal["accepted", "rejected", "dismissed"]
 PLAN_CHANGING_CALIBRATION_FAMILIES = frozenset(

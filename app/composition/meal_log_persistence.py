@@ -9,11 +9,16 @@ from app.composition.canonical_commit_bridge import (
     commit_request_candidate_to_canonical,
     resolve_commit_candidate_target,
 )
+from app.composition.canonical_commit_support import get_legacy_mapping_for_meal_log
+from app.database import (
+    append_message,
+    save_meal_log,
+    supersede_log,
+    update_message_linkage,
+)
 from app.intake.application.state_transition import determine_meal_status
-from app.composition.canonical_persistence import get_legacy_mapping_for_meal_log
-from app.database import append_message, save_meal_log, supersede_log, update_message_linkage
-from app.shared.infra.models import MealLog, User
 from app.schemas import EstimatePayload
+from app.shared.infra.models import MealLog, User
 
 
 def _json_safe(value: object) -> object:
