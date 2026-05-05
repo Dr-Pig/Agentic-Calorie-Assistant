@@ -24,8 +24,10 @@ def test_fake_provider_context_smoke_reuses_live_shape_without_live_provider() -
     assert artifact["raw_text_intent_router_used"] is False
     assert artifact["tool_loop_trace_attributable"] is True
     assert artifact["manager_handoff_matrix_checked"] is True
-    assert artifact["summary"]["manager_handoff_scenario_count"] >= 3
+    assert artifact["summary"]["manager_handoff_scenario_count"] >= 6
     assert artifact["summary"]["ambiguous_back_reference_scenarios"] >= 1
+    assert artifact["summary"]["query_no_mutation_scenarios"] >= 1
+    assert artifact["summary"]["target_update_boundary_scenarios"] >= 2
 
     provider_input = artifact["provider_input_summary"]
     assert provider_input["context_policy_version_present"] is True
@@ -54,6 +56,21 @@ def test_fake_provider_context_smoke_reuses_live_shape_without_live_provider() -
     assert pending["pre_attachment_disposition"] == "attach_existing_thread"
     assert pending["shadow_created"] is False
     assert pending["shadow_skip_reason"] == "resolved_pending_followup"
+
+    query = by_id["previous_drink_calorie_query"]
+    assert query["fixture_manager_workflow_effect"] == "query_no_mutation"
+    assert query["query_no_mutation"] is True
+    assert query["mutation_authority"] is False
+
+    target_update = by_id["explicit_daily_target_1800"]
+    assert target_update["fixture_manager_workflow_effect"] == "daily_target_update_candidate"
+    assert target_update["target_update_requires_manager_decision"] is True
+    assert target_update["mutation_authority"] is False
+
+    meal_estimate = by_id["meal_estimate_800_not_target"]
+    assert meal_estimate["fixture_manager_workflow_effect"] == "meal_estimate_context"
+    assert meal_estimate["target_update_requires_manager_decision"] is False
+    assert meal_estimate["mutation_authority"] is False
 
 
 def test_fake_provider_context_smoke_script_writes_artifact(tmp_path: Path) -> None:

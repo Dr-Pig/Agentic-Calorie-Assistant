@@ -115,8 +115,10 @@ def test_context_coverage_matrix_reports_supported_short_term_capabilities() -> 
     assert coverage["ambiguity_preserved"]["coverage_status"] == (
         "fixture_runtime_and_fake_provider_checked"
     )
-    assert coverage["query_no_mutation"]["coverage_status"] == "fixture_checked"
-    assert coverage["target_update_boundary"]["coverage_status"] == "fixture_checked"
+    assert coverage["query_no_mutation"]["coverage_status"] == "fixture_and_fake_provider_checked"
+    assert coverage["target_update_boundary"]["coverage_status"] == (
+        "fixture_and_fake_provider_checked"
+    )
     assert coverage["long_session_bounded_context"]["coverage_status"] == (
         "fixture_runtime_checked"
     )
@@ -196,6 +198,34 @@ def test_context_coverage_matrix_blocks_missing_required_capability() -> None:
     assert artifact["status"] == "blocked"
     assert "coverage.target_update_boundary.missing_intent_wall" in artifact["blockers"]
     assert artifact["coverage_matrix"]["target_update_boundary"]["coverage_status"] == "not_checked"
+
+
+def test_context_coverage_matrix_blocks_missing_fake_provider_semantic_posture() -> None:
+    from app.composition.accurate_intake_pl_ce_context_coverage_matrix import (
+        build_pl_ce_context_coverage_matrix_artifact,
+    )
+
+    inputs = _inputs()
+    fake_provider = dict(inputs["fake_provider_context_smoke"])
+    fake_provider["manager_handoff_scenarios"] = [
+        scenario
+        for scenario in fake_provider["manager_handoff_scenarios"]
+        if scenario["scenario_id"]
+        not in {
+            "previous_drink_calorie_query",
+            "explicit_daily_target_1800",
+            "meal_estimate_800_not_target",
+        }
+    ]
+    inputs["fake_provider_context_smoke"] = fake_provider
+
+    artifact = build_pl_ce_context_coverage_matrix_artifact(**inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "coverage.query_no_mutation.missing_fake_provider" in artifact["blockers"]
+    assert "coverage.target_update_boundary.missing_fake_provider" in artifact["blockers"]
+    assert artifact["coverage_matrix"]["query_no_mutation"]["coverage_status"] == "fixture_checked"
+    assert artifact["coverage_matrix"]["target_update_boundary"]["coverage_status"] == "fixture_checked"
 
 
 def test_context_coverage_matrix_blocks_overclaims_and_schema_change() -> None:
