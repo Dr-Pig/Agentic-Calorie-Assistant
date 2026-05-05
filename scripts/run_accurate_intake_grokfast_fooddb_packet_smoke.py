@@ -22,6 +22,7 @@ from app.nutrition.application.grokfast_fooddb_diagnostic_preflight import (  # 
     is_grokfast_fooddb_preflight_clear,
 )
 from app.providers.builderspace_adapter import BuilderSpaceAdapter, BuilderSpaceResponseError  # noqa: E402
+from app.providers.builderspace_runtime_contract import validate_manager_payload  # noqa: E402
 from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT  # noqa: E402
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE  # noqa: E402
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
@@ -98,6 +99,7 @@ def main(argv: list[str] | None = None) -> int:
             packet_artifact=packet_artifact,
             manager_outputs=manager_outputs,
             live_provider_used=False,
+            manager_contract_validator=_manager_contract_validation_errors,
         )
         write_json_artifact(output_path, artifact)
         _print_summary(output_path, artifact)
@@ -183,9 +185,25 @@ async def _run_live(*, packet_artifact: dict[str, Any]) -> tuple[dict[str, Any],
         packet_artifact=packet_artifact,
         manager_outputs=manager_outputs,
         live_provider_used=True,
+        manager_contract_validator=_manager_contract_validation_errors,
     )
     artifact["provider_readiness"] = readiness
     return artifact, 0
+
+
+def _manager_contract_validation_errors(
+    packet_case: dict[str, Any],
+    manager_output: dict[str, Any],
+) -> list[str]:
+    try:
+        validate_manager_payload(
+            MANAGER_LOOP_STAGE,
+            manager_output,
+            constraints=build_live_manager_payload(packet_case=packet_case)["constraints"],
+        )
+    except Exception as exc:
+        return [f"{type(exc).__name__}: {exc}"]
+    return []
 
 
 def _print_summary(output_path: Path, artifact: dict[str, Any]) -> None:
