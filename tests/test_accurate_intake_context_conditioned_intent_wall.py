@@ -90,6 +90,29 @@ def test_context_conditioned_intent_wall_verifies_pending_followup_and_query_bou
     assert meal_estimate["target_update_requires_manager_decision"] is False
 
 
+def test_context_conditioned_intent_wall_keeps_cjk_utterances_intact() -> None:
+    by_id = _by_id(build_context_conditioned_intent_wall_artifact())
+    expected_inputs = {
+        "luwei_pending_components_followup": "\u8c46\u5e72\u3001\u6d77\u5e36\u3001\u8ca2\u4e38",
+        "half_sugar_no_prior_drink": "\u6539\u534a\u7cd6",
+        "half_sugar_one_prior_drink": "\u6539\u534a\u7cd6",
+        "half_sugar_multiple_drinks": "\u6539\u534a\u7cd6",
+        "remove_tofu_no_luwei_context": "\u8c46\u5e72\u62ff\u6389",
+        "remove_tofu_one_luwei": "\u8c46\u5e72\u62ff\u6389",
+        "remove_tofu_multiple_targets": "\u8c46\u5e72\u62ff\u6389",
+        "previous_drink_calorie_query": "\u525b\u525b\u90a3\u676f\u591a\u5c11\u71b1\u91cf\uff1f",
+        "explicit_daily_target_1800": "\u4eca\u5929\u76ee\u6a19\u6539\u6210 1800",
+        "meal_estimate_800_not_target": "\u9019\u9910\u5927\u6982 800",
+        "long_session_less_rice": "\u90a3\u500b\u6539\u5c11\u98ef",
+    }
+    mojibake_markers = ("\ufffd", "\u00c3", "\u00e2", "\u00ef")
+
+    for scenario_id, expected in expected_inputs.items():
+        raw_input = str(by_id[scenario_id]["raw_user_input"])
+        assert raw_input == expected
+        assert not any(marker in raw_input for marker in mojibake_markers)
+
+
 def test_context_conditioned_intent_wall_verifies_long_session_bounds_context_without_losing_targets() -> None:
     artifact = build_context_conditioned_intent_wall_artifact()
     long_session = _by_id(artifact)["long_session_less_rice"]
