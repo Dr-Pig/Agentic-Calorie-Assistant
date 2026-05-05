@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+
+import pytest
 
 from scripts import run_accurate_intake_browser_one_day_fixture_dogfood as module
 
@@ -122,10 +125,35 @@ def test_browser_one_day_fixture_cli_writes_blocked_artifact_without_optional_fa
     assert artifact["status"] == "blocked"
 
 
+def test_browser_one_day_fixture_restores_debug_token_on_setup_failure(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", "operator-token")
+    monkeypatch.setattr(module, "_load_sync_playwright", lambda: object())
+    monkeypatch.setattr(
+        module,
+        "build_one_day_self_use_scenario_wall_report",
+        lambda **_: {"status": "pass", "summary": {}, "scenario_wall_id": "one_day"},
+    )
+
+    def broken_build_app(_db: object) -> object:
+        raise RuntimeError("setup_boom")
+
+    monkeypatch.setattr(module, "_build_app", broken_build_app)
+
+    with pytest.raises(RuntimeError, match="setup_boom"):
+        module.build_browser_one_day_fixture_dogfood_report(db_path=tmp_path / "one_day.sqlite3")
+
+    assert os.environ["LOCAL_DEBUG_API_TOKEN"] == "operator-token"
+
+
 def test_browser_one_day_fixture_script_stays_out_of_fooddb_and_live_provider_boundaries() -> None:
     source = Path("scripts/run_accurate_intake_browser_one_day_fixture_dogfood.py").read_text(encoding="utf-8")
 
     assert "local_date=LOCAL_DATE" in source
+    assert 'os.environ["LOCAL_DEBUG_API_TOKEN"]' in source
+    assert 'document.querySelector("#local-debug-token")' in source
     for fragment in (
         "NutritionEvidenceStorePort",
         "FoodEvidenceRecord",
