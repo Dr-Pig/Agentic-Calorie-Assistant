@@ -169,7 +169,11 @@ def _upstream_invariant_blockers(group_id: str, payload: dict[str, Any]) -> list
     elif group_id == "fake_provider_context_smoke":
         if payload.get("manager_handoff_matrix_checked") is not True:
             blockers.append(f"{group_id}.manager_handoff_matrix_missing")
-        if _int_value(summary.get("manager_handoff_scenario_count")) < 6:
+        scenario_count = _int_value(summary.get("manager_handoff_scenario_count"))
+        actual_scenario_count = len(_list_value(payload.get("manager_handoff_scenarios")))
+        if scenario_count != actual_scenario_count:
+            blockers.append(f"{group_id}.manager_handoff_scenario_count_mismatch")
+        if scenario_count < 6:
             blockers.append(f"{group_id}.manager_handoff_scenario_count_too_low")
         if _int_value(summary.get("ambiguous_back_reference_scenarios")) < 1:
             blockers.append(f"{group_id}.ambiguous_back_reference_missing")
