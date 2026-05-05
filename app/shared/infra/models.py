@@ -2,19 +2,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any, Optional
 
 from sqlalchemy import Integer, String, Text, DateTime, JSON, ForeignKey, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-
-if TYPE_CHECKING:
-    from app.body.infrastructure.models import (
-        BodyObservationRecord,
-        BodyPlanRecord,
-        BodyProfileRecord,
-    )
-    from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord
-    from app.intake.infrastructure.models import MealThreadRecord
 
 
 class Base(DeclarativeBase):
@@ -35,23 +26,23 @@ class User(Base):
 
     logs: Mapped[list["MealLog"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     messages: Mapped[list["MessageBuffer"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    meal_threads: Mapped[list["MealThreadRecord"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+    meal_threads: Mapped[list[Any]] = relationship(
+        "MealThreadRecord", back_populates="user", cascade="all, delete-orphan"
     )
-    ledgers: Mapped[list["DayBudgetLedgerRecord"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+    ledgers: Mapped[list[Any]] = relationship(
+        "DayBudgetLedgerRecord", back_populates="user", cascade="all, delete-orphan"
     )
-    ledger_entries: Mapped[list["LedgerEntryRecord"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+    ledger_entries: Mapped[list[Any]] = relationship(
+        "LedgerEntryRecord", back_populates="user", cascade="all, delete-orphan"
     )
-    body_observations: Mapped[list["BodyObservationRecord"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+    body_observations: Mapped[list[Any]] = relationship(
+        "BodyObservationRecord", back_populates="user", cascade="all, delete-orphan"
     )
-    body_profiles: Mapped[list["BodyProfileRecord"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+    body_profiles: Mapped[list[Any]] = relationship(
+        "BodyProfileRecord", back_populates="user", cascade="all, delete-orphan"
     )
-    body_plans: Mapped[list["BodyPlanRecord"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+    body_plans: Mapped[list[Any]] = relationship(
+        "BodyPlanRecord", back_populates="user", cascade="all, delete-orphan"
     )
     proposals: Mapped[list["ProposalContainerRecord"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
