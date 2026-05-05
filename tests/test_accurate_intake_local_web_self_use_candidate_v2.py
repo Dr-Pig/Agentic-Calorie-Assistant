@@ -34,6 +34,16 @@ def _clean_evidence() -> dict:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "context_live_diagnostic_case_matrix": {
+            "status": "pass",
+            "source": "test",
+            "plan_only": True,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "fooddb_used": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+        },
         "mvp_gate": {"status": "pass"},
         "phase_c_gate": {"status": "pass"},
     }
@@ -92,6 +102,24 @@ def test_candidate_blocked_when_pl_ce_local_review_decision_pack_missing() -> No
     pack = build_local_web_self_use_candidate_v2(evidence)
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert "missing evidence: pl_ce_local_review_decision_pack" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+def test_candidate_blocked_when_context_live_case_matrix_missing() -> None:
+    evidence = _clean_evidence()
+    del evidence["context_live_diagnostic_case_matrix"]
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "missing evidence: context_live_diagnostic_case_matrix" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+def test_candidate_blocks_context_live_case_matrix_overclaims() -> None:
+    evidence = _clean_evidence()
+    evidence["context_live_diagnostic_case_matrix"]["plan_only"] = False
+    evidence["context_live_diagnostic_case_matrix"]["live_provider_invoked"] = True
+    evidence["context_live_diagnostic_case_matrix"]["fooddb_used"] = True
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "context live case matrix not plan-only" in pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert "live provider used" in pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert "FoodDB overclaim" in pack["local_web_self_use_candidate_v2"]["blockers"]
 
 def test_candidate_requires_pre_live_pack_to_reference_pl_ce_local_review() -> None:
     evidence = _clean_evidence()
@@ -164,6 +192,7 @@ def test_candidate_blocked_if_any_artifact_claims_fooddb_truth_or_integration() 
         "ready_for_fdb_integration",
         "fooddb_truth_updated",
         "fooddb_evidence_used",
+        "fooddb_used",
         "real_fooddb_pass_claimed",
         "fooddb_schema_changed",
         "food_evidence_promotion_policy_changed",
