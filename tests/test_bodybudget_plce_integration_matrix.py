@@ -121,6 +121,28 @@ def test_bodybudget_plce_integration_matrix_references_importable_backend_read_m
         assert callable(_resolve_symbol(dotted_path))
 
 
+def test_bodybudget_plce_integration_matrix_matches_readiness_artifact_contract() -> None:
+    from app.composition.body_budget_calibration_readiness import (
+        build_body_budget_calibration_readiness_artifact,
+    )
+
+    matrix = MATRIX_PATH.read_text(encoding="utf-8-sig")
+    artifact = build_body_budget_calibration_readiness_artifact()
+    integration_matrix = artifact["plce_contract"]["integration_readiness_matrix"]
+
+    assert "machine-readable readiness artifact" in matrix
+    assert integration_matrix["doc_path"].endswith("#BodyBudget PL/CE Integration Readiness Matrix")
+    for read_model in artifact["stable_read_models"]:
+        name = read_model["name"]
+        assert name in integration_matrix["canonical_read_model_names"]
+        assert integration_matrix["backend_routes"][name] == read_model["backend_route"]
+        assert integration_matrix["read_functions"][name] == read_model["read_function"]
+        assert read_model["canonical_name_required_for_plce"] is True
+        assert read_model["backend_route"] in matrix
+        assert read_model["read_function"] in matrix
+        assert read_model["plce_forbidden"]
+
+
 def test_bodybudget_plce_integration_matrix_tracks_calibration_router_activation_status() -> None:
     matrix = MATRIX_PATH.read_text(encoding="utf-8-sig")
     root_routes = ROOT_ROUTES_PATH.read_text(encoding="utf-8")

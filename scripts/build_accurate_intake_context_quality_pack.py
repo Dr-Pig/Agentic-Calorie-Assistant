@@ -32,6 +32,10 @@ from app.composition.accurate_intake_short_term_context_runtime_replay import ( 
 )
 
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_context_quality_pack.json"
+DEFAULT_SHORT_TERM_CONTEXT_SMOKE_PATHS = (
+    ROOT / "artifacts" / "accurate_intake_product_pages_short_term_context_smoke_ci.json",
+    ROOT / "artifacts" / "accurate_intake_product_pages_short_term_context_smoke.json",
+)
 
 
 def _object_dict(value: object) -> dict[str, object]:
@@ -87,6 +91,13 @@ def _fixture_context_review() -> dict[str, object]:
 
 def _read_json_artifact(path: Path) -> dict[str, object]:
     return _object_dict(json.loads(path.read_text(encoding="utf-8")))
+
+
+def _read_default_short_term_context_smoke() -> dict[str, object] | None:
+    for path in DEFAULT_SHORT_TERM_CONTEXT_SMOKE_PATHS:
+        if path.exists():
+            return _read_json_artifact(path)
+    return None
 
 
 def _trace_from_chat_history_message(message: dict[str, object], index: int) -> dict[str, object]:
@@ -223,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
     short_term_context_smoke = (
         _read_json_artifact(Path(args.short_term_context_smoke))
         if args.short_term_context_smoke
-        else None
+        else _read_default_short_term_context_smoke()
     )
     artifact = build_context_quality_pack_report(
         short_term_context_smoke=short_term_context_smoke,

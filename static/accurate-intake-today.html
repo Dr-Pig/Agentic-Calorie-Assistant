@@ -124,6 +124,34 @@
       grid-template-columns: repeat(7, minmax(0, 1fr));
       gap: 8px;
     }
+    .session-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .session-chip {
+      min-height: 58px;
+      display: grid;
+      gap: 4px;
+      align-content: center;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow-wrap: anywhere;
+    }
+    .session-chip strong {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+    .session-chip span {
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 900;
+    }
     .day-button {
       display: grid;
       grid-template-rows: auto auto;
@@ -241,7 +269,7 @@
         min-width: 0;
         grid-template-columns: 1fr;
       }
-      .grid, .kcal-grid, #day-strip {
+      .grid, .kcal-grid, .session-strip, #day-strip {
         grid-template-columns: 1fr;
       }
       #day-strip {
@@ -282,6 +310,11 @@
         </label>
         <button id="next-day" type="button" aria-label="Next day"><span aria-hidden="true">&#8250;</span></button>
       </div>
+    </section>
+    <section class="session-strip" aria-label="Current diary session">
+      <div class="session-chip"><strong>User</strong><span id="today-session-user">--</span></div>
+      <div class="session-chip"><strong>Date</strong><span id="today-session-date">--</span></div>
+      <div class="session-chip"><strong>Chat link</strong><span id="today-chat-state">same day</span></div>
     </section>
     <section id="day-strip" aria-label="Seven day date strip"></section>
     <section class="grid">
@@ -343,6 +376,11 @@
     }
     function writeText(id, value) {
       el(id).textContent = value == null ? "--" : String(value);
+    }
+    function updateSessionStrip() {
+      el("today-session-user").textContent = userId();
+      el("today-session-date").textContent = selectedDate();
+      el("today-chat-state").textContent = "same user/date";
     }
     async function requestJson(url) {
       const response = await fetch(url);
@@ -407,6 +445,7 @@
     }
     async function loadToday() {
       renderDayStrip();
+      updateSessionStrip();
       updateCurrentUrl();
       updateNavigationLinks();
       el("today-status").textContent = "Loading this day...";

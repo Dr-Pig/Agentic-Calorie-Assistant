@@ -122,6 +122,34 @@
       gap: 14px;
       align-items: start;
     }
+    .session-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .session-chip {
+      min-height: 58px;
+      display: grid;
+      gap: 4px;
+      align-content: center;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow-wrap: anywhere;
+    }
+    .session-chip strong {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+    .session-chip span {
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 900;
+    }
     .summary-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -200,7 +228,7 @@
       overflow-wrap: anywhere;
     }
     @media (max-width: 860px) {
-      .topbar, .page-header, .grid, .summary-grid, form {
+      .topbar, .page-header, .grid, .session-strip, .summary-grid, form {
         display: grid;
         grid-template-columns: 1fr;
       }
@@ -233,6 +261,11 @@
         <a class="action-link" data-nav-target="today" href="/static/accurate-intake-today.html">Open Today</a>
         <a class="action-link" data-nav-target="chat" href="/static/accurate-intake-chat.html">Open Chat</a>
       </div>
+    </section>
+    <section class="session-strip" aria-label="Current body plan session">
+      <div class="session-chip"><strong>User</strong><span id="body-session-user">--</span></div>
+      <div class="session-chip"><strong>Date</strong><span id="body-session-date">--</span></div>
+      <div class="session-chip"><strong>Plan source</strong><span id="body-plan-source">backend read model</span></div>
     </section>
     <section class="card" id="body-plan-summary">
       <h2>Current plan</h2>
@@ -378,6 +411,11 @@
     function writeText(id, value, suffix = "") {
       el(id).textContent = value == null || value === "" ? "--" : `${value}${suffix}`;
     }
+    function updateSessionStrip() {
+      el("body-session-user").textContent = userId();
+      el("body-session-date").textContent = selectedDate();
+      el("body-plan-source").textContent = "backend read model";
+    }
     function labelFor(value) {
       return {
         lose_weight: "Lose weight",
@@ -424,6 +462,7 @@
       }
     }
     async function loadBody() {
+      updateSessionStrip();
       updateNavigationLinks();
       el("body-status").textContent = "Loading body plan...";
       const plan = await requestJson(`${endpoints.bodyPlan}?${new URLSearchParams({ user_id: userId() }).toString()}`);
@@ -492,13 +531,16 @@
     el("local-date").addEventListener("change", () => {
       updateCurrentUrl();
       updateNavigationLinks();
+      updateSessionStrip();
     });
     el("user-id").addEventListener("change", () => {
       updateCurrentUrl();
       updateNavigationLinks();
+      updateSessionStrip();
       loadBody().catch((error) => { el("body-status").textContent = `Could not load body plan: ${error.message}`; });
     });
     updateNavigationLinks();
+    updateSessionStrip();
     loadBody().catch((error) => { el("body-status").textContent = `Could not load body plan: ${error.message}`; });
   </script>
 </body>

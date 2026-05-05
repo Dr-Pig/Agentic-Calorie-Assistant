@@ -20,6 +20,7 @@ def _passing_report() -> dict[str, object]:
         "pending_pins_present_after_followup": True,
         "target_candidates_present_or_not_checked": "not_checked",
         "chat_history_context_fields_reloaded": True,
+        "chat_context_status_ui_rendered": True,
         "chat_cjk_roundtrip_rendered": True,
         "assistant_followup_bubble_rendered": True,
         "assistant_commit_bubble_rendered": True,
@@ -142,6 +143,7 @@ def test_product_pages_short_term_context_validator_rejects_missing_context_supp
     report["omitted_context_summary_present"] = False
     report["pending_pins_present_after_followup"] = False
     report["chat_history_context_fields_reloaded"] = False
+    report["chat_context_status_ui_rendered"] = False
     report["fake_provider_calls"] = []
 
     status, blockers = module._validate(report)
@@ -154,6 +156,7 @@ def test_product_pages_short_term_context_validator_rejects_missing_context_supp
     assert "omitted_context_summary_missing" in blockers
     assert "pending_pins_not_present_after_followup" in blockers
     assert "chat_history_context_fields_not_reloaded" in blockers
+    assert "chat_context_status_ui_not_rendered" in blockers
     assert "fake_provider_context_input_not_proven" in blockers
 
 
