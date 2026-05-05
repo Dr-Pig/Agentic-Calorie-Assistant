@@ -73,6 +73,61 @@ def test_fooddb_live_diagnostic_report_blocks_provider_contract_failures() -> No
     assert report["next_recommended_slice"] == "narrow_grokfast_fooddb_manager_contract_probe"
 
 
+def test_fooddb_live_diagnostic_report_blocks_manager_schema_validation_failures() -> None:
+    diagnostic = {
+        "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
+        "status": "diagnostic_fail",
+        "live_provider_used": True,
+        "summary": {
+            "case_count": 5,
+            "pass_count": 4,
+            "fail_count": 1,
+            "failure_families": ["manager_contract_schema_validation_failed"],
+        },
+        "cases": [
+            {
+                "case_id": "bare_luwei",
+                "status": "fail",
+                "failure_families": ["manager_contract_schema_validation_failed"],
+                "manager_contract_validation_errors": ["evidence_used:forbidden_top_level_field"],
+            }
+        ],
+    }
+
+    report = build_fooddb_live_diagnostic_report(diagnostic_artifact=diagnostic)
+
+    assert report["seam_status"] == "provider_contract_blocked"
+    assert report["provider_contract_blocked"] is True
+    assert report["next_recommended_slice"] == "narrow_grokfast_fooddb_manager_contract_probe"
+
+
+def test_fooddb_live_diagnostic_report_prioritizes_contract_failures_over_pass_status() -> None:
+    diagnostic = {
+        "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
+        "status": "pass",
+        "live_provider_used": True,
+        "summary": {
+            "case_count": 5,
+            "pass_count": 5,
+            "fail_count": 0,
+            "failure_families": ["manager_contract_schema_validation_failed"],
+        },
+        "cases": [
+            {
+                "case_id": "bare_luwei",
+                "status": "pass",
+                "failure_families": ["manager_contract_schema_validation_failed"],
+            }
+        ],
+    }
+
+    report = build_fooddb_live_diagnostic_report(diagnostic_artifact=diagnostic)
+
+    assert report["seam_status"] == "provider_contract_blocked"
+    assert report["can_expand_to_websearch_live_diagnostic"] is False
+    assert report["provider_contract_blocked"] is True
+
+
 def test_fooddb_live_diagnostic_report_distinguishes_packet_boundary_failures() -> None:
     diagnostic = {
         "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",

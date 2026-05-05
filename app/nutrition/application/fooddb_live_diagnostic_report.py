@@ -16,6 +16,7 @@ FOODDB_LIVE_DIAGNOSTIC_REPORT_NON_CLAIMS = [
 
 _PROVIDER_CONTRACT_FAILURES = frozenset(
     {
+        "manager_contract_schema_validation_failed",
         "manager_output_contract_violation",
         "provider_response_error",
     }
@@ -49,15 +50,15 @@ def build_fooddb_live_diagnostic_report(*, diagnostic_artifact: dict[str, Any]) 
     if not live_provider_used:
         seam_status = "fixture_only_live_not_checked"
         next_recommended_slice = "run_explicit_grokfast_fooddb_packet_live_diagnostic"
-    elif diagnostic_status == "pass":
-        seam_status = "live_diagnostic_pass"
-        next_recommended_slice = "grokfast_websearch_packet_live_diagnostic"
     elif provider_contract_blocked:
         seam_status = "provider_contract_blocked"
         next_recommended_slice = "narrow_grokfast_fooddb_manager_contract_probe"
     elif packet_boundary_blocked:
         seam_status = "packet_boundary_blocked"
         next_recommended_slice = "narrow_fooddb_packet_boundary_or_prompt_probe"
+    elif diagnostic_status == "pass":
+        seam_status = "live_diagnostic_pass"
+        next_recommended_slice = "grokfast_websearch_packet_live_diagnostic"
     else:
         seam_status = "diagnostic_fail_unclassified"
         next_recommended_slice = "inspect_fooddb_live_failure_taxonomy"
