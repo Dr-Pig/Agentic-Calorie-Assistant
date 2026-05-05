@@ -77,3 +77,9 @@ def test_browser_smoke_default_cjk_fixture_copy_is_not_mojibake() -> None:
         assert 'DEFAULT_CJK_MESSAGE = "早餐吃茶葉蛋和拿鐵"' in text
         for marker in MOJIBAKE_MARKERS:
             assert marker not in text, f"{path} contains mojibake marker {marker!r}"
+
+
+def test_ci_runs_static_cjk_copy_integrity_guard() -> None:
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+
+    assert "test_accurate_intake_static_cjk_copy_integrity.py" in workflow
