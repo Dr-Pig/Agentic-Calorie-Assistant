@@ -110,6 +110,23 @@ def test_modifier_catalog_manager_payload_is_compact_runtime_only() -> None:
     for item in manager_catalog["anchors"]:
         assert set(item) == {"anchor_id", "canonical_name", "modifiers", "followup_hints"}
         assert item["modifiers"]
+        for modifier in item["modifiers"]:
+            assert set(modifier) == {"name", "values"}
+
+
+def test_modifier_catalog_manager_payload_drops_raw_modifier_fields() -> None:
+    payload = _small_anchor_payload()
+    for anchor in payload["anchors"]:
+        if anchor.get("anchor_id") == "custom_drink_boba_milk_tea":
+            anchor["major_modifiers"][0]["raw_source"] = {"leak": True}
+            anchor["major_modifiers"][0]["candidate_records"] = [{"leak": True}]
+
+    catalog = build_fooddb_modifier_catalog(small_anchor_payload=payload)
+    manager_catalog = catalog["manager_modifier_catalog"]
+    serialized_anchors = json.dumps(manager_catalog["anchors"])
+
+    assert "raw_source" not in serialized_anchors
+    assert "candidate_records" not in serialized_anchors
 
 
 def test_modifier_catalog_cli_writes_roundtrippable_artifact(tmp_path: Path) -> None:
