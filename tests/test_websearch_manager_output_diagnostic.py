@@ -54,8 +54,8 @@ def test_websearch_manager_output_diagnostic_passes_fixture_outputs_without_muta
     assert diagnostic["live_websearch_used"] is False
     assert diagnostic["runtime_truth_changed"] is False
     assert diagnostic["runtime_mutation_attempted"] is False
-    assert diagnostic["summary"]["case_count"] == 4
-    assert diagnostic["summary"]["pass_count"] == 4
+    assert diagnostic["summary"]["case_count"] == 6
+    assert diagnostic["summary"]["pass_count"] == 6
     assert diagnostic["summary"]["fail_count"] == 0
     assert diagnostic["summary"]["failure_families"] == []
 
@@ -248,21 +248,36 @@ def test_websearch_manager_output_diagnostic_requires_followup_for_related_candi
 
 def test_websearch_manager_output_diagnostic_script_roundtrip(tmp_path: Path) -> None:
     from app.shared.infra.json_artifacts import read_json_artifact
+    from scripts.build_accurate_intake_websearch_tool_evidence_result_smoke import (
+        main as build_tool_evidence_result_smoke,
+    )
     from scripts.build_accurate_intake_websearch_manager_output_diagnostic import main
     from scripts.build_accurate_intake_websearch_manager_packet_smoke import (
         main as build_manager_packet_smoke,
     )
 
+    tool_output = tmp_path / "websearch_tool_evidence_result.json"
     packet_output = tmp_path / "websearch_manager_packet.json"
     output = tmp_path / "websearch_manager_output.json"
-    assert build_manager_packet_smoke(["--output", str(packet_output)]) == 0
+    assert build_tool_evidence_result_smoke(["--output", str(tool_output)]) == 0
+    assert (
+        build_manager_packet_smoke(
+            [
+                "--tool-evidence-result",
+                str(tool_output),
+                "--output",
+                str(packet_output),
+            ]
+        )
+        == 0
+    )
 
     assert main(["--manager-packet-artifact", str(packet_output), "--output", str(output)]) == 0
 
     artifact = read_json_artifact(output)
     assert artifact["artifact_type"] == "accurate_intake_websearch_manager_output_diagnostic"
     assert artifact["status"] == "pass"
-    assert artifact["summary"]["pass_count"] == 4
+    assert artifact["summary"]["pass_count"] == 6
 
 
 def test_websearch_manager_output_diagnostic_has_no_live_search_or_provider_imports() -> None:

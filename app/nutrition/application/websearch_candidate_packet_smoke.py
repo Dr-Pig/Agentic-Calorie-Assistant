@@ -116,6 +116,17 @@ def _default_cases() -> tuple[WebSearchCandidateSmokeCase, ...]:
         brand_hint="Starbucks",
         size_hint="large",
     )
+    convenience_store_intent = _intent(
+        base_dish="salmon rice ball",
+        alias="7-Eleven salmon rice ball",
+        brand_hint="7-Eleven",
+    )
+    chain_restaurant_intent = _intent(
+        base_dish="gyudon",
+        alias="Matsuya gyudon large",
+        brand_hint="Matsuya",
+        size_hint="large",
+    )
     return (
         WebSearchCandidateSmokeCase(
             case_id="official_exact_candidate",
@@ -174,6 +185,36 @@ def _default_cases() -> tuple[WebSearchCandidateSmokeCase, ...]:
                 raw_ref="raw/websearch/starbucks_wrong_size.json#0",
             ),
             expected_boundary="candidate_only_wrong_size_rejected_by_hard_recheck",
+        ),
+        WebSearchCandidateSmokeCase(
+            case_id="convenience_store_exact_candidate",
+            intent=convenience_store_intent,
+            candidate=_candidate(
+                candidate_id="web_search_candidate:seven_eleven_salmon_rice_ball",
+                title="7-Eleven salmon rice ball",
+                url="https://7-11.example/products/salmon-rice-ball",
+                query="7-Eleven salmon rice ball",
+                brand_detected="7-Eleven",
+                serving_basis_candidate="per_piece",
+                identity_confidence="high",
+                raw_ref="raw/websearch/seven_eleven_salmon_rice_ball.json#0",
+            ),
+            expected_boundary="candidate_only_packaged_exact_support",
+        ),
+        WebSearchCandidateSmokeCase(
+            case_id="chain_restaurant_exact_candidate",
+            intent=chain_restaurant_intent,
+            candidate=_candidate(
+                candidate_id="web_search_candidate:matsuya_gyudon_large",
+                title="Matsuya gyudon large",
+                url="https://matsuya.example/menu/gyudon-large",
+                query="Matsuya gyudon large",
+                brand_detected="Matsuya",
+                serving_basis_candidate="per_bowl",
+                identity_confidence="high",
+                raw_ref="raw/websearch/matsuya_gyudon_large.json#0",
+            ),
+            expected_boundary="candidate_only_chain_menu_exact_support",
         ),
     )
 

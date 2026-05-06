@@ -388,7 +388,7 @@ def test_websearch_candidate_lane_status_packet_summarizes_deterministic_lane() 
     assert artifact["summary"]["pipeline_blocked_candidate_count"] >= 4
     assert artifact["summary"]["pipeline_policy_blocked_exact_candidate_count"] >= 1
     assert artifact["summary"]["pipeline_weak_candidate_count"] >= 3
-    assert artifact["summary"]["candidate_packet_case_count"] == 4
+    assert artifact["summary"]["candidate_packet_case_count"] == 6
     assert artifact["summary"]["pipeline_case_count"] == 21
     assert pipeline_summary["candidate_packet_count"] == sum(
         artifact["summary"][key]
@@ -400,9 +400,9 @@ def test_websearch_candidate_lane_status_packet_summarizes_deterministic_lane() 
             "pipeline_weak_candidate_count",
         )
     )
-    assert artifact["summary"]["candidate_only_packet_count"] == 4
-    assert artifact["summary"]["manager_projection_case_count"] == 4
-    assert artifact["summary"]["manager_projection_compact_count"] == 4
+    assert artifact["summary"]["candidate_only_packet_count"] == 6
+    assert artifact["summary"]["manager_projection_case_count"] == 6
+    assert artifact["summary"]["manager_projection_compact_count"] == 6
     assert artifact["summary"]["upstream_fooddb_gate_status"] == "not_provided"
     assert artifact["summary"]["manager_contract_gate_status"] == "not_provided"
     assert artifact["next_required_slices"] == ["inspect_fooddb_status_packet"]

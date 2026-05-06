@@ -22,7 +22,7 @@ def test_websearch_candidate_packet_smoke_is_candidate_only_even_for_exact_suppo
     assert artifact["live_provider_used"] is False
     assert artifact["runtime_truth_changed"] is False
     assert artifact["websearch_runtime_truth_allowed"] is False
-    assert artifact["summary"]["case_count"] == 4
+    assert artifact["summary"]["case_count"] == 6
 
     exact = _case_by_id(artifact, "official_exact_candidate")
     packet = exact["websearch_candidate_packet"]
@@ -41,6 +41,16 @@ def test_websearch_candidate_packet_smoke_is_candidate_only_even_for_exact_suppo
     }
     assert all(case["candidate_boundary"]["runtime_truth_allowed"] is False for case in artifact["cases"])
     assert all(case["candidate_boundary"]["snippet_truth_allowed"] is False for case in artifact["cases"])
+
+    convenience_store = _case_by_id(artifact, "convenience_store_exact_candidate")
+    assert convenience_store["websearch_candidate_packet"]["match_type"] == "exact"
+    assert convenience_store["websearch_candidate_packet"]["serving_basis_candidate"] == "per_piece"
+    assert convenience_store["hard_recheck"]["supports_exact_claim"] is True
+
+    chain_restaurant = _case_by_id(artifact, "chain_restaurant_exact_candidate")
+    assert chain_restaurant["websearch_candidate_packet"]["match_type"] == "exact"
+    assert chain_restaurant["websearch_candidate_packet"]["serving_basis_candidate"] == "per_bowl"
+    assert chain_restaurant["hard_recheck"]["supports_exact_claim"] is True
 
 
 def test_websearch_candidate_packet_smoke_reports_rejected_risks_without_promotion() -> None:
@@ -83,7 +93,7 @@ def test_websearch_candidate_packet_smoke_script_roundtrip(tmp_path: Path) -> No
 
     artifact = read_json_artifact(output)
     assert artifact["artifact_type"] == "accurate_intake_websearch_candidate_packet_smoke"
-    assert artifact["summary"]["candidate_only_count"] == 4
+    assert artifact["summary"]["candidate_only_count"] == 6
     assert artifact["summary"]["runtime_truth_allowed_count"] == 0
 
 
