@@ -4,7 +4,6 @@ import time
 from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
-
 from sqlalchemy.orm import Session
 
 from app.composition.current_budget_answer import build_remaining_budget_answer_contract
@@ -149,7 +148,6 @@ async def execute_intake_turn(
             "duration_ms": manager_decision_ms,
         },
     )
-
     onboarding_result = None
     remaining_budget = None
     nutrition_artifact = None
@@ -162,11 +160,12 @@ async def execute_intake_turn(
         user_id=state_before.user_id,
         local_date=resolved_local_date,
         request_id=request_id,
+        build_remaining_budget=build_remaining_budget_answer_contract,
+        append_trace_event=append_trace_event_tool,
     )
     if read_only_result is not None:
         remaining_budget = read_only_result["remaining_budget"]
         assistant_message_override = read_only_result["assistant_message_override"]
-
     if manager_decision.intent_type == "complete_onboarding":
         if onboarding_payload is None:
             raise ValueError("Structured onboarding payload is required for complete_onboarding.")
