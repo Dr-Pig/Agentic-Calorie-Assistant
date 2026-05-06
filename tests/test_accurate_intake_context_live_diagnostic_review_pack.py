@@ -230,6 +230,15 @@ def test_live_review_pack_accepts_pre_live_not_invoked_canary_without_readiness_
     assert artifact["mutation_changed"] is False
     assert artifact["product_readiness_claimed"] is False
     assert artifact["private_self_use_approved"] is False
+    assert artifact["context_live_diagnostic_stage_summary"] == {
+        "live_stage": "not_invoked",
+        "live_stage_reason": "not_invoked",
+        "live_provider_output_count": 0,
+        "live_blocked_response_count": 0,
+        "single_case_live_probe_completed": False,
+        "full_matrix_live_probe_completed": False,
+        "diagnostic_only_not_readiness": True,
+    }
     assert artifact["summary"]["fixed_case_count"] == len(REQUIRED_CASE_IDS)
     assert artifact["summary"]["holdout_withheld_variant_count"] == len(REQUIRED_CASE_IDS) * 2
     assert artifact["summary"]["holdout_cases_with_holdouts"] == len(REQUIRED_CASE_IDS)
@@ -261,8 +270,41 @@ def test_live_review_pack_accepts_live_canary_as_diagnostic_evidence_only() -> N
     assert artifact["ready_for_live_diagnostic_decision"] is False
     assert artifact["product_readiness_claimed"] is False
     assert artifact["private_self_use_approved"] is False
+    assert artifact["context_live_diagnostic_stage_summary"] == {
+        "live_stage": "full-matrix",
+        "live_stage_reason": "full_matrix_provider_outputs",
+        "live_provider_output_count": len(REQUIRED_CASE_IDS),
+        "live_blocked_response_count": 0,
+        "single_case_live_probe_completed": False,
+        "full_matrix_live_probe_completed": True,
+        "diagnostic_only_not_readiness": True,
+    }
     assert artifact["summary"]["live_provider_output_count"] == len(REQUIRED_CASE_IDS)
     assert artifact["summary"]["live_blocked_response_count"] == 0
+
+
+def test_live_review_pack_summarizes_single_case_live_canary_stage() -> None:
+    inputs = _valid_inputs(live=True)
+    canary = inputs["context_live_diagnostic_canary"]
+    canary["summary"]["provider_output_count"] = 1  # type: ignore[index]
+    canary["summary"]["provider_input_count"] = 1  # type: ignore[index]
+    canary["provider_outputs"] = [{"case_id": REQUIRED_CASE_IDS[0]}]
+    canary["provider_traces"] = [{"case_id": REQUIRED_CASE_IDS[0]}]
+
+    artifact = build_context_live_diagnostic_review_pack_artifact(inputs)
+
+    assert artifact["status"] == "context_live_diagnostic_review_ready_with_live_canary"
+    assert artifact["context_live_diagnostic_stage_summary"] == {
+        "live_stage": "single-case",
+        "live_stage_reason": "single_provider_output",
+        "live_provider_output_count": 1,
+        "live_blocked_response_count": 0,
+        "single_case_live_probe_completed": True,
+        "full_matrix_live_probe_completed": False,
+        "diagnostic_only_not_readiness": True,
+    }
+    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert artifact["private_self_use_approved"] is False
 
 
 def test_live_review_pack_blocks_anti_overfit_or_dry_run_gaps() -> None:
@@ -347,6 +389,7 @@ def test_live_review_pack_cli_writes_from_existing_artifacts(tmp_path: Path, cap
 def test_live_review_pack_source_stays_out_of_fooddb_websearch_and_shared_schema() -> None:
     source_paths = (
         Path("app/composition/accurate_intake_context_live_diagnostic_review_holdout.py"),
+        Path("app/composition/accurate_intake_context_live_review_summary.py"),
         Path("app/composition/accurate_intake_context_live_diagnostic_review_pack.py"),
         Path("scripts/build_accurate_intake_context_live_diagnostic_review_pack.py"),
     )

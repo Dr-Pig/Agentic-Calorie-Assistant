@@ -9,6 +9,10 @@ from app.composition.accurate_intake_context_live_diagnostic_review_holdout impo
     holdout_plan_blockers,
     holdout_plan_review_summary,
 )
+from app.composition.accurate_intake_context_live_review_summary import (
+    artifact_statuses,
+    context_live_diagnostic_stage_summary,
+)
 
 
 REQUIRED_INPUTS = (
@@ -225,17 +229,6 @@ def _canary_blockers(payload: dict[str, Any]) -> list[str]:
     return blockers
 
 
-def _artifact_statuses(inputs: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    return {
-        group_id: {
-            "artifact_type": payload.get("artifact_type") or "not_available",
-            "status": _status(payload),
-            "source_artifact_path": payload.get("_source_artifact_path") or "not_available",
-        }
-        for group_id, payload in inputs.items()
-    }
-
-
 def build_context_live_diagnostic_review_pack_artifact(
     input_artifacts: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
@@ -275,7 +268,11 @@ def build_context_live_diagnostic_review_pack_artifact(
             "generated_at_utc": datetime.now(UTC).isoformat(),
             "required_inputs": list(REQUIRED_INPUTS),
             "blockers": blockers,
-            "included_artifact_statuses": _artifact_statuses(inputs),
+            "included_artifact_statuses": artifact_statuses(inputs),
+            "context_live_diagnostic_stage_summary": context_live_diagnostic_stage_summary(
+                canary,
+                required_case_count=len(REQUIRED_CASE_IDS),
+            ),
             "diagnostic_only": True,
             "aggregate_only": True,
             "human_review_required": True,
