@@ -43,6 +43,10 @@ def _evidence() -> dict[str, dict[str, object]]:
             "accurate_intake_product_pages_long_session_navigation_smoke",
             "pass",
         ),
+        "pl_ce_ui_context_alignment_pack": _payload(
+            "accurate_intake_pl_ce_ui_context_alignment_pack",
+            "ui_context_alignment_ready_for_human_review",
+        ),
         "pl_ce_local_mvp_candidate_bundle": _payload(
             "accurate_intake_pl_ce_local_mvp_candidate_bundle",
             "pl_ce_local_mvp_candidate_ready_for_human_review",
@@ -88,8 +92,9 @@ def test_current_metadata_freshness_pack_accepts_current_product_pages_chain() -
     assert pack["dogfood_pass"] is False
     assert pack["product_readiness_claimed"] is False
     assert pack["private_self_use_approved"] is False
-    assert pack["fresh_artifact_count"] == pack["required_artifact_count"] == 8
+    assert pack["fresh_artifact_count"] == pack["required_artifact_count"] == 9
     assert "product_pages_long_session_navigation_smoke" in pack["required_artifacts"]
+    assert "pl_ce_ui_context_alignment_pack" in pack["required_artifacts"]
     assert "pl_ce_product_pages_self_use_flow_gate" in pack["required_artifacts"]
     assert pack["blockers"] == []
 
