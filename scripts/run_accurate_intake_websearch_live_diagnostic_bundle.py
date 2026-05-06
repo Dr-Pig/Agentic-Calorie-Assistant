@@ -59,6 +59,9 @@ from app.nutrition.application.websearch_manager_contract_repair_pack import (  
 from app.nutrition.application.websearch_selected_extract_packet_smoke import (  # noqa: E402
     build_websearch_selected_extract_packet_smoke,
 )
+from app.nutrition.application.websearch_status_packet_inspection import (  # noqa: E402
+    build_websearch_status_packet_inspection,
+)
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 from scripts.run_accurate_intake_grokfast_websearch_packet_smoke import (  # noqa: E402
     main as run_grokfast_websearch_packet_smoke,
@@ -103,6 +106,7 @@ def main(argv: list[str] | None = None) -> int:
         report=report,
         preflight=artifacts["preflight"],
         chain_status=artifacts["chain_status"],
+        readiness=artifacts["readiness"],
         fooddb_status_packet=_read_optional_artifact(args.fooddb_status_packet_artifact),
     )
     manifest = _build_manifest(
@@ -210,6 +214,7 @@ def _build_post_diagnostic_artifacts(
     report: dict[str, Any],
     preflight: dict[str, Any],
     chain_status: dict[str, Any],
+    readiness: dict[str, Any],
     fooddb_status_packet: dict[str, Any] | None,
 ) -> dict[str, dict[str, Any]]:
     probe = build_websearch_manager_contract_probe(diagnostic_artifact=diagnostic)
@@ -239,11 +244,18 @@ def _build_post_diagnostic_artifacts(
         exact_lane_status_packet=exact_lane_status,
         manager_contract_handoff_artifact=handoff,
     )
+    status_packet_inspection = build_websearch_status_packet_inspection(
+        websearch_status_packet=websearch_status_packet,
+        router_readiness_artifact=None,
+        exact_candidate_chain_status_artifact=chain_status,
+        live_runner_readiness_artifact=readiness,
+    )
     artifacts = {
         "manager_contract_probe": probe,
         "manager_contract_repair_pack": repair_pack,
         "manager_contract_handoff": handoff,
         "websearch_evidence_status_packet": websearch_status_packet,
+        "websearch_status_packet_inspection": status_packet_inspection,
     }
     for key, artifact in artifacts.items():
         write_json_artifact(paths[key], artifact)
@@ -262,6 +274,7 @@ def _build_manifest(
 ) -> dict[str, Any]:
     handoff = contract_artifacts["manager_contract_handoff"]
     evidence_status_packet = contract_artifacts["websearch_evidence_status_packet"]
+    status_packet_inspection = contract_artifacts["websearch_status_packet_inspection"]
     return {
         "artifact_type": "accurate_intake_websearch_live_diagnostic_bundle_manifest",
         "artifact_schema_version": "1.0",
@@ -281,7 +294,10 @@ def _build_manifest(
         "self_use_approved": False,
         "production_selected": False,
         "seam_status": report["seam_status"],
-        "next_recommended_slice": _status_packet_next_slice(evidence_status_packet),
+        "next_recommended_slice": _inspection_next_slice(
+            status_packet_inspection,
+            fallback=_status_packet_next_slice(evidence_status_packet),
+        ),
         "manager_contract_handoff_status": handoff.get("status"),
         "manager_contract_handoff_ready": handoff.get("handoff_ready") is True,
         "manager_contract_selected_next_step": handoff.get("selected_next_step"),
@@ -308,6 +324,12 @@ def _read_optional_artifact(path_value: str | None) -> dict[str, Any] | None:
 def _status_packet_next_slice(evidence_status_packet: dict[str, Any]) -> str:
     next_required_slices = list(evidence_status_packet.get("next_required_slices") or [])
     return str(next_required_slices[0] or "").strip() if next_required_slices else "inspect_websearch_status_packet"
+
+
+def _inspection_next_slice(inspection_artifact: dict[str, Any], *, fallback: str) -> str:
+    summary = dict(inspection_artifact.get("summary") or {})
+    next_safe_slice = str(summary.get("next_safe_slice") or "").strip()
+    return next_safe_slice or fallback
 
 
 if __name__ == "__main__":
