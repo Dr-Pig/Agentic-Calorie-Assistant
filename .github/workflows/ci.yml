@@ -415,6 +415,7 @@ jobs:
             --artifact product_pages_visual_qa=artifacts/accurate_intake_product_pages_visual_qa_ci.json \
             --artifact fixture_full_product_loop_e2e=artifacts/accurate_intake_fixture_full_product_loop_e2e_ci.json \
             --output artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json
+          python scripts/build_accurate_intake_non_fooddb_manager_tool_contract.py --output artifacts/accurate_intake_non_fooddb_manager_tool_contract_ci.json
           python scripts/run_accurate_intake_context_live_diagnostic_gate.py --artifact-dir artifacts --output artifacts/accurate_intake_context_live_diagnostic_gate_ci.json
           python scripts/build_accurate_intake_pl_ce_activation_review_manifest.py \
             --artifact pl_ce_local_mvp_candidate_bundle=artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json \
@@ -434,6 +435,7 @@ jobs:
             --artifact pl_ce_local_mvp_candidate_bundle=artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json \
             --artifact pl_ce_product_pages_self_use_flow_gate=artifacts/accurate_intake_pl_ce_product_pages_self_use_flow_gate_ci.json \
             --artifact pl_ce_browser_activation_evidence_gate=artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json \
+            --artifact non_fooddb_manager_tool_contract=artifacts/accurate_intake_non_fooddb_manager_tool_contract_ci.json \
             --artifact pl_ce_activation_review_manifest=artifacts/accurate_intake_pl_ce_activation_review_manifest_ci.json \
             --output artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json
           python - <<'PY'
@@ -502,6 +504,7 @@ jobs:
             artifacts/accurate_intake_fixture_full_product_loop_e2e_ci.json
             artifacts/accurate_intake_pl_ce_product_pages_self_use_flow_gate_ci.json
             artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json
+            artifacts/accurate_intake_non_fooddb_manager_tool_contract_ci.json
             artifacts/accurate_intake_pl_ce_activation_review_manifest_ci.json
             artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json
             artifacts/accurate_intake_pl_ce_serial_handoff_ci.json

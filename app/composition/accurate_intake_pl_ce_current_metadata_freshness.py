@@ -14,6 +14,7 @@ REQUIRED_CURRENT_CHAIN_ARTIFACTS = (
     "pl_ce_local_mvp_candidate_bundle",
     "pl_ce_product_pages_self_use_flow_gate",
     "pl_ce_browser_activation_evidence_gate",
+    "non_fooddb_manager_tool_contract",
     "pl_ce_activation_review_manifest",
 )
 
@@ -26,6 +27,7 @@ EXPECTED_ARTIFACT_TYPES = {
     "pl_ce_local_mvp_candidate_bundle": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
     "pl_ce_product_pages_self_use_flow_gate": "accurate_intake_pl_ce_product_pages_self_use_flow_gate",
     "pl_ce_browser_activation_evidence_gate": "accurate_intake_pl_ce_browser_activation_evidence_gate",
+    "non_fooddb_manager_tool_contract": "accurate_intake_non_fooddb_manager_tool_contract",
     "pl_ce_activation_review_manifest": "accurate_intake_pl_ce_activation_review_manifest",
 }
 
@@ -38,6 +40,7 @@ EXPECTED_STATUSES = {
     "pl_ce_local_mvp_candidate_bundle": "pl_ce_local_mvp_candidate_ready_for_human_review",
     "pl_ce_product_pages_self_use_flow_gate": "product_pages_self_use_flow_ready_for_human_review",
     "pl_ce_browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
+    "non_fooddb_manager_tool_contract": "non_fooddb_manager_tool_contract_ready_for_human_review",
     "pl_ce_activation_review_manifest": "pl_ce_activation_review_manifest_ready",
 }
 

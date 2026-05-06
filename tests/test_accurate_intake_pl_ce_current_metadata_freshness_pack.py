@@ -59,6 +59,10 @@ def _evidence() -> dict[str, dict[str, object]]:
             "accurate_intake_pl_ce_browser_activation_evidence_gate",
             "browser_activation_evidence_ready_for_human_review",
         ),
+        "non_fooddb_manager_tool_contract": _payload(
+            "accurate_intake_non_fooddb_manager_tool_contract",
+            "non_fooddb_manager_tool_contract_ready_for_human_review",
+        ),
         "pl_ce_activation_review_manifest": _payload(
             "accurate_intake_pl_ce_activation_review_manifest",
             "pl_ce_activation_review_manifest_ready",
@@ -92,10 +96,11 @@ def test_current_metadata_freshness_pack_accepts_current_product_pages_chain() -
     assert pack["dogfood_pass"] is False
     assert pack["product_readiness_claimed"] is False
     assert pack["private_self_use_approved"] is False
-    assert pack["fresh_artifact_count"] == pack["required_artifact_count"] == 9
+    assert pack["fresh_artifact_count"] == pack["required_artifact_count"] == 10
     assert "product_pages_long_session_navigation_smoke" in pack["required_artifacts"]
     assert "pl_ce_ui_context_alignment_pack" in pack["required_artifacts"]
     assert "pl_ce_product_pages_self_use_flow_gate" in pack["required_artifacts"]
+    assert "non_fooddb_manager_tool_contract" in pack["required_artifacts"]
     assert pack["blockers"] == []
 
 

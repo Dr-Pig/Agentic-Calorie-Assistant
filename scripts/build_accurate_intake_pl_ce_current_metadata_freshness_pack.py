@@ -36,6 +36,9 @@ DEFAULT_EVIDENCE_PATHS = {
     "pl_ce_browser_activation_evidence_gate": ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_browser_activation_evidence_gate.json",
+    "non_fooddb_manager_tool_contract": ROOT
+    / "artifacts"
+    / "accurate_intake_non_fooddb_manager_tool_contract.json",
     "pl_ce_activation_review_manifest": ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_activation_review_manifest.json",

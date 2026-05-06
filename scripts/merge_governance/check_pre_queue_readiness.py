@@ -70,6 +70,11 @@ COMMAND_SNIPPETS = (
         "build_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py",
     ),
     (
+        "non_fooddb_manager_tool_contract",
+        "build_accurate_intake_non_fooddb_manager_tool_contract.py --output "
+        "artifacts/accurate_intake_non_fooddb_manager_tool_contract_ci.json",
+    ),
+    (
         "context_live_diagnostic_gate",
         "run_accurate_intake_context_live_diagnostic_gate.py --artifact-dir artifacts --output "
         "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json",
@@ -92,6 +97,7 @@ UPLOAD_ARTIFACTS = (
     "artifacts/accurate_intake_pl_ce_product_pages_self_use_flow_gate_ci.json",
     "artifacts/accurate_intake_product_pages_long_session_navigation_smoke_ci.json",
     "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json",
+    "artifacts/accurate_intake_non_fooddb_manager_tool_contract_ci.json",
     "artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json",
     "artifacts/accurate_intake_pl_ce_serial_handoff_ci.json",
 )
@@ -123,6 +129,11 @@ CURRENT_METADATA_INPUTS = (
         "pl_ce_ui_context_alignment_pack",
         "--artifact pl_ce_ui_context_alignment_pack="
         "artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json",
+    ),
+    (
+        "non_fooddb_manager_tool_contract",
+        "--artifact non_fooddb_manager_tool_contract="
+        "artifacts/accurate_intake_non_fooddb_manager_tool_contract_ci.json",
     ),
 )
 
