@@ -4,7 +4,6 @@ import time
 from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
-
 from sqlalchemy.orm import Session
 
 from app.composition.current_budget_answer import build_remaining_budget_answer_contract
@@ -13,6 +12,10 @@ from app.composition.manager_context_runtime import build_runtime_manager_contex
 from app.composition.manual_daily_target_chat import (
     apply_manual_daily_target_from_chat,
     manual_daily_target_trace_payload,
+)
+from app.composition.non_fooddb_read_only_turn import (
+    build_non_fooddb_read_tool_executor,
+    finalize_non_fooddb_read_only_manager_intent,
 )
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.composition.state_resolver import resolve_intake_state
@@ -120,6 +123,11 @@ async def execute_intake_turn(
         onboarding_payload=onboarding_payload.__dict__ if onboarding_payload is not None else None,
         resolved_state=state_before,
         available_tools=("read_body_plan", "read_day_budget"),
+        tool_executor=build_non_fooddb_read_tool_executor(
+            db,
+            user_id=state_before.user_id,
+            local_date=resolved_local_date,
+        ),
         current_turn_context=current_turn_context,
         manager_context_pack=manager_context_pack,
         manager_context_packet_v1=manager_context_packet_v1,
@@ -140,14 +148,24 @@ async def execute_intake_turn(
             "duration_ms": manager_decision_ms,
         },
     )
-
     onboarding_result = None
     remaining_budget = None
     nutrition_artifact = None
     persistence_result = None
     assistant_message_override = None
     state_mutation_summary = initial_intake_turn_state_mutation_summary()
-
+    read_only_result = finalize_non_fooddb_read_only_manager_intent(
+        db=db,
+        manager_decision=manager_decision,
+        user_id=state_before.user_id,
+        local_date=resolved_local_date,
+        request_id=request_id,
+        build_remaining_budget=build_remaining_budget_answer_contract,
+        append_trace_event=append_trace_event_tool,
+    )
+    if read_only_result is not None:
+        remaining_budget = read_only_result["remaining_budget"]
+        assistant_message_override = read_only_result["assistant_message_override"]
     if manager_decision.intent_type == "complete_onboarding":
         if onboarding_payload is None:
             raise ValueError("Structured onboarding payload is required for complete_onboarding.")
@@ -187,39 +205,8 @@ async def execute_intake_turn(
                 "safety_floor_kcal": onboarding_result.target_result.safety_floor_kcal,
             },
         )
-    elif manager_decision.intent_type == "answer_remaining_budget":
-        remaining_budget = build_remaining_budget_answer_contract(
-            db,
-            user_id=state_before.user_id,
-            local_date=resolved_local_date,
-        )
-        append_trace_event_tool(
-            request_id=request_id,
-            stage="v2_remaining_budget_read",
-            status="ok",
-            summary={
-                "status": remaining_budget.status,
-                "daily_target_kcal": remaining_budget.daily_target_kcal,
-                "consumed_kcal": remaining_budget.consumed_kcal,
-                "remaining_kcal": remaining_budget.remaining_kcal,
-                "meal_count": remaining_budget.meal_count,
-            },
-        )
-    elif manager_decision.intent_type == "onboarding_required":
-        remaining_budget = build_remaining_budget_answer_contract(
-            db,
-            user_id=state_before.user_id,
-            local_date=resolved_local_date,
-        )
-        append_trace_event_tool(
-            request_id=request_id,
-            stage="v2_onboarding_required",
-            status="ok",
-            summary={
-                "status": remaining_budget.status,
-                "reason": "budget_query_without_active_plan",
-            },
-        )
+    elif read_only_result is not None:
+        pass
     elif manager_decision.intent_type == "set_manual_daily_target":
         user = get_or_create_user(db, user_external_id)
         try:
