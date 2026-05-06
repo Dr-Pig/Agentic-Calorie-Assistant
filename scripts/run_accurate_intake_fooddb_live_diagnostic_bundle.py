@@ -24,8 +24,17 @@ from app.nutrition.application.fooddb_index_backend_parity import (  # noqa: E40
 from app.nutrition.application.fooddb_live_diagnostic_report import (  # noqa: E402
     build_fooddb_live_diagnostic_report,
 )
+from app.nutrition.application.fooddb_manager_contract_handoff import (  # noqa: E402
+    build_fooddb_manager_contract_handoff,
+)
 from app.nutrition.application.fooddb_manager_packet_smoke import (  # noqa: E402
     build_fooddb_manager_packet_smoke,
+)
+from app.nutrition.application.fooddb_manager_contract_probe import (  # noqa: E402
+    build_fooddb_manager_contract_probe,
+)
+from app.nutrition.application.fooddb_manager_contract_repair_pack import (  # noqa: E402
+    build_fooddb_manager_contract_repair_pack,
 )
 from app.nutrition.application.grokfast_fooddb_diagnostic_preflight import (  # noqa: E402
     build_grokfast_fooddb_diagnostic_preflight,
@@ -84,6 +93,12 @@ def main(argv: list[str] | None = None) -> int:
     diagnostic = read_json_artifact(paths["diagnostic"])
     report = build_fooddb_live_diagnostic_report(diagnostic_artifact=diagnostic)
     write_json_artifact(paths["report"], report)
+    contract_artifacts = _build_post_diagnostic_artifacts(
+        paths=paths,
+        source_payloads=source_payloads,
+        diagnostic=diagnostic,
+        report=report,
+    )
     manifest = _build_manifest(
         mode=args.mode,
         allow_live=args.allow_live,
@@ -92,6 +107,7 @@ def main(argv: list[str] | None = None) -> int:
         diagnostic=diagnostic,
         report=report,
         preflight=artifacts["preflight"],
+        contract_artifacts=contract_artifacts,
     )
     write_json_artifact(paths["manifest"], manifest)
     print(
@@ -121,6 +137,13 @@ def _artifact_paths(output_dir: Path) -> dict[str, Path]:
         "preflight": output_dir / "accurate_intake_grokfast_fooddb_diagnostic_preflight.json",
         "diagnostic": output_dir / "accurate_intake_grokfast_fooddb_packet_smoke.json",
         "report": output_dir / "accurate_intake_fooddb_live_diagnostic_report.json",
+        "manager_contract_probe": output_dir / "accurate_intake_fooddb_manager_contract_probe.json",
+        "manager_contract_repair_pack": output_dir
+        / "accurate_intake_fooddb_manager_contract_repair_pack.json",
+        "manager_contract_handoff": output_dir
+        / "accurate_intake_fooddb_manager_contract_handoff.json",
+        "fooddb_status_packet_post_contract": output_dir
+        / "accurate_intake_fooddb_evidence_status_post_contract.json",
         "manifest": output_dir / "accurate_intake_fooddb_live_diagnostic_bundle_manifest.json",
         "sqlite_db": output_dir / "accurate_intake_fooddb_bundle_backend_parity.sqlite",
     }
@@ -222,6 +245,40 @@ def _run_packet_smoke(
     return run_grokfast_fooddb_packet_smoke(argv)
 
 
+def _build_post_diagnostic_artifacts(
+    *,
+    paths: dict[str, Path],
+    source_payloads: dict[str, Any],
+    diagnostic: dict[str, Any],
+    report: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    probe = build_fooddb_manager_contract_probe(diagnostic_artifact=diagnostic)
+    repair_pack = build_fooddb_manager_contract_repair_pack(
+        diagnostic_artifact=diagnostic,
+        contract_probe_artifact=probe,
+    )
+    handoff = build_fooddb_manager_contract_handoff(
+        live_diagnostic_report=report,
+        contract_probe_artifact=probe,
+        repair_pack_artifact=repair_pack,
+    )
+    post_contract_status = build_fooddb_evidence_status_packet(
+        small_anchor_payload=source_payloads["small_anchor_payload"],
+        tfda_source_payload=source_payloads["tfda_source_payload"],
+        exact_card_payload=source_payloads["exact_card_payload"],
+        contract_handoff_artifact=handoff,
+    )
+    artifacts = {
+        "manager_contract_probe": probe,
+        "manager_contract_repair_pack": repair_pack,
+        "manager_contract_handoff": handoff,
+        "fooddb_status_packet_post_contract": post_contract_status,
+    }
+    for key, artifact in artifacts.items():
+        write_json_artifact(paths[key], artifact)
+    return artifacts
+
+
 def _build_manifest(
     *,
     mode: str,
@@ -231,7 +288,20 @@ def _build_manifest(
     diagnostic: dict[str, Any],
     report: dict[str, Any],
     preflight: dict[str, Any],
+    contract_artifacts: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
+    contract_probe = contract_artifacts["manager_contract_probe"]
+    post_contract_status = contract_artifacts["fooddb_status_packet_post_contract"]
+    post_contract_summary = (
+        dict(post_contract_status.get("summary") or {})
+        if isinstance(post_contract_status, dict)
+        else {}
+    )
+    post_contract_integration = (
+        dict(post_contract_status.get("integration_status") or {})
+        if isinstance(post_contract_status, dict)
+        else {}
+    )
     return {
         "artifact_type": "accurate_intake_fooddb_live_diagnostic_bundle_manifest",
         "artifact_schema_version": "1.0",
@@ -254,6 +324,20 @@ def _build_manifest(
         "preflight_status": preflight.get("status"),
         "seam_status": report["seam_status"],
         "next_recommended_slice": report["next_recommended_slice"],
+        "manager_contract_probe_detected_failure": contract_probe.get(
+            "contract_failure_detected"
+        )
+        is True,
+        "manager_contract_handoff_status": post_contract_summary.get(
+            "manager_contract_handoff_status"
+        ),
+        "manager_contract_handoff_ready": post_contract_summary.get(
+            "manager_contract_owner_handoff_ready"
+        )
+        is True,
+        "manager_contract_selected_next_step": post_contract_integration.get(
+            "manager_contract_selected_next_step"
+        ),
         "artifacts": {
             key: str(path)
             for key, path in paths.items()
@@ -266,6 +350,10 @@ def _build_manifest(
                 "preflight",
                 "diagnostic",
                 "report",
+                "manager_contract_probe",
+                "manager_contract_repair_pack",
+                "manager_contract_handoff",
+                "fooddb_status_packet_post_contract",
             }
         },
         "non_claims": [

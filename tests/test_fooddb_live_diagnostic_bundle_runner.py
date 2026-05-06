@@ -7,6 +7,7 @@ from unittest.mock import patch
 from app.shared.infra.json_artifacts import read_json_artifact
 from scripts.run_accurate_intake_fooddb_live_diagnostic_bundle import (
     _artifact_paths,
+    _build_manifest,
     _build_pre_provider_artifacts,
     main,
 )
@@ -24,6 +25,14 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
     )
     diagnostic = read_json_artifact(tmp_path / "accurate_intake_grokfast_fooddb_packet_smoke.json")
     report = read_json_artifact(tmp_path / "accurate_intake_fooddb_live_diagnostic_report.json")
+    probe = read_json_artifact(tmp_path / "accurate_intake_fooddb_manager_contract_probe.json")
+    repair_pack = read_json_artifact(
+        tmp_path / "accurate_intake_fooddb_manager_contract_repair_pack.json"
+    )
+    handoff = read_json_artifact(tmp_path / "accurate_intake_fooddb_manager_contract_handoff.json")
+    post_contract_status = read_json_artifact(
+        tmp_path / "accurate_intake_fooddb_evidence_status_post_contract.json"
+    )
 
     assert manifest["bundle_status"] == "pass"
     assert manifest["mode"] == "fixture"
@@ -38,6 +47,24 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
     assert diagnostic["live_provider_used"] is False
     assert report["source_live_provider_used"] is False
     assert report["next_recommended_slice"] == "run_explicit_grokfast_fooddb_packet_live_diagnostic"
+    assert probe["artifact_type"] == "accurate_intake_fooddb_manager_contract_probe"
+    assert probe["contract_failure_detected"] is False
+    assert probe["next_recommended_slice"] == "run_explicit_grokfast_fooddb_packet_live_diagnostic"
+    assert repair_pack["artifact_type"] == "accurate_intake_fooddb_manager_contract_repair_pack"
+    assert repair_pack["summary"]["case_count"] == 5
+    assert handoff["artifact_type"] == "accurate_intake_fooddb_manager_contract_handoff_v1"
+    assert handoff["status"] == "insufficient_contract_handoff_evidence"
+    assert handoff["handoff_ready"] is False
+    assert handoff["selected_next_step"] == "inspect_fooddb_live_failure_taxonomy"
+    assert (
+        post_contract_status["summary"]["manager_contract_handoff_status"]
+        == "insufficient_contract_handoff_evidence"
+    )
+    assert post_contract_status["next_required_slices"] == ["inspect_contract_handoff_status"]
+    assert manifest["manager_contract_probe_detected_failure"] is False
+    assert manifest["manager_contract_handoff_status"] == "insufficient_contract_handoff_evidence"
+    assert manifest["manager_contract_handoff_ready"] is False
+    assert manifest["manager_contract_selected_next_step"] == "inspect_fooddb_live_failure_taxonomy"
 
 
 def test_fooddb_live_diagnostic_bundle_live_mode_requires_explicit_allow_live(
@@ -50,6 +77,14 @@ def test_fooddb_live_diagnostic_bundle_live_mode_requires_explicit_allow_live(
         tmp_path / "accurate_intake_fooddb_live_diagnostic_bundle_manifest.json"
     )
     diagnostic = read_json_artifact(tmp_path / "accurate_intake_grokfast_fooddb_packet_smoke.json")
+    probe = read_json_artifact(tmp_path / "accurate_intake_fooddb_manager_contract_probe.json")
+    repair_pack = read_json_artifact(
+        tmp_path / "accurate_intake_fooddb_manager_contract_repair_pack.json"
+    )
+    handoff = read_json_artifact(tmp_path / "accurate_intake_fooddb_manager_contract_handoff.json")
+    post_contract_status = read_json_artifact(
+        tmp_path / "accurate_intake_fooddb_evidence_status_post_contract.json"
+    )
 
     assert manifest["bundle_status"] == "blocked_or_failed"
     assert manifest["mode"] == "live"
@@ -59,6 +94,57 @@ def test_fooddb_live_diagnostic_bundle_live_mode_requires_explicit_allow_live(
     assert manifest["runtime_mutation_attempted"] is False
     assert diagnostic["status"] == "blocked"
     assert diagnostic["failure_family"] == "live_mode_requires_explicit_allow_live"
+    assert probe["artifact_type"] == "accurate_intake_fooddb_manager_contract_probe"
+    assert repair_pack["artifact_type"] == "accurate_intake_fooddb_manager_contract_repair_pack"
+    assert handoff["artifact_type"] == "accurate_intake_fooddb_manager_contract_handoff_v1"
+    assert (
+        manifest["manager_contract_handoff_status"]
+        == post_contract_status["summary"]["manager_contract_handoff_status"]
+    )
+    assert (
+        manifest["manager_contract_selected_next_step"]
+        == post_contract_status["integration_status"]["manager_contract_selected_next_step"]
+    )
+
+
+def test_fooddb_live_diagnostic_bundle_manifest_uses_post_contract_status_packet(
+    tmp_path: Path,
+) -> None:
+    paths = _artifact_paths(tmp_path)
+
+    manifest = _build_manifest(
+        mode="fixture",
+        allow_live=False,
+        paths=paths,
+        diagnostic_exit=0,
+        diagnostic={"live_provider_used": False, "live_websearch_used": False},
+        report={
+            "seam_status": "fixture_only_live_not_checked",
+            "next_recommended_slice": "run_explicit_grokfast_fooddb_packet_live_diagnostic",
+        },
+        preflight={"clear_to_run_live_diagnostic": True, "status": "clear"},
+        contract_artifacts={
+            "manager_contract_probe": {"contract_failure_detected": False},
+            "manager_contract_handoff": {
+                "status": "unexpected_new_status",
+                "handoff_ready": True,
+                "selected_next_step": "raw_handoff_value",
+            },
+            "fooddb_status_packet_post_contract": {
+                "summary": {
+                    "manager_contract_handoff_status": "blocked_contract_handoff_alignment",
+                    "manager_contract_owner_handoff_ready": False,
+                },
+                "integration_status": {
+                    "manager_contract_selected_next_step": "inspect_contract_handoff_status"
+                },
+            },
+        },
+    )
+
+    assert manifest["manager_contract_handoff_status"] == "blocked_contract_handoff_alignment"
+    assert manifest["manager_contract_handoff_ready"] is False
+    assert manifest["manager_contract_selected_next_step"] == "inspect_contract_handoff_status"
 
 
 def test_fooddb_live_diagnostic_bundle_records_required_artifact_refs(
@@ -78,6 +164,10 @@ def test_fooddb_live_diagnostic_bundle_records_required_artifact_refs(
         "preflight",
         "diagnostic",
         "report",
+        "manager_contract_probe",
+        "manager_contract_repair_pack",
+        "manager_contract_handoff",
+        "fooddb_status_packet_post_contract",
     }
 
     assert required_refs.issubset(set(manifest["artifacts"]))
@@ -182,15 +272,22 @@ def test_fooddb_live_diagnostic_bundle_uses_configured_small_anchor_store(
         small_anchor_payload: dict[str, Any],
         tfda_source_payload: dict[str, Any],
         exact_card_payload: dict[str, Any],
+        contract_handoff_artifact: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         return {
             "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
             "summary": {
                 "manager_fooddb_packet_seam_gate_status": "pass",
-                "manager_contract_handoff_status": "not_run",
+                "manager_contract_handoff_status": (
+                    "not_run" if contract_handoff_artifact is None else "insufficient_contract_handoff_evidence"
+                ),
                 "manager_contract_owner_handoff_ready": False,
             },
-            "next_required_slices": ["grokfast_fooddb_packet_live_diagnostic"],
+            "next_required_slices": (
+                ["grokfast_fooddb_packet_live_diagnostic"]
+                if contract_handoff_artifact is None
+                else ["inspect_contract_handoff_status"]
+            ),
             "live_provider_used": False,
             "live_websearch_used": False,
             "readiness_claimed": False,
