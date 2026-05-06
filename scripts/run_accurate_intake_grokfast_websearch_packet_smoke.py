@@ -55,6 +55,7 @@ def main(argv: list[str] | None = None) -> int:
 
     review_packet_artifact = read_json_artifact(Path(args.review_packet_artifact))
     output_path = Path(args.output)
+    preflight_ref: dict[str, Any] | None = None
 
     if args.mode == "live" and not args.allow_live:
         artifact = _blocked_live_artifact(
@@ -95,6 +96,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             write_json_artifact(output_path, artifact)
             return 2
+        preflight_ref = _preflight_ref(preflight)
 
     if args.mode == "fixture":
         manager_outputs = build_fixture_manager_outputs(
@@ -110,13 +112,22 @@ def main(argv: list[str] | None = None) -> int:
         _print_summary(output_path, artifact)
         return 0
 
-    artifact, exit_code = asyncio.run(_run_live(review_packet_artifact=review_packet_artifact))
+    artifact, exit_code = asyncio.run(
+        _run_live(
+            review_packet_artifact=review_packet_artifact,
+            preflight_ref=preflight_ref,
+        )
+    )
     write_json_artifact(output_path, artifact)
     _print_summary(output_path, artifact)
     return exit_code
 
 
-async def _run_live(*, review_packet_artifact: dict[str, Any]) -> tuple[dict[str, Any], int]:
+async def _run_live(
+    *,
+    review_packet_artifact: dict[str, Any],
+    preflight_ref: dict[str, Any] | None,
+) -> tuple[dict[str, Any], int]:
     adapter = BuilderSpaceAdapter(
         manager_model_override=GROKFAST_WEBSEARCH_PACKET_PROFILE["model"],
         role_label="websearch_packet_smoke_manager",
@@ -131,6 +142,7 @@ async def _run_live(*, review_packet_artifact: dict[str, Any]) -> tuple[dict[str
             failure_family="provider_not_configured",
         )
         artifact["provider_readiness"] = readiness
+        artifact["preflight_ref"] = preflight_ref or {}
         return artifact, 3
 
     manager_outputs: list[dict[str, Any]] = []
@@ -181,6 +193,7 @@ async def _run_live(*, review_packet_artifact: dict[str, Any]) -> tuple[dict[str
         manager_contract_validator=_manager_contract_validation_errors,
     )
     artifact["provider_readiness"] = readiness
+    artifact["preflight_ref"] = preflight_ref or {}
     return artifact, 0
 
 
@@ -239,6 +252,25 @@ def _preflight_authorizes_review_packet(
         if isinstance(item, dict)
     }
     return bool(preflight_refs) and preflight_refs == review_refs
+
+
+def _preflight_ref(preflight: dict[str, Any]) -> dict[str, Any]:
+    summary = preflight.get("summary") if isinstance(preflight.get("summary"), dict) else {}
+    return {
+        "preflight_ref_source": "run_accurate_intake_grokfast_websearch_packet_smoke",
+        "artifact_type": preflight.get("artifact_type"),
+        "status": preflight.get("status"),
+        "ready_for_live_extract_diagnostic": preflight.get("ready_for_live_extract_diagnostic"),
+        "ready_for_runtime_truth": preflight.get("ready_for_runtime_truth"),
+        "review_packet_authorized": True,
+        "review_packet_count": summary.get("review_packet_count"),
+        "case_matrix_case_count": summary.get("case_matrix_case_count"),
+        "case_matrix_fixed_required_cases": summary.get("case_matrix_fixed_required_cases"),
+        "case_matrix_negative_case_count": summary.get("case_matrix_negative_case_count"),
+        "case_matrix_modifier_guard_cases": summary.get("case_matrix_modifier_guard_cases"),
+        "case_matrix_live_provider_invoked": summary.get("case_matrix_live_provider_invoked"),
+        "case_matrix_websearch_invoked": summary.get("case_matrix_websearch_invoked"),
+    }
 
 
 def _review_packet_digest(packet: dict[str, Any]) -> str:

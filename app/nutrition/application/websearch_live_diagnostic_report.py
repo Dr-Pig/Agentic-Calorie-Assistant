@@ -47,6 +47,8 @@ def build_websearch_live_diagnostic_report(
     live_websearch_used = diagnostic_artifact.get("live_websearch_used") is True
     diagnostic_status = str(diagnostic_artifact.get("status") or "")
     contract_transport = _contract_transport_summary(diagnostic_artifact)
+    preflight_evidence = _preflight_evidence_summary(diagnostic_artifact)
+    preflight_healthy = _preflight_evidence_healthy(preflight_evidence)
     provider_contract_blocked = _provider_contract_blocked(
         diagnostic_artifact=diagnostic_artifact,
         failure_counts=failure_counts,
@@ -55,12 +57,19 @@ def build_websearch_live_diagnostic_report(
     candidate_boundary_blocked = any(
         family in failure_counts for family in _CANDIDATE_BOUNDARY_FAILURES
     )
-    if not live_provider_used:
+    if live_websearch_used:
+        seam_status = "unexpected_live_websearch_used"
+        next_recommended_slice = "inspect_unexpected_websearch_live_tool_loop"
+    elif not live_provider_used:
         seam_status = "fixture_only_live_not_checked"
         next_recommended_slice = "run_explicit_grokfast_websearch_packet_live_diagnostic"
     elif diagnostic_status == "pass":
-        seam_status = "live_diagnostic_pass"
-        next_recommended_slice = "websearch_candidate_pipeline_narrow_expansion"
+        if preflight_healthy:
+            seam_status = "live_diagnostic_pass"
+            next_recommended_slice = "websearch_candidate_pipeline_narrow_expansion"
+        else:
+            seam_status = "preflight_evidence_missing"
+            next_recommended_slice = "rerun_with_clear_websearch_live_extract_preflight"
     elif provider_contract_blocked:
         seam_status = "provider_contract_blocked"
         next_recommended_slice = "narrow_grokfast_websearch_manager_contract_probe"
@@ -91,6 +100,8 @@ def build_websearch_live_diagnostic_report(
             "provider_response_error" in failure_counts and not provider_contract_blocked
         ),
         "candidate_boundary_blocked": candidate_boundary_blocked,
+        "preflight_evidence_required": live_provider_used,
+        "preflight_evidence_healthy": preflight_healthy,
         "next_recommended_slice": next_recommended_slice,
         "runtime_truth_changed": False,
         "runtime_mutation_attempted": False,
@@ -104,6 +115,7 @@ def build_websearch_live_diagnostic_report(
             "failure_counts": failure_counts,
         },
         "contract_transport": contract_transport,
+        "preflight_evidence": preflight_evidence,
         "sanitization": {
             "raw_manager_output_included": False,
             "raw_provider_trace_included": False,
@@ -112,6 +124,85 @@ def build_websearch_live_diagnostic_report(
         },
         "non_claims": list(WEBSEARCH_LIVE_DIAGNOSTIC_REPORT_NON_CLAIMS),
     }
+
+
+def _preflight_evidence_summary(diagnostic_artifact: dict[str, Any]) -> dict[str, Any]:
+    preflight = diagnostic_artifact.get("preflight_ref")
+    if not isinstance(preflight, dict):
+        return {
+            "present": False,
+            "preflight_ref_source": "missing",
+            "artifact_type": "missing_preflight_ref",
+            "status": "missing",
+            "ready_for_live_extract_diagnostic": False,
+            "ready_for_runtime_truth": False,
+            "review_packet_authorized": False,
+            "review_packet_count": 0,
+            "case_matrix_fixed_required_cases": False,
+            "case_matrix_case_count": 0,
+            "case_matrix_negative_case_count": 0,
+            "case_matrix_modifier_guard_cases": 0,
+            "case_matrix_live_provider_invoked": True,
+            "case_matrix_websearch_invoked": True,
+        }
+    return {
+        "present": True,
+        "preflight_ref_source": _safe_preflight_ref_source(preflight.get("preflight_ref_source")),
+        "artifact_type": _safe_preflight_artifact_type(preflight.get("artifact_type")),
+        "status": "pass" if preflight.get("status") == "pass" else "blocked",
+        "ready_for_live_extract_diagnostic": preflight.get("ready_for_live_extract_diagnostic") is True,
+        "ready_for_runtime_truth": preflight.get("ready_for_runtime_truth") is True,
+        "review_packet_authorized": preflight.get("review_packet_authorized") is True,
+        "review_packet_count": _safe_non_negative_int(preflight.get("review_packet_count")),
+        "case_matrix_fixed_required_cases": preflight.get("case_matrix_fixed_required_cases") is True,
+        "case_matrix_case_count": _safe_non_negative_int(preflight.get("case_matrix_case_count")),
+        "case_matrix_negative_case_count": _safe_non_negative_int(
+            preflight.get("case_matrix_negative_case_count")
+        ),
+        "case_matrix_modifier_guard_cases": _safe_non_negative_int(
+            preflight.get("case_matrix_modifier_guard_cases")
+        ),
+        "case_matrix_live_provider_invoked": preflight.get("case_matrix_live_provider_invoked") is not False,
+        "case_matrix_websearch_invoked": preflight.get("case_matrix_websearch_invoked") is not False,
+    }
+
+
+def _preflight_evidence_healthy(preflight: dict[str, Any]) -> bool:
+    return (
+        preflight.get("present") is True
+        and preflight.get("preflight_ref_source")
+        == "run_accurate_intake_grokfast_websearch_packet_smoke"
+        and preflight.get("artifact_type") == "accurate_intake_websearch_live_extract_preflight_v1"
+        and preflight.get("status") == "pass"
+        and preflight.get("ready_for_live_extract_diagnostic") is True
+        and preflight.get("ready_for_runtime_truth") is False
+        and preflight.get("review_packet_authorized") is True
+        and preflight.get("review_packet_count") >= 1
+        and preflight.get("case_matrix_fixed_required_cases") is True
+        and preflight.get("case_matrix_case_count") == 6
+        and preflight.get("case_matrix_negative_case_count") == 4
+        and preflight.get("case_matrix_modifier_guard_cases") == 1
+        and preflight.get("case_matrix_live_provider_invoked") is False
+        and preflight.get("case_matrix_websearch_invoked") is False
+    )
+
+
+def _safe_preflight_ref_source(value: Any) -> str:
+    if str(value or "") == "run_accurate_intake_grokfast_websearch_packet_smoke":
+        return "run_accurate_intake_grokfast_websearch_packet_smoke"
+    return "unsupported_preflight_ref_source"
+
+
+def _safe_preflight_artifact_type(value: Any) -> str:
+    if str(value or "") == "accurate_intake_websearch_live_extract_preflight_v1":
+        return "accurate_intake_websearch_live_extract_preflight_v1"
+    return "unsupported_preflight_artifact"
+
+
+def _safe_non_negative_int(value: Any) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        return 0
+    return max(0, value)
 
 
 def _failure_counts(diagnostic_artifact: dict[str, Any]) -> dict[str, int]:

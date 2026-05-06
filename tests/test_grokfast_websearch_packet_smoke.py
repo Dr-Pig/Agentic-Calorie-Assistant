@@ -296,6 +296,25 @@ def test_websearch_live_extract_preflight_integrity_helper_blocks_overclaim() ->
     assert is_websearch_live_extract_preflight_clear(preflight) is False
 
 
+def test_grokfast_websearch_live_runner_preflight_ref_records_authorized_case_matrix() -> None:
+    from scripts.run_accurate_intake_grokfast_websearch_packet_smoke import _preflight_ref
+
+    preflight = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=_review_packet()
+    )
+
+    ref = _preflight_ref(preflight)
+
+    assert ref["preflight_ref_source"] == "run_accurate_intake_grokfast_websearch_packet_smoke"
+    assert ref["review_packet_authorized"] is True
+    assert ref["review_packet_count"] == 1
+    assert ref["case_matrix_case_count"] == 6
+    assert ref["case_matrix_negative_case_count"] == 4
+    assert ref["case_matrix_modifier_guard_cases"] == 1
+    assert ref["case_matrix_live_provider_invoked"] is False
+    assert ref["case_matrix_websearch_invoked"] is False
+
+
 def test_grokfast_websearch_packet_smoke_cli_defaults_to_fixture_and_blocks_live(
     tmp_path: Path,
 ) -> None:
