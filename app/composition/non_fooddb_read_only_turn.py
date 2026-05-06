@@ -34,14 +34,16 @@ def finalize_non_fooddb_read_only_manager_intent(
     user_id: int,
     local_date: str,
     request_id: str,
+    build_remaining_budget: Any = build_remaining_budget_answer_contract,
+    append_trace_event: Any = append_trace_event_tool,
 ) -> dict[str, Any] | None:
     if manager_decision.intent_type == "answer_remaining_budget":
-        remaining_budget = build_remaining_budget_answer_contract(
+        remaining_budget = build_remaining_budget(
             db,
             user_id=user_id,
             local_date=local_date,
         )
-        append_trace_event_tool(
+        append_trace_event(
             request_id=request_id,
             stage="v2_remaining_budget_read",
             status="ok",
@@ -56,12 +58,12 @@ def finalize_non_fooddb_read_only_manager_intent(
         return {"remaining_budget": remaining_budget, "assistant_message_override": None}
 
     if manager_decision.intent_type == "onboarding_required":
-        remaining_budget = build_remaining_budget_answer_contract(
+        remaining_budget = build_remaining_budget(
             db,
             user_id=user_id,
             local_date=local_date,
         )
-        append_trace_event_tool(
+        append_trace_event(
             request_id=request_id,
             stage="v2_onboarding_required",
             status="ok",
@@ -85,7 +87,7 @@ def finalize_non_fooddb_read_only_manager_intent(
             or manager_decision.response_summary
             or "I could not safely complete that read-only request."
         )
-        append_trace_event_tool(
+        append_trace_event(
             request_id=request_id,
             stage="v2_general_chat_read_only",
             status="ok",
