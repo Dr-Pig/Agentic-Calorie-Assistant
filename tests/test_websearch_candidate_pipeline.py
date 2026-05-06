@@ -30,11 +30,11 @@ def test_websearch_candidate_pipeline_builds_offline_query_plan_and_classificati
     assert artifact["source_policy"]["license_policy"]["unknown_license_behavior"] == (
         "candidate_only_requires_review"
     )
-    assert artifact["summary"]["case_count"] == 12
+    assert artifact["summary"]["case_count"] == 17
     assert artifact["summary"]["runtime_truth_allowed_count"] == 0
-    assert artifact["summary"]["source_class_counts"]["official_brand_or_chain_page"] >= 4
-    assert artifact["summary"]["source_class_counts"]["official_nutrition_pdf"] == 1
-    assert artifact["summary"]["source_class_counts"]["brand_menu_page"] == 1
+    assert artifact["summary"]["source_class_counts"]["official_brand_or_chain_page"] >= 8
+    assert artifact["summary"]["source_class_counts"]["official_nutrition_pdf"] >= 2
+    assert artifact["summary"]["source_class_counts"]["brand_menu_page"] >= 3
 
     exact = _case_by_id(artifact, "pipeline_milksha_exact")
     assert exact["query_plan"]["max_search_attempts"] == 2

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import Sequence
 
+from .websearch_selected_extract_ranking import choose_highest_priority_extract_packet
 from .websearch_source_policy import classify_websearch_source_candidate
 
 
@@ -34,6 +35,7 @@ def choose_selected_extract_packet(
     packets: Sequence[dict[str, object]],
 ) -> SelectedExtractDecision:
     max_extract_urls = 1
+    eligible_packets: list[dict[str, object]] = []
     source_policy_block_reasons: list[str] = []
     for packet in packets:
         if not _has_identity_safe_extract_shape(packet):
@@ -46,17 +48,21 @@ def choose_selected_extract_packet(
                 if str(reason).strip()
             )
             continue
-        url = str(packet.get("url") or "").strip()
-        if not url:
-            continue
-        return SelectedExtractDecision(
-            selected_search_packet_id=str(packet.get("packet_id") or "").strip() or None,
-            selected_urls=[url],
-            extract_reason="selected_same_item_official_candidate",
-            extract_allowed_by_policy=True,
-            max_extract_urls=max_extract_urls,
-            extract_count=1,
-        )
+        eligible_packets.append(packet)
+
+    selected_packet = choose_highest_priority_extract_packet(eligible_packets)
+    if selected_packet is not None:
+        url = str(selected_packet.get("url") or "").strip()
+        if url:
+            return SelectedExtractDecision(
+                selected_search_packet_id=str(selected_packet.get("packet_id") or "").strip()
+                or None,
+                selected_urls=[url],
+                extract_reason="selected_same_item_official_candidate",
+                extract_allowed_by_policy=True,
+                max_extract_urls=max_extract_urls,
+                extract_count=1,
+            )
 
     if source_policy_block_reasons:
         return SelectedExtractDecision(
