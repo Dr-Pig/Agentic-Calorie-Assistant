@@ -45,6 +45,9 @@ from app.shared.infra.json_artifacts import read_json_artifact, write_json_artif
 from scripts.run_accurate_intake_grokfast_websearch_packet_smoke import (  # noqa: E402
     main as run_grokfast_websearch_packet_smoke,
 )
+from scripts.websearch_live_bundle_artifacts import (  # noqa: E402
+    build_websearch_live_bundle_artifact_paths,
+)
 
 
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts" / "accurate_intake_websearch_live_diagnostic_bundle"
@@ -101,18 +104,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _artifact_paths(output_dir: Path) -> dict[str, Path]:
-    return {
-        "case_matrix": output_dir / "websearch_case_matrix.json",
-        "selected_extract": output_dir / "websearch_selected_extract.json",
-        "extract_result": output_dir / "websearch_extract_result.json",
-        "review_packet": output_dir / "websearch_exact_review_packet.json",
-        "preflight": output_dir / "websearch_live_preflight.json",
-        "chain_status": output_dir / "websearch_exact_chain_status.json",
-        "readiness": output_dir / "websearch_live_readiness.json",
-        "diagnostic": output_dir / "grokfast_websearch_packet_smoke.json",
-        "report": output_dir / "websearch_live_report.json",
-        "manifest": output_dir / "websearch_live_manifest.json",
-    }
+    return build_websearch_live_bundle_artifact_paths(output_dir)
 
 
 def _build_pre_provider_artifacts(paths: dict[str, Path]) -> dict[str, dict[str, Any]]:
