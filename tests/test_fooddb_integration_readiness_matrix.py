@@ -38,6 +38,9 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         "retriever_output_to_compact_packet",
         "packet_to_manager_seam",
         "packet_to_mutation_guard",
+        "fooddb_preflight_to_live_runner_readiness_packet",
+        "retriever_router_readiness_to_live_runner_readiness_packet",
+        "fooddb_live_runner_readiness_packet_to_grokfast_fooddb_live_diagnostic",
         "exact_candidate_to_no_mutation",
         "websearch_candidate_to_selected_extract_request",
         "selected_extract_request_to_extract_result_candidate",
@@ -78,6 +81,36 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
     ]["evidence"]
     assert edges["packet_to_manager_seam"]["current_status"] == "contract_backed"
     assert edges["packet_to_mutation_guard"]["current_status"] == "contract_backed"
+    assert (
+        edges["fooddb_preflight_to_live_runner_readiness_packet"]["manager_style_guard"]
+        == "fooddb_live_runner_readiness_requires_clear_preflight_without_granting_runtime_truth"
+    )
+    assert (
+        "tests.test_grokfast_fooddb_live_runner_readiness_packet.test_fooddb_live_runner_readiness_blocks_preflight_not_clear"
+        in edges["fooddb_preflight_to_live_runner_readiness_packet"]["evidence"]
+    )
+    assert (
+        edges["retriever_router_readiness_to_live_runner_readiness_packet"][
+            "manager_style_guard"
+        ]
+        == "fooddb_live_runner_readiness_may_consume_router_guard_but_cannot_decide_user_intent_or_mutation"
+    )
+    assert (
+        "app.nutrition.application.grokfast_fooddb_live_runner_readiness_checks.live_runner_readiness_input_blockers"
+        in edges["retriever_router_readiness_to_live_runner_readiness_packet"]["evidence"]
+    )
+    assert (
+        edges["fooddb_live_runner_readiness_packet_to_grokfast_fooddb_live_diagnostic"][
+            "manager_style_guard"
+        ]
+        == "fooddb_live_runner_readiness_may_open_explicit_grokfast_diagnostic_but_not_runtime_truth_or_mutation"
+    )
+    assert (
+        "tests.test_grokfast_fooddb_packet_smoke.test_grokfast_fooddb_packet_smoke_live_requires_runner_readiness_packet"
+        in edges["fooddb_live_runner_readiness_packet_to_grokfast_fooddb_live_diagnostic"][
+            "evidence"
+        ]
+    )
     assert (
         "app.nutrition.application.fooddb_packet_mutation_guard_readiness.build_fooddb_packet_mutation_guard_readiness"
         in edges["packet_to_mutation_guard"]["evidence"]
@@ -206,7 +239,7 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         edges["listed_components_to_approved_runtime_anchors"]["manager_style_guard"]
         == "listed_basket_components_may_estimate_only_when_runtime_anchor_is_approved"
     )
-    assert matrix["summary"]["contract_backed"] == 25
+    assert matrix["summary"]["contract_backed"] == 28
     assert matrix["summary"]["draft"] == 0
     assert matrix["summary"]["missing"] == 0
     assert matrix["summary"]["next_required_slices"] == ["manager_fooddb_packet_seam_smoke"]
@@ -234,6 +267,9 @@ def test_activation_plan_documents_integration_readiness_matrix() -> None:
     assert "WebSearch candidate lane status -> WebSearch status packet" in content
     assert "exact evidence lane status -> WebSearch status packet" in content
     assert "WebSearch status packet -> retriever router readiness gate" in content
+    assert "FoodDB preflight -> FoodDB live runner readiness packet" in content
+    assert "retriever router readiness gate -> FoodDB live runner readiness packet" in content
+    assert "FoodDB live runner readiness packet -> GrokFast FoodDB packet live diagnostic" in content
     assert "packet -> mutation guard" in content
     assert "exact candidate -> no mutation" in content
     assert "2026-05-05_grokfast_websearch_packet_live_diagnostic" in content

@@ -658,3 +658,254 @@ def test_grokfast_fooddb_packet_smoke_cli_defaults_to_fixture_and_blocks_acciden
     blocked = read_json_artifact(blocked_output)
     assert blocked["status"] == "blocked"
     assert blocked["failure_family"] == "live_mode_requires_explicit_allow_live"
+
+
+def test_grokfast_fooddb_packet_smoke_live_requires_runner_readiness_packet(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.run_accurate_intake_grokfast_fooddb_packet_smoke import main
+
+    packet_path = tmp_path / "packet.json"
+    preflight_path = tmp_path / "preflight.json"
+    router_path = tmp_path / "router.json"
+    output = tmp_path / "blocked_live.json"
+    write_json_artifact(packet_path, _packet_artifact())
+    write_json_artifact(
+        preflight_path,
+        {
+            "artifact_type": "accurate_intake_grokfast_fooddb_diagnostic_preflight_v1",
+            "status": "clear_for_grokfast_fooddb_packet_live_diagnostic",
+            "clear_to_run_live_diagnostic": True,
+            "blockers": [],
+            "next_required_slice": "grokfast_fooddb_packet_live_diagnostic",
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "manager_context_changed": False,
+            "packetizer_format_changed": False,
+            "live_provider_used": False,
+            "live_websearch_used": False,
+            "readiness_claimed": False,
+            "self_use_approved": False,
+            "production_selected": False,
+            "summary": {
+                "retrieval_eval_fail_count": 0,
+                "retrieval_eval_next_required_slice": "grokfast_fooddb_packet_live_diagnostic",
+                "websearch_runtime_truth_allowed_count": 0,
+                "fooddb_next_required_slices": ["grokfast_fooddb_packet_live_diagnostic"],
+                "manager_fooddb_packet_seam_gate_status": "pass",
+                "manager_contract_handoff_status": "not_run",
+                "manager_contract_owner_handoff_ready": False,
+                "manager_packet_case_count": 5,
+                "manager_packet_compact_pass_count": 5,
+                "index_backend_parity_status": "pass",
+                "index_backend_parity_fail_count": 0,
+                "index_backend_parity_backend_count": 3,
+                "index_backend_parity_next_required_slice": "grokfast_fooddb_packet_live_diagnostic",
+                "case_matrix_status": "pass",
+                "case_matrix_plan_only": True,
+                "case_matrix_case_count": 5,
+                "case_matrix_modifier_guard_cases": 2,
+                "case_matrix_bare_basket_cases": 1,
+                "case_matrix_listed_basket_cases": 1,
+                "case_matrix_websearch_cases": 0,
+                "case_matrix_exact_card_cases": 0,
+                "case_matrix_live_provider_invoked": False,
+                "case_matrix_websearch_invoked": False,
+                "case_matrix_shared_contract_changed": False,
+                "case_matrix_non_claim_count": 7,
+            },
+        },
+    )
+    write_json_artifact(
+        router_path,
+        {
+            "artifact_type": "accurate_intake_food_evidence_retriever_router_readiness_v1",
+            "status": "pass",
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "shared_contract_changed": False,
+            "manager_context_changed": False,
+            "live_provider_used": False,
+            "live_websearch_used": False,
+            "readiness_claimed": False,
+            "summary": {
+                "case_count": 4,
+                "fail_count": 0,
+                "exact_brand_websearch_ready": False,
+                "websearch_status_gate_present": False,
+                "next_required_slice": "inspect_websearch_status_packet",
+            },
+        },
+    )
+
+    assert (
+        main(
+            [
+                "--mode",
+                "live",
+                "--allow-live",
+                "--packet-smoke",
+                str(packet_path),
+                "--preflight-artifact",
+                str(preflight_path),
+                "--router-readiness-artifact",
+                str(router_path),
+                "--live-runner-readiness-artifact",
+                str(tmp_path / "missing_readiness.json"),
+                "--output",
+                str(output),
+            ]
+        )
+        == 2
+    )
+
+    blocked = read_json_artifact(output)
+    assert blocked["status"] == "blocked"
+    assert blocked["failure_family"] == "missing_clear_grokfast_fooddb_live_runner_readiness_packet"
+
+
+def test_grokfast_fooddb_packet_smoke_live_blocks_runner_readiness_mismatch(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.run_accurate_intake_grokfast_fooddb_packet_smoke import main
+
+    packet_path = tmp_path / "packet.json"
+    preflight_path = tmp_path / "preflight.json"
+    router_path = tmp_path / "router.json"
+    readiness_path = tmp_path / "readiness.json"
+    output = tmp_path / "blocked_live.json"
+    write_json_artifact(packet_path, _packet_artifact())
+    preflight = {
+        "artifact_type": "accurate_intake_grokfast_fooddb_diagnostic_preflight_v1",
+        "status": "clear_for_grokfast_fooddb_packet_live_diagnostic",
+        "clear_to_run_live_diagnostic": True,
+        "blockers": [],
+        "next_required_slice": "grokfast_fooddb_packet_live_diagnostic",
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "manager_context_changed": False,
+        "packetizer_format_changed": False,
+        "live_provider_used": False,
+        "live_websearch_used": False,
+        "readiness_claimed": False,
+        "self_use_approved": False,
+        "production_selected": False,
+        "summary": {
+            "retrieval_eval_fail_count": 0,
+            "retrieval_eval_next_required_slice": "grokfast_fooddb_packet_live_diagnostic",
+            "websearch_runtime_truth_allowed_count": 0,
+            "fooddb_next_required_slices": ["grokfast_fooddb_packet_live_diagnostic"],
+            "manager_fooddb_packet_seam_gate_status": "pass",
+            "manager_contract_handoff_status": "not_run",
+            "manager_contract_owner_handoff_ready": False,
+            "manager_packet_case_count": 5,
+            "manager_packet_compact_pass_count": 5,
+            "index_backend_parity_status": "pass",
+            "index_backend_parity_fail_count": 0,
+            "index_backend_parity_backend_count": 3,
+            "index_backend_parity_next_required_slice": "grokfast_fooddb_packet_live_diagnostic",
+            "case_matrix_status": "pass",
+            "case_matrix_plan_only": True,
+            "case_matrix_case_count": 5,
+            "case_matrix_modifier_guard_cases": 2,
+            "case_matrix_bare_basket_cases": 1,
+            "case_matrix_listed_basket_cases": 1,
+            "case_matrix_websearch_cases": 0,
+            "case_matrix_exact_card_cases": 0,
+            "case_matrix_live_provider_invoked": False,
+            "case_matrix_websearch_invoked": False,
+            "case_matrix_shared_contract_changed": False,
+            "case_matrix_non_claim_count": 7,
+        },
+    }
+    router = {
+        "artifact_type": "accurate_intake_food_evidence_retriever_router_readiness_v1",
+        "status": "pass",
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "shared_contract_changed": False,
+        "manager_context_changed": False,
+        "live_provider_used": False,
+        "live_websearch_used": False,
+        "readiness_claimed": False,
+        "summary": {
+            "case_count": 4,
+            "fail_count": 0,
+            "exact_brand_websearch_ready": False,
+            "websearch_status_gate_present": False,
+            "next_required_slice": "inspect_websearch_status_packet",
+        },
+    }
+    readiness = {
+        "artifact_type": "accurate_intake_grokfast_fooddb_live_runner_readiness_packet_v1",
+        "status": "pass",
+        "ready_for_grokfast_fooddb_packet_live_diagnostic": True,
+        "ready_for_runtime_truth": False,
+        "runtime_truth_changed": False,
+        "runtime_mutation_allowed": False,
+        "manager_context_changed": False,
+        "shared_contract_changed": False,
+        "packetizer_format_changed": False,
+        "live_provider_used": False,
+        "live_websearch_used": False,
+        "readiness_claimed": False,
+        "provider_readiness_checked": False,
+        "next_required_slice": "run_explicit_grokfast_fooddb_packet_live_diagnostic",
+        "runner_contract": {
+            "requires_explicit_allow_live_flag": True,
+            "requires_clear_fooddb_preflight": True,
+            "requires_clear_retriever_router_readiness": True,
+            "requires_clear_live_runner_readiness_packet": True,
+            "live_call_allowed_by_this_artifact": False,
+            "ledger_mutation_allowed": False,
+            "websearch_runtime_truth_allowed": False,
+        },
+        "summary": {
+            "preflight_status": "clear_for_grokfast_fooddb_packet_live_diagnostic",
+            "router_readiness_status": "pass",
+            "router_readiness_fail_count": 0,
+            "router_next_required_slice": "inspect_websearch_status_packet",
+            "router_exact_brand_websearch_ready": False,
+            "provider_configuration_status": "not_checked_until_live_invocation",
+        },
+        "source_refs": {
+            "preflight_artifact_type": "accurate_intake_grokfast_fooddb_diagnostic_preflight_v1",
+            "preflight_status": "clear_for_grokfast_fooddb_packet_live_diagnostic",
+            "router_readiness_artifact_type": "accurate_intake_food_evidence_retriever_router_readiness_v1",
+            "router_readiness_status": "pass",
+            "router_fail_count": 999,
+            "router_next_required_slice": "inspect_websearch_status_packet",
+            "router_exact_brand_websearch_ready": False,
+            "router_websearch_status_gate_present": False,
+        },
+    }
+    write_json_artifact(preflight_path, preflight)
+    write_json_artifact(router_path, router)
+    write_json_artifact(readiness_path, readiness)
+
+    assert (
+        main(
+            [
+                "--mode",
+                "live",
+                "--allow-live",
+                "--packet-smoke",
+                str(packet_path),
+                "--preflight-artifact",
+                str(preflight_path),
+                "--router-readiness-artifact",
+                str(router_path),
+                "--live-runner-readiness-artifact",
+                str(readiness_path),
+                "--output",
+                str(output),
+            ]
+        )
+        == 2
+    )
+
+    blocked = read_json_artifact(output)
+    assert blocked["status"] == "blocked"
+    assert blocked["failure_family"] == "grokfast_fooddb_live_runner_readiness_packet_mismatch"

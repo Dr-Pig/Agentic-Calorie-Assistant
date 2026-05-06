@@ -6,6 +6,9 @@ from typing import Any
 from .websearch_live_diagnostic_integration_edges import (
     build_websearch_live_diagnostic_integration_edges,
 )
+from .fooddb_live_diagnostic_integration_edges import (
+    build_fooddb_live_diagnostic_integration_edges,
+)
 
 
 def _wave_one_b_two_test_ref(name: str) -> str:
@@ -126,6 +129,7 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
             ],
             stop_condition="stop_if_packet_presence_bypasses_mutation_legality_or_commit_boundary",
         ),
+        *build_fooddb_live_diagnostic_integration_edges(),
         _edge(
             edge_id="exact_candidate_to_no_mutation",
             from_node="exact_candidate_lane",

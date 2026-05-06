@@ -166,6 +166,9 @@ integration_readiness_matrix_update:
     - WebSearch candidate lane status -> WebSearch status packet
     - exact evidence lane status -> WebSearch status packet
     - WebSearch status packet -> retriever router readiness gate
+    - FoodDB preflight -> FoodDB live runner readiness packet
+    - retriever router readiness gate -> FoodDB live runner readiness packet
+    - FoodDB live runner readiness packet -> GrokFast FoodDB packet live diagnostic
     - retriever output -> compact packet
     - packet -> Manager seam
     - packet -> mutation guard
