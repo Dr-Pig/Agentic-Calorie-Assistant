@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 
+from scripts.merge_governance import pre_pr_quality_gate
 from scripts.merge_governance.pre_pr_quality_gate import (
     ChangedFile,
     build_quality_report_from_changes,
@@ -39,6 +40,12 @@ def _lines(count: int) -> str:
 
 def _blocker_codes(report: dict[str, object]) -> set[str]:
     return {str(item["code"]) for item in report["blockers"]}  # type: ignore[index]
+
+
+def _event_file(tmp_path: Path, body: str) -> Path:
+    event = tmp_path / "event.json"
+    event.write_text(json.dumps({"pull_request": {"body": body}}), encoding="utf-8")
+    return event
 
 
 def test_new_active_python_file_over_cap_fails() -> None:
@@ -184,6 +191,128 @@ def test_future_shadow_active_surface_fails() -> None:
     )
 
     assert report["status"] == "fail"
+    assert "future_shadow_touches_active_surface" in _blocker_codes(report)
+
+
+def test_cli_infers_track_from_pull_request_event_body(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(
+        tmp_path,
+        "\n".join(
+            [
+                "track: PL_CE",
+                "runtime_truth_changed: false",
+                "manager_context_packet_changed: false",
+                "mutation_changed: false",
+                "product_readiness_claimed: false",
+            ]
+        ),
+    )
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+            ]
+        )
+        == 0
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["track"] == "PLCE"
+
+
+def test_cli_explicit_track_overrides_event_track(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(tmp_path, "track: LongTermContextLab\n")
+
+    assert (
+        main(
+            [
+                "--track",
+                "FoodDB",
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+            ]
+        )
+        == 0
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["track"] == "FoodDB"
+
+
+def test_cli_uses_github_event_path_env_by_default(tmp_path: Path, monkeypatch) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(tmp_path, "track: FoodDB\n")
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(event))
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+            ]
+        )
+        == 0
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["track"] == "FoodDB"
+
+
+def test_cli_event_inferred_future_shadow_track_blocks_active_surface(tmp_path: Path, monkeypatch) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(tmp_path, "track: LongTermContextLab\n")
+
+    monkeypatch.setattr(
+        pre_pr_quality_gate,
+        "collect_changed_files",
+        lambda *, base_ref, head_ref: [
+            ChangedFile(path="app/routes.py", status="M", old_text=_lines(4), new_text=_lines(4))
+        ],
+    )
+    monkeypatch.setattr(pre_pr_quality_gate, "load_active_code_policy", lambda: POLICY)
+
+    assert (
+        pre_pr_quality_gate.main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+            ]
+        )
+        == 1
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["track"] == "LongTermContextLab"
     assert "future_shadow_touches_active_surface" in _blocker_codes(report)
 
 
