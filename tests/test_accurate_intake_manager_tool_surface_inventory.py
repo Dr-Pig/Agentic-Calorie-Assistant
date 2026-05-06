@@ -13,6 +13,7 @@ from app.composition.accurate_intake_manager_tool_surface_inventory import (
 def test_manager_tool_surface_inventory_covers_non_fooddb_app_state_tools() -> None:
     artifact = build_manager_tool_surface_inventory_artifact()
 
+    assert artifact["artifact_schema_version"] == "1.0"
     assert artifact["artifact_type"] == "accurate_intake_manager_tool_surface_inventory"
     assert artifact["status"] == "manager_tool_surface_inventory_ready_for_human_review"
     assert artifact["blockers"] == []

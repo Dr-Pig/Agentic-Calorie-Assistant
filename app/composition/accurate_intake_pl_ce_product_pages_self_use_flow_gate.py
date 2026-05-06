@@ -331,21 +331,13 @@ def build_pl_ce_product_pages_self_use_flow_gate_artifact(
             "included_artifact_statuses": _artifact_statuses(inputs),
             "summary": {
                 "pages_verified": ["chat", "today", "body"],
+                "three_distinct_pages_verified": inputs["product_pages_visual_qa"].get("three_distinct_pages_verified") is True,
                 "renderer_source_map_page_count": _int_value(renderer_summary.get("page_count")),
                 "renderer_source_map_selector_count": _int_value(renderer_summary.get("selector_count")),
                 "renderer_source_map_endpoint_count": _int_value(renderer_summary.get("endpoint_count")),
-                "seven_day_diary_checked": inputs["product_pages_seven_day_diary_smoke"].get(
-                    "seven_day_window_checked"
-                )
-                is True,
-                "short_term_context_checked": inputs["product_pages_short_term_context_smoke"].get(
-                    "chat_history_context_fields_reloaded"
-                )
-                is True,
-                "target_candidate_ui_checked": inputs["product_pages_target_candidate_ui_smoke"].get(
-                    "target_candidate_surface_checked"
-                )
-                is True,
+                "seven_day_diary_checked": inputs["product_pages_seven_day_diary_smoke"].get("seven_day_window_checked") is True,
+                "short_term_context_checked": inputs["product_pages_short_term_context_smoke"].get("chat_history_context_fields_reloaded") is True,
+                "target_candidate_ui_checked": inputs["product_pages_target_candidate_ui_smoke"].get("target_candidate_surface_checked") is True,
                 "fixture_product_loop_steps_checked": len(completed_steps),
             },
             "human_review_required": True,

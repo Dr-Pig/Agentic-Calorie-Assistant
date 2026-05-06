@@ -164,6 +164,7 @@ def build_non_fooddb_mutation_tool_guard_smoke_artifact(
     if wall_payload.get("status") != "manager_tool_choice_regression_wall_pass":
         blockers.append("manager_tool_choice_regression_wall.not_pass")
     artifact: dict[str, Any] = {
+        "artifact_schema_version": "1.0",
         "artifact_type": "accurate_intake_non_fooddb_mutation_tool_guard_smoke",
         "status": "non_fooddb_mutation_tool_guard_smoke_pass",
         "generated_at_utc": datetime.now(UTC).isoformat(),

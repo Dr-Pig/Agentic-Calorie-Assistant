@@ -120,6 +120,7 @@ def build_manager_tool_choice_regression_wall_artifact(
     scenario_cases = deepcopy(cases if cases is not None else _cases())
     blockers = _validate(scenario_cases)
     artifact: dict[str, Any] = {
+        "artifact_schema_version": "1.0",
         "artifact_type": "accurate_intake_manager_tool_choice_regression_wall",
         "status": "manager_tool_choice_regression_wall_pass",
         "generated_at_utc": datetime.now(UTC).isoformat(),

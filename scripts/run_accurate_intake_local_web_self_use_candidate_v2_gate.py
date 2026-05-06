@@ -226,7 +226,10 @@ def build_local_web_candidate_gate_evidence(
     return evidence
 
 
-def _candidate_evidence(pre_live_evidence: dict[str, Any], pre_live_pack: dict[str, Any]) -> dict[str, Any]:
+def build_candidate_evidence_payload(
+    pre_live_evidence: dict[str, Any],
+    pre_live_pack: dict[str, Any],
+) -> dict[str, Any]:
     mapped = {
         "browser_shell_smoke": pre_live_evidence["browser_shell_smoke"],
         "chat_history_reload": pre_live_evidence["chat_history_reload_gate"],
@@ -285,7 +288,9 @@ def run_local_web_self_use_candidate_v2_gate(
 ) -> dict[str, Any]:
     pre_live_evidence = build_local_web_candidate_gate_evidence(path_overrides=path_overrides)
     pre_live_pack = build_pre_live_self_use_decision_pack(pre_live_evidence)
-    candidate = build_local_web_self_use_candidate_v2(_candidate_evidence(pre_live_evidence, pre_live_pack))
+    candidate = build_local_web_self_use_candidate_v2(
+        build_candidate_evidence_payload(pre_live_evidence, pre_live_pack)
+    )
 
     write_json_artifact(pre_live_evidence_output, pre_live_evidence)
     write_json_artifact(pre_live_output, pre_live_pack)

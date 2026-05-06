@@ -33,6 +33,7 @@ def _by_id(artifact: dict[str, object]) -> dict[str, dict[str, object]]:
 def test_manager_tool_choice_regression_wall_covers_non_fooddb_tool_postures() -> None:
     artifact = build_manager_tool_choice_regression_wall_artifact()
 
+    assert artifact["artifact_schema_version"] == "1.0"
     assert artifact["artifact_type"] == "accurate_intake_manager_tool_choice_regression_wall"
     assert artifact["status"] == "manager_tool_choice_regression_wall_pass"
     assert artifact["required_manager_tools"] == list(REQUIRED_MANAGER_TOOLS)

@@ -173,6 +173,7 @@ def build_manager_tool_surface_inventory_artifact(
             blockers.append(f"missing_manager_tool:{tool_name}")
 
     artifact: dict[str, Any] = {
+        "artifact_schema_version": "1.0",
         "artifact_type": "accurate_intake_manager_tool_surface_inventory",
         "status": "manager_tool_surface_inventory_ready_for_human_review",
         "scope": "plce_non_fooddb_app_state_tool_convergence",
