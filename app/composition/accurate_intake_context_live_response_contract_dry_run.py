@@ -161,7 +161,7 @@ def _response_blockers(
         if target_resolution.get("status") != "ambiguous":
             blockers.append(f"{case_id}.ambiguity_not_preserved")
     elif sidecar.get("target_candidates_expected") is True:
-        if target_resolution.get("status") != "candidates_available":
+        if target_resolution.get("status") not in {"candidates_available", "resolved"}:
             blockers.append(f"{case_id}.target_candidates_not_available")
         if not candidate_ids:
             blockers.append(f"{case_id}.target_candidate_ids_missing")
@@ -182,6 +182,7 @@ def _response_blockers(
 def build_context_live_response_contract_dry_run_artifact(
     context_live_provider_input_preflight: dict[str, Any] | None = None,
     fixture_responses: list[dict[str, Any]] | None = None,
+    require_full_matrix: bool = True,
 ) -> dict[str, Any]:
     preflight = _object_dict(context_live_provider_input_preflight or build_context_live_provider_input_preflight_artifact())
     provider_inputs = [_object_dict(row) for row in _list_value(preflight.get("provider_inputs"))]
@@ -192,7 +193,7 @@ def build_context_live_response_contract_dry_run_artifact(
     )
     blockers = _preflight_blockers(preflight)
     case_ids = [str(row.get("case_id") or "") for row in responses]
-    if case_ids != list(REQUIRED_CASE_IDS):
+    if require_full_matrix and case_ids != list(REQUIRED_CASE_IDS):
         blockers.append("fixture_response_fixed_case_order_mismatch")
     response_summaries: list[dict[str, Any]] = []
     provider_by_case = {str(row.get("case_id") or ""): row for row in provider_inputs}
@@ -227,6 +228,7 @@ def build_context_live_response_contract_dry_run_artifact(
             "fixture_only": True,
             "provider_call_ready": False,
             "human_approval_required_before_live_provider": True,
+            "full_matrix_required": require_full_matrix,
             "response_schema_name": RESPONSE_SCHEMA_NAME,
             "response_schema_strict": True,
             "semantic_owner": "fixture_manager_structured_decision_for_dry_run_only",
@@ -251,7 +253,7 @@ def build_context_live_response_contract_dry_run_artifact(
                 "target_candidate_response_count": sum(
                     1
                     for row in response_summaries
-                    if row["target_resolution_status"] == "candidates_available"
+                    if row["target_resolution_status"] in {"candidates_available", "resolved"}
                 ),
                 "ambiguity_preserved_response_count": sum(
                     1 for row in response_summaries if row["target_resolution_status"] == "ambiguous"

@@ -84,11 +84,32 @@ def _response_schema() -> dict[str, Any]:
             "workflow_effect": {"type": "string"},
             "target_resolution": {
                 "type": "object",
+                "description": (
+                    "Correction/removal target resolution only. This is for resolving references "
+                    "to prior logged meals or items such as a drink, rice, tofu, or an older meal. "
+                    "Do not put calorie budget values, daily targets, kcal numbers, or newly logged "
+                    "foods in candidate_ids. For daily target updates or ordinary food logs, use "
+                    "status='not_applicable' and candidate_ids=[]."
+                ),
                 "required": ["status", "candidate_ids"],
                 "additionalProperties": False,
                 "properties": {
-                    "status": {"type": "string"},
-                    "candidate_ids": {"type": "array", "items": {"type": "string"}},
+                    "status": {
+                        "type": "string",
+                        "description": (
+                            "Use not_applicable when this turn is not resolving a prior meal/item "
+                            "target. Use resolved or candidates_available only for correction/removal "
+                            "references. Use ambiguous when multiple prior meal/item targets remain."
+                        ),
+                    },
+                    "candidate_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": (
+                            "IDs/names of prior meal or item candidates only; never include numeric "
+                            "daily calorie targets such as 1800."
+                        ),
+                    },
                 },
             },
             "mutation_request": {
@@ -147,6 +168,9 @@ def _provider_input_for_case(case: dict[str, Any]) -> dict[str, Any]:
                 "workflow_effect": case.get("expected_workflow_effect"),
                 "mutation_allowed": False,
                 "must_not_happen": _list_value(case.get("must_not_happen")),
+                "target_resolution_scope": (
+                    "prior_meal_or_item_reference_only_not_daily_budget_or_food_identity"
+                ),
             },
             "tool_policy": {
                 "tools_available": [],
