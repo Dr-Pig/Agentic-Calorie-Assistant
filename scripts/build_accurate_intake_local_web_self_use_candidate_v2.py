@@ -13,6 +13,14 @@ REQUIRED_EVIDENCE = (
     "local_dogfood_data_hygiene",
     "pre_live_decision_pack",
     "pl_ce_local_review_decision_pack",
+    "product_pages_self_use_flow_gate",
+    "ui_context_alignment_pack",
+    "browser_activation_evidence_gate",
+    "manager_tool_surface_inventory",
+    "manager_tool_choice_regression_wall",
+    "context_conditioned_intent_wall",
+    "non_fooddb_read_only_tool_loop_fake_smoke",
+    "non_fooddb_mutation_tool_guard_smoke",
     "context_live_diagnostic_case_matrix",
     "context_live_diagnostic_anti_overfit_guard",
     "context_live_diagnostic_holdout_plan",
@@ -29,6 +37,14 @@ EXPECTED_STATUS_BY_GROUP = {
     "local_dogfood_data_hygiene": "pass",
     "pre_live_decision_pack": "generated",
     "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
+    "product_pages_self_use_flow_gate": "product_pages_self_use_flow_ready_for_human_review",
+    "ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
+    "browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
+    "manager_tool_surface_inventory": "manager_tool_surface_inventory_ready_for_human_review",
+    "manager_tool_choice_regression_wall": "manager_tool_choice_regression_wall_pass",
+    "context_conditioned_intent_wall": "pass",
+    "non_fooddb_read_only_tool_loop_fake_smoke": "non_fooddb_read_only_tool_loop_fake_smoke_pass",
+    "non_fooddb_mutation_tool_guard_smoke": "non_fooddb_mutation_tool_guard_smoke_pass",
     "context_live_diagnostic_case_matrix": "pass",
     "context_live_diagnostic_anti_overfit_guard": "pass",
     "context_live_diagnostic_holdout_plan": "pass",
@@ -146,6 +162,47 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
 
         if group_id == "context_live_diagnostic_case_matrix" and payload.get("plan_only") is not True:
             blockers.append("context live case matrix not plan-only")
+
+        if group_id == "browser_activation_evidence_gate":
+            if payload.get("all_required_browser_artifacts_executed") is not True:
+                blockers.append("browser activation evidence gate browser artifacts not all executed")
+            if payload.get("browser_executed_required") is not True:
+                blockers.append("browser activation evidence gate browser execution not required")
+
+        if group_id == "manager_tool_surface_inventory":
+            summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+            if not isinstance(payload.get("required_direct_lane_ids"), list) or len(payload.get("required_direct_lane_ids")) < 7:
+                blockers.append("manager tool inventory required direct lane count too low")
+            if not isinstance(payload.get("required_manager_tools"), list) or len(payload.get("required_manager_tools")) < 10:
+                blockers.append("manager tool inventory required manager tool count too low")
+            if int(summary.get("direct_lane_count") or 0) < 7:
+                blockers.append("manager tool inventory direct lane count too low")
+            if int(summary.get("target_tool_count") or 0) < 10:
+                blockers.append("manager tool inventory target tool count too low")
+
+        if group_id == "manager_tool_choice_regression_wall":
+            summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+            if payload.get("semantic_owner") != "fixture_manager_structured_decision":
+                blockers.append("manager tool choice wall semantic owner mismatch")
+            if int(summary.get("case_count") or 0) < 11:
+                blockers.append("manager tool choice wall case count too low")
+
+        if group_id == "context_conditioned_intent_wall":
+            summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+            if payload.get("manager_fixture_semantic_source_used") is not True:
+                blockers.append("context conditioned intent wall fixture semantic source missing")
+            if int(summary.get("scenario_count") or 0) < 11:
+                blockers.append("context conditioned intent wall scenario count too low")
+
+        if group_id == "non_fooddb_read_only_tool_loop_fake_smoke":
+            summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+            if int(summary.get("case_count") or 0) < 6:
+                blockers.append("non-fooddb read-only tool smoke case count too low")
+
+        if group_id == "non_fooddb_mutation_tool_guard_smoke":
+            summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+            if int(summary.get("case_count") or 0) < 10:
+                blockers.append("non-fooddb mutation tool guard smoke case count too low")
 
         if group_id == "context_live_diagnostic_anti_overfit_guard":
             summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}

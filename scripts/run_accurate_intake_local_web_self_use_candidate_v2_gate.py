@@ -31,6 +31,30 @@ DEFAULT_EVIDENCE_PATHS = {
     / "artifacts"
     / "accurate_intake_local_operator_data_hygiene_bundle.json",
     "pl_ce_local_review_decision_pack": ROOT / "artifacts" / "accurate_intake_pl_ce_local_review_decision_pack.json",
+    "product_pages_self_use_flow_gate": ROOT
+    / "artifacts"
+    / "accurate_intake_pl_ce_product_pages_self_use_flow_gate.json",
+    "ui_context_alignment_pack": ROOT
+    / "artifacts"
+    / "accurate_intake_pl_ce_ui_context_alignment_pack.json",
+    "browser_activation_evidence_gate": ROOT
+    / "artifacts"
+    / "accurate_intake_pl_ce_browser_activation_evidence_gate.json",
+    "manager_tool_surface_inventory": ROOT
+    / "artifacts"
+    / "accurate_intake_manager_tool_surface_inventory.json",
+    "manager_tool_choice_regression_wall": ROOT
+    / "artifacts"
+    / "accurate_intake_manager_tool_choice_regression_wall.json",
+    "context_conditioned_intent_wall": ROOT
+    / "artifacts"
+    / "accurate_intake_context_conditioned_intent_wall_ci.json",
+    "non_fooddb_read_only_tool_loop_fake_smoke": ROOT
+    / "artifacts"
+    / "accurate_intake_non_fooddb_read_only_tool_loop_fake_smoke.json",
+    "non_fooddb_mutation_tool_guard_smoke": ROOT
+    / "artifacts"
+    / "accurate_intake_non_fooddb_mutation_tool_guard_smoke.json",
     "manager_intent_readiness_review_pack": ROOT
     / "artifacts"
     / "accurate_intake_manager_intent_readiness_review_pack.json",
@@ -211,6 +235,18 @@ def _candidate_evidence(pre_live_evidence: dict[str, Any], pre_live_pack: dict[s
         "local_dogfood_data_hygiene": pre_live_evidence["local_dogfood_data_hygiene"],
         "pre_live_decision_pack": pre_live_pack,
         "pl_ce_local_review_decision_pack": pre_live_evidence["pl_ce_local_review_decision_pack"],
+        "product_pages_self_use_flow_gate": pre_live_evidence["product_pages_self_use_flow_gate"],
+        "ui_context_alignment_pack": pre_live_evidence["ui_context_alignment_pack"],
+        "browser_activation_evidence_gate": pre_live_evidence["browser_activation_evidence_gate"],
+        "manager_tool_surface_inventory": pre_live_evidence["manager_tool_surface_inventory"],
+        "manager_tool_choice_regression_wall": pre_live_evidence["manager_tool_choice_regression_wall"],
+        "context_conditioned_intent_wall": pre_live_evidence["context_conditioned_intent_wall"],
+        "non_fooddb_read_only_tool_loop_fake_smoke": pre_live_evidence[
+            "non_fooddb_read_only_tool_loop_fake_smoke"
+        ],
+        "non_fooddb_mutation_tool_guard_smoke": pre_live_evidence[
+            "non_fooddb_mutation_tool_guard_smoke"
+        ],
         "manager_intent_readiness_review_pack": pre_live_evidence[
             "manager_intent_readiness_review_pack"
         ],

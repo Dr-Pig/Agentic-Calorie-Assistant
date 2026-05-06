@@ -260,7 +260,7 @@ The required evidence keys are:
 - `browser_activation_evidence_gate`
 - `manager_tool_surface_inventory`
 - `manager_tool_choice_regression_wall`
-- `context_conditioned_intent_target_wall`
+- `context_conditioned_intent_wall`
 - `non_fooddb_read_only_tool_loop_fake_smoke`
 - `non_fooddb_mutation_tool_guard_smoke`
 - `manager_intent_readiness_review_pack`
@@ -269,7 +269,6 @@ The required evidence keys are:
 - `context_live_diagnostic_holdout_plan`
 - `context_live_provider_input_preflight`
 - `context_live_response_contract_dry_run`
-- `context_live_diagnostic_stage_gate`
 - `context_live_diagnostic_gate`
 
 The `browser_shell_smoke` evidence must have `browser_executed=true` before the pack can select `ready_for_human_limited_live_canary_decision`. Missing evidence keeps the selected option at `stay_local_self_use`.
@@ -279,7 +278,7 @@ The product-page evidence is required in addition to the older `browser_shell_sm
 Blocked optional browser evidence is allowed for local review artifacts, but it is not pass evidence for activation.
 
 Non-FoodDB Manager tool diagnostics remain app-state only and must not use FoodDB/WebSearch evidence.
-`manager_tool_surface_inventory`, `manager_tool_choice_regression_wall`, `context_conditioned_intent_target_wall`, `non_fooddb_read_only_tool_loop_fake_smoke`, and `non_fooddb_mutation_tool_guard_smoke` must prove the Manager can choose among budget/body/calibration/app-help tool postures without deterministic raw-text routing, FoodDB/WebSearch usage, runtime nutrition truth changes, or UI semantic ownership.
+`manager_tool_surface_inventory`, `manager_tool_choice_regression_wall`, `context_conditioned_intent_wall`, `non_fooddb_read_only_tool_loop_fake_smoke`, and `non_fooddb_mutation_tool_guard_smoke` must prove the Manager can choose among budget/body/calibration/app-help tool postures without deterministic raw-text routing, FoodDB/WebSearch usage, runtime nutrition truth changes, or UI semantic ownership.
 
 The `context_live_diagnostic_case_matrix` evidence must be generated before any Stage 4 or Stage 5 live diagnostic. It is a plan-only anti-overfit gate: live probes must select from the fixed matrix instead of ad hoc easy cases. The matrix must keep `plan_only=true`, `live_llm_invoked=false`, `live_provider_invoked=false`, `fooddb_used=false`, `mutation_changed=false`, and `manager_context_packet_schema_changed=false`.
 
@@ -288,6 +287,8 @@ The matrix must include at least one compound log-and-modify case. Missing matri
 The `context_live_diagnostic_holdout_plan` evidence must prove the fixed live diagnostic matrix has withheld holdout utterance variants that are not used as default provider prompts. It must keep `plan_only=true`, `live_llm_invoked=false`, `live_provider_invoked=false`, `ad_hoc_live_case_selection_allowed=false`, `provider_optimized_case_selection_allowed=false`, `fooddb_used=false`, `mutation_changed=false`, and `manager_context_packet_schema_changed=false`.
 
 The `context_live_diagnostic_gate` evidence must be generated in no-live mode before this pre-live pack can select `ready_for_human_limited_live_canary_decision`. A gate artifact with `live_llm_invoked=true`, `live_provider_invoked=true`, `live_provider_allowed=true`, ad hoc live-case selection, missing anti-overfit evidence, missing holdout-plan evidence, missing response-contract dry-run evidence, FoodDB/WebSearch usage, mutation changes, or ManagerContextPacket schema changes keeps the selected option at `stay_local_self_use`.
+
+The pre-live pack does not require `context_live_diagnostic_stage_gate`. That artifact is generated only after human approval when a live probe actually runs, and it exists to enforce single-case before full-matrix live order rather than to unblock pre-live local self-use review.
 
 The `context_live_diagnostic_stage_gate` evidence controls live diagnostic order after human approval. Stage 4 `single-case` may invoke only one fixed matrix case and cannot claim readiness. Stage 5 `full-matrix` requires a prior `context_live_single_case_probe_pass` artifact before the full matrix can be accepted. Both stages remain context-only, diagnostic-only, FoodDB/WebSearch-free, non-mutation, and non-readiness evidence.
 

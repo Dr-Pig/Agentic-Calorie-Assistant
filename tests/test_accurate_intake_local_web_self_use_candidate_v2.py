@@ -34,6 +34,48 @@ def _clean_evidence() -> dict:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "product_pages_self_use_flow_gate": {"status": "product_pages_self_use_flow_ready_for_human_review", "source": "test"},
+        "ui_context_alignment_pack": {"status": "ui_context_alignment_ready_for_human_review", "source": "test"},
+        "browser_activation_evidence_gate": {
+            "status": "browser_activation_evidence_ready_for_human_review",
+            "source": "test",
+            "all_required_browser_artifacts_executed": True,
+            "browser_executed_required": True,
+        },
+        "manager_tool_surface_inventory": {
+            "status": "manager_tool_surface_inventory_ready_for_human_review",
+            "source": "test",
+            "required_direct_lane_ids": [f"lane-{index}" for index in range(7)],
+            "required_manager_tools": [f"tool-{index}" for index in range(10)],
+            "summary": {
+                "direct_lane_count": 7,
+                "target_tool_count": 10,
+                "mutation_bearing_lane_count": 4,
+                "read_only_tool_count": 6,
+            },
+        },
+        "manager_tool_choice_regression_wall": {
+            "status": "manager_tool_choice_regression_wall_pass",
+            "source": "test",
+            "semantic_owner": "fixture_manager_structured_decision",
+            "summary": {"case_count": 11},
+        },
+        "context_conditioned_intent_wall": {
+            "status": "pass",
+            "source": "test",
+            "manager_fixture_semantic_source_used": True,
+            "summary": {"scenario_count": 11},
+        },
+        "non_fooddb_read_only_tool_loop_fake_smoke": {
+            "status": "non_fooddb_read_only_tool_loop_fake_smoke_pass",
+            "source": "test",
+            "summary": {"case_count": 6},
+        },
+        "non_fooddb_mutation_tool_guard_smoke": {
+            "status": "non_fooddb_mutation_tool_guard_smoke_pass",
+            "source": "test",
+            "summary": {"case_count": 10},
+        },
         "context_live_diagnostic_case_matrix": {
             "status": "pass",
             "source": "test",
@@ -159,6 +201,58 @@ def test_candidate_blocked_when_pl_ce_local_review_decision_pack_missing() -> No
     pack = build_local_web_self_use_candidate_v2(evidence)
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert "missing evidence: pl_ce_local_review_decision_pack" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+
+def test_candidate_blocked_when_browser_activation_or_non_fooddb_tool_evidence_missing() -> None:
+    evidence = _clean_evidence()
+    del evidence["browser_activation_evidence_gate"]
+    del evidence["manager_tool_surface_inventory"]
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "missing evidence: browser_activation_evidence_gate" in pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert "missing evidence: manager_tool_surface_inventory" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+
+def test_candidate_blocks_browser_activation_and_non_fooddb_tool_overclaims() -> None:
+    evidence = _clean_evidence()
+    evidence["browser_activation_evidence_gate"].update(
+        {
+            "all_required_browser_artifacts_executed": False,
+            "browser_executed_required": False,
+            "product_readiness_claimed": True,
+        }
+    )
+    evidence["manager_tool_choice_regression_wall"].update(
+        {
+            "semantic_owner": "not_fixture_manager",
+            "summary": {"case_count": 2},
+        }
+    )
+    evidence["non_fooddb_mutation_tool_guard_smoke"]["live_llm_invoked"] = True
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    blockers = pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "browser activation evidence gate browser artifacts not all executed" in blockers
+    assert "browser activation evidence gate browser execution not required" in blockers
+    assert "readiness overclaim" in blockers
+    assert "manager tool choice wall semantic owner mismatch" in blockers
+    assert "manager tool choice wall case count too low" in blockers
+    assert "live provider used" in blockers
+
+
+def test_candidate_blocks_manager_tool_inventory_without_surface_proof() -> None:
+    evidence = _clean_evidence()
+    evidence["manager_tool_surface_inventory"] = {
+        "status": "manager_tool_surface_inventory_ready_for_human_review",
+        "summary": {"direct_lane_count": 1, "target_tool_count": 2},
+    }
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    blockers = pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "manager tool inventory required direct lane count too low" in blockers
+    assert "manager tool inventory required manager tool count too low" in blockers
+    assert "manager tool inventory direct lane count too low" in blockers
+    assert "manager tool inventory target tool count too low" in blockers
 
 def test_candidate_blocked_when_context_live_case_matrix_missing() -> None:
     evidence = _clean_evidence()

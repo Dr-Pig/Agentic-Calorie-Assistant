@@ -35,6 +35,147 @@ def _evidence(**overrides: dict) -> dict:
             "real_fooddb_pass_claimed": False,
             "private_self_use_approved": False,
         },
+        "product_pages_self_use_flow_gate": {
+            "status": "product_pages_self_use_flow_ready_for_human_review",
+            "shared_contract_changed": False,
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "summary": {
+                "three_distinct_pages_verified": True,
+                "seven_day_diary_checked": True,
+                "short_term_context_checked": True,
+                "target_candidate_ui_checked": True,
+            },
+        },
+        "ui_context_alignment_pack": {
+            "status": "ui_context_alignment_ready_for_human_review",
+            "shared_contract_changed": False,
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "summary": {
+                "chat_context_reload_checked": True,
+                "seven_day_diary_checked": True,
+                "body_read_model_checked": True,
+            },
+        },
+        "browser_activation_evidence_gate": {
+            "status": "browser_activation_evidence_ready_for_human_review",
+            "all_required_browser_artifacts_executed": True,
+            "browser_executed_required": True,
+            "shared_contract_changed": False,
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
+        "manager_tool_surface_inventory": {
+            "status": "manager_tool_surface_inventory_ready_for_human_review",
+            "required_direct_lane_ids": [f"lane-{index}" for index in range(7)],
+            "required_manager_tools": [f"tool-{index}" for index in range(10)],
+            "summary": {
+                "direct_lane_count": 7,
+                "target_tool_count": 10,
+                "mutation_bearing_lane_count": 4,
+                "read_only_tool_count": 6,
+            },
+            "shared_contract_changed": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "fooddb_used": False,
+            "web_tavily_used": False,
+            "live_llm_invoked": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
+        "manager_tool_choice_regression_wall": {
+            "status": "manager_tool_choice_regression_wall_pass",
+            "semantic_owner": "fixture_manager_structured_decision",
+            "deterministic_selected_tool": False,
+            "deterministic_selected_intent": False,
+            "frontend_raw_text_semantic_router": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "fooddb_used": False,
+            "web_tavily_used": False,
+            "live_llm_invoked": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "summary": {"case_count": 11},
+        },
+        "context_conditioned_intent_wall": {
+            "status": "pass",
+            "manager_fixture_semantic_source_used": True,
+            "pending_followup_carryover": True,
+            "ambiguity_preserved": True,
+            "query_no_mutation": True,
+            "target_update_requires_manager_decision": True,
+            "deterministic_selected_intent": False,
+            "deterministic_selected_target": False,
+            "deterministic_semantic_inference_used": False,
+            "frontend_raw_text_semantic_router": False,
+            "mutation_authority": False,
+            "manager_context_packet_schema_changed": False,
+            "runtime_truth_changed": False,
+            "fooddb_truth_updated": False,
+            "fooddb_evidence_used": False,
+            "websearch_evidence_used": False,
+            "web_tavily_used": False,
+            "live_llm_invoked": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "summary": {"scenario_count": 11},
+        },
+        "non_fooddb_read_only_tool_loop_fake_smoke": {
+            "status": "non_fooddb_read_only_tool_loop_fake_smoke_pass",
+            "semantic_owner": "fixture_manager_structured_decision",
+            "tool_execution_owner": "deterministic_domain_read_model_fixture",
+            "deterministic_selected_tool": False,
+            "deterministic_selected_intent": False,
+            "frontend_raw_text_semantic_router": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "fooddb_used": False,
+            "web_tavily_used": False,
+            "live_llm_invoked": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "summary": {"case_count": 6},
+        },
+        "non_fooddb_mutation_tool_guard_smoke": {
+            "status": "non_fooddb_mutation_tool_guard_smoke_pass",
+            "semantic_owner": "fixture_manager_structured_decision",
+            "deterministic_selected_tool": False,
+            "deterministic_selected_intent": False,
+            "frontend_raw_text_semantic_router": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "fooddb_used": False,
+            "web_tavily_used": False,
+            "live_llm_invoked": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "summary": {"case_count": 10},
+        },
         "manager_intent_readiness_review_pack": {
             "status": "manager_intent_readiness_ready_for_human_review",
             "review_required_before_provider_call": True,
@@ -266,6 +407,70 @@ def test_pre_live_decision_pack_stays_local_when_review_or_data_hygiene_evidence
         "local_dogfood_data_hygiene",
         "local_operator_data_hygiene_bundle",
     ]
+
+
+def test_pre_live_decision_pack_requires_product_pages_and_non_fooddb_manager_tool_evidence() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            browser_activation_evidence_gate={},
+            manager_tool_surface_inventory={},
+            non_fooddb_mutation_tool_guard_smoke={},
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "browser_activation_evidence_gate" in pack["missing_evidence"]
+    assert "manager_tool_surface_inventory" in pack["missing_evidence"]
+    assert "non_fooddb_mutation_tool_guard_smoke" in pack["missing_evidence"]
+
+
+def test_pre_live_decision_pack_blocks_non_fooddb_manager_tool_and_browser_overclaims() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            browser_activation_evidence_gate={
+                "status": "browser_activation_evidence_ready_for_human_review",
+                "all_required_browser_artifacts_executed": False,
+                "browser_executed_required": False,
+                "product_readiness_claimed": True,
+            },
+            manager_tool_choice_regression_wall={
+                "status": "manager_tool_choice_regression_wall_pass",
+                "semantic_owner": "not_fixture_manager",
+                "summary": {"case_count": 3},
+            },
+            non_fooddb_read_only_tool_loop_fake_smoke={
+                "status": "non_fooddb_read_only_tool_loop_fake_smoke_pass",
+                "summary": {"case_count": 2},
+                "live_llm_invoked": True,
+            },
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "browser_activation_evidence_gate_browser_artifacts_not_all_executed" in pack["blockers"]
+    assert "browser_activation_evidence_gate_browser_execution_not_required" in pack["blockers"]
+    assert "browser_activation_evidence_gate_product_readiness_claimed" in pack["blockers"]
+    assert "manager_tool_choice_regression_wall_semantic_owner_not_fixture_manager" in pack["blockers"]
+    assert "manager_tool_choice_regression_wall_case_count_too_low" in pack["blockers"]
+    assert "non_fooddb_read_only_tool_loop_fake_smoke_case_count_too_low" in pack["blockers"]
+    assert "non_fooddb_read_only_tool_loop_fake_smoke_live_llm_invoked" in pack["blockers"]
+
+
+def test_pre_live_decision_pack_blocks_manager_tool_inventory_without_surface_proof() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            manager_tool_surface_inventory={
+                "status": "manager_tool_surface_inventory_ready_for_human_review",
+                "summary": {"direct_lane_count": 1, "target_tool_count": 2},
+            }
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "manager_tool_surface_inventory_required_direct_lane_count_too_low" in pack["blockers"]
+    assert "manager_tool_surface_inventory_required_manager_tool_count_too_low" in pack["blockers"]
+    assert "manager_tool_surface_inventory_direct_lane_count_too_low" in pack["blockers"]
+    assert "manager_tool_surface_inventory_target_tool_count_too_low" in pack["blockers"]
 
 
 def test_pre_live_decision_pack_blocks_unsafe_operator_data_hygiene_flags() -> None:
