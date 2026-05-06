@@ -54,6 +54,10 @@ COMMAND_SNIPPETS = (
         "artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json",
     ),
     (
+        "pl_ce_product_pages_self_use_flow_gate",
+        "build_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py",
+    ),
+    (
         "context_live_diagnostic_gate",
         "run_accurate_intake_context_live_diagnostic_gate.py --artifact-dir artifacts --output "
         "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json",
@@ -64,6 +68,7 @@ UPLOAD_ARTIFACTS = (
     "artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json",
     "artifacts/accurate_intake_context_live_provider_input_preflight_ci.json",
     "artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json",
+    "artifacts/accurate_intake_pl_ce_product_pages_self_use_flow_gate_ci.json",
     "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json",
 )
 
