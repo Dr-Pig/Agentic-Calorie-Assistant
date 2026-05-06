@@ -512,7 +512,7 @@ def test_websearch_candidate_lane_status_packet_blocks_on_fooddb_manager_contrac
     assert artifact["next_required_slices"] == ["await_manager_contract_owner_repair"]
 
 
-def test_websearch_candidate_lane_status_packet_allows_live_only_when_fooddb_explicitly_points_to_websearch() -> None:
+def test_websearch_candidate_lane_status_packet_reflects_post_live_status_when_fooddb_points_to_websearch() -> None:
     artifact = build_websearch_candidate_lane_status_packet(
         fooddb_status_packet={
             "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
@@ -523,7 +523,7 @@ def test_websearch_candidate_lane_status_packet_allows_live_only_when_fooddb_exp
 
     assert artifact["summary"]["upstream_fooddb_gate_status"] == "clear_for_websearch_lane"
     assert artifact["summary"]["manager_contract_gate_status"] == "clear_for_websearch_lane"
-    assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
+    assert artifact["next_required_slices"] == ["inspect_websearch_status_packet"]
 
 
 def test_websearch_candidate_lane_status_packet_requires_manager_contract_handoff_when_fooddb_clear() -> None:
@@ -559,7 +559,7 @@ def test_websearch_candidate_lane_status_packet_blocks_on_manager_contract_hando
     ]
 
 
-def test_websearch_candidate_lane_status_packet_allows_live_when_manager_contract_unblocked() -> None:
+def test_websearch_candidate_lane_status_packet_reflects_manager_contract_next_step_when_unblocked() -> None:
     artifact = build_websearch_candidate_lane_status_packet(
         fooddb_status_packet={
             "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
@@ -569,7 +569,7 @@ def test_websearch_candidate_lane_status_packet_allows_live_when_manager_contrac
     )
 
     assert artifact["summary"]["manager_contract_gate_status"] == "clear_for_websearch_lane"
-    assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
+    assert artifact["next_required_slices"] == ["inspect_websearch_status_packet"]
 
 
 def test_websearch_candidate_lane_status_packet_allows_realistic_live_bundle_contract_chain() -> None:
@@ -583,7 +583,7 @@ def test_websearch_candidate_lane_status_packet_allows_realistic_live_bundle_con
 
     assert artifact["summary"]["manager_contract_gate_status"] == "clear_for_websearch_lane"
     assert artifact["manager_contract_gate"]["blockers"] == []
-    assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
+    assert artifact["next_required_slices"] == ["inspect_websearch_status_packet"]
 
 
 def test_websearch_candidate_lane_status_packet_blocks_unverified_unblocked_manager_contract() -> None:
@@ -1474,7 +1474,7 @@ def test_websearch_candidate_lane_status_packet_script_accepts_verified_handoff_
 
     artifact = read_json_artifact(output)
     assert artifact["summary"]["manager_contract_gate_status"] == "clear_for_websearch_lane"
-    assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
+    assert artifact["next_required_slices"] == ["inspect_websearch_status_packet"]
 
 
 def test_websearch_candidate_lane_status_packet_script_accepts_live_bundle_manifest(
@@ -1539,7 +1539,7 @@ def test_websearch_candidate_lane_status_packet_script_accepts_live_bundle_manif
 
     artifact = read_json_artifact(output)
     assert artifact["summary"]["manager_contract_gate_status"] == "clear_for_websearch_lane"
-    assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
+    assert artifact["next_required_slices"] == ["inspect_websearch_status_packet"]
 
 
 def test_websearch_candidate_lane_status_packet_rejects_unexpected_fooddb_artifact_type() -> None:
