@@ -23,13 +23,19 @@ def main(argv: list[str] | None = None) -> int:
         description="Build WebSearch candidate lane status packet."
     )
     parser.add_argument("--fooddb-status-packet")
+    parser.add_argument("--manager-contract-handoff-artifact")
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
     artifact = build_websearch_candidate_lane_status_packet(
         fooddb_status_packet=(
             read_json_artifact(Path(args.fooddb_status_packet)) if args.fooddb_status_packet else None
-        )
+        ),
+        manager_contract_handoff_artifact=(
+            read_json_artifact(Path(args.manager_contract_handoff_artifact))
+            if args.manager_contract_handoff_artifact
+            else None
+        ),
     )
     output_path = Path(args.output)
     write_json_artifact(output_path, artifact)
@@ -39,6 +45,7 @@ def main(argv: list[str] | None = None) -> int:
                 "artifact": str(output_path),
                 "claim_scope": artifact["claim_scope"],
                 "upstream_fooddb_gate_status": artifact["summary"]["upstream_fooddb_gate_status"],
+                "manager_contract_gate_status": artifact["summary"]["manager_contract_gate_status"],
                 "next_required_slices": artifact["next_required_slices"],
             },
             ensure_ascii=False,
