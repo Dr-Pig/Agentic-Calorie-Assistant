@@ -115,6 +115,9 @@ def test_refresh_chain_writes_promoted_artifacts_and_prepares_local_candidate(
     assert printed["candidate_prepared"] is True
     assert browser_activation["status"] == "browser_activation_evidence_ready_for_human_review"
     assert pre_live_evidence["_evidence_metadata"]["status"] == "complete"
+    assert pre_live_evidence["non_fooddb_manager_tool_contract"]["status"] == (
+        "non_fooddb_manager_tool_contract_ready_for_human_review"
+    )
     assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
     assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is True
     assert candidate["local_web_self_use_candidate_v2"]["blockers"] == []

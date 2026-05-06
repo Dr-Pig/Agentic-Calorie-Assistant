@@ -54,6 +54,18 @@ def _clean_evidence() -> dict:
                 "read_only_tool_count": 6,
             },
         },
+        "non_fooddb_manager_tool_contract": {
+            "status": "non_fooddb_manager_tool_contract_ready_for_human_review",
+            "source": "test",
+            "summary": {
+                "inventory_backed_tool_count": 10,
+                "read_only_tool_count": 7,
+                "proposal_tool_count": 1,
+                "mutation_tool_count": 3,
+                "legacy_direct_route_debt_count": 1,
+                "direct_lane_bridge_count": 7,
+            },
+        },
         "manager_tool_choice_regression_wall": {
             "status": "manager_tool_choice_regression_wall_pass",
             "source": "test",
@@ -207,10 +219,12 @@ def test_candidate_blocked_when_browser_activation_or_non_fooddb_tool_evidence_m
     evidence = _clean_evidence()
     del evidence["browser_activation_evidence_gate"]
     del evidence["manager_tool_surface_inventory"]
+    del evidence["non_fooddb_manager_tool_contract"]
     pack = build_local_web_self_use_candidate_v2(evidence)
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert "missing evidence: browser_activation_evidence_gate" in pack["local_web_self_use_candidate_v2"]["blockers"]
     assert "missing evidence: manager_tool_surface_inventory" in pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert "missing evidence: non_fooddb_manager_tool_contract" in pack["local_web_self_use_candidate_v2"]["blockers"]
 
 
 def test_candidate_blocks_browser_activation_and_non_fooddb_tool_overclaims() -> None:
@@ -253,6 +267,28 @@ def test_candidate_blocks_manager_tool_inventory_without_surface_proof() -> None
     assert "manager tool inventory required manager tool count too low" in blockers
     assert "manager tool inventory direct lane count too low" in blockers
     assert "manager tool inventory target tool count too low" in blockers
+
+
+def test_candidate_blocks_non_fooddb_manager_tool_contract_without_contract_proof() -> None:
+    evidence = _clean_evidence()
+    evidence["non_fooddb_manager_tool_contract"] = {
+        "status": "non_fooddb_manager_tool_contract_ready_for_human_review",
+        "summary": {
+            "inventory_backed_tool_count": 2,
+            "read_only_tool_count": 1,
+            "proposal_tool_count": 0,
+            "mutation_tool_count": 1,
+            "legacy_direct_route_debt_count": 0,
+            "direct_lane_bridge_count": 1,
+        },
+    }
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    blockers = pack["local_web_self_use_candidate_v2"]["blockers"]
+
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "non-fooddb manager tool contract inventory backed count too low" in blockers
+    assert "non-fooddb manager tool contract read-only count too low" in blockers
+    assert "non-fooddb manager tool contract direct lane bridge count too low" in blockers
 
 def test_candidate_blocked_when_context_live_case_matrix_missing() -> None:
     evidence = _clean_evidence()

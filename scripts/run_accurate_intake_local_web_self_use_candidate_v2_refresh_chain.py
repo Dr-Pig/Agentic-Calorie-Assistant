@@ -16,6 +16,9 @@ from app.composition.accurate_intake_manager_tool_choice_regression_wall import 
 from app.composition.accurate_intake_manager_tool_surface_inventory import (  # noqa: E402
     build_manager_tool_surface_inventory_artifact,
 )
+from app.composition.accurate_intake_non_fooddb_manager_tool_contract import (  # noqa: E402
+    build_non_fooddb_manager_tool_contract_artifact,
+)
 from app.composition.accurate_intake_non_fooddb_mutation_tool_guard_smoke import (  # noqa: E402
     build_non_fooddb_mutation_tool_guard_smoke_artifact,
 )
@@ -60,6 +63,7 @@ REFRESHED_ARTIFACT_FILENAMES = {
     "non_fooddb_mutation_tool_guard_smoke": "accurate_intake_non_fooddb_mutation_tool_guard_smoke.json",
     "product_pages_self_use_flow_gate": "accurate_intake_pl_ce_product_pages_self_use_flow_gate.json",
     "browser_activation_evidence_gate": "accurate_intake_pl_ce_browser_activation_evidence_gate.json",
+    "non_fooddb_manager_tool_contract": "accurate_intake_non_fooddb_manager_tool_contract.json",
     "context_live_diagnostic_gate": "accurate_intake_context_live_diagnostic_gate.json",
     "pre_live_evidence": "accurate_intake_pre_live_evidence.json",
     "pre_live_decision_pack": "accurate_intake_pre_live_self_use_decision_pack.json",
@@ -125,6 +129,7 @@ def build_local_web_self_use_candidate_refresh_chain(
 
     refreshed_artifacts = {
         "manager_tool_surface_inventory": build_manager_tool_surface_inventory_artifact(),
+        "non_fooddb_manager_tool_contract": build_non_fooddb_manager_tool_contract_artifact(),
         "manager_tool_choice_regression_wall": build_manager_tool_choice_regression_wall_artifact(),
         "non_fooddb_read_only_tool_loop_fake_smoke": build_non_fooddb_read_only_tool_loop_fake_smoke_artifact(),
         "non_fooddb_mutation_tool_guard_smoke": build_non_fooddb_mutation_tool_guard_smoke_artifact(),

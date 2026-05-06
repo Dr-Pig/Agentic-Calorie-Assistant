@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from scripts.accurate_intake_pre_live_axis_summary import build_capability_axis_summary
+from scripts.accurate_intake_non_fooddb_manager_tool_contract_gate_checks import (
+    pre_live_contract_blockers,
+)
 
 REQUIRED_PRE_LIVE_EVIDENCE = (
     "phase_c_gate",
@@ -22,6 +25,7 @@ REQUIRED_PRE_LIVE_EVIDENCE = (
     "ui_context_alignment_pack",
     "browser_activation_evidence_gate",
     "manager_tool_surface_inventory",
+    "non_fooddb_manager_tool_contract",
     "manager_tool_choice_regression_wall",
     "context_conditioned_intent_wall",
     "non_fooddb_read_only_tool_loop_fake_smoke",
@@ -49,6 +53,7 @@ _EXPECTED_STATUS_BY_GROUP = {
     "ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
     "browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
     "manager_tool_surface_inventory": "manager_tool_surface_inventory_ready_for_human_review",
+    "non_fooddb_manager_tool_contract": "non_fooddb_manager_tool_contract_ready_for_human_review",
     "manager_tool_choice_regression_wall": "manager_tool_choice_regression_wall_pass",
     "context_conditioned_intent_wall": "pass",
     "non_fooddb_read_only_tool_loop_fake_smoke": "non_fooddb_read_only_tool_loop_fake_smoke_pass",
@@ -187,6 +192,8 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
             blockers.append("manager_tool_surface_inventory_direct_lane_count_too_low")
         if int(summary.get("target_tool_count") or 0) < 10:
             blockers.append("manager_tool_surface_inventory_target_tool_count_too_low")
+    if group_id == "non_fooddb_manager_tool_contract":
+        blockers.extend(pre_live_contract_blockers(payload))
     if group_id == "manager_tool_choice_regression_wall":
         summary = _summary(payload)
         if payload.get("semantic_owner") != "fixture_manager_structured_decision":
