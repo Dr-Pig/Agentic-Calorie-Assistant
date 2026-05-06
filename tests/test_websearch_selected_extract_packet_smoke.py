@@ -37,7 +37,7 @@ def test_selected_extract_packet_smoke_builds_compact_non_runtime_request() -> N
     assert artifact["live_websearch_used"] is False
     assert artifact["live_provider_used"] is False
     assert artifact["readiness_claimed"] is False
-    assert artifact["summary"]["selected_extract_packet_count"] == 1
+    assert artifact["summary"]["selected_extract_packet_count"] == 4
     assert artifact["summary"]["runtime_truth_allowed_count"] == 0
     assert artifact["summary"]["raw_content_included_count"] == 0
     assert artifact["next_required_slice"] == "websearch_extract_result_candidate_smoke"
@@ -47,7 +47,9 @@ def test_selected_extract_packet_request_is_bounded_and_candidate_only() -> None
     artifact = build_websearch_selected_extract_packet_smoke(
         exact_card_readiness_artifact=_readiness(),
     )
-    packet = artifact["selected_extract_packets"][0]
+    packet = {packet["canonical_name"]: packet for packet in artifact["selected_extract_packets"]}[
+        "Milksha pearl black tea latte nutrition PDF"
+    ]
     request = packet["extract_request_policy"]
 
     assert packet["packet_type"] == "SelectedWebExtractRequestPacket"
@@ -63,7 +65,7 @@ def test_selected_extract_packet_request_is_bounded_and_candidate_only() -> None
     assert request["chunks_per_source"] == MAX_CHUNKS_PER_SOURCE
     assert request["raw_content_truth_allowed"] is False
     assert request["runtime_truth_allowed"] is False
-    assert request["urls"] == ["https://milksha.example/menu/pearl-black-tea-latte"]
+    assert request["urls"] == ["https://milksha.example/nutrition/pearl-black-tea-latte.pdf"]
 
 
 def test_selected_extract_packet_smoke_fails_closed_on_candidate_runtime_leak() -> None:

@@ -72,10 +72,10 @@ def test_exact_candidate_chain_status_proves_source_chain_without_truth() -> Non
     assert artifact["live_extract_used"] is False
     assert artifact["live_provider_used"] is False
     assert artifact["readiness_claimed"] is False
-    assert artifact["summary"]["selected_extract_packet_count"] == 1
-    assert artifact["summary"]["extract_result_candidate_count"] == 1
-    assert artifact["summary"]["review_packet_count"] == 1
-    assert artifact["summary"]["preflight_review_ref_count"] == 1
+    assert artifact["summary"]["selected_extract_packet_count"] == 4
+    assert artifact["summary"]["extract_result_candidate_count"] == 4
+    assert artifact["summary"]["review_packet_count"] == 4
+    assert artifact["summary"]["preflight_review_ref_count"] == 4
     assert artifact["next_required_slice"] == "grokfast_websearch_packet_live_diagnostic"
 
 

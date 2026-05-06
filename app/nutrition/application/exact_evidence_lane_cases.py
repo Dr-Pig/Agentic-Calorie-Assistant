@@ -10,6 +10,9 @@ from .exact_evidence_lane_projection import (
 from .exact_item_card_lookup import lookup_exact_item_card_candidates
 from .retrieval_intent import RetrievalIntent
 from .websearch_candidate_pipeline import WebSearchPipelineCase
+from .websearch_candidate_pipeline_expansion_fixtures import (
+    build_expanded_websearch_pipeline_cases,
+)
 
 
 class _LocalExactSeedStore:
@@ -32,7 +35,22 @@ class _LocalExactSeedStore:
 def build_exact_evidence_lane_policy_cases() -> list[dict[str, Any]]:
     return [
         _local_exact_seed_case(),
-        _websearch_candidate_review_case(),
+        _websearch_candidate_review_case(
+            case_id="websearch_candidate_review_fallback",
+            pipeline_case_id="pipeline_milksha_exact",
+        ),
+        _websearch_candidate_review_case(
+            case_id="official_pdf_review_priority",
+            pipeline_case_id="pipeline_official_pdf_priority",
+        ),
+        _websearch_candidate_review_case(
+            case_id="large_size_review_priority",
+            pipeline_case_id="pipeline_large_size_preferred",
+        ),
+        _websearch_candidate_review_case(
+            case_id="modifier_match_review_priority",
+            pipeline_case_id="pipeline_modifier_match_preferred",
+        ),
         _no_exact_evidence_case(),
     ]
 
@@ -59,45 +77,12 @@ def _local_exact_seed_case() -> dict[str, Any]:
     )
 
 
-def _websearch_candidate_review_case() -> dict[str, Any]:
-    intent = RetrievalIntent(
-        base_dish="pearl black tea latte",
-        aliases=["Milksha pearl black tea latte"],
-        brand_hint="Milksha",
-        size_hint=None,
-        modifier_hints=[],
-        listed_items=[],
-        retrieval_goal="exact_brand_lookup",
-    )
+def _websearch_candidate_review_case(*, case_id: str, pipeline_case_id: str) -> dict[str, Any]:
+    web_case = _websearch_case(pipeline_case_id)
+    intent = web_case.intent
     local_exact = lookup_exact_item_card_candidates(intent)
-    web_case = WebSearchPipelineCase(
-        case_id="pipeline_milksha_exact",
-        intent=intent,
-        raw_hits=(
-            {
-                "url": "https://milksha.example/menu/pearl-black-tea-latte",
-                "domain": "example.test",
-                "title": "Milksha pearl black tea latte",
-                "snippet": "deterministic search candidate",
-                "score": 0.93,
-                "officialness": "official",
-                "source_quality_label": "high",
-                "brand_detected": "Milksha",
-                "channel_detected": "handmade_foodservice",
-                "serving_basis": "per_cup",
-                "nutrition_fields_present": ["kcal"],
-                "license_status": "public_menu_page",
-                "robots_status": "allowed",
-                "customization_slots_present": ["size"],
-                "identity_confidence": "high",
-                "applicability_confidence": "medium",
-                "applicability_notes": "deterministic fixture candidate",
-                "raw_ref": "raw/websearch/pipeline_milksha_exact.json#0",
-            },
-        ),
-    )
     return _case_payload(
-        case_id="websearch_candidate_review_fallback",
+        case_id=case_id,
         intent=intent,
         local_exact=local_exact,
         websearch_case=web_case,
@@ -107,40 +92,9 @@ def _websearch_candidate_review_case() -> dict[str, Any]:
 
 
 def _no_exact_evidence_case() -> dict[str, Any]:
-    intent = RetrievalIntent(
-        base_dish="super matcha au lait",
-        aliases=["Super Matcha Au Lait"],
-        brand_hint="Unknown Brand",
-        size_hint=None,
-        modifier_hints=[],
-        listed_items=[],
-        retrieval_goal="exact_brand_lookup",
-    )
+    web_case = _websearch_case("pipeline_all_candidates_blocked")
+    intent = web_case.intent
     local_exact = lookup_exact_item_card_candidates(intent)
-    web_case = WebSearchPipelineCase(
-        case_id="pipeline_no_exact_evidence",
-        intent=intent,
-        raw_hits=(
-            {
-                "url": "https://third-party.example/super-matcha",
-                "domain": "example.test",
-                "title": "Super Matcha Au Lait calories",
-                "snippet": "third-party calorie blog",
-                "score": 0.70,
-                "officialness": "unknown",
-                "source_quality_label": "low",
-                "brand_detected": "Unknown Brand",
-                "channel_detected": "handmade_foodservice",
-                "serving_basis": "unknown",
-                "nutrition_fields_present": ["kcal"],
-                "customization_slots_present": [],
-                "identity_confidence": "low",
-                "applicability_confidence": "low",
-                "applicability_notes": "weak third-party candidate",
-                "raw_ref": "raw/websearch/pipeline_no_exact_evidence.json#0",
-            },
-        ),
-    )
     return _case_payload(
         case_id="no_exact_evidence_available",
         intent=intent,
@@ -189,3 +143,12 @@ def _case_payload(
             "evidence_signal": evidence_signal,
         },
     }
+
+
+def _websearch_case(case_id: str) -> WebSearchPipelineCase:
+    cases = build_expanded_websearch_pipeline_cases(case_factory=WebSearchPipelineCase)
+    by_id = {case.case_id: case for case in cases}
+    try:
+        return by_id[case_id]
+    except KeyError as exc:
+        raise ValueError(f"unknown exact evidence lane WebSearch case: {case_id}") from exc
