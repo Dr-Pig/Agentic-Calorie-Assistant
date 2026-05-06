@@ -21,6 +21,7 @@ OPTIONAL_LIVE_EVIDENCE_ALLOWED_FLAGS = {
 CONTEXT_LIVE_GATE_REQUIRED_ARTIFACT_PATHS = (
     "context_live_diagnostic_case_matrix",
     "context_live_diagnostic_anti_overfit_guard",
+    "context_live_diagnostic_holdout_plan",
     "context_live_provider_input_preflight",
     "context_live_response_contract_dry_run",
     "context_live_diagnostic_canary",
@@ -107,6 +108,8 @@ def _context_live_gate_blockers(payload: dict[str, Any]) -> list[str]:
         blockers.append("context_live_diagnostic_gate.ad_hoc_live_case_selection_allowed")
     if payload.get("anti_overfit_guard_required") is not True:
         blockers.append("context_live_diagnostic_gate.anti_overfit_guard_not_required")
+    if payload.get("holdout_plan_required") is not True:
+        blockers.append("context_live_diagnostic_gate.holdout_plan_not_required")
     if payload.get("response_contract_dry_run_required") is not True:
         blockers.append("context_live_diagnostic_gate.response_contract_dry_run_not_required")
     for path_id in CONTEXT_LIVE_GATE_REQUIRED_ARTIFACT_PATHS:

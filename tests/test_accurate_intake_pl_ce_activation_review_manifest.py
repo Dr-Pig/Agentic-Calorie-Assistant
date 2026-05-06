@@ -237,6 +237,51 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "context_live_diagnostic_holdout_plan": {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_context_live_diagnostic_holdout_plan",
+            "status": "pass",
+            "claim_scope": "pl_ce_context_live_diagnostic_holdout_overfit_control",
+            "diagnostic_only": True,
+            "fixture_only": True,
+            "plan_only": True,
+            "local_only": True,
+            "fixed_case_matrix_used": True,
+            "holdout_variants_withheld_from_default_live_prompt": True,
+            "ad_hoc_live_case_selection_allowed": False,
+            "provider_optimized_case_selection_allowed": False,
+            "blocked_if_single_case_only": True,
+            "human_review_required_before_promoting_failures": True,
+            "semantic_owner": "future_live_manager_provider_when_human_approved",
+            "deterministic_role": "validate_case_selection_not_select_intent",
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "ready_for_live_diagnostic_decision": False,
+            "fooddb_used": False,
+            "fooddb_evidence_used": False,
+            "web_tavily_used": False,
+            "websearch_evidence_used": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "shared_contract_changed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "readiness_claimed": False,
+            "blockers": [],
+            "summary": {
+                "case_count": len(REQUIRED_CASE_IDS),
+                "fixed_case_count": len(REQUIRED_CASE_IDS),
+                "holdout_variant_count": len(REQUIRED_CASE_IDS) * 2,
+                "withheld_holdout_variant_count": len(REQUIRED_CASE_IDS) * 2,
+                "cases_with_holdouts": len(REQUIRED_CASE_IDS),
+                "case_ids": list(REQUIRED_CASE_IDS),
+                "compound_cases": 1,
+                "ambiguity_cases": 3,
+                "pending_pin_cases": 2,
+                "target_candidate_cases": 4,
+            },
+        },
         "context_live_diagnostic_dry_run_evaluator": {
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_context_live_diagnostic_dry_run_evaluator",
@@ -380,6 +425,7 @@ def _context_live_gate(*, live: bool = True) -> dict[str, object]:
         "ad_hoc_live_case_selection_allowed": False,
         "fixed_case_matrix_used": True,
         "anti_overfit_guard_required": True,
+        "holdout_plan_required": True,
         "response_contract_dry_run_required": True,
         "diagnostic_only": True,
         "local_only": True,
@@ -394,6 +440,7 @@ def _context_live_gate(*, live: bool = True) -> dict[str, object]:
         "artifact_paths": {
             "context_live_diagnostic_case_matrix": "artifacts/case_matrix.json",
             "context_live_diagnostic_anti_overfit_guard": "artifacts/anti_overfit.json",
+            "context_live_diagnostic_holdout_plan": "artifacts/holdout_plan.json",
             "context_live_provider_input_preflight": "artifacts/preflight.json",
             "context_live_response_contract_dry_run": "artifacts/dry_run.json",
             "context_live_diagnostic_canary": "artifacts/canary.json",
@@ -430,6 +477,7 @@ def test_activation_review_manifest_summarizes_human_review_ready_evidence_only(
     assert artifact["review_checkpoints"]["local_mvp_candidate_bundle"] == "ready_for_human_review"
     assert artifact["review_checkpoints"]["browser_activation_evidence_gate"] == "ready_for_human_review"
     assert artifact["review_checkpoints"]["ui_context_alignment_pack"] == "ready_for_human_review"
+    assert artifact["review_checkpoints"]["context_live_diagnostic_holdout_plan"] == "pass"
     assert artifact["review_checkpoints"]["context_live_diagnostic_dry_run_evaluator"] == "pass"
     assert artifact["review_checkpoints"]["context_live_response_contract_dry_run"] == "pass"
     assert artifact["included_artifact_statuses"]["pl_ce_ui_context_alignment_pack"]["status"] == (
@@ -437,6 +485,10 @@ def test_activation_review_manifest_summarizes_human_review_ready_evidence_only(
     )
     assert artifact["remaining_stop_gates"]["fooddb_artifact_status"] == "blocked_waiting_for_fdb_artifact"
     assert artifact["remaining_stop_gates"]["live_provider_status"] == "blocked_pending_human_approval"
+    assert (
+        artifact["remaining_stop_gates"]["context_live_holdout_plan_status"]
+        == "passed_holdout_plan_only"
+    )
     assert artifact["remaining_stop_gates"]["context_live_dry_run_status"] == "passed_fixture_dry_run_only"
     assert (
         artifact["remaining_stop_gates"]["context_live_response_contract_status"]
@@ -702,6 +754,25 @@ def test_activation_review_manifest_blocks_missing_context_live_dry_run_evaluato
     assert artifact["ready_for_live_diagnostic_decision"] is False
 
 
+def test_activation_review_manifest_blocks_missing_context_live_holdout_plan() -> None:
+    inputs = _valid_inputs()
+    inputs.pop("context_live_diagnostic_holdout_plan")
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "context_live_diagnostic_holdout_plan.unexpected_status:" in artifact["blockers"]
+    assert (
+        "context_live_diagnostic_holdout_plan.unexpected_artifact_type:None"
+        in artifact["blockers"]
+    )
+    assert (
+        artifact["remaining_stop_gates"]["context_live_holdout_plan_status"]
+        == "blocked_before_live_diagnostic"
+    )
+    assert artifact["ready_for_live_diagnostic_decision"] is False
+
+
 def test_activation_review_manifest_blocks_missing_context_live_response_contract_dry_run() -> None:
     inputs = _valid_inputs()
     inputs.pop("context_live_response_contract_dry_run")
@@ -772,6 +843,28 @@ def test_activation_review_manifest_blocks_context_live_dry_run_overclaims() -> 
     assert artifact["fooddb_evidence_used"] is False
 
 
+def test_activation_review_manifest_blocks_context_live_holdout_plan_overclaims() -> None:
+    inputs = _valid_inputs()
+    holdout = inputs["context_live_diagnostic_holdout_plan"]
+    holdout["live_provider_invoked"] = True
+    holdout["fooddb_used"] = True
+    holdout["provider_optimized_case_selection_allowed"] = True
+    holdout["deterministic_role"] = "select_intent"
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "context_live_diagnostic_holdout_plan.live_provider_invoked" in artifact["blockers"]
+    assert "context_live_diagnostic_holdout_plan.fooddb_used" in artifact["blockers"]
+    assert (
+        "context_live_diagnostic_holdout_plan.provider_optimized_case_selection_allowed_not_false"
+        in artifact["blockers"]
+    )
+    assert "context_live_diagnostic_holdout_plan.deterministic_role_wrong" in artifact["blockers"]
+    assert artifact["live_provider_called"] is False
+    assert artifact["fooddb_evidence_used"] is False
+
+
 def test_activation_review_manifest_blocks_context_live_response_contract_overclaims() -> None:
     inputs = _valid_inputs()
     dry_run = inputs["context_live_response_contract_dry_run"]
@@ -817,6 +910,36 @@ def test_activation_review_manifest_blocks_weak_context_live_dry_run_summary() -
     assert "context_live_diagnostic_dry_run_evaluator.target_candidate_cases_missing" in artifact["blockers"]
     assert "context_live_diagnostic_dry_run_evaluator.pending_pin_cases_missing" in artifact["blockers"]
     assert "context_live_diagnostic_dry_run_evaluator.ambiguity_cases_missing" in artifact["blockers"]
+
+
+def test_activation_review_manifest_blocks_weak_context_live_holdout_plan_summary() -> None:
+    inputs = _valid_inputs()
+    holdout = inputs["context_live_diagnostic_holdout_plan"]
+    holdout["fixed_case_matrix_used"] = False
+    holdout["summary"] = {
+        "case_count": len(REQUIRED_CASE_IDS) - 1,
+        "withheld_holdout_variant_count": 1,
+        "cases_with_holdouts": 1,
+        "compound_cases": 0,
+        "ambiguity_cases": 0,
+        "pending_pin_cases": 0,
+        "target_candidate_cases": 0,
+    }
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "context_live_diagnostic_holdout_plan.fixed_case_matrix_used_not_true" in artifact[
+        "blockers"
+    ]
+    assert "context_live_diagnostic_holdout_plan.case_count_mismatch" in artifact["blockers"]
+    assert "context_live_diagnostic_holdout_plan.withheld_holdout_count_too_low" in artifact[
+        "blockers"
+    ]
+    assert "context_live_diagnostic_holdout_plan.cases_with_holdouts_mismatch" in artifact[
+        "blockers"
+    ]
+    assert "context_live_diagnostic_holdout_plan.compound_cases_missing" in artifact["blockers"]
 
 
 def test_activation_review_manifest_blocks_weak_context_live_response_contract_summary() -> None:
@@ -916,6 +1039,9 @@ def test_activation_review_manifest_cli_writes_from_existing_artifacts(tmp_path:
         artifact_path = tmp_path / f"{group_id}.json"
         artifact_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
         args.extend(["--artifact", f"{group_id}={artifact_path}"])
+    gate_path = tmp_path / "context_live_diagnostic_gate.json"
+    gate_path.write_text(json.dumps(_context_live_gate(live=False), ensure_ascii=False), encoding="utf-8")
+    args.extend(["--artifact", f"context_live_diagnostic_gate={gate_path}"])
 
     exit_code = main(args)
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
@@ -936,6 +1062,9 @@ def test_activation_review_manifest_cli_accepts_optional_context_live_review_pac
         artifact_path = tmp_path / f"{group_id}.json"
         artifact_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
         args.extend(["--artifact", f"{group_id}={artifact_path}"])
+    gate_path = tmp_path / "context_live_diagnostic_gate.json"
+    gate_path.write_text(json.dumps(_context_live_gate(live=False), ensure_ascii=False), encoding="utf-8")
+    args.extend(["--artifact", f"context_live_diagnostic_gate={gate_path}"])
     review_pack_path = tmp_path / "context_live_diagnostic_review_pack.json"
     review_pack_path.write_text(
         json.dumps(_context_live_review_pack(live=True), ensure_ascii=False),
@@ -1008,6 +1137,8 @@ def test_activation_review_manifest_source_stays_out_of_fooddb_websearch_live_bo
         Path("app/composition/accurate_intake_pl_ce_activation_manifest_group_checks.py"),
         Path("app/composition/accurate_intake_pl_ce_activation_manifest_validation.py"),
         Path("app/composition/accurate_intake_pl_ce_activation_review_manifest.py"),
+        Path("app/composition/accurate_intake_context_live_diagnostic_holdout_plan.py"),
+        Path("scripts/build_accurate_intake_context_live_diagnostic_holdout_plan.py"),
         Path("scripts/build_accurate_intake_pl_ce_activation_review_manifest.py"),
     ]
     forbidden = [
@@ -1048,6 +1179,7 @@ def test_ci_builds_activation_review_manifest() -> None:
 
     assert "test_accurate_intake_pl_ce_activation_review_manifest.py" in workflow
     assert "build_accurate_intake_context_live_diagnostic_dry_run_evaluator.py" in workflow
+    assert "build_accurate_intake_context_live_diagnostic_holdout_plan.py" in workflow
     assert "build_accurate_intake_context_live_response_contract_dry_run.py" in workflow
     assert "run_accurate_intake_context_live_diagnostic_gate.py" in workflow
     assert "build_accurate_intake_pl_ce_activation_review_manifest.py" in workflow
@@ -1055,6 +1187,10 @@ def test_ci_builds_activation_review_manifest() -> None:
     assert (
         "context_live_diagnostic_dry_run_evaluator="
         "artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json"
+    ) in workflow
+    assert (
+        "context_live_diagnostic_holdout_plan="
+        "artifacts/accurate_intake_context_live_diagnostic_holdout_plan_ci.json"
     ) in workflow
     assert (
         "context_live_response_contract_dry_run="

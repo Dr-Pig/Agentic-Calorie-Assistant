@@ -21,6 +21,7 @@ REQUIRED_INPUTS = (
     "pl_ce_local_mvp_candidate_bundle",
     "pl_ce_browser_activation_evidence_gate",
     "pl_ce_ui_context_alignment_pack",
+    "context_live_diagnostic_holdout_plan",
     "context_live_diagnostic_dry_run_evaluator",
     "context_live_response_contract_dry_run",
 )
@@ -34,6 +35,7 @@ EXPECTED_STATUSES = {
     "pl_ce_local_mvp_candidate_bundle": "pl_ce_local_mvp_candidate_ready_for_human_review",
     "pl_ce_browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
     "pl_ce_ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
+    "context_live_diagnostic_holdout_plan": "pass",
     "context_live_diagnostic_dry_run_evaluator": "pass",
     "context_live_response_contract_dry_run": "pass",
     "context_live_diagnostic_review_pack": {
@@ -50,6 +52,9 @@ EXPECTED_ARTIFACT_TYPES = {
     "pl_ce_local_mvp_candidate_bundle": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
     "pl_ce_browser_activation_evidence_gate": "accurate_intake_pl_ce_browser_activation_evidence_gate",
     "pl_ce_ui_context_alignment_pack": "accurate_intake_pl_ce_ui_context_alignment_pack",
+    "context_live_diagnostic_holdout_plan": (
+        "accurate_intake_context_live_diagnostic_holdout_plan"
+    ),
     "context_live_diagnostic_dry_run_evaluator": (
         "accurate_intake_context_live_diagnostic_dry_run_evaluator"
     ),

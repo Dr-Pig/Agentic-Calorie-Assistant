@@ -81,6 +81,12 @@ def build_pl_ce_activation_review_manifest_artifact(
                     == EXPECTED_STATUSES["pl_ce_ui_context_alignment_pack"]
                     else "blocked_or_missing"
                 ),
+                "context_live_diagnostic_holdout_plan": (
+                    "pass"
+                    if inputs["context_live_diagnostic_holdout_plan"].get("status")
+                    == EXPECTED_STATUSES["context_live_diagnostic_holdout_plan"]
+                    else "blocked_or_missing"
+                ),
                 "context_live_diagnostic_dry_run_evaluator": (
                     "pass"
                     if inputs["context_live_diagnostic_dry_run_evaluator"].get("status")
@@ -101,6 +107,12 @@ def build_pl_ce_activation_review_manifest_artifact(
                 "live_provider_status": "blocked_pending_human_approval",
                 "context_live_provider_status": context_live_provider_status,
                 "context_live_gate_status": context_live_gate_stop_status,
+                "context_live_holdout_plan_status": (
+                    "passed_holdout_plan_only"
+                    if inputs["context_live_diagnostic_holdout_plan"].get("status")
+                    == EXPECTED_STATUSES["context_live_diagnostic_holdout_plan"]
+                    else "blocked_before_live_diagnostic"
+                ),
                 "context_live_dry_run_status": (
                     "passed_fixture_dry_run_only"
                     if inputs["context_live_diagnostic_dry_run_evaluator"].get("status")
@@ -120,6 +132,7 @@ def build_pl_ce_activation_review_manifest_artifact(
             "next_allowed_actions": [
                 "human_review_local_candidate_bundle",
                 "human_review_browser_activation_evidence",
+                "human_review_context_live_holdout_plan",
                 "human_review_context_live_diagnostic_dry_run",
                 "prepare_limited_live_diagnostic_plan_only_after_human_approval",
             ],
