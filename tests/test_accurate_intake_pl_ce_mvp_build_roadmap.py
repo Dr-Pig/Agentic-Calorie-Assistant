@@ -12,7 +12,7 @@ def test_pl_ce_roadmap_doc_exists_with_utf8_bom_and_track_split() -> None:
     text = raw.decode("utf-8-sig")
 
     assert "PL+CE MVP Build Roadmap" in text
-    assert "PR123 -> PR125" in text
+    assert "merged PL+CE checkpoint train" in text
     assert "FoodDB/Search Evidence owns retrieval, ranking" in text
     assert "PL+CE owns context visibility" in text
     assert "blocked_waiting_for_fdb_artifact" in text
@@ -22,13 +22,13 @@ def test_pl_ce_roadmap_doc_exists_with_utf8_bom_and_track_split() -> None:
     assert "provider health smoke" in text
     assert "schema contract probe" in text
     assert "context-only single-case live probe" in text
-    assert "Serial PR Delivery Policy" in text
-    assert "mode: auto_serial" in text
-    assert "verify CI green" in text
-    assert "verify mergeable clean" in text
-    assert "squash merge" in text
-    assert "mode: allowed_with_self_retarget" in text
-    assert "max_depth: 2" in text
+    assert "Merge Queue Delivery Policy" in text
+    assert "mode: merge_queue_serial" in text
+    assert "Add to Merge Queue" in text
+    assert "wait for PR state MERGED" in text
+    assert "do not use main-merge-lock" in text
+    assert "cleanup only after merged and clean" in text
+    assert "dependent_child_pr" in text
     assert "mode: stop_for_human_gate" in text
 
 
