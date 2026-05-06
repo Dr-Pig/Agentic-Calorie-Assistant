@@ -72,8 +72,8 @@ def test_grokfast_websearch_packet_diagnostic_classifies_fixture_review_packet_u
     assert diagnostic["readiness_claimed"] is False
     assert diagnostic["runtime_truth_changed"] is False
     assert diagnostic["runtime_mutation_attempted"] is False
-    assert diagnostic["summary"]["case_count"] == 4
-    assert diagnostic["summary"]["pass_count"] == 4
+    assert diagnostic["summary"]["case_count"] == 6
+    assert diagnostic["summary"]["pass_count"] == 6
     assert diagnostic["summary"]["fail_count"] == 0
     assert diagnostic["provider_profile"]["provider_profile_id"] == (
         GROKFAST_WEBSEARCH_PACKET_PROFILE["provider_profile_id"]
@@ -313,7 +313,7 @@ def test_grokfast_websearch_live_runner_preflight_ref_records_authorized_case_ma
 
     assert ref["preflight_ref_source"] == "run_accurate_intake_grokfast_websearch_packet_smoke"
     assert ref["review_packet_authorized"] is True
-    assert ref["review_packet_count"] == 4
+    assert ref["review_packet_count"] == 6
     assert ref["case_matrix_case_count"] == 6
     assert ref["case_matrix_negative_case_count"] == 4
     assert ref["case_matrix_modifier_guard_cases"] == 1
@@ -352,8 +352,8 @@ def test_grokfast_websearch_packet_smoke_cli_defaults_to_fixture_and_blocks_live
     )
     artifact = read_json_artifact(output)
     assert artifact["live_provider_used"] is False
-    assert artifact["summary"]["case_count"] == 4
-    assert artifact["summary"]["pass_count"] == 4
+    assert artifact["summary"]["case_count"] == 6
+    assert artifact["summary"]["pass_count"] == 6
 
     blocked_output = tmp_path / "blocked_live.json"
     assert (

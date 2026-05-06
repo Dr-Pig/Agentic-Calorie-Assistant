@@ -155,6 +155,9 @@ integration_readiness_matrix_update:
     - extract result review candidate -> exact-card review packet
     - exact-card review packet -> live extract preflight
     - WebSearch GrokFast case matrix -> live extract preflight
+    - exact candidate chain status -> live runner readiness packet
+    - live extract preflight -> live runner readiness packet
+    - live runner readiness packet -> GrokFast WebSearch packet live diagnostic runner
     - live extract preflight -> WebSearch live diagnostic report
     - WebSearch live diagnostic report -> Manager contract probe
     - WebSearch Manager contract probe -> repair pack
