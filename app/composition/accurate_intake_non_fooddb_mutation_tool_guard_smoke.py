@@ -6,7 +6,10 @@ import json
 from typing import Any
 
 from app.composition.accurate_intake_manager_tool_choice_regression_wall import build_manager_tool_choice_regression_wall_artifact
-from app.composition.accurate_intake_manager_tool_surface_inventory import build_manager_tool_surface_inventory_artifact
+from app.composition.accurate_intake_non_fooddb_manager_tool_contract import (
+    build_non_fooddb_manager_tool_contract_artifact,
+    build_tool_contract_index,
+)
 
 REQUIRED_CASE_IDS = ("body_record_weight_observation_only", "body_record_weight_invalid_payload_blocked", "calibration_preview_no_persist_default", "calibration_preview_persist_open_proposal_only", "calibration_apply_missing_stored_proposal_blocked", "calibration_apply_accept_stored_proposal_guarded", "calibration_apply_reject_stored_proposal_no_plan_ledger", "manual_daily_target_manager_structured_only", "manual_daily_target_out_of_bounds_blocked", "legacy_delta_kcal_direct_route_debt")
 _TOOL_ROLE = "validate_guard_and_execute_existing_domain_contract"
@@ -79,13 +82,6 @@ def _cases() -> list[dict[str, Any]]:
         _case("legacy_delta_kcal_direct_route_debt", "legacy.calibration_delta_kcal_direct_route", "legacy_direct_route", "calibration_domain", "legacy_direct_route_debt", _effects(), inventory_alignment="legacy_direct_lane_debt", debt_marker="direct_route_mutation_before_manager_tool_contract"),
     ]
 
-def _inventory_contract(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    return {
-        str(tool.get("tool_name")): dict(tool)
-        for tool in list(payload.get("target_manager_tools") or [])
-        if isinstance(tool, dict)
-    }
-
 def _validate(cases: list[dict[str, Any]], contract: dict[str, dict[str, Any]]) -> list[str]:
     blockers: list[str] = []
     case_ids = {str(case.get("case_id")) for case in cases}
@@ -130,20 +126,22 @@ def _validate(cases: list[dict[str, Any]], contract: dict[str, dict[str, Any]]) 
                 if bool(case.get("stored_proposal_required")) is not bool(expected.get("stored_proposal_required")):
                     blockers.append(f"{case_id}.stored_proposal_contract_mismatch")
         elif alignment == "adjacent_pending_inventory_expansion":
-            if selected_tool != "budget.set_manual_daily_target":
+            expected = contract.get(selected_tool)
+            if selected_tool != "budget.set_manual_daily_target" or expected is None:
                 blockers.append(f"{case_id}.manual_daily_target_selected_tool_mismatch")
-            if tool_kind != "mutation_bearing":
+            if tool_kind != "mutation_bearing" or tool_kind != str(expected.get("tool_kind") or ""):
                 blockers.append(f"{case_id}.manual_daily_target_tool_kind_mismatch")
-            if truth_owner != "budget_domain":
+            if truth_owner != "budget_domain" or truth_owner != str(expected.get("truth_owner") or ""):
                 blockers.append(f"{case_id}.manual_daily_target_truth_owner_mismatch")
-            if case.get("guard_required") is not True:
+            if case.get("guard_required") is not True or bool(expected.get("guard_required")) is not True:
                 blockers.append(f"{case_id}.manual_daily_target_guard_required_missing")
-            if case.get("manager_structured_target_required") is not True:
+            if case.get("manager_structured_target_required") is not True or bool(expected.get("manager_structured_target_required")) is not True:
                 blockers.append(f"{case_id}.manager_structured_target_required_missing")
             if case_id == "manual_daily_target_out_of_bounds_blocked" and case.get("mutation_allowed") is not False:
                 blockers.append(f"{case_id}.manual_daily_target_blocked_case_must_not_allow_mutation")
         elif alignment == "legacy_direct_lane_debt":
-            if case.get("debt_marker") != "direct_route_mutation_before_manager_tool_contract":
+            expected = contract.get(selected_tool)
+            if expected is None or case.get("debt_marker") != str(expected.get("debt_marker") or ""):
                 blockers.append(f"{case_id}.legacy_direct_route_debt_marker_missing")
             if case.get("mutation_allowed") is not False:
                 blockers.append(f"{case_id}.legacy_direct_route_must_not_be_allowed")
@@ -152,15 +150,15 @@ def _validate(cases: list[dict[str, Any]], contract: dict[str, dict[str, Any]]) 
     return blockers
 
 def build_non_fooddb_mutation_tool_guard_smoke_artifact(
-    *, inventory: dict[str, Any] | None = None, tool_choice_wall: dict[str, Any] | None = None,
+    *, tool_contract: dict[str, Any] | None = None, tool_choice_wall: dict[str, Any] | None = None,
     cases: list[dict[str, Any]] | None = None, overrides: dict[str, Any] | None = None
 ) -> dict[str, Any]:
-    inventory_payload = inventory if inventory is not None else build_manager_tool_surface_inventory_artifact()
+    contract_payload = tool_contract if tool_contract is not None else build_non_fooddb_manager_tool_contract_artifact()
     wall_payload = tool_choice_wall if tool_choice_wall is not None else build_manager_tool_choice_regression_wall_artifact()
     scenario_cases = deepcopy(cases if cases is not None else _cases())
-    blockers = _validate(scenario_cases, _inventory_contract(inventory_payload))
-    if inventory_payload.get("status") != "manager_tool_surface_inventory_ready_for_human_review":
-        blockers.append("manager_tool_surface_inventory.not_ready")
+    blockers = _validate(scenario_cases, build_tool_contract_index(contract_payload))
+    if contract_payload.get("status") != "non_fooddb_manager_tool_contract_ready_for_human_review":
+        blockers.append("non_fooddb_manager_tool_contract.not_ready")
     if wall_payload.get("status") != "manager_tool_choice_regression_wall_pass":
         blockers.append("manager_tool_choice_regression_wall.not_pass")
     artifact: dict[str, Any] = {
@@ -188,7 +186,7 @@ def build_non_fooddb_mutation_tool_guard_smoke_artifact(
     }
     artifact.update(overrides or {})
     final_cases = deepcopy(artifact.get("cases") if isinstance(artifact.get("cases"), list) else [])
-    artifact["blockers"] = list(artifact.get("blockers") or []) + _validate(final_cases, _inventory_contract(inventory_payload))
+    artifact["blockers"] = list(artifact.get("blockers") or []) + _validate(final_cases, build_tool_contract_index(contract_payload))
     artifact["summary"] = {"case_count": len(final_cases)}
     for flag in ("live_llm_invoked", "fooddb_used", "web_tavily_used", "runtime_truth_changed", "mutation_changed", "manager_context_packet_schema_changed", "product_readiness_claimed", "private_self_use_approved"):
         if artifact.get(flag) is True and flag not in artifact["blockers"]:

@@ -209,6 +209,18 @@ jobs:
           python -m pytest tests/test_accurate_intake_responder_input_contract_fake_smoke.py -q
           python scripts/run_accurate_intake_responder_input_contract_fake_smoke.py --output artifacts/accurate_intake_responder_input_contract_fake_smoke_ci.json
 
+      - name: Run PL+CE non-FoodDB manager tool contract diagnostics
+        run: |
+          python -m pytest \
+            tests/test_accurate_intake_manager_tool_surface_inventory.py \
+            tests/test_accurate_intake_non_fooddb_manager_tool_contract.py \
+            tests/test_accurate_intake_manager_tool_choice_regression_wall.py \
+            tests/test_accurate_intake_non_fooddb_read_only_tool_loop_fake_smoke.py \
+            tests/test_accurate_intake_non_fooddb_mutation_tool_guard_smoke.py \
+            tests/test_accurate_intake_local_web_self_use_candidate_v2_gate_runner.py \
+            tests/test_accurate_intake_local_web_self_use_candidate_v2_refresh_chain.py \
+            -q
+
       - name: Run PL+CE local MVP candidate bundle
         run: |
           python scripts/build_accurate_intake_ui_same_truth_render_contract.py --output artifacts/accurate_intake_ui_same_truth_render_contract_ci.json
