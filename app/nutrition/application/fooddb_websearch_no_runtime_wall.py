@@ -28,6 +28,7 @@ from .websearch_extract_result_candidate_smoke import build_websearch_extract_re
 from .websearch_live_extract_preflight import build_websearch_live_extract_preflight
 from .websearch_selected_extract_packet_smoke import build_websearch_selected_extract_packet_smoke
 from .websearch_source_policy import build_websearch_source_policy_artifact
+from .websearch_source_adapter_guard import build_websearch_source_adapter_guard
 
 
 FORBIDDEN_TRUE_KEYS = frozenset(
@@ -82,6 +83,7 @@ def build_default_fooddb_websearch_no_runtime_wall() -> dict[str, Any]:
         *_default_fooddb_status_artifacts(),
         build_fooddb_integration_readiness_matrix(),
         build_websearch_source_policy_artifact(),
+        build_websearch_source_adapter_guard(),
         build_websearch_cache_rate_license_wall(),
         build_websearch_candidate_pipeline_diagnostic(),
         build_websearch_candidate_packet_smoke(),

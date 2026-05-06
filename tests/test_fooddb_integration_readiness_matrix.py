@@ -54,6 +54,13 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
     assert edges["manager_decision_to_retrieval_intent"]["current_status"] == "contract_backed"
     assert edges["retrieval_router_to_sqlite_fts_adapter"]["current_status"] == "contract_backed"
     assert edges["retrieval_router_to_websearch_candidate"]["current_status"] == "contract_backed"
+    assert (
+        "app.nutrition.application.websearch_source_adapter_guard.build_websearch_source_adapter_guard"
+        in edges["retrieval_router_to_websearch_candidate"]["evidence"]
+    )
+    assert "tests.test_websearch_source_adapter_guard" in edges[
+        "retrieval_router_to_websearch_candidate"
+    ]["evidence"]
     assert edges["packet_to_manager_seam"]["current_status"] == "contract_backed"
     assert edges["packet_to_mutation_guard"]["current_status"] == "contract_backed"
     assert (

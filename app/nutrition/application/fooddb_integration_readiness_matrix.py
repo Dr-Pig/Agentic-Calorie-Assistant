@@ -70,7 +70,9 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
             evidence=[
                 "app.nutrition.application.food_evidence_retriever_router.build_food_evidence_retriever_route_plan",
                 "app.nutrition.application.websearch_candidate_packet_smoke.build_websearch_candidate_packet_smoke",
+                "app.nutrition.application.websearch_source_adapter_guard.build_websearch_source_adapter_guard",
                 "tests.test_websearch_candidate_packet_smoke",
+                "tests.test_websearch_source_adapter_guard",
             ],
             stop_condition="stop_if_websearch_snippet_or_candidate_becomes_runtime_truth",
         ),

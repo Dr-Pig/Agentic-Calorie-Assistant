@@ -5,6 +5,9 @@ from typing import Any
 import pytest
 
 from app.nutrition.application.web_search_candidate_producer import (
+    MAX_WEBSEARCH_RESULTS_HARD_CAP,
+    PROVIDER_TRUTH_MARKERS,
+    bounded_websearch_max_results,
     collect_web_search_candidates,
     produce_web_search_candidates,
 )
@@ -84,6 +87,78 @@ async def test_collect_web_search_candidates_normalizes_provider_agnostic_hits()
     assert candidate["nutrition_fields_present"] == ["kcal"]
     assert candidate["customization_slots_present"] == ["size", "sugar"]
     assert candidate["raw_ref"] == "raw/tavily/milksha_1.json#0"
+
+
+@pytest.mark.asyncio
+async def test_collect_web_search_candidates_clamps_adapter_max_results() -> None:
+    port = _FakeWebSearchPort([])
+
+    candidates = await collect_web_search_candidates(
+        search_port=port,
+        query="Milksha pearl black tea latte",
+        identity_target="Milksha pearl black tea latte",
+        max_results=999,
+    )
+
+    assert candidates == []
+    assert port.calls == [
+        {
+            "query": "Milksha pearl black tea latte",
+            "max_results": MAX_WEBSEARCH_RESULTS_HARD_CAP,
+        }
+    ]
+    assert bounded_websearch_max_results(-1) == 0
+    assert bounded_websearch_max_results(5) == 5
+    assert bounded_websearch_max_results(True) == 5
+
+
+@pytest.mark.asyncio
+async def test_collect_web_search_candidates_enforces_requested_bound_when_adapter_overreturns() -> None:
+    port = _FakeWebSearchPort(
+        [
+            {"url": f"https://example.com/result/{index}", "title": f"candidate {index}"}
+            for index in range(10)
+        ]
+    )
+
+    candidates = await collect_web_search_candidates(
+        search_port=port,
+        query="Milksha pearl black tea latte",
+        identity_target="Milksha pearl black tea latte",
+        max_results=3,
+    )
+
+    assert len(candidates) == 3
+    assert port.calls == [{"query": "Milksha pearl black tea latte", "max_results": 3}]
+
+
+@pytest.mark.asyncio
+async def test_collect_web_search_candidates_enforces_zero_bound_when_adapter_overreturns() -> None:
+    port = _FakeWebSearchPort([{"url": "https://example.com/result", "title": "candidate"}])
+
+    candidates = await collect_web_search_candidates(
+        search_port=port,
+        query="Milksha pearl black tea latte",
+        identity_target="Milksha pearl black tea latte",
+        max_results=0,
+    )
+
+    assert candidates == []
+    assert port.calls == [{"query": "Milksha pearl black tea latte", "max_results": 0}]
+
+
+@pytest.mark.asyncio
+async def test_collect_web_search_candidates_does_not_call_adapter_for_empty_query() -> None:
+    port = _FakeWebSearchPort([{"url": "https://example.com"}])
+
+    candidates = await collect_web_search_candidates(
+        search_port=port,
+        query=" ",
+        identity_target="Milksha pearl black tea latte",
+    )
+
+    assert candidates == []
+    assert port.calls == []
 
 
 def test_produce_web_search_candidates_keeps_official_wrong_item_as_candidate_only() -> None:
@@ -202,3 +277,65 @@ def test_produce_web_search_candidates_degrades_safely_on_malformed_optional_fie
     assert candidate["applicability_confidence"] == "unknown"
     assert candidate["applicability_notes"] == ""
     assert candidate["raw_ref"]
+
+
+def test_produce_web_search_candidates_caps_raw_hit_count_and_ignores_truth_fields() -> None:
+    candidates = produce_web_search_candidates(
+        query="Milksha pearl black tea latte",
+        identity_target="Milksha pearl black tea latte",
+        raw_hits=[
+            {
+                "url": f"https://example.com/result/{index}",
+                "title": f"candidate {index}",
+                "runtime_truth_allowed": True,
+                "final_truth": {"kcal": 999},
+                "kcal_range": [990, 1000],
+            }
+            for index in range(MAX_WEBSEARCH_RESULTS_HARD_CAP + 5)
+        ],
+    )
+
+    assert len(candidates) == MAX_WEBSEARCH_RESULTS_HARD_CAP
+    for candidate in candidates:
+        _assert_candidate_only(candidate)
+
+
+def test_produce_web_search_candidates_filters_provider_truth_markers_from_strings() -> None:
+    candidates = produce_web_search_candidates(
+        query="Milksha pearl black tea latte",
+        identity_target="Milksha pearl black tea latte",
+        raw_hits=[
+            {
+                "url": "https://example.com/final_truth",
+                "domain": "example.com",
+                "title": "candidate final_truth",
+                "snippet": "runtime_truth_allowed likely_kcal kcal_range",
+                "source_class_hint": "promotion_allowed",
+                "license_status": "packet_ready_truth_allowed",
+                "robots_status": "runtime_mutation_allowed",
+                "officialness": "final_truth",
+                "serving_basis": "likely_kcal",
+                "identity_confidence": "runtime_truth_allowed",
+                "applicability_confidence": "promotion_allowed",
+                "brand_detected": "primary_source",
+                "channel_detected": "mutation_allowed",
+                "nutrition_fields_present": ["kcal", "final_truth"],
+                "customization_slots_present": ["size", "runtime_truth_allowed"],
+                "applicability_notes": "exact_card_created",
+                "raw_ref": "raw/websearch/final_truth.json#0",
+            }
+        ],
+    )
+
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    _assert_candidate_only(candidate)
+    string_values = [
+        item
+        for value in candidate.values()
+        for item in (value if isinstance(value, list) else [value])
+        if isinstance(item, str)
+    ]
+    for value in string_values:
+        normalized = value.lower()
+        assert all(marker not in normalized for marker in PROVIDER_TRUTH_MARKERS)

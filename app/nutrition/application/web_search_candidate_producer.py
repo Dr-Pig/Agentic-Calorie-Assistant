@@ -1,11 +1,29 @@
 from __future__ import annotations
 
 import hashlib
+from itertools import islice
 from typing import Any, Iterable, Mapping
 from urllib.parse import urlparse
 
 from .web_search_port import WebSearchPort
 
+MAX_WEBSEARCH_RESULTS_HARD_CAP = 20
+PROVIDER_TRUTH_MARKERS = frozenset(
+    {
+        "accepted_usage",
+        "exact_card_created",
+        "exactness_posture",
+        "final_truth",
+        "kcal_range",
+        "likely_kcal",
+        "mutation_allowed",
+        "packet_ready_truth_allowed",
+        "primary_source",
+        "promotion_allowed",
+        "runtime_mutation_allowed",
+        "runtime_truth_allowed",
+    }
+)
 _ALLOWED_CONFIDENCE = {"high", "medium", "low", "unknown"}
 _ALLOWED_QUALITY_HINTS = {"high", "medium", "low", "unknown"}
 _BRAND_ALIASES = {
@@ -24,11 +42,18 @@ async def collect_web_search_candidates(
     identity_target: str,
     max_results: int = 5,
 ) -> list[dict[str, Any]]:
-    raw_hits = await search_port.search_hits(query=query, max_results=max_results)
+    query_text = _text(query)
+    if not query_text:
+        return []
+    requested_limit = bounded_websearch_max_results(max_results)
+    raw_hits = await search_port.search_hits(
+        query=query_text,
+        max_results=requested_limit,
+    )
     return produce_web_search_candidates(
-        query=query,
+        query=query_text,
         identity_target=identity_target,
-        raw_hits=raw_hits,
+        raw_hits=islice(raw_hits, requested_limit),
     )
 
 
@@ -39,15 +64,19 @@ def produce_web_search_candidates(
     raw_hits: Iterable[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
-    for index, hit in enumerate(raw_hits):
-        source_url = _text(hit.get("source_url") or hit.get("url"))
-        source_domain = _text(hit.get("source_domain") or hit.get("domain")) or _domain_from_url(source_url)
-        source_title = _text(hit.get("source_title") or hit.get("title"))
-        snippet = _text(hit.get("snippet") or hit.get("content"))
+    for index, hit in enumerate(islice(raw_hits, MAX_WEBSEARCH_RESULTS_HARD_CAP)):
+        source_url = _provider_text(hit.get("source_url") or hit.get("url"))
+        source_domain = _provider_text(hit.get("source_domain") or hit.get("domain")) or _domain_from_url(source_url)
+        source_title = _provider_text(hit.get("source_title") or hit.get("title"))
+        snippet = _provider_text(hit.get("snippet") or hit.get("content"))
         score = _number_or_none(hit.get("score"))
-        source_quality_hint = _quality_hint(hit.get("source_quality_hint") or hit.get("source_quality_label"))
-        officialness_hint = _officialness_hint(hit.get("officialness_hint") or hit.get("officialness"))
-        raw_ref = _text(hit.get("raw_ref")) or _default_raw_ref(index=index, query=query, source_url=source_url)
+        source_quality_hint = _quality_hint(
+            _provider_text(hit.get("source_quality_hint") or hit.get("source_quality_label"))
+        )
+        officialness_hint = _officialness_hint(
+            _provider_text(hit.get("officialness_hint") or hit.get("officialness"))
+        )
+        raw_ref = _provider_text(hit.get("raw_ref")) or _default_raw_ref(index=index, query=query, source_url=source_url)
         candidate_id = _candidate_id(query=query, source_url=source_url, source_title=source_title, index=index)
         candidates.append(
             {
@@ -62,26 +91,32 @@ def produce_web_search_candidates(
                 "score": score,
                 "source_quality_hint": source_quality_hint,
                 "officialness_hint": officialness_hint,
-                "source_class_hint": _text(hit.get("source_class") or hit.get("source_class_hint")),
-                "license_status": _text(hit.get("license_status")) or "unknown",
-                "robots_status": _text(hit.get("robots_status")) or "unknown",
+                "source_class_hint": _provider_text(hit.get("source_class") or hit.get("source_class_hint")),
+                "license_status": _provider_text(hit.get("license_status")) or "unknown",
+                "robots_status": _provider_text(hit.get("robots_status")) or "unknown",
                 "brand_detected": _brand_identity(
-                    _text(hit.get("brand_detected"))
+                    _provider_text(hit.get("brand_detected"))
                     or _infer_brand_identity(" ".join([source_title, snippet, source_domain]))
                 ),
-                "channel_detected": _text(hit.get("channel_detected")),
+                "channel_detected": _provider_text(hit.get("channel_detected")),
                 "serving_basis_candidate": _serving_basis_candidate(
-                    hit.get("serving_basis_candidate") or hit.get("serving_basis")
+                    _provider_text(hit.get("serving_basis_candidate") or hit.get("serving_basis"))
                 ),
                 "nutrition_fields_present": _string_list(hit.get("nutrition_fields_present")),
                 "customization_slots_present": _string_list(hit.get("customization_slots_present")),
-                "identity_confidence": _confidence(hit.get("identity_confidence")),
-                "applicability_confidence": _confidence(hit.get("applicability_confidence")),
-                "applicability_notes": _text(hit.get("applicability_notes")),
+                "identity_confidence": _confidence(_provider_text(hit.get("identity_confidence"))),
+                "applicability_confidence": _confidence(_provider_text(hit.get("applicability_confidence"))),
+                "applicability_notes": _provider_text(hit.get("applicability_notes")),
                 "raw_ref": raw_ref,
             }
         )
     return candidates
+
+
+def bounded_websearch_max_results(value: object) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        return 5
+    return max(0, min(value, MAX_WEBSEARCH_RESULTS_HARD_CAP))
 
 
 def _candidate_id(*, query: str, source_url: str, source_title: str, index: int) -> str:
@@ -100,6 +135,14 @@ def _domain_from_url(source_url: str) -> str:
 
 def _text(value: object) -> str:
     return value.strip() if isinstance(value, str) else ""
+
+
+def _provider_text(value: object) -> str:
+    text = _text(value)
+    if not text:
+        return ""
+    normalized = text.lower()
+    return "" if any(marker in normalized for marker in PROVIDER_TRUTH_MARKERS) else text
 
 
 def _brand_identity(value: str) -> str:
@@ -143,11 +186,18 @@ def _serving_basis_candidate(value: object) -> str:
 def _string_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
-    values = [item.strip() for item in value if isinstance(item, str) and item.strip()]
+    values = [
+        item
+        for item in (_provider_text(raw_item) for raw_item in value)
+        if item
+    ]
     return list(dict.fromkeys(values))
 
 
 __all__ = [
+    "MAX_WEBSEARCH_RESULTS_HARD_CAP",
+    "PROVIDER_TRUTH_MARKERS",
+    "bounded_websearch_max_results",
     "collect_web_search_candidates",
     "produce_web_search_candidates",
 ]
