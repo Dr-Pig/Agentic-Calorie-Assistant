@@ -216,6 +216,38 @@ def test_pre_live_decision_pack_lists_required_evidence_without_approving_live()
     assert pack["product_readiness_claimed"] is False
     assert pack["runtime_web_activation_approved"] is False
     assert pack["blockers"] == []
+    assert pack["capability_axis_summary"] == {
+        "browser_execution": {
+            "status": "pass",
+            "browser_executed": True,
+        },
+        "product_loop_context_review": {
+            "status": "ready_for_human_review",
+            "ready_for_pl_ce_local_review": True,
+        },
+        "manager_intent_readiness": {
+            "status": "ready_for_human_review",
+            "semantic_owner": "fixture_manager_structured_decision",
+            "context_known_runtime_gaps": 0,
+        },
+        "context_live_diagnostic": {
+            "status": "pre_live_ready_without_live_canary",
+            "live_stage": "not_invoked",
+            "live_provider_output_count": 0,
+            "live_blocked_response_count": 0,
+            "anti_overfit_guard": "pass",
+            "holdout_plan": "pass",
+            "response_contract_dry_run": "pass",
+        },
+        "fooddb_dependency": {
+            "status": "blocked_out_of_scope_waiting_fooddb_artifact",
+            "ready_for_fdb_integration": False,
+        },
+        "final_e2e_dependency": {
+            "status": "blocked_until_fooddb_and_live_manager_integration",
+            "selected_option": "ready_for_human_limited_live_canary_decision",
+        },
+    }
 
 
 def test_pre_live_decision_pack_stays_local_when_review_or_data_hygiene_evidence_missing() -> None:
@@ -265,6 +297,14 @@ def test_pre_live_decision_pack_requires_browser_executed_evidence_before_human_
     assert pack["selected_option"] == "stay_local_self_use"
     assert "browser_shell_smoke" in pack["missing_evidence"]
     assert pack["evidence_status"]["browser_shell_smoke"]["browser_executed"] is False
+    assert pack["capability_axis_summary"]["browser_execution"] == {
+        "status": "blocked_or_missing",
+        "browser_executed": False,
+    }
+    assert (
+        pack["capability_axis_summary"]["final_e2e_dependency"]["selected_option"]
+        == "stay_local_self_use"
+    )
 
 
 def test_pre_live_decision_pack_requires_pl_ce_local_review_gate_before_human_live_decision() -> None:
@@ -724,3 +764,28 @@ def test_pre_live_decision_pack_script_writes_artifact(tmp_path: Path) -> None:
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
     assert artifact["selected_option"] == "ready_for_human_limited_live_canary_decision"
     assert artifact["live_canary_approved"] is False
+
+
+def test_pre_live_axis_summary_source_stays_out_of_fooddb_live_and_shared_contracts() -> None:
+    combined = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            Path("scripts/accurate_intake_pre_live_axis_summary.py"),
+            Path("scripts/build_accurate_intake_pre_live_self_use_decision_pack.py"),
+        )
+    )
+    forbidden_fragments = (
+        "NutritionEvidenceStorePort",
+        "FoodEvidenceRecord",
+        "PacketReadyAnchor",
+        "ManagerContextPacket",
+        "TavilyClient",
+        "selected_extract",
+        "fooddb_truth_updated = True",
+        "live_llm_invoked = True",
+        "ready_for_live_diagnostic_decision = True",
+        "private_self_use_approved = True",
+    )
+
+    for fragment in forbidden_fragments:
+        assert fragment not in combined
