@@ -71,6 +71,14 @@ def build_exact_evidence_lane_policy_cases() -> list[dict[str, Any]]:
             case_id="size_unknown_requires_followup_no_exact_evidence",
             pipeline_case_id="pipeline_size_unknown_requires_followup",
         ),
+        _no_exact_evidence_from_pipeline_case(
+            case_id="wrong_country_menu_no_exact_evidence",
+            pipeline_case_id="pipeline_wrong_country_menu",
+        ),
+        _no_exact_evidence_from_pipeline_case(
+            case_id="serving_size_not_listed_no_exact_evidence",
+            pipeline_case_id="pipeline_serving_size_not_listed",
+        ),
         _no_exact_evidence_case(),
     ]
 

@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any
+
 from .retrieval_intent import RetrievalIntent
+from .websearch_candidate_pipeline_negative_fixtures import build_negative_websearch_pipeline_cases
 from .websearch_candidate_pipeline_fixtures import build_default_websearch_pipeline_cases
-
 PipelineCaseFactory = Callable[..., Any]
-
 
 def build_expanded_websearch_pipeline_cases(*, case_factory: PipelineCaseFactory) -> tuple[Any, ...]:
     return (
@@ -20,6 +20,11 @@ def build_expanded_websearch_pipeline_cases(*, case_factory: PipelineCaseFactory
         _modifier_match_preferred(case_factory),
         _same_brand_wrong_flavor_variant(case_factory),
         _all_blocked_candidates(case_factory),
+        *build_negative_websearch_pipeline_cases(
+            case_factory=case_factory,
+            intent_factory=_intent,
+            hit_factory=_hit,
+        ),
     )
 
 

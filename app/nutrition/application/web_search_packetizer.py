@@ -6,11 +6,11 @@ from typing import Sequence
 from .brand_identity_family import same_brand_family
 from .context_normalizer import lookup_key, lookup_tokens, normalize_text
 from .retrieval_intent import RetrievalIntent
+from .websearch_market_variant_policy import has_unrequested_market_token
 from .web_search_packetizer_policy import (
     SIZE_ALIAS_GROUPS as _SIZE_ALIAS_GROUPS,
     VARIANT_TOKENS as _VARIANT_TOKENS,
 )
-
 
 def build_web_search_candidate_packet(
     intent: RetrievalIntent,
@@ -77,7 +77,6 @@ def build_web_search_candidate_packets(
     candidates: Sequence[dict[str, object]],
 ) -> tuple[dict[str, object], ...]:
     return tuple(build_web_search_candidate_packet(intent, candidate) for candidate in candidates)
-
 
 def _packet_id(candidate: dict[str, object]) -> str:
     candidate_id = _text(candidate.get("candidate_id"))
@@ -167,6 +166,7 @@ def _match_type(
         and requested_key
         and requested_key in candidate_key
         and not _has_unrequested_variant_token(candidate_core, requested_core)
+        and not has_unrequested_market_token(candidate_core, requested_core)
     ):
         return "exact"
 
