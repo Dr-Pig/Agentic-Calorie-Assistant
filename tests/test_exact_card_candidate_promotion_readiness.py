@@ -74,6 +74,85 @@ def test_exact_card_candidate_promotion_readiness_fails_closed_without_candidate
     assert artifact["next_required_slice"] == "inspect_exact_card_candidate_readiness_blockers"
 
 
+def test_exact_card_candidate_promotion_readiness_sanitizes_source_artifact_type() -> None:
+    artifact = build_exact_card_candidate_promotion_readiness(
+        exact_lane_artifact={
+            "artifact_type": "raw_response_excerpt forbidden",
+            "runtime_truth_changed": False,
+            "runtime_mutation_allowed": False,
+            "live_websearch_used": False,
+            "live_provider_used": False,
+        }
+    )
+
+    serialized = str(artifact)
+    assert artifact["status"] == "blocked"
+    assert artifact["source_artifact_type"] == "unsupported_exact_lane_artifact"
+    assert "raw_response_excerpt" not in serialized
+    assert "forbidden" not in serialized
+
+
+def test_exact_card_candidate_promotion_readiness_blocks_leaky_candidate_metadata() -> None:
+    exact_lane = build_exact_evidence_lane_policy_artifact()
+    candidate = exact_lane["cases"][1]["exact_card_staging"]["candidates"][0]
+    candidate["candidate_id"] = "raw_response_excerpt"
+    candidate["source_url"] = "raw_response_excerpt forbidden"
+    candidate["canonical_name"] = "raw_response_excerpt forbidden"
+    candidate["matched_name"] = "raw_response_excerpt forbidden"
+    candidate["selected_search_packet_id"] = "raw_response_excerpt"
+
+    artifact = build_exact_card_candidate_promotion_readiness(exact_lane_artifact=exact_lane)
+    serialized = str(artifact)
+
+    assert artifact["status"] == "blocked"
+    assert artifact["candidates"] == []
+    assert artifact["summary"]["exact_card_candidate_count"] == 0
+    assert "exact_card_candidate_invalid_candidate_id" in artifact["blockers"]
+    assert "exact_card_candidate_invalid_source_url" in artifact["blockers"]
+    assert "exact_card_candidate_leaky_canonical_name" in artifact["blockers"]
+    assert "raw_response_excerpt" not in serialized
+    assert "forbidden" not in serialized
+
+
+def test_exact_card_candidate_promotion_readiness_blocks_unknown_marker_free_metadata() -> None:
+    exact_lane = build_exact_evidence_lane_policy_artifact()
+    candidate = exact_lane["cases"][1]["exact_card_staging"]["candidates"][0]
+    candidate["candidate_id"] = "exact_card_candidate:private_payload_token_abc123"
+    candidate["source_url"] = "https://private-payload-token.example/menu"
+    candidate["canonical_name"] = "private payload token"
+    candidate["matched_name"] = "private payload token"
+    candidate["selected_search_packet_id"] = "private_payload_token_abc123"
+
+    artifact = build_exact_card_candidate_promotion_readiness(exact_lane_artifact=exact_lane)
+    serialized = str(artifact)
+
+    assert artifact["status"] == "blocked"
+    assert artifact["candidates"] == []
+    assert "private_payload_token" not in serialized
+    assert "private payload token" not in serialized
+    assert "exact_card_candidate_invalid_candidate_id" in artifact["blockers"]
+    assert "exact_card_candidate_invalid_source_url" in artifact["blockers"]
+
+
+def test_exact_card_candidate_promotion_readiness_blocks_allowed_host_with_unknown_path_and_serving() -> None:
+    exact_lane = build_exact_evidence_lane_policy_artifact()
+    case = exact_lane["cases"][1]
+    case["case_id"] = "private_payload_case"
+    candidate = case["exact_card_staging"]["candidates"][0]
+    candidate["source_url"] = "https://milksha.example/menu/private_payload_token"
+    candidate["source_policy"]["serving_basis_candidate"] = "private_payload_serving"
+
+    artifact = build_exact_card_candidate_promotion_readiness(exact_lane_artifact=exact_lane)
+    serialized = str(artifact)
+
+    assert artifact["status"] == "blocked"
+    assert artifact["candidates"] == []
+    assert "private_payload" not in serialized
+    assert "exact_card_candidate_invalid_case_id" in artifact["blockers"]
+    assert "exact_card_candidate_invalid_source_url" in artifact["blockers"]
+    assert "exact_card_candidate_invalid_serving_basis_candidate" in artifact["blockers"]
+
+
 def test_exact_card_candidate_promotion_readiness_script_roundtrip(tmp_path: Path) -> None:
     from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
     from scripts.build_accurate_intake_exact_card_candidate_promotion_readiness import main

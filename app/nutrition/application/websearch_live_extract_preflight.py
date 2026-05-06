@@ -3,9 +3,25 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import hashlib
 import json
+import re
 from typing import Any
+from urllib.parse import urlparse
 
 from .websearch_cache_rate_license_wall import MAX_CHUNKS_PER_SOURCE, MAX_SEARCH_RESULTS
+
+
+_FORBIDDEN_LEAKAGE_MARKERS = (
+    "candidate_packet",
+    "likely_kcal",
+    "observed_manager_output",
+    "provider_trace",
+    "raw_response_excerpt",
+    "runtime_truth_allowed",
+)
+_PACKET_ID_RE = re.compile(r"^pkt_exact_card_review_[0-9a-f]{12}$")
+_ALLOWED_SOURCE_URLS = {"https://milksha.example/menu/pearl-black-tea-latte"}
+_ALLOWED_DISPLAY_TEXT = {"Milksha pearl black tea latte"}
+_ALLOWED_SERVING_BASIS = {"per_cup"}
 
 
 def build_websearch_live_extract_preflight(
@@ -39,7 +55,9 @@ def build_websearch_live_extract_preflight(
         "ready_for_live_extract_diagnostic": clear,
         "ready_for_runtime_truth": False,
         "source_artifacts": {
-            "exact_review_packet_artifact_type": exact_review_packet_artifact.get("artifact_type"),
+            "exact_review_packet_artifact_type": _safe_review_packet_artifact_type(
+                exact_review_packet_artifact.get("artifact_type")
+            ),
         },
         "diagnostic_contract": {
             "live_call_allowed_by_this_artifact": False,
@@ -121,6 +139,12 @@ def _review_artifact_blockers(artifact: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def _safe_review_packet_artifact_type(value: Any) -> str:
+    if str(value or "") == "accurate_intake_websearch_exact_candidate_review_packet_v1":
+        return "accurate_intake_websearch_exact_candidate_review_packet_v1"
+    return "unsupported_exact_review_packet_artifact"
+
+
 def _preflight_integrity_blockers(artifact: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
     if artifact.get("status") != "pass":
@@ -190,6 +214,8 @@ def _review_packet_blockers(packets: list[dict[str, Any]]) -> list[str]:
             blockers.append("exact_review_packet_missing_identity_text")
         if not str(review_fields.get("serving_basis_candidate") or "").strip():
             blockers.append("exact_review_packet_missing_serving_basis")
+        if str(review_fields.get("serving_basis_candidate") or "").strip() not in _ALLOWED_SERVING_BASIS:
+            blockers.append("exact_review_packet_invalid_serving_basis_candidate")
         if packet.get("approval_allowed_by_this_packet") is not False:
             blockers.append("exact_review_packet_allowed_approval")
         if packet.get("runtime_truth_allowed") is not False:
@@ -206,7 +232,41 @@ def _review_packet_blockers(packets: list[dict[str, Any]]) -> list[str]:
             blockers.append("exact_review_packet_included_raw_content")
         if packet.get("raw_source_rows_included") is not False:
             blockers.append("exact_review_packet_included_raw_source_rows")
+        blockers.extend(_review_packet_string_hygiene_blockers(packet))
     return blockers
+
+
+def _review_packet_string_hygiene_blockers(packet: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    source_url = str(packet.get("source_url") or "").strip()
+    if not _safe_https_url(source_url):
+        blockers.append("exact_review_packet_invalid_source_url")
+    if not _safe_packet_id(packet.get("packet_id")):
+        blockers.append("exact_review_packet_invalid_packet_id")
+    for key in ("canonical_name", "matched_name"):
+        if not _safe_display_text(packet.get(key)):
+            blockers.append(f"exact_review_packet_leaky_{key}")
+    return blockers
+
+
+def _safe_https_url(value: str) -> bool:
+    parsed = urlparse(value)
+    return bool(parsed.scheme == "https") and value in _ALLOWED_SOURCE_URLS
+
+
+def _safe_packet_id(value: Any) -> bool:
+    text = str(value or "").strip()
+    return bool(_PACKET_ID_RE.match(text)) and not _contains_leakage_marker(text)
+
+
+def _safe_display_text(value: Any) -> bool:
+    text = str(value or "").strip()
+    return text in _ALLOWED_DISPLAY_TEXT and not _contains_leakage_marker(text)
+
+
+def _contains_leakage_marker(value: Any) -> bool:
+    text = str(value or "").lower()
+    return any(marker in text for marker in _FORBIDDEN_LEAKAGE_MARKERS)
 
 
 def _kcal_value(value: object) -> float | None:
