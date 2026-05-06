@@ -289,6 +289,49 @@ def test_pre_queue_readiness_fails_missing_product_pages_self_use_flow_gate(
     )
 
 
+def test_pre_queue_readiness_fails_missing_current_metadata_freshness_pack(
+    tmp_path: Path,
+) -> None:
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    workflow = workflow.replace(
+        "          python scripts/build_accurate_intake_pl_ce_current_metadata_freshness_pack.py \\\n",
+        "",
+        1,
+    ).replace(
+        "            --current-metadata-freshness-pack "
+        "artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json \\\n",
+        "",
+        1,
+    ).replace(
+        "            artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json\n",
+        "",
+        1,
+    )
+    workflow_path = tmp_path / "ci.yml"
+    workflow_path.write_text(workflow, encoding="utf-8")
+
+    assert (
+        check_pre_queue_readiness.main(
+            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
+        )
+        == 1
+    )
+
+    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
+    assert (
+        "missing_product_pages_command.pl_ce_current_metadata_freshness_pack"
+        in report["blockers"]
+    )
+    assert (
+        "missing_product_pages_upload_artifact.pl_ce_current_metadata_freshness_pack"
+        in report["blockers"]
+    )
+    assert (
+        "missing_serial_handoff_input.current_metadata_freshness_pack"
+        in report["blockers"]
+    )
+
+
 def test_pre_queue_readiness_fails_product_pages_chain_order_drift(tmp_path: Path) -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     provider_line = (

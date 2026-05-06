@@ -19,6 +19,9 @@ from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 DEFAULT_ACTIVATION_REVIEW_MANIFEST_PATH = (
     ROOT / "artifacts" / "accurate_intake_pl_ce_activation_review_manifest.json"
 )
+DEFAULT_CURRENT_METADATA_FRESHNESS_PATH = (
+    ROOT / "artifacts" / "accurate_intake_pl_ce_current_metadata_freshness_pack.json"
+)
 DEFAULT_QUEUE_JSON_PATH = ROOT / "artifacts" / "accurate_intake_pl_ce_merge_queue_metadata.json"
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_pl_ce_serial_handoff.json"
 
@@ -59,6 +62,10 @@ def main(argv: list[str] | None = None) -> int:
         "--activation-review-manifest",
         default=str(DEFAULT_ACTIVATION_REVIEW_MANIFEST_PATH),
     )
+    parser.add_argument(
+        "--current-metadata-freshness-pack",
+        default=str(DEFAULT_CURRENT_METADATA_FRESHNESS_PATH),
+    )
     parser.add_argument("--queue-json", default=None)
     parser.add_argument(
         "--stack-json",
@@ -78,6 +85,10 @@ def main(argv: list[str] | None = None) -> int:
         activation_review_manifest=_read_payload(
             Path(args.activation_review_manifest),
             missing_type="missing_activation_review_manifest",
+        ),
+        current_metadata_freshness_pack=_read_payload(
+            Path(args.current_metadata_freshness_pack),
+            missing_type="missing_pl_ce_current_metadata_freshness_pack",
         ),
         queue_metadata=_read_payload(
             Path(queue_json_path),

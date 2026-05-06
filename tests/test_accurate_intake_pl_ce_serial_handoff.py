@@ -63,9 +63,33 @@ def _queue_metadata() -> dict[str, object]:
     }
 
 
+def _current_metadata_freshness_pack() -> dict[str, object]:
+    return {
+        "artifact_schema_version": "1.0",
+        "artifact_type": "accurate_intake_pl_ce_current_metadata_freshness_pack",
+        "status": "current_metadata_freshness_ready_for_serial_handoff",
+        "blockers": [],
+        "metadata_only": True,
+        "source_status_only": True,
+        "ready_for_serial_handoff": True,
+        "fresh_artifact_count": 7,
+        "required_artifact_count": 7,
+        "ready_for_live_diagnostic_decision": False,
+        "ready_for_fdb_integration": False,
+        "live_llm_invoked": False,
+        "web_tavily_used": False,
+        "fooddb_evidence_used": False,
+        "real_fooddb_pass_claimed": False,
+        "dogfood_pass": False,
+        "product_readiness_claimed": False,
+        "private_self_use_approved": False,
+    }
+
+
 def test_serial_handoff_reports_merge_queue_ready_for_review_only() -> None:
     artifact = build_pl_ce_serial_handoff_artifact(
         activation_review_manifest=_activation_manifest(),
+        current_metadata_freshness_pack=_current_metadata_freshness_pack(),
         queue_metadata=_queue_metadata(),
     )
 
@@ -80,6 +104,7 @@ def test_serial_handoff_reports_merge_queue_ready_for_review_only() -> None:
     assert artifact["old_main_merge_lock_used"] is False
     assert artifact["queue_metadata_valid"] is True
     assert artifact["activation_review_manifest_ready"] is True
+    assert artifact["current_metadata_freshness_ready"] is True
     assert artifact["ready_for_live_diagnostic_decision"] is False
     assert artifact["ready_for_fdb_integration"] is False
     assert artifact["live_llm_invoked"] is False
@@ -107,6 +132,7 @@ def test_serial_handoff_blocks_activation_manifest_overclaim() -> None:
 
     artifact = build_pl_ce_serial_handoff_artifact(
         activation_review_manifest=manifest,
+        current_metadata_freshness_pack=_current_metadata_freshness_pack(),
         queue_metadata=_queue_metadata(),
     )
 
@@ -127,6 +153,7 @@ def test_serial_handoff_blocks_manual_merge_or_stacked_child_claim() -> None:
 
     artifact = build_pl_ce_serial_handoff_artifact(
         activation_review_manifest=_activation_manifest(),
+        current_metadata_freshness_pack=_current_metadata_freshness_pack(),
         queue_metadata=queue,
     )
 
@@ -145,6 +172,7 @@ def test_serial_handoff_blocks_not_ready_for_queue_item() -> None:
 
     artifact = build_pl_ce_serial_handoff_artifact(
         activation_review_manifest=_activation_manifest(),
+        current_metadata_freshness_pack=_current_metadata_freshness_pack(),
         queue_metadata=queue,
     )
 
@@ -161,6 +189,7 @@ def test_serial_handoff_blocks_synthetic_stack_metadata() -> None:
 
     artifact = build_pl_ce_serial_handoff_artifact(
         activation_review_manifest=_activation_manifest(),
+        current_metadata_freshness_pack=_current_metadata_freshness_pack(),
         queue_metadata=queue,
     )
 
@@ -177,10 +206,15 @@ def test_serial_handoff_cli_writes_from_existing_artifacts(tmp_path: Path) -> No
     from scripts.build_accurate_intake_pl_ce_serial_handoff import main
 
     activation_path = tmp_path / "activation.json"
+    metadata_path = tmp_path / "current-metadata.json"
     queue_path = tmp_path / "queue.json"
     output_path = tmp_path / "serial-handoff.json"
     activation_path.write_text(
         json.dumps(_activation_manifest(), ensure_ascii=False),
+        encoding="utf-8",
+    )
+    metadata_path.write_text(
+        json.dumps(_current_metadata_freshness_pack(), ensure_ascii=False),
         encoding="utf-8",
     )
     queue_path.write_text(json.dumps(_queue_metadata(), ensure_ascii=False), encoding="utf-8")
@@ -189,6 +223,8 @@ def test_serial_handoff_cli_writes_from_existing_artifacts(tmp_path: Path) -> No
         [
             "--activation-review-manifest",
             str(activation_path),
+            "--current-metadata-freshness-pack",
+            str(metadata_path),
             "--queue-json",
             str(queue_path),
             "--output",
@@ -200,16 +236,39 @@ def test_serial_handoff_cli_writes_from_existing_artifacts(tmp_path: Path) -> No
     assert exit_code == 0
     assert artifact["status"] == "ready_for_merge_queue_review"
     assert artifact["included_artifacts"]["activation_review_manifest"]["source_artifact_path"]
+    assert artifact["included_artifacts"]["current_metadata_freshness_pack"]["source_artifact_path"]
+
+
+def test_serial_handoff_blocks_missing_or_invalid_current_metadata_freshness_pack() -> None:
+    metadata = _current_metadata_freshness_pack()
+    metadata["status"] = "blocked"
+    metadata["blockers"] = ["pl_ce_product_pages_self_use_flow_gate.stale"]
+
+    artifact = build_pl_ce_serial_handoff_artifact(
+        activation_review_manifest=_activation_manifest(),
+        current_metadata_freshness_pack=metadata,
+        queue_metadata=_queue_metadata(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "current_metadata_freshness_pack.unexpected_status:blocked" in artifact["blockers"]
+    assert "current_metadata_freshness_pack.upstream_blockers_present" in artifact["blockers"]
+    assert artifact["current_metadata_freshness_ready"] is False
 
 
 def test_serial_handoff_cli_can_write_blocked_builder_smoke_when_allowed(tmp_path: Path) -> None:
     from scripts.build_accurate_intake_pl_ce_serial_handoff import main
 
     activation_path = tmp_path / "activation.json"
+    metadata_path = tmp_path / "current-metadata.json"
     queue_path = tmp_path / "queue.json"
     output_path = tmp_path / "serial-handoff.json"
     activation_path.write_text(
         json.dumps(_activation_manifest(), ensure_ascii=False),
+        encoding="utf-8",
+    )
+    metadata_path.write_text(
+        json.dumps(_current_metadata_freshness_pack(), ensure_ascii=False),
         encoding="utf-8",
     )
     queue = _queue_metadata()
@@ -221,6 +280,8 @@ def test_serial_handoff_cli_can_write_blocked_builder_smoke_when_allowed(tmp_pat
         [
             "--activation-review-manifest",
             str(activation_path),
+            "--current-metadata-freshness-pack",
+            str(metadata_path),
             "--queue-json",
             str(queue_path),
             "--output",
@@ -239,9 +300,14 @@ def test_serial_handoff_cli_rejects_missing_stack_without_autofix(tmp_path: Path
     from scripts.build_accurate_intake_pl_ce_serial_handoff import main
 
     activation_path = tmp_path / "activation.json"
+    metadata_path = tmp_path / "current-metadata.json"
     output_path = tmp_path / "serial-handoff.json"
     activation_path.write_text(
         json.dumps(_activation_manifest(), ensure_ascii=False),
+        encoding="utf-8",
+    )
+    metadata_path.write_text(
+        json.dumps(_current_metadata_freshness_pack(), ensure_ascii=False),
         encoding="utf-8",
     )
 
@@ -249,6 +315,8 @@ def test_serial_handoff_cli_rejects_missing_stack_without_autofix(tmp_path: Path
         [
             "--activation-review-manifest",
             str(activation_path),
+            "--current-metadata-freshness-pack",
+            str(metadata_path),
             "--queue-json",
             str(tmp_path / "missing-queue.json"),
             "--output",
@@ -269,6 +337,7 @@ def test_serial_handoff_cli_rejects_missing_stack_without_autofix(tmp_path: Path
 def test_serial_handoff_source_stays_out_of_fooddb_websearch_live_boundaries() -> None:
     source_paths = [
         Path("app/composition/accurate_intake_pl_ce_serial_handoff.py"),
+        Path("app/composition/accurate_intake_pl_ce_serial_handoff_metadata.py"),
         Path("scripts/build_accurate_intake_pl_ce_serial_handoff.py"),
     ]
     forbidden = [
@@ -300,4 +369,6 @@ def test_ci_builds_serial_handoff_artifact() -> None:
     assert "--queue-json" in workflow
     assert "--allow-blocked" not in workflow
     assert "build_accurate_intake_pl_ce_serial_handoff.py" in workflow
+    assert "--current-metadata-freshness-pack" in workflow
+    assert "accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json" in workflow
     assert "accurate_intake_pl_ce_serial_handoff_ci.json" in workflow
