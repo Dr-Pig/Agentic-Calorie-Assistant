@@ -26,6 +26,17 @@ from scripts.merge_governance.build_merge_debt_matrix import infer_track, normal
 
 
 DEFAULT_OUTPUT = ROOT / "artifacts" / "pre_pr_quality_gate_report.json"
+CANONICAL_TRACKS = {
+    "AccurateIntake",
+    "BodyBudgetCalibration",
+    "FoodDB",
+    "LongTermContextLab",
+    "MergeGovernance",
+    "PLCE",
+    "ProactiveShadow",
+    "RecommendationShadow",
+    "RescueShadow",
+}
 FUTURE_SHADOW_TRACKS = {"LongTermContextLab", "RecommendationShadow", "RescueShadow", "ProactiveShadow"}
 FUTURE_ACTIVE_SURFACE_PATTERNS = (
     "app/routes.py",
@@ -401,6 +412,15 @@ def _pull_request_payload_from_event(event_path: Path | None) -> dict[str, Any] 
     }
 
 
+def _declares_track(cli_track: str, event_path: Path | None) -> bool:
+    if str(cli_track or "").strip().lower() != "unknown":
+        return True
+    pull_request = _pull_request_payload_from_event(event_path)
+    if pull_request is None:
+        return False
+    return "track:" in str(pull_request.get("body") or "").lower()
+
+
 def infer_track_from_event(event_path: Path | None) -> str | None:
     pull_request = _pull_request_payload_from_event(event_path)
     if pull_request is None:
@@ -416,6 +436,57 @@ def resolve_track(cli_track: str, event_path: Path | None) -> str:
     return infer_track_from_event(event_path) or "unknown"
 
 
+def working_tree_status_entries() -> list[str]:
+    return [
+        line
+        for line in _run_text(["git", "status", "--porcelain", "--untracked-files=normal"]).splitlines()
+        if line.strip()
+    ]
+
+
+def _track_blockers(*, track: str, track_declared: bool) -> list[dict[str, object]]:
+    if not track_declared:
+        return []
+    if track in CANONICAL_TRACKS:
+        return []
+    return [
+        _finding(
+            code="unknown_or_noncanonical_track",
+            path="",
+            message=(
+                f"Track '{track}' is not canonical. Use one of: "
+                + ", ".join(sorted(CANONICAL_TRACKS))
+            ),
+            track=track,
+        )
+    ]
+
+
+def _dirty_worktree_blockers(*, allow_dirty_worktree: bool) -> list[dict[str, object]]:
+    if allow_dirty_worktree:
+        return []
+    entries = working_tree_status_entries()
+    if not entries:
+        return []
+    return [
+        _finding(
+            code="dirty_worktree",
+            path="",
+            message="Pre-PR quality gate requires a clean worktree so HEAD-based diff evidence is complete.",
+            dirty_entry_count=len(entries),
+            dirty_entries=entries[:20],
+        )
+    ]
+
+
+def _add_preflight_blockers(report: dict[str, object], blockers: list[dict[str, object]]) -> None:
+    if not blockers:
+        return
+    existing = list(report.get("blockers") or [])
+    report["blockers"] = blockers + existing
+    report["status"] = "fail"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run deterministic pre-PR quality gates against changed files.")
     parser.add_argument("--track", default="unknown")
@@ -424,10 +495,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--event-file", default=os.environ.get("GITHUB_EVENT_PATH"))
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--skip-boundary-checks", action="store_true")
+    parser.add_argument(
+        "--allow-dirty-worktree",
+        action="store_true",
+        help="Bypass the local dirty-worktree blocker; intended for tests and controlled diagnostics only.",
+    )
     args = parser.parse_args(argv)
 
     event_path = Path(args.event_file) if args.event_file else None
     track = resolve_track(args.track, event_path)
+    preflight_blockers = _track_blockers(
+        track=track,
+        track_declared=_declares_track(args.track, event_path),
+    )
+    preflight_blockers.extend(
+        _dirty_worktree_blockers(allow_dirty_worktree=args.allow_dirty_worktree)
+    )
     changes = collect_changed_files(base_ref=args.base_ref, head_ref=args.head_ref)
     report = build_quality_report_from_changes(
         changes,
@@ -435,6 +518,7 @@ def main(argv: list[str] | None = None) -> int:
         track=track,
         run_boundary_checks=not args.skip_boundary_checks,
     )
+    _add_preflight_blockers(report, preflight_blockers)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False))

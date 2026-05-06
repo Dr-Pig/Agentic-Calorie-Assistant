@@ -221,6 +221,7 @@ def test_cli_infers_track_from_pull_request_event_body(tmp_path: Path) -> None:
                 "--output",
                 str(output),
                 "--skip-boundary-checks",
+                "--allow-dirty-worktree",
             ]
         )
         == 0
@@ -248,6 +249,7 @@ def test_cli_explicit_track_overrides_event_track(tmp_path: Path) -> None:
                 "--output",
                 str(output),
                 "--skip-boundary-checks",
+                "--allow-dirty-worktree",
             ]
         )
         == 0
@@ -255,6 +257,110 @@ def test_cli_explicit_track_overrides_event_track(tmp_path: Path) -> None:
 
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["track"] == "FoodDB"
+
+
+def test_cli_normalizes_fooddb_websearch_track_alias(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(tmp_path, "track: FoodDB_WebSearch\n")
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+                "--allow-dirty-worktree",
+            ]
+        )
+        == 0
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["track"] == "FoodDB"
+
+
+def test_cli_allows_merge_governance_track(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(tmp_path, "track: MergeGovernance\n")
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+                "--allow-dirty-worktree",
+            ]
+        )
+        == 0
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["track"] == "MergeGovernance"
+
+
+def test_cli_normalizes_governance_track_alias(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(tmp_path, "track: GovernanceGuard\n")
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+                "--allow-dirty-worktree",
+            ]
+        )
+        == 0
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["track"] == "MergeGovernance"
+
+
+def test_cli_unknown_declared_track_fails(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(tmp_path, "track: FoodDBWebSearchAndPLCE\n")
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+                "--allow-dirty-worktree",
+            ]
+        )
+        == 1
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert "unknown_or_noncanonical_track" in _blocker_codes(report)
 
 
 def test_cli_uses_github_event_path_env_by_default(tmp_path: Path, monkeypatch) -> None:
@@ -272,6 +378,7 @@ def test_cli_uses_github_event_path_env_by_default(tmp_path: Path, monkeypatch) 
                 "--output",
                 str(output),
                 "--skip-boundary-checks",
+                "--allow-dirty-worktree",
             ]
         )
         == 0
@@ -306,6 +413,7 @@ def test_cli_event_inferred_future_shadow_track_blocks_active_surface(tmp_path: 
                 "--output",
                 str(output),
                 "--skip-boundary-checks",
+                "--allow-dirty-worktree",
             ]
         )
         == 1
@@ -319,11 +427,56 @@ def test_cli_event_inferred_future_shadow_track_blocks_active_surface(tmp_path: 
 def test_cli_writes_report_for_empty_head_diff(tmp_path: Path) -> None:
     output = tmp_path / "pre_pr_quality_gate_report.json"
 
-    assert main(["--base-ref", "HEAD", "--head-ref", "HEAD", "--output", str(output), "--skip-boundary-checks"]) == 0
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+                "--allow-dirty-worktree",
+            ]
+        )
+        == 0
+    )
 
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["status"] == "pass"
     assert report["changed_file_count"] == 0
+
+
+def test_cli_dirty_worktree_fails_pre_pr_gate(tmp_path: Path, monkeypatch) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    monkeypatch.setattr(pre_pr_quality_gate, "collect_changed_files", lambda *, base_ref, head_ref: [])
+    monkeypatch.setattr(pre_pr_quality_gate, "load_active_code_policy", lambda: POLICY)
+    monkeypatch.setattr(
+        pre_pr_quality_gate,
+        "working_tree_status_entries",
+        lambda: [" M app/example.py", "?? scratch.txt"],
+    )
+
+    assert (
+        pre_pr_quality_gate.main(
+            [
+                "--track",
+                "FoodDB",
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+            ]
+        )
+        == 1
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert "dirty_worktree" in _blocker_codes(report)
 
 
 def test_script_path_execution_can_import_repo_modules(tmp_path: Path) -> None:
@@ -340,6 +493,7 @@ def test_script_path_execution_can_import_repo_modules(tmp_path: Path) -> None:
             "--output",
             str(output),
             "--skip-boundary-checks",
+            "--allow-dirty-worktree",
         ],
         cwd=ROOT,
         check=False,
