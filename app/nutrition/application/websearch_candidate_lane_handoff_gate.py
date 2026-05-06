@@ -136,6 +136,9 @@ def _handoff_proof(artifact: dict[str, Any]) -> dict[str, Any]:
         "summary": {
             "live_seam_status": str(summary.get("live_seam_status") or ""),
             "contract_failure_detected": summary.get("contract_failure_detected") is True,
+            "probe_case_count": _safe_non_negative_int(summary.get("probe_case_count")),
+            "probe_fail_count": _safe_non_negative_int(summary.get("probe_fail_count")),
+            "repair_case_count": _safe_non_negative_int(summary.get("repair_case_count")),
             "alignment_blocker_count": _safe_non_negative_int(
                 summary.get("alignment_blocker_count")
             ),
