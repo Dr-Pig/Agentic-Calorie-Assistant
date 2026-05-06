@@ -396,6 +396,7 @@ jobs:
             --artifact pl_ce_browser_activation_evidence_gate=artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json \
             --artifact pl_ce_ui_context_alignment_pack=artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json \
             --artifact context_live_diagnostic_dry_run_evaluator=artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json \
+            --artifact context_live_response_contract_dry_run=artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json \
             --output artifacts/accurate_intake_pl_ce_activation_review_manifest_ci.json
           python - <<'PY'
           import json
