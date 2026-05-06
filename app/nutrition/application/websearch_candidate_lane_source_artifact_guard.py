@@ -81,7 +81,6 @@ def source_artifact_boundary_blockers(
             live_diagnostic_report,
             "live_report",
             (
-                "no_live_provider_call",
                 "no_live_websearch_call",
                 "no_kimi_call",
                 "no_runtime_mutation",

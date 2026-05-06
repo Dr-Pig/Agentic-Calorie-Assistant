@@ -38,6 +38,15 @@ from app.nutrition.application.websearch_live_extract_preflight import (  # noqa
 from app.nutrition.application.websearch_live_runner_readiness_packet import (  # noqa: E402
     build_websearch_live_runner_readiness_packet,
 )
+from app.nutrition.application.websearch_manager_contract_handoff import (  # noqa: E402
+    build_websearch_manager_contract_handoff,
+)
+from app.nutrition.application.websearch_manager_contract_probe import (  # noqa: E402
+    build_websearch_manager_contract_probe,
+)
+from app.nutrition.application.websearch_manager_contract_repair_pack import (  # noqa: E402
+    build_websearch_manager_contract_repair_pack,
+)
 from app.nutrition.application.websearch_selected_extract_packet_smoke import (  # noqa: E402
     build_websearch_selected_extract_packet_smoke,
 )
@@ -78,6 +87,12 @@ def main(argv: list[str] | None = None) -> int:
         preflight_artifact=artifacts["preflight"],
     )
     write_json_artifact(paths["report"], report)
+    contract_artifacts = _build_post_diagnostic_artifacts(
+        paths=paths,
+        diagnostic=diagnostic,
+        report=report,
+        preflight=artifacts["preflight"],
+    )
     manifest = _build_manifest(
         mode=args.mode,
         allow_live=args.allow_live,
@@ -85,6 +100,7 @@ def main(argv: list[str] | None = None) -> int:
         diagnostic_exit=diagnostic_exit,
         diagnostic=diagnostic,
         report=report,
+        contract_artifacts=contract_artifacts,
     )
     write_json_artifact(paths["manifest"], manifest)
     print(
@@ -175,6 +191,33 @@ def _run_packet_smoke(
     return run_grokfast_websearch_packet_smoke(argv)
 
 
+def _build_post_diagnostic_artifacts(
+    *,
+    paths: dict[str, Path],
+    diagnostic: dict[str, Any],
+    report: dict[str, Any],
+    preflight: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    probe = build_websearch_manager_contract_probe(diagnostic_artifact=diagnostic)
+    repair_pack = build_websearch_manager_contract_repair_pack(
+        contract_probe_artifact=probe
+    )
+    handoff = build_websearch_manager_contract_handoff(
+        live_diagnostic_report=report,
+        contract_probe_artifact=probe,
+        repair_pack_artifact=repair_pack,
+        preflight_artifact=preflight,
+    )
+    artifacts = {
+        "manager_contract_probe": probe,
+        "manager_contract_repair_pack": repair_pack,
+        "manager_contract_handoff": handoff,
+    }
+    for key, artifact in artifacts.items():
+        write_json_artifact(paths[key], artifact)
+    return artifacts
+
+
 def _build_manifest(
     *,
     mode: str,
@@ -183,7 +226,9 @@ def _build_manifest(
     diagnostic_exit: int,
     diagnostic: dict[str, Any],
     report: dict[str, Any],
+    contract_artifacts: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
+    handoff = contract_artifacts["manager_contract_handoff"]
     return {
         "artifact_type": "accurate_intake_websearch_live_diagnostic_bundle_manifest",
         "artifact_schema_version": "1.0",
@@ -204,6 +249,9 @@ def _build_manifest(
         "production_selected": False,
         "seam_status": report["seam_status"],
         "next_recommended_slice": report["next_recommended_slice"],
+        "manager_contract_handoff_status": handoff.get("status"),
+        "manager_contract_handoff_ready": handoff.get("handoff_ready") is True,
+        "manager_contract_selected_next_step": handoff.get("selected_next_step"),
         "artifacts": {key: str(path) for key, path in paths.items() if key != "manifest"},
         "non_claims": [
             "not_self_use_gate",

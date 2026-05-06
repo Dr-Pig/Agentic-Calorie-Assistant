@@ -12,20 +12,33 @@ if str(ROOT) not in sys.path:
 from app.nutrition.application.websearch_manager_contract_probe import (  # noqa: E402
     build_websearch_manager_contract_probe,
 )
-from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
+from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 
 
 DEFAULT_OUTPUT = ROOT / "artifacts" / "accurate_intake_websearch_manager_contract_probe.json"
+DEFAULT_DIAGNOSTIC = ROOT / "artifacts" / "grokfast_websearch_packet_smoke.json"
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Build deterministic WebSearch Manager contract probe artifact."
     )
+    parser.add_argument("--diagnostic-artifact")
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
-    artifact = build_websearch_manager_contract_probe()
+    diagnostic_artifact = None
+    diagnostic_path = (
+        Path(args.diagnostic_artifact)
+        if args.diagnostic_artifact
+        else DEFAULT_DIAGNOSTIC
+    )
+    if diagnostic_path.exists():
+        diagnostic_artifact = read_json_artifact(diagnostic_path)
+
+    artifact = build_websearch_manager_contract_probe(
+        diagnostic_artifact=diagnostic_artifact
+    )
     output_path = Path(args.output)
     write_json_artifact(output_path, artifact)
     print(

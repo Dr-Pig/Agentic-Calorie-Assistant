@@ -10,6 +10,7 @@ from app.nutrition.application.websearch_preflight_digest import (
     PREFLIGHT_DIGEST_SCOPE,
     websearch_live_extract_preflight_digest,
 )
+from scripts.websearch_live_bundle_artifacts import build_websearch_live_bundle_artifact_paths
 
 
 def _clear_preflight_artifact() -> dict:
@@ -475,6 +476,104 @@ def test_websearch_manager_contract_handoff_script_roundtrip_with_preflight_arti
                 str(repair_path),
                 "--preflight-artifact",
                 str(preflight_path),
+                "--output",
+                str(output_path),
+            ]
+        )
+        == 0
+    )
+
+    artifact = read_json_artifact(output_path)
+    assert artifact["status"] == "websearch_contract_unblocked"
+    assert artifact["selected_next_step"] == "websearch_candidate_pipeline_narrow_expansion"
+
+
+def test_websearch_manager_contract_handoff_script_accepts_live_bundle_manifest(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.build_accurate_intake_websearch_manager_contract_handoff import main
+
+    preflight = _clear_preflight_artifact()
+    bundle_dir = tmp_path / "bundle"
+    bundle_dir.mkdir()
+    bundle_paths = build_websearch_live_bundle_artifact_paths(bundle_dir)
+    output_path = tmp_path / "handoff.json"
+
+    write_json_artifact(
+        bundle_paths["report"],
+        _live_report(seam_status="live_diagnostic_pass", preflight_artifact=preflight),
+    )
+    write_json_artifact(bundle_paths["preflight"], preflight)
+    write_json_artifact(
+        bundle_paths["manager_contract_probe"],
+        _probe(contract_failure_detected=False),
+    )
+    write_json_artifact(
+        bundle_paths["manager_contract_repair_pack"],
+        {**_repair_pack(), "summary": {"case_count": 0}},
+    )
+    write_json_artifact(
+        bundle_paths["manifest"],
+        {
+            "artifact_type": "accurate_intake_websearch_live_diagnostic_bundle_manifest",
+            "artifacts": {
+                "report": str(bundle_paths["report"]),
+                "preflight": str(bundle_paths["preflight"]),
+                "manager_contract_probe": str(bundle_paths["manager_contract_probe"]),
+                "manager_contract_repair_pack": str(bundle_paths["manager_contract_repair_pack"]),
+            },
+        },
+    )
+
+    assert (
+        main(
+            [
+                "--live-bundle-manifest",
+                str(bundle_paths["manifest"]),
+                "--output",
+                str(output_path),
+            ]
+        )
+        == 0
+    )
+
+    artifact = read_json_artifact(output_path)
+    assert artifact["status"] == "websearch_contract_unblocked"
+    assert artifact["selected_next_step"] == "websearch_candidate_pipeline_narrow_expansion"
+
+
+def test_websearch_manager_contract_handoff_script_accepts_live_bundle_dir(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.build_accurate_intake_websearch_manager_contract_handoff import main
+
+    preflight = _clear_preflight_artifact()
+    bundle_dir = tmp_path / "bundle"
+    bundle_dir.mkdir()
+    bundle_paths = build_websearch_live_bundle_artifact_paths(bundle_dir)
+    output_path = tmp_path / "handoff.json"
+
+    write_json_artifact(
+        bundle_paths["report"],
+        _live_report(seam_status="live_diagnostic_pass", preflight_artifact=preflight),
+    )
+    write_json_artifact(bundle_paths["preflight"], preflight)
+    write_json_artifact(
+        bundle_paths["manager_contract_probe"],
+        _probe(contract_failure_detected=False),
+    )
+    write_json_artifact(
+        bundle_paths["manager_contract_repair_pack"],
+        {**_repair_pack(), "summary": {"case_count": 0}},
+    )
+
+    assert (
+        main(
+            [
+                "--live-bundle-dir",
+                str(bundle_dir),
                 "--output",
                 str(output_path),
             ]

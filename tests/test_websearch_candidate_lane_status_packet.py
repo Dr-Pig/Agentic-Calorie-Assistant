@@ -2,19 +2,50 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from app.nutrition.application.exact_card_candidate_promotion_readiness import (
+    build_exact_card_candidate_promotion_readiness,
+)
+from app.nutrition.application.exact_evidence_lane_policy import (
+    build_exact_evidence_lane_policy_artifact,
+)
+from app.nutrition.application.grokfast_websearch_packet_diagnostic import (
+    build_fixture_manager_outputs as build_fixture_live_manager_outputs,
+    build_grokfast_websearch_packet_diagnostic,
+)
 from app.nutrition.application.websearch_candidate_lane_status_packet import (
     build_websearch_candidate_lane_status_packet,
 )
 from app.nutrition.application.websearch_candidate_pipeline import (
     build_websearch_candidate_pipeline_diagnostic,
 )
+from app.nutrition.application.websearch_exact_candidate_review_packet import (
+    build_websearch_exact_candidate_review_packet,
+)
+from app.nutrition.application.websearch_extract_result_candidate_smoke import (
+    build_websearch_extract_result_candidate_smoke,
+)
+from app.nutrition.application.websearch_live_diagnostic_report import (
+    build_websearch_live_diagnostic_report,
+)
+from app.nutrition.application.websearch_live_extract_preflight import (
+    build_websearch_live_extract_preflight,
+)
 from app.nutrition.application.websearch_manager_contract_handoff import (
     build_websearch_manager_contract_handoff,
+)
+from app.nutrition.application.websearch_manager_contract_probe import (
+    build_websearch_manager_contract_probe,
+)
+from app.nutrition.application.websearch_manager_contract_repair_pack import (
+    build_websearch_manager_contract_repair_pack,
 )
 from app.nutrition.application.websearch_preflight_digest import (
     PREFLIGHT_DIGEST_ALGORITHM,
     PREFLIGHT_DIGEST_SCOPE,
     websearch_live_extract_preflight_digest,
+)
+from app.nutrition.application.websearch_selected_extract_packet_smoke import (
+    build_websearch_selected_extract_packet_smoke,
 )
 
 
@@ -254,6 +285,80 @@ def _verified_handoff_inputs() -> dict:
     }
 
 
+def _realistic_verified_handoff_inputs() -> dict:
+    readiness = build_exact_card_candidate_promotion_readiness(
+        exact_lane_artifact=build_exact_evidence_lane_policy_artifact()
+    )
+    selected_extract = build_websearch_selected_extract_packet_smoke(
+        exact_card_readiness_artifact=readiness
+    )
+    extract_result = build_websearch_extract_result_candidate_smoke(
+        selected_extract_artifact=selected_extract
+    )
+    review_packet = build_websearch_exact_candidate_review_packet(
+        extract_result_artifact=extract_result
+    )
+    preflight = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=review_packet
+    )
+    diagnostic = build_grokfast_websearch_packet_diagnostic(
+        review_packet_artifact=review_packet,
+        manager_outputs=build_fixture_live_manager_outputs(
+            review_packet_artifact=review_packet
+        ),
+        live_provider_used=True,
+    )
+    diagnostic["preflight_ref"] = {
+        "preflight_ref_source": "run_accurate_intake_grokfast_websearch_packet_smoke",
+        "artifact_type": preflight.get("artifact_type"),
+        "status": preflight.get("status"),
+        "ready_for_live_extract_diagnostic": preflight.get("ready_for_live_extract_diagnostic"),
+        "ready_for_runtime_truth": preflight.get("ready_for_runtime_truth"),
+        "review_packet_authorized": True,
+        "review_packet_count": preflight["summary"].get("review_packet_count"),
+        "case_matrix_case_count": preflight["summary"].get("case_matrix_case_count"),
+        "case_matrix_fixed_required_cases": preflight["summary"].get(
+            "case_matrix_fixed_required_cases"
+        ),
+        "case_matrix_negative_case_count": preflight["summary"].get(
+            "case_matrix_negative_case_count"
+        ),
+        "case_matrix_modifier_guard_cases": preflight["summary"].get(
+            "case_matrix_modifier_guard_cases"
+        ),
+        "case_matrix_live_provider_invoked": preflight["summary"].get(
+            "case_matrix_live_provider_invoked"
+        ),
+        "case_matrix_websearch_invoked": preflight["summary"].get(
+            "case_matrix_websearch_invoked"
+        ),
+        "preflight_artifact_digest_algorithm": PREFLIGHT_DIGEST_ALGORITHM,
+        "preflight_artifact_digest_scope": PREFLIGHT_DIGEST_SCOPE,
+        "preflight_artifact_digest": websearch_live_extract_preflight_digest(preflight),
+    }
+    live_report = build_websearch_live_diagnostic_report(
+        diagnostic_artifact=diagnostic,
+        preflight_artifact=preflight,
+    )
+    probe = build_websearch_manager_contract_probe(diagnostic_artifact=diagnostic)
+    repair_pack = build_websearch_manager_contract_repair_pack(
+        contract_probe_artifact=probe
+    )
+    handoff = build_websearch_manager_contract_handoff(
+        live_diagnostic_report=live_report,
+        contract_probe_artifact=probe,
+        repair_pack_artifact=repair_pack,
+        preflight_artifact=preflight,
+    )
+    return {
+        "manager_contract_handoff_artifact": handoff,
+        "live_diagnostic_report": live_report,
+        "contract_probe_artifact": probe,
+        "repair_pack_artifact": repair_pack,
+        "preflight_artifact": preflight,
+    }
+
+
 def _fooddb_status_packet() -> dict:
     return {
         "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
@@ -464,6 +569,20 @@ def test_websearch_candidate_lane_status_packet_allows_live_when_manager_contrac
     )
 
     assert artifact["summary"]["manager_contract_gate_status"] == "clear_for_websearch_lane"
+    assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
+
+
+def test_websearch_candidate_lane_status_packet_allows_realistic_live_bundle_contract_chain() -> None:
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        **_realistic_verified_handoff_inputs(),
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == "clear_for_websearch_lane"
+    assert artifact["manager_contract_gate"]["blockers"] == []
     assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
 
 
@@ -1369,9 +1488,9 @@ def test_websearch_candidate_lane_status_packet_script_accepts_live_bundle_manif
     bundle_dir.mkdir()
     paths = {
         "fooddb": tmp_path / "fooddb_status.json",
-        "handoff": tmp_path / "handoff.json",
-        "probe": tmp_path / "probe.json",
-        "repair": tmp_path / "repair.json",
+        "handoff": bundle_dir / "websearch_contract_handoff.json",
+        "probe": bundle_dir / "websearch_contract_probe.json",
+        "repair": bundle_dir / "websearch_contract_repair.json",
         "live": bundle_dir / "websearch_live_report.json",
         "preflight": bundle_dir / "websearch_live_preflight.json",
         "manifest": bundle_dir / "websearch_live_manifest.json",
@@ -1397,6 +1516,9 @@ def test_websearch_candidate_lane_status_packet_script_accepts_live_bundle_manif
             "artifacts": {
                 "report": str(paths["live"]),
                 "preflight": str(paths["preflight"]),
+                "manager_contract_handoff": str(paths["handoff"]),
+                "manager_contract_probe": str(paths["probe"]),
+                "manager_contract_repair_pack": str(paths["repair"]),
             },
         },
     )
@@ -1406,12 +1528,6 @@ def test_websearch_candidate_lane_status_packet_script_accepts_live_bundle_manif
             [
                 "--fooddb-status-packet",
                 str(paths["fooddb"]),
-                "--manager-contract-handoff-artifact",
-                str(paths["handoff"]),
-                "--contract-probe-artifact",
-                str(paths["probe"]),
-                "--repair-pack-artifact",
-                str(paths["repair"]),
                 "--live-bundle-manifest",
                 str(paths["manifest"]),
                 "--output",

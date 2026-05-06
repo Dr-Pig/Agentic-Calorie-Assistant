@@ -47,9 +47,12 @@ def main(argv: list[str] | None = None) -> int:
             read_json_artifact(Path(args.fooddb_status_packet)) if args.fooddb_status_packet else None
         ),
         manager_contract_handoff_artifact=(
-            read_json_artifact(Path(args.manager_contract_handoff_artifact))
-            if args.manager_contract_handoff_artifact
-            else None
+            _read_optional_or_bundle(
+                explicit_path=args.manager_contract_handoff_artifact,
+                bundle_manifest=live_bundle_manifest,
+                bundle_dir=args.live_bundle_dir,
+                bundle_key="manager_contract_handoff",
+            )
         ),
         live_diagnostic_report=(
             _read_optional_or_bundle(
@@ -60,14 +63,20 @@ def main(argv: list[str] | None = None) -> int:
             )
         ),
         contract_probe_artifact=(
-            read_json_artifact(Path(args.contract_probe_artifact))
-            if args.contract_probe_artifact
-            else None
+            _read_optional_or_bundle(
+                explicit_path=args.contract_probe_artifact,
+                bundle_manifest=live_bundle_manifest,
+                bundle_dir=args.live_bundle_dir,
+                bundle_key="manager_contract_probe",
+            )
         ),
         repair_pack_artifact=(
-            read_json_artifact(Path(args.repair_pack_artifact))
-            if args.repair_pack_artifact
-            else None
+            _read_optional_or_bundle(
+                explicit_path=args.repair_pack_artifact,
+                bundle_manifest=live_bundle_manifest,
+                bundle_dir=args.live_bundle_dir,
+                bundle_key="manager_contract_repair_pack",
+            )
         ),
         preflight_artifact=(
             _read_optional_or_bundle(
