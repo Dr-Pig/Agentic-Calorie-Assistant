@@ -467,7 +467,8 @@
       el("body-status").textContent = "Loading body plan...";
       const plan = await requestJson(`${endpoints.bodyPlan}?${new URLSearchParams({ user_id: userId() }).toString()}`);
       renderPlan(plan);
-      const history = await requestJson(`${endpoints.weightHistory}?${new URLSearchParams({ user_id: userId() }).toString()}`);
+      const historyQuery = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
+      const history = await requestJson(`${endpoints.weightHistory}?${historyQuery.toString()}`);
       renderWeights(history);
     }
     el("weight-form").addEventListener("submit", async (event) => {
@@ -532,6 +533,7 @@
       updateCurrentUrl();
       updateNavigationLinks();
       updateSessionStrip();
+      loadBody().catch((error) => { el("body-status").textContent = `Could not load body plan: ${error.message}`; });
     });
     el("user-id").addEventListener("change", () => {
       updateCurrentUrl();

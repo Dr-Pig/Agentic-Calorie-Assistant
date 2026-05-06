@@ -204,6 +204,20 @@ def test_chat_and_body_pages_update_current_url_when_session_inputs_change() -> 
         assert 'el("user-id").addEventListener("change", () => {\n      updateCurrentUrl();' in html
 
 
+def test_body_page_refetches_read_model_when_selected_date_changes() -> None:
+    html = _html(BODY)
+
+    expected = (
+        'el("local-date").addEventListener("change", () => {\n'
+        "      updateCurrentUrl();\n"
+        "      updateNavigationLinks();\n"
+        "      updateSessionStrip();\n"
+        '      loadBody().catch((error) => { el("body-status").textContent = `Could not load body plan: ${error.message}`; });\n'
+        "    });"
+    )
+    assert expected in html
+
+
 def test_body_page_covers_plan_weight_goal_activity_inputs_without_frontend_tdee_math() -> None:
     html = _html(BODY)
 
@@ -233,6 +247,8 @@ def test_body_page_covers_plan_weight_goal_activity_inputs_without_frontend_tdee
     assert 'weightObservation: "/weight/observation"' in html
     assert 'onboarding: "/onboarding/bootstrap"' in html
     assert 'manualTarget: "/body-plan/manual-daily-target"' in html
+    assert "const historyQuery = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });" in html
+    assert "requestJson(`${endpoints.weightHistory}?${historyQuery.toString()}`)" in html
     assert "Set up your body plan to see targets." in html
     assert 'const isActive = plan.plan_status === "active";' in html
     assert "Mostly sitting, some walking" in html
