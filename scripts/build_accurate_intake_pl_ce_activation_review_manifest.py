@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.composition.accurate_intake_pl_ce_activation_review_manifest import (  # noqa: E402
+    OPTIONAL_INPUTS,
     REQUIRED_INPUTS,
     build_pl_ce_activation_review_manifest_artifact,
 )
@@ -33,6 +34,9 @@ DEFAULT_ARTIFACT_PATHS = {
     "context_live_response_contract_dry_run": ROOT
     / "artifacts"
     / "accurate_intake_context_live_response_contract_dry_run.json",
+    "context_live_diagnostic_review_pack": ROOT
+    / "artifacts"
+    / "accurate_intake_context_live_diagnostic_review_pack.json",
 }
 
 
@@ -76,8 +80,13 @@ def _read_payload(path: Path) -> dict[str, Any]:
 
 def build_input_artifacts(path_overrides: dict[str, Path] | None = None) -> dict[str, dict[str, Any]]:
     paths = {group_id: Path(path) for group_id, path in DEFAULT_ARTIFACT_PATHS.items()}
-    paths.update(dict(path_overrides or {}))
-    return {group_id: _read_payload(paths[group_id]) for group_id in REQUIRED_INPUTS}
+    overrides = dict(path_overrides or {})
+    paths.update(overrides)
+    group_ids = list(REQUIRED_INPUTS)
+    for group_id in OPTIONAL_INPUTS:
+        if group_id in overrides or paths[group_id].exists():
+            group_ids.append(group_id)
+    return {group_id: _read_payload(paths[group_id]) for group_id in group_ids}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -98,7 +107,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     path_overrides = dict(args.artifact or [])
-    unknown_artifact_groups = sorted(set(path_overrides) - set(REQUIRED_INPUTS))
+    known_artifact_groups = {*REQUIRED_INPUTS, *OPTIONAL_INPUTS}
+    unknown_artifact_groups = sorted(set(path_overrides) - known_artifact_groups)
     if unknown_artifact_groups:
         print(
             json.dumps(
