@@ -20,8 +20,6 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
             manager_style_guard="retrieval_goal_must_come_from_manager_owned_structured_decision_for_runtime_paths",
             evidence=[
                 "app.nutrition.application.retrieval_semantic_decision.build_retrieval_intent_from_manager_decision",
-                "app.nutrition.application.retrieval_intent_runtime_boundary.build_retrieval_intent_runtime_boundary_artifact",
-                "tests.test_retrieval_intent_runtime_boundary",
                 _wave_one_b_two_test_ref(
                     "retrieval_intent.test_manager_semantic_decision_rejects_non_manager_authority"
                 ),
