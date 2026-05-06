@@ -103,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
         paths=paths,
     )
     diagnostic = read_json_artifact(paths["diagnostic"])
-    report = build_fooddb_live_diagnostic_report(diagnostic_artifact=diagnostic)
+    report = build_fooddb_live_diagnostic_report(diagnostic_artifact=diagnostic, **_report_inputs(artifacts))
     write_json_artifact(paths["report"], report)
     contract_artifacts = _build_post_diagnostic_artifacts(
         paths=paths,
@@ -229,6 +229,14 @@ def _build_index_backend_parity(
 
 def _supabase_rows_from_records(records: object) -> tuple[dict[str, object], ...]:
     return tuple(asdict(record) for record in records)
+
+
+def _report_inputs(artifacts: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        "preflight_artifact": artifacts["preflight"],
+        "router_readiness_artifact": artifacts["router_readiness"],
+        "live_runner_readiness_artifact": artifacts["live_runner_readiness"],
+    }
 
 
 def _run_packet_smoke(

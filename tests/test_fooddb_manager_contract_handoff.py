@@ -13,6 +13,11 @@ def _live_report(*, seam_status: str = "provider_contract_blocked") -> dict:
         "artifact_type": "accurate_intake_fooddb_live_diagnostic_report",
         "seam_status": seam_status,
         "source_live_provider_used": True,
+        "source_artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
+        "source_status": "pass" if seam_status == "live_diagnostic_pass" else "diagnostic_fail",
+        "upstream_evidence_required": seam_status == "live_diagnostic_pass",
+        "upstream_evidence_healthy": seam_status != "live_diagnostic_pass" or True,
+        "can_expand_to_websearch_live_diagnostic": seam_status == "live_diagnostic_pass",
         "next_recommended_slice": "narrow_grokfast_fooddb_manager_contract_probe",
     }
 
@@ -102,6 +107,23 @@ def test_fooddb_manager_contract_handoff_blocks_live_pass_when_probe_still_fails
 
     assert artifact["status"] == "blocked_contract_handoff_alignment"
     assert "live_pass_with_contract_failure_detected" in artifact["alignment_blockers"]
+    assert artifact["handoff_ready"] is False
+
+
+def test_fooddb_manager_contract_handoff_blocks_live_pass_without_healthy_upstream_evidence() -> None:
+    live_report = _live_report(seam_status="live_diagnostic_pass")
+    live_report["upstream_evidence_healthy"] = False
+    live_report["can_expand_to_websearch_live_diagnostic"] = False
+    live_report["next_recommended_slice"] = "rerun_with_clear_fooddb_live_runner_evidence"
+
+    artifact = build_fooddb_manager_contract_handoff(
+        live_diagnostic_report=live_report,
+        contract_probe_artifact=_probe(contract_failure_detected=False),
+        repair_pack_artifact=_repair_pack(),
+    )
+
+    assert artifact["status"] == "blocked_contract_handoff_alignment"
+    assert "live_report_upstream_evidence_not_healthy" in artifact["alignment_blockers"]
     assert artifact["handoff_ready"] is False
 
 
