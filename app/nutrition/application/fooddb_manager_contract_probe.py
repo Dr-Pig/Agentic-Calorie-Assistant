@@ -4,6 +4,15 @@ from datetime import UTC, datetime
 import ast
 from typing import Any
 
+_CONTRACT_TRACE_FAILURE_FAMILIES = frozenset(
+    {
+        "malformed_json",
+        "manager_output_contract_violation",
+        "non_json_model_output",
+        "payload_shape_error",
+    }
+)
+
 
 def build_fooddb_manager_contract_probe(*, diagnostic_artifact: dict[str, Any]) -> dict[str, Any]:
     source_artifact_type = str(diagnostic_artifact.get("artifact_type") or "")
@@ -18,12 +27,16 @@ def build_fooddb_manager_contract_probe(*, diagnostic_artifact: dict[str, Any]) 
     contract_breach_count = 0
     accepted_count = 0
     fallback_reason_counts: dict[str, int] = {}
+    trace_failure_family_counts: dict[str, int] = {}
+    observed_type_counts: dict[str, int] = {}
+    repair_result_counts: dict[str, int] = {}
+    contract_trace_failure_detected = False
 
     for case in diagnostic_artifact.get("cases") or []:
         if not isinstance(case, dict):
             continue
         provider_trace = case.get("provider_trace")
-        trace = provider_trace.get("trace") if isinstance(provider_trace, dict) else None
+        trace = _provider_trace_payload(provider_trace)
         if not isinstance(trace, dict):
             continue
 
@@ -56,6 +69,27 @@ def build_fooddb_manager_contract_probe(*, diagnostic_artifact: dict[str, Any]) 
         if fallback_reason:
             fallback_reason_counts[fallback_reason] = fallback_reason_counts.get(fallback_reason, 0) + 1
 
+        trace_failure_family = str(trace.get("failure_family") or "").strip()
+        if trace_failure_family:
+            trace_failure_family_counts[trace_failure_family] = (
+                trace_failure_family_counts.get(trace_failure_family, 0) + 1
+            )
+
+        observed_type = str(trace.get("observed_type") or "").strip()
+        if observed_type:
+            observed_type_counts[observed_type] = observed_type_counts.get(observed_type, 0) + 1
+
+        repair_result = str(trace.get("repair_result") or "").strip()
+        if repair_result:
+            repair_result_counts[repair_result] = repair_result_counts.get(repair_result, 0) + 1
+
+        if _is_contract_trace_failure(
+            trace_failure_family=trace_failure_family,
+            observed_type=observed_type,
+            parse_attempts=trace.get("parse_attempts"),
+        ):
+            contract_trace_failure_detected = True
+
         cases.append(
             {
                 "case_id": case.get("case_id"),
@@ -71,11 +105,17 @@ def build_fooddb_manager_contract_probe(*, diagnostic_artifact: dict[str, Any]) 
                 "failing_component": str(trace.get("failing_component") or "").strip() or None,
                 "effective_response_format_type": str(trace.get("effective_response_format_type") or "").strip() or None,
                 "observed_type": str(trace.get("observed_type") or "").strip() or None,
+                "trace_failure_family": trace_failure_family or None,
+                "repair_result": repair_result or None,
             }
         )
 
     source_live_provider_used = diagnostic_artifact.get("live_provider_used") is True
-    contract_failure_detected = contract_breach_count > 0 or bool(aggregate_missing_fields)
+    contract_failure_detected = (
+        contract_breach_count > 0
+        or bool(aggregate_missing_fields)
+        or contract_trace_failure_detected
+    )
     if not source_live_provider_used:
         next_recommended_slice = "run_explicit_grokfast_fooddb_packet_live_diagnostic"
     elif contract_failure_detected:
@@ -108,6 +148,9 @@ def build_fooddb_manager_contract_probe(*, diagnostic_artifact: dict[str, Any]) 
             "schema_names": dict(sorted(schema_names.items())),
             "schema_versions": dict(sorted(schema_versions.items())),
             "fallback_reason_counts": dict(sorted(fallback_reason_counts.items())),
+            "trace_failure_family_counts": dict(sorted(trace_failure_family_counts.items())),
+            "observed_type_counts": dict(sorted(observed_type_counts.items())),
+            "repair_result_counts": dict(sorted(repair_result_counts.items())),
         },
         "cases": cases,
         "non_claims": [
@@ -139,6 +182,36 @@ def _string_list(value: Any) -> list[str]:
                 result.append(text)
         return result
     return []
+
+
+def _provider_trace_payload(provider_trace: Any) -> dict[str, Any] | None:
+    if not isinstance(provider_trace, dict):
+        return None
+    if not provider_trace:
+        return None
+    nested = provider_trace.get("trace")
+    if isinstance(nested, dict):
+        return nested
+    return provider_trace
+
+
+def _is_contract_trace_failure(
+    *,
+    trace_failure_family: str,
+    observed_type: str,
+    parse_attempts: Any,
+) -> bool:
+    if trace_failure_family in _CONTRACT_TRACE_FAILURE_FAMILIES:
+        return True
+    if observed_type == "string":
+        return True
+    for attempt in parse_attempts or []:
+        if not isinstance(attempt, dict):
+            continue
+        error_type = str(attempt.get("error_type") or "").strip()
+        if error_type == "BuilderSpaceParseError":
+            return True
+    return False
 
 
 def _extract_missing_fields_from_trace(trace: dict[str, Any]) -> list[str]:
