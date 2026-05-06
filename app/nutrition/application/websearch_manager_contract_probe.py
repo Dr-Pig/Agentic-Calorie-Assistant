@@ -115,6 +115,7 @@ def build_websearch_manager_contract_probe(
         }
     )
     repair_hypotheses = _repair_hypotheses(results)
+    contract_failure_detected = fail_count > 0
     next_recommended_slice = (
         "narrow_prompt_schema_intent_alias_probe"
         if "intent_type_present_intent_missing" in repair_hypotheses
@@ -133,6 +134,7 @@ def build_websearch_manager_contract_probe(
         "readiness_claimed": False,
         "self_use_approved": False,
         "production_selected": False,
+        "contract_failure_detected": contract_failure_detected,
         "runtime_truth_changed": False,
         "runtime_mutation_attempted": False,
         "manager_contract_changed": False,

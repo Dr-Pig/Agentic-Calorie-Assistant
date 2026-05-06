@@ -16,6 +16,7 @@ def test_websearch_manager_contract_probe_localizes_intent_alias_gap() -> None:
     assert artifact["status"] == "diagnostic_fail"
     assert artifact["live_provider_used"] is False
     assert artifact["live_websearch_used"] is False
+    assert artifact["contract_failure_detected"] is True
     assert artifact["manager_contract_changed"] is False
     assert artifact["prompt_changed"] is False
     assert artifact["schema_changed"] is False
@@ -66,6 +67,7 @@ def test_websearch_manager_contract_probe_passes_when_required_intent_exists() -
     artifact = build_websearch_manager_contract_probe(cases=[case])
 
     assert artifact["status"] == "pass"
+    assert artifact["contract_failure_detected"] is False
     assert artifact["summary"]["failure_families"] == []
     assert artifact["summary"]["next_recommended_slice"] == "inspect_websearch_manager_contract_failures"
 
