@@ -19,6 +19,12 @@ from app.composition.accurate_intake_pl_ce_ui_context_alignment_pack import (
 from app.composition.accurate_intake_context_live_diagnostic_case_matrix import (
     REQUIRED_CASE_IDS as CONTEXT_LIVE_REQUIRED_CASE_IDS,
 )
+from app.composition.accurate_intake_pl_ce_context_live_manifest_checks import (
+    OPTIONAL_LIVE_EVIDENCE_ALLOWED_FLAGS,
+    context_live_gate_state,
+    context_live_optional_group_blockers,
+    context_live_review_state,
+)
 
 
 REQUIRED_INPUTS = (
@@ -31,6 +37,7 @@ REQUIRED_INPUTS = (
 
 OPTIONAL_INPUTS = (
     "context_live_diagnostic_review_pack",
+    "context_live_diagnostic_gate",
 )
 
 EXPECTED_STATUSES = {
@@ -42,6 +49,10 @@ EXPECTED_STATUSES = {
     "context_live_diagnostic_review_pack": {
         "context_live_diagnostic_review_ready_with_live_canary",
         "context_live_diagnostic_review_ready_without_live_canary",
+    },
+    "context_live_diagnostic_gate": {
+        "context_live_diagnostic_gate_ready_with_live_canary",
+        "context_live_diagnostic_gate_ready_without_live_canary",
     },
 }
 
@@ -56,6 +67,7 @@ EXPECTED_ARTIFACT_TYPES = {
         "accurate_intake_context_live_response_contract_dry_run"
     ),
     "context_live_diagnostic_review_pack": "accurate_intake_context_live_diagnostic_review_pack",
+    "context_live_diagnostic_gate": "accurate_intake_context_live_diagnostic_gate",
 }
 
 EXPECTED_UPSTREAM_REQUIRED_INPUTS = {
@@ -113,14 +125,6 @@ FORBIDDEN_TRUTHY_FLAGS = (
     "deterministic_selected_target",
     "raw_text_intent_router_used",
 )
-
-OPTIONAL_LIVE_EVIDENCE_ALLOWED_FLAGS = {
-    "context_live_diagnostic_review_pack": {
-        "live_llm_invoked",
-        "live_provider_invoked",
-    }
-}
-
 
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
@@ -200,6 +204,7 @@ def _structural_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         "context_live_diagnostic_dry_run_evaluator",
         "context_live_response_contract_dry_run",
         "context_live_diagnostic_review_pack",
+        "context_live_diagnostic_gate",
     }:
         return blockers
 
@@ -367,55 +372,7 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
             blockers.append("context_live_response_contract_dry_run.target_candidate_response_missing")
         if _int_value(summary.get("ambiguity_preserved_response_count")) < 1:
             blockers.append("context_live_response_contract_dry_run.ambiguity_response_missing")
-    if group_id == "context_live_diagnostic_review_pack":
-        summary = _object_dict(payload.get("summary"))
-        status = _status(payload)
-        if payload.get("diagnostic_only") is not True:
-            blockers.append("context_live_diagnostic_review_pack.diagnostic_only_not_true")
-        if payload.get("aggregate_only") is not True:
-            blockers.append("context_live_diagnostic_review_pack.aggregate_only_not_true")
-        if payload.get("human_review_required") is not True:
-            blockers.append("context_live_diagnostic_review_pack.human_review_required_missing")
-        if payload.get("fixed_case_matrix_used") is not True:
-            blockers.append("context_live_diagnostic_review_pack.fixed_case_matrix_not_used")
-        if _int_value(summary.get("fixed_case_count")) != len(CONTEXT_LIVE_REQUIRED_CASE_IDS):
-            blockers.append("context_live_diagnostic_review_pack.fixed_case_count_mismatch")
-        if _int_value(summary.get("dry_run_validated_response_count")) != len(
-            CONTEXT_LIVE_REQUIRED_CASE_IDS
-        ):
-            blockers.append(
-                "context_live_diagnostic_review_pack.dry_run_validated_response_count_mismatch"
-            )
-        if _int_value(summary.get("dry_run_blocked_response_count")) != 0:
-            blockers.append("context_live_diagnostic_review_pack.dry_run_blocked_response_count_nonzero")
-        if status == "context_live_diagnostic_review_ready_with_live_canary":
-            if payload.get("live_llm_invoked") is not True:
-                blockers.append("context_live_diagnostic_review_pack.live_llm_invoked_not_true")
-            if payload.get("live_provider_invoked") is not True:
-                blockers.append("context_live_diagnostic_review_pack.live_provider_invoked_not_true")
-            if payload.get("live_canary_status") != "live_diagnostic_pass":
-                blockers.append("context_live_diagnostic_review_pack.live_canary_status_not_pass")
-            if _int_value(summary.get("live_provider_output_count")) != len(
-                CONTEXT_LIVE_REQUIRED_CASE_IDS
-            ):
-                blockers.append(
-                    "context_live_diagnostic_review_pack.live_provider_output_count_mismatch"
-                )
-            if _int_value(summary.get("live_blocked_response_count")) != 0:
-                blockers.append("context_live_diagnostic_review_pack.live_blocked_response_count_nonzero")
-            if _int_value(summary.get("live_target_candidate_response_count")) < 1:
-                blockers.append(
-                    "context_live_diagnostic_review_pack.live_target_candidate_response_missing"
-                )
-            if _int_value(summary.get("live_ambiguity_preserved_response_count")) < 1:
-                blockers.append(
-                    "context_live_diagnostic_review_pack.live_ambiguity_response_missing"
-                )
-        else:
-            if payload.get("live_llm_invoked") is not False:
-                blockers.append("context_live_diagnostic_review_pack.unexpected_live_llm_invoked")
-            if payload.get("live_provider_invoked") is not False:
-                blockers.append("context_live_diagnostic_review_pack.unexpected_live_provider_invoked")
+    blockers.extend(context_live_optional_group_blockers(group_id, payload))
     return blockers
 
 
@@ -451,17 +408,13 @@ def build_pl_ce_activation_review_manifest_artifact(
         blockers.extend(_group_specific_blockers(group_id, payload))
     status = "pl_ce_activation_review_manifest_ready" if not blockers else "blocked"
     context_live_review_pack = optional_inputs.get("context_live_diagnostic_review_pack", {})
-    context_live_review_status = _status(context_live_review_pack)
-    context_live_review_live_invoked = context_live_review_pack.get("live_llm_invoked") is True
-    if context_live_review_status == "context_live_diagnostic_review_ready_with_live_canary":
-        context_live_review_checkpoint = "live_canary_passed"
-        context_live_provider_status = "context_only_live_diagnostic_passed_not_full_e2e"
-    elif context_live_review_status == "context_live_diagnostic_review_ready_without_live_canary":
-        context_live_review_checkpoint = "ready_without_live_canary"
-        context_live_provider_status = "context_live_review_ready_without_live_canary"
-    else:
-        context_live_review_checkpoint = "not_provided"
-        context_live_provider_status = "not_provided"
+    context_live_gate = optional_inputs.get("context_live_diagnostic_gate", {})
+    context_live_review_checkpoint, context_live_provider_status, context_live_review_live_invoked = (
+        context_live_review_state(context_live_review_pack)
+    )
+    context_live_gate_checkpoint, context_live_gate_stop_status, context_live_gate_live_invoked = (
+        context_live_gate_state(context_live_gate)
+    )
     return _json_safe(
         {
             "artifact_schema_version": "1.0",
@@ -504,11 +457,13 @@ def build_pl_ce_activation_review_manifest_artifact(
                     else "blocked_or_missing"
                 ),
                 "context_live_diagnostic_review_pack": context_live_review_checkpoint,
+                "context_live_diagnostic_gate": context_live_gate_checkpoint,
             },
             "remaining_stop_gates": {
                 "fooddb_artifact_status": "blocked_waiting_for_fdb_artifact",
                 "live_provider_status": "blocked_pending_human_approval",
                 "context_live_provider_status": context_live_provider_status,
+                "context_live_gate_status": context_live_gate_stop_status,
                 "context_live_dry_run_status": (
                     "passed_fixture_dry_run_only"
                     if inputs["context_live_diagnostic_dry_run_evaluator"].get("status")
@@ -540,6 +495,8 @@ def build_pl_ce_activation_review_manifest_artifact(
             "live_diagnostic_human_approval_required": True,
             "live_diagnostic_evidence_present": bool(context_live_review_pack),
             "upstream_live_llm_invoked": context_live_review_live_invoked,
+            "context_live_gate_evidence_present": bool(context_live_gate),
+            "upstream_context_live_gate_llm_invoked": context_live_gate_live_invoked,
             "ready_for_live_diagnostic_decision": False,
             "ready_for_fdb_integration": False,
             "shared_contract_changed": False,

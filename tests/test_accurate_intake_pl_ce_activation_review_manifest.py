@@ -355,6 +355,59 @@ def _context_live_review_pack(*, live: bool = True) -> dict[str, object]:
     }
 
 
+def _context_live_gate(*, live: bool = True) -> dict[str, object]:
+    return {
+        "artifact_schema_version": "1.0",
+        "artifact_type": "accurate_intake_context_live_diagnostic_gate",
+        "status": (
+            "context_live_diagnostic_gate_ready_with_live_canary"
+            if live
+            else "context_live_diagnostic_gate_ready_without_live_canary"
+        ),
+        "claim_scope": "pl_ce_context_live_diagnostic_gate",
+        "blockers": [],
+        "review_pack_status": (
+            "context_live_diagnostic_review_ready_with_live_canary"
+            if live
+            else "context_live_diagnostic_review_ready_without_live_canary"
+        ),
+        "canary_status": "live_diagnostic_pass" if live else "not_invoked",
+        "live_llm_invoked": live,
+        "live_provider_invoked": live,
+        "live_provider_allowed": live,
+        "live_provider_required": live,
+        "full_matrix_live_probe_required": True,
+        "ad_hoc_live_case_selection_allowed": False,
+        "fixed_case_matrix_used": True,
+        "anti_overfit_guard_required": True,
+        "response_contract_dry_run_required": True,
+        "diagnostic_only": True,
+        "local_only": True,
+        "fooddb_used": False,
+        "web_tavily_used": False,
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "manager_context_packet_schema_changed": False,
+        "product_readiness_claimed": False,
+        "private_self_use_approved": False,
+        "readiness_claimed": False,
+        "artifact_paths": {
+            "context_live_diagnostic_case_matrix": "artifacts/case_matrix.json",
+            "context_live_diagnostic_anti_overfit_guard": "artifacts/anti_overfit.json",
+            "context_live_provider_input_preflight": "artifacts/preflight.json",
+            "context_live_response_contract_dry_run": "artifacts/dry_run.json",
+            "context_live_diagnostic_canary": "artifacts/canary.json",
+            "context_live_diagnostic_review_pack": "artifacts/review_pack.json",
+        },
+        "summary": {
+            "fixed_case_count": len(REQUIRED_CASE_IDS),
+            "dry_run_validated_response_count": len(REQUIRED_CASE_IDS),
+            "live_provider_output_count": len(REQUIRED_CASE_IDS) if live else 0,
+            "live_blocked_response_count": 0,
+        },
+    }
+
+
 def test_activation_review_manifest_summarizes_human_review_ready_evidence_only() -> None:
     artifact = build_pl_ce_activation_review_manifest_artifact(_valid_inputs())
 
@@ -414,6 +467,91 @@ def test_activation_review_manifest_accepts_optional_context_live_review_pack_wi
     assert artifact["product_readiness_claimed"] is False
     assert artifact["private_self_use_approved"] is False
     assert artifact["blockers"] == []
+
+
+def test_activation_review_manifest_accepts_optional_context_live_gate_without_readiness_claim() -> None:
+    inputs = _valid_inputs()
+    inputs["context_live_diagnostic_gate"] = _context_live_gate(live=True)
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["review_checkpoints"]["context_live_diagnostic_gate"] == "gate_live_canary_passed"
+    assert (
+        artifact["remaining_stop_gates"]["context_live_gate_status"]
+        == "context_only_live_diagnostic_gate_passed_not_full_e2e"
+    )
+    assert artifact["context_live_gate_evidence_present"] is True
+    assert artifact["upstream_context_live_gate_llm_invoked"] is True
+    assert artifact["live_llm_invoked"] is False
+    assert artifact["live_provider_called"] is False
+    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert artifact["ready_for_fdb_integration"] is False
+    assert artifact["fooddb_evidence_used"] is False
+    assert artifact["product_readiness_claimed"] is False
+    assert artifact["private_self_use_approved"] is False
+    assert artifact["blockers"] == []
+
+
+def test_activation_review_manifest_accepts_optional_context_live_gate_without_live_canary() -> None:
+    inputs = _valid_inputs()
+    inputs["context_live_diagnostic_gate"] = _context_live_gate(live=False)
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["review_checkpoints"]["context_live_diagnostic_gate"] == "gate_ready_without_live_canary"
+    assert (
+        artifact["remaining_stop_gates"]["context_live_gate_status"]
+        == "context_live_gate_ready_without_live_canary"
+    )
+    assert artifact["context_live_gate_evidence_present"] is True
+    assert artifact["upstream_context_live_gate_llm_invoked"] is False
+    assert artifact["live_llm_invoked"] is False
+    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert artifact["blockers"] == []
+
+
+def test_activation_review_manifest_blocks_context_live_gate_overclaim_or_ad_hoc_probe() -> None:
+    inputs = _valid_inputs()
+    gate = _context_live_gate(live=True)
+    gate["fooddb_used"] = True
+    gate["ad_hoc_live_case_selection_allowed"] = True
+    gate["fixed_case_matrix_used"] = False
+    gate["summary"]["live_blocked_response_count"] = 1  # type: ignore[index]
+    inputs["context_live_diagnostic_gate"] = gate
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "context_live_diagnostic_gate.fooddb_used" in artifact["blockers"]
+    assert "context_live_diagnostic_gate.ad_hoc_live_case_selection_allowed" in artifact["blockers"]
+    assert "context_live_diagnostic_gate.fixed_case_matrix_not_used" in artifact["blockers"]
+    assert "context_live_diagnostic_gate.live_blocked_response_count_nonzero" in artifact["blockers"]
+    assert artifact["ready_for_live_diagnostic_decision"] is False
+
+
+def test_activation_review_manifest_blocks_context_live_gate_missing_child_evidence_paths() -> None:
+    inputs = _valid_inputs()
+    gate = _context_live_gate(live=True)
+    gate["artifact_paths"] = {
+        "context_live_diagnostic_case_matrix": "artifacts/case_matrix.json",
+        "context_live_diagnostic_canary": "artifacts/canary.json",
+    }
+    inputs["context_live_diagnostic_gate"] = gate
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert (
+        "context_live_diagnostic_gate.artifact_paths."
+        "context_live_diagnostic_anti_overfit_guard_missing"
+    ) in artifact["blockers"]
+    assert (
+        "context_live_diagnostic_gate.artifact_paths."
+        "context_live_response_contract_dry_run_missing"
+    ) in artifact["blockers"]
+    assert artifact["ready_for_live_diagnostic_decision"] is False
 
 
 def test_activation_review_manifest_blocks_context_live_review_pack_readiness_or_fooddb_overclaim() -> None:
@@ -812,6 +950,33 @@ def test_activation_review_manifest_cli_accepts_optional_context_live_review_pac
     assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
     assert artifact["review_checkpoints"]["context_live_diagnostic_review_pack"] == "live_canary_passed"
     assert artifact["upstream_live_llm_invoked"] is True
+
+
+def test_activation_review_manifest_cli_accepts_optional_context_live_gate(
+    tmp_path: Path,
+) -> None:
+    from scripts.build_accurate_intake_pl_ce_activation_review_manifest import main
+
+    output_path = tmp_path / "activation-review-manifest.json"
+    args = ["--output", str(output_path)]
+    for group_id, payload in _valid_inputs().items():
+        artifact_path = tmp_path / f"{group_id}.json"
+        artifact_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        args.extend(["--artifact", f"{group_id}={artifact_path}"])
+    gate_path = tmp_path / "context_live_diagnostic_gate.json"
+    gate_path.write_text(
+        json.dumps(_context_live_gate(live=True), ensure_ascii=False),
+        encoding="utf-8",
+    )
+    args.extend(["--artifact", f"context_live_diagnostic_gate={gate_path}"])
+
+    exit_code = main(args)
+    artifact = json.loads(output_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["review_checkpoints"]["context_live_diagnostic_gate"] == "gate_live_canary_passed"
+    assert artifact["upstream_context_live_gate_llm_invoked"] is True
 
 
 def test_activation_review_manifest_cli_rejects_unknown_artifact_group(
