@@ -1046,6 +1046,7 @@ def test_ci_builds_activation_review_manifest() -> None:
     assert "test_accurate_intake_pl_ce_activation_review_manifest.py" in workflow
     assert "build_accurate_intake_context_live_diagnostic_dry_run_evaluator.py" in workflow
     assert "build_accurate_intake_context_live_response_contract_dry_run.py" in workflow
+    assert "run_accurate_intake_context_live_diagnostic_gate.py" in workflow
     assert "build_accurate_intake_pl_ce_activation_review_manifest.py" in workflow
     assert "pl_ce_ui_context_alignment_pack=artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json" in workflow
     assert (
@@ -1056,4 +1057,9 @@ def test_ci_builds_activation_review_manifest() -> None:
         "context_live_response_contract_dry_run="
         "artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json"
     ) in workflow
+    assert (
+        "context_live_diagnostic_gate="
+        "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json"
+    ) in workflow
+    assert "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json" in workflow
     assert "accurate_intake_pl_ce_activation_review_manifest_ci.json" in workflow

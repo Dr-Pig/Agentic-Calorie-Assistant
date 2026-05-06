@@ -53,17 +53,25 @@ COMMAND_SNIPPETS = (
         "artifacts/accurate_intake_context_live_provider_input_preflight_ci.json --output "
         "artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json",
     ),
+    (
+        "context_live_diagnostic_gate",
+        "run_accurate_intake_context_live_diagnostic_gate.py --artifact-dir artifacts --output "
+        "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json",
+    ),
 )
 
 UPLOAD_ARTIFACTS = (
     "artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json",
     "artifacts/accurate_intake_context_live_provider_input_preflight_ci.json",
     "artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json",
+    "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json",
 )
 
 ACTIVATION_MANIFEST_INPUTS = (
     "--artifact context_live_diagnostic_dry_run_evaluator="
     "artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json",
+    "--artifact context_live_diagnostic_gate="
+    "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json",
 )
 
 
@@ -124,7 +132,8 @@ def build_report(workflow_text: str, *, event_path: Path | None = None) -> dict[
 
     for manifest_input in ACTIVATION_MANIFEST_INPUTS:
         if manifest_input not in job:
-            blockers.append("missing_activation_manifest_input.context_live_diagnostic_dry_run_evaluator")
+            artifact_id = manifest_input.split("=", 1)[0].removeprefix("--artifact ")
+            blockers.append(f"missing_activation_manifest_input.{artifact_id}")
 
     return {
         "status": "pass" if not blockers else "fail",
