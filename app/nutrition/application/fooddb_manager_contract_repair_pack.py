@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from typing import Any
 
@@ -61,11 +62,11 @@ def build_fooddb_manager_contract_repair_pack(
             continue
         case_id = str(case.get("case_id") or "").strip()
         provider_trace = case.get("provider_trace")
-        trace = provider_trace.get("trace") if isinstance(provider_trace, dict) else None
+        trace = _provider_trace_payload(provider_trace)
         trace_status = "trace_present" if isinstance(trace, dict) else "missing_provider_trace"
         trace_status_counts[trace_status] = trace_status_counts.get(trace_status, 0) + 1
 
-        parsed_object = trace.get("parsed_object") if isinstance(trace, dict) and isinstance(trace.get("parsed_object"), dict) else {}
+        parsed_object = _parsed_object_dict(trace)
         present_fields = _sanitize_present_fields(parsed_object.keys())
         for field in present_fields:
             present_field_counts[field] = present_field_counts.get(field, 0) + 1
@@ -149,6 +150,33 @@ def _detect_alias_hints(*, missing_fields: list[str], present_fields: list[str])
                     }
                 )
     return hints
+
+
+def _provider_trace_payload(provider_trace: Any) -> dict[str, Any] | None:
+    if not isinstance(provider_trace, dict):
+        return None
+    if not provider_trace:
+        return None
+    nested = provider_trace.get("trace")
+    if isinstance(nested, dict):
+        return nested
+    return provider_trace
+
+
+def _parsed_object_dict(trace: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(trace, dict):
+        return {}
+    parsed_object = trace.get("parsed_object")
+    if isinstance(parsed_object, dict):
+        return parsed_object
+    if isinstance(parsed_object, str):
+        try:
+            decoded = json.loads(parsed_object)
+        except json.JSONDecodeError:
+            return {}
+        if isinstance(decoded, dict):
+            return decoded
+    return {}
 
 
 def _sanitize_present_fields(fields: Any) -> list[str]:

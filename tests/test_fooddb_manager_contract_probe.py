@@ -172,6 +172,99 @@ def test_fooddb_manager_contract_probe_parses_missing_fields_from_parse_attempt_
     }
 
 
+def test_fooddb_manager_contract_probe_accepts_flat_live_provider_trace_shape() -> None:
+    artifact = {
+        "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
+        "status": "diagnostic_fail",
+        "live_provider_used": True,
+        "cases": [
+            {
+                "case_id": "chicken_bento_less_rice",
+                "status": "fail",
+                "failure_families": [
+                    "manager_contract_required_fields_missing",
+                    "manager_contract_schema_validation_failed",
+                    "fooddb_packet_not_used",
+                    "manager_did_not_finalize_after_packet",
+                ],
+                "provider_trace": {
+                    "failure_family": "provider_response_error",
+                    "decision_transport_mode": None,
+                    "decision_transport_schema_name": None,
+                    "decision_transport_schema_version": None,
+                    "decision_transport_contract_breach": False,
+                    "decision_transport_accepted": False,
+                    "failing_component": None,
+                    "effective_response_format_type": "json_schema",
+                    "observed_type": None,
+                    "fallback_reason": None,
+                    "parse_attempts": [
+                        {
+                            "error": "manager payload missing required fields for intake_manager_round: ['intent', 'workflow_effect']"
+                        }
+                    ],
+                    "parsed_object": {
+                        "intent_type": "log_meal",
+                        "target_attachment": {},
+                    },
+                },
+            }
+        ],
+    }
+
+    probe = build_fooddb_manager_contract_probe(diagnostic_artifact=artifact)
+
+    assert probe["contract_failure_detected"] is True
+    assert probe["summary"]["aggregate_missing_required_fields"] == {
+        "intent": 1,
+        "workflow_effect": 1,
+    }
+    assert probe["summary"]["decision_transport_accepted_count"] == 0
+    assert probe["cases"][0]["missing_required_fields"] == ["intent", "workflow_effect"]
+
+
+def test_fooddb_manager_contract_probe_treats_non_json_live_trace_as_contract_failure() -> None:
+    artifact = {
+        "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
+        "status": "diagnostic_fail",
+        "live_provider_used": True,
+        "cases": [
+            {
+                "case_id": "chicken_bento_less_rice",
+                "status": "fail",
+                "failure_families": [
+                    "manager_contract_required_fields_missing",
+                    "manager_contract_schema_validation_failed",
+                ],
+                "provider_trace": {
+                    "trace": {
+                        "failure_family": "non_json_model_output",
+                        "observed_type": "string",
+                        "repair_result": "failed",
+                        "parsed_object": "{\"intent_type\": \"log_meal\"}",
+                        "parse_attempts": [
+                            {
+                                "error_type": "BuilderSpaceParseError",
+                                "error": "BuilderSpace did not return JSON.",
+                            }
+                        ],
+                    }
+                },
+            }
+        ],
+    }
+
+    probe = build_fooddb_manager_contract_probe(diagnostic_artifact=artifact)
+
+    assert probe["contract_failure_detected"] is True
+    assert probe["next_recommended_slice"] == "tighten_fooddb_manager_contract_prompt_or_transport"
+    assert probe["summary"]["trace_failure_family_counts"] == {
+        "non_json_model_output": 1
+    }
+    assert probe["summary"]["observed_type_counts"] == {"string": 1}
+    assert probe["summary"]["repair_result_counts"] == {"failed": 1}
+
+
 def test_fooddb_manager_contract_probe_script_roundtrip(tmp_path: Path) -> None:
     from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
     from scripts.build_accurate_intake_fooddb_manager_contract_probe import main

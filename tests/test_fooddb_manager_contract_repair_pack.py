@@ -232,6 +232,92 @@ def test_fooddb_manager_contract_repair_pack_flags_missing_probe_match() -> None
     assert report["cases"][0]["missing_required_fields"] == []
 
 
+def test_fooddb_manager_contract_repair_pack_accepts_flat_live_provider_trace_shape() -> None:
+    diagnostic = {
+        "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
+        "cases": [
+            {
+                "case_id": "live-flat-trace",
+                "failure_families": ["manager_contract_required_fields_missing"],
+                "provider_trace": {
+                    "parsed_object": {
+                        "intent_type": "log_food_consumption",
+                        "evidence_source": "packet_only",
+                    }
+                },
+            }
+        ],
+    }
+    probe = {
+        "artifact_type": "accurate_intake_fooddb_manager_contract_probe",
+        "summary": {"aggregate_missing_required_fields": {"intent": 1, "evidence_posture": 1}},
+        "cases": [
+            {
+                "case_id": "live-flat-trace",
+                "missing_required_fields": ["intent", "evidence_posture"],
+                "failing_component": "builderspace_runtime_contract.validate_manager_payload",
+                "effective_response_format_type": "json_schema",
+                "decision_transport_mode": None,
+            }
+        ],
+    }
+
+    report = build_fooddb_manager_contract_repair_pack(
+        diagnostic_artifact=diagnostic,
+        contract_probe_artifact=probe,
+    )
+
+    assert report["next_recommended_slice"] == "tighten_fooddb_manager_contract_prompt_or_transport"
+    assert report["summary"]["trace_status_counts"] == {"trace_present": 1}
+    assert report["summary"]["alias_hint_counts"] == {
+        "evidence_posture": 1,
+        "intent": 1,
+    }
+    assert report["cases"][0]["present_top_level_fields"] == ["evidence_source", "intent_type"]
+
+
+def test_fooddb_manager_contract_repair_pack_extracts_fields_from_stringified_parsed_object() -> None:
+    diagnostic = {
+        "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
+        "cases": [
+            {
+                "case_id": "stringified-trace",
+                "failure_families": ["manager_contract_schema_validation_failed"],
+                "provider_trace": {
+                    "trace": {
+                        "parsed_object": "{\"intent_type\": \"log_food_consumption\", \"evidence_source\": \"packet_only\"}"
+                    }
+                },
+            }
+        ],
+    }
+    probe = {
+        "artifact_type": "accurate_intake_fooddb_manager_contract_probe",
+        "summary": {"aggregate_missing_required_fields": {"intent": 1, "evidence_posture": 1}},
+        "cases": [
+            {
+                "case_id": "stringified-trace",
+                "missing_required_fields": ["intent", "evidence_posture"],
+                "failing_component": "builderspace_adapter.extract_json_object",
+                "effective_response_format_type": "json_schema",
+                "decision_transport_mode": None,
+            }
+        ],
+    }
+
+    report = build_fooddb_manager_contract_repair_pack(
+        diagnostic_artifact=diagnostic,
+        contract_probe_artifact=probe,
+    )
+
+    assert report["next_recommended_slice"] == "tighten_fooddb_manager_contract_prompt_or_transport"
+    assert report["summary"]["present_field_counts"] == {
+        "evidence_source": 1,
+        "intent_type": 1,
+    }
+    assert report["cases"][0]["present_top_level_fields"] == ["evidence_source", "intent_type"]
+
+
 def test_fooddb_manager_contract_repair_pack_preserves_missing_trace_cases() -> None:
     diagnostic = {
         "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
