@@ -31,12 +31,21 @@ DEFAULT_EVIDENCE_PATHS = {
     / "artifacts"
     / "accurate_intake_local_operator_data_hygiene_bundle.json",
     "pl_ce_local_review_decision_pack": ROOT / "artifacts" / "accurate_intake_pl_ce_local_review_decision_pack.json",
+    "manager_intent_readiness_review_pack": ROOT
+    / "artifacts"
+    / "accurate_intake_manager_intent_readiness_review_pack.json",
     "context_live_diagnostic_case_matrix": ROOT
     / "artifacts"
     / "accurate_intake_context_live_diagnostic_case_matrix.json",
     "context_live_diagnostic_anti_overfit_guard": ROOT
     / "artifacts"
     / "accurate_intake_context_live_diagnostic_anti_overfit_guard.json",
+    "context_live_provider_input_preflight": ROOT
+    / "artifacts"
+    / "accurate_intake_context_live_provider_input_preflight.json",
+    "context_live_response_contract_dry_run": ROOT
+    / "artifacts"
+    / "accurate_intake_context_live_response_contract_dry_run.json",
 }
 DEFAULT_PRE_LIVE_EVIDENCE_OUTPUT = ROOT / "artifacts" / "accurate_intake_pre_live_evidence.json"
 DEFAULT_PRE_LIVE_OUTPUT = ROOT / "artifacts" / "accurate_intake_pre_live_self_use_decision_pack.json"
@@ -196,9 +205,18 @@ def _candidate_evidence(pre_live_evidence: dict[str, Any], pre_live_pack: dict[s
         "local_dogfood_data_hygiene": pre_live_evidence["local_dogfood_data_hygiene"],
         "pre_live_decision_pack": pre_live_pack,
         "pl_ce_local_review_decision_pack": pre_live_evidence["pl_ce_local_review_decision_pack"],
+        "manager_intent_readiness_review_pack": pre_live_evidence[
+            "manager_intent_readiness_review_pack"
+        ],
         "context_live_diagnostic_case_matrix": pre_live_evidence["context_live_diagnostic_case_matrix"],
         "context_live_diagnostic_anti_overfit_guard": pre_live_evidence[
             "context_live_diagnostic_anti_overfit_guard"
+        ],
+        "context_live_provider_input_preflight": pre_live_evidence[
+            "context_live_provider_input_preflight"
+        ],
+        "context_live_response_contract_dry_run": pre_live_evidence[
+            "context_live_response_contract_dry_run"
         ],
         "local_operator_data_hygiene_bundle": pre_live_evidence["local_operator_data_hygiene_bundle"],
         "local_web_candidate_gate_evidence": pre_live_evidence["_evidence_metadata"],

@@ -115,10 +115,15 @@ def build_local_dogfood_data_manifest(
         "artifact_type": "accurate_intake_local_dogfood_data_hygiene",
         "generated_at_utc": _generated_at(),
         "operation": operation_value,
+        "status": "pass" if not blockers else "blocked",
         "allowed": not blockers,
         "blockers": blockers,
         "reset_without_backup_allowed": classification["backup_required_before_reset"] is False,
         "backup_path": str(backup_path) if backup_path is not None else None,
+        "writes_performed": False,
+        "import_allowed": False,
+        "production_db_used": False,
+        "fooddb_truth_updated": False,
         **classification,
     }
 
