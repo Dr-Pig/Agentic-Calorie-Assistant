@@ -236,6 +236,9 @@ def _next_required_slices(
         return [str(upstream_gate["next_required_slice"] or "inspect_fooddb_status_packet")]
     if manager_contract_gate["blocked"]:
         return [str(manager_contract_gate["next_required_slice"] or "inspect_websearch_manager_contract_handoff")]
+    clear_next_required_slice = str(manager_contract_gate["next_required_slice"] or "").strip()
+    if clear_next_required_slice:
+        return [clear_next_required_slice]
     return ["grokfast_websearch_packet_live_diagnostic"]
 
 
