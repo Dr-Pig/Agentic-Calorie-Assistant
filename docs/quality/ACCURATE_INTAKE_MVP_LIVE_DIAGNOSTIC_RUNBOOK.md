@@ -259,6 +259,7 @@ The required evidence keys are:
 - `ui_context_alignment_pack`
 - `browser_activation_evidence_gate`
 - `manager_tool_surface_inventory`
+- `non_fooddb_manager_tool_contract`
 - `manager_tool_choice_regression_wall`
 - `context_conditioned_intent_wall`
 - `non_fooddb_read_only_tool_loop_fake_smoke`
@@ -278,7 +279,7 @@ The product-page evidence is required in addition to the older `browser_shell_sm
 Blocked optional browser evidence is allowed for local review artifacts, but it is not pass evidence for activation.
 
 Non-FoodDB Manager tool diagnostics remain app-state only and must not use FoodDB/WebSearch evidence.
-`manager_tool_surface_inventory`, `manager_tool_choice_regression_wall`, `context_conditioned_intent_wall`, `non_fooddb_read_only_tool_loop_fake_smoke`, and `non_fooddb_mutation_tool_guard_smoke` must prove the Manager can choose among budget/body/calibration/app-help tool postures without deterministic raw-text routing, FoodDB/WebSearch usage, runtime nutrition truth changes, or UI semantic ownership.
+`manager_tool_surface_inventory`, `non_fooddb_manager_tool_contract`, `manager_tool_choice_regression_wall`, `context_conditioned_intent_wall`, `non_fooddb_read_only_tool_loop_fake_smoke`, and `non_fooddb_mutation_tool_guard_smoke` must prove the Manager can choose among budget/body/calibration/app-help tool postures without deterministic raw-text routing, FoodDB/WebSearch usage, runtime nutrition truth changes, or UI semantic ownership.
 
 The `context_live_diagnostic_case_matrix` evidence must be generated before any Stage 4 or Stage 5 live diagnostic. It is a plan-only anti-overfit gate: live probes must select from the fixed matrix instead of ad hoc easy cases. The matrix must keep `plan_only=true`, `live_llm_invoked=false`, `live_provider_invoked=false`, `fooddb_used=false`, `mutation_changed=false`, and `manager_context_packet_schema_changed=false`.
 

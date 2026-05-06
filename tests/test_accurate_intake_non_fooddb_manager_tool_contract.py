@@ -16,6 +16,8 @@ def test_non_fooddb_manager_tool_contract_covers_read_only_proposal_and_guarded_
     assert artifact["artifact_type"] == "accurate_intake_non_fooddb_manager_tool_contract"
     assert artifact["status"] == "non_fooddb_manager_tool_contract_ready_for_human_review"
     assert artifact["claim_scope"] == "plce_non_fooddb_manager_tool_contract_pre_live_diagnostic_only"
+    assert isinstance(artifact["generated_at_utc"], str)
+    assert artifact["generated_at_utc"]
     assert artifact["summary"] == {
         "inventory_backed_tool_count": 10,
         "read_only_tool_count": 7,

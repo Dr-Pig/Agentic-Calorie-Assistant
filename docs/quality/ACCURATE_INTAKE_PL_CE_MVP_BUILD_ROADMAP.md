@@ -71,6 +71,7 @@ The top-level pre-live decision pack must directly consume the finished product-
 - `ui_context_alignment_pack`
 - `browser_activation_evidence_gate`
 - `manager_tool_surface_inventory`
+- `non_fooddb_manager_tool_contract`
 - `manager_tool_choice_regression_wall`
 - `context_conditioned_intent_wall`
 - `non_fooddb_read_only_tool_loop_fake_smoke`

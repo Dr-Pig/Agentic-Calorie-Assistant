@@ -58,6 +58,8 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "python scripts/build_accurate_intake_mvp_live_decision_pack.py",
         "python scripts/build_accurate_intake_pre_live_self_use_decision_pack.py",
         "python scripts/build_accurate_intake_mvp_private_self_use_candidate.py",
+        "`non_fooddb_manager_tool_contract`",
+        "Non-FoodDB Manager tool diagnostics remain app-state only and must not use FoodDB/WebSearch evidence.",
         "artifacts/accurate_intake_mvp_live_diagnostic_provider_health.json",
         "artifacts/accurate_intake_mvp_live_diagnostic_schema_probe.json",
         "artifacts/accurate_intake_mvp_live_diagnostic_fake_runtime_gate.json",

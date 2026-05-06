@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import UTC, datetime
 from typing import Any
 
 from app.composition.accurate_intake_manager_tool_surface_inventory import (
@@ -141,6 +142,7 @@ def build_non_fooddb_manager_tool_contract_artifact(*, inventory: dict[str, Any]
         "artifact_type": "accurate_intake_non_fooddb_manager_tool_contract",
         "status": "non_fooddb_manager_tool_contract_ready_for_human_review",
         "claim_scope": "plce_non_fooddb_manager_tool_contract_pre_live_diagnostic_only",
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "tool_contract_rows": contract_rows,
         "direct_lane_bridge": bridges,
         "summary": {
