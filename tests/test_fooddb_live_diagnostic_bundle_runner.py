@@ -30,6 +30,9 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
         tmp_path / "accurate_intake_fooddb_manager_contract_repair_pack.json"
     )
     handoff = read_json_artifact(tmp_path / "accurate_intake_fooddb_manager_contract_handoff.json")
+    handoff_inspection = read_json_artifact(
+        tmp_path / "accurate_intake_fooddb_manager_contract_handoff_inspection.json"
+    )
     post_contract_status = read_json_artifact(
         tmp_path / "accurate_intake_fooddb_evidence_status_post_contract.json"
     )
@@ -77,6 +80,10 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
     assert handoff["status"] == "insufficient_contract_handoff_evidence"
     assert handoff["handoff_ready"] is False
     assert handoff["selected_next_step"] == "inspect_fooddb_live_failure_taxonomy"
+    assert handoff_inspection["artifact_type"] == (
+        "accurate_intake_fooddb_manager_contract_handoff_inspection_v1"
+    )
+    assert handoff_inspection["summary"]["next_safe_slice"] == "inspect_fooddb_live_failure_taxonomy"
     assert (
         post_contract_status["summary"]["manager_contract_handoff_status"]
         == "insufficient_contract_handoff_evidence"
@@ -88,7 +95,7 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
     assert manifest["manager_contract_handoff_status"] == "insufficient_contract_handoff_evidence"
     assert manifest["manager_contract_handoff_ready"] is False
     assert manifest["manager_contract_selected_next_step"] == "inspect_fooddb_live_failure_taxonomy"
-    assert manifest["next_recommended_slice"] == "inspect_contract_handoff_status"
+    assert manifest["next_recommended_slice"] == "inspect_fooddb_live_failure_taxonomy"
 
 
 def test_fooddb_live_diagnostic_bundle_live_mode_requires_explicit_allow_live(
@@ -155,6 +162,9 @@ def test_fooddb_live_diagnostic_bundle_manifest_uses_post_contract_status_packet
                 "handoff_ready": True,
                 "selected_next_step": "raw_handoff_value",
             },
+            "manager_contract_handoff_inspection": {
+                "summary": {"next_safe_slice": "repair_artifact_alignment_required"},
+            },
             "fooddb_status_packet_inspection": {
                 "summary": {"next_safe_slice": "inspect_contract_handoff_status"},
             },
@@ -173,7 +183,7 @@ def test_fooddb_live_diagnostic_bundle_manifest_uses_post_contract_status_packet
     assert manifest["manager_contract_handoff_status"] == "blocked_contract_handoff_alignment"
     assert manifest["manager_contract_handoff_ready"] is False
     assert manifest["manager_contract_selected_next_step"] == "inspect_contract_handoff_status"
-    assert manifest["next_recommended_slice"] == "inspect_contract_handoff_status"
+    assert manifest["next_recommended_slice"] == "repair_artifact_alignment_required"
 
 
 def test_fooddb_live_diagnostic_bundle_records_required_artifact_refs(
@@ -198,6 +208,7 @@ def test_fooddb_live_diagnostic_bundle_records_required_artifact_refs(
         "manager_contract_probe",
         "manager_contract_repair_pack",
         "manager_contract_handoff",
+        "manager_contract_handoff_inspection",
         "fooddb_status_packet_inspection",
         "fooddb_status_packet_post_contract",
     }
