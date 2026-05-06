@@ -109,6 +109,34 @@ def test_fooddb_live_diagnostic_report_distinguishes_packet_boundary_failures() 
     assert report["next_recommended_slice"] == "narrow_fooddb_packet_boundary_or_prompt_probe"
 
 
+def test_fooddb_live_diagnostic_report_treats_modifier_adjustment_misuse_as_packet_boundary_failure() -> None:
+    diagnostic = {
+        "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
+        "status": "diagnostic_fail",
+        "live_provider_used": True,
+        "summary": {
+            "case_count": 5,
+            "pass_count": 4,
+            "fail_count": 1,
+            "failure_families": ["modifier_adjusted_kcal_without_packet_adjustment"],
+        },
+        "cases": [
+            {
+                "case_id": "chicken_bento_less_rice",
+                "status": "fail",
+                "failure_families": ["modifier_adjusted_kcal_without_packet_adjustment"],
+                "provider_trace": {},
+            }
+        ],
+    }
+
+    report = build_fooddb_live_diagnostic_report(diagnostic_artifact=diagnostic)
+
+    assert report["seam_status"] == "packet_boundary_blocked"
+    assert report["packet_boundary_blocked"] is True
+    assert report["next_recommended_slice"] == "narrow_fooddb_packet_boundary_or_prompt_probe"
+
+
 def test_fooddb_live_diagnostic_report_advances_to_websearch_only_after_live_pass() -> None:
     diagnostic = {
         "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",

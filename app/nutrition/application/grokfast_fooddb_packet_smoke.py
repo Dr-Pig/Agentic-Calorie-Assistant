@@ -376,7 +376,7 @@ def build_live_manager_payload(*, packet_case: dict[str, Any]) -> dict[str, Any]
             "If evidence_items is empty for a bare basket, ask follow-up and do not mutate.",
             "If evidence_items exist, synthesize item_results from those packet items with uncertainty.",
             "Do not include tool_calls in this pass-2 response; the FoodDB evidence packet has already been provided.",
-            "If a packet modifier_compatibility value is unsupported, do not adjust kcal_point or kcal_range for that modifier; keep the packet range and use followup_hints.",
+            "If a packet modifier_compatibility value is unsupported, do not adjust kcal_point or kcal_range for that modifier; keep the packet range and use followup_hints. Do not adjust kcal_point or kcal_range from modifier_compatibility alone. Only use adjusted_kcal_point, adjusted_kcal_range, modifier_adjusted_kcal_point, or modifier_adjusted_kcal_range when those adjusted values are explicitly present in the packet evidence item.",
             "This diagnostic writes no ledger and grants no product readiness.",
         ],
         "expected_output_contract": {
@@ -389,7 +389,7 @@ def build_live_manager_payload(*, packet_case: dict[str, Any]) -> dict[str, Any]
             ],
             "forbidden_top_level_fields": ["tool_calls"],
             "runtime_mutation_allowed": False,
-            "runtime_truth_changed": False,
+            "runtime_truth_changed": False, "packet_authorized_modifier_adjustment_only": True,
             "allowed_evidence_refs": sorted(
                 _allowed_refs_for_packet_case(
                     packet_case=packet_case,

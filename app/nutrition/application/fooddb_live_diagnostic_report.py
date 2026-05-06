@@ -31,6 +31,8 @@ _PACKET_BOUNDARY_FAILURES = frozenset(
         "bare_basket_missing_followup",
         "bare_basket_mutation_intent",
         "generic_meal_overclaimed_exact",
+        "modifier_adjusted_kcal_without_packet_adjustment",
+        "unsupported_modifier_adjusted_kcal_range",
     }
 )
 
