@@ -29,6 +29,8 @@ def build_fooddb_live_bundle_artifact_paths(output_dir: Path) -> dict[str, Path]
         / "accurate_intake_fooddb_manager_contract_handoff.json",
         "manager_contract_handoff_inspection": output_dir
         / "accurate_intake_fooddb_manager_contract_handoff_inspection.json",
+        "fooddb_live_failure_taxonomy_inspection": output_dir
+        / "accurate_intake_fooddb_live_failure_taxonomy_inspection.json",
         "fooddb_status_packet_inspection": output_dir
         / "accurate_intake_fooddb_status_packet_inspection.json",
         "fooddb_status_packet_post_contract": output_dir
