@@ -289,6 +289,52 @@ def test_pre_queue_readiness_fails_missing_product_pages_self_use_flow_gate(
     )
 
 
+def test_pre_queue_readiness_fails_missing_long_session_navigation_smoke(
+    tmp_path: Path,
+) -> None:
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    workflow = workflow.replace(
+        "          python scripts/run_accurate_intake_product_pages_long_session_navigation_smoke.py "
+        "--require-browser-execution --output "
+        "artifacts/accurate_intake_product_pages_long_session_navigation_smoke_ci.json "
+        "--timeout-ms 25000\n",
+        "",
+        1,
+    ).replace(
+        "            --artifact product_pages_long_session_navigation_smoke="
+        "artifacts/accurate_intake_product_pages_long_session_navigation_smoke_ci.json \\\n",
+        "",
+        1,
+    ).replace(
+        "            artifacts/accurate_intake_product_pages_long_session_navigation_smoke_ci.json\n",
+        "",
+        1,
+    )
+    workflow_path = tmp_path / "ci.yml"
+    workflow_path.write_text(workflow, encoding="utf-8")
+
+    assert (
+        check_pre_queue_readiness.main(
+            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
+        )
+        == 1
+    )
+
+    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
+    assert (
+        "missing_product_pages_command.product_pages_long_session_navigation_smoke"
+        in report["blockers"]
+    )
+    assert (
+        "missing_product_pages_upload_artifact.product_pages_long_session_navigation_smoke"
+        in report["blockers"]
+    )
+    assert (
+        "missing_current_metadata_input.product_pages_long_session_navigation_smoke"
+        in report["blockers"]
+    )
+
+
 def test_pre_queue_readiness_fails_missing_current_metadata_freshness_pack(
     tmp_path: Path,
 ) -> None:
