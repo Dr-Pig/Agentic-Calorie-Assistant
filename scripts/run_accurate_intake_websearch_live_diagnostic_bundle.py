@@ -14,6 +14,15 @@ if str(ROOT) not in sys.path:
 from app.nutrition.application.exact_card_candidate_promotion_readiness import (  # noqa: E402
     build_exact_card_candidate_promotion_readiness,
 )
+from app.nutrition.application.exact_evidence_lane_status_packet import (  # noqa: E402
+    build_exact_evidence_lane_status_packet,
+)
+from app.nutrition.application.websearch_candidate_lane_status_packet import (  # noqa: E402
+    build_websearch_candidate_lane_status_packet,
+)
+from app.nutrition.application.websearch_evidence_status_packet import (  # noqa: E402
+    build_websearch_evidence_status_packet,
+)
 from app.nutrition.application.exact_evidence_lane_policy import (  # noqa: E402
     build_exact_evidence_lane_policy_artifact,
 )
@@ -70,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--mode", choices=("fixture", "live"), default="fixture")
     parser.add_argument("--allow-live", action="store_true")
+    parser.add_argument("--fooddb-status-packet-artifact", default=None)
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     args = parser.parse_args(argv)
 
@@ -92,6 +102,8 @@ def main(argv: list[str] | None = None) -> int:
         diagnostic=diagnostic,
         report=report,
         preflight=artifacts["preflight"],
+        chain_status=artifacts["chain_status"],
+        fooddb_status_packet=_read_optional_artifact(args.fooddb_status_packet_artifact),
     )
     manifest = _build_manifest(
         mode=args.mode,
@@ -197,6 +209,8 @@ def _build_post_diagnostic_artifacts(
     diagnostic: dict[str, Any],
     report: dict[str, Any],
     preflight: dict[str, Any],
+    chain_status: dict[str, Any],
+    fooddb_status_packet: dict[str, Any] | None,
 ) -> dict[str, dict[str, Any]]:
     probe = build_websearch_manager_contract_probe(diagnostic_artifact=diagnostic)
     repair_pack = build_websearch_manager_contract_repair_pack(
@@ -208,10 +222,28 @@ def _build_post_diagnostic_artifacts(
         repair_pack_artifact=repair_pack,
         preflight_artifact=preflight,
     )
+    candidate_lane_status = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet=fooddb_status_packet,
+        manager_contract_handoff_artifact=handoff,
+        live_diagnostic_report=report,
+        contract_probe_artifact=probe,
+        repair_pack_artifact=repair_pack,
+        preflight_artifact=preflight,
+    )
+    exact_lane_status = build_exact_evidence_lane_status_packet(
+        websearch_status_packet=candidate_lane_status,
+        exact_candidate_chain_status_packet=chain_status,
+    )
+    websearch_status_packet = build_websearch_evidence_status_packet(
+        candidate_lane_status_packet=candidate_lane_status,
+        exact_lane_status_packet=exact_lane_status,
+        manager_contract_handoff_artifact=handoff,
+    )
     artifacts = {
         "manager_contract_probe": probe,
         "manager_contract_repair_pack": repair_pack,
         "manager_contract_handoff": handoff,
+        "websearch_evidence_status_packet": websearch_status_packet,
     }
     for key, artifact in artifacts.items():
         write_json_artifact(paths[key], artifact)
@@ -229,6 +261,7 @@ def _build_manifest(
     contract_artifacts: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     handoff = contract_artifacts["manager_contract_handoff"]
+    evidence_status_packet = contract_artifacts["websearch_evidence_status_packet"]
     return {
         "artifact_type": "accurate_intake_websearch_live_diagnostic_bundle_manifest",
         "artifact_schema_version": "1.0",
@@ -248,7 +281,7 @@ def _build_manifest(
         "self_use_approved": False,
         "production_selected": False,
         "seam_status": report["seam_status"],
-        "next_recommended_slice": report["next_recommended_slice"],
+        "next_recommended_slice": _status_packet_next_slice(evidence_status_packet),
         "manager_contract_handoff_status": handoff.get("status"),
         "manager_contract_handoff_ready": handoff.get("handoff_ready") is True,
         "manager_contract_selected_next_step": handoff.get("selected_next_step"),
@@ -261,6 +294,20 @@ def _build_manifest(
             "not_product_readiness",
         ],
     }
+
+
+def _read_optional_artifact(path_value: str | None) -> dict[str, Any] | None:
+    if not path_value:
+        return None
+    path = Path(path_value)
+    if not path.exists():
+        raise FileNotFoundError(path)
+    return read_json_artifact(path)
+
+
+def _status_packet_next_slice(evidence_status_packet: dict[str, Any]) -> str:
+    next_required_slices = list(evidence_status_packet.get("next_required_slices") or [])
+    return str(next_required_slices[0] or "").strip() if next_required_slices else "inspect_websearch_status_packet"
 
 
 if __name__ == "__main__":

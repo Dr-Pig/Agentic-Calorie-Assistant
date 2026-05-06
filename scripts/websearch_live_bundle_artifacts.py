@@ -21,6 +21,7 @@ def build_websearch_live_bundle_artifact_paths(output_dir: Path) -> dict[str, Pa
         "manager_contract_probe": output_dir / "websearch_contract_probe.json",
         "manager_contract_repair_pack": output_dir / "websearch_contract_repair.json",
         "manager_contract_handoff": output_dir / "websearch_contract_handoff.json",
+        "websearch_evidence_status_packet": output_dir / "websearch_evidence_status_packet.json",
         "manifest": output_dir / "websearch_live_manifest.json",
     }
 
