@@ -21,6 +21,9 @@ DEFAULT_EVIDENCE_PATHS = {
     "ui_same_truth_contract": ROOT / "artifacts" / "accurate_intake_ui_same_truth_render_contract.json",
     "context_quality_pack": ROOT / "artifacts" / "accurate_intake_context_quality_pack.json",
     "product_pages_visual_qa": ROOT / "artifacts" / "accurate_intake_product_pages_visual_qa.json",
+    "product_pages_long_session_navigation_smoke": ROOT
+    / "artifacts"
+    / "accurate_intake_product_pages_long_session_navigation_smoke.json",
     "pl_ce_local_mvp_candidate_bundle": ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_local_mvp_candidate_bundle.json",

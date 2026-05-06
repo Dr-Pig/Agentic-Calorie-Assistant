@@ -23,6 +23,11 @@ PRODUCT_PAGES_JOB = "product-pages-browser-e2e"
 
 COMMAND_SNIPPETS = (
     (
+        "product_pages_long_session_navigation_smoke",
+        "run_accurate_intake_product_pages_long_session_navigation_smoke.py --require-browser-execution "
+        "--output artifacts/accurate_intake_product_pages_long_session_navigation_smoke_ci.json",
+    ),
+    (
         "context_live_diagnostic_case_matrix",
         "build_accurate_intake_context_live_diagnostic_case_matrix.py --output "
         "artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json",
@@ -77,6 +82,7 @@ UPLOAD_ARTIFACTS = (
     "artifacts/accurate_intake_context_live_provider_input_preflight_ci.json",
     "artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json",
     "artifacts/accurate_intake_pl_ce_product_pages_self_use_flow_gate_ci.json",
+    "artifacts/accurate_intake_product_pages_long_session_navigation_smoke_ci.json",
     "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json",
     "artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json",
     "artifacts/accurate_intake_pl_ce_serial_handoff_ci.json",
@@ -94,6 +100,14 @@ SERIAL_HANDOFF_INPUTS = (
         "current_metadata_freshness_pack",
         "--current-metadata-freshness-pack "
         "artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json",
+    ),
+)
+
+CURRENT_METADATA_INPUTS = (
+    (
+        "product_pages_long_session_navigation_smoke",
+        "--artifact product_pages_long_session_navigation_smoke="
+        "artifacts/accurate_intake_product_pages_long_session_navigation_smoke_ci.json",
     ),
 )
 
@@ -160,6 +174,9 @@ def build_report(workflow_text: str, *, event_path: Path | None = None) -> dict[
     for artifact_id, serial_input in SERIAL_HANDOFF_INPUTS:
         if serial_input not in job:
             blockers.append(f"missing_serial_handoff_input.{artifact_id}")
+    for artifact_id, metadata_input in CURRENT_METADATA_INPUTS:
+        if metadata_input not in job:
+            blockers.append(f"missing_current_metadata_input.{artifact_id}")
 
     return {
         "status": "pass" if not blockers else "fail",
