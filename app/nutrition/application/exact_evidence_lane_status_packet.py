@@ -6,6 +6,10 @@ from typing import Any
 from .exact_evidence_lane_policy import build_exact_evidence_lane_policy_artifact
 
 _ALLOWED_WEBSEARCH_GATE_STATUSES = {"clear_for_websearch_lane"}
+_ALLOWED_EXACT_UPSTREAM_NEXT_SLICES = {
+    "grokfast_websearch_packet_live_diagnostic",
+    "inspect_websearch_status_packet",
+}
 _ALLOWED_WEBSEARCH_NEXT_SLICES = {
     "await_manager_contract_owner_repair",
     "grokfast_websearch_packet_live_diagnostic",
@@ -90,10 +94,11 @@ def _compact_websearch_gate(websearch_status_packet: dict[str, Any] | None) -> d
         }
     upstream_status = str(upstream_gate.get("status") or "").strip()
     next_required_slices = list(websearch_status_packet.get("next_required_slices") or [])
-    next_required_slice = (
-        _safe_websearch_next_slice(next_required_slices[0]) if next_required_slices else None
+    raw_next_required_slice = (
+        str(next_required_slices[0] or "").strip() if next_required_slices else None
     )
-    allowed_next_slice = next_required_slice == "grokfast_websearch_packet_live_diagnostic"
+    next_required_slice = _safe_websearch_next_slice(raw_next_required_slice)
+    allowed_next_slice = raw_next_required_slice in _ALLOWED_EXACT_UPSTREAM_NEXT_SLICES
     allowed_upstream_status = upstream_status in _ALLOWED_WEBSEARCH_GATE_STATUSES
     aligned = allowed_next_slice and allowed_upstream_status
     blocked = not aligned
