@@ -5,6 +5,7 @@ import ast
 from dataclasses import dataclass
 import fnmatch
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -21,6 +22,7 @@ from scripts.repo_policy import (  # noqa: E402
     normalize_repo_path,
     target_cap_for_repo_path,
 )
+from scripts.merge_governance.build_merge_debt_matrix import infer_track, normalize_track  # noqa: E402
 
 
 DEFAULT_OUTPUT = ROOT / "artifacts" / "pre_pr_quality_gate_report.json"
@@ -381,20 +383,56 @@ def collect_changed_files(*, base_ref: str, head_ref: str) -> list[ChangedFile]:
     return changes
 
 
+def _pull_request_payload_from_event(event_path: Path | None) -> dict[str, Any] | None:
+    if event_path is None or not event_path.exists():
+        return None
+    try:
+        event = json.loads(event_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    pull_request = event.get("pull_request")
+    if not isinstance(pull_request, dict):
+        return None
+    head = pull_request.get("head") if isinstance(pull_request.get("head"), dict) else {}
+    return {
+        "title": pull_request.get("title") or "",
+        "body": pull_request.get("body") or "",
+        "headRefName": head.get("ref") or pull_request.get("headRefName") or "",
+    }
+
+
+def infer_track_from_event(event_path: Path | None) -> str | None:
+    pull_request = _pull_request_payload_from_event(event_path)
+    if pull_request is None:
+        return None
+    track = infer_track(pull_request)
+    return None if track == "unknown" else track
+
+
+def resolve_track(cli_track: str, event_path: Path | None) -> str:
+    explicit_track = normalize_track(str(cli_track or "").strip())
+    if explicit_track and explicit_track.lower() != "unknown":
+        return explicit_track
+    return infer_track_from_event(event_path) or "unknown"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run deterministic pre-PR quality gates against changed files.")
     parser.add_argument("--track", default="unknown")
     parser.add_argument("--base-ref", default="origin/main")
     parser.add_argument("--head-ref", default="HEAD")
+    parser.add_argument("--event-file", default=os.environ.get("GITHUB_EVENT_PATH"))
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--skip-boundary-checks", action="store_true")
     args = parser.parse_args(argv)
 
+    event_path = Path(args.event_file) if args.event_file else None
+    track = resolve_track(args.track, event_path)
     changes = collect_changed_files(base_ref=args.base_ref, head_ref=args.head_ref)
     report = build_quality_report_from_changes(
         changes,
         policy=load_active_code_policy(),
-        track=args.track,
+        track=track,
         run_boundary_checks=not args.skip_boundary_checks,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
