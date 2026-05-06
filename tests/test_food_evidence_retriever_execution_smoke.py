@@ -10,6 +10,9 @@ from app.nutrition.application.food_evidence_retriever_router import (
     RetrieverBackendAvailability,
 )
 from app.nutrition.application.retrieval_intent import RetrievalIntent
+from app.nutrition.application.retrieval_request import (
+    build_retrieval_request_from_intent_fixture,
+)
 from app.nutrition.infrastructure.local_food_evidence_index import (
     LocalSmallAnchorFoodEvidenceIndex,
 )
@@ -75,9 +78,10 @@ def test_retriever_execution_smoke_keeps_fooddb_backend_manager_invisible(
         "sqlite_fts_index",
         "local_fooddb_index",
     ]
-    assert fooddb["route_plan"]["retrieval_intent_source"] == "manager_decision"
+    assert fooddb["route_plan"]["retrieval_intent_source"] == "diagnostic_fixture"
     assert fooddb["route_plan"]["manager_owned_intent_required"] is True
     assert fooddb["route_plan"]["raw_text_hint_executed"] is False
+    assert fooddb["retrieval_request"]["semantic_authority_source"] == "synthetic_retrieval_fixture"
     assert fooddb["tool_evidence_result"]["tool_name"] == "lookup_food_evidence"
     assert fooddb["tool_evidence_result"]["runtime_mutation_allowed"] is False
     assert fooddb["tool_evidence_result"]["source_implementation_visible"] is False
@@ -183,14 +187,16 @@ def test_retriever_execution_smoke_uses_manager_owned_intent_not_raw_query(
                 case_id="raw_query_mismatch_does_not_drive_retrieval",
                 raw_query="kelp",
                 expected_primary_backend="sqlite_fts_index",
-                intent=RetrievalIntent(
-                    base_dish="bubble milk tea",
-                    aliases=["boba"],
-                    brand_hint=None,
-                    size_hint=None,
-                    modifier_hints=[],
-                    listed_items=[],
-                    retrieval_goal="generic_anchor_lookup",
+                request=build_retrieval_request_from_intent_fixture(
+                    RetrievalIntent(
+                        base_dish="bubble milk tea",
+                        aliases=["boba"],
+                        brand_hint=None,
+                        size_hint=None,
+                        modifier_hints=[],
+                        listed_items=[],
+                        retrieval_goal="generic_anchor_lookup",
+                    )
                 ),
             ),
         ),
@@ -220,14 +226,16 @@ def test_retriever_execution_smoke_fails_closed_when_websearch_scope_is_empty(
                 case_id="unmatched_exact_brand_websearch_candidate",
                 raw_query="Unknown Brand mystery drink",
                 expected_primary_backend="sqlite_fts_index",
-                intent=RetrievalIntent(
-                    base_dish="mystery drink",
-                    aliases=["Unknown Brand mystery drink"],
-                    brand_hint="Unknown Brand",
-                    size_hint=None,
-                    modifier_hints=[],
-                    listed_items=[],
-                    retrieval_goal="exact_brand_lookup",
+                request=build_retrieval_request_from_intent_fixture(
+                    RetrievalIntent(
+                        base_dish="mystery drink",
+                        aliases=["Unknown Brand mystery drink"],
+                        brand_hint="Unknown Brand",
+                        size_hint=None,
+                        modifier_hints=[],
+                        listed_items=[],
+                        retrieval_goal="exact_brand_lookup",
+                    )
                 ),
             ),
         ),

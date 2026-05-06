@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from .retrieval_intent import RetrievalIntent
+from .retrieval_request import FoodEvidenceRetrievalRequest, RetrievalIntentSource
 
 RetrieverBackend = Literal[
     "ask_followup",
@@ -12,12 +13,6 @@ RetrieverBackend = Literal[
     "sqlite_fts_index",
     "supabase_index",
     "websearch_candidate_lane",
-]
-
-RetrievalIntentSource = Literal[
-    "manager_decision",
-    "diagnostic_fixture",
-    "raw_text_hint",
 ]
 
 
@@ -52,9 +47,40 @@ def build_food_evidence_retriever_route_plan(
     availability: RetrieverBackendAvailability,
     intent_source: RetrievalIntentSource = "manager_decision",
 ) -> FoodEvidenceRetrieverRoutePlan:
+    return build_food_evidence_retriever_route_plan_for_request(
+        FoodEvidenceRetrievalRequest(
+            intent=intent,
+            intent_source=intent_source,
+            semantic_authority_source=(
+                "deterministic_raw_text_hint_only"
+                if intent_source == "raw_text_hint"
+                else "synthetic_retrieval_fixture"
+                if intent_source == "diagnostic_fixture"
+                else "manager_owned_runtime_request"
+            ),
+            runtime_execution_allowed=intent_source != "raw_text_hint",
+            trace_role=(
+                "diagnostic_raw_text_hint"
+                if intent_source == "raw_text_hint"
+                else "fixture_runtime_request"
+                if intent_source == "diagnostic_fixture"
+                else "manager_owned_runtime_request"
+            ),
+        ),
+        availability=availability,
+    )
+
+
+def build_food_evidence_retriever_route_plan_for_request(
+    request: FoodEvidenceRetrievalRequest,
+    *,
+    availability: RetrieverBackendAvailability,
+) -> FoodEvidenceRetrieverRoutePlan:
+    intent = request.intent
+    intent_source = request.intent_source
     read_only = intent.retrieval_goal == "query_only_answer"
 
-    if intent_source == "raw_text_hint":
+    if not request.runtime_execution_allowed:
         return FoodEvidenceRetrieverRoutePlan(
             primary_backend="blocked_no_execution",
             backend_sequence=(),
@@ -150,4 +176,5 @@ __all__ = [
     "RetrieverBackendAvailability",
     "RetrievalIntentSource",
     "build_food_evidence_retriever_route_plan",
+    "build_food_evidence_retriever_route_plan_for_request",
 ]

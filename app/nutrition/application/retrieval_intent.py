@@ -92,7 +92,7 @@ class RetrievalIntent:
     retrieval_goal: RetrievalGoal
 
 
-def build_retrieval_intent(user_input: str) -> RetrievalIntent:
+def build_raw_text_retrieval_hint(user_input: str) -> RetrievalIntent:
     """Build a raw-text retrieval hint without semantic authority.
 
     This helper is allowed to support candidate recall and diagnostic fixtures.
@@ -125,6 +125,10 @@ def build_retrieval_intent(user_input: str) -> RetrievalIntent:
         listed_items=listed_items,
         retrieval_goal=retrieval_goal,
     )
+
+
+def build_retrieval_intent(user_input: str) -> RetrievalIntent:
+    return build_raw_text_retrieval_hint(user_input)
 
 
 def _extract_listed_items(user_input: str) -> list[str]:
@@ -241,5 +245,6 @@ __all__ = [
     "RAW_TEXT_RETRIEVAL_INTENT_POLICY",
     "RetrievalIntent",
     "RetrievalGoal",
+    "build_raw_text_retrieval_hint",
     "build_retrieval_intent",
 ]
