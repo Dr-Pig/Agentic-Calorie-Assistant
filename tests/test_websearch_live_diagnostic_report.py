@@ -321,6 +321,72 @@ def test_websearch_live_diagnostic_report_recognizes_b1_pass2_json_schema_transp
     ]
 
 
+def test_websearch_live_diagnostic_report_derives_verified_preflight_evidence_from_artifact() -> None:
+    preflight_artifact = _clear_preflight_artifact()
+    preflight_ref = _clear_preflight_ref()
+    preflight_ref.update(
+        {
+            "status": "blocked",
+            "ready_for_live_extract_diagnostic": False,
+            "ready_for_runtime_truth": True,
+            "review_packet_authorized": False,
+            "review_packet_count": 999,
+            "case_matrix_fixed_required_cases": False,
+            "case_matrix_case_count": 999,
+            "case_matrix_negative_case_count": 999,
+            "case_matrix_modifier_guard_cases": 999,
+            "case_matrix_live_provider_invoked": True,
+            "case_matrix_websearch_invoked": True,
+        }
+    )
+    diagnostic = {
+        "artifact_type": "accurate_intake_grokfast_websearch_packet_smoke",
+        "status": "pass",
+        "live_provider_used": True,
+        "live_websearch_used": False,
+        "preflight_ref": preflight_ref,
+        "summary": {
+            "case_count": 1,
+            "pass_count": 1,
+            "fail_count": 0,
+            "failure_families": [],
+        },
+        "cases": [
+            {
+                "packet_id": "pkt_exact_card_review",
+                "status": "pass",
+                "failure_families": [],
+                "provider_trace": {
+                    "structured_output_transport_attempted": True,
+                    "structured_output_transport_mode": "json_schema",
+                    "structured_output_transport_accepted": True,
+                    "schema_name": "phase_b1_pass2_manager_contract",
+                    "decision_transport_contract_breach": False,
+                },
+            }
+        ],
+    }
+
+    report = build_websearch_live_diagnostic_report(
+        diagnostic_artifact=diagnostic,
+        preflight_artifact=preflight_artifact,
+    )
+
+    assert report["seam_status"] == "live_diagnostic_pass"
+    assert report["preflight_evidence_healthy"] is True
+    assert report["preflight_evidence"]["status"] == "pass"
+    assert report["preflight_evidence"]["ready_for_live_extract_diagnostic"] is True
+    assert report["preflight_evidence"]["ready_for_runtime_truth"] is False
+    assert report["preflight_evidence"]["review_packet_authorized"] is True
+    assert report["preflight_evidence"]["review_packet_count"] == 1
+    assert report["preflight_evidence"]["case_matrix_fixed_required_cases"] is True
+    assert report["preflight_evidence"]["case_matrix_case_count"] == 6
+    assert report["preflight_evidence"]["case_matrix_negative_case_count"] == 4
+    assert report["preflight_evidence"]["case_matrix_modifier_guard_cases"] == 1
+    assert report["preflight_evidence"]["case_matrix_live_provider_invoked"] is False
+    assert report["preflight_evidence"]["case_matrix_websearch_invoked"] is False
+
+
 def test_websearch_live_diagnostic_report_blocks_pass_without_verified_preflight_digest() -> None:
     diagnostic = {
         "artifact_type": "accurate_intake_grokfast_websearch_packet_smoke",

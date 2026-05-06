@@ -38,7 +38,12 @@ def summarize_websearch_preflight_evidence(
     if not isinstance(preflight, dict):
         return _missing_preflight_evidence()
     digest = _safe_preflight_digest(preflight.get("preflight_artifact_digest"))
-    return {
+    digest_verified = _preflight_digest_verified(
+        digest=digest,
+        preflight_artifact=preflight_artifact,
+    )
+    integrity_clear = _preflight_artifact_integrity_clear(preflight_artifact)
+    evidence = {
         "present": True,
         "preflight_ref_source": _safe_preflight_ref_source(preflight.get("preflight_ref_source")),
         "artifact_type": _safe_preflight_artifact_type(preflight.get("artifact_type")),
@@ -64,14 +69,12 @@ def summarize_websearch_preflight_evidence(
             preflight.get("preflight_artifact_digest_scope")
         ),
         "preflight_artifact_digest": digest,
-        "preflight_artifact_digest_verified": _preflight_digest_verified(
-            digest=digest,
-            preflight_artifact=preflight_artifact,
-        ),
-        "preflight_artifact_integrity_clear": _preflight_artifact_integrity_clear(
-            preflight_artifact
-        ),
+        "preflight_artifact_digest_verified": digest_verified,
+        "preflight_artifact_integrity_clear": integrity_clear,
     }
+    if digest_verified and integrity_clear:
+        evidence.update(_verified_preflight_artifact_evidence(preflight_artifact))
+    return evidence
 
 
 def is_websearch_preflight_evidence_healthy(preflight: dict[str, Any]) -> bool:
@@ -166,6 +169,50 @@ def _preflight_artifact_integrity_clear(preflight_artifact: dict[str, Any] | Non
         return is_websearch_live_extract_preflight_clear(preflight_artifact)
     except (TypeError, ValueError):
         return False
+
+
+def _verified_preflight_artifact_evidence(
+    preflight_artifact: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(preflight_artifact, dict):
+        return {}
+    summary = preflight_artifact.get("summary")
+    if not isinstance(summary, dict):
+        summary = {}
+    review_packet_count = _safe_non_negative_int(summary.get("review_packet_count"))
+    review_packet_refs = preflight_artifact.get("review_packet_refs")
+    return {
+        "artifact_type": _safe_preflight_artifact_type(preflight_artifact.get("artifact_type")),
+        "status": "pass" if preflight_artifact.get("status") == "pass" else "blocked",
+        "ready_for_live_extract_diagnostic": (
+            preflight_artifact.get("ready_for_live_extract_diagnostic") is True
+        ),
+        "ready_for_runtime_truth": preflight_artifact.get("ready_for_runtime_truth") is True,
+        "review_packet_authorized": (
+            review_packet_count >= 1
+            and isinstance(review_packet_refs, list)
+            and len(review_packet_refs) >= 1
+        ),
+        "review_packet_count": review_packet_count,
+        "case_matrix_fixed_required_cases": (
+            summary.get("case_matrix_fixed_required_cases") is True
+        ),
+        "case_matrix_case_count": _safe_non_negative_int(
+            summary.get("case_matrix_case_count")
+        ),
+        "case_matrix_negative_case_count": _safe_non_negative_int(
+            summary.get("case_matrix_negative_case_count")
+        ),
+        "case_matrix_modifier_guard_cases": _safe_non_negative_int(
+            summary.get("case_matrix_modifier_guard_cases")
+        ),
+        "case_matrix_live_provider_invoked": (
+            summary.get("case_matrix_live_provider_invoked") is not False
+        ),
+        "case_matrix_websearch_invoked": (
+            summary.get("case_matrix_websearch_invoked") is not False
+        ),
+    }
 
 
 def _safe_non_negative_int(value: Any) -> int:
