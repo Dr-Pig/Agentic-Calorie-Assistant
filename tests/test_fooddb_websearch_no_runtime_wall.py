@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from app.nutrition.application.fooddb_websearch_no_runtime_selection import (
+    build_default_fooddb_websearch_no_runtime_inputs,
+    select_fooddb_websearch_no_runtime_next_required_slice,
+)
 from app.nutrition.application.fooddb_websearch_no_runtime_wall import (
     build_default_fooddb_websearch_no_runtime_wall,
     build_fooddb_websearch_no_runtime_wall,
@@ -26,7 +30,7 @@ def test_fooddb_websearch_no_runtime_wall_passes_default_candidate_preflight_art
     assert artifact["summary"]["blocked_count"] == 0
     assert artifact["summary"]["runtime_truth_leak_count"] == 0
     assert artifact["summary"]["live_or_readiness_leak_count"] == 0
-    assert artifact["next_required_slice"] == "grokfast_fooddb_or_websearch_packet_live_diagnostic"
+    assert artifact["next_required_slice"] == "grokfast_fooddb_packet_live_diagnostic"
     artifact_types = {result["artifact_type"] for result in artifact["artifact_results"]}
     assert "accurate_intake_fooddb_evidence_status_packet_v1" in artifact_types
     assert "accurate_intake_fooddb_activation_gap_report" in artifact_types
@@ -35,6 +39,60 @@ def test_fooddb_websearch_no_runtime_wall_passes_default_candidate_preflight_art
         "accurate_intake_websearch_grokfast_packet_live_diagnostic_case_matrix"
         in artifact_types
     )
+
+
+def test_select_no_runtime_wall_next_step_prefers_fooddb_live_diagnostic_first() -> None:
+    next_slice = select_fooddb_websearch_no_runtime_next_required_slice(
+        wall_clear=True,
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_fooddb_packet_live_diagnostic"],
+        },
+        websearch_status_packet={
+            "artifact_type": "accurate_intake_websearch_candidate_lane_status_packet_v1",
+            "next_required_slices": ["grokfast_fooddb_packet_live_diagnostic"],
+        },
+    )
+
+    assert next_slice == "grokfast_fooddb_packet_live_diagnostic"
+
+
+def test_select_no_runtime_wall_next_step_can_advance_to_websearch_live_diagnostic() -> None:
+    next_slice = select_fooddb_websearch_no_runtime_next_required_slice(
+        wall_clear=True,
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        websearch_status_packet={
+            "artifact_type": "accurate_intake_websearch_candidate_lane_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+    )
+
+    assert next_slice == "grokfast_websearch_packet_live_diagnostic"
+
+
+def test_select_no_runtime_wall_next_step_fails_closed_when_websearch_handoff_packet_missing() -> None:
+    next_slice = select_fooddb_websearch_no_runtime_next_required_slice(
+        wall_clear=True,
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        websearch_status_packet=None,
+    )
+
+    assert next_slice == "inspect_websearch_candidate_lane_status_packet"
+
+
+def test_fooddb_websearch_no_runtime_wall_uses_status_artifacts_for_next_step_when_clean() -> None:
+    defaults = build_default_fooddb_websearch_no_runtime_inputs()
+
+    artifact = build_fooddb_websearch_no_runtime_wall(artifacts=defaults["artifacts"])
+
+    assert artifact["status"] == "pass"
+    assert artifact["next_required_slice"] == "grokfast_fooddb_packet_live_diagnostic"
 
 
 def test_fooddb_websearch_no_runtime_wall_blocks_runtime_truth_and_mutation_leaks() -> None:
