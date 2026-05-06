@@ -74,14 +74,9 @@ def validate_readiness_claim_payload(
     _validate_producer_honesty(claim.producer_honesty, readiness_flags, blockers, artifact_path)
 
     return {
-        "passed": not blockers,
-        "artifact_path": artifact_path,
-        "readiness_flags": readiness_flags,
-        "claim_scope": claim.claim_scope,
-        "activation_stage": claim.activation_stage,
-        "semantic_authority_source": claim.semantic_authority_source,
-        "blockers": blockers,
-        "warnings": warnings,
+        "passed": not blockers, "artifact_path": artifact_path, "readiness_flags": readiness_flags,
+        "claim_scope": claim.claim_scope, "activation_stage": claim.activation_stage,
+        "semantic_authority_source": claim.semantic_authority_source, "blockers": blockers, "warnings": warnings,
     }
 
 
