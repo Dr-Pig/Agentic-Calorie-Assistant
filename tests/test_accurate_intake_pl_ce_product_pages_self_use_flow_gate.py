@@ -227,6 +227,7 @@ def test_product_pages_self_use_flow_gate_accepts_complete_fixture_browser_chain
     assert artifact["required_inputs"] == list(REQUIRED_INPUTS)
     assert artifact["blockers"] == []
     assert artifact["summary"]["pages_verified"] == ["chat", "today", "body"]
+    assert artifact["summary"]["three_distinct_pages_verified"] is True
     assert artifact["summary"]["seven_day_diary_checked"] is True
     assert artifact["summary"]["short_term_context_checked"] is True
     assert artifact["summary"]["target_candidate_ui_checked"] is True

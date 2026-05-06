@@ -25,6 +25,7 @@ def _by_id(artifact: dict[str, object]) -> dict[str, dict[str, object]]:
 def test_non_fooddb_read_only_tool_loop_fake_smoke_covers_read_only_tool_results() -> None:
     artifact = build_non_fooddb_read_only_tool_loop_fake_smoke_artifact()
 
+    assert artifact["artifact_schema_version"] == "1.0"
     assert artifact["artifact_type"] == "accurate_intake_non_fooddb_read_only_tool_loop_fake_smoke"
     assert artifact["status"] == "non_fooddb_read_only_tool_loop_fake_smoke_pass"
     assert artifact["fixture_manager_used"] is True

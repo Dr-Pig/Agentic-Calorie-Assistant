@@ -29,6 +29,7 @@ def _by_id(artifact: dict[str, object]) -> dict[str, dict[str, object]]:
 def test_non_fooddb_mutation_tool_guard_smoke_covers_guarded_mutation_and_proposal_cases() -> None:
     artifact = build_non_fooddb_mutation_tool_guard_smoke_artifact()
 
+    assert artifact["artifact_schema_version"] == "1.0"
     assert artifact["artifact_type"] == "accurate_intake_non_fooddb_mutation_tool_guard_smoke"
     assert artifact["status"] == "non_fooddb_mutation_tool_guard_smoke_pass"
     assert artifact["fixture_manager_used"] is True
