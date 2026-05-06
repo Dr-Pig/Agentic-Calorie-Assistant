@@ -606,6 +606,7 @@ def test_websearch_live_diagnostic_report_blocks_live_websearch_expansion_guidan
     assert report["can_expand_websearch_candidate_pipeline"] is False
     assert report["should_run_websearch_live_tool_loop"] is False
     assert report["next_recommended_slice"] == "inspect_unexpected_websearch_live_tool_loop"
+    assert "no_live_provider_call" not in report["non_claims"]
 
 
 def test_websearch_live_diagnostic_report_blocks_live_websearch_even_without_provider_flag() -> None:
@@ -692,6 +693,7 @@ def test_websearch_live_diagnostic_report_treats_fixture_pass_as_live_not_checke
     assert report["seam_status"] == "fixture_only_live_not_checked"
     assert report["can_expand_websearch_candidate_pipeline"] is False
     assert report["next_recommended_slice"] == "run_explicit_grokfast_websearch_packet_live_diagnostic"
+    assert "no_live_provider_call" in report["non_claims"]
 
 
 def test_websearch_live_diagnostic_report_sanitizes_raw_payloads_from_source_artifact() -> None:

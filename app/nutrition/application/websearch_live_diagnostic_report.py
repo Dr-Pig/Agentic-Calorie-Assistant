@@ -131,7 +131,11 @@ def build_websearch_live_diagnostic_report(
             "raw_response_excerpt_included": False,
             "candidate_payload_included": False,
         },
-        "non_claims": list(WEBSEARCH_LIVE_DIAGNOSTIC_REPORT_NON_CLAIMS),
+        "non_claims": [
+            claim
+            for claim in WEBSEARCH_LIVE_DIAGNOSTIC_REPORT_NON_CLAIMS
+            if claim != "no_live_provider_call" or not live_provider_used
+        ],
     }
 
 
@@ -281,12 +285,8 @@ def _contract_transport_summary(diagnostic_artifact: dict[str, Any]) -> dict[str
 
 
 def _provider_trace_contract_views(provider_trace: dict[str, Any]) -> list[dict[str, Any]]:
-    views: list[dict[str, Any]] = []
     trace_summary = provider_trace.get("trace_summary")
-    if isinstance(trace_summary, dict):
-        views.append(trace_summary)
-    views.append(provider_trace)
-    return views
+    return ([trace_summary] if isinstance(trace_summary, dict) else []) + [provider_trace]
 
 
 def _summary_int(diagnostic_artifact: dict[str, Any], key: str) -> int:
@@ -301,7 +301,4 @@ def _now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
-__all__ = [
-    "WEBSEARCH_LIVE_DIAGNOSTIC_REPORT_NON_CLAIMS",
-    "build_websearch_live_diagnostic_report",
-]
+__all__ = ["WEBSEARCH_LIVE_DIAGNOSTIC_REPORT_NON_CLAIMS", "build_websearch_live_diagnostic_report"]

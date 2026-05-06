@@ -95,7 +95,11 @@ def build_fooddb_live_diagnostic_report(*, diagnostic_artifact: dict[str, Any]) 
             "raw_response_excerpt_included": False,
             "raw_packet_payload_included": False,
         },
-        "non_claims": list(FOODDB_LIVE_DIAGNOSTIC_REPORT_NON_CLAIMS),
+        "non_claims": [
+            claim
+            for claim in FOODDB_LIVE_DIAGNOSTIC_REPORT_NON_CLAIMS
+            if claim != "no_live_provider_call" or not live_provider_used
+        ],
     }
 
 
