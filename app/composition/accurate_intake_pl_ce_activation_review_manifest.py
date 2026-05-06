@@ -27,6 +27,41 @@ def _object_dict(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
 
 
+def _int_value(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _context_live_stage_summary(context_live_gate: dict[str, Any]) -> dict[str, Any]:
+    if not context_live_gate:
+        return {
+            "live_stage": "not_provided",
+            "stage_gate_status": "not_provided",
+            "live_provider_output_count": 0,
+            "live_blocked_response_count": 0,
+            "full_matrix_live_probe_completed": False,
+            "single_case_live_probe_completed": False,
+            "diagnostic_only_not_readiness": True,
+        }
+    if context_live_gate.get("live_provider_invoked") is not True:
+        live_stage = "not_invoked"
+    else:
+        live_stage = str(context_live_gate.get("live_stage") or "unknown")
+    summary = _object_dict(context_live_gate.get("summary"))
+    stage_status = str(context_live_gate.get("stage_gate_status") or "not_applicable")
+    return {
+        "live_stage": live_stage,
+        "stage_gate_status": stage_status,
+        "live_provider_output_count": _int_value(summary.get("live_provider_output_count")),
+        "live_blocked_response_count": _int_value(summary.get("live_blocked_response_count")),
+        "full_matrix_live_probe_completed": stage_status == "context_live_full_matrix_probe_pass",
+        "single_case_live_probe_completed": stage_status == "context_live_single_case_probe_pass",
+        "diagnostic_only_not_readiness": True,
+    }
+
+
 def build_pl_ce_activation_review_manifest_artifact(
     input_artifacts: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
@@ -147,6 +182,7 @@ def build_pl_ce_activation_review_manifest_artifact(
             "upstream_live_llm_invoked": context_live_review_live_invoked,
             "context_live_gate_evidence_present": bool(context_live_gate),
             "upstream_context_live_gate_llm_invoked": context_live_gate_live_invoked,
+            "context_live_diagnostic_stage_summary": _context_live_stage_summary(context_live_gate),
             "ready_for_live_diagnostic_decision": False,
             "ready_for_fdb_integration": False,
             "shared_contract_changed": False,
