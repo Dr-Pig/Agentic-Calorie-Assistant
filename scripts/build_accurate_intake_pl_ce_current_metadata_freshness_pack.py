@@ -24,6 +24,9 @@ DEFAULT_EVIDENCE_PATHS = {
     "product_pages_long_session_navigation_smoke": ROOT
     / "artifacts"
     / "accurate_intake_product_pages_long_session_navigation_smoke.json",
+    "pl_ce_ui_context_alignment_pack": ROOT
+    / "artifacts"
+    / "accurate_intake_pl_ce_ui_context_alignment_pack.json",
     "pl_ce_local_mvp_candidate_bundle": ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_local_mvp_candidate_bundle.json",

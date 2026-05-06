@@ -416,6 +416,7 @@ jobs:
             --artifact context_quality_pack=artifacts/accurate_intake_context_quality_pack_ci.json \
             --artifact product_pages_visual_qa=artifacts/accurate_intake_product_pages_visual_qa_ci.json \
             --artifact product_pages_long_session_navigation_smoke=artifacts/accurate_intake_product_pages_long_session_navigation_smoke_ci.json \
+            --artifact pl_ce_ui_context_alignment_pack=artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json \
             --artifact pl_ce_local_mvp_candidate_bundle=artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json \
             --artifact pl_ce_product_pages_self_use_flow_gate=artifacts/accurate_intake_pl_ce_product_pages_self_use_flow_gate_ci.json \
             --artifact pl_ce_browser_activation_evidence_gate=artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json \

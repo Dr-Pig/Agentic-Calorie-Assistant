@@ -109,6 +109,11 @@ CURRENT_METADATA_INPUTS = (
         "--artifact product_pages_long_session_navigation_smoke="
         "artifacts/accurate_intake_product_pages_long_session_navigation_smoke_ci.json",
     ),
+    (
+        "pl_ce_ui_context_alignment_pack",
+        "--artifact pl_ce_ui_context_alignment_pack="
+        "artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json",
+    ),
 )
 
 
@@ -121,6 +126,16 @@ def _job_block(workflow: str, job_name: str) -> str:
     if next_job is None:
         return workflow[start:]
     return workflow[start : start + len(marker) + next_job.start()]
+
+
+def _command_block(job: str, command_snippet: str) -> str:
+    start = job.find(command_snippet)
+    if start < 0:
+        return ""
+    next_command = job.find("\n          python ", start + len(command_snippet))
+    if next_command < 0:
+        return job[start:]
+    return job[start:next_command]
 
 
 def _track_report_blockers_from_event(event_path: Path | None) -> list[str]:
@@ -174,8 +189,12 @@ def build_report(workflow_text: str, *, event_path: Path | None = None) -> dict[
     for artifact_id, serial_input in SERIAL_HANDOFF_INPUTS:
         if serial_input not in job:
             blockers.append(f"missing_serial_handoff_input.{artifact_id}")
+    current_metadata_block = _command_block(
+        job,
+        "python scripts/build_accurate_intake_pl_ce_current_metadata_freshness_pack.py",
+    )
     for artifact_id, metadata_input in CURRENT_METADATA_INPUTS:
-        if metadata_input not in job:
+        if metadata_input not in current_metadata_block:
             blockers.append(f"missing_current_metadata_input.{artifact_id}")
 
     return {

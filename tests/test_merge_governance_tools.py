@@ -335,6 +335,34 @@ def test_pre_queue_readiness_fails_missing_long_session_navigation_smoke(
     )
 
 
+def test_pre_queue_readiness_fails_missing_ui_context_alignment_current_metadata_input(
+    tmp_path: Path,
+) -> None:
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    metadata_input = (
+        "            --artifact pl_ce_ui_context_alignment_pack="
+        "artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json \\\n"
+    )
+    prefix, marker, suffix = workflow.rpartition(metadata_input)
+    assert marker == metadata_input
+    workflow = prefix + suffix
+    workflow_path = tmp_path / "ci.yml"
+    workflow_path.write_text(workflow, encoding="utf-8")
+
+    assert (
+        check_pre_queue_readiness.main(
+            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
+        )
+        == 1
+    )
+
+    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
+    assert (
+        "missing_current_metadata_input.pl_ce_ui_context_alignment_pack"
+        in report["blockers"]
+    )
+
+
 def test_pre_queue_readiness_fails_missing_current_metadata_freshness_pack(
     tmp_path: Path,
 ) -> None:
