@@ -38,6 +38,7 @@ def test_websearch_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_pa
     readiness = read_json_artifact(tmp_path / "websearch_live_readiness.json")
     handoff = read_json_artifact(tmp_path / "websearch_contract_handoff.json")
     status_packet = read_json_artifact(tmp_path / "websearch_evidence_status_packet.json")
+    inspection = read_json_artifact(tmp_path / "websearch_status_packet_inspection.json")
 
     assert manifest["bundle_status"] == "pass"
     assert manifest["mode"] == "fixture"
@@ -56,6 +57,8 @@ def test_websearch_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_pa
     assert handoff["status"] == "insufficient_contract_handoff_evidence"
     assert status_packet["artifact_type"] == "accurate_intake_websearch_evidence_status_packet_v1"
     assert status_packet["next_required_slices"] == ["inspect_fooddb_status_packet"]
+    assert inspection["artifact_type"] == "accurate_intake_websearch_status_packet_inspection_v1"
+    assert inspection["summary"]["next_safe_slice"] == "inspect_fooddb_status_packet"
 
 
 def test_websearch_live_diagnostic_bundle_live_mode_requires_explicit_allow_live(
@@ -98,6 +101,7 @@ def test_websearch_live_diagnostic_bundle_records_all_required_artifact_refs(
         "manager_contract_repair_pack",
         "manager_contract_handoff",
         "websearch_evidence_status_packet",
+        "websearch_status_packet_inspection",
     }
 
     assert set(manifest["artifacts"]) == required_refs
