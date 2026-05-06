@@ -21,6 +21,9 @@ from app.nutrition.application.grokfast_fooddb_packet_smoke import (  # noqa: E4
 from app.nutrition.application.grokfast_fooddb_diagnostic_preflight import (  # noqa: E402
     is_grokfast_fooddb_preflight_clear,
 )
+from app.nutrition.application.fooddb_live_diagnostic_source_refs import (  # noqa: E402
+    attach_fooddb_live_upstream_refs,
+)
 from app.nutrition.application.grokfast_fooddb_live_runner_readiness_checks import (  # noqa: E402
     input_artifact_blockers,
     live_runner_readiness_input_blockers,
@@ -70,6 +73,10 @@ def main(argv: list[str] | None = None) -> int:
 
     packet_artifact = _load_packet_artifact(args)
     output_path = Path(args.output)
+    include_upstream_refs = _should_include_upstream_refs(args)
+    preflight: dict[str, Any] | None = None
+    router_readiness: dict[str, Any] | None = None
+    live_runner_readiness: dict[str, Any] | None = None
 
     if args.mode == "live" and not args.allow_live:
         artifact = {
@@ -173,17 +180,38 @@ def main(argv: list[str] | None = None) -> int:
             live_provider_used=False,
             manager_contract_validator=_manager_contract_validation_errors,
         )
+        artifact = _attach_optional_upstream_refs(
+            artifact=artifact,
+            include_upstream_refs=include_upstream_refs,
+            preflight_artifact=preflight,
+            router_readiness_artifact=router_readiness,
+            live_runner_readiness_artifact=live_runner_readiness,
+            args=args,
+        )
         write_json_artifact(output_path, artifact)
         _print_summary(output_path, artifact)
         return 0
 
-    artifact, exit_code = asyncio.run(_run_live(packet_artifact=packet_artifact))
+    artifact, exit_code = asyncio.run(
+        _run_live(
+            packet_artifact=packet_artifact,
+            preflight_artifact=preflight,
+            router_readiness_artifact=router_readiness,
+            live_runner_readiness_artifact=live_runner_readiness,
+        )
+    )
     write_json_artifact(output_path, artifact)
     _print_summary(output_path, artifact)
     return exit_code
 
 
-async def _run_live(*, packet_artifact: dict[str, Any]) -> tuple[dict[str, Any], int]:
+async def _run_live(
+    *,
+    packet_artifact: dict[str, Any],
+    preflight_artifact: dict[str, Any] | None,
+    router_readiness_artifact: dict[str, Any] | None,
+    live_runner_readiness_artifact: dict[str, Any] | None,
+) -> tuple[dict[str, Any], int]:
     adapter = BuilderSpaceAdapter(
         manager_model_override=GROKFAST_FOODDB_PACKET_PROFILE["model"],
         role_label="fooddb_packet_smoke_manager",
@@ -198,6 +226,12 @@ async def _run_live(*, packet_artifact: dict[str, Any]) -> tuple[dict[str, Any],
             failure_family="provider_not_configured",
         )
         artifact["provider_readiness"] = readiness
+        artifact = attach_fooddb_live_upstream_refs(
+            diagnostic_artifact=artifact,
+            preflight_artifact=preflight_artifact,
+            router_readiness_artifact=router_readiness_artifact,
+            live_runner_readiness_artifact=live_runner_readiness_artifact,
+        )
         return artifact, 3
 
     manager_outputs: list[dict[str, Any]] = []
@@ -260,6 +294,12 @@ async def _run_live(*, packet_artifact: dict[str, Any]) -> tuple[dict[str, Any],
         manager_contract_validator=_manager_contract_validation_errors,
     )
     artifact["provider_readiness"] = readiness
+    artifact = attach_fooddb_live_upstream_refs(
+        diagnostic_artifact=artifact,
+        preflight_artifact=preflight_artifact,
+        router_readiness_artifact=router_readiness_artifact,
+        live_runner_readiness_artifact=live_runner_readiness_artifact,
+    )
     return artifact, 0
 
 
@@ -336,6 +376,48 @@ def _load_packet_artifact(args: argparse.Namespace) -> dict[str, Any]:
             tool_evidence_artifact=read_json_artifact(Path(args.tool_evidence_result))
         )
     return read_json_artifact(Path(args.packet_smoke))
+
+
+def _should_include_upstream_refs(args: argparse.Namespace) -> bool:
+    if args.mode == "live":
+        return True
+    return any(
+        value != default
+        for value, default in (
+            (str(args.preflight_artifact), str(DEFAULT_PREFLIGHT)),
+            (str(args.router_readiness_artifact), str(DEFAULT_ROUTER_READINESS)),
+            (
+                str(args.live_runner_readiness_artifact),
+                str(DEFAULT_LIVE_RUNNER_READINESS),
+            ),
+        )
+    )
+
+
+def _attach_optional_upstream_refs(
+    *,
+    artifact: dict[str, Any],
+    include_upstream_refs: bool,
+    preflight_artifact: dict[str, Any] | None,
+    router_readiness_artifact: dict[str, Any] | None,
+    live_runner_readiness_artifact: dict[str, Any] | None,
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    if not include_upstream_refs:
+        return artifact
+    return attach_fooddb_live_upstream_refs(
+        diagnostic_artifact=artifact,
+        preflight_artifact=preflight_artifact or _read_optional_artifact(args.preflight_artifact),
+        router_readiness_artifact=router_readiness_artifact
+        or _read_optional_artifact(args.router_readiness_artifact),
+        live_runner_readiness_artifact=live_runner_readiness_artifact
+        or _read_optional_artifact(args.live_runner_readiness_artifact),
+    )
+
+
+def _read_optional_artifact(path_value: str) -> dict[str, Any] | None:
+    path = Path(path_value)
+    return read_json_artifact(path) if path.exists() else None
 
 
 if __name__ == "__main__":
