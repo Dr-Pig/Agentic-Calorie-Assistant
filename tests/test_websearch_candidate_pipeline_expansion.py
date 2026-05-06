@@ -98,14 +98,30 @@ def test_candidate_pipeline_reports_no_extract_when_all_candidates_are_blocked()
     assert "robots_blocked" in case["selected_extract_decision"]["source_policy_block_reasons"]
 
 
+def test_candidate_pipeline_blocks_wrong_country_and_missing_serving_basis_exact_candidates() -> None:
+    artifact = build_websearch_candidate_pipeline_diagnostic()
+    wrong_country = _case_by_id(artifact, "pipeline_wrong_country_menu")
+    serving_not_listed = _case_by_id(artifact, "pipeline_serving_size_not_listed")
+
+    assert wrong_country["selected_extract_decision"]["selected_search_packet_id"] is None
+    assert wrong_country["selected_extract_decision"]["extract_allowed_by_policy"] is False
+    assert wrong_country["candidate_classifications"][0]["candidate_class"] == "near_exact_sibling_candidate"
+    assert wrong_country["candidate_packets"][0]["sibling_variant_risk"]["present"] is True
+
+    assert serving_not_listed["selected_extract_decision"]["selected_search_packet_id"] is None
+    assert serving_not_listed["selected_extract_decision"]["extract_allowed_by_policy"] is False
+    assert serving_not_listed["candidate_classifications"][0]["candidate_class"] == "blocked_source_policy_candidate"
+    assert "serving_basis_missing" in serving_not_listed["candidate_classifications"][0]["source_policy_block_reasons"]
+
+
 def test_candidate_pipeline_summary_surfaces_exact_disambiguation_and_weak_boundaries() -> None:
     artifact = build_websearch_candidate_pipeline_diagnostic()
     summary = artifact["summary"]
 
-    assert summary["case_count"] == 21
+    assert summary["case_count"] == 23
     assert summary["exact_review_candidate_count"] >= 6
-    assert summary["disambiguation_candidate_count"] >= 5
-    assert summary["blocked_candidate_count"] >= 4
+    assert summary["disambiguation_candidate_count"] >= 6
+    assert summary["blocked_candidate_count"] >= 5
     assert summary["policy_blocked_exact_candidate_count"] >= 1
     assert summary["weak_candidate_count"] >= 3
     assert summary["candidate_packet_count"] == sum(

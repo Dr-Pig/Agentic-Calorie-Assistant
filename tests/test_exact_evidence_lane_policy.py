@@ -65,6 +65,16 @@ def test_exact_evidence_lane_policy_prefers_local_exact_seed_before_websearch() 
     assert size_unknown["websearch_pipeline"]["extract_candidate_allowed_count"] == 0
     assert size_unknown["exact_card_staging"]["candidate_count"] == 0
 
+    wrong_country = cases["wrong_country_menu_no_exact_evidence"]
+    assert wrong_country["lane_decision"]["selected_lane"] == "no_exact_evidence"
+    assert wrong_country["websearch_pipeline"]["extract_candidate_allowed_count"] == 0
+    assert wrong_country["exact_card_staging"]["candidate_count"] == 0
+
+    serving_not_listed = cases["serving_size_not_listed_no_exact_evidence"]
+    assert serving_not_listed["lane_decision"]["selected_lane"] == "no_exact_evidence"
+    assert serving_not_listed["websearch_pipeline"]["extract_candidate_allowed_count"] == 0
+    assert serving_not_listed["exact_card_staging"]["candidate_count"] == 0
+
     wrong_brand = cases["wrong_brand_official_no_exact_evidence"]
     assert wrong_brand["lane_decision"]["selected_lane"] == "no_exact_evidence"
     assert wrong_brand["websearch_pipeline"]["extract_candidate_allowed_count"] == 0
