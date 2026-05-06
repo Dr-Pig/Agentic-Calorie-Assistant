@@ -18,6 +18,14 @@ REQUIRED_PRE_LIVE_EVIDENCE = (
     "local_dogfood_data_hygiene",
     "local_operator_data_hygiene_bundle",
     "pl_ce_local_review_decision_pack",
+    "product_pages_self_use_flow_gate",
+    "ui_context_alignment_pack",
+    "browser_activation_evidence_gate",
+    "manager_tool_surface_inventory",
+    "manager_tool_choice_regression_wall",
+    "context_conditioned_intent_wall",
+    "non_fooddb_read_only_tool_loop_fake_smoke",
+    "non_fooddb_mutation_tool_guard_smoke",
     "manager_intent_readiness_review_pack",
     "context_live_diagnostic_case_matrix",
     "context_live_diagnostic_anti_overfit_guard",
@@ -37,6 +45,14 @@ _EXPECTED_STATUS_BY_GROUP = {
     "local_dogfood_data_hygiene": "pass",
     "local_operator_data_hygiene_bundle": "local_operator_data_hygiene_ready",
     "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
+    "product_pages_self_use_flow_gate": "product_pages_self_use_flow_ready_for_human_review",
+    "ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
+    "browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
+    "manager_tool_surface_inventory": "manager_tool_surface_inventory_ready_for_human_review",
+    "manager_tool_choice_regression_wall": "manager_tool_choice_regression_wall_pass",
+    "context_conditioned_intent_wall": "pass",
+    "non_fooddb_read_only_tool_loop_fake_smoke": "non_fooddb_read_only_tool_loop_fake_smoke_pass",
+    "non_fooddb_mutation_tool_guard_smoke": "non_fooddb_mutation_tool_guard_smoke_pass",
     "manager_intent_readiness_review_pack": "manager_intent_readiness_ready_for_human_review",
     "context_live_diagnostic_case_matrix": "pass",
     "context_live_diagnostic_anti_overfit_guard": "pass",
@@ -45,6 +61,10 @@ _EXPECTED_STATUS_BY_GROUP = {
     "context_live_response_contract_dry_run": "pass",
     "context_live_diagnostic_gate": "context_live_diagnostic_gate_ready_without_live_canary",
 }
+
+
+def _summary(payload: dict[str, Any]) -> dict[str, Any]:
+    return payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
 
 
 def _json_safe(value: Any) -> Any:
@@ -131,8 +151,64 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
             blockers.append("context_live_diagnostic_case_matrix_case_count_too_low")
         if int(summary.get("compound_cases") or 0) < 1:
             blockers.append("context_live_diagnostic_case_matrix_compound_case_missing")
+    if group_id == "product_pages_self_use_flow_gate":
+        summary = _summary(payload)
+        for flag, blocker in (
+            ("three_distinct_pages_verified", "product_pages_self_use_flow_gate_three_distinct_pages_not_verified"),
+            ("seven_day_diary_checked", "product_pages_self_use_flow_gate_seven_day_diary_not_checked"),
+            ("short_term_context_checked", "product_pages_self_use_flow_gate_short_term_context_not_checked"),
+            ("target_candidate_ui_checked", "product_pages_self_use_flow_gate_target_candidate_ui_not_checked"),
+        ):
+            if summary.get(flag) is not True:
+                blockers.append(blocker)
+    if group_id == "ui_context_alignment_pack":
+        summary = _summary(payload)
+        for flag, blocker in (
+            ("chat_context_reload_checked", "ui_context_alignment_pack_chat_context_reload_not_checked"),
+            ("seven_day_diary_checked", "ui_context_alignment_pack_seven_day_diary_not_checked"),
+            ("body_read_model_checked", "ui_context_alignment_pack_body_read_model_not_checked"),
+        ):
+            if summary.get(flag) is not True:
+                blockers.append(blocker)
+    if group_id == "browser_activation_evidence_gate":
+        if payload.get("all_required_browser_artifacts_executed") is not True:
+            blockers.append("browser_activation_evidence_gate_browser_artifacts_not_all_executed")
+        if payload.get("browser_executed_required") is not True:
+            blockers.append("browser_activation_evidence_gate_browser_execution_not_required")
+    if group_id == "manager_tool_surface_inventory":
+        summary = _summary(payload)
+        direct_lane_ids = payload.get("required_direct_lane_ids")
+        manager_tools = payload.get("required_manager_tools")
+        if not isinstance(direct_lane_ids, list) or len(direct_lane_ids) < 7:
+            blockers.append("manager_tool_surface_inventory_required_direct_lane_count_too_low")
+        if not isinstance(manager_tools, list) or len(manager_tools) < 10:
+            blockers.append("manager_tool_surface_inventory_required_manager_tool_count_too_low")
+        if int(summary.get("direct_lane_count") or 0) < 7:
+            blockers.append("manager_tool_surface_inventory_direct_lane_count_too_low")
+        if int(summary.get("target_tool_count") or 0) < 10:
+            blockers.append("manager_tool_surface_inventory_target_tool_count_too_low")
+    if group_id == "manager_tool_choice_regression_wall":
+        summary = _summary(payload)
+        if payload.get("semantic_owner") != "fixture_manager_structured_decision":
+            blockers.append("manager_tool_choice_regression_wall_semantic_owner_not_fixture_manager")
+        if int(summary.get("case_count") or 0) < 11:
+            blockers.append("manager_tool_choice_regression_wall_case_count_too_low")
+    if group_id == "context_conditioned_intent_wall":
+        summary = _summary(payload)
+        if payload.get("manager_fixture_semantic_source_used") is not True:
+            blockers.append("context_conditioned_intent_wall_fixture_semantic_source_missing")
+        if int(summary.get("scenario_count") or 0) < 11:
+            blockers.append("context_conditioned_intent_wall_scenario_count_too_low")
+    if group_id == "non_fooddb_read_only_tool_loop_fake_smoke":
+        summary = _summary(payload)
+        if int(summary.get("case_count") or 0) < 6:
+            blockers.append("non_fooddb_read_only_tool_loop_fake_smoke_case_count_too_low")
+    if group_id == "non_fooddb_mutation_tool_guard_smoke":
+        summary = _summary(payload)
+        if int(summary.get("case_count") or 0) < 10:
+            blockers.append("non_fooddb_mutation_tool_guard_smoke_case_count_too_low")
     if group_id == "context_live_diagnostic_anti_overfit_guard":
-        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        summary = _summary(payload)
         if payload.get("plan_only") is not True:
             blockers.append("context_live_diagnostic_anti_overfit_guard_plan_only_not_true")
         if summary.get("fixed_case_matrix_used") is not True:
@@ -144,7 +220,7 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         if int(summary.get("ambiguity_cases") or 0) < 1:
             blockers.append("context_live_diagnostic_anti_overfit_guard_ambiguity_case_missing")
     if group_id == "context_live_diagnostic_holdout_plan":
-        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        summary = _summary(payload)
         if payload.get("plan_only") is not True:
             blockers.append("context_live_diagnostic_holdout_plan_plan_only_not_true")
         if payload.get("fixed_case_matrix_used") is not True:
@@ -166,7 +242,7 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         if int(summary.get("ambiguity_cases") or 0) < 1:
             blockers.append("context_live_diagnostic_holdout_plan_ambiguity_case_missing")
     if group_id == "context_live_provider_input_preflight":
-        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        summary = _summary(payload)
         if payload.get("plan_only") is not True:
             blockers.append("context_live_provider_input_preflight_plan_only_not_true")
         if payload.get("fixture_only") is not True:
@@ -196,7 +272,7 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         if int(summary.get("pending_pin_inputs") or 0) < 1:
             blockers.append("context_live_provider_input_preflight_pending_pin_inputs_missing")
     if group_id == "context_live_response_contract_dry_run":
-        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        summary = _summary(payload)
         if payload.get("plan_only") is not True:
             blockers.append("context_live_response_contract_dry_run_plan_only_not_true")
         if payload.get("fixture_only") is not True:
@@ -226,7 +302,7 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         if int(summary.get("mutation_request_count") or 0) != 0:
             blockers.append("context_live_response_contract_dry_run_mutation_request_count_nonzero")
     if group_id == "context_live_diagnostic_gate":
-        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        summary = _summary(payload)
         if payload.get("live_provider_allowed") is not False:
             blockers.append("context_live_diagnostic_gate_live_provider_allowed")
         if payload.get("live_provider_required") is not False:
@@ -250,7 +326,7 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         if int(summary.get("live_blocked_response_count") or 0) != 0:
             blockers.append("context_live_diagnostic_gate_live_blocked_response_count_nonzero")
     if group_id == "manager_intent_readiness_review_pack":
-        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        summary = _summary(payload)
         if payload.get("review_required_before_provider_call") is not True:
             blockers.append(
                 "manager_intent_readiness_review_pack_review_required_before_provider_call_missing"

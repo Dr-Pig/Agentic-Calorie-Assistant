@@ -102,10 +102,11 @@ def test_live_diagnostic_runbook_requires_product_pages_and_non_fooddb_tool_evid
         "`browser_activation_evidence_gate`",
         "`manager_tool_surface_inventory`",
         "`manager_tool_choice_regression_wall`",
-        "`context_conditioned_intent_target_wall`",
+        "`context_conditioned_intent_wall`",
         "`non_fooddb_read_only_tool_loop_fake_smoke`",
         "`non_fooddb_mutation_tool_guard_smoke`",
         "The product-page evidence is required in addition to the older `browser_shell_smoke`.",
         "Non-FoodDB Manager tool diagnostics remain app-state only and must not use FoodDB/WebSearch evidence.",
+        "The pre-live pack does not require `context_live_diagnostic_stage_gate`.",
     ):
         assert fragment in text

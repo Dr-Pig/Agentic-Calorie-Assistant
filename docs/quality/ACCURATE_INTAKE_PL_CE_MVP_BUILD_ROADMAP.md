@@ -64,6 +64,17 @@ The pre-FoodDB PL+CE build train is:
 9. Limited Live Diagnostic
 10. PLCE Pre-FoodDB Candidate Bundle
 
+The top-level pre-live decision pack must directly consume the finished product-page/browser activation artifacts and the finished non-FoodDB Manager tool diagnostics before any human live-diagnostic review:
+
+- `product_pages_self_use_flow_gate`
+- `ui_context_alignment_pack`
+- `browser_activation_evidence_gate`
+- `manager_tool_surface_inventory`
+- `manager_tool_choice_regression_wall`
+- `context_conditioned_intent_wall`
+- `non_fooddb_read_only_tool_loop_fake_smoke`
+- `non_fooddb_mutation_tool_guard_smoke`
+
 ## Merge Queue Delivery Policy
 
 Default PL+CE delivery is GitHub Merge Queue serial delivery from latest `origin/main`.
