@@ -72,6 +72,9 @@ def is_websearch_live_runner_readiness_clear(artifact: dict[str, Any]) -> bool:
         and artifact.get("ready_for_runtime_truth") is False
         and artifact.get("runtime_truth_changed") is False
         and artifact.get("runtime_mutation_allowed") is False
+        and artifact.get("manager_context_changed") is False
+        and artifact.get("shared_contract_changed") is False
+        and artifact.get("packetizer_format_changed") is False
         and artifact.get("live_provider_used") is False
         and artifact.get("live_websearch_used") is False
         and artifact.get("live_extract_used") is False

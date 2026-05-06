@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from scripts.accurate_intake_pre_live_axis_summary import build_capability_axis_summary
+
 REQUIRED_PRE_LIVE_EVIDENCE = (
     "phase_c_gate",
     "accurate_intake_mvp_gate",
@@ -318,6 +320,11 @@ def build_pre_live_self_use_decision_pack(evidence: dict[str, Any]) -> dict[str,
             "missing_evidence": missing_evidence,
             "blockers": blockers,
             "selected_option": selected_option,
+            "capability_axis_summary": build_capability_axis_summary(
+                evidence_status,
+                selected_option=selected_option,
+                ready_for_pl_ce_local_review=ready_for_pl_ce_local_review,
+            ),
             "selection_reason": (
                 "pre_live_evidence_missing"
                 if missing_evidence

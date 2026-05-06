@@ -121,6 +121,24 @@ def test_websearch_live_runner_readiness_blocks_review_packet_mismatch() -> None
     assert "websearch_live_preflight_review_packet_mismatch" in artifact["blockers"]
 
 
+def test_websearch_live_runner_readiness_clear_predicate_blocks_contract_drift() -> None:
+    review, preflight, chain = _clear_inputs()
+    artifact = build_websearch_live_runner_readiness_packet(
+        review_packet_artifact=review,
+        preflight_artifact=preflight,
+        exact_candidate_chain_status_artifact=chain,
+    )
+
+    for field in (
+        "manager_context_changed",
+        "shared_contract_changed",
+        "packetizer_format_changed",
+    ):
+        drifted = dict(artifact)
+        drifted[field] = True
+        assert is_websearch_live_runner_readiness_clear(drifted) is False
+
+
 def test_websearch_live_runner_readiness_script_roundtrip(tmp_path: Path) -> None:
     from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
     from scripts.build_accurate_intake_websearch_live_runner_readiness_packet import main
