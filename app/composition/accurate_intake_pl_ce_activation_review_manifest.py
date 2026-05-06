@@ -257,11 +257,17 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
             "requires_three_distinct_pages",
             "requires_seven_day_today_diary",
             "requires_short_term_context_render",
+            "requires_target_candidate_ui",
+            "requires_fixture_full_product_loop_e2e",
             "requires_visual_qa",
             "requires_no_debug_trace_leak",
         ):
             if summary.get(flag) is not True:
                 blockers.append(f"pl_ce_browser_activation_evidence_gate.{flag}_not_true")
+        if _int_value(summary.get("fixture_product_loop_step_count")) < 10:
+            blockers.append(
+                "pl_ce_browser_activation_evidence_gate.fixture_product_loop_step_count_too_low"
+            )
     if group_id == "pl_ce_ui_context_alignment_pack":
         summary = _object_dict(payload.get("summary"))
         if summary.get("pages_verified") != ["chat", "today", "body"]:

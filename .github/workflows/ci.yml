@@ -381,12 +381,15 @@ jobs:
             --artifact local_operator_data_hygiene_bundle=artifacts/accurate_intake_local_operator_data_hygiene_bundle_ci.json \
             --artifact mvp_gate_summary=artifacts/accurate_intake_mvp_gate.json \
             --output artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json
+          python scripts/run_accurate_intake_fixture_full_product_loop_e2e.py --require-browser-execution --output artifacts/accurate_intake_fixture_full_product_loop_e2e_ci.json --timeout-ms 25000
           python scripts/build_accurate_intake_pl_ce_browser_activation_evidence_gate.py \
             --artifact pl_ce_local_mvp_candidate_bundle=artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json \
             --artifact product_pages_browser_smoke=artifacts/accurate_intake_product_pages_browser_smoke_ci.json \
             --artifact product_pages_seven_day_diary_smoke=artifacts/accurate_intake_product_pages_seven_day_diary_smoke_ci.json \
             --artifact product_pages_short_term_context_smoke=artifacts/accurate_intake_product_pages_short_term_context_smoke_ci.json \
+            --artifact product_pages_target_candidate_ui_smoke=artifacts/accurate_intake_product_pages_target_candidate_ui_smoke_ci.json \
             --artifact product_pages_visual_qa=artifacts/accurate_intake_product_pages_visual_qa_ci.json \
+            --artifact fixture_full_product_loop_e2e=artifacts/accurate_intake_fixture_full_product_loop_e2e_ci.json \
             --output artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json
           python scripts/build_accurate_intake_pl_ce_activation_review_manifest.py \
             --artifact pl_ce_local_mvp_candidate_bundle=artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json \
@@ -463,6 +466,7 @@ jobs:
             artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json
             artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json
             artifacts/accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json
+            artifacts/accurate_intake_fixture_full_product_loop_e2e_ci.json
             artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json
             artifacts/accurate_intake_pl_ce_activation_review_manifest_ci.json
             artifacts/accurate_intake_pl_ce_serial_handoff_ci.json

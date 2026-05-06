@@ -10,7 +10,9 @@ REQUIRED_INPUTS = (
     "product_pages_browser_smoke",
     "product_pages_seven_day_diary_smoke",
     "product_pages_short_term_context_smoke",
+    "product_pages_target_candidate_ui_smoke",
     "product_pages_visual_qa",
+    "fixture_full_product_loop_e2e",
 )
 
 EXPECTED_STATUSES = {
@@ -18,25 +20,43 @@ EXPECTED_STATUSES = {
     "product_pages_browser_smoke": "pass",
     "product_pages_seven_day_diary_smoke": "pass",
     "product_pages_short_term_context_smoke": "pass",
+    "product_pages_target_candidate_ui_smoke": "pass",
     "product_pages_visual_qa": "pass",
+    "fixture_full_product_loop_e2e": "fixture_product_loop_e2e_diagnostic_pass",
 }
 
 EXPECTED_ARTIFACT_TYPES = {
     "pl_ce_local_mvp_candidate_bundle": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
     "product_pages_visual_qa": "accurate_intake_product_pages_visual_qa",
+    "fixture_full_product_loop_e2e": "accurate_intake_fixture_full_product_loop_e2e",
 }
 
 EXPECTED_SMOKE_IDS = {
     "product_pages_browser_smoke": "accurate_intake_product_pages_browser_smoke_v1",
     "product_pages_seven_day_diary_smoke": "accurate_intake_product_pages_seven_day_diary_smoke_v1",
     "product_pages_short_term_context_smoke": "accurate_intake_product_pages_short_term_context_smoke_v1",
+    "product_pages_target_candidate_ui_smoke": "accurate_intake_product_pages_target_candidate_ui_smoke_v1",
 }
 
 BROWSER_ARTIFACTS = (
     "product_pages_browser_smoke",
     "product_pages_seven_day_diary_smoke",
     "product_pages_short_term_context_smoke",
+    "product_pages_target_candidate_ui_smoke",
     "product_pages_visual_qa",
+)
+
+REQUIRED_PRODUCT_LOOP_STEPS = (
+    "target_update",
+    "food_log",
+    "listed_basket_commit",
+    "correction",
+    "removal",
+    "remaining_query",
+    "reload_continuity",
+    "browser_render_same_truth",
+    "context_replay",
+    "fake_provider_context_smoke",
 )
 
 FORBIDDEN_TRUTHY_FLAGS = (
@@ -59,7 +79,9 @@ FORBIDDEN_TRUTHY_FLAGS = (
     "runtime_truth_changed",
     "mutation_changed",
     "frontend_semantic_owner",
+    "frontend_selected_target",
     "deterministic_semantic_inference_used",
+    "deterministic_selected_target",
     "raw_text_intent_router_used",
     "mutation_authority",
     "forbidden_storage_used",
@@ -120,6 +142,16 @@ REQUIRED_TRUE_FLAGS = {
         "today_summary_rendered",
         "product_pages_no_debug_trace",
     ),
+    "product_pages_target_candidate_ui_smoke": (
+        "browser_executed",
+        "browser_reload_checked",
+        "chat_page_loaded",
+        "chat_history_reloaded",
+        "target_candidate_surface_checked",
+        "target_candidate_list_read_only",
+        "context_strip_read_only",
+        "product_pages_no_debug_trace",
+    ),
     "product_pages_visual_qa": (
         "browser_executed",
         "desktop_screenshots_captured",
@@ -132,6 +164,9 @@ REQUIRED_TRUE_FLAGS = {
         "mobile_no_overflow",
         "visible_trace_debug_terms_absent",
     ),
+    "fixture_full_product_loop_e2e": (
+        "fixture_evidence_used",
+    ),
 }
 
 
@@ -141,6 +176,10 @@ def _json_safe(value: Any) -> Any:
 
 def _object_dict(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
+
+
+def _list_value(value: Any) -> list[Any]:
+    return list(value) if isinstance(value, list) else []
 
 
 def _status(payload: dict[str, Any]) -> str:
@@ -232,6 +271,22 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
             blockers.append("product_pages_seven_day_diary_smoke.seven_day_window_incomplete")
         if _int_value(payload.get("manager_provider_call_count")) != 0:
             blockers.append("product_pages_seven_day_diary_smoke.manager_provider_called")
+    if group_id == "product_pages_target_candidate_ui_smoke":
+        if _int_value(payload.get("target_candidate_count_rendered")) < 2:
+            blockers.append("product_pages_target_candidate_ui_smoke.target_candidate_count_too_low")
+        rendered = [str(item) for item in _list_value(payload.get("target_candidate_names_rendered"))]
+        for required_name in ("luwei", "milk tea"):
+            if required_name not in rendered:
+                blockers.append(
+                    f"product_pages_target_candidate_ui_smoke.target_candidate_missing:{required_name}"
+                )
+        if _int_value(payload.get("manager_provider_call_count")) != 0:
+            blockers.append("product_pages_target_candidate_ui_smoke.manager_provider_called")
+    if group_id == "fixture_full_product_loop_e2e":
+        completed_steps = {str(item) for item in _list_value(payload.get("completed_product_loop_steps"))}
+        for required_step in REQUIRED_PRODUCT_LOOP_STEPS:
+            if required_step not in completed_steps:
+                blockers.append(f"fixture_full_product_loop_e2e.completed_step_missing:{required_step}")
     return blockers
 
 
@@ -314,8 +369,13 @@ def build_pl_ce_browser_activation_evidence_gate_artifact(
                 "requires_three_distinct_pages": True,
                 "requires_seven_day_today_diary": True,
                 "requires_short_term_context_render": True,
+                "requires_target_candidate_ui": True,
+                "requires_fixture_full_product_loop_e2e": True,
                 "requires_visual_qa": True,
                 "requires_no_debug_trace_leak": True,
+                "fixture_product_loop_step_count": len(
+                    _list_value(inputs["fixture_full_product_loop_e2e"].get("completed_product_loop_steps"))
+                ),
             },
         }
     )

@@ -126,6 +126,35 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "product_pages_target_candidate_ui_smoke": {
+            "smoke_id": "accurate_intake_product_pages_target_candidate_ui_smoke_v1",
+            "status": "pass",
+            "browser_executed": True,
+            "browser_reload_checked": True,
+            "chat_page_loaded": True,
+            "chat_history_reloaded": True,
+            "target_candidate_surface_checked": True,
+            "target_candidate_count_rendered": 2,
+            "target_candidate_names_rendered": ["luwei", "milk tea"],
+            "target_candidate_list_read_only": True,
+            "context_strip_read_only": True,
+            "product_pages_no_debug_trace": True,
+            "manager_provider_call_count": 0,
+            "frontend_semantic_owner": False,
+            "frontend_selected_target": False,
+            "deterministic_selected_target": False,
+            "deterministic_semantic_inference_used": False,
+            "raw_text_intent_router_used": False,
+            "mutation_authority": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "web_readiness_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
         "product_pages_visual_qa": {
             "artifact_type": "accurate_intake_product_pages_visual_qa",
             "status": "pass",
@@ -149,6 +178,37 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "fixture_full_product_loop_e2e": {
+            "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
+            "status": "fixture_product_loop_e2e_diagnostic_pass",
+            "completed_product_loop_steps": [
+                "target_update",
+                "food_log",
+                "listed_basket_commit",
+                "correction",
+                "removal",
+                "remaining_query",
+                "reload_continuity",
+                "browser_render_same_truth",
+                "context_replay",
+                "fake_provider_context_smoke",
+            ],
+            "browser_executed": True,
+            "ready_for_fdb_integration": False,
+            "fixture_evidence_used": True,
+            "fooddb_evidence_used": False,
+            "websearch_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "web_readiness_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "production_db_used": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "manager_context_packet_schema_changed": False,
+            "frontend_semantic_owner": False,
+        },
     }
 
 
@@ -159,6 +219,10 @@ def test_browser_activation_gate_requires_real_browser_evidence_without_readines
     assert artifact["status"] == "browser_activation_evidence_ready_for_human_review"
     assert artifact["browser_executed_required"] is True
     assert artifact["all_required_browser_artifacts_executed"] is True
+    assert artifact["summary"]["browser_artifact_count"] == 5
+    assert artifact["summary"]["requires_target_candidate_ui"] is True
+    assert artifact["summary"]["requires_fixture_full_product_loop_e2e"] is True
+    assert artifact["summary"]["fixture_product_loop_step_count"] == 10
     assert artifact["ready_for_live_diagnostic_decision"] is False
     assert artifact["ready_for_fdb_integration"] is False
     assert artifact["live_llm_invoked"] is False
@@ -204,6 +268,7 @@ def test_browser_activation_gate_blocks_frontend_semantics_live_or_fooddb_claims
     inputs["product_pages_visual_qa"]["frontend_semantic_owner"] = True
     inputs["product_pages_browser_smoke"]["fooddb_evidence_used"] = True
     inputs["product_pages_seven_day_diary_smoke"]["manager_provider_call_count"] = 1
+    inputs["product_pages_target_candidate_ui_smoke"]["frontend_selected_target"] = True
 
     artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
 
@@ -212,6 +277,28 @@ def test_browser_activation_gate_blocks_frontend_semantics_live_or_fooddb_claims
     assert "product_pages_visual_qa.frontend_semantic_owner" in artifact["blockers"]
     assert "product_pages_browser_smoke.fooddb_evidence_used" in artifact["blockers"]
     assert "product_pages_seven_day_diary_smoke.manager_provider_called" in artifact["blockers"]
+    assert "product_pages_target_candidate_ui_smoke.frontend_selected_target" in artifact["blockers"]
+
+
+def test_browser_activation_gate_blocks_missing_target_candidate_or_fixture_loop_evidence() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_target_candidate_ui_smoke"]["target_candidate_surface_checked"] = False
+    inputs["product_pages_target_candidate_ui_smoke"]["target_candidate_count_rendered"] = 1
+    inputs["product_pages_target_candidate_ui_smoke"]["target_candidate_names_rendered"] = ["luwei"]
+    inputs["product_pages_target_candidate_ui_smoke"]["manager_provider_call_count"] = 1
+    inputs["fixture_full_product_loop_e2e"]["completed_product_loop_steps"] = ["target_update"]
+    inputs["fixture_full_product_loop_e2e"]["fixture_evidence_used"] = False
+
+    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "product_pages_target_candidate_ui_smoke.target_candidate_surface_checked_not_true" in artifact["blockers"]
+    assert "product_pages_target_candidate_ui_smoke.target_candidate_count_too_low" in artifact["blockers"]
+    assert "product_pages_target_candidate_ui_smoke.target_candidate_missing:milk tea" in artifact["blockers"]
+    assert "product_pages_target_candidate_ui_smoke.manager_provider_called" in artifact["blockers"]
+    assert "fixture_full_product_loop_e2e.fixture_evidence_used_not_true" in artifact["blockers"]
+    assert "fixture_full_product_loop_e2e.completed_step_missing:food_log" in artifact["blockers"]
+    assert "fixture_full_product_loop_e2e.completed_step_missing:fake_provider_context_smoke" in artifact["blockers"]
 
 
 def test_browser_activation_gate_blocks_stale_body_read_model_values() -> None:
@@ -319,5 +406,7 @@ def test_ci_builds_browser_activation_evidence_gate() -> None:
 
     assert "test_accurate_intake_pl_ce_browser_activation_evidence_gate.py" in workflow
     assert "run_accurate_intake_product_pages_short_term_context_smoke.py --require-browser-execution" in workflow
+    assert "run_accurate_intake_product_pages_target_candidate_ui_smoke.py --require-browser-execution" in workflow
+    assert "run_accurate_intake_fixture_full_product_loop_e2e.py --require-browser-execution" in workflow
     assert "build_accurate_intake_pl_ce_browser_activation_evidence_gate.py" in workflow
     assert "accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json" in workflow
