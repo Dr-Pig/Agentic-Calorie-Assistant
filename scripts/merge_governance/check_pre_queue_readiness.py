@@ -2,12 +2,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import re
+import sys
 from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.merge_governance.build_merge_debt_matrix import REQUIRED_TRACK_REPORT_KEYS, extract_track_report  # noqa: E402
+
 DEFAULT_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 DEFAULT_OUTPUT = ROOT / "artifacts" / "pre_queue_readiness_report.json"
 
@@ -71,10 +78,27 @@ def _job_block(workflow: str, job_name: str) -> str:
     return workflow[start : start + len(marker) + next_job.start()]
 
 
-def build_report(workflow_text: str) -> dict[str, Any]:
+def _track_report_blockers_from_event(event_path: Path | None) -> list[str]:
+    if event_path is None or not event_path.exists():
+        return []
+    event = json.loads(event_path.read_text(encoding="utf-8"))
+    pull_request = event.get("pull_request")
+    if not isinstance(pull_request, dict):
+        return []
+    title = str(pull_request.get("title") or "")
+    head = pull_request.get("head") if isinstance(pull_request.get("head"), dict) else {}
+    head_ref = str(head.get("ref") or "")
+    if head_ref.startswith("dependabot/") or title.lower().startswith("bump "):
+        return []
+    flags = extract_track_report(str(pull_request.get("body") or ""))
+    return [f"missing_track_report_key:{key}" for key in REQUIRED_TRACK_REPORT_KEYS if key not in flags]
+
+
+def build_report(workflow_text: str, *, event_path: Path | None = None) -> dict[str, Any]:
     blockers: list[str] = []
     if any(marker in workflow_text for marker in ("<<<<<<<", "=======", ">>>>>>>")):
         blockers.append("workflow_conflict_markers_present")
+    blockers.extend(_track_report_blockers_from_event(event_path))
 
     job = _job_block(workflow_text, PRODUCT_PAGES_JOB)
     if not job:
@@ -112,12 +136,14 @@ def build_report(workflow_text: str) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Check pre-queue CI readiness invariants.")
     parser.add_argument("--workflow-file", default=str(DEFAULT_WORKFLOW))
+    parser.add_argument("--event-file", default=os.environ.get("GITHUB_EVENT_PATH"))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
     workflow_path = Path(args.workflow_file)
     workflow_text = workflow_path.read_text(encoding="utf-8")
-    report = build_report(workflow_text)
+    event_path = Path(args.event_file) if args.event_file else None
+    report = build_report(workflow_text, event_path=event_path)
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
