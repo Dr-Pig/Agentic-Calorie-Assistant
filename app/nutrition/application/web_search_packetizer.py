@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Sequence
 
+from .brand_identity_family import same_brand_family
 from .context_normalizer import lookup_key, lookup_tokens, normalize_text
 from .retrieval_intent import RetrievalIntent
 from .web_search_packetizer_policy import (
@@ -298,7 +299,7 @@ def _longest_common_substring(left: str, right: str) -> str:
 def _same_text_family(left: str, right: str) -> bool:
     left_key = lookup_key(left)
     right_key = lookup_key(right)
-    return bool(left_key and right_key and (left_key == right_key or left_key in right_key or right_key in left_key))
+    return bool(left_key and right_key and (same_brand_family(left, right) or left_key == right_key or left_key in right_key or right_key in left_key))
 
 
 def _text(value: object) -> str:

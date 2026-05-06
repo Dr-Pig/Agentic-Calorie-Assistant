@@ -13,8 +13,8 @@ from .websearch_candidate_classification import (
     classify_candidate_packet,
     source_policy_filtered_extract_decision_trace,
 )
-from .websearch_candidate_pipeline_fixtures import (
-    build_default_websearch_pipeline_cases,
+from .websearch_candidate_pipeline_expansion_fixtures import (
+    build_expanded_websearch_pipeline_cases,
 )
 from .websearch_source_policy import build_websearch_source_policy_artifact
 
@@ -170,7 +170,7 @@ def _identity_target(intent: RetrievalIntent) -> str:
 
 
 def _default_cases() -> tuple[WebSearchPipelineCase, ...]:
-    return build_default_websearch_pipeline_cases(case_factory=WebSearchPipelineCase)
+    return build_expanded_websearch_pipeline_cases(case_factory=WebSearchPipelineCase)
 
 
 def _now() -> str:

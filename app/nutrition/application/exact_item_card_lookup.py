@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from .brand_identity_family import brand_identity_variants, same_brand_family
 from .context_normalizer import lookup_key
 from .nutrition_evidence_store import NutritionEvidenceStorePort, default_nutrition_evidence_store
 from .retrieval_intent import RetrievalIntent
@@ -106,9 +107,10 @@ def _query_texts_for_intent(intent: RetrievalIntent) -> tuple[str, ...]:
         values.append(intent.base_dish)
     values.extend(alias for alias in intent.aliases if alias)
     if intent.brand_hint and intent.base_dish:
-        values.append(f"{intent.brand_hint}{intent.base_dish}")
-        if intent.size_hint:
-            values.append(f"{intent.brand_hint}{intent.base_dish}{intent.size_hint}")
+        for brand_variant in brand_identity_variants(intent.brand_hint):
+            values.append(f"{brand_variant}{intent.base_dish}")
+            if intent.size_hint:
+                values.append(f"{brand_variant}{intent.base_dish}{intent.size_hint}")
     return tuple(dict.fromkeys(values))
 
 
@@ -123,7 +125,10 @@ def _apply_metadata_filters(
         filtered = [
             item
             for item in filtered
-            if intent.brand_hint in str((item["record"] or {}).get("brand") or "")
+            if same_brand_family(
+                intent.brand_hint,
+                str((item["record"] or {}).get("brand") or ""),
+            )
         ]
     if intent.size_hint:
         applied.append("size_hint")

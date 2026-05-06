@@ -8,12 +8,14 @@ def _search_packet(
     *,
     packet_id: str,
     source_quality_label: str = "brand_menu",
+    source_class_hint: str = "brand_menu_page",
     match_type: str = "exact",
     supports_exact_claim: bool = True,
     hard_recheck_risks: list[str] | None = None,
     sibling_present: bool = False,
     size_or_serving_match: str = "same",
     modifier_match: str = "same",
+    tavily_score: float = 0.93,
 ) -> dict[str, object]:
     packet = {
         "packet_id": packet_id,
@@ -21,11 +23,12 @@ def _search_packet(
         "truth_level": "candidate",
         "source_type": "web_search",
         "source_quality_label": source_quality_label,
+        "source_class_hint": source_class_hint,
         "raw_ref": f"raw/tavily/{packet_id}.json#0",
         "title": "迷客夏 珍珠紅茶拿鐵",
         "url": "https://milksha.example/menu/pearl-black-tea-latte",
         "snippet": "official menu result",
-        "tavily_score": 0.93,
+        "tavily_score": tavily_score,
         "query": "迷客夏珍珠紅茶拿鐵",
         "matched_terms": ["迷客夏", "珍珠紅茶拿鐵"],
         "matched_name": "迷客夏珍珠紅茶拿鐵",
@@ -105,6 +108,41 @@ def test_selected_extract_policy_allows_identity_safe_official_candidate_for_ext
     assert decision.extract_allowed_by_policy is True
     assert decision.selected_search_packet_id == "pkt_web_search_identity_safe"
     assert decision.extract_reason == "selected_same_item_official_candidate"
+
+
+def test_selected_extract_policy_prefers_official_pdf_over_brand_menu_when_both_are_safe() -> None:
+    menu_packet = _search_packet(
+        packet_id="pkt_web_search_menu",
+        source_class_hint="brand_menu_page",
+        tavily_score=0.99,
+    )
+    pdf_packet = _search_packet(
+        packet_id="pkt_web_search_pdf",
+        source_class_hint="official_nutrition_pdf",
+        tavily_score=0.70,
+    )
+
+    decision = choose_selected_extract_packet((menu_packet, pdf_packet))
+
+    assert decision.extract_allowed_by_policy is True
+    assert decision.selected_search_packet_id == "pkt_web_search_pdf"
+    assert decision.selected_urls == ["https://milksha.example/menu/pearl-black-tea-latte"]
+
+
+def test_selected_extract_policy_prefers_modifier_same_over_modifier_unknown() -> None:
+    modifier_unknown = _search_packet(
+        packet_id="pkt_web_search_modifier_unknown",
+        modifier_match="unknown",
+    )
+    modifier_same = _search_packet(
+        packet_id="pkt_web_search_modifier_same",
+        modifier_match="same",
+    )
+
+    decision = choose_selected_extract_packet((modifier_unknown, modifier_same))
+
+    assert decision.extract_allowed_by_policy is True
+    assert decision.selected_search_packet_id == "pkt_web_search_modifier_same"
 
 
 def test_selected_extract_policy_blocks_unknown_license_or_serving_basis() -> None:
