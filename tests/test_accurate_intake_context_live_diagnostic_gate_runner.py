@@ -26,6 +26,7 @@ def test_context_live_diagnostic_gate_default_writes_review_pack_without_live(
     assert artifact["live_provider_allowed"] is False
     assert artifact["full_matrix_live_probe_required"] is True
     assert artifact["ad_hoc_live_case_selection_allowed"] is False
+    assert artifact["holdout_plan_required"] is True
     assert artifact["product_readiness_claimed"] is False
     assert artifact["private_self_use_approved"] is False
     assert artifact["fooddb_used"] is False
@@ -34,6 +35,14 @@ def test_context_live_diagnostic_gate_default_writes_review_pack_without_live(
     assert artifact["manager_context_packet_schema_changed"] is False
     for path_text in artifact["artifact_paths"].values():
         assert Path(path_text).exists()
+    assert "context_live_diagnostic_holdout_plan" in artifact["artifact_paths"]
+    holdout = json.loads(
+        Path(artifact["artifact_paths"]["context_live_diagnostic_holdout_plan"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert holdout["artifact_type"] == "accurate_intake_context_live_diagnostic_holdout_plan"
+    assert holdout["status"] == "pass"
 
 
 def test_context_live_diagnostic_gate_can_require_live_provider(

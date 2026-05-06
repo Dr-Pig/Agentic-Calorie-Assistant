@@ -199,6 +199,45 @@ def test_pre_queue_readiness_fails_missing_product_pages_dry_run_command(
     assert "missing_activation_manifest_input.context_live_diagnostic_dry_run_evaluator" not in report["blockers"]
 
 
+def test_pre_queue_readiness_fails_missing_context_live_holdout_plan_chain_link(
+    tmp_path: Path,
+) -> None:
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    workflow = workflow.replace(
+        "          python scripts/build_accurate_intake_context_live_diagnostic_holdout_plan.py "
+        "--matrix-json artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json "
+        "--anti-overfit-json artifacts/accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json "
+        "--output artifacts/accurate_intake_context_live_diagnostic_holdout_plan_ci.json\n",
+        "",
+        1,
+    ).replace(
+        "            --artifact context_live_diagnostic_holdout_plan="
+        "artifacts/accurate_intake_context_live_diagnostic_holdout_plan_ci.json \\\n",
+        "",
+        1,
+    ).replace(
+        "            artifacts/accurate_intake_context_live_diagnostic_holdout_plan_ci.json\n",
+        "",
+        1,
+    )
+    workflow_path = tmp_path / "ci.yml"
+    workflow_path.write_text(workflow, encoding="utf-8")
+
+    assert (
+        check_pre_queue_readiness.main(
+            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
+        )
+        == 1
+    )
+
+    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
+    assert "missing_product_pages_command.context_live_diagnostic_holdout_plan" in report["blockers"]
+    assert "missing_activation_manifest_input.context_live_diagnostic_holdout_plan" in report["blockers"]
+    assert "missing_product_pages_upload_artifact.context_live_diagnostic_holdout_plan" in report[
+        "blockers"
+    ]
+
+
 def test_pre_queue_readiness_fails_missing_response_contract_upload(tmp_path: Path) -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     workflow = workflow.replace(

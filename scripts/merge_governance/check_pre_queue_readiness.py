@@ -39,6 +39,13 @@ COMMAND_SNIPPETS = (
         "artifacts/accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json",
     ),
     (
+        "context_live_diagnostic_holdout_plan",
+        "build_accurate_intake_context_live_diagnostic_holdout_plan.py --matrix-json "
+        "artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json --anti-overfit-json "
+        "artifacts/accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json --output "
+        "artifacts/accurate_intake_context_live_diagnostic_holdout_plan_ci.json",
+    ),
+    (
         "context_live_diagnostic_dry_run_evaluator",
         "build_accurate_intake_context_live_diagnostic_dry_run_evaluator.py --matrix-json "
         "artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json --output "
@@ -79,6 +86,7 @@ COMMAND_SNIPPETS = (
 
 UPLOAD_ARTIFACTS = (
     "artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json",
+    "artifacts/accurate_intake_context_live_diagnostic_holdout_plan_ci.json",
     "artifacts/accurate_intake_context_live_provider_input_preflight_ci.json",
     "artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json",
     "artifacts/accurate_intake_pl_ce_product_pages_self_use_flow_gate_ci.json",
@@ -91,6 +99,8 @@ UPLOAD_ARTIFACTS = (
 ACTIVATION_MANIFEST_INPUTS = (
     "--artifact context_live_diagnostic_dry_run_evaluator="
     "artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json",
+    "--artifact context_live_diagnostic_holdout_plan="
+    "artifacts/accurate_intake_context_live_diagnostic_holdout_plan_ci.json",
     "--artifact context_live_diagnostic_gate="
     "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json",
 )
