@@ -51,6 +51,7 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "body_plan_read_model_fields_rendered": True,
         "body_weight_checkin_saved": True,
         "body_latest_weight_rendered_from_backend": True,
+        "body_weight_history_date_scoped_readback": True,
         "body_plan_form_saved": True,
         "body_manual_target_saved": True,
         "body_plan_readback_checked": True,
@@ -92,7 +93,10 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
                 },
                 {"url": f"/today/current-budget?user_id=product-pages&local_date={local_date}", "method": "GET"},
                 {"url": "/body-plan/active?user_id=product-pages", "method": "GET"},
-                {"url": "/weight/observations?user_id=product-pages", "method": "GET"},
+                {
+                    "url": f"/weight/observations?user_id=product-pages&local_date={local_date}",
+                    "method": "GET",
+                },
                 {
                     "url": "/weight/observation",
                     "method": "POST",
@@ -217,6 +221,7 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     report["body_plan_readback_checked"] = False
     report["body_plan_read_model_fields_rendered"] = False
     report["body_latest_weight_rendered_from_backend"] = False
+    report["body_weight_history_date_scoped_readback"] = False
     report["body_manual_target_read_model_rendered"] = False
     report["today_manual_target_readback_checked"] = False
     report["today_session_status_rendered"] = False
@@ -234,6 +239,7 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     assert "body_plan_readback_not_checked" in blockers
     assert "body_plan_read_model_fields_not_rendered" in blockers
     assert "body_latest_weight_not_rendered_from_backend" in blockers
+    assert "body_weight_history_date_scoped_readback_missing" in blockers
     assert "body_manual_target_read_model_not_rendered" in blockers
     assert "today_manual_target_readback_not_checked" in blockers
     assert "today_session_status_not_rendered" in blockers
@@ -266,6 +272,40 @@ def test_product_pages_browser_smoke_validator_rejects_stale_body_read_model_val
     assert "body_read_model_value_mismatch:activity" in blockers
     assert "body_read_model_value_mismatch:goal" in blockers
     assert "body_read_model_value_mismatch:weight_history" in blockers
+
+
+def test_product_pages_browser_smoke_validator_requires_date_scoped_body_weight_history_fetch() -> None:
+    report = _passing_report(local_date="2026-05-05")
+    browser = dict(report["browser"])
+    browser["fetch_sequence"] = [
+        item
+        for item in browser["fetch_sequence"]  # type: ignore[index]
+        if "/weight/observations" not in str(item.get("url") or "")
+    ]
+    browser["fetch_sequence"].append(
+        {"url": "/weight/observations?user_id=product-pages", "method": "GET"}
+    )
+    report["browser"] = browser
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "body_weight_history_date_fetch_missing" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_any_unscoped_body_weight_history_fetch() -> None:
+    report = _passing_report(local_date="2026-05-05")
+    browser = dict(report["browser"])
+    browser["fetch_sequence"] = [
+        *browser["fetch_sequence"],  # type: ignore[index]
+        {"url": "/weight/observations?user_id=product-pages", "method": "GET"},
+    ]
+    report["browser"] = browser
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "body_weight_history_unscoped_fetch_detected" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_debug_trace_or_frontend_truth() -> None:
@@ -303,8 +343,9 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
     except module.BrowserSmokeDependencyMissing:
         pytest.skip("Playwright is not installed in this environment.")
 
+    db_path = tmp_path / "product-pages-browser.sqlite3"
     report = module.build_product_pages_browser_smoke_report(
-        db_path=tmp_path / "product-pages-browser.sqlite3",
+        db_path=db_path,
         require_browser_execution=True,
         timeout_ms=20000,
     )
@@ -346,6 +387,7 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
     assert report["body_reload_preserved_user_id"] is True
     assert report["today_manual_target_readback_checked"] is True
     assert report["nav_session_query_preserved"] is True
+    db_path.unlink()
 
 
 def test_ci_requires_product_pages_browser_execution() -> None:

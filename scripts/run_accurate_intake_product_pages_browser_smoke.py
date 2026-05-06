@@ -117,6 +117,7 @@ def _base_report(
         "body_plan_read_model_fields_rendered": False,
         "body_weight_checkin_saved": False,
         "body_latest_weight_rendered_from_backend": False,
+        "body_weight_history_date_scoped_readback": False,
         "body_plan_form_saved": False,
         "body_manual_target_saved": False,
         "body_plan_readback_checked": False,
@@ -761,6 +762,15 @@ def _run_browser_sequence(
             result["body_latest_weight_rendered_from_backend"] = f"{local_date} | 70.4 kg" in body_plan_values[
                 "weight_history"
             ]
+            body_fetch_urls = [
+                str(item.get("url") or "")
+                for item in _capture_fetches(body)
+                if isinstance(item, dict)
+            ]
+            result["body_weight_history_date_scoped_readback"] = any(
+                "/weight/observations" in url and f"local_date={local_date}" in url
+                for url in body_fetch_urls
+            )
             result["body_manual_target_read_model_rendered"] = True
             body_text_after = body.locator("body").inner_text(timeout=timeout_ms)
             result["body_no_debug_trace"] = _is_visible_product_text_clean(body_text_after)
@@ -896,6 +906,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         "body_latest_weight_rendered_from_backend",
         "body_latest_weight_not_rendered_from_backend",
     )
+    require_true(
+        "body_weight_history_date_scoped_readback",
+        "body_weight_history_date_scoped_readback_missing",
+    )
     require_true("body_plan_form_saved", "body_plan_form_not_saved")
     require_true("body_manual_target_saved", "body_manual_target_not_saved")
     require_true("body_plan_readback_checked", "body_plan_readback_not_checked")
@@ -957,6 +971,10 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         blockers.append("today_previous_day_fetch_missing")
     if not any("/today/current-budget" in url and f"local_date={local_date}" in url for url in fetch_urls):
         blockers.append("today_current_day_fetch_missing")
+    if not any("/weight/observations" in url and f"local_date={local_date}" in url for url in fetch_urls):
+        blockers.append("body_weight_history_date_fetch_missing")
+    if any("/weight/observations" in url and "local_date=" not in url for url in fetch_urls):
+        blockers.append("body_weight_history_unscoped_fetch_detected")
     estimate_posts = [
         str(item.get("body") or "")
         for item in fetches
