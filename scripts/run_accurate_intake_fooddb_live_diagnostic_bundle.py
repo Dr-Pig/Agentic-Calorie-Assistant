@@ -42,6 +42,9 @@ from app.nutrition.application.fooddb_manager_contract_probe import (  # noqa: E
 from app.nutrition.application.fooddb_manager_contract_repair_pack import (  # noqa: E402
     build_fooddb_manager_contract_repair_pack,
 )
+from app.nutrition.application.fooddb_status_packet_inspection import (  # noqa: E402
+    build_fooddb_status_packet_inspection,
+)
 from app.nutrition.application.grokfast_fooddb_diagnostic_preflight import (  # noqa: E402
     build_grokfast_fooddb_diagnostic_preflight,
 )
@@ -131,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
                 "mode": args.mode,
                 "live_provider_used": diagnostic.get("live_provider_used"),
                 "seam_status": report["seam_status"],
-                "next_recommended_slice": report["next_recommended_slice"],
+                "next_recommended_slice": manifest["next_recommended_slice"],
             },
             ensure_ascii=False,
         )
@@ -287,10 +290,16 @@ def _build_post_diagnostic_artifacts(
         exact_card_payload=source_payloads["exact_card_payload"],
         contract_handoff_artifact=handoff,
     )
+    status_packet_inspection = build_fooddb_status_packet_inspection(
+        fooddb_status_packet=post_contract_status,
+        live_runner_readiness_artifact=read_json_artifact(paths["live_runner_readiness"]),
+        contract_handoff_artifact=handoff,
+    )
     artifacts = {
         "manager_contract_probe": probe,
         "manager_contract_repair_pack": repair_pack,
         "manager_contract_handoff": handoff,
+        "fooddb_status_packet_inspection": status_packet_inspection,
         "fooddb_status_packet_post_contract": post_contract_status,
     }
     for key, artifact in artifacts.items():
@@ -311,6 +320,7 @@ def _build_manifest(
     contract_artifacts: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     contract_probe = contract_artifacts["manager_contract_probe"]
+    status_packet_inspection = contract_artifacts["fooddb_status_packet_inspection"]
     post_contract_status = contract_artifacts["fooddb_status_packet_post_contract"]
     post_contract_summary = (
         dict(post_contract_status.get("summary") or {})
@@ -344,7 +354,10 @@ def _build_manifest(
         "preflight_status": preflight.get("status"),
         "live_runner_readiness_status": live_runner_readiness.get("status"),
         "seam_status": report["seam_status"],
-        "next_recommended_slice": report["next_recommended_slice"],
+        "next_recommended_slice": _inspection_next_slice(
+            status_packet_inspection,
+            fallback=report["next_recommended_slice"],
+        ),
         "manager_contract_probe_detected_failure": contract_probe.get(
             "contract_failure_detected"
         )
@@ -376,6 +389,7 @@ def _build_manifest(
                 "manager_contract_probe",
                 "manager_contract_repair_pack",
                 "manager_contract_handoff",
+                "fooddb_status_packet_inspection",
                 "fooddb_status_packet_post_contract",
             }
         },
@@ -387,6 +401,12 @@ def _build_manifest(
             "not_product_readiness",
         ],
     }
+
+
+def _inspection_next_slice(inspection_artifact: dict[str, Any], *, fallback: str) -> str:
+    summary = dict(inspection_artifact.get("summary") or {})
+    next_safe_slice = str(summary.get("next_safe_slice") or "").strip()
+    return next_safe_slice or fallback
 
 
 if __name__ == "__main__":
