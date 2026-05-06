@@ -102,22 +102,16 @@ def main(argv: list[str] | None = None) -> int:
 
 def _artifact_paths(output_dir: Path) -> dict[str, Path]:
     return {
-        "case_matrix": output_dir
-        / "accurate_intake_websearch_grokfast_packet_live_diagnostic_case_matrix.json",
-        "selected_extract": output_dir
-        / "accurate_intake_websearch_selected_extract_packet_smoke.json",
-        "extract_result": output_dir
-        / "accurate_intake_websearch_extract_result_candidate_smoke.json",
-        "review_packet": output_dir
-        / "accurate_intake_websearch_exact_candidate_review_packet.json",
-        "preflight": output_dir / "accurate_intake_websearch_live_extract_preflight.json",
-        "chain_status": output_dir
-        / "accurate_intake_websearch_exact_candidate_chain_status.json",
-        "readiness": output_dir
-        / "accurate_intake_websearch_live_runner_readiness_packet.json",
-        "diagnostic": output_dir / "accurate_intake_grokfast_websearch_packet_smoke.json",
-        "report": output_dir / "accurate_intake_websearch_live_diagnostic_report.json",
-        "manifest": output_dir / "accurate_intake_websearch_live_diagnostic_bundle_manifest.json",
+        "case_matrix": output_dir / "websearch_case_matrix.json",
+        "selected_extract": output_dir / "websearch_selected_extract.json",
+        "extract_result": output_dir / "websearch_extract_result.json",
+        "review_packet": output_dir / "websearch_exact_review_packet.json",
+        "preflight": output_dir / "websearch_live_preflight.json",
+        "chain_status": output_dir / "websearch_exact_chain_status.json",
+        "readiness": output_dir / "websearch_live_readiness.json",
+        "diagnostic": output_dir / "grokfast_websearch_packet_smoke.json",
+        "report": output_dir / "websearch_live_report.json",
+        "manifest": output_dir / "websearch_live_manifest.json",
     }
 
 
