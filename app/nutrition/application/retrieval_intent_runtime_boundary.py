@@ -11,16 +11,20 @@ from .exact_brand_web_canary import ExactBrandWebCanaryOutcome, run_exact_brand_
 from .food_evidence_retriever_router import (
     FoodEvidenceRetrieverRoutePlan,
     RetrieverBackendAvailability,
-    build_food_evidence_retriever_route_plan,
+    build_food_evidence_retriever_route_plan_for_request,
 )
-from . import retrieval_intent as retrieval_intent_module
-from .retrieval_intent import RAW_TEXT_RETRIEVAL_INTENT_POLICY
+from .retrieval_intent import RAW_TEXT_RETRIEVAL_INTENT_POLICY, build_raw_text_retrieval_hint
+from .retrieval_request import build_retrieval_request_from_raw_text_hint
 
 
-_RAW_HINT_BUILDER_NAME = "build_" "retrieval_intent"
+_RAW_HINT_BUILDER_NAME = "build_" "raw_text_retrieval_hint"
 _RUNTIME_CALL_RE = re.compile(r"\b" + _RAW_HINT_BUILDER_NAME + r"\(")
 _ALLOWED_RUNTIME_CALL_FILES = ("app/nutrition/application/exact_brand_web_canary.py",)
-_IGNORED_AUDIT_FILES = ("app/nutrition/application/retrieval_intent_runtime_boundary.py",)
+_IGNORED_AUDIT_FILES = (
+    "app/nutrition/application/retrieval_intent_runtime_boundary.py",
+    "app/nutrition/application/retrieval_intent.py",
+    "app/nutrition/application/retrieval_request.py",
+)
 
 
 def build_retrieval_intent_runtime_boundary_artifact(
@@ -29,15 +33,14 @@ def build_retrieval_intent_runtime_boundary_artifact(
     canary_outcome: ExactBrandWebCanaryOutcome | None = None,
     runtime_call_files: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
-    raw_hint = getattr(retrieval_intent_module, _RAW_HINT_BUILDER_NAME)("星巴克冰拿鐵大杯")
-    route_plan = raw_hint_route_plan or build_food_evidence_retriever_route_plan(
-        raw_hint,
+    raw_hint = build_raw_text_retrieval_hint("星巴克冰拿鐵大杯")
+    route_plan = raw_hint_route_plan or build_food_evidence_retriever_route_plan_for_request(
+        build_retrieval_request_from_raw_text_hint("星巴克冰拿鐵大杯"),
         availability=RetrieverBackendAvailability(
             local_fooddb_index=True,
             sqlite_fts_index=True,
             websearch_candidate_lane=True,
         ),
-        intent_source="raw_text_hint",
     )
     outcome = canary_outcome or asyncio.run(
         run_exact_brand_web_canary(
@@ -74,6 +77,7 @@ def build_retrieval_intent_runtime_boundary_artifact(
         "readiness_claimed": False,
         "raw_text_retrieval_intent_policy": dict(RAW_TEXT_RETRIEVAL_INTENT_POLICY),
         "runtime_route_probe": {
+            "raw_text_hint_goal": raw_hint.retrieval_goal,
             "primary_backend": route_plan.primary_backend,
             "backend_sequence": list(route_plan.backend_sequence),
             "retrieval_intent_source": route_plan.retrieval_intent_source,

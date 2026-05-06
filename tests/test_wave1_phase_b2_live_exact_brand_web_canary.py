@@ -94,6 +94,7 @@ async def test_live_exact_brand_web_canary_returns_lane_result_when_extract_pack
     assert outcome.trace["attempted"] is True
     assert outcome.trace["skip_reason"] is None
     assert outcome.trace["semantic_authority_source"] == "synthetic_manager_structured_fixture"
+    assert outcome.trace["retrieval_request_source"] == "manager_decision"
     assert outcome.trace["raw_text_retrieval_hint_goal"] == "generic_anchor_lookup"
     assert outcome.trace["web_query"] == "Test BrandMatcha Latte"
     assert outcome.trace["provider_profile"]["search_port"] == "_FakeSearchPort"
@@ -216,6 +217,7 @@ async def test_live_exact_brand_web_canary_skips_without_manager_owned_retrieval
     assert outcome.trace["attempted"] is False
     assert outcome.trace["skip_reason"] == "manager_owned_retrieval_intent_required"
     assert outcome.trace["semantic_authority_source"] == "deterministic_raw_text_hint_only"
+    assert outcome.trace["retrieval_request_source"] == "raw_text_hint"
     assert search_port.calls == []
     assert extract_port.calls == []
 

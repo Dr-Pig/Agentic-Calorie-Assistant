@@ -12,7 +12,7 @@ from .food_evidence_retriever_execution_scope import (
 )
 from .food_evidence_retriever_router import (
     RetrieverBackendAvailability,
-    build_food_evidence_retriever_route_plan,
+    build_food_evidence_retriever_route_plan_for_request,
 )
 from .fooddb_retrieval_policy import retrieve_fooddb_candidates
 from .tool_evidence_result import build_tool_evidence_result
@@ -25,10 +25,9 @@ def case_result(
     index: FoodEvidenceIndexPort,
     availability: RetrieverBackendAvailability,
 ) -> dict[str, Any]:
-    route_plan = build_food_evidence_retriever_route_plan(
-        case.intent,
+    route_plan = build_food_evidence_retriever_route_plan_for_request(
+        case.request,
         availability=availability,
-        intent_source=case.intent_source,
     )
     if route_plan.primary_backend == "blocked_no_execution":
         return blocked_no_execution_case_result(case=case, route_plan=route_plan)
@@ -45,7 +44,7 @@ def fooddb_case_result(
     route_plan: Any,
     index: FoodEvidenceIndexPort,
 ) -> dict[str, Any]:
-    manager_owned_query = query_from_intent(case.intent)
+    manager_owned_query = query_from_intent(case.request.intent)
     records = records_for_query(index=index, query=manager_owned_query)
     retrieval_result = retrieve_fooddb_candidates(manager_owned_query, retrieval_records=records)
     packet = build_food_evidence_recall_packet(
@@ -85,7 +84,7 @@ def fooddb_case_result(
 
 def websearch_case_result(*, case: RetrieverExecutionCase, route_plan: Any) -> dict[str, Any]:
     packet_smoke = build_websearch_candidate_packet_smoke()
-    packets = websearch_packets_for_intent(case.intent, packet_smoke=packet_smoke)
+    packets = websearch_packets_for_intent(case.request.intent, packet_smoke=packet_smoke)
     tool_result = build_tool_evidence_result(
         tool_name="search_official_nutrition",
         tool_call_id=f"tool-{case.case_id}",
@@ -180,6 +179,12 @@ def base_case_payload(
         "status": "pass" if checks and all(checks.values()) else "fail",
         "checks": checks,
         "raw_query": case.raw_query,
+        "retrieval_request": {
+            "intent_source": case.request.intent_source,
+            "semantic_authority_source": case.request.semantic_authority_source,
+            "runtime_execution_allowed": case.request.runtime_execution_allowed,
+            "trace_role": case.request.trace_role,
+        },
         "route_plan": {
             "primary_backend": route_plan.primary_backend,
             "backend_sequence": list(route_plan.backend_sequence),

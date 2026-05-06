@@ -15,11 +15,11 @@ from .exact_brand_web_canary_trace import (
     synthesis_evidence_refs,
 )
 from .local_synthesis import synthesize_local_manager_pass
-from .retrieval_intent import RetrievalIntent, build_retrieval_intent
-from .retrieval_semantic_decision import (
-    B2ManagerSemanticDecision,
-    build_retrieval_intent_from_manager_decision,
+from .retrieval_intent import RetrievalIntent, build_raw_text_retrieval_hint
+from .retrieval_request import (
+    build_retrieval_request_from_manager_decision,
 )
+from .retrieval_semantic_decision import B2ManagerSemanticDecision
 from .selected_extract_policy import SelectedExtractDecision, choose_selected_extract_packet
 from .web_extract_packetizer import build_web_extract_packets
 from .web_extract_port import WebExtractPort
@@ -58,20 +58,23 @@ async def run_exact_brand_web_canary(
     trace = default_trace()
     trace["raw_user_input"] = raw_user_input
     start = time.perf_counter()
-    raw_hint = build_retrieval_intent(raw_user_input)
+    raw_hint = build_raw_text_retrieval_hint(raw_user_input)
     trace["raw_text_retrieval_hint_goal"] = raw_hint.retrieval_goal
     trace["provider_profile"] = provider_profile(search_port)
     trace["exact_db_miss_confirmed"] = not exact_db_hit_present
 
     if manager_decision is None:
         trace["semantic_authority_source"] = "deterministic_raw_text_hint_only"
+        trace["retrieval_request_source"] = "raw_text_hint"
         trace["retrieval_goal"] = None
         trace["skip_reason"] = "manager_owned_retrieval_intent_required"
         trace["total_latency_ms"] = elapsed_ms(start)
         return ExactBrandWebCanaryOutcome(result=None, trace=trace)
 
-    intent = build_retrieval_intent_from_manager_decision(manager_decision)
-    trace["semantic_authority_source"] = manager_decision.semantic_authority_source
+    request = build_retrieval_request_from_manager_decision(manager_decision)
+    intent = request.intent
+    trace["semantic_authority_source"] = request.semantic_authority_source
+    trace["retrieval_request_source"] = request.intent_source
     trace["retrieval_goal"] = intent.retrieval_goal
 
     skip_reason = _skip_reason(

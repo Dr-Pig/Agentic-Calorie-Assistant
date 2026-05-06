@@ -3,8 +3,13 @@ from __future__ import annotations
 from app.nutrition.application.food_evidence_retriever_router import (
     RetrieverBackendAvailability,
     build_food_evidence_retriever_route_plan,
+    build_food_evidence_retriever_route_plan_for_request,
 )
 from app.nutrition.application.retrieval_intent import RetrievalIntent
+from app.nutrition.application.retrieval_request import (
+    build_retrieval_request_from_intent_fixture,
+    build_retrieval_request_from_raw_text_hint,
+)
 
 
 def test_router_prefers_sqlite_fts_when_available_for_runtime_fooddb_lookup() -> None:
@@ -139,22 +144,13 @@ def test_router_keeps_query_only_read_only_even_when_fooddb_lookup_is_allowed() 
 
 
 def test_router_blocks_raw_text_hint_from_executing_evidence_backends() -> None:
-    plan = build_food_evidence_retriever_route_plan(
-        RetrievalIntent(
-            base_dish="珍珠奶茶",
-            aliases=["珍奶"],
-            brand_hint=None,
-            size_hint=None,
-            modifier_hints=[],
-            listed_items=[],
-            retrieval_goal="generic_anchor_lookup",
-        ),
+    plan = build_food_evidence_retriever_route_plan_for_request(
+        build_retrieval_request_from_raw_text_hint("珍奶"),
         availability=RetrieverBackendAvailability(
             local_fooddb_index=True,
             sqlite_fts_index=True,
             websearch_candidate_lane=True,
         ),
-        intent_source="raw_text_hint",
     )
 
     assert plan.primary_backend == "blocked_no_execution"
@@ -165,3 +161,29 @@ def test_router_blocks_raw_text_hint_from_executing_evidence_backends() -> None:
     assert plan.runtime_truth_source == "manager_owned_retrieval_intent_required"
     assert plan.mutation_allowed is False
     assert "manager-owned retrieval intent is required before evidence backend execution" in plan.routing_reasons
+
+
+def test_router_accepts_fixture_request_without_claiming_manager_semantic_authority() -> None:
+    plan = build_food_evidence_retriever_route_plan_for_request(
+        build_retrieval_request_from_intent_fixture(
+            RetrievalIntent(
+                base_dish="tea egg",
+                aliases=["tea egg"],
+                brand_hint=None,
+                size_hint=None,
+                modifier_hints=[],
+                listed_items=[],
+                retrieval_goal="generic_anchor_lookup",
+            )
+        ),
+        availability=RetrieverBackendAvailability(
+            local_fooddb_index=True,
+            sqlite_fts_index=True,
+            websearch_candidate_lane=False,
+        ),
+    )
+
+    assert plan.primary_backend == "sqlite_fts_index"
+    assert plan.retrieval_intent_source == "diagnostic_fixture"
+    assert plan.manager_owned_intent_required is True
+    assert plan.raw_text_hint_executed is False

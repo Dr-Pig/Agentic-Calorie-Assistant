@@ -6,23 +6,24 @@ from pathlib import Path
 from app.nutrition.application.exact_brand_web_canary import ExactBrandWebCanaryOutcome
 from app.nutrition.application.food_evidence_retriever_router import (
     RetrieverBackendAvailability,
-    build_food_evidence_retriever_route_plan,
+    build_food_evidence_retriever_route_plan_for_request,
 )
-from app.nutrition.application.retrieval_intent import build_retrieval_intent
+from app.nutrition.application.retrieval_request import (
+    build_retrieval_request_from_raw_text_hint,
+)
 from app.nutrition.application.retrieval_intent_runtime_boundary import (
     build_retrieval_intent_runtime_boundary_artifact,
 )
 
 
 def _raw_hint_route_plan():
-    return build_food_evidence_retriever_route_plan(
-        build_retrieval_intent("星巴克冰拿鐵大杯"),
+    return build_food_evidence_retriever_route_plan_for_request(
+        build_retrieval_request_from_raw_text_hint("星巴克冰拿鐵大杯"),
         availability=RetrieverBackendAvailability(
             local_fooddb_index=True,
             sqlite_fts_index=True,
             websearch_candidate_lane=True,
         ),
-        intent_source="raw_text_hint",
     )
 
 
@@ -39,6 +40,7 @@ def test_retrieval_intent_runtime_boundary_keeps_raw_hint_out_of_runtime_executi
     assert artifact["summary"]["unexpected_runtime_call_file_count"] == 0
     assert artifact["summary"]["raw_text_runtime_execution_blocked"] is True
     assert artifact["summary"]["exact_brand_canary_manager_guard_clear"] is True
+    assert artifact["runtime_route_probe"]["raw_text_hint_goal"] == "exact_brand_lookup"
     assert artifact["runtime_call_site_audit"]["observed_runtime_call_files"] == [
         "app/nutrition/application/exact_brand_web_canary.py"
     ]

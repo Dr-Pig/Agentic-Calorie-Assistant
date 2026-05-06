@@ -17,18 +17,20 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
         _edge(
             edge_id="manager_decision_to_retrieval_intent",
             from_node="manager_semantic_decision",
-            to_node="retrieval_intent_from_manager_decision",
-            dependency_direction="manager_to_retrieval_hint",
-            required_contract="B2ManagerSemanticDecision -> build_retrieval_intent_from_manager_decision",
+            to_node="retrieval_request_from_manager_decision",
+            dependency_direction="manager_to_retrieval_request",
+            required_contract="B2ManagerSemanticDecision -> FoodEvidenceRetrievalRequest(manager_decision)",
             current_status="contract_backed",
-            manager_style_guard="retrieval_goal_must_come_from_manager_owned_structured_decision_for_runtime_paths",
+            manager_style_guard="runtime_retrieval_request_must_come_from_manager_owned_structured_decision",
             evidence=[
+                "app.nutrition.application.retrieval_request.build_retrieval_request_from_manager_decision",
                 "app.nutrition.application.retrieval_semantic_decision.build_retrieval_intent_from_manager_decision",
+                "tests.test_retrieval_request.test_manager_decision_request_is_runtime_executable",
                 _wave_one_b_two_test_ref(
                     "retrieval_intent.test_manager_semantic_decision_rejects_non_manager_authority"
                 ),
             ],
-            stop_condition="stop_if_runtime_path_uses_raw_text_retrieval_intent_as_semantic_owner",
+            stop_condition="stop_if_runtime_path_uses_raw_text_hint_or_fixture_as_semantic_owner",
         ),
         _edge(
             edge_id="retrieval_router_to_fooddb_local_adapter",
