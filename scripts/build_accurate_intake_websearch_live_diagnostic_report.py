@@ -16,6 +16,7 @@ from app.shared.infra.json_artifacts import read_json_artifact, write_json_artif
 
 
 DEFAULT_INPUT = ROOT / "artifacts" / "accurate_intake_grokfast_websearch_packet_smoke.json"
+DEFAULT_PREFLIGHT = ROOT / "artifacts" / "accurate_intake_websearch_live_extract_preflight.json"
 DEFAULT_OUTPUT = ROOT / "artifacts" / "accurate_intake_websearch_live_diagnostic_report.json"
 
 
@@ -24,11 +25,17 @@ def main(argv: list[str] | None = None) -> int:
         description="Build WebSearch live diagnostic report from a sanitized GrokFast packet smoke artifact."
     )
     parser.add_argument("--diagnostic-artifact", default=str(DEFAULT_INPUT))
+    parser.add_argument("--preflight-artifact", default=str(DEFAULT_PREFLIGHT))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
     diagnostic_artifact = read_json_artifact(Path(args.diagnostic_artifact))
-    report = build_websearch_live_diagnostic_report(diagnostic_artifact=diagnostic_artifact)
+    preflight_path = Path(args.preflight_artifact)
+    preflight_artifact = read_json_artifact(preflight_path) if preflight_path.exists() else None
+    report = build_websearch_live_diagnostic_report(
+        diagnostic_artifact=diagnostic_artifact,
+        preflight_artifact=preflight_artifact,
+    )
     output_path = Path(args.output)
     write_json_artifact(output_path, report)
     print(
