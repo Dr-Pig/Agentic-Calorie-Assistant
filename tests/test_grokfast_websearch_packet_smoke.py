@@ -29,6 +29,11 @@ from app.nutrition.application.websearch_live_extract_preflight import (
     build_websearch_live_extract_preflight,
     is_websearch_live_extract_preflight_clear,
 )
+from app.nutrition.application.websearch_grokfast_live_diagnostic_case_matrix import (
+    REQUIRED_CASE_IDS,
+    REQUIRED_MODIFIER_GUARD_CASE_COUNT,
+    REQUIRED_NEGATIVE_CASE_COUNT,
+)
 from app.nutrition.application.websearch_live_runner_readiness_packet import (
     build_websearch_live_runner_readiness_packet,
 )
@@ -314,9 +319,9 @@ def test_grokfast_websearch_live_runner_preflight_ref_records_authorized_case_ma
     assert ref["preflight_ref_source"] == "run_accurate_intake_grokfast_websearch_packet_smoke"
     assert ref["review_packet_authorized"] is True
     assert ref["review_packet_count"] == 6
-    assert ref["case_matrix_case_count"] == 6
-    assert ref["case_matrix_negative_case_count"] == 4
-    assert ref["case_matrix_modifier_guard_cases"] == 1
+    assert ref["case_matrix_case_count"] == len(REQUIRED_CASE_IDS)
+    assert ref["case_matrix_negative_case_count"] == REQUIRED_NEGATIVE_CASE_COUNT
+    assert ref["case_matrix_modifier_guard_cases"] == REQUIRED_MODIFIER_GUARD_CASE_COUNT
     assert ref["case_matrix_live_provider_invoked"] is False
     assert ref["case_matrix_websearch_invoked"] is False
     assert ref["preflight_artifact_digest_algorithm"] == "sha256"
