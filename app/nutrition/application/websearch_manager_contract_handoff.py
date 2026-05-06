@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from .websearch_live_report_handoff_gate import websearch_live_report_handoff_blockers
+
 
 WEBSEARCH_MANAGER_CONTRACT_HANDOFF_NON_CLAIMS = [
     "no_live_provider_call",
@@ -93,25 +95,13 @@ def build_websearch_manager_contract_handoff(
     )
 
     alignment_blockers: list[str] = []
-    if seam_status == "provider_contract_blocked" and not contract_failure_detected:
-        alignment_blockers.append("live_report_probe_contract_status_mismatch")
-    if seam_status == "live_diagnostic_pass" and contract_failure_detected:
-        alignment_blockers.append("live_pass_with_contract_failure_detected")
-    if seam_status == "live_diagnostic_pass":
-        if live_diagnostic_report.get("preflight_evidence_healthy") is not True:
-            alignment_blockers.append("live_report_preflight_evidence_not_healthy")
-        if live_diagnostic_report.get("can_expand_websearch_candidate_pipeline") is not True:
-            alignment_blockers.append("live_report_candidate_expansion_not_authorized")
-        if live_diagnostic_report.get("source_live_provider_used") is not True:
-            alignment_blockers.append("live_report_missing_live_provider_diagnostic")
-        for key, blocker in (
-            ("source_live_websearch_used", "live_report_used_live_websearch"),
-            ("runtime_truth_changed", "live_report_changed_runtime_truth"),
-            ("runtime_mutation_attempted", "live_report_attempted_runtime_mutation"),
-            ("readiness_claimed", "live_report_claimed_readiness"),
-        ):
-            if live_diagnostic_report.get(key) is not False:
-                alignment_blockers.append(blocker)
+    alignment_blockers.extend(
+        websearch_live_report_handoff_blockers(
+            live_diagnostic_report=live_diagnostic_report,
+            seam_status=seam_status,
+            contract_failure_detected=contract_failure_detected,
+        )
+    )
     if contract_failure_detected and repair_case_count == 0:
         alignment_blockers.append("repair_pack_empty_for_contract_failure")
     if contract_failure_detected and probe_case_count != repair_case_count:
