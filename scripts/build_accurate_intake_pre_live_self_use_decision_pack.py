@@ -21,6 +21,7 @@ REQUIRED_PRE_LIVE_EVIDENCE = (
     "context_live_diagnostic_anti_overfit_guard",
     "context_live_provider_input_preflight",
     "context_live_response_contract_dry_run",
+    "context_live_diagnostic_gate",
 )
 
 _EXPECTED_STATUS_BY_GROUP = {
@@ -38,6 +39,7 @@ _EXPECTED_STATUS_BY_GROUP = {
     "context_live_diagnostic_anti_overfit_guard": "pass",
     "context_live_provider_input_preflight": "pass",
     "context_live_response_contract_dry_run": "pass",
+    "context_live_diagnostic_gate": "context_live_diagnostic_gate_ready_without_live_canary",
 }
 
 
@@ -57,6 +59,11 @@ def _evidence_missing(group_id: str, payload: dict[str, Any]) -> bool:
     if group_id == "context_live_provider_input_preflight" and payload.get("plan_only") is not True:
         return True
     if group_id == "context_live_response_contract_dry_run" and payload.get("plan_only") is not True:
+        return True
+    if (
+        group_id == "context_live_diagnostic_gate"
+        and payload.get("status") != "context_live_diagnostic_gate_ready_without_live_canary"
+    ):
         return True
     return False
 
@@ -190,6 +197,28 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
             blockers.append("context_live_response_contract_dry_run_ambiguity_response_missing")
         if int(summary.get("mutation_request_count") or 0) != 0:
             blockers.append("context_live_response_contract_dry_run_mutation_request_count_nonzero")
+    if group_id == "context_live_diagnostic_gate":
+        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        if payload.get("live_provider_allowed") is not False:
+            blockers.append("context_live_diagnostic_gate_live_provider_allowed")
+        if payload.get("live_provider_required") is not False:
+            blockers.append("context_live_diagnostic_gate_live_provider_required")
+        if payload.get("fixed_case_matrix_used") is not True:
+            blockers.append("context_live_diagnostic_gate_fixed_case_matrix_missing")
+        if payload.get("ad_hoc_live_case_selection_allowed") is not False:
+            blockers.append("context_live_diagnostic_gate_ad_hoc_live_case_selection_allowed")
+        if payload.get("anti_overfit_guard_required") is not True:
+            blockers.append("context_live_diagnostic_gate_anti_overfit_guard_missing")
+        if payload.get("response_contract_dry_run_required") is not True:
+            blockers.append("context_live_diagnostic_gate_response_contract_dry_run_missing")
+        if payload.get("diagnostic_only") is not True:
+            blockers.append("context_live_diagnostic_gate_diagnostic_only_missing")
+        if int(summary.get("fixed_case_count") or 0) < 10:
+            blockers.append("context_live_diagnostic_gate_fixed_case_count_too_low")
+        if int(summary.get("dry_run_validated_response_count") or 0) < 10:
+            blockers.append("context_live_diagnostic_gate_dry_run_validated_count_too_low")
+        if int(summary.get("live_blocked_response_count") or 0) != 0:
+            blockers.append("context_live_diagnostic_gate_live_blocked_response_count_nonzero")
     if group_id == "manager_intent_readiness_review_pack":
         summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
         if payload.get("review_required_before_provider_call") is not True:

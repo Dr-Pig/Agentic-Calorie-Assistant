@@ -144,6 +144,35 @@ def _evidence(**overrides: dict) -> dict:
                 "mutation_request_count": 0,
             },
         },
+        "context_live_diagnostic_gate": {
+            "status": "context_live_diagnostic_gate_ready_without_live_canary",
+            "review_pack_status": "context_live_diagnostic_review_ready_without_live_canary",
+            "canary_status": "blocked",
+            "live_provider_allowed": False,
+            "live_provider_required": False,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "full_matrix_live_probe_required": True,
+            "ad_hoc_live_case_selection_allowed": False,
+            "fixed_case_matrix_used": True,
+            "anti_overfit_guard_required": True,
+            "response_contract_dry_run_required": True,
+            "diagnostic_only": True,
+            "local_only": True,
+            "fooddb_used": False,
+            "web_tavily_used": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "summary": {
+                "fixed_case_count": 11,
+                "dry_run_validated_response_count": 11,
+                "live_provider_output_count": 0,
+                "live_blocked_response_count": 0,
+            },
+        },
     }
     evidence.update(overrides)
     return evidence
@@ -339,6 +368,60 @@ def test_pre_live_decision_pack_requires_context_live_response_contract_dry_run(
     assert pack["selected_option"] == "stay_local_self_use"
     assert "context_live_response_contract_dry_run" in pack["missing_evidence"]
     assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_requires_context_live_diagnostic_gate() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(context_live_diagnostic_gate={})
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "context_live_diagnostic_gate" in pack["missing_evidence"]
+    assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_blocks_live_context_gate_or_weak_child_evidence() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            context_live_diagnostic_gate={
+                "status": "context_live_diagnostic_gate_ready_with_live_canary",
+                "review_pack_status": "context_live_diagnostic_review_ready_with_live_canary",
+                "live_provider_allowed": True,
+                "live_llm_invoked": True,
+                "live_provider_invoked": True,
+                "fixed_case_matrix_used": False,
+                "ad_hoc_live_case_selection_allowed": True,
+                "anti_overfit_guard_required": False,
+                "response_contract_dry_run_required": False,
+                "fooddb_used": True,
+                "web_tavily_used": True,
+                "mutation_changed": True,
+                "manager_context_packet_schema_changed": True,
+                "summary": {
+                    "fixed_case_count": 1,
+                    "dry_run_validated_response_count": 1,
+                    "live_blocked_response_count": 1,
+                },
+            }
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "context_live_diagnostic_gate" in pack["missing_evidence"]
+    assert "context_live_diagnostic_gate_live_llm_invoked" in pack["blockers"]
+    assert "context_live_diagnostic_gate_live_provider_invoked" in pack["blockers"]
+    assert "context_live_diagnostic_gate_fooddb_used" in pack["blockers"]
+    assert "context_live_diagnostic_gate_web_tavily_used" in pack["blockers"]
+    assert "context_live_diagnostic_gate_mutation_changed" in pack["blockers"]
+    assert "context_live_diagnostic_gate_manager_context_packet_schema_changed" in pack["blockers"]
+    assert "context_live_diagnostic_gate_live_provider_allowed" in pack["blockers"]
+    assert "context_live_diagnostic_gate_fixed_case_matrix_missing" in pack["blockers"]
+    assert "context_live_diagnostic_gate_ad_hoc_live_case_selection_allowed" in pack["blockers"]
+    assert "context_live_diagnostic_gate_anti_overfit_guard_missing" in pack["blockers"]
+    assert "context_live_diagnostic_gate_response_contract_dry_run_missing" in pack["blockers"]
+    assert "context_live_diagnostic_gate_fixed_case_count_too_low" in pack["blockers"]
+    assert "context_live_diagnostic_gate_dry_run_validated_count_too_low" in pack["blockers"]
+    assert "context_live_diagnostic_gate_live_blocked_response_count_nonzero" in pack["blockers"]
 
 
 def test_pre_live_decision_pack_blocks_unsafe_context_live_provider_input_preflight() -> None:

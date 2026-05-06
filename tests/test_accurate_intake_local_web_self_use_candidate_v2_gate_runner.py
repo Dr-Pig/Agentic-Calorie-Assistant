@@ -195,6 +195,37 @@ def _required_payloads() -> dict[str, dict[str, object]]:
                 "mutation_request_count": 0,
             },
         },
+        "context_live_diagnostic_gate": {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_context_live_diagnostic_gate",
+            "claim_scope": "pl_ce_context_live_diagnostic_gate",
+            "status": "context_live_diagnostic_gate_ready_without_live_canary",
+            "review_pack_status": "context_live_diagnostic_review_ready_without_live_canary",
+            "canary_status": "blocked",
+            "live_provider_allowed": False,
+            "live_provider_required": False,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "fixed_case_matrix_used": True,
+            "ad_hoc_live_case_selection_allowed": False,
+            "anti_overfit_guard_required": True,
+            "response_contract_dry_run_required": True,
+            "diagnostic_only": True,
+            "local_only": True,
+            "fooddb_used": False,
+            "web_tavily_used": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "summary": {
+                "fixed_case_count": 11,
+                "dry_run_validated_response_count": 11,
+                "live_provider_output_count": 0,
+                "live_blocked_response_count": 0,
+            },
+        },
     }
 
 
@@ -295,6 +326,7 @@ def test_local_web_self_use_candidate_v2_gate_runner_derives_phase_c_identity_fr
         "context_live_diagnostic_anti_overfit_guard",
         "context_live_provider_input_preflight",
         "context_live_response_contract_dry_run",
+        "context_live_diagnostic_gate",
     ]
     assert evidence["phase_c_gate"]["artifact_type"] == "accurate_intake_phase_c_gate_from_mvp_gate"
     assert evidence["phase_c_gate"]["status"] == "pass"
@@ -417,6 +449,45 @@ def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_context_live
     assert printed["missing_evidence"] == ["context_live_diagnostic_anti_overfit_guard"]
     assert (
         "missing evidence: context_live_diagnostic_anti_overfit_guard"
+        in candidate["local_web_self_use_candidate_v2"]["blockers"]
+    )
+
+
+def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_context_live_gate(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts.run_accurate_intake_local_web_self_use_candidate_v2_gate import (
+        DEFAULT_EVIDENCE_PATHS,
+        main,
+    )
+
+    artifact_dir = tmp_path / "artifacts"
+    payloads = _required_payloads()
+    payloads.pop("context_live_diagnostic_gate")
+    for group_id, payload in payloads.items():
+        _write(artifact_dir / f"{group_id}.json", payload)
+    candidate_output = tmp_path / "candidate.json"
+
+    exit_code = main(
+        [
+            "--pre-live-evidence-output",
+            str(tmp_path / "pre_live_evidence.json"),
+            "--pre-live-output",
+            str(tmp_path / "pre_live_decision_pack.json"),
+            "--candidate-output",
+            str(candidate_output),
+            *_artifact_args(artifact_dir, tuple(DEFAULT_EVIDENCE_PATHS)),
+        ]
+    )
+    printed = json.loads(capsys.readouterr().out)
+    candidate = json.loads(candidate_output.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["candidate_prepared"] is False
+    assert printed["missing_evidence"] == ["context_live_diagnostic_gate"]
+    assert (
+        "missing evidence: context_live_diagnostic_gate"
         in candidate["local_web_self_use_candidate_v2"]["blockers"]
     )
 
