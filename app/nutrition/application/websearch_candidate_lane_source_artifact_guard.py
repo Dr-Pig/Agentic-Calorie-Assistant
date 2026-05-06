@@ -76,6 +76,75 @@ def source_artifact_boundary_blockers(
         ),
     ):
         blockers.extend(_required_false_flag_blockers(artifact=artifact, prefix=prefix, keys=keys))
+    for artifact, prefix, required in (
+        (
+            live_diagnostic_report,
+            "live_report",
+            (
+                "no_live_provider_call",
+                "no_live_websearch_call",
+                "no_kimi_call",
+                "no_runtime_mutation",
+                "no_websearch_runtime_truth",
+                "no_fooddb_truth_promotion",
+                "no_exact_card_truth_promotion",
+                "no_readiness_claim",
+            ),
+        ),
+        (
+            contract_probe_artifact,
+            "contract_probe",
+            (
+                "no_live_provider_call",
+                "no_live_websearch_call",
+                "no_kimi_call",
+                "no_prompt_or_schema_change",
+                "no_runtime_mutation",
+                "no_websearch_runtime_truth",
+                "no_fooddb_truth_promotion",
+                "no_exact_card_truth_promotion",
+                "no_readiness_claim",
+            ),
+        ),
+        (
+            repair_pack_artifact,
+            "repair_pack",
+            (
+                "no_live_provider_call",
+                "no_live_websearch_call",
+                "no_prompt_or_schema_change",
+                "no_manager_contract_change",
+                "no_runtime_truth_promotion",
+                "no_exact_card_truth_promotion",
+                "no_runtime_mutation",
+                "no_packetizer_format_change",
+                "no_manager_context_change",
+                "no_readiness_claim",
+            ),
+        ),
+        (
+            preflight_artifact,
+            "preflight",
+            (
+                "no_live_websearch_call",
+                "no_live_extract_call",
+                "no_live_provider_call",
+                "no_websearch_runtime_truth",
+                "no_exact_card_truth_promotion",
+                "no_runtime_mutation",
+                "no_manager_context_change",
+                "no_packetizer_format_change",
+                "no_readiness_claim",
+            ),
+        ),
+    ):
+        blockers.extend(
+            _required_non_claim_blockers(
+                artifact=artifact,
+                prefix=prefix,
+                required=required,
+            )
+        )
     return blockers
 
 
@@ -114,6 +183,23 @@ def _required_false_flag_blockers(
         f"{prefix}_{key}_missing_or_not_false"
         for key in keys
         if artifact.get(key) is not False
+    ]
+
+
+def _required_non_claim_blockers(
+    *,
+    artifact: dict[str, Any],
+    prefix: str,
+    required: tuple[str, ...],
+) -> list[str]:
+    non_claims = artifact.get("non_claims")
+    if not isinstance(non_claims, list):
+        return [f"{prefix}_non_claims_missing"]
+    present = {str(item) for item in non_claims if isinstance(item, str)}
+    return [
+        f"{prefix}_missing_non_claim.{claim}"
+        for claim in required
+        if claim not in present
     ]
 
 

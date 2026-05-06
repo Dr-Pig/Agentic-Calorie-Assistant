@@ -127,8 +127,8 @@ def build_websearch_live_extract_preflight(
             "no_live_provider_call",
             "no_websearch_runtime_truth",
             "no_exact_card_truth_promotion",
-            "no_runtime_mutation",
-            "no_readiness_claim",
+            "no_runtime_mutation", "no_manager_context_change",
+            "no_packetizer_format_change", "no_readiness_claim",
         ],
     }
 

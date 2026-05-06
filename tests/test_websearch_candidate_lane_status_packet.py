@@ -71,6 +71,8 @@ def _clear_preflight_artifact() -> dict:
             "no_websearch_runtime_truth",
             "no_exact_card_truth_promotion",
             "no_runtime_mutation",
+            "no_manager_context_change",
+            "no_packetizer_format_change",
             "no_readiness_claim",
         ],
     }
@@ -104,9 +106,13 @@ def _live_report(*, preflight_artifact: dict) -> dict:
         "production_selected": False,
         "next_recommended_slice": "websearch_candidate_pipeline_narrow_expansion",
         "non_claims": [
+            "no_live_provider_call",
             "no_live_websearch_call",
+            "no_kimi_call",
             "no_runtime_mutation",
             "no_websearch_runtime_truth",
+            "no_fooddb_truth_promotion",
+            "no_exact_card_truth_promotion",
             "no_readiness_claim",
         ],
     }
@@ -180,8 +186,12 @@ def _probe() -> dict:
         "non_claims": [
             "no_live_provider_call",
             "no_live_websearch_call",
+            "no_kimi_call",
+            "no_prompt_or_schema_change",
             "no_runtime_mutation",
             "no_websearch_runtime_truth",
+            "no_fooddb_truth_promotion",
+            "no_exact_card_truth_promotion",
             "no_readiness_claim",
         ],
     }
@@ -206,7 +216,13 @@ def _repair_pack() -> dict:
         "non_claims": [
             "no_live_provider_call",
             "no_live_websearch_call",
+            "no_prompt_or_schema_change",
+            "no_manager_contract_change",
+            "no_runtime_truth_promotion",
+            "no_exact_card_truth_promotion",
             "no_runtime_mutation",
+            "no_packetizer_format_change",
+            "no_manager_context_change",
             "no_websearch_runtime_truth",
             "no_readiness_claim",
         ],
@@ -815,6 +831,70 @@ def test_websearch_candidate_lane_status_packet_blocks_preflight_overclaims() ->
     assert "preflight_claimed_product_readiness" in artifact["manager_contract_gate"][
         "blockers"
     ]
+    assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
+
+
+def test_websearch_candidate_lane_status_packet_blocks_missing_source_non_claims() -> None:
+    inputs = _verified_handoff_inputs()
+    probe = dict(inputs["contract_probe_artifact"])
+    probe.pop("non_claims")
+
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        manager_contract_handoff_artifact=inputs["manager_contract_handoff_artifact"],
+        live_diagnostic_report=inputs["live_diagnostic_report"],
+        contract_probe_artifact=probe,
+        repair_pack_artifact=inputs["repair_pack_artifact"],
+        preflight_artifact=inputs["preflight_artifact"],
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == (
+        "blocked_on_manager_contract_handoff"
+    )
+    assert "contract_probe_non_claims_missing" in artifact["manager_contract_gate"][
+        "blockers"
+    ]
+    assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
+
+
+def test_websearch_candidate_lane_status_packet_blocks_incomplete_source_non_claims() -> None:
+    inputs = _verified_handoff_inputs()
+    preflight = {
+        **inputs["preflight_artifact"],
+        "non_claims": ["no_live_websearch_call"],
+    }
+    live_report = _live_report(preflight_artifact=preflight)
+    handoff = build_websearch_manager_contract_handoff(
+        live_diagnostic_report=live_report,
+        contract_probe_artifact=inputs["contract_probe_artifact"],
+        repair_pack_artifact=inputs["repair_pack_artifact"],
+        preflight_artifact=preflight,
+    )
+
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        manager_contract_handoff_artifact=handoff,
+        live_diagnostic_report=live_report,
+        contract_probe_artifact=inputs["contract_probe_artifact"],
+        repair_pack_artifact=inputs["repair_pack_artifact"],
+        preflight_artifact=preflight,
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == (
+        "blocked_on_manager_contract_handoff"
+    )
+    assert "preflight_missing_non_claim.no_runtime_mutation" in artifact[
+        "manager_contract_gate"
+    ]["blockers"]
+    assert "preflight_missing_non_claim.no_manager_context_change" in artifact[
+        "manager_contract_gate"
+    ]["blockers"]
     assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
 
 
