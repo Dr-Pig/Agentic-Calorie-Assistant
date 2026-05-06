@@ -20,8 +20,15 @@ def test_product_pages_renderer_source_map_covers_chat_today_body_sources() -> N
     assert artifact["summary"]["selector_count"] >= 30
     assert artifact["summary"]["endpoint_count"] >= 7
     assert artifact["summary"]["backend_field_count"] >= 25
+    assert artifact["same_truth_renderer_contract_status"] == "ready_for_human_review"
+    assert artifact["summary"]["same_truth_field_contract_count"] >= 8
     assert artifact["render_only_boundary_ok"] is True
+    assert artifact["ui_truth_owner"] is False
     assert artifact["frontend_semantic_owner"] is False
+    assert artifact["frontend_calculates_kcal"] is False
+    assert artifact["frontend_calculates_remaining"] is False
+    assert artifact["frontend_calculates_tdee"] is False
+    assert artifact["frontend_selects_target"] is False
     assert artifact["ready_for_live_diagnostic_decision"] is False
     assert artifact["ready_for_fdb_integration"] is False
     assert artifact["live_llm_invoked"] is False
@@ -60,6 +67,59 @@ def test_product_pages_renderer_source_map_covers_chat_today_body_sources() -> N
     assert "#weight-history" in body["selectors"]
     assert "plan.estimated_tdee" in body["backend_fields"]
     assert "payload.observations" in body["backend_fields"]
+
+
+def test_product_pages_renderer_source_map_declares_three_page_same_truth_contract() -> None:
+    artifact = build_product_pages_renderer_source_map_artifact()
+    contract = artifact["same_truth_renderer_contract"]
+
+    chat = contract["chat"]
+    assert chat["conversation_history"]["truth_owner"] == "composition_chat_history_read_model"
+    assert chat["conversation_history"]["read_model_or_api"] == "/accurate-intake/chat-history"
+    assert chat["conversation_history"]["ui_selector"] == "#chat-scroll"
+    assert chat["current_turn_response"]["truth_owner"] == "manager_runtime_response"
+    assert chat["current_turn_response"]["read_model_or_api"] == "/estimate"
+    assert chat["current_turn_response"]["frontend_role"] == "render_backend_structured_fields_only"
+
+    today = contract["today"]
+    assert today["budget_summary"]["truth_owner"] == "budget_domain"
+    assert today["budget_summary"]["read_model_or_api"] == "/today/current-budget"
+    assert today["budget_summary"]["must_not"] == [
+        "frontend_recompute_consumed",
+        "frontend_recompute_remaining",
+        "frontend_infer_overshoot",
+    ]
+    assert today["meal_summaries"]["truth_owner"] == "intake_and_budget_projection"
+    assert today["meal_summaries"]["ui_selector"] == "#meal-list"
+
+    body = contract["body"]
+    assert body["active_body_plan"]["truth_owner"] == "body_domain"
+    assert body["active_body_plan"]["read_model_or_api"] == "/body-plan/active"
+    assert body["active_body_plan"]["must_not"] == [
+        "frontend_calculate_tdee",
+        "frontend_calculate_target",
+        "frontend_infer_manual_override_legality",
+    ]
+    assert body["weight_observations"]["truth_owner"] == "body_domain"
+    assert body["weight_observations"]["read_model_or_api"] == "/weight/observations"
+
+
+def test_product_pages_renderer_source_map_blocks_contract_drift_when_backend_field_missing() -> None:
+    html_overrides = {
+        "body": Path("static/accurate-intake-body.html").read_text(encoding="utf-8").replace(
+            "plan.recommended_target_kcal",
+            "plan.recommended_target_missing",
+        )
+    }
+
+    artifact = build_product_pages_renderer_source_map_artifact(html_overrides=html_overrides)
+
+    assert artifact["status"] == "blocked"
+    assert artifact["same_truth_renderer_contract_status"] == "blocked"
+    assert (
+        "body.same_truth_contract.active_body_plan.missing_backend_field:plan.recommended_target_kcal"
+        in artifact["blockers"]
+    )
 
 
 def test_product_pages_renderer_source_map_rejects_missing_selector() -> None:
