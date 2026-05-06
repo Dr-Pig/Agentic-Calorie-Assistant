@@ -401,6 +401,37 @@ def test_websearch_candidate_lane_status_packet_blocks_mismatched_handoff_source
     assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
 
 
+def test_websearch_candidate_lane_status_packet_blocks_mismatched_sanitized_handoff_maps() -> None:
+    inputs = _verified_handoff_inputs()
+    probe = {
+        **inputs["contract_probe_artifact"],
+        "summary": {
+            **inputs["contract_probe_artifact"]["summary"],
+            "aggregate_missing_required_fields": {"intent": 1},
+        },
+    }
+
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        manager_contract_handoff_artifact=inputs["manager_contract_handoff_artifact"],
+        live_diagnostic_report=inputs["live_diagnostic_report"],
+        contract_probe_artifact=probe,
+        repair_pack_artifact=inputs["repair_pack_artifact"],
+        preflight_artifact=inputs["preflight_artifact"],
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == (
+        "blocked_on_manager_contract_handoff"
+    )
+    assert "manager_contract_handoff_derivation_mismatch" in artifact[
+        "manager_contract_gate"
+    ]["blockers"]
+    assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
+
+
 def test_websearch_candidate_lane_status_packet_rejects_unexpected_manager_contract_artifact() -> None:
     try:
         build_websearch_candidate_lane_status_packet(

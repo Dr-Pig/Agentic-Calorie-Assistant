@@ -142,6 +142,11 @@ def _handoff_proof(artifact: dict[str, Any]) -> dict[str, Any]:
             "alignment_blocker_count": _safe_non_negative_int(
                 summary.get("alignment_blocker_count")
             ),
+            "aggregate_missing_required_fields": _safe_count_map(
+                summary.get("aggregate_missing_required_fields")
+            ),
+            "alias_hint_counts": _safe_count_map(summary.get("alias_hint_counts")),
+            "shape_pattern_counts": _safe_count_map(summary.get("shape_pattern_counts")),
         },
         "alignment_blockers": _safe_string_list(artifact.get("alignment_blockers")),
         "artifact_chain": artifact.get("artifact_chain") if isinstance(
@@ -161,6 +166,17 @@ def _safe_non_negative_int(value: Any) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         return 0
     return max(0, value)
+
+
+def _safe_count_map(value: Any) -> dict[str, int]:
+    if not isinstance(value, dict):
+        return {}
+    result: dict[str, int] = {}
+    for key, count in value.items():
+        if isinstance(count, bool) or not isinstance(count, int):
+            continue
+        result[str(key)] = max(0, count)
+    return dict(sorted(result.items()))
 
 
 def _safe_string_list(value: Any) -> list[str]:
