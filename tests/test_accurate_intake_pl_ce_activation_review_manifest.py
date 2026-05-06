@@ -421,6 +421,8 @@ def _context_live_gate(*, live: bool = True) -> dict[str, object]:
         "live_provider_invoked": live,
         "live_provider_allowed": live,
         "live_provider_required": live,
+        "live_stage": "full-matrix" if live else "single-case",
+        "stage_gate_status": "context_live_full_matrix_probe_pass" if live else "not_applicable",
         "full_matrix_live_probe_required": True,
         "ad_hoc_live_case_selection_allowed": False,
         "fixed_case_matrix_used": True,
@@ -445,6 +447,7 @@ def _context_live_gate(*, live: bool = True) -> dict[str, object]:
             "context_live_response_contract_dry_run": "artifacts/dry_run.json",
             "context_live_diagnostic_canary": "artifacts/canary.json",
             "context_live_diagnostic_review_pack": "artifacts/review_pack.json",
+            "context_live_diagnostic_stage_gate": "artifacts/stage_gate.json",
         },
         "summary": {
             "fixed_case_count": len(REQUIRED_CASE_IDS),

@@ -48,7 +48,7 @@ def _read_json(path: Path | None) -> dict[str, Any] | None:
     return dict(payload) if isinstance(payload, dict) else {"artifact_type": "invalid_json_shape"}
 
 
-def _select_provider_inputs(
+def select_context_live_provider_inputs(
     preflight: dict[str, Any],
     *,
     case_id: str,
@@ -217,7 +217,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.provider_input_preflight_json
         else build_context_live_provider_input_preflight_artifact()
     )
-    preflight = _select_provider_inputs(
+    preflight = select_context_live_provider_inputs(
         _dict(preflight),
         case_id=str(args.case_id),
         all_cases=bool(args.all_cases),
@@ -258,6 +258,7 @@ def main(argv: list[str] | None = None) -> int:
 
 __all__ = [
     "run_context_live_diagnostic_canary",
+    "select_context_live_provider_inputs",
 ]
 
 
