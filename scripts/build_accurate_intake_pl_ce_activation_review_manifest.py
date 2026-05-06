@@ -37,6 +37,9 @@ DEFAULT_ARTIFACT_PATHS = {
     "context_live_diagnostic_review_pack": ROOT
     / "artifacts"
     / "accurate_intake_context_live_diagnostic_review_pack.json",
+    "context_live_diagnostic_gate": ROOT
+    / "artifacts"
+    / "accurate_intake_context_live_diagnostic_gate.json",
 }
 
 

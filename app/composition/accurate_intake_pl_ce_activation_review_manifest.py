@@ -31,6 +31,7 @@ REQUIRED_INPUTS = (
 
 OPTIONAL_INPUTS = (
     "context_live_diagnostic_review_pack",
+    "context_live_diagnostic_gate",
 )
 
 EXPECTED_STATUSES = {
@@ -42,6 +43,10 @@ EXPECTED_STATUSES = {
     "context_live_diagnostic_review_pack": {
         "context_live_diagnostic_review_ready_with_live_canary",
         "context_live_diagnostic_review_ready_without_live_canary",
+    },
+    "context_live_diagnostic_gate": {
+        "context_live_diagnostic_gate_ready_with_live_canary",
+        "context_live_diagnostic_gate_ready_without_live_canary",
     },
 }
 
@@ -56,6 +61,7 @@ EXPECTED_ARTIFACT_TYPES = {
         "accurate_intake_context_live_response_contract_dry_run"
     ),
     "context_live_diagnostic_review_pack": "accurate_intake_context_live_diagnostic_review_pack",
+    "context_live_diagnostic_gate": "accurate_intake_context_live_diagnostic_gate",
 }
 
 EXPECTED_UPSTREAM_REQUIRED_INPUTS = {
@@ -118,8 +124,21 @@ OPTIONAL_LIVE_EVIDENCE_ALLOWED_FLAGS = {
     "context_live_diagnostic_review_pack": {
         "live_llm_invoked",
         "live_provider_invoked",
+    },
+    "context_live_diagnostic_gate": {
+        "live_llm_invoked",
+        "live_provider_invoked",
     }
 }
+
+CONTEXT_LIVE_GATE_REQUIRED_ARTIFACT_PATHS = (
+    "context_live_diagnostic_case_matrix",
+    "context_live_diagnostic_anti_overfit_guard",
+    "context_live_provider_input_preflight",
+    "context_live_response_contract_dry_run",
+    "context_live_diagnostic_canary",
+    "context_live_diagnostic_review_pack",
+)
 
 
 def _json_safe(value: Any) -> Any:
@@ -200,6 +219,7 @@ def _structural_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         "context_live_diagnostic_dry_run_evaluator",
         "context_live_response_contract_dry_run",
         "context_live_diagnostic_review_pack",
+        "context_live_diagnostic_gate",
     }:
         return blockers
 
@@ -416,6 +436,55 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
                 blockers.append("context_live_diagnostic_review_pack.unexpected_live_llm_invoked")
             if payload.get("live_provider_invoked") is not False:
                 blockers.append("context_live_diagnostic_review_pack.unexpected_live_provider_invoked")
+    if group_id == "context_live_diagnostic_gate":
+        summary = _object_dict(payload.get("summary"))
+        artifact_paths = _object_dict(payload.get("artifact_paths"))
+        status = _status(payload)
+        if payload.get("diagnostic_only") is not True:
+            blockers.append("context_live_diagnostic_gate.diagnostic_only_not_true")
+        if payload.get("local_only") is not True:
+            blockers.append("context_live_diagnostic_gate.local_only_not_true")
+        if payload.get("fixed_case_matrix_used") is not True:
+            blockers.append("context_live_diagnostic_gate.fixed_case_matrix_not_used")
+        if payload.get("full_matrix_live_probe_required") is not True:
+            blockers.append("context_live_diagnostic_gate.full_matrix_live_probe_not_required")
+        if payload.get("ad_hoc_live_case_selection_allowed") is not False:
+            blockers.append("context_live_diagnostic_gate.ad_hoc_live_case_selection_allowed")
+        if payload.get("anti_overfit_guard_required") is not True:
+            blockers.append("context_live_diagnostic_gate.anti_overfit_guard_not_required")
+        if payload.get("response_contract_dry_run_required") is not True:
+            blockers.append("context_live_diagnostic_gate.response_contract_dry_run_not_required")
+        for path_id in CONTEXT_LIVE_GATE_REQUIRED_ARTIFACT_PATHS:
+            if not artifact_paths.get(path_id):
+                blockers.append(f"context_live_diagnostic_gate.artifact_paths.{path_id}_missing")
+        if _int_value(summary.get("fixed_case_count")) != len(CONTEXT_LIVE_REQUIRED_CASE_IDS):
+            blockers.append("context_live_diagnostic_gate.fixed_case_count_mismatch")
+        if _int_value(summary.get("dry_run_validated_response_count")) != len(
+            CONTEXT_LIVE_REQUIRED_CASE_IDS
+        ):
+            blockers.append("context_live_diagnostic_gate.dry_run_validated_response_count_mismatch")
+        if status == "context_live_diagnostic_gate_ready_with_live_canary":
+            if payload.get("review_pack_status") != "context_live_diagnostic_review_ready_with_live_canary":
+                blockers.append("context_live_diagnostic_gate.review_pack_status_not_live_ready")
+            if payload.get("canary_status") != "live_diagnostic_pass":
+                blockers.append("context_live_diagnostic_gate.canary_status_not_pass")
+            if payload.get("live_llm_invoked") is not True:
+                blockers.append("context_live_diagnostic_gate.live_llm_invoked_not_true")
+            if payload.get("live_provider_invoked") is not True:
+                blockers.append("context_live_diagnostic_gate.live_provider_invoked_not_true")
+            if _int_value(summary.get("live_provider_output_count")) != len(
+                CONTEXT_LIVE_REQUIRED_CASE_IDS
+            ):
+                blockers.append("context_live_diagnostic_gate.live_provider_output_count_mismatch")
+            if _int_value(summary.get("live_blocked_response_count")) != 0:
+                blockers.append("context_live_diagnostic_gate.live_blocked_response_count_nonzero")
+        else:
+            if payload.get("review_pack_status") != "context_live_diagnostic_review_ready_without_live_canary":
+                blockers.append("context_live_diagnostic_gate.review_pack_status_not_non_live_ready")
+            if payload.get("live_llm_invoked") is not False:
+                blockers.append("context_live_diagnostic_gate.unexpected_live_llm_invoked")
+            if payload.get("live_provider_invoked") is not False:
+                blockers.append("context_live_diagnostic_gate.unexpected_live_provider_invoked")
     return blockers
 
 
@@ -453,6 +522,9 @@ def build_pl_ce_activation_review_manifest_artifact(
     context_live_review_pack = optional_inputs.get("context_live_diagnostic_review_pack", {})
     context_live_review_status = _status(context_live_review_pack)
     context_live_review_live_invoked = context_live_review_pack.get("live_llm_invoked") is True
+    context_live_gate = optional_inputs.get("context_live_diagnostic_gate", {})
+    context_live_gate_status = _status(context_live_gate)
+    context_live_gate_live_invoked = context_live_gate.get("live_llm_invoked") is True
     if context_live_review_status == "context_live_diagnostic_review_ready_with_live_canary":
         context_live_review_checkpoint = "live_canary_passed"
         context_live_provider_status = "context_only_live_diagnostic_passed_not_full_e2e"
@@ -462,6 +534,15 @@ def build_pl_ce_activation_review_manifest_artifact(
     else:
         context_live_review_checkpoint = "not_provided"
         context_live_provider_status = "not_provided"
+    if context_live_gate_status == "context_live_diagnostic_gate_ready_with_live_canary":
+        context_live_gate_checkpoint = "gate_live_canary_passed"
+        context_live_gate_stop_status = "context_only_live_diagnostic_gate_passed_not_full_e2e"
+    elif context_live_gate_status == "context_live_diagnostic_gate_ready_without_live_canary":
+        context_live_gate_checkpoint = "gate_ready_without_live_canary"
+        context_live_gate_stop_status = "context_live_gate_ready_without_live_canary"
+    else:
+        context_live_gate_checkpoint = "not_provided"
+        context_live_gate_stop_status = "not_provided"
     return _json_safe(
         {
             "artifact_schema_version": "1.0",
@@ -504,11 +585,13 @@ def build_pl_ce_activation_review_manifest_artifact(
                     else "blocked_or_missing"
                 ),
                 "context_live_diagnostic_review_pack": context_live_review_checkpoint,
+                "context_live_diagnostic_gate": context_live_gate_checkpoint,
             },
             "remaining_stop_gates": {
                 "fooddb_artifact_status": "blocked_waiting_for_fdb_artifact",
                 "live_provider_status": "blocked_pending_human_approval",
                 "context_live_provider_status": context_live_provider_status,
+                "context_live_gate_status": context_live_gate_stop_status,
                 "context_live_dry_run_status": (
                     "passed_fixture_dry_run_only"
                     if inputs["context_live_diagnostic_dry_run_evaluator"].get("status")
@@ -540,6 +623,8 @@ def build_pl_ce_activation_review_manifest_artifact(
             "live_diagnostic_human_approval_required": True,
             "live_diagnostic_evidence_present": bool(context_live_review_pack),
             "upstream_live_llm_invoked": context_live_review_live_invoked,
+            "context_live_gate_evidence_present": bool(context_live_gate),
+            "upstream_context_live_gate_llm_invoked": context_live_gate_live_invoked,
             "ready_for_live_diagnostic_decision": False,
             "ready_for_fdb_integration": False,
             "shared_contract_changed": False,
