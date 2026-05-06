@@ -2,6 +2,8 @@
 
 This file is the shared context pack for parallel Accurate Intake MVP work.
 It is project coordination truth, not product runtime truth.
+The current coordination model is two tracks: `FDB` and `PLCE`.
+Draft PR bodies plus CI are the live sync truth; this file is the rule map and handoff template.
 
 Agents should read this file before starting a new Accurate Intake slice.
 Agents should not replay full cross-window chat history by default.
@@ -52,45 +54,35 @@ Outputs consumed by:
 - Product Loop via approved packet-ready evidence artifact
 - runtime via stable NutritionEvidenceStorePort
 
-### Track PL: Product Loop / Browser Shell
+### Track PLCE: Product Loop + Context Engineering
 
 Owns:
 - browser-executed local shell smoke
+- Chat, Today, and Body render-only product pages
 - TodaySummary, meal list, and pending draft display
 - chat history reload UX
 - fixture-evidence browser dogfood
 - local dogfood export and backup UX
+- context_policy_version in trace
+- loaded_context_summary and omitted_context_summary
+- pending follow-up and draft pins
+- correction/removal target candidates
+- Manager tool surface inventory and direct-lane audit for non-FoodDB app-state tools
+- non-FoodDB Manager tool diagnostics for budget, body, calibration, and app-help tool choice
 
 Must not touch:
 - FoodEvidenceRecord schema
 - PacketReadyAnchor schema
 - NutritionEvidenceStorePort contract
 - FoodDB truth
-- Manager context policy
+- FoodDB/WebSearch ranking or packet promotion
+- mutation legality
+- shared ManagerContextPacket contract shape without a human gate
 
 Outputs consumed by:
 - integration dogfood later
 - human/operator review
-
-### Track CE: Context Engineering
-
-Owns:
-- ManagerContextPacket runtime integration
-- context_policy_version in trace
-- loaded_context_summary and omitted_context_summary
-- pending follow-up and draft pins
-- correction/removal target candidates
-
-Must not touch:
-- FoodDB truth
-- Product Loop UI behavior beyond trace/read surfaces
-- long-term memory
-- proactive, rescue, or recommendation behavior
-
-Outputs consumed by:
-- Product Loop debug/review panel
-- dogfood trace review
-- Manager runtime
+- later live-diagnostic gate review
 
 ## Shared Interface Contracts
 
@@ -131,6 +123,7 @@ Manager input must exclude:
 Frontend may render:
 - chat bubbles
 - TodaySummary
+- Body plan / weight read-model fields
 - active meals/items
 - pending draft/follow-up
 - debug/review summaries from backend
@@ -142,6 +135,14 @@ Frontend must not infer:
 - kcal
 - consumed/remaining
 - mutation truth
+
+PLCE may also own chat-first Manager-managed app-state tools outside FoodDB/Search Evidence:
+- budget/day-status read-only tools
+- body read-only tools and guarded observation recording surfaces
+- calibration preview / pending proposal / stored proposal action surfaces
+- app usage/help answers
+
+PLCE must not infer tool choice, target selection, mutation legality, or nutrition truth in the frontend.
 
 ## Shared Contract Change Gate
 
@@ -188,6 +189,9 @@ If Context Engineering produces trace fields, it must report:
 
 ## Current Active Branches
 
+This section is a status-block template, not the live status board.
+Live sync truth is Draft PR body plus CI state.
+
 ### FDB Status
 
 track: FDB
@@ -198,25 +202,15 @@ expected_output: approved packet-ready evidence artifact
 shared_contract_changed: false
 blocked_by: not_reported_in_this_status_pack_yet
 
-### PL Status
+### PLCE Status
 
-track: PL
-branch: codex/pl1-browser-shell-smoke
-current_slice: PL1-PL7_product_loop_local_web_shell_train
-status: implemented_as_separable_commits_local_review_pending_not_merged
-expected_output: artifacts/accurate_intake_browser_shell_smoke.json; artifacts/accurate_intake_browser_one_day_fixture_dogfood.json; artifacts/accurate_intake_browser_realistic_web_dogfood_v2.json; artifacts/accurate_intake_dogfood_operator_review_v2.json; artifacts/accurate_intake_product_loop_handoff_v3.json; local-only dogfood export/import-preview manifests
+track: PLCE
+branch: update_only_when_reporting_your_current_pr_or_main_based_slice
+current_slice: update_only_when_reporting_your_current_pr_or_main_based_slice
+status: update_only_when_reporting_your_current_pr_or_main_based_slice
+expected_output: browser/product-page artifacts; context/review artifacts; non-FoodDB manager-tool diagnostics; pre-live local review packs
 shared_contract_changed: false
-blocked_by: none
-
-### CE Status
-
-track: CE
-branch: not_reported_in_this_status_pack_yet
-current_slice: not_reported_in_this_status_pack_yet
-status: not_reported_in_this_status_pack_yet
-expected_output: Manager context trace/read-surface fields
-shared_contract_changed: false
-blocked_by: not_reported_in_this_status_pack_yet
+blocked_by: update_only_when_reporting_your_current_pr_or_main_based_slice
 
 ## Cross-Track Blockers
 
@@ -239,12 +233,11 @@ Before starting a new slice:
 After finishing a slice:
 1. Update only your track status block in this file if relevant.
 2. Report branch, changed files, test results, artifact outputs, and interface changes.
-3. Do not merge unless explicitly approved.
+3. Open or update the PR, wait for checks, and use GitHub Merge Queue as the serial delivery path.
 
 Agents may update only their own track status block:
 - FoodDB agents may update only FDB Status.
-- Product Loop agents may update only PL Status.
-- Context Engineering agents may update only CE Status.
+- PLCE agents may update only PLCE Status.
 
 Agents must not change Track Ownership, Shared Interface Contracts, Shared Contract Change Gate, Artifact Compatibility Gate, or Cross-Track Blockers without human approval.
 
@@ -268,10 +261,10 @@ pushed_sha:
 
 ## Startup Message For Parallel Agents
 
-Use this prompt when starting any FDB, PL, or CE window:
+Use this prompt when starting any FDB or PLCE window:
 
 ```text
-You are working in one track of the Accurate Intake MVP parallel-track plan.
+You are working in one track of the Accurate Intake MVP two-track plan.
 
 Before implementation, read:
 docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md
