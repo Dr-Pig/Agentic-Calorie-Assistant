@@ -88,6 +88,23 @@ def _verified_unblocked_handoff_blockers(
     ):
         blockers.append("manager_contract_handoff_source_artifacts_missing")
         return blockers
+    blockers.extend(
+        _source_artifact_boundary_blockers(
+            artifact=contract_probe_artifact,  # type: ignore[arg-type]
+            prefix="contract_probe",
+        )
+    )
+    blockers.extend(
+        _source_artifact_boundary_blockers(
+            artifact=repair_pack_artifact,  # type: ignore[arg-type]
+            prefix="repair_pack",
+        )
+    )
+    blockers.extend(
+        _unblocked_repair_pack_summary_blockers(
+            repair_pack_artifact=repair_pack_artifact,  # type: ignore[arg-type]
+        )
+    )
     try:
         derived = build_websearch_manager_contract_handoff(
             live_diagnostic_report=live_diagnostic_report,  # type: ignore[arg-type]
@@ -100,6 +117,46 @@ def _verified_unblocked_handoff_blockers(
         return blockers
     if _handoff_proof(manager_contract_handoff_artifact) != _handoff_proof(derived):
         blockers.append("manager_contract_handoff_derivation_mismatch")
+    return blockers
+
+
+def _source_artifact_boundary_blockers(
+    *,
+    artifact: dict[str, Any],
+    prefix: str,
+) -> list[str]:
+    blockers: list[str] = []
+    for key, suffix in (
+        ("readiness_claimed", "claimed_readiness"),
+        ("runtime_truth_changed", "changed_runtime_truth"),
+        ("runtime_mutation_attempted", "attempted_runtime_mutation"),
+        ("mutation_changed", "changed_mutation"),
+        ("prompt_changed", "changed_prompt"),
+        ("schema_changed", "changed_schema"),
+        ("manager_contract_changed", "changed_manager_contract"),
+        ("shared_contract_changed", "changed_shared_contract"),
+        ("live_provider_used", "used_live_provider"),
+        ("live_websearch_used", "used_live_websearch"),
+    ):
+        if key in artifact and artifact.get(key) is not False:
+            blockers.append(f"{prefix}_{suffix}")
+    return blockers
+
+
+def _unblocked_repair_pack_summary_blockers(
+    *,
+    repair_pack_artifact: dict[str, Any],
+) -> list[str]:
+    summary = repair_pack_artifact.get("summary")
+    if not isinstance(summary, dict):
+        return ["repair_pack_summary_missing_for_unblocked_handoff"]
+    blockers: list[str] = []
+    if _safe_count_map(summary.get("aggregate_missing_required_fields")):
+        blockers.append("repair_pack_non_empty_missing_field_map_for_unblocked_handoff")
+    if _safe_count_map(summary.get("alias_hint_counts")):
+        blockers.append("repair_pack_non_empty_alias_hint_map_for_unblocked_handoff")
+    if _safe_count_map(summary.get("shape_pattern_counts")):
+        blockers.append("repair_pack_non_empty_shape_pattern_map_for_unblocked_handoff")
     return blockers
 
 
