@@ -54,6 +54,7 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         "websearch_contract_handoff_to_candidate_lane_status",
         "websearch_candidate_lane_status_to_websearch_status_packet",
         "exact_evidence_lane_status_to_websearch_status_packet",
+        "websearch_status_packet_to_retriever_router_readiness",
         "listed_components_to_approved_runtime_anchors",
     }
 
@@ -194,10 +195,18 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         in edges["exact_evidence_lane_status_to_websearch_status_packet"]["evidence"]
     )
     assert (
+        edges["websearch_status_packet_to_retriever_router_readiness"]["manager_style_guard"]
+        == "router_readiness_may_gate_websearch_lane_availability_but_cannot_decide_user_intent_or_mutation"
+    )
+    assert (
+        "app.nutrition.application.food_evidence_retriever_router_readiness.apply_websearch_status_gate_to_availability"
+        in edges["websearch_status_packet_to_retriever_router_readiness"]["evidence"]
+    )
+    assert (
         edges["listed_components_to_approved_runtime_anchors"]["manager_style_guard"]
         == "listed_basket_components_may_estimate_only_when_runtime_anchor_is_approved"
     )
-    assert matrix["summary"]["contract_backed"] == 24
+    assert matrix["summary"]["contract_backed"] == 25
     assert matrix["summary"]["draft"] == 0
     assert matrix["summary"]["missing"] == 0
     assert matrix["summary"]["next_required_slices"] == ["manager_fooddb_packet_seam_smoke"]
@@ -224,6 +233,7 @@ def test_activation_plan_documents_integration_readiness_matrix() -> None:
     assert "WebSearch Manager contract handoff -> candidate lane status" in content
     assert "WebSearch candidate lane status -> WebSearch status packet" in content
     assert "exact evidence lane status -> WebSearch status packet" in content
+    assert "WebSearch status packet -> retriever router readiness gate" in content
     assert "packet -> mutation guard" in content
     assert "exact candidate -> no mutation" in content
     assert "2026-05-05_grokfast_websearch_packet_live_diagnostic" in content

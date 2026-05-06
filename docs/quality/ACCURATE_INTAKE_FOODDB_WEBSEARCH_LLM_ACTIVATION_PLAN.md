@@ -165,6 +165,7 @@ integration_readiness_matrix_update:
     - WebSearch Manager contract handoff -> candidate lane status
     - WebSearch candidate lane status -> WebSearch status packet
     - exact evidence lane status -> WebSearch status packet
+    - WebSearch status packet -> retriever router readiness gate
     - retriever output -> compact packet
     - packet -> Manager seam
     - packet -> mutation guard

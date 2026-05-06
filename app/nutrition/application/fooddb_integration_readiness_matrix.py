@@ -172,6 +172,21 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
             stop_condition="stop_if_exact_lane_consolidation_reopens_live_probe_or_promotes_exact_truth",
         ),
         _edge(
+            edge_id="websearch_status_packet_to_retriever_router_readiness",
+            from_node="websearch_evidence_status_packet",
+            to_node="retriever_router_readiness_gate",
+            dependency_direction="websearch_status_to_router_availability_gate",
+            required_contract="exact-brand WebSearch lane opens only when status packet proves candidate-lane clear posture",
+            current_status="contract_backed",
+            manager_style_guard="router_readiness_may_gate_websearch_lane_availability_but_cannot_decide_user_intent_or_mutation",
+            evidence=[
+                "app.nutrition.application.food_evidence_retriever_router_readiness.apply_websearch_status_gate_to_availability",
+                "app.nutrition.application.food_evidence_retriever_router_readiness.build_food_evidence_retriever_router_readiness",
+                "tests.test_food_evidence_retriever_router_readiness.test_apply_websearch_status_gate_enables_exact_brand_lane_after_live_clear",
+            ],
+            stop_condition="stop_if_router_opens_websearch_candidate_lane_without_clear_status_packet_or_promotes_runtime_truth",
+        ),
+        _edge(
             edge_id="listed_components_to_approved_runtime_anchors",
             from_node="listed_basket_components",
             to_node="approved_runtime_anchors_only",
@@ -186,11 +201,7 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
             stop_condition="stop_if_bare_basket_or_unapproved_component_receives_estimate",
         ),
     )
-    counts = {
-        "contract_backed": sum(1 for edge in check_edges if edge["current_status"] == "contract_backed"),
-        "draft": sum(1 for edge in check_edges if edge["current_status"] == "draft"),
-        "missing": sum(1 for edge in check_edges if edge["current_status"] == "missing"),
-    }
+    counts = {"contract_backed": sum(1 for edge in check_edges if edge["current_status"] == "contract_backed"), "draft": sum(1 for edge in check_edges if edge["current_status"] == "draft"), "missing": sum(1 for edge in check_edges if edge["current_status"] == "missing")}
     return {
         "artifact_type": "accurate_intake_fooddb_integration_readiness_matrix",
         "artifact_schema_version": "1.0",
@@ -204,13 +215,7 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
         "websearch_runtime_truth_allowed": False,
         "readiness_claimed": False,
         "check_edges": list(check_edges),
-        "summary": {
-            "edge_count": len(check_edges),
-            **counts,
-            "next_required_slices": [
-                "manager_fooddb_packet_seam_smoke",
-            ],
-        },
+        "summary": {"edge_count": len(check_edges), **counts, "next_required_slices": ["manager_fooddb_packet_seam_smoke"]},
         "non_claims": [
             "no_runtime_truth_promotion",
             "no_packetizer_contract_change",
@@ -233,17 +238,7 @@ def _edge(
     evidence: list[str],
     stop_condition: str,
 ) -> dict[str, Any]:
-    return {
-        "edge_id": edge_id,
-        "from": from_node,
-        "to": to_node,
-        "dependency_direction": dependency_direction,
-        "required_contract": required_contract,
-        "current_status": current_status,
-        "manager_style_guard": manager_style_guard,
-        "evidence": evidence,
-        "stop_condition": stop_condition,
-    }
+    return {"edge_id": edge_id, "from": from_node, "to": to_node, "dependency_direction": dependency_direction, "required_contract": required_contract, "current_status": current_status, "manager_style_guard": manager_style_guard, "evidence": evidence, "stop_condition": stop_condition}
 
 
 __all__ = ["build_fooddb_integration_readiness_matrix"]
