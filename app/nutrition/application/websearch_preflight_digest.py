@@ -5,6 +5,11 @@ import json
 import re
 from typing import Any
 
+from .websearch_grokfast_live_diagnostic_case_matrix import (
+    REQUIRED_CASE_IDS,
+    REQUIRED_MODIFIER_GUARD_CASE_COUNT,
+    REQUIRED_NEGATIVE_CASE_COUNT,
+)
 from .websearch_live_extract_preflight import is_websearch_live_extract_preflight_clear
 
 PREFLIGHT_DIGEST_ALGORITHM = "sha256"
@@ -89,9 +94,10 @@ def is_websearch_preflight_evidence_healthy(preflight: dict[str, Any]) -> bool:
         and preflight.get("review_packet_authorized") is True
         and preflight.get("review_packet_count") >= 1
         and preflight.get("case_matrix_fixed_required_cases") is True
-        and preflight.get("case_matrix_case_count") == 6
-        and preflight.get("case_matrix_negative_case_count") == 4
-        and preflight.get("case_matrix_modifier_guard_cases") == 1
+        and preflight.get("case_matrix_case_count") == len(REQUIRED_CASE_IDS)
+        and preflight.get("case_matrix_negative_case_count") == REQUIRED_NEGATIVE_CASE_COUNT
+        and preflight.get("case_matrix_modifier_guard_cases")
+        == REQUIRED_MODIFIER_GUARD_CASE_COUNT
         and preflight.get("case_matrix_live_provider_invoked") is False
         and preflight.get("case_matrix_websearch_invoked") is False
         and preflight.get("preflight_artifact_digest_algorithm") == PREFLIGHT_DIGEST_ALGORITHM

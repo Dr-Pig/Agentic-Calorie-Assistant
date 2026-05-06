@@ -9,6 +9,11 @@ from app.nutrition.application.grokfast_websearch_packet_smoke import (
     build_grokfast_websearch_packet_diagnostic,
 )
 from app.nutrition.application.tool_evidence_result import build_tool_evidence_result
+from app.nutrition.application.websearch_grokfast_live_diagnostic_case_matrix import (
+    REQUIRED_CASE_IDS,
+    REQUIRED_MODIFIER_GUARD_CASE_COUNT,
+    REQUIRED_NEGATIVE_CASE_COUNT,
+)
 from app.nutrition.application.websearch_candidate_packet_smoke import (
     build_websearch_candidate_packet_smoke,
 )
@@ -52,9 +57,9 @@ def _clear_preflight_ref() -> dict[str, object]:
         "review_packet_authorized": True,
         "review_packet_count": 1,
         "case_matrix_fixed_required_cases": True,
-        "case_matrix_case_count": 6,
-        "case_matrix_negative_case_count": 4,
-        "case_matrix_modifier_guard_cases": 1,
+        "case_matrix_case_count": len(REQUIRED_CASE_IDS),
+        "case_matrix_negative_case_count": REQUIRED_NEGATIVE_CASE_COUNT,
+        "case_matrix_modifier_guard_cases": REQUIRED_MODIFIER_GUARD_CASE_COUNT,
         "case_matrix_live_provider_invoked": False,
         "case_matrix_websearch_invoked": False,
         "preflight_artifact_digest_algorithm": "sha256",
@@ -104,10 +109,10 @@ def _clear_preflight_artifact() -> dict[str, object]:
             "review_packet_count": 1,
             "ready_for_live_extract_diagnostic_count": 1,
             "ready_for_runtime_truth_count": 0,
-            "case_matrix_case_count": 6,
+            "case_matrix_case_count": len(REQUIRED_CASE_IDS),
             "case_matrix_fixed_required_cases": True,
-            "case_matrix_negative_case_count": 4,
-            "case_matrix_modifier_guard_cases": 1,
+            "case_matrix_negative_case_count": REQUIRED_NEGATIVE_CASE_COUNT,
+            "case_matrix_modifier_guard_cases": REQUIRED_MODIFIER_GUARD_CASE_COUNT,
             "case_matrix_live_provider_invoked": False,
             "case_matrix_websearch_invoked": False,
         },
@@ -381,9 +386,15 @@ def test_websearch_live_diagnostic_report_derives_verified_preflight_evidence_fr
     assert report["preflight_evidence"]["review_packet_authorized"] is True
     assert report["preflight_evidence"]["review_packet_count"] == 1
     assert report["preflight_evidence"]["case_matrix_fixed_required_cases"] is True
-    assert report["preflight_evidence"]["case_matrix_case_count"] == 6
-    assert report["preflight_evidence"]["case_matrix_negative_case_count"] == 4
-    assert report["preflight_evidence"]["case_matrix_modifier_guard_cases"] == 1
+    assert report["preflight_evidence"]["case_matrix_case_count"] == len(REQUIRED_CASE_IDS)
+    assert (
+        report["preflight_evidence"]["case_matrix_negative_case_count"]
+        == REQUIRED_NEGATIVE_CASE_COUNT
+    )
+    assert (
+        report["preflight_evidence"]["case_matrix_modifier_guard_cases"]
+        == REQUIRED_MODIFIER_GUARD_CASE_COUNT
+    )
     assert report["preflight_evidence"]["case_matrix_live_provider_invoked"] is False
     assert report["preflight_evidence"]["case_matrix_websearch_invoked"] is False
 

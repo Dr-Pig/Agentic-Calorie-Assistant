@@ -42,8 +42,19 @@ def test_websearch_grokfast_live_case_matrix_covers_exact_and_negative_risks() -
     assert by_id["websearch_official_exact_candidate"]["family"] == (
         "exact_candidate_candidate_only"
     )
+    assert by_id["websearch_official_pdf_exact_candidate"]["family"] == (
+        "exact_candidate_candidate_only"
+    )
+    assert by_id["websearch_convenience_store_rice_ball"]["family"] == (
+        "exact_candidate_candidate_only"
+    )
+    assert by_id["websearch_chain_restaurant_menu_item"]["family"] == (
+        "exact_candidate_candidate_only"
+    )
     assert by_id["websearch_wrong_brand_official"]["family"] == "negative_wrong_brand"
     assert by_id["websearch_wrong_size_candidate"]["family"] == "negative_wrong_size"
+    assert by_id["websearch_same_brand_wrong_flavor"]["family"] == "negative_wrong_variant"
+    assert by_id["websearch_wrong_country_menu"]["family"] == "negative_wrong_country"
     assert by_id["websearch_official_missing_nutrition"]["family"] == (
         "negative_missing_nutrition"
     )
@@ -62,9 +73,9 @@ def test_websearch_grokfast_live_case_matrix_records_non_claims_and_summary() ->
     assert "not_exact_card_promotion_gate" in artifact["non_claims"]
     assert "not_live_websearch_execution" in artifact["non_claims"]
     assert artifact["summary"]["case_count"] == len(REQUIRED_CASE_IDS)
-    assert artifact["summary"]["exact_candidate_cases"] == 1
-    assert artifact["summary"]["negative_case_count"] == 4
-    assert artifact["summary"]["identity_mismatch_case_count"] == 2
+    assert artifact["summary"]["exact_candidate_cases"] == 4
+    assert artifact["summary"]["negative_case_count"] == 6
+    assert artifact["summary"]["identity_mismatch_case_count"] == 4
     assert artifact["summary"]["missing_nutrition_case_count"] == 1
     assert artifact["summary"]["weak_source_case_count"] == 1
     assert artifact["summary"]["modifier_guard_cases"] == 1
@@ -83,6 +94,8 @@ def test_websearch_grokfast_live_case_matrix_rejects_happy_path_overfit() -> Non
     assert "required_case_order_mismatch" in blockers
     assert "missing_family.negative_wrong_brand" in blockers
     assert "missing_family.negative_wrong_size" in blockers
+    assert "missing_family.negative_wrong_variant" in blockers
+    assert "missing_family.negative_wrong_country" in blockers
     assert "missing_family.negative_missing_nutrition" in blockers
     assert "missing_family.negative_weak_source" in blockers
     assert "missing_family.modifier_mismatch_guard" in blockers

@@ -16,6 +16,8 @@ from app.nutrition.application.websearch_extract_result_candidate_smoke import (
 )
 from app.nutrition.application.websearch_grokfast_live_diagnostic_case_matrix import (
     REQUIRED_CASE_IDS,
+    REQUIRED_MODIFIER_GUARD_CASE_COUNT,
+    REQUIRED_NEGATIVE_CASE_COUNT,
     build_websearch_grokfast_live_diagnostic_case_matrix_artifact,
 )
 from app.nutrition.application.websearch_live_extract_preflight import (
@@ -62,8 +64,11 @@ def test_live_extract_preflight_enables_diagnostic_only_not_truth() -> None:
     assert artifact["summary"]["ready_for_runtime_truth_count"] == 0
     assert artifact["summary"]["case_matrix_case_count"] == len(REQUIRED_CASE_IDS)
     assert artifact["summary"]["case_matrix_fixed_required_cases"] is True
-    assert artifact["summary"]["case_matrix_negative_case_count"] == 4
-    assert artifact["summary"]["case_matrix_modifier_guard_cases"] == 1
+    assert artifact["summary"]["case_matrix_negative_case_count"] == REQUIRED_NEGATIVE_CASE_COUNT
+    assert (
+        artifact["summary"]["case_matrix_modifier_guard_cases"]
+        == REQUIRED_MODIFIER_GUARD_CASE_COUNT
+    )
     assert artifact["summary"]["case_matrix_live_provider_invoked"] is False
     assert artifact["summary"]["case_matrix_websearch_invoked"] is False
     assert artifact["next_required_slice"] == "grokfast_websearch_packet_live_diagnostic"

@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from app.nutrition.application.websearch_grokfast_live_diagnostic_case_matrix import (
+    REQUIRED_CASE_IDS,
+    REQUIRED_MODIFIER_GUARD_CASE_COUNT,
+    REQUIRED_NEGATIVE_CASE_COUNT,
+)
 from app.nutrition.application.websearch_manager_contract_handoff import (
     build_websearch_manager_contract_handoff,
 )
@@ -54,10 +59,10 @@ def _clear_preflight_artifact() -> dict:
             "review_packet_count": 1,
             "ready_for_live_extract_diagnostic_count": 1,
             "ready_for_runtime_truth_count": 0,
-            "case_matrix_case_count": 6,
+            "case_matrix_case_count": len(REQUIRED_CASE_IDS),
             "case_matrix_fixed_required_cases": True,
-            "case_matrix_negative_case_count": 4,
-            "case_matrix_modifier_guard_cases": 1,
+            "case_matrix_negative_case_count": REQUIRED_NEGATIVE_CASE_COUNT,
+            "case_matrix_modifier_guard_cases": REQUIRED_MODIFIER_GUARD_CASE_COUNT,
             "case_matrix_live_provider_invoked": False,
             "case_matrix_websearch_invoked": False,
         },
