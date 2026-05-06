@@ -14,9 +14,13 @@ def build_expanded_websearch_pipeline_cases(*, case_factory: PipelineCaseFactory
         _multi_source_official_preferred(case_factory),
         _official_pdf_priority(case_factory),
         _large_size_preferred(case_factory),
+        _size_unknown_requires_followup(case_factory),
         _modifier_match_preferred(case_factory),
+        _same_brand_wrong_flavor_variant(case_factory),
         _all_blocked_candidates(case_factory),
     )
+
+
 def _multi_source_official_preferred(case_factory: PipelineCaseFactory) -> Any:
     intent = _intent(base_dish="pearl black tea latte", alias="Milksha pearl black tea latte", brand_hint="Milksha")
     return case_factory(
@@ -49,6 +53,8 @@ def _multi_source_official_preferred(case_factory: PipelineCaseFactory) -> Any:
             ),
         ),
     )
+
+
 def _official_pdf_priority(case_factory: PipelineCaseFactory) -> Any:
     intent = _intent(base_dish="pearl black tea latte", alias="Milksha pearl black tea latte", brand_hint="Milksha")
     return case_factory(
@@ -73,6 +79,8 @@ def _official_pdf_priority(case_factory: PipelineCaseFactory) -> Any:
             ),
         ),
     )
+
+
 def _large_size_preferred(case_factory: PipelineCaseFactory) -> Any:
     intent = _intent(base_dish="iced latte", alias="Starbucks iced latte large", brand_hint="Starbucks", size_hint="large")
     return case_factory(
@@ -95,6 +103,30 @@ def _large_size_preferred(case_factory: PipelineCaseFactory) -> Any:
             ),
         ),
     )
+
+
+def _size_unknown_requires_followup(case_factory: PipelineCaseFactory) -> Any:
+    intent = _intent(
+        base_dish="iced latte",
+        alias="Starbucks iced latte large",
+        brand_hint="Starbucks",
+        size_hint="large",
+    )
+    return case_factory(
+        case_id="pipeline_size_unknown_requires_followup",
+        intent=intent,
+        raw_hits=(
+            _hit(
+                title="Starbucks iced latte",
+                url="https://starbucks.example/menu/iced-latte",
+                brand_detected="Starbucks",
+                identity_confidence="high",
+                raw_ref="raw/websearch/pipeline_size_unknown_requires_followup.json#0",
+            ),
+        ),
+    )
+
+
 def _modifier_match_preferred(case_factory: PipelineCaseFactory) -> Any:
     intent = _intent(base_dish="pearl black tea latte", alias="Milksha pearl black tea latte half sugar", brand_hint="Milksha", modifier_hints=("half sugar",))
     return case_factory(
@@ -117,6 +149,29 @@ def _modifier_match_preferred(case_factory: PipelineCaseFactory) -> Any:
             ),
         ),
     )
+
+
+def _same_brand_wrong_flavor_variant(case_factory: PipelineCaseFactory) -> Any:
+    intent = _intent(
+        base_dish="pearl black tea latte",
+        alias="Milksha pearl black tea latte",
+        brand_hint="Milksha",
+    )
+    return case_factory(
+        case_id="pipeline_same_brand_wrong_flavor_variant",
+        intent=intent,
+        raw_hits=(
+            _hit(
+                title="Milksha pearl fresh milk tea",
+                url="https://milksha.example/menu/pearl-fresh-milk-tea",
+                brand_detected="Milksha",
+                identity_confidence="high",
+                raw_ref="raw/websearch/pipeline_same_brand_wrong_flavor_variant.json#0",
+            ),
+        ),
+    )
+
+
 def _all_blocked_candidates(case_factory: PipelineCaseFactory) -> Any:
     intent = _intent(base_dish="pearl black tea latte", alias="Milksha pearl black tea latte", brand_hint="Milksha")
     return case_factory(
@@ -148,6 +203,8 @@ def _all_blocked_candidates(case_factory: PipelineCaseFactory) -> Any:
             ),
         ),
     )
+
+
 def _intent(
     *,
     base_dish: str,
@@ -165,6 +222,8 @@ def _intent(
         listed_items=[],
         retrieval_goal="exact_brand_lookup",
     )
+
+
 def _hit(
     *,
     title: str,
@@ -199,4 +258,6 @@ def _hit(
         "applicability_notes": "deterministic fixture candidate",
         "raw_ref": raw_ref,
     }
+
+
 __all__ = ["build_expanded_websearch_pipeline_cases"]

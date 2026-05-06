@@ -90,7 +90,7 @@ def _has_identity_safe_extract_shape(packet: dict[str, object]) -> bool:
     identity_safe = (
         str(packet.get("match_type") or "").strip() == "exact"
         and not bool((packet.get("sibling_variant_risk") or {}).get("present"))
-        and str(packet.get("size_or_serving_match") or "").strip() != "different"
+        and str(packet.get("size_or_serving_match") or "").strip() not in {"different", "unknown"}
         and modifier_match not in {"different", "unknown"}
         and not tuple(
             risk
