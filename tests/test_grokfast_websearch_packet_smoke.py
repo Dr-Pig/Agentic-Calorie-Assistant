@@ -313,6 +313,12 @@ def test_grokfast_websearch_live_runner_preflight_ref_records_authorized_case_ma
     assert ref["case_matrix_modifier_guard_cases"] == 1
     assert ref["case_matrix_live_provider_invoked"] is False
     assert ref["case_matrix_websearch_invoked"] is False
+    assert ref["preflight_artifact_digest_algorithm"] == "sha256"
+    assert ref["preflight_artifact_digest_scope"] == (
+        "semantic_preflight_without_generated_at_utc"
+    )
+    assert isinstance(ref["preflight_artifact_digest"], str)
+    assert len(ref["preflight_artifact_digest"]) == 64
 
 
 def test_grokfast_websearch_packet_smoke_cli_defaults_to_fixture_and_blocks_live(

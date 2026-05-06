@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 
 from app.nutrition.application.grokfast_websearch_packet_smoke import (
@@ -40,6 +42,7 @@ def _manager_packet_artifact() -> dict:
 
 
 def _clear_preflight_ref() -> dict[str, object]:
+    preflight = _clear_preflight_artifact()
     return {
         "preflight_ref_source": "run_accurate_intake_grokfast_websearch_packet_smoke",
         "artifact_type": "accurate_intake_websearch_live_extract_preflight_v1",
@@ -54,7 +57,87 @@ def _clear_preflight_ref() -> dict[str, object]:
         "case_matrix_modifier_guard_cases": 1,
         "case_matrix_live_provider_invoked": False,
         "case_matrix_websearch_invoked": False,
+        "preflight_artifact_digest_algorithm": "sha256",
+        "preflight_artifact_digest_scope": "semantic_preflight_without_generated_at_utc",
+        "preflight_artifact_digest": _semantic_preflight_digest(preflight),
     }
+
+
+def _clear_preflight_artifact() -> dict[str, object]:
+    return {
+        "artifact_type": "accurate_intake_websearch_live_extract_preflight_v1",
+        "artifact_schema_version": "1.0",
+        "generated_at_utc": "2026-05-06T00:00:00Z",
+        "track": "FDB",
+        "classification": "deterministic_live_extract_preflight_only",
+        "claim_scope": "websearch_live_extract_diagnostic_preflight_without_live_call",
+        "status": "pass",
+        "blockers": [],
+        "live_websearch_used": False,
+        "live_extract_used": False,
+        "live_provider_used": False,
+        "runtime_truth_changed": False,
+        "runtime_mutation_allowed": False,
+        "manager_context_changed": False,
+        "packetizer_format_changed": False,
+        "readiness_claimed": False,
+        "ready_for_live_extract_diagnostic": True,
+        "ready_for_runtime_truth": False,
+        "diagnostic_contract": {
+            "live_call_allowed_by_this_artifact": False,
+            "requires_explicit_allow_live_flag": True,
+            "cache_required": True,
+            "raw_content_allowed_in_manager_context": False,
+            "ledger_mutation_allowed": False,
+            "exact_card_creation_allowed": False,
+        },
+        "review_packet_refs": [
+            {
+                "packet_id": "pkt_exact_card_review_123456789abc",
+                "source_url": "https://milksha.example/menu/pearl-black-tea-latte",
+                "canonical_name": "Milksha pearl black tea latte",
+                "matched_name": "Milksha pearl black tea latte",
+                "packet_digest": "abc123def4567890",
+            }
+        ],
+        "summary": {
+            "review_packet_count": 1,
+            "ready_for_live_extract_diagnostic_count": 1,
+            "ready_for_runtime_truth_count": 0,
+            "case_matrix_case_count": 6,
+            "case_matrix_fixed_required_cases": True,
+            "case_matrix_negative_case_count": 4,
+            "case_matrix_modifier_guard_cases": 1,
+            "case_matrix_live_provider_invoked": False,
+            "case_matrix_websearch_invoked": False,
+        },
+        "next_required_slice": "grokfast_websearch_packet_live_diagnostic",
+        "non_claims": [
+            "no_live_websearch_call",
+            "no_live_extract_call",
+            "no_live_provider_call",
+            "no_websearch_runtime_truth",
+            "no_exact_card_truth_promotion",
+            "no_runtime_mutation",
+            "no_readiness_claim",
+        ],
+    }
+
+
+def _semantic_preflight_digest(preflight: dict[str, object]) -> str:
+    payload = {
+        key: value
+        for key, value in preflight.items()
+        if key != "generated_at_utc"
+    }
+    encoded = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def test_websearch_live_diagnostic_report_blocks_expansion_after_provider_contract_failure() -> None:
@@ -89,7 +172,10 @@ def test_websearch_live_diagnostic_report_blocks_expansion_after_provider_contra
         ],
     }
 
-    report = build_websearch_live_diagnostic_report(diagnostic_artifact=diagnostic)
+    report = build_websearch_live_diagnostic_report(
+        diagnostic_artifact=diagnostic,
+        preflight_artifact=_clear_preflight_artifact(),
+    )
 
     assert report["artifact_type"] == "accurate_intake_websearch_live_diagnostic_report"
     assert report["seam_status"] == "provider_contract_blocked"
@@ -156,7 +242,10 @@ def test_websearch_live_diagnostic_report_distinguishes_post_contract_candidate_
         ],
     }
 
-    report = build_websearch_live_diagnostic_report(diagnostic_artifact=diagnostic)
+    report = build_websearch_live_diagnostic_report(
+        diagnostic_artifact=diagnostic,
+        preflight_artifact=_clear_preflight_artifact(),
+    )
 
     assert report["seam_status"] == "candidate_boundary_blocked"
     assert report["provider_contract_blocked"] is False
@@ -205,12 +294,20 @@ def test_websearch_live_diagnostic_report_recognizes_b1_pass2_json_schema_transp
         ],
     }
 
-    report = build_websearch_live_diagnostic_report(diagnostic_artifact=diagnostic)
+    report = build_websearch_live_diagnostic_report(
+        diagnostic_artifact=diagnostic,
+        preflight_artifact=_clear_preflight_artifact(),
+    )
 
     assert report["seam_status"] == "live_diagnostic_pass"
     assert report["can_expand_websearch_candidate_pipeline"] is True
     assert report["preflight_evidence_required"] is True
     assert report["preflight_evidence_healthy"] is True
+    assert report["preflight_evidence"]["preflight_artifact_digest_verified"] is True
+    assert report["preflight_evidence"]["preflight_artifact_digest_algorithm"] == "sha256"
+    assert report["preflight_evidence"]["preflight_artifact_digest_scope"] == (
+        "semantic_preflight_without_generated_at_utc"
+    )
     assert report["preflight_evidence"]["review_packet_authorized"] is True
     assert report["preflight_evidence"]["case_matrix_fixed_required_cases"] is True
     assert report["contract_transport"]["healthy"] is True
@@ -222,6 +319,133 @@ def test_websearch_live_diagnostic_report_recognizes_b1_pass2_json_schema_transp
     assert report["contract_transport"]["observed_schema_names"] == [
         "phase_b1_pass2_manager_contract"
     ]
+
+
+def test_websearch_live_diagnostic_report_blocks_pass_without_verified_preflight_digest() -> None:
+    diagnostic = {
+        "artifact_type": "accurate_intake_grokfast_websearch_packet_smoke",
+        "status": "pass",
+        "live_provider_used": True,
+        "live_websearch_used": False,
+        "preflight_ref": _clear_preflight_ref(),
+        "summary": {
+            "case_count": 1,
+            "pass_count": 1,
+            "fail_count": 0,
+            "failure_families": [],
+        },
+        "cases": [
+            {
+                "packet_id": "pkt_exact_card_review",
+                "status": "pass",
+                "failure_families": [],
+                "provider_trace": {
+                    "structured_output_transport_attempted": True,
+                    "structured_output_transport_mode": "json_schema",
+                    "structured_output_transport_accepted": True,
+                    "schema_name": "phase_b1_pass2_manager_contract",
+                    "decision_transport_contract_breach": False,
+                },
+            }
+        ],
+    }
+
+    report = build_websearch_live_diagnostic_report(diagnostic_artifact=diagnostic)
+
+    assert report["seam_status"] == "preflight_evidence_missing"
+    assert report["can_expand_websearch_candidate_pipeline"] is False
+    assert report["preflight_evidence_healthy"] is False
+    assert report["preflight_evidence"]["preflight_artifact_digest_verified"] is False
+    assert report["next_recommended_slice"] == "rerun_with_clear_websearch_live_extract_preflight"
+
+
+def test_websearch_live_diagnostic_report_blocks_mismatched_preflight_digest() -> None:
+    diagnostic = {
+        "artifact_type": "accurate_intake_grokfast_websearch_packet_smoke",
+        "status": "pass",
+        "live_provider_used": True,
+        "live_websearch_used": False,
+        "preflight_ref": _clear_preflight_ref(),
+        "summary": {
+            "case_count": 1,
+            "pass_count": 1,
+            "fail_count": 0,
+            "failure_families": [],
+        },
+        "cases": [
+            {
+                "packet_id": "pkt_exact_card_review",
+                "status": "pass",
+                "failure_families": [],
+                "provider_trace": {
+                    "structured_output_transport_attempted": True,
+                    "structured_output_transport_mode": "json_schema",
+                    "structured_output_transport_accepted": True,
+                    "schema_name": "phase_b1_pass2_manager_contract",
+                    "decision_transport_contract_breach": False,
+                },
+            }
+        ],
+    }
+    drifted_preflight = _clear_preflight_artifact()
+    drifted_preflight["review_packet_refs"][0]["packet_digest"] = "drifted"
+
+    report = build_websearch_live_diagnostic_report(
+        diagnostic_artifact=diagnostic,
+        preflight_artifact=drifted_preflight,
+    )
+
+    assert report["seam_status"] == "preflight_evidence_missing"
+    assert report["can_expand_websearch_candidate_pipeline"] is False
+    assert report["preflight_evidence_healthy"] is False
+    assert report["preflight_evidence"]["preflight_artifact_digest_verified"] is False
+
+
+def test_websearch_live_diagnostic_report_fail_closes_malformed_preflight_artifact() -> None:
+    malformed_preflight = _clear_preflight_artifact()
+    malformed_preflight["summary"]["review_packet_count"] = "not-an-int"
+    preflight_ref = _clear_preflight_ref()
+    preflight_ref["preflight_artifact_digest"] = _semantic_preflight_digest(
+        malformed_preflight
+    )
+    diagnostic = {
+        "artifact_type": "accurate_intake_grokfast_websearch_packet_smoke",
+        "status": "pass",
+        "live_provider_used": True,
+        "live_websearch_used": False,
+        "preflight_ref": preflight_ref,
+        "summary": {
+            "case_count": 1,
+            "pass_count": 1,
+            "fail_count": 0,
+            "failure_families": [],
+        },
+        "cases": [
+            {
+                "packet_id": "pkt_exact_card_review",
+                "status": "pass",
+                "failure_families": [],
+                "provider_trace": {
+                    "structured_output_transport_attempted": True,
+                    "structured_output_transport_mode": "json_schema",
+                    "structured_output_transport_accepted": True,
+                    "schema_name": "phase_b1_pass2_manager_contract",
+                    "decision_transport_contract_breach": False,
+                },
+            }
+        ],
+    }
+
+    report = build_websearch_live_diagnostic_report(
+        diagnostic_artifact=diagnostic,
+        preflight_artifact=malformed_preflight,
+    )
+
+    assert report["seam_status"] == "preflight_evidence_missing"
+    assert report["can_expand_websearch_candidate_pipeline"] is False
+    assert report["preflight_evidence_healthy"] is False
+    assert report["preflight_evidence"]["preflight_artifact_digest_verified"] is True
+    assert report["preflight_evidence"]["preflight_artifact_integrity_clear"] is False
 
 
 def test_websearch_live_diagnostic_report_blocks_pass_without_clear_preflight_ref() -> None:

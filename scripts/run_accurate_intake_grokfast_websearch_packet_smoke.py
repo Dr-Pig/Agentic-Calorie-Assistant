@@ -21,6 +21,9 @@ from app.nutrition.application.grokfast_websearch_packet_diagnostic import (  # 
 from app.nutrition.application.websearch_live_extract_preflight import (  # noqa: E402
     is_websearch_live_extract_preflight_clear,
 )
+from app.nutrition.application.websearch_preflight_digest import (  # noqa: E402
+    websearch_live_extract_preflight_digest,
+)
 from app.providers.builderspace_adapter import BuilderSpaceAdapter, BuilderSpaceResponseError  # noqa: E402
 from app.providers.builderspace_runtime_contract import validate_manager_payload  # noqa: E402
 from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT  # noqa: E402
@@ -270,6 +273,9 @@ def _preflight_ref(preflight: dict[str, Any]) -> dict[str, Any]:
         "case_matrix_modifier_guard_cases": summary.get("case_matrix_modifier_guard_cases"),
         "case_matrix_live_provider_invoked": summary.get("case_matrix_live_provider_invoked"),
         "case_matrix_websearch_invoked": summary.get("case_matrix_websearch_invoked"),
+        "preflight_artifact_digest_algorithm": "sha256",
+        "preflight_artifact_digest_scope": "semantic_preflight_without_generated_at_utc",
+        "preflight_artifact_digest": websearch_live_extract_preflight_digest(preflight),
     }
 
 
