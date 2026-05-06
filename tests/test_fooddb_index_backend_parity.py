@@ -63,7 +63,7 @@ def test_fooddb_index_backend_parity_passes_for_local_sqlite_and_supabase_rows(
         "supabase_rows",
     ]
     assert artifact["summary"]["fail_count"] == 0
-    assert artifact["next_required_slice"] == "grokfast_fooddb_diagnostic_preflight"
+    assert artifact["next_required_slice"] == "grokfast_fooddb_packet_live_diagnostic"
 
 
 def test_fooddb_index_backend_parity_hides_backend_from_manager_visible_tool_result(
