@@ -259,6 +259,70 @@ class _AppUsageManagerProvider:
         )
 
 
+class _DayMealLogManagerProvider:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+
+    def readiness(self) -> dict[str, Any]:
+        return {"configured": True, "provider": "day_meal_log_fixture"}
+
+    async def complete_with_trace(
+        self,
+        **kwargs: Any,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        user_payload = dict(kwargs.get("user_payload") or {})
+        self.calls.append(
+            {
+                "available_tools": list(user_payload.get("available_tools") or []),
+                "tool_results": list(user_payload.get("tool_results") or []),
+                "round_index": user_payload.get("round_index"),
+            }
+        )
+        if int(user_payload.get("round_index") or 0) == 0:
+            return (
+                {
+                    "manager_action": "call_tools",
+                    "tool_calls": [{"name": "read_day_budget"}],
+                },
+                {"source": "day_meal_log_fixture"},
+            )
+        return (
+            {
+                "manager_action": "final",
+                "intent": "general_chat",
+                "intent_type": "general_chat",
+                "final_action": "answer_only",
+                "workflow_effect": "answer_day_meal_log_without_state_mutation",
+                "target_attachment": {"mode": "read_only_day_meal_log_answer"},
+                "exactness": "read_only_state",
+                "confidence": "high",
+                "evidence_posture": "read_only_state",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "今天已記錄 breakfast sandwich。"},
+                "response_summary": "answer_day_meal_log_without_state_mutation",
+                "uncertainty_posture": "bounded",
+                "evidence_honesty_posture": "read_only_state",
+                "semantic_decision": {
+                    "semantic_authority": "deterministic_fake_provider",
+                    "current_turn_intent": "general_chat",
+                    "target_attachment": {"mode": "read_only_day_meal_log_answer"},
+                    "workflow_effect": "answer_day_meal_log_without_state_mutation",
+                    "final_action_candidate": "answer_only",
+                    "estimation_posture": "not_applicable",
+                    "followup_posture": "none",
+                    "followup_targets": [],
+                    "mutation_intent_candidate": "no_mutation",
+                    "uncertainty_posture": "bounded",
+                    "source": "day_meal_log_fixture",
+                    "semantic_owner": "manager",
+                    "deterministic_role": "fixture_simulates_manager_output_only",
+                },
+                "tool_calls": [],
+            },
+            {"source": "day_meal_log_fixture"},
+        )
+
+
 def _session() -> Session:
     engine = create_engine(
         "sqlite://",
@@ -450,3 +514,32 @@ def test_estimate_route_uses_manager_read_only_tool_loop_for_app_usage_help(
     assert response.json()["coach_message"] == (
         "I can answer general product questions here, but I will not change state from this path."
     )
+
+
+def test_estimate_route_uses_manager_read_only_tool_loop_for_day_meal_log_query(
+    monkeypatch: Any,
+) -> None:
+    db = _session()
+    provider = _DayMealLogManagerProvider()
+    client = _client(db, provider, monkeypatch)
+    user_external_id = "manager-read-only-day-meal-log-route"
+    _bootstrap_budget_state(db, user_external_id=user_external_id)
+
+    response = client.post(
+        "/estimate",
+        json={
+            "text": "我今天吃了什麼？",
+            "allow_search": False,
+            "user_id": user_external_id,
+            "local_date": "2026-05-06",
+        },
+    )
+
+    assert response.status_code == 200
+    assert provider.calls[0]["tool_results"] == []
+    assert provider.calls[1]["tool_results"][0]["tool_name"] == "read_day_budget"
+    assert provider.calls[1]["tool_results"][0]["evidence"]["current_budget_view"]["meals"]
+    payload = response.json()["payload"]
+    assert payload["manager_decision"]["intent_type"] == "general_chat"
+    assert payload["manager_decision"]["workflow_effect"] == "answer_day_meal_log_without_state_mutation"
+    assert response.json()["coach_message"] == "今天已記錄 breakfast sandwich。"

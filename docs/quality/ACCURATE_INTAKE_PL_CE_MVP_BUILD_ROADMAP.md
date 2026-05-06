@@ -39,13 +39,13 @@ The target coarse tool inventory is:
 The currently converged runtime subset on `main` is:
 
 - `budget.get_remaining_calories` via the live `read_day_budget` read-only manager tool seam
+- `budget.get_day_meal_log` via the live `read_day_budget` read-only manager tool seam
 - `body.get_active_plan` via the live `read_body_plan` read-only manager tool seam
 - `app.answer_usage_question` via the live fallback app-help read-only manager tool seam
 
 The remaining non-FoodDB tool inventory is still partially diagnostic or direct-lane backed until later slices convert it:
 
 - `budget.get_today_summary`
-- `budget.get_day_meal_log`
 - `body.get_latest_observation`
 - `body.record_observation`
 - `calibration.preview_proposal`

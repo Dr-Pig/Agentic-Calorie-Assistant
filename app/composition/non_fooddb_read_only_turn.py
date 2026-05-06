@@ -130,5 +130,33 @@ def finalize_non_fooddb_read_only_manager_intent(
             "remaining_budget": None,
             "assistant_message_override": assistant_message_override,
         }
+    if (
+        manager_decision.intent_type == "general_chat"
+        and manager_decision.workflow_effect == "answer_day_meal_log_without_state_mutation"
+        and any(
+            isinstance(tool_result, dict) and tool_result.get("tool_name") == "read_day_budget"
+            for tool_result in manager_decision.tool_results
+        )
+    ):
+        assistant_message_override = str(
+            manager_decision.answer_contract.get("reply_text")
+            or manager_decision.response_summary
+            or "I can answer the current day meal log here, but I will not change state from this path."
+        )
+        append_trace_event(
+            request_id=request_id,
+            stage="v2_general_chat_day_meal_log_read_only",
+            status="ok",
+            summary={
+                "workflow_effect": manager_decision.workflow_effect,
+                "tool_calls": list(manager_decision.tool_calls),
+                "tool_result_count": len(manager_decision.tool_results),
+                "state_mutation": "none",
+            },
+        )
+        return {
+            "remaining_budget": None,
+            "assistant_message_override": assistant_message_override,
+        }
 
     return None
