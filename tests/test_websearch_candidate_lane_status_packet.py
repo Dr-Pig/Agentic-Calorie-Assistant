@@ -595,6 +595,56 @@ def test_websearch_candidate_lane_status_packet_blocks_source_artifact_overclaim
     assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
 
 
+def test_websearch_candidate_lane_status_packet_blocks_live_report_overclaims() -> None:
+    inputs = _verified_handoff_inputs()
+    live_report = {**inputs["live_diagnostic_report"], "shared_contract_changed": True}
+
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        manager_contract_handoff_artifact=inputs["manager_contract_handoff_artifact"],
+        live_diagnostic_report=live_report,
+        contract_probe_artifact=inputs["contract_probe_artifact"],
+        repair_pack_artifact=inputs["repair_pack_artifact"],
+        preflight_artifact=inputs["preflight_artifact"],
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == (
+        "blocked_on_manager_contract_handoff"
+    )
+    assert "live_report_changed_shared_contract" in artifact["manager_contract_gate"][
+        "blockers"
+    ]
+    assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
+
+
+def test_websearch_candidate_lane_status_packet_blocks_preflight_overclaims() -> None:
+    inputs = _verified_handoff_inputs()
+    preflight = {**inputs["preflight_artifact"], "product_readiness_claimed": True}
+
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        manager_contract_handoff_artifact=inputs["manager_contract_handoff_artifact"],
+        live_diagnostic_report=inputs["live_diagnostic_report"],
+        contract_probe_artifact=inputs["contract_probe_artifact"],
+        repair_pack_artifact=inputs["repair_pack_artifact"],
+        preflight_artifact=preflight,
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == (
+        "blocked_on_manager_contract_handoff"
+    )
+    assert "preflight_claimed_product_readiness" in artifact["manager_contract_gate"][
+        "blockers"
+    ]
+    assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
+
+
 def test_websearch_candidate_lane_status_packet_blocks_repair_pack_map_drift() -> None:
     inputs = _verified_handoff_inputs()
     repair_pack = {

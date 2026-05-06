@@ -11,11 +11,19 @@ from .websearch_candidate_lane_handoff_proof import (
 
 def source_chain_blockers(
     *,
+    live_diagnostic_report: dict[str, Any],
     contract_probe_artifact: dict[str, Any],
     repair_pack_artifact: dict[str, Any],
+    preflight_artifact: dict[str, Any],
     manager_contract_handoff_artifact: dict[str, Any],
 ) -> list[str]:
     blockers: list[str] = []
+    blockers.extend(
+        _source_artifact_boundary_blockers(
+            artifact=live_diagnostic_report,
+            prefix="live_report",
+        )
+    )
     blockers.extend(
         _source_artifact_boundary_blockers(
             artifact=contract_probe_artifact,
@@ -26,6 +34,12 @@ def source_chain_blockers(
         _source_artifact_boundary_blockers(
             artifact=repair_pack_artifact,
             prefix="repair_pack",
+        )
+    )
+    blockers.extend(
+        _source_artifact_boundary_blockers(
+            artifact=preflight_artifact,
+            prefix="preflight",
         )
     )
     blockers.extend(

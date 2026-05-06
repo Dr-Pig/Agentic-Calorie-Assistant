@@ -88,8 +88,10 @@ def _verified_unblocked_handoff_blockers(
         return blockers
     blockers.extend(
         source_chain_blockers(
+            live_diagnostic_report=live_diagnostic_report,  # type: ignore[arg-type]
             contract_probe_artifact=contract_probe_artifact,  # type: ignore[arg-type]
             repair_pack_artifact=repair_pack_artifact,  # type: ignore[arg-type]
+            preflight_artifact=preflight_artifact,  # type: ignore[arg-type]
             manager_contract_handoff_artifact=manager_contract_handoff_artifact,
         )
     )
