@@ -23,13 +23,15 @@ def main(argv: list[str] | None = None) -> int:
         description="Build exact evidence lane status packet."
     )
     parser.add_argument("--websearch-status-packet")
+    parser.add_argument("--exact-candidate-chain-status-packet")
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
     artifact = build_exact_evidence_lane_status_packet(
-        websearch_status_packet=(
-            read_json_artifact(Path(args.websearch_status_packet)) if args.websearch_status_packet else None
-        )
+        websearch_status_packet=_read_optional(args.websearch_status_packet),
+        exact_candidate_chain_status_packet=_read_optional(
+            args.exact_candidate_chain_status_packet
+        ),
     )
     output_path = Path(args.output)
     write_json_artifact(output_path, artifact)
@@ -45,6 +47,10 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     return 0
+
+
+def _read_optional(path: str | None) -> dict[str, object] | None:
+    return read_json_artifact(Path(path)) if path else None
 
 
 if __name__ == "__main__":

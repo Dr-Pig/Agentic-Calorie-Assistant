@@ -5,6 +5,9 @@ from pathlib import Path
 from app.nutrition.application.exact_evidence_lane_status_packet import (
     build_exact_evidence_lane_status_packet,
 )
+from app.nutrition.application.websearch_exact_candidate_chain_status import (
+    build_websearch_exact_candidate_chain_status,
+)
 
 
 def _websearch_status_packet() -> dict:
@@ -41,7 +44,7 @@ def test_exact_evidence_lane_status_packet_blocks_when_websearch_upstream_not_re
     assert artifact["next_required_slices"] == ["await_manager_contract_owner_repair"]
 
 
-def test_exact_evidence_lane_status_packet_allows_when_websearch_explicitly_points_to_live_probe() -> None:
+def test_exact_evidence_lane_status_packet_requires_exact_candidate_chain_after_websearch() -> None:
     artifact = build_exact_evidence_lane_status_packet(
         websearch_status_packet={
             "artifact_type": "accurate_intake_websearch_candidate_lane_status_packet_v1",
@@ -51,6 +54,24 @@ def test_exact_evidence_lane_status_packet_allows_when_websearch_explicitly_poin
     )
 
     assert artifact["summary"]["upstream_websearch_gate_status"] == "clear_for_exact_websearch_followthrough"
+    assert artifact["summary"]["exact_candidate_chain_status"] == "not_provided"
+    assert artifact["next_required_slices"] == ["inspect_websearch_exact_candidate_chain_status"]
+
+
+def test_exact_evidence_lane_status_packet_allows_when_websearch_and_chain_clear() -> None:
+    artifact = build_exact_evidence_lane_status_packet(
+        websearch_status_packet={
+            "artifact_type": "accurate_intake_websearch_candidate_lane_status_packet_v1",
+            "upstream_gate": {"status": "clear_for_websearch_lane", "blocked": False},
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        exact_candidate_chain_status_packet=build_websearch_exact_candidate_chain_status(),
+    )
+
+    assert artifact["summary"]["upstream_websearch_gate_status"] == "clear_for_exact_websearch_followthrough"
+    assert artifact["summary"]["exact_candidate_chain_status"] == (
+        "clear_for_websearch_exact_candidate_chain"
+    )
     assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
 
 

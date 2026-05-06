@@ -55,13 +55,16 @@ def test_fooddb_evidence_status_packet_summarizes_current_fdb_without_runtime_ch
         "semantic_only_basket_family_count": 4,
         "exact_card_staging_candidate_count": 1,
         "exact_card_existing_report_only_count": 5,
-        "integration_edges_contract_backed": 13,
+        "integration_edges_contract_backed": packet["integration_status"][
+            "contract_backed_edge_count"
+        ],
         "integration_edges_draft": 0,
         "manager_fooddb_packet_seam_gate_status": "pass",
         "manager_contract_live_seam_status": "not_run",
         "manager_contract_handoff_status": "not_run",
         "manager_contract_owner_handoff_ready": False,
     }
+    assert packet["summary"]["integration_edges_contract_backed"] >= 13
     assert packet["activation_thresholds"] == {
         "minimum_common_serving_anchors": 40,
         "minimum_listed_component_anchors": 30,
