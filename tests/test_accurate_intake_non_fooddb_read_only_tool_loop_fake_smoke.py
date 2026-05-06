@@ -97,6 +97,45 @@ def test_non_fooddb_read_only_tool_loop_fake_smoke_blocks_mutating_or_unattribut
     assert "budget_day_meal_log_read.allowed_facts_missing" in blocked["blockers"]
 
 
+def test_non_fooddb_read_only_tool_loop_fake_smoke_blocks_post_validation_override_bypass() -> None:
+    artifact = build_non_fooddb_read_only_tool_loop_fake_smoke_artifact(
+        overrides={"cases": [], "summary": {"case_count": 0}}
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "missing_case:budget_remaining_read" in artifact["blockers"]
+
+
+def test_non_fooddb_read_only_tool_loop_fake_smoke_blocks_tool_contract_drift() -> None:
+    artifact = build_non_fooddb_read_only_tool_loop_fake_smoke_artifact()
+    cases = list(artifact["cases"])  # type: ignore[index]
+    drifted = dict(cases[0])
+    drifted["selected_tool"] = "fooddb.lookup"
+    drifted["fixture_manager_decision"] = {
+        **dict(drifted["fixture_manager_decision"]),  # type: ignore[arg-type]
+        "selected_tool": "fooddb.lookup",
+    }
+    drifted["tool_result_envelope"] = {
+        **dict(drifted["tool_result_envelope"]),  # type: ignore[arg-type]
+        "tool_name": "fooddb.lookup",
+        "truth_owner": "fooddb_domain",
+        "tool_execution_source": "fooddb_fixture",
+    }
+    drifted["responder_input"] = {
+        **dict(drifted["responder_input"]),  # type: ignore[arg-type]
+        "forbidden_claims": [],
+    }
+    cases[0] = drifted
+
+    blocked = build_non_fooddb_read_only_tool_loop_fake_smoke_artifact(cases=cases)
+
+    assert blocked["status"] == "blocked"
+    assert "budget_remaining_read.selected_tool_not_in_non_fooddb_read_only_contract" in blocked["blockers"]
+    assert "budget_remaining_read.truth_owner_contract_mismatch" in blocked["blockers"]
+    assert "budget_remaining_read.tool_execution_source_not_deterministic_read_model_fixture" in blocked["blockers"]
+    assert "budget_remaining_read.responder_forbidden_claims_missing" in blocked["blockers"]
+
+
 def test_non_fooddb_read_only_tool_loop_fake_smoke_cli_writes_artifact(tmp_path: Path) -> None:
     from scripts.build_accurate_intake_non_fooddb_read_only_tool_loop_fake_smoke import main
 

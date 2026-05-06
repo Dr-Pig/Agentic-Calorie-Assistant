@@ -116,13 +116,50 @@ def _validate(cases: list[dict[str, Any]]) -> list[str]:
     return blockers
 
 
+def _read_only_contract_map(inventory_payload: dict[str, Any]) -> dict[str, str]:
+    return {
+        str(tool.get("tool_name")): str(tool.get("truth_owner"))
+        for tool in list(inventory_payload.get("target_manager_tools") or [])
+        if isinstance(tool, dict) and tool.get("tool_kind") == "read_only"
+    }
+
+
+def _validate_against_contract(cases: list[dict[str, Any]], contract: dict[str, str]) -> list[str]:
+    blockers: list[str] = []
+    allowed_truth_owners = set(contract.values())
+    for case in cases:
+        case_id = str(case.get("case_id"))
+        selected_tool = str(case.get("selected_tool") or "")
+        result = case.get("tool_result_envelope") if isinstance(case.get("tool_result_envelope"), dict) else {}
+        responder_input = case.get("responder_input") if isinstance(case.get("responder_input"), dict) else {}
+        result_tool_name = str(result.get("tool_name") or "")
+        result_truth_owner = str(result.get("truth_owner") or "")
+        if selected_tool not in contract:
+            blockers.append(f"{case_id}.selected_tool_not_in_non_fooddb_read_only_contract")
+        if result_tool_name and result_tool_name != selected_tool:
+            blockers.append(f"{case_id}.tool_result_tool_name_selected_tool_mismatch")
+        if result_tool_name and result_tool_name not in contract:
+            blockers.append(f"{case_id}.tool_result_tool_name_not_in_non_fooddb_read_only_contract")
+        expected_truth_owner = contract.get(selected_tool) or contract.get(result_tool_name)
+        if result_truth_owner not in allowed_truth_owners or (
+            expected_truth_owner is not None and result_truth_owner != expected_truth_owner
+        ):
+            blockers.append(f"{case_id}.truth_owner_contract_mismatch")
+        if result.get("tool_execution_source") != "deterministic_domain_read_model_fixture":
+            blockers.append(f"{case_id}.tool_execution_source_not_deterministic_read_model_fixture")
+        if not isinstance(responder_input.get("forbidden_claims"), list) or not responder_input.get("forbidden_claims"):
+            blockers.append(f"{case_id}.responder_forbidden_claims_missing")
+    return blockers
+
+
 def build_non_fooddb_read_only_tool_loop_fake_smoke_artifact(
     *, inventory: dict[str, Any] | None = None, tool_choice_wall: dict[str, Any] | None = None, cases: list[dict[str, Any]] | None = None, overrides: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     inventory_payload = inventory if inventory is not None else build_manager_tool_surface_inventory_artifact()
     wall_payload = tool_choice_wall if tool_choice_wall is not None else build_manager_tool_choice_regression_wall_artifact()
     scenario_cases = deepcopy(cases if cases is not None else _cases())
-    blockers = _validate(scenario_cases)
+    contract = _read_only_contract_map(inventory_payload)
+    blockers = _validate(scenario_cases) + _validate_against_contract(scenario_cases, contract)
     if inventory_payload.get("status") != "manager_tool_surface_inventory_ready_for_human_review":
         blockers.append("manager_tool_surface_inventory.not_ready")
     if wall_payload.get("status") != "manager_tool_choice_regression_wall_pass":
@@ -152,9 +189,13 @@ def build_non_fooddb_read_only_tool_loop_fake_smoke_artifact(
         "blockers": blockers,
     }
     artifact.update(overrides or {})
+    final_cases = deepcopy(artifact.get("cases") if isinstance(artifact.get("cases"), list) else [])
+    artifact["blockers"] = list(artifact.get("blockers") or []) + _validate(final_cases) + _validate_against_contract(final_cases, contract)
+    artifact["summary"] = {"case_count": len(final_cases)}
     for flag in ("live_llm_invoked", "fooddb_used", "web_tavily_used", "mutation_changed", "product_readiness_claimed"):
         if artifact.get(flag) is True and flag not in artifact["blockers"]:
             artifact["blockers"].append(flag)
+    artifact["blockers"] = sorted(set(str(blocker) for blocker in artifact["blockers"]))
     if artifact["blockers"]:
         artifact["status"] = "blocked"
     return _json_safe(artifact)
