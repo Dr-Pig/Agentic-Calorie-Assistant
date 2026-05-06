@@ -153,6 +153,11 @@ integration_readiness_matrix_update:
     - selected extract request -> extract result review candidate
     - extract result review candidate -> exact-card review packet
     - exact-card review packet -> live extract preflight
+    - live extract preflight -> WebSearch live diagnostic report
+    - WebSearch live diagnostic report -> Manager contract probe
+    - WebSearch Manager contract probe -> repair pack
+    - WebSearch Manager contract repair pack -> handoff
+    - WebSearch Manager contract handoff -> candidate lane status
     - retriever output -> compact packet
     - packet -> Manager seam
     - packet -> mutation guard
