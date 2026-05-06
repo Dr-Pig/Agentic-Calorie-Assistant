@@ -52,6 +52,8 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         "websearch_contract_probe_to_repair_pack",
         "websearch_repair_pack_to_contract_handoff",
         "websearch_contract_handoff_to_candidate_lane_status",
+        "websearch_candidate_lane_status_to_websearch_status_packet",
+        "exact_evidence_lane_status_to_websearch_status_packet",
         "listed_components_to_approved_runtime_anchors",
     }
 
@@ -176,10 +178,26 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         in edges["websearch_contract_handoff_to_candidate_lane_status"]["stop_condition"]
     )
     assert (
+        edges["websearch_candidate_lane_status_to_websearch_status_packet"]["manager_style_guard"]
+        == "websearch_status_packet_may_summarize_lane_status_but_cannot_promote_runtime_truth_or_mutation"
+    )
+    assert (
+        "app.nutrition.application.websearch_evidence_status_packet.build_websearch_evidence_status_packet"
+        in edges["websearch_candidate_lane_status_to_websearch_status_packet"]["evidence"]
+    )
+    assert (
+        edges["exact_evidence_lane_status_to_websearch_status_packet"]["manager_style_guard"]
+        == "exact_lane_status_may_inform_next_steps_but_cannot_grant_exact_truth_or_runtime_mutation"
+    )
+    assert (
+        "tests.test_websearch_evidence_status_packet.test_websearch_evidence_status_packet_sanitizes_post_live_repeat_into_narrow_expansion"
+        in edges["exact_evidence_lane_status_to_websearch_status_packet"]["evidence"]
+    )
+    assert (
         edges["listed_components_to_approved_runtime_anchors"]["manager_style_guard"]
         == "listed_basket_components_may_estimate_only_when_runtime_anchor_is_approved"
     )
-    assert matrix["summary"]["contract_backed"] == 22
+    assert matrix["summary"]["contract_backed"] == 24
     assert matrix["summary"]["draft"] == 0
     assert matrix["summary"]["missing"] == 0
     assert matrix["summary"]["next_required_slices"] == ["manager_fooddb_packet_seam_smoke"]
@@ -204,6 +222,8 @@ def test_activation_plan_documents_integration_readiness_matrix() -> None:
     assert "WebSearch Manager contract probe -> repair pack" in content
     assert "WebSearch Manager contract repair pack -> handoff" in content
     assert "WebSearch Manager contract handoff -> candidate lane status" in content
+    assert "WebSearch candidate lane status -> WebSearch status packet" in content
+    assert "exact evidence lane status -> WebSearch status packet" in content
     assert "packet -> mutation guard" in content
     assert "exact candidate -> no mutation" in content
     assert "2026-05-05_grokfast_websearch_packet_live_diagnostic" in content

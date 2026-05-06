@@ -163,6 +163,8 @@ integration_readiness_matrix_update:
     - WebSearch Manager contract probe -> repair pack
     - WebSearch Manager contract repair pack -> handoff
     - WebSearch Manager contract handoff -> candidate lane status
+    - WebSearch candidate lane status -> WebSearch status packet
+    - exact evidence lane status -> WebSearch status packet
     - retriever output -> compact packet
     - packet -> Manager seam
     - packet -> mutation guard
