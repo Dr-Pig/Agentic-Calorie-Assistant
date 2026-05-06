@@ -29,6 +29,10 @@ from app.composition.accurate_intake_context_live_diagnostic_holdout_plan import
 from app.composition.accurate_intake_context_live_diagnostic_review_pack import (  # noqa: E402
     build_context_live_diagnostic_review_pack_artifact,
 )
+from app.composition.accurate_intake_context_live_diagnostic_stage_gate import (  # noqa: E402
+    LIVE_STAGES,
+    build_context_live_diagnostic_stage_gate_artifact,
+)
 from app.composition.accurate_intake_context_live_provider_input_preflight import (  # noqa: E402
     build_context_live_provider_input_preflight_artifact,
 )
@@ -38,6 +42,7 @@ from app.composition.accurate_intake_context_live_response_contract_dry_run impo
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 from scripts.run_accurate_intake_context_live_diagnostic_canary import (  # noqa: E402
     run_context_live_diagnostic_canary,
+    select_context_live_provider_inputs,
 )
 
 
@@ -86,6 +91,26 @@ def _not_allowed_report(
     return _json_safe(report)
 
 
+def _read_json(path: Path | None) -> dict[str, Any]:
+    if path is None:
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    return dict(payload) if isinstance(payload, dict) else {"artifact_type": "invalid_json_shape"}
+
+
+def _live_preflight_for_stage(
+    preflight: dict[str, Any],
+    *,
+    live_stage: str,
+    live_case_id: str,
+) -> dict[str, Any]:
+    return select_context_live_provider_inputs(
+        preflight,
+        case_id=live_case_id,
+        all_cases=live_stage == "full-matrix",
+    )
+
+
 async def _live_canary(
     *,
     context_live_provider_input_preflight: dict[str, Any],
@@ -111,6 +136,7 @@ def _write_artifacts(
     dry_run: dict[str, Any],
     canary: dict[str, Any],
     review_pack: dict[str, Any],
+    stage_gate: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     artifact_dir.mkdir(parents=True, exist_ok=True)
     paths = {
@@ -129,6 +155,10 @@ def _write_artifacts(
         "context_live_diagnostic_review_pack": artifact_dir
         / "accurate_intake_context_live_diagnostic_review_pack.json",
     }
+    if stage_gate is not None:
+        paths["context_live_diagnostic_stage_gate"] = (
+            artifact_dir / "accurate_intake_context_live_diagnostic_stage_gate.json"
+        )
     payloads = {
         "context_live_diagnostic_case_matrix": matrix,
         "context_live_diagnostic_anti_overfit_guard": anti_overfit,
@@ -138,6 +168,8 @@ def _write_artifacts(
         "context_live_diagnostic_canary": canary,
         "context_live_diagnostic_review_pack": review_pack,
     }
+    if stage_gate is not None:
+        payloads["context_live_diagnostic_stage_gate"] = stage_gate
     for group_id, path in paths.items():
         write_json_artifact(path, payloads[group_id])
     return {group_id: str(path) for group_id, path in paths.items()}
@@ -150,6 +182,9 @@ def build_context_live_diagnostic_gate_artifact(
     require_live_provider: bool = False,
     provider_profile_id: str = DEFAULT_CONTEXT_LIVE_PROVIDER_PROFILE_ID,
     timeout_seconds: int = 60,
+    live_stage: str = "single-case",
+    live_case_id: str = "context_live_001_general_chat_no_mutation",
+    prior_single_case_stage_gate: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     matrix = build_context_live_diagnostic_case_matrix_artifact()
     anti_overfit = build_context_live_diagnostic_anti_overfit_guard_artifact(matrix)
@@ -162,9 +197,14 @@ def build_context_live_diagnostic_gate_artifact(
 
     token = os.getenv("AI_BUILDER_TOKEN", "").strip()
     if allow_live_provider and token:
+        live_preflight = _live_preflight_for_stage(
+            preflight,
+            live_stage=live_stage,
+            live_case_id=live_case_id,
+        )
         canary = asyncio.run(
             _live_canary(
-                context_live_provider_input_preflight=preflight,
+                context_live_provider_input_preflight=live_preflight,
                 provider_profile_id=provider_profile_id,
                 token=token,
                 timeout_seconds=timeout_seconds,
@@ -180,6 +220,16 @@ def build_context_live_diagnostic_gate_artifact(
             context_live_provider_input_preflight=preflight,
             provider_profile_id=provider_profile_id,
         )
+    live_invoked = canary.get("live_invoked") is True
+    stage_gate = (
+        build_context_live_diagnostic_stage_gate_artifact(
+            live_stage=live_stage,
+            context_live_diagnostic_canary=canary,
+            prior_single_case_stage_gate=prior_single_case_stage_gate,
+        )
+        if live_invoked
+        else None
+    )
 
     review_pack = build_context_live_diagnostic_review_pack_artifact(
         {
@@ -200,9 +250,11 @@ def build_context_live_diagnostic_gate_artifact(
         dry_run=dry_run,
         canary=canary,
         review_pack=review_pack,
+        stage_gate=stage_gate,
     )
-    live_invoked = canary.get("live_invoked") is True
     blockers = list(review_pack.get("blockers") or [])
+    if stage_gate is not None and stage_gate.get("status") == "blocked":
+        blockers.extend(f"context_live_diagnostic_stage_gate.{item}" for item in stage_gate.get("blockers") or [])
     if holdout_plan.get("status") != "pass":
         blockers.append("context_live_diagnostic_holdout_plan_status_not_pass")
         blockers.extend(f"context_live_diagnostic_holdout_plan.{item}" for item in holdout_plan.get("blockers") or [])
@@ -227,11 +279,17 @@ def build_context_live_diagnostic_gate_artifact(
             "canary_status": canary.get("status"),
             "provider_profile_id": provider_profile_id,
             "provider_profile_model": canary.get("provider_profile_model"),
+            "live_stage": live_stage,
+            "live_case_id": live_case_id if live_stage == "single-case" else None,
+            "stage_gate_status": stage_gate.get("status") if stage_gate is not None else "not_applicable",
             "live_provider_allowed": allow_live_provider,
             "live_provider_required": require_live_provider,
             "live_llm_invoked": live_invoked,
             "live_provider_invoked": live_invoked,
+            "single_case_live_probe_required": live_stage == "single-case",
             "full_matrix_live_probe_required": True,
+            "full_matrix_live_probe_current_stage": live_stage == "full-matrix",
+            "full_matrix_live_probe_requires_single_case": True,
             "ad_hoc_live_case_selection_allowed": False,
             "fixed_case_matrix_used": True,
             "anti_overfit_guard_required": True,
@@ -274,6 +332,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--require-live-provider", action="store_true")
     parser.add_argument("--provider-profile-id", default=DEFAULT_CONTEXT_LIVE_PROVIDER_PROFILE_ID)
     parser.add_argument("--timeout-seconds", type=int, default=60)
+    parser.add_argument("--live-stage", choices=LIVE_STAGES, default="single-case")
+    parser.add_argument("--live-case-id", default="context_live_001_general_chat_no_mutation")
+    parser.add_argument("--prior-single-case-stage-gate-json")
     args = parser.parse_args(argv)
 
     artifact = build_context_live_diagnostic_gate_artifact(
@@ -282,6 +343,13 @@ def main(argv: list[str] | None = None) -> int:
         require_live_provider=bool(args.require_live_provider),
         provider_profile_id=str(args.provider_profile_id),
         timeout_seconds=int(args.timeout_seconds),
+        live_stage=str(args.live_stage),
+        live_case_id=str(args.live_case_id),
+        prior_single_case_stage_gate=_read_json(
+            Path(args.prior_single_case_stage_gate_json)
+            if args.prior_single_case_stage_gate_json
+            else None
+        ),
     )
     write_json_artifact(Path(args.output), artifact)
     print(

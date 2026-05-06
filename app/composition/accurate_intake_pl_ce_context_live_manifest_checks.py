@@ -27,6 +27,10 @@ CONTEXT_LIVE_GATE_REQUIRED_ARTIFACT_PATHS = (
     "context_live_diagnostic_canary",
     "context_live_diagnostic_review_pack",
 )
+CONTEXT_LIVE_GATE_LIVE_ARTIFACT_PATHS = (
+    *CONTEXT_LIVE_GATE_REQUIRED_ARTIFACT_PATHS,
+    "context_live_diagnostic_stage_gate",
+)
 
 
 def _object_dict(value: Any) -> dict[str, Any]:
@@ -112,7 +116,12 @@ def _context_live_gate_blockers(payload: dict[str, Any]) -> list[str]:
         blockers.append("context_live_diagnostic_gate.holdout_plan_not_required")
     if payload.get("response_contract_dry_run_required") is not True:
         blockers.append("context_live_diagnostic_gate.response_contract_dry_run_not_required")
-    for path_id in CONTEXT_LIVE_GATE_REQUIRED_ARTIFACT_PATHS:
+    required_paths = (
+        CONTEXT_LIVE_GATE_LIVE_ARTIFACT_PATHS
+        if status == "context_live_diagnostic_gate_ready_with_live_canary"
+        else CONTEXT_LIVE_GATE_REQUIRED_ARTIFACT_PATHS
+    )
+    for path_id in required_paths:
         if not artifact_paths.get(path_id):
             blockers.append(f"context_live_diagnostic_gate.artifact_paths.{path_id}_missing")
     if _int_value(summary.get("fixed_case_count")) != len(CONTEXT_LIVE_REQUIRED_CASE_IDS):
@@ -122,6 +131,8 @@ def _context_live_gate_blockers(payload: dict[str, Any]) -> list[str]:
     ):
         blockers.append("context_live_diagnostic_gate.dry_run_validated_response_count_mismatch")
     if status == "context_live_diagnostic_gate_ready_with_live_canary":
+        live_stage = str(payload.get("live_stage") or "full-matrix")
+        stage_status = str(payload.get("stage_gate_status") or "")
         if payload.get("review_pack_status") != "context_live_diagnostic_review_ready_with_live_canary":
             blockers.append("context_live_diagnostic_gate.review_pack_status_not_live_ready")
         if payload.get("canary_status") != "live_diagnostic_pass":
@@ -130,9 +141,15 @@ def _context_live_gate_blockers(payload: dict[str, Any]) -> list[str]:
             blockers.append("context_live_diagnostic_gate.live_llm_invoked_not_true")
         if payload.get("live_provider_invoked") is not True:
             blockers.append("context_live_diagnostic_gate.live_provider_invoked_not_true")
-        if _int_value(summary.get("live_provider_output_count")) != len(
-            CONTEXT_LIVE_REQUIRED_CASE_IDS
-        ):
+        expected_live_count = 1 if live_stage == "single-case" else len(CONTEXT_LIVE_REQUIRED_CASE_IDS)
+        expected_stage_status = (
+            "context_live_single_case_probe_pass"
+            if live_stage == "single-case"
+            else "context_live_full_matrix_probe_pass"
+        )
+        if stage_status != expected_stage_status:
+            blockers.append("context_live_diagnostic_gate.stage_gate_status_mismatch")
+        if _int_value(summary.get("live_provider_output_count")) != expected_live_count:
             blockers.append("context_live_diagnostic_gate.live_provider_output_count_mismatch")
         if _int_value(summary.get("live_blocked_response_count")) != 0:
             blockers.append("context_live_diagnostic_gate.live_blocked_response_count_nonzero")
