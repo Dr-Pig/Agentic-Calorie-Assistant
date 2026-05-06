@@ -397,6 +397,15 @@ def _context_live_review_pack(*, live: bool = True) -> dict[str, object]:
             "live_target_candidate_response_count": 4 if live else 0,
             "live_ambiguity_preserved_response_count": 1 if live else 0,
         },
+        "context_live_diagnostic_stage_summary": {
+            "live_stage": "full-matrix" if live else "not_invoked",
+            "live_stage_reason": "full_matrix_provider_outputs" if live else "not_invoked",
+            "live_provider_output_count": len(REQUIRED_CASE_IDS) if live else 0,
+            "live_blocked_response_count": 0,
+            "single_case_live_probe_completed": False,
+            "full_matrix_live_probe_completed": live,
+            "diagnostic_only_not_readiness": True,
+        },
     }
 
 
@@ -521,9 +530,46 @@ def test_activation_review_manifest_accepts_optional_context_live_review_pack_wi
     assert artifact["fooddb_evidence_used"] is False
     assert artifact["product_readiness_claimed"] is False
     assert artifact["private_self_use_approved"] is False
-    assert artifact["context_live_diagnostic_stage_summary"]["live_stage"] == "not_provided"
-    assert artifact["context_live_diagnostic_stage_summary"]["diagnostic_only_not_readiness"] is True
+    assert artifact["context_live_diagnostic_stage_summary"] == {
+        "live_stage": "full-matrix",
+        "stage_gate_status": "review_pack_full_matrix_live_diagnostic_pass",
+        "live_provider_output_count": len(REQUIRED_CASE_IDS),
+        "live_blocked_response_count": 0,
+        "full_matrix_live_probe_completed": True,
+        "single_case_live_probe_completed": False,
+        "diagnostic_only_not_readiness": True,
+    }
     assert artifact["blockers"] == []
+
+
+def test_activation_review_manifest_summarizes_single_case_context_live_review_pack() -> None:
+    inputs = _valid_inputs()
+    review_pack = _context_live_review_pack(live=True)
+    review_pack["context_live_diagnostic_stage_summary"] = {
+        "live_stage": "single-case",
+        "live_stage_reason": "single_provider_output",
+        "live_provider_output_count": 1,
+        "live_blocked_response_count": 0,
+        "single_case_live_probe_completed": True,
+        "full_matrix_live_probe_completed": False,
+        "diagnostic_only_not_readiness": True,
+    }
+    inputs["context_live_diagnostic_review_pack"] = review_pack
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["context_live_diagnostic_stage_summary"] == {
+        "live_stage": "single-case",
+        "stage_gate_status": "review_pack_single_case_live_diagnostic_pass",
+        "live_provider_output_count": 1,
+        "live_blocked_response_count": 0,
+        "full_matrix_live_probe_completed": False,
+        "single_case_live_probe_completed": True,
+        "diagnostic_only_not_readiness": True,
+    }
+    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert artifact["product_readiness_claimed"] is False
 
 
 def test_activation_review_manifest_accepts_optional_context_live_gate_without_readiness_claim() -> None:
