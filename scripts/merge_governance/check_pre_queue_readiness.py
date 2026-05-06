@@ -62,6 +62,14 @@ COMMAND_SNIPPETS = (
         "run_accurate_intake_context_live_diagnostic_gate.py --artifact-dir artifacts --output "
         "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json",
     ),
+    (
+        "pl_ce_current_metadata_freshness_pack",
+        "build_accurate_intake_pl_ce_current_metadata_freshness_pack.py",
+    ),
+    (
+        "pl_ce_serial_handoff",
+        "build_accurate_intake_pl_ce_serial_handoff.py",
+    ),
 )
 
 UPLOAD_ARTIFACTS = (
@@ -70,6 +78,8 @@ UPLOAD_ARTIFACTS = (
     "artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json",
     "artifacts/accurate_intake_pl_ce_product_pages_self_use_flow_gate_ci.json",
     "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json",
+    "artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json",
+    "artifacts/accurate_intake_pl_ce_serial_handoff_ci.json",
 )
 
 ACTIVATION_MANIFEST_INPUTS = (
@@ -77,6 +87,14 @@ ACTIVATION_MANIFEST_INPUTS = (
     "artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json",
     "--artifact context_live_diagnostic_gate="
     "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json",
+)
+
+SERIAL_HANDOFF_INPUTS = (
+    (
+        "current_metadata_freshness_pack",
+        "--current-metadata-freshness-pack "
+        "artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json",
+    ),
 )
 
 
@@ -139,6 +157,9 @@ def build_report(workflow_text: str, *, event_path: Path | None = None) -> dict[
         if manifest_input not in job:
             artifact_id = manifest_input.split("=", 1)[0].removeprefix("--artifact ")
             blockers.append(f"missing_activation_manifest_input.{artifact_id}")
+    for artifact_id, serial_input in SERIAL_HANDOFF_INPUTS:
+        if serial_input not in job:
+            blockers.append(f"missing_serial_handoff_input.{artifact_id}")
 
     return {
         "status": "pass" if not blockers else "fail",

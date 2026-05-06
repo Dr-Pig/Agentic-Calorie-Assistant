@@ -4,6 +4,11 @@ from datetime import UTC, datetime
 import json
 from typing import Any
 
+from app.composition.accurate_intake_pl_ce_serial_handoff_metadata import (
+    current_metadata_freshness_blockers,
+    current_metadata_freshness_summary,
+)
+
 
 EXPECTED_QUEUE_METADATA_ARTIFACT_TYPE = "accurate_intake_pl_ce_merge_queue_metadata"
 ALLOWED_QUEUE_METADATA_SOURCES = {
@@ -174,7 +179,10 @@ def _queue_blockers(queue_metadata: dict[str, Any]) -> list[str]:
     return blockers
 
 
-def _included_artifacts(activation_review_manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def _included_artifacts(
+    activation_review_manifest: dict[str, Any],
+    current_metadata_freshness_pack: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
     return {
         "activation_review_manifest": {
             "artifact_type": activation_review_manifest.get("artifact_type", "not_available"),
@@ -183,19 +191,28 @@ def _included_artifacts(activation_review_manifest: dict[str, Any]) -> dict[str,
                 "_source_artifact_path",
                 "not_available",
             ),
-        }
+        },
+        "current_metadata_freshness_pack": current_metadata_freshness_summary(
+            current_metadata_freshness_pack
+        ),
     }
 
 
 def build_pl_ce_serial_handoff_artifact(
     *,
     activation_review_manifest: dict[str, Any],
+    current_metadata_freshness_pack: dict[str, Any] | None = None,
     queue_metadata: dict[str, Any] | None = None,
     stack_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     manifest = _object_dict(activation_review_manifest)
+    current_metadata = _object_dict(current_metadata_freshness_pack)
     queue = _object_dict(queue_metadata if queue_metadata is not None else stack_metadata)
-    blockers = [*_activation_manifest_blockers(manifest), *_queue_blockers(queue)]
+    blockers = [
+        *_activation_manifest_blockers(manifest),
+        *current_metadata_freshness_blockers(current_metadata),
+        *_queue_blockers(queue),
+    ]
     status = "ready_for_merge_queue_review" if not blockers else "blocked"
     stop_gates = _object_dict(manifest.get("remaining_stop_gates"))
     queue_metadata_valid = not any(
@@ -212,7 +229,7 @@ def build_pl_ce_serial_handoff_artifact(
             "producer_track": "PL_CE",
             "delivery_mode": "github_merge_queue",
             "blockers": blockers,
-            "included_artifacts": _included_artifacts(manifest),
+            "included_artifacts": _included_artifacts(manifest, current_metadata),
             "queue_items": _queue_items(queue),
             "expected_delivery_policy": {
                 "merge_mechanism": "github_merge_queue",
@@ -227,6 +244,9 @@ def build_pl_ce_serial_handoff_artifact(
             "stack_metadata_valid": queue_metadata_valid,
             "activation_review_manifest_ready": not any(
                 blocker.startswith("activation_review_manifest.") for blocker in blockers
+            ),
+            "current_metadata_freshness_ready": not any(
+                blocker.startswith("current_metadata_freshness_pack.") for blocker in blockers
             ),
             "merge_queue_required": True,
             "merge_owner_required": False,
