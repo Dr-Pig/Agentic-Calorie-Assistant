@@ -50,6 +50,9 @@ from app.nutrition.infrastructure.supabase_food_evidence_index import (  # noqa:
     SupabaseRowsFoodEvidenceIndex,
 )
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
+from scripts.fooddb_live_bundle_artifacts import (  # noqa: E402
+    build_fooddb_live_bundle_artifact_paths,
+)
 from scripts.run_accurate_intake_grokfast_fooddb_packet_smoke import (  # noqa: E402
     main as run_grokfast_fooddb_packet_smoke,
 )
@@ -127,26 +130,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _artifact_paths(output_dir: Path) -> dict[str, Path]:
-    return {
-        "retrieval_eval_wall": output_dir / "accurate_intake_retrieval_eval_wall.json",
-        "fooddb_status_packet": output_dir / "accurate_intake_fooddb_evidence_status_packet.json",
-        "manager_packet_smoke": output_dir / "accurate_intake_fooddb_manager_packet_smoke.json",
-        "index_backend_parity": output_dir / "accurate_intake_fooddb_index_backend_parity.json",
-        "case_matrix": output_dir
-        / "accurate_intake_fooddb_grokfast_packet_live_diagnostic_case_matrix.json",
-        "preflight": output_dir / "accurate_intake_grokfast_fooddb_diagnostic_preflight.json",
-        "diagnostic": output_dir / "accurate_intake_grokfast_fooddb_packet_smoke.json",
-        "report": output_dir / "accurate_intake_fooddb_live_diagnostic_report.json",
-        "manager_contract_probe": output_dir / "accurate_intake_fooddb_manager_contract_probe.json",
-        "manager_contract_repair_pack": output_dir
-        / "accurate_intake_fooddb_manager_contract_repair_pack.json",
-        "manager_contract_handoff": output_dir
-        / "accurate_intake_fooddb_manager_contract_handoff.json",
-        "fooddb_status_packet_post_contract": output_dir
-        / "accurate_intake_fooddb_evidence_status_post_contract.json",
-        "manifest": output_dir / "accurate_intake_fooddb_live_diagnostic_bundle_manifest.json",
-        "sqlite_db": output_dir / "accurate_intake_fooddb_bundle_backend_parity.sqlite",
-    }
+    return build_fooddb_live_bundle_artifact_paths(output_dir)
 
 
 def _source_payloads(

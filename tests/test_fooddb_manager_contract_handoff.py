@@ -5,6 +5,7 @@ from pathlib import Path
 from app.nutrition.application.fooddb_manager_contract_handoff import (
     build_fooddb_manager_contract_handoff,
 )
+from scripts.fooddb_live_bundle_artifacts import build_fooddb_live_bundle_artifact_paths
 
 
 def _live_report(*, seam_status: str = "provider_contract_blocked") -> dict:
@@ -170,6 +171,77 @@ def test_fooddb_manager_contract_handoff_script_roundtrip(tmp_path: Path) -> Non
                 str(probe_path),
                 "--repair-pack-artifact",
                 str(repair_path),
+                "--output",
+                str(output_path),
+            ]
+        )
+        == 0
+    )
+
+    artifact = read_json_artifact(output_path)
+    assert artifact["status"] == "ready_for_manager_contract_owner"
+    assert artifact["handoff_ready"] is True
+
+
+def test_fooddb_manager_contract_handoff_script_accepts_bundle_manifest(tmp_path: Path) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.build_accurate_intake_fooddb_manager_contract_handoff import main
+
+    bundle_dir = tmp_path / "bundle"
+    bundle_dir.mkdir()
+    bundle_paths = build_fooddb_live_bundle_artifact_paths(bundle_dir)
+    output_path = tmp_path / "handoff.json"
+
+    write_json_artifact(bundle_paths["report"], _live_report())
+    write_json_artifact(bundle_paths["manager_contract_probe"], _probe())
+    write_json_artifact(bundle_paths["manager_contract_repair_pack"], _repair_pack())
+    write_json_artifact(
+        bundle_paths["manifest"],
+        {
+            "artifact_type": "accurate_intake_fooddb_live_diagnostic_bundle_manifest",
+            "artifacts": {
+                "report": str(bundle_paths["report"]),
+                "manager_contract_probe": str(bundle_paths["manager_contract_probe"]),
+                "manager_contract_repair_pack": str(bundle_paths["manager_contract_repair_pack"]),
+            },
+        },
+    )
+
+    assert (
+        main(
+            [
+                "--bundle-manifest",
+                str(bundle_paths["manifest"]),
+                "--output",
+                str(output_path),
+            ]
+        )
+        == 0
+    )
+
+    artifact = read_json_artifact(output_path)
+    assert artifact["status"] == "ready_for_manager_contract_owner"
+    assert artifact["handoff_ready"] is True
+
+
+def test_fooddb_manager_contract_handoff_script_accepts_bundle_dir(tmp_path: Path) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.build_accurate_intake_fooddb_manager_contract_handoff import main
+
+    bundle_dir = tmp_path / "bundle"
+    bundle_dir.mkdir()
+    bundle_paths = build_fooddb_live_bundle_artifact_paths(bundle_dir)
+    output_path = tmp_path / "handoff.json"
+
+    write_json_artifact(bundle_paths["report"], _live_report())
+    write_json_artifact(bundle_paths["manager_contract_probe"], _probe())
+    write_json_artifact(bundle_paths["manager_contract_repair_pack"], _repair_pack())
+
+    assert (
+        main(
+            [
+                "--bundle-dir",
+                str(bundle_dir),
                 "--output",
                 str(output_path),
             ]
