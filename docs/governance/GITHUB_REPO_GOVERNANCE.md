@@ -33,41 +33,45 @@ Manual-only workflows are not required status checks:
 - `wave1-runtime-smoke`
 - `cd`
 
-## Serial PR Delivery Policy
+## Merge Queue Delivery Policy
 
-Default agent delivery is serial squash-merge, not long-lived stacked PR accumulation.
-This avoids ancestry drift after GitHub squash merge rewrites branch lineage.
+Default agent delivery is GitHub Merge Queue serial delivery from latest `origin/main`, not manual merging or long-lived stacked PR accumulation.
+This avoids ancestry drift and lets branch protection/merge-group checks arbitrate stale bases and failed checks.
 
 ```yaml
 agent_policy:
   low_risk_work:
-    mode: auto_serial
+    mode: merge_queue_serial
     behavior:
+      - fetch latest origin/main
+      - create a new main-based branch
       - open PR
       - run tests
-      - verify CI green
-      - verify mergeable clean
-      - squash merge after the applicable human/review gate is satisfied
-      - delete branch if it is not a stack base
-      - refresh next branch from main
-      - continue
+      - wait for PR checks green
+      - Add to Merge Queue
+      - wait for PR state MERGED
+      - confirm main push CI is not red
+      - cleanup only after merged and clean
+      - fetch latest origin/main before the next slice
+      - do not use main-merge-lock
 
-  stacked_work:
-    mode: allowed_with_self_retarget
-    max_depth: 2
+  dependent_child_pr:
+    mode: allowed_but_not_queueable_until_parent_merged
     behavior:
-      - merge base PR first
-      - retarget child PR to main
-      - rerun CI
-      - continue only if green and mergeable clean
+      - build child only if the next slice truly depends on parent
+      - keep child out of Merge Queue until parent PR is MERGED
+      - refresh child onto main after parent merges
+      - rerun checks before Add to Merge Queue
 
   high_risk_work:
     mode: stop_for_human_gate
 ```
 
-Low-risk diagnostic, docs, fixture, candidate, validator, and non-runtime-truth slices may proceed in one run as multiple serial PRs if each PR is opened, tested, CI-green, mergeable clean, and squash-merged before the next slice continues.
+Low-risk diagnostic, docs, fixture, candidate, validator, and non-runtime-truth slices may proceed in one run as multiple serial PRs if each PR is opened, tested, checks-green, added to GitHub Merge Queue, merged, and verified on main before the next slice continues.
 
-Stacking is allowed only as a short bridge with `max_depth: 2`. After the base PR merges, retarget the child PR to `main`, rerun CI, and continue only if the child remains green and mergeable clean.
+Dependent child PRs are allowed only when the next slice truly depends on the parent. A child PR must not enter Merge Queue until the parent is merged; after the parent merges, refresh the child on `main`, rerun checks, then add it to Merge Queue.
+
+Branch cleanup is allowed only after the PR is merged, local status is clean, and the remote branch has been pruned or confirmed gone.
 
 High-risk work still stops for a human gate before merge or runtime activation. High-risk includes production DB work, user-facing rollout/readiness claims, mutation-authority changes, shared contract changes, live provider activation beyond diagnostic scope, and runtime-visible truth promotion without an approved promotion boundary.
 

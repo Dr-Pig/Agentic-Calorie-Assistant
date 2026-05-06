@@ -19,7 +19,7 @@ from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 DEFAULT_ACTIVATION_REVIEW_MANIFEST_PATH = (
     ROOT / "artifacts" / "accurate_intake_pl_ce_activation_review_manifest.json"
 )
-DEFAULT_STACK_JSON_PATH = ROOT / "artifacts" / "accurate_intake_pl_ce_pr_stack_metadata.json"
+DEFAULT_QUEUE_JSON_PATH = ROOT / "artifacts" / "accurate_intake_pl_ce_merge_queue_metadata.json"
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_pl_ce_serial_handoff.json"
 
 
@@ -53,13 +53,18 @@ def _read_payload(path: Path, *, missing_type: str) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Build PL+CE serial PR handoff artifact for merge-owner review."
+        description="Build PL+CE Merge Queue handoff artifact for review."
     )
     parser.add_argument(
         "--activation-review-manifest",
         default=str(DEFAULT_ACTIVATION_REVIEW_MANIFEST_PATH),
     )
-    parser.add_argument("--stack-json", default=str(DEFAULT_STACK_JSON_PATH))
+    parser.add_argument("--queue-json", default=None)
+    parser.add_argument(
+        "--stack-json",
+        default=None,
+        help="Deprecated alias for --queue-json, kept for old local callers.",
+    )
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT_PATH))
     parser.add_argument(
         "--allow-blocked",
@@ -67,15 +72,16 @@ def main(argv: list[str] | None = None) -> int:
         help="Return 0 after writing a blocked artifact. Use only for CI builder smokes.",
     )
     args = parser.parse_args(argv)
+    queue_json_path = args.queue_json or args.stack_json or str(DEFAULT_QUEUE_JSON_PATH)
 
     artifact = build_pl_ce_serial_handoff_artifact(
         activation_review_manifest=_read_payload(
             Path(args.activation_review_manifest),
             missing_type="missing_activation_review_manifest",
         ),
-        stack_metadata=_read_payload(
-            Path(args.stack_json),
-            missing_type="missing_pl_ce_pr_stack_metadata",
+        queue_metadata=_read_payload(
+            Path(queue_json_path),
+            missing_type="missing_pl_ce_merge_queue_metadata",
         ),
     )
     write_json_artifact(Path(args.output), artifact)
@@ -89,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
             ensure_ascii=False,
         )
     )
-    return 0 if artifact["status"] == "ready_for_merge_owner_review" or args.allow_blocked else 1
+    return 0 if artifact["status"] == "ready_for_merge_queue_review" or args.allow_blocked else 1
 
 
 if __name__ == "__main__":

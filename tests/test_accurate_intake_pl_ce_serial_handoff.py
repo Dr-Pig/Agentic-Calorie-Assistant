@@ -34,57 +34,51 @@ def _activation_manifest() -> dict[str, object]:
     }
 
 
-def _stack_metadata() -> dict[str, object]:
+def _queue_metadata() -> dict[str, object]:
     return {
-        "artifact_type": "accurate_intake_pl_ce_pr_stack_metadata",
-        "metadata_source": "merge_owner_snapshot",
-        "stack_items": [
+        "artifact_type": "accurate_intake_pl_ce_merge_queue_metadata",
+        "metadata_source": "github_merge_queue_snapshot",
+        "queue_policy": {
+            "merge_mechanism": "github_merge_queue",
+            "old_main_merge_lock_used": False,
+            "manual_main_merge_forbidden": True,
+            "wait_for_pr_merged_before_next_slice": True,
+            "cleanup_only_after_merged_and_clean": True,
+        },
+        "queue_items": [
             {
-                "slice_id": "local_mvp_candidate_bundle",
-                "pr_number": 281,
-                "head": "codex/plce-local-mvp-candidate-bundle-v1",
+                "slice_id": "plce_merge_queue_handoff_refresh",
+                "pr_number": 458,
+                "head": "codex/plce-merge-queue-handoff-refresh",
                 "base": "main",
                 "state": "open",
-                "draft": True,
+                "draft": False,
+                "ready_for_queue": True,
                 "checks": "success",
-            },
-            {
-                "slice_id": "browser_activation_evidence_gate",
-                "pr_number": 283,
-                "head": "codex/plce-browser-activation-evidence-gate-v1",
-                "base": "codex/plce-local-mvp-candidate-bundle-v1",
-                "state": "open",
-                "draft": True,
-                "checks": "success",
-            },
-            {
-                "slice_id": "activation_review_manifest",
-                "pr_number": 287,
-                "head": "codex/plce-activation-review-manifest-v1",
-                "base": "codex/plce-browser-activation-evidence-gate-v1",
-                "state": "open",
-                "draft": True,
-                "checks": "pending",
+                "merge_queue_status": "queued",
             },
         ],
-        "merge_owner_required": True,
-        "producer_should_merge": False,
+        "merge_queue_required": True,
+        "producer_should_manual_merge": False,
     }
 
 
-def test_serial_handoff_reports_stack_ready_for_merge_owner_review_only() -> None:
+def test_serial_handoff_reports_merge_queue_ready_for_review_only() -> None:
     artifact = build_pl_ce_serial_handoff_artifact(
         activation_review_manifest=_activation_manifest(),
-        stack_metadata=_stack_metadata(),
+        queue_metadata=_queue_metadata(),
     )
 
     assert artifact["artifact_type"] == "accurate_intake_pl_ce_serial_handoff"
-    assert artifact["status"] == "ready_for_merge_owner_review"
+    assert artifact["status"] == "ready_for_merge_queue_review"
     assert artifact["producer_track"] == "PL_CE"
-    assert artifact["merge_owner_required"] is True
-    assert artifact["producer_should_merge"] is False
-    assert artifact["producer_should_continue_building"] is True
-    assert artifact["stack_order_valid"] is True
+    assert artifact["delivery_mode"] == "github_merge_queue"
+    assert artifact["merge_queue_required"] is True
+    assert artifact["producer_should_manual_merge"] is False
+    assert artifact["producer_should_wait_for_queue_merge"] is True
+    assert artifact["producer_should_continue_after_merge"] is True
+    assert artifact["old_main_merge_lock_used"] is False
+    assert artifact["queue_metadata_valid"] is True
     assert artifact["activation_review_manifest_ready"] is True
     assert artifact["ready_for_live_diagnostic_decision"] is False
     assert artifact["ready_for_fdb_integration"] is False
@@ -102,6 +96,7 @@ def test_serial_handoff_reports_stack_ready_for_merge_owner_review_only() -> Non
         "blocked_pending_human_approval"
     )
     assert artifact["blockers"] == []
+    assert artifact["remaining_stop_gates"]["merge_queue_status"] == "required"
 
 
 def test_serial_handoff_blocks_activation_manifest_overclaim() -> None:
@@ -112,7 +107,7 @@ def test_serial_handoff_blocks_activation_manifest_overclaim() -> None:
 
     artifact = build_pl_ce_serial_handoff_artifact(
         activation_review_manifest=manifest,
-        stack_metadata=_stack_metadata(),
+        queue_metadata=_queue_metadata(),
     )
 
     assert artifact["status"] == "blocked"
@@ -123,79 +118,79 @@ def test_serial_handoff_blocks_activation_manifest_overclaim() -> None:
     assert artifact["product_readiness_claimed"] is False
 
 
-def test_serial_handoff_blocks_broken_stack_order_or_producer_merge_claim() -> None:
-    stack = _stack_metadata()
-    stack["producer_should_merge"] = True
-    stack["stack_items"][1]["base"] = "main"
-    stack["stack_items"][2]["checks"] = "failure"
+def test_serial_handoff_blocks_manual_merge_or_stacked_child_claim() -> None:
+    queue = _queue_metadata()
+    queue["producer_should_manual_merge"] = True
+    queue["queue_policy"]["old_main_merge_lock_used"] = True
+    queue["queue_items"][0]["base"] = "codex/parent-stack-branch"
+    queue["queue_items"][0]["checks"] = "failure"
 
     artifact = build_pl_ce_serial_handoff_artifact(
         activation_review_manifest=_activation_manifest(),
-        stack_metadata=stack,
+        queue_metadata=queue,
     )
 
     assert artifact["status"] == "blocked"
-    assert "stack.browser_activation_evidence_gate.unexpected_base:main" in artifact["blockers"]
-    assert "stack.activation_review_manifest.checks_failure" in artifact["blockers"]
-    assert "stack.producer_should_merge_not_false" in artifact["blockers"]
-    assert artifact["producer_should_merge"] is False
+    assert "queue.plce_merge_queue_handoff_refresh.base_not_main:codex/parent-stack-branch" in artifact["blockers"]
+    assert "queue.plce_merge_queue_handoff_refresh.checks_failure" in artifact["blockers"]
+    assert "queue.producer_should_manual_merge_not_false" in artifact["blockers"]
+    assert "queue.old_main_merge_lock_used" in artifact["blockers"]
+    assert artifact["producer_should_manual_merge"] is False
 
 
-def test_serial_handoff_blocks_wrong_pr_numbers() -> None:
-    stack = _stack_metadata()
-    stack["stack_items"][0]["pr_number"] = 999
-    stack["stack_items"][1]["pr_number"] = 998
-    stack["stack_items"][2]["pr_number"] = 997
+def test_serial_handoff_blocks_not_ready_for_queue_item() -> None:
+    queue = _queue_metadata()
+    queue["queue_items"][0]["ready_for_queue"] = False
+    queue["queue_items"][0]["merge_queue_status"] = "not_queued"
 
     artifact = build_pl_ce_serial_handoff_artifact(
         activation_review_manifest=_activation_manifest(),
-        stack_metadata=stack,
+        queue_metadata=queue,
     )
 
     assert artifact["status"] == "blocked"
-    assert "stack.local_mvp_candidate_bundle.unexpected_pr_number:999" in artifact["blockers"]
-    assert "stack.browser_activation_evidence_gate.unexpected_pr_number:998" in artifact["blockers"]
-    assert "stack.activation_review_manifest.unexpected_pr_number:997" in artifact["blockers"]
-    assert artifact["stack_order_valid"] is False
+    assert "queue.plce_merge_queue_handoff_refresh.ready_for_queue_not_true" in artifact["blockers"]
+    assert "queue.plce_merge_queue_handoff_refresh.merge_queue_status_not_ready:not_queued" in artifact["blockers"]
+    assert artifact["queue_metadata_valid"] is False
 
 
 def test_serial_handoff_blocks_synthetic_stack_metadata() -> None:
-    stack = _stack_metadata()
-    stack["artifact_type"] = "synthetic_ci_pl_ce_pr_stack_metadata_fixture"
-    stack["metadata_source"] = "ci_static_fixture"
+    queue = _queue_metadata()
+    queue["artifact_type"] = "synthetic_ci_pl_ce_pr_stack_metadata_fixture"
+    queue["metadata_source"] = "ci_static_fixture"
 
     artifact = build_pl_ce_serial_handoff_artifact(
         activation_review_manifest=_activation_manifest(),
-        stack_metadata=stack,
+        queue_metadata=queue,
     )
 
     assert artifact["status"] == "blocked"
     assert (
-        "stack_metadata.unexpected_artifact_type:synthetic_ci_pl_ce_pr_stack_metadata_fixture"
+        "queue_metadata.unexpected_artifact_type:synthetic_ci_pl_ce_pr_stack_metadata_fixture"
         in artifact["blockers"]
     )
-    assert "stack_metadata.untrusted_metadata_source:ci_static_fixture" in artifact["blockers"]
-    assert artifact["stack_order_valid"] is False
+    assert "queue_metadata.untrusted_metadata_source:ci_static_fixture" in artifact["blockers"]
+    assert artifact["queue_metadata_valid"] is False
 
 
 def test_serial_handoff_cli_writes_from_existing_artifacts(tmp_path: Path) -> None:
     from scripts.build_accurate_intake_pl_ce_serial_handoff import main
 
     activation_path = tmp_path / "activation.json"
-    stack_path = tmp_path / "stack.json"
+    queue_path = tmp_path / "queue.json"
     output_path = tmp_path / "serial-handoff.json"
     activation_path.write_text(
         json.dumps(_activation_manifest(), ensure_ascii=False),
         encoding="utf-8",
     )
-    stack_path.write_text(json.dumps(_stack_metadata(), ensure_ascii=False), encoding="utf-8")
+    queue_path.write_text(json.dumps(_queue_metadata(), ensure_ascii=False), encoding="utf-8")
 
     exit_code = main(
         [
             "--activation-review-manifest",
             str(activation_path),
-            "--stack-json",
-            str(stack_path),
+            "--queue-json",
+            str(queue_path),
             "--output",
             str(output_path),
         ]
@@ -203,7 +198,7 @@ def test_serial_handoff_cli_writes_from_existing_artifacts(tmp_path: Path) -> No
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
 
     assert exit_code == 0
-    assert artifact["status"] == "ready_for_merge_owner_review"
+    assert artifact["status"] == "ready_for_merge_queue_review"
     assert artifact["included_artifacts"]["activation_review_manifest"]["source_artifact_path"]
 
 
@@ -211,23 +206,23 @@ def test_serial_handoff_cli_can_write_blocked_builder_smoke_when_allowed(tmp_pat
     from scripts.build_accurate_intake_pl_ce_serial_handoff import main
 
     activation_path = tmp_path / "activation.json"
-    stack_path = tmp_path / "stack.json"
+    queue_path = tmp_path / "queue.json"
     output_path = tmp_path / "serial-handoff.json"
     activation_path.write_text(
         json.dumps(_activation_manifest(), ensure_ascii=False),
         encoding="utf-8",
     )
-    stack = _stack_metadata()
-    stack["artifact_type"] = "synthetic_ci_pl_ce_pr_stack_metadata_fixture"
-    stack["metadata_source"] = "ci_static_fixture"
-    stack_path.write_text(json.dumps(stack, ensure_ascii=False), encoding="utf-8")
+    queue = _queue_metadata()
+    queue["artifact_type"] = "synthetic_ci_pl_ce_pr_stack_metadata_fixture"
+    queue["metadata_source"] = "ci_static_fixture"
+    queue_path.write_text(json.dumps(queue, ensure_ascii=False), encoding="utf-8")
 
     exit_code = main(
         [
             "--activation-review-manifest",
             str(activation_path),
-            "--stack-json",
-            str(stack_path),
+            "--queue-json",
+            str(queue_path),
             "--output",
             str(output_path),
             "--allow-blocked",
@@ -237,7 +232,7 @@ def test_serial_handoff_cli_can_write_blocked_builder_smoke_when_allowed(tmp_pat
 
     assert exit_code == 0
     assert artifact["status"] == "blocked"
-    assert "stack_metadata.untrusted_metadata_source:ci_static_fixture" in artifact["blockers"]
+    assert "queue_metadata.untrusted_metadata_source:ci_static_fixture" in artifact["blockers"]
 
 
 def test_serial_handoff_cli_rejects_missing_stack_without_autofix(tmp_path: Path, capsys) -> None:
@@ -254,8 +249,8 @@ def test_serial_handoff_cli_rejects_missing_stack_without_autofix(tmp_path: Path
         [
             "--activation-review-manifest",
             str(activation_path),
-            "--stack-json",
-            str(tmp_path / "missing-stack.json"),
+            "--queue-json",
+            str(tmp_path / "missing-queue.json"),
             "--output",
             str(output_path),
         ]
@@ -266,8 +261,8 @@ def test_serial_handoff_cli_rejects_missing_stack_without_autofix(tmp_path: Path
     assert exit_code == 1
     assert printed["status"] == "blocked"
     assert artifact["status"] == "blocked"
-    assert "stack_metadata.missing" in artifact["blockers"]
-    assert artifact["stack_order_valid"] is False
+    assert "queue_metadata.missing" in artifact["blockers"]
+    assert artifact["queue_metadata_valid"] is False
     assert artifact["autofix_attempted"] is False
 
 
@@ -301,7 +296,8 @@ def test_ci_builds_serial_handoff_artifact() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
     assert "test_accurate_intake_pl_ce_serial_handoff.py" in workflow
-    assert "synthetic_ci_pl_ce_pr_stack_metadata_fixture" in workflow
-    assert "--allow-blocked" in workflow
+    assert "accurate_intake_pl_ce_merge_queue_metadata" in workflow
+    assert "--queue-json" in workflow
+    assert "--allow-blocked" not in workflow
     assert "build_accurate_intake_pl_ce_serial_handoff.py" in workflow
     assert "accurate_intake_pl_ce_serial_handoff_ci.json" in workflow
