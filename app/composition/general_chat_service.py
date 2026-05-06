@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
+from app.composition.app_usage_question_policy import build_app_usage_question_policy
 from app.body.application import build_active_body_plan_view
 from app.composition.calibration_commit_bridge import (
     CalibrationCommitDecision,
@@ -15,7 +16,6 @@ from app.composition.calibration_preview_service import build_calibration_previe
 from app.composition.current_budget_answer import build_remaining_budget_answer_contract
 from app.database import get_or_create_user
 from app.shared.infra.models import User
-
 GeneralChatDisposition = Literal["answer_only", "open_new_workflow"]
 GeneralChatMode = Literal[
     "budget_summary",
@@ -410,18 +410,17 @@ def _calibration_preview_response(
             proposal_artifact=preview.proposal_artifact,
         ),
         proposal_artifact=preview.proposal_artifact,
-    )
-
-
+)
 def _fallback_answer_response() -> GeneralChatPassResult:
+    policy = build_app_usage_question_policy()
     return GeneralChatPassResult(
         target_workflow_family="general_chat",
         disposition="answer_only",
-        workflow_effect="answer_general_product_question_without_state_mutation",
-        required_read_surfaces=[],
-        reply_text="I can answer general product questions here, but I will not change state from this path.",
+        workflow_effect=str(policy["workflow_effect"]),
+        required_read_surfaces=list(policy["required_read_surfaces"]),
+        reply_text=str(policy["reply_text"]),
         asked_follow_up=False,
-        ui_hints={"mode": "general_chat_fallback_answer", "delivery": "chat_only"},
+        ui_hints=dict(policy["ui_hints"]),
     )
 
 
