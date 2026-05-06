@@ -44,6 +44,9 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         "extract_result_candidate_to_exact_review_packet",
         "exact_review_packet_to_live_extract_preflight",
         "websearch_live_case_matrix_to_live_extract_preflight",
+        "exact_candidate_chain_status_to_live_runner_readiness_packet",
+        "live_extract_preflight_to_live_runner_readiness_packet",
+        "live_runner_readiness_packet_to_grokfast_websearch_live_diagnostic",
         "live_extract_preflight_to_websearch_live_diagnostic_report",
         "websearch_live_report_to_manager_contract_probe",
         "websearch_contract_probe_to_repair_pack",
@@ -97,6 +100,38 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         in edges["websearch_live_case_matrix_to_live_extract_preflight"]["evidence"]
     )
     assert (
+        edges["exact_candidate_chain_status_to_live_runner_readiness_packet"][
+            "manager_style_guard"
+        ]
+        == "live_runner_readiness_requires_chain_status_proof_before_explicit_live_diagnostic"
+    )
+    assert (
+        "tests.test_websearch_live_runner_readiness_packet.test_websearch_live_runner_readiness_blocks_chain_not_clear"
+        in edges["exact_candidate_chain_status_to_live_runner_readiness_packet"]["evidence"]
+    )
+    assert (
+        edges["live_extract_preflight_to_live_runner_readiness_packet"][
+            "manager_style_guard"
+        ]
+        == "live_runner_readiness_requires_clear_preflight_without_granting_runtime_truth"
+    )
+    assert (
+        "app.nutrition.application.websearch_live_runner_readiness_checks.is_websearch_live_runner_readiness_clear"
+        in edges["live_extract_preflight_to_live_runner_readiness_packet"]["evidence"]
+    )
+    assert (
+        edges["live_runner_readiness_packet_to_grokfast_websearch_live_diagnostic"][
+            "manager_style_guard"
+        ]
+        == "live_runner_readiness_may_open_explicit_grokfast_diagnostic_but_not_runtime_truth_or_websearch_tool_loop"
+    )
+    assert (
+        "tests.test_grokfast_websearch_packet_smoke.test_grokfast_websearch_packet_smoke_live_requires_runner_readiness_packet"
+        in edges["live_runner_readiness_packet_to_grokfast_websearch_live_diagnostic"][
+            "evidence"
+        ]
+    )
+    assert (
         edges["live_extract_preflight_to_websearch_live_diagnostic_report"]["manager_style_guard"]
         == "live_report_may_classify_seam_status_but_cannot_claim_websearch_truth_or_readiness"
     )
@@ -136,7 +171,7 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         edges["listed_components_to_approved_runtime_anchors"]["manager_style_guard"]
         == "listed_basket_components_may_estimate_only_when_runtime_anchor_is_approved"
     )
-    assert matrix["summary"]["contract_backed"] == 19
+    assert matrix["summary"]["contract_backed"] == 22
     assert matrix["summary"]["draft"] == 0
     assert matrix["summary"]["missing"] == 0
     assert matrix["summary"]["next_required_slices"] == ["manager_fooddb_packet_seam_smoke"]
@@ -153,6 +188,9 @@ def test_activation_plan_documents_integration_readiness_matrix() -> None:
     assert "extract result review candidate -> exact-card review packet" in content
     assert "exact-card review packet -> live extract preflight" in content
     assert "WebSearch GrokFast case matrix -> live extract preflight" in content
+    assert "exact candidate chain status -> live runner readiness packet" in content
+    assert "live extract preflight -> live runner readiness packet" in content
+    assert "live runner readiness packet -> GrokFast WebSearch packet live diagnostic runner" in content
     assert "live extract preflight -> WebSearch live diagnostic report" in content
     assert "WebSearch live diagnostic report -> Manager contract probe" in content
     assert "WebSearch Manager contract probe -> repair pack" in content
