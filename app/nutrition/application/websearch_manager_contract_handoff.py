@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from .websearch_live_report_handoff_gate import websearch_live_report_handoff_blockers
+
 
 WEBSEARCH_MANAGER_CONTRACT_HANDOFF_NON_CLAIMS = [
     "no_live_provider_call",
@@ -54,6 +56,7 @@ def build_websearch_manager_contract_handoff(
     live_diagnostic_report: dict[str, Any],
     contract_probe_artifact: dict[str, Any],
     repair_pack_artifact: dict[str, Any],
+    preflight_artifact: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if (
         str(live_diagnostic_report.get("artifact_type") or "")
@@ -93,10 +96,14 @@ def build_websearch_manager_contract_handoff(
     )
 
     alignment_blockers: list[str] = []
-    if seam_status == "provider_contract_blocked" and not contract_failure_detected:
-        alignment_blockers.append("live_report_probe_contract_status_mismatch")
-    if seam_status == "live_diagnostic_pass" and contract_failure_detected:
-        alignment_blockers.append("live_pass_with_contract_failure_detected")
+    alignment_blockers.extend(
+        websearch_live_report_handoff_blockers(
+            live_diagnostic_report=live_diagnostic_report,
+            preflight_artifact=preflight_artifact,
+            seam_status=seam_status,
+            contract_failure_detected=contract_failure_detected,
+        )
+    )
     if contract_failure_detected and repair_case_count == 0:
         alignment_blockers.append("repair_pack_empty_for_contract_failure")
     if contract_failure_detected and probe_case_count != repair_case_count:

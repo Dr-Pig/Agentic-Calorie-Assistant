@@ -20,6 +20,7 @@ DEFAULT_PROBE = ROOT / "artifacts" / "accurate_intake_websearch_manager_contract
 DEFAULT_REPAIR_PACK = (
     ROOT / "artifacts" / "accurate_intake_websearch_manager_contract_repair_pack.json"
 )
+DEFAULT_PREFLIGHT = ROOT / "artifacts" / "accurate_intake_websearch_live_extract_preflight.json"
 DEFAULT_OUTPUT = ROOT / "artifacts" / "accurate_intake_websearch_manager_contract_handoff.json"
 
 
@@ -30,13 +31,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live-diagnostic-report", default=str(DEFAULT_LIVE_REPORT))
     parser.add_argument("--contract-probe-artifact", default=str(DEFAULT_PROBE))
     parser.add_argument("--repair-pack-artifact", default=str(DEFAULT_REPAIR_PACK))
+    parser.add_argument("--preflight-artifact", default="")
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
+    preflight_path = Path(args.preflight_artifact) if args.preflight_artifact else DEFAULT_PREFLIGHT
+    preflight_artifact = read_json_artifact(preflight_path) if preflight_path.exists() else None
 
     artifact = build_websearch_manager_contract_handoff(
         live_diagnostic_report=read_json_artifact(Path(args.live_diagnostic_report)),
         contract_probe_artifact=read_json_artifact(Path(args.contract_probe_artifact)),
         repair_pack_artifact=read_json_artifact(Path(args.repair_pack_artifact)),
+        preflight_artifact=preflight_artifact,
     )
     output_path = Path(args.output)
     write_json_artifact(output_path, artifact)
