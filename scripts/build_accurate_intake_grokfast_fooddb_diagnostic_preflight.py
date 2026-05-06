@@ -22,6 +22,9 @@ DEFAULT_FOODDB_STATUS_PACKET = (
 DEFAULT_MANAGER_PACKET_SMOKE = (
     ROOT / "artifacts" / "accurate_intake_fooddb_manager_packet_smoke.json"
 )
+DEFAULT_INDEX_BACKEND_PARITY = (
+    ROOT / "artifacts" / "accurate_intake_fooddb_index_backend_parity.json"
+)
 DEFAULT_CASE_MATRIX = (
     ROOT / "artifacts" / "accurate_intake_fooddb_grokfast_packet_live_diagnostic_case_matrix.json"
 )
@@ -37,6 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--retrieval-eval-wall", default=str(DEFAULT_RETRIEVAL_EVAL_WALL))
     parser.add_argument("--fooddb-status-packet", default=str(DEFAULT_FOODDB_STATUS_PACKET))
     parser.add_argument("--manager-packet-smoke", default=str(DEFAULT_MANAGER_PACKET_SMOKE))
+    parser.add_argument("--index-backend-parity", default=str(DEFAULT_INDEX_BACKEND_PARITY))
     parser.add_argument("--case-matrix", default=str(DEFAULT_CASE_MATRIX))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
@@ -45,6 +49,7 @@ def main(argv: list[str] | None = None) -> int:
         retrieval_eval_wall_artifact=read_json_artifact(Path(args.retrieval_eval_wall)),
         fooddb_status_packet=read_json_artifact(Path(args.fooddb_status_packet)),
         manager_packet_smoke_artifact=read_json_artifact(Path(args.manager_packet_smoke)),
+        index_backend_parity_artifact=read_json_artifact(Path(args.index_backend_parity)),
         case_matrix_artifact=read_json_artifact(Path(args.case_matrix)),
     )
     output_path = Path(args.output)

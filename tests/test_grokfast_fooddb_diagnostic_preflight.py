@@ -88,6 +88,68 @@ def _manager_packet_smoke(
     }
 
 
+def _backend_parity(*, status: str = "pass", fail_count: int = 0) -> dict:
+    case_ids = (
+        "boba_alias",
+        "chicken_bento_alias",
+        "kelp_component",
+        "latte_alias",
+    )
+    cases = []
+    for index, case_id in enumerate(case_ids):
+        case_status = "fail" if index < fail_count else "pass"
+        cases.append(
+            {
+                "case_id": case_id,
+                "status": case_status,
+                "checks": {
+                    "accepted_anchor_parity": case_status == "pass",
+                    "manager_visible_evidence_payload_parity": case_status == "pass",
+                    "expected_top_anchor": case_status == "pass",
+                    "manager_visible_boundary": case_status == "pass",
+                },
+                "backend_results": [
+                    {
+                        "backend_label": backend_label,
+                        "manager_visible_boundary_passed": case_status == "pass",
+                        "manager_visible_evidence_item_signatures": [
+                            {
+                                "anchor_id": f"{case_id}_anchor",
+                                "runtime_truth_allowed": True,
+                            }
+                        ],
+                    }
+                    for backend_label in ("local_json", "sqlite_fts", "supabase_rows")
+                ],
+            }
+        )
+    return {
+        "artifact_type": "accurate_intake_fooddb_index_backend_parity_v1",
+        "classification": "deterministic_backend_parity_only",
+        "status": status,
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "manager_context_changed": False,
+        "packetizer_format_changed": False,
+        "live_provider_used": False,
+        "live_websearch_used": False,
+        "readiness_claimed": False,
+        "next_required_slice": (
+            "inspect_fooddb_index_backend_parity_blockers"
+            if fail_count
+            else "grokfast_fooddb_packet_live_diagnostic"
+        ),
+        "summary": {
+            "case_count": 4,
+            "pass_count": 4 - fail_count,
+            "fail_count": fail_count,
+            "backend_count": 3,
+            "backend_labels": ["local_json", "sqlite_fts", "supabase_rows"],
+        },
+        "cases": cases,
+    }
+
+
 def _case_matrix(
     *,
     status: str = "pass",
@@ -135,6 +197,7 @@ def test_grokfast_fooddb_diagnostic_preflight_clears_only_when_all_upstream_gate
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=_backend_parity(),
         case_matrix_artifact=_case_matrix(),
     )
 
@@ -158,6 +221,7 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_retrieval_eval_failures() -
         retrieval_eval_wall_artifact=_retrieval_eval_wall(fail_count=1),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=_backend_parity(),
         case_matrix_artifact=_case_matrix(),
     )
 
@@ -176,6 +240,7 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_manager_contract_handoff_re
             handoff_ready=True,
         ),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=_backend_parity(),
         case_matrix_artifact=_case_matrix(),
     )
 
@@ -190,6 +255,7 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_noncompact_packet_smoke() -
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(leak=True),
+        index_backend_parity_artifact=_backend_parity(),
         case_matrix_artifact=_case_matrix(),
     )
 
@@ -206,6 +272,7 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_packet_overclaims() -> None
             readiness_claimed=True,
             runtime_mutation_attempted=True,
         ),
+        index_backend_parity_artifact=_backend_parity(),
         case_matrix_artifact=_case_matrix(),
     )
 
@@ -214,11 +281,122 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_packet_overclaims() -> None
     assert "manager_packet_smoke_attempted_mutation" in artifact["blockers"]
 
 
+def test_grokfast_fooddb_diagnostic_preflight_blocks_backend_parity_failures() -> None:
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=_backend_parity(status="fail", fail_count=1),
+        case_matrix_artifact=_case_matrix(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["clear_to_run_live_diagnostic"] is False
+    assert "fooddb_index_backend_parity_not_pass" in artifact["blockers"]
+    assert "fooddb_index_backend_parity_has_failures" in artifact["blockers"]
+    assert "fooddb_index_backend_parity_not_pointing_to_grokfast" in artifact["blockers"]
+    assert is_grokfast_fooddb_preflight_clear(artifact) is False
+
+
+def test_grokfast_fooddb_diagnostic_preflight_blocks_backend_parity_forged_empty_cases() -> None:
+    backend_parity = _backend_parity()
+    backend_parity["cases"] = []
+
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=backend_parity,
+        case_matrix_artifact=_case_matrix(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "fooddb_index_backend_parity_case_payload_missing" in artifact["blockers"]
+    assert is_grokfast_fooddb_preflight_clear(artifact) is False
+
+
+def test_grokfast_fooddb_diagnostic_preflight_blocks_backend_parity_missing_checks() -> None:
+    backend_parity = _backend_parity()
+    backend_parity["cases"][0]["checks"] = {}
+
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=backend_parity,
+        case_matrix_artifact=_case_matrix(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "fooddb_index_backend_parity_case_checks_missing.boba_alias" in artifact["blockers"]
+    assert is_grokfast_fooddb_preflight_clear(artifact) is False
+
+
+def test_grokfast_fooddb_diagnostic_preflight_blocks_backend_parity_duplicate_backends() -> None:
+    backend_parity = _backend_parity()
+    backend_parity["cases"][0]["backend_results"] = [
+        {
+            "backend_label": "local_json",
+            "manager_visible_boundary_passed": True,
+            "manager_visible_evidence_item_signatures": [
+                {"anchor_id": "boba_alias_anchor", "runtime_truth_allowed": True}
+            ],
+        },
+        {
+            "backend_label": "local_json",
+            "manager_visible_boundary_passed": True,
+            "manager_visible_evidence_item_signatures": [
+                {"anchor_id": "boba_alias_anchor", "runtime_truth_allowed": True}
+            ],
+        },
+        {
+            "backend_label": "local_json",
+            "manager_visible_boundary_passed": True,
+            "manager_visible_evidence_item_signatures": [
+                {"anchor_id": "boba_alias_anchor", "runtime_truth_allowed": True}
+            ],
+        },
+    ]
+
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=backend_parity,
+        case_matrix_artifact=_case_matrix(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert (
+        "fooddb_index_backend_parity_case_backend_labels_mismatch.boba_alias"
+        in artifact["blockers"]
+    )
+    assert is_grokfast_fooddb_preflight_clear(artifact) is False
+
+
+def test_grokfast_fooddb_diagnostic_preflight_blocks_backend_parity_duplicate_cases() -> None:
+    backend_parity = _backend_parity()
+    backend_parity["cases"] = [backend_parity["cases"][0] for _index in range(4)]
+
+    artifact = build_grokfast_fooddb_diagnostic_preflight(
+        retrieval_eval_wall_artifact=_retrieval_eval_wall(),
+        fooddb_status_packet=_fooddb_status(),
+        manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=backend_parity,
+        case_matrix_artifact=_case_matrix(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "fooddb_index_backend_parity_case_ids_mismatch" in artifact["blockers"]
+    assert is_grokfast_fooddb_preflight_clear(artifact) is False
+
+
 def test_grokfast_fooddb_preflight_clear_helper_rejects_forged_summary() -> None:
     artifact = build_grokfast_fooddb_diagnostic_preflight(
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=_backend_parity(),
         case_matrix_artifact=_case_matrix(),
     )
     forged = {
@@ -226,6 +404,7 @@ def test_grokfast_fooddb_preflight_clear_helper_rejects_forged_summary() -> None
         "summary": {
             **artifact["summary"],
             "retrieval_eval_fail_count": 1,
+            "index_backend_parity_fail_count": 1,
             "case_matrix_shared_contract_changed": True,
             "case_matrix_non_claim_count": 1,
         },
@@ -242,6 +421,7 @@ def test_grokfast_fooddb_diagnostic_preflight_requires_case_matrix() -> None:
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=_backend_parity(),
         case_matrix_artifact={
             "artifact_type": "unexpected",
             "summary": {},
@@ -260,6 +440,7 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_ad_hoc_case_matrix() -> Non
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=_backend_parity(),
         case_matrix_artifact=case_matrix,
     )
 
@@ -273,6 +454,7 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_case_matrix_overclaims() ->
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=_backend_parity(),
         case_matrix_artifact=_case_matrix(
             plan_only=False,
             live_provider_invoked=True,
@@ -294,6 +476,7 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_case_matrix_contract_change
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=_backend_parity(),
         case_matrix_artifact=case_matrix,
     )
 
@@ -309,6 +492,7 @@ def test_grokfast_fooddb_diagnostic_preflight_blocks_missing_case_matrix_non_cla
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=_backend_parity(),
         case_matrix_artifact=case_matrix,
     )
 
@@ -331,11 +515,13 @@ def test_grokfast_fooddb_diagnostic_preflight_script_roundtrip(tmp_path: Path) -
     retrieval_path = tmp_path / "retrieval.json"
     fooddb_status_path = tmp_path / "fooddb_status.json"
     packet_path = tmp_path / "packet.json"
+    backend_parity_path = tmp_path / "backend_parity.json"
     case_matrix_path = tmp_path / "case_matrix.json"
     output = tmp_path / "preflight.json"
     write_json_artifact(retrieval_path, _retrieval_eval_wall())
     write_json_artifact(fooddb_status_path, _fooddb_status())
     write_json_artifact(packet_path, _manager_packet_smoke())
+    write_json_artifact(backend_parity_path, _backend_parity())
     write_json_artifact(case_matrix_path, _case_matrix())
 
     assert (
@@ -347,6 +533,8 @@ def test_grokfast_fooddb_diagnostic_preflight_script_roundtrip(tmp_path: Path) -
                 str(fooddb_status_path),
                 "--manager-packet-smoke",
                 str(packet_path),
+                "--index-backend-parity",
+                str(backend_parity_path),
                 "--case-matrix",
                 str(case_matrix_path),
                 "--output",
@@ -414,6 +602,7 @@ def test_grokfast_fooddb_packet_live_script_rejects_forged_clear_preflight(tmp_p
         retrieval_eval_wall_artifact=_retrieval_eval_wall(),
         fooddb_status_packet=_fooddb_status(),
         manager_packet_smoke_artifact=_manager_packet_smoke(),
+        index_backend_parity_artifact=_backend_parity(),
         case_matrix_artifact=_case_matrix(),
     )
     write_json_artifact(
