@@ -5,52 +5,55 @@ It is repo coordination truth, not product runtime truth.
 
 ## Current State
 
-PR123 -> PR125 is the current PL+CE checkpoint chain:
+The merged PL+CE checkpoint train is the current local diagnostic baseline:
 
 - PR123: Product Loop browser shell checkpoint.
-- PR125: PL+CE diagnostic review bundle, stacked on PR123.
-- Future PL+CE work should be separate follow-up PRs, not a PR123 or PR125 mega-PR.
+- PR125: PL+CE diagnostic review bundle.
+- Later PL+CE slices landed as independent main-based PRs through GitHub Merge Queue.
+- Future PL+CE work should be separate follow-up PRs, not a mega-PR or long-lived stack.
 
 FoodDB/Search Evidence owns retrieval, ranking, packet-ready evidence, and runtime-visible nutrition truth.
 PL+CE owns context visibility, review artifacts, fake-provider context smoke, and local product shell diagnostics.
 
 The FoodDB boundary remains blocked_waiting_for_fdb_artifact until FoodDB provides approved packet-ready metadata.
 
-## Serial PR Delivery Policy
+## Merge Queue Delivery Policy
 
-Default PL+CE delivery is serial squash-merge, not long-lived stack accumulation.
-The goal is to avoid ancestry drift after GitHub squash merge rewrites the PR branch lineage.
+Default PL+CE delivery is GitHub Merge Queue serial delivery from latest `origin/main`.
+The goal is to avoid ancestry drift, stale queue races, and the obsolete `main-merge-lock` path.
 
 ```yaml
 agent_policy:
   low_risk_work:
-    mode: auto_serial
+    mode: merge_queue_serial
     behavior:
+      - fetch latest origin/main
+      - create a new main-based branch
       - open PR
       - run tests
-      - verify CI green
-      - verify mergeable clean
-      - squash merge after the applicable human/review gate is satisfied
-      - delete branch if it is not a stack base
-      - refresh next branch
-      - continue
+      - wait for PR checks green
+      - Add to Merge Queue
+      - wait for PR state MERGED
+      - confirm main push CI is not red
+      - cleanup only after merged and clean
+      - fetch latest origin/main before the next slice
+      - do not use main-merge-lock
 
-  stacked_work:
-    mode: allowed_with_self_retarget
-    max_depth: 2
+  dependent_child_pr:
+    mode: allowed_but_not_queueable_until_parent_merged
     behavior:
-      - merge base PR first
-      - retarget child PR to main
-      - rerun CI
-      - continue only if green and mergeable clean
+      - build child only if the next slice truly depends on parent
+      - keep child out of Merge Queue until parent PR is MERGED
+      - refresh child onto main after parent merges
+      - rerun checks before Add to Merge Queue
 
   high_risk_work:
     mode: stop_for_human_gate
 ```
 
 Low-risk PL+CE diagnostic work can proceed in one run as multiple serial PRs if each PR is opened,
-tested, CI-green, mergeable clean, and squash-merged before continuing to the next slice.
-Stacking is allowed only as a short bridge, with max_depth: 2 and self-retarget after the base PR merges.
+tested, checks-green, added to GitHub Merge Queue, merged, and verified on main before the next slice starts.
+Branch cleanup is allowed only after the PR is merged, local status is clean, and the remote branch has been pruned or confirmed gone.
 High-risk work still stops for a human gate before merge or runtime activation.
 
 ## Activation Ladder

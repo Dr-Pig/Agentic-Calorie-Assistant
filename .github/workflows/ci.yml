@@ -401,49 +401,39 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          stack = {
-              "artifact_type": "synthetic_ci_pl_ce_pr_stack_metadata_fixture",
-              "metadata_source": "ci_static_fixture",
-              "merge_owner_required": True,
-              "producer_should_merge": False,
-              "stack_items": [
+          queue = {
+              "artifact_type": "accurate_intake_pl_ce_merge_queue_metadata",
+              "metadata_source": "github_merge_queue_snapshot",
+              "merge_queue_required": True,
+              "producer_should_manual_merge": False,
+              "queue_policy": {
+                  "merge_mechanism": "github_merge_queue",
+                  "old_main_merge_lock_used": False,
+                  "manual_main_merge_forbidden": True,
+                  "wait_for_pr_merged_before_next_slice": True,
+                  "cleanup_only_after_merged_and_clean": True,
+              },
+              "queue_items": [
                   {
-                      "slice_id": "local_mvp_candidate_bundle",
-                      "pr_number": 281,
-                      "head": "codex/plce-local-mvp-candidate-bundle-v1",
+                      "slice_id": "ci_product_pages_browser_e2e",
+                      "pr_number": 1,
+                      "head": "codex/ci-product-pages-browser-e2e",
                       "base": "main",
                       "state": "open",
-                      "draft": True,
+                      "draft": False,
+                      "ready_for_queue": True,
                       "checks": "success",
-                  },
-                  {
-                      "slice_id": "browser_activation_evidence_gate",
-                      "pr_number": 283,
-                      "head": "codex/plce-browser-activation-evidence-gate-v1",
-                      "base": "codex/plce-local-mvp-candidate-bundle-v1",
-                      "state": "open",
-                      "draft": True,
-                      "checks": "success",
-                  },
-                  {
-                      "slice_id": "activation_review_manifest",
-                      "pr_number": 287,
-                      "head": "codex/plce-activation-review-manifest-v1",
-                      "base": "codex/plce-browser-activation-evidence-gate-v1",
-                      "state": "open",
-                      "draft": True,
-                      "checks": "pending",
+                      "merge_queue_status": "queued",
                   },
               ],
           }
-          path = Path("artifacts/accurate_intake_pl_ce_pr_stack_metadata_ci.json")
-          path.write_text(json.dumps(stack, ensure_ascii=False), encoding="utf-8")
+          path = Path("artifacts/accurate_intake_pl_ce_merge_queue_metadata_ci.json")
+          path.write_text(json.dumps(queue, ensure_ascii=False), encoding="utf-8")
           PY
           python scripts/build_accurate_intake_pl_ce_serial_handoff.py \
             --activation-review-manifest artifacts/accurate_intake_pl_ce_activation_review_manifest_ci.json \
-            --stack-json artifacts/accurate_intake_pl_ce_pr_stack_metadata_ci.json \
-            --output artifacts/accurate_intake_pl_ce_serial_handoff_ci.json \
-            --allow-blocked
+            --queue-json artifacts/accurate_intake_pl_ce_merge_queue_metadata_ci.json \
+            --output artifacts/accurate_intake_pl_ce_serial_handoff_ci.json
 
       - name: Upload product pages browser E2E report
         if: always()
@@ -471,7 +461,7 @@ jobs:
             artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json
             artifacts/accurate_intake_pl_ce_activation_review_manifest_ci.json
             artifacts/accurate_intake_pl_ce_serial_handoff_ci.json
-            artifacts/accurate_intake_pl_ce_pr_stack_metadata_ci.json
+            artifacts/accurate_intake_pl_ce_merge_queue_metadata_ci.json
             artifacts/product_pages_visual_qa_ci
           if-no-files-found: error
 
