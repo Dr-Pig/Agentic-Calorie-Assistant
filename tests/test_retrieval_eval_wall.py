@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from app.nutrition.application.exact_evidence_lane_policy import (
+    build_exact_evidence_lane_policy_artifact,
+)
 from app.nutrition.application.retrieval_eval_wall import build_retrieval_eval_wall
 from app.nutrition.infrastructure.local_food_evidence_index import (
     LocalSmallAnchorFoodEvidenceIndex,
@@ -16,6 +19,10 @@ def _records():
 
 def _case_by_id(artifact: dict, section: str, case_id: str) -> dict:
     return {case["case_id"]: case for case in artifact[section]}[case_id]
+
+
+def _expected_exact_card_staging_candidate_count() -> int:
+    return build_exact_evidence_lane_policy_artifact()["summary"]["exact_card_staging_candidate_count"]
 
 
 def test_retrieval_eval_wall_splits_source_ranking_grounding_and_negative_cases() -> None:
@@ -212,7 +219,10 @@ def test_retrieval_eval_wall_negative_cases_block_basket_and_exact_candidate_mut
     assert basket["status"] == "pass"
     assert basket["retrieval_boundary"] == "bare_basket_ask_followup_no_estimate"
     assert exact["status"] == "pass"
-    assert exact["exact_card_staging_candidate_count"] == 4
+    assert (
+        exact["exact_card_staging_candidate_count"]
+        == _expected_exact_card_staging_candidate_count()
+    )
     assert listed_unknown["status"] == "pass"
     assert listed_unknown["accepted_anchor_ids"] == ["listed_item_tofu_dried"]
     assert listed_unknown["rejected_candidates"]
