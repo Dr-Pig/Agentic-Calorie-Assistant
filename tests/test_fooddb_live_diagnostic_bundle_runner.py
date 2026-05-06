@@ -54,6 +54,15 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
     assert live_runner_readiness["status"] == "pass"
     assert live_runner_readiness["ready_for_grokfast_fooddb_packet_live_diagnostic"] is True
     assert diagnostic["live_provider_used"] is False
+    assert diagnostic["preflight_ref"]["artifact_type"] == preflight["artifact_type"]
+    assert diagnostic["preflight_ref"]["status"] == preflight["status"]
+    assert diagnostic["router_readiness_ref"]["artifact_type"] == router_readiness["artifact_type"]
+    assert diagnostic["router_readiness_ref"]["status"] == router_readiness["status"]
+    assert (
+        diagnostic["live_runner_readiness_ref"]["artifact_type"]
+        == live_runner_readiness["artifact_type"]
+    )
+    assert diagnostic["live_runner_readiness_ref"]["status"] == live_runner_readiness["status"]
     assert report["source_live_provider_used"] is False
     assert report["next_recommended_slice"] == "run_explicit_grokfast_fooddb_packet_live_diagnostic"
     assert probe["artifact_type"] == "accurate_intake_fooddb_manager_contract_probe"
