@@ -43,8 +43,21 @@ def test_product_pages_renderer_source_map_covers_chat_today_body_sources() -> N
     assert "/estimate" in chat["endpoints"]
     assert "/accurate-intake/chat-history" in chat["endpoints"]
     assert "#chat-scroll" in chat["selectors"]
+    assert "#chat-context-strip" in chat["selectors"]
+    assert "#chat-context-policy" in chat["selectors"]
+    assert "#chat-context-loaded" in chat["selectors"]
+    assert "#chat-context-omitted" in chat["selectors"]
+    assert "#chat-context-pins" in chat["selectors"]
+    assert "#chat-context-targets" in chat["selectors"]
+    assert "#chat-target-candidate-list" in chat["selectors"]
     assert "payload.messages" in chat["backend_fields"]
     assert "payload.coach_message" in chat["backend_fields"]
+    assert "message.context_policy_version" in chat["backend_fields"]
+    assert "message.loaded_context_summary" in chat["backend_fields"]
+    assert "message.omitted_context_summary" in chat["backend_fields"]
+    assert "message.pending_pins_present" in chat["backend_fields"]
+    assert "message.target_candidate_count" in chat["backend_fields"]
+    assert "message.target_candidate_names" in chat["backend_fields"]
 
     today = artifact["source_map"]["today"]
     assert today["page_id"] == "accurate-intake-today-page-v1"
@@ -87,6 +100,30 @@ def test_product_pages_renderer_source_map_declares_three_page_same_truth_contra
     assert chat["current_turn_response"]["truth_owner"] == "manager_runtime_response"
     assert chat["current_turn_response"]["read_model_or_api"] == "/estimate"
     assert chat["current_turn_response"]["frontend_role"] == "render_backend_structured_fields_only"
+    assert chat["context_status_strip"]["truth_owner"] == "manager_context_runtime_trace_sidecar"
+    assert chat["context_status_strip"]["read_model_or_api"] == "/accurate-intake/chat-history"
+    assert chat["context_status_strip"]["ui_selector"] == "#chat-context-strip"
+    assert chat["context_status_strip"]["required_backend_fields"] == [
+        "message.context_policy_version",
+        "message.loaded_context_summary",
+        "message.omitted_context_summary",
+        "message.pending_pins_present",
+        "message.target_candidate_count",
+    ]
+    assert chat["context_status_strip"]["must_not"] == [
+        "frontend_infer_context_snapshot",
+        "frontend_infer_manager_context_gap",
+        "frontend_infer_intent",
+    ]
+    assert chat["read_only_target_candidates"]["truth_owner"] == "manager_context_target_candidate_sidecar"
+    assert chat["read_only_target_candidates"]["read_model_or_api"] == "/accurate-intake/chat-history"
+    assert chat["read_only_target_candidates"]["ui_selector"] == "#chat-target-candidate-list"
+    assert chat["read_only_target_candidates"]["frontend_role"] == "render_backend_structured_fields_only"
+    assert chat["read_only_target_candidates"]["must_not"] == [
+        "frontend_select_target",
+        "frontend_infer_correction_intent",
+        "frontend_infer_mutation_legality",
+    ]
 
     today = contract["today"]
     assert today["budget_summary"]["truth_owner"] == "budget_domain"
@@ -134,6 +171,24 @@ def test_product_pages_renderer_source_map_blocks_contract_drift_when_backend_fi
     assert artifact["same_truth_renderer_contract_status"] == "blocked"
     assert (
         "body.same_truth_contract.active_body_plan.missing_backend_field:plan.recommended_target_kcal"
+        in artifact["blockers"]
+    )
+
+
+def test_product_pages_renderer_source_map_blocks_chat_context_contract_drift() -> None:
+    html_overrides = {
+        "chat": Path("static/accurate-intake-chat.html").read_text(encoding="utf-8").replace(
+            "message.context_policy_version",
+            "message.context_policy_missing",
+        )
+    }
+
+    artifact = build_product_pages_renderer_source_map_artifact(html_overrides=html_overrides)
+
+    assert artifact["status"] == "blocked"
+    assert "chat.missing_backend_field:message.context_policy_version" in artifact["blockers"]
+    assert (
+        "chat.same_truth_contract.context_status_strip.missing_backend_field:message.context_policy_version"
         in artifact["blockers"]
     )
 
