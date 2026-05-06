@@ -2,10 +2,44 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from app.nutrition.application.exact_card_candidate_promotion_readiness import (
+    build_exact_card_candidate_promotion_readiness,
+)
+from app.nutrition.application.exact_evidence_lane_policy import (
+    build_exact_evidence_lane_policy_artifact,
+)
+from app.nutrition.application.grokfast_websearch_packet_diagnostic import (
+    build_fixture_manager_outputs as build_fixture_review_manager_outputs,
+    build_grokfast_websearch_packet_diagnostic,
+)
 from app.nutrition.application.websearch_manager_contract_probe import (
     build_fixture_websearch_manager_contract_probe_cases,
     build_websearch_manager_contract_probe,
 )
+from app.nutrition.application.websearch_exact_candidate_review_packet import (
+    build_websearch_exact_candidate_review_packet,
+)
+from app.nutrition.application.websearch_extract_result_candidate_smoke import (
+    build_websearch_extract_result_candidate_smoke,
+)
+from app.nutrition.application.websearch_selected_extract_packet_smoke import (
+    build_websearch_selected_extract_packet_smoke,
+)
+
+
+def _review_packet_artifact() -> dict:
+    readiness = build_exact_card_candidate_promotion_readiness(
+        exact_lane_artifact=build_exact_evidence_lane_policy_artifact()
+    )
+    selected_extract = build_websearch_selected_extract_packet_smoke(
+        exact_card_readiness_artifact=readiness
+    )
+    extract_result = build_websearch_extract_result_candidate_smoke(
+        selected_extract_artifact=selected_extract
+    )
+    return build_websearch_exact_candidate_review_packet(
+        extract_result_artifact=extract_result
+    )
 
 
 def test_websearch_manager_contract_probe_localizes_intent_alias_gap() -> None:
@@ -72,6 +106,54 @@ def test_websearch_manager_contract_probe_passes_when_required_intent_exists() -
     assert artifact["summary"]["next_recommended_slice"] == "inspect_websearch_manager_contract_failures"
 
 
+def test_websearch_manager_contract_probe_accepts_live_diagnostic_artifact() -> None:
+    review_packet = _review_packet_artifact()
+    diagnostic = build_grokfast_websearch_packet_diagnostic(
+        review_packet_artifact=review_packet,
+        manager_outputs=build_fixture_review_manager_outputs(
+            review_packet_artifact=review_packet
+        ),
+        live_provider_used=True,
+    )
+
+    artifact = build_websearch_manager_contract_probe(
+        diagnostic_artifact=diagnostic
+    )
+
+    assert artifact["status"] == "pass"
+    assert artifact["contract_failure_detected"] is False
+    assert artifact["source_artifact_type"] == "accurate_intake_grokfast_websearch_packet_smoke"
+    assert artifact["summary"]["websearch_expansion_allowed"] is True
+    assert artifact["summary"]["next_recommended_slice"] == (
+        "websearch_candidate_pipeline_narrow_expansion"
+    )
+
+
+def test_websearch_manager_contract_probe_localizes_live_diagnostic_contract_gaps() -> None:
+    review_packet = _review_packet_artifact()
+    manager_outputs = build_fixture_review_manager_outputs(
+        review_packet_artifact=review_packet
+    )
+    manager_outputs[0]["manager_output"]["intent_type"] = manager_outputs[0]["manager_output"].pop(
+        "intent"
+    )
+    diagnostic = build_grokfast_websearch_packet_diagnostic(
+        review_packet_artifact=review_packet,
+        manager_outputs=manager_outputs,
+        live_provider_used=True,
+    )
+
+    artifact = build_websearch_manager_contract_probe(
+        diagnostic_artifact=diagnostic
+    )
+
+    assert artifact["status"] == "diagnostic_fail"
+    assert artifact["contract_failure_detected"] is True
+    assert artifact["summary"]["next_recommended_slice"] == "narrow_prompt_schema_intent_alias_probe"
+    assert "manager_output_contract_violation" in artifact["summary"]["failure_families"]
+    assert "manager_intent_alias_gap" in artifact["summary"]["failure_families"]
+
+
 def test_websearch_manager_contract_probe_script_roundtrip(tmp_path: Path) -> None:
     from app.shared.infra.json_artifacts import read_json_artifact
     from scripts.build_accurate_intake_websearch_manager_contract_probe import main
@@ -83,6 +165,42 @@ def test_websearch_manager_contract_probe_script_roundtrip(tmp_path: Path) -> No
     artifact = read_json_artifact(output)
     assert artifact["artifact_type"] == "accurate_intake_websearch_manager_contract_probe"
     assert artifact["summary"]["next_recommended_slice"] == "narrow_prompt_schema_intent_alias_probe"
+
+
+def test_websearch_manager_contract_probe_script_accepts_diagnostic_artifact(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.build_accurate_intake_websearch_manager_contract_probe import main
+
+    review_packet = _review_packet_artifact()
+    diagnostic = build_grokfast_websearch_packet_diagnostic(
+        review_packet_artifact=review_packet,
+        manager_outputs=build_fixture_review_manager_outputs(
+            review_packet_artifact=review_packet
+        ),
+        live_provider_used=True,
+    )
+    diagnostic_path = tmp_path / "diagnostic.json"
+    output = tmp_path / "contract_probe.json"
+    write_json_artifact(diagnostic_path, diagnostic)
+
+    assert (
+        main(
+            [
+                "--diagnostic-artifact",
+                str(diagnostic_path),
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+
+    artifact = read_json_artifact(output)
+    assert artifact["summary"]["next_recommended_slice"] == (
+        "websearch_candidate_pipeline_narrow_expansion"
+    )
 
 
 def test_websearch_manager_contract_probe_has_no_live_or_websearch_imports() -> None:

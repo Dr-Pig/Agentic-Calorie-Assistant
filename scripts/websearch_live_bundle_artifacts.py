@@ -18,6 +18,9 @@ def build_websearch_live_bundle_artifact_paths(output_dir: Path) -> dict[str, Pa
         "readiness": output_dir / "websearch_live_readiness.json",
         "diagnostic": output_dir / "grokfast_websearch_packet_smoke.json",
         "report": output_dir / "websearch_live_report.json",
+        "manager_contract_probe": output_dir / "websearch_contract_probe.json",
+        "manager_contract_repair_pack": output_dir / "websearch_contract_repair.json",
+        "manager_contract_handoff": output_dir / "websearch_contract_handoff.json",
         "manifest": output_dir / "websearch_live_manifest.json",
     }
 

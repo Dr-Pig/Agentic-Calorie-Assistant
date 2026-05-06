@@ -67,8 +67,10 @@ _ALLOWED_VALIDATION_ERROR_FAMILIES = {
     "manager_output_contract_violation",
 }
 _ALLOWED_PROBE_NEXT_SLICES = {
+    "grokfast_websearch_packet_live_diagnostic",
     "inspect_websearch_manager_contract_failures",
     "narrow_prompt_schema_intent_alias_probe",
+    "websearch_candidate_pipeline_narrow_expansion",
 }
 _ALLOWED_CASE_STATUSES = {
     "fail",
@@ -150,10 +152,14 @@ def build_websearch_manager_contract_repair_pack(
 
     summary = dict(contract_probe_artifact.get("summary") or {})
     fail_count = int(summary.get("fail_count", status_counts.get("fail", 0)) or 0)
+    probe_next_recommended_slice = _safe_optional_string(
+        summary.get("next_recommended_slice"),
+        allowed_values=_ALLOWED_PROBE_NEXT_SLICES,
+    )
     next_recommended_slice = (
         "tighten_websearch_manager_contract_prompt_or_transport"
         if fail_count > 0
-        else "grokfast_websearch_packet_live_diagnostic"
+        else (probe_next_recommended_slice or "grokfast_websearch_packet_live_diagnostic")
     )
 
     return {
@@ -176,10 +182,7 @@ def build_websearch_manager_contract_repair_pack(
             "aggregate_missing_required_fields": dict(sorted(missing_field_counts.items())),
             "shape_pattern_counts": dict(sorted(shape_pattern_counts.items())),
             "alias_hint_counts": dict(sorted(alias_hint_counts.items())),
-            "probe_next_recommended_slice": _safe_optional_string(
-                summary.get("next_recommended_slice"),
-                allowed_values=_ALLOWED_PROBE_NEXT_SLICES,
-            ),
+            "probe_next_recommended_slice": probe_next_recommended_slice,
         },
         "cases": repair_cases,
         "non_claims": list(WEBSEARCH_MANAGER_CONTRACT_REPAIR_PACK_NON_CLAIMS),

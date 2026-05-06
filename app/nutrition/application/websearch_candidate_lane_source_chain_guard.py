@@ -25,16 +25,19 @@ _REQUIRED_PROBE_PASS_CASE_KEYS = frozenset(
     }
 )
 _ALLOWED_PROBE_PASS_CASE_KEYS = _REQUIRED_PROBE_PASS_CASE_KEYS | {"expected_failure_family"}
-_EXPECTED_PROBE_PASS_OBSERVED_KEYS = [
-    "confidence",
-    "evidence_posture",
-    "exactness",
-    "intent",
-    "manager_action",
-    "repair_ack",
-    "target_attachment",
-    "workflow_effect",
-]
+_REQUIRED_PROBE_PASS_OBSERVED_KEYS = frozenset(
+    {
+        "confidence",
+        "evidence_posture",
+        "exactness",
+        "intent",
+        "manager_action",
+        "repair_ack",
+        "target_attachment",
+        "workflow_effect",
+    }
+)
+_ALLOWED_NON_FAILURE_SHAPE_PATTERNS = frozenset({"semantic_estimation_pending"})
 
 
 def source_chain_blockers(
@@ -105,12 +108,12 @@ def _probe_case_evidence_blockers(
         if missing_fields != []:
             blockers.append("manager_contract_handoff_probe_case_missing_required_fields_missing")
         shape_patterns = case.get("shape_patterns")
-        if shape_patterns != []:
+        if not _is_allowed_non_failure_shape_patterns(shape_patterns):
             blockers.append("manager_contract_handoff_probe_case_shape_patterns_missing")
         observed_keys = case.get("observed_keys")
         if not isinstance(observed_keys, list) or not observed_keys:
             blockers.append("manager_contract_handoff_probe_case_observed_keys_missing")
-        elif observed_keys != _EXPECTED_PROBE_PASS_OBSERVED_KEYS:
+        elif not _required_observed_keys_present(observed_keys):
             blockers.append("manager_contract_handoff_probe_case_observed_keys_unexpected")
         if "validation_error_family" not in case:
             blockers.append("manager_contract_handoff_probe_case_validation_family_missing")
@@ -147,7 +150,7 @@ def _unblocked_repair_pack_summary_blockers(
         summary.get("shape_pattern_counts"), dict
     ):
         blockers.append("repair_pack_missing_clean_shape_pattern_map_for_unblocked_handoff")
-    elif summary.get("shape_pattern_counts") != {}:
+    elif _meaningful_shape_pattern_counts(summary.get("shape_pattern_counts")) != {}:
         blockers.append("repair_pack_non_empty_shape_pattern_map_for_unblocked_handoff")
     return blockers
 
@@ -178,9 +181,40 @@ def _repair_pack_case_evidence_blockers(
             blockers.append("repair_pack_failure_case_for_unblocked_handoff")
         if case.get("missing_required_fields") not in ([], None):
             blockers.append("repair_pack_missing_fields_for_unblocked_handoff")
-        if case.get("shape_patterns") not in ([], None):
+        if not _is_allowed_non_failure_shape_patterns(case.get("shape_patterns")):
             blockers.append("repair_pack_shape_patterns_for_unblocked_handoff")
     return blockers
+
+
+def _required_observed_keys_present(value: Any) -> bool:
+    if not isinstance(value, list):
+        return False
+    observed = {str(item or "").strip() for item in value if str(item or "").strip()}
+    return _REQUIRED_PROBE_PASS_OBSERVED_KEYS.issubset(observed)
+
+
+def _is_allowed_non_failure_shape_patterns(value: Any) -> bool:
+    if value in (None, []):
+        return True
+    if not isinstance(value, list):
+        return False
+    return all(
+        isinstance(item, str) and item in _ALLOWED_NON_FAILURE_SHAPE_PATTERNS
+        for item in value
+    )
+
+
+def _meaningful_shape_pattern_counts(value: Any) -> dict[str, int]:
+    if not isinstance(value, dict):
+        return {}
+    result: dict[str, int] = {}
+    for key, count in value.items():
+        if key in _ALLOWED_NON_FAILURE_SHAPE_PATTERNS:
+            continue
+        if isinstance(count, bool) or not isinstance(count, int) or count <= 0:
+            continue
+        result[str(key)] = count
+    return result
 
 
 __all__ = ["source_chain_blockers"]

@@ -29,6 +29,7 @@ def test_websearch_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_pa
     diagnostic = read_json_artifact(tmp_path / "grokfast_websearch_packet_smoke.json")
     report = read_json_artifact(tmp_path / "websearch_live_report.json")
     readiness = read_json_artifact(tmp_path / "websearch_live_readiness.json")
+    handoff = read_json_artifact(tmp_path / "websearch_contract_handoff.json")
 
     assert manifest["bundle_status"] == "pass"
     assert manifest["mode"] == "fixture"
@@ -38,9 +39,12 @@ def test_websearch_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_pa
     assert manifest["runtime_mutation_attempted"] is False
     assert manifest["readiness_claimed"] is False
     assert manifest["seam_status"] == "fixture_only_live_not_checked"
+    assert manifest["manager_contract_handoff_status"] == "insufficient_contract_handoff_evidence"
+    assert manifest["manager_contract_handoff_ready"] is False
     assert diagnostic["live_provider_used"] is False
     assert report["should_run_websearch_live_tool_loop"] is False
     assert readiness["ready_for_grokfast_websearch_packet_live_diagnostic"] is True
+    assert handoff["status"] == "insufficient_contract_handoff_evidence"
 
 
 def test_websearch_live_diagnostic_bundle_live_mode_requires_explicit_allow_live(
@@ -79,6 +83,9 @@ def test_websearch_live_diagnostic_bundle_records_all_required_artifact_refs(
         "readiness",
         "diagnostic",
         "report",
+        "manager_contract_probe",
+        "manager_contract_repair_pack",
+        "manager_contract_handoff",
     }
 
     assert set(manifest["artifacts"]) == required_refs

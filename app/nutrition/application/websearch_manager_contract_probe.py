@@ -3,6 +3,10 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from .websearch_manager_contract_probe_source import (
+    build_websearch_probe_cases_from_diagnostic_artifact,
+)
+
 
 WEBSEARCH_MANAGER_CONTRACT_PROBE_NON_CLAIMS = [
     "no_live_provider_call",
@@ -101,8 +105,14 @@ def build_fixture_websearch_manager_contract_probe_cases() -> list[dict[str, Any
 def build_websearch_manager_contract_probe(
     *,
     cases: list[dict[str, Any]] | None = None,
+    diagnostic_artifact: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    probe_cases = cases if cases is not None else build_fixture_websearch_manager_contract_probe_cases()
+    if cases is not None:
+        probe_cases = cases
+    elif diagnostic_artifact is not None:
+        probe_cases = build_websearch_probe_cases_from_diagnostic_artifact(diagnostic_artifact)
+    else:
+        probe_cases = build_fixture_websearch_manager_contract_probe_cases()
     results = [_evaluate_contract_case(case) for case in probe_cases]
     pass_count = sum(1 for item in results if item.get("status") == "pass")
     fail_count = len(results) - pass_count
@@ -116,11 +126,16 @@ def build_websearch_manager_contract_probe(
     )
     repair_hypotheses = _repair_hypotheses(results)
     contract_failure_detected = fail_count > 0
-    next_recommended_slice = (
-        "narrow_prompt_schema_intent_alias_probe"
-        if "intent_type_present_intent_missing" in repair_hypotheses
-        else "inspect_websearch_manager_contract_failures"
-    )
+    if not contract_failure_detected and _diagnostic_artifact_passed(diagnostic_artifact):
+        next_recommended_slice = "websearch_candidate_pipeline_narrow_expansion"
+        websearch_expansion_allowed = True
+    else:
+        next_recommended_slice = (
+            "narrow_prompt_schema_intent_alias_probe"
+            if "intent_type_present_intent_missing" in repair_hypotheses
+            else "inspect_websearch_manager_contract_failures"
+        )
+        websearch_expansion_allowed = False
     return {
         "artifact_type": "accurate_intake_websearch_manager_contract_probe",
         "artifact_schema_version": "1.0",
@@ -140,6 +155,11 @@ def build_websearch_manager_contract_probe(
         "manager_contract_changed": False,
         "prompt_changed": False,
         "schema_changed": False,
+        "source_artifact_type": (
+            str(diagnostic_artifact.get("artifact_type") or "")
+            if isinstance(diagnostic_artifact, dict)
+            else None
+        ),
         "cases": results,
         "summary": {
             "case_count": len(results),
@@ -148,7 +168,7 @@ def build_websearch_manager_contract_probe(
             "failure_families": failure_families,
             "repair_hypotheses": repair_hypotheses,
             "next_recommended_slice": next_recommended_slice,
-            "websearch_expansion_allowed": False,
+            "websearch_expansion_allowed": websearch_expansion_allowed,
         },
         "non_claims": list(WEBSEARCH_MANAGER_CONTRACT_PROBE_NON_CLAIMS),
     }
@@ -156,10 +176,13 @@ def build_websearch_manager_contract_probe(
 
 def _evaluate_contract_case(case: dict[str, Any]) -> dict[str, Any]:
     observed_output = dict(case.get("observed_manager_output") or {})
+    validation_errors = _validation_error_list(case.get("manager_contract_validation_errors"))
     missing_fields = _missing_required_fields(observed_output)
     shape_patterns = _shape_patterns(observed_output=observed_output, missing_fields=missing_fields)
     failure_families: list[str] = []
     if missing_fields:
+        failure_families.append("manager_output_contract_violation")
+    if validation_errors and "manager_output_contract_violation" not in failure_families:
         failure_families.append("manager_output_contract_violation")
     if "intent_type_present_intent_missing" in shape_patterns:
         failure_families.append("manager_intent_alias_gap")
@@ -174,7 +197,9 @@ def _evaluate_contract_case(case: dict[str, Any]) -> dict[str, Any]:
         "observed_keys": sorted(observed_output.keys()),
         "missing_required_fields": missing_fields,
         "shape_patterns": shape_patterns,
-        "validation_error_family": "manager_output_contract_violation" if missing_fields else None,
+        "validation_error_family": (
+            "manager_output_contract_violation" if (missing_fields or validation_errors) else None
+        ),
         "raw_manager_output_included": False,
         "provider_trace_included": False,
     }
@@ -225,6 +250,17 @@ def _missing_required_fields(observed_output: dict[str, Any]) -> list[str]:
     )
 
 
+def _validation_error_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    result: list[str] = []
+    for item in value:
+        text = str(item or "").strip()
+        if text:
+            result.append(text)
+    return result
+
+
 def _repair_hypotheses(results: list[dict[str, Any]]) -> list[str]:
     patterns = {
         pattern
@@ -240,6 +276,16 @@ def _repair_hypotheses(results: list[dict[str, Any]]) -> list[str]:
     if "semantic_estimation_pending" in patterns:
         hypotheses.append("candidate_review_pending_posture_needs_contract_alignment")
     return hypotheses
+
+
+def _diagnostic_artifact_passed(diagnostic_artifact: dict[str, Any] | None) -> bool:
+    if not isinstance(diagnostic_artifact, dict):
+        return False
+    return (
+        str(diagnostic_artifact.get("artifact_type") or "")
+        == "accurate_intake_grokfast_websearch_packet_smoke"
+        and str(diagnostic_artifact.get("status") or "") == "pass"
+    )
 
 
 def _now() -> str:
