@@ -30,16 +30,27 @@ def test_fooddb_live_payload_projection_compacts_modifier_case_packet() -> None:
     assert "candidate_terms" not in packet
     assert "ranking_policy" not in packet
     assert "vector_search_policy" not in packet
-    assert "manager_may_use_for" not in packet
-    assert "manager_must_not_use_for" not in packet
+    assert packet["retrieval_scope"] == "candidate_recall_only"
+    assert packet["retrieval_boundary"] == "single_or_composite_candidate_recall"
+    assert packet["manager_may_use_for"] == [
+        "grounded_food_evidence",
+        "followup_or_uncertainty_decision",
+        "disambiguation",
+    ]
+    assert packet["manager_must_not_use_for"] == [
+        "runtime_mutation",
+        "creating_fooddb_truth",
+        "inventing_source",
+    ]
     assert evidence_item["anchor_id"] == "generic_meal_chicken_bento"
     assert evidence_item["canonical_name"] == "雞腿便當"
     assert evidence_item["source_provenance"] == {"source_id": "existing_small_anchor_store_tw"}
     assert evidence_item["approval_metadata"] == {"runtime_truth_allowed": True}
     assert evidence_item["modifier_compatibility"] == {
-        "rice_portion": "followup_only_no_kcal_adjustment"
+        "rice_portion": "compatible_via_normalized_equivalent"
     }
-    assert evidence_item["modifier_adjustment_authority"] == "packet_adjustment_absent_followup_only"
+    assert evidence_item["packet_adjustment_available"] is False
+    assert "modifier_adjustment_authority" not in evidence_item
     assert evidence_item["portion_basis"] == {
         "portion_unit": "box",
         "portion_quantity": 1,
@@ -59,6 +70,36 @@ def test_fooddb_live_payload_projection_uses_minimal_allowed_refs() -> None:
         "generic_meal_chicken_bento",
         "雞腿便當",
     ]
+
+
+def test_fooddb_live_payload_projection_preserves_packet_authorized_adjustment() -> None:
+    packet_case = _packet_case("boba_large_half_sugar")
+    packet_case = {
+        **packet_case,
+        "manager_evidence_packet": {
+            **packet_case["manager_evidence_packet"],
+            "evidence_items": [
+                {
+                    **packet_case["manager_evidence_packet"]["evidence_items"][0],
+                    "adjusted_kcal_range": [400, 520],
+                    "adjusted_kcal_point": 460,
+                    "modifier_adjustment_authority": "packet_authorized",
+                }
+            ],
+        },
+    }
+
+    projection = build_compact_fooddb_live_projection(packet_case=packet_case)
+    evidence_item = projection["fooddb_evidence_packet"]["evidence_items"][0]
+
+    assert evidence_item["modifier_compatibility"] == {
+        "cup_size": "compatible",
+        "sugar_level": "compatible",
+    }
+    assert evidence_item["packet_adjustment_available"] is True
+    assert evidence_item["modifier_adjustment_authority"] == "packet_authorized"
+    assert evidence_item["adjusted_kcal_point"] == 460
+    assert evidence_item["adjusted_kcal_range"] == [400, 520]
 
 
 def test_fooddb_live_payload_projection_reduces_live_payload_size() -> None:
@@ -84,4 +125,22 @@ def test_fooddb_live_payload_projection_keeps_tool_results_read_only() -> None:
     assert tool_result["read_model_only"] is True
     assert tool_result["source_implementation_visible"] is False
     assert len(tool_result["evidence_packets"]) == 1
+    assert tool_result["evidence_packets"][0]["retrieval_scope"] == "candidate_recall_only"
+    assert tool_result["evidence_packets"][0]["retrieval_boundary"] == "listed_basket_component_recall"
+    assert tool_result["manager_must_not_use_for"] == [
+        "runtime_mutation",
+        "creating_fooddb_truth",
+        "inventing_source",
+        "inferring_source_implementation",
+    ]
+    assert projection["tool_results"] == [
+        {
+            "tool_name": "lookup_food_evidence",
+            "tool_call_id": "fooddb-packet-listed_luwei_components",
+            "result_boundary": "read_only_evidence_packet_result",
+            "runtime_mutation_allowed": False,
+            "truth_level": "read_only_food_evidence_result",
+            "output_ref": "tool_evidence_result",
+        }
+    ]
     assert "adapter_diagnostics" not in str(tool_result)

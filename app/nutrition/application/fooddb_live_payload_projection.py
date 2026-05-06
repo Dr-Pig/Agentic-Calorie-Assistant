@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .tool_evidence_result import build_tool_evidence_result
+
 
 def build_compact_fooddb_live_projection(*, packet_case: dict[str, Any]) -> dict[str, Any]:
     packet = dict(packet_case.get("manager_evidence_packet") or {})
@@ -18,8 +20,11 @@ def build_compact_fooddb_live_projection(*, packet_case: dict[str, Any]) -> dict
         "tool_results": [
             {
                 "tool_name": tool_result.get("tool_name") or "lookup_food_evidence",
+                "tool_call_id": tool_result.get("tool_call_id"),
+                "result_boundary": tool_result.get("result_boundary"),
+                "runtime_mutation_allowed": tool_result.get("runtime_mutation_allowed") is True,
                 "truth_level": "read_only_food_evidence_result",
-                "output": tool_result,
+                "output_ref": "tool_evidence_result",
             }
         ],
         "allowed_evidence_refs": allowed_refs,
@@ -33,12 +38,19 @@ def _compact_fooddb_packet(packet: dict[str, Any]) -> dict[str, Any]:
         "packet_id": packet.get("packet_id"),
         "case_id": packet.get("case_id"),
         "raw_user_input": packet.get("raw_user_input"),
+        "retrieval_scope": packet.get("retrieval_scope"),
+        "retrieval_boundary": packet.get("retrieval_boundary"),
         "runtime_mutation_allowed": False,
         "truth_selection_forbidden": True,
+        "raw_source_rows_included": False,
+        "candidate_only_records_included": False,
+        "full_fooddb_included": False,
         "modifier_hints": dict(packet.get("modifier_hints") or {}),
         "followup_hints": list(packet.get("followup_hints") or []),
         "ambiguity_reason": packet.get("ambiguity_reason"),
         "manager_expected_behavior": packet.get("manager_expected_behavior"),
+        "manager_may_use_for": list(packet.get("manager_may_use_for") or []),
+        "manager_must_not_use_for": list(packet.get("manager_must_not_use_for") or []),
         "evidence_items": [_compact_evidence_item(item) for item in evidence_items if isinstance(item, dict)],
     }
 
@@ -62,7 +74,7 @@ def _compact_evidence_item(item: dict[str, Any]) -> dict[str, Any]:
         },
         "runtime_usage_boundary": item.get("runtime_usage_boundary"),
         "followup_hints": list(item.get("followup_hints") or []),
-        "modifier_compatibility": _project_modifier_compatibility(item),
+        "modifier_compatibility": dict(item.get("modifier_compatibility") or {}),
         "source_provenance": {
             "source_id": source.get("source_id"),
         },
@@ -70,7 +82,9 @@ def _compact_evidence_item(item: dict[str, Any]) -> dict[str, Any]:
             "runtime_truth_allowed": approval.get("runtime_truth_allowed") is True,
         },
     }
-    modifier_adjustment_authority = _project_modifier_adjustment_authority(item)
+    if compact_item["modifier_compatibility"] or _has_packet_adjusted_values(item):
+        compact_item["packet_adjustment_available"] = _has_packet_adjusted_values(item)
+    modifier_adjustment_authority = str(item.get("modifier_adjustment_authority") or "").strip()
     if modifier_adjustment_authority:
         compact_item["modifier_adjustment_authority"] = modifier_adjustment_authority
     if item.get("adjusted_kcal_point") is not None:
@@ -78,28 +92,6 @@ def _compact_evidence_item(item: dict[str, Any]) -> dict[str, Any]:
     if item.get("adjusted_kcal_range") is not None:
         compact_item["adjusted_kcal_range"] = item.get("adjusted_kcal_range")
     return {key: value for key, value in compact_item.items() if value not in (None, {}, [])}
-
-
-def _project_modifier_compatibility(item: dict[str, Any]) -> dict[str, Any]:
-    compatibility = item.get("modifier_compatibility")
-    if not isinstance(compatibility, dict) or not compatibility:
-        return {}
-    if _has_packet_adjusted_values(item):
-        return dict(compatibility)
-    return {
-        str(key): "followup_only_no_kcal_adjustment"
-        for key, value in compatibility.items()
-        if str(key).strip() and value is not None
-    }
-
-
-def _project_modifier_adjustment_authority(item: dict[str, Any]) -> str | None:
-    if _has_packet_adjusted_values(item):
-        return str(item.get("modifier_adjustment_authority") or "packet_authorized").strip() or None
-    compatibility = item.get("modifier_compatibility")
-    if isinstance(compatibility, dict) and compatibility:
-        return "packet_adjustment_absent_followup_only"
-    return None
 
 
 def _has_packet_adjusted_values(item: dict[str, Any]) -> bool:
@@ -112,43 +104,19 @@ def _compact_tool_evidence_result(
     compact_packet: dict[str, Any],
     original_tool_result: Any,
 ) -> dict[str, Any]:
+    tool_name = "lookup_food_evidence"
+    tool_call_id = f"fooddb-packet-{packet_case.get('case_id')}"
+    trace_context: dict[str, Any] | None = None
     if isinstance(original_tool_result, dict):
-        trace = dict(original_tool_result.get("trace") or {})
-        trace["packet_count"] = 1
-        trace["compact_packet_pass_count"] = 1
-        compact = {
-            "result_type": original_tool_result.get("result_type") or "tool_evidence_result_v1",
-            "tool_name": original_tool_result.get("tool_name") or "lookup_food_evidence",
-            "tool_call_id": original_tool_result.get("tool_call_id")
-            or f"fooddb-packet-{packet_case.get('case_id')}",
-            "result_boundary": original_tool_result.get("result_boundary")
-            or "read_only_evidence_packet_result",
-            "runtime_mutation_allowed": False,
-            "runtime_truth_changed": False,
-            "manager_context_changed": False,
-            "read_model_only": True,
-            "source_implementation_visible": False,
-            "evidence_packets": [compact_packet],
-            "trace": trace,
-        }
-        return compact
-    return {
-        "result_type": "tool_evidence_result_v1",
-        "tool_name": "lookup_food_evidence",
-        "tool_call_id": f"fooddb-packet-{packet_case.get('case_id')}",
-        "result_boundary": "read_only_evidence_packet_result",
-        "runtime_mutation_allowed": False,
-        "runtime_truth_changed": False,
-        "manager_context_changed": False,
-        "read_model_only": True,
-        "source_implementation_visible": False,
-        "evidence_packets": [compact_packet],
-        "trace": {
-            "packet_count": 1,
-            "compact_packet_pass_count": 1,
-            "source_implementation_manager_visible": False,
-        },
-    }
+        tool_name = str(original_tool_result.get("tool_name") or tool_name)
+        tool_call_id = str(original_tool_result.get("tool_call_id") or tool_call_id)
+        trace_context = dict(original_tool_result.get("trace") or {})
+    return build_tool_evidence_result(
+        tool_name=tool_name,
+        tool_call_id=tool_call_id,
+        evidence_packets=[compact_packet],
+        trace_context=trace_context,
+    )
 
 
 def _allowed_refs_for_packet_case(*, packet_case: dict[str, Any], packet: dict[str, Any]) -> set[str]:

@@ -345,8 +345,8 @@ def build_live_manager_payload(*, packet_case: dict[str, Any]) -> dict[str, Any]
             "If evidence_items is empty for a bare basket, ask follow-up and do not mutate.",
             "If evidence_items exist, synthesize item_results from those packet items with uncertainty.",
             "Do not include tool_calls in this pass-2 response; the FoodDB evidence packet has already been provided.",
-            "If manager_expected_behavior is generic_range_estimate_with_followup_hints and the packet evidence item does not include adjusted_kcal_point or adjusted_kcal_range, keep kcal_point and kcal_range unchanged from the packet. Treat modifier hints as follow-up only, not arithmetic.",
-            "If a packet modifier_compatibility value is unsupported, do not adjust kcal_point or kcal_range for that modifier; keep the packet range and use followup_hints. Do not adjust kcal_point or kcal_range from modifier_compatibility alone. Only use adjusted_kcal_point, adjusted_kcal_range, modifier_adjusted_kcal_point, or modifier_adjusted_kcal_range when those adjusted values are explicitly present in the packet evidence item.",
+            "If manager_expected_behavior is generic_range_estimate_with_followup_hints and packet_adjustment_available is false, keep kcal_point and kcal_range unchanged from the packet. Treat modifier hints as follow-up only, not arithmetic.",
+            "If a packet modifier_compatibility value is unsupported, do not adjust kcal_point or kcal_range for that modifier; keep the packet range and use followup_hints. Do not adjust kcal_point or kcal_range from modifier_compatibility alone. Only use adjusted_kcal_point, adjusted_kcal_range, modifier_adjusted_kcal_point, or modifier_adjusted_kcal_range when those adjusted values are explicitly present in the packet evidence item and packet_adjustment_available is true.",
             "This diagnostic writes no ledger and grants no product readiness.",
         ],
         "expected_output_contract": {
