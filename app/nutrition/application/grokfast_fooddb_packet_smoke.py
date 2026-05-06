@@ -3,6 +3,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any, Callable
 
+from app.nutrition.application.fooddb_live_payload_projection import (
+    build_compact_fooddb_live_projection,
+    build_diagnostic_allowed_evidence_refs,
+)
+
 
 GROKFAST_FOODDB_PACKET_PROFILE = {
     "provider_profile_id": "builderspace-grok-4-fast-fooddb-packet-smoke",
@@ -244,7 +249,10 @@ def evaluate_manager_output_against_packet(
 ) -> dict[str, Any]:
     packet = packet_case.get("manager_evidence_packet") if isinstance(packet_case, dict) else {}
     evidence_items = packet.get("evidence_items") if isinstance(packet, dict) else []
-    allowed_refs = _allowed_evidence_refs(evidence_items)
+    allowed_refs = build_diagnostic_allowed_evidence_refs(
+        packet_case=packet_case,
+        evidence_items=evidence_items if isinstance(evidence_items, list) else [],
+    )
     case_id = str(packet_case.get("case_id") or "").strip()
     if case_id:
         allowed_refs.add(case_id)
@@ -320,63 +328,25 @@ def evaluate_manager_output_against_packet(
 
 
 def build_live_manager_payload(*, packet_case: dict[str, Any]) -> dict[str, Any]:
-    packet = dict(packet_case.get("manager_evidence_packet") or {})
-    tool_result = packet_case.get("tool_evidence_result")
-    if not isinstance(tool_result, dict):
-        tool_result = {
-            "result_type": "tool_evidence_result_v1",
-            "tool_name": "lookup_food_evidence",
-            "tool_call_id": f"fooddb-packet-{packet_case.get('case_id')}",
-            "result_boundary": "read_only_evidence_packet_result",
-            "runtime_mutation_allowed": False,
-            "runtime_truth_changed": False,
-            "manager_context_changed": False,
-            "read_model_only": True,
-            "source_implementation_visible": False,
-            "evidence_packets": [packet],
-            "trace": {
-                "packet_count": 1,
-                "compact_packet_pass_count": 1,
-                "source_implementation_manager_visible": False,
-            },
-            "manager_may_use_for": [
-                "grounded_food_evidence",
-                "followup_or_uncertainty_decision",
-                "disambiguation",
-            ],
-            "manager_must_not_use_for": [
-                "runtime_mutation",
-                "creating_fooddb_truth",
-                "inventing_source",
-                "inferring_source_implementation",
-            ],
-        }
+    projection = build_compact_fooddb_live_projection(packet_case=packet_case)
+    packet = projection["fooddb_evidence_packet"]
     return {
         "diagnostic_scope": "fooddb_packet_manager_seam_smoke",
         "raw_user_input": packet_case.get("raw_user_input"),
-        "fooddb_evidence_packet": packet,
-        "tool_evidence_result": tool_result,
-        "allowed_evidence_refs": sorted(
-            _allowed_refs_for_packet_case(packet_case=packet_case, evidence_items=packet.get("evidence_items") or [])
-        ),
-        "tool_results": [
-            {
-                "tool_name": tool_result.get("tool_name") or "lookup_food_evidence",
-                "truth_level": "read_only_food_evidence_result",
-                "output": tool_result,
-            }
-        ],
+        **projection,
         "instructions": [
             "Return one JSON object matching the active B1 pass-2 manager schema.",
             "Include the required top-level manager fields: manager_action, response_mode, intent, workflow_effect, target_attachment, exactness, confidence, evidence_posture, repair_ack, operations, and answer_contract.",
             "Use only the provided ToolEvidenceResult and FoodDB evidence packet for nutrition evidence.",
             "Do not invent nutrition sources or evidence IDs.",
             "If you include evidence_used, every value must exactly equal one allowed_evidence_refs value; do not add prefixes, ranking labels, match_path labels, or modifier-policy labels.",
+            "Use no more than 3 unique evidence_used refs total. Prefer anchor_id plus canonical_name, and optionally the packet case_id when needed for grounding.",
             "Do not combine source IDs with file extensions or rewrite source refs; for example, tfda_fda_food_nutrition_2024.xlsx is forbidden unless that exact value appears in allowed_evidence_refs.",
             "If evidence_items is empty for a bare basket, ask follow-up and do not mutate.",
             "If evidence_items exist, synthesize item_results from those packet items with uncertainty.",
             "Do not include tool_calls in this pass-2 response; the FoodDB evidence packet has already been provided.",
-            "If a packet modifier_compatibility value is unsupported, do not adjust kcal_point or kcal_range for that modifier; keep the packet range and use followup_hints. Do not adjust kcal_point or kcal_range from modifier_compatibility alone. Only use adjusted_kcal_point, adjusted_kcal_range, modifier_adjusted_kcal_point, or modifier_adjusted_kcal_range when those adjusted values are explicitly present in the packet evidence item.",
+            "If manager_expected_behavior is generic_range_estimate_with_followup_hints and packet_adjustment_available is false, keep kcal_point and kcal_range unchanged from the packet. Treat modifier hints as follow-up only, not arithmetic.",
+            "If a packet modifier_compatibility value is unsupported, do not adjust kcal_point or kcal_range for that modifier; keep the packet range and use followup_hints. Do not adjust kcal_point or kcal_range from modifier_compatibility alone. Only use adjusted_kcal_point, adjusted_kcal_range, modifier_adjusted_kcal_point, or modifier_adjusted_kcal_range when those adjusted values are explicitly present in the packet evidence item and packet_adjustment_available is true.",
             "This diagnostic writes no ledger and grants no product readiness.",
         ],
         "expected_output_contract": {
@@ -389,13 +359,11 @@ def build_live_manager_payload(*, packet_case: dict[str, Any]) -> dict[str, Any]
             ],
             "forbidden_top_level_fields": ["tool_calls"],
             "runtime_mutation_allowed": False,
-            "runtime_truth_changed": False, "packet_authorized_modifier_adjustment_only": True,
-            "allowed_evidence_refs": sorted(
-                _allowed_refs_for_packet_case(
-                    packet_case=packet_case,
-                    evidence_items=packet.get("evidence_items") or [],
-                )
-            ),
+            "runtime_truth_changed": False,
+            "packet_authorized_modifier_adjustment_only": True,
+            "max_unique_evidence_refs": 3,
+            "preserve_packet_kcal_without_adjusted_values": True,
+            "allowed_evidence_refs": list(projection["allowed_evidence_refs"]),
         },
         "constraints": _manager_constraints_for_case(packet_case),
     }
@@ -491,43 +459,6 @@ def _b1_case_family_from_packet_fields(
     }:
         return "common_commercial_drink"
     return "common_food_item"
-
-
-def _allowed_evidence_refs(evidence_items: list[Any]) -> set[str]:
-    refs: set[str] = set()
-    for item in evidence_items:
-        if not isinstance(item, dict):
-            continue
-        for key in ("anchor_id", "canonical_name"):
-            value = str(item.get(key) or "").strip()
-            if value:
-                refs.add(value)
-        source = item.get("source_provenance") if isinstance(item.get("source_provenance"), dict) else {}
-        source_id = str(source.get("source_id") or "").strip()
-        if source_id:
-            refs.add(source_id)
-        source_file = str(source.get("source_file") or "").strip()
-        if source_file:
-            refs.add(source_file)
-        approval = item.get("approval_metadata") if isinstance(item.get("approval_metadata"), dict) else {}
-        policy_version = str(approval.get("policy_version") or "").strip()
-        if policy_version:
-            refs.add(policy_version)
-        portion_basis = item.get("portion_basis") if isinstance(item.get("portion_basis"), dict) else {}
-        for ref in portion_basis.get("derived_from") or []:
-            value = str(ref or "").strip()
-            if value:
-                refs.add(value)
-    return refs
-
-
-def _allowed_refs_for_packet_case(*, packet_case: dict[str, Any], evidence_items: list[Any]) -> set[str]:
-    refs = _allowed_evidence_refs(evidence_items)
-    case_id = str(packet_case.get("case_id") or "").strip()
-    if case_id:
-        refs.add(case_id)
-        refs.add(f"fooddb_packet case_id {case_id}")
-    return refs
 
 
 def _used_evidence_refs(manager_output: dict[str, Any]) -> set[str]:
@@ -790,7 +721,7 @@ def _packet_ref_counts(evidence_items: list[Any]) -> dict[str, int]:
 
 
 def _refs_for_packet_item(item: dict[str, Any]) -> set[str]:
-    return _allowed_evidence_refs([item])
+    return build_diagnostic_allowed_evidence_refs(packet_case={}, evidence_items=[item])
 
 
 def _unique_packet_item_for_result(
