@@ -25,6 +25,9 @@ def test_websearch_candidate_lane_status_packet_summarizes_deterministic_lane() 
     assert artifact["readiness_claimed"] is False
     assert artifact["summary"]["source_policy_max_search_attempts"] == 2
     assert artifact["summary"]["source_policy_max_results"] == 5
+    assert artifact["summary"]["source_adapter_guard_status"] == "pass"
+    assert artifact["summary"]["source_adapter_guard_case_count"] == 3
+    assert artifact["summary"]["source_adapter_guard_max_results_hard_cap"] == 20
     assert artifact["summary"]["pipeline_case_count"] >= 4
     assert artifact["summary"]["extract_candidate_allowed_count"] >= 1
     assert artifact["summary"]["candidate_packet_case_count"] == 4
@@ -34,6 +37,100 @@ def test_websearch_candidate_lane_status_packet_summarizes_deterministic_lane() 
     assert artifact["summary"]["upstream_fooddb_gate_status"] == "not_provided"
     assert artifact["summary"]["manager_contract_gate_status"] == "not_provided"
     assert artifact["next_required_slices"] == ["inspect_fooddb_status_packet"]
+
+
+def test_websearch_candidate_lane_status_packet_blocks_when_source_adapter_guard_blocks() -> None:
+    artifact = build_websearch_candidate_lane_status_packet(
+        source_adapter_guard_artifact={
+            "artifact_type": "accurate_intake_websearch_source_adapter_guard_v1",
+            "status": "blocked",
+            "blockers": ["raw_provider_truth_marker"],
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "live_provider_used": False,
+            "live_websearch_used": False,
+            "readiness_claimed": False,
+            "summary": {
+                "case_count": 3,
+                "truth_field_leak_count": 1,
+                "max_results_hard_cap": 20,
+            },
+        }
+    )
+
+    assert artifact["summary"]["source_adapter_guard_status"] == "blocked_on_source_adapter_guard"
+    assert artifact["source_adapter_gate"]["truth_field_leak_count"] == 1
+    assert artifact["next_required_slices"] == ["inspect_websearch_source_adapter_guard"]
+
+
+def test_websearch_candidate_lane_status_packet_blocks_source_adapter_guard_overclaims() -> None:
+    for forbidden_key in (
+        "runtime_truth_changed",
+        "mutation_changed",
+        "live_provider_used",
+        "live_websearch_used",
+        "readiness_claimed",
+    ):
+        guard = {
+            "artifact_type": "accurate_intake_websearch_source_adapter_guard_v1",
+            "status": "pass",
+            "blockers": [],
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "live_provider_used": False,
+            "live_websearch_used": False,
+            "readiness_claimed": False,
+            "summary": {
+                "case_count": 3,
+                "truth_field_leak_count": 0,
+                "max_results_hard_cap": 20,
+            },
+        }
+        guard[forbidden_key] = True
+
+        artifact = build_websearch_candidate_lane_status_packet(
+            source_adapter_guard_artifact=guard
+        )
+
+        assert artifact["summary"]["source_adapter_guard_status"] == (
+            "blocked_on_source_adapter_guard"
+        )
+        assert artifact["next_required_slices"] == ["inspect_websearch_source_adapter_guard"]
+
+
+def test_websearch_candidate_lane_status_packet_blocks_inconsistent_source_adapter_guard_summary() -> None:
+    base_guard = {
+        "artifact_type": "accurate_intake_websearch_source_adapter_guard_v1",
+        "status": "pass",
+        "blockers": [],
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "live_provider_used": False,
+        "live_websearch_used": False,
+        "readiness_claimed": False,
+        "summary": {
+            "case_count": 3,
+            "truth_field_leak_count": 0,
+            "max_results_hard_cap": 20,
+        },
+    }
+    summary_mutations = (
+        {"case_count": 0},
+        {"truth_field_leak_count": 1},
+        {"max_results_hard_cap": 999},
+    )
+
+    for mutation in summary_mutations:
+        guard = {**base_guard, "summary": {**base_guard["summary"], **mutation}}
+
+        artifact = build_websearch_candidate_lane_status_packet(
+            source_adapter_guard_artifact=guard
+        )
+
+        assert artifact["summary"]["source_adapter_guard_status"] == (
+            "blocked_on_source_adapter_guard"
+        )
+        assert artifact["next_required_slices"] == ["inspect_websearch_source_adapter_guard"]
 
 
 def test_websearch_candidate_lane_status_packet_blocks_on_fooddb_manager_contract_gate() -> None:
@@ -125,6 +222,26 @@ def test_websearch_candidate_lane_status_packet_rejects_unexpected_manager_contr
         raise AssertionError("unexpected manager contract artifact type must fail")
 
 
+def test_websearch_candidate_lane_status_packet_rejects_unexpected_source_adapter_guard() -> None:
+    try:
+        build_websearch_candidate_lane_status_packet(
+            source_adapter_guard_artifact={"artifact_type": "wrong"}
+        )
+    except ValueError as exc:
+        assert "unsupported_websearch_status_source_adapter_guard" in str(exc)
+    else:
+        raise AssertionError("unexpected source adapter guard artifact type must fail")
+
+
+def test_websearch_candidate_lane_status_packet_rejects_empty_source_adapter_guard() -> None:
+    try:
+        build_websearch_candidate_lane_status_packet(source_adapter_guard_artifact={})
+    except ValueError as exc:
+        assert "unsupported_websearch_status_source_adapter_guard" in str(exc)
+    else:
+        raise AssertionError("empty source adapter guard artifact must fail")
+
+
 def test_websearch_candidate_lane_status_packet_sanitizes_manager_contract_next_step() -> None:
     artifact = build_websearch_candidate_lane_status_packet(
         fooddb_status_packet={
@@ -196,6 +313,8 @@ def test_websearch_candidate_lane_status_packet_excludes_raw_and_truth_payloads(
         "storage_backend",
         "supabase",
         "snippet",
+        "source_url",
+        "raw_provider_truth_marker",
     ):
         assert token not in serialized
 
