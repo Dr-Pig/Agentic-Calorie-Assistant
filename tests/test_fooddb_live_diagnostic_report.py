@@ -39,6 +39,7 @@ def test_fooddb_live_diagnostic_report_treats_fixture_pass_as_live_not_checked()
     assert report["seam_status"] == "fixture_only_live_not_checked"
     assert report["can_expand_to_websearch_live_diagnostic"] is False
     assert report["next_recommended_slice"] == "run_explicit_grokfast_fooddb_packet_live_diagnostic"
+    assert "no_live_provider_call" in report["non_claims"]
 
 
 def test_fooddb_live_diagnostic_report_blocks_provider_contract_failures() -> None:
@@ -128,6 +129,7 @@ def test_fooddb_live_diagnostic_report_advances_to_websearch_only_after_live_pas
     assert report["can_expand_to_websearch_live_diagnostic"] is True
     assert report["next_recommended_slice"] == "grokfast_websearch_packet_live_diagnostic"
     assert report["readiness_claimed"] is False
+    assert "no_live_provider_call" not in report["non_claims"]
 
 
 def test_fooddb_live_diagnostic_report_sanitizes_raw_payloads() -> None:
