@@ -21,6 +21,9 @@ from app.nutrition.application.websearch_exact_candidate_review_packet import ( 
 from app.nutrition.application.websearch_extract_result_candidate_smoke import (  # noqa: E402
     build_websearch_extract_result_candidate_smoke,
 )
+from app.nutrition.application.websearch_grokfast_live_diagnostic_case_matrix import (  # noqa: E402
+    build_websearch_grokfast_live_diagnostic_case_matrix_artifact,
+)
 from app.nutrition.application.websearch_live_extract_preflight import (  # noqa: E402
     build_websearch_live_extract_preflight,
 )
@@ -33,6 +36,11 @@ from app.shared.infra.json_artifacts import read_json_artifact, write_json_artif
 DEFAULT_REVIEW_PACKET = (
     ROOT / "artifacts" / "accurate_intake_websearch_exact_candidate_review_packet.json"
 )
+DEFAULT_CASE_MATRIX = (
+    ROOT
+    / "artifacts"
+    / "accurate_intake_websearch_grokfast_packet_live_diagnostic_case_matrix.json"
+)
 DEFAULT_OUTPUT = ROOT / "artifacts" / "accurate_intake_websearch_live_extract_preflight.json"
 
 
@@ -41,12 +49,15 @@ def main(argv: list[str] | None = None) -> int:
         description="Build deterministic WebSearch live extract preflight artifact."
     )
     parser.add_argument("--review-packet-artifact", default=None)
+    parser.add_argument("--case-matrix-artifact", default=None)
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
     review_packet = _load_review_packet(args.review_packet_artifact)
+    case_matrix = _load_case_matrix(args.case_matrix_artifact)
     artifact = build_websearch_live_extract_preflight(
         exact_review_packet_artifact=review_packet,
+        case_matrix_artifact=case_matrix,
     )
     output_path = Path(args.output)
     write_json_artifact(output_path, artifact)
@@ -82,6 +93,14 @@ def _load_review_packet(path: str | None) -> dict[str, object]:
     return build_websearch_exact_candidate_review_packet(
         extract_result_artifact=extract_result,
     )
+
+
+def _load_case_matrix(path: str | None) -> dict[str, object]:
+    if path:
+        return read_json_artifact(Path(path))
+    if DEFAULT_CASE_MATRIX.exists():
+        return read_json_artifact(DEFAULT_CASE_MATRIX)
+    return build_websearch_grokfast_live_diagnostic_case_matrix_artifact()
 
 
 if __name__ == "__main__":

@@ -7,6 +7,10 @@ import re
 from typing import Any
 from urllib.parse import urlparse
 
+from .websearch_grokfast_live_diagnostic_case_matrix import (
+    REQUIRED_CASE_IDS,
+    build_websearch_grokfast_live_diagnostic_case_matrix_artifact,
+)
 from .websearch_cache_rate_license_wall import MAX_CHUNKS_PER_SOURCE, MAX_SEARCH_RESULTS
 
 
@@ -27,8 +31,15 @@ _ALLOWED_SERVING_BASIS = {"per_cup"}
 def build_websearch_live_extract_preflight(
     *,
     exact_review_packet_artifact: dict[str, Any],
+    case_matrix_artifact: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    case_matrix = (
+        build_websearch_grokfast_live_diagnostic_case_matrix_artifact()
+        if case_matrix_artifact is None
+        else case_matrix_artifact
+    )
     blockers = _review_artifact_blockers(exact_review_packet_artifact)
+    blockers.extend(_case_matrix_blockers(case_matrix))
     candidate_review_packets = _review_packets(exact_review_packet_artifact)
     if not candidate_review_packets and not blockers:
         blockers.append("exact_review_packet_missing")
@@ -58,6 +69,9 @@ def build_websearch_live_extract_preflight(
             "exact_review_packet_artifact_type": _safe_review_packet_artifact_type(
                 exact_review_packet_artifact.get("artifact_type")
             ),
+            "case_matrix_artifact_type": _safe_case_matrix_artifact_type(
+                case_matrix.get("artifact_type") if isinstance(case_matrix, dict) else None
+            ),
         },
         "diagnostic_contract": {
             "live_call_allowed_by_this_artifact": False,
@@ -86,6 +100,21 @@ def build_websearch_live_extract_preflight(
             "review_packet_count": len(review_packets),
             "ready_for_live_extract_diagnostic_count": len(review_packets) if clear else 0,
             "ready_for_runtime_truth_count": 0,
+            "case_matrix_case_count": _case_matrix_case_count(case_matrix),
+            "case_matrix_fixed_required_cases": _case_matrix_ids(case_matrix)
+            == list(REQUIRED_CASE_IDS),
+            "case_matrix_negative_case_count": _case_matrix_summary_int(
+                case_matrix, "negative_case_count"
+            ),
+            "case_matrix_modifier_guard_cases": _case_matrix_summary_int(
+                case_matrix, "modifier_guard_cases"
+            ),
+            "case_matrix_live_provider_invoked": _case_matrix_flag_not_false(
+                case_matrix, "live_provider_invoked"
+            ),
+            "case_matrix_websearch_invoked": _case_matrix_flag_not_false(
+                case_matrix, "websearch_invoked"
+            ),
         },
         "next_required_slice": (
             "grokfast_websearch_packet_live_diagnostic"
@@ -139,10 +168,131 @@ def _review_artifact_blockers(artifact: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def _case_matrix_blockers(artifact: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    if not isinstance(artifact, dict):
+        return ["unsupported_websearch_grokfast_case_matrix_artifact"]
+    if artifact.get("artifact_type") != (
+        "accurate_intake_websearch_grokfast_packet_live_diagnostic_case_matrix"
+    ):
+        blockers.append("unsupported_websearch_grokfast_case_matrix_artifact")
+    if artifact.get("status") != "pass":
+        blockers.append("websearch_grokfast_case_matrix_not_pass")
+    if artifact.get("classification") != "live_diagnostic_plan_only":
+        blockers.append("websearch_grokfast_case_matrix_wrong_classification")
+    if artifact.get("diagnostic_only") is not True:
+        blockers.append("websearch_grokfast_case_matrix_not_diagnostic_only")
+    if artifact.get("plan_only") is not True:
+        blockers.append("websearch_grokfast_case_matrix_not_plan_only")
+    for key, blocker in (
+        ("live_llm_invoked", "websearch_grokfast_case_matrix_invoked_live_llm"),
+        ("live_provider_invoked", "websearch_grokfast_case_matrix_invoked_live_provider"),
+        ("websearch_invoked", "websearch_grokfast_case_matrix_invoked_websearch"),
+        ("runtime_truth_changed", "websearch_grokfast_case_matrix_changed_runtime_truth"),
+        ("mutation_changed", "websearch_grokfast_case_matrix_changed_mutation"),
+        (
+            "manager_context_packet_changed",
+            "websearch_grokfast_case_matrix_changed_manager_context_packet",
+        ),
+        ("shared_contract_changed", "websearch_grokfast_case_matrix_changed_shared_contract"),
+        ("packetizer_format_changed", "websearch_grokfast_case_matrix_changed_packetizer"),
+        ("product_readiness_claimed", "websearch_grokfast_case_matrix_claimed_readiness"),
+        ("private_self_use_approved", "websearch_grokfast_case_matrix_claimed_self_use"),
+    ):
+        if artifact.get(key) is not False:
+            blockers.append(blocker)
+    if _case_matrix_ids(artifact) != list(REQUIRED_CASE_IDS):
+        blockers.append("websearch_grokfast_case_matrix_required_case_order_mismatch")
+    summary = artifact.get("summary") if isinstance(artifact.get("summary"), dict) else {}
+    case_count, case_count_valid = _case_matrix_summary_value(summary, "case_count")
+    exact_candidate_cases, exact_candidate_cases_valid = _case_matrix_summary_value(
+        summary, "exact_candidate_cases"
+    )
+    negative_case_count, negative_case_count_valid = _case_matrix_summary_value(
+        summary, "negative_case_count"
+    )
+    modifier_guard_cases, modifier_guard_cases_valid = _case_matrix_summary_value(
+        summary, "modifier_guard_cases"
+    )
+    runtime_truth_allowed_cases, runtime_truth_allowed_cases_valid = _case_matrix_summary_value(
+        summary, "runtime_truth_allowed_cases"
+    )
+    websearch_invoked_cases, websearch_invoked_cases_valid = _case_matrix_summary_value(
+        summary, "websearch_invoked_cases"
+    )
+    live_provider_invoked_cases, live_provider_invoked_cases_valid = _case_matrix_summary_value(
+        summary, "live_provider_invoked_cases"
+    )
+    if not case_count_valid or case_count != len(REQUIRED_CASE_IDS):
+        blockers.append("websearch_grokfast_case_matrix_case_count_mismatch")
+    if not exact_candidate_cases_valid or exact_candidate_cases < 1:
+        blockers.append("websearch_grokfast_case_matrix_missing_exact_candidate")
+    if not negative_case_count_valid or negative_case_count < 4:
+        blockers.append("websearch_grokfast_case_matrix_missing_negative_cases")
+    if not modifier_guard_cases_valid or modifier_guard_cases < 1:
+        blockers.append("websearch_grokfast_case_matrix_missing_modifier_guard")
+    if not runtime_truth_allowed_cases_valid or runtime_truth_allowed_cases != 0:
+        blockers.append("websearch_grokfast_case_matrix_runtime_truth_allowed")
+    if not websearch_invoked_cases_valid or websearch_invoked_cases != 0:
+        blockers.append("websearch_grokfast_case_matrix_websearch_invoked_cases")
+    if not live_provider_invoked_cases_valid or live_provider_invoked_cases != 0:
+        blockers.append("websearch_grokfast_case_matrix_live_provider_invoked_cases")
+    blockers.extend(_case_matrix_case_blockers(artifact))
+    non_claims = set(artifact.get("non_claims") or [])
+    for required_non_claim in (
+        "not_full_self_use_gate",
+        "not_websearch_runtime_truth_gate",
+        "not_exact_card_promotion_gate",
+        "not_live_websearch_execution",
+    ):
+        if required_non_claim not in non_claims:
+            blockers.append(f"websearch_grokfast_case_matrix_missing_non_claim.{required_non_claim}")
+    return blockers
+
+
+def _case_matrix_case_blockers(artifact: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    cases = artifact.get("cases") if isinstance(artifact.get("cases"), list) else []
+    for index, case in enumerate(cases):
+        if not isinstance(case, dict):
+            blockers.append(f"websearch_grokfast_case_matrix_case_{index}_not_object")
+            continue
+        case_id = str(case.get("case_id") or f"index_{index}")
+        for key, blocker in (
+            ("live_provider_invoked", "invoked_live_provider"),
+            ("websearch_invoked", "invoked_websearch"),
+            ("ledger_mutation_allowed", "allowed_ledger_mutation"),
+            ("runtime_truth_allowed", "allowed_runtime_truth"),
+            ("snippet_truth_allowed", "allowed_snippet_truth"),
+            ("exact_card_creation_allowed", "allowed_exact_card_creation"),
+            ("selected_extract_truth_allowed", "allowed_selected_extract_truth"),
+            ("raw_content_allowed_in_manager_context", "allowed_raw_content"),
+            ("runtime_truth_changed", "changed_runtime_truth"),
+            ("mutation_changed", "changed_mutation"),
+            ("manager_context_packet_changed", "changed_manager_context_packet"),
+            ("packetizer_format_changed", "changed_packetizer_format"),
+            ("product_readiness_claimed", "claimed_product_readiness"),
+        ):
+            if case.get(key) is not False:
+                blockers.append(f"websearch_grokfast_case_matrix.{case_id}.{blocker}")
+        if case.get("websearch_candidate_only") is not True:
+            blockers.append(f"websearch_grokfast_case_matrix.{case_id}.not_candidate_only")
+        must_not_happen = case.get("must_not_happen")
+        if not isinstance(must_not_happen, list) or "websearch_snippet_as_truth" not in must_not_happen:
+            blockers.append(f"websearch_grokfast_case_matrix.{case_id}.missing_snippet_guard")
+    return blockers
+
+
 def _safe_review_packet_artifact_type(value: Any) -> str:
     if str(value or "") == "accurate_intake_websearch_exact_candidate_review_packet_v1":
         return "accurate_intake_websearch_exact_candidate_review_packet_v1"
     return "unsupported_exact_review_packet_artifact"
+
+
+def _safe_case_matrix_artifact_type(value: Any) -> str:
+    if str(value or "") == "accurate_intake_websearch_grokfast_packet_live_diagnostic_case_matrix":
+        return "accurate_intake_websearch_grokfast_packet_live_diagnostic_case_matrix"
+    return "unsupported_websearch_grokfast_case_matrix_artifact"
 
 
 def _preflight_integrity_blockers(artifact: dict[str, Any]) -> list[str]:
@@ -187,6 +337,18 @@ def _preflight_integrity_blockers(artifact: dict[str, Any]) -> list[str]:
         blockers.append("preflight_summary_review_packet_missing")
     if int(summary.get("ready_for_runtime_truth_count") or 0) != 0:
         blockers.append("preflight_summary_runtime_truth_ready")
+    if int(summary.get("case_matrix_case_count") or 0) != len(REQUIRED_CASE_IDS):
+        blockers.append("preflight_summary_case_matrix_case_count_mismatch")
+    if summary.get("case_matrix_fixed_required_cases") is not True:
+        blockers.append("preflight_summary_case_matrix_not_fixed")
+    if int(summary.get("case_matrix_negative_case_count") or 0) < 4:
+        blockers.append("preflight_summary_case_matrix_missing_negative_cases")
+    if int(summary.get("case_matrix_modifier_guard_cases") or 0) < 1:
+        blockers.append("preflight_summary_case_matrix_missing_modifier_guard")
+    if summary.get("case_matrix_live_provider_invoked") is not False:
+        blockers.append("preflight_summary_case_matrix_live_provider_invoked")
+    if summary.get("case_matrix_websearch_invoked") is not False:
+        blockers.append("preflight_summary_case_matrix_websearch_invoked")
     return blockers
 
 
@@ -267,6 +429,40 @@ def _safe_display_text(value: Any) -> bool:
 def _contains_leakage_marker(value: Any) -> bool:
     text = str(value or "").lower()
     return any(marker in text for marker in _FORBIDDEN_LEAKAGE_MARKERS)
+
+
+def _case_matrix_ids(artifact: dict[str, Any]) -> list[str]:
+    if not isinstance(artifact, dict):
+        return []
+    return [
+        str(case.get("case_id") or "")
+        for case in artifact.get("cases") or []
+        if isinstance(case, dict)
+    ]
+
+
+def _case_matrix_case_count(artifact: dict[str, Any]) -> int:
+    return len(_case_matrix_ids(artifact))
+
+
+def _case_matrix_summary_int(artifact: dict[str, Any], key: str) -> int:
+    if not isinstance(artifact, dict) or not isinstance(artifact.get("summary"), dict):
+        return 0
+    value, valid = _case_matrix_summary_value(artifact["summary"], key)
+    return value if valid else 0
+
+
+def _case_matrix_summary_value(summary: dict[str, Any], key: str) -> tuple[int, bool]:
+    value = summary.get(key)
+    if isinstance(value, bool) or not isinstance(value, int):
+        return 0, False
+    return max(0, value), True
+
+
+def _case_matrix_flag_not_false(artifact: dict[str, Any], key: str) -> bool:
+    if not isinstance(artifact, dict):
+        return True
+    return artifact.get(key) is not False
 
 
 def _kcal_value(value: object) -> float | None:

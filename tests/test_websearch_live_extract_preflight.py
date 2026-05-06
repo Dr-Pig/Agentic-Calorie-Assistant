@@ -14,8 +14,13 @@ from app.nutrition.application.websearch_exact_candidate_review_packet import (
 from app.nutrition.application.websearch_extract_result_candidate_smoke import (
     build_websearch_extract_result_candidate_smoke,
 )
+from app.nutrition.application.websearch_grokfast_live_diagnostic_case_matrix import (
+    REQUIRED_CASE_IDS,
+    build_websearch_grokfast_live_diagnostic_case_matrix_artifact,
+)
 from app.nutrition.application.websearch_live_extract_preflight import (
     build_websearch_live_extract_preflight,
+    is_websearch_live_extract_preflight_clear,
 )
 from app.nutrition.application.websearch_selected_extract_packet_smoke import (
     build_websearch_selected_extract_packet_smoke,
@@ -55,7 +60,14 @@ def test_live_extract_preflight_enables_diagnostic_only_not_truth() -> None:
     assert artifact["readiness_claimed"] is False
     assert artifact["summary"]["review_packet_count"] == 1
     assert artifact["summary"]["ready_for_runtime_truth_count"] == 0
+    assert artifact["summary"]["case_matrix_case_count"] == len(REQUIRED_CASE_IDS)
+    assert artifact["summary"]["case_matrix_fixed_required_cases"] is True
+    assert artifact["summary"]["case_matrix_negative_case_count"] == 4
+    assert artifact["summary"]["case_matrix_modifier_guard_cases"] == 1
+    assert artifact["summary"]["case_matrix_live_provider_invoked"] is False
+    assert artifact["summary"]["case_matrix_websearch_invoked"] is False
     assert artifact["next_required_slice"] == "grokfast_websearch_packet_live_diagnostic"
+    assert is_websearch_live_extract_preflight_clear(artifact) is True
 
 
 def test_live_extract_preflight_contract_requires_explicit_live_flag_and_cache() -> None:
@@ -90,6 +102,172 @@ def test_live_extract_preflight_blocks_review_packet_truth_leak() -> None:
     assert "exact_review_packet_artifact_summary_runtime_truth_allowed" in artifact["blockers"]
     assert "exact_review_packet_allowed_runtime_truth" in artifact["blockers"]
     assert artifact["ready_for_live_extract_diagnostic"] is False
+
+
+def test_live_extract_preflight_blocks_missing_or_ad_hoc_case_matrix() -> None:
+    artifact = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=_review_packet(),
+        case_matrix_artifact={},
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "unsupported_websearch_grokfast_case_matrix_artifact" in artifact["blockers"]
+    assert "websearch_grokfast_case_matrix_required_case_order_mismatch" in artifact[
+        "blockers"
+    ]
+    assert artifact["ready_for_live_extract_diagnostic"] is False
+    assert is_websearch_live_extract_preflight_clear(artifact) is False
+
+
+def test_live_extract_preflight_blocks_case_matrix_overfit_or_live_claims() -> None:
+    case_matrix = build_websearch_grokfast_live_diagnostic_case_matrix_artifact()
+    case_matrix["cases"] = case_matrix["cases"][:1]
+    case_matrix["summary"]["case_count"] = 1
+    case_matrix["summary"]["negative_case_count"] = 0
+    case_matrix["summary"]["modifier_guard_cases"] = 0
+    case_matrix["live_provider_invoked"] = True
+    case_matrix["websearch_invoked"] = True
+
+    artifact = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=_review_packet(),
+        case_matrix_artifact=case_matrix,
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "websearch_grokfast_case_matrix_required_case_order_mismatch" in artifact[
+        "blockers"
+    ]
+    assert "websearch_grokfast_case_matrix_missing_negative_cases" in artifact["blockers"]
+    assert "websearch_grokfast_case_matrix_missing_modifier_guard" in artifact["blockers"]
+    assert "websearch_grokfast_case_matrix_invoked_live_provider" in artifact["blockers"]
+    assert "websearch_grokfast_case_matrix_invoked_websearch" in artifact["blockers"]
+
+
+def test_live_extract_preflight_sanitizes_malformed_case_matrix_flags() -> None:
+    case_matrix = build_websearch_grokfast_live_diagnostic_case_matrix_artifact()
+    case_matrix["live_provider_invoked"] = "raw_response_excerpt forbidden provider_trace"
+    case_matrix["websearch_invoked"] = "raw_response_excerpt forbidden"
+
+    artifact = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=_review_packet(),
+        case_matrix_artifact=case_matrix,
+    )
+    serialized = str(artifact)
+
+    assert artifact["status"] == "blocked"
+    assert "websearch_grokfast_case_matrix_invoked_live_provider" in artifact["blockers"]
+    assert "websearch_grokfast_case_matrix_invoked_websearch" in artifact["blockers"]
+    assert artifact["summary"]["case_matrix_live_provider_invoked"] is True
+    assert artifact["summary"]["case_matrix_websearch_invoked"] is True
+    assert "raw_response_excerpt" not in serialized
+    assert "provider_trace" not in serialized
+    assert "forbidden" not in serialized
+
+
+def test_live_extract_preflight_blocks_malformed_case_matrix_summary_counts() -> None:
+    case_matrix = build_websearch_grokfast_live_diagnostic_case_matrix_artifact()
+    case_matrix["summary"]["case_count"] = "raw_response_excerpt"
+    case_matrix["summary"]["exact_candidate_cases"] = "provider_trace"
+    case_matrix["summary"]["negative_case_count"] = "forbidden"
+    case_matrix["summary"]["modifier_guard_cases"] = "raw_response_excerpt"
+    case_matrix["summary"]["runtime_truth_allowed_cases"] = "provider_trace"
+    case_matrix["summary"]["websearch_invoked_cases"] = "forbidden"
+    case_matrix["summary"]["live_provider_invoked_cases"] = "raw_response_excerpt"
+
+    artifact = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=_review_packet(),
+        case_matrix_artifact=case_matrix,
+    )
+    serialized = str(artifact)
+
+    assert artifact["status"] == "blocked"
+    assert "websearch_grokfast_case_matrix_case_count_mismatch" in artifact["blockers"]
+    assert "websearch_grokfast_case_matrix_missing_exact_candidate" in artifact["blockers"]
+    assert "websearch_grokfast_case_matrix_missing_negative_cases" in artifact["blockers"]
+    assert "websearch_grokfast_case_matrix_missing_modifier_guard" in artifact["blockers"]
+    assert "websearch_grokfast_case_matrix_runtime_truth_allowed" in artifact["blockers"]
+    assert "websearch_grokfast_case_matrix_websearch_invoked_cases" in artifact["blockers"]
+    assert "websearch_grokfast_case_matrix_live_provider_invoked_cases" in artifact[
+        "blockers"
+    ]
+    assert artifact["summary"]["case_matrix_case_count"] == len(REQUIRED_CASE_IDS)
+    assert artifact["summary"]["case_matrix_negative_case_count"] == 0
+    assert artifact["summary"]["case_matrix_modifier_guard_cases"] == 0
+    assert "raw_response_excerpt" not in serialized
+    assert "provider_trace" not in serialized
+    assert "forbidden" not in serialized
+
+
+def test_live_extract_preflight_blocks_case_level_matrix_overclaims() -> None:
+    case_matrix = build_websearch_grokfast_live_diagnostic_case_matrix_artifact()
+    case = case_matrix["cases"][0]
+    case["runtime_truth_allowed"] = True
+    case["ledger_mutation_allowed"] = True
+    case["websearch_candidate_only"] = False
+    case["snippet_truth_allowed"] = True
+    case["live_provider_invoked"] = True
+    case["websearch_invoked"] = True
+    case["raw_content_allowed_in_manager_context"] = True
+    case["must_not_happen"] = ["exact_card_created"]
+
+    artifact = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=_review_packet(),
+        case_matrix_artifact=case_matrix,
+    )
+
+    assert artifact["status"] == "blocked"
+    assert (
+        "websearch_grokfast_case_matrix.websearch_official_exact_candidate.allowed_runtime_truth"
+        in artifact["blockers"]
+    )
+    assert (
+        "websearch_grokfast_case_matrix.websearch_official_exact_candidate.allowed_ledger_mutation"
+        in artifact["blockers"]
+    )
+    assert (
+        "websearch_grokfast_case_matrix.websearch_official_exact_candidate.not_candidate_only"
+        in artifact["blockers"]
+    )
+    assert (
+        "websearch_grokfast_case_matrix.websearch_official_exact_candidate.allowed_snippet_truth"
+        in artifact["blockers"]
+    )
+    assert (
+        "websearch_grokfast_case_matrix.websearch_official_exact_candidate.invoked_live_provider"
+        in artifact["blockers"]
+    )
+    assert (
+        "websearch_grokfast_case_matrix.websearch_official_exact_candidate.invoked_websearch"
+        in artifact["blockers"]
+    )
+    assert (
+        "websearch_grokfast_case_matrix.websearch_official_exact_candidate.allowed_raw_content"
+        in artifact["blockers"]
+    )
+    assert (
+        "websearch_grokfast_case_matrix.websearch_official_exact_candidate.missing_snippet_guard"
+        in artifact["blockers"]
+    )
+
+
+def test_live_extract_preflight_blocks_case_matrix_missing_non_claims() -> None:
+    case_matrix = build_websearch_grokfast_live_diagnostic_case_matrix_artifact()
+    case_matrix["non_claims"] = ["not_full_self_use_gate"]
+
+    artifact = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=_review_packet(),
+        case_matrix_artifact=case_matrix,
+    )
+
+    assert artifact["status"] == "blocked"
+    assert (
+        "websearch_grokfast_case_matrix_missing_non_claim.not_websearch_runtime_truth_gate"
+        in artifact["blockers"]
+    )
+    assert (
+        "websearch_grokfast_case_matrix_missing_non_claim.not_exact_card_promotion_gate"
+        in artifact["blockers"]
+    )
 
 
 def test_live_extract_preflight_blocks_review_artifact_live_or_readiness_overclaim() -> None:
@@ -214,14 +392,21 @@ def test_live_extract_preflight_script_roundtrip(tmp_path: Path) -> None:
     from scripts.build_accurate_intake_websearch_live_extract_preflight import main
 
     review_packet_path = tmp_path / "review_packet.json"
+    case_matrix_path = tmp_path / "case_matrix.json"
     output = tmp_path / "preflight.json"
     write_json_artifact(review_packet_path, _review_packet())
+    write_json_artifact(
+        case_matrix_path,
+        build_websearch_grokfast_live_diagnostic_case_matrix_artifact(),
+    )
 
     assert (
         main(
             [
                 "--review-packet-artifact",
                 str(review_packet_path),
+                "--case-matrix-artifact",
+                str(case_matrix_path),
                 "--output",
                 str(output),
             ]
