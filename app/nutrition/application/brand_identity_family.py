@@ -24,4 +24,14 @@ def _brand_family_key(value: str) -> str:
     return text_key
 
 
-__all__ = ["same_brand_family"]
+def brand_identity_variants(value: str) -> tuple[str, ...]:
+    text_key = lookup_key(value)
+    if not text_key:
+        return ()
+    for family in _BRAND_FAMILIES:
+        if any(lookup_key(alias) == text_key for alias in family):
+            return family
+    return (value,)
+
+
+__all__ = ["brand_identity_variants", "same_brand_family"]

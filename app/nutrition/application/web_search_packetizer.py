@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Sequence
 
-from .websearch_brand_identity import same_brand_family
+from .brand_identity_family import same_brand_family
 from .context_normalizer import lookup_key, lookup_tokens, normalize_text
 from .retrieval_intent import RetrievalIntent
 from .web_search_packetizer_policy import (

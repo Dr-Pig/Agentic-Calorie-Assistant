@@ -71,6 +71,25 @@ def test_exact_item_lookup_prefers_iced_starbucks_latte_over_hot_sibling() -> No
     ]
 
 
+def test_exact_item_lookup_accepts_english_brand_alias_for_starbucks_family() -> None:
+    result = lookup_exact_item_card_candidates(
+        RetrievalIntent(
+            base_dish="\u51b0\u90a3\u5802",
+            aliases=["Starbucks \u51b0\u90a3\u5802 \u5927\u676f"],
+            brand_hint="Starbucks",
+            size_hint="\u5927\u676f",
+            modifier_hints=[],
+            listed_items=[],
+            retrieval_goal="exact_brand_lookup",
+        )
+    )
+
+    assert result.defer_reason is None
+    assert [candidate.title for candidate in result.candidates] == [
+        "\u661f\u5df4\u514b \u90a3\u5802(\u51b0) \u5927\u676f"
+    ]
+
+
 def test_exact_item_lookup_matches_sushiro_alias_with_quotes_and_possessive() -> None:
     result = lookup_exact_item_card_candidates(
         RetrievalIntent(
