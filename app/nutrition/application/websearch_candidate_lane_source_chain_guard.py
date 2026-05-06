@@ -65,7 +65,9 @@ def _probe_case_evidence_blockers(
             continue
         if case.get("status") != "pass":
             blockers.append("manager_contract_handoff_probe_case_not_pass")
-        if case.get("failure_families") not in ([], None):
+        if "failure_families" not in case or case.get("failure_families") is None:
+            blockers.append("manager_contract_handoff_probe_case_failure_families_missing")
+        elif case.get("failure_families") != []:
             blockers.append("manager_contract_handoff_probe_case_failure_present")
         if not str(case.get("case_id") or "").strip():
             blockers.append("manager_contract_handoff_probe_case_id_missing")
