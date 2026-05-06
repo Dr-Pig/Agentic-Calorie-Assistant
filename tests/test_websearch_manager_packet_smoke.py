@@ -40,8 +40,8 @@ def test_websearch_manager_packet_projection_stays_candidate_only() -> None:
     assert artifact["live_websearch_used"] is False
     assert artifact["live_provider_used"] is False
     assert artifact["websearch_runtime_truth_allowed"] is False
-    assert artifact["summary"]["case_count"] == 4
-    assert artifact["summary"]["candidate_only_count"] == 4
+    assert artifact["summary"]["case_count"] == 6
+    assert artifact["summary"]["candidate_only_count"] == 6
     assert artifact["summary"]["runtime_truth_allowed_count"] == 0
 
     for case in artifact["cases"]:
@@ -72,6 +72,18 @@ def test_websearch_manager_packet_projection_classifies_exact_and_related_candid
     assert sibling["manager_expected_behavior"] == "ask_followup_or_keep_candidate_pending"
     assert sibling["manager_evidence_packet"]["ambiguity_reason"] == "same_brand_nearby_variant"
     assert "confirm_exact_menu_item_or_variant" in sibling["manager_evidence_packet"]["followup_hints"]
+
+    convenience_store = cases["pkt_web_search_seven_eleven_salmon_rice_ball"]
+    assert convenience_store["manager_expected_behavior"] == (
+        "candidate_review_or_later_exact_card_promotion_path"
+    )
+    assert convenience_store["manager_evidence_packet"]["ambiguity_reason"] is None
+
+    chain_restaurant = cases["pkt_web_search_matsuya_gyudon_large"]
+    assert chain_restaurant["manager_expected_behavior"] == (
+        "candidate_review_or_later_exact_card_promotion_path"
+    )
+    assert chain_restaurant["manager_evidence_packet"]["ambiguity_reason"] is None
 
 
 def test_websearch_manager_packet_projection_excludes_truth_and_backend_leakage() -> None:
@@ -114,8 +126,8 @@ def test_websearch_manager_packet_smoke_script_roundtrip(tmp_path: Path) -> None
 
     artifact = read_json_artifact(output)
     assert artifact["artifact_type"] == "accurate_intake_websearch_manager_packet_projection"
-    assert artifact["summary"]["case_count"] == 4
-    assert artifact["summary"]["candidate_only_count"] == 4
+    assert artifact["summary"]["case_count"] == 6
+    assert artifact["summary"]["candidate_only_count"] == 6
 
 
 def test_websearch_manager_packet_smoke_has_no_live_search_or_provider_imports() -> None:
