@@ -4,6 +4,7 @@ from dataclasses import asdict, is_dataclass
 import json
 from typing import Any
 
+from app.composition.app_usage_question_policy import build_app_usage_question_policy
 from sqlalchemy.orm import Session
 
 from app.composition.current_budget_answer import (
@@ -86,6 +87,15 @@ async def execute_non_fooddb_read_tool_calls(
                     tool_name,
                     evidence={"active_body_plan_view": active_plan},
                     truth_owner="body_read_model",
+                )
+            )
+            continue
+        if tool_name == "answer_usage_question":
+            results.append(
+                _result(
+                    tool_name,
+                    evidence={"app_usage_policy": build_app_usage_question_policy()},
+                    truth_owner="app_product_policy",
                 )
             )
             continue

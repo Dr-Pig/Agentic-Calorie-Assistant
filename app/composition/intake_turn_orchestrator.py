@@ -122,7 +122,7 @@ async def execute_intake_turn(
         raw_user_input=raw_user_input or "",
         onboarding_payload=onboarding_payload.__dict__ if onboarding_payload is not None else None,
         resolved_state=state_before,
-        available_tools=("read_body_plan", "read_day_budget"),
+        available_tools=("answer_usage_question", "read_body_plan", "read_day_budget"),
         tool_executor=build_non_fooddb_read_tool_executor(
             db,
             user_id=state_before.user_id,

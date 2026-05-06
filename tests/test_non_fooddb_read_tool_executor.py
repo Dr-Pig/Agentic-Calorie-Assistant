@@ -101,3 +101,25 @@ async def test_execute_non_fooddb_read_tool_calls_marks_unknown_tool_without_mut
     assert result["failure_family"] == "unknown_tool"
     assert result["mutation_result"] == {}
     assert result["provenance"]["mutation_authority"] is False
+
+
+async def test_execute_non_fooddb_read_tool_calls_returns_app_usage_policy_metadata() -> None:
+    db = _session()
+    user = _bootstrap_budget_state(db, user_external_id="read-tool-app-usage")
+
+    results = await execute_non_fooddb_read_tool_calls(
+        db=db,
+        user_id=user.id,
+        local_date="2026-05-06",
+        tool_calls=[{"name": "answer_usage_question"}],
+    )
+
+    assert len(results) == 1
+    result = results[0]
+    assert result["tool_name"] == "answer_usage_question"
+    assert result["provenance"]["tool_kind"] == "read_only"
+    assert result["provenance"]["mutation_authority"] is False
+    assert result["provenance"]["truth_owner"] == "app_product_policy"
+    assert result["evidence"]["app_usage_policy"]["workflow_effect"] == (
+        "answer_general_product_question_without_state_mutation"
+    )

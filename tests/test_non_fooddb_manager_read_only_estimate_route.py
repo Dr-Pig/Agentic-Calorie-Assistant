@@ -193,6 +193,72 @@ class _UnsupportedGeneralChatManagerProvider:
         )
 
 
+class _AppUsageManagerProvider:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+
+    def readiness(self) -> dict[str, Any]:
+        return {"configured": True, "provider": "app_usage_fixture"}
+
+    async def complete_with_trace(
+        self,
+        **kwargs: Any,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        user_payload = dict(kwargs.get("user_payload") or {})
+        self.calls.append(
+            {
+                "available_tools": list(user_payload.get("available_tools") or []),
+                "tool_results": list(user_payload.get("tool_results") or []),
+                "round_index": user_payload.get("round_index"),
+            }
+        )
+        if int(user_payload.get("round_index") or 0) == 0:
+            return (
+                {
+                    "manager_action": "call_tools",
+                    "tool_calls": [{"name": "answer_usage_question"}],
+                },
+                {"source": "app_usage_fixture"},
+            )
+        return (
+            {
+                "manager_action": "final",
+                "intent": "general_chat",
+                "intent_type": "general_chat",
+                "final_action": "answer_only",
+                "workflow_effect": "answer_general_product_question_without_state_mutation",
+                "target_attachment": {"mode": "read_only_app_help_answer"},
+                "exactness": "read_only_state",
+                "confidence": "high",
+                "evidence_posture": "read_only_state",
+                "repair_ack": False,
+                "answer_contract": {
+                    "reply_text": "I can answer general product questions here, but I will not change state from this path."
+                },
+                "response_summary": "answer_general_product_question_without_state_mutation",
+                "uncertainty_posture": "bounded",
+                "evidence_honesty_posture": "read_only_state",
+                "semantic_decision": {
+                    "semantic_authority": "deterministic_fake_provider",
+                    "current_turn_intent": "general_chat",
+                    "target_attachment": {"mode": "read_only_app_help_answer"},
+                    "workflow_effect": "answer_general_product_question_without_state_mutation",
+                    "final_action_candidate": "answer_only",
+                    "estimation_posture": "not_applicable",
+                    "followup_posture": "none",
+                    "followup_targets": [],
+                    "mutation_intent_candidate": "no_mutation",
+                    "uncertainty_posture": "bounded",
+                    "source": "app_usage_fixture",
+                    "semantic_owner": "manager",
+                    "deterministic_role": "fixture_simulates_manager_output_only",
+                },
+                "tool_calls": [],
+            },
+            {"source": "app_usage_fixture"},
+        )
+
+
 def _session() -> Session:
     engine = create_engine(
         "sqlite://",
@@ -279,6 +345,7 @@ def test_estimate_route_uses_manager_read_only_tool_loop_for_budget_query(
 
     assert response.status_code == 200
     assert provider.calls[0]["available_tools"] == [
+        "answer_usage_question",
         "read_body_plan",
         "read_day_budget",
     ]
@@ -350,3 +417,36 @@ def test_estimate_route_rejects_unsupported_general_chat_fallback_lane(
 
     assert response.status_code == 500
     assert response.json()["error"] == "Unsupported intake intent_type: general_chat"
+
+
+def test_estimate_route_uses_manager_read_only_tool_loop_for_app_usage_help(
+    monkeypatch: Any,
+) -> None:
+    db = _session()
+    provider = _AppUsageManagerProvider()
+    client = _client(db, provider, monkeypatch)
+
+    response = client.post(
+        "/estimate",
+        json={
+            "text": "這個 app 怎麼用？",
+            "allow_search": False,
+            "user_id": "app-usage-manager-route",
+            "local_date": "2026-05-06",
+        },
+    )
+
+    assert response.status_code == 200
+    assert provider.calls[0]["available_tools"] == [
+        "answer_usage_question",
+        "read_body_plan",
+        "read_day_budget",
+    ]
+    assert provider.calls[0]["tool_results"] == []
+    assert provider.calls[1]["tool_results"][0]["tool_name"] == "answer_usage_question"
+    payload = response.json()["payload"]
+    assert payload["manager_decision"]["intent_type"] == "general_chat"
+    assert payload["manager_decision"]["workflow_effect"] == "answer_general_product_question_without_state_mutation"
+    assert response.json()["coach_message"] == (
+        "I can answer general product questions here, but I will not change state from this path."
+    )
