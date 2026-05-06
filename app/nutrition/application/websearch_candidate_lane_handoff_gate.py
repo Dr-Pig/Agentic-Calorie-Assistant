@@ -106,6 +106,8 @@ def _verified_unblocked_handoff_blockers(
 def _unblocked_handoff_shape_blockers(artifact: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
     summary = artifact.get("summary") if isinstance(artifact.get("summary"), dict) else {}
+    if _safe_non_negative_int(summary.get("probe_case_count")) <= 0:
+        blockers.append("manager_contract_handoff_probe_evidence_missing")
     if summary.get("alignment_blocker_count") != 0:
         blockers.append("manager_contract_handoff_alignment_blockers_present")
     if artifact.get("alignment_blockers") not in ([], None):

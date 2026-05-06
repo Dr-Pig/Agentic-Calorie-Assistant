@@ -432,6 +432,49 @@ def test_websearch_candidate_lane_status_packet_blocks_mismatched_sanitized_hand
     assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
 
 
+def test_websearch_candidate_lane_status_packet_blocks_vacuous_verified_handoff_chain() -> None:
+    preflight = _clear_preflight_artifact()
+    live_report = _live_report(preflight_artifact=preflight)
+    probe = {
+        "artifact_type": "accurate_intake_websearch_manager_contract_probe",
+        "status": "pass",
+        "contract_failure_detected": False,
+        "summary": {
+            "case_count": 0,
+            "fail_count": 0,
+            "aggregate_missing_required_fields": {},
+            "next_recommended_slice": "narrow_prompt_schema_intent_alias_probe",
+        },
+    }
+    repair_pack = _repair_pack()
+    handoff = build_websearch_manager_contract_handoff(
+        live_diagnostic_report=live_report,
+        contract_probe_artifact=probe,
+        repair_pack_artifact=repair_pack,
+        preflight_artifact=preflight,
+    )
+
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        manager_contract_handoff_artifact=handoff,
+        live_diagnostic_report=live_report,
+        contract_probe_artifact=probe,
+        repair_pack_artifact=repair_pack,
+        preflight_artifact=preflight,
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == (
+        "blocked_on_manager_contract_handoff"
+    )
+    assert "manager_contract_handoff_probe_evidence_missing" in artifact[
+        "manager_contract_gate"
+    ]["blockers"]
+    assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
+
+
 def test_websearch_candidate_lane_status_packet_rejects_unexpected_manager_contract_artifact() -> None:
     try:
         build_websearch_candidate_lane_status_packet(
