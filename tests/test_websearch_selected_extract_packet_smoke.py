@@ -37,7 +37,7 @@ def test_selected_extract_packet_smoke_builds_compact_non_runtime_request() -> N
     assert artifact["live_websearch_used"] is False
     assert artifact["live_provider_used"] is False
     assert artifact["readiness_claimed"] is False
-    assert artifact["summary"]["selected_extract_packet_count"] == 4
+    assert artifact["summary"]["selected_extract_packet_count"] == 6
     assert artifact["summary"]["runtime_truth_allowed_count"] == 0
     assert artifact["summary"]["raw_content_included_count"] == 0
     assert artifact["next_required_slice"] == "websearch_extract_result_candidate_smoke"

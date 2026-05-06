@@ -383,13 +383,13 @@ def test_websearch_candidate_lane_status_packet_summarizes_deterministic_lane() 
     assert artifact["summary"]["source_adapter_guard_max_results_hard_cap"] == 20
     assert artifact["summary"]["pipeline_case_count"] >= 4
     assert artifact["summary"]["extract_candidate_allowed_count"] >= 1
-    assert artifact["summary"]["pipeline_exact_review_candidate_count"] >= 4
+    assert artifact["summary"]["pipeline_exact_review_candidate_count"] >= 6
     assert artifact["summary"]["pipeline_disambiguation_candidate_count"] >= 5
     assert artifact["summary"]["pipeline_blocked_candidate_count"] >= 4
     assert artifact["summary"]["pipeline_policy_blocked_exact_candidate_count"] >= 1
     assert artifact["summary"]["pipeline_weak_candidate_count"] >= 3
     assert artifact["summary"]["candidate_packet_case_count"] == 4
-    assert artifact["summary"]["pipeline_case_count"] == 19
+    assert artifact["summary"]["pipeline_case_count"] == 21
     assert pipeline_summary["candidate_packet_count"] == sum(
         artifact["summary"][key]
         for key in (

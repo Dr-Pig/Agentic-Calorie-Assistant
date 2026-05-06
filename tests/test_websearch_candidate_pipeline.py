@@ -30,9 +30,9 @@ def test_websearch_candidate_pipeline_builds_offline_query_plan_and_classificati
     assert artifact["source_policy"]["license_policy"]["unknown_license_behavior"] == (
         "candidate_only_requires_review"
     )
-    assert artifact["summary"]["case_count"] == 19
+    assert artifact["summary"]["case_count"] == 21
     assert artifact["summary"]["runtime_truth_allowed_count"] == 0
-    assert artifact["summary"]["exact_review_candidate_count"] >= 4
+    assert artifact["summary"]["exact_review_candidate_count"] >= 6
     assert artifact["summary"]["disambiguation_candidate_count"] >= 5
     assert artifact["summary"]["blocked_candidate_count"] >= 4
     assert artifact["summary"]["policy_blocked_exact_candidate_count"] >= 1

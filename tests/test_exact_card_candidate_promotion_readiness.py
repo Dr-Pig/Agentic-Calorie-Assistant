@@ -23,10 +23,10 @@ def test_exact_card_candidate_promotion_readiness_keeps_candidates_non_runtime()
     assert artifact["live_websearch_used"] is False
     assert artifact["live_provider_used"] is False
     assert artifact["readiness_claimed"] is False
-    assert artifact["summary"]["exact_card_candidate_count"] == 4
+    assert artifact["summary"]["exact_card_candidate_count"] == 6
     assert artifact["summary"]["runtime_truth_allowed_count"] == 0
     assert artifact["summary"]["promotion_allowed_count"] == 0
-    assert artifact["summary"]["candidate_ready_for_review_count"] == 4
+    assert artifact["summary"]["candidate_ready_for_review_count"] == 6
     assert artifact["next_required_slice"] == "websearch_selected_extract_packet_smoke"
 
 
@@ -38,6 +38,8 @@ def test_exact_card_candidate_promotion_readiness_reports_required_review_metada
     assert set(cases) == {
         "websearch_candidate_review_fallback",
         "official_pdf_review_priority",
+        "convenience_store_rice_ball_review_priority",
+        "chain_restaurant_menu_review_priority",
         "large_size_review_priority",
         "modifier_match_review_priority",
     }
@@ -56,6 +58,14 @@ def test_exact_card_candidate_promotion_readiness_reports_required_review_metada
     ]
     assert candidate["source_url"] == "https://milksha.example/nutrition/pearl-black-tea-latte.pdf"
     assert candidate["source_class"] == "official_nutrition_pdf"
+
+    convenience = cases["convenience_store_rice_ball_review_priority"]
+    assert convenience["source_class"] == "official_brand_or_chain_page"
+    assert convenience["serving_basis_candidate"] == "per_piece"
+
+    chain_restaurant = cases["chain_restaurant_menu_review_priority"]
+    assert chain_restaurant["source_class"] == "brand_menu_page"
+    assert chain_restaurant["serving_basis_candidate"] == "per_bowl"
 
 
 def test_exact_card_candidate_promotion_readiness_fails_closed_on_runtime_truth_leak() -> None:

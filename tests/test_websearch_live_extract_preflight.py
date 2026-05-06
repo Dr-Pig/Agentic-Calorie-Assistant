@@ -58,7 +58,7 @@ def test_live_extract_preflight_enables_diagnostic_only_not_truth() -> None:
     assert artifact["runtime_truth_changed"] is False
     assert artifact["runtime_mutation_allowed"] is False
     assert artifact["readiness_claimed"] is False
-    assert artifact["summary"]["review_packet_count"] == 4
+    assert artifact["summary"]["review_packet_count"] == 6
     assert artifact["summary"]["ready_for_runtime_truth_count"] == 0
     assert artifact["summary"]["case_matrix_case_count"] == len(REQUIRED_CASE_IDS)
     assert artifact["summary"]["case_matrix_fixed_required_cases"] is True

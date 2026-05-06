@@ -11,6 +11,8 @@ PipelineCaseFactory = Callable[..., Any]
 def build_expanded_websearch_pipeline_cases(*, case_factory: PipelineCaseFactory) -> tuple[Any, ...]:
     return (
         *build_default_websearch_pipeline_cases(case_factory=case_factory),
+        _convenience_store_rice_ball_exact(case_factory),
+        _chain_restaurant_menu_item_exact(case_factory),
         _multi_source_official_preferred(case_factory),
         _official_pdf_priority(case_factory),
         _large_size_preferred(case_factory),
@@ -18,6 +20,54 @@ def build_expanded_websearch_pipeline_cases(*, case_factory: PipelineCaseFactory
         _modifier_match_preferred(case_factory),
         _same_brand_wrong_flavor_variant(case_factory),
         _all_blocked_candidates(case_factory),
+    )
+
+
+def _convenience_store_rice_ball_exact(case_factory: PipelineCaseFactory) -> Any:
+    intent = _intent(
+        base_dish="salmon rice ball",
+        alias="7-Eleven salmon rice ball",
+        brand_hint="7-Eleven",
+    )
+    return case_factory(
+        case_id="pipeline_convenience_store_rice_ball_exact",
+        intent=intent,
+        raw_hits=(
+            _hit(
+                title="7-Eleven salmon rice ball",
+                url="https://7-11.example/products/salmon-rice-ball",
+                brand_detected="7-Eleven",
+                source_class="official_brand_or_chain_page",
+                identity_confidence="high",
+                serving_basis="per_piece",
+                customization_slots_present=(),
+                raw_ref="raw/websearch/pipeline_convenience_store_rice_ball_exact.json#0",
+            ),
+        ),
+    )
+
+
+def _chain_restaurant_menu_item_exact(case_factory: PipelineCaseFactory) -> Any:
+    intent = _intent(
+        base_dish="gyudon",
+        alias="Matsuya gyudon large",
+        brand_hint="Matsuya",
+        size_hint="large",
+    )
+    return case_factory(
+        case_id="pipeline_chain_restaurant_menu_item_exact",
+        intent=intent,
+        raw_hits=(
+            _hit(
+                title="Matsuya gyudon large",
+                url="https://matsuya.example/menu/gyudon-large",
+                brand_detected="Matsuya",
+                source_class="brand_menu_page",
+                identity_confidence="high",
+                serving_basis="per_bowl",
+                raw_ref="raw/websearch/pipeline_chain_restaurant_menu_item_exact.json#0",
+            ),
+        ),
     )
 
 
@@ -235,6 +285,8 @@ def _hit(
     identity_confidence: str = "medium",
     robots_status: str = "allowed",
     license_status: str = "public_menu_page",
+    serving_basis: str = "per_cup",
+    customization_slots_present: tuple[str, ...] = ("size",),
     raw_ref: str,
 ) -> dict[str, Any]:
     return {
@@ -248,11 +300,11 @@ def _hit(
         "source_quality_label": source_quality_label,
         "brand_detected": brand_detected,
         "channel_detected": "handmade_foodservice",
-        "serving_basis": "per_cup",
+        "serving_basis": serving_basis,
         "nutrition_fields_present": ["kcal"],
         "license_status": license_status,
         "robots_status": robots_status,
-        "customization_slots_present": ["size"],
+        "customization_slots_present": list(customization_slots_present),
         "identity_confidence": identity_confidence,
         "applicability_confidence": "medium",
         "applicability_notes": "deterministic fixture candidate",

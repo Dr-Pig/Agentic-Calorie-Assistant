@@ -39,7 +39,7 @@ def test_extract_result_candidate_smoke_builds_review_candidate_only() -> None:
     assert artifact["live_extract_used"] is False
     assert artifact["live_provider_used"] is False
     assert artifact["readiness_claimed"] is False
-    assert artifact["summary"]["extract_result_candidate_count"] == 4
+    assert artifact["summary"]["extract_result_candidate_count"] == 6
     assert artifact["summary"]["runtime_truth_allowed_count"] == 0
     assert artifact["summary"]["exact_card_created_count"] == 0
     assert artifact["next_required_slice"] == "websearch_exact_candidate_review_packet"
