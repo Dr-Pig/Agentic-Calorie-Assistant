@@ -258,6 +258,7 @@ The required evidence keys are:
 - `manager_intent_readiness_review_pack`
 - `context_live_diagnostic_case_matrix`
 - `context_live_diagnostic_anti_overfit_guard`
+- `context_live_diagnostic_holdout_plan`
 - `context_live_provider_input_preflight`
 - `context_live_response_contract_dry_run`
 - `context_live_diagnostic_gate`
@@ -268,7 +269,9 @@ The `context_live_diagnostic_case_matrix` evidence must be generated before any 
 
 The matrix must include at least one compound log-and-modify case. Missing matrix evidence, provider-invoked matrix evidence, FoodDB-backed matrix evidence, or a matrix with too few cases keeps the selected option at `stay_local_self_use`.
 
-The `context_live_diagnostic_gate` evidence must be generated in no-live mode before this pre-live pack can select `ready_for_human_limited_live_canary_decision`. A gate artifact with `live_llm_invoked=true`, `live_provider_invoked=true`, `live_provider_allowed=true`, ad hoc live-case selection, missing anti-overfit evidence, missing response-contract dry-run evidence, FoodDB/WebSearch usage, mutation changes, or ManagerContextPacket schema changes keeps the selected option at `stay_local_self_use`.
+The `context_live_diagnostic_holdout_plan` evidence must prove the fixed live diagnostic matrix has withheld holdout utterance variants that are not used as default provider prompts. It must keep `plan_only=true`, `live_llm_invoked=false`, `live_provider_invoked=false`, `ad_hoc_live_case_selection_allowed=false`, `provider_optimized_case_selection_allowed=false`, `fooddb_used=false`, `mutation_changed=false`, and `manager_context_packet_schema_changed=false`.
+
+The `context_live_diagnostic_gate` evidence must be generated in no-live mode before this pre-live pack can select `ready_for_human_limited_live_canary_decision`. A gate artifact with `live_llm_invoked=true`, `live_provider_invoked=true`, `live_provider_allowed=true`, ad hoc live-case selection, missing anti-overfit evidence, missing holdout-plan evidence, missing response-contract dry-run evidence, FoodDB/WebSearch usage, mutation changes, or ManagerContextPacket schema changes keeps the selected option at `stay_local_self_use`.
 
 ## Semantic Ownership Boundary
 
