@@ -32,6 +32,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Check pre-PR quality gate
+        run: python scripts/merge_governance/pre_pr_quality_gate.py --output artifacts/pre_pr_quality_gate_report.json
+
       - name: Check pre-queue readiness
         run: python scripts/merge_governance/check_pre_queue_readiness.py --output artifacts/pre_queue_readiness_report.json
 
@@ -51,5 +54,6 @@ jobs:
             artifacts/merge_debt_matrix.md
             artifacts/q_owner_queue_status.json
             artifacts/q_owner_queue_status.md
+            artifacts/pre_pr_quality_gate_report.json
             artifacts/pre_queue_readiness_report.json
           if-no-files-found: error

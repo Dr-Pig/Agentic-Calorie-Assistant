@@ -156,6 +156,21 @@ def test_pre_queue_readiness_passes_current_product_pages_artifact_chain(tmp_pat
     assert json.loads(capsys.readouterr().out)["status"] == "pass"
 
 
+def test_pre_queue_readiness_fails_pull_request_missing_required_report(tmp_path: Path) -> None:
+    event = tmp_path / "event.json"
+    event.write_text(json.dumps({"pull_request": {"body": "track: FoodDB\n"}}), encoding="utf-8")
+
+    assert (
+        check_pre_queue_readiness.main(
+            ["--event-file", str(event), "--output", str(tmp_path / "out.json")]
+        )
+        == 1
+    )
+
+    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
+    assert "missing_track_report_key:runtime_truth_changed" in report["blockers"]
+
+
 def test_pre_queue_readiness_fails_missing_product_pages_dry_run_command(
     tmp_path: Path,
 ) -> None:
