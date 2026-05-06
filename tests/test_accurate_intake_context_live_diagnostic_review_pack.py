@@ -203,6 +203,20 @@ def test_live_review_pack_accepts_pre_live_not_invoked_canary_without_readiness_
     assert artifact["summary"]["live_provider_output_count"] == 0
 
 
+def test_live_review_pack_accepts_gate_disallowed_not_invoked_canary() -> None:
+    inputs = _valid_inputs(live=False)
+    inputs["context_live_diagnostic_canary"]["failure_family"] = "live_provider_not_allowed_by_gate"
+    inputs["context_live_diagnostic_canary"]["blockers"] = ["live_provider_not_allowed_by_gate"]
+
+    artifact = build_context_live_diagnostic_review_pack_artifact(inputs)
+
+    assert artifact["status"] == "context_live_diagnostic_review_ready_without_live_canary"
+    assert artifact["live_canary_status"] == "not_invoked"
+    assert artifact["live_llm_invoked"] is False
+    assert artifact["product_readiness_claimed"] is False
+    assert artifact["private_self_use_approved"] is False
+
+
 def test_live_review_pack_accepts_live_canary_as_diagnostic_evidence_only() -> None:
     artifact = build_context_live_diagnostic_review_pack_artifact(_valid_inputs(live=True))
 

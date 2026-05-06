@@ -30,6 +30,14 @@ EXPECTED_STATUSES = {
     "context_live_response_contract_dry_run": "pass",
     "context_live_diagnostic_canary": {"not_invoked", "live_diagnostic_pass"},
 }
+ALLOWED_NOT_INVOKED_FAILURE_FAMILIES = {
+    "missing_provider_token",
+    "live_provider_not_allowed_by_gate",
+}
+ALLOWED_NOT_INVOKED_BLOCKERS = {
+    "missing_provider_token",
+    "live_provider_not_allowed_by_gate",
+}
 
 FORBIDDEN_TRUTHY_FLAGS = (
     "fooddb_used",
@@ -105,7 +113,8 @@ def _identity_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         blockers.append(f"{group_id}.unexpected_status:{_status(payload)}")
     upstream_blockers = payload.get("blockers")
     if group_id == "context_live_diagnostic_canary" and _status(payload) == "not_invoked":
-        if upstream_blockers not in (None, [], ["missing_provider_token"]):
+        blocker_values = set(str(value) for value in _list(upstream_blockers))
+        if blocker_values - ALLOWED_NOT_INVOKED_BLOCKERS:
             blockers.append(f"{group_id}.unexpected_not_invoked_blockers")
     elif upstream_blockers not in (None, []):
         blockers.append(f"{group_id}.upstream_blockers_present")
@@ -195,7 +204,7 @@ def _canary_blockers(payload: dict[str, Any]) -> list[str]:
     if status == "not_invoked":
         if payload.get("live_invoked") is not False:
             blockers.append("context_live_diagnostic_canary.not_invoked_live_flag")
-        if payload.get("failure_family") != "missing_provider_token":
+        if payload.get("failure_family") not in ALLOWED_NOT_INVOKED_FAILURE_FAMILIES:
             blockers.append("context_live_diagnostic_canary.not_invoked_failure_family_mismatch")
         return blockers
     if status == "live_diagnostic_pass":
