@@ -75,6 +75,26 @@ def test_exact_evidence_lane_status_packet_allows_when_websearch_and_chain_clear
     assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
 
 
+def test_exact_evidence_lane_status_packet_keeps_chain_clear_after_post_live_status_inspection() -> (
+    None
+):
+    artifact = build_exact_evidence_lane_status_packet(
+        websearch_status_packet={
+            "artifact_type": "accurate_intake_websearch_candidate_lane_status_packet_v1",
+            "upstream_gate": {"status": "clear_for_websearch_lane", "blocked": False},
+            "next_required_slices": ["inspect_websearch_status_packet"],
+        },
+        exact_candidate_chain_status_packet=build_websearch_exact_candidate_chain_status(),
+    )
+
+    assert artifact["summary"]["upstream_websearch_gate_status"] == "clear_for_exact_websearch_followthrough"
+    assert artifact["summary"]["upstream_websearch_next_required_slice"] == "inspect_websearch_status_packet"
+    assert artifact["summary"]["exact_candidate_chain_status"] == (
+        "clear_for_websearch_exact_candidate_chain"
+    )
+    assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
+
+
 def test_exact_evidence_lane_status_packet_blocks_misaligned_websearch_live_pointer() -> None:
     artifact = build_exact_evidence_lane_status_packet(
         websearch_status_packet={
