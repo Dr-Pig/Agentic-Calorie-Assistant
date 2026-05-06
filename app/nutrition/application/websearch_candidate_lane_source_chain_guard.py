@@ -25,6 +25,16 @@ _REQUIRED_PROBE_PASS_CASE_KEYS = frozenset(
     }
 )
 _ALLOWED_PROBE_PASS_CASE_KEYS = _REQUIRED_PROBE_PASS_CASE_KEYS | {"expected_failure_family"}
+_EXPECTED_PROBE_PASS_OBSERVED_KEYS = [
+    "confidence",
+    "evidence_posture",
+    "exactness",
+    "intent",
+    "manager_action",
+    "repair_ack",
+    "target_attachment",
+    "workflow_effect",
+]
 
 
 def source_chain_blockers(
@@ -100,6 +110,8 @@ def _probe_case_evidence_blockers(
         observed_keys = case.get("observed_keys")
         if not isinstance(observed_keys, list) or not observed_keys:
             blockers.append("manager_contract_handoff_probe_case_observed_keys_missing")
+        elif observed_keys != _EXPECTED_PROBE_PASS_OBSERVED_KEYS:
+            blockers.append("manager_contract_handoff_probe_case_observed_keys_unexpected")
         if "validation_error_family" not in case:
             blockers.append("manager_contract_handoff_probe_case_validation_family_missing")
         elif case.get("validation_error_family") is not None:
