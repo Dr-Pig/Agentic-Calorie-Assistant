@@ -9,6 +9,7 @@ The merged PL+CE checkpoint train is the current local diagnostic baseline:
 
 - PR123: Product Loop browser shell checkpoint.
 - PR125: PL+CE diagnostic review bundle.
+- PR508: pre-live artifact refresh chain that rebuilds promoted product-page, browser-activation, context-live, and local-web candidate artifacts from current canonical local evidence.
 - Later PL+CE slices landed as independent main-based PRs through GitHub Merge Queue.
 - Future PL+CE work should be separate follow-up PRs, not a mega-PR or long-lived stack.
 

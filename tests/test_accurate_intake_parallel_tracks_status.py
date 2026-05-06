@@ -19,8 +19,7 @@ def test_parallel_tracks_status_pack_exists_with_required_sections() -> None:
         "## Current MVP Goal",
         "## Track Ownership",
         "### Track FDB: FoodDB / Evidence Pipeline",
-        "### Track PL: Product Loop / Browser Shell",
-        "### Track CE: Context Engineering",
+        "### Track PLCE: Product Loop + Context Engineering",
         "## Shared Interface Contracts",
         "## Shared Contract Change Gate",
         "## Artifact Compatibility Gate",
@@ -54,7 +53,7 @@ def test_parallel_tracks_status_pack_lists_human_gated_contracts() -> None:
 def test_parallel_tracks_status_pack_enforces_track_owned_status_blocks() -> None:
     text = _status_text()
 
-    for track in ("FDB", "PL", "CE"):
+    for track in ("FDB", "PLCE"):
         assert f"### {track} Status" in text
         block = text.split(f"### {track} Status", 1)[1].split("### ", 1)[0]
         for field in (
@@ -83,6 +82,18 @@ def test_parallel_tracks_status_pack_keeps_non_claims_visible() -> None:
         "no product, web, private self-use, or production readiness claim",
     ):
         assert non_claim in text
+
+
+def test_parallel_tracks_status_pack_declares_two_track_rule_map_and_live_sync_boundary() -> None:
+    text = _status_text()
+
+    for fragment in (
+        "The current coordination model is two tracks: `FDB` and `PLCE`.",
+        "Draft PR bodies plus CI are the live sync truth; this file is the rule map and handoff template.",
+        "This section is a status-block template, not the live status board.",
+        "Live sync truth is Draft PR body plus CI state.",
+    ):
+        assert fragment in text
 
 
 def test_parallel_tracks_status_pack_contains_mandatory_report_shape() -> None:

@@ -14,6 +14,7 @@ def test_pl_ce_roadmap_doc_exists_with_utf8_bom_and_track_split() -> None:
 
     assert "PL+CE MVP Build Roadmap" in text
     assert "merged PL+CE checkpoint train" in text
+    assert "PR508: pre-live artifact refresh chain" in text
     assert "FoodDB/Search Evidence owns retrieval, ranking" in text
     assert "PL+CE owns context visibility" in text
     assert "blocked_waiting_for_fdb_artifact" in text
