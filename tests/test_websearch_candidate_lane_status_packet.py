@@ -210,9 +210,11 @@ def _repair_pack() -> dict:
         "next_recommended_slice": "tighten_websearch_manager_contract_prompt_or_transport",
         "summary": {
             "case_count": 0,
+            "aggregate_missing_required_fields": {},
             "alias_hint_counts": {},
             "shape_pattern_counts": {},
         },
+        "cases": [],
         "non_claims": [
             "no_live_provider_call",
             "no_live_websearch_call",
@@ -924,6 +926,38 @@ def test_websearch_candidate_lane_status_packet_blocks_repair_pack_map_drift() -
         "blocked_on_manager_contract_handoff"
     )
     assert "repair_pack_non_empty_missing_field_map_for_unblocked_handoff" in artifact[
+        "manager_contract_gate"
+    ]["blockers"]
+    assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
+
+
+def test_websearch_candidate_lane_status_packet_blocks_vacuous_repair_pack_clean_evidence() -> None:
+    inputs = _verified_handoff_inputs()
+    repair_pack = {
+        **inputs["repair_pack_artifact"],
+        "summary": {"case_count": 0},
+    }
+    repair_pack.pop("cases")
+
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        manager_contract_handoff_artifact=inputs["manager_contract_handoff_artifact"],
+        live_diagnostic_report=inputs["live_diagnostic_report"],
+        contract_probe_artifact=inputs["contract_probe_artifact"],
+        repair_pack_artifact=repair_pack,
+        preflight_artifact=inputs["preflight_artifact"],
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == (
+        "blocked_on_manager_contract_handoff"
+    )
+    assert "repair_pack_missing_clean_missing_field_map_for_unblocked_handoff" in artifact[
+        "manager_contract_gate"
+    ]["blockers"]
+    assert "repair_pack_cases_missing_for_unblocked_handoff" in artifact[
         "manager_contract_gate"
     ]["blockers"]
     assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]

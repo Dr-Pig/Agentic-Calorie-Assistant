@@ -99,11 +99,23 @@ def _unblocked_repair_pack_summary_blockers(
     if not isinstance(summary, dict):
         return ["repair_pack_summary_missing_for_unblocked_handoff"]
     blockers: list[str] = []
-    if safe_count_map(summary.get("aggregate_missing_required_fields")):
+    if "aggregate_missing_required_fields" not in summary or not isinstance(
+        summary.get("aggregate_missing_required_fields"), dict
+    ):
+        blockers.append("repair_pack_missing_clean_missing_field_map_for_unblocked_handoff")
+    elif safe_count_map(summary.get("aggregate_missing_required_fields")):
         blockers.append("repair_pack_non_empty_missing_field_map_for_unblocked_handoff")
-    if safe_count_map(summary.get("alias_hint_counts")):
+    if "alias_hint_counts" not in summary or not isinstance(
+        summary.get("alias_hint_counts"), dict
+    ):
+        blockers.append("repair_pack_missing_clean_alias_hint_map_for_unblocked_handoff")
+    elif safe_count_map(summary.get("alias_hint_counts")):
         blockers.append("repair_pack_non_empty_alias_hint_map_for_unblocked_handoff")
-    if safe_count_map(summary.get("shape_pattern_counts")):
+    if "shape_pattern_counts" not in summary or not isinstance(
+        summary.get("shape_pattern_counts"), dict
+    ):
+        blockers.append("repair_pack_missing_clean_shape_pattern_map_for_unblocked_handoff")
+    elif safe_count_map(summary.get("shape_pattern_counts")):
         blockers.append("repair_pack_non_empty_shape_pattern_map_for_unblocked_handoff")
     return blockers
 
@@ -116,9 +128,11 @@ def _repair_pack_case_evidence_blockers(
     if not isinstance(summary, dict):
         return []
     case_count = safe_non_negative_int(summary.get("case_count"))
-    if case_count == 0:
-        return []
     cases = repair_pack_artifact.get("cases")
+    if not isinstance(cases, list):
+        return ["repair_pack_cases_missing_for_unblocked_handoff"]
+    if case_count == 0 and cases:
+        return ["repair_pack_case_count_mismatch_for_unblocked_handoff"]
     if not isinstance(cases, list) or len(cases) != case_count:
         return ["repair_pack_case_count_mismatch_for_unblocked_handoff"]
     blockers: list[str] = []
