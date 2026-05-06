@@ -21,6 +21,9 @@ from app.nutrition.application.grokfast_websearch_packet_diagnostic import (  # 
 from app.nutrition.application.websearch_live_extract_preflight import (  # noqa: E402
     is_websearch_live_extract_preflight_clear,
 )
+from app.nutrition.application.websearch_live_runner_readiness_packet import (  # noqa: E402
+    live_runner_readiness_input_blockers,
+)
 from app.nutrition.application.websearch_preflight_digest import (  # noqa: E402
     websearch_live_extract_preflight_digest,
 )
@@ -37,6 +40,9 @@ DEFAULT_REVIEW_PACKET = (
 DEFAULT_PREFLIGHT = ROOT / "artifacts" / "accurate_intake_websearch_live_extract_preflight.json"
 DEFAULT_CHAIN_STATUS = (
     ROOT / "artifacts" / "accurate_intake_websearch_exact_candidate_chain_status.json"
+)
+DEFAULT_RUNNER_READINESS = (
+    ROOT / "artifacts" / "accurate_intake_websearch_live_runner_readiness_packet.json"
 )
 DEFAULT_OUTPUT = ROOT / "artifacts" / "accurate_intake_grokfast_websearch_packet_smoke.json"
 
@@ -57,6 +63,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--review-packet-artifact", default=str(DEFAULT_REVIEW_PACKET))
     parser.add_argument("--preflight-artifact", default=str(DEFAULT_PREFLIGHT))
     parser.add_argument("--exact-candidate-chain-status-artifact", default=str(DEFAULT_CHAIN_STATUS))
+    parser.add_argument("--live-runner-readiness-artifact", default=str(DEFAULT_RUNNER_READINESS))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
@@ -76,11 +83,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.mode == "live":
         preflight_path = Path(args.preflight_artifact)
         chain_status_path = Path(args.exact_candidate_chain_status_artifact)
+        readiness_path = Path(args.live_runner_readiness_artifact)
         if not preflight_path.exists():
             artifact = _blocked_live_artifact(
                 failure_family="missing_clear_websearch_live_extract_preflight",
                 preflight_artifact=str(preflight_path),
                 exact_candidate_chain_status_artifact=str(chain_status_path),
+                live_runner_readiness_artifact=str(readiness_path),
             )
             write_json_artifact(output_path, artifact)
             return 2
@@ -90,6 +99,7 @@ def main(argv: list[str] | None = None) -> int:
                 failure_family="websearch_live_extract_preflight_not_clear",
                 preflight_artifact=str(preflight_path),
                 exact_candidate_chain_status_artifact=str(chain_status_path),
+                live_runner_readiness_artifact=str(readiness_path),
                 preflight_status=preflight.get("status"),
                 preflight_blockers=list(preflight.get("blockers") or []),
             )
@@ -103,6 +113,7 @@ def main(argv: list[str] | None = None) -> int:
                 failure_family="websearch_live_preflight_review_packet_mismatch",
                 preflight_artifact=str(preflight_path),
                 exact_candidate_chain_status_artifact=str(chain_status_path),
+                live_runner_readiness_artifact=str(readiness_path),
                 preflight_status=preflight.get("status"),
                 preflight_blockers=["preflight_review_packet_refs_mismatch"],
             )
@@ -114,6 +125,7 @@ def main(argv: list[str] | None = None) -> int:
                 failure_family="missing_clear_websearch_exact_candidate_chain_status",
                 preflight_artifact=str(preflight_path),
                 exact_candidate_chain_status_artifact=str(chain_status_path),
+                live_runner_readiness_artifact=str(readiness_path),
             )
             write_json_artifact(output_path, artifact)
             return 2
@@ -123,6 +135,7 @@ def main(argv: list[str] | None = None) -> int:
                 failure_family="websearch_exact_candidate_chain_status_not_clear",
                 preflight_artifact=str(preflight_path),
                 exact_candidate_chain_status_artifact=str(chain_status_path),
+                live_runner_readiness_artifact=str(readiness_path),
                 chain_status_status=chain_status.get("status"),
                 chain_status_blockers=list(chain_status.get("blockers") or []),
             )
@@ -136,12 +149,40 @@ def main(argv: list[str] | None = None) -> int:
                 failure_family="websearch_exact_candidate_chain_review_packet_mismatch",
                 preflight_artifact=str(preflight_path),
                 exact_candidate_chain_status_artifact=str(chain_status_path),
+                live_runner_readiness_artifact=str(readiness_path),
                 chain_status_status=chain_status.get("status"),
                 chain_status_blockers=["chain_status_review_packet_refs_mismatch"],
             )
             write_json_artifact(output_path, artifact)
             return 2
         chain_status_ref = _chain_status_ref(chain_status)
+        if not readiness_path.exists():
+            artifact = _blocked_live_artifact(
+                failure_family="missing_clear_websearch_live_runner_readiness_packet",
+                preflight_artifact=str(preflight_path),
+                exact_candidate_chain_status_artifact=str(chain_status_path),
+                live_runner_readiness_artifact=str(readiness_path),
+            )
+            write_json_artifact(output_path, artifact)
+            return 2
+        readiness = read_json_artifact(readiness_path)
+        readiness_blockers = live_runner_readiness_input_blockers(
+            readiness_artifact=readiness,
+            review_packet_artifact=review_packet_artifact,
+            preflight_artifact=preflight,
+            exact_candidate_chain_status_artifact=chain_status,
+        )
+        if readiness_blockers:
+            artifact = _blocked_live_artifact(
+                failure_family="websearch_live_runner_readiness_packet_mismatch",
+                preflight_artifact=str(preflight_path),
+                exact_candidate_chain_status_artifact=str(chain_status_path),
+                live_runner_readiness_artifact=str(readiness_path),
+                readiness_status=readiness.get("status"),
+                readiness_blockers=readiness_blockers,
+            )
+            write_json_artifact(output_path, artifact)
+            return 2
 
     if args.mode == "fixture":
         manager_outputs = build_fixture_manager_outputs(
@@ -384,10 +425,13 @@ def _blocked_live_artifact(
     failure_family: str,
     preflight_artifact: str,
     exact_candidate_chain_status_artifact: str | None = None,
+    live_runner_readiness_artifact: str | None = None,
     preflight_status: str | None = None,
     preflight_blockers: list[Any] | None = None,
     chain_status_status: str | None = None,
     chain_status_blockers: list[Any] | None = None,
+    readiness_status: str | None = None,
+    readiness_blockers: list[Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "artifact_type": "accurate_intake_grokfast_websearch_packet_smoke",
@@ -408,6 +452,9 @@ def _blocked_live_artifact(
         "exact_candidate_chain_status_artifact": exact_candidate_chain_status_artifact,
         "exact_candidate_chain_status": chain_status_status,
         "exact_candidate_chain_blockers": chain_status_blockers or [],
+        "live_runner_readiness_artifact": live_runner_readiness_artifact,
+        "live_runner_readiness_status": readiness_status,
+        "live_runner_readiness_blockers": readiness_blockers or [],
     }
 
 
