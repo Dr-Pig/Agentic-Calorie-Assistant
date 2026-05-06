@@ -35,6 +35,9 @@ DEFAULT_REVIEW_PACKET = (
     ROOT / "artifacts" / "accurate_intake_websearch_exact_candidate_review_packet.json"
 )
 DEFAULT_PREFLIGHT = ROOT / "artifacts" / "accurate_intake_websearch_live_extract_preflight.json"
+DEFAULT_CHAIN_STATUS = (
+    ROOT / "artifacts" / "accurate_intake_websearch_exact_candidate_chain_status.json"
+)
 DEFAULT_OUTPUT = ROOT / "artifacts" / "accurate_intake_grokfast_websearch_packet_smoke.json"
 
 WEBSEARCH_PACKET_MANAGER_SYSTEM_PROMPT = (
@@ -53,12 +56,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--allow-live", action="store_true")
     parser.add_argument("--review-packet-artifact", default=str(DEFAULT_REVIEW_PACKET))
     parser.add_argument("--preflight-artifact", default=str(DEFAULT_PREFLIGHT))
+    parser.add_argument("--exact-candidate-chain-status-artifact", default=str(DEFAULT_CHAIN_STATUS))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
     review_packet_artifact = read_json_artifact(Path(args.review_packet_artifact))
     output_path = Path(args.output)
     preflight_ref: dict[str, Any] | None = None
+    chain_status_ref: dict[str, Any] | None = None
 
     if args.mode == "live" and not args.allow_live:
         artifact = _blocked_live_artifact(
@@ -70,10 +75,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.mode == "live":
         preflight_path = Path(args.preflight_artifact)
+        chain_status_path = Path(args.exact_candidate_chain_status_artifact)
         if not preflight_path.exists():
             artifact = _blocked_live_artifact(
                 failure_family="missing_clear_websearch_live_extract_preflight",
                 preflight_artifact=str(preflight_path),
+                exact_candidate_chain_status_artifact=str(chain_status_path),
             )
             write_json_artifact(output_path, artifact)
             return 2
@@ -82,6 +89,7 @@ def main(argv: list[str] | None = None) -> int:
             artifact = _blocked_live_artifact(
                 failure_family="websearch_live_extract_preflight_not_clear",
                 preflight_artifact=str(preflight_path),
+                exact_candidate_chain_status_artifact=str(chain_status_path),
                 preflight_status=preflight.get("status"),
                 preflight_blockers=list(preflight.get("blockers") or []),
             )
@@ -94,12 +102,46 @@ def main(argv: list[str] | None = None) -> int:
             artifact = _blocked_live_artifact(
                 failure_family="websearch_live_preflight_review_packet_mismatch",
                 preflight_artifact=str(preflight_path),
+                exact_candidate_chain_status_artifact=str(chain_status_path),
                 preflight_status=preflight.get("status"),
                 preflight_blockers=["preflight_review_packet_refs_mismatch"],
             )
             write_json_artifact(output_path, artifact)
             return 2
         preflight_ref = _preflight_ref(preflight)
+        if not chain_status_path.exists():
+            artifact = _blocked_live_artifact(
+                failure_family="missing_clear_websearch_exact_candidate_chain_status",
+                preflight_artifact=str(preflight_path),
+                exact_candidate_chain_status_artifact=str(chain_status_path),
+            )
+            write_json_artifact(output_path, artifact)
+            return 2
+        chain_status = read_json_artifact(chain_status_path)
+        if not _is_exact_candidate_chain_status_clear(chain_status):
+            artifact = _blocked_live_artifact(
+                failure_family="websearch_exact_candidate_chain_status_not_clear",
+                preflight_artifact=str(preflight_path),
+                exact_candidate_chain_status_artifact=str(chain_status_path),
+                chain_status_status=chain_status.get("status"),
+                chain_status_blockers=list(chain_status.get("blockers") or []),
+            )
+            write_json_artifact(output_path, artifact)
+            return 2
+        if not _chain_status_authorizes_review_packet(
+            chain_status=chain_status,
+            review_packet_artifact=review_packet_artifact,
+        ):
+            artifact = _blocked_live_artifact(
+                failure_family="websearch_exact_candidate_chain_review_packet_mismatch",
+                preflight_artifact=str(preflight_path),
+                exact_candidate_chain_status_artifact=str(chain_status_path),
+                chain_status_status=chain_status.get("status"),
+                chain_status_blockers=["chain_status_review_packet_refs_mismatch"],
+            )
+            write_json_artifact(output_path, artifact)
+            return 2
+        chain_status_ref = _chain_status_ref(chain_status)
 
     if args.mode == "fixture":
         manager_outputs = build_fixture_manager_outputs(
@@ -119,6 +161,7 @@ def main(argv: list[str] | None = None) -> int:
         _run_live(
             review_packet_artifact=review_packet_artifact,
             preflight_ref=preflight_ref,
+            chain_status_ref=chain_status_ref,
         )
     )
     write_json_artifact(output_path, artifact)
@@ -130,6 +173,7 @@ async def _run_live(
     *,
     review_packet_artifact: dict[str, Any],
     preflight_ref: dict[str, Any] | None,
+    chain_status_ref: dict[str, Any] | None,
 ) -> tuple[dict[str, Any], int]:
     adapter = BuilderSpaceAdapter(
         manager_model_override=GROKFAST_WEBSEARCH_PACKET_PROFILE["model"],
@@ -146,6 +190,7 @@ async def _run_live(
         )
         artifact["provider_readiness"] = readiness
         artifact["preflight_ref"] = preflight_ref or {}
+        artifact["exact_candidate_chain_ref"] = chain_status_ref or {}
         return artifact, 3
 
     manager_outputs: list[dict[str, Any]] = []
@@ -197,6 +242,7 @@ async def _run_live(
     )
     artifact["provider_readiness"] = readiness
     artifact["preflight_ref"] = preflight_ref or {}
+    artifact["exact_candidate_chain_ref"] = chain_status_ref or {}
     return artifact, 0
 
 
@@ -279,6 +325,55 @@ def _preflight_ref(preflight: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _is_exact_candidate_chain_status_clear(chain_status: dict[str, Any]) -> bool:
+    return (
+        chain_status.get("artifact_type")
+        == "accurate_intake_websearch_exact_candidate_chain_status_v1"
+        and chain_status.get("status") == "pass"
+        and chain_status.get("ready_for_live_diagnostic") is True
+        and chain_status.get("ready_for_runtime_truth") is False
+        and chain_status.get("runtime_truth_changed") is False
+        and chain_status.get("runtime_mutation_allowed") is False
+        and chain_status.get("live_websearch_used") is False
+        and chain_status.get("live_extract_used") is False
+        and chain_status.get("live_provider_used") is False
+        and chain_status.get("readiness_claimed") is False
+    )
+
+
+def _chain_status_authorizes_review_packet(
+    *,
+    chain_status: dict[str, Any],
+    review_packet_artifact: dict[str, Any],
+) -> bool:
+    proof = chain_status.get("chain_proof") if isinstance(chain_status.get("chain_proof"), dict) else {}
+    chain_review_ids = {
+        str(packet_id or "").strip()
+        for packet_id in proof.get("review_packet_ids") or []
+        if str(packet_id or "").strip()
+    }
+    review_ids = {
+        str(item.get("packet_id") or "").strip()
+        for item in review_packet_artifact.get("review_packets") or []
+        if isinstance(item, dict) and str(item.get("packet_id") or "").strip()
+    }
+    return bool(chain_review_ids) and chain_review_ids == review_ids
+
+
+def _chain_status_ref(chain_status: dict[str, Any]) -> dict[str, Any]:
+    summary = chain_status.get("summary") if isinstance(chain_status.get("summary"), dict) else {}
+    return {
+        "chain_ref_source": "run_accurate_intake_grokfast_websearch_packet_smoke",
+        "artifact_type": chain_status.get("artifact_type"),
+        "status": chain_status.get("status"),
+        "ready_for_live_diagnostic": chain_status.get("ready_for_live_diagnostic"),
+        "ready_for_runtime_truth": chain_status.get("ready_for_runtime_truth"),
+        "review_packet_authorized": True,
+        "review_packet_count": summary.get("review_packet_count"),
+        "preflight_review_ref_count": summary.get("preflight_review_ref_count"),
+    }
+
+
 def _review_packet_digest(packet: dict[str, Any]) -> str:
     payload = json.dumps(packet, ensure_ascii=False, sort_keys=True, default=str)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
@@ -288,8 +383,11 @@ def _blocked_live_artifact(
     *,
     failure_family: str,
     preflight_artifact: str,
+    exact_candidate_chain_status_artifact: str | None = None,
     preflight_status: str | None = None,
     preflight_blockers: list[Any] | None = None,
+    chain_status_status: str | None = None,
+    chain_status_blockers: list[Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "artifact_type": "accurate_intake_grokfast_websearch_packet_smoke",
@@ -297,6 +395,7 @@ def _blocked_live_artifact(
         "status": "blocked",
         "failure_family": failure_family,
         "live_provider_used": False,
+        "live_websearch_used": False,
         "readiness_claimed": False,
         "self_use_approved": False,
         "production_selected": False,
@@ -306,6 +405,9 @@ def _blocked_live_artifact(
         "preflight_artifact": preflight_artifact,
         "preflight_status": preflight_status,
         "preflight_blockers": preflight_blockers or [],
+        "exact_candidate_chain_status_artifact": exact_candidate_chain_status_artifact,
+        "exact_candidate_chain_status": chain_status_status,
+        "exact_candidate_chain_blockers": chain_status_blockers or [],
     }
 
 
