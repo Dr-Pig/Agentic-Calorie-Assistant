@@ -8,8 +8,9 @@ from typing import Any
 from app.composition.accurate_intake_manager_tool_choice_regression_wall import (
     build_manager_tool_choice_regression_wall_artifact,
 )
-from app.composition.accurate_intake_manager_tool_surface_inventory import (
-    build_manager_tool_surface_inventory_artifact,
+from app.composition.accurate_intake_non_fooddb_manager_tool_contract import (
+    build_non_fooddb_manager_tool_contract_artifact,
+    build_tool_contract_index,
 )
 
 REQUIRED_CASE_IDS = (
@@ -116,17 +117,8 @@ def _validate(cases: list[dict[str, Any]]) -> list[str]:
     return blockers
 
 
-def _read_only_contract_map(inventory_payload: dict[str, Any]) -> dict[str, str]:
-    return {
-        str(tool.get("tool_name")): str(tool.get("truth_owner"))
-        for tool in list(inventory_payload.get("target_manager_tools") or [])
-        if isinstance(tool, dict) and tool.get("tool_kind") == "read_only"
-    }
-
-
-def _validate_against_contract(cases: list[dict[str, Any]], contract: dict[str, str]) -> list[str]:
+def _validate_against_contract(cases: list[dict[str, Any]], contract: dict[str, dict[str, Any]]) -> list[str]:
     blockers: list[str] = []
-    allowed_truth_owners = set(contract.values())
     for case in cases:
         case_id = str(case.get("case_id"))
         selected_tool = str(case.get("selected_tool") or "")
@@ -140,10 +132,8 @@ def _validate_against_contract(cases: list[dict[str, Any]], contract: dict[str, 
             blockers.append(f"{case_id}.tool_result_tool_name_selected_tool_mismatch")
         if result_tool_name and result_tool_name not in contract:
             blockers.append(f"{case_id}.tool_result_tool_name_not_in_non_fooddb_read_only_contract")
-        expected_truth_owner = contract.get(selected_tool) or contract.get(result_tool_name)
-        if result_truth_owner not in allowed_truth_owners or (
-            expected_truth_owner is not None and result_truth_owner != expected_truth_owner
-        ):
+        expected = contract.get(selected_tool) or contract.get(result_tool_name)
+        if expected is None or result_truth_owner != str(expected.get("truth_owner") or ""):
             blockers.append(f"{case_id}.truth_owner_contract_mismatch")
         if result.get("tool_execution_source") != "deterministic_domain_read_model_fixture":
             blockers.append(f"{case_id}.tool_execution_source_not_deterministic_read_model_fixture")
@@ -153,15 +143,15 @@ def _validate_against_contract(cases: list[dict[str, Any]], contract: dict[str, 
 
 
 def build_non_fooddb_read_only_tool_loop_fake_smoke_artifact(
-    *, inventory: dict[str, Any] | None = None, tool_choice_wall: dict[str, Any] | None = None, cases: list[dict[str, Any]] | None = None, overrides: dict[str, Any] | None = None
+    *, tool_contract: dict[str, Any] | None = None, tool_choice_wall: dict[str, Any] | None = None, cases: list[dict[str, Any]] | None = None, overrides: dict[str, Any] | None = None
 ) -> dict[str, Any]:
-    inventory_payload = inventory if inventory is not None else build_manager_tool_surface_inventory_artifact()
+    contract_payload = tool_contract if tool_contract is not None else build_non_fooddb_manager_tool_contract_artifact()
     wall_payload = tool_choice_wall if tool_choice_wall is not None else build_manager_tool_choice_regression_wall_artifact()
     scenario_cases = deepcopy(cases if cases is not None else _cases())
-    contract = _read_only_contract_map(inventory_payload)
+    contract = build_tool_contract_index(contract_payload, stages={"inventory_backed"}, callable_only=True)
     blockers = _validate(scenario_cases) + _validate_against_contract(scenario_cases, contract)
-    if inventory_payload.get("status") != "manager_tool_surface_inventory_ready_for_human_review":
-        blockers.append("manager_tool_surface_inventory.not_ready")
+    if contract_payload.get("status") != "non_fooddb_manager_tool_contract_ready_for_human_review":
+        blockers.append("non_fooddb_manager_tool_contract.not_ready")
     if wall_payload.get("status") != "manager_tool_choice_regression_wall_pass":
         blockers.append("manager_tool_choice_regression_wall.not_pass")
     artifact: dict[str, Any] = {

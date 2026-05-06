@@ -5,6 +5,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from scripts.accurate_intake_non_fooddb_manager_tool_contract_gate_checks import (
+    candidate_contract_blockers,
+)
+
 REQUIRED_EVIDENCE = (
     "browser_shell_smoke",
     "chat_history_reload",
@@ -17,6 +21,7 @@ REQUIRED_EVIDENCE = (
     "ui_context_alignment_pack",
     "browser_activation_evidence_gate",
     "manager_tool_surface_inventory",
+    "non_fooddb_manager_tool_contract",
     "manager_tool_choice_regression_wall",
     "context_conditioned_intent_wall",
     "non_fooddb_read_only_tool_loop_fake_smoke",
@@ -41,6 +46,7 @@ EXPECTED_STATUS_BY_GROUP = {
     "ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
     "browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
     "manager_tool_surface_inventory": "manager_tool_surface_inventory_ready_for_human_review",
+    "non_fooddb_manager_tool_contract": "non_fooddb_manager_tool_contract_ready_for_human_review",
     "manager_tool_choice_regression_wall": "manager_tool_choice_regression_wall_pass",
     "context_conditioned_intent_wall": "pass",
     "non_fooddb_read_only_tool_loop_fake_smoke": "non_fooddb_read_only_tool_loop_fake_smoke_pass",
@@ -179,6 +185,8 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
                 blockers.append("manager tool inventory direct lane count too low")
             if int(summary.get("target_tool_count") or 0) < 10:
                 blockers.append("manager tool inventory target tool count too low")
+        if group_id == "non_fooddb_manager_tool_contract":
+            blockers.extend(candidate_contract_blockers(payload))
 
         if group_id == "manager_tool_choice_regression_wall":
             summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}

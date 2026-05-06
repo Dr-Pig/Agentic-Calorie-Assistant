@@ -121,6 +121,19 @@ def _required_payloads() -> dict[str, dict[str, object]]:
                 "read_only_tool_count": 6,
             },
         },
+        "non_fooddb_manager_tool_contract": {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_non_fooddb_manager_tool_contract",
+            "status": "non_fooddb_manager_tool_contract_ready_for_human_review",
+            "summary": {
+                "inventory_backed_tool_count": 10,
+                "read_only_tool_count": 7,
+                "proposal_tool_count": 1,
+                "mutation_tool_count": 3,
+                "legacy_direct_route_debt_count": 1,
+                "direct_lane_bridge_count": 7,
+            },
+        },
         "manager_tool_choice_regression_wall": {
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_manager_tool_choice_regression_wall",
@@ -424,6 +437,7 @@ def test_local_web_self_use_candidate_v2_gate_runner_derives_phase_c_identity_fr
         "ui_context_alignment_pack",
         "browser_activation_evidence_gate",
         "manager_tool_surface_inventory",
+        "non_fooddb_manager_tool_contract",
         "manager_tool_choice_regression_wall",
         "context_conditioned_intent_wall",
         "non_fooddb_read_only_tool_loop_fake_smoke",

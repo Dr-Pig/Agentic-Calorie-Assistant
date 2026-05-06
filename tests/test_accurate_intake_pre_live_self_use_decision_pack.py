@@ -104,6 +104,26 @@ def _evidence(**overrides: dict) -> dict:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "non_fooddb_manager_tool_contract": {
+            "status": "non_fooddb_manager_tool_contract_ready_for_human_review",
+            "summary": {
+                "inventory_backed_tool_count": 10,
+                "read_only_tool_count": 7,
+                "proposal_tool_count": 1,
+                "mutation_tool_count": 3,
+                "legacy_direct_route_debt_count": 1,
+                "direct_lane_bridge_count": 7,
+            },
+            "shared_contract_changed": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "fooddb_used": False,
+            "web_tavily_used": False,
+            "live_llm_invoked": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
         "manager_tool_choice_regression_wall": {
             "status": "manager_tool_choice_regression_wall_pass",
             "semantic_owner": "fixture_manager_structured_decision",
@@ -414,6 +434,7 @@ def test_pre_live_decision_pack_requires_product_pages_and_non_fooddb_manager_to
         _evidence(
             browser_activation_evidence_gate={},
             manager_tool_surface_inventory={},
+            non_fooddb_manager_tool_contract={},
             non_fooddb_mutation_tool_guard_smoke={},
         )
     )
@@ -421,6 +442,7 @@ def test_pre_live_decision_pack_requires_product_pages_and_non_fooddb_manager_to
     assert pack["selected_option"] == "stay_local_self_use"
     assert "browser_activation_evidence_gate" in pack["missing_evidence"]
     assert "manager_tool_surface_inventory" in pack["missing_evidence"]
+    assert "non_fooddb_manager_tool_contract" in pack["missing_evidence"]
     assert "non_fooddb_mutation_tool_guard_smoke" in pack["missing_evidence"]
 
 
@@ -432,6 +454,17 @@ def test_pre_live_decision_pack_blocks_non_fooddb_manager_tool_and_browser_overc
                 "all_required_browser_artifacts_executed": False,
                 "browser_executed_required": False,
                 "product_readiness_claimed": True,
+            },
+            non_fooddb_manager_tool_contract={
+                "status": "non_fooddb_manager_tool_contract_ready_for_human_review",
+                "summary": {
+                    "inventory_backed_tool_count": 2,
+                    "read_only_tool_count": 1,
+                    "proposal_tool_count": 0,
+                    "mutation_tool_count": 1,
+                    "legacy_direct_route_debt_count": 0,
+                    "direct_lane_bridge_count": 1,
+                },
             },
             manager_tool_choice_regression_wall={
                 "status": "manager_tool_choice_regression_wall_pass",
@@ -450,6 +483,9 @@ def test_pre_live_decision_pack_blocks_non_fooddb_manager_tool_and_browser_overc
     assert "browser_activation_evidence_gate_browser_artifacts_not_all_executed" in pack["blockers"]
     assert "browser_activation_evidence_gate_browser_execution_not_required" in pack["blockers"]
     assert "browser_activation_evidence_gate_product_readiness_claimed" in pack["blockers"]
+    assert "non_fooddb_manager_tool_contract_inventory_backed_tool_count_too_low" in pack["blockers"]
+    assert "non_fooddb_manager_tool_contract_read_only_tool_count_too_low" in pack["blockers"]
+    assert "non_fooddb_manager_tool_contract_direct_lane_bridge_count_too_low" in pack["blockers"]
     assert "manager_tool_choice_regression_wall_semantic_owner_not_fixture_manager" in pack["blockers"]
     assert "manager_tool_choice_regression_wall_case_count_too_low" in pack["blockers"]
     assert "non_fooddb_read_only_tool_loop_fake_smoke_case_count_too_low" in pack["blockers"]
