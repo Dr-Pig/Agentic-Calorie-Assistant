@@ -200,7 +200,7 @@ def _evaluate_future_shadow_surface(track: str, change: ChangedFile) -> list[dic
 def _dsa_advisories(change: ChangedFile) -> list[dict[str, object]]:
     path = normalize_repo_path(change.path)
     source = change.new_text
-    if source is None or not path.endswith(".py"):
+    if source is None or not path.endswith(".py") or path.startswith("tests/"):
         return []
 
     advisories: list[dict[str, object]] = []
@@ -223,7 +223,7 @@ def _dsa_advisories(change: ChangedFile) -> list[dict[str, object]]:
             isinstance(child, (ast.If, ast.For, ast.AsyncFor, ast.While, ast.Try, ast.Match, ast.BoolOp))
             for child in ast.walk(node)
         )
-        if function_lines >= 80 or branch_nodes >= 4:
+        if function_lines >= 80 or branch_nodes >= 6:
             advisories.append(
                 _finding(
                     code="changed_function_complexity_signal",

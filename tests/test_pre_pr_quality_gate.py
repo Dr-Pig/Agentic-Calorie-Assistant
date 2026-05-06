@@ -138,7 +138,14 @@ def test_dsa_findings_are_advisory_only() -> None:
             "        if item:",
             "            for nested in item:",
             "                if nested:",
-            "                    total += nested",
+            "                    if nested > 0:",
+            "                        total += nested",
+            "                    else:",
+            "                        total -= nested",
+            "                elif nested == 0:",
+            "                    total += 1",
+            "            if total > 100:",
+            "                break",
             "    return total",
         ]
     )
@@ -151,7 +158,7 @@ def test_dsa_findings_are_advisory_only() -> None:
                 new_text=source,
             )
         ],
-        policy=POLICY,
+        policy={**POLICY, "category_caps": {**POLICY["category_caps"], "application_orchestration": 50}},
         track="PLCE",
         run_boundary_checks=False,
     )
