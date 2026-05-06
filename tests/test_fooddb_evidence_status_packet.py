@@ -7,6 +7,7 @@ from app.nutrition.application.fooddb_evidence_status_packet import (
     _next_required_slices,
     build_fooddb_evidence_status_packet,
 )
+from scripts.fooddb_live_bundle_artifacts import build_fooddb_live_bundle_artifact_paths
 
 
 def _small_anchor_payload() -> dict:
@@ -142,6 +143,79 @@ def test_fooddb_evidence_status_packet_script_roundtrip(tmp_path: Path) -> None:
     assert packet["summary"]["runtime_common_serving_anchor_count"] == 51
     assert packet["summary"]["exact_card_staging_candidate_count"] == 4
     assert packet["summary"]["manager_contract_handoff_status"] == "not_run"
+
+
+def test_fooddb_evidence_status_packet_script_accepts_bundle_manifest(tmp_path: Path) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.build_accurate_intake_fooddb_evidence_status_packet import main
+
+    bundle_dir = tmp_path / "bundle"
+    bundle_dir.mkdir()
+    bundle_paths = build_fooddb_live_bundle_artifact_paths(bundle_dir)
+    output = tmp_path / "fooddb_evidence_status_packet.json"
+
+    write_json_artifact(
+        bundle_paths["manager_contract_handoff"],
+        _contract_handoff_artifact(),
+    )
+    write_json_artifact(
+        bundle_paths["manifest"],
+        {
+            "artifact_type": "accurate_intake_fooddb_live_diagnostic_bundle_manifest",
+            "artifacts": {
+                "manager_contract_handoff": str(bundle_paths["manager_contract_handoff"]),
+            },
+        },
+    )
+
+    assert (
+        main(
+            [
+                "--bundle-manifest",
+                str(bundle_paths["manifest"]),
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+
+    packet = read_json_artifact(output)
+    assert packet["summary"]["manager_contract_live_seam_status"] == "provider_contract_blocked"
+    assert packet["summary"]["manager_contract_handoff_status"] == "ready_for_manager_contract_owner"
+    assert packet["next_required_slices"] == ["await_manager_contract_owner_repair"]
+
+
+def test_fooddb_evidence_status_packet_script_accepts_bundle_dir(tmp_path: Path) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.build_accurate_intake_fooddb_evidence_status_packet import main
+
+    bundle_dir = tmp_path / "bundle"
+    bundle_dir.mkdir()
+    bundle_paths = build_fooddb_live_bundle_artifact_paths(bundle_dir)
+    output = tmp_path / "fooddb_evidence_status_packet.json"
+
+    write_json_artifact(
+        bundle_paths["manager_contract_handoff"],
+        _contract_handoff_artifact(),
+    )
+
+    assert (
+        main(
+            [
+                "--bundle-dir",
+                str(bundle_dir),
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+
+    packet = read_json_artifact(output)
+    assert packet["summary"]["manager_contract_live_seam_status"] == "provider_contract_blocked"
+    assert packet["summary"]["manager_contract_handoff_status"] == "ready_for_manager_contract_owner"
+    assert packet["next_required_slices"] == ["await_manager_contract_owner_repair"]
 
 
 def test_fooddb_evidence_status_packet_does_not_unlock_seam_before_all_thresholds() -> None:
