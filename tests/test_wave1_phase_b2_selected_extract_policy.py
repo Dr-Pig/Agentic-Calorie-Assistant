@@ -79,9 +79,10 @@ def test_selected_extract_policy_rejects_related_or_wrong_item_packets() -> None
 def test_selected_extract_policy_rejects_sibling_and_modifier_or_size_mismatch() -> None:
     sibling = _search_packet(packet_id="pkt_web_search_sibling", sibling_present=True)
     wrong_size = _search_packet(packet_id="pkt_web_search_wrong_size", size_or_serving_match="different")
+    unknown_size = _search_packet(packet_id="pkt_web_search_unknown_size", size_or_serving_match="unknown")
     wrong_modifier = _search_packet(packet_id="pkt_web_search_wrong_modifier", modifier_match="different")
 
-    for packet in (sibling, wrong_size, wrong_modifier):
+    for packet in (sibling, wrong_size, unknown_size, wrong_modifier):
         decision = choose_selected_extract_packet((packet,))
         assert decision.extract_allowed_by_policy is False
         assert decision.selected_search_packet_id is None

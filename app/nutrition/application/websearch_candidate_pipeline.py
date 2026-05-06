@@ -46,6 +46,7 @@ def build_websearch_candidate_pipeline_diagnostic(
         for case in case_results
         for classification in case["candidate_classifications"]
     ]
+    boundary_counts = _candidate_boundary_counts(classifications)
     return {
         "artifact_type": "accurate_intake_websearch_candidate_pipeline_v1",
         "artifact_schema_version": "1.0",
@@ -76,6 +77,7 @@ def build_websearch_candidate_pipeline_diagnostic(
             ),
             "classification_counts": _classification_counts(classifications),
             "source_class_counts": _source_class_counts(classifications),
+            **boundary_counts,
         },
         "non_claims": list(WEBSEARCH_CANDIDATE_PIPELINE_NON_CLAIMS),
     }
@@ -160,6 +162,39 @@ def _source_class_counts(classifications: Iterable[dict[str, Any]]) -> dict[str,
         key = str(classification.get("source_class") or "unknown")
         counts[key] = counts.get(key, 0) + 1
     return dict(sorted(counts.items()))
+
+
+def _candidate_boundary_counts(classifications: Iterable[dict[str, Any]]) -> dict[str, int]:
+    disambiguation_classes = {
+        "near_exact_modifier_unknown_candidate",
+        "near_exact_sibling_candidate",
+        "near_exact_size_unknown_candidate",
+        "near_exact_wrong_size_candidate",
+    }
+    exact_review = 0
+    blocked = 0
+    blocked_exact = 0
+    weak = 0
+    disambiguation = 0
+    for classification in classifications:
+        candidate_class = str(classification.get("candidate_class") or "")
+        if candidate_class == "exact_candidate_for_extract_review":
+            exact_review += 1
+        elif candidate_class == "exact_candidate_blocked_by_policy":
+            blocked_exact += 1
+        elif candidate_class == "blocked_source_policy_candidate":
+            blocked += 1
+        elif candidate_class == "weak_or_unusable_candidate":
+            weak += 1
+        elif candidate_class in disambiguation_classes:
+            disambiguation += 1
+    return {
+        "blocked_candidate_count": blocked,
+        "disambiguation_candidate_count": disambiguation,
+        "exact_review_candidate_count": exact_review,
+        "policy_blocked_exact_candidate_count": blocked_exact,
+        "weak_candidate_count": weak,
+    }
 
 
 def _identity_target(intent: RetrievalIntent) -> str:

@@ -81,6 +81,21 @@ def build_websearch_candidate_lane_status_packet(
             "extract_candidate_allowed_count": candidate_pipeline["summary"][
                 "extract_candidate_allowed_count"
             ],
+            "pipeline_exact_review_candidate_count": candidate_pipeline["summary"][
+                "exact_review_candidate_count"
+            ],
+            "pipeline_disambiguation_candidate_count": candidate_pipeline["summary"][
+                "disambiguation_candidate_count"
+            ],
+            "pipeline_blocked_candidate_count": candidate_pipeline["summary"][
+                "blocked_candidate_count"
+            ],
+            "pipeline_policy_blocked_exact_candidate_count": candidate_pipeline["summary"][
+                "policy_blocked_exact_candidate_count"
+            ],
+            "pipeline_weak_candidate_count": candidate_pipeline["summary"][
+                "weak_candidate_count"
+            ],
             "candidate_packet_case_count": candidate_packet_artifact["summary"]["case_count"],
             "candidate_only_packet_count": candidate_packet_artifact["summary"]["candidate_only_count"],
             "manager_projection_case_count": manager_projection["summary"]["case_count"],

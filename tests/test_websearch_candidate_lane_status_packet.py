@@ -5,6 +5,9 @@ from pathlib import Path
 from app.nutrition.application.websearch_candidate_lane_status_packet import (
     build_websearch_candidate_lane_status_packet,
 )
+from app.nutrition.application.websearch_candidate_pipeline import (
+    build_websearch_candidate_pipeline_diagnostic,
+)
 from app.nutrition.application.websearch_manager_contract_handoff import (
     build_websearch_manager_contract_handoff,
 )
@@ -260,6 +263,7 @@ def _fooddb_status_packet() -> dict:
 
 def test_websearch_candidate_lane_status_packet_summarizes_deterministic_lane() -> None:
     artifact = build_websearch_candidate_lane_status_packet()
+    pipeline_summary = build_websearch_candidate_pipeline_diagnostic()["summary"]
 
     assert artifact["artifact_type"] == "accurate_intake_websearch_candidate_lane_status_packet_v1"
     assert artifact["classification"] == "deterministic_websearch_candidate_lane_status_only"
@@ -274,7 +278,23 @@ def test_websearch_candidate_lane_status_packet_summarizes_deterministic_lane() 
     assert artifact["summary"]["source_adapter_guard_max_results_hard_cap"] == 20
     assert artifact["summary"]["pipeline_case_count"] >= 4
     assert artifact["summary"]["extract_candidate_allowed_count"] >= 1
+    assert artifact["summary"]["pipeline_exact_review_candidate_count"] >= 4
+    assert artifact["summary"]["pipeline_disambiguation_candidate_count"] >= 5
+    assert artifact["summary"]["pipeline_blocked_candidate_count"] >= 4
+    assert artifact["summary"]["pipeline_policy_blocked_exact_candidate_count"] >= 1
+    assert artifact["summary"]["pipeline_weak_candidate_count"] >= 3
     assert artifact["summary"]["candidate_packet_case_count"] == 4
+    assert artifact["summary"]["pipeline_case_count"] == 19
+    assert pipeline_summary["candidate_packet_count"] == sum(
+        artifact["summary"][key]
+        for key in (
+            "pipeline_exact_review_candidate_count",
+            "pipeline_disambiguation_candidate_count",
+            "pipeline_blocked_candidate_count",
+            "pipeline_policy_blocked_exact_candidate_count",
+            "pipeline_weak_candidate_count",
+        )
+    )
     assert artifact["summary"]["candidate_only_packet_count"] == 4
     assert artifact["summary"]["manager_projection_case_count"] == 4
     assert artifact["summary"]["manager_projection_compact_count"] == 4

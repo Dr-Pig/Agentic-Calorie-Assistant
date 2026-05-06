@@ -42,6 +42,9 @@ def classify_candidate_packet(
     elif "wrong_size" in risks or size_match == "different":
         candidate_class = "near_exact_wrong_size_candidate"
         manager_signal = "needs_disambiguation"
+    elif size_match == "unknown":
+        candidate_class = "near_exact_size_unknown_candidate"
+        manager_signal = "needs_disambiguation"
     elif modifier_match == "unknown":
         candidate_class = "near_exact_modifier_unknown_candidate"
         manager_signal = "needs_disambiguation"
