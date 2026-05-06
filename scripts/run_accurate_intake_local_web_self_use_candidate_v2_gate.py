@@ -46,6 +46,9 @@ DEFAULT_EVIDENCE_PATHS = {
     "context_live_response_contract_dry_run": ROOT
     / "artifacts"
     / "accurate_intake_context_live_response_contract_dry_run.json",
+    "context_live_diagnostic_gate": ROOT
+    / "artifacts"
+    / "accurate_intake_context_live_diagnostic_gate.json",
 }
 DEFAULT_PRE_LIVE_EVIDENCE_OUTPUT = ROOT / "artifacts" / "accurate_intake_pre_live_evidence.json"
 DEFAULT_PRE_LIVE_OUTPUT = ROOT / "artifacts" / "accurate_intake_pre_live_self_use_decision_pack.json"
@@ -218,6 +221,7 @@ def _candidate_evidence(pre_live_evidence: dict[str, Any], pre_live_pack: dict[s
         "context_live_response_contract_dry_run": pre_live_evidence[
             "context_live_response_contract_dry_run"
         ],
+        "context_live_diagnostic_gate": pre_live_evidence["context_live_diagnostic_gate"],
         "local_operator_data_hygiene_bundle": pre_live_evidence["local_operator_data_hygiene_bundle"],
         "local_web_candidate_gate_evidence": pre_live_evidence["_evidence_metadata"],
         "mvp_gate": pre_live_evidence["accurate_intake_mvp_gate"],

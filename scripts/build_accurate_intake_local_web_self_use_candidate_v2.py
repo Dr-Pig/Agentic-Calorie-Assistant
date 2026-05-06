@@ -15,6 +15,7 @@ REQUIRED_EVIDENCE = (
     "pl_ce_local_review_decision_pack",
     "context_live_diagnostic_case_matrix",
     "context_live_diagnostic_anti_overfit_guard",
+    "context_live_diagnostic_gate",
     "mvp_gate",
     "phase_c_gate",
 )
@@ -29,6 +30,7 @@ EXPECTED_STATUS_BY_GROUP = {
     "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
     "context_live_diagnostic_case_matrix": "pass",
     "context_live_diagnostic_anti_overfit_guard": "pass",
+    "context_live_diagnostic_gate": "context_live_diagnostic_gate_ready_without_live_canary",
     "mvp_gate": "pass",
     "phase_c_gate": "pass",
 }
@@ -155,6 +157,20 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
                 blockers.append("context live anti-overfit guard compound case missing")
             if int(summary.get("ambiguity_cases") or 0) < 1:
                 blockers.append("context live anti-overfit guard ambiguity case missing")
+
+        if group_id == "context_live_diagnostic_gate":
+            if payload.get("live_provider_allowed") is not False:
+                blockers.append("context live diagnostic gate allowed live provider")
+            if payload.get("live_provider_required") is not False:
+                blockers.append("context live diagnostic gate required live provider")
+            if payload.get("fixed_case_matrix_used") is not True:
+                blockers.append("context live diagnostic gate missing fixed matrix")
+            if payload.get("ad_hoc_live_case_selection_allowed") is not False:
+                blockers.append("context live diagnostic gate allowed ad hoc live cases")
+            if payload.get("anti_overfit_guard_required") is not True:
+                blockers.append("context live diagnostic gate missing anti-overfit guard")
+            if payload.get("response_contract_dry_run_required") is not True:
+                blockers.append("context live diagnostic gate missing response contract dry-run")
 
         if payload.get("production_selected") is True:
             blockers.append("readiness overclaim")

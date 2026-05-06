@@ -60,6 +60,22 @@ def _clean_evidence() -> dict:
                 "ambiguity_cases": 1,
             },
         },
+        "context_live_diagnostic_gate": {
+            "status": "context_live_diagnostic_gate_ready_without_live_canary",
+            "source": "test",
+            "live_provider_allowed": False,
+            "live_provider_required": False,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "fixed_case_matrix_used": True,
+            "ad_hoc_live_case_selection_allowed": False,
+            "anti_overfit_guard_required": True,
+            "response_contract_dry_run_required": True,
+            "fooddb_used": False,
+            "web_tavily_used": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+        },
         "mvp_gate": {"status": "pass"},
         "phase_c_gate": {"status": "pass"},
     }
@@ -146,6 +162,44 @@ def test_candidate_blocked_when_context_live_anti_overfit_guard_missing() -> Non
         "missing evidence: context_live_diagnostic_anti_overfit_guard"
         in pack["local_web_self_use_candidate_v2"]["blockers"]
     )
+
+def test_candidate_blocked_when_context_live_gate_missing() -> None:
+    evidence = _clean_evidence()
+    del evidence["context_live_diagnostic_gate"]
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert (
+        "missing evidence: context_live_diagnostic_gate"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
+
+def test_candidate_blocks_live_context_gate_overclaims() -> None:
+    evidence = _clean_evidence()
+    evidence["context_live_diagnostic_gate"].update(
+        {
+            "status": "context_live_diagnostic_gate_ready_with_live_canary",
+            "live_provider_allowed": True,
+            "live_llm_invoked": True,
+            "live_provider_invoked": True,
+            "fooddb_used": True,
+            "ad_hoc_live_case_selection_allowed": True,
+        }
+    )
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert (
+        "failed evidence: context_live_diagnostic_gate status="
+        "context_live_diagnostic_gate_ready_with_live_canary"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
+    assert "live provider used" in pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert "FoodDB overclaim" in pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert "context live diagnostic gate allowed live provider" in pack[
+        "local_web_self_use_candidate_v2"
+    ]["blockers"]
+    assert "context live diagnostic gate allowed ad hoc live cases" in pack[
+        "local_web_self_use_candidate_v2"
+    ]["blockers"]
 
 def test_candidate_requires_pre_live_pack_to_reference_pl_ce_local_review() -> None:
     evidence = _clean_evidence()
