@@ -96,6 +96,28 @@ def _evidence(**overrides: dict) -> dict:
                 "ambiguity_cases": 1,
             },
         },
+        "context_live_diagnostic_holdout_plan": {
+            "status": "pass",
+            "plan_only": True,
+            "fixture_only": True,
+            "fixed_case_matrix_used": True,
+            "holdout_variants_withheld_from_default_live_prompt": True,
+            "ad_hoc_live_case_selection_allowed": False,
+            "provider_optimized_case_selection_allowed": False,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "fooddb_used": False,
+            "web_tavily_used": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "summary": {
+                "case_count": 11,
+                "withheld_holdout_variant_count": 22,
+                "cases_with_holdouts": 11,
+                "compound_cases": 1,
+                "ambiguity_cases": 1,
+            },
+        },
         "context_live_provider_input_preflight": {
             "status": "pass",
             "plan_only": True,
@@ -156,6 +178,7 @@ def _evidence(**overrides: dict) -> dict:
             "ad_hoc_live_case_selection_allowed": False,
             "fixed_case_matrix_used": True,
             "anti_overfit_guard_required": True,
+            "holdout_plan_required": True,
             "response_contract_dry_run_required": True,
             "diagnostic_only": True,
             "local_only": True,
@@ -347,6 +370,16 @@ def test_pre_live_decision_pack_requires_context_live_anti_overfit_guard() -> No
 
     assert pack["selected_option"] == "stay_local_self_use"
     assert "context_live_diagnostic_anti_overfit_guard" in pack["missing_evidence"]
+    assert pack["ready_for_live_diagnostic_decision"] is False
+
+
+def test_pre_live_decision_pack_requires_context_live_holdout_plan() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(context_live_diagnostic_holdout_plan={})
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "context_live_diagnostic_holdout_plan" in pack["missing_evidence"]
     assert pack["ready_for_live_diagnostic_decision"] is False
 
 
@@ -545,6 +578,43 @@ def test_pre_live_decision_pack_blocks_unsafe_context_live_anti_overfit_guard() 
     assert "context_live_diagnostic_anti_overfit_guard_case_count_too_low" in pack["blockers"]
     assert "context_live_diagnostic_anti_overfit_guard_compound_case_missing" in pack["blockers"]
     assert "context_live_diagnostic_anti_overfit_guard_ambiguity_case_missing" in pack["blockers"]
+
+
+def test_pre_live_decision_pack_blocks_unsafe_context_live_holdout_plan() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            context_live_diagnostic_holdout_plan={
+                "status": "pass",
+                "plan_only": False,
+                "fixed_case_matrix_used": False,
+                "holdout_variants_withheld_from_default_live_prompt": False,
+                "ad_hoc_live_case_selection_allowed": True,
+                "provider_optimized_case_selection_allowed": True,
+                "live_provider_invoked": True,
+                "fooddb_used": True,
+                "summary": {
+                    "case_count": 1,
+                    "withheld_holdout_variant_count": 1,
+                    "cases_with_holdouts": 1,
+                    "compound_cases": 0,
+                    "ambiguity_cases": 0,
+                },
+            }
+        )
+    )
+
+    assert pack["selected_option"] == "stay_local_self_use"
+    assert "context_live_diagnostic_holdout_plan" in pack["missing_evidence"]
+    assert "context_live_diagnostic_holdout_plan_live_provider_invoked" in pack["blockers"]
+    assert "context_live_diagnostic_holdout_plan_fooddb_used" in pack["blockers"]
+    assert "context_live_diagnostic_holdout_plan_fixed_case_matrix_missing" in pack["blockers"]
+    assert "context_live_diagnostic_holdout_plan_holdouts_not_withheld" in pack["blockers"]
+    assert "context_live_diagnostic_holdout_plan_ad_hoc_case_selection_allowed" in pack["blockers"]
+    assert (
+        "context_live_diagnostic_holdout_plan_provider_optimized_selection_allowed"
+        in pack["blockers"]
+    )
+    assert "context_live_diagnostic_holdout_plan_withheld_holdout_count_too_low" in pack["blockers"]
 
 
 def test_pre_live_decision_pack_blocks_unsafe_context_live_case_matrix() -> None:

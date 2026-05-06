@@ -15,6 +15,7 @@ REQUIRED_EVIDENCE = (
     "pl_ce_local_review_decision_pack",
     "context_live_diagnostic_case_matrix",
     "context_live_diagnostic_anti_overfit_guard",
+    "context_live_diagnostic_holdout_plan",
     "context_live_diagnostic_gate",
     "mvp_gate",
     "phase_c_gate",
@@ -30,6 +31,7 @@ EXPECTED_STATUS_BY_GROUP = {
     "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
     "context_live_diagnostic_case_matrix": "pass",
     "context_live_diagnostic_anti_overfit_guard": "pass",
+    "context_live_diagnostic_holdout_plan": "pass",
     "context_live_diagnostic_gate": "context_live_diagnostic_gate_ready_without_live_canary",
     "mvp_gate": "pass",
     "phase_c_gate": "pass",
@@ -158,6 +160,31 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
             if int(summary.get("ambiguity_cases") or 0) < 1:
                 blockers.append("context live anti-overfit guard ambiguity case missing")
 
+        if group_id == "context_live_diagnostic_holdout_plan":
+            summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+            if payload.get("plan_only") is not True:
+                blockers.append("context live holdout plan not plan-only")
+            if payload.get("fixed_case_matrix_used") is not True:
+                blockers.append("context live holdout plan missing fixed matrix")
+            if payload.get("holdout_variants_withheld_from_default_live_prompt") is not True:
+                blockers.append("context live holdout variants not withheld")
+            if payload.get("ad_hoc_live_case_selection_allowed") is not False:
+                blockers.append("context live holdout plan allowed ad hoc live cases")
+            if payload.get("provider_optimized_case_selection_allowed") is not False:
+                blockers.append("context live holdout plan allowed provider-optimized cases")
+            if payload.get("blocked_if_single_case_only") is not True:
+                blockers.append("context live holdout plan missing single-case blocker")
+            if int(summary.get("case_count") or 0) < 10:
+                blockers.append("context live holdout plan case count too low")
+            if int(summary.get("withheld_holdout_variant_count") or 0) < 20:
+                blockers.append("context live holdout plan withheld count too low")
+            if int(summary.get("cases_with_holdouts") or 0) < 10:
+                blockers.append("context live holdout plan coverage too low")
+            if int(summary.get("compound_cases") or 0) < 1:
+                blockers.append("context live holdout plan compound case missing")
+            if int(summary.get("ambiguity_cases") or 0) < 1:
+                blockers.append("context live holdout plan ambiguity case missing")
+
         if group_id == "context_live_diagnostic_gate":
             if payload.get("live_provider_allowed") is not False:
                 blockers.append("context live diagnostic gate allowed live provider")
@@ -171,6 +198,8 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
                 blockers.append("context live diagnostic gate missing anti-overfit guard")
             if payload.get("response_contract_dry_run_required") is not True:
                 blockers.append("context live diagnostic gate missing response contract dry-run")
+            if payload.get("holdout_plan_required") is not True:
+                blockers.append("context live diagnostic gate missing holdout plan")
 
         if payload.get("production_selected") is True:
             blockers.append("readiness overclaim")
