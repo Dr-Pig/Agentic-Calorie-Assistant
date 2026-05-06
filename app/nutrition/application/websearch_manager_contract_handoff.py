@@ -56,6 +56,7 @@ def build_websearch_manager_contract_handoff(
     live_diagnostic_report: dict[str, Any],
     contract_probe_artifact: dict[str, Any],
     repair_pack_artifact: dict[str, Any],
+    preflight_artifact: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if (
         str(live_diagnostic_report.get("artifact_type") or "")
@@ -98,6 +99,7 @@ def build_websearch_manager_contract_handoff(
     alignment_blockers.extend(
         websearch_live_report_handoff_blockers(
             live_diagnostic_report=live_diagnostic_report,
+            preflight_artifact=preflight_artifact,
             seam_status=seam_status,
             contract_failure_detected=contract_failure_detected,
         )
