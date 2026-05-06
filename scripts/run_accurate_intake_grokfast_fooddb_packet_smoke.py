@@ -21,6 +21,10 @@ from app.nutrition.application.grokfast_fooddb_packet_smoke import (  # noqa: E4
 from app.nutrition.application.grokfast_fooddb_diagnostic_preflight import (  # noqa: E402
     is_grokfast_fooddb_preflight_clear,
 )
+from app.nutrition.application.grokfast_fooddb_live_runner_readiness_checks import (  # noqa: E402
+    input_artifact_blockers,
+    live_runner_readiness_input_blockers,
+)
 from app.providers.builderspace_adapter import BuilderSpaceAdapter, BuilderSpaceResponseError  # noqa: E402
 from app.providers.builderspace_runtime_contract import validate_manager_payload  # noqa: E402
 from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT  # noqa: E402
@@ -31,6 +35,12 @@ from app.shared.infra.json_artifacts import read_json_artifact, write_json_artif
 DEFAULT_PACKET_SMOKE = ROOT / "artifacts" / "accurate_intake_fooddb_manager_packet_smoke.json"
 DEFAULT_TOOL_EVIDENCE_RESULT = ROOT / "artifacts" / "accurate_intake_tool_evidence_result_smoke.json"
 DEFAULT_PREFLIGHT = ROOT / "artifacts" / "accurate_intake_grokfast_fooddb_diagnostic_preflight.json"
+DEFAULT_ROUTER_READINESS = (
+    ROOT / "artifacts" / "accurate_intake_food_evidence_retriever_router_readiness.json"
+)
+DEFAULT_LIVE_RUNNER_READINESS = (
+    ROOT / "artifacts" / "accurate_intake_grokfast_fooddb_live_runner_readiness_packet.json"
+)
 DEFAULT_OUTPUT = ROOT / "artifacts" / "accurate_intake_grokfast_fooddb_packet_smoke.json"
 
 FOODDB_PACKET_MANAGER_SYSTEM_PROMPT = (
@@ -50,6 +60,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--packet-smoke", default=str(DEFAULT_PACKET_SMOKE))
     parser.add_argument("--tool-evidence-result", default=None)
     parser.add_argument("--preflight-artifact", default=str(DEFAULT_PREFLIGHT))
+    parser.add_argument("--router-readiness-artifact", default=str(DEFAULT_ROUTER_READINESS))
+    parser.add_argument(
+        "--live-runner-readiness-artifact",
+        default=str(DEFAULT_LIVE_RUNNER_READINESS),
+    )
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
@@ -75,10 +90,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.mode == "live":
         preflight_path = Path(args.preflight_artifact)
+        router_readiness_path = Path(args.router_readiness_artifact)
+        live_runner_readiness_path = Path(args.live_runner_readiness_artifact)
         if not preflight_path.exists():
             artifact = _blocked_live_artifact(
                 failure_family="missing_clear_grokfast_fooddb_preflight",
                 preflight_artifact=str(preflight_path),
+                router_readiness_artifact=str(router_readiness_path),
+                live_runner_readiness_artifact=str(live_runner_readiness_path),
             )
             write_json_artifact(output_path, artifact)
             return 2
@@ -87,8 +106,61 @@ def main(argv: list[str] | None = None) -> int:
             artifact = _blocked_live_artifact(
                 failure_family="grokfast_fooddb_preflight_not_clear",
                 preflight_artifact=str(preflight_path),
+                router_readiness_artifact=str(router_readiness_path),
+                live_runner_readiness_artifact=str(live_runner_readiness_path),
                 preflight_status=preflight.get("status"),
                 preflight_blockers=list(preflight.get("blockers") or []),
+            )
+            write_json_artifact(output_path, artifact)
+            return 2
+        if not router_readiness_path.exists():
+            artifact = _blocked_live_artifact(
+                failure_family="missing_clear_food_evidence_retriever_router_readiness",
+                preflight_artifact=str(preflight_path),
+                router_readiness_artifact=str(router_readiness_path),
+                live_runner_readiness_artifact=str(live_runner_readiness_path),
+            )
+            write_json_artifact(output_path, artifact)
+            return 2
+        router_readiness = read_json_artifact(router_readiness_path)
+        readiness_blockers = input_artifact_blockers(
+            preflight_artifact=preflight,
+            router_readiness_artifact=router_readiness,
+        )
+        if readiness_blockers:
+            artifact = _blocked_live_artifact(
+                failure_family="food_evidence_retriever_router_readiness_not_clear",
+                preflight_artifact=str(preflight_path),
+                router_readiness_artifact=str(router_readiness_path),
+                live_runner_readiness_artifact=str(live_runner_readiness_path),
+                router_readiness_status=router_readiness.get("status"),
+                router_readiness_blockers=readiness_blockers,
+            )
+            write_json_artifact(output_path, artifact)
+            return 2
+        if not live_runner_readiness_path.exists():
+            artifact = _blocked_live_artifact(
+                failure_family="missing_clear_grokfast_fooddb_live_runner_readiness_packet",
+                preflight_artifact=str(preflight_path),
+                router_readiness_artifact=str(router_readiness_path),
+                live_runner_readiness_artifact=str(live_runner_readiness_path),
+            )
+            write_json_artifact(output_path, artifact)
+            return 2
+        live_runner_readiness = read_json_artifact(live_runner_readiness_path)
+        live_runner_blockers = live_runner_readiness_input_blockers(
+            readiness_artifact=live_runner_readiness,
+            preflight_artifact=preflight,
+            router_readiness_artifact=router_readiness,
+        )
+        if live_runner_blockers:
+            artifact = _blocked_live_artifact(
+                failure_family="grokfast_fooddb_live_runner_readiness_packet_mismatch",
+                preflight_artifact=str(preflight_path),
+                router_readiness_artifact=str(router_readiness_path),
+                live_runner_readiness_artifact=str(live_runner_readiness_path),
+                readiness_status=live_runner_readiness.get("status"),
+                readiness_blockers=live_runner_blockers,
             )
             write_json_artifact(output_path, artifact)
             return 2
@@ -225,8 +297,14 @@ def _blocked_live_artifact(
     *,
     failure_family: str,
     preflight_artifact: str,
+    router_readiness_artifact: str | None = None,
+    live_runner_readiness_artifact: str | None = None,
     preflight_status: str | None = None,
     preflight_blockers: list[Any] | None = None,
+    router_readiness_status: str | None = None,
+    router_readiness_blockers: list[Any] | None = None,
+    readiness_status: str | None = None,
+    readiness_blockers: list[Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "artifact_type": "accurate_intake_grokfast_fooddb_packet_smoke",
@@ -243,6 +321,12 @@ def _blocked_live_artifact(
         "preflight_artifact": preflight_artifact,
         "preflight_status": preflight_status,
         "preflight_blockers": preflight_blockers or [],
+        "router_readiness_artifact": router_readiness_artifact,
+        "router_readiness_status": router_readiness_status,
+        "router_readiness_blockers": router_readiness_blockers or [],
+        "live_runner_readiness_artifact": live_runner_readiness_artifact,
+        "readiness_status": readiness_status,
+        "readiness_blockers": readiness_blockers or [],
     }
 
 

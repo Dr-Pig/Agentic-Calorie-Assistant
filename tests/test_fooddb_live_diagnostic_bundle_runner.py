@@ -44,6 +44,15 @@ def test_fooddb_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_path:
     assert manifest["seam_status"] == "fixture_only_live_not_checked"
     assert preflight["clear_to_run_live_diagnostic"] is True
     assert preflight["next_required_slice"] == "grokfast_fooddb_packet_live_diagnostic"
+    router_readiness = read_json_artifact(
+        tmp_path / "accurate_intake_food_evidence_retriever_router_readiness.json"
+    )
+    live_runner_readiness = read_json_artifact(
+        tmp_path / "accurate_intake_grokfast_fooddb_live_runner_readiness_packet.json"
+    )
+    assert router_readiness["status"] == "pass"
+    assert live_runner_readiness["status"] == "pass"
+    assert live_runner_readiness["ready_for_grokfast_fooddb_packet_live_diagnostic"] is True
     assert diagnostic["live_provider_used"] is False
     assert report["source_live_provider_used"] is False
     assert report["next_recommended_slice"] == "run_explicit_grokfast_fooddb_packet_live_diagnostic"
@@ -123,6 +132,7 @@ def test_fooddb_live_diagnostic_bundle_manifest_uses_post_contract_status_packet
             "next_recommended_slice": "run_explicit_grokfast_fooddb_packet_live_diagnostic",
         },
         preflight={"clear_to_run_live_diagnostic": True, "status": "clear"},
+        live_runner_readiness={"status": "pass"},
         contract_artifacts={
             "manager_contract_probe": {"contract_failure_detected": False},
             "manager_contract_handoff": {
@@ -162,6 +172,8 @@ def test_fooddb_live_diagnostic_bundle_records_required_artifact_refs(
         "index_backend_parity",
         "case_matrix",
         "preflight",
+        "router_readiness",
+        "live_runner_readiness",
         "diagnostic",
         "report",
         "manager_contract_probe",

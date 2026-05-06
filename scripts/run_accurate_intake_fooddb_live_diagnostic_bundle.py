@@ -21,6 +21,12 @@ from app.nutrition.application.fooddb_grokfast_live_diagnostic_case_matrix impor
 from app.nutrition.application.fooddb_index_backend_parity import (  # noqa: E402
     build_fooddb_index_backend_parity,
 )
+from app.nutrition.application.food_evidence_retriever_router import (  # noqa: E402
+    RetrieverBackendAvailability,
+)
+from app.nutrition.application.food_evidence_retriever_router_readiness import (  # noqa: E402
+    build_food_evidence_retriever_router_readiness,
+)
 from app.nutrition.application.fooddb_live_diagnostic_report import (  # noqa: E402
     build_fooddb_live_diagnostic_report,
 )
@@ -38,6 +44,9 @@ from app.nutrition.application.fooddb_manager_contract_repair_pack import (  # n
 )
 from app.nutrition.application.grokfast_fooddb_diagnostic_preflight import (  # noqa: E402
     build_grokfast_fooddb_diagnostic_preflight,
+)
+from app.nutrition.application.grokfast_fooddb_live_runner_readiness_packet import (  # noqa: E402
+    build_grokfast_fooddb_live_runner_readiness_packet,
 )
 from app.nutrition.application.retrieval_eval_wall import build_retrieval_eval_wall  # noqa: E402
 from app.nutrition.infrastructure.local_food_evidence_index import (  # noqa: E402
@@ -110,6 +119,7 @@ def main(argv: list[str] | None = None) -> int:
         diagnostic=diagnostic,
         report=report,
         preflight=artifacts["preflight"],
+        live_runner_readiness=artifacts["live_runner_readiness"],
         contract_artifacts=contract_artifacts,
     )
     write_json_artifact(paths["manifest"], manifest)
@@ -175,6 +185,17 @@ def _build_pre_provider_artifacts(
         index_backend_parity_artifact=index_backend_parity,
         case_matrix_artifact=case_matrix,
     )
+    router_readiness = build_food_evidence_retriever_router_readiness(
+        base_availability=RetrieverBackendAvailability(
+            local_fooddb_index=True,
+            sqlite_fts_index=True,
+            websearch_candidate_lane=False,
+        )
+    )
+    live_runner_readiness = build_grokfast_fooddb_live_runner_readiness_packet(
+        preflight_artifact=preflight,
+        router_readiness_artifact=router_readiness,
+    )
 
     artifacts = {
         "retrieval_eval_wall": retrieval_eval_wall,
@@ -183,6 +204,8 @@ def _build_pre_provider_artifacts(
         "index_backend_parity": index_backend_parity,
         "case_matrix": case_matrix,
         "preflight": preflight,
+        "router_readiness": router_readiness,
+        "live_runner_readiness": live_runner_readiness,
     }
     for key, artifact in artifacts.items():
         write_json_artifact(paths[key], artifact)
@@ -221,6 +244,10 @@ def _run_packet_smoke(
         str(paths["manager_packet_smoke"]),
         "--preflight-artifact",
         str(paths["preflight"]),
+        "--router-readiness-artifact",
+        str(paths["router_readiness"]),
+        "--live-runner-readiness-artifact",
+        str(paths["live_runner_readiness"]),
         "--output",
         str(paths["diagnostic"]),
     ]
@@ -272,6 +299,7 @@ def _build_manifest(
     diagnostic: dict[str, Any],
     report: dict[str, Any],
     preflight: dict[str, Any],
+    live_runner_readiness: dict[str, Any],
     contract_artifacts: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     contract_probe = contract_artifacts["manager_contract_probe"]
@@ -306,6 +334,7 @@ def _build_manifest(
         "production_selected": False,
         "preflight_clear_to_run_live_diagnostic": preflight.get("clear_to_run_live_diagnostic") is True,
         "preflight_status": preflight.get("status"),
+        "live_runner_readiness_status": live_runner_readiness.get("status"),
         "seam_status": report["seam_status"],
         "next_recommended_slice": report["next_recommended_slice"],
         "manager_contract_probe_detected_failure": contract_probe.get(
@@ -332,6 +361,8 @@ def _build_manifest(
                 "index_backend_parity",
                 "case_matrix",
                 "preflight",
+                "router_readiness",
+                "live_runner_readiness",
                 "diagnostic",
                 "report",
                 "manager_contract_probe",

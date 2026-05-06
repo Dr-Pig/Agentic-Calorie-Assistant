@@ -16,6 +16,10 @@ def build_fooddb_live_bundle_artifact_paths(output_dir: Path) -> dict[str, Path]
         "case_matrix": output_dir
         / "accurate_intake_fooddb_grokfast_packet_live_diagnostic_case_matrix.json",
         "preflight": output_dir / "accurate_intake_grokfast_fooddb_diagnostic_preflight.json",
+        "router_readiness": output_dir
+        / "accurate_intake_food_evidence_retriever_router_readiness.json",
+        "live_runner_readiness": output_dir
+        / "accurate_intake_grokfast_fooddb_live_runner_readiness_packet.json",
         "diagnostic": output_dir / "accurate_intake_grokfast_fooddb_packet_smoke.json",
         "report": output_dir / "accurate_intake_fooddb_live_diagnostic_report.json",
         "manager_contract_probe": output_dir / "accurate_intake_fooddb_manager_contract_probe.json",
