@@ -11,8 +11,13 @@ def _live_report(*, seam_status: str = "provider_contract_blocked") -> dict:
     return {
         "artifact_type": "accurate_intake_websearch_live_diagnostic_report",
         "seam_status": seam_status,
+        "preflight_evidence_healthy": seam_status == "live_diagnostic_pass",
+        "can_expand_websearch_candidate_pipeline": seam_status == "live_diagnostic_pass",
         "source_live_provider_used": True,
         "source_live_websearch_used": False,
+        "runtime_truth_changed": False,
+        "runtime_mutation_attempted": False,
+        "readiness_claimed": False,
         "next_recommended_slice": "narrow_grokfast_websearch_manager_contract_probe",
     }
 
@@ -110,6 +115,46 @@ def test_websearch_manager_contract_handoff_blocks_live_pass_when_probe_still_fa
 
     assert artifact["status"] == "blocked_contract_handoff_alignment"
     assert "live_pass_with_contract_failure_detected" in artifact["alignment_blockers"]
+    assert artifact["handoff_ready"] is False
+
+
+def test_websearch_manager_contract_handoff_blocks_live_pass_without_healthy_preflight_gate() -> None:
+    artifact = build_websearch_manager_contract_handoff(
+        live_diagnostic_report={
+            **_live_report(seam_status="live_diagnostic_pass"),
+            "preflight_evidence_healthy": False,
+            "can_expand_websearch_candidate_pipeline": True,
+        },
+        contract_probe_artifact=_probe(contract_failure_detected=False),
+        repair_pack_artifact={**_repair_pack(), "summary": {"case_count": 0}},
+    )
+
+    assert artifact["status"] == "blocked_contract_handoff_alignment"
+    assert "live_report_preflight_evidence_not_healthy" in artifact["alignment_blockers"]
+    assert artifact["selected_next_step"] == "repair_artifact_alignment_required"
+    assert artifact["handoff_ready"] is False
+
+
+def test_websearch_manager_contract_handoff_blocks_live_pass_with_runtime_or_live_overclaims() -> None:
+    artifact = build_websearch_manager_contract_handoff(
+        live_diagnostic_report={
+            **_live_report(seam_status="live_diagnostic_pass"),
+            "preflight_evidence_healthy": True,
+            "can_expand_websearch_candidate_pipeline": True,
+            "runtime_truth_changed": True,
+            "runtime_mutation_attempted": True,
+            "readiness_claimed": True,
+            "source_live_websearch_used": True,
+        },
+        contract_probe_artifact=_probe(contract_failure_detected=False),
+        repair_pack_artifact={**_repair_pack(), "summary": {"case_count": 0}},
+    )
+
+    assert artifact["status"] == "blocked_contract_handoff_alignment"
+    assert "live_report_changed_runtime_truth" in artifact["alignment_blockers"]
+    assert "live_report_attempted_runtime_mutation" in artifact["alignment_blockers"]
+    assert "live_report_claimed_readiness" in artifact["alignment_blockers"]
+    assert "live_report_used_live_websearch" in artifact["alignment_blockers"]
     assert artifact["handoff_ready"] is False
 
 
