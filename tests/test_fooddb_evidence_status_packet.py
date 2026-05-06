@@ -53,7 +53,7 @@ def test_fooddb_evidence_status_packet_summarizes_current_fdb_without_runtime_ch
         "listed_component_anchor_count": 30,
         "source_evidence_only_count": 848,
         "semantic_only_basket_family_count": 4,
-        "exact_card_staging_candidate_count": 1,
+        "exact_card_staging_candidate_count": 4,
         "exact_card_existing_report_only_count": 5,
         "integration_edges_contract_backed": packet["integration_status"][
             "contract_backed_edge_count"
@@ -140,7 +140,7 @@ def test_fooddb_evidence_status_packet_script_roundtrip(tmp_path: Path) -> None:
     packet = read_json_artifact(output)
     assert packet["artifact_type"] == "accurate_intake_fooddb_evidence_status_packet_v1"
     assert packet["summary"]["runtime_common_serving_anchor_count"] == 51
-    assert packet["summary"]["exact_card_staging_candidate_count"] == 1
+    assert packet["summary"]["exact_card_staging_candidate_count"] == 4
     assert packet["summary"]["manager_contract_handoff_status"] == "not_run"
 
 

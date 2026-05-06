@@ -5,8 +5,13 @@ import hashlib
 import json
 import re
 from typing import Any
-from urllib.parse import urlparse
 
+from .websearch_exact_candidate_hygiene import (
+    contains_leakage_marker,
+    safe_display_text,
+    safe_https_url,
+    safe_serving_basis_candidate,
+)
 from .websearch_grokfast_live_diagnostic_case_matrix import (
     REQUIRED_CASE_IDS,
     build_websearch_grokfast_live_diagnostic_case_matrix_artifact,
@@ -14,18 +19,7 @@ from .websearch_grokfast_live_diagnostic_case_matrix import (
 from .websearch_cache_rate_license_wall import MAX_CHUNKS_PER_SOURCE, MAX_SEARCH_RESULTS
 
 
-_FORBIDDEN_LEAKAGE_MARKERS = (
-    "candidate_packet",
-    "likely_kcal",
-    "observed_manager_output",
-    "provider_trace",
-    "raw_response_excerpt",
-    "runtime_truth_allowed",
-)
 _PACKET_ID_RE = re.compile(r"^pkt_exact_card_review_[0-9a-f]{12}$")
-_ALLOWED_SOURCE_URLS = {"https://milksha.example/menu/pearl-black-tea-latte"}
-_ALLOWED_DISPLAY_TEXT = {"Milksha pearl black tea latte"}
-_ALLOWED_SERVING_BASIS = {"per_cup"}
 
 
 def build_websearch_live_extract_preflight(
@@ -376,7 +370,7 @@ def _review_packet_blockers(packets: list[dict[str, Any]]) -> list[str]:
             blockers.append("exact_review_packet_missing_identity_text")
         if not str(review_fields.get("serving_basis_candidate") or "").strip():
             blockers.append("exact_review_packet_missing_serving_basis")
-        if str(review_fields.get("serving_basis_candidate") or "").strip() not in _ALLOWED_SERVING_BASIS:
+        if not safe_serving_basis_candidate(review_fields.get("serving_basis_candidate")):
             blockers.append("exact_review_packet_invalid_serving_basis_candidate")
         if packet.get("approval_allowed_by_this_packet") is not False:
             blockers.append("exact_review_packet_allowed_approval")
@@ -401,34 +395,19 @@ def _review_packet_blockers(packets: list[dict[str, Any]]) -> list[str]:
 def _review_packet_string_hygiene_blockers(packet: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
     source_url = str(packet.get("source_url") or "").strip()
-    if not _safe_https_url(source_url):
+    if not safe_https_url(source_url):
         blockers.append("exact_review_packet_invalid_source_url")
     if not _safe_packet_id(packet.get("packet_id")):
         blockers.append("exact_review_packet_invalid_packet_id")
     for key in ("canonical_name", "matched_name"):
-        if not _safe_display_text(packet.get(key)):
+        if not safe_display_text(packet.get(key)):
             blockers.append(f"exact_review_packet_leaky_{key}")
     return blockers
 
 
-def _safe_https_url(value: str) -> bool:
-    parsed = urlparse(value)
-    return bool(parsed.scheme == "https") and value in _ALLOWED_SOURCE_URLS
-
-
 def _safe_packet_id(value: Any) -> bool:
     text = str(value or "").strip()
-    return bool(_PACKET_ID_RE.match(text)) and not _contains_leakage_marker(text)
-
-
-def _safe_display_text(value: Any) -> bool:
-    text = str(value or "").strip()
-    return text in _ALLOWED_DISPLAY_TEXT and not _contains_leakage_marker(text)
-
-
-def _contains_leakage_marker(value: Any) -> bool:
-    text = str(value or "").lower()
-    return any(marker in text for marker in _FORBIDDEN_LEAKAGE_MARKERS)
+    return bool(_PACKET_ID_RE.match(text)) and not contains_leakage_marker(text)
 
 
 def _case_matrix_ids(artifact: dict[str, Any]) -> list[str]:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .websearch_source_class import source_class_from_packet
 from .websearch_source_policy import classify_websearch_source_candidate
 
 
@@ -115,16 +116,7 @@ def source_policy_filtered_extract_decision_trace(
 
 
 def _source_class_from_packet(packet: dict[str, Any]) -> str:
-    explicit_source_class = str(packet.get("source_class_hint") or "").strip().lower()
-    if explicit_source_class:
-        return explicit_source_class
-    source_quality = str(packet.get("source_quality_label") or "")
-    officialness = str(packet.get("officialness_hint") or "")
-    if source_quality == "third_party" or officialness == "unknown":
-        return "third_party_blog_or_scrape"
-    if officialness == "official":
-        return "official_brand_or_chain_page"
-    return "high_quality_search_candidate"
+    return source_class_from_packet(packet)
 
 
 __all__ = [

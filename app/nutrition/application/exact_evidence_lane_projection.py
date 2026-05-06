@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .websearch_source_class import source_class_from_packet
 from .websearch_candidate_pipeline import (
     WebSearchPipelineCase,
     build_websearch_candidate_pipeline_diagnostic,
@@ -77,6 +78,7 @@ def build_exact_card_staging(websearch_pipeline: dict[str, Any]) -> dict[str, An
         "selected_search_packet_id": selected_id,
         "source_policy": {
             "source_type": selected_packet.get("source_type"),
+            "source_class": selected_packet.get("source_class"),
             "source_quality_label": selected_packet.get("source_quality_label"),
             "officialness_hint": selected_packet.get("officialness_hint"),
             "license_status": selected_packet.get("license_status"),
@@ -117,6 +119,7 @@ def _candidate_packet_projection(packet: dict[str, Any]) -> dict[str, Any]:
         "packet_type": packet.get("packet_type"),
         "truth_level": packet.get("truth_level"),
         "source_type": packet.get("source_type"),
+        "source_class": source_class_from_packet(packet),
         "source_quality_label": packet.get("source_quality_label"),
         "officialness_hint": packet.get("officialness_hint"),
         "license_status": packet.get("license_status"),

@@ -212,7 +212,7 @@ def test_retrieval_eval_wall_negative_cases_block_basket_and_exact_candidate_mut
     assert basket["status"] == "pass"
     assert basket["retrieval_boundary"] == "bare_basket_ask_followup_no_estimate"
     assert exact["status"] == "pass"
-    assert exact["exact_card_staging_candidate_count"] == 1
+    assert exact["exact_card_staging_candidate_count"] == 4
     assert listed_unknown["status"] == "pass"
     assert listed_unknown["accepted_anchor_ids"] == ["listed_item_tofu_dried"]
     assert listed_unknown["rejected_candidates"]
