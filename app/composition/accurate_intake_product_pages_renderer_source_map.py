@@ -138,6 +138,146 @@ PAGE_SPECS = {
     },
 }
 
+SAME_TRUTH_FIELD_CONTRACTS = {
+    "chat": {
+        "conversation_history": {
+            "ui_selector": "#chat-scroll",
+            "displayed_fact": "date-scoped chat messages",
+            "truth_owner": "composition_chat_history_read_model",
+            "read_model_or_api": "/accurate-intake/chat-history",
+            "required_backend_fields": ("payload.messages", "message.role", "message.content"),
+            "frontend_role": "render_backend_structured_fields_only",
+            "allowed_action": "read_or_submit_message",
+            "must_not": [
+                "frontend_infer_intent",
+                "frontend_infer_workflow",
+                "frontend_select_target",
+            ],
+        },
+        "current_turn_response": {
+            "ui_selector": "#chat-scroll",
+            "displayed_fact": "manager response bubble from current turn",
+            "truth_owner": "manager_runtime_response",
+            "read_model_or_api": "/estimate",
+            "required_backend_fields": ("payload.coach_message",),
+            "frontend_role": "render_backend_structured_fields_only",
+            "allowed_action": "submit_message_to_existing_backend_route",
+            "must_not": [
+                "frontend_infer_intent",
+                "frontend_infer_logged_status",
+                "frontend_infer_evidence_gap",
+            ],
+        },
+        "session_navigation": {
+            "ui_selector": "#local-date",
+            "displayed_fact": "selected user and date context",
+            "truth_owner": "browser_url_and_backend_query_contract",
+            "read_model_or_api": "/accurate-intake/chat-history",
+            "required_backend_fields": ("user_id: userId()", "local_date: selectedDate()"),
+            "frontend_role": "preserve_query_context_only",
+            "allowed_action": "navigate_between_chat_today_body",
+            "must_not": [
+                "frontend_create_memory",
+                "frontend_override_backend_context",
+            ],
+        },
+    },
+    "today": {
+        "budget_summary": {
+            "ui_selector": "#remaining-kcal",
+            "displayed_fact": "daily budget consumed and remaining values",
+            "truth_owner": "budget_domain",
+            "read_model_or_api": "/today/current-budget",
+            "required_backend_fields": (
+                "payload.budget_kcal",
+                "payload.consumed_kcal",
+                "payload.remaining_kcal",
+            ),
+            "frontend_role": "render_backend_structured_fields_only",
+            "allowed_action": "refresh_read_model",
+            "must_not": [
+                "frontend_recompute_consumed",
+                "frontend_recompute_remaining",
+                "frontend_infer_overshoot",
+            ],
+        },
+        "meal_summaries": {
+            "ui_selector": "#meal-list",
+            "displayed_fact": "active meal summaries for selected day",
+            "truth_owner": "intake_and_budget_projection",
+            "read_model_or_api": "/today/current-budget",
+            "required_backend_fields": (
+                "payload.meals",
+                "meal.meal_title",
+                "meal.total_kcal",
+                "meal.resolution_status",
+            ),
+            "frontend_role": "render_backend_structured_fields_only",
+            "allowed_action": "read_only_diary_navigation",
+            "must_not": [
+                "frontend_treat_summary_as_full_meal_truth",
+                "frontend_infer_food_semantics",
+            ],
+        },
+    },
+    "body": {
+        "active_body_plan": {
+            "ui_selector": "#body-plan-summary",
+            "displayed_fact": "active body plan and target posture",
+            "truth_owner": "body_domain",
+            "read_model_or_api": "/body-plan/active",
+            "required_backend_fields": (
+                "plan.daily_budget_kcal",
+                "plan.recommended_target_kcal",
+                "plan.estimated_tdee",
+                "plan.current_weight_kg",
+                "plan.target_weight_kg",
+                "plan.activity_level",
+                "plan.goal_type",
+            ),
+            "frontend_role": "render_backend_structured_fields_only",
+            "allowed_action": "refresh_read_model_or_submit_existing_forms",
+            "must_not": [
+                "frontend_calculate_tdee",
+                "frontend_calculate_target",
+                "frontend_infer_manual_override_legality",
+            ],
+        },
+        "weight_observations": {
+            "ui_selector": "#weight-history",
+            "displayed_fact": "backend-supplied weight observations",
+            "truth_owner": "body_domain",
+            "read_model_or_api": "/weight/observations",
+            "required_backend_fields": (
+                "payload.observations",
+                "payload.weight_kg",
+            ),
+            "frontend_role": "render_backend_structured_fields_only",
+            "allowed_action": "submit_weight_observation_to_existing_route",
+            "must_not": [
+                "frontend_infer_calibration_proposal",
+                "frontend_infer_weight_trend",
+            ],
+        },
+        "manual_target_readback": {
+            "ui_selector": "#manual-daily-target",
+            "displayed_fact": "manual daily target readback from backend",
+            "truth_owner": "budget_and_body_plan_routes",
+            "read_model_or_api": "/body-plan/manual-daily-target",
+            "required_backend_fields": (
+                "payload.target_kcal",
+                "payload.current_budget?.budget_kcal",
+            ),
+            "frontend_role": "render_backend_structured_fields_only",
+            "allowed_action": "submit_existing_manual_target_form",
+            "must_not": [
+                "frontend_calculate_remaining",
+                "frontend_infer_target_legality",
+            ],
+        },
+    },
+}
+
 FORBIDDEN_SEMANTIC_FRAGMENTS = (
     "routeByKeyword",
     "rawTextRouting",
@@ -309,6 +449,40 @@ def _page_source_map(page: str, html: str, path: Path) -> tuple[dict[str, Any], 
     )
 
 
+def _same_truth_contract_blockers(source_map: dict[str, dict[str, Any]]) -> list[str]:
+    blockers: list[str] = []
+    for page, contracts in SAME_TRUTH_FIELD_CONTRACTS.items():
+        page_map = source_map.get(page, {})
+        selectors = set(page_map.get("selectors") or [])
+        endpoints = set(page_map.get("endpoints") or [])
+        backend_fields = set(page_map.get("backend_fields") or [])
+        missing_backend_fields = set(page_map.get("missing_backend_fields") or [])
+        for field_id, contract in contracts.items():
+            selector = str(contract.get("ui_selector") or "")
+            endpoint = str(contract.get("read_model_or_api") or "")
+            if selector not in selectors:
+                blockers.append(f"{page}.same_truth_contract.{field_id}.missing_selector:{selector}")
+            if endpoint not in endpoints:
+                blockers.append(f"{page}.same_truth_contract.{field_id}.missing_endpoint:{endpoint}")
+            for field in contract.get("required_backend_fields") or ():
+                if field not in backend_fields or field in missing_backend_fields:
+                    blockers.append(
+                        f"{page}.same_truth_contract.{field_id}.missing_backend_field:{field}"
+                    )
+            if contract.get("truth_owner") in {None, "", "ui", "frontend"}:
+                blockers.append(f"{page}.same_truth_contract.{field_id}.ui_truth_owner")
+            if contract.get("frontend_role") not in {
+                "render_backend_structured_fields_only",
+                "preserve_query_context_only",
+            }:
+                blockers.append(f"{page}.same_truth_contract.{field_id}.frontend_role_not_render_only")
+    return blockers
+
+
+def _same_truth_contract_count() -> int:
+    return sum(len(contracts) for contracts in SAME_TRUTH_FIELD_CONTRACTS.values())
+
+
 def build_product_pages_renderer_source_map_artifact(
     *,
     html_overrides: dict[str, str] | None = None,
@@ -320,6 +494,8 @@ def build_product_pages_renderer_source_map_artifact(
         page_map, page_blockers = _page_source_map(page, html, path)
         source_map[page] = page_map
         blockers.extend(page_blockers)
+    same_truth_blockers = _same_truth_contract_blockers(source_map)
+    blockers.extend(same_truth_blockers)
 
     selector_count = sum(len(page["selectors"]) for page in source_map.values())
     endpoint_count = sum(len(page["endpoints"]) for page in source_map.values())
@@ -340,7 +516,13 @@ def build_product_pages_renderer_source_map_artifact(
                 "selector_count": selector_count,
                 "endpoint_count": endpoint_count,
                 "backend_field_count": backend_field_count,
+                "same_truth_field_contract_count": _same_truth_contract_count(),
+                "same_truth_contract_blocker_count": len(same_truth_blockers),
             },
+            "same_truth_renderer_contract_status": (
+                "ready_for_human_review" if not same_truth_blockers else "blocked"
+            ),
+            "same_truth_renderer_contract": SAME_TRUTH_FIELD_CONTRACTS,
             "review_checkpoints": [
                 "chat_page_renders_conversation_from_chat_history_and_estimate_response",
                 "today_page_renders_daily_diary_from_today_budget_read_model",
@@ -353,7 +535,12 @@ def build_product_pages_renderer_source_map_artifact(
             "aggregate_only": True,
             "self_generated_evidence_used": False,
             "render_only_boundary_ok": not blockers,
+            "ui_truth_owner": False,
             "frontend_semantic_owner": False,
+            "frontend_calculates_kcal": False,
+            "frontend_calculates_remaining": False,
+            "frontend_calculates_tdee": False,
+            "frontend_selects_target": False,
             "context_engineering_fault_claimed": False,
             "human_review_required": True,
             "review_required_before_provider_call": True,
