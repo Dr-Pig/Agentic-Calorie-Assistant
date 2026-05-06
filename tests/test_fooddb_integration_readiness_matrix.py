@@ -43,6 +43,11 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         "selected_extract_request_to_extract_result_candidate",
         "extract_result_candidate_to_exact_review_packet",
         "exact_review_packet_to_live_extract_preflight",
+        "live_extract_preflight_to_websearch_live_diagnostic_report",
+        "websearch_live_report_to_manager_contract_probe",
+        "websearch_contract_probe_to_repair_pack",
+        "websearch_repair_pack_to_contract_handoff",
+        "websearch_contract_handoff_to_candidate_lane_status",
         "listed_components_to_approved_runtime_anchors",
     }
 
@@ -76,10 +81,38 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         == "live_extract_preflight_authorizes_diagnostic_only_not_runtime_truth"
     )
     assert (
+        edges["live_extract_preflight_to_websearch_live_diagnostic_report"]["manager_style_guard"]
+        == "live_report_may_classify_seam_status_but_cannot_claim_websearch_truth_or_readiness"
+    )
+    assert (
+        "scripts.run_accurate_intake_grokfast_websearch_packet_smoke.main"
+        in edges["live_extract_preflight_to_websearch_live_diagnostic_report"]["evidence"]
+    )
+    assert (
+        "tests.test_grokfast_websearch_packet_smoke.test_grokfast_websearch_packet_smoke_live_blocks_same_ref_packet_drift"
+        in edges["live_extract_preflight_to_websearch_live_diagnostic_report"]["evidence"]
+    )
+    assert (
+        edges["websearch_live_report_to_manager_contract_probe"]["manager_style_guard"]
+        == "websearch_live_diagnostic_may_identify_contract_blockers_but_not_repair_manager_semantics"
+    )
+    assert (
+        edges["websearch_contract_probe_to_repair_pack"]["manager_style_guard"]
+        == "repair_pack_hands_off_contract_evidence_without_prompt_schema_or_semantic_changes"
+    )
+    assert (
+        edges["websearch_repair_pack_to_contract_handoff"]["manager_style_guard"]
+        == "handoff_may_route_contract_blockers_to_manager_owner_but_cannot_patch_manager_semantics"
+    )
+    assert (
+        edges["websearch_contract_handoff_to_candidate_lane_status"]["manager_style_guard"]
+        == "candidate_lane_may_block_or_forward_contract_status_but_cannot_decide_manager_semantics"
+    )
+    assert (
         edges["listed_components_to_approved_runtime_anchors"]["manager_style_guard"]
         == "listed_basket_components_may_estimate_only_when_runtime_anchor_is_approved"
     )
-    assert matrix["summary"]["contract_backed"] == 13
+    assert matrix["summary"]["contract_backed"] == 18
     assert matrix["summary"]["draft"] == 0
     assert matrix["summary"]["missing"] == 0
     assert matrix["summary"]["next_required_slices"] == ["manager_fooddb_packet_seam_smoke"]
@@ -95,6 +128,11 @@ def test_activation_plan_documents_integration_readiness_matrix() -> None:
     assert "selected extract request -> extract result review candidate" in content
     assert "extract result review candidate -> exact-card review packet" in content
     assert "exact-card review packet -> live extract preflight" in content
+    assert "live extract preflight -> WebSearch live diagnostic report" in content
+    assert "WebSearch live diagnostic report -> Manager contract probe" in content
+    assert "WebSearch Manager contract probe -> repair pack" in content
+    assert "WebSearch Manager contract repair pack -> handoff" in content
+    assert "WebSearch Manager contract handoff -> candidate lane status" in content
     assert "packet -> mutation guard" in content
     assert "exact candidate -> no mutation" in content
     assert "2026-05-05_grokfast_websearch_packet_live_diagnostic" in content
