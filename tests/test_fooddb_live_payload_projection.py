@@ -1,0 +1,87 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from app.nutrition.application.fooddb_live_payload_projection import (
+    build_compact_fooddb_live_projection,
+)
+from app.nutrition.application.fooddb_manager_packet_smoke import (
+    build_fooddb_manager_packet_smoke,
+)
+from app.nutrition.application.fooddb_retrieval_policy import (
+    build_runtime_retrieval_records_from_small_anchor_payload,
+)
+from app.nutrition.application.grokfast_fooddb_packet_smoke import build_live_manager_payload
+
+
+def _packet_case(case_id: str) -> dict:
+    payload = json.loads(Path("app/knowledge/small_anchor_store_tw.json").read_text(encoding="utf-8-sig"))
+    records = build_runtime_retrieval_records_from_small_anchor_payload(payload)
+    packet_artifact = build_fooddb_manager_packet_smoke(retrieval_records=records)
+    return next(case for case in packet_artifact["cases"] if case["case_id"] == case_id)
+
+
+def test_fooddb_live_payload_projection_compacts_modifier_case_packet() -> None:
+    projection = build_compact_fooddb_live_projection(packet_case=_packet_case("chicken_bento_less_rice"))
+    packet = projection["fooddb_evidence_packet"]
+    evidence_item = packet["evidence_items"][0]
+
+    assert "candidate_terms" not in packet
+    assert "ranking_policy" not in packet
+    assert "vector_search_policy" not in packet
+    assert "manager_may_use_for" not in packet
+    assert "manager_must_not_use_for" not in packet
+    assert evidence_item["anchor_id"] == "generic_meal_chicken_bento"
+    assert evidence_item["canonical_name"] == "雞腿便當"
+    assert evidence_item["source_provenance"] == {"source_id": "existing_small_anchor_store_tw"}
+    assert evidence_item["approval_metadata"] == {"runtime_truth_allowed": True}
+    assert evidence_item["modifier_compatibility"] == {
+        "rice_portion": "followup_only_no_kcal_adjustment"
+    }
+    assert evidence_item["modifier_adjustment_authority"] == "packet_adjustment_absent_followup_only"
+    assert evidence_item["portion_basis"] == {
+        "portion_unit": "box",
+        "portion_quantity": 1,
+        "label": "one generic chicken bento",
+    }
+    assert "derived_from" not in json.dumps(packet, ensure_ascii=False)
+    assert "source_file" not in json.dumps(packet, ensure_ascii=False)
+    assert "policy_version" not in json.dumps(packet, ensure_ascii=False)
+
+
+def test_fooddb_live_payload_projection_uses_minimal_allowed_refs() -> None:
+    projection = build_compact_fooddb_live_projection(packet_case=_packet_case("chicken_bento_less_rice"))
+
+    assert projection["allowed_evidence_refs"] == [
+        "chicken_bento_less_rice",
+        "fooddb_packet case_id chicken_bento_less_rice",
+        "generic_meal_chicken_bento",
+        "雞腿便當",
+    ]
+
+
+def test_fooddb_live_payload_projection_reduces_live_payload_size() -> None:
+    payload = build_live_manager_payload(packet_case=_packet_case("chicken_bento_less_rice"))
+
+    assert payload["expected_output_contract"]["max_unique_evidence_refs"] == 3
+    assert payload["expected_output_contract"]["preserve_packet_kcal_without_adjusted_values"] is True
+    assert len(json.dumps(payload, ensure_ascii=False)) < 9000
+    assert any("Use no more than 3 unique evidence_used refs total." in line for line in payload["instructions"])
+    assert any(
+        "keep kcal_point and kcal_range unchanged from the packet" in line
+        for line in payload["instructions"]
+    )
+
+
+def test_fooddb_live_payload_projection_keeps_tool_results_read_only() -> None:
+    projection = build_compact_fooddb_live_projection(packet_case=_packet_case("listed_luwei_components"))
+    tool_result = projection["tool_evidence_result"]
+
+    assert tool_result["result_type"] == "tool_evidence_result_v1"
+    assert tool_result["runtime_mutation_allowed"] is False
+    assert tool_result["runtime_truth_changed"] is False
+    assert tool_result["read_model_only"] is True
+    assert tool_result["source_implementation_visible"] is False
+    assert len(tool_result["evidence_packets"]) == 1
+    assert "adapter_diagnostics" not in str(tool_result)
