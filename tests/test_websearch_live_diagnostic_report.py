@@ -765,6 +765,67 @@ def test_websearch_live_diagnostic_report_script_roundtrip(tmp_path: Path) -> No
     assert report["should_run_websearch_live_tool_loop"] is False
 
 
+def test_websearch_live_diagnostic_report_script_accepts_bundle_manifest(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.build_accurate_intake_websearch_live_diagnostic_report import main
+
+    bundle_dir = tmp_path / "bundle"
+    bundle_dir.mkdir()
+    diagnostic_path = bundle_dir / "grokfast_websearch_packet_smoke.json"
+    preflight_path = bundle_dir / "websearch_live_preflight.json"
+    manifest_path = bundle_dir / "websearch_live_manifest.json"
+    output_path = tmp_path / "report.json"
+
+    write_json_artifact(
+        diagnostic_path,
+        {
+            "artifact_type": "accurate_intake_grokfast_websearch_packet_smoke",
+            "status": "pass",
+            "live_provider_used": True,
+            "live_websearch_used": False,
+            "preflight_ref": _clear_preflight_ref(),
+            "summary": {
+                "case_count": 4,
+                "pass_count": 4,
+                "fail_count": 0,
+                "failure_families": [],
+            },
+            "cases": [],
+        },
+    )
+    write_json_artifact(preflight_path, _clear_preflight_artifact())
+    write_json_artifact(
+        manifest_path,
+        {
+            "artifact_type": "accurate_intake_websearch_live_diagnostic_bundle_manifest",
+            "artifacts": {
+                "diagnostic": str(diagnostic_path),
+                "preflight": str(preflight_path),
+            },
+        },
+    )
+
+    assert (
+        main(
+            [
+                "--bundle-manifest",
+                str(manifest_path),
+                "--output",
+                str(output_path),
+            ]
+        )
+        == 0
+    )
+
+    report = read_json_artifact(output_path)
+    assert report["seam_status"] == "live_diagnostic_pass"
+    assert report["source_live_websearch_used"] is False
+    assert report["preflight_evidence_healthy"] is True
+    assert report["preflight_evidence"]["status"] == "pass"
+
+
 def test_websearch_live_diagnostic_report_rejects_unexpected_source_artifact_type() -> None:
     diagnostic = {
         "artifact_type": "some_other_artifact",

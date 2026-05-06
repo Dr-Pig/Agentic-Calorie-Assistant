@@ -1358,6 +1358,74 @@ def test_websearch_candidate_lane_status_packet_script_accepts_verified_handoff_
     assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
 
 
+def test_websearch_candidate_lane_status_packet_script_accepts_live_bundle_manifest(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.build_accurate_intake_websearch_candidate_lane_status_packet import main
+
+    inputs = _verified_handoff_inputs()
+    bundle_dir = tmp_path / "bundle"
+    bundle_dir.mkdir()
+    paths = {
+        "fooddb": tmp_path / "fooddb_status.json",
+        "handoff": tmp_path / "handoff.json",
+        "probe": tmp_path / "probe.json",
+        "repair": tmp_path / "repair.json",
+        "live": bundle_dir / "websearch_live_report.json",
+        "preflight": bundle_dir / "websearch_live_preflight.json",
+        "manifest": bundle_dir / "websearch_live_manifest.json",
+    }
+    output = tmp_path / "websearch_status.json"
+
+    write_json_artifact(
+        paths["fooddb"],
+        {
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+    )
+    write_json_artifact(paths["handoff"], inputs["manager_contract_handoff_artifact"])
+    write_json_artifact(paths["probe"], inputs["contract_probe_artifact"])
+    write_json_artifact(paths["repair"], inputs["repair_pack_artifact"])
+    write_json_artifact(paths["live"], inputs["live_diagnostic_report"])
+    write_json_artifact(paths["preflight"], inputs["preflight_artifact"])
+    write_json_artifact(
+        paths["manifest"],
+        {
+            "artifact_type": "accurate_intake_websearch_live_diagnostic_bundle_manifest",
+            "artifacts": {
+                "report": str(paths["live"]),
+                "preflight": str(paths["preflight"]),
+            },
+        },
+    )
+
+    assert (
+        main(
+            [
+                "--fooddb-status-packet",
+                str(paths["fooddb"]),
+                "--manager-contract-handoff-artifact",
+                str(paths["handoff"]),
+                "--contract-probe-artifact",
+                str(paths["probe"]),
+                "--repair-pack-artifact",
+                str(paths["repair"]),
+                "--live-bundle-manifest",
+                str(paths["manifest"]),
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+
+    artifact = read_json_artifact(output)
+    assert artifact["summary"]["manager_contract_gate_status"] == "clear_for_websearch_lane"
+    assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
+
+
 def test_websearch_candidate_lane_status_packet_rejects_unexpected_fooddb_artifact_type() -> None:
     try:
         build_websearch_candidate_lane_status_packet(
