@@ -105,6 +105,21 @@ def test_grokfast_fooddb_live_payload_selects_structured_pass2_contract() -> Non
     assert packet_case["case_id"] in payload["allowed_evidence_refs"]
 
 
+def test_grokfast_fooddb_live_payload_requires_packet_authority_for_modifier_adjustment() -> None:
+    packet_case = next(
+        case for case in _packet_artifact()["cases"] if case["case_id"] == "chicken_bento_less_rice"
+    )
+    payload = build_live_manager_payload(packet_case=packet_case)
+
+    assert (
+        payload["expected_output_contract"]["packet_authorized_modifier_adjustment_only"] is True
+    )
+    assert any(
+        "Do not adjust kcal_point or kcal_range from modifier_compatibility alone" in instruction
+        for instruction in payload["instructions"]
+    )
+
+
 def test_grokfast_fooddb_packet_diagnostic_flags_invented_evidence() -> None:
     packet_case = _packet_artifact()["cases"][0]
     manager_output = {
