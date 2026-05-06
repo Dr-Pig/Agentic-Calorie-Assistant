@@ -335,3 +335,23 @@ def test_product_pages_self_use_flow_gate_source_stays_out_of_forbidden_boundari
         source = path.read_text(encoding="utf-8")
         for fragment in forbidden:
             assert fragment not in source
+
+
+def test_ci_builds_product_pages_self_use_flow_gate() -> None:
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+
+    assert "test_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py" in workflow
+    assert "build_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py" in workflow
+    assert (
+        "ui_same_truth_contract=artifacts/accurate_intake_ui_same_truth_render_contract_ci.json"
+        in workflow
+    )
+    assert (
+        "product_pages_target_candidate_ui_smoke="
+        "artifacts/accurate_intake_product_pages_target_candidate_ui_smoke_ci.json"
+    ) in workflow
+    assert (
+        "fixture_full_product_loop_e2e="
+        "artifacts/accurate_intake_fixture_full_product_loop_e2e_ci.json"
+    ) in workflow
+    assert "artifacts/accurate_intake_pl_ce_product_pages_self_use_flow_gate_ci.json" in workflow
