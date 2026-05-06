@@ -284,11 +284,11 @@ def build_fooddb_integration_readiness_matrix() -> dict[str, Any]:
             manager_style_guard="candidate_lane_may_block_or_forward_contract_status_but_cannot_decide_manager_semantics",
             evidence=[
                 "app.nutrition.application.websearch_manager_contract_handoff.build_websearch_manager_contract_handoff",
-                "app.nutrition.application.websearch_candidate_lane_status_packet.build_websearch_candidate_lane_status_packet",
+                "app.nutrition.application.websearch_candidate_lane_handoff_gate.compact_websearch_manager_contract_gate",
                 "tests.test_websearch_manager_contract_handoff",
                 "tests.test_websearch_candidate_lane_status_packet",
             ],
-            stop_condition="stop_if_candidate_lane_advances_to_live_without_contract_handoff_or_leaks_untrusted_next_slice",
+            stop_condition="stop_if_candidate_lane_advances_to_live_without_verified handoff proof_or_leaks_untrusted_next_slice",
         ),
         _edge(
             edge_id="listed_components_to_approved_runtime_anchors",

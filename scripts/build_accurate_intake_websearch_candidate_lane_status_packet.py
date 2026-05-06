@@ -24,6 +24,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--fooddb-status-packet")
     parser.add_argument("--manager-contract-handoff-artifact")
+    parser.add_argument("--live-diagnostic-report")
+    parser.add_argument("--contract-probe-artifact")
+    parser.add_argument("--repair-pack-artifact")
+    parser.add_argument("--preflight-artifact")
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
@@ -35,6 +39,24 @@ def main(argv: list[str] | None = None) -> int:
             read_json_artifact(Path(args.manager_contract_handoff_artifact))
             if args.manager_contract_handoff_artifact
             else None
+        ),
+        live_diagnostic_report=(
+            read_json_artifact(Path(args.live_diagnostic_report))
+            if args.live_diagnostic_report
+            else None
+        ),
+        contract_probe_artifact=(
+            read_json_artifact(Path(args.contract_probe_artifact))
+            if args.contract_probe_artifact
+            else None
+        ),
+        repair_pack_artifact=(
+            read_json_artifact(Path(args.repair_pack_artifact))
+            if args.repair_pack_artifact
+            else None
+        ),
+        preflight_artifact=(
+            read_json_artifact(Path(args.preflight_artifact)) if args.preflight_artifact else None
         ),
     )
     output_path = Path(args.output)
