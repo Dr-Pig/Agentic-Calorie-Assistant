@@ -4,7 +4,6 @@ from typing import Any
 
 from .websearch_candidate_lane_handoff_proof import (
     handoff_probe_case_count,
-    safe_count_map,
     safe_non_negative_int,
 )
 from .websearch_candidate_lane_source_artifact_guard import (
@@ -103,19 +102,19 @@ def _unblocked_repair_pack_summary_blockers(
         summary.get("aggregate_missing_required_fields"), dict
     ):
         blockers.append("repair_pack_missing_clean_missing_field_map_for_unblocked_handoff")
-    elif safe_count_map(summary.get("aggregate_missing_required_fields")):
+    elif summary.get("aggregate_missing_required_fields") != {}:
         blockers.append("repair_pack_non_empty_missing_field_map_for_unblocked_handoff")
     if "alias_hint_counts" not in summary or not isinstance(
         summary.get("alias_hint_counts"), dict
     ):
         blockers.append("repair_pack_missing_clean_alias_hint_map_for_unblocked_handoff")
-    elif safe_count_map(summary.get("alias_hint_counts")):
+    elif summary.get("alias_hint_counts") != {}:
         blockers.append("repair_pack_non_empty_alias_hint_map_for_unblocked_handoff")
     if "shape_pattern_counts" not in summary or not isinstance(
         summary.get("shape_pattern_counts"), dict
     ):
         blockers.append("repair_pack_missing_clean_shape_pattern_map_for_unblocked_handoff")
-    elif safe_count_map(summary.get("shape_pattern_counts")):
+    elif summary.get("shape_pattern_counts") != {}:
         blockers.append("repair_pack_non_empty_shape_pattern_map_for_unblocked_handoff")
     return blockers
 
