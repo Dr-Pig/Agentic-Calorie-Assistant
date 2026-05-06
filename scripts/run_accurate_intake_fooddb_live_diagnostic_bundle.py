@@ -33,6 +33,9 @@ from app.nutrition.application.fooddb_live_diagnostic_report import (  # noqa: E
 from app.nutrition.application.fooddb_manager_contract_handoff import (  # noqa: E402
     build_fooddb_manager_contract_handoff,
 )
+from app.nutrition.application.fooddb_manager_contract_handoff_inspection import (  # noqa: E402
+    build_fooddb_manager_contract_handoff_inspection,
+)
 from app.nutrition.application.fooddb_manager_packet_smoke import (  # noqa: E402
     build_fooddb_manager_packet_smoke,
 )
@@ -284,6 +287,12 @@ def _build_post_diagnostic_artifacts(
         contract_probe_artifact=probe,
         repair_pack_artifact=repair_pack,
     )
+    handoff_inspection = build_fooddb_manager_contract_handoff_inspection(
+        manager_contract_handoff_artifact=handoff,
+        live_diagnostic_report=report,
+        contract_probe_artifact=probe,
+        repair_pack_artifact=repair_pack,
+    )
     post_contract_status = build_fooddb_evidence_status_packet(
         small_anchor_payload=source_payloads["small_anchor_payload"],
         tfda_source_payload=source_payloads["tfda_source_payload"],
@@ -299,6 +308,7 @@ def _build_post_diagnostic_artifacts(
         "manager_contract_probe": probe,
         "manager_contract_repair_pack": repair_pack,
         "manager_contract_handoff": handoff,
+        "manager_contract_handoff_inspection": handoff_inspection,
         "fooddb_status_packet_inspection": status_packet_inspection,
         "fooddb_status_packet_post_contract": post_contract_status,
     }
@@ -321,6 +331,7 @@ def _build_manifest(
 ) -> dict[str, Any]:
     contract_probe = contract_artifacts["manager_contract_probe"]
     status_packet_inspection = contract_artifacts["fooddb_status_packet_inspection"]
+    handoff_inspection = contract_artifacts["manager_contract_handoff_inspection"]
     post_contract_status = contract_artifacts["fooddb_status_packet_post_contract"]
     post_contract_summary = (
         dict(post_contract_status.get("summary") or {})
@@ -356,6 +367,7 @@ def _build_manifest(
         "seam_status": report["seam_status"],
         "next_recommended_slice": _inspection_next_slice(
             status_packet_inspection,
+            handoff_inspection=handoff_inspection,
             fallback=report["next_recommended_slice"],
         ),
         "manager_contract_probe_detected_failure": contract_probe.get(
@@ -389,6 +401,7 @@ def _build_manifest(
                 "manager_contract_probe",
                 "manager_contract_repair_pack",
                 "manager_contract_handoff",
+                "manager_contract_handoff_inspection",
                 "fooddb_status_packet_inspection",
                 "fooddb_status_packet_post_contract",
             }
@@ -403,7 +416,17 @@ def _build_manifest(
     }
 
 
-def _inspection_next_slice(inspection_artifact: dict[str, Any], *, fallback: str) -> str:
+def _inspection_next_slice(
+    inspection_artifact: dict[str, Any],
+    *,
+    handoff_inspection: dict[str, Any] | None = None,
+    fallback: str,
+) -> str:
+    if isinstance(handoff_inspection, dict):
+        handoff_summary = dict(handoff_inspection.get("summary") or {})
+        handoff_next = str(handoff_summary.get("next_safe_slice") or "").strip()
+        if handoff_next:
+            return handoff_next
     summary = dict(inspection_artifact.get("summary") or {})
     next_safe_slice = str(summary.get("next_safe_slice") or "").strip()
     return next_safe_slice or fallback
