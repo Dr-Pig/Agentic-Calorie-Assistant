@@ -271,6 +271,39 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "ambiguity_cases": 3,
             },
         },
+        "context_live_response_contract_dry_run": {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_context_live_response_contract_dry_run",
+            "status": "pass",
+            "claim_scope": "pl_ce_context_live_response_contract_dry_run",
+            "diagnostic_only": True,
+            "fixture_only": True,
+            "plan_only": True,
+            "provider_call_ready": False,
+            "human_approval_required_before_live_provider": True,
+            "full_matrix_required": True,
+            "semantic_owner": "fixture_manager_structured_decision_for_dry_run_only",
+            "deterministic_selected_intent": False,
+            "deterministic_selected_target": False,
+            "raw_text_intent_router_used": False,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "fooddb_used": False,
+            "web_tavily_used": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "blockers": [],
+            "summary": {
+                "case_count": len(REQUIRED_CASE_IDS),
+                "validated_response_count": len(REQUIRED_CASE_IDS),
+                "blocked_response_count": 0,
+                "target_candidate_response_count": 4,
+                "ambiguity_preserved_response_count": 3,
+            },
+        },
     }
 
 
@@ -297,12 +330,17 @@ def test_activation_review_manifest_summarizes_human_review_ready_evidence_only(
     assert artifact["review_checkpoints"]["browser_activation_evidence_gate"] == "ready_for_human_review"
     assert artifact["review_checkpoints"]["ui_context_alignment_pack"] == "ready_for_human_review"
     assert artifact["review_checkpoints"]["context_live_diagnostic_dry_run_evaluator"] == "pass"
+    assert artifact["review_checkpoints"]["context_live_response_contract_dry_run"] == "pass"
     assert artifact["included_artifact_statuses"]["pl_ce_ui_context_alignment_pack"]["status"] == (
         "ui_context_alignment_ready_for_human_review"
     )
     assert artifact["remaining_stop_gates"]["fooddb_artifact_status"] == "blocked_waiting_for_fdb_artifact"
     assert artifact["remaining_stop_gates"]["live_provider_status"] == "blocked_pending_human_approval"
     assert artifact["remaining_stop_gates"]["context_live_dry_run_status"] == "passed_fixture_dry_run_only"
+    assert (
+        artifact["remaining_stop_gates"]["context_live_response_contract_status"]
+        == "passed_fixture_response_contract_only"
+    )
     assert artifact["blockers"] == []
 
 
@@ -436,6 +474,25 @@ def test_activation_review_manifest_blocks_missing_context_live_dry_run_evaluato
     assert artifact["ready_for_live_diagnostic_decision"] is False
 
 
+def test_activation_review_manifest_blocks_missing_context_live_response_contract_dry_run() -> None:
+    inputs = _valid_inputs()
+    inputs.pop("context_live_response_contract_dry_run")
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "context_live_response_contract_dry_run.unexpected_status:" in artifact["blockers"]
+    assert (
+        "context_live_response_contract_dry_run.unexpected_artifact_type:None"
+        in artifact["blockers"]
+    )
+    assert (
+        artifact["remaining_stop_gates"]["context_live_response_contract_status"]
+        == "blocked_before_live_diagnostic"
+    )
+    assert artifact["ready_for_live_diagnostic_decision"] is False
+
+
 def test_activation_review_manifest_blocks_context_live_dry_run_evaluator_blocked_status() -> None:
     inputs = _valid_inputs()
     inputs["context_live_diagnostic_dry_run_evaluator"]["status"] = "blocked"
@@ -447,6 +504,19 @@ def test_activation_review_manifest_blocks_context_live_dry_run_evaluator_blocke
     assert "context_live_diagnostic_dry_run_evaluator.unexpected_status:blocked" in artifact["blockers"]
     assert "context_live_diagnostic_dry_run_evaluator.upstream_blockers_present" in artifact["blockers"]
     assert artifact["review_checkpoints"]["context_live_diagnostic_dry_run_evaluator"] == "blocked_or_missing"
+
+
+def test_activation_review_manifest_blocks_context_live_response_contract_dry_run_status() -> None:
+    inputs = _valid_inputs()
+    inputs["context_live_response_contract_dry_run"]["status"] = "blocked"
+    inputs["context_live_response_contract_dry_run"]["blockers"] = ["fixture_response_contract_gap"]
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "context_live_response_contract_dry_run.unexpected_status:blocked" in artifact["blockers"]
+    assert "context_live_response_contract_dry_run.upstream_blockers_present" in artifact["blockers"]
+    assert artifact["review_checkpoints"]["context_live_response_contract_dry_run"] == "blocked_or_missing"
 
 
 def test_activation_review_manifest_blocks_context_live_dry_run_overclaims() -> None:
@@ -468,6 +538,28 @@ def test_activation_review_manifest_blocks_context_live_dry_run_overclaims() -> 
     )
     assert (
         "context_live_diagnostic_dry_run_evaluator.deterministic_selected_intent"
+        in artifact["blockers"]
+    )
+    assert artifact["live_provider_called"] is False
+    assert artifact["fooddb_evidence_used"] is False
+
+
+def test_activation_review_manifest_blocks_context_live_response_contract_overclaims() -> None:
+    inputs = _valid_inputs()
+    dry_run = inputs["context_live_response_contract_dry_run"]
+    dry_run["provider_call_ready"] = True
+    dry_run["live_provider_invoked"] = True
+    dry_run["fooddb_used"] = True
+    dry_run["deterministic_selected_target"] = True
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "context_live_response_contract_dry_run.provider_call_ready" in artifact["blockers"]
+    assert "context_live_response_contract_dry_run.live_provider_invoked" in artifact["blockers"]
+    assert "context_live_response_contract_dry_run.fooddb_used" in artifact["blockers"]
+    assert (
+        "context_live_response_contract_dry_run.deterministic_selected_target"
         in artifact["blockers"]
     )
     assert artifact["live_provider_called"] is False
@@ -497,6 +589,41 @@ def test_activation_review_manifest_blocks_weak_context_live_dry_run_summary() -
     assert "context_live_diagnostic_dry_run_evaluator.target_candidate_cases_missing" in artifact["blockers"]
     assert "context_live_diagnostic_dry_run_evaluator.pending_pin_cases_missing" in artifact["blockers"]
     assert "context_live_diagnostic_dry_run_evaluator.ambiguity_cases_missing" in artifact["blockers"]
+
+
+def test_activation_review_manifest_blocks_weak_context_live_response_contract_summary() -> None:
+    inputs = _valid_inputs()
+    dry_run = inputs["context_live_response_contract_dry_run"]
+    dry_run["full_matrix_required"] = False
+    dry_run["summary"] = {
+        "case_count": len(REQUIRED_CASE_IDS) - 1,
+        "validated_response_count": len(REQUIRED_CASE_IDS) - 1,
+        "blocked_response_count": 1,
+        "target_candidate_response_count": 0,
+        "ambiguity_preserved_response_count": 0,
+    }
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "context_live_response_contract_dry_run.full_matrix_not_required" in artifact["blockers"]
+    assert "context_live_response_contract_dry_run.case_count_mismatch" in artifact["blockers"]
+    assert (
+        "context_live_response_contract_dry_run.validated_response_count_mismatch"
+        in artifact["blockers"]
+    )
+    assert (
+        "context_live_response_contract_dry_run.blocked_response_count_nonzero"
+        in artifact["blockers"]
+    )
+    assert (
+        "context_live_response_contract_dry_run.target_candidate_response_missing"
+        in artifact["blockers"]
+    )
+    assert (
+        "context_live_response_contract_dry_run.ambiguity_response_missing"
+        in artifact["blockers"]
+    )
 
 
 def test_activation_review_manifest_blocks_undercovered_ui_context_pack() -> None:
@@ -636,10 +763,15 @@ def test_ci_builds_activation_review_manifest() -> None:
 
     assert "test_accurate_intake_pl_ce_activation_review_manifest.py" in workflow
     assert "build_accurate_intake_context_live_diagnostic_dry_run_evaluator.py" in workflow
+    assert "build_accurate_intake_context_live_response_contract_dry_run.py" in workflow
     assert "build_accurate_intake_pl_ce_activation_review_manifest.py" in workflow
     assert "pl_ce_ui_context_alignment_pack=artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json" in workflow
     assert (
         "context_live_diagnostic_dry_run_evaluator="
         "artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json"
+    ) in workflow
+    assert (
+        "context_live_response_contract_dry_run="
+        "artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json"
     ) in workflow
     assert "accurate_intake_pl_ce_activation_review_manifest_ci.json" in workflow

@@ -30,6 +30,9 @@ DEFAULT_ARTIFACT_PATHS = {
     "context_live_diagnostic_dry_run_evaluator": ROOT
     / "artifacts"
     / "accurate_intake_context_live_diagnostic_dry_run_evaluator.json",
+    "context_live_response_contract_dry_run": ROOT
+    / "artifacts"
+    / "accurate_intake_context_live_response_contract_dry_run.json",
 }
 
 

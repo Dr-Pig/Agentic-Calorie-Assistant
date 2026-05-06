@@ -26,6 +26,7 @@ REQUIRED_INPUTS = (
     "pl_ce_browser_activation_evidence_gate",
     "pl_ce_ui_context_alignment_pack",
     "context_live_diagnostic_dry_run_evaluator",
+    "context_live_response_contract_dry_run",
 )
 
 EXPECTED_STATUSES = {
@@ -33,6 +34,7 @@ EXPECTED_STATUSES = {
     "pl_ce_browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
     "pl_ce_ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
     "context_live_diagnostic_dry_run_evaluator": "pass",
+    "context_live_response_contract_dry_run": "pass",
 }
 
 EXPECTED_ARTIFACT_TYPES = {
@@ -41,6 +43,9 @@ EXPECTED_ARTIFACT_TYPES = {
     "pl_ce_ui_context_alignment_pack": "accurate_intake_pl_ce_ui_context_alignment_pack",
     "context_live_diagnostic_dry_run_evaluator": (
         "accurate_intake_context_live_diagnostic_dry_run_evaluator"
+    ),
+    "context_live_response_contract_dry_run": (
+        "accurate_intake_context_live_response_contract_dry_run"
     ),
 }
 
@@ -173,7 +178,10 @@ def _structural_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
         suffix = "upstream_blockers_present" if upstream_blockers else "upstream_blockers_missing"
         blockers.append(f"{group_id}.{suffix}")
 
-    if group_id == "context_live_diagnostic_dry_run_evaluator":
+    if group_id in {
+        "context_live_diagnostic_dry_run_evaluator",
+        "context_live_response_contract_dry_run",
+    }:
         return blockers
 
     if not _list_contains_all(
@@ -310,6 +318,36 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
             blockers.append("context_live_diagnostic_dry_run_evaluator.pending_pin_cases_missing")
         if _int_value(summary.get("ambiguity_cases")) < 1:
             blockers.append("context_live_diagnostic_dry_run_evaluator.ambiguity_cases_missing")
+    if group_id == "context_live_response_contract_dry_run":
+        summary = _object_dict(payload.get("summary"))
+        if payload.get("diagnostic_only") is not True:
+            blockers.append("context_live_response_contract_dry_run.diagnostic_only_not_true")
+        if payload.get("fixture_only") is not True:
+            blockers.append("context_live_response_contract_dry_run.fixture_only_not_true")
+        if payload.get("plan_only") is not True:
+            blockers.append("context_live_response_contract_dry_run.plan_only_not_true")
+        if payload.get("provider_call_ready") is not False:
+            blockers.append("context_live_response_contract_dry_run.provider_call_ready")
+        if payload.get("human_approval_required_before_live_provider") is not True:
+            blockers.append(
+                "context_live_response_contract_dry_run.human_approval_before_live_missing"
+            )
+        if payload.get("full_matrix_required") is not True:
+            blockers.append("context_live_response_contract_dry_run.full_matrix_not_required")
+        if _int_value(summary.get("case_count")) != len(CONTEXT_LIVE_REQUIRED_CASE_IDS):
+            blockers.append("context_live_response_contract_dry_run.case_count_mismatch")
+        if _int_value(summary.get("validated_response_count")) != len(
+            CONTEXT_LIVE_REQUIRED_CASE_IDS
+        ):
+            blockers.append(
+                "context_live_response_contract_dry_run.validated_response_count_mismatch"
+            )
+        if _int_value(summary.get("blocked_response_count")) != 0:
+            blockers.append("context_live_response_contract_dry_run.blocked_response_count_nonzero")
+        if _int_value(summary.get("target_candidate_response_count")) < 1:
+            blockers.append("context_live_response_contract_dry_run.target_candidate_response_missing")
+        if _int_value(summary.get("ambiguity_preserved_response_count")) < 1:
+            blockers.append("context_live_response_contract_dry_run.ambiguity_response_missing")
     return blockers
 
 
@@ -373,6 +411,12 @@ def build_pl_ce_activation_review_manifest_artifact(
                     == EXPECTED_STATUSES["context_live_diagnostic_dry_run_evaluator"]
                     else "blocked_or_missing"
                 ),
+                "context_live_response_contract_dry_run": (
+                    "pass"
+                    if inputs["context_live_response_contract_dry_run"].get("status")
+                    == EXPECTED_STATUSES["context_live_response_contract_dry_run"]
+                    else "blocked_or_missing"
+                ),
             },
             "remaining_stop_gates": {
                 "fooddb_artifact_status": "blocked_waiting_for_fdb_artifact",
@@ -381,6 +425,12 @@ def build_pl_ce_activation_review_manifest_artifact(
                     "passed_fixture_dry_run_only"
                     if inputs["context_live_diagnostic_dry_run_evaluator"].get("status")
                     == EXPECTED_STATUSES["context_live_diagnostic_dry_run_evaluator"]
+                    else "blocked_before_live_diagnostic"
+                ),
+                "context_live_response_contract_status": (
+                    "passed_fixture_response_contract_only"
+                    if inputs["context_live_response_contract_dry_run"].get("status")
+                    == EXPECTED_STATUSES["context_live_response_contract_dry_run"]
                     else "blocked_before_live_diagnostic"
                 ),
                 "websearch_runtime_status": "blocked_out_of_scope_for_pl_ce",
