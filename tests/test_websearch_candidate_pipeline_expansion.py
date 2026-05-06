@@ -20,6 +20,32 @@ def test_candidate_pipeline_multi_source_case_prefers_official_exact_candidate()
     assert case["candidate_classifications"][2]["candidate_class"] == "exact_candidate_for_extract_review"
 
 
+def test_candidate_pipeline_supports_convenience_store_and_chain_restaurant_exact_candidates() -> None:
+    artifact = build_websearch_candidate_pipeline_diagnostic()
+    convenience_store = _case_by_id(artifact, "pipeline_convenience_store_rice_ball_exact")
+    chain_restaurant = _case_by_id(artifact, "pipeline_chain_restaurant_menu_item_exact")
+
+    assert convenience_store["selected_extract_decision"]["selected_search_packet_id"] == (
+        convenience_store["candidate_packets"][0]["packet_id"]
+    )
+    assert convenience_store["candidate_packets"][0]["source_class_hint"] == (
+        "official_brand_or_chain_page"
+    )
+    assert convenience_store["candidate_packets"][0]["serving_basis_candidate"] == "per_piece"
+    assert convenience_store["candidate_classifications"][0]["candidate_class"] == (
+        "exact_candidate_for_extract_review"
+    )
+
+    assert chain_restaurant["selected_extract_decision"]["selected_search_packet_id"] == (
+        chain_restaurant["candidate_packets"][0]["packet_id"]
+    )
+    assert chain_restaurant["candidate_packets"][0]["source_class_hint"] == "brand_menu_page"
+    assert chain_restaurant["candidate_packets"][0]["serving_basis_candidate"] == "per_bowl"
+    assert chain_restaurant["candidate_classifications"][0]["candidate_class"] == (
+        "exact_candidate_for_extract_review"
+    )
+
+
 def test_candidate_pipeline_prefers_official_pdf_when_multiple_exact_sources_are_eligible() -> None:
     artifact = build_websearch_candidate_pipeline_diagnostic()
     case = _case_by_id(artifact, "pipeline_official_pdf_priority")
@@ -76,8 +102,8 @@ def test_candidate_pipeline_summary_surfaces_exact_disambiguation_and_weak_bound
     artifact = build_websearch_candidate_pipeline_diagnostic()
     summary = artifact["summary"]
 
-    assert summary["case_count"] == 19
-    assert summary["exact_review_candidate_count"] >= 4
+    assert summary["case_count"] == 21
+    assert summary["exact_review_candidate_count"] >= 6
     assert summary["disambiguation_candidate_count"] >= 5
     assert summary["blocked_candidate_count"] >= 4
     assert summary["policy_blocked_exact_candidate_count"] >= 1

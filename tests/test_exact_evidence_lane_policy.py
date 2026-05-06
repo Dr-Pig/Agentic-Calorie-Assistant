@@ -13,6 +13,7 @@ def _case_by_id(artifact: dict, case_id: str) -> dict:
 
 def test_exact_evidence_lane_policy_prefers_local_exact_seed_before_websearch() -> None:
     artifact = build_exact_evidence_lane_policy_artifact()
+    cases = {case["case_id"]: case for case in artifact["cases"]}
 
     assert artifact["artifact_type"] == "accurate_intake_exact_evidence_lane_policy_v1"
     assert artifact["classification"] == "offline_exact_lane_policy_only"
@@ -20,13 +21,13 @@ def test_exact_evidence_lane_policy_prefers_local_exact_seed_before_websearch() 
     assert artifact["live_websearch_used"] is False
     assert artifact["live_provider_used"] is False
 
-    local = _case_by_id(artifact, "local_exact_seed_preferred")
+    local = cases["local_exact_seed_preferred"]
     assert local["lane_decision"]["selected_lane"] == "local_exact_seed_support_only"
     assert local["lane_decision"]["websearch_required"] is False
     assert local["local_exact"]["defer_reason"] is None
     assert local["local_exact"]["candidate_count"] >= 1
 
-    web = _case_by_id(artifact, "websearch_candidate_review_fallback")
+    web = cases["websearch_candidate_review_fallback"]
     assert web["lane_decision"]["selected_lane"] == "websearch_candidate_review"
     assert web["lane_decision"]["websearch_required"] is True
     assert web["lane_decision"]["evidence_signal"] == "exact_card_candidate_review_available"
@@ -34,11 +35,40 @@ def test_exact_evidence_lane_policy_prefers_local_exact_seed_before_websearch() 
     assert web["websearch_pipeline"]["extract_candidate_allowed_count"] == 1
     assert web["exact_card_staging"]["candidate_count"] == 1
 
-    no_exact = _case_by_id(artifact, "no_exact_evidence_available")
+    convenience = cases["convenience_store_rice_ball_review_priority"]
+    assert convenience["lane_decision"]["selected_lane"] == "websearch_candidate_review"
+    assert convenience["exact_card_staging"]["candidate_count"] == 1
+    assert convenience["exact_card_staging"]["candidates"][0]["source_policy"]["source_class"] == (
+        "official_brand_or_chain_page"
+    )
+
+    chain_restaurant = cases["chain_restaurant_menu_review_priority"]
+    assert chain_restaurant["lane_decision"]["selected_lane"] == "websearch_candidate_review"
+    assert chain_restaurant["exact_card_staging"]["candidate_count"] == 1
+    assert chain_restaurant["exact_card_staging"]["candidates"][0]["source_policy"][
+        "serving_basis_candidate"
+    ] == "per_bowl"
+
+    no_exact = cases["no_exact_evidence_available"]
     assert no_exact["lane_decision"]["selected_lane"] == "no_exact_evidence"
     assert no_exact["lane_decision"]["evidence_signal"] == "no_exact_evidence_available"
     assert no_exact["websearch_pipeline"]["extract_candidate_allowed_count"] == 0
     assert no_exact["exact_card_staging"]["candidate_count"] == 0
+
+    same_brand_wrong_flavor = cases["same_brand_wrong_flavor_no_exact_evidence"]
+    assert same_brand_wrong_flavor["lane_decision"]["selected_lane"] == "no_exact_evidence"
+    assert same_brand_wrong_flavor["websearch_pipeline"]["extract_candidate_allowed_count"] == 0
+    assert same_brand_wrong_flavor["exact_card_staging"]["candidate_count"] == 0
+
+    size_unknown = cases["size_unknown_requires_followup_no_exact_evidence"]
+    assert size_unknown["lane_decision"]["selected_lane"] == "no_exact_evidence"
+    assert size_unknown["websearch_pipeline"]["extract_candidate_allowed_count"] == 0
+    assert size_unknown["exact_card_staging"]["candidate_count"] == 0
+
+    wrong_brand = cases["wrong_brand_official_no_exact_evidence"]
+    assert wrong_brand["lane_decision"]["selected_lane"] == "no_exact_evidence"
+    assert wrong_brand["websearch_pipeline"]["extract_candidate_allowed_count"] == 0
+    assert wrong_brand["exact_card_staging"]["candidate_count"] == 0
 
 
 def test_exact_evidence_lane_policy_keeps_every_lane_support_only() -> None:
@@ -84,6 +114,16 @@ def test_exact_evidence_lane_builds_websearch_exact_card_staging_candidate() -> 
     }
     assert "kcal_point" not in candidate
     assert "kcal_range" not in candidate
+
+    convenience = _case_by_id(artifact, "convenience_store_rice_ball_review_priority")
+    convenience_candidate = convenience["exact_card_staging"]["candidates"][0]
+    assert convenience_candidate["canonical_name"] == "7-Eleven salmon rice ball"
+    assert convenience_candidate["source_policy"]["serving_basis_candidate"] == "per_piece"
+
+    chain_restaurant = _case_by_id(artifact, "chain_restaurant_menu_review_priority")
+    chain_candidate = chain_restaurant["exact_card_staging"]["candidates"][0]
+    assert chain_candidate["canonical_name"] == "Matsuya gyudon large"
+    assert chain_candidate["source_policy"]["serving_basis_candidate"] == "per_bowl"
 
 
 def test_exact_evidence_lane_uses_evidence_signals_not_manager_oracles() -> None:

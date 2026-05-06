@@ -45,7 +45,7 @@ def test_exact_candidate_review_packet_is_review_only() -> None:
     assert artifact["live_extract_used"] is False
     assert artifact["live_provider_used"] is False
     assert artifact["readiness_claimed"] is False
-    assert artifact["summary"]["review_packet_count"] == 4
+    assert artifact["summary"]["review_packet_count"] == 6
     assert artifact["summary"]["runtime_truth_allowed_count"] == 0
     assert artifact["summary"]["exact_card_created_count"] == 0
     assert artifact["summary"]["approval_allowed_count"] == 0

@@ -51,6 +51,26 @@ def build_exact_evidence_lane_policy_cases() -> list[dict[str, Any]]:
             case_id="modifier_match_review_priority",
             pipeline_case_id="pipeline_modifier_match_preferred",
         ),
+        _websearch_candidate_review_case(
+            case_id="convenience_store_rice_ball_review_priority",
+            pipeline_case_id="pipeline_convenience_store_rice_ball_exact",
+        ),
+        _websearch_candidate_review_case(
+            case_id="chain_restaurant_menu_review_priority",
+            pipeline_case_id="pipeline_chain_restaurant_menu_item_exact",
+        ),
+        _no_exact_evidence_from_pipeline_case(
+            case_id="wrong_brand_official_no_exact_evidence",
+            pipeline_case_id="pipeline_wrong_brand_official",
+        ),
+        _no_exact_evidence_from_pipeline_case(
+            case_id="same_brand_wrong_flavor_no_exact_evidence",
+            pipeline_case_id="pipeline_same_brand_wrong_flavor_variant",
+        ),
+        _no_exact_evidence_from_pipeline_case(
+            case_id="size_unknown_requires_followup_no_exact_evidence",
+            pipeline_case_id="pipeline_size_unknown_requires_followup",
+        ),
         _no_exact_evidence_case(),
     ]
 
@@ -92,11 +112,18 @@ def _websearch_candidate_review_case(*, case_id: str, pipeline_case_id: str) -> 
 
 
 def _no_exact_evidence_case() -> dict[str, Any]:
-    web_case = _websearch_case("pipeline_all_candidates_blocked")
+    return _no_exact_evidence_from_pipeline_case(
+        case_id="no_exact_evidence_available",
+        pipeline_case_id="pipeline_all_candidates_blocked",
+    )
+
+
+def _no_exact_evidence_from_pipeline_case(*, case_id: str, pipeline_case_id: str) -> dict[str, Any]:
+    web_case = _websearch_case(pipeline_case_id)
     intent = web_case.intent
     local_exact = lookup_exact_item_card_candidates(intent)
     return _case_payload(
-        case_id="no_exact_evidence_available",
+        case_id=case_id,
         intent=intent,
         local_exact=local_exact,
         websearch_case=web_case,
