@@ -1004,6 +1004,9 @@ def test_activation_review_manifest_cli_rejects_unknown_artifact_group(
 
 def test_activation_review_manifest_source_stays_out_of_fooddb_websearch_live_boundaries() -> None:
     source_paths = [
+        Path("app/composition/accurate_intake_pl_ce_activation_manifest_contract.py"),
+        Path("app/composition/accurate_intake_pl_ce_activation_manifest_group_checks.py"),
+        Path("app/composition/accurate_intake_pl_ce_activation_manifest_validation.py"),
         Path("app/composition/accurate_intake_pl_ce_activation_review_manifest.py"),
         Path("scripts/build_accurate_intake_pl_ce_activation_review_manifest.py"),
     ]
