@@ -2,15 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from .websearch_candidate_lane_handoff_proof import (
+    handoff_proof,
+    safe_manager_contract_next_slice,
+    unblocked_handoff_shape_blockers,
+)
+from .websearch_candidate_lane_source_chain_guard import source_chain_blockers
 from .websearch_manager_contract_handoff import build_websearch_manager_contract_handoff
-
-
-_ALLOWED_MANAGER_CONTRACT_NEXT_SLICES = {
-    "inspect_websearch_manager_contract_handoff",
-    "narrow_websearch_packet_boundary_or_prompt_probe",
-    "tighten_websearch_manager_contract_prompt_or_transport",
-    "websearch_candidate_pipeline_narrow_expansion",
-}
 
 
 def compact_websearch_manager_contract_gate(
@@ -30,7 +28,7 @@ def compact_websearch_manager_contract_gate(
         raise ValueError("unsupported_websearch_status_manager_contract_handoff")
 
     status = str(manager_contract_handoff_artifact.get("status") or "")
-    selected_next_step = _safe_manager_contract_next_slice(
+    selected_next_step = safe_manager_contract_next_slice(
         manager_contract_handoff_artifact.get("selected_next_step")
     )
     if status == "websearch_contract_unblocked":
@@ -76,7 +74,7 @@ def _verified_unblocked_handoff_blockers(
     repair_pack_artifact: dict[str, Any] | None,
     preflight_artifact: dict[str, Any] | None,
 ) -> list[str]:
-    blockers = _unblocked_handoff_shape_blockers(manager_contract_handoff_artifact)
+    blockers = unblocked_handoff_shape_blockers(manager_contract_handoff_artifact)
     if not all(
         isinstance(artifact, dict)
         for artifact in (
@@ -89,20 +87,10 @@ def _verified_unblocked_handoff_blockers(
         blockers.append("manager_contract_handoff_source_artifacts_missing")
         return blockers
     blockers.extend(
-        _source_artifact_boundary_blockers(
-            artifact=contract_probe_artifact,  # type: ignore[arg-type]
-            prefix="contract_probe",
-        )
-    )
-    blockers.extend(
-        _source_artifact_boundary_blockers(
-            artifact=repair_pack_artifact,  # type: ignore[arg-type]
-            prefix="repair_pack",
-        )
-    )
-    blockers.extend(
-        _unblocked_repair_pack_summary_blockers(
+        source_chain_blockers(
+            contract_probe_artifact=contract_probe_artifact,  # type: ignore[arg-type]
             repair_pack_artifact=repair_pack_artifact,  # type: ignore[arg-type]
+            manager_contract_handoff_artifact=manager_contract_handoff_artifact,
         )
     )
     try:
@@ -115,133 +103,9 @@ def _verified_unblocked_handoff_blockers(
     except ValueError:
         blockers.append("manager_contract_handoff_source_artifacts_invalid")
         return blockers
-    if _handoff_proof(manager_contract_handoff_artifact) != _handoff_proof(derived):
+    if handoff_proof(manager_contract_handoff_artifact) != handoff_proof(derived):
         blockers.append("manager_contract_handoff_derivation_mismatch")
     return blockers
-
-
-def _source_artifact_boundary_blockers(
-    *,
-    artifact: dict[str, Any],
-    prefix: str,
-) -> list[str]:
-    blockers: list[str] = []
-    for key, suffix in (
-        ("readiness_claimed", "claimed_readiness"),
-        ("runtime_truth_changed", "changed_runtime_truth"),
-        ("runtime_mutation_attempted", "attempted_runtime_mutation"),
-        ("mutation_changed", "changed_mutation"),
-        ("prompt_changed", "changed_prompt"),
-        ("schema_changed", "changed_schema"),
-        ("manager_contract_changed", "changed_manager_contract"),
-        ("shared_contract_changed", "changed_shared_contract"),
-        ("live_provider_used", "used_live_provider"),
-        ("live_websearch_used", "used_live_websearch"),
-    ):
-        if key in artifact and artifact.get(key) is not False:
-            blockers.append(f"{prefix}_{suffix}")
-    return blockers
-
-
-def _unblocked_repair_pack_summary_blockers(
-    *,
-    repair_pack_artifact: dict[str, Any],
-) -> list[str]:
-    summary = repair_pack_artifact.get("summary")
-    if not isinstance(summary, dict):
-        return ["repair_pack_summary_missing_for_unblocked_handoff"]
-    blockers: list[str] = []
-    if _safe_count_map(summary.get("aggregate_missing_required_fields")):
-        blockers.append("repair_pack_non_empty_missing_field_map_for_unblocked_handoff")
-    if _safe_count_map(summary.get("alias_hint_counts")):
-        blockers.append("repair_pack_non_empty_alias_hint_map_for_unblocked_handoff")
-    if _safe_count_map(summary.get("shape_pattern_counts")):
-        blockers.append("repair_pack_non_empty_shape_pattern_map_for_unblocked_handoff")
-    return blockers
-
-
-def _unblocked_handoff_shape_blockers(artifact: dict[str, Any]) -> list[str]:
-    blockers: list[str] = []
-    summary = artifact.get("summary") if isinstance(artifact.get("summary"), dict) else {}
-    if _safe_non_negative_int(summary.get("probe_case_count")) <= 0:
-        blockers.append("manager_contract_handoff_probe_evidence_missing")
-    if summary.get("alignment_blocker_count") != 0:
-        blockers.append("manager_contract_handoff_alignment_blockers_present")
-    if artifact.get("alignment_blockers") not in ([], None):
-        blockers.append("manager_contract_handoff_alignment_blocker_payload_present")
-    for key, blocker in (
-        ("runtime_truth_changed", "manager_contract_handoff_changed_runtime_truth"),
-        ("runtime_mutation_attempted", "manager_contract_handoff_attempted_mutation"),
-        ("shared_contract_changed", "manager_contract_handoff_changed_shared_contract"),
-        ("readiness_claimed", "manager_contract_handoff_claimed_readiness"),
-    ):
-        if artifact.get(key) is not False:
-            blockers.append(blocker)
-    return blockers
-
-
-def _handoff_proof(artifact: dict[str, Any]) -> dict[str, Any]:
-    summary = artifact.get("summary") if isinstance(artifact.get("summary"), dict) else {}
-    return {
-        "status": str(artifact.get("status") or ""),
-        "selected_next_step": _safe_manager_contract_next_slice(
-            artifact.get("selected_next_step")
-        ),
-        "handoff_ready": artifact.get("handoff_ready") is True,
-        "runtime_truth_changed": artifact.get("runtime_truth_changed") is True,
-        "runtime_mutation_attempted": artifact.get("runtime_mutation_attempted") is True,
-        "shared_contract_changed": artifact.get("shared_contract_changed") is True,
-        "readiness_claimed": artifact.get("readiness_claimed") is True,
-        "summary": {
-            "live_seam_status": str(summary.get("live_seam_status") or ""),
-            "contract_failure_detected": summary.get("contract_failure_detected") is True,
-            "probe_case_count": _safe_non_negative_int(summary.get("probe_case_count")),
-            "probe_fail_count": _safe_non_negative_int(summary.get("probe_fail_count")),
-            "repair_case_count": _safe_non_negative_int(summary.get("repair_case_count")),
-            "alignment_blocker_count": _safe_non_negative_int(
-                summary.get("alignment_blocker_count")
-            ),
-            "aggregate_missing_required_fields": _safe_count_map(
-                summary.get("aggregate_missing_required_fields")
-            ),
-            "alias_hint_counts": _safe_count_map(summary.get("alias_hint_counts")),
-            "shape_pattern_counts": _safe_count_map(summary.get("shape_pattern_counts")),
-        },
-        "alignment_blockers": _safe_string_list(artifact.get("alignment_blockers")),
-        "artifact_chain": artifact.get("artifact_chain") if isinstance(
-            artifact.get("artifact_chain"), dict
-        ) else {},
-    }
-
-
-def _safe_manager_contract_next_slice(value: Any) -> str:
-    text = str(value or "").strip()
-    if text in _ALLOWED_MANAGER_CONTRACT_NEXT_SLICES:
-        return text
-    return ""
-
-
-def _safe_non_negative_int(value: Any) -> int:
-    if isinstance(value, bool) or not isinstance(value, int):
-        return 0
-    return max(0, value)
-
-
-def _safe_count_map(value: Any) -> dict[str, int]:
-    if not isinstance(value, dict):
-        return {}
-    result: dict[str, int] = {}
-    for key, count in value.items():
-        if isinstance(count, bool) or not isinstance(count, int):
-            continue
-        result[str(key)] = max(0, count)
-    return dict(sorted(result.items()))
-
-
-def _safe_string_list(value: Any) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    return sorted(str(item) for item in value if isinstance(item, str))
 
 
 def _gate(

@@ -105,12 +105,33 @@ def _live_report(*, preflight_artifact: dict) -> dict:
 
 
 def _probe() -> dict:
+    cases = [
+        {
+            "case_id": "grokfast_websearch_exact_candidate_intent_type_only",
+            "status": "pass",
+            "failure_families": [],
+            "missing_required_fields": [],
+            "shape_patterns": [],
+            "raw_manager_output_included": False,
+            "provider_trace_included": False,
+        },
+        {
+            "case_id": "grokfast_websearch_size_followup_intent_type_only",
+            "status": "pass",
+            "failure_families": [],
+            "missing_required_fields": [],
+            "shape_patterns": [],
+            "raw_manager_output_included": False,
+            "provider_trace_included": False,
+        },
+    ]
     return {
         "artifact_type": "accurate_intake_websearch_manager_contract_probe",
         "status": "pass",
         "contract_failure_detected": False,
+        "cases": cases,
         "summary": {
-            "case_count": 2,
+            "case_count": len(cases),
             "fail_count": 0,
             "aggregate_missing_required_fields": {},
             "next_recommended_slice": "narrow_prompt_schema_intent_alias_probe",
@@ -475,6 +496,80 @@ def test_websearch_candidate_lane_status_packet_blocks_vacuous_verified_handoff_
     assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
 
 
+def test_websearch_candidate_lane_status_packet_blocks_summary_only_probe_chain() -> None:
+    preflight = _clear_preflight_artifact()
+    live_report = _live_report(preflight_artifact=preflight)
+    probe = {
+        "artifact_type": "accurate_intake_websearch_manager_contract_probe",
+        "status": "pass",
+        "contract_failure_detected": False,
+        "summary": {
+            "case_count": 2,
+            "fail_count": 0,
+            "aggregate_missing_required_fields": {},
+            "next_recommended_slice": "narrow_prompt_schema_intent_alias_probe",
+        },
+    }
+    repair_pack = _repair_pack()
+    handoff = build_websearch_manager_contract_handoff(
+        live_diagnostic_report=live_report,
+        contract_probe_artifact=probe,
+        repair_pack_artifact=repair_pack,
+        preflight_artifact=preflight,
+    )
+
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        manager_contract_handoff_artifact=handoff,
+        live_diagnostic_report=live_report,
+        contract_probe_artifact=probe,
+        repair_pack_artifact=repair_pack,
+        preflight_artifact=preflight,
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == (
+        "blocked_on_manager_contract_handoff"
+    )
+    assert "manager_contract_handoff_probe_cases_missing" in artifact[
+        "manager_contract_gate"
+    ]["blockers"]
+    assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
+
+
+def test_websearch_candidate_lane_status_packet_blocks_non_pass_probe_case_chain() -> None:
+    inputs = _verified_handoff_inputs()
+    probe = {
+        **inputs["contract_probe_artifact"],
+        "cases": [
+            {**inputs["contract_probe_artifact"]["cases"][0], "status": "fail"},
+            inputs["contract_probe_artifact"]["cases"][1],
+        ],
+    }
+
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        manager_contract_handoff_artifact=inputs["manager_contract_handoff_artifact"],
+        live_diagnostic_report=inputs["live_diagnostic_report"],
+        contract_probe_artifact=probe,
+        repair_pack_artifact=inputs["repair_pack_artifact"],
+        preflight_artifact=inputs["preflight_artifact"],
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == (
+        "blocked_on_manager_contract_handoff"
+    )
+    assert "manager_contract_handoff_probe_case_not_pass" in artifact[
+        "manager_contract_gate"
+    ]["blockers"]
+    assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
+
+
 def test_websearch_candidate_lane_status_packet_blocks_source_artifact_overclaims() -> None:
     inputs = _verified_handoff_inputs()
     probe = {**inputs["contract_probe_artifact"], "readiness_claimed": True}
@@ -526,6 +621,46 @@ def test_websearch_candidate_lane_status_packet_blocks_repair_pack_map_drift() -
         "blocked_on_manager_contract_handoff"
     )
     assert "repair_pack_non_empty_missing_field_map_for_unblocked_handoff" in artifact[
+        "manager_contract_gate"
+    ]["blockers"]
+    assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
+
+
+def test_websearch_candidate_lane_status_packet_blocks_non_pass_repair_pack_case() -> None:
+    inputs = _verified_handoff_inputs()
+    repair_pack = {
+        **inputs["repair_pack_artifact"],
+        "summary": {
+            **inputs["repair_pack_artifact"]["summary"],
+            "case_count": 1,
+        },
+        "cases": [
+            {
+                "case_id": "case_001",
+                "status": "fail",
+                "failure_families": ["manager_output_contract_violation"],
+                "missing_required_fields": ["intent"],
+                "shape_patterns": ["intent_type_present_intent_missing"],
+            }
+        ],
+    }
+
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        manager_contract_handoff_artifact=inputs["manager_contract_handoff_artifact"],
+        live_diagnostic_report=inputs["live_diagnostic_report"],
+        contract_probe_artifact=inputs["contract_probe_artifact"],
+        repair_pack_artifact=repair_pack,
+        preflight_artifact=inputs["preflight_artifact"],
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == (
+        "blocked_on_manager_contract_handoff"
+    )
+    assert "repair_pack_non_pass_case_for_unblocked_handoff" in artifact[
         "manager_contract_gate"
     ]["blockers"]
     assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
