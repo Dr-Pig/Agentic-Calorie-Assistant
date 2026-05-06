@@ -45,14 +45,7 @@ FORBIDDEN_TRUE_KEYS = frozenset(
 
 def build_default_fooddb_websearch_no_runtime_wall() -> dict[str, Any]:
     defaults = build_default_fooddb_websearch_no_runtime_inputs()
-    return build_fooddb_websearch_no_runtime_wall(
-        artifacts=defaults["artifacts"],
-        next_required_slice=select_fooddb_websearch_no_runtime_next_required_slice(
-            wall_clear=True,
-            fooddb_status_packet=defaults["fooddb_status_packet"],
-            websearch_status_packet=defaults["websearch_status_packet"],
-        ),
-    )
+    return build_fooddb_websearch_no_runtime_wall(artifacts=defaults["artifacts"])
 
 
 def build_fooddb_websearch_no_runtime_wall(
@@ -60,13 +53,25 @@ def build_fooddb_websearch_no_runtime_wall(
     artifacts: Iterable[dict[str, Any]],
     next_required_slice: str | None = None,
 ) -> dict[str, Any]:
-    artifact_results = [_artifact_result(artifact) for artifact in artifacts]
+    artifact_list = list(artifacts)
+    artifact_results = [_artifact_result(artifact) for artifact in artifact_list]
     blockers = [
         blocker
         for result in artifact_results
         for blocker in result["blockers"]
     ]
     clear = not blockers
+    resolved_next_required_slice = next_required_slice or select_fooddb_websearch_no_runtime_next_required_slice(
+        wall_clear=clear,
+        fooddb_status_packet=_artifact_with_type(
+            artifact_list,
+            "accurate_intake_fooddb_evidence_status_packet_v1",
+        ),
+        websearch_status_packet=_artifact_with_type(
+            artifact_list,
+            "accurate_intake_websearch_candidate_lane_status_packet_v1",
+        ),
+    )
     return {
         "artifact_type": "accurate_intake_fooddb_websearch_no_runtime_wall_v1",
         "artifact_schema_version": "1.0",
@@ -113,11 +118,7 @@ def build_fooddb_websearch_no_runtime_wall(
             "live_calls": "forbidden",
             "readiness_claims": "forbidden",
         },
-        "next_required_slice": (
-            next_required_slice or "grokfast_fooddb_or_websearch_packet_live_diagnostic"
-            if clear
-            else "inspect_fooddb_websearch_no_runtime_wall_blockers"
-        ),
+        "next_required_slice": resolved_next_required_slice,
         "non_claims": [
             "no_live_provider_call",
             "no_live_websearch_call",
@@ -201,6 +202,16 @@ def _stable_unique(values: Iterable[str]) -> list[str]:
         seen.add(value)
         unique.append(value)
     return unique
+
+
+def _artifact_with_type(
+    artifacts: Iterable[dict[str, Any]],
+    artifact_type: str,
+) -> dict[str, Any] | None:
+    for artifact in artifacts:
+        if str(artifact.get("artifact_type") or "") == artifact_type:
+            return artifact
+    return None
 
 
 def _truthy_key_forbidden(

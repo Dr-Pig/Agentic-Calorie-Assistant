@@ -33,8 +33,33 @@ from .websearch_source_policy import build_websearch_source_policy_artifact
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _INSPECT_BLOCKERS = "inspect_fooddb_websearch_no_runtime_wall_blockers"
+_INSPECT_WEBSEARCH_ALIGNMENT = "inspect_websearch_candidate_lane_status_packet"
 _FALLBACK_LIVE_SLICE = "grokfast_fooddb_packet_live_diagnostic"
 _FOODDB_WEBSEARCH_HANDOFF = "grokfast_websearch_packet_live_diagnostic"
+_ALLOWED_FOODDB_NEXT_SLICES = frozenset(
+    {
+        "await_manager_contract_owner_repair",
+        "common_serving_anchor_expansion",
+        "grokfast_fooddb_packet_live_diagnostic",
+        "grokfast_websearch_packet_live_diagnostic",
+        "inspect_contract_handoff_status",
+        "inspect_fooddb_status_packet",
+        "listed_component_anchor_expansion",
+        "manager_fooddb_packet_seam_smoke",
+        "packet_to_mutation_guard_hardening",
+        "repair_artifact_alignment_required",
+    }
+)
+_ALLOWED_WEBSEARCH_NEXT_SLICES = frozenset(
+    {
+        "grokfast_fooddb_packet_live_diagnostic",
+        "grokfast_websearch_packet_live_diagnostic",
+        "inspect_fooddb_status_packet",
+        "inspect_websearch_candidate_lane_status_packet",
+        "inspect_websearch_manager_contract_handoff",
+        "inspect_websearch_source_adapter_guard",
+    }
+)
 
 
 def build_default_fooddb_websearch_no_runtime_inputs() -> dict[str, Any]:
@@ -92,14 +117,22 @@ def select_fooddb_websearch_no_runtime_next_required_slice(
 ) -> str:
     if not wall_clear:
         return _INSPECT_BLOCKERS
-    fooddb_next = _first_next_required_slice(fooddb_status_packet)
+    fooddb_next = _first_next_required_slice(
+        fooddb_status_packet,
+        allowed_slices=_ALLOWED_FOODDB_NEXT_SLICES,
+        fallback="inspect_fooddb_status_packet",
+    )
     if fooddb_next and fooddb_next != _FOODDB_WEBSEARCH_HANDOFF:
         return fooddb_next
-    websearch_next = _first_next_required_slice(websearch_status_packet)
+    websearch_next = _first_next_required_slice(
+        websearch_status_packet,
+        allowed_slices=_ALLOWED_WEBSEARCH_NEXT_SLICES,
+        fallback=_INSPECT_WEBSEARCH_ALIGNMENT,
+    )
     if websearch_next:
         return websearch_next
     if fooddb_next:
-        return fooddb_next
+        return _INSPECT_WEBSEARCH_ALIGNMENT
     return _FALLBACK_LIVE_SLICE
 
 
@@ -142,15 +175,22 @@ def _read_repo_json(relative_path: str) -> dict[str, Any]:
     return payload
 
 
-def _first_next_required_slice(artifact: dict[str, Any] | None) -> str | None:
+def _first_next_required_slice(
+    artifact: dict[str, Any] | None,
+    *,
+    allowed_slices: frozenset[str],
+    fallback: str,
+) -> str | None:
     if not isinstance(artifact, dict):
         return None
     next_required_slices = artifact.get("next_required_slices")
     if isinstance(next_required_slices, list) and next_required_slices:
         text = str(next_required_slices[0] or "").strip()
-        return text or None
+        return text if text in allowed_slices else fallback
     next_required_slice = str(artifact.get("next_required_slice") or "").strip()
-    return next_required_slice or None
+    if not next_required_slice:
+        return None
+    return next_required_slice if next_required_slice in allowed_slices else fallback
 
 
 __all__ = [
