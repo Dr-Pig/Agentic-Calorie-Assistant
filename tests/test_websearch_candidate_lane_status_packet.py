@@ -100,7 +100,15 @@ def _live_report(*, preflight_artifact: dict) -> dict:
         "runtime_truth_changed": False,
         "runtime_mutation_attempted": False,
         "readiness_claimed": False,
+        "self_use_approved": False,
+        "production_selected": False,
         "next_recommended_slice": "websearch_candidate_pipeline_narrow_expansion",
+        "non_claims": [
+            "no_live_websearch_call",
+            "no_runtime_mutation",
+            "no_websearch_runtime_truth",
+            "no_readiness_claim",
+        ],
     }
 
 
@@ -112,6 +120,17 @@ def _probe() -> dict:
             "failure_families": [],
             "missing_required_fields": [],
             "shape_patterns": [],
+            "observed_keys": [
+                "confidence",
+                "evidence_posture",
+                "exactness",
+                "intent",
+                "manager_action",
+                "repair_ack",
+                "target_attachment",
+                "workflow_effect",
+            ],
+            "validation_error_family": None,
             "raw_manager_output_included": False,
             "provider_trace_included": False,
         },
@@ -121,6 +140,17 @@ def _probe() -> dict:
             "failure_families": [],
             "missing_required_fields": [],
             "shape_patterns": [],
+            "observed_keys": [
+                "confidence",
+                "evidence_posture",
+                "exactness",
+                "intent",
+                "manager_action",
+                "repair_ack",
+                "target_attachment",
+                "workflow_effect",
+            ],
+            "validation_error_family": None,
             "raw_manager_output_included": False,
             "provider_trace_included": False,
         },
@@ -129,6 +159,17 @@ def _probe() -> dict:
         "artifact_type": "accurate_intake_websearch_manager_contract_probe",
         "status": "pass",
         "contract_failure_detected": False,
+        "artifact_schema_version": "1.0",
+        "live_provider_used": False,
+        "live_websearch_used": False,
+        "readiness_claimed": False,
+        "self_use_approved": False,
+        "production_selected": False,
+        "runtime_truth_changed": False,
+        "runtime_mutation_attempted": False,
+        "manager_contract_changed": False,
+        "prompt_changed": False,
+        "schema_changed": False,
         "cases": cases,
         "summary": {
             "case_count": len(cases),
@@ -136,18 +177,39 @@ def _probe() -> dict:
             "aggregate_missing_required_fields": {},
             "next_recommended_slice": "narrow_prompt_schema_intent_alias_probe",
         },
+        "non_claims": [
+            "no_live_provider_call",
+            "no_live_websearch_call",
+            "no_runtime_mutation",
+            "no_websearch_runtime_truth",
+            "no_readiness_claim",
+        ],
     }
 
 
 def _repair_pack() -> dict:
     return {
         "artifact_type": "accurate_intake_websearch_manager_contract_repair_pack",
+        "artifact_schema_version": "1.0",
+        "runtime_truth_changed": False,
+        "runtime_mutation_attempted": False,
+        "manager_contract_changed": False,
+        "prompt_changed": False,
+        "schema_changed": False,
+        "readiness_claimed": False,
         "next_recommended_slice": "tighten_websearch_manager_contract_prompt_or_transport",
         "summary": {
             "case_count": 0,
             "alias_hint_counts": {},
             "shape_pattern_counts": {},
         },
+        "non_claims": [
+            "no_live_provider_call",
+            "no_live_websearch_call",
+            "no_runtime_mutation",
+            "no_websearch_runtime_truth",
+            "no_readiness_claim",
+        ],
     }
 
 
@@ -565,6 +627,84 @@ def test_websearch_candidate_lane_status_packet_blocks_non_pass_probe_case_chain
         "blocked_on_manager_contract_handoff"
     )
     assert "manager_contract_handoff_probe_case_not_pass" in artifact[
+        "manager_contract_gate"
+    ]["blockers"]
+    assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
+
+
+def test_websearch_candidate_lane_status_packet_blocks_minimal_pass_probe_cases() -> None:
+    preflight = _clear_preflight_artifact()
+    live_report = _live_report(preflight_artifact=preflight)
+    probe = {
+        "artifact_type": "accurate_intake_websearch_manager_contract_probe",
+        "artifact_schema_version": "1.0",
+        "status": "pass",
+        "contract_failure_detected": False,
+        "live_provider_used": False,
+        "live_websearch_used": False,
+        "readiness_claimed": False,
+        "self_use_approved": False,
+        "production_selected": False,
+        "runtime_truth_changed": False,
+        "runtime_mutation_attempted": False,
+        "manager_contract_changed": False,
+        "prompt_changed": False,
+        "schema_changed": False,
+        "cases": [
+            {
+                "status": "pass",
+                "failure_families": [],
+                "raw_manager_output_included": False,
+                "provider_trace_included": False,
+            },
+            {
+                "status": "pass",
+                "failure_families": [],
+                "raw_manager_output_included": False,
+                "provider_trace_included": False,
+            },
+        ],
+        "summary": {
+            "case_count": 2,
+            "fail_count": 0,
+            "aggregate_missing_required_fields": {},
+            "next_recommended_slice": "narrow_prompt_schema_intent_alias_probe",
+        },
+        "non_claims": [
+            "no_live_provider_call",
+            "no_live_websearch_call",
+            "no_runtime_mutation",
+            "no_websearch_runtime_truth",
+            "no_readiness_claim",
+        ],
+    }
+    repair_pack = _repair_pack()
+    handoff = build_websearch_manager_contract_handoff(
+        live_diagnostic_report=live_report,
+        contract_probe_artifact=probe,
+        repair_pack_artifact=repair_pack,
+        preflight_artifact=preflight,
+    )
+
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        manager_contract_handoff_artifact=handoff,
+        live_diagnostic_report=live_report,
+        contract_probe_artifact=probe,
+        repair_pack_artifact=repair_pack,
+        preflight_artifact=preflight,
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == (
+        "blocked_on_manager_contract_handoff"
+    )
+    assert "manager_contract_handoff_probe_case_id_missing" in artifact[
+        "manager_contract_gate"
+    ]["blockers"]
+    assert "manager_contract_handoff_probe_case_missing_required_fields_missing" in artifact[
         "manager_contract_gate"
     ]["blockers"]
     assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]

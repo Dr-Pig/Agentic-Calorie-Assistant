@@ -7,6 +7,9 @@ from .websearch_candidate_lane_handoff_proof import (
     safe_count_map,
     safe_non_negative_int,
 )
+from .websearch_candidate_lane_source_artifact_guard import (
+    source_artifact_boundary_blockers,
+)
 
 
 def source_chain_blockers(
@@ -19,27 +22,11 @@ def source_chain_blockers(
 ) -> list[str]:
     blockers: list[str] = []
     blockers.extend(
-        _source_artifact_boundary_blockers(
-            artifact=live_diagnostic_report,
-            prefix="live_report",
-        )
-    )
-    blockers.extend(
-        _source_artifact_boundary_blockers(
-            artifact=contract_probe_artifact,
-            prefix="contract_probe",
-        )
-    )
-    blockers.extend(
-        _source_artifact_boundary_blockers(
-            artifact=repair_pack_artifact,
-            prefix="repair_pack",
-        )
-    )
-    blockers.extend(
-        _source_artifact_boundary_blockers(
-            artifact=preflight_artifact,
-            prefix="preflight",
+        source_artifact_boundary_blockers(
+            live_diagnostic_report=live_diagnostic_report,
+            contract_probe_artifact=contract_probe_artifact,
+            repair_pack_artifact=repair_pack_artifact,
+            preflight_artifact=preflight_artifact,
         )
     )
     blockers.extend(
@@ -58,35 +45,6 @@ def source_chain_blockers(
             repair_pack_artifact=repair_pack_artifact,
         )
     )
-    return blockers
-
-
-def _source_artifact_boundary_blockers(
-    *,
-    artifact: dict[str, Any],
-    prefix: str,
-) -> list[str]:
-    blockers: list[str] = []
-    for key, suffix in (
-        ("readiness_claimed", "claimed_readiness"),
-        ("runtime_truth_changed", "changed_runtime_truth"),
-        ("runtime_mutation_attempted", "attempted_runtime_mutation"),
-        ("mutation_changed", "changed_mutation"),
-        ("prompt_changed", "changed_prompt"),
-        ("schema_changed", "changed_schema"),
-        ("manager_contract_changed", "changed_manager_contract"),
-        ("shared_contract_changed", "changed_shared_contract"),
-        ("manager_context_changed", "changed_manager_context"),
-        ("packetizer_format_changed", "changed_packetizer_format"),
-        ("live_provider_used", "used_live_provider"),
-        ("live_websearch_used", "used_live_websearch"),
-        ("self_use_approved", "claimed_self_use"),
-        ("private_self_use_approved", "claimed_private_self_use"),
-        ("production_selected", "claimed_production_selection"),
-        ("product_readiness_claimed", "claimed_product_readiness"),
-    ):
-        if key in artifact and artifact.get(key) is not False:
-            blockers.append(f"{prefix}_{suffix}")
     return blockers
 
 
@@ -109,6 +67,21 @@ def _probe_case_evidence_blockers(
             blockers.append("manager_contract_handoff_probe_case_not_pass")
         if case.get("failure_families") not in ([], None):
             blockers.append("manager_contract_handoff_probe_case_failure_present")
+        if not str(case.get("case_id") or "").strip():
+            blockers.append("manager_contract_handoff_probe_case_id_missing")
+        missing_fields = case.get("missing_required_fields")
+        if missing_fields != []:
+            blockers.append("manager_contract_handoff_probe_case_missing_required_fields_missing")
+        shape_patterns = case.get("shape_patterns")
+        if shape_patterns != []:
+            blockers.append("manager_contract_handoff_probe_case_shape_patterns_missing")
+        observed_keys = case.get("observed_keys")
+        if not isinstance(observed_keys, list) or not observed_keys:
+            blockers.append("manager_contract_handoff_probe_case_observed_keys_missing")
+        if "validation_error_family" not in case:
+            blockers.append("manager_contract_handoff_probe_case_validation_family_missing")
+        elif case.get("validation_error_family") is not None:
+            blockers.append("manager_contract_handoff_probe_case_validation_family_present")
         if case.get("raw_manager_output_included") is not False:
             blockers.append("manager_contract_handoff_probe_case_raw_output_included")
         if case.get("provider_trace_included") is not False:
