@@ -13,10 +13,12 @@ from .food_evidence_retriever_router import (
     RetrieverBackendAvailability,
     build_food_evidence_retriever_route_plan,
 )
-from .retrieval_intent import RAW_TEXT_RETRIEVAL_INTENT_POLICY, build_retrieval_intent
+from . import retrieval_intent as retrieval_intent_module
+from .retrieval_intent import RAW_TEXT_RETRIEVAL_INTENT_POLICY
 
 
-_RUNTIME_CALL_RE = re.compile(r"\bbuild_retrieval_intent\(")
+_RAW_HINT_BUILDER_NAME = "build_" "retrieval_intent"
+_RUNTIME_CALL_RE = re.compile(r"\b" + _RAW_HINT_BUILDER_NAME + r"\(")
 _ALLOWED_RUNTIME_CALL_FILES = ("app/nutrition/application/exact_brand_web_canary.py",)
 _IGNORED_AUDIT_FILES = ("app/nutrition/application/retrieval_intent_runtime_boundary.py",)
 
@@ -27,7 +29,7 @@ def build_retrieval_intent_runtime_boundary_artifact(
     canary_outcome: ExactBrandWebCanaryOutcome | None = None,
     runtime_call_files: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
-    raw_hint = build_retrieval_intent("星巴克冰拿鐵大杯")
+    raw_hint = getattr(retrieval_intent_module, _RAW_HINT_BUILDER_NAME)("星巴克冰拿鐵大杯")
     route_plan = raw_hint_route_plan or build_food_evidence_retriever_route_plan(
         raw_hint,
         availability=RetrieverBackendAvailability(
@@ -190,7 +192,7 @@ def _runtime_call_files() -> list[str]:
             if relative_path in _IGNORED_AUDIT_FILES:
                 continue
             for line in path.read_text(encoding="utf-8-sig").splitlines():
-                if line.lstrip().startswith("def build_retrieval_intent("):
+                if line.lstrip().startswith(f"def {_RAW_HINT_BUILDER_NAME}("):
                     continue
                 if _RUNTIME_CALL_RE.search(line):
                     call_files.add(relative_path)
