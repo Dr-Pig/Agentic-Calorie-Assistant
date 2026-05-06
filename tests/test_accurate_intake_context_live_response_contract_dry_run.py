@@ -107,6 +107,25 @@ def test_context_live_response_contract_dry_run_rejects_missing_target_or_ambigu
     assert "context_live_011_ambiguous_back_reference.ambiguity_not_preserved" in blocked["blockers"]
 
 
+def test_context_live_response_contract_dry_run_accepts_live_manager_resolved_target() -> None:
+    artifact = build_context_live_response_contract_dry_run_artifact()
+    responses = list(artifact["fixture_responses"])
+    target_case = next(
+        index
+        for index, row in enumerate(responses)
+        if row["case_id"] == "context_live_004_remove_previous_item"
+    )
+    responses[target_case] = {
+        **dict(responses[target_case]),
+        "target_resolution": {"status": "resolved", "candidate_ids": ["boba"]},
+    }
+
+    result = build_context_live_response_contract_dry_run_artifact(fixture_responses=responses)
+
+    assert result["status"] == "pass"
+    assert result["summary"]["target_candidate_response_count"] >= 1
+
+
 def test_context_live_response_contract_dry_run_requires_clean_provider_input_preflight() -> None:
     preflight = build_context_live_provider_input_preflight_artifact()
     preflight["status"] = "blocked"

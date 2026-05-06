@@ -71,6 +71,22 @@ def test_context_live_provider_input_preflight_omits_forbidden_context_from_ever
         assert "deterministic_selected_intent" in provider_input["expected_semantic_contract"][
             "must_not_happen"
         ]
+        assert (
+            provider_input["expected_semantic_contract"]["target_resolution_scope"]
+            == "prior_meal_or_item_reference_only_not_daily_budget_or_food_identity"
+        )
+
+
+def test_context_live_provider_input_preflight_schema_defines_target_resolution_scope() -> None:
+    artifact = build_context_live_provider_input_preflight_artifact()
+    schema = artifact["provider_inputs"][0]["response_schema"]
+    target_resolution = schema["properties"]["target_resolution"]
+
+    assert "Correction/removal target resolution only" in target_resolution["description"]
+    assert "daily targets" in target_resolution["description"]
+    assert "never include numeric daily calorie targets" in target_resolution["properties"]["candidate_ids"][
+        "description"
+    ]
 
 
 def test_context_live_provider_input_preflight_blocks_non_fixed_matrix_or_failed_guard() -> None:
