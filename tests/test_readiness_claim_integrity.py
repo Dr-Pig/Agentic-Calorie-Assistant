@@ -121,6 +121,23 @@ def test_b2_semantic_owner_inversion_blocks_ready_flag() -> None:
     assert any(item["code"] == "semantic_owner_integrity_blocks_readiness" for item in result["blockers"])
 
 
+def test_top_level_readiness_claimed_must_match_nested_claim() -> None:
+    result = validate_readiness_claim_integrity(
+        {
+            "artifact_type": "example",
+            "readiness_claimed": False,
+            "readiness_claim": _claim(
+                claim_scope="shadow",
+                activation_stage="shadow",
+                readiness_claimed=True,
+            ),
+        }
+    )
+
+    assert result["passed"] is False
+    assert any(item["code"] == "readiness_claim_flag_mismatch" for item in result["blockers"])
+
+
 def test_audit_script_fails_missing_lineage(tmp_path: Path) -> None:
     artifact = tmp_path / "artifact.json"
     artifact.write_text(
