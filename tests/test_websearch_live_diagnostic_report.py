@@ -313,6 +313,7 @@ def test_websearch_live_diagnostic_report_recognizes_b1_pass2_json_schema_transp
     assert report["contract_transport"]["healthy"] is True
     assert report["contract_transport"]["structured_output_transport_attempted"] is True
     assert report["contract_transport"]["structured_output_healthy_case_count"] == 1
+    assert report["next_recommended_slice"] == "inspect_websearch_status_packet"
     assert report["contract_transport"]["observed_structured_output_transport_modes"] == [
         "json_schema"
     ]
@@ -824,6 +825,7 @@ def test_websearch_live_diagnostic_report_script_accepts_bundle_manifest(
     assert report["source_live_websearch_used"] is False
     assert report["preflight_evidence_healthy"] is True
     assert report["preflight_evidence"]["status"] == "pass"
+    assert report["next_recommended_slice"] == "inspect_websearch_status_packet"
 
 
 def test_websearch_live_diagnostic_report_rejects_unexpected_source_artifact_type() -> None:

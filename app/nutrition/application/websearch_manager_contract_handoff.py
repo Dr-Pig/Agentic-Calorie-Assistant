@@ -28,6 +28,7 @@ _ALLOWED_SEAM_STATUSES = {
 }
 _ALLOWED_NEXT_SLICES = {
     "grokfast_websearch_packet_live_diagnostic",
+    "inspect_websearch_status_packet",
     "inspect_sanitized_failure_taxonomy",
     "inspect_websearch_live_failure_taxonomy",
     "narrow_grokfast_websearch_manager_contract_probe",
@@ -125,7 +126,7 @@ def build_websearch_manager_contract_handoff(
         handoff_ready = False
     elif seam_status == "live_diagnostic_pass":
         status = "websearch_contract_unblocked"
-        selected_next_step = "websearch_candidate_pipeline_narrow_expansion"
+        selected_next_step = "inspect_websearch_status_packet"
         handoff_ready = False
     else:
         status = "insufficient_contract_handoff_evidence"

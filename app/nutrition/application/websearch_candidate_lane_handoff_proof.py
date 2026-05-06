@@ -4,6 +4,7 @@ from typing import Any
 
 
 _ALLOWED_MANAGER_CONTRACT_NEXT_SLICES = {
+    "inspect_websearch_status_packet",
     "inspect_websearch_manager_contract_handoff",
     "narrow_websearch_packet_boundary_or_prompt_probe",
     "tighten_websearch_manager_contract_prompt_or_transport",

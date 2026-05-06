@@ -68,6 +68,7 @@ _ALLOWED_VALIDATION_ERROR_FAMILIES = {
 }
 _ALLOWED_PROBE_NEXT_SLICES = {
     "grokfast_websearch_packet_live_diagnostic",
+    "inspect_websearch_status_packet",
     "inspect_websearch_manager_contract_failures",
     "narrow_prompt_schema_intent_alias_probe",
     "websearch_candidate_pipeline_narrow_expansion",
@@ -159,7 +160,7 @@ def build_websearch_manager_contract_repair_pack(
     next_recommended_slice = (
         "tighten_websearch_manager_contract_prompt_or_transport"
         if fail_count > 0
-        else (probe_next_recommended_slice or "grokfast_websearch_packet_live_diagnostic")
+        else (probe_next_recommended_slice or "inspect_websearch_status_packet")
     )
 
     return {

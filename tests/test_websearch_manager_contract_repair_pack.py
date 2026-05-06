@@ -124,7 +124,7 @@ def test_websearch_manager_contract_repair_pack_pass_case_unblocks_live_diagnost
             "case_count": 1,
             "pass_count": 1,
             "fail_count": 0,
-            "next_recommended_slice": "websearch_candidate_pipeline_narrow_expansion",
+            "next_recommended_slice": "inspect_websearch_status_packet",
         },
         "cases": [
             {
@@ -140,7 +140,7 @@ def test_websearch_manager_contract_repair_pack_pass_case_unblocks_live_diagnost
 
     report = build_websearch_manager_contract_repair_pack(contract_probe_artifact=probe)
 
-    assert report["next_recommended_slice"] == "websearch_candidate_pipeline_narrow_expansion"
+    assert report["next_recommended_slice"] == "inspect_websearch_status_packet"
     assert report["summary"]["aggregate_missing_required_fields"] == {}
     assert report["summary"]["alias_hint_counts"] == {}
 

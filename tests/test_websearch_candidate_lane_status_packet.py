@@ -138,7 +138,7 @@ def _live_report(*, preflight_artifact: dict) -> dict:
         "readiness_claimed": False,
         "self_use_approved": False,
         "production_selected": False,
-        "next_recommended_slice": "websearch_candidate_pipeline_narrow_expansion",
+        "next_recommended_slice": "inspect_websearch_status_packet",
         "non_claims": [
             "no_live_provider_call",
             "no_live_websearch_call",
@@ -595,7 +595,7 @@ def test_websearch_candidate_lane_status_packet_blocks_unverified_unblocked_mana
         manager_contract_handoff_artifact={
             "artifact_type": "accurate_intake_websearch_manager_contract_handoff_v1",
             "status": "websearch_contract_unblocked",
-            "selected_next_step": "websearch_candidate_pipeline_narrow_expansion",
+            "selected_next_step": "inspect_websearch_status_packet",
             "summary": {"alignment_blocker_count": 0},
         },
     )
@@ -1320,7 +1320,7 @@ def test_websearch_candidate_lane_status_packet_sanitizes_fooddb_next_required_s
         manager_contract_handoff_artifact={
             "artifact_type": "accurate_intake_websearch_manager_contract_handoff_v1",
             "status": "websearch_contract_unblocked",
-            "selected_next_step": "websearch_candidate_pipeline_narrow_expansion",
+            "selected_next_step": "inspect_websearch_status_packet",
         },
     )
 

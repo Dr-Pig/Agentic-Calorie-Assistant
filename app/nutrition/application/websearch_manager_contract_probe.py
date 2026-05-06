@@ -127,8 +127,11 @@ def build_websearch_manager_contract_probe(
     repair_hypotheses = _repair_hypotheses(results)
     contract_failure_detected = fail_count > 0
     if not contract_failure_detected and _diagnostic_artifact_passed(diagnostic_artifact):
-        next_recommended_slice = "websearch_candidate_pipeline_narrow_expansion"
+        next_recommended_slice = "inspect_websearch_status_packet"
         websearch_expansion_allowed = True
+    elif not contract_failure_detected:
+        next_recommended_slice = "inspect_websearch_status_packet"
+        websearch_expansion_allowed = False
     else:
         next_recommended_slice = (
             "narrow_prompt_schema_intent_alias_probe"
