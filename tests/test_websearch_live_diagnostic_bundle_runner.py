@@ -9,6 +9,13 @@ from scripts.run_accurate_intake_websearch_live_diagnostic_bundle import (
 )
 
 
+def _fooddb_status_packet(next_required_slice: str) -> dict:
+    return {
+        "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+        "next_required_slices": [next_required_slice],
+    }
+
+
 def test_websearch_live_diagnostic_bundle_artifact_paths_fit_windows_budget() -> None:
     output_dir = Path(
         "C:/Users/User/.config/superpowers/worktrees/"
@@ -30,6 +37,7 @@ def test_websearch_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_pa
     report = read_json_artifact(tmp_path / "websearch_live_report.json")
     readiness = read_json_artifact(tmp_path / "websearch_live_readiness.json")
     handoff = read_json_artifact(tmp_path / "websearch_contract_handoff.json")
+    status_packet = read_json_artifact(tmp_path / "websearch_evidence_status_packet.json")
 
     assert manifest["bundle_status"] == "pass"
     assert manifest["mode"] == "fixture"
@@ -39,12 +47,15 @@ def test_websearch_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_pa
     assert manifest["runtime_mutation_attempted"] is False
     assert manifest["readiness_claimed"] is False
     assert manifest["seam_status"] == "fixture_only_live_not_checked"
+    assert manifest["next_recommended_slice"] == "inspect_fooddb_status_packet"
     assert manifest["manager_contract_handoff_status"] == "insufficient_contract_handoff_evidence"
     assert manifest["manager_contract_handoff_ready"] is False
     assert diagnostic["live_provider_used"] is False
     assert report["should_run_websearch_live_tool_loop"] is False
     assert readiness["ready_for_grokfast_websearch_packet_live_diagnostic"] is True
     assert handoff["status"] == "insufficient_contract_handoff_evidence"
+    assert status_packet["artifact_type"] == "accurate_intake_websearch_evidence_status_packet_v1"
+    assert status_packet["next_required_slices"] == ["inspect_fooddb_status_packet"]
 
 
 def test_websearch_live_diagnostic_bundle_live_mode_requires_explicit_allow_live(
@@ -86,8 +97,39 @@ def test_websearch_live_diagnostic_bundle_records_all_required_artifact_refs(
         "manager_contract_probe",
         "manager_contract_repair_pack",
         "manager_contract_handoff",
+        "websearch_evidence_status_packet",
     }
 
     assert set(manifest["artifacts"]) == required_refs
     for artifact_path in manifest["artifacts"].values():
         assert Path(artifact_path).exists()
+
+
+def test_websearch_live_diagnostic_bundle_accepts_explicit_fooddb_status_packet(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import write_json_artifact
+
+    fooddb_status_path = tmp_path / "fooddb_status.json"
+    write_json_artifact(
+        fooddb_status_path,
+        _fooddb_status_packet("grokfast_websearch_packet_live_diagnostic"),
+    )
+
+    exit_code = main(
+        [
+            "--output-dir",
+            str(tmp_path),
+            "--fooddb-status-packet-artifact",
+            str(fooddb_status_path),
+        ]
+    )
+
+    assert exit_code == 0
+    status_packet = read_json_artifact(tmp_path / "websearch_evidence_status_packet.json")
+
+    assert (
+        status_packet["summary"]["candidate_lane_next_required_slice"]
+        == "inspect_websearch_manager_contract_handoff"
+    )
+    assert status_packet["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
