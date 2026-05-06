@@ -3,6 +3,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from .fooddb_live_runner_evidence import (
+    summarize_fooddb_live_runner_evidence,
+)
+from .fooddb_live_runner_evidence_health import is_fooddb_live_runner_evidence_healthy
+
 
 FOODDB_LIVE_DIAGNOSTIC_REPORT_NON_CLAIMS = [
     "no_live_provider_call",
@@ -37,7 +42,13 @@ _PACKET_BOUNDARY_FAILURES = frozenset(
 )
 
 
-def build_fooddb_live_diagnostic_report(*, diagnostic_artifact: dict[str, Any]) -> dict[str, Any]:
+def build_fooddb_live_diagnostic_report(
+    *,
+    diagnostic_artifact: dict[str, Any],
+    preflight_artifact: dict[str, Any] | None = None,
+    router_readiness_artifact: dict[str, Any] | None = None,
+    live_runner_readiness_artifact: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     source_artifact_type = str(diagnostic_artifact.get("artifact_type") or "")
     if source_artifact_type != "accurate_intake_grokfast_fooddb_packet_smoke":
         raise ValueError(f"unsupported_fooddb_live_diagnostic_artifact_type:{source_artifact_type}")
@@ -45,6 +56,13 @@ def build_fooddb_live_diagnostic_report(*, diagnostic_artifact: dict[str, Any]) 
     failure_counts = _failure_counts(diagnostic_artifact)
     live_provider_used = diagnostic_artifact.get("live_provider_used") is True
     diagnostic_status = str(diagnostic_artifact.get("status") or "")
+    upstream_evidence = summarize_fooddb_live_runner_evidence(
+        diagnostic_artifact=diagnostic_artifact,
+        preflight_artifact=preflight_artifact,
+        router_readiness_artifact=router_readiness_artifact,
+        live_runner_readiness_artifact=live_runner_readiness_artifact,
+    )
+    upstream_evidence_healthy = is_fooddb_live_runner_evidence_healthy(upstream_evidence)
     provider_contract_blocked = any(failure in failure_counts for failure in _PROVIDER_CONTRACT_FAILURES)
     packet_boundary_blocked = any(failure in failure_counts for failure in _PACKET_BOUNDARY_FAILURES)
 
@@ -52,8 +70,12 @@ def build_fooddb_live_diagnostic_report(*, diagnostic_artifact: dict[str, Any]) 
         seam_status = "fixture_only_live_not_checked"
         next_recommended_slice = "run_explicit_grokfast_fooddb_packet_live_diagnostic"
     elif diagnostic_status == "pass":
-        seam_status = "live_diagnostic_pass"
-        next_recommended_slice = "grokfast_websearch_packet_live_diagnostic"
+        if upstream_evidence_healthy:
+            seam_status = "live_diagnostic_pass"
+            next_recommended_slice = "grokfast_websearch_packet_live_diagnostic"
+        else:
+            seam_status = "upstream_evidence_missing"
+            next_recommended_slice = "rerun_with_clear_fooddb_live_runner_evidence"
     elif provider_contract_blocked:
         seam_status = "provider_contract_blocked"
         next_recommended_slice = "narrow_grokfast_fooddb_manager_contract_probe"
@@ -79,6 +101,8 @@ def build_fooddb_live_diagnostic_report(*, diagnostic_artifact: dict[str, Any]) 
         "should_run_websearch_live_tool_loop": False,
         "provider_contract_blocked": provider_contract_blocked,
         "packet_boundary_blocked": packet_boundary_blocked,
+        "upstream_evidence_required": live_provider_used,
+        "upstream_evidence_healthy": upstream_evidence_healthy,
         "next_recommended_slice": next_recommended_slice,
         "runtime_truth_changed": False,
         "runtime_mutation_attempted": False,
@@ -91,6 +115,7 @@ def build_fooddb_live_diagnostic_report(*, diagnostic_artifact: dict[str, Any]) 
             "fail_count": _summary_int(diagnostic_artifact, "fail_count"),
             "failure_counts": failure_counts,
         },
+        "upstream_evidence": upstream_evidence,
         "sanitization": {
             "raw_manager_output_included": False,
             "raw_provider_trace_included": False,

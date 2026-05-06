@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from .fooddb_live_report_handoff_gate import fooddb_live_report_handoff_blockers
+
 
 def build_fooddb_manager_contract_handoff(
     *,
@@ -25,11 +27,11 @@ def build_fooddb_manager_contract_handoff(
     probe_case_count = int(probe_summary.get("case_count", 0) or 0)
     repair_case_count = int(repair_summary.get("case_count", 0) or 0)
 
-    alignment_blockers: list[str] = []
-    if seam_status == "provider_contract_blocked" and not contract_failure_detected:
-        alignment_blockers.append("live_report_probe_contract_status_mismatch")
-    if seam_status == "live_diagnostic_pass" and contract_failure_detected:
-        alignment_blockers.append("live_pass_with_contract_failure_detected")
+    alignment_blockers = fooddb_live_report_handoff_blockers(
+        live_diagnostic_report=live_diagnostic_report,
+        seam_status=seam_status,
+        contract_failure_detected=contract_failure_detected,
+    )
     if repair_next == "repair_artifact_alignment_required":
         alignment_blockers.append("repair_pack_alignment_required")
     if contract_failure_detected and repair_case_count == 0:

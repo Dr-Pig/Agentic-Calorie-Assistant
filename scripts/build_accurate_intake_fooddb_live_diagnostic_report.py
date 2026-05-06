@@ -24,11 +24,19 @@ def main(argv: list[str] | None = None) -> int:
         description="Build FoodDB GrokFast live diagnostic report artifact."
     )
     parser.add_argument("--diagnostic-artifact", default=str(DEFAULT_INPUT))
+    parser.add_argument("--preflight-artifact")
+    parser.add_argument("--router-readiness-artifact")
+    parser.add_argument("--live-runner-readiness-artifact")
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     args = parser.parse_args(argv)
 
     diagnostic_artifact = read_json_artifact(Path(args.diagnostic_artifact))
-    report = build_fooddb_live_diagnostic_report(diagnostic_artifact=diagnostic_artifact)
+    report = build_fooddb_live_diagnostic_report(
+        diagnostic_artifact=diagnostic_artifact,
+        preflight_artifact=_optional_artifact(args.preflight_artifact),
+        router_readiness_artifact=_optional_artifact(args.router_readiness_artifact),
+        live_runner_readiness_artifact=_optional_artifact(args.live_runner_readiness_artifact),
+    )
     output_path = Path(args.output)
     write_json_artifact(output_path, report)
     print(
@@ -43,6 +51,12 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     return 0
+
+
+def _optional_artifact(path: str | None) -> dict | None:
+    if not path:
+        return None
+    return read_json_artifact(Path(path))
 
 
 if __name__ == "__main__":
