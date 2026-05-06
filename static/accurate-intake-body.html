@@ -279,6 +279,18 @@
       </div>
       <p id="body-status" class="status">Body plan not loaded yet.</p>
     </section>
+    <section class="card" id="body-budget-loop">
+      <h2>Budget loop</h2>
+      <div class="summary-grid">
+        <div class="metric"><strong>Active target</strong><span id="body-active-target">--</span></div>
+        <div class="metric"><strong>Consumed</strong><span id="body-consumed-kcal">--</span></div>
+        <div class="metric"><strong>Remaining</strong><span id="body-remaining-kcal">--</span></div>
+        <div class="metric"><strong>Estimated deficit</strong><span id="body-estimated-deficit">--</span></div>
+        <div class="metric"><strong>Effective budget</strong><span id="body-effective-budget">--</span></div>
+        <div class="metric"><strong>Weekly progress</strong><span id="body-weekly-progress">--</span></div>
+      </div>
+      <p class="status">Rendered from backend body-budget read models.</p>
+    </section>
     <section class="grid">
       <article class="card">
         <h2>Check in weight</h2>
@@ -372,7 +384,10 @@
       weightHistory: "/weight/observations",
       weightObservation: "/weight/observation",
       onboarding: "/onboarding/bootstrap",
-      manualTarget: "/body-plan/manual-daily-target"
+      manualTarget: "/body-plan/manual-daily-target",
+      deficitSummary: "/today/deficit-summary",
+      effectiveBudget: "/today/effective-budget",
+      weeklyProgress: "/today/weekly-progress"
     };
     const todayIso = () => new Date().toISOString().slice(0, 10);
     const el = (id) => document.getElementById(id);
@@ -461,6 +476,27 @@
         list.append(item);
       }
     }
+    function renderBudgetReadModels(deficit, effective, weekly) {
+      writeText("body-active-target", deficit.active_daily_target_kcal, " kcal");
+      writeText("body-consumed-kcal", deficit.consumed_kcal, " kcal");
+      writeText("body-remaining-kcal", deficit.remaining_kcal, " kcal");
+      writeText("body-estimated-deficit", deficit.estimated_daily_deficit_kcal, " kcal");
+      writeText("body-effective-budget", effective.runtime_effective_budget_kcal, " kcal");
+      const weeklyConsumed = weekly.total_consumed_kcal;
+      const weeklyEstimatedDeficit = weekly.estimated_weekly_deficit_kcal;
+      el("body-weekly-progress").textContent = weeklyConsumed == null
+        ? "--"
+        : `${weeklyConsumed} kcal consumed / ${weeklyEstimatedDeficit ?? "--"} kcal estimated deficit`;
+    }
+    async function loadBudgetReadModels() {
+      const readModelQuery = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
+      const [deficit, effective, weekly] = await Promise.all([
+        requestJson(`${endpoints.deficitSummary}?${readModelQuery.toString()}`),
+        requestJson(`${endpoints.effectiveBudget}?${readModelQuery.toString()}`),
+        requestJson(`${endpoints.weeklyProgress}?${readModelQuery.toString()}`)
+      ]);
+      renderBudgetReadModels(deficit, effective, weekly);
+    }
     async function loadBody() {
       updateSessionStrip();
       updateNavigationLinks();
@@ -470,6 +506,7 @@
       const historyQuery = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
       const history = await requestJson(`${endpoints.weightHistory}?${historyQuery.toString()}`);
       renderWeights(history);
+      await loadBudgetReadModels();
     }
     el("weight-form").addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -507,6 +544,7 @@
         })
       });
       renderPlan(payload.active_body_plan || {});
+      await loadBudgetReadModels();
       el("body-status").textContent = `Plan saved${payload.target_kcal == null ? "" : `: ${payload.target_kcal} kcal target`}.`;
     });
     el("manual-target-form").addEventListener("submit", async (event) => {
@@ -527,6 +565,7 @@
         })
       });
       renderPlan(payload.active_body_plan || {});
+      await loadBudgetReadModels();
       el("body-status").textContent = `Manual daily target saved${payload.current_budget?.budget_kcal == null ? "" : `: ${payload.current_budget.budget_kcal} kcal`}.`;
     });
     el("local-date").addEventListener("change", () => {

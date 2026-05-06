@@ -52,6 +52,7 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "body_weight_checkin_saved": True,
         "body_latest_weight_rendered_from_backend": True,
         "body_weight_history_date_scoped_readback": True,
+        "body_budget_read_models_rendered": True,
         "body_plan_form_saved": True,
         "body_manual_target_saved": True,
         "body_plan_readback_checked": True,
@@ -82,6 +83,14 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
             "goal": "Lose weight",
             "weight_history": f"{local_date} | 70.4 kg",
         },
+        "body_budget_read_model_values": {
+            "active_target": "1550 kcal",
+            "consumed": "400 kcal",
+            "remaining": "1150 kcal",
+            "estimated_deficit": "269 kcal",
+            "effective_budget": "1550 kcal",
+            "weekly_progress": "400 kcal consumed",
+        },
         "browser": {
             "fetch_sequence": [
                 {"url": "/accurate-intake/chat-history?user_id=product-pages", "method": "GET"},
@@ -97,6 +106,9 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
                     "url": f"/weight/observations?user_id=product-pages&local_date={local_date}",
                     "method": "GET",
                 },
+                {"url": f"/today/deficit-summary?user_id=product-pages&local_date={local_date}", "method": "GET"},
+                {"url": f"/today/effective-budget?user_id=product-pages&local_date={local_date}", "method": "GET"},
+                {"url": f"/today/weekly-progress?user_id=product-pages&local_date={local_date}", "method": "GET"},
                 {
                     "url": "/weight/observation",
                     "method": "POST",
@@ -222,6 +234,7 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     report["body_plan_read_model_fields_rendered"] = False
     report["body_latest_weight_rendered_from_backend"] = False
     report["body_weight_history_date_scoped_readback"] = False
+    report["body_budget_read_models_rendered"] = False
     report["body_manual_target_read_model_rendered"] = False
     report["today_manual_target_readback_checked"] = False
     report["today_session_status_rendered"] = False
@@ -240,6 +253,7 @@ def test_product_pages_browser_smoke_validator_rejects_shallow_today_and_body_sy
     assert "body_plan_read_model_fields_not_rendered" in blockers
     assert "body_latest_weight_not_rendered_from_backend" in blockers
     assert "body_weight_history_date_scoped_readback_missing" in blockers
+    assert "body_budget_read_models_not_rendered" in blockers
     assert "body_manual_target_read_model_not_rendered" in blockers
     assert "today_manual_target_readback_not_checked" in blockers
     assert "today_session_status_not_rendered" in blockers
@@ -306,6 +320,51 @@ def test_product_pages_browser_smoke_validator_rejects_any_unscoped_body_weight_
 
     assert status == "fail"
     assert "body_weight_history_unscoped_fetch_detected" in blockers
+
+
+def test_product_pages_browser_smoke_validator_requires_body_budget_read_model_fetches() -> None:
+    report = _passing_report(local_date="2026-05-05")
+    browser = dict(report["browser"])
+    browser["fetch_sequence"] = [
+        item
+        for item in browser["fetch_sequence"]  # type: ignore[index]
+        if not any(
+            endpoint in str(item.get("url") or "")
+            for endpoint in ("/today/deficit-summary", "/today/effective-budget", "/today/weekly-progress")
+        )
+    ]
+    report["browser"] = browser
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "body_budget_read_model_fetch_missing:/today/deficit-summary" in blockers
+    assert "body_budget_read_model_fetch_missing:/today/effective-budget" in blockers
+    assert "body_budget_read_model_fetch_missing:/today/weekly-progress" in blockers
+
+
+def test_product_pages_browser_smoke_validator_rejects_stale_body_budget_read_model_values() -> None:
+    report = _passing_report()
+    values = dict(report["body_budget_read_model_values"])
+    values.update(
+        {
+            "active_target": "1312 kcal",
+            "consumed": "0 kcal",
+            "remaining": "0 kcal",
+            "effective_budget": "0 kcal",
+            "weekly_progress": "",
+        }
+    )
+    report["body_budget_read_model_values"] = values
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "body_budget_read_model_value_mismatch:active_target" in blockers
+    assert "body_budget_read_model_value_mismatch:consumed" in blockers
+    assert "body_budget_read_model_value_mismatch:remaining" in blockers
+    assert "body_budget_read_model_value_mismatch:effective_budget" in blockers
+    assert "body_budget_read_model_value_mismatch:weekly_progress" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_debug_trace_or_frontend_truth() -> None:
@@ -381,6 +440,13 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
     assert report["body_plan_read_model_values"]["activity"] == "light"
     assert report["body_plan_read_model_values"]["goal"] == "Lose weight"
     assert f'{report["local_date"]} | 70.4 kg' in report["body_plan_read_model_values"]["weight_history"]
+    assert report["body_budget_read_models_rendered"] is True
+    assert report["body_budget_read_model_values"]["active_target"] == "1550 kcal"
+    assert report["body_budget_read_model_values"]["consumed"] == "400 kcal"
+    assert report["body_budget_read_model_values"]["remaining"] == "1150 kcal"
+    assert report["body_budget_read_model_values"]["estimated_deficit"] == "269 kcal"
+    assert report["body_budget_read_model_values"]["effective_budget"] == "1550 kcal"
+    assert "400 kcal consumed" in report["body_budget_read_model_values"]["weekly_progress"]
     assert report["body_url_state_preserved_after_date_change"] is True
     assert report["body_reload_preserved_selected_date"] is True
     assert report["body_user_url_state_preserved_after_user_change"] is True

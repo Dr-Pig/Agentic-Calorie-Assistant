@@ -63,10 +63,17 @@ def test_product_pages_renderer_source_map_covers_chat_today_body_sources() -> N
     assert "/weight/observation" in body["endpoints"]
     assert "/onboarding/bootstrap" in body["endpoints"]
     assert "/body-plan/manual-daily-target" in body["endpoints"]
+    assert "/today/deficit-summary" in body["endpoints"]
+    assert "/today/effective-budget" in body["endpoints"]
+    assert "/today/weekly-progress" in body["endpoints"]
     assert "#plan-tdee" in body["selectors"]
+    assert "#body-budget-loop" in body["selectors"]
     assert "#weight-history" in body["selectors"]
     assert "plan.estimated_tdee" in body["backend_fields"]
     assert "payload.observations" in body["backend_fields"]
+    assert "deficit.active_daily_target_kcal" in body["backend_fields"]
+    assert "effective.runtime_effective_budget_kcal" in body["backend_fields"]
+    assert "weekly.estimated_weekly_deficit_kcal" in body["backend_fields"]
 
 
 def test_product_pages_renderer_source_map_declares_three_page_same_truth_contract() -> None:
@@ -102,6 +109,15 @@ def test_product_pages_renderer_source_map_declares_three_page_same_truth_contra
     ]
     assert body["weight_observations"]["truth_owner"] == "body_domain"
     assert body["weight_observations"]["read_model_or_api"] == "/weight/observations"
+    assert body["budget_deficit_summary"]["truth_owner"] == "composition_body_budget_read_model"
+    assert body["budget_deficit_summary"]["read_model_or_api"] == "/today/deficit-summary"
+    assert "frontend_calculate_estimated_deficit" in body["budget_deficit_summary"]["must_not"]
+    assert body["effective_budget"]["truth_owner"] == "budget_composition_effective_budget_read_model"
+    assert body["effective_budget"]["read_model_or_api"] == "/today/effective-budget"
+    assert "frontend_calculate_effective_budget" in body["effective_budget"]["must_not"]
+    assert body["weekly_progress"]["truth_owner"] == "composition_body_budget_weekly_read_model"
+    assert body["weekly_progress"]["read_model_or_api"] == "/today/weekly-progress"
+    assert "frontend_compute_weekly_deficit" in body["weekly_progress"]["must_not"]
 
 
 def test_product_pages_renderer_source_map_blocks_contract_drift_when_backend_field_missing() -> None:

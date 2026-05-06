@@ -278,6 +278,34 @@ def test_body_page_covers_plan_weight_goal_activity_inputs_without_frontend_tdee
         assert fragment not in html
 
 
+def test_body_page_renders_budget_read_models_without_frontend_budget_math() -> None:
+    html = _html(BODY)
+
+    assert 'id="body-budget-loop"' in html
+    assert 'id="body-active-target"' in html
+    assert 'id="body-consumed-kcal"' in html
+    assert 'id="body-remaining-kcal"' in html
+    assert 'id="body-estimated-deficit"' in html
+    assert 'id="body-effective-budget"' in html
+    assert 'id="body-weekly-progress"' in html
+    assert 'deficitSummary: "/today/deficit-summary"' in html
+    assert 'effectiveBudget: "/today/effective-budget"' in html
+    assert 'weeklyProgress: "/today/weekly-progress"' in html
+    assert "function renderBudgetReadModels(deficit, effective, weekly)" in html
+    assert "const readModelQuery = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });" in html
+    assert "requestJson(`${endpoints.deficitSummary}?${readModelQuery.toString()}`)" in html
+    assert "requestJson(`${endpoints.effectiveBudget}?${readModelQuery.toString()}`)" in html
+    assert "requestJson(`${endpoints.weeklyProgress}?${readModelQuery.toString()}`)" in html
+    for fragment in (
+        "estimatedDailyDeficit =",
+        "runtimeEffectiveBudget =",
+        "weeklyDeficit =",
+        "target - consumed",
+        "remaining =",
+    ):
+        assert fragment not in html
+
+
 def test_product_pages_cjk_copy_bytes_are_not_mojibake_or_replacement_text() -> None:
     expected_copy = {
         CHAT: "像 LINE 一樣輸入和回看飲食對話",
