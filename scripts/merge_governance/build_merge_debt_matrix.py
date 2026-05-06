@@ -310,6 +310,8 @@ def normalize_track(track: str) -> str:
         "FoodDB-WebSearch": "FoodDB",
         "FoodDB/WebSearch": "FoodDB",
         "FoodDB_WebSearch": "FoodDB",
+        "Governance": "MergeGovernance",
+        "GovernanceGuard": "MergeGovernance",
         "PL_CE": "PLCE",
         "PL/CE": "PLCE",
         "PL-CE": "PLCE",

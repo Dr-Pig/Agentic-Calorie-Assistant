@@ -31,6 +31,7 @@ CANONICAL_TRACKS = {
     "BodyBudgetCalibration",
     "FoodDB",
     "LongTermContextLab",
+    "MergeGovernance",
     "PLCE",
     "ProactiveShadow",
     "RecommendationShadow",

@@ -285,6 +285,58 @@ def test_cli_normalizes_fooddb_websearch_track_alias(tmp_path: Path) -> None:
     assert report["track"] == "FoodDB"
 
 
+def test_cli_allows_merge_governance_track(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(tmp_path, "track: MergeGovernance\n")
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+                "--allow-dirty-worktree",
+            ]
+        )
+        == 0
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["track"] == "MergeGovernance"
+
+
+def test_cli_normalizes_governance_track_alias(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(tmp_path, "track: GovernanceGuard\n")
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+                "--allow-dirty-worktree",
+            ]
+        )
+        == 0
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["track"] == "MergeGovernance"
+
+
 def test_cli_unknown_declared_track_fails(tmp_path: Path) -> None:
     output = tmp_path / "pre_pr_quality_gate_report.json"
     event = _event_file(tmp_path, "track: FoodDBWebSearchAndPLCE\n")
