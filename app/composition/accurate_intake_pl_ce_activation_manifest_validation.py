@@ -13,6 +13,7 @@ from app.composition.accurate_intake_pl_ce_activation_manifest_contract import (
 from app.composition.accurate_intake_pl_ce_activation_manifest_group_checks import (
     browser_gate_blockers,
     context_dry_run_blockers,
+    context_holdout_plan_blockers,
     local_mvp_blockers,
     ui_context_blockers,
 )
@@ -132,6 +133,8 @@ def activation_manifest_blockers(group_id: str, payload: dict[str, Any]) -> list
         blockers.extend(browser_gate_blockers(payload))
     elif group_id == "pl_ce_ui_context_alignment_pack":
         blockers.extend(ui_context_blockers(payload))
+    elif group_id == "context_live_diagnostic_holdout_plan":
+        blockers.extend(context_holdout_plan_blockers(payload))
     elif group_id in {"context_live_diagnostic_dry_run_evaluator", "context_live_response_contract_dry_run"}:
         blockers.extend(context_dry_run_blockers(group_id, payload))
     blockers.extend(context_live_optional_group_blockers(group_id, payload))

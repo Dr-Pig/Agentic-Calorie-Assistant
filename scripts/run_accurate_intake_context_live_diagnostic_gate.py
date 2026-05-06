@@ -23,6 +23,9 @@ from app.composition.accurate_intake_context_live_diagnostic_canary import (  # 
 from app.composition.accurate_intake_context_live_diagnostic_case_matrix import (  # noqa: E402
     build_context_live_diagnostic_case_matrix_artifact,
 )
+from app.composition.accurate_intake_context_live_diagnostic_holdout_plan import (  # noqa: E402
+    build_context_live_diagnostic_holdout_plan_artifact,
+)
 from app.composition.accurate_intake_context_live_diagnostic_review_pack import (  # noqa: E402
     build_context_live_diagnostic_review_pack_artifact,
 )
@@ -103,6 +106,7 @@ def _write_artifacts(
     artifact_dir: Path,
     matrix: dict[str, Any],
     anti_overfit: dict[str, Any],
+    holdout_plan: dict[str, Any],
     preflight: dict[str, Any],
     dry_run: dict[str, Any],
     canary: dict[str, Any],
@@ -114,6 +118,8 @@ def _write_artifacts(
         / "accurate_intake_context_live_diagnostic_case_matrix.json",
         "context_live_diagnostic_anti_overfit_guard": artifact_dir
         / "accurate_intake_context_live_diagnostic_anti_overfit_guard.json",
+        "context_live_diagnostic_holdout_plan": artifact_dir
+        / "accurate_intake_context_live_diagnostic_holdout_plan.json",
         "context_live_provider_input_preflight": artifact_dir
         / "accurate_intake_context_live_provider_input_preflight.json",
         "context_live_response_contract_dry_run": artifact_dir
@@ -126,6 +132,7 @@ def _write_artifacts(
     payloads = {
         "context_live_diagnostic_case_matrix": matrix,
         "context_live_diagnostic_anti_overfit_guard": anti_overfit,
+        "context_live_diagnostic_holdout_plan": holdout_plan,
         "context_live_provider_input_preflight": preflight,
         "context_live_response_contract_dry_run": dry_run,
         "context_live_diagnostic_canary": canary,
@@ -146,6 +153,10 @@ def build_context_live_diagnostic_gate_artifact(
 ) -> dict[str, Any]:
     matrix = build_context_live_diagnostic_case_matrix_artifact()
     anti_overfit = build_context_live_diagnostic_anti_overfit_guard_artifact(matrix)
+    holdout_plan = build_context_live_diagnostic_holdout_plan_artifact(
+        context_live_diagnostic_case_matrix=matrix,
+        context_live_diagnostic_anti_overfit_guard=anti_overfit,
+    )
     preflight = build_context_live_provider_input_preflight_artifact(matrix, anti_overfit)
     dry_run = build_context_live_response_contract_dry_run_artifact(preflight)
 
@@ -183,6 +194,7 @@ def build_context_live_diagnostic_gate_artifact(
         artifact_dir=artifact_dir,
         matrix=matrix,
         anti_overfit=anti_overfit,
+        holdout_plan=holdout_plan,
         preflight=preflight,
         dry_run=dry_run,
         canary=canary,
@@ -190,6 +202,9 @@ def build_context_live_diagnostic_gate_artifact(
     )
     live_invoked = canary.get("live_invoked") is True
     blockers = list(review_pack.get("blockers") or [])
+    if holdout_plan.get("status") != "pass":
+        blockers.append("context_live_diagnostic_holdout_plan_status_not_pass")
+        blockers.extend(f"context_live_diagnostic_holdout_plan.{item}" for item in holdout_plan.get("blockers") or [])
     if require_live_provider and not live_invoked:
         blockers.append("live_provider_required_but_not_invoked")
     if blockers:
@@ -219,6 +234,7 @@ def build_context_live_diagnostic_gate_artifact(
             "ad_hoc_live_case_selection_allowed": False,
             "fixed_case_matrix_used": True,
             "anti_overfit_guard_required": True,
+            "holdout_plan_required": True,
             "response_contract_dry_run_required": True,
             "diagnostic_only": True,
             "local_only": True,

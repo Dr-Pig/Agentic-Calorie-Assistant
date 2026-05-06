@@ -134,3 +134,35 @@ def context_dry_run_blockers(group_id: str, payload: dict[str, Any]) -> list[str
         if _int_value(summary.get("ambiguity_preserved_response_count")) < 1:
             blockers.append(f"{group_id}.ambiguity_response_missing")
     return blockers
+
+
+def context_holdout_plan_blockers(payload: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    summary = _object_dict(payload.get("summary"))
+    for flag in ("diagnostic_only", "fixture_only", "plan_only", "fixed_case_matrix_used"):
+        if payload.get(flag) is not True:
+            blockers.append(f"context_live_diagnostic_holdout_plan.{flag}_not_true")
+    for flag in (
+        "holdout_variants_withheld_from_default_live_prompt",
+        "blocked_if_single_case_only",
+        "human_review_required_before_promoting_failures",
+    ):
+        if payload.get(flag) is not True:
+            blockers.append(f"context_live_diagnostic_holdout_plan.{flag}_not_true")
+    for flag in ("ad_hoc_live_case_selection_allowed", "provider_optimized_case_selection_allowed"):
+        if payload.get(flag) is not False:
+            blockers.append(f"context_live_diagnostic_holdout_plan.{flag}_not_false")
+    if payload.get("semantic_owner") != "future_live_manager_provider_when_human_approved":
+        blockers.append("context_live_diagnostic_holdout_plan.semantic_owner_not_live_manager")
+    if payload.get("deterministic_role") != "validate_case_selection_not_select_intent":
+        blockers.append("context_live_diagnostic_holdout_plan.deterministic_role_wrong")
+    if _int_value(summary.get("case_count")) != len(CONTEXT_LIVE_REQUIRED_CASE_IDS):
+        blockers.append("context_live_diagnostic_holdout_plan.case_count_mismatch")
+    if _int_value(summary.get("withheld_holdout_variant_count")) < len(CONTEXT_LIVE_REQUIRED_CASE_IDS) * 2:
+        blockers.append("context_live_diagnostic_holdout_plan.withheld_holdout_count_too_low")
+    if _int_value(summary.get("cases_with_holdouts")) != len(CONTEXT_LIVE_REQUIRED_CASE_IDS):
+        blockers.append("context_live_diagnostic_holdout_plan.cases_with_holdouts_mismatch")
+    for key in ("compound_cases", "ambiguity_cases", "pending_pin_cases", "target_candidate_cases"):
+        if _int_value(summary.get(key)) < 1:
+            blockers.append(f"context_live_diagnostic_holdout_plan.{key}_missing")
+    return blockers
