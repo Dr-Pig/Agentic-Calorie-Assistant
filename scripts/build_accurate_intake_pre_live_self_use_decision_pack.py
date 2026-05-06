@@ -19,6 +19,7 @@ REQUIRED_PRE_LIVE_EVIDENCE = (
     "manager_intent_readiness_review_pack",
     "context_live_diagnostic_case_matrix",
     "context_live_diagnostic_anti_overfit_guard",
+    "context_live_diagnostic_holdout_plan",
     "context_live_provider_input_preflight",
     "context_live_response_contract_dry_run",
     "context_live_diagnostic_gate",
@@ -37,6 +38,7 @@ _EXPECTED_STATUS_BY_GROUP = {
     "manager_intent_readiness_review_pack": "manager_intent_readiness_ready_for_human_review",
     "context_live_diagnostic_case_matrix": "pass",
     "context_live_diagnostic_anti_overfit_guard": "pass",
+    "context_live_diagnostic_holdout_plan": "pass",
     "context_live_provider_input_preflight": "pass",
     "context_live_response_contract_dry_run": "pass",
     "context_live_diagnostic_gate": "context_live_diagnostic_gate_ready_without_live_canary",
@@ -55,6 +57,8 @@ def _evidence_missing(group_id: str, payload: dict[str, Any]) -> bool:
     if group_id == "context_live_diagnostic_case_matrix" and payload.get("plan_only") is not True:
         return True
     if group_id == "context_live_diagnostic_anti_overfit_guard" and payload.get("plan_only") is not True:
+        return True
+    if group_id == "context_live_diagnostic_holdout_plan" and payload.get("plan_only") is not True:
         return True
     if group_id == "context_live_provider_input_preflight" and payload.get("plan_only") is not True:
         return True
@@ -137,6 +141,28 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
             blockers.append("context_live_diagnostic_anti_overfit_guard_compound_case_missing")
         if int(summary.get("ambiguity_cases") or 0) < 1:
             blockers.append("context_live_diagnostic_anti_overfit_guard_ambiguity_case_missing")
+    if group_id == "context_live_diagnostic_holdout_plan":
+        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        if payload.get("plan_only") is not True:
+            blockers.append("context_live_diagnostic_holdout_plan_plan_only_not_true")
+        if payload.get("fixed_case_matrix_used") is not True:
+            blockers.append("context_live_diagnostic_holdout_plan_fixed_case_matrix_missing")
+        if payload.get("holdout_variants_withheld_from_default_live_prompt") is not True:
+            blockers.append("context_live_diagnostic_holdout_plan_holdouts_not_withheld")
+        if payload.get("ad_hoc_live_case_selection_allowed") is not False:
+            blockers.append("context_live_diagnostic_holdout_plan_ad_hoc_case_selection_allowed")
+        if payload.get("provider_optimized_case_selection_allowed") is not False:
+            blockers.append("context_live_diagnostic_holdout_plan_provider_optimized_selection_allowed")
+        if int(summary.get("case_count") or 0) < 10:
+            blockers.append("context_live_diagnostic_holdout_plan_case_count_too_low")
+        if int(summary.get("withheld_holdout_variant_count") or 0) < 20:
+            blockers.append("context_live_diagnostic_holdout_plan_withheld_holdout_count_too_low")
+        if int(summary.get("cases_with_holdouts") or 0) < 10:
+            blockers.append("context_live_diagnostic_holdout_plan_cases_with_holdouts_too_low")
+        if int(summary.get("compound_cases") or 0) < 1:
+            blockers.append("context_live_diagnostic_holdout_plan_compound_case_missing")
+        if int(summary.get("ambiguity_cases") or 0) < 1:
+            blockers.append("context_live_diagnostic_holdout_plan_ambiguity_case_missing")
     if group_id == "context_live_provider_input_preflight":
         summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
         if payload.get("plan_only") is not True:
@@ -209,6 +235,8 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
             blockers.append("context_live_diagnostic_gate_ad_hoc_live_case_selection_allowed")
         if payload.get("anti_overfit_guard_required") is not True:
             blockers.append("context_live_diagnostic_gate_anti_overfit_guard_missing")
+        if payload.get("holdout_plan_required") is not True:
+            blockers.append("context_live_diagnostic_gate_holdout_plan_missing")
         if payload.get("response_contract_dry_run_required") is not True:
             blockers.append("context_live_diagnostic_gate_response_contract_dry_run_missing")
         if payload.get("diagnostic_only") is not True:

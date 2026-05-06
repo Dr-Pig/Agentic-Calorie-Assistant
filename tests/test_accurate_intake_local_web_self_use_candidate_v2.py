@@ -60,6 +60,30 @@ def _clean_evidence() -> dict:
                 "ambiguity_cases": 1,
             },
         },
+        "context_live_diagnostic_holdout_plan": {
+            "status": "pass",
+            "source": "test",
+            "plan_only": True,
+            "fixture_only": True,
+            "fixed_case_matrix_used": True,
+            "holdout_variants_withheld_from_default_live_prompt": True,
+            "ad_hoc_live_case_selection_allowed": False,
+            "provider_optimized_case_selection_allowed": False,
+            "blocked_if_single_case_only": True,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "fooddb_used": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "summary": {
+                "fixed_case_matrix_used": True,
+                "case_count": 11,
+                "withheld_holdout_variant_count": 22,
+                "cases_with_holdouts": 11,
+                "compound_cases": 1,
+                "ambiguity_cases": 1,
+            },
+        },
         "context_live_diagnostic_gate": {
             "status": "context_live_diagnostic_gate_ready_without_live_canary",
             "source": "test",
@@ -70,6 +94,7 @@ def _clean_evidence() -> dict:
             "fixed_case_matrix_used": True,
             "ad_hoc_live_case_selection_allowed": False,
             "anti_overfit_guard_required": True,
+            "holdout_plan_required": True,
             "response_contract_dry_run_required": True,
             "fooddb_used": False,
             "web_tavily_used": False,
@@ -163,6 +188,53 @@ def test_candidate_blocked_when_context_live_anti_overfit_guard_missing() -> Non
         in pack["local_web_self_use_candidate_v2"]["blockers"]
     )
 
+def test_candidate_blocked_when_context_live_holdout_plan_missing() -> None:
+    evidence = _clean_evidence()
+    del evidence["context_live_diagnostic_holdout_plan"]
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert (
+        "missing evidence: context_live_diagnostic_holdout_plan"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
+
+def test_candidate_blocks_context_live_holdout_plan_overfit_risks() -> None:
+    evidence = _clean_evidence()
+    evidence["context_live_diagnostic_holdout_plan"].update(
+        {
+            "plan_only": False,
+            "holdout_variants_withheld_from_default_live_prompt": False,
+            "ad_hoc_live_case_selection_allowed": True,
+            "provider_optimized_case_selection_allowed": True,
+            "blocked_if_single_case_only": False,
+            "live_provider_invoked": True,
+            "fooddb_used": True,
+            "fixed_case_matrix_used": False,
+            "summary": {
+                "case_count": 1,
+                "withheld_holdout_variant_count": 0,
+                "cases_with_holdouts": 0,
+                "compound_cases": 0,
+                "ambiguity_cases": 0,
+            },
+        }
+    )
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    blockers = pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "context live holdout plan not plan-only" in blockers
+    assert "context live holdout variants not withheld" in blockers
+    assert "context live holdout plan allowed ad hoc live cases" in blockers
+    assert "context live holdout plan allowed provider-optimized cases" in blockers
+    assert "context live holdout plan missing single-case blocker" in blockers
+    assert "context live holdout plan case count too low" in blockers
+    assert "context live holdout plan withheld count too low" in blockers
+    assert "context live holdout plan coverage too low" in blockers
+    assert "context live holdout plan compound case missing" in blockers
+    assert "context live holdout plan ambiguity case missing" in blockers
+    assert "live provider used" in blockers
+    assert "FoodDB overclaim" in blockers
+
 def test_candidate_blocked_when_context_live_gate_missing() -> None:
     evidence = _clean_evidence()
     del evidence["context_live_diagnostic_gate"]
@@ -183,6 +255,7 @@ def test_candidate_blocks_live_context_gate_overclaims() -> None:
             "live_provider_invoked": True,
             "fooddb_used": True,
             "ad_hoc_live_case_selection_allowed": True,
+            "holdout_plan_required": False,
         }
     )
     pack = build_local_web_self_use_candidate_v2(evidence)
@@ -198,6 +271,9 @@ def test_candidate_blocks_live_context_gate_overclaims() -> None:
         "local_web_self_use_candidate_v2"
     ]["blockers"]
     assert "context live diagnostic gate allowed ad hoc live cases" in pack[
+        "local_web_self_use_candidate_v2"
+    ]["blockers"]
+    assert "context live diagnostic gate missing holdout plan" in pack[
         "local_web_self_use_candidate_v2"
     ]["blockers"]
 

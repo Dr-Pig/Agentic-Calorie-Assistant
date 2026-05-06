@@ -40,6 +40,9 @@ DEFAULT_EVIDENCE_PATHS = {
     "context_live_diagnostic_anti_overfit_guard": ROOT
     / "artifacts"
     / "accurate_intake_context_live_diagnostic_anti_overfit_guard.json",
+    "context_live_diagnostic_holdout_plan": ROOT
+    / "artifacts"
+    / "accurate_intake_context_live_diagnostic_holdout_plan.json",
     "context_live_provider_input_preflight": ROOT
     / "artifacts"
     / "accurate_intake_context_live_provider_input_preflight.json",
@@ -214,6 +217,9 @@ def _candidate_evidence(pre_live_evidence: dict[str, Any], pre_live_pack: dict[s
         "context_live_diagnostic_case_matrix": pre_live_evidence["context_live_diagnostic_case_matrix"],
         "context_live_diagnostic_anti_overfit_guard": pre_live_evidence[
             "context_live_diagnostic_anti_overfit_guard"
+        ],
+        "context_live_diagnostic_holdout_plan": pre_live_evidence[
+            "context_live_diagnostic_holdout_plan"
         ],
         "context_live_provider_input_preflight": pre_live_evidence[
             "context_live_provider_input_preflight"
