@@ -19,6 +19,12 @@ from app.composition.accurate_intake_pl_ce_ui_context_alignment_pack import (
 from app.composition.accurate_intake_context_live_diagnostic_case_matrix import (
     REQUIRED_CASE_IDS as CONTEXT_LIVE_REQUIRED_CASE_IDS,
 )
+from app.composition.accurate_intake_pl_ce_context_live_manifest_checks import (
+    OPTIONAL_LIVE_EVIDENCE_ALLOWED_FLAGS,
+    context_live_gate_state,
+    context_live_optional_group_blockers,
+    context_live_review_state,
+)
 
 
 REQUIRED_INPUTS = (
@@ -119,27 +125,6 @@ FORBIDDEN_TRUTHY_FLAGS = (
     "deterministic_selected_target",
     "raw_text_intent_router_used",
 )
-
-OPTIONAL_LIVE_EVIDENCE_ALLOWED_FLAGS = {
-    "context_live_diagnostic_review_pack": {
-        "live_llm_invoked",
-        "live_provider_invoked",
-    },
-    "context_live_diagnostic_gate": {
-        "live_llm_invoked",
-        "live_provider_invoked",
-    }
-}
-
-CONTEXT_LIVE_GATE_REQUIRED_ARTIFACT_PATHS = (
-    "context_live_diagnostic_case_matrix",
-    "context_live_diagnostic_anti_overfit_guard",
-    "context_live_provider_input_preflight",
-    "context_live_response_contract_dry_run",
-    "context_live_diagnostic_canary",
-    "context_live_diagnostic_review_pack",
-)
-
 
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
@@ -387,104 +372,7 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
             blockers.append("context_live_response_contract_dry_run.target_candidate_response_missing")
         if _int_value(summary.get("ambiguity_preserved_response_count")) < 1:
             blockers.append("context_live_response_contract_dry_run.ambiguity_response_missing")
-    if group_id == "context_live_diagnostic_review_pack":
-        summary = _object_dict(payload.get("summary"))
-        status = _status(payload)
-        if payload.get("diagnostic_only") is not True:
-            blockers.append("context_live_diagnostic_review_pack.diagnostic_only_not_true")
-        if payload.get("aggregate_only") is not True:
-            blockers.append("context_live_diagnostic_review_pack.aggregate_only_not_true")
-        if payload.get("human_review_required") is not True:
-            blockers.append("context_live_diagnostic_review_pack.human_review_required_missing")
-        if payload.get("fixed_case_matrix_used") is not True:
-            blockers.append("context_live_diagnostic_review_pack.fixed_case_matrix_not_used")
-        if _int_value(summary.get("fixed_case_count")) != len(CONTEXT_LIVE_REQUIRED_CASE_IDS):
-            blockers.append("context_live_diagnostic_review_pack.fixed_case_count_mismatch")
-        if _int_value(summary.get("dry_run_validated_response_count")) != len(
-            CONTEXT_LIVE_REQUIRED_CASE_IDS
-        ):
-            blockers.append(
-                "context_live_diagnostic_review_pack.dry_run_validated_response_count_mismatch"
-            )
-        if _int_value(summary.get("dry_run_blocked_response_count")) != 0:
-            blockers.append("context_live_diagnostic_review_pack.dry_run_blocked_response_count_nonzero")
-        if status == "context_live_diagnostic_review_ready_with_live_canary":
-            if payload.get("live_llm_invoked") is not True:
-                blockers.append("context_live_diagnostic_review_pack.live_llm_invoked_not_true")
-            if payload.get("live_provider_invoked") is not True:
-                blockers.append("context_live_diagnostic_review_pack.live_provider_invoked_not_true")
-            if payload.get("live_canary_status") != "live_diagnostic_pass":
-                blockers.append("context_live_diagnostic_review_pack.live_canary_status_not_pass")
-            if _int_value(summary.get("live_provider_output_count")) != len(
-                CONTEXT_LIVE_REQUIRED_CASE_IDS
-            ):
-                blockers.append(
-                    "context_live_diagnostic_review_pack.live_provider_output_count_mismatch"
-                )
-            if _int_value(summary.get("live_blocked_response_count")) != 0:
-                blockers.append("context_live_diagnostic_review_pack.live_blocked_response_count_nonzero")
-            if _int_value(summary.get("live_target_candidate_response_count")) < 1:
-                blockers.append(
-                    "context_live_diagnostic_review_pack.live_target_candidate_response_missing"
-                )
-            if _int_value(summary.get("live_ambiguity_preserved_response_count")) < 1:
-                blockers.append(
-                    "context_live_diagnostic_review_pack.live_ambiguity_response_missing"
-                )
-        else:
-            if payload.get("live_llm_invoked") is not False:
-                blockers.append("context_live_diagnostic_review_pack.unexpected_live_llm_invoked")
-            if payload.get("live_provider_invoked") is not False:
-                blockers.append("context_live_diagnostic_review_pack.unexpected_live_provider_invoked")
-    if group_id == "context_live_diagnostic_gate":
-        summary = _object_dict(payload.get("summary"))
-        artifact_paths = _object_dict(payload.get("artifact_paths"))
-        status = _status(payload)
-        if payload.get("diagnostic_only") is not True:
-            blockers.append("context_live_diagnostic_gate.diagnostic_only_not_true")
-        if payload.get("local_only") is not True:
-            blockers.append("context_live_diagnostic_gate.local_only_not_true")
-        if payload.get("fixed_case_matrix_used") is not True:
-            blockers.append("context_live_diagnostic_gate.fixed_case_matrix_not_used")
-        if payload.get("full_matrix_live_probe_required") is not True:
-            blockers.append("context_live_diagnostic_gate.full_matrix_live_probe_not_required")
-        if payload.get("ad_hoc_live_case_selection_allowed") is not False:
-            blockers.append("context_live_diagnostic_gate.ad_hoc_live_case_selection_allowed")
-        if payload.get("anti_overfit_guard_required") is not True:
-            blockers.append("context_live_diagnostic_gate.anti_overfit_guard_not_required")
-        if payload.get("response_contract_dry_run_required") is not True:
-            blockers.append("context_live_diagnostic_gate.response_contract_dry_run_not_required")
-        for path_id in CONTEXT_LIVE_GATE_REQUIRED_ARTIFACT_PATHS:
-            if not artifact_paths.get(path_id):
-                blockers.append(f"context_live_diagnostic_gate.artifact_paths.{path_id}_missing")
-        if _int_value(summary.get("fixed_case_count")) != len(CONTEXT_LIVE_REQUIRED_CASE_IDS):
-            blockers.append("context_live_diagnostic_gate.fixed_case_count_mismatch")
-        if _int_value(summary.get("dry_run_validated_response_count")) != len(
-            CONTEXT_LIVE_REQUIRED_CASE_IDS
-        ):
-            blockers.append("context_live_diagnostic_gate.dry_run_validated_response_count_mismatch")
-        if status == "context_live_diagnostic_gate_ready_with_live_canary":
-            if payload.get("review_pack_status") != "context_live_diagnostic_review_ready_with_live_canary":
-                blockers.append("context_live_diagnostic_gate.review_pack_status_not_live_ready")
-            if payload.get("canary_status") != "live_diagnostic_pass":
-                blockers.append("context_live_diagnostic_gate.canary_status_not_pass")
-            if payload.get("live_llm_invoked") is not True:
-                blockers.append("context_live_diagnostic_gate.live_llm_invoked_not_true")
-            if payload.get("live_provider_invoked") is not True:
-                blockers.append("context_live_diagnostic_gate.live_provider_invoked_not_true")
-            if _int_value(summary.get("live_provider_output_count")) != len(
-                CONTEXT_LIVE_REQUIRED_CASE_IDS
-            ):
-                blockers.append("context_live_diagnostic_gate.live_provider_output_count_mismatch")
-            if _int_value(summary.get("live_blocked_response_count")) != 0:
-                blockers.append("context_live_diagnostic_gate.live_blocked_response_count_nonzero")
-        else:
-            if payload.get("review_pack_status") != "context_live_diagnostic_review_ready_without_live_canary":
-                blockers.append("context_live_diagnostic_gate.review_pack_status_not_non_live_ready")
-            if payload.get("live_llm_invoked") is not False:
-                blockers.append("context_live_diagnostic_gate.unexpected_live_llm_invoked")
-            if payload.get("live_provider_invoked") is not False:
-                blockers.append("context_live_diagnostic_gate.unexpected_live_provider_invoked")
+    blockers.extend(context_live_optional_group_blockers(group_id, payload))
     return blockers
 
 
@@ -520,29 +408,13 @@ def build_pl_ce_activation_review_manifest_artifact(
         blockers.extend(_group_specific_blockers(group_id, payload))
     status = "pl_ce_activation_review_manifest_ready" if not blockers else "blocked"
     context_live_review_pack = optional_inputs.get("context_live_diagnostic_review_pack", {})
-    context_live_review_status = _status(context_live_review_pack)
-    context_live_review_live_invoked = context_live_review_pack.get("live_llm_invoked") is True
     context_live_gate = optional_inputs.get("context_live_diagnostic_gate", {})
-    context_live_gate_status = _status(context_live_gate)
-    context_live_gate_live_invoked = context_live_gate.get("live_llm_invoked") is True
-    if context_live_review_status == "context_live_diagnostic_review_ready_with_live_canary":
-        context_live_review_checkpoint = "live_canary_passed"
-        context_live_provider_status = "context_only_live_diagnostic_passed_not_full_e2e"
-    elif context_live_review_status == "context_live_diagnostic_review_ready_without_live_canary":
-        context_live_review_checkpoint = "ready_without_live_canary"
-        context_live_provider_status = "context_live_review_ready_without_live_canary"
-    else:
-        context_live_review_checkpoint = "not_provided"
-        context_live_provider_status = "not_provided"
-    if context_live_gate_status == "context_live_diagnostic_gate_ready_with_live_canary":
-        context_live_gate_checkpoint = "gate_live_canary_passed"
-        context_live_gate_stop_status = "context_only_live_diagnostic_gate_passed_not_full_e2e"
-    elif context_live_gate_status == "context_live_diagnostic_gate_ready_without_live_canary":
-        context_live_gate_checkpoint = "gate_ready_without_live_canary"
-        context_live_gate_stop_status = "context_live_gate_ready_without_live_canary"
-    else:
-        context_live_gate_checkpoint = "not_provided"
-        context_live_gate_stop_status = "not_provided"
+    context_live_review_checkpoint, context_live_provider_status, context_live_review_live_invoked = (
+        context_live_review_state(context_live_review_pack)
+    )
+    context_live_gate_checkpoint, context_live_gate_stop_status, context_live_gate_live_invoked = (
+        context_live_gate_state(context_live_gate)
+    )
     return _json_safe(
         {
             "artifact_schema_version": "1.0",
