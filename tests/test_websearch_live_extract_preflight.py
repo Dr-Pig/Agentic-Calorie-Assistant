@@ -106,6 +106,96 @@ def test_live_extract_preflight_blocks_review_artifact_live_or_readiness_overcla
     assert "exact_review_packet_artifact_claimed_readiness" in artifact["blockers"]
 
 
+def test_live_extract_preflight_sanitizes_source_artifact_type() -> None:
+    artifact = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact={
+            "artifact_type": "raw_response_excerpt forbidden",
+            "status": "pass",
+            "runtime_truth_changed": False,
+            "runtime_mutation_allowed": False,
+            "live_websearch_used": False,
+            "live_extract_used": False,
+            "live_provider_used": False,
+            "readiness_claimed": False,
+            "summary": {
+                "runtime_truth_allowed_count": 0,
+                "exact_card_created_count": 0,
+                "approval_allowed_count": 0,
+            },
+        },
+    )
+
+    serialized = str(artifact)
+    assert artifact["status"] == "blocked"
+    assert (
+        artifact["source_artifacts"]["exact_review_packet_artifact_type"]
+        == "unsupported_exact_review_packet_artifact"
+    )
+    assert "raw_response_excerpt" not in serialized
+    assert "forbidden" not in serialized
+
+
+def test_live_extract_preflight_blocks_leaky_review_packet_refs() -> None:
+    review_packet = _review_packet()
+    packet = review_packet["review_packets"][0]
+    packet["packet_id"] = "raw_response_excerpt"
+    packet["source_url"] = "raw_response_excerpt forbidden"
+    packet["canonical_name"] = "raw_response_excerpt forbidden"
+    packet["matched_name"] = "raw_response_excerpt forbidden"
+
+    artifact = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=review_packet,
+    )
+    serialized = str(artifact)
+
+    assert artifact["status"] == "blocked"
+    assert artifact["review_packet_refs"] == []
+    assert "exact_review_packet_invalid_source_url" in artifact["blockers"]
+    assert "exact_review_packet_invalid_packet_id" in artifact["blockers"]
+    assert "exact_review_packet_leaky_canonical_name" in artifact["blockers"]
+    assert "raw_response_excerpt" not in serialized
+    assert "forbidden" not in serialized
+
+
+def test_live_extract_preflight_blocks_unknown_marker_free_review_refs() -> None:
+    review_packet = _review_packet()
+    packet = review_packet["review_packets"][0]
+    packet["packet_id"] = "pkt_exact_card_review_private123"
+    packet["source_url"] = "https://private-payload-token.example/menu"
+    packet["canonical_name"] = "private payload token"
+    packet["matched_name"] = "private payload token"
+
+    artifact = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=review_packet,
+    )
+    serialized = str(artifact)
+
+    assert artifact["status"] == "blocked"
+    assert artifact["review_packet_refs"] == []
+    assert "private-payload-token" not in serialized
+    assert "private payload token" not in serialized
+    assert "exact_review_packet_invalid_source_url" in artifact["blockers"]
+    assert "exact_review_packet_invalid_packet_id" in artifact["blockers"]
+
+
+def test_live_extract_preflight_blocks_allowed_host_unknown_path_and_serving() -> None:
+    review_packet = _review_packet()
+    packet = review_packet["review_packets"][0]
+    packet["source_url"] = "https://milksha.example/menu/private_payload_token"
+    packet["review_fields"]["serving_basis_candidate"] = "private_payload_serving"
+
+    artifact = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=review_packet,
+    )
+    serialized = str(artifact)
+
+    assert artifact["status"] == "blocked"
+    assert artifact["review_packet_refs"] == []
+    assert "private_payload" not in serialized
+    assert "exact_review_packet_invalid_source_url" in artifact["blockers"]
+    assert "exact_review_packet_invalid_serving_basis_candidate" in artifact["blockers"]
+
+
 def test_live_extract_preflight_blocks_missing_kcal_value_candidate() -> None:
     review_packet = _review_packet()
     review_packet["review_packets"][0]["review_fields"].pop("kcal_value_candidate")

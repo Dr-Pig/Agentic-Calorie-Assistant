@@ -68,6 +68,22 @@ def test_exact_evidence_lane_status_packet_blocks_misaligned_websearch_live_poin
     assert artifact["next_required_slices"] == ["inspect_websearch_status_packet"]
 
 
+def test_exact_evidence_lane_status_packet_sanitizes_untrusted_next_slice() -> None:
+    artifact = build_exact_evidence_lane_status_packet(
+        websearch_status_packet={
+            "artifact_type": "accurate_intake_websearch_candidate_lane_status_packet_v1",
+            "upstream_gate": {"status": "clear_for_websearch_lane", "blocked": False},
+            "next_required_slices": ["raw_response_excerpt forbidden"],
+        }
+    )
+
+    serialized = str(artifact)
+    assert "raw_response_excerpt" not in serialized
+    assert "forbidden" not in serialized
+    assert artifact["summary"]["upstream_websearch_next_required_slice"] == "inspect_websearch_status_packet"
+    assert artifact["next_required_slices"] == ["inspect_websearch_status_packet"]
+
+
 def test_exact_evidence_lane_status_packet_rejects_unexpected_websearch_status_type() -> None:
     try:
         build_exact_evidence_lane_status_packet(

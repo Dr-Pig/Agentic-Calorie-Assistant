@@ -6,6 +6,15 @@ from typing import Any
 from .exact_evidence_lane_policy import build_exact_evidence_lane_policy_artifact
 
 _ALLOWED_WEBSEARCH_GATE_STATUSES = {"clear_for_websearch_lane"}
+_ALLOWED_WEBSEARCH_NEXT_SLICES = {
+    "await_manager_contract_owner_repair",
+    "grokfast_websearch_packet_live_diagnostic",
+    "inspect_websearch_manager_contract_handoff",
+    "inspect_websearch_status_packet",
+    "narrow_websearch_packet_boundary_or_prompt_probe",
+    "tighten_websearch_manager_contract_prompt_or_transport",
+    "websearch_candidate_pipeline_narrow_expansion",
+}
 
 
 def build_exact_evidence_lane_status_packet(
@@ -73,7 +82,9 @@ def _compact_websearch_gate(websearch_status_packet: dict[str, Any] | None) -> d
         }
     upstream_status = str(upstream_gate.get("status") or "").strip()
     next_required_slices = list(websearch_status_packet.get("next_required_slices") or [])
-    next_required_slice = str(next_required_slices[0] or "").strip() if next_required_slices else None
+    next_required_slice = (
+        _safe_websearch_next_slice(next_required_slices[0]) if next_required_slices else None
+    )
     allowed_next_slice = next_required_slice == "grokfast_websearch_packet_live_diagnostic"
     allowed_upstream_status = upstream_status in _ALLOWED_WEBSEARCH_GATE_STATUSES
     aligned = allowed_next_slice and allowed_upstream_status
@@ -97,6 +108,13 @@ def _next_required_slices(upstream_gate: dict[str, Any]) -> list[str]:
     if upstream_gate["blocked"]:
         return [str(upstream_gate["next_required_slice"] or "inspect_websearch_status_packet")]
     return ["grokfast_websearch_packet_live_diagnostic"]
+
+
+def _safe_websearch_next_slice(value: Any) -> str:
+    text = str(value or "").strip()
+    if text in _ALLOWED_WEBSEARCH_NEXT_SLICES:
+        return text
+    return "inspect_websearch_status_packet"
 
 
 def _now() -> str:
