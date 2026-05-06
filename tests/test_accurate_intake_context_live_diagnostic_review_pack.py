@@ -126,6 +126,37 @@ def _valid_inputs(*, live: bool = False) -> dict[str, dict[str, object]]:
             },
             "blockers": [],
         },
+        "context_live_diagnostic_holdout_plan": {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_context_live_diagnostic_holdout_plan",
+            "status": "pass",
+            "diagnostic_only": True,
+            "fixture_only": True,
+            "plan_only": True,
+            "local_only": True,
+            "fixed_case_matrix_used": True,
+            "holdout_variants_withheld_from_default_live_prompt": True,
+            "ad_hoc_live_case_selection_allowed": False,
+            "provider_optimized_case_selection_allowed": False,
+            "blocked_if_single_case_only": True,
+            "live_llm_invoked": False,
+            "live_provider_invoked": False,
+            "fooddb_used": False,
+            "web_tavily_used": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "manager_context_packet_schema_changed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "summary": {
+                "case_count": provider_count,
+                "withheld_holdout_variant_count": provider_count * 2,
+                "cases_with_holdouts": provider_count,
+                "compound_cases": 1,
+                "ambiguity_cases": 3,
+            },
+            "blockers": [],
+        },
         "context_live_provider_input_preflight": {
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_context_live_provider_input_preflight",
@@ -200,6 +231,8 @@ def test_live_review_pack_accepts_pre_live_not_invoked_canary_without_readiness_
     assert artifact["product_readiness_claimed"] is False
     assert artifact["private_self_use_approved"] is False
     assert artifact["summary"]["fixed_case_count"] == len(REQUIRED_CASE_IDS)
+    assert artifact["summary"]["holdout_withheld_variant_count"] == len(REQUIRED_CASE_IDS) * 2
+    assert artifact["summary"]["holdout_cases_with_holdouts"] == len(REQUIRED_CASE_IDS)
     assert artifact["summary"]["live_provider_output_count"] == 0
 
 
@@ -244,6 +277,36 @@ def test_live_review_pack_blocks_anti_overfit_or_dry_run_gaps() -> None:
     assert "context_live_response_contract_dry_run.blocked_response_count_nonzero" in artifact["blockers"]
 
 
+def test_live_review_pack_blocks_holdout_plan_gaps() -> None:
+    inputs = _valid_inputs(live=False)
+    holdout = inputs["context_live_diagnostic_holdout_plan"]
+    holdout["fixed_case_matrix_used"] = False
+    holdout["ad_hoc_live_case_selection_allowed"] = True
+    holdout["provider_optimized_case_selection_allowed"] = True
+    holdout["summary"] = {
+        "case_count": 1,
+        "withheld_holdout_variant_count": 1,
+        "cases_with_holdouts": 1,
+        "compound_cases": 0,
+        "ambiguity_cases": 0,
+    }
+
+    artifact = build_context_live_diagnostic_review_pack_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "context_live_diagnostic_holdout_plan.fixed_case_matrix_not_used" in artifact["blockers"]
+    assert "context_live_diagnostic_holdout_plan.ad_hoc_case_selection_allowed" in artifact["blockers"]
+    assert (
+        "context_live_diagnostic_holdout_plan.provider_optimized_case_selection_allowed"
+        in artifact["blockers"]
+    )
+    assert "context_live_diagnostic_holdout_plan.case_count_mismatch" in artifact["blockers"]
+    assert "context_live_diagnostic_holdout_plan.withheld_variant_count_too_low" in artifact["blockers"]
+    assert "context_live_diagnostic_holdout_plan.cases_with_holdouts_mismatch" in artifact["blockers"]
+    assert "context_live_diagnostic_holdout_plan.compound_case_missing" in artifact["blockers"]
+    assert "context_live_diagnostic_holdout_plan.ambiguity_case_missing" in artifact["blockers"]
+
+
 def test_live_review_pack_blocks_live_canary_overclaims_or_contract_failure() -> None:
     inputs = _valid_inputs(live=True)
     inputs["context_live_diagnostic_canary"]["status"] = "blocked"
@@ -283,6 +346,7 @@ def test_live_review_pack_cli_writes_from_existing_artifacts(tmp_path: Path, cap
 
 def test_live_review_pack_source_stays_out_of_fooddb_websearch_and_shared_schema() -> None:
     source_paths = (
+        Path("app/composition/accurate_intake_context_live_diagnostic_review_holdout.py"),
         Path("app/composition/accurate_intake_context_live_diagnostic_review_pack.py"),
         Path("scripts/build_accurate_intake_context_live_diagnostic_review_pack.py"),
     )

@@ -185,6 +185,7 @@ def build_context_live_diagnostic_gate_artifact(
         {
             "context_live_diagnostic_case_matrix": matrix,
             "context_live_diagnostic_anti_overfit_guard": anti_overfit,
+            "context_live_diagnostic_holdout_plan": holdout_plan,
             "context_live_provider_input_preflight": preflight,
             "context_live_response_contract_dry_run": dry_run,
             "context_live_diagnostic_canary": canary,

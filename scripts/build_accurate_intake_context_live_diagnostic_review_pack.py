@@ -24,6 +24,9 @@ DEFAULT_ARTIFACT_PATHS = {
     "context_live_diagnostic_anti_overfit_guard": (
         ROOT / "artifacts" / "accurate_intake_context_live_diagnostic_anti_overfit_guard.json"
     ),
+    "context_live_diagnostic_holdout_plan": (
+        ROOT / "artifacts" / "accurate_intake_context_live_diagnostic_holdout_plan.json"
+    ),
     "context_live_provider_input_preflight": (
         ROOT / "artifacts" / "accurate_intake_context_live_provider_input_preflight.json"
     ),

@@ -5,11 +5,16 @@ import json
 from typing import Any
 
 from app.composition.accurate_intake_context_live_diagnostic_case_matrix import REQUIRED_CASE_IDS
+from app.composition.accurate_intake_context_live_diagnostic_review_holdout import (
+    holdout_plan_blockers,
+    holdout_plan_review_summary,
+)
 
 
 REQUIRED_INPUTS = (
     "context_live_diagnostic_case_matrix",
     "context_live_diagnostic_anti_overfit_guard",
+    "context_live_diagnostic_holdout_plan",
     "context_live_provider_input_preflight",
     "context_live_response_contract_dry_run",
     "context_live_diagnostic_canary",
@@ -18,6 +23,7 @@ REQUIRED_INPUTS = (
 EXPECTED_ARTIFACT_TYPES = {
     "context_live_diagnostic_case_matrix": "accurate_intake_context_live_diagnostic_case_matrix",
     "context_live_diagnostic_anti_overfit_guard": "accurate_intake_context_live_diagnostic_anti_overfit_guard",
+    "context_live_diagnostic_holdout_plan": "accurate_intake_context_live_diagnostic_holdout_plan",
     "context_live_provider_input_preflight": "accurate_intake_context_live_provider_input_preflight",
     "context_live_response_contract_dry_run": "accurate_intake_context_live_response_contract_dry_run",
     "context_live_diagnostic_canary": "accurate_intake_context_live_diagnostic_canary",
@@ -26,19 +32,13 @@ EXPECTED_ARTIFACT_TYPES = {
 EXPECTED_STATUSES = {
     "context_live_diagnostic_case_matrix": "pass",
     "context_live_diagnostic_anti_overfit_guard": "pass",
+    "context_live_diagnostic_holdout_plan": "pass",
     "context_live_provider_input_preflight": "pass",
     "context_live_response_contract_dry_run": "pass",
     "context_live_diagnostic_canary": {"not_invoked", "live_diagnostic_pass"},
 }
-ALLOWED_NOT_INVOKED_FAILURE_FAMILIES = {
-    "missing_provider_token",
-    "live_provider_not_allowed_by_gate",
-}
-ALLOWED_NOT_INVOKED_BLOCKERS = {
-    "missing_provider_token",
-    "live_provider_not_allowed_by_gate",
-}
-
+ALLOWED_NOT_INVOKED_FAILURE_FAMILIES = {"missing_provider_token", "live_provider_not_allowed_by_gate"}
+ALLOWED_NOT_INVOKED_BLOCKERS = {"missing_provider_token", "live_provider_not_allowed_by_gate"}
 FORBIDDEN_TRUTHY_FLAGS = (
     "fooddb_used",
     "fooddb_truth_used",
@@ -246,6 +246,7 @@ def build_context_live_diagnostic_review_pack_artifact(
         blockers.extend(_forbidden_claim_blockers(group_id, payload))
     blockers.extend(_matrix_blockers(inputs["context_live_diagnostic_case_matrix"]))
     blockers.extend(_anti_overfit_blockers(inputs["context_live_diagnostic_anti_overfit_guard"]))
+    blockers.extend(holdout_plan_blockers(inputs["context_live_diagnostic_holdout_plan"]))
     blockers.extend(_preflight_blockers(inputs["context_live_provider_input_preflight"]))
     blockers.extend(_dry_run_blockers(inputs["context_live_response_contract_dry_run"]))
     blockers.extend(_canary_blockers(inputs["context_live_diagnostic_canary"]))
@@ -264,6 +265,7 @@ def build_context_live_diagnostic_review_pack_artifact(
     matrix_summary = _dict(inputs["context_live_diagnostic_case_matrix"].get("summary"))
     dry_summary = _dict(inputs["context_live_response_contract_dry_run"].get("summary"))
     anti_summary = _dict(inputs["context_live_diagnostic_anti_overfit_guard"].get("summary"))
+    holdout_summary = holdout_plan_review_summary(inputs["context_live_diagnostic_holdout_plan"])
     return _json_safe(
         {
             "artifact_schema_version": "1.0",
@@ -309,6 +311,7 @@ def build_context_live_diagnostic_review_pack_artifact(
                 "anti_overfit_holdout_variant_count": _int(
                     anti_summary.get("holdout_utterance_variant_count")
                 ),
+                **holdout_summary,
                 "live_provider_input_count": _int(canary_summary.get("provider_input_count")),
                 "live_provider_output_count": _int(canary_summary.get("provider_output_count")),
                 "live_blocked_response_count": _int(canary_summary.get("blocked_response_count")),
@@ -323,7 +326,4 @@ def build_context_live_diagnostic_review_pack_artifact(
     )
 
 
-__all__ = [
-    "REQUIRED_INPUTS",
-    "build_context_live_diagnostic_review_pack_artifact",
-]
+__all__ = ["REQUIRED_INPUTS", "build_context_live_diagnostic_review_pack_artifact"]
