@@ -7,17 +7,12 @@ from .tool_evidence_result import build_tool_evidence_result
 from .web_search_candidate_producer import MAX_WEBSEARCH_RESULTS_HARD_CAP
 from .websearch_candidate_packet_smoke import build_websearch_candidate_packet_smoke
 from .websearch_candidate_pipeline import build_websearch_candidate_pipeline_diagnostic
+from .websearch_candidate_lane_handoff_gate import compact_websearch_manager_contract_gate
 from .websearch_manager_packet_smoke import build_websearch_manager_packet_projection
 from .websearch_source_adapter_guard import build_websearch_source_adapter_guard
 from .websearch_source_policy import build_websearch_source_policy_artifact
 
 
-_ALLOWED_MANAGER_CONTRACT_NEXT_SLICES = {
-    "inspect_websearch_manager_contract_handoff",
-    "narrow_websearch_packet_boundary_or_prompt_probe",
-    "tighten_websearch_manager_contract_prompt_or_transport",
-    "websearch_candidate_pipeline_narrow_expansion",
-}
 _ALLOWED_FOODDB_NEXT_SLICES = {
     "await_manager_contract_owner_repair",
     "common_serving_anchor_expansion",
@@ -32,6 +27,10 @@ def build_websearch_candidate_lane_status_packet(
     *,
     fooddb_status_packet: dict[str, Any] | None = None,
     manager_contract_handoff_artifact: dict[str, Any] | None = None,
+    live_diagnostic_report: dict[str, Any] | None = None,
+    contract_probe_artifact: dict[str, Any] | None = None,
+    repair_pack_artifact: dict[str, Any] | None = None,
+    preflight_artifact: dict[str, Any] | None = None,
     source_adapter_guard_artifact: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_policy = build_websearch_source_policy_artifact()
@@ -47,7 +46,13 @@ def build_websearch_candidate_lane_status_packet(
         tool_evidence_artifact=tool_evidence_artifact
     )
     upstream_gate = _compact_fooddb_gate(fooddb_status_packet)
-    manager_contract_gate = _compact_manager_contract_gate(manager_contract_handoff_artifact)
+    manager_contract_gate = compact_websearch_manager_contract_gate(
+        manager_contract_handoff_artifact=manager_contract_handoff_artifact,
+        live_diagnostic_report=live_diagnostic_report,
+        contract_probe_artifact=contract_probe_artifact,
+        repair_pack_artifact=repair_pack_artifact,
+        preflight_artifact=preflight_artifact,
+    )
     source_adapter_gate = _compact_source_adapter_gate(source_adapter_guard)
 
     return {
@@ -197,56 +202,6 @@ def _safe_fooddb_next_slice(value: Any) -> str | None:
     if text in _ALLOWED_FOODDB_NEXT_SLICES:
         return text
     return "inspect_fooddb_status_packet"
-
-
-def _compact_manager_contract_gate(
-    manager_contract_handoff_artifact: dict[str, Any] | None,
-) -> dict[str, Any]:
-    if not isinstance(manager_contract_handoff_artifact, dict):
-        return {
-            "status": "not_provided",
-            "next_required_slice": "inspect_websearch_manager_contract_handoff",
-            "blocked": True,
-        }
-    if (
-        str(manager_contract_handoff_artifact.get("artifact_type") or "")
-        != "accurate_intake_websearch_manager_contract_handoff_v1"
-    ):
-        raise ValueError("unsupported_websearch_status_manager_contract_handoff")
-    status = str(manager_contract_handoff_artifact.get("status") or "")
-    selected_next_step = _safe_manager_contract_next_slice(
-        manager_contract_handoff_artifact.get("selected_next_step")
-    )
-    if status == "websearch_contract_unblocked":
-        return {
-            "status": "clear_for_websearch_lane",
-            "next_required_slice": selected_next_step or None,
-            "blocked": False,
-        }
-    if status == "ready_for_manager_contract_owner":
-        return {
-            "status": "blocked_on_manager_contract_owner",
-            "next_required_slice": selected_next_step or "tighten_websearch_manager_contract_prompt_or_transport",
-            "blocked": True,
-        }
-    if status == "return_to_websearch_packet_boundary":
-        return {
-            "status": "blocked_on_websearch_packet_boundary",
-            "next_required_slice": selected_next_step or "narrow_websearch_packet_boundary_or_prompt_probe",
-            "blocked": True,
-        }
-    return {
-        "status": "blocked_on_manager_contract_handoff",
-        "next_required_slice": selected_next_step or "inspect_websearch_manager_contract_handoff",
-        "blocked": True,
-    }
-
-
-def _safe_manager_contract_next_slice(value: Any) -> str:
-    text = str(value or "").strip()
-    if text in _ALLOWED_MANAGER_CONTRACT_NEXT_SLICES:
-        return text
-    return ""
 
 
 def _next_required_slices(

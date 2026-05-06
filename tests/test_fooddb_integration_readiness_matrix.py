@@ -125,6 +125,14 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         == "candidate_lane_may_block_or_forward_contract_status_but_cannot_decide_manager_semantics"
     )
     assert (
+        "app.nutrition.application.websearch_candidate_lane_handoff_gate.compact_websearch_manager_contract_gate"
+        in edges["websearch_contract_handoff_to_candidate_lane_status"]["evidence"]
+    )
+    assert (
+        "verified handoff proof"
+        in edges["websearch_contract_handoff_to_candidate_lane_status"]["stop_condition"]
+    )
+    assert (
         edges["listed_components_to_approved_runtime_anchors"]["manager_style_guard"]
         == "listed_basket_components_may_estimate_only_when_runtime_anchor_is_approved"
     )

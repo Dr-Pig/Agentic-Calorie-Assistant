@@ -5,6 +5,149 @@ from pathlib import Path
 from app.nutrition.application.websearch_candidate_lane_status_packet import (
     build_websearch_candidate_lane_status_packet,
 )
+from app.nutrition.application.websearch_manager_contract_handoff import (
+    build_websearch_manager_contract_handoff,
+)
+from app.nutrition.application.websearch_preflight_digest import (
+    PREFLIGHT_DIGEST_ALGORITHM,
+    PREFLIGHT_DIGEST_SCOPE,
+    websearch_live_extract_preflight_digest,
+)
+
+
+def _clear_preflight_artifact() -> dict:
+    return {
+        "artifact_type": "accurate_intake_websearch_live_extract_preflight_v1",
+        "artifact_schema_version": "1.0",
+        "generated_at_utc": "2026-05-06T00:00:00Z",
+        "track": "FDB",
+        "classification": "deterministic_live_extract_preflight_only",
+        "claim_scope": "websearch_live_extract_diagnostic_preflight_without_live_call",
+        "status": "pass",
+        "blockers": [],
+        "live_websearch_used": False,
+        "live_extract_used": False,
+        "live_provider_used": False,
+        "runtime_truth_changed": False,
+        "runtime_mutation_allowed": False,
+        "manager_context_changed": False,
+        "packetizer_format_changed": False,
+        "readiness_claimed": False,
+        "ready_for_live_extract_diagnostic": True,
+        "ready_for_runtime_truth": False,
+        "diagnostic_contract": {
+            "live_call_allowed_by_this_artifact": False,
+            "requires_explicit_allow_live_flag": True,
+            "cache_required": True,
+            "raw_content_allowed_in_manager_context": False,
+            "ledger_mutation_allowed": False,
+            "exact_card_creation_allowed": False,
+        },
+        "review_packet_refs": [
+            {
+                "packet_id": "pkt_exact_card_review_123456789abc",
+                "source_url": "https://milksha.example/menu/pearl-black-tea-latte",
+                "canonical_name": "Milksha pearl black tea latte",
+                "matched_name": "Milksha pearl black tea latte",
+                "packet_digest": "abc123def4567890",
+            }
+        ],
+        "summary": {
+            "review_packet_count": 1,
+            "ready_for_live_extract_diagnostic_count": 1,
+            "ready_for_runtime_truth_count": 0,
+            "case_matrix_case_count": 6,
+            "case_matrix_fixed_required_cases": True,
+            "case_matrix_negative_case_count": 4,
+            "case_matrix_modifier_guard_cases": 1,
+            "case_matrix_live_provider_invoked": False,
+            "case_matrix_websearch_invoked": False,
+        },
+        "next_required_slice": "grokfast_websearch_packet_live_diagnostic",
+        "non_claims": [
+            "no_live_websearch_call",
+            "no_live_extract_call",
+            "no_live_provider_call",
+            "no_websearch_runtime_truth",
+            "no_exact_card_truth_promotion",
+            "no_runtime_mutation",
+            "no_readiness_claim",
+        ],
+    }
+
+
+def _live_report(*, preflight_artifact: dict) -> dict:
+    return {
+        "artifact_type": "accurate_intake_websearch_live_diagnostic_report",
+        "seam_status": "live_diagnostic_pass",
+        "source_artifact_type": "accurate_intake_grokfast_websearch_packet_smoke",
+        "source_status": "pass",
+        "preflight_evidence_healthy": True,
+        "preflight_evidence_required": True,
+        "preflight_evidence": {
+            "preflight_artifact_digest_algorithm": PREFLIGHT_DIGEST_ALGORITHM,
+            "preflight_artifact_digest_scope": PREFLIGHT_DIGEST_SCOPE,
+            "preflight_artifact_digest": websearch_live_extract_preflight_digest(
+                preflight_artifact
+            ),
+            "preflight_artifact_digest_verified": True,
+            "preflight_artifact_integrity_clear": True,
+            "ready_for_runtime_truth": False,
+        },
+        "can_expand_websearch_candidate_pipeline": True,
+        "source_live_provider_used": True,
+        "source_live_websearch_used": False,
+        "runtime_truth_changed": False,
+        "runtime_mutation_attempted": False,
+        "readiness_claimed": False,
+        "next_recommended_slice": "websearch_candidate_pipeline_narrow_expansion",
+    }
+
+
+def _probe() -> dict:
+    return {
+        "artifact_type": "accurate_intake_websearch_manager_contract_probe",
+        "status": "pass",
+        "contract_failure_detected": False,
+        "summary": {
+            "case_count": 2,
+            "fail_count": 0,
+            "aggregate_missing_required_fields": {},
+            "next_recommended_slice": "narrow_prompt_schema_intent_alias_probe",
+        },
+    }
+
+
+def _repair_pack() -> dict:
+    return {
+        "artifact_type": "accurate_intake_websearch_manager_contract_repair_pack",
+        "next_recommended_slice": "tighten_websearch_manager_contract_prompt_or_transport",
+        "summary": {
+            "case_count": 0,
+            "alias_hint_counts": {},
+            "shape_pattern_counts": {},
+        },
+    }
+
+
+def _verified_handoff_inputs() -> dict:
+    preflight = _clear_preflight_artifact()
+    live_report = _live_report(preflight_artifact=preflight)
+    probe = _probe()
+    repair_pack = _repair_pack()
+    handoff = build_websearch_manager_contract_handoff(
+        live_diagnostic_report=live_report,
+        contract_probe_artifact=probe,
+        repair_pack_artifact=repair_pack,
+        preflight_artifact=preflight,
+    )
+    return {
+        "manager_contract_handoff_artifact": handoff,
+        "live_diagnostic_report": live_report,
+        "contract_probe_artifact": probe,
+        "repair_pack_artifact": repair_pack,
+        "preflight_artifact": preflight,
+    }
 
 
 def _fooddb_status_packet() -> dict:
@@ -149,11 +292,7 @@ def test_websearch_candidate_lane_status_packet_allows_live_only_when_fooddb_exp
             "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
             "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
         },
-        manager_contract_handoff_artifact={
-            "artifact_type": "accurate_intake_websearch_manager_contract_handoff_v1",
-            "status": "websearch_contract_unblocked",
-            "selected_next_step": "websearch_candidate_pipeline_narrow_expansion",
-        },
+        **_verified_handoff_inputs(),
     )
 
     assert artifact["summary"]["upstream_fooddb_gate_status"] == "clear_for_websearch_lane"
@@ -200,15 +339,35 @@ def test_websearch_candidate_lane_status_packet_allows_live_when_manager_contrac
             "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
             "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
         },
-        manager_contract_handoff_artifact={
-            "artifact_type": "accurate_intake_websearch_manager_contract_handoff_v1",
-            "status": "websearch_contract_unblocked",
-            "selected_next_step": "websearch_candidate_pipeline_narrow_expansion",
-        },
+        **_verified_handoff_inputs(),
     )
 
     assert artifact["summary"]["manager_contract_gate_status"] == "clear_for_websearch_lane"
     assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
+
+
+def test_websearch_candidate_lane_status_packet_blocks_unverified_unblocked_manager_contract() -> None:
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        manager_contract_handoff_artifact={
+            "artifact_type": "accurate_intake_websearch_manager_contract_handoff_v1",
+            "status": "websearch_contract_unblocked",
+            "selected_next_step": "websearch_candidate_pipeline_narrow_expansion",
+            "summary": {"alignment_blocker_count": 0},
+        },
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == (
+        "blocked_on_manager_contract_handoff"
+    )
+    assert (
+        "manager_contract_handoff_source_artifacts_missing"
+        in artifact["manager_contract_gate"]["blockers"]
+    )
+    assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
 
 
 def test_websearch_candidate_lane_status_packet_rejects_unexpected_manager_contract_artifact() -> None:
@@ -387,6 +546,62 @@ def test_websearch_candidate_lane_status_packet_script_accepts_manager_contract_
     assert artifact["next_required_slices"] == [
         "tighten_websearch_manager_contract_prompt_or_transport"
     ]
+
+
+def test_websearch_candidate_lane_status_packet_script_accepts_verified_handoff_chain(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.build_accurate_intake_websearch_candidate_lane_status_packet import main
+
+    inputs = _verified_handoff_inputs()
+    paths = {
+        "fooddb": tmp_path / "fooddb_status.json",
+        "handoff": tmp_path / "handoff.json",
+        "live": tmp_path / "live.json",
+        "probe": tmp_path / "probe.json",
+        "repair": tmp_path / "repair.json",
+        "preflight": tmp_path / "preflight.json",
+    }
+    output = tmp_path / "websearch_status.json"
+    write_json_artifact(
+        paths["fooddb"],
+        {
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+    )
+    write_json_artifact(paths["handoff"], inputs["manager_contract_handoff_artifact"])
+    write_json_artifact(paths["live"], inputs["live_diagnostic_report"])
+    write_json_artifact(paths["probe"], inputs["contract_probe_artifact"])
+    write_json_artifact(paths["repair"], inputs["repair_pack_artifact"])
+    write_json_artifact(paths["preflight"], inputs["preflight_artifact"])
+
+    assert (
+        main(
+            [
+                "--fooddb-status-packet",
+                str(paths["fooddb"]),
+                "--manager-contract-handoff-artifact",
+                str(paths["handoff"]),
+                "--live-diagnostic-report",
+                str(paths["live"]),
+                "--contract-probe-artifact",
+                str(paths["probe"]),
+                "--repair-pack-artifact",
+                str(paths["repair"]),
+                "--preflight-artifact",
+                str(paths["preflight"]),
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+
+    artifact = read_json_artifact(output)
+    assert artifact["summary"]["manager_contract_gate_status"] == "clear_for_websearch_lane"
+    assert artifact["next_required_slices"] == ["grokfast_websearch_packet_live_diagnostic"]
 
 
 def test_websearch_candidate_lane_status_packet_rejects_unexpected_fooddb_artifact_type() -> None:
