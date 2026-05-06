@@ -13,6 +13,7 @@ _ALLOWED_WEBSEARCH_NEXT_SLICES = {
     "inspect_websearch_status_packet",
     "narrow_websearch_packet_boundary_or_prompt_probe",
     "tighten_websearch_manager_contract_prompt_or_transport",
+    "inspect_websearch_status_packet",
     "websearch_candidate_pipeline_narrow_expansion",
 }
 

@@ -75,7 +75,7 @@ def build_websearch_live_diagnostic_report(
     elif diagnostic_status == "pass":
         if preflight_healthy:
             seam_status = "live_diagnostic_pass"
-            next_recommended_slice = "websearch_candidate_pipeline_narrow_expansion"
+            next_recommended_slice = "inspect_websearch_status_packet"
         else:
             seam_status = "preflight_evidence_missing"
             next_recommended_slice = "rerun_with_clear_websearch_live_extract_preflight"

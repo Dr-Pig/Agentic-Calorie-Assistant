@@ -257,7 +257,7 @@ def test_websearch_manager_contract_handoff_blocks_minimal_forged_live_pass_repo
             "runtime_truth_changed": False,
             "runtime_mutation_attempted": False,
             "readiness_claimed": False,
-            "next_recommended_slice": "websearch_candidate_pipeline_narrow_expansion",
+            "next_recommended_slice": "inspect_websearch_status_packet",
         },
         contract_probe_artifact=_probe(contract_failure_detected=False),
         repair_pack_artifact={**_repair_pack(), "summary": {"case_count": 0}},
@@ -339,7 +339,7 @@ def test_websearch_manager_contract_handoff_allows_passed_contract() -> None:
     )
 
     assert artifact["status"] == "websearch_contract_unblocked"
-    assert artifact["selected_next_step"] == "websearch_candidate_pipeline_narrow_expansion"
+    assert artifact["selected_next_step"] == "inspect_websearch_status_packet"
     assert artifact["handoff_ready"] is False
 
 
@@ -485,7 +485,7 @@ def test_websearch_manager_contract_handoff_script_roundtrip_with_preflight_arti
 
     artifact = read_json_artifact(output_path)
     assert artifact["status"] == "websearch_contract_unblocked"
-    assert artifact["selected_next_step"] == "websearch_candidate_pipeline_narrow_expansion"
+    assert artifact["selected_next_step"] == "inspect_websearch_status_packet"
 
 
 def test_websearch_manager_contract_handoff_script_accepts_live_bundle_manifest(
@@ -540,7 +540,7 @@ def test_websearch_manager_contract_handoff_script_accepts_live_bundle_manifest(
 
     artifact = read_json_artifact(output_path)
     assert artifact["status"] == "websearch_contract_unblocked"
-    assert artifact["selected_next_step"] == "websearch_candidate_pipeline_narrow_expansion"
+    assert artifact["selected_next_step"] == "inspect_websearch_status_packet"
 
 
 def test_websearch_manager_contract_handoff_script_accepts_live_bundle_dir(
@@ -583,7 +583,7 @@ def test_websearch_manager_contract_handoff_script_accepts_live_bundle_dir(
 
     artifact = read_json_artifact(output_path)
     assert artifact["status"] == "websearch_contract_unblocked"
-    assert artifact["selected_next_step"] == "websearch_candidate_pipeline_narrow_expansion"
+    assert artifact["selected_next_step"] == "inspect_websearch_status_packet"
 
 
 def test_websearch_manager_contract_handoff_rejects_unexpected_sources() -> None:

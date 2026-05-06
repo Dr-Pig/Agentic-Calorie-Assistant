@@ -103,7 +103,7 @@ def test_websearch_manager_contract_probe_passes_when_required_intent_exists() -
     assert artifact["status"] == "pass"
     assert artifact["contract_failure_detected"] is False
     assert artifact["summary"]["failure_families"] == []
-    assert artifact["summary"]["next_recommended_slice"] == "inspect_websearch_manager_contract_failures"
+    assert artifact["summary"]["next_recommended_slice"] == "inspect_websearch_status_packet"
 
 
 def test_websearch_manager_contract_probe_accepts_live_diagnostic_artifact() -> None:
@@ -124,9 +124,7 @@ def test_websearch_manager_contract_probe_accepts_live_diagnostic_artifact() -> 
     assert artifact["contract_failure_detected"] is False
     assert artifact["source_artifact_type"] == "accurate_intake_grokfast_websearch_packet_smoke"
     assert artifact["summary"]["websearch_expansion_allowed"] is True
-    assert artifact["summary"]["next_recommended_slice"] == (
-        "websearch_candidate_pipeline_narrow_expansion"
-    )
+    assert artifact["summary"]["next_recommended_slice"] == "inspect_websearch_status_packet"
 
 
 def test_websearch_manager_contract_probe_localizes_live_diagnostic_contract_gaps() -> None:
@@ -198,9 +196,7 @@ def test_websearch_manager_contract_probe_script_accepts_diagnostic_artifact(
     )
 
     artifact = read_json_artifact(output)
-    assert artifact["summary"]["next_recommended_slice"] == (
-        "websearch_candidate_pipeline_narrow_expansion"
-    )
+    assert artifact["summary"]["next_recommended_slice"] == "inspect_websearch_status_packet"
 
 
 def test_websearch_manager_contract_probe_has_no_live_or_websearch_imports() -> None:
