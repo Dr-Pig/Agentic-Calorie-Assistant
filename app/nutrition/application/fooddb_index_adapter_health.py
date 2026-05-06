@@ -43,20 +43,33 @@ def build_fooddb_index_adapter_health(
     *,
     local_index: FoodEvidenceIndexPort,
     sqlite_index: FoodEvidenceIndexPort,
+    supabase_index: FoodEvidenceIndexPort | None = None,
     search_cases: tuple[AdapterHealthSearchCase, ...] = DEFAULT_ADAPTER_HEALTH_SEARCH_CASES,
 ) -> dict[str, Any]:
     local_records = local_index.load_records()
     sqlite_records = sqlite_index.load_records()
+    supabase_records = supabase_index.load_records() if supabase_index is not None else ()
     search_results = _search_case_results(sqlite_index=sqlite_index, search_cases=search_cases)
     record_boundary_blockers = [
         *_record_boundary_blockers(label="local", records=local_records),
         *_record_boundary_blockers(label="sqlite", records=sqlite_records),
+        *(
+            _record_boundary_blockers(label="supabase", records=supabase_records)
+            if supabase_index is not None
+            else []
+        ),
     ]
     metadata_blockers = _metadata_blockers(local_index=local_index, sqlite_index=sqlite_index)
+    supabase_metadata_blockers = (
+        _supabase_metadata_blockers(supabase_index=supabase_index)
+        if supabase_index is not None
+        else []
+    )
     blockers = [
         *_record_parity_blockers(local_records=local_records, sqlite_records=sqlite_records),
         *record_boundary_blockers,
         *metadata_blockers,
+        *supabase_metadata_blockers,
         *_search_blockers(search_results),
     ]
     clear = not blockers
@@ -82,9 +95,16 @@ def build_fooddb_index_adapter_health(
             "record_contract_parity": local_records == sqlite_records,
             "local_adapter_type": _adapter_type(local_index),
             "sqlite_adapter_type": _adapter_type(sqlite_index),
+            "supabase_record_count": len(supabase_records) if supabase_index is not None else 0,
+            "supabase_adapter_type": (
+                _adapter_type(supabase_index) if supabase_index is not None else "not_configured"
+            ),
             "record_boundary_passed": not record_boundary_blockers,
-            "adapter_metadata_boundary_passed": not metadata_blockers,
-            "runtime_boundary_passed": not record_boundary_blockers and not metadata_blockers,
+            "adapter_metadata_boundary_passed": not metadata_blockers
+            and not supabase_metadata_blockers,
+            "runtime_boundary_passed": not record_boundary_blockers
+            and not metadata_blockers
+            and not supabase_metadata_blockers,
             "search_case_count": len(search_results),
             "search_case_pass_count": sum(1 for case in search_results if case["status"] == "pass"),
             "search_case_fail_count": sum(1 for case in search_results if case["status"] != "pass"),
@@ -105,10 +125,13 @@ def build_fooddb_index_adapter_health(
         "adapter_metadata": {
             "local": local_index.describe_index(),
             "sqlite_fts": sqlite_index.describe_index(),
+            "supabase": (
+                supabase_index.describe_index() if supabase_index is not None else None
+            ),
         },
         "search_cases": search_results,
         "future_backend_contracts": {
-            "supabase": _supabase_future_contract(),
+            "supabase": _supabase_future_contract(supabase_index=supabase_index),
         },
         "next_required_slice": (
             "grokfast_fooddb_diagnostic_preflight"
@@ -223,6 +246,27 @@ def _metadata_blockers(
     return blockers
 
 
+def _supabase_metadata_blockers(
+    *,
+    supabase_index: FoodEvidenceIndexPort,
+) -> list[str]:
+    metadata = supabase_index.describe_index()
+    blockers: list[str] = []
+    if metadata.get("record_contract") != "IndexedFoodRecord":
+        blockers.append("supabase_index_record_contract_mismatch")
+    if metadata.get("runtime_truth_boundary") != "adapter_returns_indexed_records_not_truth_decisions":
+        blockers.append("supabase_index_runtime_truth_boundary_missing")
+    if metadata.get("mapping_status") == "blocked":
+        blockers.append("supabase_index_row_mapping_blocked")
+    if int(metadata.get("mapped_record_count") or 0) <= 0:
+        blockers.append("supabase_index_no_mapped_records")
+    forbidden = set(metadata.get("forbidden_policy_dependencies") or [])
+    forbidden_leaks = {"supabase_client", "webshell", "manager_context_packet"}
+    if not forbidden_leaks.issubset(forbidden):
+        blockers.append("supabase_adapter_missing_forbidden_dependency_metadata")
+    return blockers
+
+
 def _search_case_results(
     *,
     sqlite_index: FoodEvidenceIndexPort,
@@ -259,9 +303,16 @@ def _search_blockers(search_results: list[dict[str, Any]]) -> list[str]:
     ]
 
 
-def _supabase_future_contract() -> dict[str, Any]:
+def _supabase_future_contract(
+    *,
+    supabase_index: FoodEvidenceIndexPort | None,
+) -> dict[str, Any]:
     return {
-        "status": "contract_only_not_connected",
+        "status": (
+            "offline_row_adapter_contract_available"
+            if supabase_index is not None
+            else "contract_only_not_connected"
+        ),
         "runtime_dependency_allowed": False,
         "manager_visible": False,
         "required_output_contract": "IndexedFoodRecord",

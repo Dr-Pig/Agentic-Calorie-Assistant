@@ -10,6 +10,7 @@ RetrieverBackend = Literal[
     "blocked_no_execution",
     "local_fooddb_index",
     "sqlite_fts_index",
+    "supabase_index",
     "websearch_candidate_lane",
 ]
 
@@ -25,6 +26,7 @@ class RetrieverBackendAvailability:
     local_fooddb_index: bool
     sqlite_fts_index: bool
     websearch_candidate_lane: bool
+    supabase_index: bool = False
 
 
 @dataclass(frozen=True)
@@ -89,17 +91,25 @@ def build_food_evidence_retriever_route_plan(
             routing_reasons=("composition clarification requires follow-up before evidence lookup",),
         )
 
-    primary_fooddb_backend = (
-        "sqlite_fts_index"
-        if availability.sqlite_fts_index
-        else "local_fooddb_index"
-    )
+    primary_fooddb_backend: RetrieverBackend
+    if availability.sqlite_fts_index:
+        primary_fooddb_backend = "sqlite_fts_index"
+    elif availability.supabase_index:
+        primary_fooddb_backend = "supabase_index"
+    else:
+        primary_fooddb_backend = "local_fooddb_index"
     backend_sequence: list[RetrieverBackend] = []
     routing_reasons: list[str] = []
 
     if primary_fooddb_backend == "sqlite_fts_index":
-        backend_sequence.extend(("sqlite_fts_index", "local_fooddb_index"))
+        backend_sequence.append("sqlite_fts_index")
+        if availability.supabase_index:
+            backend_sequence.append("supabase_index")
+        backend_sequence.append("local_fooddb_index")
         routing_reasons.append("prefer adapter-compatible SQLite FTS when available")
+    elif primary_fooddb_backend == "supabase_index":
+        backend_sequence.extend(("supabase_index", "local_fooddb_index"))
+        routing_reasons.append("use Supabase index only through FoodEvidenceIndexPort")
     else:
         backend_sequence.append("local_fooddb_index")
         routing_reasons.append("local FoodDB index is the current runtime baseline")

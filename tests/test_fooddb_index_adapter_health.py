@@ -15,6 +15,9 @@ from app.nutrition.infrastructure.local_food_evidence_index import (
 from app.nutrition.infrastructure.sqlite_food_evidence_index import (
     SQLiteFtsFoodEvidenceIndex,
 )
+from app.nutrition.infrastructure.supabase_food_evidence_index import (
+    SupabaseRowsFoodEvidenceIndex,
+)
 
 
 SMALL_ANCHOR_STORE = Path("app/knowledge/small_anchor_store_tw.json")
@@ -171,6 +174,54 @@ def test_fooddb_index_adapter_health_exposes_supabase_adapter_contract_without_u
     assert "canonical_name" in supabase["minimum_columns"]
     assert "kcal_range" in supabase["minimum_columns"]
     assert "source_provenance" in supabase["minimum_columns"]
+
+
+def test_fooddb_index_adapter_health_accepts_offline_supabase_row_adapter(
+    tmp_path: Path,
+) -> None:
+    row = {
+        "anchor_id": "single_item_tea_egg",
+        "canonical_name": "Tea egg",
+        "aliases": ["tea egg"],
+        "dish_type": "single_item",
+        "runtime_truth_allowed": True,
+        "runtime_role": "common_serving_anchor",
+        "kcal_point": 80,
+        "kcal_range": [70, 90],
+        "serving_basis": "common_serving",
+        "portion_basis": {"portion_unit": "egg", "portion_quantity": 1},
+        "runtime_usage_boundary": "single_item",
+        "source_provenance": {"source_id": "test_supabase_fixture"},
+        "approval_metadata": {"approval_mode": "internal_seed_batch_approved"},
+    }
+
+    artifact = build_fooddb_index_adapter_health(
+        local_index=_local_index(),
+        sqlite_index=_sqlite_index(tmp_path),
+        supabase_index=SupabaseRowsFoodEvidenceIndex.from_rows((row,)),
+    )
+
+    assert artifact["status"] == "pass"
+    assert artifact["summary"]["supabase_record_count"] == 1
+    assert artifact["summary"]["supabase_adapter_type"] == "supabase_rows_food_evidence_index"
+    assert artifact["adapter_metadata"]["supabase"]["mapping_status"] == "pass"
+    assert artifact["future_backend_contracts"]["supabase"]["status"] == (
+        "offline_row_adapter_contract_available"
+    )
+
+
+def test_fooddb_index_adapter_health_blocks_empty_supabase_row_adapter(
+    tmp_path: Path,
+) -> None:
+    artifact = build_fooddb_index_adapter_health(
+        local_index=_local_index(),
+        sqlite_index=_sqlite_index(tmp_path),
+        supabase_index=SupabaseRowsFoodEvidenceIndex.from_rows(()),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert "supabase_index_no_mapped_records" in artifact["blockers"]
+    assert artifact["summary"]["supabase_record_count"] == 0
 
 
 def test_fooddb_index_adapter_health_blocks_source_only_runtime_truth_leak() -> None:

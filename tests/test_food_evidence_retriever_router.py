@@ -35,6 +35,34 @@ def test_router_prefers_sqlite_fts_when_available_for_runtime_fooddb_lookup() ->
     assert plan.raw_text_hint_executed is False
 
 
+def test_router_can_target_supabase_index_without_manager_visible_backend() -> None:
+    plan = build_food_evidence_retriever_route_plan(
+        RetrievalIntent(
+            base_dish="tea egg",
+            aliases=["tea egg"],
+            brand_hint=None,
+            size_hint=None,
+            modifier_hints=[],
+            listed_items=[],
+            retrieval_goal="generic_anchor_lookup",
+        ),
+        availability=RetrieverBackendAvailability(
+            local_fooddb_index=True,
+            sqlite_fts_index=False,
+            websearch_candidate_lane=False,
+            supabase_index=True,
+        ),
+    )
+
+    assert plan.primary_backend == "supabase_index"
+    assert plan.backend_sequence == ("supabase_index", "local_fooddb_index")
+    assert plan.runtime_truth_source == "approved_fooddb_only"
+    assert plan.manager_owned_intent_required is True
+    assert plan.raw_text_hint_executed is False
+    assert plan.decides_logged_or_draft is False
+    assert "use Supabase index only through FoodEvidenceIndexPort" in plan.routing_reasons
+
+
 def test_router_keeps_exact_brand_websearch_in_candidate_lane_only() -> None:
     plan = build_food_evidence_retriever_route_plan(
         RetrievalIntent(
