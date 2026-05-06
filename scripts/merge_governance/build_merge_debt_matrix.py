@@ -306,9 +306,14 @@ def _string_blob(pr: dict[str, Any]) -> str:
 def normalize_track(track: str) -> str:
     normalized = track.strip()
     aliases = {
+        "FDB": "FoodDB",
+        "FoodDB-WebSearch": "FoodDB",
+        "FoodDB/WebSearch": "FoodDB",
+        "FoodDB_WebSearch": "FoodDB",
         "PL_CE": "PLCE",
         "PL/CE": "PLCE",
         "PL-CE": "PLCE",
+        "ProductLoop": "PLCE",
         "ProductLifecycleContextEngineering": "PLCE",
     }
     return aliases.get(normalized, normalized)
