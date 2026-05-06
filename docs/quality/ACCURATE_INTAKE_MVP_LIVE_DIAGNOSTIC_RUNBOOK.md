@@ -255,6 +255,14 @@ The required evidence keys are:
 - `local_dogfood_data_hygiene`
 - `local_operator_data_hygiene_bundle`
 - `pl_ce_local_review_decision_pack`
+- `product_pages_self_use_flow_gate`
+- `ui_context_alignment_pack`
+- `browser_activation_evidence_gate`
+- `manager_tool_surface_inventory`
+- `manager_tool_choice_regression_wall`
+- `context_conditioned_intent_target_wall`
+- `non_fooddb_read_only_tool_loop_fake_smoke`
+- `non_fooddb_mutation_tool_guard_smoke`
 - `manager_intent_readiness_review_pack`
 - `context_live_diagnostic_case_matrix`
 - `context_live_diagnostic_anti_overfit_guard`
@@ -265,6 +273,13 @@ The required evidence keys are:
 - `context_live_diagnostic_gate`
 
 The `browser_shell_smoke` evidence must have `browser_executed=true` before the pack can select `ready_for_human_limited_live_canary_decision`. Missing evidence keeps the selected option at `stay_local_self_use`.
+
+The product-page evidence is required in addition to the older `browser_shell_smoke`.
+`product_pages_self_use_flow_gate`, `ui_context_alignment_pack`, and `browser_activation_evidence_gate` must prove Chat, Today, and Body are browser-executed, same-truth, render-only product pages before live diagnostics can be considered.
+Blocked optional browser evidence is allowed for local review artifacts, but it is not pass evidence for activation.
+
+Non-FoodDB Manager tool diagnostics remain app-state only and must not use FoodDB/WebSearch evidence.
+`manager_tool_surface_inventory`, `manager_tool_choice_regression_wall`, `context_conditioned_intent_target_wall`, `non_fooddb_read_only_tool_loop_fake_smoke`, and `non_fooddb_mutation_tool_guard_smoke` must prove the Manager can choose among budget/body/calibration/app-help tool postures without deterministic raw-text routing, FoodDB/WebSearch usage, runtime nutrition truth changes, or UI semantic ownership.
 
 The `context_live_diagnostic_case_matrix` evidence must be generated before any Stage 4 or Stage 5 live diagnostic. It is a plan-only anti-overfit gate: live probes must select from the fixed matrix instead of ad hoc easy cases. The matrix must keep `plan_only=true`, `live_llm_invoked=false`, `live_provider_invoked=false`, `fooddb_used=false`, `mutation_changed=false`, and `manager_context_packet_schema_changed=false`.
 

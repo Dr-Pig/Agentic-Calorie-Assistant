@@ -17,6 +17,53 @@ PL+CE owns context visibility, review artifacts, fake-provider context smoke, an
 
 The FoodDB boundary remains blocked_waiting_for_fdb_artifact until FoodDB provides approved packet-ready metadata.
 
+## Non-FoodDB Manager Tool Convergence
+
+PL+CE owns the chat-first Manager-managed tool surface for app-state capabilities outside FoodDB/Search Evidence.
+This is a pre-FoodDB integration responsibility: users may ask about daily budget, body plan, weight state, calibration proposals, or app usage through chat before FoodDB/WebSearch is ready.
+
+The target coarse tool inventory is:
+
+- `budget.get_today_summary`
+- `budget.get_remaining_calories`
+- `budget.get_day_meal_log`
+- `body.get_active_plan`
+- `body.get_latest_observation`
+- `body.record_observation`
+- `calibration.preview_proposal`
+- `calibration.get_pending_proposal`
+- `calibration.apply_stored_proposal_action`
+- `app.answer_usage_question`
+
+Tool staging is:
+
+- `read_only`: budget, body, and app-help reads from canonical read models.
+- `proposal_persisting`: calibration preview or pending proposal surfaces may persist proposal containers only through existing domain policy.
+- `mutation_bearing`: weight recording and stored calibration proposal actions require explicit Manager decision plus guard evidence.
+
+FoodDB/Search Evidence still owns nutrition retrieval, ranking, packet-ready evidence, WebSearch candidate evidence, and runtime-visible nutrition truth.
+PL+CE must not implement FoodDB lookup, WebSearch ranking, packet promotion, nutrition truth, or evidence-truth mutation.
+
+Semantic ownership for this convergence is:
+
+- Manager owns natural-language intent, tool choice, target posture, and final response planning.
+- Deterministic code may provide context, candidates, schemas, allowed tool lists, validation, guard results, and canonical tool results.
+- Deterministic code must not infer final intent, choose the final tool, select the final target, or authorize mutation from raw text.
+- UI may render backend/read-model/trace structured fields only.
+
+The pre-FoodDB PL+CE build train is:
+
+1. Product Pages Evidence Into Pre-Live Pack
+2. Manager Tool Surface Inventory / Direct Lane Audit
+3. Non-FoodDB Manager Tool Contract
+4. Manager Tool-Choice Regression Wall
+5. Context-Conditioned Intent + Target Wall
+6. Read-Only Tool Loop Fake Smoke
+7. Proposal / Mutation Tool Guard Smoke
+8. Live Context/Tool Diagnostic Case Matrix
+9. Limited Live Diagnostic
+10. PLCE Pre-FoodDB Candidate Bundle
+
 ## Merge Queue Delivery Policy
 
 Default PL+CE delivery is GitHub Merge Queue serial delivery from latest `origin/main`.
