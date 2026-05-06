@@ -19,6 +19,9 @@ from app.nutrition.application.grokfast_websearch_packet_diagnostic import (
 from app.nutrition.application.websearch_exact_candidate_review_packet import (
     build_websearch_exact_candidate_review_packet,
 )
+from app.nutrition.application.websearch_exact_candidate_chain_status import (
+    build_websearch_exact_candidate_chain_status,
+)
 from app.nutrition.application.websearch_extract_result_candidate_smoke import (
     build_websearch_extract_result_candidate_smoke,
 )
@@ -405,6 +408,94 @@ def test_grokfast_websearch_packet_smoke_live_blocks_preflight_review_packet_mis
     blocked = read_json_artifact(output)
     assert blocked["status"] == "blocked"
     assert blocked["failure_family"] == "websearch_live_preflight_review_packet_mismatch"
+    assert blocked["live_provider_used"] is False
+
+
+def test_grokfast_websearch_packet_smoke_live_requires_exact_candidate_chain_status(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.run_accurate_intake_grokfast_websearch_packet_smoke import main
+
+    review_packet = _review_packet()
+    preflight = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=review_packet
+    )
+    review_packet_path = tmp_path / "review_packet.json"
+    preflight_path = tmp_path / "preflight.json"
+    output = tmp_path / "blocked_missing_chain.json"
+    write_json_artifact(review_packet_path, review_packet)
+    write_json_artifact(preflight_path, preflight)
+
+    assert (
+        main(
+            [
+                "--mode",
+                "live",
+                "--allow-live",
+                "--review-packet-artifact",
+                str(review_packet_path),
+                "--preflight-artifact",
+                str(preflight_path),
+                "--exact-candidate-chain-status-artifact",
+                str(tmp_path / "missing_chain.json"),
+                "--output",
+                str(output),
+            ]
+        )
+        == 2
+    )
+    blocked = read_json_artifact(output)
+    assert blocked["status"] == "blocked"
+    assert blocked["failure_family"] == "missing_clear_websearch_exact_candidate_chain_status"
+    assert blocked["live_provider_used"] is False
+
+
+def test_grokfast_websearch_packet_smoke_live_blocks_chain_review_packet_mismatch(
+    tmp_path: Path,
+) -> None:
+    from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact
+    from scripts.run_accurate_intake_grokfast_websearch_packet_smoke import main
+
+    review_packet = _review_packet()
+    preflight = build_websearch_live_extract_preflight(
+        exact_review_packet_artifact=review_packet
+    )
+    chain = build_websearch_exact_candidate_chain_status(
+        exact_review_packet_artifact=review_packet,
+        preflight_artifact=preflight,
+    )
+    chain["chain_proof"]["review_packet_ids"] = ["different-review-packet"]
+
+    review_packet_path = tmp_path / "review_packet.json"
+    preflight_path = tmp_path / "preflight.json"
+    chain_path = tmp_path / "chain.json"
+    output = tmp_path / "blocked_chain_mismatch.json"
+    write_json_artifact(review_packet_path, review_packet)
+    write_json_artifact(preflight_path, preflight)
+    write_json_artifact(chain_path, chain)
+
+    assert (
+        main(
+            [
+                "--mode",
+                "live",
+                "--allow-live",
+                "--review-packet-artifact",
+                str(review_packet_path),
+                "--preflight-artifact",
+                str(preflight_path),
+                "--exact-candidate-chain-status-artifact",
+                str(chain_path),
+                "--output",
+                str(output),
+            ]
+        )
+        == 2
+    )
+    blocked = read_json_artifact(output)
+    assert blocked["status"] == "blocked"
+    assert blocked["failure_family"] == "websearch_exact_candidate_chain_review_packet_mismatch"
     assert blocked["live_provider_used"] is False
 
 
