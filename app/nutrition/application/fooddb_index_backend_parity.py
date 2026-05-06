@@ -105,7 +105,7 @@ def build_fooddb_index_backend_parity(
             ],
         },
         "next_required_slice": (
-            "grokfast_fooddb_diagnostic_preflight"
+            "grokfast_fooddb_packet_live_diagnostic"
             if clear
             else "inspect_fooddb_index_backend_parity_blockers"
         ),
