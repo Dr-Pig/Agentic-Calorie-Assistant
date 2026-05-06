@@ -31,6 +31,10 @@ def test_fooddb_websearch_no_runtime_wall_passes_default_candidate_preflight_art
     assert "accurate_intake_fooddb_evidence_status_packet_v1" in artifact_types
     assert "accurate_intake_fooddb_activation_gap_report" in artifact_types
     assert "accurate_intake_fooddb_status_packet" in artifact_types
+    assert (
+        "accurate_intake_websearch_grokfast_packet_live_diagnostic_case_matrix"
+        in artifact_types
+    )
 
 
 def test_fooddb_websearch_no_runtime_wall_blocks_runtime_truth_and_mutation_leaks() -> None:

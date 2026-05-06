@@ -64,6 +64,7 @@ activation_ladder:
     purpose: verify Manager can consume WebSearch candidate packets without treating snippets as truth
     requires:
       - deterministic WebSearch packet tests
+      - fixed WebSearch GrokFast live diagnostic case matrix
       - source provenance
       - serving-basis classification
 
@@ -153,6 +154,7 @@ integration_readiness_matrix_update:
     - selected extract request -> extract result review candidate
     - extract result review candidate -> exact-card review packet
     - exact-card review packet -> live extract preflight
+    - WebSearch GrokFast case matrix -> live extract preflight
     - live extract preflight -> WebSearch live diagnostic report
     - WebSearch live diagnostic report -> Manager contract probe
     - WebSearch Manager contract probe -> repair pack
