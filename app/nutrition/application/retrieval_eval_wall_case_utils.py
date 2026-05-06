@@ -15,11 +15,18 @@ def top_candidate(retrieval_result: dict[str, Any]) -> dict[str, Any]:
 def ranking_projection(candidate: dict[str, Any]) -> dict[str, Any]:
     return {
         "anchor_id": candidate.get("anchor_id"),
+        "canonical_name": candidate.get("canonical_name"),
         "match_path": candidate.get("match_path"),
         "match_score": candidate.get("match_score"),
         "confidence": candidate.get("confidence"),
         "requires_manager_disambiguation": candidate.get("requires_manager_disambiguation"),
         "runtime_truth_allowed": candidate.get("runtime_truth_allowed"),
+        "runtime_usage_boundary": candidate.get("runtime_usage_boundary"),
+        "kcal_range": candidate.get("kcal_range"),
+        "serving_basis": candidate.get("serving_basis"),
+        "portion_basis_present": bool(candidate.get("portion_basis")),
+        "followup_hints": list(candidate.get("followup_hints") or []),
+        "modifier_compatibility": dict(candidate.get("modifier_compatibility") or {}),
         "ranking_reasons": list(candidate.get("ranking_reasons") or []),
     }
 
