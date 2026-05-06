@@ -43,6 +43,7 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         "selected_extract_request_to_extract_result_candidate",
         "extract_result_candidate_to_exact_review_packet",
         "exact_review_packet_to_live_extract_preflight",
+        "websearch_live_case_matrix_to_live_extract_preflight",
         "live_extract_preflight_to_websearch_live_diagnostic_report",
         "websearch_live_report_to_manager_contract_probe",
         "websearch_contract_probe_to_repair_pack",
@@ -88,6 +89,14 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         == "live_extract_preflight_authorizes_diagnostic_only_not_runtime_truth"
     )
     assert (
+        edges["websearch_live_case_matrix_to_live_extract_preflight"]["manager_style_guard"]
+        == "live_preflight_requires_fixed_anti_overfit_case_matrix_not_ad_hoc_happy_path"
+    )
+    assert (
+        "tests.test_websearch_live_extract_preflight.test_live_extract_preflight_blocks_case_level_matrix_overclaims"
+        in edges["websearch_live_case_matrix_to_live_extract_preflight"]["evidence"]
+    )
+    assert (
         edges["live_extract_preflight_to_websearch_live_diagnostic_report"]["manager_style_guard"]
         == "live_report_may_classify_seam_status_but_cannot_claim_websearch_truth_or_readiness"
     )
@@ -119,7 +128,7 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         edges["listed_components_to_approved_runtime_anchors"]["manager_style_guard"]
         == "listed_basket_components_may_estimate_only_when_runtime_anchor_is_approved"
     )
-    assert matrix["summary"]["contract_backed"] == 18
+    assert matrix["summary"]["contract_backed"] == 19
     assert matrix["summary"]["draft"] == 0
     assert matrix["summary"]["missing"] == 0
     assert matrix["summary"]["next_required_slices"] == ["manager_fooddb_packet_seam_smoke"]
@@ -135,6 +144,7 @@ def test_activation_plan_documents_integration_readiness_matrix() -> None:
     assert "selected extract request -> extract result review candidate" in content
     assert "extract result review candidate -> exact-card review packet" in content
     assert "exact-card review packet -> live extract preflight" in content
+    assert "WebSearch GrokFast case matrix -> live extract preflight" in content
     assert "live extract preflight -> WebSearch live diagnostic report" in content
     assert "WebSearch live diagnostic report -> Manager contract probe" in content
     assert "WebSearch Manager contract probe -> repair pack" in content

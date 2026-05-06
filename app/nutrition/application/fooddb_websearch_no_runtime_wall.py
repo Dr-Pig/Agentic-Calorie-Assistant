@@ -25,6 +25,9 @@ from .websearch_candidate_packet_smoke import build_websearch_candidate_packet_s
 from .websearch_candidate_pipeline import build_websearch_candidate_pipeline_diagnostic
 from .websearch_exact_candidate_review_packet import build_websearch_exact_candidate_review_packet
 from .websearch_extract_result_candidate_smoke import build_websearch_extract_result_candidate_smoke
+from .websearch_grokfast_live_diagnostic_case_matrix import (
+    build_websearch_grokfast_live_diagnostic_case_matrix_artifact,
+)
 from .websearch_live_extract_preflight import build_websearch_live_extract_preflight
 from .websearch_selected_extract_packet_smoke import build_websearch_selected_extract_packet_smoke
 from .websearch_source_policy import build_websearch_source_policy_artifact
@@ -90,6 +93,7 @@ def build_default_fooddb_websearch_no_runtime_wall() -> dict[str, Any]:
         selected_extract,
         extract_result,
         exact_review,
+        build_websearch_grokfast_live_diagnostic_case_matrix_artifact(),
         build_websearch_live_extract_preflight(
             exact_review_packet_artifact=exact_review,
         ),
