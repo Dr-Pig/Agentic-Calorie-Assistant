@@ -11,6 +11,22 @@ from .websearch_candidate_lane_source_artifact_guard import (
 )
 
 
+_REQUIRED_PROBE_PASS_CASE_KEYS = frozenset(
+    {
+        "case_id",
+        "failure_families",
+        "missing_required_fields",
+        "observed_keys",
+        "provider_trace_included",
+        "raw_manager_output_included",
+        "shape_patterns",
+        "status",
+        "validation_error_family",
+    }
+)
+_ALLOWED_PROBE_PASS_CASE_KEYS = _REQUIRED_PROBE_PASS_CASE_KEYS | {"expected_failure_family"}
+
+
 def source_chain_blockers(
     *,
     live_diagnostic_report: dict[str, Any],
@@ -62,6 +78,11 @@ def _probe_case_evidence_blockers(
         if not isinstance(case, dict):
             blockers.append("manager_contract_handoff_probe_case_not_object")
             continue
+        case_keys = set(case)
+        if not _REQUIRED_PROBE_PASS_CASE_KEYS.issubset(case_keys):
+            blockers.append("manager_contract_handoff_probe_case_required_keys_missing")
+        if not case_keys.issubset(_ALLOWED_PROBE_PASS_CASE_KEYS):
+            blockers.append("manager_contract_handoff_probe_case_unexpected_keys")
         if case.get("status") != "pass":
             blockers.append("manager_contract_handoff_probe_case_not_pass")
         if "failure_families" not in case or case.get("failure_families") is None:

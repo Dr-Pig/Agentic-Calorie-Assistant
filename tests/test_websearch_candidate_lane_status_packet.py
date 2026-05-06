@@ -761,6 +761,41 @@ def test_websearch_candidate_lane_status_packet_blocks_probe_case_missing_failur
     assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
 
 
+def test_websearch_candidate_lane_status_packet_blocks_probe_case_extra_raw_payload() -> None:
+    inputs = _verified_handoff_inputs()
+    case_with_raw_payload = {
+        **inputs["contract_probe_artifact"]["cases"][0],
+        "raw_manager_output": {"intent": "log_food_item"},
+    }
+    probe = {
+        **inputs["contract_probe_artifact"],
+        "cases": [
+            case_with_raw_payload,
+            inputs["contract_probe_artifact"]["cases"][1],
+        ],
+    }
+
+    artifact = build_websearch_candidate_lane_status_packet(
+        fooddb_status_packet={
+            "artifact_type": "accurate_intake_fooddb_evidence_status_packet_v1",
+            "next_required_slices": ["grokfast_websearch_packet_live_diagnostic"],
+        },
+        manager_contract_handoff_artifact=inputs["manager_contract_handoff_artifact"],
+        live_diagnostic_report=inputs["live_diagnostic_report"],
+        contract_probe_artifact=probe,
+        repair_pack_artifact=inputs["repair_pack_artifact"],
+        preflight_artifact=inputs["preflight_artifact"],
+    )
+
+    assert artifact["summary"]["manager_contract_gate_status"] == (
+        "blocked_on_manager_contract_handoff"
+    )
+    assert "manager_contract_handoff_probe_case_unexpected_keys" in artifact[
+        "manager_contract_gate"
+    ]["blockers"]
+    assert artifact["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
+
+
 def test_websearch_candidate_lane_status_packet_blocks_source_artifact_overclaims() -> None:
     inputs = _verified_handoff_inputs()
     probe = {**inputs["contract_probe_artifact"], "readiness_claimed": True}
