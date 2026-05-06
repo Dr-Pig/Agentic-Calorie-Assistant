@@ -521,6 +521,8 @@ def test_activation_review_manifest_accepts_optional_context_live_review_pack_wi
     assert artifact["fooddb_evidence_used"] is False
     assert artifact["product_readiness_claimed"] is False
     assert artifact["private_self_use_approved"] is False
+    assert artifact["context_live_diagnostic_stage_summary"]["live_stage"] == "not_provided"
+    assert artifact["context_live_diagnostic_stage_summary"]["diagnostic_only_not_readiness"] is True
     assert artifact["blockers"] == []
 
 
@@ -545,6 +547,15 @@ def test_activation_review_manifest_accepts_optional_context_live_gate_without_r
     assert artifact["fooddb_evidence_used"] is False
     assert artifact["product_readiness_claimed"] is False
     assert artifact["private_self_use_approved"] is False
+    assert artifact["context_live_diagnostic_stage_summary"] == {
+        "live_stage": "full-matrix",
+        "stage_gate_status": "context_live_full_matrix_probe_pass",
+        "live_provider_output_count": len(REQUIRED_CASE_IDS),
+        "live_blocked_response_count": 0,
+        "full_matrix_live_probe_completed": True,
+        "single_case_live_probe_completed": False,
+        "diagnostic_only_not_readiness": True,
+    }
     assert artifact["blockers"] == []
 
 
@@ -564,7 +575,33 @@ def test_activation_review_manifest_accepts_optional_context_live_gate_without_l
     assert artifact["upstream_context_live_gate_llm_invoked"] is False
     assert artifact["live_llm_invoked"] is False
     assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert artifact["context_live_diagnostic_stage_summary"]["live_stage"] == "not_invoked"
+    assert artifact["context_live_diagnostic_stage_summary"]["diagnostic_only_not_readiness"] is True
     assert artifact["blockers"] == []
+
+
+def test_activation_review_manifest_summarizes_single_case_context_live_gate() -> None:
+    inputs = _valid_inputs()
+    gate = _context_live_gate(live=True)
+    gate["live_stage"] = "single-case"
+    gate["stage_gate_status"] = "context_live_single_case_probe_pass"
+    gate["summary"]["live_provider_output_count"] = 1  # type: ignore[index]
+    inputs["context_live_diagnostic_gate"] = gate
+
+    artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
+
+    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["context_live_diagnostic_stage_summary"] == {
+        "live_stage": "single-case",
+        "stage_gate_status": "context_live_single_case_probe_pass",
+        "live_provider_output_count": 1,
+        "live_blocked_response_count": 0,
+        "full_matrix_live_probe_completed": False,
+        "single_case_live_probe_completed": True,
+        "diagnostic_only_not_readiness": True,
+    }
+    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert artifact["product_readiness_claimed"] is False
 
 
 def test_activation_review_manifest_blocks_context_live_gate_overclaim_or_ad_hoc_probe() -> None:
