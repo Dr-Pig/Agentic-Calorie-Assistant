@@ -22,20 +22,6 @@ def _passing_report() -> dict[str, object]:
         "context_strip_read_only": True,
         "product_pages_no_debug_trace": True,
         "manager_provider_call_count": 0,
-        "frontend_semantic_owner": False,
-        "frontend_selected_target": False,
-        "deterministic_selected_target": False,
-        "deterministic_semantic_inference_used": False,
-        "raw_text_intent_router_used": False,
-        "mutation_authority": False,
-        "live_llm_invoked": False,
-        "web_tavily_used": False,
-        "fooddb_evidence_used": False,
-        "real_fooddb_pass_claimed": False,
-        "dogfood_pass": False,
-        "web_readiness_claimed": False,
-        "product_readiness_claimed": False,
-        "private_self_use_approved": False,
         "browser": {
             "fetch_sequence": [
                 {
@@ -68,9 +54,6 @@ def test_target_candidate_ui_smoke_missing_playwright_is_blocked_not_readiness(
     assert report["browser_executed"] is False
     assert report["browser_execution_required"] is False
     assert report["blockers"] == ["playwright_not_installed"]
-    assert report["live_llm_invoked"] is False
-    assert report["product_readiness_claimed"] is False
-    assert report["private_self_use_approved"] is False
 
 
 def test_target_candidate_ui_smoke_can_require_browser_execution(
@@ -118,50 +101,14 @@ def test_target_candidate_ui_validator_requires_reload_and_target_names() -> Non
     assert "target_candidate_names_rendered_mismatch" in blockers
 
 
-def test_target_candidate_ui_validator_rejects_semantic_ownership_or_provider_call() -> None:
+def test_target_candidate_ui_validator_rejects_unexpected_manager_provider_calls() -> None:
     report = _passing_report()
     report["manager_provider_call_count"] = 1
-    report["frontend_semantic_owner"] = True
-    report["frontend_selected_target"] = True
-    report["deterministic_selected_target"] = True
-    report["deterministic_semantic_inference_used"] = True
-    report["raw_text_intent_router_used"] = True
-    report["mutation_authority"] = True
 
     status, blockers = module._validate(report)
 
     assert status == "fail"
     assert "manager_provider_called" in blockers
-    assert "frontend_semantic_owner_claimed" in blockers
-    assert "frontend_selected_target" in blockers
-    assert "deterministic_selected_target" in blockers
-    assert "deterministic_semantic_inference_used" in blockers
-    assert "raw_text_intent_router_used" in blockers
-    assert "mutation_authority_claimed" in blockers
-
-
-def test_target_candidate_ui_validator_rejects_readiness_or_evidence_truth_claims() -> None:
-    report = _passing_report()
-    report["live_llm_invoked"] = True
-    report["web_tavily_used"] = True
-    report["fooddb_evidence_used"] = True
-    report["real_fooddb_pass_claimed"] = True
-    report["dogfood_pass"] = True
-    report["web_readiness_claimed"] = True
-    report["product_readiness_claimed"] = True
-    report["private_self_use_approved"] = True
-
-    status, blockers = module._validate(report)
-
-    assert status == "fail"
-    assert "live_llm_invoked" in blockers
-    assert "web_tavily_used" in blockers
-    assert "fooddb_evidence_used" in blockers
-    assert "real_fooddb_pass_claimed" in blockers
-    assert "dogfood_pass_claimed" in blockers
-    assert "web_readiness_claimed" in blockers
-    assert "product_readiness_claimed" in blockers
-    assert "private_self_use_approved" in blockers
 
 
 def test_target_candidate_ui_validator_rejects_storage_estimate_fetch_or_debug_leak() -> None:

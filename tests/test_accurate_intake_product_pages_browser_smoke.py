@@ -67,13 +67,6 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "product_cjk_copy_rendered": True,
         "nav_session_query_preserved": True,
         "forbidden_storage_used": False,
-        "frontend_semantic_owner": False,
-        "live_llm_invoked": False,
-        "web_tavily_used": False,
-        "production_db_used": False,
-        "web_readiness_claimed": False,
-        "product_readiness_claimed": False,
-        "private_self_use_approved": False,
         "body_plan_read_model_values": {
             "daily_target": "1550 kcal",
             "tdee": "1819 kcal",
@@ -147,11 +140,6 @@ def test_product_pages_browser_smoke_missing_playwright_is_blocked_not_readiness
     assert report["browser_executed"] is False
     assert report["browser_execution_required"] is False
     assert report["blockers"] == ["playwright_not_installed"]
-    assert report["web_readiness_claimed"] is False
-    assert report["product_readiness_claimed"] is False
-    assert report["private_self_use_approved"] is False
-    assert report["live_llm_invoked"] is False
-    assert report["web_tavily_used"] is False
 
 
 def test_product_pages_browser_smoke_can_require_browser_execution(monkeypatch, tmp_path: Path) -> None:
@@ -367,11 +355,10 @@ def test_product_pages_browser_smoke_validator_rejects_stale_body_budget_read_mo
     assert "body_budget_read_model_value_mismatch:weekly_progress" in blockers
 
 
-def test_product_pages_browser_smoke_validator_rejects_debug_trace_or_frontend_truth() -> None:
+def test_product_pages_browser_smoke_validator_rejects_debug_trace_or_stale_fetch_contract() -> None:
     report = _passing_report()
     report["today_no_debug_trace"] = False
     report["body_no_debug_trace"] = False
-    report["frontend_semantic_owner"] = True
     report["product_cjk_copy_rendered"] = False
     report["browser"]["fetch_sequence"][1]["body"] = '{"allow_search":true}'
     previous_local_date = str(report["previous_local_date"])
@@ -384,7 +371,6 @@ def test_product_pages_browser_smoke_validator_rejects_debug_trace_or_frontend_t
     assert status == "fail"
     assert "today_debug_trace_leaked" in blockers
     assert "body_debug_trace_leaked" in blockers
-    assert "frontend_semantic_owner" in blockers
     assert "product_cjk_copy_not_rendered" in blockers
     assert "estimate_allow_search_not_false" in blockers
     assert "today_previous_day_fetch_missing" in blockers

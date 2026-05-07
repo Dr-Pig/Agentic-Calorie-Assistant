@@ -45,14 +45,6 @@ DEFAULT_DB_PATH = ROOT / ".pytest_tmp_local" / "accurate_intake_product_pages_vi
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_product_pages_visual_qa.json"
 DEFAULT_SCREENSHOT_DIR = ROOT / "artifacts" / "product_pages_visual_qa"
 DEFAULT_USER_ID = "product-pages-visual-qa-user"
-NOT_CLAIMING = [
-    "product_ready",
-    "rollout_ready",
-    "live_llm_ready",
-    "web_ready",
-    "production_db_ready",
-    "private_self_use_approved",
-]
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
@@ -68,7 +60,6 @@ def _base_report(
         "artifact_type": "accurate_intake_product_pages_visual_qa",
         "claim_scope": "local_product_pages_visual_qa_diagnostic",
         "generated_at_utc": datetime.now(UTC).isoformat(),
-        "not_claiming": list(NOT_CLAIMING),
         "user_external_id": user_external_id,
         "db_path": str(db_path),
         "screenshot_dir": str(screenshot_dir),
@@ -84,13 +75,6 @@ def _base_report(
         "mobile_no_overflow": False,
         "visible_trace_debug_terms_absent": False,
         "forbidden_storage_used": False,
-        "frontend_semantic_owner": False,
-        "live_llm_invoked": False,
-        "web_tavily_used": False,
-        "production_db_used": False,
-        "web_readiness_claimed": False,
-        "product_readiness_claimed": False,
-        "private_self_use_approved": False,
         "screenshots": {"desktop": {}, "mobile": {}},
         "surface_text": {},
         "fetch_sequence": [],
@@ -387,18 +371,8 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         for page_name in ("chat", "today", "body"):
             require_screenshot_file(screenshots.get(page_name), viewport_name=viewport_name, page_name=page_name)
 
-    for key in (
-        "frontend_semantic_owner",
-        "live_llm_invoked",
-        "web_tavily_used",
-        "production_db_used",
-        "web_readiness_claimed",
-        "product_readiness_claimed",
-        "private_self_use_approved",
-        "forbidden_storage_used",
-    ):
-        if report.get(key) is True:
-            blockers.append(key)
+    if report.get("forbidden_storage_used") is True:
+        blockers.append("forbidden_storage_used")
 
     sequence_error = str(report.get("browser_sequence_error") or "")
     if sequence_error:

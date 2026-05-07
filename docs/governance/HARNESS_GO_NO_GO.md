@@ -10,6 +10,7 @@ Use this before starting a new build wave. It should take about 30 seconds.
 - `powershell -ExecutionPolicy Bypass -File scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings` passes
 - the retained pytest wall for `runtime-contract-tests` passes on a fresh checkout
 - the retained browser smoke wall for `product-pages-browser-e2e` passes on a fresh checkout
+- the retained browser smoke wall proves user-visible product surfaces and required read-model sync; it must not depend on hidden readiness markers or diagnostic trace panels
 - deeper environment, MVP, and phase-labeled audit walls may still be run from `.github/workflows/ci-advisory.yml`, but they are not merge blockers
 - merge-governance reports are manual diagnostics only; they do not decide queue eligibility or merge readiness by themselves
 - governance docs and workflow job names are synchronized in the same branch

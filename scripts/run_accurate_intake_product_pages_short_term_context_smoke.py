@@ -56,16 +56,6 @@ LEGACY_ENTRY_READ_TOOLS = frozenset(
         "read_body_plan",
     }
 )
-NOT_CLAIMING = [
-    "web_ready",
-    "product_ready",
-    "private_self_use_approved",
-    "real_fooddb_pass",
-    "dogfood_pass",
-    "live_llm_ready",
-]
-
-
 def _dict(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
 
@@ -259,7 +249,6 @@ def _base_report(
         "smoke_id": "accurate_intake_product_pages_short_term_context_smoke_v1",
         "claim_scope": "local_product_pages_short_term_context_browser_diagnostic",
         "generated_at_utc": datetime.now(UTC).isoformat(),
-        "not_claiming": list(NOT_CLAIMING),
         "user_external_id": user_external_id,
         "db_path": str(db_path),
         "local_date": local_date,
@@ -282,19 +271,6 @@ def _base_report(
         "today_same_day_meal_rendered": False,
         "today_summary_rendered": False,
         "product_pages_no_debug_trace": False,
-        "frontend_semantic_owner": False,
-        "deterministic_semantic_inference_used": False,
-        "raw_text_intent_router_used": False,
-        "mutation_authority": False,
-        "runtime_mutation_exercised": False,
-        "live_llm_invoked": False,
-        "web_tavily_used": False,
-        "fooddb_evidence_used": False,
-        "real_fooddb_pass_claimed": False,
-        "dogfood_pass": False,
-        "web_readiness_claimed": False,
-        "product_readiness_claimed": False,
-        "private_self_use_approved": False,
         "fetch_sequence": [],
         "fake_provider_calls": [],
     }
@@ -551,24 +527,6 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("today_summary_rendered", "today_summary_not_rendered")
     require_true("product_pages_no_debug_trace", "product_pages_debug_trace_leaked")
 
-    false_flags = {
-        "frontend_semantic_owner": "frontend_semantic_owner_claimed",
-        "deterministic_semantic_inference_used": "deterministic_semantic_inference_used",
-        "raw_text_intent_router_used": "raw_text_intent_router_used",
-        "mutation_authority": "mutation_authority_claimed",
-        "live_llm_invoked": "live_llm_invoked",
-        "web_tavily_used": "web_tavily_used",
-        "fooddb_evidence_used": "fooddb_evidence_used",
-        "real_fooddb_pass_claimed": "real_fooddb_pass_claimed",
-        "dogfood_pass": "dogfood_pass_claimed",
-        "web_readiness_claimed": "web_readiness_claimed",
-        "product_readiness_claimed": "product_readiness_claimed",
-        "private_self_use_approved": "private_self_use_approved",
-    }
-    for key, blocker in false_flags.items():
-        if report.get(key) is True:
-            blockers.append(blocker)
-
     provider_calls = [item for item in _list(report.get("fake_provider_calls")) if isinstance(item, dict)]
     if not any(
         call.get("context_policy_version_present") is True
@@ -665,7 +623,6 @@ def build_product_pages_short_term_context_smoke_report(
             call.get("pending_followup_pin_present") is True or call.get("pending_draft_pin_present") is True
             for call in provider.calls
         )
-        report["runtime_mutation_exercised"] = report.get("today_same_day_meal_rendered") is True
         status, blockers = _validate(report)
         report["status"] = status
         report["blockers"] = blockers

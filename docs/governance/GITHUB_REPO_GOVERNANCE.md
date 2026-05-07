@@ -37,6 +37,7 @@ Minimal policy for this repo:
 
 - required checks should stay small, stable, and merge-group safe
 - browser verification is kept because it validates user-visible CurrentShell behavior
+- the required browser wall must validate user-visible product surfaces and required read-model sync only; hidden readiness markers, debug panels, and trace panels are not merge-path pass criteria
 - merge-governance reports remain available for manual review, but they do not block merges
 - deep environment, MVP, and phase-labeled audit walls live in `ci-advisory` and are manual-only
 - broad candidate-bundle, EDD, or phase-labeled audit packs should not sit on the required merge path unless they directly prove merge safety
