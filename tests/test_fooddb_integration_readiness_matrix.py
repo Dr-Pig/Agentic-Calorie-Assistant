@@ -67,7 +67,15 @@ def test_fooddb_integration_readiness_matrix_covers_required_edges() -> None:
         in edges["manager_decision_to_retrieval_intent"]["evidence"]
     )
     assert (
+        "app.nutrition.application.retrieval_request_lineage_probe.build_retrieval_request_lineage_probe"
+        in edges["manager_decision_to_retrieval_intent"]["evidence"]
+    )
+    assert (
         "tests.test_retrieval_request.test_manager_decision_request_is_runtime_executable"
+        in edges["manager_decision_to_retrieval_intent"]["evidence"]
+    )
+    assert (
+        "tests.test_retrieval_request_lineage_probe.test_retrieval_request_lineage_probe_passes_for_manager_owned_canary_and_packet_only_live_runners"
         in edges["manager_decision_to_retrieval_intent"]["evidence"]
     )
     assert edges["retrieval_router_to_sqlite_fts_adapter"]["current_status"] == "contract_backed"
