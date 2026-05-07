@@ -46,7 +46,9 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "body_active_plan_rendered": True,
             "body_plan_readback_checked": True,
             "body_plan_read_model_fields_rendered": True,
+            "body_weight_checkin_saved": True,
             "body_latest_weight_rendered_from_backend": True,
+            "body_weight_history_date_scoped_readback": True,
             "body_manual_target_read_model_rendered": True,
             "body_plan_read_model_values": {
                 "daily_target": "1550 kcal",

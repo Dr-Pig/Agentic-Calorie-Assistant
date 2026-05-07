@@ -45,6 +45,20 @@ def _ready_today_macro_mirror_gate() -> dict:
     }
 
 
+def _ready_body_observation_same_truth_gate() -> dict:
+    return {
+        "status": "body_observation_same_truth_gate_ready_for_human_review",
+        "source": "test",
+        "pass_type": "browser_executed",
+        "upstream_runtime_gate": "rt6_bootstrap_no_plan_body_closure",
+        "summary": {
+            "required_browser_flag_count": 7,
+            "all_required_browser_flags_true": True,
+            "upstream_gate_green": True,
+        },
+    }
+
+
 def _clean_evidence() -> dict:
     return {
         "browser_shell_smoke": {"status": "pass", "source": "test"},
@@ -87,6 +101,7 @@ def _clean_evidence() -> dict:
         },
         "ui_context_alignment_pack": {"status": "ui_context_alignment_ready_for_human_review", "source": "test"},
         "today_macro_mirror_gate": _ready_today_macro_mirror_gate(),
+        "body_observation_same_truth_gate": _ready_body_observation_same_truth_gate(),
         "browser_activation_evidence_gate": {
             "status": "browser_activation_evidence_ready_for_human_review",
             "source": "test",
@@ -241,6 +256,15 @@ def test_candidate_blocked_when_today_macro_mirror_gate_missing() -> None:
     pack = build_local_web_self_use_candidate_v2(evidence)
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert "missing evidence: today_macro_mirror_gate" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+
+def test_candidate_blocked_when_body_observation_same_truth_gate_missing() -> None:
+    evidence = _clean_evidence()
+    del evidence["body_observation_same_truth_gate"]
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "missing evidence: body_observation_same_truth_gate" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
 
 def test_candidate_blocked_when_free_text_manual_target_missing() -> None:
     evidence = _clean_evidence()
