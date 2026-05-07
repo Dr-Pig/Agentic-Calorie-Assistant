@@ -15,6 +15,7 @@ REQUIRED_SCENARIOS = [
     "committed_backend_budget",
     "degraded_budget_unavailable",
     "correction_ambiguity",
+    "macro_hidden_no_visible_claim",
 ]
 
 
@@ -52,6 +53,7 @@ def test_responder_input_contract_allows_only_claims_grounded_in_allowed_facts()
 
     no_commit = by_id["clarification_no_commit"]
     committed = by_id["committed_backend_budget"]
+    macro_hidden = by_id["macro_hidden_no_visible_claim"]
     renderer_input = no_commit["renderer"]["input"]  # type: ignore[index]
 
     assert isinstance(renderer_input["allowed_facts"], list)
@@ -71,10 +73,25 @@ def test_responder_input_contract_allows_only_claims_grounded_in_allowed_facts()
         "logged_status",
         "kcal",
         "remaining",
+        "show_macro",
+        "macro_guard_reason",
+        "protein_g",
+        "carbs_g",
+        "fat_g",
     }
     assert committed["rejected_response"]["verdict"] == "blocked"  # type: ignore[index]
     assert "invented_exactness_claim" in committed["rejected_response"]["blockers"]  # type: ignore[index]
     assert "readiness_claim_forbidden" in committed["rejected_response"]["blockers"]  # type: ignore[index]
+
+    assert macro_hidden["accepted_response"]["verdict"] == "accepted"  # type: ignore[index]
+    accepted_hidden_claims = macro_hidden["accepted_response"]["claims"]  # type: ignore[index]
+    assert {claim["claim_type"] for claim in accepted_hidden_claims} == {  # type: ignore[index]
+        "show_macro",
+        "macro_guard_reason",
+    }
+    assert macro_hidden["rejected_response"]["verdict"] == "blocked"  # type: ignore[index]
+    assert "invented_protein_claim" in macro_hidden["rejected_response"]["blockers"]  # type: ignore[index]
+    assert "invented_macro_visibility_claim" in macro_hidden["rejected_response"]["blockers"]  # type: ignore[index]
 
 
 def test_responder_input_contract_blocks_remaining_when_budget_is_unavailable() -> None:

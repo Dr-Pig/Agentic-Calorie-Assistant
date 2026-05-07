@@ -27,6 +27,9 @@ python -m pytest tests/test_accurate_intake_mvp_live_diagnostic.py tests/test_ac
 
 Do not run live provider stages if the deterministic baseline is red.
 
+The upstream runtime gate source is `docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml`.
+Downstream browser or candidate-bundle stages should consume gate IDs from that ledger instead of recreating local names.
+
 ## Staged Live Commands
 
 Run stages sequentially. Keep provider concurrency at one request at a time.

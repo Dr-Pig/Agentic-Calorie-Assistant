@@ -45,7 +45,7 @@ def build_estimate_error_response(
         status_code=500,
         content={
             "request_id": request_id,
-            "error": str(exc) or "Internal Server Error",
+            "error": "internal_server_error",
             "coach_message": "處理這則訊息時發生錯誤，請稍後再試。",
             "payload": None,
         },

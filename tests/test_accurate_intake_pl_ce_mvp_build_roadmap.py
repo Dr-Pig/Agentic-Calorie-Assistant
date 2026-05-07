@@ -95,6 +95,17 @@ def test_pl_ce_roadmap_doc_records_semantic_owner_boundary_for_tool_choice() -> 
         assert fragment in text
 
 
+def test_pl_ce_roadmap_doc_records_machine_readable_current_shell_coordination_artifacts() -> None:
+    text = ROADMAP_PATH.read_text(encoding="utf-8-sig")
+
+    for fragment in (
+        "Current-Shell Coordination Artifacts",
+        "CURRENT_SHELL_SYNC_CONTRACT.yaml",
+        "MANAGER_RUNTIME_GATE_LEDGER.yaml",
+        "downstream AppShell/browser gates and merge-governance checks should read instead of inferring runtime readiness from markdown prose alone",
+    ):
+        assert fragment in text
+
 def test_live_diagnostic_runbook_requires_product_pages_and_non_fooddb_tool_evidence() -> None:
     text = LIVE_RUNBOOK_PATH.read_text(encoding="utf-8-sig")
 

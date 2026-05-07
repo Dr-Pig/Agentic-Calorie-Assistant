@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
+import os
 import sys
 import urllib.parse
 import urllib.request
@@ -15,12 +15,17 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.text_integrity import find_text_corruption
-from scripts.runner_timeout_contract import apply_runner_timeout_contract
+from app.text_integrity import find_text_corruption  # noqa: E402
+from scripts.runner_timeout_contract import apply_runner_timeout_contract  # noqa: E402
 
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8010"
 OUTPUT_DIR = ROOT / "runtime" / "evals" / "v2_founder_realism"
+
+
+def _debug_headers() -> dict[str, str]:
+    token = os.environ.get("LOCAL_DEBUG_API_TOKEN", "").strip()
+    return {"X-Local-Debug-Token": token} if token else {}
 
 
 def _post_json(base_url: str, path: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -35,11 +40,20 @@ def _post_json(base_url: str, path: str, payload: dict[str, Any]) -> dict[str, A
         return json.loads(resp.read().decode("utf-8"))
 
 
-def _get_json(base_url: str, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+def _get_json(
+    base_url: str,
+    path: str,
+    params: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+) -> dict[str, Any]:
     query = ""
     if params:
         query = "?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(urllib.parse.urljoin(base_url, path) + query, method="GET")
+    req = urllib.request.Request(
+        urllib.parse.urljoin(base_url, path) + query,
+        headers=headers or {},
+        method="GET",
+    )
     with urllib.request.urlopen(req, timeout=240) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
@@ -71,7 +85,14 @@ def _seed_onboarding(base_url: str, *, user_id: str, local_date: str) -> None:
 
 
 def _trace(base_url: str, response: dict[str, Any]) -> dict[str, Any]:
-    return _get_json(base_url, response["audit"]["admin_trace_url"])
+    request_id = str((response.get("audit") or {}).get("request_id") or "")
+    if not request_id:
+        raise RuntimeError("estimate response missing audit.request_id")
+    return _get_json(
+        base_url,
+        f"/admin/trace/{request_id}",
+        headers=_debug_headers(),
+    )
 
 
 def _today(base_url: str, *, user_id: str, local_date: str) -> dict[str, Any]:

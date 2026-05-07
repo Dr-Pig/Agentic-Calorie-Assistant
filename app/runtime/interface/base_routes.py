@@ -13,6 +13,10 @@ _INDEX_HTML_PATH = Path(__file__).resolve().parent.parent.parent.parent / "stati
 _INDEX_HTML_CACHE: str | None = None
 
 
+def _public_readiness(readiness: dict) -> dict:
+    return {"status": "ok"} if readiness else {"status": "unknown"}
+
+
 def _load_index_html() -> str:
     global _INDEX_HTML_CACHE
     if _INDEX_HTML_CACHE is None:
@@ -25,10 +29,10 @@ async def ping() -> dict:
     return {
         "canary_version": CANARY_VERSION,
         "schema_signature": SCHEMA_SIGNATURE,
-        "provider": manager_provider.readiness(),
-        "manager_provider": manager_provider.readiness(),
-        "search": search_provider.readiness(),
-        "extract": extract_provider.readiness(),
+        "provider": _public_readiness(manager_provider.readiness()),
+        "manager_provider": _public_readiness(manager_provider.readiness()),
+        "search": _public_readiness(search_provider.readiness()),
+        "extract": _public_readiness(extract_provider.readiness()),
     }
 
 
