@@ -87,6 +87,14 @@ gates:
     depends_on:
       - rt2_coarse_tool_surface_convergence
       - rt4_context_packet_acceptance
+      - rt5a_read_only_tool_choice_runtime_smoke
+  - gate_id: rt5a_read_only_tool_choice_runtime_smoke
+    title: Read-only manager tool-choice runtime smoke
+    status: green
+    pass_type: runtime_backed
+    depends_on:
+      - rt2_coarse_tool_surface_convergence
+      - rt4_context_packet_acceptance
   - gate_id: rt6_bootstrap_no_plan_body_closure
     title: Bootstrap, no-plan, and body read/write closure
     status: pending
