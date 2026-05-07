@@ -63,9 +63,32 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
     assert gates["rt1c_cache_metrics_observability"]["depends_on"] == [
         "rt1b_stable_prefix_dynamic_suffix_contract"
     ]
+    assert gates["rt2a_public_tool_name_normalization"]["status"] == "green"
+    assert gates["rt2a_public_tool_name_normalization"]["title"] == (
+        "Public tool name normalization at manager boundary"
+    )
+    assert gates["rt2b_entry_fallback_public_tool_surface"]["status"] == "green"
+    assert gates["rt2b_entry_fallback_public_tool_surface"]["title"] == (
+        "Entry and fallback public tool-surface normalization"
+    )
+    assert gates["rt2_coarse_tool_surface_convergence"]["depends_on"] == [
+        "rt2a_public_tool_name_normalization",
+        "rt2b_entry_fallback_public_tool_surface",
+    ]
     assert gates["rt3a_react_trace_observable_skeleton"]["status"] == "green"
     assert gates["rt3a_react_trace_observable_skeleton"]["title"] == "ReAct trace observable skeleton"
-    assert gates["rt3_react_trace_contract"]["depends_on"] == ["rt3a_react_trace_observable_skeleton"]
+    assert gates["rt3b_multi_pass_react_trace_summary"]["status"] == "green"
+    assert gates["rt3b_multi_pass_react_trace_summary"]["title"] == "Compact multi-pass ReAct trace summary"
+    assert gates["rt3_react_trace_contract"]["depends_on"] == [
+        "rt3a_react_trace_observable_skeleton",
+        "rt3b_multi_pass_react_trace_summary",
+    ]
+    assert gates["rt4a_runtime_context_packet_acceptance"]["status"] == "green"
+    assert gates["rt4a_runtime_context_packet_acceptance"]["title"] == "Runtime context packet acceptance smoke"
+    assert gates["rt4_context_packet_acceptance"]["depends_on"] == [
+        "rt3_react_trace_contract",
+        "rt4a_runtime_context_packet_acceptance",
+    ]
     assert gates["rt10a_nutrition_estimate_quality_deterministic"]["pass_type"] == "fixture"
     assert gates["rt10b_nutrition_estimate_quality_fake_provider"]["depends_on"] == [
         "rt10a_nutrition_estimate_quality_deterministic"

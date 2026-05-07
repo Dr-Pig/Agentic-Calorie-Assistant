@@ -19,6 +19,7 @@ REQUIRED_EVIDENCE = (
     "pl_ce_local_review_decision_pack",
     "product_pages_self_use_flow_gate",
     "ui_context_alignment_pack",
+    "today_macro_mirror_gate",
     "browser_activation_evidence_gate",
     "manager_tool_surface_inventory",
     "non_fooddb_manager_tool_contract",
@@ -44,6 +45,7 @@ EXPECTED_STATUS_BY_GROUP = {
     "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
     "product_pages_self_use_flow_gate": "product_pages_self_use_flow_ready_for_human_review",
     "ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
+    "today_macro_mirror_gate": "today_macro_mirror_gate_ready_for_human_review",
     "browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
     "manager_tool_surface_inventory": "manager_tool_surface_inventory_ready_for_human_review",
     "non_fooddb_manager_tool_contract": "non_fooddb_manager_tool_contract_ready_for_human_review",
@@ -64,6 +66,37 @@ def _json_safe(value: Any) -> Any:
 
 def _truthy_claim(payload: dict[str, Any], *keys: str) -> bool:
     return any(payload.get(key) is True for key in keys)
+
+
+APPSHELL_GATE_LABELS = {
+    "browser_activation_evidence_gate": "browser activation evidence gate",
+    "product_pages_self_use_flow_gate": "product pages self-use flow gate",
+}
+
+
+def _appshell_claim_boundary_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
+    label = APPSHELL_GATE_LABELS.get(group_id)
+    if label is None:
+        return []
+    blockers: list[str] = []
+    if payload.get("pass_type") != "contract":
+        blockers.append(f"{label} pass type mismatch")
+    if not payload.get("current_shell_sync_contract_source"):
+        blockers.append(f"{label} current shell sync contract source missing")
+    if not payload.get("manager_runtime_gate_ledger_source"):
+        blockers.append(f"{label} manager runtime gate ledger source missing")
+    boundary = payload.get("appshell_claim_boundary")
+    if not isinstance(boundary, dict):
+        blockers.append(f"{label} appshell claim boundary missing")
+        return blockers
+    if boundary.get("status") != "ready_for_runtime_and_browser_claims":
+        blockers.append(f"{label} appshell claim not ready")
+    if boundary.get("runtime_backed_claim_ready") is not True:
+        blockers.append(f"{label} runtime-backed claim not ready")
+    if boundary.get("browser_executed_claim_ready") is not True:
+        blockers.append(f"{label} browser-executed claim not ready")
+    return blockers
+
 
 def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str, Any]:
     required_evidence_output = {}
@@ -174,6 +207,8 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
                 blockers.append("browser activation evidence gate browser artifacts not all executed")
             if payload.get("browser_executed_required") is not True:
                 blockers.append("browser activation evidence gate browser execution not required")
+
+        blockers.extend(_appshell_claim_boundary_blockers(group_id, payload))
 
         if group_id == "manager_tool_surface_inventory":
             summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}

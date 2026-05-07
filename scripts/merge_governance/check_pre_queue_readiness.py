@@ -13,16 +13,16 @@ DEFAULT_OUTPUT = ROOT / "artifacts" / "pre_queue_readiness_report.json"
 PRODUCT_PAGES_JOB = "product-pages-browser-e2e"
 REQUIRED_JOB_SNIPPETS: tuple[tuple[str, str], ...] = (
     ("playwright_install", "python -m playwright install --with-deps chromium"),
-    (
-        "pytest_browser_wall",
-        "python -m pytest tests/test_accurate_intake_product_pages_renderer_source_map.py "
-        "tests/test_accurate_intake_product_pages_browser_smoke.py "
-        "tests/test_accurate_intake_product_pages_short_term_context_smoke.py "
-        "tests/test_accurate_intake_product_pages_target_candidate_ui_smoke.py "
-        "tests/test_accurate_intake_product_pages_visual_qa.py "
-        "tests/test_accurate_intake_product_pages_static.py "
-        "tests/test_accurate_intake_static_cjk_copy_integrity.py -q",
-    ),
+    ("pytest_browser_wall", "python -m pytest"),
+    ("pytest_renderer_source_map", "tests/test_accurate_intake_product_pages_renderer_source_map.py"),
+    ("pytest_today_macro_panel_behavior", "tests/test_accurate_intake_today_macro_panel_behavior.py"),
+    ("pytest_today_macro_mirror_gate", "tests/test_accurate_intake_today_macro_mirror_gate.py"),
+    ("pytest_browser_smoke", "tests/test_accurate_intake_product_pages_browser_smoke.py"),
+    ("pytest_short_term_context_smoke", "tests/test_accurate_intake_product_pages_short_term_context_smoke.py"),
+    ("pytest_target_candidate_ui_smoke", "tests/test_accurate_intake_product_pages_target_candidate_ui_smoke.py"),
+    ("pytest_visual_qa", "tests/test_accurate_intake_product_pages_visual_qa.py"),
+    ("pytest_product_pages_static", "tests/test_accurate_intake_product_pages_static.py"),
+    ("pytest_cjk_integrity", "tests/test_accurate_intake_static_cjk_copy_integrity.py"),
     (
         "browser_smoke",
         "python scripts/run_accurate_intake_product_pages_browser_smoke.py --require-browser-execution "

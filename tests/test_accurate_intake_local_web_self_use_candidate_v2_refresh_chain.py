@@ -75,7 +75,7 @@ def _seed_required_gate_inputs(artifact_dir: Path, *, omit_browser_target_ui: bo
         _merge_write(target_path, browser_gate_inputs["product_pages_target_candidate_ui_smoke"])
 
 
-def test_refresh_chain_writes_promoted_artifacts_and_prepares_local_candidate(
+def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime_gates_are_green(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -104,23 +104,40 @@ def test_refresh_chain_writes_promoted_artifacts_and_prepares_local_candidate(
             / module.REFRESHED_ARTIFACT_FILENAMES["pre_live_decision_pack"]
         ).read_text(encoding="utf-8")
     )
+    today_macro_mirror_gate = json.loads(
+        (
+            artifact_dir
+            / module.REFRESHED_ARTIFACT_FILENAMES["today_macro_mirror_gate"]
+        ).read_text(encoding="utf-8")
+    )
     candidate = json.loads(
         (
             artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["local_web_candidate"]
         ).read_text(encoding="utf-8")
     )
 
-    assert exit_code == 0
-    assert printed["status"] == "pass"
-    assert printed["candidate_prepared"] is True
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
+    assert printed["candidate_prepared"] is False
     assert browser_activation["status"] == "browser_activation_evidence_ready_for_human_review"
+    assert browser_activation["pass_type"] == "contract"
+    assert (
+        browser_activation["appshell_claim_boundary"]["status"]
+        == "blocked_on_manager_runtime_upstream_gates"
+    )
     assert pre_live_evidence["_evidence_metadata"]["status"] == "complete"
     assert pre_live_evidence["non_fooddb_manager_tool_contract"]["status"] == (
         "non_fooddb_manager_tool_contract_ready_for_human_review"
     )
+    assert today_macro_mirror_gate["status"] == "today_macro_mirror_gate_ready_for_human_review"
     assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
-    assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is True
-    assert candidate["local_web_self_use_candidate_v2"]["blockers"] == []
+    assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "browser activation evidence gate appshell claim not ready" in candidate[
+        "local_web_self_use_candidate_v2"
+    ]["blockers"]
+    assert "product pages self-use flow gate appshell claim not ready" in candidate[
+        "local_web_self_use_candidate_v2"
+    ]["blockers"]
     assert json.loads(
         (
             artifact_dir

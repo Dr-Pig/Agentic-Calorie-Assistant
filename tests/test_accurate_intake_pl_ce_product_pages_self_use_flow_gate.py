@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.composition.accurate_intake_current_shell_claim_boundary import (
+    build_current_shell_appshell_claim_boundary,
+)
 from app.composition.accurate_intake_pl_ce_product_pages_self_use_flow_gate import (
     REQUIRED_INPUTS,
     build_pl_ce_product_pages_self_use_flow_gate_artifact,
@@ -221,9 +224,14 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
 
 def test_product_pages_self_use_flow_gate_accepts_complete_fixture_browser_chain() -> None:
     artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(_valid_inputs())
+    claim_boundary = build_current_shell_appshell_claim_boundary()
 
     assert artifact["artifact_type"] == "accurate_intake_pl_ce_product_pages_self_use_flow_gate"
     assert artifact["status"] == "product_pages_self_use_flow_ready_for_human_review"
+    assert artifact["pass_type"] == "contract"
+    assert artifact["current_shell_sync_contract_source"] == claim_boundary["current_shell_sync_contract_source"]
+    assert artifact["manager_runtime_gate_ledger_source"] == claim_boundary["manager_runtime_gate_ledger_source"]
+    assert artifact["appshell_claim_boundary"]["status"] == claim_boundary["status"]
     assert artifact["required_inputs"] == list(REQUIRED_INPUTS)
     assert artifact["blockers"] == []
     assert artifact["summary"]["pages_verified"] == ["chat", "today", "body"]
@@ -247,6 +255,19 @@ def test_product_pages_self_use_flow_gate_accepts_complete_fixture_browser_chain
     assert artifact["dogfood_pass"] is False
     assert artifact["product_readiness_claimed"] is False
     assert artifact["private_self_use_approved"] is False
+
+
+def test_product_pages_self_use_flow_gate_reports_runtime_claim_dependency_without_inventing_runtime_pass() -> None:
+    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(_valid_inputs())
+    boundary = artifact["appshell_claim_boundary"]
+
+    assert artifact["pass_type"] == "contract"
+    assert boundary["appshell_rules"]["runtime_backed_requires_upstream_gate_green"] is True
+    assert boundary["appshell_rules"]["browser_executed_requires_upstream_gate_green"] is True
+    if boundary["non_green_manager_runtime_gates"]:
+        assert boundary["runtime_backed_claim_ready"] is False
+        assert boundary["browser_executed_claim_ready"] is False
+        assert boundary["status"] == "blocked_on_manager_runtime_upstream_gates"
 
 
 def test_product_pages_self_use_flow_gate_blocks_optional_browser_blocked_state() -> None:

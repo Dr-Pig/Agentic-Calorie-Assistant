@@ -34,22 +34,49 @@ gates:
     status: pending
     pass_type: runtime_backed
     depends_on:
+      - rt2a_public_tool_name_normalization
+      - rt2b_entry_fallback_public_tool_surface
+  - gate_id: rt2a_public_tool_name_normalization
+    title: Public tool name normalization at manager boundary
+    status: green
+    pass_type: runtime_backed
+    depends_on:
       - rt0_sync_contract
+  - gate_id: rt2b_entry_fallback_public_tool_surface
+    title: Entry and fallback public tool-surface normalization
+    status: green
+    pass_type: runtime_backed
+    depends_on:
+      - rt2a_public_tool_name_normalization
   - gate_id: rt3_react_trace_contract
     title: ReAct trace contract
     status: pending
     pass_type: runtime_backed
     depends_on:
       - rt3a_react_trace_observable_skeleton
+      - rt3b_multi_pass_react_trace_summary
   - gate_id: rt3a_react_trace_observable_skeleton
     title: ReAct trace observable skeleton
     status: green
     pass_type: runtime_backed
     depends_on:
       - rt0_sync_contract
+  - gate_id: rt3b_multi_pass_react_trace_summary
+    title: Compact multi-pass ReAct trace summary
+    status: green
+    pass_type: runtime_backed
+    depends_on:
+      - rt3a_react_trace_observable_skeleton
   - gate_id: rt4_context_packet_acceptance
     title: Context packet acceptance gate
     status: pending
+    pass_type: runtime_backed
+    depends_on:
+      - rt3_react_trace_contract
+      - rt4a_runtime_context_packet_acceptance
+  - gate_id: rt4a_runtime_context_packet_acceptance
+    title: Runtime context packet acceptance smoke
+    status: green
     pass_type: runtime_backed
     depends_on:
       - rt3_react_trace_contract

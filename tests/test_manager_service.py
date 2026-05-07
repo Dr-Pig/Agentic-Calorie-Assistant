@@ -65,7 +65,7 @@ class FakeLoopProvider:
     async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
         self.calls.append(dict(kwargs))
         if not self.responses:
-            return {"manager_action": "call_tools", "tool_calls": [{"name": "read_day_budget"}]}, {"source": "fake"}
+            return {"manager_action": "call_tools", "tool_calls": [{"name": "budget.get_today_summary"}]}, {"source": "fake"}
         return self.responses.pop(0), {"source": "fake", "call_index": len(self.calls)}
 
 
@@ -73,7 +73,7 @@ class FakeLoopProvider:
 async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_round() -> None:
     provider = FakeLoopProvider(
         [
-            {"manager_action": "call_tools", "tool_calls": [{"name": "read_day_budget"}]},
+            {"manager_action": "call_tools", "tool_calls": [{"name": "budget.get_today_summary"}]},
             {
                 "manager_action": "final",
                 "intent": "log_meal",
@@ -101,7 +101,7 @@ async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_rou
         provider=provider,
         raw_user_input="今天還剩多少熱量",
         resolved_state=SimpleNamespace(onboarding_ready=True),
-        available_tools=("read_day_budget",),
+        available_tools=("budget.get_today_summary",),
         tool_executor=tool_executor,
     )
 
@@ -112,22 +112,41 @@ async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_rou
     assert result.confidence == "medium"
     assert result.evidence_posture == "generic_with_uncertainty"
     assert len(result.manager_rounds) == 2
-    assert provider.calls[1]["user_payload"]["tool_results"][0]["tool_name"] == "read_day_budget"
+    assert provider.calls[1]["user_payload"]["tool_results"][0]["tool_name"] == "budget.get_today_summary"
     assert result.trace["react_trace"] == {
         "trace_schema_version": "manager_react_trace.v1",
+        "manager_pass_count": 2,
         "manager_pass_1": {
             "round_index": 0,
             "stage": "intake_manager_round",
             "manager_action": "call_tools",
             "final_action": None,
             "workflow_effect": None,
-            "tool_calls": [{"name": "read_day_budget"}],
-            "decision_payload": {"manager_action": "call_tools", "tool_calls": [{"name": "read_day_budget"}]},
+            "tool_calls": [{"name": "budget.get_today_summary"}],
+            "decision_payload": {"manager_action": "call_tools", "tool_calls": [{"name": "budget.get_today_summary"}]},
             "provider_trace": {"source": "fake", "call_index": 1},
             "prompt_registry": result.trace["prompt_registry"],
         },
-        "requested_tools": ["read_day_budget"],
-        "executed_tools": ["read_day_budget"],
+        "manager_passes": [
+            {
+                "round_index": 0,
+                "stage": "intake_manager_round",
+                "manager_action": "call_tools",
+                "final_action": None,
+                "workflow_effect": None,
+                "tool_names": ["budget.get_today_summary"],
+            },
+            {
+                "round_index": 1,
+                "stage": "intake_manager_round",
+                "manager_action": "final",
+                "final_action": "commit",
+                "workflow_effect": "commit",
+                "tool_names": [],
+            },
+        ],
+        "requested_tools": ["budget.get_today_summary"],
+        "executed_tools": ["budget.get_today_summary"],
         "manager_pass_final": {
             "round_index": 1,
             "stage": "intake_manager_round",
@@ -317,13 +336,13 @@ async def test_run_intake_manager_max_rounds_is_hard_failure() -> None:
     provider = FakeLoopProvider([])
 
     async def tool_executor(**_: object) -> list[dict[str, object]]:
-        return [{"tool_name": "read_day_budget", "evidence": {}, "failure_family": None}]
+        return [{"tool_name": "budget.get_today_summary", "evidence": {}, "failure_family": None}]
 
     result = await manager_service.run_intake_manager(
         provider=provider,
         raw_user_input="loop",
         resolved_state=SimpleNamespace(onboarding_ready=True),
-        available_tools=("read_day_budget",),
+        available_tools=("budget.get_today_summary",),
         tool_executor=tool_executor,
     )
 
@@ -331,13 +350,20 @@ async def test_run_intake_manager_max_rounds_is_hard_failure() -> None:
     assert result.request_failure_family == "max_rounds_exceeded"
     assert len(result.manager_rounds) == manager_service.MAX_MANAGER_ROUNDS
     assert result.trace["react_trace"]["request_failure_family"] == "max_rounds_exceeded"
+    assert result.trace["react_trace"]["manager_pass_count"] == manager_service.MAX_MANAGER_ROUNDS
+    assert len(result.trace["react_trace"]["manager_passes"]) == manager_service.MAX_MANAGER_ROUNDS
+    assert result.trace["react_trace"]["manager_pass_1"]["round_index"] == result.trace["react_trace"]["manager_passes"][0]["round_index"]
+    assert (
+        result.trace["react_trace"]["manager_pass_final"]["round_index"]
+        == result.trace["react_trace"]["manager_passes"][-1]["round_index"]
+    )
 
 
 @pytest.mark.asyncio
 async def test_run_intake_manager_malformed_final_target_attachment_returns_safe_failure_not_raw_crash() -> None:
     provider = FakeLoopProvider(
         [
-            {"manager_action": "call_tools", "tool_calls": [{"name": "read_day_budget"}]},
+            {"manager_action": "call_tools", "tool_calls": [{"name": "budget.get_today_summary"}]},
             {
                 "manager_action": "final",
                 "intent": "log_meal",
@@ -356,13 +382,13 @@ async def test_run_intake_manager_malformed_final_target_attachment_returns_safe
     )
 
     async def tool_executor(**_: object) -> list[dict[str, object]]:
-        return [{"tool_name": "read_day_budget", "evidence": {"remaining_kcal": 1200}, "failure_family": None}]
+        return [{"tool_name": "budget.get_today_summary", "evidence": {"remaining_kcal": 1200}, "failure_family": None}]
 
     result = await manager_service.run_intake_manager(
         provider=provider,
         raw_user_input="我吃了一杯珍珠奶茶",
         resolved_state=SimpleNamespace(onboarding_ready=True),
-        available_tools=("read_day_budget",),
+        available_tools=("budget.get_today_summary",),
         tool_executor=tool_executor,
     )
 

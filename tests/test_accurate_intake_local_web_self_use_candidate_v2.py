@@ -2,6 +2,49 @@ from __future__ import annotations
 
 from scripts.build_accurate_intake_local_web_self_use_candidate_v2 import build_local_web_self_use_candidate_v2
 
+def _ready_claim_boundary() -> dict:
+    return {
+        "status": "ready_for_runtime_and_browser_claims",
+        "runtime_backed_claim_ready": True,
+        "browser_executed_claim_ready": True,
+        "required_manager_runtime_gates": ["rt6_bootstrap_no_plan_body_closure"],
+        "green_manager_runtime_gates": ["rt6_bootstrap_no_plan_body_closure"],
+        "non_green_manager_runtime_gates": [],
+    }
+
+
+def _blocked_claim_boundary() -> dict:
+    return {
+        "status": "blocked_on_manager_runtime_upstream_gates",
+        "runtime_backed_claim_ready": False,
+        "browser_executed_claim_ready": False,
+        "required_manager_runtime_gates": [
+            "rt6_bootstrap_no_plan_body_closure",
+            "rt7_clarify_commit_correction_closure",
+        ],
+        "green_manager_runtime_gates": ["rt3a_react_trace_observable_skeleton"],
+        "non_green_manager_runtime_gates": [
+            "rt6_bootstrap_no_plan_body_closure",
+            "rt7_clarify_commit_correction_closure",
+        ],
+    }
+
+
+def _ready_today_macro_mirror_gate() -> dict:
+    return {
+        "status": "today_macro_mirror_gate_ready_for_human_review",
+        "source": "test",
+        "pass_type": "contract",
+        "frontend_semantic_owner": False,
+        "frontend_calculates_macro_values": False,
+        "summary": {
+            "renderer_contract_fields_checked": 5,
+            "visible_case_checked": True,
+            "guarded_case_checked": True,
+        },
+    }
+
+
 def _clean_evidence() -> dict:
     return {
         "browser_shell_smoke": {"status": "pass", "source": "test"},
@@ -34,11 +77,23 @@ def _clean_evidence() -> dict:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
-        "product_pages_self_use_flow_gate": {"status": "product_pages_self_use_flow_ready_for_human_review", "source": "test"},
+        "product_pages_self_use_flow_gate": {
+            "status": "product_pages_self_use_flow_ready_for_human_review",
+            "source": "test",
+            "pass_type": "contract",
+            "current_shell_sync_contract_source": "docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml",
+            "manager_runtime_gate_ledger_source": "docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml",
+            "appshell_claim_boundary": _ready_claim_boundary(),
+        },
         "ui_context_alignment_pack": {"status": "ui_context_alignment_ready_for_human_review", "source": "test"},
+        "today_macro_mirror_gate": _ready_today_macro_mirror_gate(),
         "browser_activation_evidence_gate": {
             "status": "browser_activation_evidence_ready_for_human_review",
             "source": "test",
+            "pass_type": "contract",
+            "current_shell_sync_contract_source": "docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml",
+            "manager_runtime_gate_ledger_source": "docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml",
+            "appshell_claim_boundary": _ready_claim_boundary(),
             "all_required_browser_artifacts_executed": True,
             "browser_executed_required": True,
         },
@@ -179,6 +234,14 @@ def test_candidate_blocked_when_chat_history_reload_missing() -> None:
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert "missing evidence: chat_history_reload" in pack["local_web_self_use_candidate_v2"]["blockers"]
 
+
+def test_candidate_blocked_when_today_macro_mirror_gate_missing() -> None:
+    evidence = _clean_evidence()
+    del evidence["today_macro_mirror_gate"]
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "missing evidence: today_macro_mirror_gate" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
 def test_candidate_blocked_when_free_text_manual_target_missing() -> None:
     evidence = _clean_evidence()
     del evidence["free_text_manual_target"]
@@ -289,6 +352,45 @@ def test_candidate_blocks_non_fooddb_manager_tool_contract_without_contract_proo
     assert "non-fooddb manager tool contract inventory backed count too low" in blockers
     assert "non-fooddb manager tool contract read-only count too low" in blockers
     assert "non-fooddb manager tool contract direct lane bridge count too low" in blockers
+
+
+def test_candidate_blocks_missing_browser_activation_appshell_claim_boundary() -> None:
+    evidence = _clean_evidence()
+    evidence["browser_activation_evidence_gate"].pop("appshell_claim_boundary")
+
+    pack = build_local_web_self_use_candidate_v2(evidence)
+
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert (
+        "browser activation evidence gate appshell claim boundary missing"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
+
+
+def test_candidate_blocks_missing_product_pages_appshell_claim_boundary() -> None:
+    evidence = _clean_evidence()
+    evidence["product_pages_self_use_flow_gate"].pop("appshell_claim_boundary")
+
+    pack = build_local_web_self_use_candidate_v2(evidence)
+
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert (
+        "product pages self-use flow gate appshell claim boundary missing"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
+
+
+def test_candidate_blocks_non_ready_appshell_claim_boundaries() -> None:
+    evidence = _clean_evidence()
+    evidence["browser_activation_evidence_gate"]["appshell_claim_boundary"] = _blocked_claim_boundary()
+    evidence["product_pages_self_use_flow_gate"]["appshell_claim_boundary"] = _blocked_claim_boundary()
+
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    blockers = pack["local_web_self_use_candidate_v2"]["blockers"]
+
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "browser activation evidence gate appshell claim not ready" in blockers
+    assert "product pages self-use flow gate appshell claim not ready" in blockers
 
 def test_candidate_blocked_when_context_live_case_matrix_missing() -> None:
     evidence = _clean_evidence()

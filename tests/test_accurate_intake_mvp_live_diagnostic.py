@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import importlib
 import json
 from pathlib import Path
@@ -376,6 +377,42 @@ def test_accurate_intake_live_schema_probe_blocks_product_loop_cases(tmp_path: P
     assert report["stages"][1]["failure_family"] == "schema_contract_blocked"
     assert report["cases"] == []
     assert report["failure_family"] == "schema_contract_blocked"
+
+
+def test_accurate_intake_live_schema_probe_seeds_public_read_tools() -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+    provider = module.ScriptedAccurateIntakeLiveProvider()
+
+    asyncio.run(
+        module._provider_probe(  # noqa: SLF001
+            provider=provider,
+            stage_id=module.STAGE_SCHEMA_CONTRACT_PROBE,
+        )
+    )
+
+    assert provider.calls[0]["available_tools"] == [
+        "body.get_active_plan",
+        "budget.get_today_summary",
+    ]
+
+
+def test_scripted_live_provider_treats_public_read_tools_as_entry_surface() -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+    provider = module.ScriptedAccurateIntakeLiveProvider()
+    provider.begin_step({"entry_intent": "answer_remaining_budget", "kind": module.STAGE_SCHEMA_CONTRACT_PROBE})
+
+    payload, trace = asyncio.run(
+        provider.complete_with_trace(
+            user_payload={
+                "round_index": 0,
+                "available_tools": ["body.get_active_plan", "budget.get_today_summary"],
+                "tool_results": [],
+            }
+        )
+    )
+
+    assert trace["stage"] == "entry_decision"
+    assert payload["intent_type"] == "answer_remaining_budget"
 
 
 def test_accurate_intake_live_unknown_case_id_fails_fast(tmp_path: Path) -> None:
