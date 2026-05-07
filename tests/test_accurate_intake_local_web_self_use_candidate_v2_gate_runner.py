@@ -59,6 +59,24 @@ def _ready_body_observation_same_truth_gate() -> dict[str, object]:
     }
 
 
+def _ready_clarify_commit_correction_same_truth_gate() -> dict[str, object]:
+    return {
+        "artifact_schema_version": "1.0",
+        "artifact_type": "accurate_intake_clarify_commit_correction_same_truth_gate",
+        "status": "clarify_commit_correction_same_truth_gate_ready_for_human_review",
+        "pass_type": "browser_executed",
+        "upstream_runtime_gate": "rt7_clarify_commit_correction_closure",
+        "summary": {
+            "required_short_term_context_flag_count": 9,
+            "required_target_candidate_flag_count": 5,
+            "required_fixture_step_count": 8,
+            "target_candidate_count_rendered": 2,
+            "completed_fixture_step_count": 8,
+            "upstream_gate_green": True,
+        },
+    }
+
+
 def _required_payloads() -> dict[str, dict[str, object]]:
     return {
         "phase_c_gate": {
@@ -149,6 +167,7 @@ def _required_payloads() -> dict[str, dict[str, object]]:
         },
         "today_macro_mirror_gate": _ready_today_macro_mirror_gate(),
         "body_observation_same_truth_gate": _ready_body_observation_same_truth_gate(),
+        "clarify_commit_correction_same_truth_gate": _ready_clarify_commit_correction_same_truth_gate(),
         "browser_activation_evidence_gate": {
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_pl_ce_browser_activation_evidence_gate",
@@ -489,6 +508,7 @@ def test_local_web_self_use_candidate_v2_gate_runner_derives_phase_c_identity_fr
         "ui_context_alignment_pack",
         "today_macro_mirror_gate",
         "body_observation_same_truth_gate",
+        "clarify_commit_correction_same_truth_gate",
         "browser_activation_evidence_gate",
         "manager_tool_surface_inventory",
         "non_fooddb_manager_tool_contract",
@@ -662,6 +682,44 @@ def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_body_observa
     assert printed["candidate_prepared"] is False
     assert printed["missing_evidence"] == ["body_observation_same_truth_gate"]
     assert "missing evidence: body_observation_same_truth_gate" in candidate[
+        "local_web_self_use_candidate_v2"
+    ]["blockers"]
+
+
+def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_clarify_commit_correction_same_truth_gate(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts.run_accurate_intake_local_web_self_use_candidate_v2_gate import (
+        DEFAULT_EVIDENCE_PATHS,
+        main,
+    )
+
+    artifact_dir = tmp_path / "artifacts"
+    payloads = _required_payloads()
+    payloads.pop("clarify_commit_correction_same_truth_gate")
+    for group_id, payload in payloads.items():
+        _write(artifact_dir / f"{group_id}.json", payload)
+    candidate_output = tmp_path / "candidate.json"
+
+    exit_code = main(
+        [
+            "--pre-live-evidence-output",
+            str(tmp_path / "pre_live_evidence.json"),
+            "--pre-live-output",
+            str(tmp_path / "pre_live_decision_pack.json"),
+            "--candidate-output",
+            str(candidate_output),
+            *_artifact_args(artifact_dir, tuple(DEFAULT_EVIDENCE_PATHS)),
+        ]
+    )
+    printed = json.loads(capsys.readouterr().out)
+    candidate = json.loads(candidate_output.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["candidate_prepared"] is False
+    assert printed["missing_evidence"] == ["clarify_commit_correction_same_truth_gate"]
+    assert "missing evidence: clarify_commit_correction_same_truth_gate" in candidate[
         "local_web_self_use_candidate_v2"
     ]["blockers"]
 
