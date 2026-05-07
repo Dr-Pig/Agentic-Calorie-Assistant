@@ -5,16 +5,23 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI
+import pytest
+from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from starlette.requests import Request
 
-from app.composition import v2_routes
+from app.composition import intake_routes, v2_routes
 from app.database import get_db
 from app.models import Base
 from app.routes import router
+from app.runtime.application.request_trace_artifacts import (
+    build_internal_trace_refs,
+    build_trace_refs,
+)
+from app.runtime.interface import local_debug_auth
 
 
 def _client() -> TestClient:
@@ -38,6 +45,22 @@ def _client() -> TestClient:
 
     app.dependency_overrides[get_db] = override_get_db
     return TestClient(app)
+
+
+def _request_with_host(host: str) -> Request:
+    return Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/logs",
+            "headers": [],
+            "query_string": b"",
+            "client": (host, 50000),
+            "server": ("testserver", 80),
+            "scheme": "http",
+            "root_path": "",
+        }
+    )
 
 
 def test_sensitive_routes_are_closed_when_local_debug_token_is_not_configured(monkeypatch) -> None:
@@ -74,6 +97,19 @@ def test_sensitive_routes_require_matching_local_debug_token(monkeypatch) -> Non
     assert "items" in allowed.json()
 
 
+def test_sensitive_routes_stay_closed_for_non_loopback_clients(monkeypatch) -> None:
+    token = secrets.token_urlsafe(24)
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", token)
+
+    with pytest.raises(HTTPException) as excinfo:
+        local_debug_auth.require_local_debug_access(
+            _request_with_host("203.0.113.10"),
+            x_local_debug_token=token,
+        )
+
+    assert excinfo.value.status_code == 404
+
+
 def test_v2_estimate_error_response_does_not_expose_traceback(monkeypatch) -> None:
     async def fail_execute_intake_turn(**_: Any) -> dict[str, Any]:
         raise RuntimeError("internal stack marker should not leak")
@@ -93,6 +129,54 @@ def test_v2_estimate_error_response_does_not_expose_traceback(monkeypatch) -> No
     assert "traceback" not in payload
     assert "internal stack marker" not in response.text
     assert str(Path("app/composition/v2_routes.py")) not in response.text
+
+
+def test_estimate_error_response_does_not_expose_internal_exception_text(monkeypatch) -> None:
+    async def fail_execute_intake_turn(**_: Any) -> dict[str, Any]:
+        raise RuntimeError("internal estimate marker should not leak")
+
+    monkeypatch.setattr(intake_routes, "execute_intake_turn", fail_execute_intake_turn)
+    client = _client()
+
+    response = client.post(
+        "/estimate",
+        json={"user_id": "public-hardening", "text": "tea egg", "local_date": "2026-05-06"},
+    )
+
+    assert response.status_code == 500
+    payload = response.json()
+    assert payload == {
+        "request_id": payload["request_id"],
+        "error": "internal_server_error",
+        "coach_message": "處理這則訊息時發生錯誤，請稍後再試。",
+        "payload": None,
+    }
+    assert "internal estimate marker" not in response.text
+    assert str(Path("app/intake/interface/intake_error_response.py")) not in response.text
+
+
+def test_public_trace_refs_redact_internal_debug_locations() -> None:
+    public_refs = build_trace_refs(request_id="req-public")
+    internal_refs = build_internal_trace_refs(request_id="req-public")
+
+    assert public_refs == {"request_id": "req-public"}
+    assert internal_refs["request_id"] == "req-public"
+    assert internal_refs["admin_trace_url"] == "/admin/trace/req-public"
+    assert "request_trace_path" in internal_refs
+    assert "stage_trace_path" in internal_refs
+
+
+def test_ping_redacts_provider_topology() -> None:
+    client = _client()
+
+    payload = client.get("/ping").json()
+
+    assert payload["provider"] == {"status": "ok"}
+    assert payload["manager_provider"] == {"status": "ok"}
+    assert payload["search"] == {"status": "ok"}
+    assert payload["extract"] == {"status": "ok"}
+    assert "base_url" not in str(payload)
+    assert "timeout_seconds" not in str(payload)
 
 
 def test_evomap_activation_secret_script_is_not_tracked() -> None:

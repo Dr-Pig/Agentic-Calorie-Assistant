@@ -554,7 +554,7 @@ def test_estimate_route_rejects_unsupported_general_chat_fallback_lane(
     )
 
     assert response.status_code == 500
-    assert response.json()["error"] == "Unsupported intake intent_type: general_chat"
+    assert response.json()["error"] == "internal_server_error"
 
 
 def test_estimate_route_uses_manager_read_only_tool_loop_for_app_usage_help(
