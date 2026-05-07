@@ -41,6 +41,10 @@ appshell_rules:
   runtime_backed_requires_upstream_gate_green: true
   browser_executed_requires_upstream_gate_green: true
   may_not_invent_runtime_semantics: true
+runtime_architecture_rules:
+  dependency_inversion_required_across_db_websearch_and_provider_adapters: true
+  system_prompt_and_model_profile_overlays_versioned_separately: true
+  provider_or_model_specific_prompt_policy_must_not_own_runtime_truth: true
 non_claims:
   product_readiness_claimed: false
   private_self_use_approved: false

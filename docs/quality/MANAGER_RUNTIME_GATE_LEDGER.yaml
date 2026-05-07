@@ -12,13 +12,13 @@ gates:
       - appshell_runtime_claims
       - later_runtime_gate_mapping
   - gate_id: rt1a_prompt_registry_and_trace_versioning
-    title: Prompt registry and trace version IDs
+    title: Prompt registry, system/model split, and trace version IDs
     status: pending
     pass_type: contract
     depends_on:
       - rt0_sync_contract
   - gate_id: rt1b_stable_prefix_dynamic_suffix_contract
-    title: Stable prefix and dynamic suffix contract
+    title: Stable prefix, dynamic suffix, and provider-neutral prompt contract
     status: pending
     pass_type: contract
     depends_on:

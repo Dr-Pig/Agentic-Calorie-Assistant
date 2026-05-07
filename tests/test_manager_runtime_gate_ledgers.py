@@ -32,6 +32,11 @@ def test_current_shell_sync_contract_records_launch_scope_and_claim_rules() -> N
         "browser_executed_requires_upstream_gate_green": True,
         "may_not_invent_runtime_semantics": True,
     }
+    assert contract["runtime_architecture_rules"] == {
+        "dependency_inversion_required_across_db_websearch_and_provider_adapters": True,
+        "system_prompt_and_model_profile_overlays_versioned_separately": True,
+        "provider_or_model_specific_prompt_policy_must_not_own_runtime_truth": True,
+    }
     assert contract["non_claims"]["private_self_use_approved"] is False
 
 
@@ -45,10 +50,15 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
     gates = {entry["gate_id"]: entry for entry in ledger["gates"]}
 
     assert gates["rt0_sync_contract"]["status"] == "green"
-    assert gates["rt1a_prompt_registry_and_trace_versioning"]["status"] == "pending"
+    assert gates["rt1a_prompt_registry_and_trace_versioning"]["title"] == (
+        "Prompt registry, system/model split, and trace version IDs"
+    )
     assert gates["rt1b_stable_prefix_dynamic_suffix_contract"]["depends_on"] == [
         "rt1a_prompt_registry_and_trace_versioning"
     ]
+    assert gates["rt1b_stable_prefix_dynamic_suffix_contract"]["title"] == (
+        "Stable prefix, dynamic suffix, and provider-neutral prompt contract"
+    )
     assert gates["rt1c_cache_metrics_observability"]["depends_on"] == [
         "rt1b_stable_prefix_dynamic_suffix_contract"
     ]
