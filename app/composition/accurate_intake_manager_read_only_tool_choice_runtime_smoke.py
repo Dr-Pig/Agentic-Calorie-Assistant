@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 import json
 from typing import Any
 
-from app.composition.accurate_intake_manager_read_only_tool_choice_runtime_support import (
+from app.composition.accurate_intake_manager_read_only_tool_choice_runtime_fixture import (
     REQUIRED_CASE_IDS,
     RuntimeCase,
     bootstrap_runtime_state,
