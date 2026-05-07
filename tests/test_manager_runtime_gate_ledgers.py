@@ -110,10 +110,17 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt5_intent_tool_argument_walls",
         "rt6_bootstrap_no_plan_body_closure",
     ]
+    assert gates["rt7b_blocking_clarify_pending_followup_boundary"]["status"] == "green"
+    assert gates["rt7b_blocking_clarify_pending_followup_boundary"]["depends_on"] == [
+        "rt4_context_packet_acceptance",
+        "rt5_intent_tool_argument_walls",
+        "rt6_bootstrap_no_plan_body_closure",
+    ]
     assert gates["rt7_clarify_commit_correction_closure"]["depends_on"] == [
         "rt5_intent_tool_argument_walls",
         "rt6_bootstrap_no_plan_body_closure",
         "rt7a_correction_removal_runtime_boundary",
+        "rt7b_blocking_clarify_pending_followup_boundary",
     ]
     assert gates["rt10a_nutrition_estimate_quality_deterministic"]["pass_type"] == "fixture"
     assert gates["rt10b_nutrition_estimate_quality_fake_provider"]["depends_on"] == [
