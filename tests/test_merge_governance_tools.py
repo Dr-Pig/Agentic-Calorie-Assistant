@@ -153,6 +153,7 @@ def test_pre_queue_readiness_passes_current_product_pages_artifact_chain(tmp_pat
     assert report["status"] == "pass"
     assert report["checked_job"] == "product-pages-browser-e2e"
     assert report["blockers"] == []
+    assert report["advisories"] == []
     assert json.loads(capsys.readouterr().out)["status"] == "pass"
 
 
@@ -169,6 +170,40 @@ def test_pre_queue_readiness_fails_pull_request_missing_required_report(tmp_path
 
     report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
     assert "missing_track_report_key:runtime_truth_changed" in report["blockers"]
+
+
+def test_pre_queue_readiness_fails_plce_missing_owner_lane_metadata(tmp_path: Path) -> None:
+    event = tmp_path / "event.json"
+    event.write_text(
+        json.dumps(
+            {
+                "pull_request": {
+                    "title": "PLCE lane metadata",
+                    "body": "\n".join(
+                        [
+                            "track: PLCE",
+                            "runtime_truth_changed: false",
+                            "manager_context_packet_changed: false",
+                            "mutation_changed: false",
+                            "product_readiness_claimed: false",
+                        ]
+                    ),
+                    "head": {"ref": "codex/plce-lane-metadata"},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert (
+        check_pre_queue_readiness.main(
+            ["--event-file", str(event), "--output", str(tmp_path / "out.json")]
+        )
+        == 1
+    )
+
+    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
+    assert "missing_current_shell_metadata:owner_lane" in report["blockers"]
 
 
 def test_pre_queue_readiness_fails_missing_product_pages_dry_run_command(
@@ -197,6 +232,23 @@ def test_pre_queue_readiness_fails_missing_product_pages_dry_run_command(
     report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
     assert "missing_product_pages_command.context_live_diagnostic_dry_run_evaluator" in report["blockers"]
     assert "missing_activation_manifest_input.context_live_diagnostic_dry_run_evaluator" not in report["blockers"]
+
+
+def test_pre_queue_readiness_fails_missing_lane_aware_scope_marker(tmp_path: Path) -> None:
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    workflow = workflow.replace("id: product_pages_mode\n", "", 1)
+    workflow_path = tmp_path / "ci.yml"
+    workflow_path.write_text(workflow, encoding="utf-8")
+
+    assert (
+        check_pre_queue_readiness.main(
+            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
+        )
+        == 1
+    )
+
+    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
+    assert "missing_product_pages_scope_marker:id: product_pages_mode" in report["blockers"]
 
 
 def test_pre_queue_readiness_fails_missing_context_live_holdout_plan_chain_link(

@@ -328,14 +328,75 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
+      - name: Resolve product pages browser gate mode
+        id: product_pages_mode
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          root = Path.cwd()
+          if str(root) not in sys.path:
+              sys.path.insert(0, str(root))
+
+          from scripts.merge_governance.build_merge_debt_matrix import extract_track_report, infer_track
+
+          event_path = os.environ.get("GITHUB_EVENT_PATH")
+          mode = "full_run"
+          reason = "non_pull_request_event"
+          if event_path and Path(event_path).exists():
+              event = json.loads(Path(event_path).read_text(encoding="utf-8"))
+              pull_request = event.get("pull_request")
+              if isinstance(pull_request, dict):
+                  head = pull_request.get("head") if isinstance(pull_request.get("head"), dict) else {}
+                  payload = {
+                      "title": pull_request.get("title") or "",
+                      "body": pull_request.get("body") or "",
+                      "headRefName": head.get("ref") or "",
+                  }
+                  track = infer_track(payload)
+                  flags = extract_track_report(str(pull_request.get("body") or ""))
+                  owner_lane = str(flags.get("owner_lane") or "").strip()
+                  shell_surface_impacted = flags.get("shell_surface_impacted")
+                  if not isinstance(shell_surface_impacted, bool):
+                      shell_surface_impacted = str(shell_surface_impacted or "").strip().lower() == "true"
+                  if track != "PLCE":
+                      mode = "fast_pass"
+                      reason = "non_plce_track"
+                  elif owner_lane in {"AppShell", "SharedPLCE"} or shell_surface_impacted:
+                      mode = "full_run"
+                      reason = "shell_surface_or_lane_requires_browser"
+                  else:
+                      mode = "fast_pass"
+                      reason = "non_shell_surface_plce"
+
+          output = Path(os.environ["GITHUB_OUTPUT"])
+          with output.open("a", encoding="utf-8") as handle:
+              handle.write(f"mode={mode}\n")
+              handle.write(f"reason={reason}\n")
+          print(json.dumps({"mode": mode, "reason": reason}, ensure_ascii=False))
+          PY
+
       - name: Install dependencies
+        if: steps.product_pages_mode.outputs.mode == 'full_run'
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           python -m pip install playwright==1.58.0
           python -m playwright install --with-deps chromium
 
+      - name: Create product pages browser fast-pass placeholders
+        if: steps.product_pages_mode.outputs.mode == 'fast_pass'
+        run: |
+          python scripts/build_product_pages_browser_gate_placeholders.py --mode fast_pass --reason "${{ steps.product_pages_mode.outputs.reason }}"
+
       - name: Run product pages browser E2E diagnostic
+        id: product_pages_full_run
+        if: steps.product_pages_mode.outputs.mode == 'full_run'
+        continue-on-error: true
         run: |
           python -m pytest tests/test_accurate_intake_product_pages_renderer_source_map.py tests/test_accurate_intake_product_pages_browser_smoke.py tests/test_accurate_intake_product_pages_long_session_navigation_smoke.py tests/test_accurate_intake_product_pages_seven_day_diary_smoke.py tests/test_accurate_intake_product_pages_short_term_context_smoke.py tests/test_accurate_intake_product_pages_target_candidate_ui_smoke.py tests/test_accurate_intake_product_pages_visual_qa.py tests/test_accurate_intake_product_pages_static.py tests/test_accurate_intake_static_cjk_copy_integrity.py tests/test_accurate_intake_pl_ce_ui_context_alignment_pack.py tests/test_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py tests/test_accurate_intake_pl_ce_browser_activation_evidence_gate.py tests/test_accurate_intake_pl_ce_activation_review_manifest.py tests/test_accurate_intake_context_live_diagnostic_stage_gate.py tests/test_accurate_intake_pl_ce_current_metadata_freshness_pack.py tests/test_accurate_intake_pl_ce_serial_handoff.py -q
           python scripts/run_accurate_intake_product_pages_browser_smoke.py --require-browser-execution --output artifacts/accurate_intake_product_pages_browser_smoke_ci.json --timeout-ms 25000
@@ -475,6 +536,15 @@ jobs:
             --current-metadata-freshness-pack artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json \
             --queue-json artifacts/accurate_intake_pl_ce_merge_queue_metadata_ci.json \
             --output artifacts/accurate_intake_pl_ce_serial_handoff_ci.json
+
+      - name: Create product pages blocked-upstream placeholders
+        if: steps.product_pages_mode.outputs.mode == 'full_run' && steps.product_pages_full_run.outcome == 'failure'
+        run: |
+          python scripts/build_product_pages_browser_gate_placeholders.py --mode blocked_upstream --reason "product_pages_full_run_failed"
+
+      - name: Fail when product pages browser upstream chain failed
+        if: steps.product_pages_mode.outputs.mode == 'full_run' && steps.product_pages_full_run.outcome == 'failure'
+        run: exit 1
 
       - name: Upload product pages browser E2E report
         if: always()

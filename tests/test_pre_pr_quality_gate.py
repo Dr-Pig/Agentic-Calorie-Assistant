@@ -201,10 +201,17 @@ def test_cli_infers_track_from_pull_request_event_body(tmp_path: Path) -> None:
         "\n".join(
             [
                 "track: PL_CE",
+                "owner_lane: ManagerRuntime",
+                "slice_class: runtime_gate",
+                "pass_type: contract",
+                "upstream_runtime_gate: not_applicable",
+                "launch_claim_scope: current_shell_candidate_contract",
+                "shell_surface_impacted: false",
                 "runtime_truth_changed: false",
                 "manager_context_packet_changed: false",
                 "mutation_changed: false",
                 "product_readiness_claimed: false",
+                "non_claims: not_whole_product_mvp,not_private_self_use_approved,not_live_provider_ready",
             ]
         ),
     )
@@ -229,6 +236,7 @@ def test_cli_infers_track_from_pull_request_event_body(tmp_path: Path) -> None:
 
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["track"] == "PLCE"
+    assert report["status"] == "pass"
 
 
 def test_cli_explicit_track_overrides_event_track(tmp_path: Path) -> None:
@@ -415,13 +423,138 @@ def test_cli_event_inferred_future_shadow_track_blocks_active_surface(tmp_path: 
                 "--skip-boundary-checks",
                 "--allow-dirty-worktree",
             ]
+    )
+        == 1
+    )
+
+
+def test_plce_track_requires_current_shell_metadata(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(
+        tmp_path,
+        "\n".join(
+            [
+                "track: PLCE",
+                "runtime_truth_changed: false",
+                "manager_context_packet_changed: false",
+                "mutation_changed: false",
+                "product_readiness_claimed: false",
+            ]
+        ),
+    )
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+                "--allow-dirty-worktree",
+            ]
         )
         == 1
     )
 
     report = json.loads(output.read_text(encoding="utf-8"))
-    assert report["track"] == "LongTermContextLab"
-    assert "future_shadow_touches_active_surface" in _blocker_codes(report)
+    assert "missing_current_shell_metadata:owner_lane" in _blocker_codes(report)
+
+
+def test_plce_contract_claim_without_runtime_claim_fields_is_advisory_only(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(
+        tmp_path,
+        "\n".join(
+            [
+                "track: PLCE",
+                "owner_lane: ManagerRuntime",
+                "slice_class: runtime_gate",
+                "pass_type: contract",
+                "upstream_runtime_gate: not_applicable",
+                "launch_claim_scope: current_shell_candidate_contract",
+                "shell_surface_impacted: false",
+                "runtime_truth_changed: false",
+                "manager_context_packet_changed: false",
+                "mutation_changed: false",
+                "product_readiness_claimed: false",
+                "non_claims: not_whole_product_mvp,not_private_self_use_approved,not_live_provider_ready",
+            ]
+        ),
+    )
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+                "--allow-dirty-worktree",
+            ]
+        )
+        == 0
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    advisory_codes = {str(item["code"]) for item in report["advisories"]}  # type: ignore[index]
+    assert "advisory_missing_current_shell_metadata:journeys_touched" in advisory_codes
+    assert "advisory_missing_current_shell_metadata:visible_fact_provenance" in advisory_codes
+
+
+def test_plce_appshell_runtime_claim_requires_green_gate(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(
+        tmp_path,
+        "\n".join(
+            [
+                "track: PLCE",
+                "owner_lane: AppShell",
+                "slice_class: appshell_browser",
+                "pass_type: browser_executed",
+                "upstream_runtime_gate: bootstrap_no_plan_runtime_gate",
+                "launch_claim_scope: current_shell_candidate_browser",
+                "shell_surface_impacted: true",
+                "runtime_truth_changed: false",
+                "manager_context_packet_changed: false",
+                "mutation_changed: false",
+                "product_readiness_claimed: false",
+                "journeys_touched: A,J",
+                "visible_fact_provenance: read_model,guard,trace",
+                "non_claims: not_whole_product_mvp,not_private_self_use_approved,not_live_provider_ready",
+            ]
+        ),
+    )
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+                "--allow-dirty-worktree",
+            ]
+        )
+        == 1
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert "appshell_runtime_claim_requires_green_gate:bootstrap_no_plan_runtime_gate" in _blocker_codes(report)
 
 
 def test_cli_writes_report_for_empty_head_diff(tmp_path: Path) -> None:

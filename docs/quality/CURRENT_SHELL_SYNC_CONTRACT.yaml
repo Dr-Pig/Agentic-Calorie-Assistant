@@ -1,0 +1,59 @@
+current_shell_target: current_shell_v1
+claim_name: current_shell_self_use_candidate
+global_non_claims:
+  - not_whole_product_mvp
+  - not_private_self_use_approved
+  - not_live_provider_ready
+runtime_gate_ids:
+  - macro_contract_runtime_gate
+  - coarse_tool_surface_convergence_gate
+  - bootstrap_no_plan_runtime_gate
+  - clarify_commit_boundary_runtime_gate
+  - correction_removal_runtime_gate
+  - body_observation_same_truth_runtime_gate
+  - overshoot_runtime_truth_gate
+  - fooddb_packet_probe_v0
+runtime_gate_status:
+  macro_contract_runtime_gate: pending
+  coarse_tool_surface_convergence_gate: pending
+  bootstrap_no_plan_runtime_gate: pending
+  clarify_commit_boundary_runtime_gate: pending
+  correction_removal_runtime_gate: pending
+  body_observation_same_truth_runtime_gate: pending
+  overshoot_runtime_truth_gate: pending
+  fooddb_packet_probe_v0: pending
+appshell_gate_ids:
+  - appshell_today_macro_mirror_gate
+  - appshell_journey_same_truth_wall_A_B_E_J
+  - appshell_journey_same_truth_wall_C_D_K
+  - appshell_journey_same_truth_wall_G_H
+  - appshell_tool_vocabulary_consumption_gate
+  - appshell_current_shell_candidate_scope_gate
+journey_gate_map:
+  A:
+    required_runtime_gate: bootstrap_no_plan_runtime_gate
+    max_claim_without_runtime: contract
+  B:
+    required_runtime_gate: clarify_commit_boundary_runtime_gate
+    max_claim_without_runtime: contract
+  C:
+    required_runtime_gate: clarify_commit_boundary_runtime_gate
+    max_claim_without_runtime: contract
+  D:
+    required_runtime_gate: clarify_commit_boundary_runtime_gate
+    max_claim_without_runtime: contract
+  E:
+    required_runtime_gate: overshoot_runtime_truth_gate
+    max_claim_without_runtime: contract
+  G:
+    required_runtime_gate: body_observation_same_truth_runtime_gate
+    max_claim_without_runtime: contract
+  H:
+    required_runtime_gate: body_observation_same_truth_runtime_gate
+    max_claim_without_runtime: contract
+  J:
+    required_runtime_gate: bootstrap_no_plan_runtime_gate
+    max_claim_without_runtime: contract
+  K:
+    required_runtime_gate: correction_removal_runtime_gate
+    max_claim_without_runtime: contract

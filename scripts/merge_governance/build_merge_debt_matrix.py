@@ -8,6 +8,7 @@ import re
 import subprocess
 import sys
 from typing import Any
+import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -67,6 +68,40 @@ REQUIRED_TRACK_REPORT_KEYS = (
     "mutation_changed",
     "product_readiness_claimed",
 )
+READY_FOR_QUEUE_MARKER = "READY_FOR_QUEUE"
+CURRENT_SHELL_SYNC_CONTRACT_PATH = ROOT / "docs" / "quality" / "CURRENT_SHELL_SYNC_CONTRACT.yaml"
+CURRENT_SHELL_TRACEABILITY_MATRIX_PATH = ROOT / "docs" / "quality" / "SELF_USE_MVP_REQUIREMENT_TRACEABILITY_MATRIX.md"
+CURRENT_SHELL_OWNER_LANES = {"ManagerRuntime", "AppShell", "SharedPLCE"}
+CURRENT_SHELL_SLICE_CLASSES = {
+    "runtime_gate",
+    "appshell_contract",
+    "appshell_browser",
+    "shared_shell_sync",
+    "hotfix",
+    "governance",
+}
+CURRENT_SHELL_PASS_TYPES = {"static", "contract", "fixture", "runtime_backed", "browser_executed"}
+CURRENT_SHELL_RUNTIME_CLAIM_PASS_TYPES = {"runtime_backed", "browser_executed"}
+CURRENT_SHELL_LAUNCH_CLAIM_SCOPES = {
+    "none",
+    "current_shell_candidate_contract",
+    "current_shell_candidate_runtime",
+    "current_shell_candidate_browser",
+}
+CURRENT_SHELL_REQUIRED_METADATA_KEYS = (
+    "owner_lane",
+    "slice_class",
+    "pass_type",
+    "upstream_runtime_gate",
+    "launch_claim_scope",
+    "shell_surface_impacted",
+    "runtime_truth_changed",
+    "mutation_changed",
+    "product_readiness_claimed",
+    "non_claims",
+)
+CURRENT_SHELL_RUNTIME_METADATA_KEYS = ("journeys_touched", "visible_fact_provenance")
+CURRENT_SHELL_PROVENANCE_VALUES = {"read_model", "guard", "packet", "trace"}
 
 SUCCESS_CONCLUSIONS = {"SUCCESS", "SKIPPED", "NEUTRAL"}
 FAIL_CONCLUSIONS = {"FAILURE", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"}
@@ -297,6 +332,144 @@ def extract_track_report(body: str) -> dict[str, Any]:
         key, value = match.groups()
         report[key] = _parse_scalar(value)
     return report
+
+
+def has_ready_for_queue(body: str) -> bool:
+    return READY_FOR_QUEUE_MARKER in body
+
+
+def _csv_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        items = value
+    else:
+        text = str(value).strip()
+        if not text:
+            return []
+        items = text.split(",")
+    return [str(item).strip() for item in items if str(item).strip()]
+
+
+def load_current_shell_sync_contract(path: Path = CURRENT_SHELL_SYNC_CONTRACT_PATH) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    loaded = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def current_shell_metadata(flags: dict[str, Any]) -> dict[str, Any]:
+    metadata = {
+        "owner_lane": str(flags.get("owner_lane") or "").strip(),
+        "slice_class": str(flags.get("slice_class") or "").strip(),
+        "pass_type": str(flags.get("pass_type") or "").strip(),
+        "upstream_runtime_gate": str(flags.get("upstream_runtime_gate") or "").strip(),
+        "launch_claim_scope": str(flags.get("launch_claim_scope") or "").strip(),
+        "shell_surface_impacted": flags.get("shell_surface_impacted"),
+        "runtime_truth_changed": flags.get("runtime_truth_changed"),
+        "manager_context_packet_changed": flags.get("manager_context_packet_changed"),
+        "mutation_changed": flags.get("mutation_changed"),
+        "product_readiness_claimed": flags.get("product_readiness_claimed"),
+        "non_claims": _csv_list(flags.get("non_claims")),
+        "journeys_touched": _csv_list(flags.get("journeys_touched")),
+        "visible_fact_provenance": _csv_list(flags.get("visible_fact_provenance")),
+    }
+    if not isinstance(metadata["shell_surface_impacted"], bool):
+        normalized = str(metadata["shell_surface_impacted"] or "").strip().lower()
+        if normalized == "true":
+            metadata["shell_surface_impacted"] = True
+        elif normalized == "false":
+            metadata["shell_surface_impacted"] = False
+    return metadata
+
+
+def current_shell_metadata_findings(
+    flags: dict[str, Any],
+    *,
+    track: str,
+    sync_contract: dict[str, Any] | None = None,
+) -> tuple[list[str], list[str], dict[str, Any]]:
+    metadata = current_shell_metadata(flags)
+    if track != "PLCE":
+        return [], [], metadata
+
+    blockers: list[str] = []
+    advisories: list[str] = []
+    contract = sync_contract or {}
+    runtime_gate_ids = {str(item) for item in contract.get("runtime_gate_ids") or []}
+    journey_gate_map = contract.get("journey_gate_map") if isinstance(contract.get("journey_gate_map"), dict) else {}
+    runtime_gate_status = (
+        contract.get("runtime_gate_status") if isinstance(contract.get("runtime_gate_status"), dict) else {}
+    )
+    global_non_claims = {str(item) for item in contract.get("global_non_claims") or []}
+
+    for key in CURRENT_SHELL_REQUIRED_METADATA_KEYS:
+        value = metadata.get(key)
+        if value is None or value == "" or value == []:
+            blockers.append(f"missing_current_shell_metadata:{key}")
+
+    if metadata["owner_lane"] and metadata["owner_lane"] not in CURRENT_SHELL_OWNER_LANES:
+        blockers.append(f"invalid_owner_lane:{metadata['owner_lane']}")
+    if metadata["slice_class"] and metadata["slice_class"] not in CURRENT_SHELL_SLICE_CLASSES:
+        blockers.append(f"invalid_slice_class:{metadata['slice_class']}")
+    if metadata["pass_type"] and metadata["pass_type"] not in CURRENT_SHELL_PASS_TYPES:
+        blockers.append(f"invalid_pass_type:{metadata['pass_type']}")
+    if metadata["launch_claim_scope"] and metadata["launch_claim_scope"] not in CURRENT_SHELL_LAUNCH_CLAIM_SCOPES:
+        blockers.append(f"invalid_launch_claim_scope:{metadata['launch_claim_scope']}")
+    if not isinstance(metadata["shell_surface_impacted"], bool):
+        blockers.append("shell_surface_impacted_must_be_boolean")
+    if bool(metadata["product_readiness_claimed"]):
+        blockers.append("product_readiness_claimed_must_be_false")
+
+    if metadata["upstream_runtime_gate"] and metadata["upstream_runtime_gate"] != "not_applicable":
+        if runtime_gate_ids and metadata["upstream_runtime_gate"] not in runtime_gate_ids:
+            blockers.append(f"invalid_upstream_runtime_gate:{metadata['upstream_runtime_gate']}")
+
+    missing_non_claims = sorted(global_non_claims.difference(metadata["non_claims"]))
+    for non_claim in missing_non_claims:
+        blockers.append(f"missing_non_claim:{non_claim}")
+
+    for key in ("journeys_touched", "visible_fact_provenance", "manager_context_packet_changed"):
+        value = metadata.get(key)
+        if value is None or value == "" or value == []:
+            advisories.append(f"advisory_missing_current_shell_metadata:{key}")
+
+    for provenance in metadata["visible_fact_provenance"]:
+        if provenance not in CURRENT_SHELL_PROVENANCE_VALUES:
+            blockers.append(f"invalid_visible_fact_provenance:{provenance}")
+
+    pass_type = str(metadata["pass_type"] or "")
+    if pass_type in CURRENT_SHELL_RUNTIME_CLAIM_PASS_TYPES:
+        for key in CURRENT_SHELL_RUNTIME_METADATA_KEYS:
+            if not metadata.get(key):
+                blockers.append(f"missing_runtime_claim_metadata:{key}")
+        if metadata["upstream_runtime_gate"] in {"", "not_applicable"}:
+            blockers.append("runtime_claim_requires_upstream_runtime_gate")
+
+    known_journeys = {str(key) for key in journey_gate_map}
+    for journey in metadata["journeys_touched"]:
+        if known_journeys and journey not in known_journeys:
+            blockers.append(f"unknown_current_shell_journey:{journey}")
+
+    if metadata["journeys_touched"] and metadata["upstream_runtime_gate"] not in {"", "not_applicable"}:
+        for journey in metadata["journeys_touched"]:
+            rule = journey_gate_map.get(journey) if isinstance(journey_gate_map, dict) else None
+            if not isinstance(rule, dict):
+                continue
+            required_gate = str(rule.get("required_runtime_gate") or "")
+            if required_gate and required_gate != metadata["upstream_runtime_gate"]:
+                blockers.append(f"journey_runtime_gate_mismatch:{journey}->{required_gate}")
+
+    if (
+        metadata["owner_lane"] == "AppShell"
+        and pass_type in CURRENT_SHELL_RUNTIME_CLAIM_PASS_TYPES
+        and metadata["upstream_runtime_gate"] not in {"", "not_applicable"}
+    ):
+        gate_status = str(runtime_gate_status.get(metadata["upstream_runtime_gate"]) or "").strip().lower()
+        if gate_status != "green":
+            blockers.append(f"appshell_runtime_claim_requires_green_gate:{metadata['upstream_runtime_gate']}")
+
+    return sorted(set(blockers)), sorted(set(advisories)), metadata
 
 
 def _string_blob(pr: dict[str, Any]) -> str:
@@ -660,9 +833,15 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
     required_checks = [str(item) for item in config.get("required_checks") or []]
     advisory_checks = [str(item) for item in config.get("advisory_checks") or []]
     main_branch = str(config.get("main_branch") or "main")
+    sync_contract = load_current_shell_sync_contract()
     for pr in sorted(prs, key=lambda item: int(item.get("number") or 0), reverse=True):
         flags = extract_track_report(str(pr.get("body") or ""))
         track = infer_track(pr)
+        metadata_blockers, metadata_advisories, metadata = current_shell_metadata_findings(
+            flags,
+            track=track,
+            sync_contract=sync_contract,
+        )
         files = _files(pr)
         additions = int(pr.get("additions") or sum(int(file.get("additions") or 0) for file in files))
         mainline_status = _mainline_status(pr=pr, track=track, config=config)
@@ -686,6 +865,8 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
         )
         if boundary_status == "pass" and track_report_status == "missing":
             boundary_status = "needs_review"
+        if metadata_blockers and boundary_status == "pass":
+            boundary_status = "fail"
         deterministic_status, deterministic_blockers = evaluate_deterministic_boundary(track=track, pr=pr)
         fat_file_status, fat_blockers = evaluate_size_budget(
             mainline_status=mainline_status,
@@ -716,6 +897,8 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
                 + fat_blockers
                 + stack_blockers
                 + advisory_findings
+                + metadata_blockers
+                + metadata_advisories
             )
         )
         entries.append(
@@ -724,6 +907,14 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
                 "title": str(pr.get("title") or ""),
                 "url": str(pr.get("url") or ""),
                 "track": track,
+                "owner_lane": metadata.get("owner_lane") or "",
+                "slice_class": metadata.get("slice_class") or "",
+                "pass_type": metadata.get("pass_type") or "",
+                "upstream_runtime_gate": metadata.get("upstream_runtime_gate") or "",
+                "launch_claim_scope": metadata.get("launch_claim_scope") or "",
+                "shell_surface_impacted": metadata.get("shell_surface_impacted"),
+                "journeys_touched": metadata.get("journeys_touched") or [],
+                "visible_fact_provenance": metadata.get("visible_fact_provenance") or [],
                 "base_branch": str(pr.get("baseRefName") or ""),
                 "head_branch": str(pr.get("headRefName") or ""),
                 "stack_role": stack_role,
@@ -732,6 +923,7 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
                 "ci_status": ci_status,
                 "advisory_check_status": advisory_status,
                 "base_drift_status": base_drift_status,
+                "current_shell_metadata_status": "fail" if metadata_blockers else ("advisory" if metadata_advisories else "pass"),
                 "boundary_status": boundary_status,
                 "deterministic_boundary_status": deterministic_status,
                 "runtime_activation_status": runtime_activation_status,

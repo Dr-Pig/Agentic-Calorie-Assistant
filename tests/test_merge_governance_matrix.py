@@ -55,6 +55,35 @@ def _pr(
     }
 
 
+def _plce_body(*, owner_lane: str = "ManagerRuntime", pass_type: str = "contract") -> str:
+    return "\n".join(
+        [
+            "track: PLCE",
+            f"owner_lane: {owner_lane}",
+            "slice_class: runtime_gate" if owner_lane == "ManagerRuntime" else "slice_class: appshell_contract",
+            f"pass_type: {pass_type}",
+            "upstream_runtime_gate: not_applicable" if pass_type == "contract" else "upstream_runtime_gate: bootstrap_no_plan_runtime_gate",
+            "launch_claim_scope: current_shell_candidate_contract"
+            if pass_type == "contract"
+            else "launch_claim_scope: current_shell_candidate_browser",
+            "shell_surface_impacted: false" if owner_lane == "ManagerRuntime" else "shell_surface_impacted: true",
+            "runtime_truth_changed: false",
+            "manager_context_packet_changed: false",
+            "mutation_changed: false",
+            "product_readiness_claimed: false",
+            "non_claims: not_whole_product_mvp,not_private_self_use_approved,not_live_provider_ready",
+        ]
+        + (
+            []
+            if pass_type == "contract"
+            else [
+                "journeys_touched: A,J",
+                "visible_fact_provenance: read_model,guard,trace",
+            ]
+        )
+    )
+
+
 def test_all_green_pr_with_stale_contract_requires_rebase() -> None:
     matrix = build_matrix_from_prs(
         [
@@ -136,13 +165,14 @@ def test_future_shadow_guard_only_pr_is_extract_only() -> None:
 
 
 def test_plce_track_alias_is_mvp_mainline() -> None:
-    entry = build_matrix_from_prs([_pr(body=_pr()["body"].replace("BodyBudgetCalibration", "PL_CE"))], DEFAULT_CONFIG)[
+    entry = build_matrix_from_prs([_pr(body=_plce_body())], DEFAULT_CONFIG)[
         "entries"
     ][0]
 
     assert entry["track"] == "PLCE"
     assert entry["mainline_status"] == "mvp_mainline"
     assert entry["recommended_verdict"] == "merge_candidate"
+    assert entry["owner_lane"] == "ManagerRuntime"
 
 
 def test_runtime_contract_failure_is_fix_gate() -> None:
@@ -275,6 +305,48 @@ def test_mvp_mainline_current_green_pr_is_merge_candidate() -> None:
     assert entry["mainline_status"] == "mvp_mainline"
     assert entry["base_drift_status"] == "current"
     assert entry["recommended_verdict"] == "merge_candidate"
+
+
+def test_plce_missing_lane_metadata_is_fix_gate() -> None:
+    entry = build_matrix_from_prs(
+        [
+            _pr(
+                title="PLCE metadata drift",
+                head="codex/plce-metadata-drift",
+                body="\n".join(
+                    [
+                        "track: PLCE",
+                        "runtime_truth_changed: false",
+                        "manager_context_packet_changed: false",
+                        "mutation_changed: false",
+                        "product_readiness_claimed: false",
+                    ]
+                ),
+            )
+        ],
+        DEFAULT_CONFIG,
+    )["entries"][0]
+
+    assert entry["current_shell_metadata_status"] == "fail"
+    assert entry["recommended_verdict"] == "fix_gate"
+    assert "missing_current_shell_metadata:owner_lane" in entry["blocking_reasons"]
+
+
+def test_plce_appshell_runtime_claim_requires_green_upstream_gate() -> None:
+    entry = build_matrix_from_prs(
+        [
+            _pr(
+                title="AppShell browser claim",
+                head="codex/appshel-browser-claim",
+                body=_plce_body(owner_lane="AppShell", pass_type="browser_executed"),
+            )
+        ],
+        DEFAULT_CONFIG,
+    )["entries"][0]
+
+    assert entry["current_shell_metadata_status"] == "fail"
+    assert entry["recommended_verdict"] == "fix_gate"
+    assert "appshell_runtime_claim_requires_green_gate:bootstrap_no_plan_runtime_gate" in entry["blocking_reasons"]
 
 
 def test_rescue_fixture_under_active_app_forces_fix_gate() -> None:

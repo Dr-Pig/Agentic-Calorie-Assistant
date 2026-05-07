@@ -79,3 +79,20 @@ def test_merge_governance_workflow_builds_and_uploads_advisory_matrix() -> None:
     assert "artifacts/pre_queue_readiness_report.json" in workflow
     assert "artifacts/merge_debt_matrix.json" in workflow
     assert "artifacts/merge_debt_matrix.md" in workflow
+
+
+def test_pull_request_template_requires_current_shell_lane_metadata() -> None:
+    template = (ROOT / ".github" / "pull_request_template.md").read_text(encoding="utf-8")
+
+    for field in (
+        "track: PLCE",
+        "owner_lane:",
+        "slice_class:",
+        "pass_type:",
+        "upstream_runtime_gate:",
+        "launch_claim_scope:",
+        "shell_surface_impacted:",
+        "non_claims:",
+        "READY_FOR_QUEUE",
+    ):
+        assert field in template
