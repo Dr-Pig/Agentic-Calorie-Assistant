@@ -49,6 +49,19 @@ REQUIRED_FETCH_PREFIXES = (
     "/accurate-intake/debug",
     "/today/current-budget",
 )
+ENTRY_READ_TOOLS = frozenset(
+    {
+        "budget.get_today_summary",
+        "budget.get_remaining_calories",
+        "budget.get_day_meal_log",
+        "body.get_active_plan",
+        "body.get_latest_observation",
+        "calibration.get_pending_proposal",
+        # Compatibility only while older fixtures still advertise legacy names.
+        "read_day_budget",
+        "read_body_plan",
+    }
+)
 NOT_CLAIMING = [
     "web_ready",
     "product_ready",
@@ -114,7 +127,7 @@ class _ShortTermContextManagerProvider:
         user_payload = _dict(kwargs.get("user_payload"))
         available_tools = {str(item) for item in _list(user_payload.get("available_tools"))}
         round_index = int(user_payload.get("round_index") or 0)
-        is_entry = bool({"read_body_plan", "read_day_budget"}.intersection(available_tools))
+        is_entry = bool(ENTRY_READ_TOOLS.intersection(available_tools))
         if is_entry:
             self.turn_index += 1
             self.active_turn = "bare_basket_followup" if self.turn_index == 0 else "followup_answer_commit"

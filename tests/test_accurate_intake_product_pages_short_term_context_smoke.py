@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 import pytest
@@ -133,6 +134,49 @@ def test_product_pages_short_term_context_validator_requires_context_and_reload_
 
     assert status == "pass"
     assert blockers == []
+
+
+@pytest.mark.parametrize(
+    ("available_tools", "expected_stage"),
+    [
+        (
+            [
+                "budget.get_today_summary",
+                "budget.get_remaining_calories",
+                "budget.get_day_meal_log",
+                "body.get_active_plan",
+                "body.get_latest_observation",
+                "calibration.get_pending_proposal",
+            ],
+            "entry",
+        ),
+        (
+            [
+                "read_day_budget",
+                "read_body_plan",
+            ],
+            "entry",
+        ),
+    ],
+)
+def test_short_term_context_provider_treats_public_and_legacy_read_tools_as_entry(
+    available_tools: list[str],
+    expected_stage: str,
+) -> None:
+    provider = module._ShortTermContextManagerProvider()
+
+    _, trace = asyncio.run(
+        provider.complete_with_trace(
+            user_payload={
+                "available_tools": available_tools,
+                "round_index": 0,
+                "manager_context_packet_v1": {},
+            }
+        )
+    )
+
+    assert provider.calls[0]["stage"] == expected_stage
+    assert trace["stage"] == expected_stage
 
 
 def test_product_pages_short_term_context_validator_rejects_missing_context_support() -> None:
