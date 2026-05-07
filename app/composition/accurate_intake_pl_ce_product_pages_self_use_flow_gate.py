@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 import json
 from typing import Any
 
+from app.composition.accurate_intake_current_shell_claim_boundary import build_current_shell_appshell_claim_boundary_fields
 
 REQUIRED_INPUTS = (
     "ui_same_truth_contract",
@@ -309,9 +310,7 @@ def build_pl_ce_product_pages_self_use_flow_gate_artifact(
         blockers.extend(_forbidden_claim_blockers(group_id, payload))
         blockers.extend(_group_specific_blockers(group_id, payload))
 
-    all_browser_executed = all(
-        inputs[group_id].get("browser_executed") is True for group_id in BROWSER_INPUTS
-    )
+    all_browser_executed = all(inputs[group_id].get("browser_executed") is True for group_id in BROWSER_INPUTS)
     renderer_summary = _object_dict(inputs["product_pages_renderer_source_map"].get("summary"))
     completed_steps = _list_value(inputs["fixture_full_product_loop_e2e"].get("completed_product_loop_steps"))
     status = "product_pages_self_use_flow_ready_for_human_review" if not blockers else "blocked"
@@ -321,6 +320,7 @@ def build_pl_ce_product_pages_self_use_flow_gate_artifact(
             "artifact_type": "accurate_intake_pl_ce_product_pages_self_use_flow_gate",
             "status": status,
             "claim_scope": "local_product_pages_self_use_flow_diagnostic_for_human_review_only",
+            **build_current_shell_appshell_claim_boundary_fields(),
             "generated_at_utc": datetime.now(UTC).isoformat(),
             "required_inputs": list(REQUIRED_INPUTS),
             "browser_required_inputs": list(BROWSER_INPUTS),

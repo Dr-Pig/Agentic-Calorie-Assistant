@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 import json
 from typing import Any
 
+from app.composition.accurate_intake_current_shell_claim_boundary import build_current_shell_appshell_claim_boundary_fields
 
 REQUIRED_INPUTS = (
     "pl_ce_local_mvp_candidate_bundle",
@@ -317,9 +318,7 @@ def build_pl_ce_browser_activation_evidence_gate_artifact(
         blockers.extend(_required_true_blockers(group_id, payload))
         blockers.extend(_group_specific_blockers(group_id, payload))
 
-    all_browser_executed = all(
-        inputs[group_id].get("browser_executed") is True for group_id in BROWSER_ARTIFACTS
-    )
+    all_browser_executed = all(inputs[group_id].get("browser_executed") is True for group_id in BROWSER_ARTIFACTS)
     status = "browser_activation_evidence_ready_for_human_review" if not blockers else "blocked"
     return _json_safe(
         {
@@ -327,6 +326,7 @@ def build_pl_ce_browser_activation_evidence_gate_artifact(
             "artifact_type": "accurate_intake_pl_ce_browser_activation_evidence_gate",
             "status": status,
             "claim_scope": "pl_ce_browser_activation_evidence_for_human_review_only",
+            **build_current_shell_appshell_claim_boundary_fields(),
             "generated_at_utc": datetime.now(UTC).isoformat(),
             "required_inputs": list(REQUIRED_INPUTS),
             "browser_required_inputs": list(BROWSER_ARTIFACTS),
