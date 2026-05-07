@@ -212,8 +212,8 @@ def build_free_text_manual_target_gate_artifact() -> dict[str, Any]:
             blockers.append(f"{case_id}_meal_logged")
         if delta.get("canonical_commit") is not False:
             blockers.append(f"{case_id}_canonical_commit")
-    if not any("read_body_plan" in call.get("available_tools", []) for call in updated["provider_calls"]):
-        blockers.append("manager_provider_did_not_receive_body_plan_tool")
+    if not any("body.get_active_plan" in call.get("available_tools", []) for call in updated["provider_calls"]):
+        blockers.append("manager_provider_did_not_receive_active_plan_tool")
 
     return {
         "artifact_schema_version": "1.0",
