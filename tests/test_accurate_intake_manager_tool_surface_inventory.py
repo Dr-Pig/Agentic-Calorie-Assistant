@@ -63,9 +63,7 @@ def test_manager_tool_surface_inventory_maps_current_direct_lanes_to_future_tool
     assert calibration_action["stored_proposal_required"] is True
     assert calibration_action["raw_text_authorizes_mutation"] is False
 
-    budget_delta = lane_by_id["estimate_calibration_budget_delta_direct_mutation"]
-    assert budget_delta["current_gap"] == "direct_route_mutation_before_manager_tool_contract"
-    assert budget_delta["raw_text_authorizes_mutation"] is False
+    assert "estimate_calibration_budget_delta_direct_mutation" not in lane_by_id
 
     for lane in artifact["current_direct_lanes"]:
         assert lane["semantic_owner"] == "manager"

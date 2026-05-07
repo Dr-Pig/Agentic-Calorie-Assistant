@@ -9,7 +9,6 @@ from app.composition.accurate_intake_manager_tool_surface_inventory import (
     build_manager_tool_surface_inventory_artifact,
 )
 
-_DEBT = "direct_route_mutation_before_manager_tool_contract"
 _OWNER = "manager"
 _ROLE = "choose_tool_then_validate_guard_and_execute_domain_contract"
 
@@ -52,12 +51,11 @@ _ROWS = (
     _row("body.get_active_plan", "read_only", "body_domain", "inventory_backed", ["estimate_general_chat_goal_summary"]),
     _row("body.get_latest_observation", "read_only", "body_domain", "inventory_backed", []),
     _row("body.record_observation", "mutation_bearing", "body_domain", "inventory_backed", ["estimate_body_observation_record_weight"], guard=True, allowed=["body_observation_write_only"], forbidden=["body_plan_mutation", "ledger_mutation"]),
-    _row("calibration.preview_proposal", "proposal_persisting", "calibration_domain", "inventory_backed", ["estimate_explicit_calibration_preview", "estimate_calibration_budget_delta_direct_mutation"], guard=True, allowed=["proposal_preview_optional_open_container"], forbidden=["body_plan_mutation", "ledger_mutation"]),
+    _row("calibration.preview_proposal", "proposal_persisting", "calibration_domain", "inventory_backed", ["estimate_explicit_calibration_preview"], guard=True, allowed=["proposal_preview_optional_open_container"], forbidden=["body_plan_mutation", "ledger_mutation"]),
     _row("calibration.get_pending_proposal", "read_only", "calibration_domain", "inventory_backed", []),
-    _row("calibration.apply_stored_proposal_action", "mutation_bearing", "calibration_domain", "inventory_backed", ["estimate_explicit_calibration_action", "estimate_calibration_budget_delta_direct_mutation"], guard=True, stored=True, explicit=["calibration_proposal_container_id", "calibration_action"], allowed=["proposal_status_change", "body_plan_mutation", "ledger_mutation", "current_budget_refresh"]),
+    _row("calibration.apply_stored_proposal_action", "mutation_bearing", "calibration_domain", "inventory_backed", ["estimate_explicit_calibration_action"], guard=True, stored=True, explicit=["calibration_proposal_container_id", "calibration_action"], allowed=["proposal_status_change", "body_plan_mutation", "ledger_mutation", "current_budget_refresh"]),
     _row("app.answer_usage_question", "read_only", "app_product_policy", "inventory_backed", ["estimate_general_chat_fallback_answer"]),
     _row("budget.set_manual_daily_target", "mutation_bearing", "budget_domain", "adjacent_pending_inventory_expansion", [], guard=True, explicit=["manager_structured_target"], allowed=["body_plan_mutation", "ledger_mutation", "current_budget_refresh"], manager_target=True),
-    _row("legacy.calibration_delta_kcal_direct_route", "legacy_direct_route", "calibration_domain", "legacy_direct_lane_debt", ["estimate_calibration_budget_delta_direct_mutation"], callable_by_manager=False, debt=_DEBT),
 )
 
 _BRIDGES = (
@@ -67,7 +65,6 @@ _BRIDGES = (
     _bridge("estimate_explicit_calibration_preview", ["calibration.preview_proposal"], "inventory_backed"),
     _bridge("estimate_explicit_calibration_action", ["calibration.apply_stored_proposal_action"], "inventory_backed"),
     _bridge("estimate_body_observation_record_weight", ["body.record_observation"], "inventory_backed"),
-    _bridge("estimate_calibration_budget_delta_direct_mutation", ["legacy.calibration_delta_kcal_direct_route", "calibration.preview_proposal", "calibration.apply_stored_proposal_action"], "legacy_direct_lane_debt", debt=_DEBT),
 )
 
 
