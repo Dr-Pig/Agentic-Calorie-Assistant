@@ -75,6 +75,24 @@ Branch cleanup is allowed only after the PR is merged, local status is clean, an
 
 High-risk work still stops for a human gate before merge or runtime activation. High-risk includes production DB work, user-facing rollout/readiness claims, mutation-authority changes, shared contract changes, live provider activation beyond diagnostic scope, and runtime-visible truth promotion without an approved promotion boundary.
 
+## Active Branch / Worktree Hygiene Policy
+
+The healthy local steady state is:
+
+- `main`
+- one active branch/worktree per active builder window
+- at most one temporary steward branch/worktree for CI, governance, or hotfix work
+
+Hard rules:
+
+- merged or closed PR branches must be deleted promptly
+- merged or closed clean worktrees must be removed promptly
+- a builder window must not keep multiple active branches for the same open PR
+- stale exploratory worktrees must not be used as the source of a formal PR
+- duplicate local branches for the same open PR are forbidden
+
+If a slice becomes obsolete because the owner switches to a new plan, snapshot any unique local work first, then delete the obsolete branch/worktree instead of leaving it as a dormant local lane.
+
 ## Platform-Level Hygiene
 
 Enable or confirm:

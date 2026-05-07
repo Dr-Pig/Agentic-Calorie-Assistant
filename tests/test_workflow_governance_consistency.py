@@ -32,6 +32,15 @@ def test_github_repo_governance_defines_merge_queue_delivery_policy() -> None:
     assert "mode: stop_for_human_gate" in governance
 
 
+def test_github_repo_governance_defines_branch_worktree_hygiene_policy() -> None:
+    governance = (ROOT / "docs" / "governance" / "GITHUB_REPO_GOVERNANCE.md").read_text(encoding="utf-8")
+
+    assert "Active Branch / Worktree Hygiene Policy" in governance
+    assert "one active branch/worktree per active builder window" in governance
+    assert "at most one temporary steward branch/worktree" in governance
+    assert "duplicate local branches for the same open PR are forbidden" in governance
+
+
 def test_harness_go_no_go_mentions_current_required_jobs() -> None:
     harness = (ROOT / "docs" / "governance" / "HARNESS_GO_NO_GO.md").read_text(encoding="utf-8")
 
