@@ -21,6 +21,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--candidate-lane-status-packet", type=Path)
     parser.add_argument("--exact-lane-status-packet", type=Path)
     parser.add_argument("--manager-contract-handoff-artifact", type=Path)
+    parser.add_argument("--candidate-pipeline-narrow-expansion-artifact", type=Path)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args(argv)
 
@@ -28,6 +29,9 @@ def main(argv: list[str] | None = None) -> int:
         candidate_lane_status_packet=_read_optional(args.candidate_lane_status_packet),
         exact_lane_status_packet=_read_optional(args.exact_lane_status_packet),
         manager_contract_handoff_artifact=_read_optional(args.manager_contract_handoff_artifact),
+        candidate_pipeline_narrow_expansion_artifact=_read_optional(
+            args.candidate_pipeline_narrow_expansion_artifact
+        ),
     )
     write_json_artifact(args.output, artifact)
     return 0

@@ -11,6 +11,9 @@ _NARROW_EXPANSION = "websearch_candidate_pipeline_narrow_expansion"
 _EXPECTED_CANDIDATE_ARTIFACT = "accurate_intake_websearch_candidate_lane_status_packet_v1"
 _EXPECTED_EXACT_ARTIFACT = "accurate_intake_exact_evidence_lane_status_packet_v1"
 _EXPECTED_HANDOFF_ARTIFACT = "accurate_intake_websearch_manager_contract_handoff_v1"
+_EXPECTED_NARROW_EXPANSION_ARTIFACT = (
+    "accurate_intake_websearch_candidate_pipeline_narrow_expansion_v1"
+)
 _ALLOWED_CANDIDATE_NEXT_SLICES = {
     "await_manager_contract_owner_repair",
     "grokfast_fooddb_packet_live_diagnostic",
@@ -38,6 +41,7 @@ def build_websearch_evidence_status_packet(
     candidate_lane_status_packet: dict[str, Any] | None = None,
     exact_lane_status_packet: dict[str, Any] | None = None,
     manager_contract_handoff_artifact: dict[str, Any] | None = None,
+    candidate_pipeline_narrow_expansion_artifact: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     candidate_lane = (
         build_websearch_candidate_lane_status_packet()
@@ -53,10 +57,12 @@ def build_websearch_evidence_status_packet(
     candidate_gate = _compact_candidate_lane(candidate_lane)
     exact_gate = _compact_exact_lane(exact_lane)
     handoff_gate = _compact_handoff(manager_contract_handoff_artifact)
+    narrow_expansion_gate = _compact_narrow_expansion(candidate_pipeline_narrow_expansion_artifact)
     next_required_slices = _next_required_slices(
         candidate_gate=candidate_gate,
         exact_gate=exact_gate,
         handoff_gate=handoff_gate,
+        narrow_expansion_gate=narrow_expansion_gate,
     )
     status = "pass" if candidate_gate["next_required_slice"] == _INSPECT_WEBSEARCH_STATUS else "blocked_on_candidate_lane"
 
@@ -82,11 +88,16 @@ def build_websearch_evidence_status_packet(
             "exact_lane_next_required_slice": exact_gate["next_required_slice"],
             "manager_contract_handoff_status": handoff_gate["status"],
             "manager_contract_selected_next_step": handoff_gate["selected_next_step"],
+            "candidate_pipeline_narrow_expansion_status": narrow_expansion_gate["status"],
+            "candidate_pipeline_narrow_expansion_next_required_slice": narrow_expansion_gate[
+                "next_required_slice"
+            ],
             "live_seam_status": handoff_gate["live_seam_status"],
         },
         "candidate_lane_gate": candidate_gate,
         "exact_lane_gate": exact_gate,
         "manager_contract_handoff_gate": handoff_gate,
+        "candidate_pipeline_narrow_expansion_gate": narrow_expansion_gate,
         "next_required_slices": next_required_slices,
         "non_claims": [
             "no_runtime_truth_promotion",
@@ -147,11 +158,43 @@ def _compact_handoff(artifact: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def _compact_narrow_expansion(artifact: dict[str, Any] | None) -> dict[str, Any]:
+    if artifact is None:
+        return {"status": "not_provided", "next_required_slice": _NARROW_EXPANSION}
+    if str(artifact.get("artifact_type") or "") != _EXPECTED_NARROW_EXPANSION_ARTIFACT:
+        raise ValueError("unsupported_websearch_evidence_status_narrow_expansion")
+    status = str(artifact.get("status") or "blocked")
+    next_required_slice = str(artifact.get("next_required_slice") or "").strip() or _NEXT_SLICE
+    if artifact.get("runtime_truth_changed") is not False:
+        status = "blocked"
+        next_required_slice = _NEXT_SLICE
+    if artifact.get("mutation_changed") is not False:
+        status = "blocked"
+        next_required_slice = _NEXT_SLICE
+    if artifact.get("manager_context_changed") is not False:
+        status = "blocked"
+        next_required_slice = _NEXT_SLICE
+    if artifact.get("shared_contract_changed") is not False:
+        status = "blocked"
+        next_required_slice = _NEXT_SLICE
+    if artifact.get("live_provider_used") is not False:
+        status = "blocked"
+        next_required_slice = _NEXT_SLICE
+    if artifact.get("live_websearch_used") is not False:
+        status = "blocked"
+        next_required_slice = _NEXT_SLICE
+    if artifact.get("readiness_claimed") is not False:
+        status = "blocked"
+        next_required_slice = _NEXT_SLICE
+    return {"status": status, "next_required_slice": next_required_slice}
+
+
 def _next_required_slices(
     *,
     candidate_gate: dict[str, Any],
     exact_gate: dict[str, Any],
     handoff_gate: dict[str, Any],
+    narrow_expansion_gate: dict[str, Any],
 ) -> list[str]:
     candidate_next = candidate_gate["next_required_slice"]
     if candidate_next != _INSPECT_WEBSEARCH_STATUS:
@@ -163,7 +206,8 @@ def _next_required_slices(
         exact_next == "grokfast_websearch_packet_live_diagnostic"
         and handoff_gate["status"] == "websearch_contract_unblocked"
     ):
-        return [_NARROW_EXPANSION]
+        narrow_next = str(narrow_expansion_gate["next_required_slice"] or "").strip()
+        return [narrow_next or _NARROW_EXPANSION]
     if exact_next:
         return [exact_next]
     return [_INSPECT_WEBSEARCH_STATUS]

@@ -80,6 +80,21 @@ def _contract_handoff(status: str, selected_next_step: str) -> dict:
     }
 
 
+def _narrow_expansion(status: str = "pass", next_required_slice: str = "inspect_websearch_status_packet") -> dict:
+    return {
+        "artifact_type": "accurate_intake_websearch_candidate_pipeline_narrow_expansion_v1",
+        "status": status,
+        "next_required_slice": next_required_slice,
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "manager_context_changed": False,
+        "shared_contract_changed": False,
+        "live_provider_used": False,
+        "live_websearch_used": False,
+        "readiness_claimed": False,
+    }
+
+
 def test_websearch_evidence_status_packet_defaults_to_candidate_lane_next_step() -> None:
     artifact = build_websearch_evidence_status_packet(
         candidate_lane_status_packet=_candidate_lane("grokfast_fooddb_packet_live_diagnostic")
@@ -124,6 +139,25 @@ def test_websearch_evidence_status_packet_sanitizes_post_live_repeat_into_narrow
     assert artifact["status"] == "pass"
     assert artifact["summary"]["manager_contract_handoff_status"] == "websearch_contract_unblocked"
     assert artifact["next_required_slices"] == ["websearch_candidate_pipeline_narrow_expansion"]
+
+
+def test_websearch_evidence_status_packet_advances_after_narrow_expansion_artifact_passes() -> None:
+    artifact = build_websearch_evidence_status_packet(
+        candidate_lane_status_packet=_candidate_lane("inspect_websearch_status_packet"),
+        exact_lane_status_packet=_exact_lane("grokfast_websearch_packet_live_diagnostic"),
+        manager_contract_handoff_artifact=_contract_handoff(
+            "websearch_contract_unblocked",
+            "inspect_websearch_status_packet",
+        ),
+        candidate_pipeline_narrow_expansion_artifact=_narrow_expansion(),
+    )
+
+    assert artifact["status"] == "pass"
+    assert artifact["summary"]["candidate_pipeline_narrow_expansion_status"] == "pass"
+    assert artifact["summary"]["candidate_pipeline_narrow_expansion_next_required_slice"] == (
+        "inspect_websearch_status_packet"
+    )
+    assert artifact["next_required_slices"] == ["inspect_websearch_status_packet"]
 
 
 def test_websearch_evidence_status_packet_rejects_unexpected_candidate_lane_type() -> None:
