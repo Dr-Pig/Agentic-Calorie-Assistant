@@ -30,6 +30,21 @@ def _blocked_claim_boundary() -> dict:
     }
 
 
+def _ready_today_macro_mirror_gate() -> dict:
+    return {
+        "status": "today_macro_mirror_gate_ready_for_human_review",
+        "source": "test",
+        "pass_type": "contract",
+        "frontend_semantic_owner": False,
+        "frontend_calculates_macro_values": False,
+        "summary": {
+            "renderer_contract_fields_checked": 5,
+            "visible_case_checked": True,
+            "guarded_case_checked": True,
+        },
+    }
+
+
 def _clean_evidence() -> dict:
     return {
         "browser_shell_smoke": {"status": "pass", "source": "test"},
@@ -71,6 +86,7 @@ def _clean_evidence() -> dict:
             "appshell_claim_boundary": _ready_claim_boundary(),
         },
         "ui_context_alignment_pack": {"status": "ui_context_alignment_ready_for_human_review", "source": "test"},
+        "today_macro_mirror_gate": _ready_today_macro_mirror_gate(),
         "browser_activation_evidence_gate": {
             "status": "browser_activation_evidence_ready_for_human_review",
             "source": "test",
@@ -217,6 +233,14 @@ def test_candidate_blocked_when_chat_history_reload_missing() -> None:
     pack = build_local_web_self_use_candidate_v2(evidence)
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert "missing evidence: chat_history_reload" in pack["local_web_self_use_candidate_v2"]["blockers"]
+
+
+def test_candidate_blocked_when_today_macro_mirror_gate_missing() -> None:
+    evidence = _clean_evidence()
+    del evidence["today_macro_mirror_gate"]
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    assert "missing evidence: today_macro_mirror_gate" in pack["local_web_self_use_candidate_v2"]["blockers"]
 
 def test_candidate_blocked_when_free_text_manual_target_missing() -> None:
     evidence = _clean_evidence()

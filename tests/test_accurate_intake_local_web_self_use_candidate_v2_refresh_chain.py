@@ -104,6 +104,12 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
             / module.REFRESHED_ARTIFACT_FILENAMES["pre_live_decision_pack"]
         ).read_text(encoding="utf-8")
     )
+    today_macro_mirror_gate = json.loads(
+        (
+            artifact_dir
+            / module.REFRESHED_ARTIFACT_FILENAMES["today_macro_mirror_gate"]
+        ).read_text(encoding="utf-8")
+    )
     candidate = json.loads(
         (
             artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["local_web_candidate"]
@@ -123,6 +129,7 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
     assert pre_live_evidence["non_fooddb_manager_tool_contract"]["status"] == (
         "non_fooddb_manager_tool_contract_ready_for_human_review"
     )
+    assert today_macro_mirror_gate["status"] == "today_macro_mirror_gate_ready_for_human_review"
     assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
     assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert "browser activation evidence gate appshell claim not ready" in candidate[
