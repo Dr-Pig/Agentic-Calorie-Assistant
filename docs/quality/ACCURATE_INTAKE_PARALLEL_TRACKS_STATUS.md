@@ -1,9 +1,11 @@
-﻿# Current Shell v1 Parallel Tracks Status
+﻿# CurrentShell Parallel Tracks Status
 
 This file is the shared context pack for Current Shell v1 coordination work.
 It is project coordination truth, not product runtime truth.
-The current coordination model is three tracks: `FoodDB`, `ManagerRuntime`, and `AppShell`.
-Legacy `PLCE` / `PL+CE` wording remains compatibility vocabulary only for older artifacts and file paths; it is not the active ownership model.
+The canonical machine track is `CurrentShell`.
+`ManagerRuntime`, `AppShell`, and `SharedCurrentShell` are `CurrentShell` owner lanes, not top-level tracks.
+`FoodDB` remains an independent truth-owner track.
+Legacy `PLCE` / `PL+CE` / `PL_CE` wording remains compatibility vocabulary only for older artifacts and file paths; it is not the active ownership model.
 Draft PR bodies plus CI are the live sync truth; this file is the rule map and handoff template.
 
 Agents should read this file before starting a new Accurate Intake slice.
@@ -55,7 +57,7 @@ Outputs consumed by:
 - ManagerRuntime via approved packet-ready evidence artifact
 - runtime via stable NutritionEvidenceStorePort
 
-### Track ManagerRuntime: Upstream Runtime Contract Owner
+### CurrentShell Owner Lane ManagerRuntime: Upstream Runtime Contract Owner
 
 Owns:
 - intent, tool, and target posture decisions
@@ -80,7 +82,7 @@ Outputs consumed by:
 - human/operator review
 - later live-diagnostic gate review
 
-### Track AppShell: Downstream Renderer / Browser Verifier
+### CurrentShell Owner Lane AppShell: Downstream Renderer / Browser Verifier
 
 Owns:
 - browser-executed local shell smoke
@@ -107,6 +109,25 @@ Outputs consumed by:
 - integration dogfood later
 - human/operator review
 - later live-diagnostic gate review
+
+### CurrentShell Owner Lane SharedCurrentShell: Shared Coordination Artifacts
+
+Owns:
+- machine-readable coordination artifacts that AppShell and merge governance consume
+- the shared CurrentShell sync contract and gate-ledger wiring
+- PR metadata examples and active coordination guidance
+- active coordination markdown that explains owner-lane boundaries without redefining runtime semantics
+
+Must not touch:
+- FoodDB truth
+- ManagerRuntime semantic ownership or runtime truth
+- AppShell-only rendering behavior
+- candidate-bundle readiness claims
+
+Outputs consumed by:
+- ManagerRuntime and AppShell PR templates
+- merge-governance normalization and queue-readiness checks
+- human/operator review
 
 ## Shared Interface Contracts
 
@@ -219,6 +240,7 @@ Live sync truth is Draft PR body plus CI state.
 ### FoodDB Status
 
 track: FoodDB
+owner_lane: not_applicable
 branch: not_reported_in_this_status_pack_yet
 current_slice: not_reported_in_this_status_pack_yet
 status: not_reported_in_this_status_pack_yet
@@ -226,9 +248,10 @@ expected_output: approved packet-ready evidence artifact
 shared_contract_changed: false
 blocked_by: not_reported_in_this_status_pack_yet
 
-### ManagerRuntime Status
+### CurrentShell / ManagerRuntime Status
 
-track: ManagerRuntime
+track: CurrentShell
+owner_lane: ManagerRuntime
 branch: update_only_when_reporting_your_current_pr_or_main_based_slice
 current_slice: update_only_when_reporting_your_current_pr_or_main_based_slice
 status: update_only_when_reporting_your_current_pr_or_main_based_slice
@@ -236,13 +259,25 @@ expected_output: runtime contracts, gate ledger entries, manager/tool diagnostic
 shared_contract_changed: false
 blocked_by: update_only_when_reporting_your_current_pr_or_main_based_slice
 
-### AppShell Status
+### CurrentShell / AppShell Status
 
-track: AppShell
+track: CurrentShell
+owner_lane: AppShell
 branch: update_only_when_reporting_your_current_pr_or_main_based_slice
 current_slice: update_only_when_reporting_your_current_pr_or_main_based_slice
 status: update_only_when_reporting_your_current_pr_or_main_based_slice
 expected_output: browser/product-page artifacts, render-only shell gates, same-truth verification packs, local review packs
+shared_contract_changed: false
+blocked_by: update_only_when_reporting_your_current_pr_or_main_based_slice
+
+### CurrentShell / SharedCurrentShell Status
+
+track: CurrentShell
+owner_lane: SharedCurrentShell
+branch: update_only_when_reporting_your_current_pr_or_main_based_slice
+current_slice: update_only_when_reporting_your_current_pr_or_main_based_slice
+status: update_only_when_reporting_your_current_pr_or_main_based_slice
+expected_output: sync contract updates, gate-ledger wiring, queue/governance metadata examples, active coordination guidance
 shared_contract_changed: false
 blocked_by: update_only_when_reporting_your_current_pr_or_main_based_slice
 
@@ -271,8 +306,9 @@ After finishing a slice:
 
 Agents may update only their own track status block:
 - FoodDB agents may update only FoodDB Status.
-- ManagerRuntime agents may update only ManagerRuntime Status.
-- AppShell agents may update only AppShell Status.
+- ManagerRuntime agents may update only CurrentShell / ManagerRuntime Status.
+- AppShell agents may update only CurrentShell / AppShell Status.
+- SharedCurrentShell agents may update only CurrentShell / SharedCurrentShell Status.
 
 Agents must not change Track Ownership, Shared Interface Contracts, Shared Contract Change Gate, Artifact Compatibility Gate, or Cross-Track Blockers without human approval.
 
@@ -282,6 +318,7 @@ Use this shape when reporting a completed slice:
 
 ```yaml
 track:
+owner_lane:
 slice_id:
 branch:
 changed_files:

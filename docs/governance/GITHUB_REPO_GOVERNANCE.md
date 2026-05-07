@@ -75,6 +75,24 @@ Branch cleanup is allowed only after the PR is merged, local status is clean, an
 
 High-risk work still stops for a human gate before merge or runtime activation. High-risk includes production DB work, user-facing rollout/readiness claims, mutation-authority changes, shared contract changes, live provider activation beyond diagnostic scope, and runtime-visible truth promotion without an approved promotion boundary.
 
+## CurrentShell Canonical Track Rules
+
+Current-shell machine-facing governance now uses:
+
+```yaml
+track: CurrentShell
+owner_lane: ManagerRuntime | AppShell | SharedCurrentShell
+```
+
+Hard rules:
+
+- `CurrentShell` is the canonical top-level machine track for current-shell work.
+- `ManagerRuntime`, `AppShell`, and `SharedCurrentShell` are owner lanes, not top-level tracks.
+- `owner_lane` is the machine-facing ownership field for `CurrentShell` PR metadata and queue/readiness checks.
+- `FoodDB` remains an independent truth-owner track.
+- legacy `PLCE` / `PL+CE` / `PL_CE` / `ProductLoop` wording may remain only as temporary compatibility vocabulary for older paths, artifacts, and cutover aliases.
+- no new PR should open with canonical `track: PLCE` after the CurrentShell governance cutover lands.
+
 ## Platform-Level Hygiene
 
 Enable or confirm:

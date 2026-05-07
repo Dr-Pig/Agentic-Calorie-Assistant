@@ -172,6 +172,69 @@ def test_pre_queue_readiness_fails_pull_request_missing_required_report(tmp_path
     assert "missing_track_report_key:runtime_truth_changed" in report["blockers"]
 
 
+def test_pre_queue_readiness_current_shell_does_not_require_owner_lane(tmp_path: Path) -> None:
+    event = tmp_path / "event.json"
+    event.write_text(
+        json.dumps(
+            {
+                "pull_request": {
+                    "body": (
+                        "track: CurrentShell\n"
+                        "runtime_truth_changed: false\n"
+                        "manager_context_packet_changed: false\n"
+                        "mutation_changed: false\n"
+                        "product_readiness_claimed: false\n"
+                    )
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert (
+        check_pre_queue_readiness.main(
+            ["--event-file", str(event), "--output", str(tmp_path / "out.json")]
+        )
+        == 0
+    )
+
+    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
+    assert report["status"] == "pass"
+    assert report["blockers"] == []
+
+
+def test_pre_queue_readiness_blocks_invalid_current_shell_surface_metadata(tmp_path: Path) -> None:
+    event = tmp_path / "event.json"
+    event.write_text(
+        json.dumps(
+            {
+                "pull_request": {
+                    "body": (
+                        "track: CurrentShell\n"
+                        "owner_lane: AppShell\n"
+                        "shell_surface_impacted: yes\n"
+                        "runtime_truth_changed: false\n"
+                        "manager_context_packet_changed: false\n"
+                        "mutation_changed: false\n"
+                        "product_readiness_claimed: false\n"
+                    )
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert (
+        check_pre_queue_readiness.main(
+            ["--event-file", str(event), "--output", str(tmp_path / "out.json")]
+        )
+        == 1
+    )
+
+    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
+    assert "invalid_shell_surface_impacted:yes" in report["blockers"]
+
+
 def test_q_owner_queue_avoids_diff_scan_for_live_repo_reads(monkeypatch, tmp_path: Path) -> None:
     captured: dict[str, object] = {}
 

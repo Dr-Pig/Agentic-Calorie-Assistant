@@ -1,7 +1,10 @@
-﻿# Current Shell v1 Coordination Roadmap
+﻿# CurrentShell Coordination Roadmap
 
-This legacy-path document records the Current Shell v1 coordination map for the Accurate Intake local web self-use candidate.
-The file path retains `PL_CE` for compatibility, but the active ownership split is `ManagerRuntime` + `AppShell`.
+This legacy-path document records the CurrentShell coordination map for the Accurate Intake local web self-use candidate.
+The file path retains `PL_CE` for compatibility, but the canonical track is `CurrentShell`.
+CurrentShell owner lanes are `ManagerRuntime`, `AppShell`, and `SharedCurrentShell`.
+FoodDB remains an independent truth-owner track.
+Legacy `PLCE` / `PL+CE` / `PL_CE` wording remains compatibility vocabulary only for old paths and artifacts; it is not the canonical track model.
 It is repo coordination truth, not product runtime truth.
 
 ## Current State
@@ -98,7 +101,7 @@ The top-level pre-live decision pack must directly consume the finished product-
 
 ## Current-Shell Coordination Artifacts
 
-The machine-readable coordination artifacts for downstream AppShell/browser work and merge-governance checks are:
+SharedCurrentShell owns the machine-readable coordination artifacts for downstream AppShell/browser work and merge-governance checks:
 
 - `docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml`
 - `docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml`
@@ -201,7 +204,7 @@ The operating guidance is:
 
 ## Required Non-Claims
 
-Every legacy `PL+CE` / Current Shell coordination artifact must preserve:
+Every legacy `PL+CE` / `CurrentShell` compatibility artifact must preserve:
 
 ```yaml
 product_readiness_claimed=false
@@ -221,14 +224,14 @@ Before provider calls, human review must confirm:
 
 - PR123 browser shell checkpoint is accepted.
 - PR125 diagnostic review bundle is accepted.
-- the legacy `pl_ce_local_review_decision_pack` artifact is green.
+- the compatibility artifact `pl_ce_local_review_decision_pack` is green.
 - Context replay pack scenarios match real correction/removal use.
 - Fake-provider context smoke passes without live provider calls.
 - FoodDB remains separate and no runtime evidence truth was promoted by ManagerRuntime or AppShell.
 
 ## Later Live Gate
 
-The later live diagnostic gate starts only after deterministic Current Shell v1 closure.
+The later live diagnostic gate starts only after deterministic CurrentShell closure.
 The order is:
 
 1. deterministic Current Shell v1 decision pack green

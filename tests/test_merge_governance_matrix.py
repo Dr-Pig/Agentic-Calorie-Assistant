@@ -137,14 +137,25 @@ def test_future_shadow_guard_only_pr_is_extract_only() -> None:
     assert matrix["entries"][0]["recommended_verdict"] == "extract_only"
 
 
-def test_plce_track_alias_is_mvp_mainline() -> None:
-    entry = build_matrix_from_prs([_pr(body=_pr()["body"].replace("BodyBudgetCalibration", "PL_CE"))], DEFAULT_CONFIG)[
-        "entries"
-    ][0]
+def test_current_shell_legacy_track_aliases_are_mvp_mainline() -> None:
+    assert "CurrentShell" in DEFAULT_CONFIG["mvp_mainline_tracks"]
 
-    assert entry["track"] == "PLCE"
-    assert entry["mainline_status"] == "mvp_mainline"
-    assert entry["recommended_verdict"] == "merge_candidate"
+    for alias in (
+        "PLCE",
+        "PL+CE",
+        "PL_CE",
+        "PL/CE",
+        "PL-CE",
+        "ProductLoop",
+        "ProductLifecycleContextEngineering",
+    ):
+        entry = build_matrix_from_prs([_pr(body=_pr()["body"].replace("BodyBudgetCalibration", alias))], DEFAULT_CONFIG)[
+            "entries"
+        ][0]
+
+        assert entry["track"] == "CurrentShell"
+        assert entry["mainline_status"] == "mvp_mainline"
+        assert entry["recommended_verdict"] == "merge_candidate"
 
 
 def test_runtime_contract_failure_is_fix_gate() -> None:

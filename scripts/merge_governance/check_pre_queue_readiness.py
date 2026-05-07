@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 from typing import Any
 
@@ -14,12 +15,26 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.merge_governance.build_merge_debt_matrix import REQUIRED_TRACK_REPORT_KEYS, extract_track_report  # noqa: E402
+from scripts.merge_governance.build_merge_debt_matrix import (  # noqa: E402
+    current_shell_metadata_findings,
+    infer_track,
+    load_current_shell_sync_contract,
+)
 
 DEFAULT_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 DEFAULT_OUTPUT = ROOT / "artifacts" / "pre_queue_readiness_report.json"
+CURRENT_SHELL_SYNC_CONTRACT_PATH = ROOT / "docs" / "quality" / "CURRENT_SHELL_SYNC_CONTRACT.yaml"
 
 
 PRODUCT_PAGES_JOB = "product-pages-browser-e2e"
+PRODUCT_PAGES_SCOPE_MARKERS = (
+    "id: product_pages_mode",
+    "steps.product_pages_mode.outputs.mode == 'full_run'",
+    "steps.product_pages_mode.outputs.mode == 'fast_pass'",
+    "continue-on-error: true",
+    "scripts/build_product_pages_browser_gate_placeholders.py --mode fast_pass",
+    "scripts/build_product_pages_browser_gate_placeholders.py --mode blocked_upstream",
+)
 
 COMMAND_SNIPPETS = (
     (
@@ -175,16 +190,80 @@ def _track_report_blockers_from_event(event_path: Path | None) -> list[str]:
     return [f"missing_track_report_key:{key}" for key in REQUIRED_TRACK_REPORT_KEYS if key not in flags]
 
 
+def _pull_request_from_event(event_path: Path | None) -> dict[str, Any] | None:
+    if event_path is None or not event_path.exists():
+        return None
+    event = json.loads(event_path.read_text(encoding="utf-8"))
+    pull_request = event.get("pull_request")
+    return pull_request if isinstance(pull_request, dict) else None
+
+
+def _current_shell_sync_blockers() -> list[str]:
+    blockers: list[str] = []
+    if not CURRENT_SHELL_SYNC_CONTRACT_PATH.exists():
+        blockers.append(f"missing_shared_repo_truth:{CURRENT_SHELL_SYNC_CONTRACT_PATH.as_posix()}")
+    return blockers
+
+
+def _current_shell_metadata_blockers_from_event(event_path: Path | None) -> tuple[list[str], list[str]]:
+    pull_request = _pull_request_from_event(event_path)
+    if pull_request is None:
+        return [], []
+    head = pull_request.get("head") if isinstance(pull_request.get("head"), dict) else {}
+    payload = {
+        "title": pull_request.get("title") or "",
+        "body": pull_request.get("body") or "",
+        "headRefName": head.get("ref") or "",
+    }
+    track = infer_track(payload)
+    flags = extract_track_report(str(pull_request.get("body") or ""))
+    blockers, advisories, _ = current_shell_metadata_findings(
+        flags,
+        track=track,
+        sync_contract=load_current_shell_sync_contract(),
+    )
+    return blockers, advisories
+
+
+def _run_json(command: list[str]) -> Any:
+    completed = subprocess.run(
+        command,
+        cwd=ROOT,
+        check=False,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if completed.returncode != 0:
+        return None
+    return json.loads(completed.stdout)
+
+
+def _same_lane_hotfix_advisories(event_path: Path | None) -> list[str]:
+    return []
+
+
 def build_report(workflow_text: str, *, event_path: Path | None = None) -> dict[str, Any]:
     blockers: list[str] = []
+    advisories: list[str] = []
     if any(marker in workflow_text for marker in ("<<<<<<<", "=======", ">>>>>>>")):
         blockers.append("workflow_conflict_markers_present")
     blockers.extend(_track_report_blockers_from_event(event_path))
+    blockers.extend(_current_shell_sync_blockers())
+    metadata_blockers, metadata_advisories = _current_shell_metadata_blockers_from_event(event_path)
+    blockers.extend(metadata_blockers)
+    advisories.extend(metadata_advisories)
 
     job = _job_block(workflow_text, PRODUCT_PAGES_JOB)
     if not job:
         blockers.append(f"missing_job.{PRODUCT_PAGES_JOB}")
-        return {"status": "fail", "blockers": blockers}
+        return {"status": "fail", "blockers": blockers, "advisories": advisories}
+
+    for marker in PRODUCT_PAGES_SCOPE_MARKERS:
+        if marker not in job:
+            blockers.append(f"missing_product_pages_scope_marker:{marker}")
 
     positions: list[tuple[str, int]] = []
     for artifact_id, snippet in COMMAND_SNIPPETS:
@@ -222,6 +301,7 @@ def build_report(workflow_text: str, *, event_path: Path | None = None) -> dict[
         "status": "pass" if not blockers else "fail",
         "checked_job": PRODUCT_PAGES_JOB,
         "blockers": blockers,
+        "advisories": sorted(set(advisories)),
     }
 
 

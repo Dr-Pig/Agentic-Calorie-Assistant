@@ -10,6 +10,8 @@ def test_rake_intake_evidence_scope_locks_track_ownership_and_boundaries() -> No
     content = DOC_PATH.read_text(encoding="utf-8-sig")
 
     assert "RAKE Intake Evidence Track" in content
+    assert "`FoodDB` remains an independent truth-owner track." in content
+    assert "`CurrentShell` consumes this evidence through owner lanes such as `ManagerRuntime`, `AppShell`, and `SharedCurrentShell`." in content
     assert "FoodDB retrieval/ranking" in content
     assert "tool-calling evidence seam" in content
     assert "WebSearch candidate evidence" in content
