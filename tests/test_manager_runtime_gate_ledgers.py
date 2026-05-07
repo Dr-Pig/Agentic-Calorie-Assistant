@@ -63,6 +63,7 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
     assert gates["rt1c_cache_metrics_observability"]["depends_on"] == [
         "rt1b_stable_prefix_dynamic_suffix_contract"
     ]
+    assert gates["rt2_coarse_tool_surface_convergence"]["status"] == "green"
     assert gates["rt2a_public_tool_name_normalization"]["status"] == "green"
     assert gates["rt2a_public_tool_name_normalization"]["title"] == (
         "Public tool name normalization at manager boundary"
@@ -81,6 +82,7 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt2a_public_tool_name_normalization",
         "rt2b_entry_fallback_public_tool_surface",
     ]
+    assert gates["rt3_react_trace_contract"]["status"] == "green"
     assert gates["rt3a_react_trace_observable_skeleton"]["status"] == "green"
     assert gates["rt3a_react_trace_observable_skeleton"]["title"] == "ReAct trace observable skeleton"
     assert gates["rt3b_multi_pass_react_trace_summary"]["status"] == "green"
@@ -89,12 +91,14 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt3a_react_trace_observable_skeleton",
         "rt3b_multi_pass_react_trace_summary",
     ]
+    assert gates["rt4_context_packet_acceptance"]["status"] == "green"
     assert gates["rt4a_runtime_context_packet_acceptance"]["status"] == "green"
     assert gates["rt4a_runtime_context_packet_acceptance"]["title"] == "Runtime context packet acceptance smoke"
     assert gates["rt4_context_packet_acceptance"]["depends_on"] == [
         "rt3_react_trace_contract",
         "rt4a_runtime_context_packet_acceptance",
     ]
+    assert gates["rt5_intent_tool_argument_walls"]["status"] == "green"
     assert gates["rt5_intent_tool_argument_walls"]["depends_on"] == [
         "rt2_coarse_tool_surface_convergence",
         "rt4_context_packet_acceptance",

@@ -31,7 +31,7 @@ gates:
       - rt1b_stable_prefix_dynamic_suffix_contract
   - gate_id: rt2_coarse_tool_surface_convergence
     title: Coarse public tool surface convergence
-    status: pending
+    status: green
     pass_type: runtime_backed
     depends_on:
       - rt2a_public_tool_name_normalization
@@ -58,7 +58,7 @@ gates:
       - rt2b_entry_fallback_public_tool_surface
   - gate_id: rt3_react_trace_contract
     title: ReAct trace contract
-    status: pending
+    status: green
     pass_type: runtime_backed
     depends_on:
       - rt3a_react_trace_observable_skeleton
@@ -77,7 +77,7 @@ gates:
       - rt3a_react_trace_observable_skeleton
   - gate_id: rt4_context_packet_acceptance
     title: Context packet acceptance gate
-    status: pending
+    status: green
     pass_type: runtime_backed
     depends_on:
       - rt3_react_trace_contract
@@ -90,7 +90,7 @@ gates:
       - rt3_react_trace_contract
   - gate_id: rt5_intent_tool_argument_walls
     title: Intent, tool-choice, and argument walls
-    status: pending
+    status: green
     pass_type: runtime_backed
     depends_on:
       - rt2_coarse_tool_surface_convergence
