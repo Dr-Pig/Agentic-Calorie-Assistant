@@ -17,6 +17,17 @@ def _write(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
 
+def _ready_claim_boundary() -> dict[str, object]:
+    return {
+        "status": "ready_for_runtime_and_browser_claims",
+        "runtime_backed_claim_ready": True,
+        "browser_executed_claim_ready": True,
+        "required_manager_runtime_gates": ["rt6_bootstrap_no_plan_body_closure"],
+        "green_manager_runtime_gates": ["rt6_bootstrap_no_plan_body_closure"],
+        "non_green_manager_runtime_gates": [],
+    }
+
+
 def _required_payloads() -> dict[str, dict[str, object]]:
     return {
         "phase_c_gate": {
@@ -84,6 +95,10 @@ def _required_payloads() -> dict[str, dict[str, object]]:
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_pl_ce_product_pages_self_use_flow_gate",
             "status": "product_pages_self_use_flow_ready_for_human_review",
+            "pass_type": "contract",
+            "current_shell_sync_contract_source": "docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml",
+            "manager_runtime_gate_ledger_source": "docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml",
+            "appshell_claim_boundary": _ready_claim_boundary(),
             "summary": {
                 "three_distinct_pages_verified": True,
                 "seven_day_diary_checked": True,
@@ -105,6 +120,10 @@ def _required_payloads() -> dict[str, dict[str, object]]:
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_pl_ce_browser_activation_evidence_gate",
             "status": "browser_activation_evidence_ready_for_human_review",
+            "pass_type": "contract",
+            "current_shell_sync_contract_source": "docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml",
+            "manager_runtime_gate_ledger_source": "docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml",
+            "appshell_claim_boundary": _ready_claim_boundary(),
             "all_required_browser_artifacts_executed": True,
             "browser_executed_required": True,
         },
@@ -687,6 +706,51 @@ def test_local_web_self_use_candidate_v2_gate_runner_blocks_pl_ce_overclaim(
     assert printed["candidate_prepared"] is False
     assert "PL+CE local review overclaim" in candidate["local_web_self_use_candidate_v2"]["blockers"]
     assert candidate["local_web_self_use_candidate_v2"]["private_self_use_approved"] is False
+
+
+def test_local_web_self_use_candidate_v2_gate_runner_blocks_blocked_appshell_claim_boundary(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts.run_accurate_intake_local_web_self_use_candidate_v2_gate import (
+        DEFAULT_EVIDENCE_PATHS,
+        main,
+    )
+
+    artifact_dir = tmp_path / "artifacts"
+    payloads = _required_payloads()
+    payloads["browser_activation_evidence_gate"]["appshell_claim_boundary"] = {
+        "status": "blocked_on_manager_runtime_upstream_gates",
+        "runtime_backed_claim_ready": False,
+        "browser_executed_claim_ready": False,
+        "required_manager_runtime_gates": ["rt7_clarify_commit_correction_closure"],
+        "green_manager_runtime_gates": ["rt3a_react_trace_observable_skeleton"],
+        "non_green_manager_runtime_gates": ["rt7_clarify_commit_correction_closure"],
+    }
+    for group_id, payload in payloads.items():
+        _write(artifact_dir / f"{group_id}.json", payload)
+    candidate_output = tmp_path / "candidate.json"
+
+    exit_code = main(
+        [
+            "--pre-live-evidence-output",
+            str(tmp_path / "pre_live_evidence.json"),
+            "--pre-live-output",
+            str(tmp_path / "pre_live_decision_pack.json"),
+            "--candidate-output",
+            str(candidate_output),
+            *_artifact_args(artifact_dir, tuple(DEFAULT_EVIDENCE_PATHS)),
+        ]
+    )
+    printed = json.loads(capsys.readouterr().out)
+    candidate = json.loads(candidate_output.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["candidate_prepared"] is False
+    assert (
+        "browser activation evidence gate appshell claim not ready"
+        in candidate["local_web_self_use_candidate_v2"]["blockers"]
+    )
 
 
 def test_local_web_self_use_candidate_v2_gate_runner_blocks_status_only_artifacts(
