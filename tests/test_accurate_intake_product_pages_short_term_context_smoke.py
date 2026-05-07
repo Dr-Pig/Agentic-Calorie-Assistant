@@ -137,10 +137,11 @@ def test_product_pages_short_term_context_validator_requires_context_and_reload_
 
 
 @pytest.mark.parametrize(
-    ("available_tools", "expected_stage"),
+    ("available_tools", "expected_stage", "expected_final_action"),
     [
         (
             [
+                "app.answer_usage_question",
                 "budget.get_today_summary",
                 "budget.get_remaining_calories",
                 "budget.get_day_meal_log",
@@ -149,6 +150,7 @@ def test_product_pages_short_term_context_validator_requires_context_and_reload_
                 "calibration.get_pending_proposal",
             ],
             "entry",
+            "route_to_intake",
         ),
         (
             [
@@ -156,26 +158,44 @@ def test_product_pages_short_term_context_validator_requires_context_and_reload_
                 "read_body_plan",
             ],
             "entry",
+            "route_to_intake",
         ),
     ],
 )
 def test_short_term_context_provider_treats_public_and_legacy_read_tools_as_entry(
     available_tools: list[str],
     expected_stage: str,
+    expected_final_action: str,
 ) -> None:
     provider = module._ShortTermContextManagerProvider()
 
-    _, trace = asyncio.run(
+    decision, trace = asyncio.run(
         provider.complete_with_trace(
             user_payload={
                 "available_tools": available_tools,
                 "round_index": 0,
-                "manager_context_packet_v1": {},
+                "raw_user_input": "晚餐吃滷味",
+                "manager_context_packet_v1": {
+                    "metadata": {"context_policy_version": "accurate_intake_mvp_context_policy_v1"},
+                    "context_loading_artifact": {
+                        "loaded_context_summary": {"recent_chat_messages": 0},
+                        "omitted_context_summary": {
+                            "policy_excluded_context_ids": [
+                                "debug_artifacts",
+                                "dogfood_review_artifacts",
+                                "food_gap_candidates",
+                            ]
+                        },
+                    },
+                    "hard_pins": {},
+                    "target_candidates": {},
+                },
             }
         )
     )
 
     assert provider.calls[0]["stage"] == expected_stage
+    assert decision["semantic_decision"]["final_action_candidate"] == expected_final_action
     assert trace["stage"] == expected_stage
 
 
