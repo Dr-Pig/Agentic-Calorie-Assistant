@@ -170,7 +170,7 @@ def _load_matrix_and_bodies(args: argparse.Namespace) -> tuple[dict[str, Any], d
     if args.matrix_json:
         return json.loads(args.matrix_json.read_text(encoding="utf-8")), {}
     config = load_config(args.config)
-    prs = collect_open_prs(config=config, include_diffs=True, limit=args.limit)
+    prs = collect_open_prs(config=config, include_diffs=False, limit=args.limit)
     matrix = build_matrix_from_prs(prs, config)
     return matrix, {int(pr.get("number") or 0): str(pr.get("body") or "") for pr in prs}
 

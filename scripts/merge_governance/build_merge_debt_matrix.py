@@ -3,10 +3,12 @@ from __future__ import annotations
 import argparse
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
 import sys
+import time
 from typing import Any
 
 
@@ -70,6 +72,14 @@ REQUIRED_TRACK_REPORT_KEYS = (
 
 SUCCESS_CONCLUSIONS = {"SUCCESS", "SKIPPED", "NEUTRAL"}
 FAIL_CONCLUSIONS = {"FAILURE", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"}
+TRANSIENT_GH_ERROR_TOKENS = (
+    "HTTP 502",
+    "HTTP 503",
+    "HTTP 504",
+    "connection reset",
+    "timeout",
+    "timed out",
+)
 
 STALE_CONTRACT_PATTERNS: tuple[tuple[str, str], ...] = (
     ("legacy_calibration_unmounted_route_gate", r"calibration_action_router_stays_unmounted_until_activation_plan"),
@@ -173,20 +183,34 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> dict[str, Any]:
     return _merge_config(DEFAULT_CONFIG, parsed)
 
 
-def _run_json(command: list[str]) -> Any:
-    completed = subprocess.run(
-        command,
-        cwd=ROOT,
-        check=False,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    if completed.returncode != 0:
-        raise RuntimeError(f"{' '.join(command)} failed: {completed.stderr.strip()}")
-    return json.loads(completed.stdout)
+def _is_transient_gh_error(command: list[str], stderr: str) -> bool:
+    if not command or command[0] != "gh":
+        return False
+    lowered = stderr.lower()
+    return any(token.lower() in lowered for token in TRANSIENT_GH_ERROR_TOKENS)
+
+
+def _run_json(command: list[str], *, retries: int = 3, retry_delay_seconds: float = 1.0) -> Any:
+    attempts = max(retries, 1)
+    last_error = ""
+    for attempt in range(1, attempts + 1):
+        completed = subprocess.run(
+            command,
+            cwd=ROOT,
+            check=False,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if completed.returncode == 0:
+            return json.loads(completed.stdout)
+        last_error = completed.stderr.strip()
+        if attempt >= attempts or not _is_transient_gh_error(command, last_error):
+            break
+        time.sleep(retry_delay_seconds * attempt)
+    raise RuntimeError(f"{' '.join(command)} failed: {last_error}")
 
 
 def _run_text(command: list[str]) -> str:
@@ -229,6 +253,39 @@ def _head_contains_main(*, head: str, main_branch: str) -> bool | None:
     ).returncode == 0
 
 
+def _github_repository() -> str:
+    repository = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if repository:
+        return repository
+    data = _run_json(["gh", "repo", "view", "--json", "nameWithOwner"])
+    value = str(data.get("nameWithOwner") or "").strip()
+    if not value:
+        raise RuntimeError("Unable to resolve GitHub repository nameWithOwner.")
+    return value
+
+
+def _fetch_pr_files(*, pr_number: int, repository: str) -> list[dict[str, Any]]:
+    files: list[dict[str, Any]] = []
+    page = 1
+    while True:
+        endpoint = f"repos/{repository}/pulls/{pr_number}/files?per_page=100&page={page}"
+        batch = _run_json(["gh", "api", endpoint])
+        if not isinstance(batch, list):
+            raise RuntimeError(f"Expected list of pull request files for PR {pr_number}, got: {type(batch).__name__}")
+        for item in batch:
+            files.append(
+                {
+                    "path": _normalize_repo_path(str(item.get("filename") or "")),
+                    "additions": int(item.get("additions") or 0),
+                    "deletions": int(item.get("deletions") or 0),
+                }
+            )
+        if len(batch) < 100:
+            break
+        page += 1
+    return files
+
+
 def collect_open_prs(*, config: dict[str, Any], include_diffs: bool = True, limit: int = 80) -> list[dict[str, Any]]:
     fields = ",".join(
         [
@@ -247,11 +304,13 @@ def collect_open_prs(*, config: dict[str, Any], include_diffs: bool = True, limi
             "additions",
             "deletions",
             "changedFiles",
-            "files",
         ]
     )
     prs = _run_json(["gh", "pr", "list", "--state", "open", "--limit", str(limit), "--json", fields])
+    repository = _github_repository()
     for pr in prs:
+        pr_number = int(pr.get("number") or 0)
+        pr["files"] = _fetch_pr_files(pr_number=pr_number, repository=repository) if pr_number else []
         pr["head_contains_main"] = _head_contains_main(
             head=str(pr.get("headRefName") or ""),
             main_branch=str(config.get("main_branch") or "main"),

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
+import scripts.merge_governance.build_merge_debt_matrix as merge_debt_matrix_module
 from scripts.merge_governance.build_merge_debt_matrix import (
     ALLOWED_VERDICTS,
     DEFAULT_CONFIG,
@@ -242,6 +244,68 @@ def test_unknown_head_freshness_requires_rebase() -> None:
     assert entry["base_drift_status"] == "stale_to_main"
     assert entry["recommended_verdict"] == "rebase_required"
     assert "head_branch_freshness_unknown" in entry["blocking_reasons"]
+
+
+def test_run_json_retries_transient_github_api_failure(monkeypatch) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):  # type: ignore[no-untyped-def]
+        calls.append(command)
+        if len(calls) < 3:
+            return SimpleNamespace(returncode=1, stdout="", stderr="HTTP 504: timeout")
+        return SimpleNamespace(returncode=0, stdout='{"status":"ok"}', stderr="")
+
+    monkeypatch.setattr(merge_debt_matrix_module.subprocess, "run", fake_run)
+    monkeypatch.setattr(merge_debt_matrix_module.time, "sleep", lambda *_args, **_kwargs: None)
+
+    result = merge_debt_matrix_module._run_json(["gh", "pr", "list"], retries=3)
+
+    assert result == {"status": "ok"}
+    assert len(calls) == 3
+
+
+def test_collect_open_prs_fetches_files_via_rest(monkeypatch) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run_json(command: list[str], *, retries: int = 3, retry_delay_seconds: float = 1.0):  # type: ignore[no-untyped-def]
+        calls.append(command)
+        if command[:3] == ["gh", "pr", "list"]:
+            return [
+                {
+                    "number": 42,
+                    "title": "Converge manager-visible read-only tool names",
+                    "headRefName": "codex/runtime-rt2a-read-tool-surface",
+                    "headRefOid": "abc",
+                    "baseRefName": "main",
+                    "baseRefOid": "def",
+                    "body": "track: PLCE\nruntime_truth_changed: false\nmanager_context_packet_changed: false\nmutation_changed: false\nproduct_readiness_claimed: false\n",
+                    "isDraft": False,
+                    "mergeStateStatus": "CLEAN",
+                    "statusCheckRollup": _all_required_checks(),
+                    "updatedAt": "2026-05-07T00:00:00Z",
+                    "url": "https://example.test/pull/42",
+                    "additions": 12,
+                    "deletions": 2,
+                    "changedFiles": 1,
+                }
+            ]
+        if command[:2] == ["gh", "api"]:
+            return [{"filename": "app/composition/non_fooddb_read_only_turn.py", "additions": 12, "deletions": 2}]
+        if command[:4] == ["gh", "repo", "view", "--json"]:
+            return {"nameWithOwner": "Dr-Pig/Agentic-Calorie-Assistant"}
+        raise AssertionError(f"Unexpected command: {command}")
+
+    monkeypatch.setattr(merge_debt_matrix_module, "_run_json", fake_run_json)
+    monkeypatch.setattr(merge_debt_matrix_module, "_head_contains_main", lambda **_kwargs: True)
+    monkeypatch.setattr(merge_debt_matrix_module, "_contract_findings_from_ref", lambda _head: [])
+
+    prs = merge_debt_matrix_module.collect_open_prs(config=DEFAULT_CONFIG, include_diffs=False, limit=5)
+
+    assert prs[0]["files"] == [
+        {"path": "app/composition/non_fooddb_read_only_turn.py", "additions": 12, "deletions": 2}
+    ]
+    assert any(command[:2] == ["gh", "api"] for command in calls)
+    assert all("files" not in ",".join(command) for command in calls if command[:3] == ["gh", "pr", "list"])
 
 
 def test_stacked_pr_roles_are_deterministic() -> None:

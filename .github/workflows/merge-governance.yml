@@ -39,9 +39,15 @@ jobs:
         run: python scripts/merge_governance/check_pre_queue_readiness.py --output artifacts/pre_queue_readiness_report.json
 
       - name: Build merge debt matrix
-        run: python scripts/merge_governance/build_merge_debt_matrix.py
+        run: |
+          args=""
+          if [ "${{ github.event_name }}" = "merge_group" ]; then
+            args="--skip-diff-scan --limit 40"
+          fi
+          python scripts/merge_governance/build_merge_debt_matrix.py $args
 
       - name: Build Q-owner queue status
+        if: ${{ github.event_name != 'merge_group' }}
         run: python scripts/merge_governance/build_q_owner_queue.py
 
       - name: Upload merge debt matrix
