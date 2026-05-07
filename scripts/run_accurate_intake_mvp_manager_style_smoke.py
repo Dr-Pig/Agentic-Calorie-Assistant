@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.composition.accurate_intake_debug_routes import build_accurate_intake_debug_payload
+from app.composition.non_fooddb_read_only_turn import NON_FOODDB_READ_ONLY_MANAGER_TOOLS
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_or_create_user
 from app.models import Base
@@ -96,7 +97,7 @@ class DeterministicSelfUseManagerProvider:
                 "round_index": round_index,
             }
         )
-        if {"read_body_plan", "read_day_budget"}.intersection(available_tools):
+        if set(NON_FOODDB_READ_ONLY_MANAGER_TOOLS).intersection(available_tools):
             return self._entry_decision(raw), self._trace("entry_decision")
         return self._execution_decision(raw=raw, available_tools=available_tools, round_index=round_index), self._trace(
             "execution_decision"

@@ -14,6 +14,7 @@ from app.composition.manual_daily_target_chat import (
     manual_daily_target_trace_payload,
 )
 from app.composition.non_fooddb_read_only_turn import (
+    NON_FOODDB_READ_ONLY_MANAGER_TOOLS,
     build_non_fooddb_read_tool_executor,
     finalize_non_fooddb_read_only_manager_intent,
 )
@@ -122,7 +123,7 @@ async def execute_intake_turn(
         raw_user_input=raw_user_input or "",
         onboarding_payload=onboarding_payload.__dict__ if onboarding_payload is not None else None,
         resolved_state=state_before,
-        available_tools=("answer_usage_question", "read_body_plan", "read_day_budget"),
+        available_tools=NON_FOODDB_READ_ONLY_MANAGER_TOOLS,
         tool_executor=build_non_fooddb_read_tool_executor(
             db,
             user_id=state_before.user_id,

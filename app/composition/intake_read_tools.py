@@ -17,6 +17,18 @@ def read_day_budget_tool(db: Session, *, user_id: int, local_date: str) -> Any:
     return build_current_budget_view(db, user_id=user_id, local_date=local_date)
 
 
+def read_latest_weight_observation_tool(db: Session, *, user_id: int, local_date: str) -> Any:
+    from app.body.application import get_latest_weight_observation
+
+    return get_latest_weight_observation(db, user_id=user_id, local_date=local_date)
+
+
+def read_calibration_pending_proposal_tool(db: Session, *, user_id: int) -> Any:
+    from app.composition.calibration_proposal_inbox import load_open_calibration_proposal_inbox
+
+    return load_open_calibration_proposal_inbox(db, user_id=user_id)
+
+
 def read_active_meal_tool(db: Session, *, user_id: int, local_date: str) -> dict[str, Any] | None:
     budget = read_day_budget_tool(db, user_id=user_id, local_date=local_date)
     if not budget.meals:
