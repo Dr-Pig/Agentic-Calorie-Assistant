@@ -69,48 +69,52 @@ def test_estimate_route_closes_manager_style_product_loop_against_debug_surface(
     _seed_body_plan(db, user_external_id=user_external_id, local_date=local_date)
     client, provider = _client(db, monkeypatch)
 
-    initial_response = client.post(
-        "/estimate",
-        json={"text": "chicken sandwich", "allow_search": False, "user_id": user_external_id},
-    )
-    assert initial_response.status_code == 200
-    initial_payload = initial_response.json()["payload"]
-    assert initial_payload["state_delta"]["canonical_commit"] is True
-    assert initial_payload["intake_execution_manager"]["final"]["final_action"] == "commit"
-    route_local_date = initial_payload["remaining_budget"]["local_date"]
+    try:
+        initial_response = client.post(
+            "/estimate",
+            json={"text": "chicken sandwich", "allow_search": False, "user_id": user_external_id},
+        )
+        assert initial_response.status_code == 200
+        initial_payload = initial_response.json()["payload"]
+        assert initial_payload["state_delta"]["canonical_commit"] is True
+        assert initial_payload["intake_execution_manager"]["final"]["final_action"] == "commit"
+        route_local_date = initial_payload["remaining_budget"]["local_date"]
 
-    correction_response = client.post(
-        "/estimate",
-        json={"text": "the chicken sandwich was smaller", "allow_search": False, "user_id": user_external_id},
-    )
-    assert correction_response.status_code == 200
-    correction_payload = correction_response.json()["payload"]
-    assert correction_payload["state_delta"]["canonical_commit"] is True
-    assert correction_payload["state_delta"]["old_version_superseded"] is True
-    assert correction_payload["intake_execution_manager"]["final"]["final_action"] == "correction_applied"
+        correction_response = client.post(
+            "/estimate",
+            json={"text": "the chicken sandwich was smaller", "allow_search": False, "user_id": user_external_id},
+        )
+        assert correction_response.status_code == 200
+        correction_payload = correction_response.json()["payload"]
+        assert correction_payload["state_delta"]["canonical_commit"] is True
+        assert correction_payload["state_delta"]["old_version_superseded"] is True
+        assert correction_payload["intake_execution_manager"]["final"]["final_action"] == "correction_applied"
 
-    query_response = client.post(
-        "/estimate",
-        json={"text": "how much have I eaten today", "allow_search": False, "user_id": user_external_id},
-    )
-    assert query_response.status_code == 200
-    query_payload = query_response.json()["payload"]
-    assert query_payload["state_delta"]["canonical_commit"] is False
-    assert query_payload["manager_decision"]["intent_type"] == "answer_remaining_budget"
+        query_response = client.post(
+            "/estimate",
+            json={"text": "how much have I eaten today", "allow_search": False, "user_id": user_external_id},
+        )
+        assert query_response.status_code == 200
+        query_payload = query_response.json()["payload"]
+        assert query_payload["state_delta"]["canonical_commit"] is False
+        assert query_payload["manager_decision"]["intent_type"] == "answer_remaining_budget"
 
-    debug_response = client.get(
-        "/accurate-intake/debug",
-        params={"user_id": user_external_id, "local_date": route_local_date},
-        headers={"X-Local-Debug-Token": debug_token},
-    )
-    assert debug_response.status_code == 200
-    debug_payload = debug_response.json()
-    model = debug_payload["model"]
-    assert debug_payload["read_only"] is True
-    assert model["today_summary"]["consumed_kcal"] > 0
-    assert model["same_truth"]["status"] == "pass"
-    assert provider.readiness()["live_llm_invoked"] is False
-    assert any(
-        "estimate_nutrition" in call["available_tools"]
-        for call in provider.calls
-    )
+        debug_response = client.get(
+            "/accurate-intake/debug",
+            params={"user_id": user_external_id, "local_date": route_local_date},
+            headers={"X-Local-Debug-Token": debug_token},
+        )
+        assert debug_response.status_code == 200
+        debug_payload = debug_response.json()
+        model = debug_payload["model"]
+        assert debug_payload["read_only"] is True
+        assert model["today_summary"]["consumed_kcal"] > 0
+        assert model["same_truth"]["status"] == "pass"
+        assert provider.readiness()["live_llm_invoked"] is False
+        assert any(
+            "estimate_nutrition" in call["available_tools"]
+            for call in provider.calls
+        )
+    finally:
+        client.close()
+        db.close()

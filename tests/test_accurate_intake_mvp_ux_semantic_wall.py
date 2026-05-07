@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.composition.accurate_intake_debug_routes import build_accurate_intake_debug_payload
 from app.composition.intake_turn_orchestrator import execute_intake_turn
+from app.composition.non_fooddb_read_only_turn import NON_FOODDB_READ_ONLY_MANAGER_TOOLS
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
 from app.database import get_or_create_user
 from app.models import Base
@@ -103,7 +104,7 @@ class ScriptedManagerDecisionProvider:
                 "raw_user_input_seen_by_manager": str(user_payload.get("raw_user_input") or ""),
             }
         )
-        if {"read_body_plan", "read_day_budget"}.intersection(available_tools):
+        if set(NON_FOODDB_READ_ONLY_MANAGER_TOOLS).intersection(available_tools):
             return self.entry, self._trace("entry_decision")
         if self.execution_index >= len(self.execution):
             return _final_payload(

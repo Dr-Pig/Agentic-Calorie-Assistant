@@ -141,7 +141,7 @@ def test_free_text_manual_target_uses_manager_decision_and_existing_target_servi
     assert today.json()["consumed_kcal"] == 0
     assert debug.json()["model"]["meal_threads"] == []
     assert debug.json()["model"]["same_truth"]["status"] == "pass"
-    assert any("read_body_plan" in call["available_tools"] for call in provider.calls)
+    assert any("body.get_active_plan" in call["available_tools"] for call in provider.calls)
 
 
 def test_free_text_manual_target_blocks_unsafe_target_without_meal_mutation(monkeypatch) -> None:
