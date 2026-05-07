@@ -63,6 +63,13 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
     assert gates["rt1c_cache_metrics_observability"]["depends_on"] == [
         "rt1b_stable_prefix_dynamic_suffix_contract"
     ]
+    assert gates["rt2a_public_tool_name_normalization"]["status"] == "green"
+    assert gates["rt2a_public_tool_name_normalization"]["title"] == (
+        "Public tool name normalization at manager boundary"
+    )
+    assert gates["rt2_coarse_tool_surface_convergence"]["depends_on"] == [
+        "rt2a_public_tool_name_normalization"
+    ]
     assert gates["rt3a_react_trace_observable_skeleton"]["status"] == "green"
     assert gates["rt3a_react_trace_observable_skeleton"]["title"] == "ReAct trace observable skeleton"
     assert gates["rt3_react_trace_contract"]["depends_on"] == ["rt3a_react_trace_observable_skeleton"]

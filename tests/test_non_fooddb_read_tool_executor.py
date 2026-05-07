@@ -79,10 +79,10 @@ async def test_execute_non_fooddb_read_tool_calls_returns_read_only_budget_metad
 
     assert len(results) == 1
     result = results[0]
-    assert result["tool_name"] == "read_day_budget"
+    assert result["tool_name"] == "budget.get_today_summary"
     assert result["provenance"]["tool_kind"] == "read_only"
     assert result["provenance"]["mutation_authority"] is False
-    assert result["provenance"]["truth_owner"] == "budget_read_model"
+    assert result["provenance"]["truth_owner"] == "budget_domain"
     assert result["provenance"]["canonical_tool_name"] == "budget.get_today_summary"
     assert result["evidence"]["remaining_budget_contract"]["remaining_kcal"] >= 0
 
@@ -119,7 +119,7 @@ async def test_execute_non_fooddb_read_tool_calls_returns_app_usage_policy_metad
 
     assert len(results) == 1
     result = results[0]
-    assert result["tool_name"] == "answer_usage_question"
+    assert result["tool_name"] == "app.answer_usage_question"
     assert result["provenance"]["canonical_tool_name"] == "app.answer_usage_question"
     assert result["provenance"]["tool_kind"] == "read_only"
     assert result["provenance"]["mutation_authority"] is False
@@ -142,9 +142,9 @@ async def test_execute_non_fooddb_read_tool_calls_normalizes_legacy_body_plan_to
 
     assert len(results) == 1
     result = results[0]
-    assert result["tool_name"] == "read_body_plan"
+    assert result["tool_name"] == "body.get_active_plan"
     assert result["provenance"]["canonical_tool_name"] == "body.get_active_plan"
-    assert result["provenance"]["truth_owner"] == "body_read_model"
+    assert result["provenance"]["truth_owner"] == "body_domain"
 
 
 async def test_execute_non_fooddb_read_tool_calls_supports_public_budget_tools() -> None:
