@@ -3,10 +3,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from app.composition.calibration_proposal_inbox import (
-    load_open_calibration_proposal_inbox,
-)
-from app.database import get_or_create_user
 from app.schemas import EstimateRequest
 
 
@@ -28,20 +24,6 @@ def parse_calibration_action_accepted_at(request: EstimateRequest) -> datetime |
         return datetime.fromisoformat(request.calibration_action_accepted_at)
     except ValueError as exc:
         raise ValueError("calibration_action_accepted_at must be an ISO datetime") from exc
-
-
-def has_open_calibration_proposal_followup_without_explicit_route_action(
-    db: Any,
-    *,
-    user_external_id: str,
-    request: EstimateRequest,
-) -> bool:
-    if request.persist_calibration_proposal is not True:
-        return False
-    if has_explicit_calibration_preview_request(request) or has_explicit_calibration_action_request(request):
-        return False
-    user = get_or_create_user(db, user_external_id)
-    return bool(load_open_calibration_proposal_inbox(db, user_id=user.id, limit=1))
 
 
 def build_calibration_action_route_payload(general_chat_result: Any) -> dict[str, Any]:

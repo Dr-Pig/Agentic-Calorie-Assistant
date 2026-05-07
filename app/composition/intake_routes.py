@@ -16,7 +16,6 @@ from app.composition.calibration_estimate_route_support import (
     build_calibration_raw_text_fallback_route_payload,
     has_explicit_calibration_action_request,
     has_explicit_calibration_preview_request,
-    has_open_calibration_proposal_followup_without_explicit_route_action,
     parse_calibration_action_accepted_at,
 )
 from app.composition.conversation_turn_trace import record_runtime_turn_messages
@@ -191,12 +190,6 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                 "coach_message": general_chat_result.reply_text,
                 "payload": route_payload,
             }
-        if has_open_calibration_proposal_followup_without_explicit_route_action(
-            db,
-            user_external_id=user_id,
-            request=request,
-        ):
-            routing_result = replace(routing_result, target_workflow_family="calibration")
         if routing_result.target_workflow_family == "general_chat" and routing_result.disposition == "answer_only":
             if "CurrentBudgetView" in routing_result.required_read_surfaces:
                 general_chat_mode = "budget_summary"

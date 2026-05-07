@@ -371,7 +371,7 @@ def test_estimate_route_raw_calibration_text_does_not_activate_preview_or_persis
     assert db.query(LedgerEntryRecord).count() == 0
 
 
-def test_estimate_route_open_calibration_proposal_without_explicit_action_falls_back_without_mutation(
+def test_estimate_route_open_calibration_proposal_without_explicit_action_is_ignored_without_mutation(
     monkeypatch,
 ) -> None:
     db = _session()
@@ -394,13 +394,8 @@ def test_estimate_route_open_calibration_proposal_without_explicit_action_falls_
     proposal = db.get(ProposalContainerRecord, proposal_id)
     active_plan = db.query(BodyPlanRecord).filter(BodyPlanRecord.plan_status == "active").one()
     assert response.status_code == 200
-    assert response.json()["coach_message"] == (
-        "I can answer general product questions here, but I will not change state from this path."
-    )
-    assert payload["manager_decision"]["workflow_effect"] == (
-        "raw_text_route_fallback_without_calibration_state_mutation"
-    )
-    assert payload["ui_hints"]["raw_text_authorized_mutation"] is False
+    assert payload["manager_decision"]["intent_type"] == "manager_unavailable"
+    assert payload["manager_decision"]["workflow_effect"] == "safe_failure"
     assert proposal is not None
     assert proposal.proposal_status == "open"
     assert active_plan.daily_budget_kcal == 1800
