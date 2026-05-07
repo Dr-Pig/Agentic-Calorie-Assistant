@@ -50,6 +50,12 @@ REQUIRED_FETCH_PREFIXES = (
     "/accurate-intake/debug",
     "/today/current-budget",
 )
+LEGACY_ENTRY_READ_TOOLS = frozenset(
+    {
+        "read_day_budget",
+        "read_body_plan",
+    }
+)
 NOT_CLAIMING = [
     "web_ready",
     "product_ready",
@@ -116,6 +122,8 @@ class _ShortTermContextManagerProvider:
         available_tools = {str(item) for item in _list(user_payload.get("available_tools"))}
         round_index = int(user_payload.get("round_index") or 0)
         is_entry = bool(set(NON_FOODDB_READ_ONLY_MANAGER_TOOLS).intersection(available_tools))
+        if not is_entry and LEGACY_ENTRY_READ_TOOLS.intersection(available_tools):
+            is_entry = True
         if is_entry:
             self.turn_index += 1
             self.active_turn = "bare_basket_followup" if self.turn_index == 0 else "followup_answer_commit"

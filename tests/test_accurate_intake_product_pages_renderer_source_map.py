@@ -65,7 +65,18 @@ def test_product_pages_renderer_source_map_covers_chat_today_body_sources() -> N
     assert "/today/current-budget" in today["endpoints"]
     assert "#budget-kcal" in today["selectors"]
     assert "#meal-list" in today["selectors"]
+    assert "#macro-panel" in today["selectors"]
+    assert "#protein-g" in today["selectors"]
+    assert "#carbs-g" in today["selectors"]
+    assert "#fat-g" in today["selectors"]
+    assert "#macro-guard-reason" in today["selectors"]
+    assert "renderMacroPanel" in today["render_functions"]
     assert "payload.remaining_kcal" in today["backend_fields"]
+    assert "payload.consumed_protein" in today["backend_fields"]
+    assert "payload.consumed_carbs" in today["backend_fields"]
+    assert "payload.consumed_fat" in today["backend_fields"]
+    assert "payload.show_macro" in today["backend_fields"]
+    assert "payload.macro_guard_reason" in today["backend_fields"]
     assert "meal.total_kcal" in today["backend_fields"]
 
     body = artifact["source_map"]["body"]
@@ -132,6 +143,21 @@ def test_product_pages_renderer_source_map_declares_three_page_same_truth_contra
         "frontend_recompute_consumed",
         "frontend_recompute_remaining",
         "frontend_infer_overshoot",
+    ]
+    assert today["macro_surface"]["truth_owner"] == "budget_domain_macro_visibility_policy"
+    assert today["macro_surface"]["read_model_or_api"] == "/today/current-budget"
+    assert today["macro_surface"]["ui_selector"] == "#macro-panel"
+    assert today["macro_surface"]["required_backend_fields"] == [
+        "payload.consumed_protein",
+        "payload.consumed_carbs",
+        "payload.consumed_fat",
+        "payload.show_macro",
+        "payload.macro_guard_reason",
+    ]
+    assert today["macro_surface"]["must_not"] == [
+        "frontend_infer_macro_visibility",
+        "frontend_compute_macro_values",
+        "frontend_parse_assistant_text_for_macro_truth",
     ]
     assert today["meal_summaries"]["truth_owner"] == "intake_and_budget_projection"
     assert today["meal_summaries"]["ui_selector"] == "#meal-list"

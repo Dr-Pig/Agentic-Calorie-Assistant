@@ -169,6 +169,11 @@ def test_today_page_is_daily_diary_with_date_navigation_and_no_trace_panel() -> 
     assert 'id="budget-kcal"' in html
     assert 'id="consumed-kcal"' in html
     assert 'id="remaining-kcal"' in html
+    assert 'id="macro-panel"' in html
+    assert 'id="protein-g"' in html
+    assert 'id="carbs-g"' in html
+    assert 'id="fat-g"' in html
+    assert 'id="macro-guard-reason"' in html
     assert 'id="meal-list"' in html
     assert 'id="chat-link" class="action-link"' in html
     assert "Daily record updated." in html
@@ -176,11 +181,16 @@ def test_today_page_is_daily_diary_with_date_navigation_and_no_trace_panel() -> 
     assert 'currentBudget: "/today/current-budget"' in html
     assert 'chatLink.href = `/static/accurate-intake-chat.html?user_id=${encodeURIComponent(userId())}&local_date=${selectedDate()}`;' in html
     assert "function updateSessionStrip()" in html
+    assert "function renderMacroPanel(payload)" in html
+    assert "renderMacroPanel(payload);" in html
     assert 'el("today-session-user").textContent = userId();' in html
     assert 'el("today-session-date").textContent = selectedDate();' in html
     assert "status:" not in html
     assert "trace" not in html.lower()
     assert "/accurate-intake/debug" not in html
+    assert "message.content.includes" not in html
+    assert "payload.coach_message" not in html
+
 
 
 def test_today_page_updates_current_url_when_selected_date_changes() -> None:
