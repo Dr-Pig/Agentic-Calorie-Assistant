@@ -5,6 +5,7 @@ from pathlib import Path
 from app.shared.infra.json_artifacts import read_json_artifact
 from scripts.run_accurate_intake_websearch_live_diagnostic_bundle import (
     _artifact_paths,
+    _build_manifest,
     main,
 )
 
@@ -37,6 +38,9 @@ def test_websearch_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_pa
     report = read_json_artifact(tmp_path / "websearch_live_report.json")
     readiness = read_json_artifact(tmp_path / "websearch_live_readiness.json")
     handoff = read_json_artifact(tmp_path / "websearch_contract_handoff.json")
+    failure_taxonomy = read_json_artifact(
+        tmp_path / "websearch_live_failure_taxonomy_inspection.json"
+    )
     status_packet = read_json_artifact(tmp_path / "websearch_evidence_status_packet.json")
     inspection = read_json_artifact(tmp_path / "websearch_status_packet_inspection.json")
 
@@ -48,13 +52,23 @@ def test_websearch_live_diagnostic_bundle_fixture_mode_builds_full_bundle(tmp_pa
     assert manifest["runtime_mutation_attempted"] is False
     assert manifest["readiness_claimed"] is False
     assert manifest["seam_status"] == "fixture_only_live_not_checked"
-    assert manifest["next_recommended_slice"] == "inspect_fooddb_status_packet"
+    assert (
+        manifest["next_recommended_slice"]
+        == "run_explicit_grokfast_websearch_packet_live_diagnostic"
+    )
     assert manifest["manager_contract_handoff_status"] == "insufficient_contract_handoff_evidence"
     assert manifest["manager_contract_handoff_ready"] is False
     assert diagnostic["live_provider_used"] is False
     assert report["should_run_websearch_live_tool_loop"] is False
     assert readiness["ready_for_grokfast_websearch_packet_live_diagnostic"] is True
     assert handoff["status"] == "insufficient_contract_handoff_evidence"
+    assert failure_taxonomy["artifact_type"] == (
+        "accurate_intake_websearch_live_failure_taxonomy_inspection_v1"
+    )
+    assert (
+        failure_taxonomy["summary"]["next_safe_slice"]
+        == "run_explicit_grokfast_websearch_packet_live_diagnostic"
+    )
     assert status_packet["artifact_type"] == "accurate_intake_websearch_evidence_status_packet_v1"
     assert status_packet["next_required_slices"] == ["inspect_fooddb_status_packet"]
     assert inspection["artifact_type"] == "accurate_intake_websearch_status_packet_inspection_v1"
@@ -101,6 +115,7 @@ def test_websearch_live_diagnostic_bundle_records_all_required_artifact_refs(
         "manager_contract_probe",
         "manager_contract_repair_pack",
         "manager_contract_handoff",
+        "websearch_live_failure_taxonomy_inspection",
         "websearch_evidence_status_packet",
         "websearch_status_packet_inspection",
     }
@@ -138,3 +153,39 @@ def test_websearch_live_diagnostic_bundle_accepts_explicit_fooddb_status_packet(
         == "inspect_websearch_manager_contract_handoff"
     )
     assert status_packet["next_required_slices"] == ["inspect_websearch_manager_contract_handoff"]
+
+
+def test_websearch_live_diagnostic_bundle_manifest_prefers_failure_taxonomy_over_status_loop(
+    tmp_path: Path,
+) -> None:
+    paths = _artifact_paths(tmp_path)
+
+    manifest = _build_manifest(
+        mode="live",
+        allow_live=True,
+        paths=paths,
+        diagnostic_exit=0,
+        diagnostic={"live_provider_used": True, "live_websearch_used": False},
+        report={
+            "seam_status": "live_diagnostic_pass",
+            "next_recommended_slice": "inspect_websearch_status_packet",
+        },
+        contract_artifacts={
+            "manager_contract_handoff": {
+                "status": "websearch_contract_unblocked",
+                "handoff_ready": False,
+                "selected_next_step": "inspect_websearch_status_packet",
+            },
+            "websearch_live_failure_taxonomy_inspection": {
+                "summary": {"next_safe_slice": "inspect_fooddb_websearch_no_runtime_wall"},
+            },
+            "websearch_evidence_status_packet": {
+                "next_required_slices": ["inspect_websearch_status_packet"],
+            },
+            "websearch_status_packet_inspection": {
+                "summary": {"next_safe_slice": "inspect_websearch_status_packet"},
+            },
+        },
+    )
+
+    assert manifest["next_recommended_slice"] == "inspect_fooddb_websearch_no_runtime_wall"

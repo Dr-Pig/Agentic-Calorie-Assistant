@@ -44,6 +44,9 @@ from app.nutrition.application.websearch_grokfast_live_diagnostic_case_matrix im
 from app.nutrition.application.websearch_live_diagnostic_report import (  # noqa: E402
     build_websearch_live_diagnostic_report,
 )
+from app.nutrition.application.websearch_live_failure_taxonomy_inspection import (  # noqa: E402
+    build_websearch_live_failure_taxonomy_inspection,
+)
 from app.nutrition.application.websearch_live_extract_preflight import (  # noqa: E402
     build_websearch_live_extract_preflight,
 )
@@ -262,10 +265,16 @@ def _build_post_diagnostic_artifacts(
         exact_candidate_chain_status_artifact=chain_status,
         live_runner_readiness_artifact=readiness,
     )
+    failure_taxonomy_inspection = build_websearch_live_failure_taxonomy_inspection(
+        live_diagnostic_report=report,
+        manager_contract_handoff_artifact=handoff,
+        status_packet_inspection_artifact=status_packet_inspection,
+    )
     artifacts = {
         "manager_contract_probe": probe,
         "manager_contract_repair_pack": repair_pack,
         "manager_contract_handoff": handoff,
+        "websearch_live_failure_taxonomy_inspection": failure_taxonomy_inspection,
         "websearch_evidence_status_packet": websearch_status_packet,
         "websearch_status_packet_inspection": status_packet_inspection,
     }
@@ -285,6 +294,7 @@ def _build_manifest(
     contract_artifacts: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     handoff = contract_artifacts["manager_contract_handoff"]
+    failure_taxonomy_inspection = contract_artifacts["websearch_live_failure_taxonomy_inspection"]
     evidence_status_packet = contract_artifacts["websearch_evidence_status_packet"]
     status_packet_inspection = contract_artifacts["websearch_status_packet_inspection"]
     return {
@@ -308,6 +318,7 @@ def _build_manifest(
         "seam_status": report["seam_status"],
         "next_recommended_slice": _inspection_next_slice(
             status_packet_inspection,
+            failure_taxonomy_inspection=failure_taxonomy_inspection,
             fallback=_status_packet_next_slice(evidence_status_packet),
         ),
         "manager_contract_handoff_status": handoff.get("status"),
@@ -338,7 +349,17 @@ def _status_packet_next_slice(evidence_status_packet: dict[str, Any]) -> str:
     return str(next_required_slices[0] or "").strip() if next_required_slices else "inspect_websearch_status_packet"
 
 
-def _inspection_next_slice(inspection_artifact: dict[str, Any], *, fallback: str) -> str:
+def _inspection_next_slice(
+    inspection_artifact: dict[str, Any],
+    *,
+    failure_taxonomy_inspection: dict[str, Any] | None = None,
+    fallback: str,
+) -> str:
+    if isinstance(failure_taxonomy_inspection, dict):
+        failure_summary = dict(failure_taxonomy_inspection.get("summary") or {})
+        failure_next = str(failure_summary.get("next_safe_slice") or "").strip()
+        if failure_next:
+            return failure_next
     summary = dict(inspection_artifact.get("summary") or {})
     next_safe_slice = str(summary.get("next_safe_slice") or "").strip()
     return next_safe_slice or fallback
