@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+from scripts.merge_governance import build_q_owner_queue
 from scripts.merge_governance import (
     check_pre_queue_readiness,
     check_pr_contract_drift,
@@ -169,6 +170,32 @@ def test_pre_queue_readiness_fails_pull_request_missing_required_report(tmp_path
 
     report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
     assert "missing_track_report_key:runtime_truth_changed" in report["blockers"]
+
+
+def test_q_owner_queue_avoids_diff_scan_for_live_repo_reads(monkeypatch, tmp_path: Path) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_collect_open_prs(*, config, include_diffs, limit):  # type: ignore[no-untyped-def]
+        captured["include_diffs"] = include_diffs
+        captured["limit"] = limit
+        return []
+
+    monkeypatch.setattr(build_q_owner_queue, "collect_open_prs", fake_collect_open_prs)
+    monkeypatch.setattr(build_q_owner_queue, "load_config", lambda _path: {})
+    monkeypatch.setattr(
+        build_q_owner_queue,
+        "build_matrix_from_prs",
+        lambda prs, config: {"artifact_type": "merge_debt_matrix", "main_branch": "main", "entry_count": 0, "entries": []},
+    )
+
+    assert (
+        build_q_owner_queue.main(
+            ["--json-out", str(tmp_path / "q_owner.json"), "--md-out", str(tmp_path / "q_owner.md")]
+        )
+        == 0
+    )
+
+    assert captured["include_diffs"] is False
 
 
 def test_pre_queue_readiness_fails_missing_product_pages_dry_run_command(

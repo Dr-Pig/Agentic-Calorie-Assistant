@@ -74,6 +74,8 @@ def test_merge_governance_workflow_builds_and_uploads_advisory_matrix() -> None:
     assert "python scripts/merge_governance/pre_pr_quality_gate.py" in workflow
     assert "python scripts/merge_governance/check_pre_queue_readiness.py" in workflow
     assert "python scripts/merge_governance/build_merge_debt_matrix.py" in workflow
+    assert "--skip-diff-scan --limit 40" in workflow
+    assert "github.event_name != 'merge_group'" in workflow
     assert "name: merge-debt-matrix" in workflow
     assert "artifacts/pre_pr_quality_gate_report.json" in workflow
     assert "artifacts/pre_queue_readiness_report.json" in workflow
