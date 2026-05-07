@@ -11,10 +11,8 @@ def test_github_repo_governance_mentions_current_required_jobs() -> None:
 
     for job_name in (
         "repo-hygiene-and-architecture",
-        "pre-edd-readiness",
         "runtime-contract-tests",
-        "wave1-phase-a-contracts",
-        "wave1-phase-b-contracts",
+        "product-pages-browser-e2e",
     ):
         assert f"`{job_name}`" in governance
 
@@ -45,10 +43,8 @@ def test_harness_go_no_go_mentions_current_required_jobs() -> None:
 
     for job_name in (
         "repo-hygiene-and-architecture",
-        "pre-edd-readiness",
         "runtime-contract-tests",
-        "wave1-phase-a-contracts",
-        "wave1-phase-b-contracts",
+        "product-pages-browser-e2e",
     ):
         assert f"`{job_name}`" in harness
 
@@ -70,25 +66,32 @@ def test_wave1_runtime_smoke_stays_manual_only() -> None:
     assert "push:" not in workflow
 
 
-def test_merge_governance_workflow_builds_and_uploads_advisory_matrix() -> None:
+def test_merge_governance_workflow_is_manual_or_scheduled_advisory_only() -> None:
     workflow = (ROOT / ".github" / "workflows" / "merge-governance.yml").read_text(encoding="utf-8")
 
     assert "workflow_dispatch" in workflow
-    assert "pull_request" in workflow
     assert "schedule:" in workflow
+    assert "pull_request" not in workflow
+    assert "merge_group" not in workflow
     assert "pull-requests: read" in workflow
     assert "fetch-depth: 0" in workflow
     assert "git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune" in workflow
-    assert "python scripts/merge_governance/pre_pr_quality_gate.py" in workflow
-    assert "python scripts/merge_governance/check_pre_queue_readiness.py" in workflow
     assert "python scripts/merge_governance/build_merge_debt_matrix.py" in workflow
     assert "--skip-diff-scan --limit 40" in workflow
-    assert "github.event_name != 'merge_group'" in workflow
-    assert "name: merge-debt-matrix" in workflow
-    assert "artifacts/pre_pr_quality_gate_report.json" in workflow
-    assert "artifacts/pre_queue_readiness_report.json" in workflow
+    assert "merge-governance-advisory" in workflow
     assert "artifacts/merge_debt_matrix.json" in workflow
     assert "artifacts/merge_debt_matrix.md" in workflow
+
+
+def test_ci_advisory_workflow_is_manual_only() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "ci-advisory.yml").read_text(encoding="utf-8")
+
+    assert "workflow_dispatch" in workflow
+    assert "pull_request" not in workflow
+    assert "merge_group" not in workflow
+    assert "pre-edd-readiness" in workflow
+    assert "accurate-intake-mvp-gate" in workflow
+    assert "wave1-phase-a-contracts" in workflow
 
 
 def test_current_shell_sync_contract_uses_canonical_track_and_conservative_launch_scope() -> None:

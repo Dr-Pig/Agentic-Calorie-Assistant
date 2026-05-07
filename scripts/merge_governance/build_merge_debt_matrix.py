@@ -24,12 +24,10 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "future_shadow_tracks": ["LongTermContextLab", "RecommendationShadow", "RescueShadow", "ProactiveShadow"],
     "required_checks": [
         "repo-hygiene-and-architecture",
-        "pre-edd-readiness",
         "runtime-contract-tests",
-        "wave1-phase-a-contracts",
-        "wave1-phase-b-contracts",
+        "product-pages-browser-e2e",
     ],
-    "advisory_checks": ["phase-c-environment-gate", "accurate-intake-mvp-gate"],
+    "advisory_checks": [],
     "forbidden_future_runtime_effects": [
         {"runtime_truth_changed": True},
         {"manager_context_packet_changed": True},

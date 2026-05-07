@@ -49,7 +49,7 @@ def test_devcontainer_uses_compose_app_service_without_runtime_activation() -> N
 
 
 def test_ci_has_docker_dev_environment_gate_without_deployment_side_effects() -> None:
-    ci = _read(".github/workflows/ci.yml")
+    ci = _read(".github/workflows/ci-advisory.yml")
 
     assert "docker-dev-environment" in ci
     assert "docker compose config" in ci

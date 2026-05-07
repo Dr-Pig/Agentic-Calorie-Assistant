@@ -155,9 +155,9 @@ def test_long_session_navigation_source_stays_out_of_truth_and_provider_boundari
         assert fragment not in source
 
 
-def test_ci_runs_long_session_navigation_smoke() -> None:
+def test_ci_keeps_long_session_navigation_smoke_out_of_required_merge_path() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
-    assert "test_accurate_intake_product_pages_long_session_navigation_smoke.py" in workflow
-    assert "run_accurate_intake_product_pages_long_session_navigation_smoke.py" in workflow
-    assert "accurate_intake_product_pages_long_session_navigation_smoke_ci.json" in workflow
+    assert "product-pages-browser-e2e" in workflow
+    assert "run_accurate_intake_product_pages_long_session_navigation_smoke.py" not in workflow
+    assert "accurate_intake_product_pages_long_session_navigation_smoke_ci.json" not in workflow

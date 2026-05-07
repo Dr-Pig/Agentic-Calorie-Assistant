@@ -171,12 +171,10 @@ def test_runtime_contract_failure_is_fix_gate() -> None:
 def test_required_checks_accept_success_skipped_neutral_and_reject_missing_pending_cancelled() -> None:
     assert DEFAULT_CONFIG["required_checks"] == [
         "repo-hygiene-and-architecture",
-        "pre-edd-readiness",
         "runtime-contract-tests",
-        "wave1-phase-a-contracts",
-        "wave1-phase-b-contracts",
+        "product-pages-browser-e2e",
     ]
-    assert DEFAULT_CONFIG["advisory_checks"] == ["phase-c-environment-gate", "accurate-intake-mvp-gate"]
+    assert DEFAULT_CONFIG["advisory_checks"] == []
 
     skipped_checks = _all_required_checks()
     skipped_checks[0] = _check(DEFAULT_CONFIG["required_checks"][0], conclusion="SKIPPED")
@@ -184,7 +182,7 @@ def test_required_checks_accept_success_skipped_neutral_and_reject_missing_pendi
     assert build_matrix_from_prs([_pr(checks=skipped_checks)], DEFAULT_CONFIG)["entries"][0]["ci_status"] == "pass"
 
     missing = _all_required_checks()
-    missing = [check for check in missing if check["name"] != "wave1-phase-b-contracts"]
+    missing = [check for check in missing if check["name"] != "product-pages-browser-e2e"]
     missing_entry = build_matrix_from_prs([_pr(checks=missing)], DEFAULT_CONFIG)["entries"][0]
     assert missing_entry["ci_status"] == "incomplete"
     assert missing_entry["recommended_verdict"] == "fix_gate"
@@ -202,15 +200,15 @@ def test_required_checks_accept_success_skipped_neutral_and_reject_missing_pendi
     assert cancelled_entry["recommended_verdict"] == "fix_gate"
 
 
-def test_advisory_checks_are_recorded_but_not_required_for_ci_status() -> None:
+def test_untracked_extra_checks_do_not_affect_ci_status() -> None:
     checks = _all_required_checks()
     checks.append(_check("phase-c-environment-gate", conclusion="FAILURE"))
 
     entry = build_matrix_from_prs([_pr(checks=checks)], DEFAULT_CONFIG)["entries"][0]
 
     assert entry["ci_status"] == "pass"
-    assert entry["advisory_check_status"] == "fail"
-    assert "failed_advisory_check:phase-c-environment-gate" in entry["blocking_reasons"]
+    assert entry["advisory_check_status"] == "pass"
+    assert "failed_advisory_check:phase-c-environment-gate" not in entry["blocking_reasons"]
 
 
 def test_future_shadow_forbidden_runtime_flags_stop_merge_path() -> None:

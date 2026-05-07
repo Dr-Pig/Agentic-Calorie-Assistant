@@ -509,29 +509,21 @@ def test_pl_ce_local_mvp_candidate_bundle_stays_out_of_forbidden_boundaries() ->
             assert fragment not in source
 
 
-def test_ci_runs_pl_ce_local_mvp_candidate_bundle() -> None:
+def test_ci_keeps_local_mvp_candidate_bundle_out_of_required_merge_path() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    advisory_workflow = Path(".github/workflows/ci-advisory.yml").read_text(encoding="utf-8")
 
-    assert "test_accurate_intake_pl_ce_local_mvp_candidate_bundle.py" in workflow
-    assert "build_accurate_intake_pl_ce_local_mvp_candidate_bundle.py" in workflow
-    assert "accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json" in workflow
-    assert "accurate_intake_pl_ce_context_coverage_matrix_ci.json" in workflow
-    assert "accurate_intake_short_term_context_runtime_replay_ci.json" in workflow
-    assert (
-        "--artifact short_term_context_runtime_replay=artifacts/accurate_intake_short_term_context_runtime_replay_ci.json"
-        in workflow
-    )
-    assert "--artifact context_coverage_matrix=artifacts/accurate_intake_pl_ce_context_coverage_matrix_ci.json" in workflow
-    assert "accurate_intake_context_live_diagnostic_case_matrix_ci.json" in workflow
-    assert (
-        "--artifact context_live_diagnostic_case_matrix=artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json"
-        in workflow
-    )
-    assert "accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json" in workflow
-    assert (
-        "--artifact context_live_diagnostic_anti_overfit_guard=artifacts/accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json"
-        in workflow
-    )
-    assert "accurate-intake-pl-ce-local-mvp-candidate-bundle-report" in workflow
-    assert "accurate_intake_ui_same_truth_render_contract_ci.json" in workflow
-    assert "plce_candidate_fixture_smoke.sqlite3" in workflow
+    assert "product-pages-browser-e2e" in workflow
+    assert "build_accurate_intake_pl_ce_local_mvp_candidate_bundle.py" not in workflow
+    assert "accurate_intake_pl_ce_local_mvp_candidate_bundle_ci.json" not in workflow
+    assert "accurate_intake_pl_ce_context_coverage_matrix_ci.json" not in workflow
+    assert "accurate_intake_short_term_context_runtime_replay_ci.json" not in workflow
+    assert "--artifact short_term_context_runtime_replay=artifacts/accurate_intake_short_term_context_runtime_replay_ci.json" not in workflow
+    assert "--artifact context_coverage_matrix=artifacts/accurate_intake_pl_ce_context_coverage_matrix_ci.json" not in workflow
+    assert "accurate_intake_context_live_diagnostic_case_matrix_ci.json" not in workflow
+    assert "--artifact context_live_diagnostic_case_matrix=artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json" not in workflow
+    assert "accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json" not in workflow
+    assert "--artifact context_live_diagnostic_anti_overfit_guard=artifacts/accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json" not in workflow
+    assert "accurate-intake-pl-ce-local-mvp-candidate-bundle-report" in advisory_workflow
+    assert "accurate_intake_ui_same_truth_render_contract_ci.json" in advisory_workflow
+    assert "plce_candidate_fixture_smoke.sqlite3" in advisory_workflow

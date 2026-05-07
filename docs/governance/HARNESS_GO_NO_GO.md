@@ -4,12 +4,13 @@ Use this before starting a new build wave. It should take about 30 seconds.
 
 ## Go
 
-- `main` branch protection requires the current CI job names from `.github/workflows/ci.yml`: `repo-hygiene-and-architecture`, `pre-edd-readiness`, `runtime-contract-tests`, `wave1-phase-a-contracts`, and `wave1-phase-b-contracts`
+- `main` branch protection requires the current CI job names from `.github/workflows/ci.yml`: `repo-hygiene-and-architecture`, `runtime-contract-tests`, and `product-pages-browser-e2e`
 - `python scripts/check_layer_integrity.py` passes
 - `python scripts/check_runtime_boundaries.py` passes
 - `powershell -ExecutionPolicy Bypass -File scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings` passes
-- `python scripts/pre_edd_readiness.py --timeout-seconds 180` returns `ready_for_edd`
 - the retained pytest wall for `runtime-contract-tests` passes on a fresh checkout
+- the retained browser smoke wall for `product-pages-browser-e2e` passes on a fresh checkout
+- deeper environment, MVP, and phase-labeled audit walls may still be run from `.github/workflows/ci-advisory.yml`, but they are not merge blockers
 - governance docs and workflow job names are synchronized in the same branch
 
 ## No-Go
@@ -18,7 +19,6 @@ Use this before starting a new build wave. It should take about 30 seconds.
 - branch protection still references retired workflow job names
 - any protected legacy file is growing
 - any freeze-growth file exceeds its frozen line count
-- `python scripts/pre_edd_readiness.py --timeout-seconds 180` returns `not_ready_for_edd`
 - any fixture, fake-provider, deterministic, live-diagnostic, shadow, or canary artifact claims a broader readiness stage than its evidence supports
 - the retained CI jobs require ignored local-only assets such as `data_build/`
 

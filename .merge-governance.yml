@@ -5,7 +5,7 @@ mvp_mainline_tracks:
   - AccurateIntake
   - BodyBudgetCalibration
   - FoodDB
-  - PLCE
+  - CurrentShell
 
 future_shadow_tracks:
   - LongTermContextLab
@@ -15,14 +15,10 @@ future_shadow_tracks:
 
 required_checks:
   - repo-hygiene-and-architecture
-  - pre-edd-readiness
   - runtime-contract-tests
-  - wave1-phase-a-contracts
-  - wave1-phase-b-contracts
+  - product-pages-browser-e2e
 
-advisory_checks:
-  - phase-c-environment-gate
-  - accurate-intake-mvp-gate
+advisory_checks: []
 
 forbidden_future_runtime_effects:
   - runtime_truth_changed: true

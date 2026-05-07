@@ -401,12 +401,12 @@ def test_browser_activation_gate_source_stays_out_of_fooddb_websearch_live_bound
         assert fragment not in combined_source
 
 
-def test_ci_builds_browser_activation_evidence_gate() -> None:
+def test_ci_keeps_browser_activation_evidence_gate_out_of_required_merge_path() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
-    assert "test_accurate_intake_pl_ce_browser_activation_evidence_gate.py" in workflow
+    assert "product-pages-browser-e2e" in workflow
     assert "run_accurate_intake_product_pages_short_term_context_smoke.py --require-browser-execution" in workflow
     assert "run_accurate_intake_product_pages_target_candidate_ui_smoke.py --require-browser-execution" in workflow
-    assert "run_accurate_intake_fixture_full_product_loop_e2e.py --require-browser-execution" in workflow
-    assert "build_accurate_intake_pl_ce_browser_activation_evidence_gate.py" in workflow
-    assert "accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json" in workflow
+    assert "run_accurate_intake_fixture_full_product_loop_e2e.py --require-browser-execution" not in workflow
+    assert "build_accurate_intake_pl_ce_browser_activation_evidence_gate.py" not in workflow
+    assert "accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json" not in workflow

@@ -21,17 +21,25 @@ Apply these settings to the default protected branch, expected to be `main`:
 The following check names must be required:
 
 - `repo-hygiene-and-architecture`
-- `pre-edd-readiness`
 - `runtime-contract-tests`
-- `wave1-phase-a-contracts`
-- `wave1-phase-b-contracts`
+- `product-pages-browser-e2e`
 
 If workflow job names change, this document must be updated in the same governance change.
 
-Manual-only workflows are not required status checks:
+Advisory-only workflows are not required status checks:
 
+- `merge-governance`
+- `ci-advisory`
 - `wave1-runtime-smoke`
 - `cd`
+
+Minimal policy for this repo:
+
+- required checks should stay small, stable, and merge-group safe
+- browser verification is kept because it validates user-visible CurrentShell behavior
+- merge-governance reports remain available for manual or scheduled review, but they do not block merges
+- deep environment, MVP, and phase-labeled audit walls live in `ci-advisory` and are manual-only
+- broad candidate-bundle, EDD, or phase-labeled audit packs should not sit on the required merge path unless they directly prove merge safety
 
 ## Merge Queue Delivery Policy
 
