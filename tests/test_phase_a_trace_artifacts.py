@@ -122,6 +122,45 @@ def test_write_intake_execution_trace_artifact_includes_separate_phase_c_trace(m
     assert payload["phase_c_trace"] == phase_c_trace
 
 
+def test_write_intake_execution_trace_artifact_includes_react_trace(monkeypatch, tmp_path: Path) -> None:
+    captured = _capture_writer(monkeypatch, tmp_path)
+    react_trace = {
+        "trace_schema_version": "manager_react_trace.v1",
+        "manager_pass_1": {"manager_action": "call_tools"},
+        "requested_tools": ["budget.get_today_summary"],
+        "executed_tools": ["budget.get_today_summary"],
+        "manager_pass_final": {"manager_action": "final", "final_action": "answer_only"},
+        "guard_result": {},
+        "request_failure_family": None,
+    }
+
+    trace_artifacts.write_intake_execution_trace_artifact(
+        request_id="intake_execution-react-trace",
+        user_external_id="user-2",
+        local_date="2026-04-29",
+        raw_user_input="how many calories left",
+        allow_search=False,
+        state_before={},
+        manager_round_1={},
+        injected_context_summary={},
+        tool_plan=[],
+        tool_outputs={},
+        manager_final_decision={},
+        state_after={},
+        assistant_message="ok",
+        sidecar={},
+        state_delta={},
+        phase_a_trace={},
+        phase_c_trace={},
+        react_trace=react_trace,
+        latency_tracking={},
+    )
+
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert payload["react_trace"] == react_trace
+
+
 def test_write_intake_turn_trace_artifact_preserves_history_expansion_activation(monkeypatch, tmp_path: Path) -> None:
     captured = _capture_writer(monkeypatch, tmp_path)
     phase_a_trace = {

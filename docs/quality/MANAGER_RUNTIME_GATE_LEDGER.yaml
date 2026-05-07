@@ -40,6 +40,12 @@ gates:
     status: pending
     pass_type: runtime_backed
     depends_on:
+      - rt3a_react_trace_observable_skeleton
+  - gate_id: rt3a_react_trace_observable_skeleton
+    title: ReAct trace observable skeleton
+    status: green
+    pass_type: runtime_backed
+    depends_on:
       - rt0_sync_contract
   - gate_id: rt4_context_packet_acceptance
     title: Context packet acceptance gate

@@ -10,6 +10,7 @@ from app.runtime.agent.manager_payload_utils import (
     tool_names,
     value_excerpt,
 )
+from app.runtime.agent.manager_react_trace import build_manager_react_trace
 from app.runtime.contracts.phase_a import ManagerSemanticDecision
 
 
@@ -172,6 +173,12 @@ def result_from_payload(
     final_action_source = "payload.final_action" if explicit_final_action else (
         "semantic_decision.final_action_candidate" if semantic_final_action else "default_no_commit"
     )
+    react_trace = build_manager_react_trace(
+        manager_rounds=manager_rounds,
+        tool_results=tool_results,
+        guard_outcome=guard_outcome,
+        failure_family=failure_family,
+    )
     return IntakeManagerResult(
         intent=str(payload.get("intent") or payload.get("intent_type") or "log_meal"),
         manager_action=str(payload.get("manager_action") or "final"),
@@ -201,6 +208,7 @@ def result_from_payload(
             "prompt_registry": json_safe(prompt_registry) if isinstance(prompt_registry, dict) else None,
             "manager_rounds": json_safe(manager_rounds),
             "tool_results": json_safe(tool_results),
+            "react_trace": react_trace,
             "guard_outcome": json_safe(guard_outcome or {}),
             "repair_round_used": repair_round_used,
             "request_failure_family": failure_family,
@@ -220,6 +228,12 @@ def payload_shape_failure_result(
     repair_round_used: bool = False,
     field_error: ManagerFinalPayloadShapeError,
 ) -> IntakeManagerResult:
+    react_trace = build_manager_react_trace(
+        manager_rounds=manager_rounds,
+        tool_results=tool_results,
+        guard_outcome=guard_outcome,
+        failure_family="final_payload_shape_error",
+    )
     return IntakeManagerResult(
         intent=str(payload.get("intent") or payload.get("intent_type") or "log_meal"),
         manager_action="final",
@@ -252,6 +266,7 @@ def payload_shape_failure_result(
             "prompt_registry": json_safe(prompt_registry) if isinstance(prompt_registry, dict) else None,
             "manager_rounds": json_safe(manager_rounds),
             "tool_results": json_safe(tool_results),
+            "react_trace": react_trace,
             "guard_outcome": json_safe(guard_outcome or {}),
             "repair_round_used": repair_round_used,
             "request_failure_family": "final_payload_shape_error",
