@@ -87,6 +87,7 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "token counts are not billing truth",
         "cost_unavailable_without_pricing=true",
         "billing_truth_source=provider_reported_artifact_fields_only",
+        "The upstream runtime gate source is `docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml`.",
     ]
 
     for fragment in required_fragments:
