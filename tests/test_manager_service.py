@@ -115,6 +115,7 @@ async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_rou
     assert provider.calls[1]["user_payload"]["tool_results"][0]["tool_name"] == "budget.get_today_summary"
     assert result.trace["react_trace"] == {
         "trace_schema_version": "manager_react_trace.v1",
+        "manager_pass_count": 2,
         "manager_pass_1": {
             "round_index": 0,
             "stage": "intake_manager_round",
@@ -126,6 +127,24 @@ async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_rou
             "provider_trace": {"source": "fake", "call_index": 1},
             "prompt_registry": result.trace["prompt_registry"],
         },
+        "manager_passes": [
+            {
+                "round_index": 0,
+                "stage": "intake_manager_round",
+                "manager_action": "call_tools",
+                "final_action": None,
+                "workflow_effect": None,
+                "tool_names": ["budget.get_today_summary"],
+            },
+            {
+                "round_index": 1,
+                "stage": "intake_manager_round",
+                "manager_action": "final",
+                "final_action": "commit",
+                "workflow_effect": "commit",
+                "tool_names": [],
+            },
+        ],
         "requested_tools": ["budget.get_today_summary"],
         "executed_tools": ["budget.get_today_summary"],
         "manager_pass_final": {
@@ -331,6 +350,13 @@ async def test_run_intake_manager_max_rounds_is_hard_failure() -> None:
     assert result.request_failure_family == "max_rounds_exceeded"
     assert len(result.manager_rounds) == manager_service.MAX_MANAGER_ROUNDS
     assert result.trace["react_trace"]["request_failure_family"] == "max_rounds_exceeded"
+    assert result.trace["react_trace"]["manager_pass_count"] == manager_service.MAX_MANAGER_ROUNDS
+    assert len(result.trace["react_trace"]["manager_passes"]) == manager_service.MAX_MANAGER_ROUNDS
+    assert result.trace["react_trace"]["manager_pass_1"]["round_index"] == result.trace["react_trace"]["manager_passes"][0]["round_index"]
+    assert (
+        result.trace["react_trace"]["manager_pass_final"]["round_index"]
+        == result.trace["react_trace"]["manager_passes"][-1]["round_index"]
+    )
 
 
 @pytest.mark.asyncio

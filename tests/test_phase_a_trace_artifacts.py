@@ -126,7 +126,12 @@ def test_write_intake_execution_trace_artifact_includes_react_trace(monkeypatch,
     captured = _capture_writer(monkeypatch, tmp_path)
     react_trace = {
         "trace_schema_version": "manager_react_trace.v1",
+        "manager_pass_count": 2,
         "manager_pass_1": {"manager_action": "call_tools"},
+        "manager_passes": [
+            {"manager_action": "call_tools", "tool_names": ["budget.get_today_summary"]},
+            {"manager_action": "final", "final_action": "answer_only", "tool_names": []},
+        ],
         "requested_tools": ["budget.get_today_summary"],
         "executed_tools": ["budget.get_today_summary"],
         "manager_pass_final": {"manager_action": "final", "final_action": "answer_only"},

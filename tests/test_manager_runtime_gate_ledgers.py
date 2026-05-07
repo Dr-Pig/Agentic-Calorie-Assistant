@@ -77,7 +77,12 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
     ]
     assert gates["rt3a_react_trace_observable_skeleton"]["status"] == "green"
     assert gates["rt3a_react_trace_observable_skeleton"]["title"] == "ReAct trace observable skeleton"
-    assert gates["rt3_react_trace_contract"]["depends_on"] == ["rt3a_react_trace_observable_skeleton"]
+    assert gates["rt3b_multi_pass_react_trace_summary"]["status"] == "green"
+    assert gates["rt3b_multi_pass_react_trace_summary"]["title"] == "Compact multi-pass ReAct trace summary"
+    assert gates["rt3_react_trace_contract"]["depends_on"] == [
+        "rt3a_react_trace_observable_skeleton",
+        "rt3b_multi_pass_react_trace_summary",
+    ]
     assert gates["rt10a_nutrition_estimate_quality_deterministic"]["pass_type"] == "fixture"
     assert gates["rt10b_nutrition_estimate_quality_fake_provider"]["depends_on"] == [
         "rt10a_nutrition_estimate_quality_deterministic"
