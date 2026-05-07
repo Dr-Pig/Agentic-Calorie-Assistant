@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from types import SimpleNamespace
+from typing import Any
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -11,6 +12,69 @@ from app.composition.onboarding_service import OnboardingBootstrapInput, bootstr
 from app.database import get_or_create_user
 from app.models import Base
 from app.schemas import EstimateRequest
+
+
+class _BodyObservationManagerProvider:
+    def readiness(self) -> dict[str, Any]:
+        return {"configured": True, "provider": "body_observation_boundary_fixture"}
+
+    async def complete_with_trace(
+        self,
+        **kwargs: Any,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        user_payload = dict(kwargs.get("user_payload") or {})
+        if int(user_payload.get("round_index") or 0) == 0:
+            return (
+                {
+                    "manager_action": "call_tools",
+                    "tool_calls": [
+                        {
+                            "name": "body.record_observation",
+                            "arguments": {
+                                "observation_type": "weight",
+                                "value": 70.0,
+                                "unit": "kg",
+                            },
+                        }
+                    ],
+                },
+                {"source": "body_observation_boundary_fixture"},
+            )
+        return (
+            {
+                "manager_action": "final",
+                "intent": "body_observation",
+                "intent_type": "body_observation",
+                "final_action": "answer_only",
+                "workflow_effect": "record_weight",
+                "target_attachment": {"mode": "body_observation_recorded"},
+                "exactness": "deterministic_fixture",
+                "confidence": "high",
+                "evidence_posture": "write_only_domain_mutation",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "Recorded weight 70.0 kg. Body plan was not changed."},
+                "response_summary": "record_weight",
+                "uncertainty_posture": "bounded",
+                "evidence_honesty_posture": "mutation_result",
+                "semantic_decision": {
+                    "semantic_authority": "deterministic_fake_provider",
+                    "current_turn_intent": "body_observation",
+                    "target_attachment": {"mode": "body_observation_recorded"},
+                    "workflow_effect": "record_weight",
+                    "final_action_candidate": "answer_only",
+                    "estimation_posture": "not_applicable",
+                    "followup_posture": "none",
+                    "followup_targets": [],
+                    "mutation_intent_candidate": "body_observation_write",
+                    "uncertainty_posture": "bounded",
+                    "source": "body_observation_boundary_fixture",
+                    "semantic_owner": "manager",
+                    "deterministic_role": "fixture_simulates_manager_output_only",
+                },
+                "tool_calls": [],
+            },
+            {"source": "body_observation_boundary_fixture"},
+        )
 
 
 def _session() -> Session:
@@ -42,8 +106,11 @@ def test_estimate_body_observation_route_does_not_silently_rebootstrap_body_plan
     )
     before = build_active_body_plan_view(db, user_id=user.id)
 
-    monkeypatch.setattr(intake_routes, "resolve_intake_state", lambda *_, **__: SimpleNamespace())
-    monkeypatch.setattr(intake_routes, "build_current_turn_context_v1", lambda *_, **__: SimpleNamespace())
+    monkeypatch.setattr(
+        intake_routes,
+        "manager_provider",
+        _BodyObservationManagerProvider(),
+    )
     monkeypatch.setattr(
         intake_routes,
         "build_workflow_routing_decision",
@@ -55,11 +122,6 @@ def test_estimate_body_observation_route_does_not_silently_rebootstrap_body_plan
         ),
     )
 
-    async def _parse_weight(_provider, _text):
-        return {"weight_kg": 70.0}
-
-    monkeypatch.setattr(intake_routes, "parse_weight_or_budget_intent", _parse_weight)
-
     response = asyncio.run(
         intake_routes.estimate(
             EstimateRequest(text="my weight is 70kg", user_id="estimate-body-observation-user"),
@@ -69,7 +131,8 @@ def test_estimate_body_observation_route_does_not_silently_rebootstrap_body_plan
     )
     after = build_active_body_plan_view(db, user_id=user.id)
 
-    assert response["payload"] is None
+    assert response["coach_message"] == "Recorded weight 70.0 kg. Body plan was not changed."
+    assert response["payload"]["state_delta"]["body_observation_recorded"] is True
     assert after.body_plan_id == before.body_plan_id
     assert after.daily_budget_kcal == before.daily_budget_kcal
     assert after.recommended_target_kcal == before.recommended_target_kcal
