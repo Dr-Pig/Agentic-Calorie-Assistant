@@ -127,8 +127,20 @@ def build_raw_text_retrieval_hint(user_input: str) -> RetrievalIntent:
     )
 
 
-def build_retrieval_intent(user_input: str) -> RetrievalIntent:
+def build_diagnostic_retrieval_intent(user_input: str) -> RetrievalIntent:
+    """Explicit diagnostic-only alias for raw-text retrieval hint generation."""
+
     return build_raw_text_retrieval_hint(user_input)
+
+
+def build_retrieval_intent(user_input: str) -> RetrievalIntent:
+    """Backward-compatible diagnostic alias.
+
+    This entrypoint must stay diagnostic-only. Runtime evidence execution must
+    use a manager-owned retrieval request instead.
+    """
+
+    return build_diagnostic_retrieval_intent(user_input)
 
 
 def _extract_listed_items(user_input: str) -> list[str]:
@@ -245,6 +257,7 @@ __all__ = [
     "RAW_TEXT_RETRIEVAL_INTENT_POLICY",
     "RetrievalIntent",
     "RetrievalGoal",
+    "build_diagnostic_retrieval_intent",
     "build_raw_text_retrieval_hint",
     "build_retrieval_intent",
 ]

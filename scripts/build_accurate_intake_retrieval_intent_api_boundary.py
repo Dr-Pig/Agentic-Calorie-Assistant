@@ -9,8 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.nutrition.application.retrieval_intent_runtime_boundary import (
-    build_retrieval_intent_runtime_boundary_artifact,
+from app.nutrition.application.retrieval_intent_api_boundary import (
+    build_retrieval_intent_api_boundary_artifact,
 )
 from app.shared.infra.json_artifacts import write_json_artifact
 
@@ -19,7 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
-    artifact = build_retrieval_intent_runtime_boundary_artifact()
+    artifact = build_retrieval_intent_api_boundary_artifact()
     output_path = Path(args.output)
     write_json_artifact(output_path, artifact)
     print(

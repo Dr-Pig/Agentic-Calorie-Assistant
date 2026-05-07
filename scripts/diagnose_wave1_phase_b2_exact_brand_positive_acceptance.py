@@ -15,7 +15,7 @@ if str(ROOT) not in sys.path:
 
 from app.nutrition.application.evidence_candidate_packetizer import add_hard_recheck_metadata_many  # noqa: E402
 from app.nutrition.application.evidence_packet_consumption import consume_rechecked_packets  # noqa: E402
-from app.nutrition.application.retrieval_intent import build_retrieval_intent  # noqa: E402
+from app.nutrition.application.retrieval_intent import build_diagnostic_retrieval_intent  # noqa: E402
 from app.nutrition.application.selected_extract_policy import choose_selected_extract_packet  # noqa: E402
 from app.nutrition.application.web_extract_packetizer import _KCAL_FIELD_KEYS  # noqa: E402
 from app.nutrition.application.web_extract_packetizer import _extract_requested_size_kcal  # noqa: E402
@@ -125,7 +125,7 @@ async def diagnose_positive_case(
     row = extract_rows[0] if extract_rows else {"url": source_url, "raw_content": ""}
     raw_content = str(row.get("raw_content") or "")
     
-    intent = build_retrieval_intent(case_data.get("raw_user_input", ""))
+    intent = build_diagnostic_retrieval_intent(case_data.get("raw_user_input", ""))
     
     raw_content_present = bool(raw_content.strip())
     requested_item_present = check_requested_item_present(raw_content) if raw_content_present else False
