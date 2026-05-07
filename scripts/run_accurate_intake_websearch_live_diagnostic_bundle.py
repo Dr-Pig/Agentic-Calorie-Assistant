@@ -93,6 +93,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     paths = _artifact_paths(output_dir)
     artifacts = _build_pre_provider_artifacts(paths)
     diagnostic_exit = _run_packet_smoke(

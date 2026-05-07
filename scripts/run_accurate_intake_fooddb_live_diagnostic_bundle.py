@@ -95,6 +95,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     paths = _artifact_paths(output_dir)
     source_payloads = _source_payloads(
         small_anchor_store=Path(args.small_anchor_store),
