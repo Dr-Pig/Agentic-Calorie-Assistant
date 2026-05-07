@@ -44,6 +44,21 @@ def _ready_today_macro_mirror_gate() -> dict[str, object]:
     }
 
 
+def _ready_body_observation_same_truth_gate() -> dict[str, object]:
+    return {
+        "artifact_schema_version": "1.0",
+        "artifact_type": "accurate_intake_body_observation_same_truth_gate",
+        "status": "body_observation_same_truth_gate_ready_for_human_review",
+        "pass_type": "browser_executed",
+        "upstream_runtime_gate": "rt6_bootstrap_no_plan_body_closure",
+        "summary": {
+            "required_browser_flag_count": 7,
+            "all_required_browser_flags_true": True,
+            "upstream_gate_green": True,
+        },
+    }
+
+
 def _required_payloads() -> dict[str, dict[str, object]]:
     return {
         "phase_c_gate": {
@@ -133,6 +148,7 @@ def _required_payloads() -> dict[str, dict[str, object]]:
             },
         },
         "today_macro_mirror_gate": _ready_today_macro_mirror_gate(),
+        "body_observation_same_truth_gate": _ready_body_observation_same_truth_gate(),
         "browser_activation_evidence_gate": {
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_pl_ce_browser_activation_evidence_gate",
@@ -472,6 +488,7 @@ def test_local_web_self_use_candidate_v2_gate_runner_derives_phase_c_identity_fr
         "product_pages_self_use_flow_gate",
         "ui_context_alignment_pack",
         "today_macro_mirror_gate",
+        "body_observation_same_truth_gate",
         "browser_activation_evidence_gate",
         "manager_tool_surface_inventory",
         "non_fooddb_manager_tool_contract",
@@ -607,6 +624,44 @@ def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_today_macro_
     assert printed["candidate_prepared"] is False
     assert printed["missing_evidence"] == ["today_macro_mirror_gate"]
     assert "missing evidence: today_macro_mirror_gate" in candidate[
+        "local_web_self_use_candidate_v2"
+    ]["blockers"]
+
+
+def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_body_observation_same_truth_gate(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts.run_accurate_intake_local_web_self_use_candidate_v2_gate import (
+        DEFAULT_EVIDENCE_PATHS,
+        main,
+    )
+
+    artifact_dir = tmp_path / "artifacts"
+    payloads = _required_payloads()
+    payloads.pop("body_observation_same_truth_gate")
+    for group_id, payload in payloads.items():
+        _write(artifact_dir / f"{group_id}.json", payload)
+    candidate_output = tmp_path / "candidate.json"
+
+    exit_code = main(
+        [
+            "--pre-live-evidence-output",
+            str(tmp_path / "pre_live_evidence.json"),
+            "--pre-live-output",
+            str(tmp_path / "pre_live_decision_pack.json"),
+            "--candidate-output",
+            str(candidate_output),
+            *_artifact_args(artifact_dir, tuple(DEFAULT_EVIDENCE_PATHS)),
+        ]
+    )
+    printed = json.loads(capsys.readouterr().out)
+    candidate = json.loads(candidate_output.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["candidate_prepared"] is False
+    assert printed["missing_evidence"] == ["body_observation_same_truth_gate"]
+    assert "missing evidence: body_observation_same_truth_gate" in candidate[
         "local_web_self_use_candidate_v2"
     ]["blockers"]
 

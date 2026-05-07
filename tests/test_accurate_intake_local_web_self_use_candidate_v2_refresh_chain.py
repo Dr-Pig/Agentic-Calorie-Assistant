@@ -110,6 +110,12 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
             / module.REFRESHED_ARTIFACT_FILENAMES["today_macro_mirror_gate"]
         ).read_text(encoding="utf-8")
     )
+    body_observation_same_truth_gate = json.loads(
+        (
+            artifact_dir
+            / module.REFRESHED_ARTIFACT_FILENAMES["body_observation_same_truth_gate"]
+        ).read_text(encoding="utf-8")
+    )
     candidate = json.loads(
         (
             artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["local_web_candidate"]
@@ -130,6 +136,10 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
         "non_fooddb_manager_tool_contract_ready_for_human_review"
     )
     assert today_macro_mirror_gate["status"] == "today_macro_mirror_gate_ready_for_human_review"
+    assert (
+        body_observation_same_truth_gate["status"]
+        == "body_observation_same_truth_gate_ready_for_human_review"
+    )
     assert pre_live_pack["selected_option"] == "stay_local_self_use"
     assert pre_live_pack["ready_for_live_diagnostic_decision"] is False
     assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
