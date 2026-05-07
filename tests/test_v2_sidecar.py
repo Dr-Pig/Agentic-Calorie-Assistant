@@ -17,16 +17,16 @@ def test_sidecar_macro_surface_follows_today_truth() -> None:
                 "consumed_carbs": 75,
                 "consumed_fat": 8,
                 "show_macro": False,
-                "macro_guard_reason": "macro_missing",
+                "macro_guard_reason": "no_macro_data",
             }
         ),
         state_mutation_summary={},
         trace_summary={},
-        macro_summary={"display_status": "show", "guard_reason": "aligned", "macro_kcal_delta": 20},
+        macro_summary={"display_status": "show", "guard_reason": "committed_and_aligned", "macro_kcal_delta": 20},
     )
 
     assert sidecar["macro"]["display_status"] == "hide"
-    assert sidecar["macro"]["guard_reason"] == "macro_missing"
+    assert sidecar["macro"]["guard_reason"] == "no_macro_data"
     assert sidecar["macro"]["protein_g"] == 6
     assert sidecar["macro"]["carbs_g"] == 75
     assert sidecar["macro"]["fat_g"] == 8

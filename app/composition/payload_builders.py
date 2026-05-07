@@ -279,6 +279,9 @@ def build_payload(
         source=source_label,
         component_breakdown=list(parsed.get("component_breakdown") or []),
     )
+    effective_trace_contract = dict(trace_contract or {})
+    if not display_macro_breakdown:
+        effective_trace_contract.setdefault("macro_display_authorized", False)
     evidence_summary = summarize_retrieved_evidence(retrieved_knowledge or sources)
     normalized_search_quality = search_quality.get("quality") if isinstance(search_quality, dict) else search_quality
     fallback_reply_text = (reply_text or "").strip()
@@ -294,21 +297,9 @@ def build_payload(
         quantity_hints=parsed["components"],
         component_estimates=component_estimates,
         component_breakdown=list(parsed.get("component_breakdown") or answer_payload.get("component_breakdown") or []),
-        macro_breakdown=dict(display_macro_breakdown or {
-            "protein_g": protein if protein > 0 else None,
-            "carb_g": carb if carb > 0 else None,
-            "fat_g": fat if fat > 0 else None,
-            "macro_source": "llm_hint" if any(value > 0 for value in (protein, carb, fat)) else "unavailable",
-            "macro_confidence": "low",
-        }),
+        macro_breakdown=dict(display_macro_breakdown),
         raw_macro_breakdown=dict(raw_macro_breakdown),
-        display_macro_breakdown=dict(display_macro_breakdown or {
-            "protein_g": protein if protein > 0 else None,
-            "carb_g": carb if carb > 0 else None,
-            "fat_g": fat if fat > 0 else None,
-            "macro_source": "llm_hint" if any(value > 0 for value in (protein, carb, fat)) else "unavailable",
-            "macro_confidence": "low",
-        }),
+        display_macro_breakdown=dict(display_macro_breakdown),
         evidence_ids_used=list(parsed.get("evidence_ids_used") or answer_payload.get("evidence_ids_used") or []),
         protein_g=protein,
         carb_g=carb,
@@ -342,7 +333,7 @@ def build_payload(
         search_query=search_query,
         search_quality=str(normalized_search_quality or "") or None,
         sources=sources,
-        trace_contract=trace_contract or {},
+        trace_contract=effective_trace_contract,
         failed_layer=(north_star_evaluation or {}).get("failed_layer"),
         primary_failure_reason=(north_star_evaluation or {}).get("why"),
         north_star_evaluation=north_star_evaluation or {},
