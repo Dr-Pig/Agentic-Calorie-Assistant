@@ -22,7 +22,7 @@ from scripts.repo_policy import (  # noqa: E402
     normalize_repo_path,
     target_cap_for_repo_path,
 )
-from scripts.merge_governance.build_merge_debt_matrix import (  # noqa: E402
+from scripts.merge_governance.build_merge_governance_advisory import (  # noqa: E402
     current_shell_metadata_findings,
     extract_track_report,
     infer_track,

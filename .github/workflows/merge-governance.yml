@@ -2,8 +2,6 @@ name: merge-governance
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "17 3 * * *"
 
 permissions:
   contents: read
@@ -30,8 +28,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Build advisory merge debt matrix
-        run: python scripts/merge_governance/build_merge_debt_matrix.py --skip-diff-scan --limit 40
+      - name: Build merge governance advisory report
+        run: python scripts/merge_governance/build_merge_governance_advisory.py --skip-diff-scan --limit 40
 
       - name: Upload advisory merge governance report
         if: always()
@@ -39,6 +37,6 @@ jobs:
         with:
           name: merge-governance-advisory
           path: |
-            artifacts/merge_debt_matrix.json
-            artifacts/merge_debt_matrix.md
+            artifacts/merge_governance_advisory.json
+            artifacts/merge_governance_advisory.md
           if-no-files-found: error

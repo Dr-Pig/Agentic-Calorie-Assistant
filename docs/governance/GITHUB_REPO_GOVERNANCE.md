@@ -37,9 +37,11 @@ Minimal policy for this repo:
 
 - required checks should stay small, stable, and merge-group safe
 - browser verification is kept because it validates user-visible CurrentShell behavior
-- merge-governance reports remain available for manual or scheduled review, but they do not block merges
+- merge-governance reports remain available for manual review, but they do not block merges
 - deep environment, MVP, and phase-labeled audit walls live in `ci-advisory` and are manual-only
 - broad candidate-bundle, EDD, or phase-labeled audit packs should not sit on the required merge path unless they directly prove merge safety
+- merge governance advisory reports are diagnostic-only; no legacy debt-matrix verdict engine should sit on the merge path
+- Q-owner queue artifacts are retired; the only main promotion path is the official GitHub Merge Queue plus human review
 
 ## Merge Queue Delivery Policy
 

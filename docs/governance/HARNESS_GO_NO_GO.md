@@ -11,6 +11,7 @@ Use this before starting a new build wave. It should take about 30 seconds.
 - the retained pytest wall for `runtime-contract-tests` passes on a fresh checkout
 - the retained browser smoke wall for `product-pages-browser-e2e` passes on a fresh checkout
 - deeper environment, MVP, and phase-labeled audit walls may still be run from `.github/workflows/ci-advisory.yml`, but they are not merge blockers
+- merge-governance reports are manual diagnostics only; they do not decide queue eligibility or merge readiness by themselves
 - governance docs and workflow job names are synchronized in the same branch
 
 ## No-Go

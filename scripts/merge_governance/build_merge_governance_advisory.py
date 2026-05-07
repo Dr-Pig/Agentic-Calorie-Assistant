@@ -14,8 +14,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG_PATH = ROOT / ".merge-governance.yml"
-DEFAULT_JSON_OUT = ROOT / "artifacts" / "merge_debt_matrix.json"
-DEFAULT_MD_OUT = ROOT / "artifacts" / "merge_debt_matrix.md"
+DEFAULT_JSON_OUT = ROOT / "artifacts" / "merge_governance_advisory.json"
+DEFAULT_MD_OUT = ROOT / "artifacts" / "merge_governance_advisory.md"
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "main_branch": "main",
@@ -48,16 +48,6 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "max_stack_depth": 2,
         "max_branch_age_days_without_realign": 2,
     },
-}
-
-ALLOWED_VERDICTS = {
-    "merge_candidate",
-    "dormant_shadow_candidate",
-    "extract_only",
-    "rebase_required",
-    "fix_gate",
-    "hold_as_shadow",
-    "stop",
 }
 
 REQUIRED_TRACK_REPORT_KEYS = (
@@ -759,52 +749,27 @@ def _is_guard_only_future_pr(*, files: list[dict[str, Any]], additions: int, con
     return True
 
 
-def _recommended_verdict(
+def _merge_readiness_status(
     *,
-    mainline_status: str,
     ci_status: str,
-    ci_blockers: list[str],
     base_drift_status: str,
     boundary_status: str,
     deterministic_boundary_status: str,
-    runtime_activation_status: str,
     track_report_status: str,
-    stack_policy_status: str,
-    guard_only_future_pr: bool,
+    metadata_blockers: list[str],
+    mainline_status: str,
 ) -> str:
-    if track_report_status == "missing" and mainline_status == "unknown":
-        return "stop"
-    if runtime_activation_status == "active":
-        return "stop"
-    if boundary_status == "fail":
-        return "fix_gate"
-    if deterministic_boundary_status == "fail":
-        return "fix_gate"
-    if stack_policy_status == "fail":
-        return "fix_gate"
-    if ci_status == "fail":
-        if any(
-            item in reason
-            for reason in ci_blockers
-            for item in ("runtime-contract-tests", "pre-edd-readiness")
-        ):
-            return "fix_gate"
-        return "fix_gate"
-    if ci_status in {"pending", "incomplete"}:
-        return "fix_gate"
+    if ci_status in {"fail", "pending", "incomplete"}:
+        return "blocked"
+    if boundary_status == "fail" or deterministic_boundary_status == "fail":
+        return "blocked"
+    if metadata_blockers:
+        return "blocked"
+    if track_report_status == "missing" and mainline_status not in {"governance_guard", "dependency_bump"}:
+        return "blocked"
     if base_drift_status != "current":
-        return "rebase_required"
-    if mainline_status == "future_shadow":
-        if track_report_status == "missing":
-            return "fix_gate"
-        if guard_only_future_pr:
-            return "extract_only"
-        if runtime_activation_status == "inactive":
-            return "dormant_shadow_candidate"
-        return "hold_as_shadow"
-    if mainline_status in {"mvp_mainline", "governance_guard", "dependency_bump"}:
-        return "merge_candidate"
-    return "stop"
+        return "stale"
+    return "ready_for_human_queue_review"
 
 
 def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> dict[str, Any]:
@@ -853,19 +818,7 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
             files=files,
             config=config,
         )
-        guard_only = _is_guard_only_future_pr(files=files, additions=additions, config=config)
-        verdict = _recommended_verdict(
-            mainline_status=mainline_status,
-            ci_status=ci_status,
-            ci_blockers=ci_blockers,
-            base_drift_status=base_drift_status,
-            boundary_status=boundary_status,
-            deterministic_boundary_status=deterministic_status,
-            runtime_activation_status=runtime_activation_status,
-            track_report_status=track_report_status,
-            stack_policy_status=stack_policy_status,
-            guard_only_future_pr=guard_only,
-        )
+        advisory_blockers = sorted(set(advisory_findings + metadata_advisories))
         blockers = sorted(
             set(
                 ci_blockers
@@ -875,10 +828,17 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
                 + deterministic_blockers
                 + fat_blockers
                 + stack_blockers
-                + advisory_findings
                 + metadata_blockers
-                + metadata_advisories
             )
+        )
+        merge_readiness_status = _merge_readiness_status(
+            ci_status=ci_status,
+            base_drift_status=base_drift_status,
+            boundary_status=boundary_status,
+            deterministic_boundary_status=deterministic_status,
+            track_report_status=track_report_status,
+            metadata_blockers=metadata_blockers,
+            mainline_status=mainline_status,
         )
         entries.append(
             {
@@ -907,9 +867,9 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
                 "deterministic_boundary_status": deterministic_status,
                 "runtime_activation_status": runtime_activation_status,
                 "fat_file_status": fat_file_status,
-                "recommended_verdict": verdict,
+                "merge_readiness_status": merge_readiness_status,
                 "blocking_reasons": blockers,
-                "safe_next_action": _safe_next_action(verdict),
+                "advisories": advisory_blockers,
                 "additions": additions,
                 "deletions": int(pr.get("deletions") or 0),
                 "changed_files": int(pr.get("changedFiles") or len(files)),
@@ -918,24 +878,12 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
             }
         )
     return {
-        "artifact_type": "merge_debt_matrix",
+        "artifact_type": "merge_governance_advisory",
         "main_branch": main_branch,
         "entry_count": len(entries),
-        "verdict_counts": _counts(entry["recommended_verdict"] for entry in entries),
+        "merge_readiness_counts": _counts(entry["merge_readiness_status"] for entry in entries),
         "entries": entries,
     }
-
-
-def _safe_next_action(verdict: str) -> str:
-    return {
-        "merge_candidate": "Queue for human review and merge only after fresh required checks on latest main.",
-        "dormant_shadow_candidate": "Queue as dormant shadow only; verify no runtime activation before merge.",
-        "extract_only": "Extract only guard, contract, or matrix slices; keep feature implementation in draft.",
-        "rebase_required": "Realign the branch to current main and update stale contracts before review.",
-        "fix_gate": "Fix failing governance, runtime, or CI gate before any merge decision.",
-        "hold_as_shadow": "Keep as draft shadow work; do not merge implementation into main.",
-        "stop": "Stop merge path until ownership, track report, or runtime boundary is clarified.",
-    }[verdict]
 
 
 def _counts(items: Any) -> dict[str, int]:
@@ -947,14 +895,14 @@ def _counts(items: Any) -> dict[str, int]:
 
 def render_markdown(report: dict[str, Any]) -> str:
     lines = [
-        "# Merge Debt Matrix",
+        "# Merge Governance Advisory",
         "",
         f"- Main branch: `{report.get('main_branch')}`",
         f"- Entry count: `{report.get('entry_count')}`",
-        f"- Verdict counts: `{json.dumps(report.get('verdict_counts') or {}, sort_keys=True)}`",
+        f"- Merge readiness counts: `{json.dumps(report.get('merge_readiness_counts') or {}, sort_keys=True)}`",
         "",
-        "| # | Track | Status | Verdict | Blocking reasons |",
-        "| --- | --- | --- | --- | --- |",
+        "| # | Track | Status | Readiness | Blocking reasons | Advisories |",
+        "| --- | --- | --- | --- | --- | --- |",
     ]
     for entry in report.get("entries") or []:
         status = (
@@ -962,9 +910,10 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"{entry['base_drift_status']} / {entry['boundary_status']}"
         )
         blockers = ", ".join(entry.get("blocking_reasons") or []) or "-"
+        advisories = ", ".join(entry.get("advisories") or []) or "-"
         lines.append(
             f"| #{entry['pr_number']} | `{entry['track']}` | `{status}` | "
-            f"`{entry['recommended_verdict']}` | {blockers} |"
+            f"`{entry['merge_readiness_status']}` | {blockers} | {advisories} |"
         )
     return "\n".join(lines) + "\n"
 
@@ -994,9 +943,7 @@ def main(argv: list[str] | None = None) -> int:
     args.json_out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     args.md_out.write_text(render_markdown(report), encoding="utf-8")
     print(json.dumps({"json_report": str(args.json_out), "markdown_report": str(args.md_out)}, ensure_ascii=False))
-    if args.fail_on_blocking and any(
-        entry["recommended_verdict"] in {"stop", "fix_gate", "rebase_required"} for entry in report["entries"]
-    ):
+    if args.fail_on_blocking and any(entry["merge_readiness_status"] != "ready_for_human_queue_review" for entry in report["entries"]):
         return 1
     return 0
 

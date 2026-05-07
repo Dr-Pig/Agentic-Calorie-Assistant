@@ -70,17 +70,16 @@ def test_merge_governance_workflow_is_manual_or_scheduled_advisory_only() -> Non
     workflow = (ROOT / ".github" / "workflows" / "merge-governance.yml").read_text(encoding="utf-8")
 
     assert "workflow_dispatch" in workflow
-    assert "schedule:" in workflow
     assert "pull_request" not in workflow
     assert "merge_group" not in workflow
     assert "pull-requests: read" in workflow
     assert "fetch-depth: 0" in workflow
     assert "git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune" in workflow
-    assert "python scripts/merge_governance/build_merge_debt_matrix.py" in workflow
+    assert "python scripts/merge_governance/build_merge_governance_advisory.py" in workflow
     assert "--skip-diff-scan --limit 40" in workflow
     assert "merge-governance-advisory" in workflow
-    assert "artifacts/merge_debt_matrix.json" in workflow
-    assert "artifacts/merge_debt_matrix.md" in workflow
+    assert "artifacts/merge_governance_advisory.json" in workflow
+    assert "artifacts/merge_governance_advisory.md" in workflow
 
 
 def test_ci_advisory_workflow_is_manual_only() -> None:
