@@ -1,8 +1,9 @@
-﻿# Accurate Intake MVP Parallel Tracks Status
+﻿# Current Shell v1 Parallel Tracks Status
 
-This file is the shared context pack for parallel Accurate Intake MVP work.
+This file is the shared context pack for Current Shell v1 coordination work.
 It is project coordination truth, not product runtime truth.
-The current coordination model is two tracks: `FDB` and `PLCE`.
+The current coordination model is three tracks: `FoodDB`, `ManagerRuntime`, and `AppShell`.
+Legacy `PLCE` / `PL+CE` wording remains compatibility vocabulary only for older artifacts and file paths; it is not the active ownership model.
 Draft PR bodies plus CI are the live sync truth; this file is the rule map and handoff template.
 
 Agents should read this file before starting a new Accurate Intake slice.
@@ -33,7 +34,7 @@ Non-goals:
 
 ## Track Ownership
 
-### Track FDB: FoodDB / Evidence Pipeline
+### Track FoodDB: FoodDB / Evidence Pipeline
 
 Owns:
 - raw source inventory
@@ -45,16 +46,41 @@ Owns:
 - approved packet-ready evidence artifact
 
 Must not touch:
-- Product Loop UI
+- AppShell UI
 - Manager context runtime
 - runtime mutation legality
 - frontend behavior
 
 Outputs consumed by:
-- Product Loop via approved packet-ready evidence artifact
+- ManagerRuntime via approved packet-ready evidence artifact
 - runtime via stable NutritionEvidenceStorePort
 
-### Track PLCE: Product Loop + Context Engineering
+### Track ManagerRuntime: Upstream Runtime Contract Owner
+
+Owns:
+- intent, tool, and target posture decisions
+- bounded context packet acceptance
+- guard and mutation boundary decisions
+- chat-first Manager-managed app-state tools outside FoodDB/Search Evidence
+- renderer input basis
+- runtime-backed journey gates and gate ledger
+- downstream dependency contracts consumed by AppShell/browser gates
+
+Must not touch:
+- FoodEvidenceRecord schema
+- PacketReadyAnchor schema
+- NutritionEvidenceStorePort contract
+- FoodDB truth
+- FoodDB/WebSearch ranking or packet promotion
+- frontend truth math
+- AppShell-only rendering behavior
+
+Outputs consumed by:
+- AppShell browser/runtime-backed gates
+- human/operator review
+- later live-diagnostic gate review
+
+### Track AppShell: Downstream Renderer / Browser Verifier
 
 Owns:
 - browser-executed local shell smoke
@@ -67,8 +93,8 @@ Owns:
 - loaded_context_summary and omitted_context_summary
 - pending follow-up and draft pins
 - correction/removal target candidates
-- Manager tool surface inventory and direct-lane audit for non-FoodDB app-state tools
-- non-FoodDB Manager tool diagnostics for budget, body, calibration, and app-help tool choice
+- AppShell/browser consumption of machine-readable Current Shell contracts and ManagerRuntime gates
+- browser same-truth verification against backend/read-model/renderer structured fields
 
 Must not touch:
 - FoodEvidenceRecord schema
@@ -78,6 +104,7 @@ Must not touch:
 - FoodDB/WebSearch ranking or packet promotion
 - mutation legality
 - shared ManagerContextPacket contract shape without a human gate
+- ManagerRuntime semantic ownership or runtime truth
 
 Outputs consumed by:
 - integration dogfood later
@@ -88,11 +115,11 @@ Outputs consumed by:
 
 ### Food Evidence Contract
 
-Product Loop may consume only:
+ManagerRuntime may consume only:
 - approved packet-ready generic anchors/cards
 - fixture packet-ready evidence for local diagnostic only
 
-Product Loop must not consume:
+ManagerRuntime must not consume:
 - raw source files
 - staging candidates
 - validator-only candidates
@@ -118,7 +145,7 @@ Manager input must exclude:
 - long-term memory
 - proactive, rescue, or recommendation context
 
-### Product Loop Contract
+### AppShell Contract
 
 Frontend may render:
 - chat bubbles
@@ -136,13 +163,13 @@ Frontend must not infer:
 - consumed/remaining
 - mutation truth
 
-PLCE may also own chat-first Manager-managed app-state tools outside FoodDB/Search Evidence:
+ManagerRuntime may also own chat-first Manager-managed app-state tools outside FoodDB/Search Evidence:
 - budget/day-status read-only tools
 - body read-only tools and guarded observation recording surfaces
 - calibration preview / pending proposal / stored proposal action surfaces
 - app usage/help answers
 
-PLCE must not infer tool choice, target selection, mutation legality, or nutrition truth in the frontend.
+AppShell must not infer tool choice, target selection, mutation legality, or nutrition truth in the frontend.
 
 ## Shared Contract Change Gate
 
@@ -171,7 +198,7 @@ Every track output intended for another track must report:
 - ready_for_other_tracks
 - non_claims
 
-If Product Loop uses fixture evidence, it must report:
+If ManagerRuntime or AppShell uses fixture evidence, it must report:
 - fixture_evidence_used: true
 - real_fooddb_pass_claimed: false
 
@@ -182,7 +209,7 @@ If FoodDB produces packet-ready evidence, it must report:
 - approved_packet_ready_evidence_artifact.source_quality
 - approved_packet_ready_evidence_artifact.ready_for_product_loop
 
-If Context Engineering produces trace fields, it must report:
+If ManagerRuntime produces trace fields, it must report:
 - context_trace_fields
 - context_policy_version
 - ready_for_review_panel
@@ -192,9 +219,9 @@ If Context Engineering produces trace fields, it must report:
 This section is a status-block template, not the live status board.
 Live sync truth is Draft PR body plus CI state.
 
-### FDB Status
+### FoodDB Status
 
-track: FDB
+track: FoodDB
 branch: not_reported_in_this_status_pack_yet
 current_slice: not_reported_in_this_status_pack_yet
 status: not_reported_in_this_status_pack_yet
@@ -202,13 +229,23 @@ expected_output: approved packet-ready evidence artifact
 shared_contract_changed: false
 blocked_by: not_reported_in_this_status_pack_yet
 
-### PLCE Status
+### ManagerRuntime Status
 
-track: PLCE
+track: ManagerRuntime
 branch: update_only_when_reporting_your_current_pr_or_main_based_slice
 current_slice: update_only_when_reporting_your_current_pr_or_main_based_slice
 status: update_only_when_reporting_your_current_pr_or_main_based_slice
-expected_output: browser/product-page artifacts; context/review artifacts; non-FoodDB manager-tool diagnostics; pre-live local review packs
+expected_output: runtime contracts, gate ledger entries, manager/tool diagnostics, renderer input basis, downstream dependency contracts
+shared_contract_changed: false
+blocked_by: update_only_when_reporting_your_current_pr_or_main_based_slice
+
+### AppShell Status
+
+track: AppShell
+branch: update_only_when_reporting_your_current_pr_or_main_based_slice
+current_slice: update_only_when_reporting_your_current_pr_or_main_based_slice
+status: update_only_when_reporting_your_current_pr_or_main_based_slice
+expected_output: browser/product-page artifacts, render-only shell gates, same-truth verification packs, local review packs
 shared_contract_changed: false
 blocked_by: update_only_when_reporting_your_current_pr_or_main_based_slice
 
@@ -236,8 +273,9 @@ After finishing a slice:
 3. Open or update the PR, wait for checks, and use GitHub Merge Queue as the serial delivery path.
 
 Agents may update only their own track status block:
-- FoodDB agents may update only FDB Status.
-- PLCE agents may update only PLCE Status.
+- FoodDB agents may update only FoodDB Status.
+- ManagerRuntime agents may update only ManagerRuntime Status.
+- AppShell agents may update only AppShell Status.
 
 Agents must not change Track Ownership, Shared Interface Contracts, Shared Contract Change Gate, Artifact Compatibility Gate, or Cross-Track Blockers without human approval.
 
@@ -261,10 +299,10 @@ pushed_sha:
 
 ## Startup Message For Parallel Agents
 
-Use this prompt when starting any FDB or PLCE window:
+Use this prompt when starting any FoodDB, ManagerRuntime, or AppShell window:
 
 ```text
-You are working in one track of the Accurate Intake MVP two-track plan.
+You are working in one track of the Current Shell v1 split delivery plan.
 
 Before implementation, read:
 docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md
