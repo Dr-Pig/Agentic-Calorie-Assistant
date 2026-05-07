@@ -121,7 +121,9 @@ async def execute_non_fooddb_read_tool_calls(
     for call in tool_calls:
         tool_name = str(call.get("name") or call.get("tool_name") or "").strip()
         canonical_public_tool_name = _canonical_public_tool_name(tool_name)
+        presented_tool_name = canonical_public_tool_name or tool_name
         internal_tool_key = _internal_tool_key(tool_name)
+        truth_owner = _truth_owner(presented_tool_name, internal_tool_key)
         if internal_tool_key == "read_day_budget":
             budget_view = read_day_budget_tool(db, user_id=user_id, local_date=local_date)
             active_plan = read_body_plan_tool(db, user_id=user_id)
@@ -131,13 +133,13 @@ async def execute_non_fooddb_read_tool_calls(
             )
             results.append(
                 _result(
-                    tool_name,
+                    presented_tool_name,
                     evidence={
                         "current_budget_view": budget_view,
                         "active_body_plan_view": active_plan,
                         "remaining_budget_contract": remaining_budget,
                     },
-                    truth_owner=_truth_owner(tool_name, internal_tool_key),
+                    truth_owner=truth_owner,
                     canonical_tool_name=canonical_public_tool_name,
                 )
             )
@@ -146,9 +148,9 @@ async def execute_non_fooddb_read_tool_calls(
             active_plan = read_body_plan_tool(db, user_id=user_id)
             results.append(
                 _result(
-                    tool_name,
+                    presented_tool_name,
                     evidence={"active_body_plan_view": active_plan},
-                    truth_owner=_truth_owner(tool_name, internal_tool_key),
+                    truth_owner=truth_owner,
                     canonical_tool_name=canonical_public_tool_name,
                 )
             )
@@ -161,12 +163,12 @@ async def execute_non_fooddb_read_tool_calls(
             )
             results.append(
                 _result(
-                    tool_name,
+                    presented_tool_name,
                     evidence={
                         "latest_weight_status": "available" if latest_weight is not None else "not_available",
                         "latest_weight_observation": latest_weight,
                     },
-                    truth_owner=_truth_owner(tool_name, internal_tool_key),
+                    truth_owner=truth_owner,
                     canonical_tool_name=canonical_public_tool_name,
                 )
             )
@@ -175,13 +177,13 @@ async def execute_non_fooddb_read_tool_calls(
             proposals = read_calibration_pending_proposal_tool(db, user_id=user_id)
             results.append(
                 _result(
-                    tool_name,
+                    presented_tool_name,
                     evidence={
                         "pending_proposal_status": "available" if proposals else "not_available",
                         "proposal_count": len(proposals),
                         "open_calibration_proposals": proposals,
                     },
-                    truth_owner=_truth_owner(tool_name, internal_tool_key),
+                    truth_owner=truth_owner,
                     canonical_tool_name=canonical_public_tool_name,
                 )
             )
@@ -189,9 +191,9 @@ async def execute_non_fooddb_read_tool_calls(
         if internal_tool_key == "answer_usage_question":
             results.append(
                 _result(
-                    tool_name,
+                    presented_tool_name,
                     evidence={"app_usage_policy": build_app_usage_question_policy()},
-                    truth_owner=_truth_owner(tool_name, internal_tool_key),
+                    truth_owner=truth_owner,
                     canonical_tool_name=canonical_public_tool_name,
                 )
             )

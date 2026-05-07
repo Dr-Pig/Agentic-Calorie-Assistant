@@ -203,7 +203,7 @@ async def test_run_intake_manager_sends_structured_phase_a_payload_to_provider()
         resolved_state=resolved_state,
         current_turn_context=current_turn_context,
         manager_context_pack=manager_context_pack,
-        available_tools=("read_day_budget",),
+        available_tools=("budget.get_today_summary",),
     )
 
     payload = provider.calls[0]["user_payload"]
@@ -259,7 +259,7 @@ async def test_run_intake_manager_sends_bounded_recent_chat_turns_in_context_pac
         resolved_state=resolved_state,
         current_turn_context=current_turn_context,
         manager_context_pack=manager_context_pack,
-        available_tools=("read_day_budget",),
+        available_tools=("budget.get_today_summary",),
     )
 
     payload = provider.calls[0]["user_payload"]
@@ -303,7 +303,7 @@ async def test_run_intake_manager_sends_manager_context_packet_v1_sidecar_withou
         current_turn_context=current_turn_context,
         manager_context_pack=build_manager_context_pack(current_turn_context=current_turn_context),
         manager_context_packet_v1=packet,
-        available_tools=("read_day_budget",),
+        available_tools=("budget.get_today_summary",),
     )
 
     payload = provider.calls[0]["user_payload"]
@@ -395,7 +395,7 @@ async def test_promoted_context_visibility_does_not_change_provider_final_action
         resolved_state=resolved_state,
         current_turn_context=current_turn_context,
         manager_context_pack=build_manager_context_pack(current_turn_context=current_turn_context),
-        available_tools=("read_day_budget",),
+        available_tools=("budget.get_today_summary",),
     )
 
     manager_context = provider.calls[0]["user_payload"]["phase_a_manager_context_pack"]["manager_context"]
@@ -431,7 +431,7 @@ async def test_run_intake_manager_sends_shadow_hypothesis_to_provider_payload() 
         current_turn_context=current_turn_context,
         manager_context_pack=manager_context_pack,
         phase_a_shadow_hypothesis=shadow_payload,
-        available_tools=("read_day_budget",),
+        available_tools=("budget.get_today_summary",),
     )
 
     payload = provider.calls[0]["user_payload"]
@@ -492,7 +492,7 @@ async def test_shadow_payload_does_not_bypass_existing_manager_guard() -> None:
         manager_context_pack=build_manager_context_pack(current_turn_context=current_turn_context),
         phase_a_shadow_hypothesis=shadow_payload,
         guard_checker=_guard_checker,
-        available_tools=("read_day_budget",),
+        available_tools=("budget.get_today_summary",),
     )
 
     assert result.final_action == "no_commit"
@@ -992,7 +992,7 @@ async def test_process_intake_execution_turn_allows_manager_ask_followup_through
             user_payload = dict(kwargs.get("user_payload") or {})
             self.calls.append(user_payload)
             followup_question = "Which items and portions should I estimate?"
-            if {"read_body_plan", "read_day_budget"}.intersection(set(user_payload.get("available_tools") or [])):
+            if {"body.get_active_plan", "budget.get_today_summary"}.intersection(set(user_payload.get("available_tools") or [])):
                 return (
                     {
                         "manager_action": "final",
