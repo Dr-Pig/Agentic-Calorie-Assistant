@@ -78,6 +78,10 @@ def _summarize_persist_meal_log_result(result: Any) -> dict[str, Any] | None:
 
 
 def build_trace_refs(*, request_id: str) -> dict[str, Any]:
+    return {"request_id": request_id}
+
+
+def build_internal_trace_refs(*, request_id: str) -> dict[str, Any]:
     request_trace = REQUEST_TRACE_DIR / f"{request_id}.json"
     stage_trace = stage_trace_path(request_id)
     return {
@@ -140,7 +144,7 @@ def write_intake_turn_trace_artifact(
         "state_delta": _json_safe(state_delta),
         "phase_a_trace": _json_safe(phase_a_trace or {}),
         "latency_tracking": latency_tracking or {},
-        "trace_refs": build_trace_refs(request_id=request_id),
+        "trace_refs": build_internal_trace_refs(request_id=request_id),
     }
     return write_request_trace_artifact(request_id, payload)
 
@@ -200,7 +204,7 @@ def write_intake_execution_trace_artifact(
         "phase_a_trace": _json_safe(phase_a_trace or {}),
         "phase_c_trace": _json_safe(phase_c_trace or {}),
         "latency_tracking": latency_tracking or {},
-        "trace_refs": build_trace_refs(request_id=request_id),
+        "trace_refs": build_internal_trace_refs(request_id=request_id),
     }
     return write_request_trace_artifact(request_id, payload)
 
@@ -233,6 +237,6 @@ def write_general_chat_request_trace_artifact(
         "general_chat_result": _json_safe(general_chat_result),
         "renderer_output": {"assistant_message": assistant_message},
         "phase_a_trace": _json_safe(phase_a_trace or {}),
-        "trace_refs": build_trace_refs(request_id=request_id),
+        "trace_refs": build_internal_trace_refs(request_id=request_id),
     }
     return write_request_trace_artifact(request_id, payload)
