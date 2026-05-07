@@ -103,6 +103,7 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt2_coarse_tool_surface_convergence",
         "rt4_context_packet_acceptance",
     ]
+    assert gates["rt6_bootstrap_no_plan_body_closure"]["status"] == "green"
     assert gates["rt10a_nutrition_estimate_quality_deterministic"]["pass_type"] == "fixture"
     assert gates["rt10b_nutrition_estimate_quality_fake_provider"]["depends_on"] == [
         "rt10a_nutrition_estimate_quality_deterministic"

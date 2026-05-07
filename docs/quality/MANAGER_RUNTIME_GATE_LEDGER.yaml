@@ -97,7 +97,7 @@ gates:
       - rt4_context_packet_acceptance
   - gate_id: rt6_bootstrap_no_plan_body_closure
     title: Bootstrap, no-plan, and body read/write closure
-    status: pending
+    status: green
     pass_type: runtime_backed
     depends_on:
       - rt5_intent_tool_argument_walls
