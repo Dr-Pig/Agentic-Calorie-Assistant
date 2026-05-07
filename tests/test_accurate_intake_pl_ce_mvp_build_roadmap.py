@@ -12,11 +12,14 @@ def test_pl_ce_roadmap_doc_exists_with_utf8_bom_and_track_split() -> None:
     assert raw.startswith(b"\xef\xbb\xbf")
     text = raw.decode("utf-8-sig")
 
-    assert "PL+CE MVP Build Roadmap" in text
-    assert "merged PL+CE checkpoint train" in text
+    assert "Current Shell v1 Coordination Roadmap" in text
+    assert "legacy-path document records the Current Shell v1 coordination map" in text
+    assert "active ownership split is `ManagerRuntime` + `AppShell`" in text
+    assert "merged legacy PL+CE checkpoint train" in text
     assert "PR508: pre-live artifact refresh chain" in text
     assert "FoodDB/Search Evidence owns retrieval, ranking" in text
-    assert "PL+CE owns context visibility" in text
+    assert "ManagerRuntime owns upstream runtime contracts" in text
+    assert "AppShell owns downstream browser verification" in text
     assert "blocked_waiting_for_fdb_artifact" in text
     assert "no Kimi full E2E" in text
     assert "no Tavily/WebSearch runtime calling" in text
@@ -57,7 +60,7 @@ def test_pl_ce_roadmap_doc_records_non_fooddb_manager_tool_convergence() -> None
 
     for fragment in (
         "Non-FoodDB Manager Tool Convergence",
-        "PL+CE owns the chat-first Manager-managed tool surface for app-state capabilities outside FoodDB/Search Evidence.",
+        "ManagerRuntime owns the chat-first Manager-managed tool surface for app-state capabilities outside FoodDB/Search Evidence.",
         "`budget.get_today_summary`",
         "`budget.get_remaining_calories`",
         "`budget.get_day_meal_log`",
@@ -77,7 +80,7 @@ def test_pl_ce_roadmap_doc_records_non_fooddb_manager_tool_convergence() -> None
         "Context-Conditioned Intent + Target Wall",
         "Read-Only Tool Loop Fake Smoke",
         "Proposal / Mutation Tool Guard Smoke",
-        "PLCE Pre-FoodDB Candidate Bundle",
+        "Legacy `PLCE` Pre-FoodDB Candidate Bundle",
     ):
         assert fragment in text
 
@@ -103,6 +106,19 @@ def test_pl_ce_roadmap_doc_records_machine_readable_current_shell_coordination_a
         "CURRENT_SHELL_SYNC_CONTRACT.yaml",
         "MANAGER_RUNTIME_GATE_LEDGER.yaml",
         "downstream AppShell/browser gates and merge-governance checks should read instead of inferring runtime readiness from markdown prose alone",
+    ):
+        assert fragment in text
+
+
+def test_pl_ce_roadmap_doc_marks_plce_as_legacy_umbrella_vocabulary() -> None:
+    text = ROADMAP_PATH.read_text(encoding="utf-8-sig")
+
+    for fragment in (
+        "The file path retains `PL_CE` for compatibility",
+        "AppShell must not invent runtime semantics, frontend truth math, or mutation legality.",
+        "Every legacy `PL+CE` / Current Shell coordination artifact must preserve:",
+        "the legacy `pl_ce_local_review_decision_pack` artifact is green.",
+        "The later live diagnostic gate starts only after deterministic Current Shell v1 closure.",
     ):
         assert fragment in text
 

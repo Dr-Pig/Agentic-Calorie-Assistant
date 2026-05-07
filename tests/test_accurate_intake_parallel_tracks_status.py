@@ -15,11 +15,12 @@ def test_parallel_tracks_status_pack_exists_with_required_sections() -> None:
     text = _status_text()
 
     required_sections = [
-        "# Accurate Intake MVP Parallel Tracks Status",
+        "# Current Shell v1 Parallel Tracks Status",
         "## Current MVP Goal",
         "## Track Ownership",
-        "### Track FDB: FoodDB / Evidence Pipeline",
-        "### Track PLCE: Product Loop + Context Engineering",
+        "### Track FoodDB: FoodDB / Evidence Pipeline",
+        "### Track ManagerRuntime: Upstream Runtime Contract Owner",
+        "### Track AppShell: Downstream Renderer / Browser Verifier",
         "## Shared Interface Contracts",
         "## Shared Contract Change Gate",
         "## Artifact Compatibility Gate",
@@ -53,7 +54,7 @@ def test_parallel_tracks_status_pack_lists_human_gated_contracts() -> None:
 def test_parallel_tracks_status_pack_enforces_track_owned_status_blocks() -> None:
     text = _status_text()
 
-    for track in ("FDB", "PLCE"):
+    for track in ("FoodDB", "ManagerRuntime", "AppShell"):
         assert f"### {track} Status" in text
         block = text.split(f"### {track} Status", 1)[1].split("### ", 1)[0]
         for field in (
@@ -84,11 +85,12 @@ def test_parallel_tracks_status_pack_keeps_non_claims_visible() -> None:
         assert non_claim in text
 
 
-def test_parallel_tracks_status_pack_declares_two_track_rule_map_and_live_sync_boundary() -> None:
+def test_parallel_tracks_status_pack_declares_three_track_rule_map_and_live_sync_boundary() -> None:
     text = _status_text()
 
     for fragment in (
-        "The current coordination model is two tracks: `FDB` and `PLCE`.",
+        "The current coordination model is three tracks: `FoodDB`, `ManagerRuntime`, and `AppShell`.",
+        "Legacy `PLCE` / `PL+CE` wording remains compatibility vocabulary only for older artifacts and file paths; it is not the active ownership model.",
         "Draft PR bodies plus CI are the live sync truth; this file is the rule map and handoff template.",
         "This section is a status-block template, not the live status board.",
         "Live sync truth is Draft PR body plus CI state.",
