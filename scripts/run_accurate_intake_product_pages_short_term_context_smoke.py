@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.budget.interface.today_surface import resolve_today_local_date  # noqa: E402
+from app.composition.non_fooddb_read_only_turn import NON_FOODDB_READ_ONLY_MANAGER_TOOLS  # noqa: E402
 from app.database import get_or_create_user  # noqa: E402
 from app.runtime.interface.local_debug_auth import LOCAL_DEBUG_API_TOKEN_ENV  # noqa: E402
 from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
@@ -49,15 +50,8 @@ REQUIRED_FETCH_PREFIXES = (
     "/accurate-intake/debug",
     "/today/current-budget",
 )
-ENTRY_READ_TOOLS = frozenset(
+LEGACY_ENTRY_READ_TOOLS = frozenset(
     {
-        "budget.get_today_summary",
-        "budget.get_remaining_calories",
-        "budget.get_day_meal_log",
-        "body.get_active_plan",
-        "body.get_latest_observation",
-        "calibration.get_pending_proposal",
-        # Compatibility only while older fixtures still advertise legacy names.
         "read_day_budget",
         "read_body_plan",
     }
@@ -127,7 +121,10 @@ class _ShortTermContextManagerProvider:
         user_payload = _dict(kwargs.get("user_payload"))
         available_tools = {str(item) for item in _list(user_payload.get("available_tools"))}
         round_index = int(user_payload.get("round_index") or 0)
-        is_entry = bool(ENTRY_READ_TOOLS.intersection(available_tools))
+        is_entry = bool(
+            set(NON_FOODDB_READ_ONLY_MANAGER_TOOLS).intersection(available_tools)
+            or LEGACY_ENTRY_READ_TOOLS.intersection(available_tools)
+        )
         if is_entry:
             self.turn_index += 1
             self.active_turn = "bare_basket_followup" if self.turn_index == 0 else "followup_answer_commit"
