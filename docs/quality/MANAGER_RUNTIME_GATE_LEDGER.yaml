@@ -13,7 +13,7 @@ gates:
       - later_runtime_gate_mapping
   - gate_id: rt1a_prompt_registry_and_trace_versioning
     title: Prompt registry, system/model split, and trace version IDs
-    status: pending
+    status: green
     pass_type: contract
     depends_on:
       - rt0_sync_contract

@@ -81,7 +81,13 @@ def _semantic_decision_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
         )
 
 
-def fallback_result(*, raw_user_input: str, onboarding_payload: dict[str, Any] | None, resolved_state: Any) -> IntakeManagerResult:
+def fallback_result(
+    *,
+    raw_user_input: str,
+    onboarding_payload: dict[str, Any] | None,
+    resolved_state: Any,
+    prompt_registry: dict[str, Any] | None = None,
+) -> IntakeManagerResult:
     if onboarding_payload is not None:
         fallback = fallback_decision(
             raw_user_input=raw_user_input,
@@ -110,7 +116,10 @@ def fallback_result(*, raw_user_input: str, onboarding_payload: dict[str, Any] |
             pending_followup=fallback.pending_followup,
             tool_calls=fallback.tool_calls,
             llm_used=False,
-            trace={"decision_source": "fallback_structured_onboarding_degraded_mode"},
+            trace={
+                "decision_source": "fallback_structured_onboarding_degraded_mode",
+                "prompt_registry": json_safe(prompt_registry) if isinstance(prompt_registry, dict) else None,
+            },
         )
     return IntakeManagerResult(
         intent="manager_unavailable",
@@ -134,7 +143,10 @@ def fallback_result(*, raw_user_input: str, onboarding_payload: dict[str, Any] |
         pending_followup=None,
         tool_calls=(),
         llm_used=False,
-        trace={"decision_source": "fallback_single_manager_degraded_mode"},
+        trace={
+            "decision_source": "fallback_single_manager_degraded_mode",
+            "prompt_registry": json_safe(prompt_registry) if isinstance(prompt_registry, dict) else None,
+        },
     )
 
 
@@ -143,6 +155,7 @@ def result_from_payload(
     *,
     manager_rounds: list[dict[str, Any]],
     tool_results: list[dict[str, Any]],
+    prompt_registry: dict[str, Any] | None = None,
     guard_outcome: dict[str, Any] | None = None,
     repair_round_used: bool = False,
     llm_used: bool = True,
@@ -185,6 +198,7 @@ def result_from_payload(
         llm_used=llm_used,
         trace={
             "decision_source": "single_manager_loop",
+            "prompt_registry": json_safe(prompt_registry) if isinstance(prompt_registry, dict) else None,
             "manager_rounds": json_safe(manager_rounds),
             "tool_results": json_safe(tool_results),
             "guard_outcome": json_safe(guard_outcome or {}),
@@ -201,6 +215,7 @@ def payload_shape_failure_result(
     *,
     manager_rounds: list[dict[str, Any]],
     tool_results: list[dict[str, Any]],
+    prompt_registry: dict[str, Any] | None = None,
     guard_outcome: dict[str, Any] | None = None,
     repair_round_used: bool = False,
     field_error: ManagerFinalPayloadShapeError,
@@ -234,6 +249,7 @@ def payload_shape_failure_result(
         llm_used=True,
         trace={
             "decision_source": "single_manager_loop",
+            "prompt_registry": json_safe(prompt_registry) if isinstance(prompt_registry, dict) else None,
             "manager_rounds": json_safe(manager_rounds),
             "tool_results": json_safe(tool_results),
             "guard_outcome": json_safe(guard_outcome or {}),

@@ -16,6 +16,7 @@ from app.runtime.agent.manager_result_builder import (
     payload_shape_failure_result,
     result_from_payload,
 )
+from app.runtime.agent.manager_prompt_registry import build_manager_prompt_registry
 from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 from app.runtime.agent.manager_payload_utils import (
@@ -75,11 +76,13 @@ async def run_intake_manager(
     constraints: dict[str, Any] | None = None,
     max_rounds: int = 3,
 ) -> IntakeManagerResult:
+    prompt_registry = build_manager_prompt_registry(provider=provider, constraints=constraints)
     if not provider_ready(provider):
         return fallback_result(
             raw_user_input=raw_user_input,
             onboarding_payload=onboarding_payload,
             resolved_state=resolved_state,
+            prompt_registry=prompt_registry,
         )
 
     manager_rounds: list[dict[str, Any]] = []
@@ -150,6 +153,7 @@ async def run_intake_manager(
                 "decision": json_safe(parsed),
                 "trace": json_safe(trace),
                 "phase_a_input": json_safe(manager_context_trace),
+                "prompt_registry": json_safe(prompt_registry),
             }
         )
         manager_action = str(parsed.get("manager_action") or "").strip()
@@ -160,6 +164,7 @@ async def run_intake_manager(
                     {"manager_action": "final", "final_action": "no_commit", "workflow_effect": "safe_failure"},
                     manager_rounds=manager_rounds,
                     tool_results=tool_results,
+                    prompt_registry=prompt_registry,
                     failure_family="tool_routing_gap",
                 )
             if tool_executor is None:
@@ -242,6 +247,7 @@ async def run_intake_manager(
                         {**parsed, "manager_action": "final", "final_action": "no_commit"},
                         manager_rounds=manager_rounds,
                         tool_results=tool_results,
+                        prompt_registry=prompt_registry,
                         guard_outcome=guard_outcome,
                         repair_round_used=repair_round_used,
                         failure_family=str(guard_outcome.get("failure_family") or "guard_blocked"),
@@ -256,6 +262,7 @@ async def run_intake_manager(
                     parsed,
                     manager_rounds=manager_rounds,
                     tool_results=tool_results,
+                    prompt_registry=prompt_registry,
                     guard_outcome=guard_outcome,
                     repair_round_used=repair_round_used,
                 )
@@ -264,6 +271,7 @@ async def run_intake_manager(
                     parsed,
                     manager_rounds=manager_rounds,
                     tool_results=tool_results,
+                    prompt_registry=prompt_registry,
                     guard_outcome=guard_outcome,
                     repair_round_used=repair_round_used,
                     field_error=exc,
@@ -273,6 +281,7 @@ async def run_intake_manager(
             {"manager_action": "final", "final_action": "no_commit", "workflow_effect": "safe_failure"},
             manager_rounds=manager_rounds,
             tool_results=tool_results,
+            prompt_registry=prompt_registry,
             failure_family="malformed_manager_action",
         )
 
@@ -280,5 +289,6 @@ async def run_intake_manager(
         {"manager_action": "final", "final_action": "no_commit", "workflow_effect": "safe_failure"},
         manager_rounds=manager_rounds,
         tool_results=tool_results,
+        prompt_registry=prompt_registry,
         failure_family="max_rounds_exceeded",
     )

@@ -55,7 +55,12 @@ class FakeLoopProvider:
         self.calls: list[dict[str, object]] = []
 
     def readiness(self) -> dict[str, object]:
-        return {"configured": True}
+        return {
+            "configured": True,
+            "provider": "fake_provider",
+            "manager_model": "fake-model",
+            "stage_models": {"intake_manager_round": "fake-model"},
+        }
 
     async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
         self.calls.append(dict(kwargs))
@@ -142,6 +147,58 @@ async def test_run_intake_manager_forwards_product_policy_hints_as_payload_conte
     )
 
     assert provider.calls[0]["user_payload"]["manager_product_policy_hints"] == policy_hints
+
+
+@pytest.mark.asyncio
+async def test_run_intake_manager_keeps_prompt_registry_in_trace_only() -> None:
+    provider = FakeLoopProvider(
+        [
+            {
+                "manager_action": "final",
+                "intent": "general_chat",
+                "intent_type": "general_chat",
+                "final_action": "answer_only",
+                "workflow_effect": "answer_only",
+                "target_attachment": {"mode": "none"},
+                "exactness": "unknown",
+                "confidence": "low",
+                "evidence_posture": "none",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "ok"},
+            }
+        ]
+    )
+
+    result = await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="today",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=("budget.get_today_summary", "body.get_latest_observation"),
+        constraints={
+            "manager_contract_schema_version": "v1",
+            "manager_contract_provider_profile_id": "builderspace-grok-4-fast-founder-live-contract",
+            "manager_contract_provider_profile_transport_mode": "structured_outputs",
+        },
+    )
+
+    assert "manager_prompt_registry" not in provider.calls[0]["user_payload"]
+    registry = result.trace["prompt_registry"]
+    assert registry == {
+        "registry_version": "manager_prompt_registry.v1",
+        "manager_loop_stage": "intake_manager_round",
+        "system_prompt_id": "single_manager_system_prompt",
+        "system_prompt_version": "v1",
+        "model_prompt_contract_id": "single_manager_user_payload_contract",
+        "model_prompt_contract_version": "v1",
+        "tool_surface_version": "current_shell_public_tools.v1",
+        "output_schema_name": "manager_loop_schema",
+        "output_schema_version": "v1",
+        "provider": "fake_provider",
+        "manager_model": "fake-model",
+        "model_profile_overlay_id": "builderspace-grok-4-fast-founder-live-contract",
+        "model_profile_overlay_transport_mode": "structured_outputs",
+    }
+    assert result.manager_rounds[0]["prompt_registry"] == registry
 
 
 @pytest.mark.asyncio
