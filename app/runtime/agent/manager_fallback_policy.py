@@ -16,7 +16,7 @@ def fallback_decision(
             intent_type="complete_onboarding",
             workflow_effect="seed_active_body_plan_and_day_budget",
             response_summary="Complete onboarding and seed the active body plan plus current-day budget.",
-            tool_calls=("read_body_plan", "read_day_budget"),
+            tool_calls=("body.get_active_plan", "budget.get_today_summary"),
             llm_used=False,
             trace={"decision_source": "fallback_structured_onboarding"},
         )

@@ -45,6 +45,7 @@ DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID = (
     "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic"
 )
 ACTIVE_ENTRYPOINT = "app.composition.intake_turn_orchestrator.execute_intake_turn"
+PUBLIC_ENTRY_READ_TOOLS = {"body.get_active_plan", "budget.get_today_summary"}
 STAGE_PROVIDER_HEALTH_SMOKE = "provider_health_smoke"
 STAGE_SCHEMA_CONTRACT_PROBE = "schema_contract_probe"
 STAGE_FAKE_PROVIDER_ACTIVE_RUNTIME_GATE = "fake_provider_active_runtime_gate"
@@ -263,7 +264,7 @@ class ScriptedAccurateIntakeLiveProvider:
                 "script_step_kind": self._current_step.get("kind"),
             }
         )
-        if {"read_body_plan", "read_day_budget"}.intersection(available_tools):
+        if PUBLIC_ENTRY_READ_TOOLS.intersection(available_tools):
             return self._entry_decision(), self._trace("entry_decision")
         return self._execution_decision(
             available_tools=available_tools,
@@ -959,7 +960,7 @@ async def _provider_probe(
             "round_index": 0,
             "diagnostic_stage_id": stage_id,
             "raw_user_input": "How many calories did I consume today?",
-            "available_tools": ["read_body_plan", "read_day_budget"],
+            "available_tools": sorted(PUBLIC_ENTRY_READ_TOOLS),
             "tool_results": [],
             "constraints": {
                 "diagnostic_stage_id": stage_id,

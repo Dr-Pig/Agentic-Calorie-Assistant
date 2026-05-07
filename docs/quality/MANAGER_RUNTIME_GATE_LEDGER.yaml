@@ -35,12 +35,19 @@ gates:
     pass_type: runtime_backed
     depends_on:
       - rt2a_public_tool_name_normalization
+      - rt2b_entry_fallback_public_tool_surface
   - gate_id: rt2a_public_tool_name_normalization
     title: Public tool name normalization at manager boundary
     status: green
     pass_type: runtime_backed
     depends_on:
       - rt0_sync_contract
+  - gate_id: rt2b_entry_fallback_public_tool_surface
+    title: Entry and fallback public tool-surface normalization
+    status: green
+    pass_type: runtime_backed
+    depends_on:
+      - rt2a_public_tool_name_normalization
   - gate_id: rt3_react_trace_contract
     title: ReAct trace contract
     status: pending

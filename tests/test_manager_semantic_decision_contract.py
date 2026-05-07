@@ -135,3 +135,15 @@ def test_fallback_decision_without_structured_payload_does_not_keyword_route_sem
     assert decision.intent_type == "manager_unavailable"
     assert decision.workflow_effect == "safe_failure"
     assert decision.tool_calls == ()
+
+
+def test_fallback_decision_with_onboarding_payload_uses_public_read_tools() -> None:
+    decision = fallback_decision(
+        raw_user_input="",
+        onboarding_payload={"onboarding_step": "profile"},
+        onboarding_ready=False,
+    )
+
+    assert decision.intent_type == "complete_onboarding"
+    assert decision.workflow_effect == "seed_active_body_plan_and_day_budget"
+    assert decision.tool_calls == ("body.get_active_plan", "budget.get_today_summary")
