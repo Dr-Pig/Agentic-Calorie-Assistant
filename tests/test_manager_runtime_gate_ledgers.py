@@ -50,6 +50,7 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
     gates = {entry["gate_id"]: entry for entry in ledger["gates"]}
 
     assert gates["rt0_sync_contract"]["status"] == "green"
+    assert gates["rt1a_prompt_registry_and_trace_versioning"]["status"] == "green"
     assert gates["rt1a_prompt_registry_and_trace_versioning"]["title"] == (
         "Prompt registry, system/model split, and trace version IDs"
     )

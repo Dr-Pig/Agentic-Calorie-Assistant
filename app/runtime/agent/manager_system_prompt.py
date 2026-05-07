@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 
+SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v1"
+
+
 SINGLE_MANAGER_SYSTEM_PROMPT = (
     "You are the single manager agent for the intake runtime.\n"
     "Use a bounded ReAct loop. Return strict JSON.\n"
@@ -54,4 +58,8 @@ SINGLE_MANAGER_SYSTEM_PROMPT = (
 )
 
 
-__all__ = ["SINGLE_MANAGER_SYSTEM_PROMPT"]
+__all__ = [
+    "SINGLE_MANAGER_SYSTEM_PROMPT",
+    "SINGLE_MANAGER_SYSTEM_PROMPT_ID",
+    "SINGLE_MANAGER_SYSTEM_PROMPT_VERSION",
+]
