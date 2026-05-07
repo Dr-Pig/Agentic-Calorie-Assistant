@@ -103,7 +103,7 @@ gates:
       - rt5_intent_tool_argument_walls
   - gate_id: rt7_clarify_commit_correction_closure
     title: Clarify, commit, and correction closure
-    status: pending
+    status: green
     pass_type: runtime_backed
     depends_on:
       - rt5_intent_tool_argument_walls
@@ -111,6 +111,7 @@ gates:
       - rt7a_correction_removal_runtime_boundary
       - rt7b_blocking_clarify_pending_followup_boundary
       - rt7c_single_turn_commit_boundary
+      - rt7d_optional_refinement_attach_boundary
   - gate_id: rt7a_correction_removal_runtime_boundary
     title: Correction/removal target and runtime mutation boundary
     status: green
@@ -135,6 +136,16 @@ gates:
       - rt3_react_trace_contract
       - rt5_intent_tool_argument_walls
       - rt6_bootstrap_no_plan_body_closure
+  - gate_id: rt7d_optional_refinement_attach_boundary
+    title: Optional refinement attach boundary
+    status: green
+    pass_type: runtime_backed
+    depends_on:
+      - rt3_react_trace_contract
+      - rt4_context_packet_acceptance
+      - rt5_intent_tool_argument_walls
+      - rt6_bootstrap_no_plan_body_closure
+      - rt7c_single_turn_commit_boundary
   - gate_id: rt8_overshoot_runtime_truth
     title: Overshoot and current-day runtime truth
     status: pending
