@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 import pytest
@@ -256,3 +257,45 @@ def test_product_pages_short_term_context_validator_rejects_stale_report_date() 
 
     assert status == "fail"
     assert "estimate_post_missing_selected_local_date" in blockers
+
+
+def test_short_term_context_fake_manager_treats_public_non_fooddb_tools_as_entry() -> None:
+    provider = module._ShortTermContextManagerProvider()
+    public_read_only_tools = [
+        "app.answer_usage_question",
+        "body.get_active_plan",
+        "body.get_latest_observation",
+        "budget.get_day_meal_log",
+        "budget.get_remaining_calories",
+        "budget.get_today_summary",
+        "calibration.get_pending_proposal",
+    ]
+
+    decision, trace = asyncio.run(
+        provider.complete_with_trace(
+            user_payload={
+                "available_tools": public_read_only_tools,
+                "round_index": 0,
+                "raw_user_input": "晚餐吃滷味",
+                "manager_context_packet_v1": {
+                    "metadata": {"context_policy_version": "accurate_intake_mvp_context_policy_v1"},
+                    "context_loading_artifact": {
+                        "loaded_context_summary": {"recent_chat_messages": 0},
+                        "omitted_context_summary": {
+                            "policy_excluded_context_ids": [
+                                "debug_artifacts",
+                                "dogfood_review_artifacts",
+                                "food_gap_candidates",
+                            ]
+                        },
+                    },
+                    "hard_pins": {},
+                    "target_candidates": {},
+                },
+            }
+        )
+    )
+
+    assert provider.calls[0]["stage"] == "entry"
+    assert decision["semantic_decision"]["final_action_candidate"] == "route_to_intake"
+    assert trace["stage"] == "entry"
