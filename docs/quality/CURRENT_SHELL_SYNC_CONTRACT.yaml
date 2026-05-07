@@ -1,0 +1,49 @@
+artifact_type: current_shell_sync_contract
+version: 1
+launch_scope: current_shell_v1
+claim_scope: local_shell_self_use_candidate_only
+runtime_contract_owner: ManagerRuntime
+downstream_shell_owner: AppShell
+in_scope_journeys:
+  - A
+  - B
+  - C
+  - D
+  - E
+  - G
+  - H
+  - J
+  - K
+read_only_seams:
+  - I
+deferred_journeys:
+  - F
+  - F2
+  - L
+  - M
+  - N
+  - O
+  - P
+  - Q
+  - R
+  - S
+  - T
+  - U
+  - V
+pass_taxonomy:
+  - static
+  - contract
+  - fixture
+  - runtime_backed
+  - browser_executed
+appshell_rules:
+  static_contract_fixture_may_queue_without_runtime_gate: true
+  runtime_backed_requires_upstream_gate_green: true
+  browser_executed_requires_upstream_gate_green: true
+  may_not_invent_runtime_semantics: true
+non_claims:
+  product_readiness_claimed: false
+  private_self_use_approved: false
+  whole_product_mvp_ready: false
+  production_selected: false
+  mutation_rollout_approved: false

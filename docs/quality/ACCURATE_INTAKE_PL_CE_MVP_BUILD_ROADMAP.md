@@ -93,6 +93,15 @@ The top-level pre-live decision pack must directly consume the finished product-
 - `non_fooddb_read_only_tool_loop_fake_smoke`
 - `non_fooddb_mutation_tool_guard_smoke`
 
+## Current-Shell Coordination Artifacts
+
+The machine-readable coordination artifacts for downstream AppShell/browser work and merge-governance checks are:
+
+- `docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml`
+- `docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml`
+
+These are the sources that downstream AppShell/browser gates and merge-governance checks should read instead of inferring runtime readiness from markdown prose alone.
+
 ## Merge Queue Delivery Policy
 
 Default PL+CE delivery is GitHub Merge Queue serial delivery from latest `origin/main`.
@@ -138,13 +147,17 @@ The PL+CE activation sequence is:
 
 1. deterministic and fixture diagnostics
 2. fake-provider context smoke
-3. human review
-4. human-approved live-diagnostic only
-5. provider health smoke
-6. schema contract probe
-7. context-only single-case live probe
-8. review artifact and overfit guard
-9. FoodDB packet smoke or Kimi target-model validation
+3. prompt registry and cache policy recorded
+4. nutrition estimate quality and final response quality walls green
+5. human review
+6. human-approved live-diagnostic only
+7. provider health smoke
+8. schema contract probe
+9. tool-choice or context-conditioned single-case live probe
+10. FoodDB packet single-case probe
+11. nutrition/response quality mini-matrix
+12. review artifact and overfit guard
+13. FoodDB packet smoke or Kimi target-model validation
 
 This means local context and review artifacts are built before any provider call.
 Limited LLM smoke tests are local seam tests, not full product dogfood.
@@ -174,6 +187,14 @@ The operating guidance is:
   https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
 - Keep tool use schema-bound and application-executed unless explicitly using a server tool:
   https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
+- Keep stable prompt prefix content first and dynamic user/context content later to improve prompt-cache hits:
+  https://developers.openai.com/api/docs/guides/prompt-caching
+- Keep role/tone guidance in the system/developer layer and task-specific details/examples in the user layer:
+  https://developers.openai.com/api/docs/guides/prompting
+- Define eval objectives, datasets, metrics, and held-out continuous evaluation rather than vibe-based checks:
+  https://developers.openai.com/api/docs/guides/evaluation-best-practices
+- Grade agent traces, tool calls, and end-to-end decisions as structured runtime evidence:
+  https://developers.openai.com/api/docs/guides/trace-grading
 
 ## Required Non-Claims
 

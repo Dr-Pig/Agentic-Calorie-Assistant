@@ -1,0 +1,150 @@
+artifact_type: manager_runtime_gate_ledger
+version: 1
+launch_scope: current_shell_v1
+owner: ManagerRuntime
+gates:
+  - gate_id: rt0_sync_contract
+    title: Current-shell sync contract and gate ledger
+    status: green
+    pass_type: contract
+    depends_on: []
+    blocks:
+      - appshell_runtime_claims
+      - later_runtime_gate_mapping
+  - gate_id: rt1a_prompt_registry_and_trace_versioning
+    title: Prompt registry and trace version IDs
+    status: pending
+    pass_type: contract
+    depends_on:
+      - rt0_sync_contract
+  - gate_id: rt1b_stable_prefix_dynamic_suffix_contract
+    title: Stable prefix and dynamic suffix contract
+    status: pending
+    pass_type: contract
+    depends_on:
+      - rt1a_prompt_registry_and_trace_versioning
+  - gate_id: rt1c_cache_metrics_observability
+    title: Prompt cache metrics and cached-token observability
+    status: pending
+    pass_type: contract
+    depends_on:
+      - rt1b_stable_prefix_dynamic_suffix_contract
+  - gate_id: rt2_coarse_tool_surface_convergence
+    title: Coarse public tool surface convergence
+    status: pending
+    pass_type: runtime_backed
+    depends_on:
+      - rt0_sync_contract
+  - gate_id: rt3_react_trace_contract
+    title: ReAct trace contract
+    status: pending
+    pass_type: runtime_backed
+    depends_on:
+      - rt0_sync_contract
+  - gate_id: rt4_context_packet_acceptance
+    title: Context packet acceptance gate
+    status: pending
+    pass_type: runtime_backed
+    depends_on:
+      - rt3_react_trace_contract
+  - gate_id: rt5_intent_tool_argument_walls
+    title: Intent, tool-choice, and argument walls
+    status: pending
+    pass_type: runtime_backed
+    depends_on:
+      - rt2_coarse_tool_surface_convergence
+      - rt4_context_packet_acceptance
+  - gate_id: rt6_bootstrap_no_plan_body_closure
+    title: Bootstrap, no-plan, and body read/write closure
+    status: pending
+    pass_type: runtime_backed
+    depends_on:
+      - rt5_intent_tool_argument_walls
+  - gate_id: rt7_clarify_commit_correction_closure
+    title: Clarify, commit, and correction closure
+    status: pending
+    pass_type: runtime_backed
+    depends_on:
+      - rt5_intent_tool_argument_walls
+      - rt6_bootstrap_no_plan_body_closure
+  - gate_id: rt8_overshoot_runtime_truth
+    title: Overshoot and current-day runtime truth
+    status: pending
+    pass_type: runtime_backed
+    depends_on:
+      - rt7_clarify_commit_correction_closure
+  - gate_id: rt9_packet_consumption_seam
+    title: FoodDB/WebSearch packet consumption seam
+    status: pending
+    pass_type: runtime_backed
+    depends_on:
+      - rt7_clarify_commit_correction_closure
+      - rt8_overshoot_runtime_truth
+  - gate_id: rt10a_nutrition_estimate_quality_deterministic
+    title: Nutrition estimate quality deterministic wall
+    status: pending
+    pass_type: fixture
+    depends_on:
+      - rt9_packet_consumption_seam
+  - gate_id: rt10b_nutrition_estimate_quality_fake_provider
+    title: Nutrition estimate quality fake-provider wall
+    status: pending
+    pass_type: fixture
+    depends_on:
+      - rt10a_nutrition_estimate_quality_deterministic
+  - gate_id: rt11_final_response_quality
+    title: Final response presentation quality wall
+    status: pending
+    pass_type: fixture
+    depends_on:
+      - rt7_clarify_commit_correction_closure
+      - rt10a_nutrition_estimate_quality_deterministic
+  - gate_id: rt12_trace_grading_v1
+    title: Trace grading v1
+    status: pending
+    pass_type: fixture
+    depends_on:
+      - rt3_react_trace_contract
+      - rt5_intent_tool_argument_walls
+      - rt11_final_response_quality
+  - gate_id: rt13_observability_pack
+    title: Runtime observability pack
+    status: pending
+    pass_type: contract
+    depends_on:
+      - rt1a_prompt_registry_and_trace_versioning
+      - rt3_react_trace_contract
+  - gate_id: rt14_limited_live_ladder
+    title: Limited live diagnostic ladder
+    status: pending
+    pass_type: runtime_backed
+    depends_on:
+      - rt1c_cache_metrics_observability
+      - rt10b_nutrition_estimate_quality_fake_provider
+      - rt11_final_response_quality
+      - rt12_trace_grading_v1
+      - rt13_observability_pack
+journey_gate_map:
+  A:
+    - rt6_bootstrap_no_plan_body_closure
+  B:
+    - rt3_react_trace_contract
+    - rt5_intent_tool_argument_walls
+    - rt7_clarify_commit_correction_closure
+  C:
+    - rt4_context_packet_acceptance
+    - rt7_clarify_commit_correction_closure
+  D:
+    - rt4_context_packet_acceptance
+    - rt7_clarify_commit_correction_closure
+  E:
+    - rt8_overshoot_runtime_truth
+  G:
+    - rt6_bootstrap_no_plan_body_closure
+  H:
+    - rt6_bootstrap_no_plan_body_closure
+  J:
+    - rt6_bootstrap_no_plan_body_closure
+  K:
+    - rt4_context_packet_acceptance
+    - rt7_clarify_commit_correction_closure
