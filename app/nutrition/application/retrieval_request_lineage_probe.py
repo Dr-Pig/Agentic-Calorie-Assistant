@@ -13,12 +13,15 @@ _PACKET_ONLY_LIVE_RUNNER_FILES = (
     "scripts/run_accurate_intake_grokfast_fooddb_packet_smoke.py",
     "scripts/run_accurate_intake_grokfast_websearch_packet_smoke.py",
 )
-_PROHIBITED_RETRIEVAL_CALLS = (
-    "build_retrieval_intent(",
-    "build_diagnostic_retrieval_intent(",
-    "build_raw_text_retrieval_hint(",
-    "build_retrieval_request_from_raw_text_hint(",
-    "build_retrieval_request_from_manager_decision(",
+_PROHIBITED_RETRIEVAL_BUILDER_NAMES = (
+    "build_" "retrieval_intent",
+    "build_" "diagnostic_retrieval_intent",
+    "build_" "raw_text_retrieval_hint",
+    "build_" "retrieval_request_from_raw_text_hint",
+    "build_" "retrieval_request_from_manager_decision",
+)
+_PROHIBITED_RETRIEVAL_CALLS = tuple(
+    name + "(" for name in _PROHIBITED_RETRIEVAL_BUILDER_NAMES
 )
 
 
