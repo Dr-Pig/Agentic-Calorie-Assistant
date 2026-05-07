@@ -7,8 +7,8 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
 
-from app.body.application.body_observation_service import (
-    record_body_observation_to_canonical,
+from app.composition.body_observation_manager_turn import (
+    execute_body_observation_manager_turn,
 )
 from app.composition.canonical_commit_bridge import (
     record_budget_adjustment_to_canonical,
@@ -358,48 +358,42 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                 }
 
         if routing_result.target_workflow_family == "body_observation":
-            parsed = await parse_weight_or_budget_intent(manager_provider, request.text)
-            if parsed.get("weight_kg"):
-                user = get_or_create_user(db, user_id)
-                record_body_observation_to_canonical(
-                    db,
-                    user=user,
-                    value=parsed["weight_kg"],
-                    local_date=local_date,
-                )
-                assistant_message = f"Recorded weight {parsed['weight_kg']} kg. Body plan was not changed."
-                state_after = resolve_intake_state(
+            result = await execute_body_observation_manager_turn(
+                db,
+                request_id=request_id,
+                user_external_id=user_id,
+                raw_user_input=request.text,
+                local_date=local_date,
+                allow_search=request.allow_search,
+                manager_provider=manager_provider,
+                state_before=state_before,
+                current_turn_context=current_turn_context,
+                manager_context_packet_v1=manager_context_packet_v1,
+                phase_a_trace=routing_result.phase_a_trace,
+            )
+            record_runtime_turn_messages(
+                db,
+                user_external_id=user_id,
+                request_id=result["request_id"],
+                local_date=local_date,
+                raw_user_input=request.text,
+                assistant_message=result["assistant_message"],
+                state_before=state_before,
+                current_turn_context=current_turn_context,
+                manager_context_packet_v1=manager_context_packet_v1,
+                state_after=resolve_intake_state(
                     db,
                     user_external_id=user_id,
                     local_date=local_date,
-                )
-                record_runtime_turn_messages(
-                    db,
-                    user_external_id=user_id,
-                    request_id=request_id,
-                    local_date=local_date,
-                    raw_user_input=request.text,
-                    assistant_message=assistant_message,
-                    state_before=state_before,
-                    current_turn_context=current_turn_context,
-                    manager_context_packet_v1=manager_context_packet_v1,
-                    state_after=state_after,
-                    phase_a_trace=routing_result.phase_a_trace,
-                    result={
-                        "manager_decision": {"intent_type": "body_observation", "workflow_effect": "record_weight"},
-                        "intake_execution_manager": {
-                            "final": {"final_action": "answer_only", "workflow_effect": "body_observation_recorded"},
-                            "persistence_result": None,
-                        },
-                        "state_delta": {"body_observation_recorded": True},
-                        "sidecar": {},
-                    },
-                )
-                return {
-                    "request_id": request_id,
-                    "coach_message": assistant_message,
-                    "payload": None,
-                }
+                ),
+                phase_a_trace=routing_result.phase_a_trace,
+                result=result,
+            )
+            return {
+                "request_id": result["request_id"],
+                "coach_message": result["assistant_message"],
+                "payload": result,
+            }
 
         if routing_result.target_workflow_family == "calibration":
             parsed = await parse_weight_or_budget_intent(manager_provider, request.text)
