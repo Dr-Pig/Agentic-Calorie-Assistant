@@ -12,6 +12,9 @@ from sqlalchemy.pool import StaticPool
 from app.body.application.body_observation_service import record_body_observation_to_canonical
 from app.composition import intake_routes
 from app.composition.canonical_persistence import commit_meal_payload_to_canonical
+from app.composition.non_fooddb_read_only_turn import (
+    finalize_non_fooddb_read_only_manager_intent,
+)
 from app.composition.onboarding_service import (
     OnboardingBootstrapInput,
     bootstrap_body_plan_for_date,
@@ -489,6 +492,9 @@ def test_estimate_route_uses_manager_read_only_tool_loop_for_budget_query(
     ]
     assert provider.calls[0]["tool_results"] == []
     assert provider.calls[1]["tool_results"][0]["tool_name"] == "budget.get_remaining_calories"
+    assert provider.calls[1]["tool_results"][0]["provenance"]["canonical_tool_name"] == (
+        "budget.get_remaining_calories"
+    )
     payload = response.json()["payload"]
     assert payload["manager_decision"]["intent_type"] == "answer_remaining_budget"
     assert payload["manager_decision"]["workflow_effect"] == "answer_budget_summary_without_state_mutation"
@@ -527,6 +533,7 @@ def test_estimate_route_supports_manager_read_only_body_goal_answer(
     assert response.status_code == 200
     assert response.json()["coach_message"] == "目前目標是減脂，今天目標維持現有計畫。"
     assert provider.calls[1]["tool_results"][0]["tool_name"] == "body.get_active_plan"
+    assert provider.calls[1]["tool_results"][0]["provenance"]["canonical_tool_name"] == "body.get_active_plan"
     assert provider.calls[1]["tool_results"][0]["evidence"]["active_body_plan_view"]["goal_type"] == "lose_weight"
     payload = response.json()["payload"]
     assert payload["manager_decision"]["intent_type"] == "general_chat"
@@ -629,6 +636,7 @@ def test_estimate_route_supports_manager_read_only_latest_weight_answer(
 
     assert response.status_code == 200
     assert provider.calls[1]["tool_results"][0]["tool_name"] == "body.get_latest_observation"
+    assert provider.calls[1]["tool_results"][0]["provenance"]["canonical_tool_name"] == "body.get_latest_observation"
     assert provider.calls[1]["tool_results"][0]["evidence"]["latest_weight_observation"]["value"] == 57.8
     payload = response.json()["payload"]
     assert payload["manager_decision"]["workflow_effect"] == "answer_latest_weight_without_state_mutation"
@@ -663,6 +671,9 @@ def test_estimate_route_supports_manager_read_only_calibration_pending_proposal_
 
     assert response.status_code == 200
     assert provider.calls[1]["tool_results"][0]["tool_name"] == "calibration.get_pending_proposal"
+    assert provider.calls[1]["tool_results"][0]["provenance"]["canonical_tool_name"] == (
+        "calibration.get_pending_proposal"
+    )
     assert provider.calls[1]["tool_results"][0]["evidence"]["pending_proposal_status"] == "not_available"
     payload = response.json()["payload"]
     assert payload["manager_decision"]["workflow_effect"] == (
@@ -695,8 +706,36 @@ def test_estimate_route_uses_manager_read_only_tool_loop_for_day_meal_log_query(
     assert response.status_code == 200
     assert provider.calls[0]["tool_results"] == []
     assert provider.calls[1]["tool_results"][0]["tool_name"] == "budget.get_day_meal_log"
+    assert provider.calls[1]["tool_results"][0]["provenance"]["canonical_tool_name"] == "budget.get_day_meal_log"
     assert provider.calls[1]["tool_results"][0]["evidence"]["current_budget_view"]["meals"]
     payload = response.json()["payload"]
     assert payload["manager_decision"]["intent_type"] == "general_chat"
     assert payload["manager_decision"]["workflow_effect"] == "answer_day_meal_log_without_state_mutation"
     assert response.json()["coach_message"] == "今天已記錄 breakfast sandwich。"
+
+
+def test_day_meal_log_finalizer_rejects_remaining_budget_tool_result() -> None:
+    class _Decision:
+        intent_type = "general_chat"
+        workflow_effect = "answer_day_meal_log_without_state_mutation"
+        tool_results = [
+            {
+                "tool_name": "budget.get_remaining_calories",
+                "provenance": {"canonical_tool_name": "budget.get_remaining_calories"},
+            }
+        ]
+        answer_contract = {"reply_text": "meal log answer"}
+        response_summary = "meal log answer"
+        tool_calls = [{"name": "budget.get_remaining_calories"}]
+
+    result = finalize_non_fooddb_read_only_manager_intent(
+        db=None,
+        manager_decision=_Decision(),
+        user_id=1,
+        local_date="2026-05-06",
+        request_id="req-day-meal-log-negative",
+        build_remaining_budget=lambda *args, **kwargs: None,
+        append_trace_event=lambda **kwargs: None,
+    )
+
+    assert result is None

@@ -21,6 +21,15 @@ NON_FOODDB_READ_ONLY_MANAGER_TOOLS = (
 )
 
 
+_LEGACY_PUBLIC_TOOL_COMPAT = {
+    "body.get_active_plan": ("read_body_plan",),
+    "app.answer_usage_question": ("answer_usage_question",),
+    "budget.get_day_meal_log": ("read_day_budget",),
+    "body.get_latest_observation": ("read_latest_weight_observation",),
+    "calibration.get_pending_proposal": ("read_calibration_pending_proposal",),
+}
+
+
 def build_non_fooddb_read_tool_executor(
     db: Session,
     *,
@@ -50,6 +59,14 @@ def _tool_result_matches(tool_result: Any, names: set[str]) -> bool:
 def _has_tool_result(manager_decision: IntakeManagerResult, *names: str) -> bool:
     name_set = set(names)
     return any(_tool_result_matches(tool_result, name_set) for tool_result in manager_decision.tool_results)
+
+
+def _has_public_tool_result(manager_decision: IntakeManagerResult, public_name: str) -> bool:
+    return _has_tool_result(
+        manager_decision,
+        public_name,
+        *_LEGACY_PUBLIC_TOOL_COMPAT.get(public_name, ()),
+    )
 
 
 def finalize_non_fooddb_read_only_manager_intent(
@@ -102,7 +119,7 @@ def finalize_non_fooddb_read_only_manager_intent(
     if (
         manager_decision.intent_type == "general_chat"
         and manager_decision.workflow_effect == "answer_goal_summary_without_state_mutation"
-        and _has_tool_result(manager_decision, "body.get_active_plan", "read_body_plan")
+        and _has_public_tool_result(manager_decision, "body.get_active_plan")
     ):
         assistant_message_override = str(
             manager_decision.answer_contract.get("reply_text")
@@ -127,7 +144,7 @@ def finalize_non_fooddb_read_only_manager_intent(
     if (
         manager_decision.intent_type == "general_chat"
         and manager_decision.workflow_effect == "answer_general_product_question_without_state_mutation"
-        and _has_tool_result(manager_decision, "app.answer_usage_question", "answer_usage_question")
+        and _has_public_tool_result(manager_decision, "app.answer_usage_question")
     ):
         assistant_message_override = str(
             manager_decision.answer_contract.get("reply_text")
@@ -152,7 +169,7 @@ def finalize_non_fooddb_read_only_manager_intent(
     if (
         manager_decision.intent_type == "general_chat"
         and manager_decision.workflow_effect == "answer_day_meal_log_without_state_mutation"
-        and _has_tool_result(manager_decision, "budget.get_day_meal_log", "read_day_budget")
+        and _has_public_tool_result(manager_decision, "budget.get_day_meal_log")
     ):
         assistant_message_override = str(
             manager_decision.answer_contract.get("reply_text")
@@ -178,11 +195,7 @@ def finalize_non_fooddb_read_only_manager_intent(
     if (
         manager_decision.intent_type == "general_chat"
         and manager_decision.workflow_effect == "answer_latest_weight_without_state_mutation"
-        and _has_tool_result(
-            manager_decision,
-            "body.get_latest_observation",
-            "read_latest_weight_observation",
-        )
+        and _has_public_tool_result(manager_decision, "body.get_latest_observation")
     ):
         assistant_message_override = str(
             manager_decision.answer_contract.get("reply_text")
@@ -208,11 +221,7 @@ def finalize_non_fooddb_read_only_manager_intent(
     if (
         manager_decision.intent_type == "general_chat"
         and manager_decision.workflow_effect == "answer_calibration_pending_proposal_without_state_mutation"
-        and _has_tool_result(
-            manager_decision,
-            "calibration.get_pending_proposal",
-            "read_calibration_pending_proposal",
-        )
+        and _has_public_tool_result(manager_decision, "calibration.get_pending_proposal")
     ):
         assistant_message_override = str(
             manager_decision.answer_contract.get("reply_text")
