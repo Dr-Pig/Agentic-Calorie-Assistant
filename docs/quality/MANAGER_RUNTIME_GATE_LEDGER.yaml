@@ -148,7 +148,7 @@ gates:
       - rt7c_single_turn_commit_boundary
   - gate_id: rt8_overshoot_runtime_truth
     title: Overshoot and current-day runtime truth
-    status: pending
+    status: green
     pass_type: runtime_backed
     depends_on:
       - rt7_clarify_commit_correction_closure
