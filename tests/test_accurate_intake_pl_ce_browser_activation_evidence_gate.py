@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.composition.accurate_intake_current_shell_claim_boundary import (
+    build_current_shell_appshell_claim_boundary,
+)
 from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate import (
     build_pl_ce_browser_activation_evidence_gate_artifact,
 )
@@ -214,9 +217,18 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
 
 def test_browser_activation_gate_requires_real_browser_evidence_without_readiness_claims() -> None:
     artifact = build_pl_ce_browser_activation_evidence_gate_artifact(_valid_inputs())
+    claim_boundary = build_current_shell_appshell_claim_boundary()
 
     assert artifact["artifact_type"] == "accurate_intake_pl_ce_browser_activation_evidence_gate"
     assert artifact["status"] == "browser_activation_evidence_ready_for_human_review"
+    assert artifact["pass_type"] == "contract"
+    assert artifact["current_shell_sync_contract_source"] == claim_boundary["current_shell_sync_contract_source"]
+    assert artifact["manager_runtime_gate_ledger_source"] == claim_boundary["manager_runtime_gate_ledger_source"]
+    assert artifact["appshell_claim_boundary"]["status"] == claim_boundary["status"]
+    assert (
+        artifact["appshell_claim_boundary"]["browser_executed_claim_ready"]
+        == claim_boundary["browser_executed_claim_ready"]
+    )
     assert artifact["browser_executed_required"] is True
     assert artifact["all_required_browser_artifacts_executed"] is True
     assert artifact["summary"]["browser_artifact_count"] == 5
@@ -234,6 +246,19 @@ def test_browser_activation_gate_requires_real_browser_evidence_without_readines
     assert artifact["product_readiness_claimed"] is False
     assert artifact["private_self_use_approved"] is False
     assert artifact["blockers"] == []
+
+
+def test_browser_activation_gate_reports_contract_only_boundary_when_upstream_runtime_claims_are_pending() -> None:
+    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(_valid_inputs())
+    boundary = artifact["appshell_claim_boundary"]
+
+    assert artifact["pass_type"] == "contract"
+    assert boundary["current_shell_in_scope_journeys"] == ["A", "B", "C", "D", "E", "G", "H", "J", "K"]
+    assert "browser_executed" in boundary["pass_taxonomy"]
+    assert boundary["appshell_rules"]["browser_executed_requires_upstream_gate_green"] is True
+    if boundary["non_green_manager_runtime_gates"]:
+        assert boundary["browser_executed_claim_ready"] is False
+        assert boundary["status"] == "blocked_on_manager_runtime_upstream_gates"
 
 
 def test_browser_activation_gate_blocks_missing_or_blocked_browser_execution() -> None:
