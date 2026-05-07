@@ -85,7 +85,7 @@ def test_parallel_tracks_status_pack_keeps_non_claims_visible() -> None:
         assert non_claim in text
 
 
-def test_parallel_tracks_status_pack_declares_two_track_rule_map_and_live_sync_boundary() -> None:
+def test_parallel_tracks_status_pack_declares_three_track_rule_map_and_live_sync_boundary() -> None:
     text = _status_text()
 
     for fragment in (

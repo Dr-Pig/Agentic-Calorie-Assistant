@@ -89,10 +89,7 @@ Owns:
 - chat history reload UX
 - fixture-evidence browser dogfood
 - local dogfood export and backup UX
-- context_policy_version in trace
-- loaded_context_summary and omitted_context_summary
-- pending follow-up and draft pins
-- correction/removal target candidates
+- render-only display of ManagerRuntime-supplied context status, pending state, and target-candidate strips
 - AppShell/browser consumption of machine-readable Current Shell contracts and ManagerRuntime gates
 - browser same-truth verification against backend/read-model/renderer structured fields
 
@@ -207,7 +204,7 @@ If FoodDB produces packet-ready evidence, it must report:
 - approved_packet_ready_evidence_artifact.schema_version
 - approved_packet_ready_evidence_artifact.fixture_or_real
 - approved_packet_ready_evidence_artifact.source_quality
-- approved_packet_ready_evidence_artifact.ready_for_product_loop
+- approved_packet_ready_evidence_artifact.ready_for_product_loop (legacy compatibility field name; current consumers are ManagerRuntime and AppShell)
 
 If ManagerRuntime produces trace fields, it must report:
 - context_trace_fields
