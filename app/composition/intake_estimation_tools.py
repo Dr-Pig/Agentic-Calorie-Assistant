@@ -16,6 +16,7 @@ from app.nutrition.application.estimate_artifacts import (
 from app.nutrition.application.evidence_eligibility import classify_query_family, is_high_variance_family
 from app.nutrition.application.exact_brand_web_canary import LANE_ID as WEB_CANARY_LANE_ID
 from app.nutrition.application.exact_brand_web_canary import run_exact_brand_web_canary
+from app.nutrition.application.retrieval_semantic_decision import B2ManagerSemanticDecision
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
 from app.shared.contracts.intake import EstimatePayload
@@ -61,6 +62,7 @@ async def estimate_nutrition_tool(
     allow_search: bool = True,
     force_new_meal_context: bool = False,
     contextualized_query: str | None = None,
+    manager_semantic_decision: B2ManagerSemanticDecision | None = None,
 ) -> EstimatedNutritionArtifact:
     del request_id
     active_provider = manager_provider or provider
@@ -86,6 +88,7 @@ async def estimate_nutrition_tool(
 
     canary_outcome = await run_exact_brand_web_canary(
         raw_user_input=raw_user_input,
+        manager_decision=manager_semantic_decision,
         search_port=search_port,
         extract_port=extract_port,
         allow_search=allow_search,
@@ -161,3 +164,32 @@ def _attach_web_runtime_trace(payload: EstimatePayload, trace: dict[str, Any]) -
     reasoning_state["search_attempt_count"] = int(trace.get("search_attempt_count") or 0)
     trace_contract["reasoning_state"] = reasoning_state
     payload.trace_contract = trace_contract
+
+
+def manager_semantic_decision_from_tool_arguments(
+    arguments: dict[str, Any] | None,
+) -> B2ManagerSemanticDecision | None:
+    raw = dict((arguments or {}).get("manager_semantic_decision") or {})
+    if not raw:
+        return None
+    return B2ManagerSemanticDecision(
+        base_dish=_optional_text(raw.get("base_dish")),
+        aliases=_text_list(raw.get("aliases")),
+        brand_hint=_optional_text(raw.get("brand_hint")),
+        size_hint=_optional_text(raw.get("size_hint")),
+        modifier_hints=_text_list(raw.get("modifier_hints")),
+        listed_items=_text_list(raw.get("listed_items")),
+        retrieval_goal=str(raw.get("retrieval_goal") or "").strip(),
+        semantic_authority_source=str(raw.get("semantic_authority_source") or "").strip(),
+    )
+
+
+def _optional_text(value: Any) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _text_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [cleaned for item in value if (cleaned := str(item or "").strip())]

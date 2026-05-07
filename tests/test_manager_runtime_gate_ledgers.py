@@ -141,7 +141,15 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
     ]
     assert gates["rt8_overshoot_runtime_truth"]["status"] == "green"
     assert gates["rt8_overshoot_runtime_truth"]["depends_on"] == ["rt7_clarify_commit_correction_closure"]
+    assert gates["rt9_packet_consumption_seam"]["status"] == "green"
+    assert gates["rt9_packet_consumption_seam"]["depends_on"] == [
+        "rt7_clarify_commit_correction_closure",
+        "rt8_overshoot_runtime_truth",
+    ]
     assert gates["rt10a_nutrition_estimate_quality_deterministic"]["pass_type"] == "fixture"
+    assert gates["rt10a_nutrition_estimate_quality_deterministic"]["depends_on"] == [
+        "rt9_packet_consumption_seam"
+    ]
     assert gates["rt10b_nutrition_estimate_quality_fake_provider"]["depends_on"] == [
         "rt10a_nutrition_estimate_quality_deterministic"
     ]
