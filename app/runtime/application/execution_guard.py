@@ -77,7 +77,7 @@ def evaluate_macro_display(
             display_status="hide",
             macro_kcal=macro_kcal,
             macro_kcal_delta=0,
-            guard_reason="macro_missing",
+            guard_reason="no_macro_data",
             alignment_warning=False,
         )
     delta = abs(int(estimated_kcal or 0) - macro_kcal)
@@ -89,6 +89,6 @@ def evaluate_macro_display(
         display_status="show" if show else "hide",
         macro_kcal=macro_kcal,
         macro_kcal_delta=delta,
-        guard_reason="aligned" if show else "macro_alignment_warning",
+        guard_reason="committed_and_aligned" if show else "macro_alignment_fail",
         alignment_warning=not show,
     )

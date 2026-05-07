@@ -6,11 +6,11 @@ from app.shared.contracts.correction_target import validate_correction_target_re
 
 from app.composition.intake_estimation_tools import estimate_nutrition_tool
 from app.composition.intake_read_tools import compare_against_budget_tool
+from app.composition.payload_macro_summary import build_payload_macro_summary
 from app.intake.application.target_evidence_artifacts import payload_is_target_evidence
 from app.nutrition.application.evidence_eligibility import classify_query_family, summarize_eligibility_results
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
-from app.runtime.application.execution_guard import evaluate_macro_display
 
 
 def payload_trace_contract(payload: Any) -> dict[str, Any]:
@@ -23,24 +23,7 @@ def payload_unresolved_info(payload: Any) -> list[str]:
 
 
 def macro_summary(payload: Any | None) -> dict[str, Any]:
-    if payload is None:
-        return {"display_status": "hide", "guard_reason": "macro_missing", "macro_kcal_delta": 0}
-    result = evaluate_macro_display(
-        estimated_kcal=int(getattr(payload, "estimated_kcal", 0) or 0),
-        protein_g=int(getattr(payload, "protein_g", 0) or 0),
-        carb_g=int(getattr(payload, "carb_g", 0) or 0),
-        fat_g=int(getattr(payload, "fat_g", 0) or 0),
-    )
-    return {
-        "protein_g": int(getattr(payload, "protein_g", 0) or 0),
-        "carbs_g": int(getattr(payload, "carb_g", 0) or 0),
-        "fat_g": int(getattr(payload, "fat_g", 0) or 0),
-        "display_status": result.display_status,
-        "guard_reason": result.guard_reason,
-        "macro_kcal": result.macro_kcal,
-        "macro_kcal_delta": result.macro_kcal_delta,
-        "alignment_warning": result.alignment_warning,
-    }
+    return build_payload_macro_summary(payload)
 
 
 def evidence_summary(*, raw_user_input: str, payload: Any | None) -> dict[str, Any]:

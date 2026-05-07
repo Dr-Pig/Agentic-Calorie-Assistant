@@ -4,28 +4,21 @@ from datetime import UTC, datetime
 import json
 from typing import Any
 
-
-_REQUIRED_SCENARIO_IDS = (
-    "clarification_no_commit",
-    "candidate_supported_no_mutation",
-    "committed_backend_budget",
-    "degraded_budget_unavailable",
-    "correction_ambiguity",
+from app.composition.responder_macro_claim_contract import (
+    FORBIDDEN_MACRO_CLAIMS_CONTRACT, INVENTION_BLOCKERS_BY_MACRO_CLAIM_TYPE,
+    committed_macro_accepted_claims, committed_macro_allowed_facts, hidden_macro_scenario,
 )
 
-_FORBIDDEN_CLAIM_TYPES = {
-    "readiness",
-    "self_use_approval",
-    "fooddb_truth",
-    "web_truth",
-    "selected_target",
-}
+_REQUIRED_SCENARIO_IDS = ("clarification_no_commit", "candidate_supported_no_mutation", "committed_backend_budget", "degraded_budget_unavailable", "correction_ambiguity", "macro_hidden_no_visible_claim")
+
+_FORBIDDEN_CLAIM_TYPES = {"readiness", "self_use_approval", "fooddb_truth", "web_truth", "selected_target"}
 
 _FORBIDDEN_CLAIMS_CONTRACT = [
     "logged_status_without_allowed_fact",
     "kcal_without_allowed_fact",
     "remaining_without_allowed_fact",
     "exactness_without_allowed_fact",
+    *FORBIDDEN_MACRO_CLAIMS_CONTRACT,
     "selected_target_without_manager_decision",
     "readiness_or_self_use_approval",
 ]
@@ -35,6 +28,7 @@ _INVENTION_BLOCKER_BY_CLAIM_TYPE = {
     "kcal": "invented_kcal_claim",
     "remaining": "invented_remaining_claim",
     "exactness": "invented_exactness_claim",
+    **INVENTION_BLOCKERS_BY_MACRO_CLAIM_TYPE,
     "selected_target": "invented_target_selection",
 }
 
@@ -60,16 +54,8 @@ def _fact(
     }
 
 
-def _claim(
-    claim_type: str,
-    fact_id: str,
-    value: Any,
-) -> dict[str, Any]:
-    return {
-        "claim_type": claim_type,
-        "fact_id": fact_id,
-        "value": value,
-    }
+def _claim(claim_type: str, fact_id: str, value: Any) -> dict[str, Any]:
+    return {"claim_type": claim_type, "fact_id": fact_id, "value": value}
 
 
 def _allowed_fact_map(allowed_facts: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -234,11 +220,13 @@ def _scenario_specs() -> list[dict[str, Any]]:
                 _fact("fact-logged", "logged_status", "logged"),
                 _fact("fact-kcal", "kcal", 420),
                 _fact("fact-remaining", "remaining", 980),
+                *[_fact(item["fact_id"], item["claim_type"], item["value"]) for item in committed_macro_allowed_facts()],
             ],
             accepted_claims=[
                 _claim("logged_status", "fact-logged", "logged"),
                 _claim("kcal", "fact-kcal", 420),
                 _claim("remaining", "fact-remaining", 980),
+                *[_claim(item["claim_type"], item["fact_id"], item["value"]) for item in committed_macro_accepted_claims()],
             ],
             rejected_claims=[
                 _claim("exactness", "missing-exactness", "official_exact"),
@@ -276,6 +264,7 @@ def _scenario_specs() -> list[dict[str, Any]]:
                 _claim("logged_status", "missing-logged", "logged"),
             ],
         ),
+        _scenario(**hidden_macro_scenario()),
     ]
 
 

@@ -24,7 +24,7 @@ def build_deterministic_sidecar(
     macro["carbs_g"] = int(today.get("consumed_carbs") or 0)
     macro["fat_g"] = int(today.get("consumed_fat") or 0)
     macro["display_status"] = "show" if bool(today.get("show_macro")) else "hide"
-    macro["guard_reason"] = str(today.get("macro_guard_reason") or macro.get("guard_reason") or "macro_missing")
+    macro["guard_reason"] = str(today.get("macro_guard_reason") or macro.get("guard_reason") or "no_macro_data")
     macro.setdefault("macro_kcal_delta", 0)
     return {
         "ui": {
@@ -37,7 +37,7 @@ def build_deterministic_sidecar(
         },
         "macro": macro or {
             "display_status": "hide",
-            "guard_reason": "macro_missing",
+            "guard_reason": "no_macro_data",
             "macro_kcal_delta": 0,
         },
         "evidence": evidence_summary or {
