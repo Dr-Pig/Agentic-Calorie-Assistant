@@ -116,6 +116,12 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
             / module.REFRESHED_ARTIFACT_FILENAMES["body_observation_same_truth_gate"]
         ).read_text(encoding="utf-8")
     )
+    clarify_commit_correction_same_truth_gate = json.loads(
+        (
+            artifact_dir
+            / module.REFRESHED_ARTIFACT_FILENAMES["clarify_commit_correction_same_truth_gate"]
+        ).read_text(encoding="utf-8")
+    )
     candidate = json.loads(
         (
             artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["local_web_candidate"]
@@ -129,8 +135,10 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
     assert browser_activation["pass_type"] == "contract"
     assert (
         browser_activation["appshell_claim_boundary"]["status"]
-        == "blocked_on_manager_runtime_upstream_gates"
+        == "ready_for_runtime_and_browser_claims"
     )
+    assert browser_activation["appshell_claim_boundary"]["runtime_backed_claim_ready"] is True
+    assert browser_activation["appshell_claim_boundary"]["browser_executed_claim_ready"] is True
     assert pre_live_evidence["_evidence_metadata"]["status"] == "complete"
     assert pre_live_evidence["non_fooddb_manager_tool_contract"]["status"] == (
         "non_fooddb_manager_tool_contract_ready_for_human_review"
@@ -140,13 +148,14 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
         body_observation_same_truth_gate["status"]
         == "body_observation_same_truth_gate_ready_for_human_review"
     )
+    assert (
+        clarify_commit_correction_same_truth_gate["status"]
+        == "clarify_commit_correction_same_truth_gate_ready_for_human_review"
+    )
     assert pre_live_pack["selected_option"] == "stay_local_self_use"
     assert pre_live_pack["ready_for_live_diagnostic_decision"] is False
     assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
-    assert "browser activation evidence gate appshell claim not ready" in candidate[
-        "local_web_self_use_candidate_v2"
-    ]["blockers"]
-    assert "product pages self-use flow gate appshell claim not ready" in candidate[
+    assert "pre-live selected option: stay_local_self_use" in candidate[
         "local_web_self_use_candidate_v2"
     ]["blockers"]
     assert json.loads(
