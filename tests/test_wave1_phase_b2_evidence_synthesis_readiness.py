@@ -335,7 +335,6 @@ def test_raw_text_retrieval_intent_builder_is_not_official_b2_readiness_truth() 
     allowed_paths = {
         Path("app/nutrition/application/exact_brand_web_canary.py"),
         Path("app/nutrition/application/retrieval_intent.py"),
-        Path("scripts/diagnose_wave1_phase_b2_exact_brand_positive_acceptance.py"),
     }
     raw_builder_call = re.compile(r"\bbuild_retrieval_intent\(")
     findings: list[str] = []
