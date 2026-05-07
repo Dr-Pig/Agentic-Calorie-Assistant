@@ -108,6 +108,15 @@ gates:
     depends_on:
       - rt5_intent_tool_argument_walls
       - rt6_bootstrap_no_plan_body_closure
+      - rt7a_correction_removal_runtime_boundary
+  - gate_id: rt7a_correction_removal_runtime_boundary
+    title: Correction/removal target and runtime mutation boundary
+    status: green
+    pass_type: runtime_backed
+    depends_on:
+      - rt4_context_packet_acceptance
+      - rt5_intent_tool_argument_walls
+      - rt6_bootstrap_no_plan_body_closure
   - gate_id: rt8_overshoot_runtime_truth
     title: Overshoot and current-day runtime truth
     status: pending
