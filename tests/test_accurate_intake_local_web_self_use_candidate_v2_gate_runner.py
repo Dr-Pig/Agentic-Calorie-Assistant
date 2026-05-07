@@ -28,6 +28,22 @@ def _ready_claim_boundary() -> dict[str, object]:
     }
 
 
+def _ready_today_macro_mirror_gate() -> dict[str, object]:
+    return {
+        "artifact_schema_version": "1.0",
+        "artifact_type": "accurate_intake_today_macro_mirror_gate",
+        "status": "today_macro_mirror_gate_ready_for_human_review",
+        "pass_type": "contract",
+        "frontend_semantic_owner": False,
+        "frontend_calculates_macro_values": False,
+        "summary": {
+            "renderer_contract_fields_checked": 5,
+            "visible_case_checked": True,
+            "guarded_case_checked": True,
+        },
+    }
+
+
 def _required_payloads() -> dict[str, dict[str, object]]:
     return {
         "phase_c_gate": {
@@ -116,6 +132,7 @@ def _required_payloads() -> dict[str, dict[str, object]]:
                 "body_read_model_checked": True,
             },
         },
+        "today_macro_mirror_gate": _ready_today_macro_mirror_gate(),
         "browser_activation_evidence_gate": {
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_pl_ce_browser_activation_evidence_gate",
@@ -454,6 +471,7 @@ def test_local_web_self_use_candidate_v2_gate_runner_derives_phase_c_identity_fr
         "pl_ce_local_review_decision_pack",
         "product_pages_self_use_flow_gate",
         "ui_context_alignment_pack",
+        "today_macro_mirror_gate",
         "browser_activation_evidence_gate",
         "manager_tool_surface_inventory",
         "non_fooddb_manager_tool_contract",
@@ -553,6 +571,44 @@ def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_context_live
         "missing evidence: context_live_diagnostic_case_matrix"
         in candidate["local_web_self_use_candidate_v2"]["blockers"]
     )
+
+
+def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_today_macro_mirror_gate(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts.run_accurate_intake_local_web_self_use_candidate_v2_gate import (
+        DEFAULT_EVIDENCE_PATHS,
+        main,
+    )
+
+    artifact_dir = tmp_path / "artifacts"
+    payloads = _required_payloads()
+    payloads.pop("today_macro_mirror_gate")
+    for group_id, payload in payloads.items():
+        _write(artifact_dir / f"{group_id}.json", payload)
+    candidate_output = tmp_path / "candidate.json"
+
+    exit_code = main(
+        [
+            "--pre-live-evidence-output",
+            str(tmp_path / "pre_live_evidence.json"),
+            "--pre-live-output",
+            str(tmp_path / "pre_live_decision_pack.json"),
+            "--candidate-output",
+            str(candidate_output),
+            *_artifact_args(artifact_dir, tuple(DEFAULT_EVIDENCE_PATHS)),
+        ]
+    )
+    printed = json.loads(capsys.readouterr().out)
+    candidate = json.loads(candidate_output.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["candidate_prepared"] is False
+    assert printed["missing_evidence"] == ["today_macro_mirror_gate"]
+    assert "missing evidence: today_macro_mirror_gate" in candidate[
+        "local_web_self_use_candidate_v2"
+    ]["blockers"]
 
 
 def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_context_live_anti_overfit_guard(

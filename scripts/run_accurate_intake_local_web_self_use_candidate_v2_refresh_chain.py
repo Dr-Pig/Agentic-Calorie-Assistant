@@ -32,6 +32,9 @@ from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate impo
 from app.composition.accurate_intake_pl_ce_product_pages_self_use_flow_gate import (  # noqa: E402
     build_pl_ce_product_pages_self_use_flow_gate_artifact,
 )
+from app.composition.accurate_intake_today_macro_mirror_gate import (  # noqa: E402
+    build_today_macro_mirror_gate_artifact,
+)
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 from scripts.build_accurate_intake_pl_ce_product_pages_self_use_flow_gate import (  # noqa: E402
     DEFAULT_ARTIFACT_PATHS as PRODUCT_PAGES_FLOW_ARTIFACT_PATHS,
@@ -62,6 +65,7 @@ REFRESHED_ARTIFACT_FILENAMES = {
     "non_fooddb_read_only_tool_loop_fake_smoke": "accurate_intake_non_fooddb_read_only_tool_loop_fake_smoke.json",
     "non_fooddb_mutation_tool_guard_smoke": "accurate_intake_non_fooddb_mutation_tool_guard_smoke.json",
     "product_pages_self_use_flow_gate": "accurate_intake_pl_ce_product_pages_self_use_flow_gate.json",
+    "today_macro_mirror_gate": "accurate_intake_today_macro_mirror_gate.json",
     "browser_activation_evidence_gate": "accurate_intake_pl_ce_browser_activation_evidence_gate.json",
     "non_fooddb_manager_tool_contract": "accurate_intake_non_fooddb_manager_tool_contract.json",
     "context_live_diagnostic_gate": "accurate_intake_context_live_diagnostic_gate.json",
@@ -151,6 +155,15 @@ def build_local_web_self_use_candidate_refresh_chain(
             REFRESHED_ARTIFACT_FILENAMES["product_pages_self_use_flow_gate"],
         ),
         product_pages_self_use_flow_gate,
+    )
+
+    today_macro_mirror_gate = build_today_macro_mirror_gate_artifact()
+    write_json_artifact(
+        _artifact_path(
+            artifacts_dir,
+            REFRESHED_ARTIFACT_FILENAMES["today_macro_mirror_gate"],
+        ),
+        today_macro_mirror_gate,
     )
 
     browser_activation_evidence_gate = build_pl_ce_browser_activation_evidence_gate_artifact(
