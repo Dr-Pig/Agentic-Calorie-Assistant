@@ -41,7 +41,6 @@ from app.runtime.application.request_trace_artifacts import build_trace_refs, wr
 from app.runtime.application.sidecar_service import build_deterministic_sidecar
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 
-
 @dataclass(frozen=True)
 class IntakeOnboardingPayload:
     sex: str
