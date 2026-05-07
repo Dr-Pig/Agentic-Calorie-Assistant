@@ -42,6 +42,10 @@ def _blocker_codes(report: dict[str, object]) -> set[str]:
     return {str(item["code"]) for item in report["blockers"]}  # type: ignore[index]
 
 
+def _advisory_codes(report: dict[str, object]) -> set[str]:
+    return {str(item["code"]) for item in report["advisories"]}  # type: ignore[index]
+
+
 def _event_file(tmp_path: Path, body: str) -> Path:
     event = tmp_path / "event.json"
     event.write_text(json.dumps({"pull_request": {"body": body}}), encoding="utf-8")
@@ -78,7 +82,7 @@ def test_existing_over_cap_file_cannot_grow() -> None:
             )
         ],
         policy=POLICY,
-        track="PLCE",
+        track="CurrentShell",
         run_boundary_checks=False,
     )
 
@@ -166,7 +170,7 @@ def test_dsa_findings_are_advisory_only() -> None:
             )
         ],
         policy={**POLICY, "category_caps": {**POLICY["category_caps"], "application_orchestration": 50}},
-        track="PLCE",
+        track="CurrentShell",
         run_boundary_checks=False,
     )
 
@@ -194,7 +198,7 @@ def test_future_shadow_active_surface_fails() -> None:
     assert "future_shadow_touches_active_surface" in _blocker_codes(report)
 
 
-def test_cli_infers_track_from_pull_request_event_body(tmp_path: Path) -> None:
+def test_cli_infers_current_shell_track_from_pull_request_event_body(tmp_path: Path) -> None:
     output = tmp_path / "pre_pr_quality_gate_report.json"
     event = _event_file(
         tmp_path,
@@ -228,7 +232,125 @@ def test_cli_infers_track_from_pull_request_event_body(tmp_path: Path) -> None:
     )
 
     report = json.loads(output.read_text(encoding="utf-8"))
-    assert report["track"] == "PLCE"
+    assert report["track"] == "CurrentShell"
+    assert "missing_owner_lane_advisory" in _advisory_codes(report)
+
+
+def test_cli_current_shell_owner_lane_is_advisory_only(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(
+        tmp_path,
+        "\n".join(
+            [
+                "track: CurrentShell",
+                "runtime_truth_changed: false",
+                "manager_context_packet_changed: false",
+                "mutation_changed: false",
+                "product_readiness_claimed: false",
+            ]
+        ),
+    )
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+                "--allow-dirty-worktree",
+            ]
+        )
+        == 0
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["status"] == "pass"
+    assert report["track"] == "CurrentShell"
+    assert "missing_owner_lane_advisory" in _advisory_codes(report)
+
+
+def test_cli_current_shell_owner_lane_present_clears_advisory(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(
+        tmp_path,
+        "\n".join(
+            [
+                "track: CurrentShell",
+                "owner_lane: SharedCurrentShell",
+                "runtime_truth_changed: false",
+                "manager_context_packet_changed: false",
+                "mutation_changed: false",
+                "product_readiness_claimed: false",
+            ]
+        ),
+    )
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+                "--allow-dirty-worktree",
+            ]
+        )
+        == 0
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["track"] == "CurrentShell"
+    assert "missing_owner_lane_advisory" not in _advisory_codes(report)
+
+
+def test_cli_current_shell_invalid_shell_surface_impacted_is_blocking(tmp_path: Path) -> None:
+    output = tmp_path / "pre_pr_quality_gate_report.json"
+    event = _event_file(
+        tmp_path,
+        "\n".join(
+            [
+                "track: CurrentShell",
+                "owner_lane: AppShell",
+                "shell_surface_impacted: yes",
+                "runtime_truth_changed: false",
+                "manager_context_packet_changed: false",
+                "mutation_changed: false",
+                "product_readiness_claimed: false",
+            ]
+        ),
+    )
+
+    assert (
+        main(
+            [
+                "--base-ref",
+                "HEAD",
+                "--head-ref",
+                "HEAD",
+                "--event-file",
+                str(event),
+                "--output",
+                str(output),
+                "--skip-boundary-checks",
+                "--allow-dirty-worktree",
+            ]
+        )
+        == 1
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert "invalid_shell_surface_impacted:yes" in _blocker_codes(report)
 
 
 def test_cli_explicit_track_overrides_event_track(tmp_path: Path) -> None:
@@ -335,6 +457,45 @@ def test_cli_normalizes_governance_track_alias(tmp_path: Path) -> None:
 
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["track"] == "MergeGovernance"
+
+
+def test_cli_non_current_shell_tracks_do_not_require_owner_lane(tmp_path: Path) -> None:
+    for track in ("FoodDB", "MergeGovernance"):
+        output = tmp_path / f"{track.lower()}_pre_pr_quality_gate_report.json"
+        event = _event_file(
+            tmp_path,
+            "\n".join(
+                [
+                    f"track: {track}",
+                    "runtime_truth_changed: false",
+                    "manager_context_packet_changed: false",
+                    "mutation_changed: false",
+                    "product_readiness_claimed: false",
+                ]
+            ),
+        )
+
+        assert (
+            main(
+                [
+                    "--base-ref",
+                    "HEAD",
+                    "--head-ref",
+                    "HEAD",
+                    "--event-file",
+                    str(event),
+                    "--output",
+                    str(output),
+                    "--skip-boundary-checks",
+                    "--allow-dirty-worktree",
+                ]
+            )
+            == 0
+        )
+
+        report = json.loads(output.read_text(encoding="utf-8"))
+        assert report["track"] == track
+        assert "missing_owner_lane_advisory" not in _advisory_codes(report)
 
 
 def test_cli_unknown_declared_track_fails(tmp_path: Path) -> None:

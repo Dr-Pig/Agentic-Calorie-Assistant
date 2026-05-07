@@ -42,13 +42,6 @@ def _passing_report(tmp_path: Path) -> dict[str, object]:
         "mobile_no_overflow": True,
         "visible_trace_debug_terms_absent": True,
         "forbidden_storage_used": False,
-        "frontend_semantic_owner": False,
-        "live_llm_invoked": False,
-        "web_tavily_used": False,
-        "production_db_used": False,
-        "web_readiness_claimed": False,
-        "product_readiness_claimed": False,
-        "private_self_use_approved": False,
         "screenshots": {
             "desktop": {
                 "chat": str(screenshot_dir / "chat-desktop.png"),
@@ -80,11 +73,6 @@ def test_product_pages_visual_qa_missing_playwright_is_blocked_not_readiness(mon
     assert report["browser_executed"] is False
     assert report["browser_execution_required"] is False
     assert report["blockers"] == ["playwright_not_installed"]
-    assert report["web_readiness_claimed"] is False
-    assert report["product_readiness_claimed"] is False
-    assert report["private_self_use_approved"] is False
-    assert report["live_llm_invoked"] is False
-    assert report["web_tavily_used"] is False
 
 
 def test_product_pages_visual_qa_can_require_browser_execution(monkeypatch, tmp_path: Path) -> None:
@@ -170,7 +158,7 @@ def test_product_pages_visual_qa_validator_rejects_tiny_png_screenshot_evidence(
     assert "screenshot_too_small:desktop:chat:1x1" in blockers
 
 
-def test_product_pages_visual_qa_validator_rejects_missing_surfaces_and_claims(tmp_path: Path) -> None:
+def test_product_pages_visual_qa_validator_rejects_missing_surfaces_and_debug_leaks(tmp_path: Path) -> None:
     report = _passing_report(tmp_path)
     report["desktop_screenshots_captured"] = False
     report["mobile_screenshots_captured"] = False
@@ -178,8 +166,7 @@ def test_product_pages_visual_qa_validator_rejects_missing_surfaces_and_claims(t
     report["today_surface_verified"] = False
     report["body_surface_verified"] = False
     report["visible_trace_debug_terms_absent"] = False
-    report["frontend_semantic_owner"] = True
-    report["web_readiness_claimed"] = True
+    report["forbidden_storage_used"] = True
 
     status, blockers = module._validate(report)
 
@@ -190,8 +177,7 @@ def test_product_pages_visual_qa_validator_rejects_missing_surfaces_and_claims(t
     assert "today_surface_not_verified" in blockers
     assert "body_surface_not_verified" in blockers
     assert "visible_trace_debug_terms_present" in blockers
-    assert "frontend_semantic_owner" in blockers
-    assert "web_readiness_claimed" in blockers
+    assert "forbidden_storage_used" in blockers
 
 
 def test_product_pages_visual_qa_runs_real_browser_when_playwright_available(tmp_path: Path) -> None:

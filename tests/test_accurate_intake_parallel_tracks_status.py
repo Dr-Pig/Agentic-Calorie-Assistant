@@ -15,12 +15,13 @@ def test_parallel_tracks_status_pack_exists_with_required_sections() -> None:
     text = _status_text()
 
     required_sections = [
-        "# Current Shell v1 Parallel Tracks Status",
+        "# CurrentShell Parallel Tracks Status",
         "## Current MVP Goal",
         "## Track Ownership",
         "### Track FoodDB: FoodDB / Evidence Pipeline",
-        "### Track ManagerRuntime: Upstream Runtime Contract Owner",
-        "### Track AppShell: Downstream Renderer / Browser Verifier",
+        "### CurrentShell Owner Lane ManagerRuntime: Upstream Runtime Contract Owner",
+        "### CurrentShell Owner Lane AppShell: Downstream Renderer / Browser Verifier",
+        "### CurrentShell Owner Lane SharedCurrentShell: Shared Coordination Artifacts",
         "## Shared Interface Contracts",
         "## Shared Contract Change Gate",
         "## Artifact Compatibility Gate",
@@ -54,11 +55,17 @@ def test_parallel_tracks_status_pack_lists_human_gated_contracts() -> None:
 def test_parallel_tracks_status_pack_enforces_track_owned_status_blocks() -> None:
     text = _status_text()
 
-    for track in ("FoodDB", "ManagerRuntime", "AppShell"):
-        assert f"### {track} Status" in text
-        block = text.split(f"### {track} Status", 1)[1].split("### ", 1)[0]
+    for heading, track, owner_lane in (
+        ("FoodDB", "FoodDB", "not_applicable"),
+        ("CurrentShell / ManagerRuntime", "CurrentShell", "ManagerRuntime"),
+        ("CurrentShell / AppShell", "CurrentShell", "AppShell"),
+        ("CurrentShell / SharedCurrentShell", "CurrentShell", "SharedCurrentShell"),
+    ):
+        assert f"### {heading} Status" in text
+        block = text.split(f"### {heading} Status", 1)[1].split("### ", 1)[0]
         for field in (
             "track:",
+            "owner_lane:",
             "branch:",
             "current_slice:",
             "status:",
@@ -67,6 +74,8 @@ def test_parallel_tracks_status_pack_enforces_track_owned_status_blocks() -> Non
             "blocked_by:",
         ):
             assert field in block
+        assert f"track: {track}" in block
+        assert f"owner_lane: {owner_lane}" in block
 
 
 def test_parallel_tracks_status_pack_keeps_non_claims_visible() -> None:
@@ -85,12 +94,14 @@ def test_parallel_tracks_status_pack_keeps_non_claims_visible() -> None:
         assert non_claim in text
 
 
-def test_parallel_tracks_status_pack_declares_three_track_rule_map_and_live_sync_boundary() -> None:
+def test_parallel_tracks_status_pack_declares_canonical_current_shell_model_and_live_sync_boundary() -> None:
     text = _status_text()
 
     for fragment in (
-        "The current coordination model is three tracks: `FoodDB`, `ManagerRuntime`, and `AppShell`.",
-        "Legacy `PLCE` / `PL+CE` wording remains compatibility vocabulary only for older artifacts and file paths; it is not the active ownership model.",
+        "The canonical machine track is `CurrentShell`.",
+        "`ManagerRuntime`, `AppShell`, and `SharedCurrentShell` are `CurrentShell` owner lanes, not top-level tracks.",
+        "`FoodDB` remains an independent truth-owner track.",
+        "Legacy `PLCE` / `PL+CE` / `PL_CE` wording remains compatibility vocabulary only for older artifacts and file paths; it is not the active ownership model.",
         "Draft PR bodies plus CI are the live sync truth; this file is the rule map and handoff template.",
         "This section is a status-block template, not the live status board.",
         "Live sync truth is Draft PR body plus CI state.",
@@ -103,6 +114,7 @@ def test_parallel_tracks_status_pack_contains_mandatory_report_shape() -> None:
 
     report_fields = [
         "track:",
+        "owner_lane:",
         "slice_id:",
         "branch:",
         "changed_files:",

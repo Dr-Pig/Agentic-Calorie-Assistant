@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import sys
 
-from scripts.merge_governance.build_merge_debt_matrix import (
+from scripts.merge_governance.build_merge_governance_advisory import (
     evaluate_size_budget,
     infer_track,
     load_config,

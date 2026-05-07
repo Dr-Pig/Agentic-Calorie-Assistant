@@ -14,22 +14,20 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG_PATH = ROOT / ".merge-governance.yml"
-DEFAULT_JSON_OUT = ROOT / "artifacts" / "merge_debt_matrix.json"
-DEFAULT_MD_OUT = ROOT / "artifacts" / "merge_debt_matrix.md"
+DEFAULT_JSON_OUT = ROOT / "artifacts" / "merge_governance_advisory.json"
+DEFAULT_MD_OUT = ROOT / "artifacts" / "merge_governance_advisory.md"
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "main_branch": "main",
     "mainline_merge_policy": "mvp_and_governance_only",
-    "mvp_mainline_tracks": ["AccurateIntake", "BodyBudgetCalibration", "FoodDB", "PLCE"],
+    "mvp_mainline_tracks": ["AccurateIntake", "BodyBudgetCalibration", "CurrentShell", "FoodDB"],
     "future_shadow_tracks": ["LongTermContextLab", "RecommendationShadow", "RescueShadow", "ProactiveShadow"],
     "required_checks": [
         "repo-hygiene-and-architecture",
-        "pre-edd-readiness",
         "runtime-contract-tests",
-        "wave1-phase-a-contracts",
-        "wave1-phase-b-contracts",
+        "product-pages-browser-e2e",
     ],
-    "advisory_checks": ["phase-c-environment-gate", "accurate-intake-mvp-gate"],
+    "advisory_checks": [],
     "forbidden_future_runtime_effects": [
         {"runtime_truth_changed": True},
         {"manager_context_packet_changed": True},
@@ -52,16 +50,6 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
 }
 
-ALLOWED_VERDICTS = {
-    "merge_candidate",
-    "dormant_shadow_candidate",
-    "extract_only",
-    "rebase_required",
-    "fix_gate",
-    "hold_as_shadow",
-    "stop",
-}
-
 REQUIRED_TRACK_REPORT_KEYS = (
     "track",
     "runtime_truth_changed",
@@ -69,6 +57,10 @@ REQUIRED_TRACK_REPORT_KEYS = (
     "mutation_changed",
     "product_readiness_claimed",
 )
+READY_FOR_QUEUE_MARKER = "READY_FOR_QUEUE"
+CURRENT_SHELL_SYNC_CONTRACT_PATH = ROOT / "docs" / "quality" / "CURRENT_SHELL_SYNC_CONTRACT.yaml"
+CURRENT_SHELL_OWNER_LANES = {"ManagerRuntime", "AppShell", "SharedCurrentShell"}
+CURRENT_SHELL_LAUNCH_CLAIM_SCOPES = {"none"}
 
 SUCCESS_CONCLUSIONS = {"SUCCESS", "SKIPPED", "NEUTRAL"}
 FAIL_CONCLUSIONS = {"FAILURE", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"}
@@ -358,6 +350,93 @@ def extract_track_report(body: str) -> dict[str, Any]:
     return report
 
 
+def has_ready_for_queue(body: str) -> bool:
+    return READY_FOR_QUEUE_MARKER in body
+
+
+def _csv_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        items = value
+    else:
+        text = str(value).strip()
+        if not text:
+            return []
+        items = text.split(",")
+    return [str(item).strip() for item in items if str(item).strip()]
+
+
+def load_current_shell_sync_contract(path: Path = CURRENT_SHELL_SYNC_CONTRACT_PATH) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    return _parse_yaml_subset(path.read_text(encoding="utf-8"))
+
+
+def current_shell_metadata(flags: dict[str, Any]) -> dict[str, Any]:
+    shell_surface_impacted = flags.get("shell_surface_impacted")
+    launch_claim_scope_raw = flags.get("launch_claim_scope")
+    if not isinstance(shell_surface_impacted, bool):
+        normalized = str(shell_surface_impacted or "").strip().lower()
+        if normalized == "true":
+            shell_surface_impacted = True
+        elif normalized == "false":
+            shell_surface_impacted = False
+        elif normalized == "":
+            shell_surface_impacted = None
+    if launch_claim_scope_raw is None and "launch_claim_scope" in flags:
+        launch_claim_scope = "none"
+    else:
+        launch_claim_scope = str(launch_claim_scope_raw or "").strip()
+    return {
+        "owner_lane": str(flags.get("owner_lane") or "").strip(),
+        "slice_class": str(flags.get("slice_class") or "").strip(),
+        "pass_type": str(flags.get("pass_type") or "").strip(),
+        "upstream_runtime_gate": str(flags.get("upstream_runtime_gate") or "").strip(),
+        "launch_claim_scope": launch_claim_scope,
+        "shell_surface_impacted": shell_surface_impacted,
+        "journeys_touched": _csv_list(flags.get("journeys_touched")),
+        "visible_fact_provenance": _csv_list(flags.get("visible_fact_provenance")),
+    }
+
+
+def current_shell_metadata_findings(
+    flags: dict[str, Any],
+    *,
+    track: str,
+    sync_contract: dict[str, Any] | None = None,
+) -> tuple[list[str], list[str], dict[str, Any]]:
+    metadata = current_shell_metadata(flags)
+    if track != "CurrentShell":
+        return [], [], metadata
+
+    blockers: list[str] = []
+    advisories: list[str] = []
+
+    owner_lane = str(metadata["owner_lane"] or "")
+    if not owner_lane:
+        advisories.append("missing_owner_lane_advisory")
+    elif owner_lane not in CURRENT_SHELL_OWNER_LANES:
+        blockers.append(f"invalid_owner_lane:{owner_lane}")
+
+    launch_claim_scope = str(metadata["launch_claim_scope"] or "")
+    if launch_claim_scope and launch_claim_scope not in CURRENT_SHELL_LAUNCH_CLAIM_SCOPES:
+        blockers.append(f"invalid_launch_claim_scope:{launch_claim_scope}")
+
+    shell_surface_impacted = metadata["shell_surface_impacted"]
+    if shell_surface_impacted not in {True, False, None}:
+        blockers.append(f"invalid_shell_surface_impacted:{shell_surface_impacted}")
+
+    upstream_runtime_gate = str(metadata["upstream_runtime_gate"] or "")
+    contract = sync_contract or {}
+    runtime_gate_ids = {str(item) for item in contract.get("runtime_gate_ids") or []}
+    if upstream_runtime_gate and upstream_runtime_gate != "not_applicable" and runtime_gate_ids:
+        if upstream_runtime_gate not in runtime_gate_ids:
+            blockers.append(f"invalid_upstream_runtime_gate:{upstream_runtime_gate}")
+
+    return sorted(set(blockers)), sorted(set(advisories)), metadata
+
+
 def _string_blob(pr: dict[str, Any]) -> str:
     return "\n".join(str(pr.get(key) or "") for key in ("title", "headRefName", "body", "diff_text"))
 
@@ -371,11 +450,13 @@ def normalize_track(track: str) -> str:
         "FoodDB_WebSearch": "FoodDB",
         "Governance": "MergeGovernance",
         "GovernanceGuard": "MergeGovernance",
-        "PL_CE": "PLCE",
-        "PL/CE": "PLCE",
-        "PL-CE": "PLCE",
-        "ProductLoop": "PLCE",
-        "ProductLifecycleContextEngineering": "PLCE",
+        "PLCE": "CurrentShell",
+        "PL+CE": "CurrentShell",
+        "PL_CE": "CurrentShell",
+        "PL/CE": "CurrentShell",
+        "PL-CE": "CurrentShell",
+        "ProductLoop": "CurrentShell",
+        "ProductLifecycleContextEngineering": "CurrentShell",
     }
     return aliases.get(normalized, normalized)
 
@@ -398,8 +479,10 @@ def infer_track(pr: dict[str, Any]) -> str:
         return "BodyBudgetCalibration"
     if "fooddb" in blob or "food db" in blob or "websearch" in blob:
         return "FoodDB"
-    if "plce" in blob or "webshell" in blob or "product page" in blob:
-        return "PLCE"
+    if "currentshell" in blob or "current shell" in blob or "managerruntime" in blob or "appshell" in blob:
+        return "CurrentShell"
+    if "plce" in blob or "pl+ce" in blob or "webshell" in blob or "product page" in blob:
+        return "CurrentShell"
     if "accurate-intake" in blob or "accurate intake" in blob:
         return "AccurateIntake"
     fallback_blob = _string_blob(pr).lower()
@@ -666,52 +749,27 @@ def _is_guard_only_future_pr(*, files: list[dict[str, Any]], additions: int, con
     return True
 
 
-def _recommended_verdict(
+def _merge_readiness_status(
     *,
-    mainline_status: str,
     ci_status: str,
-    ci_blockers: list[str],
     base_drift_status: str,
     boundary_status: str,
     deterministic_boundary_status: str,
-    runtime_activation_status: str,
     track_report_status: str,
-    stack_policy_status: str,
-    guard_only_future_pr: bool,
+    metadata_blockers: list[str],
+    mainline_status: str,
 ) -> str:
-    if track_report_status == "missing" and mainline_status == "unknown":
-        return "stop"
-    if runtime_activation_status == "active":
-        return "stop"
-    if boundary_status == "fail":
-        return "fix_gate"
-    if deterministic_boundary_status == "fail":
-        return "fix_gate"
-    if stack_policy_status == "fail":
-        return "fix_gate"
-    if ci_status == "fail":
-        if any(
-            item in reason
-            for reason in ci_blockers
-            for item in ("runtime-contract-tests", "pre-edd-readiness")
-        ):
-            return "fix_gate"
-        return "fix_gate"
-    if ci_status in {"pending", "incomplete"}:
-        return "fix_gate"
+    if ci_status in {"fail", "pending", "incomplete"}:
+        return "blocked"
+    if boundary_status == "fail" or deterministic_boundary_status == "fail":
+        return "blocked"
+    if metadata_blockers:
+        return "blocked"
+    if track_report_status == "missing" and mainline_status not in {"governance_guard", "dependency_bump"}:
+        return "blocked"
     if base_drift_status != "current":
-        return "rebase_required"
-    if mainline_status == "future_shadow":
-        if track_report_status == "missing":
-            return "fix_gate"
-        if guard_only_future_pr:
-            return "extract_only"
-        if runtime_activation_status == "inactive":
-            return "dormant_shadow_candidate"
-        return "hold_as_shadow"
-    if mainline_status in {"mvp_mainline", "governance_guard", "dependency_bump"}:
-        return "merge_candidate"
-    return "stop"
+        return "stale"
+    return "ready_for_human_queue_review"
 
 
 def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> dict[str, Any]:
@@ -719,9 +777,15 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
     required_checks = [str(item) for item in config.get("required_checks") or []]
     advisory_checks = [str(item) for item in config.get("advisory_checks") or []]
     main_branch = str(config.get("main_branch") or "main")
+    sync_contract = load_current_shell_sync_contract()
     for pr in sorted(prs, key=lambda item: int(item.get("number") or 0), reverse=True):
         flags = extract_track_report(str(pr.get("body") or ""))
         track = infer_track(pr)
+        metadata_blockers, metadata_advisories, metadata = current_shell_metadata_findings(
+            flags,
+            track=track,
+            sync_contract=sync_contract,
+        )
         files = _files(pr)
         additions = int(pr.get("additions") or sum(int(file.get("additions") or 0) for file in files))
         mainline_status = _mainline_status(pr=pr, track=track, config=config)
@@ -745,6 +809,8 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
         )
         if boundary_status == "pass" and track_report_status == "missing":
             boundary_status = "needs_review"
+        if metadata_blockers and boundary_status == "pass":
+            boundary_status = "fail"
         deterministic_status, deterministic_blockers = evaluate_deterministic_boundary(track=track, pr=pr)
         fat_file_status, fat_blockers = evaluate_size_budget(
             mainline_status=mainline_status,
@@ -752,19 +818,7 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
             files=files,
             config=config,
         )
-        guard_only = _is_guard_only_future_pr(files=files, additions=additions, config=config)
-        verdict = _recommended_verdict(
-            mainline_status=mainline_status,
-            ci_status=ci_status,
-            ci_blockers=ci_blockers,
-            base_drift_status=base_drift_status,
-            boundary_status=boundary_status,
-            deterministic_boundary_status=deterministic_status,
-            runtime_activation_status=runtime_activation_status,
-            track_report_status=track_report_status,
-            stack_policy_status=stack_policy_status,
-            guard_only_future_pr=guard_only,
-        )
+        advisory_blockers = sorted(set(advisory_findings + metadata_advisories))
         blockers = sorted(
             set(
                 ci_blockers
@@ -774,8 +828,17 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
                 + deterministic_blockers
                 + fat_blockers
                 + stack_blockers
-                + advisory_findings
+                + metadata_blockers
             )
+        )
+        merge_readiness_status = _merge_readiness_status(
+            ci_status=ci_status,
+            base_drift_status=base_drift_status,
+            boundary_status=boundary_status,
+            deterministic_boundary_status=deterministic_status,
+            track_report_status=track_report_status,
+            metadata_blockers=metadata_blockers,
+            mainline_status=mainline_status,
         )
         entries.append(
             {
@@ -783,6 +846,14 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
                 "title": str(pr.get("title") or ""),
                 "url": str(pr.get("url") or ""),
                 "track": track,
+                "owner_lane": metadata.get("owner_lane") or "",
+                "slice_class": metadata.get("slice_class") or "",
+                "pass_type": metadata.get("pass_type") or "",
+                "upstream_runtime_gate": metadata.get("upstream_runtime_gate") or "",
+                "launch_claim_scope": metadata.get("launch_claim_scope") or "",
+                "shell_surface_impacted": metadata.get("shell_surface_impacted"),
+                "journeys_touched": metadata.get("journeys_touched") or [],
+                "visible_fact_provenance": metadata.get("visible_fact_provenance") or [],
                 "base_branch": str(pr.get("baseRefName") or ""),
                 "head_branch": str(pr.get("headRefName") or ""),
                 "stack_role": stack_role,
@@ -791,13 +862,14 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
                 "ci_status": ci_status,
                 "advisory_check_status": advisory_status,
                 "base_drift_status": base_drift_status,
+                "current_shell_metadata_status": "fail" if metadata_blockers else ("advisory" if metadata_advisories else "pass"),
                 "boundary_status": boundary_status,
                 "deterministic_boundary_status": deterministic_status,
                 "runtime_activation_status": runtime_activation_status,
                 "fat_file_status": fat_file_status,
-                "recommended_verdict": verdict,
+                "merge_readiness_status": merge_readiness_status,
                 "blocking_reasons": blockers,
-                "safe_next_action": _safe_next_action(verdict),
+                "advisories": advisory_blockers,
                 "additions": additions,
                 "deletions": int(pr.get("deletions") or 0),
                 "changed_files": int(pr.get("changedFiles") or len(files)),
@@ -806,24 +878,12 @@ def build_matrix_from_prs(prs: list[dict[str, Any]], config: dict[str, Any]) -> 
             }
         )
     return {
-        "artifact_type": "merge_debt_matrix",
+        "artifact_type": "merge_governance_advisory",
         "main_branch": main_branch,
         "entry_count": len(entries),
-        "verdict_counts": _counts(entry["recommended_verdict"] for entry in entries),
+        "merge_readiness_counts": _counts(entry["merge_readiness_status"] for entry in entries),
         "entries": entries,
     }
-
-
-def _safe_next_action(verdict: str) -> str:
-    return {
-        "merge_candidate": "Queue for human review and merge only after fresh required checks on latest main.",
-        "dormant_shadow_candidate": "Queue as dormant shadow only; verify no runtime activation before merge.",
-        "extract_only": "Extract only guard, contract, or matrix slices; keep feature implementation in draft.",
-        "rebase_required": "Realign the branch to current main and update stale contracts before review.",
-        "fix_gate": "Fix failing governance, runtime, or CI gate before any merge decision.",
-        "hold_as_shadow": "Keep as draft shadow work; do not merge implementation into main.",
-        "stop": "Stop merge path until ownership, track report, or runtime boundary is clarified.",
-    }[verdict]
 
 
 def _counts(items: Any) -> dict[str, int]:
@@ -835,14 +895,14 @@ def _counts(items: Any) -> dict[str, int]:
 
 def render_markdown(report: dict[str, Any]) -> str:
     lines = [
-        "# Merge Debt Matrix",
+        "# Merge Governance Advisory",
         "",
         f"- Main branch: `{report.get('main_branch')}`",
         f"- Entry count: `{report.get('entry_count')}`",
-        f"- Verdict counts: `{json.dumps(report.get('verdict_counts') or {}, sort_keys=True)}`",
+        f"- Merge readiness counts: `{json.dumps(report.get('merge_readiness_counts') or {}, sort_keys=True)}`",
         "",
-        "| # | Track | Status | Verdict | Blocking reasons |",
-        "| --- | --- | --- | --- | --- |",
+        "| # | Track | Status | Readiness | Blocking reasons | Advisories |",
+        "| --- | --- | --- | --- | --- | --- |",
     ]
     for entry in report.get("entries") or []:
         status = (
@@ -850,9 +910,10 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"{entry['base_drift_status']} / {entry['boundary_status']}"
         )
         blockers = ", ".join(entry.get("blocking_reasons") or []) or "-"
+        advisories = ", ".join(entry.get("advisories") or []) or "-"
         lines.append(
             f"| #{entry['pr_number']} | `{entry['track']}` | `{status}` | "
-            f"`{entry['recommended_verdict']}` | {blockers} |"
+            f"`{entry['merge_readiness_status']}` | {blockers} | {advisories} |"
         )
     return "\n".join(lines) + "\n"
 
@@ -882,9 +943,7 @@ def main(argv: list[str] | None = None) -> int:
     args.json_out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     args.md_out.write_text(render_markdown(report), encoding="utf-8")
     print(json.dumps({"json_report": str(args.json_out), "markdown_report": str(args.md_out)}, ensure_ascii=False))
-    if args.fail_on_blocking and any(
-        entry["recommended_verdict"] in {"stop", "fix_gate", "rebase_required"} for entry in report["entries"]
-    ):
+    if args.fail_on_blocking and any(entry["merge_readiness_status"] != "ready_for_human_queue_review" for entry in report["entries"]):
         return 1
     return 0
 

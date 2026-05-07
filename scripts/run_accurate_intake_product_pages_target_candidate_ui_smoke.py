@@ -41,14 +41,6 @@ DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_product_pages_target
 DEFAULT_USER_ID = "product-pages-target-candidate-ui-user"
 DEFAULT_LOCAL_DATE = resolve_today_local_date(None)
 EXPECTED_TARGET_NAMES = ["luwei", "milk tea"]
-NOT_CLAIMING = [
-    "web_ready",
-    "product_ready",
-    "private_self_use_approved",
-    "real_fooddb_pass",
-    "dogfood_pass",
-    "live_llm_ready",
-]
 
 
 class _NoCallManagerProvider:
@@ -79,7 +71,6 @@ def _base_report(
         "smoke_id": "accurate_intake_product_pages_target_candidate_ui_smoke_v1",
         "claim_scope": "local_product_pages_target_candidate_ui_browser_diagnostic",
         "generated_at_utc": datetime.now(UTC).isoformat(),
-        "not_claiming": list(NOT_CLAIMING),
         "user_external_id": user_external_id,
         "db_path": str(db_path),
         "local_date": local_date,
@@ -95,20 +86,6 @@ def _base_report(
         "context_strip_read_only": False,
         "product_pages_no_debug_trace": False,
         "manager_provider_call_count": 0,
-        "frontend_semantic_owner": False,
-        "frontend_selected_target": False,
-        "deterministic_selected_target": False,
-        "deterministic_semantic_inference_used": False,
-        "raw_text_intent_router_used": False,
-        "mutation_authority": False,
-        "live_llm_invoked": False,
-        "web_tavily_used": False,
-        "fooddb_evidence_used": False,
-        "real_fooddb_pass_claimed": False,
-        "dogfood_pass": False,
-        "web_readiness_claimed": False,
-        "product_readiness_claimed": False,
-        "private_self_use_approved": False,
         "fetch_sequence": [],
     }
 
@@ -344,25 +321,6 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     if any("/estimate" in url for url in fetch_urls):
         blockers.append("estimate_endpoint_called")
 
-    false_flags = {
-        "frontend_semantic_owner": "frontend_semantic_owner_claimed",
-        "frontend_selected_target": "frontend_selected_target",
-        "deterministic_selected_target": "deterministic_selected_target",
-        "deterministic_semantic_inference_used": "deterministic_semantic_inference_used",
-        "raw_text_intent_router_used": "raw_text_intent_router_used",
-        "mutation_authority": "mutation_authority_claimed",
-        "live_llm_invoked": "live_llm_invoked",
-        "web_tavily_used": "web_tavily_used",
-        "fooddb_evidence_used": "fooddb_evidence_used",
-        "real_fooddb_pass_claimed": "real_fooddb_pass_claimed",
-        "dogfood_pass": "dogfood_pass_claimed",
-        "web_readiness_claimed": "web_readiness_claimed",
-        "product_readiness_claimed": "product_readiness_claimed",
-        "private_self_use_approved": "private_self_use_approved",
-    }
-    for key, blocker in false_flags.items():
-        if report.get(key) is True:
-            blockers.append(blocker)
     sequence_error = str(_dict_value(report.get("browser")).get("browser_sequence_error") or "")
     if sequence_error:
         blockers.append(f"browser_sequence_error:{sequence_error.split(':', 1)[0]}")

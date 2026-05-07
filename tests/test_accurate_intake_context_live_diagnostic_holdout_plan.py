@@ -135,15 +135,12 @@ def test_context_live_holdout_plan_cli_writes_artifact(tmp_path: Path) -> None:
     assert artifact["status"] == "pass"
 
 
-def test_context_live_holdout_plan_is_wired_into_product_pages_ci() -> None:
+def test_context_live_holdout_plan_is_not_on_required_merge_path() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
-    assert "build_accurate_intake_context_live_diagnostic_holdout_plan.py" in workflow
-    assert "accurate_intake_context_live_diagnostic_holdout_plan_ci.json" in workflow
-    assert (
-        "--artifact context_live_diagnostic_holdout_plan="
-        "artifacts/accurate_intake_context_live_diagnostic_holdout_plan_ci.json"
-    ) in workflow
+    assert "product-pages-browser-e2e" in workflow
+    assert "build_accurate_intake_context_live_diagnostic_holdout_plan.py" not in workflow
+    assert "accurate_intake_context_live_diagnostic_holdout_plan_ci.json" not in workflow
 
 
 def test_context_live_holdout_plan_source_stays_out_of_forbidden_boundaries() -> None:

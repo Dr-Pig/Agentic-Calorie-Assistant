@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import sys
 
-from scripts.merge_governance.build_merge_debt_matrix import REQUIRED_TRACK_REPORT_KEYS, extract_track_report
+from scripts.merge_governance.build_merge_governance_advisory import REQUIRED_TRACK_REPORT_KEYS, extract_track_report
 
 
 def main(argv: list[str] | None = None) -> int:

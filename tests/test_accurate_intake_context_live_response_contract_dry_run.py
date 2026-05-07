@@ -153,13 +153,14 @@ def test_context_live_response_contract_dry_run_cli_writes_artifact(tmp_path: Pa
     assert artifact["summary"]["validated_response_count"] == len(REQUIRED_CASE_IDS)
 
 
-def test_context_live_response_contract_dry_run_is_wired_into_product_pages_ci() -> None:
+def test_context_live_response_contract_dry_run_is_not_on_required_merge_path() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
-    assert "build_accurate_intake_context_live_provider_input_preflight.py" in workflow
-    assert "build_accurate_intake_context_live_response_contract_dry_run.py" in workflow
-    assert "accurate_intake_context_live_provider_input_preflight_ci.json" in workflow
-    assert "accurate_intake_context_live_response_contract_dry_run_ci.json" in workflow
+    assert "product-pages-browser-e2e" in workflow
+    assert "build_accurate_intake_context_live_provider_input_preflight.py" not in workflow
+    assert "build_accurate_intake_context_live_response_contract_dry_run.py" not in workflow
+    assert "accurate_intake_context_live_provider_input_preflight_ci.json" not in workflow
+    assert "accurate_intake_context_live_response_contract_dry_run_ci.json" not in workflow
 
 
 def test_context_live_response_contract_dry_run_source_stays_out_of_forbidden_boundaries() -> None:

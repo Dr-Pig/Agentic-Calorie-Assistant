@@ -368,12 +368,14 @@ def test_ui_context_alignment_pack_source_stays_out_of_fooddb_websearch_live_bou
         assert fragment.lower() not in combined_source
 
 
-def test_ci_builds_ui_context_alignment_pack() -> None:
+def test_ci_keeps_ui_context_alignment_pack_out_of_required_merge_path() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    advisory_workflow = Path(".github/workflows/ci-advisory.yml").read_text(encoding="utf-8")
 
-    assert "test_accurate_intake_pl_ce_ui_context_alignment_pack.py" in workflow
+    assert "product-pages-browser-e2e" in workflow
     assert "build_accurate_intake_product_pages_renderer_source_map.py" in workflow
-    assert "build_accurate_intake_pl_ce_ui_context_alignment_pack.py" in workflow
-    assert "accurate_intake_pl_ce_ui_context_alignment_pack_ci.json" in workflow
-    assert "product_pages_renderer_source_map=artifacts/accurate_intake_product_pages_renderer_source_map_ci.json" in workflow
-    assert "accurate-intake-pl-ce-ui-context-alignment-pack-report" in workflow
+    assert "build_accurate_intake_pl_ce_ui_context_alignment_pack.py" not in workflow
+    assert "accurate_intake_pl_ce_ui_context_alignment_pack_ci.json" not in workflow
+    assert "product_pages_renderer_source_map=artifacts/accurate_intake_product_pages_renderer_source_map_ci.json" not in workflow
+    assert "accurate-intake-pl-ce-ui-context-alignment-pack-report" not in workflow
+    assert "build_accurate_intake_product_pages_renderer_source_map.py" in advisory_workflow or "build_accurate_intake_product_pages_renderer_source_map.py" in workflow

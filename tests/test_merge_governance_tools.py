@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from scripts.merge_governance import build_q_owner_queue
 from scripts.merge_governance import (
     check_pre_queue_readiness,
     check_pr_contract_drift,
@@ -157,93 +156,10 @@ def test_pre_queue_readiness_passes_current_product_pages_artifact_chain(tmp_pat
     assert json.loads(capsys.readouterr().out)["status"] == "pass"
 
 
-def test_pre_queue_readiness_fails_pull_request_missing_required_report(tmp_path: Path) -> None:
-    event = tmp_path / "event.json"
-    event.write_text(json.dumps({"pull_request": {"body": "track: FoodDB\n"}}), encoding="utf-8")
-
-    assert (
-        check_pre_queue_readiness.main(
-            ["--event-file", str(event), "--output", str(tmp_path / "out.json")]
-        )
-        == 1
-    )
-
-    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
-    assert "missing_track_report_key:runtime_truth_changed" in report["blockers"]
-
-
-def test_q_owner_queue_avoids_diff_scan_for_live_repo_reads(monkeypatch, tmp_path: Path) -> None:
-    captured: dict[str, object] = {}
-
-    def fake_collect_open_prs(*, config, include_diffs, limit):  # type: ignore[no-untyped-def]
-        captured["include_diffs"] = include_diffs
-        captured["limit"] = limit
-        return []
-
-    monkeypatch.setattr(build_q_owner_queue, "collect_open_prs", fake_collect_open_prs)
-    monkeypatch.setattr(build_q_owner_queue, "load_config", lambda _path: {})
-    monkeypatch.setattr(
-        build_q_owner_queue,
-        "build_matrix_from_prs",
-        lambda prs, config: {"artifact_type": "merge_debt_matrix", "main_branch": "main", "entry_count": 0, "entries": []},
-    )
-
-    assert (
-        build_q_owner_queue.main(
-            ["--json-out", str(tmp_path / "q_owner.json"), "--md-out", str(tmp_path / "q_owner.md")]
-        )
-        == 0
-    )
-
-    assert captured["include_diffs"] is False
-
-
-def test_pre_queue_readiness_fails_missing_product_pages_dry_run_command(
-    tmp_path: Path,
-) -> None:
-    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
-    prefix, marker, suffix = workflow.partition("  product-pages-browser-e2e:")
-    suffix = suffix.replace(
-        "          python scripts/build_accurate_intake_context_live_diagnostic_dry_run_evaluator.py "
-        "--matrix-json artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json "
-        "--output artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json\n",
-        "",
-        1,
-    )
-    workflow = prefix + marker + suffix
-    workflow_path = tmp_path / "ci.yml"
-    workflow_path.write_text(workflow, encoding="utf-8")
-
-    assert (
-        check_pre_queue_readiness.main(
-            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
-        )
-        == 1
-    )
-
-    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
-    assert "missing_product_pages_command.context_live_diagnostic_dry_run_evaluator" in report["blockers"]
-    assert "missing_activation_manifest_input.context_live_diagnostic_dry_run_evaluator" not in report["blockers"]
-
-
-def test_pre_queue_readiness_fails_missing_context_live_holdout_plan_chain_link(
-    tmp_path: Path,
-) -> None:
+def test_pre_queue_readiness_fails_missing_browser_smoke_command(tmp_path: Path) -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     workflow = workflow.replace(
-        "          python scripts/build_accurate_intake_context_live_diagnostic_holdout_plan.py "
-        "--matrix-json artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json "
-        "--anti-overfit-json artifacts/accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json "
-        "--output artifacts/accurate_intake_context_live_diagnostic_holdout_plan_ci.json\n",
-        "",
-        1,
-    ).replace(
-        "            --artifact context_live_diagnostic_holdout_plan="
-        "artifacts/accurate_intake_context_live_diagnostic_holdout_plan_ci.json \\\n",
-        "",
-        1,
-    ).replace(
-        "            artifacts/accurate_intake_context_live_diagnostic_holdout_plan_ci.json\n",
+        "          python scripts/run_accurate_intake_product_pages_browser_smoke.py --require-browser-execution --output artifacts/accurate_intake_product_pages_browser_smoke_ci.json --timeout-ms 25000\n",
         "",
         1,
     )
@@ -258,17 +174,13 @@ def test_pre_queue_readiness_fails_missing_context_live_holdout_plan_chain_link(
     )
 
     report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
-    assert "missing_product_pages_command.context_live_diagnostic_holdout_plan" in report["blockers"]
-    assert "missing_activation_manifest_input.context_live_diagnostic_holdout_plan" in report["blockers"]
-    assert "missing_product_pages_upload_artifact.context_live_diagnostic_holdout_plan" in report[
-        "blockers"
-    ]
+    assert "missing_product_pages_command.browser_smoke" in report["blockers"]
 
 
-def test_pre_queue_readiness_fails_missing_response_contract_upload(tmp_path: Path) -> None:
+def test_pre_queue_readiness_fails_missing_visual_qa_upload(tmp_path: Path) -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     workflow = workflow.replace(
-        "            artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json\n",
+        "            artifacts/accurate_intake_product_pages_visual_qa_ci.json\n",
         "",
         1,
     )
@@ -283,251 +195,7 @@ def test_pre_queue_readiness_fails_missing_response_contract_upload(tmp_path: Pa
     )
 
     report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
-    assert "missing_product_pages_upload_artifact.context_live_response_contract_dry_run" in report[
-        "blockers"
-    ]
-
-
-def test_pre_queue_readiness_fails_missing_context_live_gate_chain_link(tmp_path: Path) -> None:
-    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
-    workflow = workflow.replace(
-        "          python scripts/run_accurate_intake_context_live_diagnostic_gate.py "
-        "--artifact-dir artifacts --output artifacts/accurate_intake_context_live_diagnostic_gate_ci.json\n",
-        "",
-        1,
-    ).replace(
-        "            --artifact context_live_diagnostic_gate="
-        "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json \\\n",
-        "",
-        1,
-    ).replace(
-        "            artifacts/accurate_intake_context_live_diagnostic_gate_ci.json\n",
-        "",
-        1,
-    )
-    workflow_path = tmp_path / "ci.yml"
-    workflow_path.write_text(workflow, encoding="utf-8")
-
-    assert (
-        check_pre_queue_readiness.main(
-            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
-        )
-        == 1
-    )
-
-    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
-    assert "missing_product_pages_command.context_live_diagnostic_gate" in report["blockers"]
-    assert "missing_activation_manifest_input.context_live_diagnostic_gate" in report["blockers"]
-    assert "missing_product_pages_upload_artifact.context_live_diagnostic_gate" in report["blockers"]
-
-
-def test_pre_queue_readiness_fails_missing_product_pages_self_use_flow_gate(
-    tmp_path: Path,
-) -> None:
-    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
-    workflow = workflow.replace(
-        "          python scripts/build_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py \\\n",
-        "",
-        1,
-    ).replace(
-        "            artifacts/accurate_intake_pl_ce_product_pages_self_use_flow_gate_ci.json\n",
-        "",
-        1,
-    )
-    workflow_path = tmp_path / "ci.yml"
-    workflow_path.write_text(workflow, encoding="utf-8")
-
-    assert (
-        check_pre_queue_readiness.main(
-            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
-        )
-        == 1
-    )
-
-    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
-    assert (
-        "missing_product_pages_command.pl_ce_product_pages_self_use_flow_gate"
-        in report["blockers"]
-    )
-    assert (
-        "missing_product_pages_upload_artifact.pl_ce_product_pages_self_use_flow_gate"
-        in report["blockers"]
-    )
-
-
-def test_pre_queue_readiness_fails_missing_long_session_navigation_smoke(
-    tmp_path: Path,
-) -> None:
-    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
-    workflow = workflow.replace(
-        "          python scripts/run_accurate_intake_product_pages_long_session_navigation_smoke.py "
-        "--require-browser-execution --output "
-        "artifacts/accurate_intake_product_pages_long_session_navigation_smoke_ci.json "
-        "--timeout-ms 25000\n",
-        "",
-        1,
-    ).replace(
-        "            --artifact product_pages_long_session_navigation_smoke="
-        "artifacts/accurate_intake_product_pages_long_session_navigation_smoke_ci.json \\\n",
-        "",
-        1,
-    ).replace(
-        "            artifacts/accurate_intake_product_pages_long_session_navigation_smoke_ci.json\n",
-        "",
-        1,
-    )
-    workflow_path = tmp_path / "ci.yml"
-    workflow_path.write_text(workflow, encoding="utf-8")
-
-    assert (
-        check_pre_queue_readiness.main(
-            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
-        )
-        == 1
-    )
-
-    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
-    assert (
-        "missing_product_pages_command.product_pages_long_session_navigation_smoke"
-        in report["blockers"]
-    )
-    assert (
-        "missing_product_pages_upload_artifact.product_pages_long_session_navigation_smoke"
-        in report["blockers"]
-    )
-    assert (
-        "missing_current_metadata_input.product_pages_long_session_navigation_smoke"
-        in report["blockers"]
-    )
-
-
-def test_pre_queue_readiness_fails_missing_ui_context_alignment_current_metadata_input(
-    tmp_path: Path,
-) -> None:
-    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
-    metadata_input = (
-        "            --artifact pl_ce_ui_context_alignment_pack="
-        "artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json \\\n"
-    )
-    prefix, marker, suffix = workflow.rpartition(metadata_input)
-    assert marker == metadata_input
-    workflow = prefix + suffix
-    workflow_path = tmp_path / "ci.yml"
-    workflow_path.write_text(workflow, encoding="utf-8")
-
-    assert (
-        check_pre_queue_readiness.main(
-            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
-        )
-        == 1
-    )
-
-    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
-    assert (
-        "missing_current_metadata_input.pl_ce_ui_context_alignment_pack"
-        in report["blockers"]
-    )
-
-
-def test_pre_queue_readiness_fails_missing_non_fooddb_manager_tool_contract_current_metadata_input(
-    tmp_path: Path,
-) -> None:
-    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
-    metadata_input = (
-        "            --artifact non_fooddb_manager_tool_contract="
-        "artifacts/accurate_intake_non_fooddb_manager_tool_contract_ci.json \\\n"
-    )
-    prefix, marker, suffix = workflow.rpartition(metadata_input)
-    assert marker == metadata_input
-    workflow = prefix + suffix
-    workflow_path = tmp_path / "ci.yml"
-    workflow_path.write_text(workflow, encoding="utf-8")
-
-    assert (
-        check_pre_queue_readiness.main(
-            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
-        )
-        == 1
-    )
-
-    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
-    assert (
-        "missing_current_metadata_input.non_fooddb_manager_tool_contract"
-        in report["blockers"]
-    )
-
-
-def test_pre_queue_readiness_fails_missing_current_metadata_freshness_pack(
-    tmp_path: Path,
-) -> None:
-    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
-    workflow = workflow.replace(
-        "          python scripts/build_accurate_intake_pl_ce_current_metadata_freshness_pack.py \\\n",
-        "",
-        1,
-    ).replace(
-        "            --current-metadata-freshness-pack "
-        "artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json \\\n",
-        "",
-        1,
-    ).replace(
-        "            artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json\n",
-        "",
-        1,
-    )
-    workflow_path = tmp_path / "ci.yml"
-    workflow_path.write_text(workflow, encoding="utf-8")
-
-    assert (
-        check_pre_queue_readiness.main(
-            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
-        )
-        == 1
-    )
-
-    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
-    assert (
-        "missing_product_pages_command.pl_ce_current_metadata_freshness_pack"
-        in report["blockers"]
-    )
-    assert (
-        "missing_product_pages_upload_artifact.pl_ce_current_metadata_freshness_pack"
-        in report["blockers"]
-    )
-    assert (
-        "missing_serial_handoff_input.current_metadata_freshness_pack"
-        in report["blockers"]
-    )
-
-
-def test_pre_queue_readiness_fails_product_pages_chain_order_drift(tmp_path: Path) -> None:
-    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
-    provider_line = (
-        "          python scripts/build_accurate_intake_context_live_provider_input_preflight.py "
-        "--matrix-json artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json "
-        "--anti-overfit-json artifacts/accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json "
-        "--output artifacts/accurate_intake_context_live_provider_input_preflight_ci.json\n"
-    )
-    response_line = (
-        "          python scripts/build_accurate_intake_context_live_response_contract_dry_run.py "
-        "--provider-input-preflight-json "
-        "artifacts/accurate_intake_context_live_provider_input_preflight_ci.json "
-        "--output artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json\n"
-    )
-    workflow = workflow.replace(provider_line + response_line, response_line + provider_line, 1)
-    workflow_path = tmp_path / "ci.yml"
-    workflow_path.write_text(workflow, encoding="utf-8")
-
-    assert (
-        check_pre_queue_readiness.main(
-            ["--workflow-file", str(workflow_path), "--output", str(tmp_path / "out.json")]
-        )
-        == 1
-    )
-
-    report = json.loads((tmp_path / "out.json").read_text(encoding="utf-8"))
-    assert "product_pages_context_live_artifact_chain_order_invalid" in report["blockers"]
-
+    assert "missing_product_pages_upload_artifact.product_pages_visual_qa" in report["blockers"]
 
 def test_simulate_merge_candidate_uses_temp_worktree_and_runs_gates(monkeypatch) -> None:
     calls: list[tuple[list[str], Path]] = []

@@ -1,6 +1,8 @@
 ﻿# Accurate Intake RAKE Evidence Track Scope
 
 This document is repo truth for the RAKE Intake Evidence Track. It narrows the FoodDB/WebSearch workstream to the evidence side of the main intake flow: FoodDB retrieval/ranking, tool-calling evidence seam, compact evidence packets, and WebSearch candidate evidence. It does not approve Webshell work, Product Loop work, Context Engineering schema work, readiness, production DB work, or user-facing activation.
+`FoodDB` remains an independent truth-owner track.
+`CurrentShell` consumes this evidence through owner lanes such as `ManagerRuntime`, `AppShell`, and `SharedCurrentShell`.
 
 ## Strategic Classification
 

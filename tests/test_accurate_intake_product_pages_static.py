@@ -23,8 +23,6 @@ def test_product_pages_are_three_separate_static_surfaces_with_shared_nav() -> N
         assert 'href="/static/accurate-intake-chat.html"' in html
         assert 'href="/static/accurate-intake-today.html"' in html
         assert 'href="/static/accurate-intake-body.html"' in html
-        assert "product_readiness_claimed=false" in html
-        assert "private_self_use_approved=false" in html
 
 
 def test_product_pages_preserve_user_and_date_in_nav_without_token_query() -> None:
@@ -341,6 +339,8 @@ def test_product_pages_do_not_claim_fooddb_websearch_live_or_debug_truth() -> No
         "web_tavily_used=true",
         "live_llm_invoked=true",
         "web_readiness_claimed=true",
+        "product_readiness_claimed=false",
+        "private_self_use_approved=false",
         "debug surface",
         "last runtime payload",
         "last turn trace",

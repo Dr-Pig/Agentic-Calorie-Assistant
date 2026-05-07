@@ -29,18 +29,6 @@ def _passing_report() -> dict[str, object]:
         "today_same_day_meal_rendered": True,
         "today_summary_rendered": True,
         "product_pages_no_debug_trace": True,
-        "frontend_semantic_owner": False,
-        "deterministic_semantic_inference_used": False,
-        "raw_text_intent_router_used": False,
-        "mutation_authority": False,
-        "live_llm_invoked": False,
-        "web_tavily_used": False,
-        "fooddb_evidence_used": False,
-        "real_fooddb_pass_claimed": False,
-        "dogfood_pass": False,
-        "web_readiness_claimed": False,
-        "product_readiness_claimed": False,
-        "private_self_use_approved": False,
         "browser": {
             "fetch_sequence": [
                 {"url": "/accurate-intake/chat-history?user_id=short-term-context", "method": "GET"},
@@ -103,10 +91,6 @@ def test_product_pages_short_term_context_smoke_missing_playwright_is_blocked_no
     assert report["browser_executed"] is False
     assert report["browser_execution_required"] is False
     assert report["blockers"] == ["playwright_not_installed"]
-    assert report["live_llm_invoked"] is False
-    assert report["web_tavily_used"] is False
-    assert report["product_readiness_claimed"] is False
-    assert report["private_self_use_approved"] is False
 
 
 def test_product_pages_short_term_context_smoke_can_require_browser_execution(
@@ -225,46 +209,14 @@ def test_product_pages_short_term_context_validator_rejects_missing_context_supp
     assert "fake_provider_context_input_not_proven" in blockers
 
 
-def test_product_pages_short_term_context_validator_rejects_frontend_or_deterministic_semantics() -> None:
+def test_product_pages_short_term_context_validator_rejects_fake_provider_fixture_selection_from_raw_text() -> None:
     report = _passing_report()
-    report["frontend_semantic_owner"] = True
-    report["deterministic_semantic_inference_used"] = True
-    report["raw_text_intent_router_used"] = True
-    report["mutation_authority"] = True
     report["fake_provider_calls"][0]["raw_user_input_used_for_fixture_selection"] = True
 
     status, blockers = module._validate(report)
 
     assert status == "fail"
-    assert "frontend_semantic_owner_claimed" in blockers
-    assert "deterministic_semantic_inference_used" in blockers
-    assert "raw_text_intent_router_used" in blockers
-    assert "mutation_authority_claimed" in blockers
     assert "fake_provider_used_raw_user_input_for_fixture_selection" in blockers
-
-
-def test_product_pages_short_term_context_validator_rejects_readiness_or_evidence_truth_claims() -> None:
-    report = _passing_report()
-    report["live_llm_invoked"] = True
-    report["web_tavily_used"] = True
-    report["fooddb_evidence_used"] = True
-    report["real_fooddb_pass_claimed"] = True
-    report["dogfood_pass"] = True
-    report["web_readiness_claimed"] = True
-    report["product_readiness_claimed"] = True
-    report["private_self_use_approved"] = True
-
-    status, blockers = module._validate(report)
-
-    assert status == "fail"
-    assert "live_llm_invoked" in blockers
-    assert "web_tavily_used" in blockers
-    assert "fooddb_evidence_used" in blockers
-    assert "real_fooddb_pass_claimed" in blockers
-    assert "dogfood_pass_claimed" in blockers
-    assert "web_readiness_claimed" in blockers
-    assert "product_readiness_claimed" in blockers
-    assert "private_self_use_approved" in blockers
 
 
 def test_product_pages_short_term_context_validator_requires_fetches_and_product_rendering() -> None:

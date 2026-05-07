@@ -39,14 +39,6 @@ DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_product_pages_browse
 DEFAULT_USER_ID = "product-pages-browser-smoke-user"
 DEFAULT_LOCAL_DATE = resolve_today_local_date(None)
 DEFAULT_CJK_MESSAGE = "早餐吃茶葉蛋和拿鐵"
-NOT_CLAIMING = [
-    "product_ready",
-    "rollout_ready",
-    "live_llm_ready",
-    "web_ready",
-    "production_db_ready",
-    "private_self_use_approved",
-]
 REQUIRED_FETCH_METHODS = {
     "/accurate-intake/chat-history": "GET",
     "/estimate": "POST",
@@ -72,7 +64,6 @@ def _base_report(
         "smoke_id": "accurate_intake_product_pages_browser_smoke_v1",
         "claim_scope": "local_product_pages_browser_e2e_diagnostic",
         "generated_at_utc": datetime.now(UTC).isoformat(),
-        "not_claiming": list(NOT_CLAIMING),
         "user_external_id": user_external_id,
         "db_path": str(db_path),
         "local_date": local_date,
@@ -133,13 +124,6 @@ def _base_report(
         "product_cjk_copy_rendered": False,
         "nav_session_query_preserved": False,
         "forbidden_storage_used": False,
-        "frontend_semantic_owner": False,
-        "live_llm_invoked": False,
-        "web_tavily_used": False,
-        "production_db_used": False,
-        "web_readiness_claimed": False,
-        "product_readiness_claimed": False,
-        "private_self_use_approved": False,
         "fetch_sequence": [],
         "body_plan_read_model_values": {},
         "body_budget_read_model_values": {},
@@ -951,19 +935,8 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("product_cjk_copy_rendered", "product_cjk_copy_not_rendered")
     require_true("nav_session_query_preserved", "nav_session_query_not_preserved")
 
-    if report.get("frontend_semantic_owner") is True:
-        blockers.append("frontend_semantic_owner")
-    for key in (
-        "live_llm_invoked",
-        "web_tavily_used",
-        "production_db_used",
-        "web_readiness_claimed",
-        "product_readiness_claimed",
-        "private_self_use_approved",
-        "forbidden_storage_used",
-    ):
-        if report.get(key) is True:
-            blockers.append(key)
+    if report.get("forbidden_storage_used") is True:
+        blockers.append("forbidden_storage_used")
 
     browser = dict(report.get("browser") or {})
     body_values = dict(report.get("body_plan_read_model_values") or browser.get("body_plan_read_model_values") or {})

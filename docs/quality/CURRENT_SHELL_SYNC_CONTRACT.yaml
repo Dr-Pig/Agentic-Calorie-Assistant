@@ -1,9 +1,21 @@
 artifact_type: current_shell_sync_contract
-version: 1
+version: 2
+canonical_machine_track: CurrentShell
+legacy_track_input_aliases:
+  - PLCE
+  - PL_CE
+  - PL/CE
+  - PL-CE
+  - ProductLoop
+  - ProductLifecycleContextEngineering
 launch_scope: current_shell_v1
 claim_scope: local_shell_self_use_candidate_only
+current_shell_target: current_shell_v1
+claim_name: current_shell_self_use_candidate
+launch_claim_scope: none
 runtime_contract_owner: ManagerRuntime
 downstream_shell_owner: AppShell
+shared_owner_lane: SharedCurrentShell
 in_scope_journeys:
   - A
   - B

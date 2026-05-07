@@ -1260,31 +1260,14 @@ def test_activation_review_manifest_source_stays_out_of_fooddb_websearch_live_bo
         assert fragment.lower() not in combined_source
 
 
-def test_ci_builds_activation_review_manifest() -> None:
+def test_ci_keeps_activation_review_manifest_out_of_required_merge_path() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    advisory_workflow = Path(".github/workflows/ci-advisory.yml").read_text(encoding="utf-8")
 
-    assert "test_accurate_intake_pl_ce_activation_review_manifest.py" in workflow
-    assert "build_accurate_intake_context_live_diagnostic_dry_run_evaluator.py" in workflow
-    assert "build_accurate_intake_context_live_diagnostic_holdout_plan.py" in workflow
-    assert "build_accurate_intake_context_live_response_contract_dry_run.py" in workflow
-    assert "run_accurate_intake_context_live_diagnostic_gate.py" in workflow
-    assert "build_accurate_intake_pl_ce_activation_review_manifest.py" in workflow
-    assert "pl_ce_ui_context_alignment_pack=artifacts/accurate_intake_pl_ce_ui_context_alignment_pack_ci.json" in workflow
-    assert (
-        "context_live_diagnostic_dry_run_evaluator="
-        "artifacts/accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json"
-    ) in workflow
-    assert (
-        "context_live_diagnostic_holdout_plan="
-        "artifacts/accurate_intake_context_live_diagnostic_holdout_plan_ci.json"
-    ) in workflow
-    assert (
-        "context_live_response_contract_dry_run="
-        "artifacts/accurate_intake_context_live_response_contract_dry_run_ci.json"
-    ) in workflow
-    assert (
-        "context_live_diagnostic_gate="
-        "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json"
-    ) in workflow
-    assert "artifacts/accurate_intake_context_live_diagnostic_gate_ci.json" in workflow
-    assert "accurate_intake_pl_ce_activation_review_manifest_ci.json" in workflow
+    assert "product-pages-browser-e2e" in workflow
+    assert "build_accurate_intake_context_live_diagnostic_dry_run_evaluator.py" not in workflow
+    assert "build_accurate_intake_context_live_diagnostic_holdout_plan.py" not in workflow
+    assert "build_accurate_intake_context_live_response_contract_dry_run.py" not in workflow
+    assert "run_accurate_intake_context_live_diagnostic_gate.py" not in workflow
+    assert "build_accurate_intake_pl_ce_activation_review_manifest.py" not in workflow
+    assert "build_accurate_intake_context_live_diagnostic_dry_run_evaluator.py" in advisory_workflow

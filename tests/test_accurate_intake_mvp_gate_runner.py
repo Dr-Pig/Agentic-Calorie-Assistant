@@ -229,7 +229,7 @@ def test_gate_runner_fails_fast_by_default_and_reports_failed_group(monkeypatch,
 
 
 def test_ci_has_independent_accurate_intake_mvp_gate_job() -> None:
-    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    workflow = (ROOT / ".github" / "workflows" / "ci-advisory.yml").read_text(encoding="utf-8")
 
     assert "accurate-intake-mvp-gate:" in workflow
     assert "python scripts/verify_accurate_intake_mvp.py --python python" in workflow

@@ -173,12 +173,12 @@ def test_seven_day_diary_smoke_runs_real_browser_when_playwright_available(tmp_p
     assert report["product_readiness_claimed"] is False
 
 
-def test_ci_runs_seven_day_diary_browser_smoke() -> None:
+def test_ci_keeps_seven_day_diary_browser_smoke_out_of_required_merge_path() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
-    assert "test_accurate_intake_product_pages_seven_day_diary_smoke.py" in workflow
-    assert "run_accurate_intake_product_pages_seven_day_diary_smoke.py --require-browser-execution" in workflow
-    assert "accurate_intake_product_pages_seven_day_diary_smoke_ci.json" in workflow
+    assert "product-pages-browser-e2e" in workflow
+    assert "run_accurate_intake_product_pages_seven_day_diary_smoke.py --require-browser-execution" not in workflow
+    assert "accurate_intake_product_pages_seven_day_diary_smoke_ci.json" not in workflow
 
 
 def test_seven_day_diary_smoke_stays_out_of_fooddb_websearch_and_live_boundaries() -> None:

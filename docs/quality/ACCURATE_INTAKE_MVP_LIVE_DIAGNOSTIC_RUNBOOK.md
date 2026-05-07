@@ -1,6 +1,8 @@
 ﻿# Accurate Intake MVP Live Diagnostic Runbook
 
 This runbook is the checked-in operating record for the Accurate Intake MVP live diagnostic sidecar.
+This runbook belongs to the canonical `CurrentShell` track.
+`ManagerRuntime`, `AppShell`, and `SharedCurrentShell` are CurrentShell owner lanes.
 
 The claim scope: `live_diagnostic`.
 

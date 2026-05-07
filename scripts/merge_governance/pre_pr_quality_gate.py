@@ -22,17 +22,23 @@ from scripts.repo_policy import (  # noqa: E402
     normalize_repo_path,
     target_cap_for_repo_path,
 )
-from scripts.merge_governance.build_merge_debt_matrix import infer_track, normalize_track  # noqa: E402
+from scripts.merge_governance.build_merge_governance_advisory import (  # noqa: E402
+    current_shell_metadata_findings,
+    extract_track_report,
+    infer_track,
+    load_current_shell_sync_contract,
+    normalize_track,
+)
 
 
 DEFAULT_OUTPUT = ROOT / "artifacts" / "pre_pr_quality_gate_report.json"
 CANONICAL_TRACKS = {
     "AccurateIntake",
     "BodyBudgetCalibration",
+    "CurrentShell",
     "FoodDB",
     "LongTermContextLab",
     "MergeGovernance",
-    "PLCE",
     "ProactiveShadow",
     "RecommendationShadow",
     "RescueShadow",
@@ -479,12 +485,49 @@ def _dirty_worktree_blockers(*, allow_dirty_worktree: bool) -> list[dict[str, ob
     ]
 
 
-def _add_preflight_blockers(report: dict[str, object], blockers: list[dict[str, object]]) -> None:
-    if not blockers:
+def _preflight_metadata_findings(*, track: str, event_path: Path | None) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    pull_request = _pull_request_payload_from_event(event_path)
+    if track != "CurrentShell" or pull_request is None:
+        return [], []
+    flags = extract_track_report(str(pull_request.get("body") or ""))
+    blockers, advisories, _ = current_shell_metadata_findings(
+        flags,
+        track=track,
+        sync_contract=load_current_shell_sync_contract(),
+    )
+    blocker_findings = [
+        _finding(code=code, path="", message=f"Current-shell metadata blocker: {code}.")
+        for code in blockers
+    ]
+    advisory_findings = [
+        _finding(code=code, path="", message=f"Current-shell metadata advisory: {code}.")
+        for code in advisories
+    ]
+    return blocker_findings, advisory_findings
+
+
+def _add_preflight_findings(
+    report: dict[str, object],
+    *,
+    blockers: list[dict[str, object]] | None = None,
+    warnings: list[dict[str, object]] | None = None,
+    advisories: list[dict[str, object]] | None = None,
+) -> None:
+    blockers = list(blockers or [])
+    warnings = list(warnings or [])
+    advisories = list(advisories or [])
+    if blockers:
+        existing = list(report.get("blockers") or [])
+        report["blockers"] = blockers + existing
+        report["status"] = "fail"
+    if warnings:
+        existing_warnings = list(report.get("warnings") or [])
+        report["warnings"] = existing_warnings + warnings
+    if advisories:
+        existing_advisories = list(report.get("advisories") or [])
+        report["advisories"] = existing_advisories + advisories
+    if not blockers and not warnings and not advisories:
         return
-    existing = list(report.get("blockers") or [])
-    report["blockers"] = blockers + existing
-    report["status"] = "fail"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -511,6 +554,7 @@ def main(argv: list[str] | None = None) -> int:
     preflight_blockers.extend(
         _dirty_worktree_blockers(allow_dirty_worktree=args.allow_dirty_worktree)
     )
+    metadata_blockers, metadata_advisories = _preflight_metadata_findings(track=track, event_path=event_path)
     changes = collect_changed_files(base_ref=args.base_ref, head_ref=args.head_ref)
     report = build_quality_report_from_changes(
         changes,
@@ -518,7 +562,11 @@ def main(argv: list[str] | None = None) -> int:
         track=track,
         run_boundary_checks=not args.skip_boundary_checks,
     )
-    _add_preflight_blockers(report, preflight_blockers)
+    _add_preflight_findings(
+        report,
+        blockers=preflight_blockers + metadata_blockers,
+        advisories=metadata_advisories,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False))

@@ -361,14 +361,14 @@ def test_serial_handoff_source_stays_out_of_fooddb_websearch_live_boundaries() -
         assert fragment.lower() not in combined_source
 
 
-def test_ci_builds_serial_handoff_artifact() -> None:
+def test_ci_keeps_serial_handoff_artifact_out_of_required_merge_path() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
-    assert "test_accurate_intake_pl_ce_serial_handoff.py" in workflow
-    assert "accurate_intake_pl_ce_merge_queue_metadata" in workflow
-    assert "--queue-json" in workflow
+    assert "product-pages-browser-e2e" in workflow
+    assert "accurate_intake_pl_ce_merge_queue_metadata" not in workflow
+    assert "--queue-json" not in workflow
     assert "--allow-blocked" not in workflow
-    assert "build_accurate_intake_pl_ce_serial_handoff.py" in workflow
-    assert "--current-metadata-freshness-pack" in workflow
-    assert "accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json" in workflow
-    assert "accurate_intake_pl_ce_serial_handoff_ci.json" in workflow
+    assert "build_accurate_intake_pl_ce_serial_handoff.py" not in workflow
+    assert "--current-metadata-freshness-pack" not in workflow
+    assert "accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json" not in workflow
+    assert "accurate_intake_pl_ce_serial_handoff_ci.json" not in workflow

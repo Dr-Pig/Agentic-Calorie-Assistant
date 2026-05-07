@@ -12,14 +12,16 @@ def test_pl_ce_roadmap_doc_exists_with_utf8_bom_and_track_split() -> None:
     assert raw.startswith(b"\xef\xbb\xbf")
     text = raw.decode("utf-8-sig")
 
-    assert "Current Shell v1 Coordination Roadmap" in text
-    assert "legacy-path document records the Current Shell v1 coordination map" in text
-    assert "active ownership split is `ManagerRuntime` + `AppShell`" in text
+    assert "CurrentShell Coordination Roadmap" in text
+    assert "legacy-path document records the CurrentShell coordination map" in text
+    assert "canonical track is `CurrentShell`" in text
+    assert "CurrentShell owner lanes are `ManagerRuntime`, `AppShell`, and `SharedCurrentShell`" in text
     assert "merged legacy PL+CE checkpoint train" in text
     assert "PR508: pre-live artifact refresh chain" in text
     assert "FoodDB/Search Evidence owns retrieval, ranking" in text
     assert "ManagerRuntime owns upstream runtime contracts" in text
     assert "AppShell owns downstream browser verification" in text
+    assert "FoodDB remains an independent truth-owner track." in text
     assert "blocked_waiting_for_fdb_artifact" in text
     assert "no Kimi full E2E" in text
     assert "no Tavily/WebSearch runtime calling" in text
@@ -103,6 +105,7 @@ def test_pl_ce_roadmap_doc_records_machine_readable_current_shell_coordination_a
 
     for fragment in (
         "Current-Shell Coordination Artifacts",
+        "SharedCurrentShell owns the machine-readable coordination artifacts",
         "CURRENT_SHELL_SYNC_CONTRACT.yaml",
         "MANAGER_RUNTIME_GATE_LEDGER.yaml",
         "downstream AppShell/browser gates and merge-governance checks should read instead of inferring runtime readiness from markdown prose alone",
@@ -115,10 +118,11 @@ def test_pl_ce_roadmap_doc_marks_plce_as_legacy_umbrella_vocabulary() -> None:
 
     for fragment in (
         "The file path retains `PL_CE` for compatibility",
+        "Legacy `PLCE` / `PL+CE` / `PL_CE` wording remains compatibility vocabulary only for old paths and artifacts; it is not the canonical track model.",
         "AppShell must not invent runtime semantics, frontend truth math, or mutation legality.",
-        "Every legacy `PL+CE` / Current Shell coordination artifact must preserve:",
-        "the legacy `pl_ce_local_review_decision_pack` artifact is green.",
-        "The later live diagnostic gate starts only after deterministic Current Shell v1 closure.",
+        "Every legacy `PL+CE` / `CurrentShell` compatibility artifact must preserve:",
+        "the compatibility artifact `pl_ce_local_review_decision_pack` is green.",
+        "The later live diagnostic gate starts only after deterministic CurrentShell closure.",
     ):
         assert fragment in text
 
@@ -126,6 +130,8 @@ def test_live_diagnostic_runbook_requires_product_pages_and_non_fooddb_tool_evid
     text = LIVE_RUNBOOK_PATH.read_text(encoding="utf-8-sig")
 
     for fragment in (
+        "This runbook belongs to the canonical `CurrentShell` track.",
+        "`ManagerRuntime`, `AppShell`, and `SharedCurrentShell` are CurrentShell owner lanes.",
         "`product_pages_self_use_flow_gate`",
         "`ui_context_alignment_pack`",
         "`browser_activation_evidence_gate`",
