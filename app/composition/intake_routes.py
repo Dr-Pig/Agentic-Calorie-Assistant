@@ -10,8 +10,13 @@ from fastapi import APIRouter, Depends, Request
 from app.composition.body_observation_manager_turn import (
     execute_body_observation_manager_turn,
 )
-from app.composition.canonical_commit_bridge import (
-    record_budget_adjustment_to_canonical,
+from app.composition.calibration_estimate_route_support import (
+    build_calibration_action_route_payload,
+    build_calibration_preview_route_payload,
+    build_calibration_raw_text_fallback_route_payload,
+    has_explicit_calibration_action_request,
+    has_explicit_calibration_preview_request,
+    parse_calibration_action_accepted_at,
 )
 from app.composition.conversation_turn_trace import record_runtime_turn_messages
 from app.composition.general_chat_service import build_general_chat_response_pass
@@ -24,9 +29,8 @@ from app.composition.phase_a_boundary_projection import (
     build_budget_boundary_projection,
 )
 from app.composition.state_resolver import resolve_intake_state
-from app.database import get_db, get_or_create_user
+from app.database import get_db
 from app.intake.application.boundary_output_honesty import enforce_budget_output_honesty
-from app.intake.application.chat_intents import parse_weight_or_budget_intent
 from app.intake.application.current_turn_context_assembler import (
     build_current_turn_context_v1,
 )
@@ -45,103 +49,8 @@ from app.schemas import EstimateRequest
 router = APIRouter()
 
 
-def _has_explicit_calibration_action_request(request: EstimateRequest) -> bool:
-    return (
-        request.calibration_action is not None
-        or request.calibration_proposal_container_id is not None
-    )
-
-
-def _has_explicit_calibration_preview_request(request: EstimateRequest) -> bool:
-    return request.calibration_preview_requested is True and not _has_explicit_calibration_action_request(request)
-
-
 def _request_local_date(request: EstimateRequest) -> str:
     return request.local_date or datetime.now().date().isoformat()
-
-
-def _parse_calibration_action_accepted_at(request: EstimateRequest) -> datetime | None:
-    if request.calibration_action_accepted_at is None:
-        return None
-    try:
-        return datetime.fromisoformat(request.calibration_action_accepted_at)
-    except ValueError as exc:
-        raise ValueError("calibration_action_accepted_at must be an ISO datetime") from exc
-
-
-def _build_calibration_action_route_payload(general_chat_result: Any) -> dict[str, Any]:
-    ui_hints = dict(general_chat_result.ui_hints or {})
-    action_result = general_chat_result.calibration_action_result
-    proposal_status = action_result.get("proposal_status") if isinstance(action_result, dict) else None
-    state_delta = {
-        "calibration_action_processed": action_result is not None,
-        "proposal_status": proposal_status,
-        "plan_mutated": bool(ui_hints.get("plan_mutation_authorized")),
-        "ledger_mutated": bool(ui_hints.get("ledger_mutation_authorized")),
-    }
-    manager_decision = {
-        "intent_type": "calibration",
-        "workflow_effect": general_chat_result.workflow_effect,
-        "tool_calls": [],
-        "explicit_structured_action": True,
-    }
-    return {
-        "manager_decision": manager_decision,
-        "intake_execution_manager": {
-            "final": {
-                "final_action": "calibration_action",
-                "workflow_effect": general_chat_result.workflow_effect,
-            },
-            "persistence_result": action_result,
-        },
-        "state_delta": state_delta,
-        "sidecar": {},
-        "ui_hints": ui_hints,
-        "required_read_surfaces": list(general_chat_result.required_read_surfaces),
-        "calibration_action_result": action_result,
-    }
-
-
-def _build_calibration_preview_route_payload(general_chat_result: Any) -> dict[str, Any]:
-    ui_hints = dict(general_chat_result.ui_hints or {})
-    proposal_artifact = general_chat_result.proposal_artifact
-    state_delta = {
-        "calibration_preview_processed": True,
-        "proposal_persisted": proposal_artifact is not None,
-        "proposal_container_id": (
-            proposal_artifact.get("proposal_container_id") if isinstance(proposal_artifact, dict) else None
-        ),
-        "plan_mutated": False,
-        "ledger_mutated": False,
-    }
-    manager_decision = {
-        "intent_type": "calibration",
-        "workflow_effect": general_chat_result.workflow_effect,
-        "tool_calls": [],
-        "explicit_structured_preview": True,
-    }
-    return {
-        "manager_decision": manager_decision,
-        "intake_execution_manager": {
-            "final": {
-                "final_action": "calibration_preview",
-                "workflow_effect": general_chat_result.workflow_effect,
-            },
-            "persistence_result": proposal_artifact,
-        },
-        "state_delta": state_delta,
-        "sidecar": {
-            "calibration_diagnostic": general_chat_result.calibration_diagnostic,
-            "input_assembly": general_chat_result.input_assembly,
-            "proposal_artifact": proposal_artifact,
-        },
-        "ui_hints": ui_hints,
-        "required_read_surfaces": list(general_chat_result.required_read_surfaces),
-        "calibration_diagnostic": general_chat_result.calibration_diagnostic,
-        "input_assembly": general_chat_result.input_assembly,
-        "proposal_response": general_chat_result.proposal_response,
-        "proposal_artifact": proposal_artifact,
-    }
 
 
 @router.post("/estimate")
@@ -174,7 +83,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
             current_turn_context=current_turn_context,
             resolved_state=state_before,
         )
-        if _has_explicit_calibration_preview_request(request):
+        if has_explicit_calibration_preview_request(request):
             general_chat_result = build_general_chat_response_pass(
                 db,
                 user_external_id=user_id,
@@ -194,7 +103,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                     "ledger_mutation_authorized": False,
                 },
             }
-            route_payload = _build_calibration_preview_route_payload(general_chat_result)
+            route_payload = build_calibration_preview_route_payload(general_chat_result)
             write_general_chat_request_trace_artifact(
                 request_id=request_id,
                 user_external_id=user_id,
@@ -224,7 +133,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                 "coach_message": general_chat_result.reply_text,
                 "payload": route_payload,
             }
-        if _has_explicit_calibration_action_request(request):
+        if has_explicit_calibration_action_request(request):
             general_chat_result = build_general_chat_response_pass(
                 db,
                 user_external_id=user_id,
@@ -233,7 +142,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                 local_date=local_date,
                 calibration_proposal_container_id=request.calibration_proposal_container_id,
                 calibration_action=request.calibration_action,
-                accepted_at=_parse_calibration_action_accepted_at(request),
+                accepted_at=parse_calibration_action_accepted_at(request),
             )
             state_after = resolve_intake_state(
                 db,
@@ -251,7 +160,7 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
                     "frontend_effective_date_calculation_authorized": False,
                 },
             }
-            route_payload = _build_calibration_action_route_payload(general_chat_result)
+            route_payload = build_calibration_action_route_payload(general_chat_result)
             write_general_chat_request_trace_artifact(
                 request_id=request_id,
                 user_external_id=user_id,
@@ -396,50 +305,43 @@ async def estimate(request: EstimateRequest, raw_request: Request, db: Any = Dep
             }
 
         if routing_result.target_workflow_family == "calibration":
-            parsed = await parse_weight_or_budget_intent(manager_provider, request.text)
-            if parsed.get("delta_kcal"):
-                user = get_or_create_user(db, user_id)
-                record_budget_adjustment_to_canonical(
-                    db,
-                    user=user,
-                    delta_kcal=parsed["delta_kcal"],
-                    local_date=local_date,
-                    metadata={"source": "chat_adjustment"},
-                )
-                state_after = resolve_intake_state(
-                    db,
-                    user_external_id=user_id,
-                    local_date=local_date,
-                )
-                direction = "增加" if parsed["delta_kcal"] > 0 else "減少"
-                assistant_message = f"已調整今天預算，{direction} {abs(parsed['delta_kcal'])} kcal。"
-                record_runtime_turn_messages(
-                    db,
-                    user_external_id=user_id,
-                    request_id=request_id,
-                    local_date=local_date,
-                    raw_user_input=request.text,
-                    assistant_message=assistant_message,
-                    state_before=state_before,
-                    current_turn_context=current_turn_context,
-                    manager_context_packet_v1=manager_context_packet_v1,
-                    state_after=state_after,
-                    phase_a_trace=routing_result.phase_a_trace,
-                    result={
-                        "manager_decision": {"intent_type": "calibration", "workflow_effect": "adjust_budget"},
-                        "intake_execution_manager": {
-                            "final": {"final_action": "answer_only", "workflow_effect": "budget_adjusted"},
-                            "persistence_result": None,
-                        },
-                        "state_delta": {"budget_adjusted": True, "delta_kcal": parsed["delta_kcal"]},
-                        "sidecar": {},
-                    },
-                )
-                return {
-                    "request_id": request_id,
-                    "coach_message": assistant_message,
-                    "payload": None,
-                }
+            general_chat_result = build_general_chat_response_pass(
+                db,
+                user_external_id=user_id,
+                raw_user_input=request.text,
+                mode="fallback_answer",
+                local_date=local_date,
+            )
+            route_payload = build_calibration_raw_text_fallback_route_payload(general_chat_result)
+            write_general_chat_request_trace_artifact(
+                request_id=request_id,
+                user_external_id=user_id,
+                local_date=local_date,
+                raw_user_input=request.text,
+                state_before=state_before,
+                general_chat_result=general_chat_result,
+                assistant_message=general_chat_result.reply_text,
+                phase_a_trace=routing_result.phase_a_trace,
+            )
+            record_runtime_turn_messages(
+                db,
+                user_external_id=user_id,
+                request_id=request_id,
+                local_date=local_date,
+                raw_user_input=request.text,
+                assistant_message=general_chat_result.reply_text,
+                state_before=state_before,
+                current_turn_context=current_turn_context,
+                manager_context_packet_v1=manager_context_packet_v1,
+                state_after=state_before,
+                phase_a_trace=routing_result.phase_a_trace,
+                result=route_payload,
+            )
+            return {
+                "request_id": request_id,
+                "coach_message": general_chat_result.reply_text,
+                "payload": route_payload,
+            }
 
         result = await execute_intake_turn(
             db,

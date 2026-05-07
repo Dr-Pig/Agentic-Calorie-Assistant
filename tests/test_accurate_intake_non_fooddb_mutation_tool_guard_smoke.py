@@ -18,7 +18,6 @@ REQUIRED_CASES = [
     "calibration_apply_reject_stored_proposal_no_plan_ledger",
     "manual_daily_target_manager_structured_only",
     "manual_daily_target_out_of_bounds_blocked",
-    "legacy_delta_kcal_direct_route_debt",
 ]
 
 
@@ -83,13 +82,6 @@ def test_non_fooddb_mutation_tool_guard_smoke_maps_expected_guard_postures() -> 
     assert manual_target["expected_effects"]["body_plan_mutated"] is True
     assert manual_target["expected_effects"]["ledger_mutated"] is True
 
-    legacy_direct = cases["legacy_delta_kcal_direct_route_debt"]
-    assert legacy_direct["selected_tool"] == "legacy.calibration_delta_kcal_direct_route"
-    assert legacy_direct["guard_posture"] == "legacy_direct_route_debt"
-    assert legacy_direct["mutation_allowed"] is False
-    assert legacy_direct["debt_marker"] == "direct_route_mutation_before_manager_tool_contract"
-
-
 def test_non_fooddb_mutation_tool_guard_smoke_blocks_contract_drift_and_overclaims() -> None:
     artifact = build_non_fooddb_mutation_tool_guard_smoke_artifact()
     cases = list(artifact["cases"])  # type: ignore[index]
@@ -110,10 +102,6 @@ def test_non_fooddb_mutation_tool_guard_smoke_blocks_contract_drift_and_overclai
     drifted_manual_target_blocked["mutation_allowed"] = True
     cases[8] = drifted_manual_target_blocked
 
-    drifted_legacy = dict(cases[9])
-    drifted_legacy["debt_marker"] = None
-    cases[9] = drifted_legacy
-
     blocked = build_non_fooddb_mutation_tool_guard_smoke_artifact(
         cases=cases,
         overrides={
@@ -129,7 +117,6 @@ def test_non_fooddb_mutation_tool_guard_smoke_blocks_contract_drift_and_overclai
     assert "body_record_weight_observation_only.body_observation_must_not_mutate_body_plan" in blocked["blockers"]
     assert "manual_daily_target_manager_structured_only.manager_structured_target_required_missing" in blocked["blockers"]
     assert "manual_daily_target_out_of_bounds_blocked.manual_daily_target_blocked_case_must_not_allow_mutation" in blocked["blockers"]
-    assert "legacy_delta_kcal_direct_route_debt.legacy_direct_route_debt_marker_missing" in blocked["blockers"]
     assert "live_llm_invoked" in blocked["blockers"]
     assert "fooddb_used" in blocked["blockers"]
     assert "runtime_truth_changed" in blocked["blockers"]

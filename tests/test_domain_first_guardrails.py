@@ -13,6 +13,7 @@ from scripts.repo_policy import (
 ROOT = Path(__file__).resolve().parents[1]
 ACTIVE_CODE_POLICY = load_active_code_policy()
 ALLOWED_SUPPORT_HELPER_SEAMS = {
+    "app/composition/calibration_estimate_route_support.py",
     "app/composition/canonical_body_support.py",
     "app/composition/canonical_commit_support.py",
     "app/composition/canonical_proposal_support.py",
@@ -287,7 +288,6 @@ def test_repo_has_no_provider_split_or_trace_compat_tokens() -> None:
             continue
         if path.suffix.lower() not in {".py", ".md", ".json"}:
             continue
-        normalized = str(path.relative_to(ROOT)).replace("\\", "/")
         if any(part in IGNORED_REPO_PARTS for part in path.parts):
             continue
         content = path.read_text(encoding="utf-8", errors="ignore")

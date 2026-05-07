@@ -23,8 +23,8 @@ def test_non_fooddb_manager_tool_contract_covers_read_only_proposal_and_guarded_
         "read_only_tool_count": 7,
         "proposal_tool_count": 1,
         "mutation_tool_count": 3,
-        "legacy_direct_route_debt_count": 1,
-        "direct_lane_bridge_count": 7,
+        "legacy_direct_route_debt_count": 0,
+        "direct_lane_bridge_count": 6,
     }
     assert artifact["runtime_truth_changed"] is False
     assert artifact["mutation_changed"] is False
@@ -38,7 +38,7 @@ def test_non_fooddb_manager_tool_contract_covers_read_only_proposal_and_guarded_
     assert artifact["blockers"] == []
 
 
-def test_non_fooddb_manager_tool_contract_marks_manual_target_pending_and_legacy_delta_as_debt() -> None:
+def test_non_fooddb_manager_tool_contract_marks_manual_target_pending_without_legacy_delta_lane() -> None:
     artifact = build_non_fooddb_manager_tool_contract_artifact()
     contract_by_tool = build_tool_contract_index(artifact)
     bridge_by_lane = {lane["direct_lane_id"]: lane for lane in artifact["direct_lane_bridge"]}
@@ -67,19 +67,13 @@ def test_non_fooddb_manager_tool_contract_marks_manual_target_pending_and_legacy
     assert manual_target["contract_stage"] == "adjacent_pending_inventory_expansion"
     assert manual_target["manager_structured_target_required"] is True
     assert manual_target["tool_callable_by_manager"] is True
-
-    legacy = contract_by_tool["legacy.calibration_delta_kcal_direct_route"]
-    assert legacy["contract_stage"] == "legacy_direct_lane_debt"
-    assert legacy["tool_callable_by_manager"] is False
-    assert legacy["debt_marker"] == "direct_route_mutation_before_manager_tool_contract"
+    assert "legacy.calibration_delta_kcal_direct_route" not in contract_by_tool
 
     assert bridge_by_lane["estimate_general_chat_budget_summary"]["contract_tool_names"] == [
         "budget.get_today_summary",
         "budget.get_remaining_calories",
     ]
-    assert bridge_by_lane["estimate_calibration_budget_delta_direct_mutation"]["debt_marker"] == (
-        "direct_route_mutation_before_manager_tool_contract"
-    )
+    assert "estimate_calibration_budget_delta_direct_mutation" not in bridge_by_lane
 
 
 def test_non_fooddb_manager_tool_contract_blocks_inventory_drift_or_overclaims() -> None:

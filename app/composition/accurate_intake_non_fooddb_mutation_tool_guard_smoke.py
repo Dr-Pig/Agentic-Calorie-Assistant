@@ -11,7 +11,7 @@ from app.composition.accurate_intake_non_fooddb_manager_tool_contract import (
     build_tool_contract_index,
 )
 
-REQUIRED_CASE_IDS = ("body_record_weight_observation_only", "body_record_weight_invalid_payload_blocked", "calibration_preview_no_persist_default", "calibration_preview_persist_open_proposal_only", "calibration_apply_missing_stored_proposal_blocked", "calibration_apply_accept_stored_proposal_guarded", "calibration_apply_reject_stored_proposal_no_plan_ledger", "manual_daily_target_manager_structured_only", "manual_daily_target_out_of_bounds_blocked", "legacy_delta_kcal_direct_route_debt")
+REQUIRED_CASE_IDS = ("body_record_weight_observation_only", "body_record_weight_invalid_payload_blocked", "calibration_preview_no_persist_default", "calibration_preview_persist_open_proposal_only", "calibration_apply_missing_stored_proposal_blocked", "calibration_apply_accept_stored_proposal_guarded", "calibration_apply_reject_stored_proposal_no_plan_ledger", "manual_daily_target_manager_structured_only", "manual_daily_target_out_of_bounds_blocked")
 _TOOL_ROLE = "validate_guard_and_execute_existing_domain_contract"
 
 def _json_safe(value: Any) -> Any:
@@ -79,7 +79,6 @@ def _cases() -> list[dict[str, Any]]:
         _case("calibration_apply_reject_stored_proposal_no_plan_ledger", "calibration.apply_stored_proposal_action", "mutation_bearing", "calibration_domain", "stored_proposal_action_status_only", _effects(proposal_status_changed=True), guard_required=True, stored_proposal_required=True, mutation_allowed=True),
         _case("manual_daily_target_manager_structured_only", "budget.set_manual_daily_target", "mutation_bearing", "budget_domain", "manager_structured_budget_target_write", _effects(body_plan_mutated=True, ledger_mutated=True, current_budget_refreshed=True), guard_required=True, mutation_allowed=True, inventory_alignment="adjacent_pending_inventory_expansion", manager_structured_target_required=True),
         _case("manual_daily_target_out_of_bounds_blocked", "budget.set_manual_daily_target", "mutation_bearing", "budget_domain", "manager_structured_budget_target_blocked", _effects(), guard_required=True, inventory_alignment="adjacent_pending_inventory_expansion", manager_structured_target_required=True),
-        _case("legacy_delta_kcal_direct_route_debt", "legacy.calibration_delta_kcal_direct_route", "legacy_direct_route", "calibration_domain", "legacy_direct_route_debt", _effects(), inventory_alignment="legacy_direct_lane_debt", debt_marker="direct_route_mutation_before_manager_tool_contract"),
     ]
 
 def _validate(cases: list[dict[str, Any]], contract: dict[str, dict[str, Any]]) -> list[str]:
@@ -139,12 +138,6 @@ def _validate(cases: list[dict[str, Any]], contract: dict[str, dict[str, Any]]) 
                 blockers.append(f"{case_id}.manager_structured_target_required_missing")
             if case_id == "manual_daily_target_out_of_bounds_blocked" and case.get("mutation_allowed") is not False:
                 blockers.append(f"{case_id}.manual_daily_target_blocked_case_must_not_allow_mutation")
-        elif alignment == "legacy_direct_lane_debt":
-            expected = contract.get(selected_tool)
-            if expected is None or case.get("debt_marker") != str(expected.get("debt_marker") or ""):
-                blockers.append(f"{case_id}.legacy_direct_route_debt_marker_missing")
-            if case.get("mutation_allowed") is not False:
-                blockers.append(f"{case_id}.legacy_direct_route_must_not_be_allowed")
         else:
             blockers.append(f"{case_id}.unknown_inventory_alignment")
     return blockers

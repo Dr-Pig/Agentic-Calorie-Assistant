@@ -42,7 +42,7 @@ def test_body_budget_calibration_self_use_journey_smoke_exercises_closed_loop(tm
     assert report["boundaries"]["history_projection_safe_before_accept"] is True
     assert report["raw_text_apply_attempt"] == {
         "entrypoint": "/estimate",
-        "workflow_effect": "raw_text_route_fallback_without_calibration_state_mutation",
+        "workflow_effect": "safe_failure",
         "proposal_status_after_attempt": "open",
         "proposal_count_changed": False,
         "plan_mutated": False,
@@ -51,7 +51,6 @@ def test_body_budget_calibration_self_use_journey_smoke_exercises_closed_loop(tm
         "persist_calibration_proposal_supplied": True,
         "proposal_container_id_supplied": False,
         "calibration_action_supplied": False,
-        "raw_text_authorized_mutation": False,
     }
     assert report["proposal_action"]["entrypoint"] == "/estimate"
     assert report["proposal_action"]["workflow_effect"] == "apply_calibration_proposal_action_with_state_mutation"

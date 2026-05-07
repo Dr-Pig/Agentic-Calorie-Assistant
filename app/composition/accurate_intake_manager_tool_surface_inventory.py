@@ -23,7 +23,6 @@ REQUIRED_DIRECT_LANE_IDS = (
     "estimate_explicit_calibration_preview",
     "estimate_explicit_calibration_action",
     "estimate_body_observation_record_weight",
-    "estimate_calibration_budget_delta_direct_mutation",
 )
 
 
@@ -131,16 +130,6 @@ _DIRECT_LANES: tuple[dict[str, Any], ...] = (
         "body_domain",
         "mutation_tool_guard_smoke",
         guard_required=True,
-    ),
-    _lane(
-        "estimate_calibration_budget_delta_direct_mutation",
-        "calibration + parsed delta_kcal",
-        ["calibration.preview_proposal", "calibration.apply_stored_proposal_action"],
-        "mutation_bearing",
-        "calibration_domain",
-        "mutation_tool_guard_smoke",
-        guard_required=True,
-        current_gap="direct_route_mutation_before_manager_tool_contract",
     ),
 )
 

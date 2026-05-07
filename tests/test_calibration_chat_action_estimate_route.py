@@ -349,20 +349,6 @@ def test_estimate_route_raw_calibration_text_does_not_activate_preview_or_persis
     baseline_plan = _seed_calibration_history(db, user_external_id=user_external_id)
     client = _client(db, monkeypatch)
 
-    async def no_budget_adjustment_parse(_provider, _text):
-        return {}
-
-    async def fake_execute_intake_turn(*_args, **_kwargs):
-        return {
-            "request_id": "fake-intake-request",
-            "assistant_message": "intake fallback",
-            "manager_decision": {"intent_type": "intake"},
-            "state_after": None,
-        }
-
-    monkeypatch.setattr(intake_routes, "parse_weight_or_budget_intent", no_budget_adjustment_parse)
-    monkeypatch.setattr(intake_routes, "execute_intake_turn", fake_execute_intake_turn)
-
     response = client.post(
         "/estimate",
         json={
@@ -374,11 +360,44 @@ def test_estimate_route_raw_calibration_text_does_not_activate_preview_or_persis
         },
     )
 
+    payload = response.json()["payload"]
     active_plan = db.query(BodyPlanRecord).filter(BodyPlanRecord.plan_status == "active").one()
     assert response.status_code == 200
-    assert response.json()["payload"]["request_id"] == "fake-intake-request"
+    assert payload["manager_decision"]["intent_type"] == "manager_unavailable"
+    assert payload["manager_decision"]["workflow_effect"] == "safe_failure"
     assert db.query(ProposalContainerRecord).count() == 0
     assert active_plan.id == baseline_plan.id
+    assert active_plan.daily_budget_kcal == 1800
+    assert db.query(LedgerEntryRecord).count() == 0
+
+
+def test_estimate_route_open_calibration_proposal_without_explicit_action_is_ignored_without_mutation(
+    monkeypatch,
+) -> None:
+    db = _session()
+    user_external_id = "estimate-route-open-proposal-raw-action"
+    proposal_id = _seed_stored_calibration_proposal(db, user_external_id=user_external_id)
+    client = _client(db, monkeypatch)
+
+    response = client.post(
+        "/estimate",
+        json={
+            "text": "apply that calibration proposal",
+            "allow_search": False,
+            "user_id": user_external_id,
+            "local_date": ROUTE_LOCAL_DATE,
+            "persist_calibration_proposal": True,
+        },
+    )
+
+    payload = response.json()["payload"]
+    proposal = db.get(ProposalContainerRecord, proposal_id)
+    active_plan = db.query(BodyPlanRecord).filter(BodyPlanRecord.plan_status == "active").one()
+    assert response.status_code == 200
+    assert payload["manager_decision"]["intent_type"] == "manager_unavailable"
+    assert payload["manager_decision"]["workflow_effect"] == "safe_failure"
+    assert proposal is not None
+    assert proposal.proposal_status == "open"
     assert active_plan.daily_budget_kcal == 1800
     assert db.query(LedgerEntryRecord).count() == 0
 

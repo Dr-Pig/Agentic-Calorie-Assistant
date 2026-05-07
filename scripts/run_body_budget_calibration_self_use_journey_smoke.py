@@ -5,7 +5,7 @@ import json
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -18,7 +18,7 @@ if str(ROOT) not in sys.path:
 
 from app.body.infrastructure.models import BodyObservationRecord, BodyPlanRecord, BodyProfileRecord  # noqa: E402
 from app.budget.infrastructure.models import DayBudgetLedgerRecord, LedgerEntryRecord  # noqa: E402
-from app.composition import intake_routes as intake_routes_module  # noqa: E402
+from app.composition import intake_routes  # noqa: E402
 from app.database import get_db, get_or_create_user  # noqa: E402
 from app.intake.infrastructure.models import MealThreadRecord, MealVersionRecord  # noqa: E402
 from app.models import Base  # noqa: E402
@@ -48,35 +48,15 @@ def _session(db_path: Path, *, reset_db: bool) -> Session:
     return testing_session()
 
 
-def _install_local_noop_estimate_fallback() -> Callable[[], None]:
-    original_parse_weight_or_budget_intent = intake_routes_module.parse_weight_or_budget_intent
-    original_execute_intake_turn = intake_routes_module.execute_intake_turn
-
-    async def local_noop_parse_weight_or_budget_intent(_llm: Any, _text: str) -> dict[str, Any]:
-        return {"weight_kg": None, "delta_kcal": None}
-
-    async def local_noop_execute_intake_turn(*_args: Any, **kwargs: Any) -> dict[str, Any]:
-        return {
-            "request_id": kwargs.get("request_id") or "calibration-smoke-raw-text-noop",
-            "assistant_message": "No calibration state change from raw text.",
-            "manager_decision": {
-                "intent_type": "intake",
-                "workflow_effect": "raw_text_route_fallback_without_calibration_state_mutation",
-            },
-            "state_after": kwargs.get("state_before"),
-        }
-
-    intake_routes_module.parse_weight_or_budget_intent = local_noop_parse_weight_or_budget_intent
-    intake_routes_module.execute_intake_turn = local_noop_execute_intake_turn
-
-    def restore() -> None:
-        intake_routes_module.parse_weight_or_budget_intent = original_parse_weight_or_budget_intent
-        intake_routes_module.execute_intake_turn = original_execute_intake_turn
-
-    return restore
-
-
 def _client(db: Session) -> TestClient:
+    class ProviderShouldNotRun:
+        async def generate(self, *_args, **_kwargs):  # pragma: no cover - failure sentinel
+            raise AssertionError("body budget calibration smoke must not invoke live manager provider")
+
+    intake_routes.manager_provider = ProviderShouldNotRun()
+    intake_routes.search_provider = None
+    intake_routes.extract_provider = None
+
     app = FastAPI()
     app.include_router(router)
 
@@ -367,18 +347,13 @@ def _evaluate_invariants(report: dict[str, Any]) -> list[str]:
 
     _add_invariant(
         blockers,
-        raw_apply["workflow_effect"] == "raw_text_route_fallback_without_calibration_state_mutation",
-        "raw apply text did not stay on route fallback without calibration state mutation",
+        raw_apply["workflow_effect"] == "safe_failure",
+        "raw apply text did not stay on ignored raw-text calibration path",
     )
     _add_invariant(blockers, raw_apply["proposal_status_after_attempt"] == "open", "raw apply text changed proposal status")
     _add_invariant(blockers, raw_apply["proposal_count_changed"] is False, "raw apply text changed proposal count")
     _add_invariant(blockers, raw_apply["plan_mutated"] is False, "raw apply text mutated active BodyPlan")
     _add_invariant(blockers, raw_apply["ledger_mutated"] is False, "raw apply text mutated DayBudgetLedger")
-    _add_invariant(
-        blockers,
-        raw_apply["raw_text_authorized_mutation"] is False,
-        "raw text was marked as authorized mutation",
-    )
 
     _add_invariant(
         blockers,
@@ -499,7 +474,6 @@ def build_body_budget_calibration_self_use_journey_report(
 ) -> dict[str, Any]:
     db = _session(db_path, reset_db=reset_db)
     engine = db.get_bind()
-    restore_route_fallback = _install_local_noop_estimate_fallback()
     try:
         user_id = _seed_calibration_history(db, user_external_id=user_external_id, local_date=local_date)
         client = _client(db)
@@ -697,7 +671,6 @@ def build_body_budget_calibration_self_use_journey_report(
                 "persist_calibration_proposal_supplied": True,
                 "proposal_container_id_supplied": False,
                 "calibration_action_supplied": False,
-                "raw_text_authorized_mutation": False,
             },
             "proposal_action": {
                 "entrypoint": "/estimate",
@@ -769,7 +742,6 @@ def build_body_budget_calibration_self_use_journey_report(
             write_json_artifact(output_path, report)
         return report
     finally:
-        restore_route_fallback()
         db.close()
         engine.dispose()
 
