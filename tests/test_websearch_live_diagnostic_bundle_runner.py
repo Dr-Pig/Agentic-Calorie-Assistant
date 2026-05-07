@@ -89,6 +89,7 @@ def test_websearch_live_diagnostic_bundle_records_all_required_artifact_refs(
     manifest = read_json_artifact(tmp_path / "websearch_live_manifest.json")
     required_refs = {
         "case_matrix",
+        "candidate_pipeline_narrow_expansion",
         "selected_extract",
         "extract_result",
         "review_packet",

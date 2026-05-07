@@ -23,6 +23,9 @@ from app.nutrition.application.websearch_candidate_lane_status_packet import (  
 from app.nutrition.application.websearch_evidence_status_packet import (  # noqa: E402
     build_websearch_evidence_status_packet,
 )
+from app.nutrition.application.websearch_candidate_pipeline_narrow_expansion import (  # noqa: E402
+    build_websearch_candidate_pipeline_narrow_expansion_artifact,
+)
 from app.nutrition.application.exact_evidence_lane_policy import (  # noqa: E402
     build_exact_evidence_lane_policy_artifact,
 )
@@ -141,6 +144,11 @@ def _artifact_paths(output_dir: Path) -> dict[str, Path]:
 
 def _build_pre_provider_artifacts(paths: dict[str, Path]) -> dict[str, dict[str, Any]]:
     case_matrix = build_websearch_grokfast_live_diagnostic_case_matrix_artifact()
+    candidate_pipeline_narrow_expansion = (
+        build_websearch_candidate_pipeline_narrow_expansion_artifact(
+            live_case_matrix_artifact=case_matrix
+        )
+    )
     exact_readiness = build_exact_card_candidate_promotion_readiness(
         exact_lane_artifact=build_exact_evidence_lane_policy_artifact()
     )
@@ -170,6 +178,7 @@ def _build_pre_provider_artifacts(paths: dict[str, Path]) -> dict[str, dict[str,
     )
     artifacts = {
         "case_matrix": case_matrix,
+        "candidate_pipeline_narrow_expansion": candidate_pipeline_narrow_expansion,
         "selected_extract": selected_extract,
         "extract_result": extract_result,
         "review_packet": review_packet,
@@ -243,6 +252,9 @@ def _build_post_diagnostic_artifacts(
         candidate_lane_status_packet=candidate_lane_status,
         exact_lane_status_packet=exact_lane_status,
         manager_contract_handoff_artifact=handoff,
+        candidate_pipeline_narrow_expansion_artifact=read_json_artifact(
+            paths["candidate_pipeline_narrow_expansion"]
+        ),
     )
     status_packet_inspection = build_websearch_status_packet_inspection(
         websearch_status_packet=websearch_status_packet,

@@ -10,6 +10,8 @@ _EXPECTED_MANIFEST_TYPE = "accurate_intake_websearch_live_diagnostic_bundle_mani
 def build_websearch_live_bundle_artifact_paths(output_dir: Path) -> dict[str, Path]:
     return {
         "case_matrix": output_dir / "websearch_case_matrix.json",
+        "candidate_pipeline_narrow_expansion": output_dir
+        / "websearch_candidate_pipeline_narrow_expansion.json",
         "selected_extract": output_dir / "websearch_selected_extract.json",
         "extract_result": output_dir / "websearch_extract_result.json",
         "review_packet": output_dir / "websearch_exact_review_packet.json",
