@@ -73,6 +73,13 @@ gates:
     pass_type: runtime_backed
     depends_on:
       - rt3_react_trace_contract
+      - rt4a_runtime_context_packet_acceptance
+  - gate_id: rt4a_runtime_context_packet_acceptance
+    title: Runtime context packet acceptance smoke
+    status: green
+    pass_type: runtime_backed
+    depends_on:
+      - rt3_react_trace_contract
   - gate_id: rt5_intent_tool_argument_walls
     title: Intent, tool-choice, and argument walls
     status: pending
