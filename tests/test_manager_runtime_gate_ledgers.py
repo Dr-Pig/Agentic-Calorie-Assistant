@@ -83,6 +83,12 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt3a_react_trace_observable_skeleton",
         "rt3b_multi_pass_react_trace_summary",
     ]
+    assert gates["rt4a_runtime_context_packet_acceptance"]["status"] == "green"
+    assert gates["rt4a_runtime_context_packet_acceptance"]["title"] == "Runtime context packet acceptance smoke"
+    assert gates["rt4_context_packet_acceptance"]["depends_on"] == [
+        "rt3_react_trace_contract",
+        "rt4a_runtime_context_packet_acceptance",
+    ]
     assert gates["rt10a_nutrition_estimate_quality_deterministic"]["pass_type"] == "fixture"
     assert gates["rt10b_nutrition_estimate_quality_fake_provider"]["depends_on"] == [
         "rt10a_nutrition_estimate_quality_deterministic"
