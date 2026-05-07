@@ -113,6 +113,48 @@ async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_rou
     assert result.evidence_posture == "generic_with_uncertainty"
     assert len(result.manager_rounds) == 2
     assert provider.calls[1]["user_payload"]["tool_results"][0]["tool_name"] == "read_day_budget"
+    assert result.trace["react_trace"] == {
+        "trace_schema_version": "manager_react_trace.v1",
+        "manager_pass_1": {
+            "round_index": 0,
+            "stage": "intake_manager_round",
+            "manager_action": "call_tools",
+            "final_action": None,
+            "workflow_effect": None,
+            "tool_calls": [{"name": "read_day_budget"}],
+            "decision_payload": {"manager_action": "call_tools", "tool_calls": [{"name": "read_day_budget"}]},
+            "provider_trace": {"source": "fake", "call_index": 1},
+            "prompt_registry": result.trace["prompt_registry"],
+        },
+        "requested_tools": ["read_day_budget"],
+        "executed_tools": ["read_day_budget"],
+        "manager_pass_final": {
+            "round_index": 1,
+            "stage": "intake_manager_round",
+            "manager_action": "final",
+            "final_action": "commit",
+            "workflow_effect": "commit",
+            "tool_calls": [],
+            "decision_payload": {
+                "manager_action": "final",
+                "intent": "log_meal",
+                "final_action": "commit",
+                "workflow_effect": "commit",
+                "target_attachment": {"mode": "new_meal"},
+                "exactness": "anchored",
+                "confidence": "medium",
+                "evidence_posture": "generic_with_uncertainty",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "ok"},
+                "uncertainty_posture": "bounded",
+                "evidence_honesty_posture": "generic_with_uncertainty",
+            },
+            "provider_trace": {"source": "fake", "call_index": 2},
+            "prompt_registry": result.trace["prompt_registry"],
+        },
+        "guard_result": {},
+        "request_failure_family": None,
+    }
 
 
 @pytest.mark.asyncio
@@ -288,6 +330,7 @@ async def test_run_intake_manager_max_rounds_is_hard_failure() -> None:
     assert result.final_action == "no_commit"
     assert result.request_failure_family == "max_rounds_exceeded"
     assert len(result.manager_rounds) == manager_service.MAX_MANAGER_ROUNDS
+    assert result.trace["react_trace"]["request_failure_family"] == "max_rounds_exceeded"
 
 
 @pytest.mark.asyncio

@@ -104,6 +104,9 @@ def build_intake_execution_response(
         "tool_calls": list(manager_decision.tool_calls),
         "llm_used": manager_decision.llm_used,
     }
+    react_trace = {}
+    if manager_result is not None and isinstance(getattr(manager_result, "trace", None), dict):
+        react_trace = dict(manager_result.trace.get("react_trace") or {})
     overshoot_summary = {
         "budget_kcal": int((budget_summary or {}).get("budget_kcal", 0) or 0),
         "consumed_kcal_before": int((budget_summary or {}).get("consumed_kcal_before", 0) or 0),
@@ -184,6 +187,7 @@ def build_intake_execution_response(
         state_delta=state_mutation_summary,
         phase_a_trace=phase_a_trace,
         phase_c_trace=phase_c_trace,
+        react_trace=react_trace,
         latency_tracking=latency_tracking,
     )
     return {
@@ -201,6 +205,7 @@ def build_intake_execution_response(
         "intake_execution_manager": {
             "manager_rounds": [dict(item) for item in manager_result.manager_rounds],
             "final": {"final_action": manager_result.final_action, "workflow_effect": manager_result.workflow_effect},
+            "react_trace": react_trace,
             "persistence_result": persistence_result,
         },
         "remaining_budget": asdict(remaining_budget_contract) if remaining_budget_contract else {},

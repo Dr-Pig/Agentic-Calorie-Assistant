@@ -168,6 +168,7 @@ def write_intake_execution_trace_artifact(
     state_delta: dict[str, Any],
     phase_a_trace: dict[str, Any] | None = None,
     phase_c_trace: dict[str, Any] | None = None,
+    react_trace: dict[str, Any] | None = None,
     latency_tracking: dict[str, Any] | None = None,
 ) -> Path:
     serialized_round_1 = _json_safe(manager_round_1)
@@ -203,6 +204,7 @@ def write_intake_execution_trace_artifact(
         "state_delta": _json_safe(state_delta),
         "phase_a_trace": _json_safe(phase_a_trace or {}),
         "phase_c_trace": _json_safe(phase_c_trace or {}),
+        "react_trace": _json_safe(react_trace or {}),
         "latency_tracking": latency_tracking or {},
         "trace_refs": build_internal_trace_refs(request_id=request_id),
     }
