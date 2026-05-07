@@ -130,7 +130,8 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
         "non_fooddb_manager_tool_contract_ready_for_human_review"
     )
     assert today_macro_mirror_gate["status"] == "today_macro_mirror_gate_ready_for_human_review"
-    assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
+    assert pre_live_pack["selected_option"] == "stay_local_self_use"
+    assert pre_live_pack["ready_for_live_diagnostic_decision"] is False
     assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert "browser activation evidence gate appshell claim not ready" in candidate[
         "local_web_self_use_candidate_v2"

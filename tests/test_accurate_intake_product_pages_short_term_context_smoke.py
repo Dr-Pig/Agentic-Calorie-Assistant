@@ -120,45 +120,23 @@ def test_product_pages_short_term_context_validator_requires_context_and_reload_
     assert blockers == []
 
 
-@pytest.mark.parametrize(
-    ("available_tools", "expected_stage", "expected_final_action"),
-    [
-        (
-            [
-                "app.answer_usage_question",
-                "budget.get_today_summary",
-                "budget.get_remaining_calories",
-                "budget.get_day_meal_log",
-                "body.get_active_plan",
-                "body.get_latest_observation",
-                "calibration.get_pending_proposal",
-            ],
-            "entry",
-            "route_to_intake",
-        ),
-        (
-            [
-                "read_day_budget",
-                "read_body_plan",
-            ],
-            "entry",
-            "route_to_intake",
-        ),
-    ],
-)
-def test_short_term_context_provider_treats_public_and_legacy_read_tools_as_entry(
-    available_tools: list[str],
-    expected_stage: str,
-    expected_final_action: str,
-) -> None:
+def test_short_term_context_provider_treats_public_read_tools_as_entry() -> None:
     provider = module._ShortTermContextManagerProvider()
 
     decision, trace = asyncio.run(
         provider.complete_with_trace(
             user_payload={
-                "available_tools": available_tools,
+                "available_tools": [
+                    "app.answer_usage_question",
+                    "budget.get_today_summary",
+                    "budget.get_remaining_calories",
+                    "budget.get_day_meal_log",
+                    "body.get_active_plan",
+                    "body.get_latest_observation",
+                    "calibration.get_pending_proposal",
+                ],
                 "round_index": 0,
-                "raw_user_input": "晚餐吃滷味",
+                "raw_user_input": module.BARE_BASKET_MESSAGE,
                 "manager_context_packet_v1": {
                     "metadata": {"context_policy_version": "accurate_intake_mvp_context_policy_v1"},
                     "context_loading_artifact": {
@@ -178,9 +156,45 @@ def test_short_term_context_provider_treats_public_and_legacy_read_tools_as_entr
         )
     )
 
-    assert provider.calls[0]["stage"] == expected_stage
-    assert decision["semantic_decision"]["final_action_candidate"] == expected_final_action
-    assert trace["stage"] == expected_stage
+    assert provider.calls[0]["stage"] == "entry"
+    assert decision["semantic_decision"]["final_action_candidate"] == "route_to_intake"
+    assert trace["stage"] == "entry"
+
+
+def test_short_term_context_provider_rejects_legacy_read_tool_aliases_as_entry() -> None:
+    provider = module._ShortTermContextManagerProvider()
+
+    decision, trace = asyncio.run(
+        provider.complete_with_trace(
+            user_payload={
+                "available_tools": [
+                    "read_day_budget",
+                    "read_body_plan",
+                ],
+                "round_index": 0,
+                "raw_user_input": module.BARE_BASKET_MESSAGE,
+                "manager_context_packet_v1": {
+                    "metadata": {"context_policy_version": "accurate_intake_mvp_context_policy_v1"},
+                    "context_loading_artifact": {
+                        "loaded_context_summary": {"recent_chat_messages": 0},
+                        "omitted_context_summary": {
+                            "policy_excluded_context_ids": [
+                                "debug_artifacts",
+                                "dogfood_review_artifacts",
+                                "food_gap_candidates",
+                            ]
+                        },
+                    },
+                    "hard_pins": {},
+                    "target_candidates": {},
+                },
+            }
+        )
+    )
+
+    assert provider.calls[0]["stage"] == "bare_basket_followup"
+    assert decision["semantic_decision"]["final_action_candidate"] == "ask_followup"
+    assert trace["stage"] == "bare_basket_followup"
 
 
 def test_product_pages_short_term_context_validator_rejects_missing_context_support() -> None:
