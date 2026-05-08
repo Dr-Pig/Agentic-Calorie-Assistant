@@ -161,7 +161,7 @@ gates:
       - rt8_overshoot_runtime_truth
   - gate_id: rt10a_nutrition_estimate_quality_deterministic
     title: Nutrition estimate quality deterministic wall
-    status: pending
+    status: green
     pass_type: fixture
     depends_on:
       - rt9_packet_consumption_seam
