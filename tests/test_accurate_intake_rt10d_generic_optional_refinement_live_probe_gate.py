@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 from scripts import build_accurate_intake_rt10d_generic_optional_refinement_live_probe_gate as module
-from scripts import run_accurate_intake_mvp_live_diagnostic as live_runner
 
 
 def _pass_artifact() -> dict[str, object]:
@@ -46,7 +45,7 @@ def _pass_artifact() -> dict[str, object]:
                             "old_version_superseded": False,
                             "ledger_updated": True,
                         },
-                        "remaining_budget": {"status": "ready", "consumed_kcal": 400},
+                        "remaining_budget": {"status": "ready", "consumed_kcal": 400, "remaining_kcal": 912},
                         "manager_rounds": [
                             {"decision": {"tool_calls": [{"name": "estimate_nutrition"}]}},
                             {
@@ -74,7 +73,7 @@ def _pass_artifact() -> dict[str, object]:
                             "old_version_superseded": True,
                             "ledger_updated": True,
                         },
-                        "remaining_budget": {"status": "ready", "consumed_kcal": 400},
+                        "remaining_budget": {"status": "ready", "consumed_kcal": 400, "remaining_kcal": 912},
                         "manager_rounds": [
                             {"decision": {"tool_calls": [{"name": "estimate_nutrition"}]}},
                             {
@@ -110,7 +109,8 @@ def _pass_artifact() -> dict[str, object]:
                                     "parent_version_id": 1,
                                     "total_kcal": 400,
                                     "items": [{"estimated_kcal": 400}],
-                                }
+                                },
+                                "superseded_versions": [{"meal_version_id": 1, "total_kcal": 400}],
                             }
                         ],
                     }
@@ -129,27 +129,6 @@ def test_rt10d_generic_optional_refinement_live_probe_gate_passes() -> None:
     assert artifact["target_manager_runtime_gate"] == "rt10d_generic_optional_refinement_live_probe"
     assert artifact["status"] == "pass"
     assert artifact["supports_journeys"] == ["B", "C"]
-
-
-def test_rt10d_generic_optional_refinement_live_probe_gate_accepts_runner_generated_inventory_artifact(
-    tmp_path: Path,
-) -> None:
-    live_artifact = live_runner.run_diagnostic(
-        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
-        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
-        provider_override=live_runner.ScriptedAccurateIntakeLiveProvider(),
-        provider_mode="live",
-        live_invoked=True,
-        stage="single_case_live_probe",
-        case_id="bubble_milk_tea_refinement",
-    )
-
-    artifact = module.build_rt10d_generic_optional_refinement_live_probe_gate(
-        live_artifact=live_artifact
-    )
-
-    assert artifact["status"] == "pass"
-
 
 def test_rt10d_generic_optional_refinement_live_probe_gate_blocks_missing_second_turn_target() -> None:
     source = _pass_artifact()

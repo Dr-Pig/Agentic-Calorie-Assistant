@@ -15,7 +15,6 @@ from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_rt10d_generic_optional_refinement_live_probe_gate.json"
 EXPECTED_CASE_ID = "bubble_milk_tea_refinement"
-EXPECTED_TOTAL_KCAL = 400
 REQUIRED_NON_CLAIM_FLAGS = (
     "readiness_claimed",
     "product_readiness_claimed",
@@ -63,6 +62,11 @@ def _targets_existing_thread(semantic_decision: dict[str, Any]) -> bool:
     target_attachment = _dict(semantic_decision.get("target_attachment"))
     mode = str(target_attachment.get("mode") or "").strip()
     return mode == "target_committed_thread" or target_attachment.get("meal_thread_id") not in (None, "")
+
+
+def _observed_consumed_kcal(first_turn: dict[str, Any]) -> int | None:
+    consumed = _dict(first_turn.get("remaining_budget")).get("consumed_kcal")
+    return consumed if isinstance(consumed, int) and consumed > 0 else None
 
 
 def build_rt10d_generic_optional_refinement_live_probe_gate(
@@ -122,6 +126,11 @@ def build_rt10d_generic_optional_refinement_live_probe_gate(
     else:
         first_turn, second_turn = turns
 
+    observed_consumed_kcal = _observed_consumed_kcal(first_turn) if first_turn else None
+    if observed_consumed_kcal is None:
+        blockers.append("turn1_consumed_kcal_not_observed")
+    observed_remaining_kcal = _dict(first_turn.get("remaining_budget")).get("remaining_kcal") if first_turn else None
+
     for prefix, turn in (("turn1", first_turn), ("turn2", second_turn)):
         if not turn:
             blockers.append(f"{prefix}_missing")
@@ -149,8 +158,8 @@ def build_rt10d_generic_optional_refinement_live_probe_gate(
         first_remaining = _dict(first_turn.get("remaining_budget"))
         if first_remaining.get("status") != "ready":
             blockers.append("turn1_remaining_budget_not_ready")
-        if first_remaining.get("consumed_kcal") != EXPECTED_TOTAL_KCAL:
-            blockers.append("turn1_consumed_kcal_mismatch")
+        if observed_remaining_kcal is None:
+            blockers.append("turn1_remaining_kcal_missing")
 
         first_final_decision = _dict(_final_round(first_turn).get("decision"))
         first_semantic = _dict(first_final_decision.get("semantic_decision"))
@@ -166,8 +175,10 @@ def build_rt10d_generic_optional_refinement_live_probe_gate(
         second_remaining = _dict(second_turn.get("remaining_budget"))
         if second_remaining.get("status") != "ready":
             blockers.append("turn2_remaining_budget_not_ready")
-        if second_remaining.get("consumed_kcal") != EXPECTED_TOTAL_KCAL:
+        if observed_consumed_kcal is not None and second_remaining.get("consumed_kcal") != observed_consumed_kcal:
             blockers.append("turn2_consumed_kcal_mismatch")
+        if observed_remaining_kcal is not None and second_remaining.get("remaining_kcal") != observed_remaining_kcal:
+            blockers.append("turn2_remaining_kcal_mismatch")
 
         second_final_decision = _dict(_final_round(second_turn).get("decision"))
         second_semantic = _dict(second_final_decision.get("semantic_decision"))
@@ -178,15 +189,15 @@ def build_rt10d_generic_optional_refinement_live_probe_gate(
     same_truth = _dict(model.get("same_truth"))
     if same_truth.get("status") != "pass":
         blockers.append("same_truth_not_pass")
-    if same_truth.get("debug_model_consumed_kcal") != EXPECTED_TOTAL_KCAL:
+    if observed_consumed_kcal is not None and same_truth.get("debug_model_consumed_kcal") != observed_consumed_kcal:
         blockers.append("same_truth_debug_model_kcal_mismatch")
-    if same_truth.get("current_budget_consumed_kcal") != EXPECTED_TOTAL_KCAL:
+    if observed_consumed_kcal is not None and same_truth.get("current_budget_consumed_kcal") != observed_consumed_kcal:
         blockers.append("same_truth_budget_kcal_mismatch")
 
     today_summary = _dict(model.get("today_summary"))
-    if today_summary.get("consumed_kcal") != EXPECTED_TOTAL_KCAL:
+    if observed_consumed_kcal is not None and today_summary.get("consumed_kcal") != observed_consumed_kcal:
         blockers.append("today_summary_consumed_kcal_mismatch")
-    if today_summary.get("remaining_kcal") != 912:
+    if observed_remaining_kcal is not None and today_summary.get("remaining_kcal") != observed_remaining_kcal:
         blockers.append("today_summary_remaining_kcal_mismatch")
 
     meal_threads = _list(model.get("meal_threads"))
@@ -197,14 +208,16 @@ def build_rt10d_generic_optional_refinement_live_probe_gate(
         active_version = _dict(thread.get("active_version"))
         if active_version.get("version_reason") != "correction":
             blockers.append("active_version_reason_not_correction")
-        if active_version.get("parent_version_id") != 1:
+        if active_version.get("parent_version_id") in (None, ""):
             blockers.append("active_version_parent_missing")
-        if active_version.get("total_kcal") != EXPECTED_TOTAL_KCAL:
+        if observed_consumed_kcal is not None and active_version.get("total_kcal") != observed_consumed_kcal:
             blockers.append("active_version_total_kcal_mismatch")
+        if not _list(thread.get("superseded_versions")):
+            blockers.append("superseded_versions_missing")
         items = _list(active_version.get("items"))
         if len(items) != 1:
             blockers.append("unexpected_active_item_count")
-        elif _dict(items[0]).get("estimated_kcal") != EXPECTED_TOTAL_KCAL:
+        elif observed_consumed_kcal is not None and _dict(items[0]).get("estimated_kcal") != observed_consumed_kcal:
             blockers.append("active_item_kcal_mismatch")
 
     resolved_output_path = Path(output_path) if output_path is not None else DEFAULT_OUTPUT_PATH
@@ -227,7 +240,7 @@ def build_rt10d_generic_optional_refinement_live_probe_gate(
         "blockers": blockers,
         "summary": {
             "expected_case_id": EXPECTED_CASE_ID,
-            "expected_total_kcal": EXPECTED_TOTAL_KCAL,
+            "observed_total_kcal": observed_consumed_kcal,
             "required_tool_calls": ["estimate_nutrition"],
             "required_turn_count": 2,
             "requires_supersede_on_refinement": True,

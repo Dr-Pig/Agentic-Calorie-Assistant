@@ -282,6 +282,38 @@ def test_accurate_intake_live_single_case_probe_supports_exact_item_official_lab
     assert case["raw_text_routing_used"] is False
 
 
+def test_accurate_intake_live_single_case_probe_bubble_refinement_inventory_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+        stage="single_case_live_probe",
+        case_id="bubble_milk_tea_refinement",
+    )
+
+    case = report["cases"][0]
+    assert case["case_id"] == "bubble_milk_tea_refinement"
+    assert case["case_contract_status"] == "strict_pass"
+    assert case["verdict"] == "pass"
+    assert [turn["turn"] for turn in case["turns"]] == [1, 2]
+    assert all(turn["state_delta"]["canonical_commit"] is True for turn in case["turns"])
+    assert all(turn["state_delta"]["draft_saved"] is False for turn in case["turns"])
+    assert case["turns"][0]["state_delta"]["old_version_superseded"] is False
+    assert case["turns"][1]["state_delta"]["old_version_superseded"] is True
+    tool_names = [
+        call["name"]
+        for turn in case["turns"]
+        for round_item in turn["manager_rounds"]
+        for call in round_item["decision"].get("tool_calls", [])
+    ]
+    assert tool_names == ["estimate_nutrition", "estimate_nutrition"]
+    assert case["debug_surface"]["model"]["same_truth"]["status"] == "pass"
+
+
 def test_accurate_intake_live_diagnostic_releases_stage_sqlite_handles(tmp_path: Path) -> None:
     module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
     db_path = tmp_path / "accurate_intake_mvp_live.sqlite3"
