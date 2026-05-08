@@ -13,8 +13,8 @@ def test_rt1b_stable_prefix_dynamic_suffix_contract_passes_and_targets_gate() ->
     assert artifact["status"] == "pass"
     assert artifact["target_manager_runtime_gate"] == "rt1b_stable_prefix_dynamic_suffix_contract"
     assert artifact["pass_type"] == "contract"
-    assert artifact["summary"]["case_count"] == 3
-    assert artifact["summary"]["passed_case_count"] == 3
+    assert artifact["summary"]["case_count"] == 4
+    assert artifact["summary"]["passed_case_count"] == 4
 
 
 def test_rt1b_keeps_system_prompt_static_and_runtime_state_dynamic() -> None:
@@ -36,3 +36,17 @@ def test_rt1b_keeps_provider_metadata_on_trace_side_only() -> None:
     provider_trace = by_id["provider_trace_stays_trace_side_and_not_prompt_side"]["observed"]
     assert provider_trace["provider"] == "fake_provider"
     assert provider_trace["manager_model"] == "fake-model"
+
+
+def test_rt1b_records_prompt_layer_and_cache_profile_without_prompt_payload_leakage() -> None:
+    artifact = asyncio.run(build_rt1b_stable_prefix_dynamic_suffix_contract_artifact())
+    by_id = {case["case_id"]: case for case in artifact["cases"]}
+
+    observed = by_id["prompt_layer_contract_supports_prefix_cache_and_progressive_disclosure"]["observed"]
+    assert observed["contract_version"] == "manager_prompt_layer_contract.v1"
+    assert observed["system_prompt_layer"] == "static_prefix"
+    assert observed["runtime_payload_layer"] == "dynamic_suffix"
+    assert observed["provider_profile_layer"] == "transport_overlay_trace_only"
+    assert observed["prompt_cache_profile"]["static_prefix_first"] is True
+    assert observed["prompt_cache_profile"]["dynamic_context_last"] is True
+    assert observed["progressive_disclosure"]["full_context_in_user_payload"] is True
