@@ -120,7 +120,7 @@ async def run_intake_manager(
                     primary_packet_present=manager_context_packet_v1 is not None,
                 )
             ),
-            "manager_context_packet_v1": json_safe(manager_context_packet_v1_prompt_payload(manager_context_packet_v1)),
+            "manager_context_packet_v1": json_safe(manager_context_packet_v1_prompt_payload(manager_context_packet_v1, tool_results=tool_results)),
             "phase_a_manager_context_pack_role": manager_context_trace["phase_a_manager_context_pack_role"],
             "phase_a_surface_mode": phase_a_surface_mode,
             "phase_a_context_pack_version": "v1" if manager_context_pack_payload is not None else None,
