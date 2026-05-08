@@ -12,7 +12,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.run_accurate_intake_mvp_live_diagnostic import ORDERED_STAGE_IDS
+from scripts.run_accurate_intake_mvp_live_diagnostic import (  # noqa: E402
+    DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID,
+    ORDERED_STAGE_IDS,
+)
 
 
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts"
@@ -21,6 +24,9 @@ DEFAULT_STAGE_ARTIFACTS = (
     ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_schema_probe.json",
     ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_fake_runtime_gate.json",
     ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_seeded_removal.json",
+    ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_exact_item.json",
+    ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_bubble_refinement.json",
+    ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_luwei_basket.json",
     ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic_single_case.json",
 )
 REQUIRED_STAGE_IDS = (
@@ -30,7 +36,92 @@ REQUIRED_STAGE_IDS = (
 )
 REQUIRED_SINGLE_CASE_IDS = (
     "explicit_item_removal_seeded",
+    "exact_item_official_label",
+    "bubble_milk_tea_refinement",
+    "luwei_bare_to_listed_basket",
     "chinese_chicken_rice_correction_removal_debug",
+)
+
+LIVE_DIAGNOSTIC_CASE_ORDER = (
+    {
+        "order": 1,
+        "stage_id": "provider_health_smoke",
+        "case_id": "provider_health_smoke",
+        "purpose": "provider auth, timeout, and transport health only",
+        "live_provider_allowed": True,
+    },
+    {
+        "order": 2,
+        "stage_id": "schema_contract_probe",
+        "case_id": "schema_contract_probe",
+        "purpose": "strict manager structured-output contract on an app-state read path",
+        "live_provider_allowed": True,
+    },
+    {
+        "order": 3,
+        "stage_id": "fake_provider_active_runtime_gate",
+        "case_id": "fake_provider_active_runtime_gate",
+        "purpose": "runtime loop closure without live LLM variance",
+        "live_provider_allowed": False,
+    },
+    {
+        "order": 4,
+        "stage_id": "single_case_live_probe",
+        "case_id": "explicit_item_removal_seeded",
+        "purpose": "target attachment and remove-item guard on seeded canonical state",
+        "live_provider_allowed": True,
+    },
+    {
+        "order": 5,
+        "stage_id": "single_case_live_probe",
+        "case_id": "exact_item_official_label",
+        "purpose": "exact-item evidence posture without fake source exactness",
+        "live_provider_allowed": True,
+    },
+    {
+        "order": 6,
+        "stage_id": "single_case_live_probe",
+        "case_id": "bubble_milk_tea_refinement",
+        "purpose": "optional refinement attach/supersede and macro honesty posture",
+        "live_provider_allowed": True,
+    },
+    {
+        "order": 7,
+        "stage_id": "single_case_live_probe",
+        "case_id": "luwei_bare_to_listed_basket",
+        "purpose": "blocking clarify before listed-basket component estimate",
+        "live_provider_allowed": True,
+    },
+    {
+        "order": 8,
+        "stage_id": "single_case_live_probe",
+        "case_id": "chinese_chicken_rice_correction_removal_debug",
+        "purpose": "multi-turn log, correction, removal, and same-truth read",
+        "live_provider_allowed": True,
+    },
+    {
+        "order": 9,
+        "stage_id": "full_suite_live_diagnostic",
+        "case_id": "full_suite_live_diagnostic",
+        "purpose": "full fixed matrix only after strict staged gates and offline replay",
+        "live_provider_allowed": True,
+    },
+)
+
+TRACE_GRADE_LAYERS = (
+    "provider_profile_and_prompt_versions",
+    "current_turn_context_packet",
+    "manager_pass_1_decision",
+    "requested_tools",
+    "filtered_tool_plan",
+    "executed_tools",
+    "compact_packets",
+    "manager_pass_2_synthesis",
+    "guard_result",
+    "mutation_result",
+    "renderer_input_basis",
+    "final_response_basis",
+    "latency_cost_cache_usage",
 )
 
 _FORBIDDEN_TRUE_FLAGS = (
@@ -77,6 +168,11 @@ def build_accurate_intake_live_stage_manifest(stage_artifact_paths: list[Path]) 
             "source_artifact_type": "accurate_intake_mvp_live_diagnostic",
             "claim_scope": "live_diagnostic_stage_manifest",
             "stage_ids_ordered": list(ORDERED_STAGE_IDS),
+            "diagnostic_case_order": live_diagnostic_case_order(),
+            "model_profile_policy": live_model_profile_policy(),
+            "prompt_cache_policy": live_prompt_cache_policy(),
+            "timeout_policy": live_timeout_policy(),
+            "trace_grade_layers": list(TRACE_GRADE_LAYERS),
             "source_artifacts": source_artifacts,
             "stages": stages,
             "stage_summary": stage_summary_from_stages(stages),
@@ -97,6 +193,48 @@ def write_accurate_intake_live_stage_manifest(
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
+
+
+def live_diagnostic_case_order() -> list[dict[str, Any]]:
+    return [dict(item) for item in LIVE_DIAGNOSTIC_CASE_ORDER]
+
+
+def live_model_profile_policy() -> dict[str, Any]:
+    return {
+        "primary_diagnostic_profile_id": DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID,
+        "primary_model": "grok-4-fast",
+        "single_profile_per_live_run": True,
+        "same_profile_across_manager_passes": True,
+        "cross_model_replay_is_separate_run": True,
+        "fallback_profile_mix_cannot_be_counted_as_clean_success": True,
+        "production_selected": False,
+    }
+
+
+def live_prompt_cache_policy() -> dict[str, Any]:
+    return {
+        "stable_prefix_required": True,
+        "static_system_tools_schema_before_dynamic_context": True,
+        "dynamic_context_packet_after_static_prefix": True,
+        "stable_tool_order_required": True,
+        "cache_hit_not_required_for_pass": True,
+        "cached_tokens_must_be_reported_when_provider_exposes_usage": True,
+        "prompt_cache_does_not_change_output_semantics": True,
+        "cross_model_cache_not_assumed": True,
+    }
+
+
+def live_timeout_policy() -> dict[str, Any]:
+    return {
+        "max_provider_concurrency": 1,
+        "default_provider_timeout_ms": 180000,
+        "default_provider_request_retry_count": 1,
+        "retry_only_failed_provider_request": True,
+        "never_rerun_whole_workflow_as_retry_success": True,
+        "strict_pass_first_attempt_only_clean": True,
+        "pass_after_retry_is_diagnostic_only": True,
+        "timeout_after_retry_blocks_full_suite": True,
+    }
 
 
 def stage_summary_from_stages(stages: list[dict[str, Any]]) -> dict[str, Any]:
@@ -147,6 +285,7 @@ def stage_summary_from_stages(stages: list[dict[str, Any]]) -> dict[str, Any]:
         "has_missing_required_stage": bool(missing_required_stage_ids or missing_required_single_case_ids),
         "missing_required_stage_ids": missing_required_stage_ids,
         "missing_required_single_case_ids": missing_required_single_case_ids,
+        "required_single_case_ids": list(REQUIRED_SINGLE_CASE_IDS),
         "single_case_probe_results": single_case_results,
         "result_kind_counts": _counts(
             _optional_string(stage.get("result_kind")) for stage in stages if stage.get("result_kind")
