@@ -189,6 +189,7 @@ class AccurateIntakeLiveDiagnosticProvider:
                         else "timeout_first_attempt",
                     }
                 )
+                error_trace.update(_transport_attempt_summary(error_trace))
                 retry_attempts.append(error_trace)
                 self.invocations.append(error_trace)
                 if retryable and attempt_index < max_attempts:
@@ -197,8 +198,12 @@ class AccurateIntakeLiveDiagnosticProvider:
                 raise
             elapsed_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
             result_kind = "pass_after_retry" if attempt_index > 1 else "strict_pass_first_attempt"
+            transport_summary = _transport_attempt_summary(_dict(trace))
+            provider_wrapper_overhead_ms = _provider_wrapper_overhead_ms(elapsed_ms, transport_summary)
             enriched_trace = {
                 **_dict(trace),
+                **transport_summary,
+                "provider_wrapper_overhead_ms": provider_wrapper_overhead_ms,
                 **span_context,
                 "provider_profile_id": self.profile["provider_profile_id"],
                 "provider_profile_model": self.profile["model"],
@@ -234,6 +239,8 @@ class AccurateIntakeLiveDiagnosticProvider:
                     "retry_policy_applied": attempt_index > 1,
                     "result_kind": result_kind,
                     "failure_family": None,
+                    "provider_wrapper_overhead_ms": provider_wrapper_overhead_ms,
+                    **transport_summary,
                     "provider_trace": enriched_trace,
                 }
             )
@@ -1521,6 +1528,9 @@ def _turn_summary(
 def _provider_invocation_summary(invocations: list[dict[str, Any]]) -> dict[str, Any]:
     usage_records = [_dict(_dict(invocation).get("provider_trace")).get("usage") for invocation in invocations]
     usage_dicts = [_dict(usage) for usage in usage_records]
+    transport_summaries = [
+        _transport_attempt_summary(_dict(_dict(invocation).get("provider_trace"))) for invocation in invocations
+    ]
     return {
         "provider_invocation_count": len(invocations),
         "provider_invocation_latency_ms": sum(int(_dict(item).get("latency_ms") or 0) for item in invocations),
@@ -1528,7 +1538,34 @@ def _provider_invocation_summary(invocations: list[dict[str, Any]]) -> dict[str,
         "completion_tokens": sum(_usage_completion_tokens(usage) for usage in usage_dicts),
         "cached_tokens": sum(_cached_tokens_from_usage(usage) or 0 for usage in usage_dicts),
         "cache_reporting_call_count": sum(1 for usage in usage_dicts if _cached_tokens_from_usage(usage) is not None),
+        "provider_wrapper_overhead_ms": sum(
+            int(item.get("provider_wrapper_overhead_ms") or 0) for item in invocations
+        ),
+        "transport_attempt_count": sum(int(item.get("transport_attempt_count") or 0) for item in transport_summaries),
+        "transport_attempt_latency_ms": sum(
+            int(item.get("transport_attempt_latency_ms") or 0) for item in transport_summaries
+        ),
+        "slowest_transport_attempt_ms": max(
+            (int(item.get("slowest_transport_attempt_ms") or 0) for item in transport_summaries),
+            default=0,
+        ),
     }
+
+
+def _transport_attempt_summary(trace: dict[str, Any]) -> dict[str, Any]:
+    attempts = [_dict(item) for item in _list(trace.get("transport_attempts"))]
+    durations = [int(attempt.get("duration_ms") or 0) for attempt in attempts]
+    return {
+        "transport_attempt_count": len(attempts),
+        "transport_attempt_latency_ms": sum(durations),
+        "slowest_transport_attempt_ms": max(durations, default=0),
+    }
+
+
+def _provider_wrapper_overhead_ms(latency_ms: int, transport_summary: dict[str, Any]) -> int:
+    if int(transport_summary.get("transport_attempt_count") or 0) <= 0:
+        return 0
+    return max(0, int(latency_ms) - int(transport_summary.get("transport_attempt_latency_ms") or 0))
 
 
 def _turn_limit_payload(case: LiveCase, turns: list[dict[str, Any]]) -> dict[str, Any] | None:

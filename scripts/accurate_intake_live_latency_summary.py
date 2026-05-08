@@ -398,6 +398,17 @@ def _group_provider_latency(
                 "completion_tokens": sum(int(item.get("completion_tokens") or 0) for item in items),
                 "cached_tokens": sum(int(item.get("cached_tokens") or 0) for item in items),
                 "cache_reporting_call_count": sum(1 for item in items if item.get("cached_tokens_reported") is True),
+                "provider_wrapper_overhead_ms": sum(
+                    int(item.get("provider_wrapper_overhead_ms") or 0) for item in items
+                ),
+                "transport_attempt_count": sum(int(item.get("transport_attempt_count") or 0) for item in items),
+                "transport_attempt_latency_ms": sum(
+                    int(item.get("transport_attempt_latency_ms") or 0) for item in items
+                ),
+                "slowest_transport_attempt_ms": max(
+                    (int(item.get("slowest_transport_attempt_ms") or 0) for item in items),
+                    default=0,
+                ),
                 "latency_share_pct": _latency_share_pct(latency_ms, total_provider_latency_ms),
             }
         )
@@ -471,6 +482,11 @@ def _slowest_provider_invocations(records: list[dict[str, Any]], *, limit: int =
             "completion_tokens": int(record.get("completion_tokens") or 0),
             "cached_tokens_reported": record.get("cached_tokens_reported") is True,
             "cached_tokens": int(record.get("cached_tokens") or 0),
+            "provider_wrapper_overhead_ms": int(record.get("provider_wrapper_overhead_ms") or 0),
+            "transport_attempt_count": int(record.get("transport_attempt_count") or 0),
+            "transport_attempt_latency_ms": int(record.get("transport_attempt_latency_ms") or 0),
+            "slowest_transport_attempt_ms": int(record.get("slowest_transport_attempt_ms") or 0),
+            "transport_attempt_statuses": list(record.get("transport_attempt_statuses") or []),
         }
         for record in records
     ]

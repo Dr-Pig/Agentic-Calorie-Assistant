@@ -230,6 +230,8 @@ def _provider_invocation_records(invocations: list[dict[str, Any]], *, source_in
         provider_trace = _dict(invocation.get("provider_trace"))
         usage = _dict(provider_trace.get("usage"))
         cached_tokens = _cached_tokens(usage)
+        transport_summary = _transport_attempt_summary(provider_trace)
+        latency_ms = _int(invocation.get("latency_ms"))
         diagnostic_stage_id = _optional_string(invocation.get("diagnostic_stage_id"))
         stage = _optional_string(invocation.get("stage"))
         records.append(
@@ -248,15 +250,42 @@ def _provider_invocation_records(invocations: list[dict[str, Any]], *, source_in
                 ),
                 "provider_profile_id": _optional_string(invocation.get("provider_profile_id")),
                 "model": _optional_string(invocation.get("provider_profile_model")),
-                "latency_ms": _int(invocation.get("latency_ms")),
+                "latency_ms": latency_ms,
                 "timeout_budget_ms": _int(invocation.get("timeout_budget_ms")),
                 "prompt_tokens": int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0),
                 "completion_tokens": int(usage.get("completion_tokens") or usage.get("output_tokens") or 0),
                 "cached_tokens_reported": cached_tokens is not None,
                 "cached_tokens": int(cached_tokens or 0),
+                "provider_wrapper_overhead_ms": _provider_wrapper_overhead_ms(
+                    latency_ms,
+                    transport_summary,
+                ),
+                **transport_summary,
             }
         )
     return records
+
+
+def _transport_attempt_summary(provider_trace: dict[str, Any]) -> dict[str, Any]:
+    attempts = [_dict(item) for item in _list(provider_trace.get("transport_attempts"))]
+    durations = [_int(attempt.get("duration_ms")) for attempt in attempts]
+    statuses = [
+        str(attempt.get("status"))
+        for attempt in attempts
+        if attempt.get("status") is not None
+    ]
+    return {
+        "transport_attempt_count": len(attempts),
+        "transport_attempt_latency_ms": sum(durations),
+        "slowest_transport_attempt_ms": max(durations, default=0),
+        "transport_attempt_statuses": statuses,
+    }
+
+
+def _provider_wrapper_overhead_ms(latency_ms: int, transport_summary: dict[str, Any]) -> int:
+    if int(transport_summary.get("transport_attempt_count") or 0) <= 0:
+        return 0
+    return max(0, latency_ms - int(transport_summary.get("transport_attempt_latency_ms") or 0))
 
 
 def _stage_latency_records(stages: list[dict[str, Any]], *, source_index: int) -> list[dict[str, Any]]:
