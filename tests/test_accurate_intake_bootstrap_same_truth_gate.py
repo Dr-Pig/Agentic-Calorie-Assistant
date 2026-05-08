@@ -75,6 +75,8 @@ def test_bootstrap_same_truth_gate_accepts_bootstrap_browser_evidence_when_upstr
     assert artifact["summary"]["required_browser_flag_count"] >= 8
     assert artifact["summary"]["upstream_gate_green"] is True
     assert artifact["blockers"] == []
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
 
 
 def test_bootstrap_same_truth_gate_blocks_missing_browser_truth_or_non_green_upstream() -> None:

@@ -66,8 +66,8 @@ def test_body_observation_same_truth_gate_accepts_rt6_green_browser_truth() -> N
     assert artifact["summary"]["upstream_gate_green"] is True
     assert artifact["browser_truth"]["body_latest_weight_rendered_from_backend"] is True
     assert artifact["browser_truth"]["today_manual_target_readback_checked"] is True
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
 
 
 def test_body_observation_same_truth_gate_blocks_when_rt6_not_green() -> None:

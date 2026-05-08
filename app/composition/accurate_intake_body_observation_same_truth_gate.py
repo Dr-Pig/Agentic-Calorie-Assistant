@@ -103,8 +103,6 @@ def build_body_observation_same_truth_gate_artifact(
             "live_llm_invoked": False,
             "web_tavily_used": False,
             "fooddb_evidence_used": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
         }
     )
 
