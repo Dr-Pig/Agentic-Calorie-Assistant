@@ -26,6 +26,30 @@ def safe_failure_payload() -> dict[str, Any]:
     }
 
 
+def manager_scope_policy_payload(manager_loop_scope: str, available_tools: tuple[str, ...]) -> dict[str, Any]:
+    if manager_loop_scope != "turn_entry_or_read_only":
+        return {
+            "policy_id": f"manager_scope_policy.{manager_loop_scope}.v1",
+            "manager_loop_scope": manager_loop_scope,
+            "available_tools": list(available_tools),
+            "deterministic_boundary": "runtime_validates_tool_scope_only_no_raw_text_semantic_routing",
+        }
+    return {
+        "policy_id": "manager_scope_policy.turn_entry_or_read_only.v1",
+        "manager_loop_scope": manager_loop_scope,
+        "available_tools": list(available_tools),
+        "unavailable_intake_tools": sorted(INTAKE_EXECUTION_TOOLS.difference(available_tools)),
+        "if_intake_execution_needed": {
+            "manager_action": "final",
+            "tool_calls": [],
+            "intent_type": "log_meal",
+            "final_action": "no_commit",
+            "workflow_effect": "route_to_intake",
+        },
+        "deterministic_boundary": "runtime_validates_tool_scope_only_no_raw_text_semantic_routing",
+    }
+
+
 def tool_call_scope_boundary(
     *,
     payload: dict[str, Any],
@@ -85,4 +109,4 @@ def _route_to_intake_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return routed
 
 
-__all__ = ["safe_failure_payload", "tool_call_scope_boundary"]
+__all__ = ["manager_scope_policy_payload", "safe_failure_payload", "tool_call_scope_boundary"]
