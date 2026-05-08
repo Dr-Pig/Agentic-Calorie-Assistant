@@ -1,9 +1,9 @@
 @echo off
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 chcp 65001 >nul
 
 echo =========================================
-echo   Text Meal Canary - Test UI Launcher
+echo   Agentic Calorie Assistant - Test UI
 echo =========================================
 echo.
 
