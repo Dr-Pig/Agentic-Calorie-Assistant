@@ -132,7 +132,7 @@ def test_current_metadata_freshness_pack_blocks_missing_stop_gates() -> None:
 
 
 def test_current_metadata_freshness_pack_cli_writes_output(tmp_path: Path, capsys) -> None:
-    from scripts import build_accurate_intake_pl_ce_current_metadata_freshness_pack as module
+    from scripts import build_current_shell_compatibility_current_metadata_freshness_pack as module
 
     artifact_dir = tmp_path / "artifacts"
     artifact_dir.mkdir()
@@ -164,7 +164,7 @@ def test_current_metadata_freshness_pack_cli_writes_output(tmp_path: Path, capsy
 def test_current_metadata_freshness_pack_source_stays_out_of_fooddb_websearch_boundaries() -> None:
     source_paths = [
         Path("app/composition/accurate_intake_pl_ce_current_metadata_freshness.py"),
-        Path("scripts/build_accurate_intake_pl_ce_current_metadata_freshness_pack.py"),
+        Path("scripts/build_current_shell_compatibility_current_metadata_freshness_pack.py"),
     ]
     forbidden = [
         "NutritionEvidenceStorePort",
