@@ -6,7 +6,7 @@ from app.composition.intake_estimation_tools import (
     estimate_nutrition_tool,
     manager_semantic_decision_from_tool_arguments,
 )
-from app.composition.intake_tool_context_support import (
+from app.composition.intake_tool_context import (
     contextualized_query_for_estimation,
     correction_target_resolved,
 )
