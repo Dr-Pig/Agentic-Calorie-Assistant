@@ -16,6 +16,7 @@ from .builderspace_attempts import (
     run_structured_attempt,
 )
 from .builderspace_parsing import BuilderSpaceParseError, extract_finish_reason, extract_json_object, extract_text_content
+from .builderspace_prompt_cache import apply_prompt_cache_key
 from .builderspace_trace import build_success_trace, new_transport_attempt
 from .builderspace_transport import (
     DECISION_TRANSPORT_TOOL_NAME,
@@ -81,6 +82,7 @@ async def complete_builderspace_with_trace(
                         request_payload["tools"] = decision_transport_request["tools"]
                         request_payload["tool_choice"] = decision_transport_request["tool_choice"]
                         request_payload["parallel_tool_calls"] = False
+                        request_payload = apply_prompt_cache_key(request_payload, model=model, stage=stage)
                         attempt_trace["decision_transport_mode"] = decision_transport_request["mode"]
                         try:
                             response = await post_chat_completion(client, base_url, token, request_payload)
@@ -179,6 +181,7 @@ async def complete_builderspace_with_trace(
                         parse_attempts=parse_attempts,
                         parse_retry_budget_ref={"value": parse_retry_budget},
                         validate_manager_payload=validate_manager_payload,
+                        model=model,
                     )
                     parse_retry_budget = remaining_retry_budget(parse_attempts, MAX_PARSE_RETRIES)
                     if parsed is None:
