@@ -12,6 +12,11 @@ from app.composition.accurate_intake_product_pages_renderer_source_map import (
 TODAY_PAGE = Path("static/accurate-intake-today.html")
 RENDERER_READY_STATUS = "product_pages_renderer_source_map_ready_for_human_review"
 TODAY_MACRO_READY_STATUS = "today_macro_mirror_gate_ready_for_human_review"
+TODAY_MACRO_RUNTIME_READY_STATUS = "today_macro_runtime_mirror_gate_ready_for_browser"
+REQUIRED_MANAGER_RUNTIME_GATES = (
+    "rt11c_renderer_input_basis_evidence_pack",
+    "rt14_limited_live_ladder",
+)
 REQUIRED_SELECTORS = (
     "#macro-panel",
     "#macro-guard-reason",
@@ -25,6 +30,13 @@ REQUIRED_BACKEND_FIELDS = (
     "payload.consumed_fat",
     "payload.show_macro",
     "payload.macro_guard_reason",
+)
+REQUIRED_CURRENT_BUDGET_PAYLOAD_FIELDS = (
+    "consumed_protein",
+    "consumed_carbs",
+    "consumed_fat",
+    "show_macro",
+    "macro_guard_reason",
 )
 VISIBLE_PAYLOAD = {
     "show_macro": True,
@@ -107,6 +119,65 @@ process.stdout.write(JSON.stringify(result));
 """
     completed = subprocess.run(["node", "-e", node_script], check=True, capture_output=True, text=True)
     return json.loads(completed.stdout)
+
+
+def _runtime_gate_statuses(manager_gate_ledger_artifact: dict[str, Any] | None) -> dict[str, str | None]:
+    gates = (manager_gate_ledger_artifact or {}).get("gates") or []
+    if not isinstance(gates, list):
+        return {gate_id: None for gate_id in REQUIRED_MANAGER_RUNTIME_GATES}
+    by_id = {
+        str(gate.get("gate_id")): str(gate.get("status"))
+        for gate in gates
+        if isinstance(gate, dict) and gate.get("gate_id") is not None
+    }
+    return {gate_id: by_id.get(gate_id) for gate_id in REQUIRED_MANAGER_RUNTIME_GATES}
+
+
+def _validate_runtime_macro_case(
+    *,
+    payload: dict[str, object],
+    runtime_case: dict[str, object],
+) -> list[str]:
+    blockers: list[str] = []
+    expected_protein = str(payload.get("consumed_protein"))
+    expected_carbs = str(payload.get("consumed_carbs"))
+    expected_fat = str(payload.get("consumed_fat"))
+    if payload.get("show_macro") is True:
+        if runtime_case["macro_state"] != "visible":
+            blockers.append("today_macro_runtime_panel.visible_case.macro_state_not_visible")
+        if runtime_case["macro_grid_hidden"] is not False:
+            blockers.append("today_macro_runtime_panel.visible_case.macro_grid_hidden")
+        if runtime_case["macro_guard_reason_hidden"] is not True:
+            blockers.append("today_macro_runtime_panel.visible_case.guard_reason_visible")
+        if runtime_case["protein_text"] != expected_protein:
+            blockers.append("today_macro_runtime_panel.visible_case.protein_text_mismatch")
+        if runtime_case["carbs_text"] != expected_carbs:
+            blockers.append("today_macro_runtime_panel.visible_case.carbs_text_mismatch")
+        if runtime_case["fat_text"] != expected_fat:
+            blockers.append("today_macro_runtime_panel.visible_case.fat_text_mismatch")
+        return blockers
+
+    if payload.get("show_macro") is False:
+        if runtime_case["macro_state"] != "guarded":
+            blockers.append("today_macro_runtime_panel.guarded_case.macro_state_not_guarded")
+        if runtime_case["macro_grid_hidden"] is not True:
+            blockers.append("today_macro_runtime_panel.guarded_case.macro_grid_visible")
+        if runtime_case["macro_guard_reason_hidden"] is not False:
+            blockers.append("today_macro_runtime_panel.guarded_case.guard_reason_hidden")
+        if runtime_case["macro_guard_reason_text"] != str(payload.get("macro_guard_reason")):
+            blockers.append("today_macro_runtime_panel.guarded_case.guard_reason_text_mismatch")
+        if runtime_case["protein_text"] != "--":
+            blockers.append("today_macro_runtime_panel.guarded_case.protein_text_leaked")
+        if runtime_case["carbs_text"] != "--":
+            blockers.append("today_macro_runtime_panel.guarded_case.carbs_text_leaked")
+        if runtime_case["fat_text"] != "--":
+            blockers.append("today_macro_runtime_panel.guarded_case.fat_text_leaked")
+        if not payload.get("macro_guard_reason"):
+            blockers.append("current_budget_payload.guarded_case.missing_macro_guard_reason")
+        return blockers
+
+    blockers.append("current_budget_payload.show_macro_not_boolean")
+    return blockers
 def build_today_macro_mirror_gate_artifact(
     *,
     renderer_source_map_artifact: dict[str, Any] | None = None,
@@ -205,4 +276,87 @@ def build_today_macro_mirror_gate_artifact(
             "private_self_use_approved": False,
         }
     )
-__all__ = ["build_today_macro_mirror_gate_artifact"]
+
+
+def build_today_macro_runtime_mirror_gate_artifact(
+    *,
+    manager_gate_ledger_artifact: dict[str, Any] | None,
+    current_budget_payload: dict[str, Any],
+    renderer_source_map_artifact: dict[str, Any] | None = None,
+    html_override: str | None = None,
+) -> dict[str, Any]:
+    base_gate = build_today_macro_mirror_gate_artifact(
+        renderer_source_map_artifact=renderer_source_map_artifact,
+        html_override=html_override,
+    )
+    blockers: list[str] = []
+    if base_gate.get("status") != TODAY_MACRO_READY_STATUS:
+        blockers.append(f"today_macro_mirror_gate.unexpected_status:{base_gate.get('status')}")
+    if base_gate.get("blockers"):
+        blockers.append("today_macro_mirror_gate.upstream_blockers_present")
+
+    upstream_gate_statuses = _runtime_gate_statuses(manager_gate_ledger_artifact)
+    for gate_id, status in upstream_gate_statuses.items():
+        if status != "green":
+            blockers.append(f"manager_runtime_gate.{gate_id}_not_green:{status}")
+
+    missing_payload_fields = [
+        field for field in REQUIRED_CURRENT_BUDGET_PAYLOAD_FIELDS if field not in current_budget_payload
+    ]
+    for field in missing_payload_fields:
+        blockers.append(f"current_budget_payload.missing_field:{field}")
+
+    runtime_case: dict[str, object] | None = None
+    if not missing_payload_fields:
+        runtime_case = _run_render_macro_panel(current_budget_payload, html_override=html_override)
+        blockers.extend(
+            _validate_runtime_macro_case(
+                payload=current_budget_payload,
+                runtime_case=runtime_case,
+            )
+        )
+
+    status = TODAY_MACRO_RUNTIME_READY_STATUS if not blockers else "blocked"
+    return _json_safe(
+        {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_today_macro_runtime_mirror_gate",
+            "status": status,
+            "pass_type": "runtime_backed",
+            "claim_scope": "appshell_today_macro_runtime_mirror_gate_for_browser_closure",
+            "generated_at_utc": datetime.now(UTC).isoformat(),
+            "truth_owner": "CurrentBudgetView.macro_visibility",
+            "renderer_role": "render_backend_structured_fields_only",
+            "base_today_macro_mirror_gate_status": base_gate.get("status"),
+            "upstream_manager_gates": upstream_gate_statuses,
+            "current_budget_payload_fields_checked": list(REQUIRED_CURRENT_BUDGET_PAYLOAD_FIELDS),
+            "runtime_case": runtime_case,
+            "summary": {
+                "manager_runtime_gates_checked": len(REQUIRED_MANAGER_RUNTIME_GATES),
+                "current_budget_payload_fields_checked": len(REQUIRED_CURRENT_BUDGET_PAYLOAD_FIELDS),
+                "runtime_dom_case_checked": runtime_case is not None,
+            },
+            "blockers": blockers,
+            "local_only": True,
+            "diagnostic_only": True,
+            "fixture_only": False,
+            "runtime_backed": True,
+            "frontend_semantic_owner": False,
+            "frontend_calculates_macro_values": False,
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        }
+    )
+
+
+__all__ = [
+    "build_today_macro_mirror_gate_artifact",
+    "build_today_macro_runtime_mirror_gate_artifact",
+]
