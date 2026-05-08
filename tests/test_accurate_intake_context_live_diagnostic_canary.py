@@ -108,9 +108,9 @@ def test_context_live_canary_missing_token_report_does_not_claim_readiness() -> 
     assert report["web_tavily_used"] is False
     assert report["mutation_changed"] is False
     assert report["manager_context_packet_schema_changed"] is False
-    assert report["readiness_claimed"] is False
-    assert report["product_readiness_claimed"] is False
-    assert report["private_self_use_approved"] is False
+    assert "readiness_claimed" not in report
+    assert "product_readiness_claimed" not in report
+    assert "private_self_use_approved" not in report
     assert report["blockers"] == ["missing_provider_token"]
 
 
@@ -119,7 +119,7 @@ def test_context_live_canary_builds_provider_payload_without_truth_or_mutation_a
     provider_input = preflight["provider_inputs"][3]
     payload = build_provider_request_payload(provider_input)
 
-    assert payload["diagnostic_scope"] == "pl_ce_context_only_live_intent_probe"
+    assert payload["diagnostic_scope"] == "current_shell_compatibility_context_only_live_intent_probe"
     assert payload["case_id"] == provider_input["case_id"]
     assert payload["authority"]["semantic_owner"] == "live_manager_provider"
     assert payload["authority"]["deterministic_layer_may_select_intent"] is False
@@ -148,8 +148,8 @@ async def test_context_live_canary_runs_fake_async_client_as_live_contract_probe
     assert report["web_tavily_used"] is False
     assert report["mutation_changed"] is False
     assert report["manager_context_packet_schema_changed"] is False
-    assert report["product_readiness_claimed"] is False
-    assert report["private_self_use_approved"] is False
+    assert "product_readiness_claimed" not in report
+    assert "private_self_use_approved" not in report
     assert report["response_contract_status"] == "pass"
     assert report["summary"]["provider_output_count"] == len(preflight["provider_inputs"])
     assert report["summary"]["blocked_response_count"] == 0
@@ -180,8 +180,8 @@ def test_context_live_canary_blocks_provider_mutation_and_wrong_intent() -> None
     assert report["failure_family"] == "context_live_response_contract_blocked"
     assert f"{case_id}.manager_intent_mismatch" in report["blockers"]
     assert f"{case_id}.mutation_requested" in report["blockers"]
-    assert report["product_readiness_claimed"] is False
-    assert report["private_self_use_approved"] is False
+    assert "product_readiness_claimed" not in report
+    assert "private_self_use_approved" not in report
 
 
 def test_context_live_canary_accepts_live_manager_resolved_target_status() -> None:
@@ -218,7 +218,7 @@ def test_context_live_canary_cli_writes_not_invoked_artifact_without_token(tmp_p
 
     assert artifact["status"] == "not_invoked"
     assert artifact["failure_family"] == "missing_provider_token"
-    assert artifact["readiness_claimed"] is False
+    assert "readiness_claimed" not in artifact
 
 
 def test_context_live_canary_cli_rejects_unknown_case_id(tmp_path: Path, monkeypatch: Any) -> None:

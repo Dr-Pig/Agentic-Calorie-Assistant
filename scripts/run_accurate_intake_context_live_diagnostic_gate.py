@@ -271,7 +271,7 @@ def build_context_live_diagnostic_gate_artifact(
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_context_live_diagnostic_gate",
             "status": status,
-            "claim_scope": "pl_ce_context_live_diagnostic_gate",
+            "claim_scope": "current_shell_compatibility_context_live_diagnostic_stage_order_gate",
             "generated_at_utc": datetime.now(UTC).isoformat(),
             "blockers": blockers,
             "artifact_paths": artifact_paths,
@@ -302,9 +302,6 @@ def build_context_live_diagnostic_gate_artifact(
             "runtime_truth_changed": False,
             "mutation_changed": False,
             "manager_context_packet_schema_changed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
-            "readiness_claimed": False,
             "summary": {
                 "fixed_case_count": review_pack.get("summary", {}).get("fixed_case_count"),
                 "dry_run_validated_response_count": review_pack.get("summary", {}).get(
@@ -324,7 +321,7 @@ def build_context_live_diagnostic_gate_artifact(
 def main(argv: list[str] | None = None) -> int:
     _load_local_env(ROOT / ".env")
     parser = argparse.ArgumentParser(
-        description="Run the PL+CE context live diagnostic gate without FoodDB/WebSearch truth."
+        description="Run the CurrentShell compatibility context live diagnostic gate without FoodDB/WebSearch truth."
     )
     parser.add_argument("--artifact-dir", default=str(DEFAULT_ARTIFACT_DIR))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT_PATH))
@@ -360,8 +357,6 @@ def main(argv: list[str] | None = None) -> int:
                 "review_pack_status": artifact["review_pack_status"],
                 "canary_status": artifact["canary_status"],
                 "live_llm_invoked": artifact["live_llm_invoked"],
-                "product_readiness_claimed": artifact["product_readiness_claimed"],
-                "private_self_use_approved": artifact["private_self_use_approved"],
             },
             ensure_ascii=False,
         )

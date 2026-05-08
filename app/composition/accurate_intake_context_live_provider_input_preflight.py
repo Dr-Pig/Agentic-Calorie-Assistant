@@ -311,7 +311,7 @@ def build_context_live_provider_input_preflight_artifact(
             "artifact_type": "accurate_intake_context_live_provider_input_preflight",
             "status": "pass" if not blockers else "blocked",
             "generated_at_utc": datetime.now(UTC).isoformat(),
-            "claim_scope": "pl_ce_context_live_provider_input_contract_preflight",
+            "claim_scope": "current_shell_compatibility_context_live_provider_input_contract_preflight",
             "diagnostic_only": True,
             "plan_only": True,
             "local_only": True,
@@ -335,8 +335,6 @@ def build_context_live_provider_input_preflight_artifact(
             "runtime_truth_changed": False,
             "mutation_changed": False,
             "manager_context_packet_schema_changed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
             "blockers": blockers,
             "summary": {
                 "case_count": len(case_input_rows),

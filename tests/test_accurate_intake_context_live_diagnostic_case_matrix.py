@@ -33,7 +33,7 @@ def test_context_live_diagnostic_case_matrix_defines_required_cases_without_live
 
     assert artifact["artifact_type"] == "accurate_intake_context_live_diagnostic_case_matrix"
     assert artifact["status"] == "pass"
-    assert artifact["claim_scope"] == "pl_ce_context_live_diagnostic_case_selection_contract"
+    assert artifact["claim_scope"] == "current_shell_compatibility_context_live_diagnostic_case_selection_contract"
     assert artifact["diagnostic_only"] is True
     assert artifact["plan_only"] is True
     assert artifact["live_llm_invoked"] is False

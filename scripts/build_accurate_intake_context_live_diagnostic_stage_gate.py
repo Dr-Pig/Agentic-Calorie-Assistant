@@ -54,7 +54,6 @@ def main(argv: list[str] | None = None) -> int:
                 "status": artifact["status"],
                 "live_stage": artifact["live_stage"],
                 "live_provider_invoked": artifact["live_provider_invoked"],
-                "product_readiness_claimed": artifact["product_readiness_claimed"],
             },
             ensure_ascii=False,
         )

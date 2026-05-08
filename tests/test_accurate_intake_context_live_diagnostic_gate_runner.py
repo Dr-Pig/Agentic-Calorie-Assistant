@@ -27,8 +27,8 @@ def test_context_live_diagnostic_gate_default_writes_review_pack_without_live(
     assert artifact["full_matrix_live_probe_required"] is True
     assert artifact["ad_hoc_live_case_selection_allowed"] is False
     assert artifact["holdout_plan_required"] is True
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
     assert artifact["fooddb_used"] is False
     assert artifact["web_tavily_used"] is False
     assert artifact["mutation_changed"] is False
@@ -71,8 +71,8 @@ def test_context_live_diagnostic_gate_can_require_live_provider(
     assert artifact["live_provider_allowed"] is True
     assert artifact["live_llm_invoked"] is False
     assert "live_provider_required_but_not_invoked" in artifact["blockers"]
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
 
 
 def test_context_live_diagnostic_gate_source_stays_out_of_fooddb_truth_and_runtime_mutation() -> None:

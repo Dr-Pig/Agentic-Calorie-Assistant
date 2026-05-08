@@ -25,8 +25,8 @@ def test_context_live_anti_overfit_guard_accepts_fixed_plan_only_matrix() -> Non
     assert guard["fooddb_used"] is False
     assert guard["mutation_changed"] is False
     assert guard["manager_context_packet_schema_changed"] is False
-    assert guard["product_readiness_claimed"] is False
-    assert guard["private_self_use_approved"] is False
+    assert "product_readiness_claimed" not in guard
+    assert "private_self_use_approved" not in guard
     assert guard["blockers"] == []
     assert guard["summary"]["fixed_case_matrix_used"] is True
     assert guard["summary"]["case_count"] >= 11

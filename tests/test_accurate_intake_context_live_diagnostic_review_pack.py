@@ -31,9 +31,6 @@ def _valid_inputs(*, live: bool = False) -> dict[str, dict[str, object]]:
             "runtime_truth_changed": False,
             "mutation_changed": False,
             "manager_context_packet_schema_changed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
-            "readiness_claimed": False,
             "response_contract_status": "pass",
             "blockers": [],
             "summary": {
@@ -64,9 +61,6 @@ def _valid_inputs(*, live: bool = False) -> dict[str, dict[str, object]]:
             "runtime_truth_changed": False,
             "mutation_changed": False,
             "manager_context_packet_schema_changed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
-            "readiness_claimed": False,
             "response_contract_status": "not_available",
             "blockers": ["missing_provider_token"],
             "failure_family": "missing_provider_token",
@@ -223,13 +217,13 @@ def test_live_review_pack_accepts_pre_live_not_invoked_canary_without_readiness_
     assert artifact["live_canary_status"] == "not_invoked"
     assert artifact["live_llm_invoked"] is False
     assert artifact["live_provider_invoked"] is False
-    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
     assert artifact["fooddb_used"] is False
     assert artifact["web_tavily_used"] is False
     assert artifact["runtime_truth_changed"] is False
     assert artifact["mutation_changed"] is False
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
     assert artifact["context_live_diagnostic_stage_summary"] == {
         "live_stage": "not_invoked",
         "live_stage_reason": "not_invoked",
@@ -255,8 +249,8 @@ def test_live_review_pack_accepts_gate_disallowed_not_invoked_canary() -> None:
     assert artifact["status"] == "context_live_diagnostic_review_ready_without_live_canary"
     assert artifact["live_canary_status"] == "not_invoked"
     assert artifact["live_llm_invoked"] is False
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
 
 
 def test_live_review_pack_accepts_live_canary_as_diagnostic_evidence_only() -> None:
@@ -267,9 +261,9 @@ def test_live_review_pack_accepts_live_canary_as_diagnostic_evidence_only() -> N
     assert artifact["live_llm_invoked"] is True
     assert artifact["live_provider_invoked"] is True
     assert artifact["semantic_owner"] == "live_manager_provider"
-    assert artifact["ready_for_live_diagnostic_decision"] is False
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
     assert artifact["context_live_diagnostic_stage_summary"] == {
         "live_stage": "full-matrix",
         "live_stage_reason": "full_matrix_provider_outputs",
@@ -303,8 +297,8 @@ def test_live_review_pack_summarizes_single_case_live_canary_stage() -> None:
         "full_matrix_live_probe_completed": False,
         "diagnostic_only_not_readiness": True,
     }
-    assert artifact["ready_for_live_diagnostic_decision"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
+    assert "private_self_use_approved" not in artifact
 
 
 def test_live_review_pack_blocks_anti_overfit_or_dry_run_gaps() -> None:
@@ -364,7 +358,7 @@ def test_live_review_pack_blocks_live_canary_overclaims_or_contract_failure() ->
     assert "context_live_diagnostic_canary.fooddb_used" in artifact["blockers"]
     assert "context_live_diagnostic_canary.product_readiness_claimed" in artifact["blockers"]
     assert artifact["fooddb_used"] is False
-    assert artifact["product_readiness_claimed"] is False
+    assert "product_readiness_claimed" not in artifact
 
 
 def test_live_review_pack_cli_writes_from_existing_artifacts(tmp_path: Path, capsys) -> None:

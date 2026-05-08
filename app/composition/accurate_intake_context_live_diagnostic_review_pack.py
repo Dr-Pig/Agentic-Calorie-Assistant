@@ -264,7 +264,7 @@ def build_context_live_diagnostic_review_pack_artifact(
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_context_live_diagnostic_review_pack",
             "status": status,
-            "claim_scope": "pl_ce_context_live_diagnostic_review_for_human_review_only",
+            "claim_scope": "current_shell_compatibility_context_live_diagnostic_review_for_human_review_only",
             "generated_at_utc": datetime.now(UTC).isoformat(),
             "required_inputs": list(REQUIRED_INPUTS),
             "blockers": blockers,
@@ -284,8 +284,6 @@ def build_context_live_diagnostic_review_pack_artifact(
             "live_provider_invoked": live_invoked,
             "semantic_owner": "live_manager_provider" if live_invoked else "not_invoked",
             "deterministic_role": "validate_artifacts_not_select_intent",
-            "ready_for_live_diagnostic_decision": False,
-            "ready_for_fdb_integration": False,
             "fooddb_used": False,
             "fooddb_evidence_used": False,
             "web_tavily_used": False,
@@ -293,9 +291,6 @@ def build_context_live_diagnostic_review_pack_artifact(
             "runtime_truth_changed": False,
             "mutation_changed": False,
             "manager_context_packet_schema_changed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
-            "readiness_claimed": False,
             "summary": {
                 "fixed_case_count": _int(matrix_summary.get("case_count")),
                 "dry_run_validated_response_count": _int(
