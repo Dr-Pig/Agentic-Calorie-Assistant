@@ -286,6 +286,8 @@ async def test_run_intake_manager_injects_entry_scope_route_policy() -> None:
     )
 
     policy = provider.calls[0]["user_payload"]["manager_scope_policy"]
+    assert provider.calls[0]["user_payload"]["constraints"]["manager_loop_scope"] == "turn_entry_or_read_only"
+    assert provider.calls[0]["user_payload"]["constraints"]["available_tools"] == ["budget.get_today_summary"]
     assert policy == {
         "policy_id": "manager_scope_policy.turn_entry_or_read_only.v1",
         "manager_loop_scope": "turn_entry_or_read_only",
@@ -304,6 +306,80 @@ async def test_run_intake_manager_injects_entry_scope_route_policy() -> None:
         },
         "deterministic_boundary": "runtime_validates_tool_scope_only_no_raw_text_semantic_routing",
     }
+
+
+@pytest.mark.asyncio
+async def test_run_intake_manager_uses_entry_scope_prompt_without_intake_resolution_rules() -> None:
+    provider = FakeLoopProvider(
+        [
+            {
+                "manager_action": "final",
+                "intent": "log_meal",
+                "intent_type": "log_meal",
+                "final_action": "no_commit",
+                "workflow_effect": "route_to_intake",
+                "target_attachment": {"mode": "none"},
+                "exactness": "unknown",
+                "confidence": "medium",
+                "evidence_posture": "requires_intake_execution",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "ok"},
+            },
+        ]
+    )
+
+    await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="刪掉剛剛那個",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=("budget.get_today_summary",),
+        manager_loop_scope="turn_entry_or_read_only",
+    )
+
+    prompt = provider.calls[0]["system_prompt"]
+    assert "Entry scope is classification, handoff, and read-only tool planning only." in prompt
+    assert "Explicit remove_item correction is different" not in prompt
+    assert "use target evidence from resolve_correction_target" not in prompt
+
+
+@pytest.mark.asyncio
+async def test_run_intake_manager_uses_intake_scope_prompt_with_resolution_rules() -> None:
+    provider = FakeLoopProvider(
+        [
+            {
+                "manager_action": "call_tools",
+                "tool_calls": [{"name": "resolve_correction_target"}],
+            },
+            {
+                "manager_action": "final",
+                "intent": "log_meal",
+                "final_action": "correction_applied",
+                "workflow_effect": "correction_applied",
+                "target_attachment": {"mode": "existing_meal"},
+                "exactness": "anchored",
+                "confidence": "medium",
+                "evidence_posture": "target_evidence_present",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "ok"},
+            },
+        ]
+    )
+
+    async def tool_executor(*, tool_calls: list[dict[str, object]], **_: object) -> list[dict[str, object]]:
+        return [{"tool_name": item["name"], "evidence": {"target": "latest_meal"}} for item in tool_calls]
+
+    await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="刪掉剛剛那個",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=("resolve_correction_target",),
+        manager_loop_scope="intake_execution",
+        tool_executor=tool_executor,
+    )
+
+    prompt = provider.calls[0]["system_prompt"]
+    assert "Explicit remove_item correction is different" in prompt
+    assert "use target evidence from resolve_correction_target" in prompt
 
 
 @pytest.mark.asyncio
@@ -385,7 +461,7 @@ async def test_run_intake_manager_keeps_prompt_registry_in_trace_only() -> None:
         "registry_version": "manager_prompt_registry.v1",
         "manager_loop_stage": "intake_manager_round",
         "system_prompt_id": "single_manager_system_prompt",
-        "system_prompt_version": "v4",
+        "system_prompt_version": "v5",
         "model_prompt_contract_id": "single_manager_user_payload_contract",
         "model_prompt_contract_version": "v1",
         "tool_surface_version": "current_shell_public_tools.v1",

@@ -115,6 +115,49 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
         )
 
 
+def _is_entry_scope(constraints: dict[str, Any] | None) -> bool:
+    return isinstance(constraints, dict) and str(constraints.get("manager_loop_scope") or "") == "turn_entry_or_read_only"
+
+
+def _is_entry_scope_route_to_intake(payload: dict[str, Any], constraints: dict[str, Any] | None) -> bool:
+    return (
+        _is_entry_scope(constraints)
+        and str(payload.get("manager_action") or "") == "final"
+        and str(payload.get("final_action") or "") == "no_commit"
+        and str(payload.get("workflow_effect") or "") == "route_to_intake"
+    )
+
+
+def _apply_entry_scope_schema(base_schema: dict[str, Any]) -> None:
+    properties = base_schema.get("properties")
+    if not isinstance(properties, dict):
+        return
+    properties["manager_action"] = {"type": "string", "enum": ["final"]}
+    properties["tool_calls"] = {
+        "type": "array",
+        "maxItems": 0,
+        "items": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "arguments": {"type": "object"},
+            },
+            "required": ["name"],
+            "additionalProperties": False,
+        },
+        "description": (
+            "Entry scope is classification, handoff, and read-only planning only. "
+            "Use tool_calls=[] and route intake execution to the intake_execution scope."
+        ),
+    }
+    base_schema["allOf"] = [
+        {
+            "if": {"properties": {"manager_action": {"const": "final"}}},
+            "then": {"properties": {"tool_calls": {"type": "array", "maxItems": 0}}},
+        },
+    ]
+
+
 def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, Any]:
     base_schema = {
         "type": "object",
@@ -187,26 +230,32 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
                 "additionalProperties": False,
             },
         }
-        _apply_founder_live_contract_schema_guidance(base_schema)
-        base_schema["allOf"] = [
-            {
-                "if": {"properties": {"manager_action": {"const": "call_tools"}}},
-                "then": {
-                    "properties": {
-                        "final_action": {"type": "string", "enum": list(FOUNDER_LIVE_MANAGER_CALL_TOOLS_FINAL_ACTIONS)},
-                        "tool_calls": {"type": "array", "minItems": 1},
-                    }
+        if _is_entry_scope(constraints):
+            _apply_entry_scope_schema(base_schema)
+        else:
+            _apply_founder_live_contract_schema_guidance(base_schema)
+            base_schema["allOf"] = [
+                {
+                    "if": {"properties": {"manager_action": {"const": "call_tools"}}},
+                    "then": {
+                        "properties": {
+                            "final_action": {
+                                "type": "string",
+                                "enum": list(FOUNDER_LIVE_MANAGER_CALL_TOOLS_FINAL_ACTIONS),
+                            },
+                            "tool_calls": {"type": "array", "minItems": 1},
+                        }
+                    },
                 },
-            },
-            {
-                "if": {"properties": {"manager_action": {"const": "final"}}},
-                "then": {
-                    "properties": {
-                        "tool_calls": {"type": "array", "maxItems": 0},
-                    }
+                {
+                    "if": {"properties": {"manager_action": {"const": "final"}}},
+                    "then": {
+                        "properties": {
+                            "tool_calls": {"type": "array", "maxItems": 0},
+                        }
+                    },
                 },
-            },
-        ]
+            ]
         if required_repair_tool:
             base_schema["properties"]["manager_action"] = {"type": "string", "enum": ["call_tools"]}
             base_schema["x-repair-contract"] = {
@@ -251,7 +300,8 @@ def validate_manager_payload(stage: str, payload: dict[str, Any], *, constraints
         if payload.get(key) not in allowed_values:
             raise RuntimeError(f"manager payload field {key} invalid for {stage}: {payload.get(key)!r}")
     if is_founder_live_manager_contract(constraints):
-        validate_founder_live_manager_contract_consistency(payload, constraints=constraints)
+        if not _is_entry_scope_route_to_intake(payload, constraints):
+            validate_founder_live_manager_contract_consistency(payload, constraints=constraints)
 
 
 __all__ = [

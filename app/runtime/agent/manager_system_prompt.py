@@ -2,10 +2,10 @@ from __future__ import annotations
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v4"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v5"
 
 
-SINGLE_MANAGER_SYSTEM_PROMPT = (
+_BASE_MANAGER_SYSTEM_PROMPT = (
     "You are the single manager agent for the intake runtime.\n"
     "Use a bounded ReAct loop. Return strict JSON.\n"
     "Always include top-level final_action and tool_calls. Use tool_calls=[] when manager_action='final'; "
@@ -21,6 +21,10 @@ SINGLE_MANAGER_SYSTEM_PROMPT = (
     "final_action='no_commit', workflow_effect='route_to_intake', and preserve the semantic_decision. "
     "The intake_execution scope will run the intake tools. In turn_entry_or_read_only scope, do not resolve "
     "nutrition evidence, correction targets, remove_item targets, or budget comparison yourself.\n"
+)
+
+
+_CONTRACT_POLICY_PROMPT = (
     "Follow constraints.manager_contract_policy when present; it is runtime contract policy. "
     "Follow manager_contract_policy_summary when present; it is the compact version of the same policy. "
     "Follow manager_contract_evidence_instruction when present; it is the current-loop evidence gate. "
@@ -62,6 +66,25 @@ SINGLE_MANAGER_SYSTEM_PROMPT = (
     "If ready, return manager_action='final' with intent, target_attachment, final_action, workflow_effect, "
     "semantic_decision, answer_contract, exactness, confidence, evidence_posture, repair_ack, "
     "uncertainty_posture, and evidence_honesty_posture.\n"
+)
+
+
+_ENTRY_SCOPE_PROMPT = (
+    "Entry scope is classification, handoff, and read-only tool planning only. "
+    "Use it to decide whether the turn is read-only or needs downstream intake execution. "
+    "If the user intent needs food logging, correction, removal, nutrition evidence, target resolution, "
+    "or budget comparison, return manager_action='final', tool_calls=[], final_action='no_commit', "
+    "workflow_effect='route_to_intake', and preserve the semantic decision for the intake_execution scope. "
+    "Do not call estimate_nutrition, resolve_correction_target, compare_against_budget, or any tool outside "
+    "user_payload.available_tools from entry scope. For read-only calorie or app-state questions, you may call "
+    "only listed read tools or answer from provided read-model context.\n"
+    "If ready, return manager_action='final' with intent, target_attachment, final_action, workflow_effect, "
+    "semantic_decision, answer_contract, exactness, confidence, evidence_posture, repair_ack, "
+    "uncertainty_posture, and evidence_honesty_posture.\n"
+)
+
+
+_USER_FACING_REPLY_PROMPT = (
     "User-facing reply policy: answer_contract.reply_text is visible to the user. Match the user's language; "
     "for Traditional Chinese input, use concise natural zh-TW. State logged, not logged, or updated status "
     "plainly. Include calories only from allowed evidence, tool_results, or read-model facts. Mention macros "
@@ -73,8 +96,22 @@ SINGLE_MANAGER_SYSTEM_PROMPT = (
 )
 
 
+SINGLE_MANAGER_SYSTEM_PROMPT = _BASE_MANAGER_SYSTEM_PROMPT + _CONTRACT_POLICY_PROMPT + _USER_FACING_REPLY_PROMPT
+
+
+SINGLE_MANAGER_ENTRY_SCOPE_SYSTEM_PROMPT = _BASE_MANAGER_SYSTEM_PROMPT + _ENTRY_SCOPE_PROMPT + _USER_FACING_REPLY_PROMPT
+
+
+def single_manager_system_prompt_for_scope(manager_loop_scope: str) -> str:
+    if manager_loop_scope == "turn_entry_or_read_only":
+        return SINGLE_MANAGER_ENTRY_SCOPE_SYSTEM_PROMPT
+    return SINGLE_MANAGER_SYSTEM_PROMPT
+
+
 __all__ = [
+    "SINGLE_MANAGER_ENTRY_SCOPE_SYSTEM_PROMPT",
     "SINGLE_MANAGER_SYSTEM_PROMPT",
     "SINGLE_MANAGER_SYSTEM_PROMPT_ID",
     "SINGLE_MANAGER_SYSTEM_PROMPT_VERSION",
+    "single_manager_system_prompt_for_scope",
 ]
