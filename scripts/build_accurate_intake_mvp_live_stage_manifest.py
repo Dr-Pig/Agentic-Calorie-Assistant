@@ -14,6 +14,8 @@ if str(ROOT) not in sys.path:
 
 from scripts.run_accurate_intake_mvp_live_diagnostic import (  # noqa: E402
     DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID,
+    DEFAULT_PROVIDER_REQUEST_RETRY_COUNT,
+    DEFAULT_PROVIDER_REQUEST_TIMEOUT_MS,
     ORDERED_STAGE_IDS,
 )
 
@@ -227,8 +229,8 @@ def live_prompt_cache_policy() -> dict[str, Any]:
 def live_timeout_policy() -> dict[str, Any]:
     return {
         "max_provider_concurrency": 1,
-        "default_provider_timeout_ms": 180000,
-        "default_provider_request_retry_count": 1,
+        "default_provider_timeout_ms": DEFAULT_PROVIDER_REQUEST_TIMEOUT_MS,
+        "default_provider_request_retry_count": DEFAULT_PROVIDER_REQUEST_RETRY_COUNT,
         "retry_only_failed_provider_request": True,
         "never_rerun_whole_workflow_as_retry_success": True,
         "strict_pass_first_attempt_only_clean": True,

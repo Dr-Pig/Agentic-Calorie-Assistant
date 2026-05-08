@@ -59,6 +59,9 @@ ORDERED_STAGE_IDS = (
     STAGE_SINGLE_CASE_LIVE_PROBE,
     STAGE_FULL_SUITE_LIVE_DIAGNOSTIC,
 )
+DEFAULT_PROVIDER_REQUEST_TIMEOUT_MS = 20_000
+DEFAULT_CASE_TIMEOUT_GRACE_MS = 10_000
+DEFAULT_PROVIDER_REQUEST_RETRY_COUNT = 0
 
 _FORBIDDEN_CLAIMS = [
     "product_ready",
@@ -121,7 +124,7 @@ class AccurateIntakeLiveDiagnosticProvider:
         *,
         profile: dict[str, Any],
         live_invoked: bool,
-        provider_request_timeout_ms: int = 180000,
+        provider_request_timeout_ms: int = DEFAULT_PROVIDER_REQUEST_TIMEOUT_MS,
         provider_request_retry_count: int = 0,
         provider_request_retry_backoff_ms: int = 0,
         provider_request_retry_jitter_ms: int = 0,
@@ -555,6 +558,14 @@ def build_missing_provider_report(*, profile: dict[str, Any]) -> dict[str, Any]:
             )
         ],
         cases=[],
+        timeout_policy=_timeout_policy(
+            provider_timeout_ms=0,
+            case_timeout_ms=0,
+            effective_case_timeout_ms=0,
+            provider_request_retry_count=0,
+            provider_request_retry_backoff_ms=0,
+            provider_request_retry_jitter_ms=0,
+        ),
         failure_layer="provider_runtime_error",
         failure_family="environment_or_provider_blocker",
     )
@@ -566,9 +577,9 @@ def run_diagnostic(
     db_path: Path = DEFAULT_DB_PATH,
     local_date: str = DEFAULT_LOCAL_DATE,
     provider_profile_id: str = DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID,
-    provider_timeout_ms: int = 180000,
+    provider_timeout_ms: int = DEFAULT_PROVIDER_REQUEST_TIMEOUT_MS,
     case_timeout_ms: int | None = None,
-    provider_request_retry_count: int = 1,
+    provider_request_retry_count: int = DEFAULT_PROVIDER_REQUEST_RETRY_COUNT,
     provider_request_retry_backoff_ms: int = 250,
     provider_request_retry_jitter_ms: int = 100,
     provider_override: Any | None = None,
@@ -609,7 +620,7 @@ def run_diagnostic(
     retry_budget_ms = provider_timeout_ms * (provider_request_retry_count + 1) + (
         provider_request_retry_backoff_ms * provider_request_retry_count
     )
-    effective_case_timeout_ms = int(case_timeout_ms if case_timeout_ms is not None else retry_budget_ms + 15000)
+    effective_case_timeout_ms = int(case_timeout_ms if case_timeout_ms is not None else retry_budget_ms + DEFAULT_CASE_TIMEOUT_GRACE_MS)
     for stage_id in selected_stage_ids:
         if stage_id == STAGE_PROVIDER_HEALTH_SMOKE:
             stages.append(
@@ -769,6 +780,14 @@ def run_diagnostic(
         provider_invocations=provider.invocations,
         stages=stages,
         cases=cases,
+        timeout_policy=_timeout_policy(
+            provider_timeout_ms=provider_timeout_ms,
+            case_timeout_ms=case_timeout_ms,
+            effective_case_timeout_ms=effective_case_timeout_ms,
+            provider_request_retry_count=provider_request_retry_count,
+            provider_request_retry_backoff_ms=provider_request_retry_backoff_ms,
+            provider_request_retry_jitter_ms=provider_request_retry_jitter_ms,
+        ),
         failure_layer=_root_stage_failure(stages)[0],
         failure_family=_root_stage_failure(stages)[1],
     )
@@ -1757,6 +1776,7 @@ def _report_shell(
     provider_invocations: list[dict[str, Any]],
     stages: list[dict[str, Any]],
     cases: list[dict[str, Any]],
+    timeout_policy: dict[str, Any],
     failure_layer: str | None,
     failure_family: str | None,
 ) -> dict[str, Any]:
@@ -1780,6 +1800,7 @@ def _report_shell(
             "transport_policy": profile["transport_policy"],
             "schema_name": profile["schema_name"],
             "schema_version": profile["schema_version"],
+            "timeout_policy": timeout_policy,
             "active_entrypoint": ACTIVE_ENTRYPOINT,
             "active_entrypoint_verified": _active_entrypoint_verified(),
             "runner_inferred_semantics": False,
@@ -1805,6 +1826,28 @@ def _report_shell(
             "summary": _summary_with_stages(cases=cases, stages=stages),
         }
     )
+
+
+def _timeout_policy(
+    *,
+    provider_timeout_ms: int,
+    case_timeout_ms: int | None,
+    effective_case_timeout_ms: int,
+    provider_request_retry_count: int,
+    provider_request_retry_backoff_ms: int,
+    provider_request_retry_jitter_ms: int,
+) -> dict[str, Any]:
+    return {
+        "provider_request_timeout_ms": int(provider_timeout_ms),
+        "case_timeout_ms": int(effective_case_timeout_ms),
+        "case_timeout_override_supplied": case_timeout_ms is not None,
+        "case_timeout_grace_ms": None if case_timeout_ms is not None else DEFAULT_CASE_TIMEOUT_GRACE_MS,
+        "provider_request_retry_count": int(provider_request_retry_count),
+        "provider_request_retry_backoff_ms": int(provider_request_retry_backoff_ms),
+        "provider_request_retry_jitter_ms": int(provider_request_retry_jitter_ms),
+        "strict_pass_requires_first_attempt": True,
+        "timeout_values_are_failure_boundaries_not_product_latency_targets": True,
+    }
 
 
 def _readiness_claim(*, provider_mode: str, live_invoked: bool) -> dict[str, Any]:
@@ -2170,9 +2213,9 @@ def main() -> int:
     parser.add_argument("--db-path", default=str(DEFAULT_DB_PATH))
     parser.add_argument("--local-date", default=DEFAULT_LOCAL_DATE)
     parser.add_argument("--provider-profile-id", default=DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID)
-    parser.add_argument("--provider-timeout-ms", type=int, default=180000)
+    parser.add_argument("--provider-timeout-ms", type=int, default=DEFAULT_PROVIDER_REQUEST_TIMEOUT_MS)
     parser.add_argument("--case-timeout-ms", type=int, default=None)
-    parser.add_argument("--provider-request-retry-count", type=int, default=1)
+    parser.add_argument("--provider-request-retry-count", type=int, default=DEFAULT_PROVIDER_REQUEST_RETRY_COUNT)
     parser.add_argument("--provider-request-retry-backoff-ms", type=int, default=250)
     parser.add_argument("--provider-request-retry-jitter-ms", type=int, default=100)
     parser.add_argument("--stage", choices=(STAGE_ALL, *ORDERED_STAGE_IDS), default=STAGE_ALL)
@@ -2227,6 +2270,8 @@ def main() -> int:
 
 __all__ = [
     "DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID",
+    "DEFAULT_PROVIDER_REQUEST_RETRY_COUNT",
+    "DEFAULT_PROVIDER_REQUEST_TIMEOUT_MS",
     "ScriptedAccurateIntakeLiveProvider",
     "AccurateIntakeLiveDiagnosticProvider",
     "build_missing_provider_report",

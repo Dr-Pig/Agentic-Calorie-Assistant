@@ -40,14 +40,14 @@ Run stages sequentially. Keep provider concurrency at one request at a time.
 CLI live diagnostics intentionally reject implicit `--stage all`. Normal live evidence must be produced by the staged commands below, one artifact per provider/case probe. `--allow-live-all-diagnostic` exists only for explicit debugging and does not produce clean staged evidence by itself.
 
 ```powershell
-python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage provider_health_smoke --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_provider_health.json
-python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage schema_contract_probe --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_schema_probe.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage provider_health_smoke --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 20000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_provider_health.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage schema_contract_probe --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 20000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_schema_probe.json
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage fake_provider_active_runtime_gate --output artifacts/accurate_intake_mvp_live_diagnostic_fake_runtime_gate.json
-python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id explicit_item_removal_seeded --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_seeded_removal.json
-python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id exact_item_official_label --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_exact_item.json
-python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id bubble_milk_tea_refinement --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_bubble_refinement.json
-python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id luwei_bare_to_listed_basket --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_luwei_basket.json
-python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id chinese_chicken_rice_correction_removal_debug --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_single_case.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id explicit_item_removal_seeded --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 20000 --case-timeout-ms 30000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_seeded_removal.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id exact_item_official_label --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 20000 --case-timeout-ms 30000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_exact_item.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id bubble_milk_tea_refinement --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 20000 --case-timeout-ms 30000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_bubble_refinement.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id luwei_bare_to_listed_basket --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 20000 --case-timeout-ms 30000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_luwei_basket.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id chinese_chicken_rice_correction_removal_debug --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 20000 --case-timeout-ms 30000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_single_case.json
 python scripts/build_accurate_intake_mvp_live_stage_manifest.py
 python scripts/build_accurate_intake_contract_hardening_guard.py
 python scripts/build_accurate_intake_mvp_offline_shadow_replay.py
@@ -135,7 +135,7 @@ Do not run the full suite when a prior stage is missing, failed, timed out, only
 Full-suite diagnostic command, only after the gate above is green:
 
 ```powershell
-python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage full_suite_live_diagnostic --offline-replay-artifact artifacts/accurate_intake_mvp_offline_shadow_replay.json --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_full_suite.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage full_suite_live_diagnostic --offline-replay-artifact artifacts/accurate_intake_mvp_offline_shadow_replay.json --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 20000 --case-timeout-ms 30000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_full_suite.json
 ```
 
 ## Full-Suite Evidence Window
@@ -152,6 +152,8 @@ Before a decision pack may select `prepare_private_self_use_candidate`, the offl
 
 ## Retry And Timeout Policy
 
+- Default live diagnostic probes use provider request timeout `20000ms`, per-case timeout `30000ms`, and provider request retry count `0`.
+- Longer timeout values are allowed only for explicit transport debugging, and those artifacts remain diagnostic failure/debug evidence rather than Current Shell v1 latency evidence.
 - Retry only the failed provider request.
 - Never rerun the whole workflow and label that as retry success.
 - `strict_pass_first_attempt` is the only clean live stability evidence.
@@ -219,9 +221,9 @@ After every 3-5 live/provider-affecting stages, and before any prompt/schema/con
 Example deferred validation commands, only after the model-agnostic local web self-use loop is green and the target-model validation slice is explicitly opened:
 
 ```powershell
-python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage provider_health_smoke --provider-profile-id builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_kimi_provider_health.json
-python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage schema_contract_probe --provider-profile-id builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_kimi_schema_probe.json
-python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id explicit_item_removal_seeded --provider-profile-id builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_kimi_seeded_probe.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage provider_health_smoke --provider-profile-id builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 20000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_kimi_provider_health.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage schema_contract_probe --provider-profile-id builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 20000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_kimi_schema_probe.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id explicit_item_removal_seeded --provider-profile-id builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 20000 --case-timeout-ms 30000 --provider-request-retry-count 0 --output artifacts/accurate_intake_mvp_live_diagnostic_kimi_seeded_probe.json
 ```
 
 ## Artifact Policy
