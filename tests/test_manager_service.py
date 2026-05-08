@@ -64,6 +64,17 @@ def test_single_manager_system_prompt_restricts_tool_calls_to_available_surface(
     assert "workflow_effect='route_to_intake'" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
+def test_single_manager_system_prompt_is_static_prefix_across_scopes() -> None:
+    from app.runtime.agent.manager_system_prompt import single_manager_system_prompt_for_scope
+
+    entry_prompt = single_manager_system_prompt_for_scope("turn_entry_or_read_only")
+    intake_prompt = single_manager_system_prompt_for_scope("intake_execution")
+
+    assert entry_prompt == intake_prompt
+    assert "Follow user_payload.manager_scope_policy" in entry_prompt
+    assert "Scope policy has priority over evidence and target-resolution rules" in entry_prompt
+
+
 def test_stable_available_tools_normalizes_order_and_deduplicates() -> None:
     assert stable_available_tools(
         ("budget.get_today_summary", "body.get_latest_observation", "budget.get_today_summary")
@@ -322,7 +333,7 @@ async def test_run_intake_manager_injects_entry_scope_route_policy() -> None:
 
 
 @pytest.mark.asyncio
-async def test_run_intake_manager_uses_entry_scope_prompt_without_intake_resolution_rules() -> None:
+async def test_run_intake_manager_uses_static_prompt_and_dynamic_entry_scope_policy() -> None:
     provider = FakeLoopProvider(
         [
             {
@@ -350,13 +361,16 @@ async def test_run_intake_manager_uses_entry_scope_prompt_without_intake_resolut
     )
 
     prompt = provider.calls[0]["system_prompt"]
+    policy = provider.calls[0]["user_payload"]["manager_scope_policy"]
     assert "Entry scope is classification, handoff, and read-only tool planning only." in prompt
-    assert "Explicit remove_item correction is different" not in prompt
-    assert "use target evidence from resolve_correction_target" not in prompt
+    assert "Explicit remove_item correction is different" in prompt
+    assert "use target evidence from resolve_correction_target" in prompt
+    assert policy["manager_loop_scope"] == "turn_entry_or_read_only"
+    assert policy["if_intake_execution_needed"]["workflow_effect"] == "route_to_intake"
 
 
 @pytest.mark.asyncio
-async def test_run_intake_manager_uses_intake_scope_prompt_with_resolution_rules() -> None:
+async def test_run_intake_manager_uses_same_static_prompt_with_intake_scope_policy() -> None:
     provider = FakeLoopProvider(
         [
             {
@@ -391,8 +405,10 @@ async def test_run_intake_manager_uses_intake_scope_prompt_with_resolution_rules
     )
 
     prompt = provider.calls[0]["system_prompt"]
+    policy = provider.calls[0]["user_payload"]["manager_scope_policy"]
     assert "Explicit remove_item correction is different" in prompt
     assert "use target evidence from resolve_correction_target" in prompt
+    assert policy["manager_loop_scope"] == "intake_execution"
 
 
 @pytest.mark.asyncio
@@ -474,7 +490,7 @@ async def test_run_intake_manager_keeps_prompt_registry_in_trace_only() -> None:
         "registry_version": "manager_prompt_registry.v1",
         "manager_loop_stage": "intake_manager_round",
         "system_prompt_id": "single_manager_system_prompt",
-        "system_prompt_version": "v7",
+        "system_prompt_version": "v8",
         "model_prompt_contract_id": "single_manager_user_payload_contract",
         "model_prompt_contract_version": "v1",
         "tool_surface_version": "current_shell_public_tools.v1",
