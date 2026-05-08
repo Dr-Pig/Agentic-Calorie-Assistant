@@ -175,6 +175,13 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt10e_blocking_clarify_correction_live_probe",
         "rt14e_context_conditioned_live_probe",
     ]
+    assert gates["rt11c_renderer_input_basis_evidence_pack"]["status"] == "green"
+    assert gates["rt11c_renderer_input_basis_evidence_pack"]["pass_type"] == "runtime_backed"
+    assert gates["rt11c_renderer_input_basis_evidence_pack"]["depends_on"] == [
+        "rt6_bootstrap_no_plan_body_closure",
+        "rt8_overshoot_runtime_truth",
+        "rt11b_final_response_quality_live_wall",
+    ]
     assert gates["rt12_trace_grading_v1"]["status"] == "green"
     assert gates["rt12_trace_grading_v1"]["pass_type"] == "fixture"
     assert gates["rt12_trace_grading_v1"]["depends_on"] == [
@@ -258,6 +265,7 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt14b_provider_health_live_canary",
         "rt14a_provider_health_schema_live_foundation",
         "rt1c_cache_metrics_observability",
+        "rt11c_renderer_input_basis_evidence_pack",
         "rt10b_nutrition_estimate_quality_fake_provider",
         "rt11b_final_response_quality_live_wall",
         "rt11_final_response_quality",
