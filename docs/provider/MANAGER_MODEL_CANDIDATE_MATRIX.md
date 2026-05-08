@@ -52,7 +52,7 @@ Kimi remains outside production/default selection and private self-use approval 
 
 ### First Live BuilderSpace Candidate Observations
 
-This first live pass upgraded `kimi-k2.5` and `gemini-3-flash-preview` from `hypothesis_only` to `artifact_observed`. It did not select a production manager. `production_selected = false` and `selection_status = not_decided` remain fixed for both candidates.
+This first live pass upgraded `kimi-k2.5` and `gemini-3-flash-preview` from `hypothesis_only` to `artifact_observed`. It did not select a production manager; both candidates remain explicitly undecided for production/default use.
 
 Artifacts:
 
@@ -84,8 +84,8 @@ Dimension-backed observations:
 ## Expensive Manual Baseline
 
 - `gpt-5` exists to answer low-frequency confirmation questions when cheaper candidates cannot resolve a capability attribution issue.
-- `gpt-5` must stay `manual_only=true`.
-- `allow_expensive_model_probe=false` remains the default.
+- `gpt-5` stays manual-only.
+- Expensive probes stay disabled by default.
 
 ## Manager Candidate Eval Lane
 

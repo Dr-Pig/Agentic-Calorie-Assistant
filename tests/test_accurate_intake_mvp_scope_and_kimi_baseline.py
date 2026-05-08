@@ -150,6 +150,7 @@ def test_manager_candidate_matrix_records_deferred_kimi_validation_boundary() ->
         "PR93-PR100 should not register Kimi as an active Accurate Intake live diagnostic runtime profile",
         "Kimi validation starts after the model-agnostic local web self-use loop is green",
         "Kimi remains outside production/default selection",
+        "both candidates remain explicitly undecided for production/default use",
     ]
     for fragment in required_fragments:
         assert fragment in matrix
