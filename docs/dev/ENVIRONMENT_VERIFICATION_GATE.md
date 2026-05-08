@@ -7,7 +7,7 @@ It is a development verification note, not product truth and not a readiness cla
 
 - Repo target runtime: Python 3.12.
 - CI runtime: Python 3.12.
-- Dockerfile runtime: `python:3.12-slim`.
+- Dockerfile base runtime: `python:3.12-slim`.
 - Compose verification services: `compose.yaml` services `app` and `test`.
 - Docker is preferred for local parity, but it is not mandatory for local Phase C verification.
 - Local Python 3.9 runs are not authoritative for active runtime, persistence, SQLAlchemy app paths, Phase C response assembly, or broader CI gates.
@@ -80,7 +80,7 @@ Before starting `Canonical Commit UnitOfWork Adapter` or any other active Phase 
 ./scripts/verify_phase_c.sh
 ```
 
-If Docker is used, prefer a test-oriented container command over app-server boot so Alembic, uvicorn, and deployment startup do not obscure verification failures.
+If Docker is used, prefer a test-oriented container command over app-server boot so Alembic and uvicorn startup do not obscure verification failures.
 
 The repo-owned Docker path is:
 
