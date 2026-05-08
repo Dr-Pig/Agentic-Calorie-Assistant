@@ -75,10 +75,18 @@ def test_search_local_knowledge_matches_exact_item_card_with_possessive_and_quot
 
 
 def test_resolve_exact_item_prefers_iced_latte_over_hot_variant() -> None:
-    docs = resolve_exact_item("\u661f\u5df4\u514b\u51b0\u90a3\u5824\u5927\u676f", limit=3)
+    docs = resolve_exact_item("\u661f\u5df4\u514b\u51b0\u90a3\u5802\u5927\u676f", limit=3)
 
     assert docs
-    assert docs[0]["title"] == "\u90a3\u5824(\u51b0)"
+    assert docs[0]["title"] == "\u661f\u5df4\u514b \u90a3\u5802(\u51b0) \u5927\u676f"
+    assert docs[0]["evidence_role"] == "exact_truth"
+
+
+def test_resolve_exact_item_accepts_prefixed_user_sentence_for_starbucks_latte() -> None:
+    docs = resolve_exact_item("\u6211\u559d\u4e86\u661f\u5df4\u514b\u51b0\u90a3\u5802\u5927\u676f", limit=3)
+
+    assert docs
+    assert docs[0]["title"] == "\u661f\u5df4\u514b \u90a3\u5802(\u51b0) \u5927\u676f"
     assert docs[0]["evidence_role"] == "exact_truth"
 
 

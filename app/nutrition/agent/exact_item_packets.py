@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.nutrition.infrastructure.web_search.exact_item_lookup import resolve_exact_item_fts
+from app.nutrition.application.retrieval_intent import build_raw_text_retrieval_hint
 from .exact_item_candidate_support import (
     augment_exact_candidate,
     exact_identity_gate,
@@ -17,29 +18,51 @@ def resolve_exact_item(
     required_slots: list[str] | None = None,
     limit: int = 5,
 ) -> list[dict[str, Any]]:
-    search_query = query.strip()
-    if active_brand_context and active_brand_context not in search_query:
-        search_query = f"{active_brand_context} {search_query}".strip()
+    search_queries = _candidate_search_queries(query, active_brand_context=active_brand_context)
+    for search_query in search_queries:
+        raw_candidates = resolve_exact_item_fts(search_query, limit=max(limit * 2, 6))
+        exact_candidates: list[dict[str, Any]] = []
+        for candidate in raw_candidates:
+            merged_aliases = [str(item) for item in candidate.get("aliases", []) if str(item).strip()]
+            if not merged_aliases:
+                merged_aliases = [str(candidate.get("title") or "")]
+            augmented = augment_exact_candidate(
+                candidate | {"aliases": merged_aliases},
+                query=search_query,
+                required_slots=required_slots,
+            )
+            if not exact_identity_gate(augmented, query=search_query):
+                continue
+            exact_candidates.append(augmented)
+            if len(exact_candidates) >= limit:
+                break
+        if exact_candidates:
+            return exact_candidates
+    return fallback_exact_candidates(search_query=search_queries[0], required_slots=required_slots, limit=limit)
 
-    raw_candidates = resolve_exact_item_fts(search_query, limit=max(limit * 2, 6))
-    exact_candidates: list[dict[str, Any]] = []
-    for candidate in raw_candidates:
-        merged_aliases = [str(item) for item in candidate.get("aliases", []) if str(item).strip()]
-        if not merged_aliases:
-            merged_aliases = [str(candidate.get("title") or "")]
-        augmented = augment_exact_candidate(
-            candidate | {"aliases": merged_aliases},
-            query=search_query,
-            required_slots=required_slots,
-        )
-        if not exact_identity_gate(augmented, query=search_query):
-            continue
-        exact_candidates.append(augmented)
-        if len(exact_candidates) >= limit:
-            break
-    if exact_candidates:
-        return exact_candidates
-    return fallback_exact_candidates(search_query=search_query, required_slots=required_slots, limit=limit)
+
+def _candidate_search_queries(query: str, *, active_brand_context: str | None) -> list[str]:
+    raw_query = str(query or "").strip()
+    values: list[str] = []
+
+    def _append(text: str | None) -> None:
+        cleaned = str(text or "").strip()
+        if cleaned and cleaned not in values:
+            values.append(cleaned)
+
+    if active_brand_context and active_brand_context not in raw_query:
+        _append(f"{active_brand_context} {raw_query}")
+    _append(raw_query)
+
+    hint = build_raw_text_retrieval_hint(raw_query)
+    _append(hint.base_dish)
+    for alias in hint.aliases:
+        _append(alias)
+    if hint.brand_hint and hint.base_dish:
+        _append(f"{hint.brand_hint}{hint.base_dish}")
+        if hint.size_hint:
+            _append(f"{hint.brand_hint}{hint.base_dish}{hint.size_hint}")
+    return values or [raw_query]
 
 
 def build_exact_item_lane_packet(
