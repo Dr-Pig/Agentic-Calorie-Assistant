@@ -162,6 +162,13 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt7_clarify_commit_correction_closure",
         "rt10a_nutrition_estimate_quality_deterministic",
     ]
+    assert gates["rt12_trace_grading_v1"]["status"] == "green"
+    assert gates["rt12_trace_grading_v1"]["pass_type"] == "fixture"
+    assert gates["rt12_trace_grading_v1"]["depends_on"] == [
+        "rt3_react_trace_contract",
+        "rt5_intent_tool_argument_walls",
+        "rt11_final_response_quality",
+    ]
     assert gates["rt14_limited_live_ladder"]["depends_on"] == [
         "rt1c_cache_metrics_observability",
         "rt10b_nutrition_estimate_quality_fake_provider",
