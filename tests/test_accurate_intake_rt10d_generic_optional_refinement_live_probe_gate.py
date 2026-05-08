@@ -64,8 +64,8 @@ def _pass_artifact() -> dict[str, object]:
                     },
                     {
                         "turn": 2,
-                        "manager_final_action": "commit",
-                        "workflow_effect": "canonical_write",
+                        "manager_final_action": "correction_applied",
+                        "workflow_effect": "correction_write",
                         "state_delta": {
                             "canonical_commit": True,
                             "draft_saved": False,

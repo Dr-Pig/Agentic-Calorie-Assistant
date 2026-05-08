@@ -47,3 +47,34 @@ def test_remove_item_target_evidence_reuse_is_schema_guidance() -> None:
 
     assert "do not call resolve_correction_target again" in schema["properties"]["manager_action"]["description"]
     assert "do not call it again" in schema["properties"]["tool_calls"]["description"]
+
+
+def test_evidence_present_canonical_write_commit_is_schema_guidance() -> None:
+    schema = manager_loop_schema(
+        {
+            "manager_contract_profile_id": "founder_live_contract",
+            "manager_loop_scope": "intake_execution",
+            "manager_contract_evidence_state": {
+                "nutrition_evidence_present": True,
+            },
+        }
+    )
+
+    description = schema["properties"]["final_action"]["description"]
+    assert "final_action_candidate is commit" in description
+    assert "mutation_intent_candidate canonical_write" in description
+    assert "use commit" in description
+    assert "do not use no_commit as a confirmation substitute" in description
+    no_commit_write_guard = [
+        item
+        for item in schema["allOf"]
+        if isinstance(item, dict)
+        and isinstance(item.get("not"), dict)
+        and item["not"].get("properties", {}).get("final_action") == {"const": "no_commit"}
+    ]
+    assert no_commit_write_guard
+    semantic_guard = no_commit_write_guard[0]["not"]["properties"]["semantic_decision"]
+    assert semantic_guard["properties"]["mutation_intent_candidate"]["enum"] == [
+        "canonical_write",
+        "correction_write",
+    ]

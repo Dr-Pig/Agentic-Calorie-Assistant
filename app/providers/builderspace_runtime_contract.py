@@ -56,6 +56,8 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
         final_action["description"] = (
             "The top-level final action for this manager round. When evidence is missing, this cannot substitute "
             "for an evidence-required semantic_decision.final_action_candidate; call estimate_nutrition first. "
+            "When evidence is present and semantic_decision.final_action_candidate is commit with "
+            "mutation_intent_candidate canonical_write, use commit; do not use no_commit as a confirmation substitute. "
             "When workflow_effect or semantic_decision.final_action_candidate is ask_followup, set this field to "
             "ask_followup and include a concrete followup_question."
         )
@@ -254,6 +256,22 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
                             "tool_calls": {"type": "array", "maxItems": 0},
                         }
                     },
+                },
+                {
+                    "not": {
+                        "required": ["final_action", "semantic_decision"],
+                        "properties": {
+                            "final_action": {"const": "no_commit"},
+                            "semantic_decision": {
+                                "required": ["mutation_intent_candidate"],
+                                "properties": {
+                                    "mutation_intent_candidate": {
+                                        "enum": ["canonical_write", "correction_write"],
+                                    },
+                                },
+                            },
+                        },
+                    }
                 },
             ]
         if required_repair_tool:
