@@ -38,6 +38,7 @@ DEFAULT_EVIDENCE_PATHS = {
     / "artifacts"
     / "accurate_intake_pl_ce_ui_context_alignment_pack.json",
     "today_macro_mirror_gate": ROOT / "artifacts" / "accurate_intake_today_macro_mirror_gate.json",
+    "bootstrap_same_truth_gate": ROOT / "artifacts" / "accurate_intake_bootstrap_same_truth_gate.json",
     "body_observation_same_truth_gate": ROOT
     / "artifacts"
     / "accurate_intake_body_observation_same_truth_gate.json",
@@ -251,6 +252,7 @@ def build_candidate_evidence_payload(
         "product_pages_self_use_flow_gate": pre_live_evidence["product_pages_self_use_flow_gate"],
         "ui_context_alignment_pack": pre_live_evidence["ui_context_alignment_pack"],
         "today_macro_mirror_gate": pre_live_evidence["today_macro_mirror_gate"],
+        "bootstrap_same_truth_gate": pre_live_evidence["bootstrap_same_truth_gate"],
         "body_observation_same_truth_gate": pre_live_evidence["body_observation_same_truth_gate"],
         "clarify_commit_correction_same_truth_gate": pre_live_evidence[
             "clarify_commit_correction_same_truth_gate"

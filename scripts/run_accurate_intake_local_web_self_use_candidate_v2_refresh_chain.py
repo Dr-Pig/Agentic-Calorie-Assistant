@@ -19,6 +19,9 @@ from app.composition.accurate_intake_manager_tool_surface_inventory import (  # 
 from app.composition.accurate_intake_body_observation_same_truth_gate import (  # noqa: E402
     build_body_observation_same_truth_gate_artifact,
 )
+from app.composition.accurate_intake_bootstrap_same_truth_gate import (  # noqa: E402
+    build_bootstrap_same_truth_gate_artifact,
+)
 from app.composition.accurate_intake_clarify_commit_correction_same_truth_gate import (  # noqa: E402
     build_clarify_commit_correction_same_truth_gate_artifact,
 )
@@ -72,6 +75,7 @@ REFRESHED_ARTIFACT_FILENAMES = {
     "non_fooddb_mutation_tool_guard_smoke": "accurate_intake_non_fooddb_mutation_tool_guard_smoke.json",
     "product_pages_self_use_flow_gate": "accurate_intake_pl_ce_product_pages_self_use_flow_gate.json",
     "today_macro_mirror_gate": "accurate_intake_today_macro_mirror_gate.json",
+    "bootstrap_same_truth_gate": "accurate_intake_bootstrap_same_truth_gate.json",
     "body_observation_same_truth_gate": "accurate_intake_body_observation_same_truth_gate.json",
     "clarify_commit_correction_same_truth_gate": "accurate_intake_clarify_commit_correction_same_truth_gate.json",
     "browser_activation_evidence_gate": "accurate_intake_pl_ce_browser_activation_evidence_gate.json",
@@ -172,6 +176,19 @@ def build_local_web_self_use_candidate_refresh_chain(
             REFRESHED_ARTIFACT_FILENAMES["today_macro_mirror_gate"],
         ),
         today_macro_mirror_gate,
+    )
+
+    bootstrap_same_truth_gate = build_bootstrap_same_truth_gate_artifact(
+        browser_smoke_artifact=_read_payload(
+            _group_path(artifacts_dir, PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["product_pages_browser_smoke"])
+        )
+    )
+    write_json_artifact(
+        _artifact_path(
+            artifacts_dir,
+            REFRESHED_ARTIFACT_FILENAMES["bootstrap_same_truth_gate"],
+        ),
+        bootstrap_same_truth_gate,
     )
 
     body_observation_same_truth_gate = build_body_observation_same_truth_gate_artifact(

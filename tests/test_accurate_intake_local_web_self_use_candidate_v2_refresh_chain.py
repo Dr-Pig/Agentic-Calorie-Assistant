@@ -116,6 +116,12 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
             / module.REFRESHED_ARTIFACT_FILENAMES["body_observation_same_truth_gate"]
         ).read_text(encoding="utf-8")
     )
+    bootstrap_same_truth_gate = json.loads(
+        (
+            artifact_dir
+            / module.REFRESHED_ARTIFACT_FILENAMES["bootstrap_same_truth_gate"]
+        ).read_text(encoding="utf-8")
+    )
     clarify_commit_correction_same_truth_gate = json.loads(
         (
             artifact_dir
@@ -144,6 +150,10 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
         "non_fooddb_manager_tool_contract_ready_for_human_review"
     )
     assert today_macro_mirror_gate["status"] == "today_macro_mirror_gate_ready_for_human_review"
+    assert (
+        bootstrap_same_truth_gate["status"]
+        == "bootstrap_same_truth_gate_ready_for_human_review"
+    )
     assert (
         body_observation_same_truth_gate["status"]
         == "body_observation_same_truth_gate_ready_for_human_review"

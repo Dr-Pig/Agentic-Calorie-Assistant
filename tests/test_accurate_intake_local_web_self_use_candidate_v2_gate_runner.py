@@ -59,6 +59,21 @@ def _ready_body_observation_same_truth_gate() -> dict[str, object]:
     }
 
 
+def _ready_bootstrap_same_truth_gate() -> dict[str, object]:
+    return {
+        "artifact_schema_version": "1.0",
+        "artifact_type": "accurate_intake_bootstrap_same_truth_gate",
+        "status": "bootstrap_same_truth_gate_ready_for_human_review",
+        "pass_type": "browser_executed",
+        "upstream_runtime_gate": "rt6_bootstrap_no_plan_body_closure",
+        "summary": {
+            "required_browser_flag_count": 10,
+            "all_required_browser_flags_true": True,
+            "upstream_gate_green": True,
+        },
+    }
+
+
 def _ready_clarify_commit_correction_same_truth_gate() -> dict[str, object]:
     return {
         "artifact_schema_version": "1.0",
@@ -166,6 +181,7 @@ def _required_payloads() -> dict[str, dict[str, object]]:
             },
         },
         "today_macro_mirror_gate": _ready_today_macro_mirror_gate(),
+        "bootstrap_same_truth_gate": _ready_bootstrap_same_truth_gate(),
         "body_observation_same_truth_gate": _ready_body_observation_same_truth_gate(),
         "clarify_commit_correction_same_truth_gate": _ready_clarify_commit_correction_same_truth_gate(),
         "browser_activation_evidence_gate": {
@@ -507,6 +523,7 @@ def test_local_web_self_use_candidate_v2_gate_runner_derives_phase_c_identity_fr
         "product_pages_self_use_flow_gate",
         "ui_context_alignment_pack",
         "today_macro_mirror_gate",
+        "bootstrap_same_truth_gate",
         "body_observation_same_truth_gate",
         "clarify_commit_correction_same_truth_gate",
         "browser_activation_evidence_gate",
