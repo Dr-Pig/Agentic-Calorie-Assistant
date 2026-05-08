@@ -1,6 +1,8 @@
-﻿# Text Meal Canary
+﻿# Agentic Calorie Assistant
 
-Technical bootstrap starts at [AGENTS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/AGENTS.md).
+Local-first calorie deficit logging app for daily desktop self-use.
+
+Technical bootstrap starts at [AGENTS.md](AGENTS.md). Document navigation starts at [docs/DOC_INDEX.md](docs/DOC_INDEX.md).
 
 ## Docker / Mac Recommended
 

@@ -22,6 +22,7 @@ ROOT_DISPOSABLE_PREFIXES = (
 )
 OPTIONAL_LOCAL_TOOLING_DIRS = {
     ".devcontainer",
+    ".kiro",
 }
 RECURSIVE_DISPOSABLE_DIR_NAMES = {
     "__pycache__",
