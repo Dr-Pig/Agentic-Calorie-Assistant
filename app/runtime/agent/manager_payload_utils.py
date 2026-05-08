@@ -68,3 +68,17 @@ async def maybe_await(value: Awaitable[Any] | Any) -> Any:
     if inspect.isawaitable(value):
         return await value
     return value
+
+
+def stable_available_tools(raw_tools: tuple[str, ...] | list[str] | Any) -> tuple[str, ...]:
+    if not isinstance(raw_tools, (tuple, list)):
+        return tuple()
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in raw_tools:
+        name = str(item or "").strip()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        normalized.append(name)
+    return tuple(sorted(normalized))

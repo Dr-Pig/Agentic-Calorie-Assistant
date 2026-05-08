@@ -60,6 +60,8 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
     assert gates["rt1b_stable_prefix_dynamic_suffix_contract"]["title"] == (
         "Stable prefix, dynamic suffix, and provider-neutral prompt contract"
     )
+    assert gates["rt1b_stable_prefix_dynamic_suffix_contract"]["status"] == "green"
+    assert gates["rt1b_stable_prefix_dynamic_suffix_contract"]["pass_type"] == "contract"
     assert gates["rt1c_cache_metrics_observability"]["depends_on"] == [
         "rt1b_stable_prefix_dynamic_suffix_contract"
     ]

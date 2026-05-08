@@ -19,7 +19,7 @@ gates:
       - rt0_sync_contract
   - gate_id: rt1b_stable_prefix_dynamic_suffix_contract
     title: Stable prefix, dynamic suffix, and provider-neutral prompt contract
-    status: pending
+    status: green
     pass_type: contract
     depends_on:
       - rt1a_prompt_registry_and_trace_versioning

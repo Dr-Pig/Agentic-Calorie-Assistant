@@ -22,6 +22,7 @@ from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 from app.runtime.agent.manager_payload_utils import (
     json_safe,
     maybe_await,
+    stable_available_tools,
     tool_call_dicts,
 )
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
@@ -77,6 +78,7 @@ async def run_intake_manager(
     max_rounds: int = 3,
 ) -> IntakeManagerResult:
     prompt_registry = build_manager_prompt_registry(provider=provider, constraints=constraints)
+    normalized_available_tools = stable_available_tools(available_tools)
     if not provider_ready(provider):
         return fallback_result(
             raw_user_input=raw_user_input,
@@ -132,7 +134,7 @@ async def run_intake_manager(
             "phase_a_shadow_hypothesis": json_safe(phase_a_shadow_hypothesis),
             "phase_a_shadow_hypothesis_role": manager_context_trace["phase_a_shadow_hypothesis_role"],
             "phase_a_shadow_hypothesis_instruction": shadow_hypothesis_instruction(phase_a_shadow_hypothesis),
-            "available_tools": list(available_tools),
+            "available_tools": list(normalized_available_tools),
             "tool_results": json_safe(tool_results),
             "round_index": round_index,
             "constraints": effective_constraints,
