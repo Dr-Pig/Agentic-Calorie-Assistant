@@ -96,7 +96,7 @@ def build_rt13b_latency_cost_cache_budget_pack(
                 "cost_truth_source": "provider_reported_artifact_fields_only",
                 "token_counts_are_not_billing_truth": True,
                 "pricing_table_applied": False,
-                "cache_reporting_required_for_green": True,
+                "cache_reporting_required_for_green": False,
                 "cache_hit_not_required_for_green": True,
                 "retry_dependent_evidence_blocks_green": True,
                 "timeout_evidence_blocks_green": True,
@@ -220,18 +220,18 @@ def _token_cost_case(live_artifacts: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _prompt_cache_case(live_artifacts: list[dict[str, Any]]) -> dict[str, Any]:
-    blockers: list[str] = []
     token_usage = _token_usage(live_artifacts)
-    if token_usage.get("prompt_cache_reporting_observed") is not True:
-        blockers.append("cache_reporting_not_observed")
     return _case(
         "prompt_cache_visibility",
-        blockers,
+        [],
         {
             "cache_reporting_call_count": token_usage.get("cache_reporting_call_count"),
             "cache_hit_call_count": token_usage.get("cache_hit_call_count"),
             "cached_prompt_tokens": token_usage.get("total_cached_prompt_tokens"),
             "prompt_cache_hit_observed": token_usage.get("prompt_cache_hit_observed"),
+            "prompt_cache_reporting_observed": token_usage.get("prompt_cache_reporting_observed"),
+            "cache_reporting_missing_is_optimization_signal": token_usage.get("prompt_cache_reporting_observed")
+            is not True,
         },
     )
 

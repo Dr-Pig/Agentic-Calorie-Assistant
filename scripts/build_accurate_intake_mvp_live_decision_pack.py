@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.shared.contracts.readiness_claim import build_readiness_claim
-from scripts.build_accurate_intake_mvp_live_stage_manifest import stage_summary_from_stages
+from app.shared.contracts.readiness_claim import build_readiness_claim  # noqa: E402
+from scripts.build_accurate_intake_mvp_live_stage_manifest import stage_summary_from_stages  # noqa: E402
 
 
 DEFAULT_LIVE_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic.json"
@@ -190,7 +190,7 @@ def _select_option(
         if offline_replay_summary.get("integrity_passed") is not True:
             return "offline_shadow_replay", "offline_replay_integrity_blocked"
         if offline_replay_summary.get("strict_replay_ready") is not True:
-            return "offline_shadow_replay", "offline_replay_not_strict"
+            return "offline_shadow_replay", "offline_replay_not_clean_strict"
         if _full_suite_strict_ready(stage_summary) is not True:
             return "full_suite_blocked", "full_suite_diagnostic_required"
         if offline_replay_summary.get("model_diversity_status") == "model_diversity_missing":
@@ -235,7 +235,7 @@ def _select_option(
             if offline_replay_summary.get("full_suite_replay_ready") is not True:
                 return "offline_shadow_replay", "full_suite_replay_window_required"
             return "prepare_private_self_use_candidate", "strict_live_diagnostic_with_replay_evidence"
-        return "offline_shadow_replay", "offline_replay_not_strict"
+        return "offline_shadow_replay", "offline_replay_not_clean_strict"
     return "defer_to_local_mvp", "live_diagnostic_not_clean"
 
 
@@ -413,7 +413,6 @@ def _offline_replay_summary(artifact: dict[str, Any] | None) -> dict[str, Any]:
         "integrity_passed": integrity.get("passed") is True,
         "strict_replay_ready": (
             summary.get("strict_replay_ready") is True
-            and int(summary.get("sample_run_count") or 0) >= 3
             and int(summary.get("repaired_pass_count") or 0) == 0
             and int(summary.get("timeout_count") or 0) == 0
         ),

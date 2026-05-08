@@ -128,6 +128,8 @@ The current PR74-PR84 audit is repo-tracked as:
 - zero timeout and zero retry-dependent evidence.
 - provider robustness matrix marks `model_inversion_evidence_passed` and leaves `contract_overfit_risk` absent/false.
 
+One clean staged live window is enough to unlock the next diagnostic decision. Do not repeat the same staged window three times during early live probing. If the staged window is strict but slow, run latency root-cause attribution before running broader live suites.
+
 Do not run the full suite when a prior stage is missing, failed, timed out, only passed after retry, or when the offline replay gate would return `offline_replay_required`.
 
 Full-suite diagnostic command, only after the gate above is green:
@@ -172,8 +174,13 @@ The cost summary must preserve:
 - `billing_truth_source=provider_reported_artifact_fields_only`
 - set `cost_unavailable_without_pricing` when token usage exists but no provider-reported cost field is present
 - no repo-local pricing table override
+- `latency_root_cause_hints` for request count, stage latency, prompt-token volume, cache metric visibility, cache-hit visibility, and output-token share
+- `latency_optimization_priorities` before repeating the same live diagnostic window
+- missing `cached_tokens` reporting is an optimization signal, not a live diagnostic failure, because not every provider exposes compatible cache usage fields
 
 Do not infer paid cost from tokens inside this repo. Do not stage generated cost summary artifacts as repo truth.
+
+The live diagnostic timeout values are diagnostic failure boundaries, not acceptable product latency targets. If a staged run is strict but slow, first inspect provider invocation count, per-stage latency, prompt-token volume, and cache reporting before adding more repetition.
 
 ## Post-PR88 phase checkpoint
 

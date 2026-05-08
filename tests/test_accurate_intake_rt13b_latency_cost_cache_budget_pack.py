@@ -136,10 +136,11 @@ def test_rt13b_budget_pack_passes_with_latency_cost_and_cache_visibility() -> No
     }
     assert artifact["budget_policy"]["cost_truth_source"] == "provider_reported_artifact_fields_only"
     assert artifact["budget_policy"]["cache_hit_not_required_for_green"] is True
+    assert artifact["budget_policy"]["cache_reporting_required_for_green"] is False
     assert artifact["non_claims"]["private_self_use_approved"] is False
 
 
-def test_rt13b_blocks_live_artifacts_without_cache_metric_reporting() -> None:
+def test_rt13b_records_missing_cache_metric_reporting_without_blocking_green() -> None:
     artifact = _build(
         live_artifacts=[
             _live_artifact(
@@ -152,8 +153,12 @@ def test_rt13b_blocks_live_artifacts_without_cache_metric_reporting() -> None:
         ]
     )
 
-    assert artifact["status"] == "fail"
-    assert "prompt_cache_visibility.cache_reporting_not_observed" in artifact["blockers"]
+    assert artifact["status"] == "pass"
+    assert "prompt_cache_visibility.cache_reporting_not_observed" not in artifact["blockers"]
+    cache_case = next(case for case in artifact["cases"] if case["case_id"] == "prompt_cache_visibility")
+    assert cache_case["status"] == "pass"
+    assert cache_case["observed"]["prompt_cache_reporting_observed"] is False
+    assert cache_case["observed"]["cache_reporting_missing_is_optimization_signal"] is True
 
 
 def test_rt13b_blocks_retry_dependent_or_timeout_budget_evidence() -> None:

@@ -1090,7 +1090,7 @@ def _full_suite_offline_replay_gate(offline_replay_artifact_path: Path | None) -
     if integrity.get("passed") is not True:
         return {"allowed": False, "failure_family": "offline_replay_integrity_blocked", "source_path": str(path)}
     if summary.get("strict_replay_ready") is not True:
-        return {"allowed": False, "failure_family": "offline_replay_not_strict", "source_path": str(path)}
+        return {"allowed": False, "failure_family": "offline_replay_not_clean_strict", "source_path": str(path)}
     if int(summary.get("pass_after_retry_count") or 0) > 0 or int(summary.get("timeout_count") or 0) > 0:
         return {"allowed": False, "failure_family": "offline_replay_retry_or_timeout", "source_path": str(path)}
     if int(summary.get("failed_stage_count") or 0) > 0:

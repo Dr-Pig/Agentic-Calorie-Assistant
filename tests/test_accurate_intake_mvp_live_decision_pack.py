@@ -157,12 +157,16 @@ def _clean_required_stage_manifest(*, include_full_suite: bool = False) -> dict[
     }
 
 
-def _strict_replay(*, model_diversity_status: str = "model_diversity_missing") -> dict[str, object]:
+def _strict_replay(
+    *,
+    model_diversity_status: str = "model_diversity_missing",
+    sample_run_count: int = 1,
+) -> dict[str, object]:
     return {
         "artifact_type": "accurate_intake_mvp_offline_shadow_replay",
         "input_integrity": {"passed": True, "blockers": []},
         "summary": {
-            "sample_run_count": 3,
+            "sample_run_count": sample_run_count,
             "strict_replay_ready": True,
             "full_suite_replay_ready": False,
             "full_suite_run_count": 0,
@@ -421,6 +425,7 @@ def test_accurate_intake_live_decision_pack_advances_strict_replay_to_full_suite
     assert pack["selected_option"] == "full_suite_blocked"
     assert pack["selection_reason"] == "full_suite_diagnostic_required"
     assert pack["offline_replay_summary"]["strict_replay_ready"] is True
+    assert pack["offline_replay_summary"]["sample_run_count"] == 1
     assert pack["offline_replay_summary"]["model_diversity_status"] == "model_diversity_missing"
     assert pack["private_self_use_candidate_prepared"] is False
     _assert_removed_fixed_false_fields(pack)

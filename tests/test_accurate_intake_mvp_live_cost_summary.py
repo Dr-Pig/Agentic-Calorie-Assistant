@@ -13,6 +13,9 @@ def _live_artifact(
     *,
     usage: dict[str, int] | None,
     estimated_cost_usd: float | None = None,
+    stage_id: str = "provider_health_smoke",
+    latency_ms: int = 321,
+    provider_invocation_count: int = 1,
 ) -> dict[str, object]:
     provider_trace: dict[str, object] = {}
     if usage is not None:
@@ -34,19 +37,23 @@ def _live_artifact(
         "live_provider_used_as_truth": False,
         "stages": [
             {
-                "stage_id": "provider_health_smoke",
+                "stage_id": stage_id,
                 "status": "pass",
-                "latency_ms": 321,
+                "latency_ms": latency_ms,
+                "timeout_budget_ms": 180000,
                 "result_kind": "strict_pass_first_attempt",
             }
         ],
         "provider_invocations": [
             {
-                "stage": "provider_health_smoke",
+                "stage": stage_id,
                 "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
                 "provider_profile_model": "grok-4-fast",
+                "latency_ms": latency_ms,
+                "timeout_budget_ms": 180000,
                 "provider_trace": provider_trace,
             }
+            for _ in range(provider_invocation_count)
         ],
     }
 
@@ -72,14 +79,24 @@ def test_live_cost_summary_totals_token_usage_and_reported_costs() -> None:
         "source_artifact_count": 1,
         "stage_count": 1,
         "provider_invocation_count": 1,
+        "total_stage_latency_ms": 321,
+        "max_stage_latency_ms": 321,
+        "total_provider_invocation_latency_ms": 321,
+        "max_provider_invocation_latency_ms": 321,
         "usage_record_count": 1,
         "prompt_tokens": 12,
         "completion_tokens": 8,
         "total_tokens": 20,
+        "max_prompt_tokens_per_usage_record": 12,
+        "cached_prompt_tokens": 0,
+        "cache_reporting_call_count": 0,
+        "cache_hit_call_count": 0,
         "reported_cost_record_count": 1,
         "reported_cost_usd": 0.004,
         "cost_unavailable_without_pricing": False,
     }
+    assert summary["latency_root_cause_hints"]["provider_invocation_count_high"] is False
+    assert summary["latency_root_cause_hints"]["prompt_cache_metrics_missing"] is True
     assert summary["source_artifacts"][0]["sha256"]
 
 
@@ -102,6 +119,47 @@ def test_live_cost_summary_marks_cost_unavailable_when_tokens_have_no_pricing() 
         "pricing_table_applied": False,
         "cost_unavailable_without_pricing": True,
     }
+
+
+def test_live_cost_summary_flags_latency_root_cause_probe_without_readiness_claim() -> None:
+    summary = build_accurate_intake_live_cost_summary(
+        [
+            _live_artifact(
+                stage_id="single_case_live_probe",
+                latency_ms=135_000,
+                provider_invocation_count=10,
+                usage={
+                    "prompt_tokens": 17_000,
+                    "completion_tokens": 450,
+                    "total_tokens": 17_450,
+                    "prompt_tokens_details": {"cached_tokens": 0},
+                },
+            )
+        ]
+    )
+
+    assert summary["summary"]["provider_invocation_count"] == 10
+    assert summary["summary"]["total_stage_latency_ms"] == 135_000
+    assert summary["summary"]["max_prompt_tokens_per_usage_record"] == 17_000
+    assert summary["summary"]["cache_reporting_call_count"] == 10
+    assert summary["summary"]["cache_hit_call_count"] == 0
+    assert summary["latency_root_cause_hints"] == {
+        "provider_invocation_count_high": True,
+        "stage_latency_high": True,
+        "prompt_token_volume_high": True,
+        "prompt_cache_metrics_missing": False,
+        "prompt_cache_hits_missing": True,
+        "output_tokens_not_primary_driver": True,
+    }
+    assert summary["latency_optimization_priorities"] == [
+        "attribute_provider_invocations_to_manager_rounds",
+        "reduce_provider_request_count_per_user_turn",
+        "compact_dynamic_context_packets_before_full_suite",
+        "move_stable_tool_schema_prefix_before_dynamic_payload",
+        "monitor_cached_tokens_before_repeating_runs",
+    ]
+    assert summary["generated_artifact_policy"]["local_diagnostic_evidence_only"] is True
+    assert "readiness_claimed" not in summary
 
 
 def test_live_cost_summary_omits_fixed_false_claim_fields() -> None:

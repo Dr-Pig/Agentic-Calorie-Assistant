@@ -15,7 +15,7 @@ def _write_strict_offline_replay(path: Path) -> Path:
                 "artifact_type": "accurate_intake_mvp_offline_shadow_replay",
                 "input_integrity": {"passed": True, "blockers": []},
                 "summary": {
-                    "sample_run_count": 3,
+                    "sample_run_count": 1,
                     "strict_replay_ready": True,
                     "pass_after_retry_count": 0,
                     "timeout_count": 0,

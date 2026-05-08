@@ -95,12 +95,14 @@ def test_offline_shadow_replay_records_single_clean_stage_run_without_candidate_
     assert replay["summary"]["strict_pass_first_attempt_count"] == 8
     assert replay["summary"]["pass_after_retry_count"] == 0
     assert replay["summary"]["timeout_count"] == 0
-    assert replay["summary"]["strict_replay_ready"] is False
+    assert replay["summary"]["strict_replay_ready"] is True
+    assert replay["summary"]["single_profile_stability"] is False
     assert replay["summary"]["eligible_for_private_self_use_candidate"] is False
     assert replay["summary"]["full_suite_run_count"] == 0
     assert replay["summary"]["full_suite_replay_ready"] is False
     assert replay["summary"]["model_diversity_missing"] is True
     assert replay["summary"]["max_model_claim"] == "single_profile_live_diagnostic_observed"
+    assert replay["strictness_gate"]["minimum_strict_replay_runs_for_staged_live_window"] == 1
 
 
 def test_offline_shadow_replay_marks_three_same_profile_runs_as_single_profile_only() -> None:
