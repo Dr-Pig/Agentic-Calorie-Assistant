@@ -185,7 +185,7 @@ def test_serial_handoff_blocks_synthetic_stack_metadata() -> None:
 
 
 def test_serial_handoff_cli_writes_from_existing_artifacts(tmp_path: Path) -> None:
-    from scripts.build_accurate_intake_pl_ce_serial_handoff import main
+    from scripts.build_current_shell_compatibility_serial_handoff import main
 
     activation_path = tmp_path / "activation.json"
     metadata_path = tmp_path / "current-metadata.json"
@@ -239,7 +239,7 @@ def test_serial_handoff_blocks_missing_or_invalid_current_metadata_freshness_pac
 
 
 def test_serial_handoff_cli_can_write_blocked_builder_smoke_when_allowed(tmp_path: Path) -> None:
-    from scripts.build_accurate_intake_pl_ce_serial_handoff import main
+    from scripts.build_current_shell_compatibility_serial_handoff import main
 
     activation_path = tmp_path / "activation.json"
     metadata_path = tmp_path / "current-metadata.json"
@@ -279,7 +279,7 @@ def test_serial_handoff_cli_can_write_blocked_builder_smoke_when_allowed(tmp_pat
 
 
 def test_serial_handoff_cli_rejects_missing_stack_without_autofix(tmp_path: Path, capsys) -> None:
-    from scripts.build_accurate_intake_pl_ce_serial_handoff import main
+    from scripts.build_current_shell_compatibility_serial_handoff import main
 
     activation_path = tmp_path / "activation.json"
     metadata_path = tmp_path / "current-metadata.json"
@@ -320,6 +320,7 @@ def test_serial_handoff_source_stays_out_of_fooddb_websearch_live_boundaries() -
     source_paths = [
         Path("app/composition/accurate_intake_pl_ce_serial_handoff.py"),
         Path("app/composition/accurate_intake_pl_ce_serial_handoff_metadata.py"),
+        Path("scripts/build_current_shell_compatibility_serial_handoff.py"),
         Path("scripts/build_accurate_intake_pl_ce_serial_handoff.py"),
     ]
     forbidden = [
