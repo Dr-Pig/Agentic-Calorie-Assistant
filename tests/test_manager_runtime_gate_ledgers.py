@@ -305,6 +305,7 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt14f_holdout_replay_anti_overfit_gate",
         "rt14g_response_language_prompt_polish",
     ]
+    assert gates["rt14_limited_live_ladder"]["status"] == "green"
 
 
 def test_manager_runtime_gate_ledger_maps_current_shell_journeys_to_runtime_gates() -> None:
