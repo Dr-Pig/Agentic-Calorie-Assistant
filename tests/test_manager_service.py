@@ -55,6 +55,8 @@ def test_single_manager_system_prompt_restricts_tool_calls_to_available_surface(
 
     assert "Only call tool names listed in user_payload.available_tools" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not call it or invent a compatible alias" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "manager_scope_policy" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "Scope policy has priority over evidence and target-resolution rules" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "manager_loop_scope='turn_entry_or_read_only'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "workflow_effect='route_to_intake'" in SINGLE_MANAGER_SYSTEM_PROMPT
 
@@ -257,6 +259,54 @@ async def test_run_intake_manager_forwards_manager_loop_scope_for_latency_attrib
 
 
 @pytest.mark.asyncio
+async def test_run_intake_manager_injects_entry_scope_route_policy() -> None:
+    provider = FakeLoopProvider(
+        [
+            {
+                "manager_action": "final",
+                "intent": "answer_remaining_budget",
+                "final_action": "answer_only",
+                "workflow_effect": "answer_only",
+                "target_attachment": {"mode": "none"},
+                "exactness": "unknown",
+                "confidence": "medium",
+                "evidence_posture": "read_only_state",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "ok"},
+            },
+        ]
+    )
+
+    await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="把湯拿掉",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=("budget.get_today_summary",),
+        manager_loop_scope="turn_entry_or_read_only",
+    )
+
+    policy = provider.calls[0]["user_payload"]["manager_scope_policy"]
+    assert policy == {
+        "policy_id": "manager_scope_policy.turn_entry_or_read_only.v1",
+        "manager_loop_scope": "turn_entry_or_read_only",
+        "available_tools": ["budget.get_today_summary"],
+        "unavailable_intake_tools": [
+            "compare_against_budget",
+            "estimate_nutrition",
+            "resolve_correction_target",
+        ],
+        "if_intake_execution_needed": {
+            "manager_action": "final",
+            "tool_calls": [],
+            "intent_type": "log_meal",
+            "final_action": "no_commit",
+            "workflow_effect": "route_to_intake",
+        },
+        "deterministic_boundary": "runtime_validates_tool_scope_only_no_raw_text_semantic_routing",
+    }
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("available_tools", "expected_scope"),
     [
@@ -335,7 +385,7 @@ async def test_run_intake_manager_keeps_prompt_registry_in_trace_only() -> None:
         "registry_version": "manager_prompt_registry.v1",
         "manager_loop_stage": "intake_manager_round",
         "system_prompt_id": "single_manager_system_prompt",
-        "system_prompt_version": "v3",
+        "system_prompt_version": "v4",
         "model_prompt_contract_id": "single_manager_user_payload_contract",
         "model_prompt_contract_version": "v1",
         "tool_surface_version": "current_shell_public_tools.v1",

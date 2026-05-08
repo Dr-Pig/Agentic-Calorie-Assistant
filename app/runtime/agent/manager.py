@@ -25,7 +25,7 @@ from app.runtime.agent.manager_payload_utils import (
     stable_available_tools,
     tool_call_dicts,
 )
-from app.runtime.agent.manager_tool_scope import safe_failure_payload, tool_call_scope_boundary
+from app.runtime.agent.manager_tool_scope import manager_scope_policy_payload, safe_failure_payload, tool_call_scope_boundary
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 
 
@@ -133,6 +133,7 @@ async def run_intake_manager(
             "tool_results": json_safe(tool_results),
             "round_index": round_index,
             "manager_loop_scope": effective_manager_loop_scope,
+            "manager_scope_policy": manager_scope_policy_payload(effective_manager_loop_scope, normalized_available_tools),
             "constraints": effective_constraints,
             "manager_product_policy_hints": json_safe(effective_constraints.get("manager_product_policy_hints")),
             "guard_feedback": guard_feedback,
