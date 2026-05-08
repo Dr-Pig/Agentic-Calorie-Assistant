@@ -314,7 +314,7 @@ gates:
       - rt14e_context_conditioned_live_probe
   - gate_id: rt14_limited_live_ladder
     title: Limited live diagnostic ladder
-    status: pending
+    status: green
     pass_type: runtime_backed
     depends_on:
       - rt10e_blocking_clarify_correction_live_probe
