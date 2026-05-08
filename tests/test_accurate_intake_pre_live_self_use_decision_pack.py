@@ -371,11 +371,13 @@ def test_pre_live_decision_pack_lists_required_evidence_without_approving_live()
     assert pack["required_evidence"] == list(REQUIRED_PRE_LIVE_EVIDENCE)
     assert pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
     assert pack["missing_evidence"] == []
-    assert pack["live_llm_invoked"] is False
-    assert pack["live_canary_approved"] is False
-    assert pack["kimi_active_runtime_default_allowed"] is False
-    assert pack["product_readiness_claimed"] is False
-    assert pack["runtime_web_activation_approved"] is False
+    assert "live_llm_invoked" not in pack
+    assert "web_tavily_invoked" not in pack
+    assert "live_canary_approved" not in pack
+    assert "kimi_active_runtime_default_allowed" not in pack
+    assert "product_readiness_claimed" not in pack
+    assert "runtime_web_activation_approved" not in pack
+    assert "production_db_ready_claimed" not in pack
     assert pack["blockers"] == []
     assert pack["capability_axis_summary"] == {
         "browser_execution": {
@@ -421,7 +423,7 @@ def test_pre_live_decision_pack_stays_local_when_review_or_data_hygiene_evidence
     )
 
     assert pack["selected_option"] == "stay_local_self_use"
-    assert pack["live_canary_approved"] is False
+    assert "live_canary_approved" not in pack
     assert pack["missing_evidence"] == [
         "dogfood_review_queue",
         "local_dogfood_data_hygiene",
@@ -527,7 +529,7 @@ def test_pre_live_decision_pack_blocks_unsafe_operator_data_hygiene_flags() -> N
     assert "local_operator_data_hygiene_bundle_import_allowed" in pack["blockers"]
     assert "local_operator_data_hygiene_bundle_production_db_used" in pack["blockers"]
     assert "local_operator_data_hygiene_bundle_fooddb_truth_updated" in pack["blockers"]
-    assert pack["live_canary_approved"] is False
+    assert "live_canary_approved" not in pack
 
 
 def test_pre_live_decision_pack_requires_browser_executed_evidence_before_human_live_decision() -> None:
@@ -934,7 +936,7 @@ def test_pre_live_decision_pack_blocks_when_pl_ce_local_review_gate_is_blocked()
     assert pack["selected_option"] == "stay_local_self_use"
     assert "pl_ce_local_review_decision_pack" in pack["missing_evidence"]
     assert pack["ready_for_pl_ce_local_review"] is False
-    assert pack["live_canary_approved"] is False
+    assert "live_canary_approved" not in pack
 
 
 def test_pre_live_decision_pack_blocks_pl_ce_local_review_overclaims() -> None:
@@ -1004,7 +1006,7 @@ def test_pre_live_decision_pack_script_writes_artifact(tmp_path: Path) -> None:
     assert exit_code == 0
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
     assert artifact["selected_option"] == "ready_for_human_limited_live_canary_decision"
-    assert artifact["live_canary_approved"] is False
+    assert "live_canary_approved" not in artifact
 
 
 def test_pre_live_axis_summary_source_stays_out_of_fooddb_live_and_shared_contracts() -> None:
