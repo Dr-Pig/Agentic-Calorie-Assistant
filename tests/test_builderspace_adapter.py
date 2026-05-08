@@ -787,6 +787,129 @@ def test_founder_live_manager_contract_schema_uses_consumer_backed_required_fiel
     assert schema["x-field-consumers"]["final_action"] == "final_mapping_and_renderer_boundary"
 
 
+def test_founder_live_entry_scope_schema_disallows_intake_tool_calls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        "manager_contract_profile_id": "founder_live_contract",
+        "manager_contract_schema_name": "founder_live_manager_contract",
+        "manager_contract_schema_version": "v1",
+        "manager_contract_transport_policy": "synthetic_tool_transport",
+        "manager_loop_scope": "turn_entry_or_read_only",
+        "available_tools": ["budget.get_today_summary"],
+    }
+
+    schema = adapter._response_schema_for_stage("intake_manager_round", constraints=constraints)
+
+    assert schema is not None
+    assert schema["properties"]["manager_action"]["enum"] == ["final"]
+    assert schema["properties"]["tool_calls"]["maxItems"] == 0
+    assert schema["allOf"] == [
+        {
+            "if": {"properties": {"manager_action": {"const": "final"}}},
+            "then": {"properties": {"tool_calls": {"type": "array", "maxItems": 0}}},
+        },
+    ]
+
+
+def test_founder_live_intake_scope_schema_keeps_intake_tool_calls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        "manager_contract_profile_id": "founder_live_contract",
+        "manager_contract_schema_name": "founder_live_manager_contract",
+        "manager_contract_schema_version": "v1",
+        "manager_contract_transport_policy": "synthetic_tool_transport",
+        "manager_loop_scope": "intake_execution",
+        "available_tools": ["resolve_correction_target", "estimate_nutrition"],
+    }
+
+    schema = adapter._response_schema_for_stage("intake_manager_round", constraints=constraints)
+
+    assert schema is not None
+    assert schema["properties"]["manager_action"]["enum"] == ["call_tools", "final"]
+    assert schema["properties"]["tool_calls"]["items"]["properties"]["name"]["enum"] == [
+        "resolve_correction_target",
+        "estimate_nutrition",
+        "compare_against_budget",
+    ]
+
+
+def test_founder_live_entry_scope_allows_downstream_correction_candidate_without_target_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        **_founder_live_constraints(),
+        "manager_loop_scope": "turn_entry_or_read_only",
+        "available_tools": ["budget.get_today_summary"],
+        "manager_contract_evidence_state": {
+            "tool_result_names": [],
+            "nutrition_evidence_present": False,
+            "target_evidence_present": False,
+            "target_evidence_source": None,
+        },
+    }
+    payload = _founder_live_payload(
+        final_action="no_commit",
+        workflow_effect="route_to_intake",
+        target_attachment={"operation": "remove_item", "canonical_name": "soup"},
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": {"operation": "remove_item", "canonical_name": "soup"},
+            "workflow_effect": "correction",
+            "final_action_candidate": "correction_applied",
+            "estimation_posture": "target_evidence_pending",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "correction_write",
+            "uncertainty_posture": "low",
+            "source": "phase_a_context",
+        },
+    )
+
+    adapter._validate_manager_payload("intake_manager_round", payload, constraints)
+
+
+def test_founder_live_intake_scope_rejects_correction_candidate_without_target_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        **_founder_live_constraints(),
+        "manager_loop_scope": "intake_execution",
+        "available_tools": ["resolve_correction_target"],
+        "manager_contract_evidence_state": {
+            "tool_result_names": [],
+            "nutrition_evidence_present": False,
+            "target_evidence_present": False,
+            "target_evidence_source": None,
+        },
+    }
+    payload = _founder_live_payload(
+        final_action="no_commit",
+        workflow_effect="route_to_intake",
+        target_attachment={"operation": "remove_item", "canonical_name": "soup"},
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": {"operation": "remove_item", "canonical_name": "soup"},
+            "workflow_effect": "correction",
+            "final_action_candidate": "correction_applied",
+            "estimation_posture": "target_evidence_pending",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "correction_write",
+            "uncertainty_posture": "low",
+            "source": "phase_a_context",
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="remove_item finalization requires target evidence"):
+        adapter._validate_manager_payload("intake_manager_round", payload, constraints)
+
+
 def test_founder_live_commit_without_evidence_repair_schema_requires_tool_call(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

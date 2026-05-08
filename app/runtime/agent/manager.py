@@ -17,7 +17,7 @@ from app.runtime.agent.manager_result_builder import (
     result_from_payload,
 )
 from app.runtime.agent.manager_prompt_registry import build_manager_prompt_registry
-from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT, single_manager_system_prompt_for_scope  # noqa: F401
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 from app.runtime.agent.manager_payload_utils import (
     json_safe,
@@ -89,6 +89,7 @@ async def run_intake_manager(
 
     for round_index in range(max_rounds):
         effective_constraints = dict(constraints or {})
+        effective_constraints.update(manager_loop_scope=effective_manager_loop_scope, available_tools=list(normalized_available_tools))
         if isinstance(guard_feedback, dict):
             effective_constraints["guard_feedback_failure_family"] = str(guard_feedback.get("failure_family") or "")
             effective_constraints["guard_feedback_repair_request"] = bool(guard_feedback.get("repair_request"))
@@ -139,7 +140,7 @@ async def run_intake_manager(
             "guard_feedback": guard_feedback,
         }
         payload, trace = await provider.complete_with_trace(
-            system_prompt=SINGLE_MANAGER_SYSTEM_PROMPT,
+            system_prompt=single_manager_system_prompt_for_scope(effective_manager_loop_scope),
             user_payload=user_payload,
             stage=MANAGER_LOOP_STAGE,
             max_tokens=900,
