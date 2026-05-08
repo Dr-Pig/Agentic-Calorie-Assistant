@@ -17,9 +17,16 @@ from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_rt11_final_response_quality.json"
 
 _DEBUG_LEAK_MARKERS = ("trace", "debug", "provider", "request_id", "tool_call")
-_LOGGED_MARKERS = ("\u5df2\u5e6b\u4f60\u8a18\u9304", "\u5df2\u8a18\u9304", "\u5148\u5e6b\u4f60\u8a18")
-_NO_COMMIT_MARKERS = ("\u5148\u4e0d\u8a18", "\u9084\u6c92\u8a18", "\u672a\u8a18\u9304", "\u4e0d\u6703\u5148\u8a18")
-_UPDATED_MARKERS = ("\u5df2\u66f4\u65b0", "\u5df2\u6539\u6210", "\u5df2\u79fb\u9664")
+_LOGGED_MARKERS = ("\u5df2\u5e6b\u4f60\u8a18\u9304", "\u5df2\u8a18\u9304", "\u5148\u5e6b\u4f60\u8a18", "logged", "Logged")
+_NO_COMMIT_MARKERS = (
+    "\u5148\u4e0d\u8a18",
+    "\u9084\u6c92\u8a18",
+    "\u672a\u8a18\u9304",
+    "\u4e0d\u6703\u5148\u8a18",
+    "nothing was committed",
+    "not logged",
+)
+_UPDATED_MARKERS = ("\u5df2\u66f4\u65b0", "\u5df2\u6539\u6210", "\u5df2\u79fb\u9664", "updated", "Updated", "removed", "Removed")
 _UNCERTAINTY_MARKERS = ("\u7d04", "\u5927\u7d04", "\u4f30", "\u4f30\u8a08")
 _MACRO_VISIBLE_PATTERN = re.compile(
     r"(\u86cb\u767d\u8cea|\u78b3\u6c34|\u8102\u80aa)\s*[:\uff1a]?\s*\d+\s*g",
