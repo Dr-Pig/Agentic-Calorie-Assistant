@@ -6,6 +6,15 @@ import json
 from pathlib import Path
 from typing import Any
 
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG,
+    LEGACY_LOCAL_REVIEW_GROUP_IDS,
+    LEGACY_LOCAL_REVIEW_READY_STATUSES,
+    first_group_payload,
+    matches_alias,
+)
 from scripts.accurate_intake_pre_live_axis_summary import build_capability_axis_summary
 from scripts.accurate_intake_non_fooddb_manager_tool_contract_gate_checks import (
     pre_live_contract_blockers,
@@ -20,7 +29,7 @@ REQUIRED_PRE_LIVE_EVIDENCE = (
     "dogfood_review_queue",
     "local_dogfood_data_hygiene",
     "local_operator_data_hygiene_bundle",
-    "pl_ce_local_review_decision_pack",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
     "product_pages_self_use_flow_gate",
     "ui_context_alignment_pack",
     "browser_activation_evidence_gate",
@@ -48,7 +57,9 @@ _EXPECTED_STATUS_BY_GROUP = {
     "dogfood_review_queue": "generated",
     "local_dogfood_data_hygiene": "pass",
     "local_operator_data_hygiene_bundle": "local_operator_data_hygiene_ready",
-    "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: (
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
+    ),
     "product_pages_self_use_flow_gate": "product_pages_self_use_flow_ready_for_human_review",
     "ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
     "browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
@@ -77,7 +88,16 @@ def _json_safe(value: Any) -> Any:
 
 
 def _evidence_missing(group_id: str, payload: dict[str, Any]) -> bool:
-    if str(payload.get("status") or "") != _EXPECTED_STATUS_BY_GROUP[group_id]:
+    status = str(payload.get("status") or "")
+    expected_status = _EXPECTED_STATUS_BY_GROUP[group_id]
+    if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID:
+        if not matches_alias(
+            status,
+            expected_status,
+            *LEGACY_LOCAL_REVIEW_READY_STATUSES,
+        ):
+            return True
+    elif status != expected_status:
         return True
     if group_id == "browser_shell_smoke" and payload.get("browser_executed") is not True:
         return True
@@ -364,10 +384,17 @@ def _evidence_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
 
 
 def build_pre_live_self_use_decision_pack(evidence: dict[str, Any]) -> dict[str, Any]:
-    evidence_status = {
-        group_id: dict(evidence.get(group_id) or {})
-        for group_id in REQUIRED_PRE_LIVE_EVIDENCE
-    }
+    evidence_status: dict[str, dict[str, Any]] = {}
+    for group_id in REQUIRED_PRE_LIVE_EVIDENCE:
+        if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID:
+            payload, _resolved_group_id = first_group_payload(
+                evidence,
+                CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
+                *LEGACY_LOCAL_REVIEW_GROUP_IDS,
+            )
+            evidence_status[group_id] = payload
+            continue
+        evidence_status[group_id] = dict(evidence.get(group_id) or {})
     missing_evidence = [
         group_id
         for group_id, payload in evidence_status.items()
@@ -381,13 +408,13 @@ def build_pre_live_self_use_decision_pack(evidence: dict[str, Any]) -> dict[str,
         if missing_evidence or blockers
         else "ready_for_human_limited_live_canary_decision"
     )
-    ready_for_pl_ce_local_review = (
+    ready_for_current_shell_compatibility_local_review = (
         not _evidence_missing(
-            "pl_ce_local_review_decision_pack",
-            evidence_status["pl_ce_local_review_decision_pack"],
+            CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
+            evidence_status[CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID],
         )
         and not any(
-            blocker.startswith("pl_ce_local_review_decision_pack_")
+            blocker.startswith(f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID}_")
             for blocker in blockers
         )
     )
@@ -406,7 +433,9 @@ def build_pre_live_self_use_decision_pack(evidence: dict[str, Any]) -> dict[str,
             "capability_axis_summary": build_capability_axis_summary(
                 evidence_status,
                 selected_option=selected_option,
-                ready_for_pl_ce_local_review=ready_for_pl_ce_local_review,
+                ready_for_current_shell_compatibility_local_review=(
+                    ready_for_current_shell_compatibility_local_review
+                ),
             ),
             "selection_reason": (
                 "pre_live_evidence_missing"
@@ -415,7 +444,9 @@ def build_pre_live_self_use_decision_pack(evidence: dict[str, Any]) -> dict[str,
                 if blockers
             else "local_web_self_use_evidence_ready_for_human_live_decision"
         ),
-        "ready_for_pl_ce_local_review": ready_for_pl_ce_local_review,
+        CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG: (
+            ready_for_current_shell_compatibility_local_review
+        ),
         "not_claiming": [
             "product_ready",
             "rollout_ready",

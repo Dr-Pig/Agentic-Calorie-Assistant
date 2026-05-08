@@ -5,6 +5,16 @@ import json
 from pathlib import Path
 from typing import Any
 
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG,
+    LEGACY_LOCAL_REVIEW_GROUP_IDS,
+    LEGACY_LOCAL_REVIEW_READY_STATUSES,
+    LEGACY_READY_FOR_LOCAL_REVIEW_FLAGS,
+    first_group_payload,
+    matches_alias,
+)
 from scripts.accurate_intake_non_fooddb_manager_tool_contract_gate_checks import (
     candidate_contract_blockers,
 )
@@ -16,7 +26,7 @@ REQUIRED_EVIDENCE = (
     "dogfood_review_queue",
     "local_dogfood_data_hygiene",
     "pre_live_decision_pack",
-    "pl_ce_local_review_decision_pack",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
     "product_pages_self_use_flow_gate",
     "ui_context_alignment_pack",
     "today_macro_mirror_gate",
@@ -45,7 +55,9 @@ EXPECTED_STATUS_BY_GROUP = {
     "dogfood_review_queue": "generated",
     "local_dogfood_data_hygiene": "pass",
     "pre_live_decision_pack": "generated",
-    "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: (
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
+    ),
     "product_pages_self_use_flow_gate": "product_pages_self_use_flow_ready_for_human_review",
     "ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
     "today_macro_mirror_gate": "today_macro_mirror_gate_ready_for_human_review",
@@ -80,6 +92,17 @@ APPSHELL_GATE_LABELS = {
 }
 
 
+def _resolved_required_payload(evidence: dict[str, Any], group_id: str) -> dict[str, Any]:
+    if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID:
+        payload, _resolved_group_id = first_group_payload(
+            evidence,
+            CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
+            *LEGACY_LOCAL_REVIEW_GROUP_IDS,
+        )
+        return payload
+    return dict(evidence.get(group_id) or {})
+
+
 def _appshell_claim_boundary_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     label = APPSHELL_GATE_LABELS.get(group_id)
     if label is None:
@@ -110,7 +133,7 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
 
     # 1. Check all required evidence is present and clean
     for group_id in REQUIRED_EVIDENCE:
-        payload = dict(evidence.get(group_id) or {})
+        payload = _resolved_required_payload(evidence, group_id)
         present = bool(payload)
         status = str(payload.get("status") or "")
         
@@ -124,7 +147,14 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
             blockers.append(f"missing evidence: {group_id}")
         else:
             expected_status = EXPECTED_STATUS_BY_GROUP[group_id]
-            if status != expected_status:
+            if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID:
+                if not matches_alias(
+                    status,
+                    expected_status,
+                    *LEGACY_LOCAL_REVIEW_READY_STATUSES,
+                ):
+                    blockers.append(f"failed evidence: {group_id} status={status}")
+            elif status != expected_status:
                 blockers.append(f"failed evidence: {group_id} status={status}")
 
     # 2. Check for blockers in any artifact claims
@@ -320,8 +350,14 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
     if pre_live_pack:
         if pre_live_pack.get("selected_option") != "ready_for_human_limited_live_canary_decision":
             blockers.append(f"pre-live selected option: {pre_live_pack.get('selected_option')}")
-        if pre_live_pack.get("ready_for_pl_ce_local_review") is not True:
-            blockers.append("pre-live missing PL+CE local review gate")
+        if not any(
+            pre_live_pack.get(flag) is True
+            for flag in (
+                CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG,
+                *LEGACY_READY_FOR_LOCAL_REVIEW_FLAGS,
+            )
+        ):
+            blockers.append("pre-live missing CurrentShell compatibility local review gate")
         for missing_group in pre_live_pack.get("missing_evidence") or []:
             blockers.append(f"pre-live missing evidence: {missing_group}")
         for blocker in pre_live_pack.get("blockers") or []:
@@ -332,13 +368,16 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
         ):
             blockers.append("pre-live overclaim")
 
-    pl_ce_pack = dict(evidence.get("pl_ce_local_review_decision_pack") or {})
-    if pl_ce_pack and (
-        pl_ce_pack.get("ready_for_live_diagnostic_decision") is True
-        or pl_ce_pack.get("ready_for_fdb_integration") is True
-        or pl_ce_pack.get("real_fooddb_pass_claimed") is True
+    current_shell_local_review_pack = _resolved_required_payload(
+        evidence,
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
+    )
+    if current_shell_local_review_pack and (
+        current_shell_local_review_pack.get("ready_for_live_diagnostic_decision") is True
+        or current_shell_local_review_pack.get("ready_for_fdb_integration") is True
+        or current_shell_local_review_pack.get("real_fooddb_pass_claimed") is True
     ):
-        blockers.append("PL+CE local review overclaim")
+        blockers.append("CurrentShell compatibility local review overclaim")
 
     blockers = sorted(list(set(blockers)))
     candidate_prepared = len(blockers) == 0

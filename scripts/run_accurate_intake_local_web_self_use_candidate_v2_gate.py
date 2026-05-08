@@ -12,6 +12,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
+from app.composition.current_shell_compatibility_ids import (  # noqa: E402
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
+)
 from scripts.build_accurate_intake_local_web_self_use_candidate_v2 import (  # noqa: E402
     build_local_web_self_use_candidate_v2,
 )
@@ -30,7 +33,9 @@ DEFAULT_EVIDENCE_PATHS = {
     "local_operator_data_hygiene_bundle": ROOT
     / "artifacts"
     / "accurate_intake_local_operator_data_hygiene_bundle.json",
-    "pl_ce_local_review_decision_pack": ROOT / "artifacts" / "accurate_intake_pl_ce_local_review_decision_pack.json",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: ROOT
+    / "artifacts"
+    / "accurate_intake_pl_ce_local_review_decision_pack.json",
     "product_pages_self_use_flow_gate": ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_product_pages_self_use_flow_gate.json",
@@ -248,7 +253,9 @@ def build_candidate_evidence_payload(
         "dogfood_review_queue": pre_live_evidence["dogfood_review_queue"],
         "local_dogfood_data_hygiene": pre_live_evidence["local_dogfood_data_hygiene"],
         "pre_live_decision_pack": pre_live_pack,
-        "pl_ce_local_review_decision_pack": pre_live_evidence["pl_ce_local_review_decision_pack"],
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: pre_live_evidence[
+            CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID
+        ],
         "product_pages_self_use_flow_gate": pre_live_evidence["product_pages_self_use_flow_gate"],
         "ui_context_alignment_pack": pre_live_evidence["ui_context_alignment_pack"],
         "today_macro_mirror_gate": pre_live_evidence["today_macro_mirror_gate"],

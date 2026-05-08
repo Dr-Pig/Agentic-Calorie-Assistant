@@ -7,6 +7,11 @@ import sys
 
 import pytest
 
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -143,7 +148,7 @@ def _required_payloads() -> dict[str, dict[str, object]]:
             "production_db_used": False,
             "fooddb_truth_updated": False,
         },
-        "pl_ce_local_review_decision_pack": {
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: {
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_pl_ce_local_review_decision_pack",
             "status": "ready_for_human_pl_ce_review",
@@ -472,7 +477,7 @@ def test_local_web_self_use_candidate_v2_gate_runner_writes_outputs(
     assert printed["candidate_prepared"] is True
     assert pre_live_evidence["_evidence_metadata"]["status"] == "complete"
     assert pre_live_evidence["_evidence_metadata"]["local_web_candidate_gate_blocked"] is False
-    assert pre_live_pack["ready_for_pl_ce_local_review"] is True
+    assert pre_live_pack[CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG] is True
     assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is True
     assert "private_self_use_approved" not in candidate["local_web_self_use_candidate_v2"]
 
@@ -519,7 +524,7 @@ def test_local_web_self_use_candidate_v2_gate_runner_derives_phase_c_identity_fr
         "dogfood_review_queue",
         "local_dogfood_data_hygiene",
         "local_operator_data_hygiene_bundle",
-        "pl_ce_local_review_decision_pack",
+            CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
         "product_pages_self_use_flow_gate",
         "ui_context_alignment_pack",
         "today_macro_mirror_gate",
@@ -557,7 +562,7 @@ def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_artifact_wit
 
     artifact_dir = tmp_path / "artifacts"
     payloads = _required_payloads()
-    payloads.pop("pl_ce_local_review_decision_pack")
+    payloads.pop(CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID)
     for group_id, payload in payloads.items():
         _write(artifact_dir / f"{group_id}.json", payload)
     pre_live_evidence_output = tmp_path / "pre_live_evidence.json"
@@ -582,9 +587,12 @@ def test_local_web_self_use_candidate_v2_gate_runner_blocks_missing_artifact_wit
     assert exit_code == 1
     assert printed["evidence_status"] == "blocked_missing_evidence"
     assert printed["candidate_prepared"] is False
-    assert printed["missing_evidence"] == ["pl_ce_local_review_decision_pack"]
-    assert pre_live_evidence["pl_ce_local_review_decision_pack"]["autofix_attempted"] is False
-    assert "missing evidence: pl_ce_local_review_decision_pack" in candidate["local_web_self_use_candidate_v2"]["blockers"]
+    assert printed["missing_evidence"] == [CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID]
+    assert pre_live_evidence[CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID]["autofix_attempted"] is False
+    assert (
+        f"missing evidence: {CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID}"
+        in candidate["local_web_self_use_candidate_v2"]["blockers"]
+    )
     assert "local web candidate gate evidence blocked" in candidate["local_web_self_use_candidate_v2"]["blockers"]
 
 
@@ -869,7 +877,9 @@ def test_local_web_self_use_candidate_v2_gate_runner_blocks_pl_ce_overclaim(
 
     artifact_dir = tmp_path / "artifacts"
     payloads = _required_payloads()
-    payloads["pl_ce_local_review_decision_pack"]["ready_for_live_diagnostic_decision"] = True
+    payloads[CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID][
+        "ready_for_live_diagnostic_decision"
+    ] = True
     for group_id, payload in payloads.items():
         _write(artifact_dir / f"{group_id}.json", payload)
     candidate_output = tmp_path / "candidate.json"
@@ -890,7 +900,10 @@ def test_local_web_self_use_candidate_v2_gate_runner_blocks_pl_ce_overclaim(
 
     assert exit_code == 1
     assert printed["candidate_prepared"] is False
-    assert "PL+CE local review overclaim" in candidate["local_web_self_use_candidate_v2"]["blockers"]
+    assert (
+        "CurrentShell compatibility local review overclaim"
+        in candidate["local_web_self_use_candidate_v2"]["blockers"]
+    )
     assert "private_self_use_approved" not in candidate["local_web_self_use_candidate_v2"]
 
 
