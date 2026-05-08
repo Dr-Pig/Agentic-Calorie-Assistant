@@ -298,6 +298,17 @@ def test_accurate_intake_live_seeded_explicit_removal_single_turn_probe(tmp_path
     assert report["stages"][-1]["status"] == "pass"
     assert report["cases"][0]["case_id"] == "explicit_item_removal_seeded"
     assert report["cases"][0]["case_contract_status"] == "strict_pass"
+    grade = report["cases"][0]["trace_expectation_grade"]
+    assert grade["expectation_id"] == "explicit_item_removal_seeded.trace.v1"
+    assert grade["required_status"] == "pass"
+    assert {check["check_id"]: check["status"] for check in grade["checks"]} == {
+        "entry_scope_not_repeated": "pass",
+        "intake_execution_scope_present": "pass",
+        "provider_invocation_count_at_most_3": "pass",
+        "resolve_target_used": "pass",
+        "estimate_nutrition_not_used_for_removal": "pass",
+        "correction_final_present": "pass",
+    }
     assert report["cases"][0]["seeded_state"]["seed_kind"] == "canonical_two_item_meal"
     assert report["cases"][0]["runner_inferred_semantics"] is False
     assert report["cases"][0]["raw_text_routing_used"] is False
@@ -310,6 +321,79 @@ def test_accurate_intake_live_seeded_explicit_removal_single_turn_probe(tmp_path
     ]
     assert "resolve_correction_target" in tool_names
     assert "estimate_nutrition" not in tool_names
+
+
+def test_accurate_intake_live_trace_expectation_catches_entry_loop_regression() -> None:
+    from app.composition.accurate_intake_live_trace_expectations import grade_live_trace_expectations
+
+    case = {
+        "case_id": "explicit_item_removal_seeded",
+        "provider_invocations": [
+            {"manager_loop_scope": "turn_entry_or_read_only"},
+            {"manager_loop_scope": "turn_entry_or_read_only"},
+            {"manager_loop_scope": "turn_entry_or_read_only"},
+            {"manager_loop_scope": "intake_execution"},
+            {"manager_loop_scope": "intake_execution"},
+        ],
+        "turns": [
+            {
+                "manager_rounds": [
+                    {
+                        "decision": {
+                            "tool_calls": [{"name": "resolve_correction_target"}],
+                            "final_action": "correction_applied",
+                        }
+                    }
+                ]
+            }
+        ],
+    }
+
+    grade = grade_live_trace_expectations(case)
+
+    assert grade["required_status"] == "fail"
+    checks = {check["check_id"]: check["status"] for check in grade["checks"]}
+    assert checks["entry_scope_not_repeated"] == "fail"
+    assert checks["provider_invocation_count_at_most_3"] == "fail"
+
+
+def test_accurate_intake_live_trace_expectation_marks_entry_tool_call_as_ideal_target_gap() -> None:
+    from app.composition.accurate_intake_live_trace_expectations import grade_live_trace_expectations
+
+    case = {
+        "case_id": "explicit_item_removal_seeded",
+        "provider_invocations": [
+            {
+                "manager_loop_scope": "turn_entry_or_read_only",
+                "provider_trace": {
+                    "parsed_object": {
+                        "manager_action": "call_tools",
+                        "tool_calls": [{"name": "resolve_correction_target"}],
+                    }
+                },
+            },
+            {"manager_loop_scope": "intake_execution"},
+            {"manager_loop_scope": "intake_execution"},
+        ],
+        "turns": [
+            {
+                "manager_rounds": [
+                    {
+                        "decision": {
+                            "tool_calls": [{"name": "resolve_correction_target"}],
+                            "final_action": "correction_applied",
+                        }
+                    }
+                ]
+            }
+        ],
+    }
+
+    grade = grade_live_trace_expectations(case)
+
+    assert grade["required_status"] == "pass"
+    assert grade["ideal_target_status"] == "fail"
+    assert grade["ideal_targets"][0]["target_id"] == "entry_routes_without_intake_tool_call"
 
 
 def test_accurate_intake_live_single_case_probe_supports_turn_limit(tmp_path: Path) -> None:
