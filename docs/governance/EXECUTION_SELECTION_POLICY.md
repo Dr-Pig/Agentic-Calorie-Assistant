@@ -1,14 +1,14 @@
 ﻿# Execution Selection Policy
 
-This document is retained only as a redirect.
+This document is retained only as a compatibility stub.
 
-Execution selection and execution-surface ownership now live in:
+It is no longer an active selection authority.
 
-- [docs/governance/EXECUTION_OPERATING_MODEL.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/EXECUTION_OPERATING_MODEL.md)
+Use these active sources instead:
 
-Use that document for:
+- [AGENTS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/AGENTS.md)
+- [docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md)
+- [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md)
+- [docs/governance/EXECUTION_OPERATING_MODEL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/governance/EXECUTION_OPERATING_MODEL.md)
 
-- `legal next` vs `best next`
-- planner-local vs worker-worthy selection
-- human-gate handling
-- execution-loop and autonomy rules
+Historical content has been preserved under `docs/_spec_snapshots/` for reference-only use.

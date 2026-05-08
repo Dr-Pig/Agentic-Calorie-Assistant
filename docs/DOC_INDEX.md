@@ -41,6 +41,8 @@ Do not start new implementation work from:
 
 - `docs/index.md`
 - `docs/V2_DOC_INDEX.md`
+- `docs/governance/EXECUTION_OPERATING_MODEL.md`
+- `docs/governance/EXECUTION_SELECTION_POLICY.md`
 - `docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md`
 - `docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md`
 - `docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md`

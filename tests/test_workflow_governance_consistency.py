@@ -175,6 +175,20 @@ def test_provider_docs_do_not_hardlink_missing_local_artifacts() -> None:
     assert "](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/" not in provider_profile
     assert "](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/" not in candidate_matrix
 
+def test_execution_governance_docs_are_compatibility_stubs_only() -> None:
+    doc_index = (ROOT / "docs" / "DOC_INDEX.md").read_text(encoding="utf-8")
+    operating_model = (ROOT / "docs" / "governance" / "EXECUTION_OPERATING_MODEL.md").read_text(encoding="utf-8")
+    selection_policy = (ROOT / "docs" / "governance" / "EXECUTION_SELECTION_POLICY.md").read_text(encoding="utf-8")
+
+    assert "`docs/governance/EXECUTION_OPERATING_MODEL.md`" in doc_index
+    assert "`docs/governance/EXECUTION_SELECTION_POLICY.md`" in doc_index
+    assert "compatibility stub" in operating_model
+    assert "compatibility stub" in selection_policy
+    assert "CURRENT_EXECUTION_PLAN.md" not in operating_model
+    assert "WORKFLOW_SLICE_REGISTRY.md" not in operating_model
+    assert "line-liff-calorie-helper-text-meal-canary-main" not in operating_model
+    assert "line-liff-calorie-helper-text-meal-canary-main" not in selection_policy
+
 
 def test_active_governance_protocols_are_repo_localized() -> None:
     for relative_path in (
