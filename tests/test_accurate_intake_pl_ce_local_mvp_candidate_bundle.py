@@ -511,7 +511,6 @@ def test_pl_ce_local_mvp_candidate_bundle_stays_out_of_forbidden_boundaries() ->
 
 def test_ci_keeps_local_mvp_candidate_bundle_out_of_required_merge_path() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
-    advisory_workflow = Path(".github/workflows/ci-advisory.yml").read_text(encoding="utf-8")
 
     assert "product-pages-browser-e2e" in workflow
     assert "build_accurate_intake_pl_ce_local_mvp_candidate_bundle.py" not in workflow
@@ -524,6 +523,4 @@ def test_ci_keeps_local_mvp_candidate_bundle_out_of_required_merge_path() -> Non
     assert "--artifact context_live_diagnostic_case_matrix=artifacts/accurate_intake_context_live_diagnostic_case_matrix_ci.json" not in workflow
     assert "accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json" not in workflow
     assert "--artifact context_live_diagnostic_anti_overfit_guard=artifacts/accurate_intake_context_live_diagnostic_anti_overfit_guard_ci.json" not in workflow
-    assert "accurate-intake-pl-ce-local-mvp-candidate-bundle-report" in advisory_workflow
-    assert "accurate_intake_ui_same_truth_render_contract_ci.json" in advisory_workflow
-    assert "plce_candidate_fixture_smoke.sqlite3" in advisory_workflow
+    assert not Path(".github/workflows/ci-advisory.yml").exists()

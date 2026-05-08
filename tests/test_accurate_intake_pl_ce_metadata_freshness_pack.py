@@ -414,18 +414,13 @@ def test_pl_ce_metadata_freshness_pack_source_stays_out_of_fooddb_websearch_live
 
 
 def test_ci_runs_pl_ce_metadata_freshness_pack_test() -> None:
-    workflow = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in (
-            Path(".github/workflows/ci.yml"),
-            Path(".github/workflows/ci-advisory.yml"),
-        )
-    )
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     manifest = json.loads(
         Path("docs/quality/accurate_intake_mvp_gate_manifest.json").read_text(encoding="utf-8")
     )
 
-    assert "python scripts/verify_accurate_intake_mvp.py --python python" in workflow
+    assert not Path(".github/workflows/ci-advisory.yml").exists()
+    assert "python scripts/verify_accurate_intake_mvp.py --python python" not in workflow
     assert "test_accurate_intake_pl_ce_metadata_freshness_pack.py" not in workflow
     groups = {group["group_id"]: group for group in manifest["required_groups"]}
     assert groups["pl_ce_metadata_freshness_pack_contract"]["pytest"] == [

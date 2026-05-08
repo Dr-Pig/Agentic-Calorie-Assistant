@@ -82,15 +82,14 @@ def test_merge_governance_workflow_is_manual_or_scheduled_advisory_only() -> Non
     assert "artifacts/merge_governance_advisory.md" in workflow
 
 
-def test_ci_advisory_workflow_is_manual_only() -> None:
-    workflow = (ROOT / ".github" / "workflows" / "ci-advisory.yml").read_text(encoding="utf-8")
+def test_legacy_ci_advisory_workflow_is_retired() -> None:
+    workflow_path = ROOT / ".github" / "workflows" / "ci-advisory.yml"
+    governance = (ROOT / "docs" / "governance" / "GITHUB_REPO_GOVERNANCE.md").read_text(encoding="utf-8")
+    harness = (ROOT / "docs" / "governance" / "HARNESS_GO_NO_GO.md").read_text(encoding="utf-8")
 
-    assert "workflow_dispatch" in workflow
-    assert "pull_request" not in workflow
-    assert "merge_group" not in workflow
-    assert "pre-edd-readiness" in workflow
-    assert "accurate-intake-mvp-gate" in workflow
-    assert "wave1-phase-a-contracts" in workflow
+    assert not workflow_path.exists()
+    assert "legacy `ci-advisory` has been retired" in governance
+    assert "legacy `ci-advisory` is retired" in harness
 
 
 def test_required_runtime_contract_wall_does_not_run_pre_edd_readiness() -> None:
