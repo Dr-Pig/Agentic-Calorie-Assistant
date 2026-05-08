@@ -537,6 +537,18 @@ async def test_run_intake_manager_records_prompt_layer_contract_trace_only() -> 
     assert "manager_context_packet_v1" in sections["context_engineering"]["keys"]
     assert "tool_results" in sections["tool_evidence"]["keys"]
     assert "constraints" in sections["contract_constraints"]["keys"]
+    footprint = layer["prompt_footprint"]
+    assert footprint["measurement"] == "json_utf8_bytes_trace_only"
+    assert footprint["provider_usage_is_token_truth"] is True
+    assert footprint["system_prompt_utf8_bytes"] > 0
+    assert footprint["dynamic_payload_total_utf8_bytes"] > 0
+    assert footprint["largest_dynamic_section_id"] in sections
+    context_footprint = {
+        section["section_id"]: section
+        for section in footprint["dynamic_sections"]
+    }["context_engineering"]
+    assert context_footprint["utf8_bytes"] >= 0
+    assert context_footprint["key_count"] == len(sections["context_engineering"]["keys"])
     assert result.trace["react_trace"]["manager_pass_1"]["prompt_layer_contract"] == layer
 
 
