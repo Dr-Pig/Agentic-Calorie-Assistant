@@ -167,7 +167,7 @@ gates:
       - rt9_packet_consumption_seam
   - gate_id: rt10b_nutrition_estimate_quality_fake_provider
     title: Nutrition estimate quality fake-provider wall
-    status: pending
+    status: green
     pass_type: fixture
     depends_on:
       - rt10a_nutrition_estimate_quality_deterministic
