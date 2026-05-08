@@ -19,21 +19,33 @@ from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
 DEFAULT_ARTIFACT_PATHS = {
     "ui_same_truth_contract": ROOT / "artifacts" / "accurate_intake_ui_same_truth_render_contract.json",
+    "today_macro_runtime_mirror_gate": ROOT
+    / "artifacts"
+    / "accurate_intake_today_macro_runtime_mirror_gate.json",
     "product_pages_renderer_source_map": ROOT
     / "artifacts"
     / "accurate_intake_product_pages_renderer_source_map.json",
+    "product_pages_renderer_source_closure_gate": ROOT
+    / "artifacts"
+    / "accurate_intake_product_pages_renderer_source_closure_gate.json",
     "product_pages_browser_smoke": ROOT
     / "artifacts"
     / "accurate_intake_product_pages_browser_smoke.json",
     "product_pages_seven_day_diary_smoke": ROOT
     / "artifacts"
     / "accurate_intake_product_pages_seven_day_diary_smoke.json",
+    "product_pages_body_noplan_degraded_smoke": ROOT
+    / "artifacts"
+    / "accurate_intake_product_pages_body_noplan_degraded_smoke.json",
     "product_pages_short_term_context_smoke": ROOT
     / "artifacts"
     / "accurate_intake_product_pages_short_term_context_smoke.json",
     "product_pages_target_candidate_ui_smoke": ROOT
     / "artifacts"
     / "accurate_intake_product_pages_target_candidate_ui_smoke.json",
+    "product_pages_context_target_browser_closure": ROOT
+    / "artifacts"
+    / "accurate_intake_product_pages_context_target_browser_closure.json",
     "product_pages_visual_qa": ROOT / "artifacts" / "accurate_intake_product_pages_visual_qa.json",
     "fixture_full_product_loop_e2e": ROOT
     / "artifacts"

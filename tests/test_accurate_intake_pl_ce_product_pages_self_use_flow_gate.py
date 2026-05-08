@@ -31,6 +31,23 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "today_macro_runtime_mirror_gate": {
+            "artifact_type": "accurate_intake_today_macro_runtime_mirror_gate",
+            "status": "today_macro_runtime_mirror_gate_ready_for_browser",
+            "pass_type": "runtime_backed",
+            "blockers": [],
+            "macro_visible_case_checked": True,
+            "macro_guarded_case_checked": True,
+            "backend_macro_fields_required": True,
+            "show_macro_false_suppresses_macro": True,
+            "frontend_macro_math_used": False,
+            "assistant_text_macro_parsed": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
         "product_pages_renderer_source_map": {
             "artifact_type": "accurate_intake_product_pages_renderer_source_map",
             "status": "product_pages_renderer_source_map_ready_for_human_review",
@@ -49,6 +66,27 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "selector_count": 33,
                 "endpoint_count": 8,
                 "backend_field_count": 30,
+            },
+        },
+        "product_pages_renderer_source_closure_gate": {
+            "artifact_type": "accurate_intake_product_pages_renderer_source_closure_gate",
+            "status": "product_pages_renderer_source_closure_ready_for_browser",
+            "pass_type": "contract",
+            "blockers": [],
+            "route_table_checked": True,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "frontend_semantic_owner": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "summary": {
+                "page_count": 3,
+                "manager_runtime_gates_checked": 5,
+                "endpoint_method_contract_count": 11,
+                "route_endpoint_count": 11,
             },
         },
         "product_pages_browser_smoke": {
@@ -114,6 +152,41 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "product_pages_body_noplan_degraded_smoke": {
+            "smoke_id": "accurate_intake_product_pages_body_noplan_degraded_smoke_v1",
+            "status": "pass",
+            "browser_executed": True,
+            "body_page_loaded": True,
+            "today_page_loaded": True,
+            "no_plan_body_status_rendered": True,
+            "body_targets_hidden_for_no_plan": True,
+            "body_budget_degraded_rendered": True,
+            "today_no_plan_budget_rendered": True,
+            "no_bootstrap_or_mutation_post": True,
+            "product_pages_no_debug_trace": True,
+            "body_values": {
+                "status": "Set up your body plan to see targets.",
+                "daily_target": "--",
+                "tdee": "--",
+                "active_target": "--",
+                "remaining": "--",
+            },
+            "today_values": {
+                "budget": "0",
+                "consumed": "0",
+                "remaining": "0",
+            },
+            "frontend_semantic_owner": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "production_db_used": False,
+            "web_readiness_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
         "product_pages_short_term_context_smoke": {
             "smoke_id": "accurate_intake_product_pages_short_term_context_smoke_v1",
             "status": "pass",
@@ -137,6 +210,34 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "deterministic_semantic_inference_used": False,
             "raw_text_intent_router_used": False,
             "mutation_authority": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "web_readiness_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
+        "product_pages_context_target_browser_closure": {
+            "artifact_type": "accurate_intake_product_pages_context_target_browser_closure",
+            "status": "context_target_browser_closure_ready_for_self_use_flow_gate",
+            "pass_type": "browser_executed",
+            "blockers": [],
+            "browser_executed": True,
+            "context_engineering_present": True,
+            "session_state_injected": True,
+            "pending_meal_or_correction_context_present": True,
+            "target_candidate_list_read_only": True,
+            "context_strip_read_only": True,
+            "target_candidate_count_rendered": 2,
+            "target_candidate_names_rendered": ["luwei", "milk tea"],
+            "frontend_semantic_owner": False,
+            "frontend_selected_target": False,
+            "deterministic_semantic_inference_used": False,
+            "raw_text_intent_router_used": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
             "live_llm_invoked": False,
             "web_tavily_used": False,
             "fooddb_evidence_used": False,
@@ -243,7 +344,12 @@ def test_product_pages_self_use_flow_gate_accepts_complete_fixture_browser_chain
     assert artifact["summary"]["seven_day_diary_checked"] is True
     assert artifact["summary"]["short_term_context_checked"] is True
     assert artifact["summary"]["target_candidate_ui_checked"] is True
+    assert artifact["summary"]["today_macro_runtime_mirror_checked"] is True
+    assert artifact["summary"]["renderer_source_closure_checked"] is True
+    assert artifact["summary"]["context_target_browser_closure_checked"] is True
+    assert artifact["summary"]["body_noplan_degraded_checked"] is True
     assert artifact["summary"]["fixture_product_loop_steps_checked"] == 10
+    assert artifact["summary"]["strongest_consumed_pass_type"] == "browser_executed"
     assert artifact["all_required_browser_artifacts_executed"] is True
     assert artifact["browser_executed_required"] is True
     assert artifact["blocked_browser_is_not_pass"] is True
@@ -321,6 +427,32 @@ def test_product_pages_self_use_flow_gate_blocks_missing_target_candidate_or_con
     assert "fixture_full_product_loop_e2e.completed_step_missing:fake_provider_context_smoke" in artifact["blockers"]
 
 
+def test_product_pages_self_use_flow_gate_requires_runtime_and_browser_closure_inputs() -> None:
+    inputs = _valid_inputs()
+    inputs["today_macro_runtime_mirror_gate"]["status"] = "blocked"
+    inputs["product_pages_renderer_source_closure_gate"]["route_table_checked"] = False
+    inputs["product_pages_body_noplan_degraded_smoke"]["browser_executed"] = False
+    inputs["product_pages_context_target_browser_closure"]["context_engineering_present"] = False
+
+    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "today_macro_runtime_mirror_gate.unexpected_status:blocked" in artifact["blockers"]
+    assert (
+        "product_pages_renderer_source_closure_gate.route_table_checked_not_true"
+        in artifact["blockers"]
+    )
+    assert "product_pages_body_noplan_degraded_smoke.browser_not_executed" in artifact["blockers"]
+    assert (
+        "product_pages_context_target_browser_closure.context_engineering_present_not_true"
+        in artifact["blockers"]
+    )
+    assert artifact["summary"]["today_macro_runtime_mirror_checked"] is False
+    assert artifact["summary"]["renderer_source_closure_checked"] is False
+    assert artifact["summary"]["context_target_browser_closure_checked"] is False
+    assert artifact["summary"]["body_noplan_degraded_checked"] is False
+
+
 def test_product_pages_self_use_flow_gate_cli_writes_from_existing_artifacts(
     tmp_path: Path,
     capsys,
@@ -368,6 +500,7 @@ def test_ci_keeps_product_pages_self_use_flow_gate_out_of_required_merge_path() 
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
     assert "product-pages-browser-e2e" in workflow
+    assert "tests/test_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py" in workflow
     assert "build_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py" not in workflow
     assert "ui_same_truth_contract=artifacts/accurate_intake_ui_same_truth_render_contract_ci.json" not in workflow
     assert (
