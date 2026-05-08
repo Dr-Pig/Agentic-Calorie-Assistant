@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import re
 from typing import Any
 
 from app.composition.accurate_intake_trace_expectation_primitives import (
@@ -150,12 +151,21 @@ def _grade_today_query(case: dict[str, Any]) -> dict[str, Any]:
 def _grade_no_plan_query(case: dict[str, Any]) -> dict[str, Any]:
     turn = _turn(case, 1)
     remaining = _dict(turn.get("remaining_budget"))
+    reply_texts = _case_reply_texts(case)
+    zero_claims = [text for text in reply_texts if _contains_missing_budget_zero_claim(text)]
     checks = _read_only_checks(case)
     checks.append(
         _check(
             "no_plan_target_or_remaining_not_invented",
             remaining.get("daily_target_kcal") is None and remaining.get("remaining_kcal") is None,
             {"remaining_budget": remaining},
+        )
+    )
+    checks.append(
+        _check(
+            "no_plan_reply_does_not_claim_zero_budget_or_remaining",
+            not zero_claims,
+            {"reply_texts_checked": reply_texts, "forbidden_zero_claims": zero_claims},
         )
     )
     return _grade("no_plan_consumed_without_budget_target", checks)
@@ -211,6 +221,39 @@ def _entry_without_intake_tool_call_target(invocations: list[dict[str, Any]]) ->
     tools = _decision_tools(parsed)
     bad = {"estimate_nutrition", "resolve_correction_target", "compare_against_budget"}
     return _target("entry_routes_without_intake_tool_call", "fail" if bad.intersection(tools) else "pass", {"entry_tool_names": tools})
+
+
+_CJK_MISSING_BUDGET_ZERO_RE = re.compile(
+    r"(預算|目標|剩餘|還剩|可用)[^。！？!?，,；;:\n]{0,16}(0|零)\s*(卡路里|大卡|卡|kcal)?",
+    re.IGNORECASE,
+)
+_EN_MISSING_BUDGET_ZERO_RE = re.compile(
+    r"\b(budget|target|remaining|left|available)\b[^.\n,;:!?]{0,24}\b0\b"
+    r"|\b0\b[^.\n,;:!?]{0,24}\b(budget|target|remaining|left|available)\b",
+    re.IGNORECASE,
+)
+
+
+def _case_reply_texts(case: dict[str, Any]) -> list[str]:
+    texts: list[str] = []
+    for turn in _turns(case):
+        _append_reply_text(texts, turn.get("coach_message"))
+        for round_item in _list(turn.get("manager_rounds")):
+            decision = _dict(_dict(round_item).get("decision"))
+            _append_reply_text(texts, _dict(decision.get("answer_contract")).get("reply_text"))
+    for invocation in _list(case.get("provider_invocations")):
+        parsed = _dict(_dict(_dict(invocation).get("provider_trace")).get("parsed_object"))
+        _append_reply_text(texts, _dict(parsed.get("answer_contract")).get("reply_text"))
+    return texts
+
+
+def _append_reply_text(texts: list[str], value: Any) -> None:
+    if isinstance(value, str) and value.strip():
+        texts.append(value.strip())
+
+
+def _contains_missing_budget_zero_claim(text: str) -> bool:
+    return bool(_CJK_MISSING_BUDGET_ZERO_RE.search(text) or _EN_MISSING_BUDGET_ZERO_RE.search(text))
 
 
 __all__ = ["grade_case_trace_expectation"]

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v5"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v6"
 
 
 _BASE_MANAGER_SYSTEM_PROMPT = (
@@ -89,7 +89,12 @@ _USER_FACING_REPLY_PROMPT = (
     "for Traditional Chinese input, use concise natural zh-TW. State logged, not logged, or updated status "
     "plainly. Include calories only from allowed evidence, tool_results, or read-model facts. Mention macros "
     "only when show_macro or renderer basis explicitly allows visible macro facts; otherwise say macro data "
-    "is insufficient. Ask at most one necessary follow-up question for blocking cases. Do not expose debug, "
+    "is insufficient. When there is no active plan or the read model has no daily target, "
+    "answer consumed/logged state only from read-model facts; if daily_target_kcal or remaining_kcal is null, "
+    "say target or remaining budget is unavailable until setup and do not describe missing target or "
+    "remaining budget as 0. For no-plan budget questions, use final_action='onboarding_required' and "
+    "workflow_effect='answer_only' with no mutation. Ask at most one necessary follow-up question for "
+    "blocking cases. Do not expose debug, "
     "trace, provider, request_id, tool_calls, internal schema names, or raw contract labels in reply_text.\n"
     "Tools only provide evidence or mutation results. Do not assume hidden state.\n"
     "Do not emit freeform internal rationale fields.\n"
