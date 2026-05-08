@@ -526,6 +526,16 @@ async def test_run_intake_manager_records_prompt_layer_contract_trace_only() -> 
     assert layer["prompt_cache_profile"]["static_prefix_first"] is True
     assert layer["prompt_cache_profile"]["dynamic_context_last"] is True
     assert layer["prompt_cache_profile"]["cache_metric_field"] == "usage.*.cached_tokens"
+    assert layer["prompt_cache_identity"] == {
+        "identity_version": "manager_prompt_cache_identity.v1",
+        "stable_prefix_sha256": layer["system_contract"]["stable_prefix_sha256"],
+        "dynamic_suffix_sha256": layer["prompt_cache_identity"]["dynamic_suffix_sha256"],
+        "stable_prefix_component_order": ["system_prompt"],
+        "dynamic_suffix_component_order": ["runtime_user_payload"],
+        "provider_overlay_hash_source": "provider_trace.prompt_cache_request",
+        "cache_truth_source": "provider_reported_usage_only",
+        "provider_usage_is_cache_truth": True,
+    }
     assert layer["dynamic_payload_keys"] == sorted(provider.calls[0]["user_payload"])
     assert layer["system_contract"]["owner"] == "ManagerRuntime"
     assert layer["system_contract"]["prompt_id"] == "single_manager_system_prompt"
