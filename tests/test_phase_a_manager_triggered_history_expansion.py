@@ -128,9 +128,9 @@ class _HistoryRequestProvider:
             )
         assert payload["phase_a_history_expansion_enabled"] is False
         assert payload["phase_a_current_turn_context"]["candidate_attachment_targets"][0]["target_object_id"] == "77"
-        assert payload["phase_a_manager_context_pack"]["manager_context"]["candidate_attachment_targets"][0][
-            "target_object_id"
-        ] == "77"
+        manager_context_pack = payload["phase_a_manager_context_pack"]
+        manager_context = manager_context_pack.get("manager_context_summary") or manager_context_pack.get("manager_context")
+        assert manager_context["candidate_attachment_targets"][0]["target_object_id"] == "77"
         return (
             {
                 "manager_action": "final",
