@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
-import re
 import sys
 
 
@@ -11,31 +10,30 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 BOOTSTRAP_PATH = [
     "AGENTS.md",
-    "docs/index.md",
+    "docs/DOC_INDEX.md",
     "docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md",
-    "docs/exec-plans/WORKFLOW_SLICE_REGISTRY.md",
-    "docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md",
-    "docs/governance/EXECUTION_OPERATING_MODEL.md",
+    "docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md",
+    "docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md",
+    "docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml",
+    "docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml",
 ]
 
 RETIRED_ROOT_DIRS = (
+    ".kiro",
     "child_outputs",
     "tmp",
 )
 
 ACTIVE_ALLOWED = {
     "CURRENT_EXECUTION_PLAN.md",
-    "REPLAN_LOG.md",
 }
 
 RETIRED_PATH_PATTERNS = (
     "docs/handoff/",
-    "docs/_spec_snapshots/",
+    "artifacts/docs-snapshots/",
 )
 
 HISTORICAL_REFERENCE_ALLOWLIST = {
-    "docs/exec-plans/active/REPLAN_LOG.md",
-    "docs/exec-plans/tech-debt-tracker.md",
     "scripts/harness_garbage_collect.py",
 }
 
@@ -67,6 +65,15 @@ def collect_markdown_files(base: Path) -> list[Path]:
 def stale_active_doc_check() -> list[Finding]:
     findings: list[Finding] = []
     active_dir = REPO_ROOT / "docs/exec-plans/active"
+    if not active_dir.exists():
+        findings.append(
+            Finding(
+                "stale-active-doc",
+                "error",
+                "missing active execution pointer directory: docs/exec-plans/active/",
+            )
+        )
+        return findings
     for item in active_dir.iterdir():
         if item.is_dir():
             if item.name != "tasks" and item.name != "handoff":
@@ -103,12 +110,27 @@ def bootstrap_contract_check() -> list[Finding]:
             Finding("bootstrap-contract", "warning", "AGENTS.md no longer states the bootstrap read path.")
         )
     current_plan = read_text(REPO_ROOT / "docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md")
-    if "Global Build Ladder" not in current_plan or "Selection State" not in current_plan:
+    required_markers = (
+        "current_mainline:",
+        "Active State Sources",
+        "Do Not Start From",
+        "Update Rule",
+    )
+    for marker in required_markers:
+        if marker not in current_plan:
+            findings.append(
+                Finding(
+                    "bootstrap-contract",
+                    "warning",
+                    f"CURRENT_EXECUTION_PLAN.md is missing expected marker {marker}.",
+                )
+            )
+    if len(current_plan.splitlines()) > 90:
         findings.append(
             Finding(
                 "bootstrap-contract",
                 "warning",
-                "CURRENT_EXECUTION_PLAN.md is missing expected state-machine sections.",
+                "CURRENT_EXECUTION_PLAN.md is too long for a minimal execution pointer.",
             )
         )
     for retired_dir in RETIRED_ROOT_DIRS:
@@ -127,10 +149,10 @@ def execution_pointer_drift_check() -> list[Finding]:
     findings: list[Finding] = []
     text = read_text(REPO_ROOT / "docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md")
     required_markers = (
-        "`current_pointer_bundle`",
-        "`recommended_next_slice`",
-        "`selected_best_next_slice`",
-        "`human_gate`",
+        "Current Shell self-use MVP local desktop dogfood",
+        "ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md",
+        "CURRENT_SHELL_SYNC_CONTRACT.yaml",
+        "MANAGER_RUNTIME_GATE_LEDGER.yaml",
     )
     for marker in required_markers:
         if marker not in text:
@@ -141,12 +163,12 @@ def execution_pointer_drift_check() -> list[Finding]:
                     f"CURRENT_EXECUTION_PLAN.md is missing marker {marker}.",
                 )
             )
-    if re.search(r"`recommended_next_slice`:\s*`none`", text) and "deferred" in text:
+    if "PLCE" in text and "legacy Product Loop / PLCE planning prose" not in text:
         findings.append(
             Finding(
                 "execution-pointer-drift",
                 "warning",
-                "recommended_next_slice is `none` while deferred branches exist; review next-slice selection.",
+                "CURRENT_EXECUTION_PLAN.md contains PLCE outside the explicit legacy warning.",
             )
         )
     return findings
@@ -156,10 +178,10 @@ def artifact_misuse_check() -> list[Finding]:
     findings: list[Finding] = []
     docs_to_scan = [
         REPO_ROOT / "AGENTS.md",
-        REPO_ROOT / "docs/index.md",
+        REPO_ROOT / "docs/DOC_INDEX.md",
+        REPO_ROOT / "docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md",
         REPO_ROOT / "docs/governance/TASK_CHECKIN_PROTOCOL.md",
         REPO_ROOT / "docs/governance/HANDOFF_CONTRACT.md",
-        REPO_ROOT / "docs/exec-plans/active/tasks/README.md",
     ]
     joined = "\n".join(read_text(p) for p in docs_to_scan if p.exists())
     if "Do not start broad implementation work without a checked-in task artifact." in joined:
@@ -170,7 +192,8 @@ def artifact_misuse_check() -> list[Finding]:
                 "repo still states that task artifacts are mandatory for broad implementation.",
             )
         )
-    active_tasks = list((REPO_ROOT / "docs/exec-plans/active/tasks").glob("*.md"))
+    active_tasks_dir = REPO_ROOT / "docs/exec-plans/active/tasks"
+    active_tasks = list(active_tasks_dir.glob("*.md")) if active_tasks_dir.exists() else []
     active_tasks = [p for p in active_tasks if p.name.lower() != "readme.md"]
     if active_tasks:
         findings.append(
@@ -185,15 +208,6 @@ def artifact_misuse_check() -> list[Finding]:
 
 def snapshot_isolation_check() -> list[Finding]:
     findings: list[Finding] = []
-    if (REPO_ROOT / "docs/_spec_snapshots").exists():
-        findings.append(
-            Finding(
-                "snapshot-isolation",
-                "error",
-                "docs/_spec_snapshots still exists inside docs/ ontology.",
-            )
-        )
-
     scan_roots = [
         REPO_ROOT / "AGENTS.md",
         REPO_ROOT / "README.md",
@@ -212,9 +226,9 @@ def snapshot_isolation_check() -> list[Finding]:
     seen: set[str] = set()
     for path in files:
         relative = normalize(path)
-        if relative.startswith("docs/exec-plans/completed/"):
+        if relative.startswith("docs/_spec_snapshots/"):
             continue
-        if relative.startswith("artifacts/docs-snapshots/"):
+        if relative.startswith("docs/exec-plans/completed/"):
             continue
         if relative in HISTORICAL_REFERENCE_ALLOWLIST:
             continue
@@ -234,12 +248,59 @@ def snapshot_isolation_check() -> list[Finding]:
     return findings
 
 
+def external_tool_residue_check() -> list[Finding]:
+    findings: list[Finding] = []
+    forbidden_paths = (
+        ".kiro",
+        ".github/workflows/cd.yml",
+    )
+    for relative in forbidden_paths:
+        if (REPO_ROOT / relative).exists():
+            findings.append(
+                Finding(
+                    "external-tool-residue",
+                    "error",
+                    f"retired external-tool or cloud placeholder surface exists: {relative}",
+                )
+            )
+
+    scan_roots = [
+        REPO_ROOT / "AGENTS.md",
+        REPO_ROOT / "docs",
+        REPO_ROOT / "scripts",
+    ]
+    files: list[Path] = []
+    for root in scan_roots:
+        if root.is_file():
+            files.append(root)
+        else:
+            files.extend(collect_markdown_files(root))
+            files.extend([p for p in root.rglob("*.py") if p.is_file()])
+
+    for path in files:
+        relative = normalize(path)
+        if relative == "scripts/harness_garbage_collect.py":
+            continue
+        text = read_text(path)
+        for token in (".kiro/", ".github/workflows/cd.yml"):
+            if token in text:
+                findings.append(
+                    Finding(
+                        "external-tool-residue",
+                        "warning",
+                        f"live file still references retired surface `{token}`: {relative}",
+                    )
+                )
+    return findings
+
+
 CHECKS = {
     "stale-active-doc": stale_active_doc_check,
     "bootstrap-contract": bootstrap_contract_check,
     "execution-pointer-drift": execution_pointer_drift_check,
     "artifact-misuse": artifact_misuse_check,
     "snapshot-isolation": snapshot_isolation_check,
+    "external-tool-residue": external_tool_residue_check,
 }
 
 

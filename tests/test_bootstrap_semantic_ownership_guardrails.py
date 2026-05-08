@@ -41,13 +41,16 @@ def test_bootstrap_requires_best_practice_and_semantic_owner_fields() -> None:
         assert f"`{field}`" in combined
 
 
-def test_best_practice_steering_uses_available_search_and_requires_evidence() -> None:
-    steering = _read(".kiro/steering/best-practice-search.md")
+def test_best_practice_guidance_is_repo_local_not_kiro_steering() -> None:
+    agents = _read("AGENTS.md")
+    bootstrap = _read("docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md")
+    combined = f"{agents}\n{bootstrap}"
 
-    assert "Use the available web/search tool in the current environment" in steering
-    assert "Prefer official or primary sources first" in steering
-    assert "Record the search in the implementation plan under `best_practice_evidence`" in steering
-    assert "missing `best_practice_evidence` is a planning failure" in steering
+    assert not (ROOT / ".kiro").exists()
+    assert "current official or primary sources" in combined
+    assert "best_practice_evidence" in combined
+    assert "If a high-impact B-2 slice skips current best-practice / official-reference review" in combined
+    assert ".kiro/steering/best-practice-search.md" not in combined
 
 
 def test_bootstrap_records_founder_live_strictness_model_inversion_policy() -> None:
