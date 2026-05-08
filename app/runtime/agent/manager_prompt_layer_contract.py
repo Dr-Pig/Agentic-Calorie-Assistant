@@ -4,19 +4,14 @@ import hashlib
 import json
 from typing import Any
 
+from app.runtime.agent.manager_system_prompt import single_manager_system_prompt_section_contract
 
 MANAGER_PROMPT_LAYER_CONTRACT_VERSION = "manager_prompt_layer_contract.v1"
 MANAGER_PROMPT_CACHE_PROFILE_ID = "manager_prompt_prefix_cache_profile.v1"
 MANAGER_SYSTEM_CONTRACT_OWNER = "ManagerRuntime"
 PROVIDER_OVERLAY_OWNER = "ProviderAdapter"
 _RUNTIME_PAYLOAD_LAYER_ORDER = (
-    "turn_state",
-    "context_engineering",
-    "tool_surface",
-    "tool_evidence",
-    "contract_constraints",
-    "loop_control",
-    "guard_repair",
+    "turn_state", "context_engineering", "tool_surface", "tool_evidence", "contract_constraints", "loop_control", "guard_repair"
 )
 _RUNTIME_PAYLOAD_LAYER_KEYS = {
     "turn_state": (
@@ -38,19 +33,13 @@ _RUNTIME_PAYLOAD_LAYER_KEYS = {
         "phase_a_shadow_hypothesis_role",
         "phase_a_shadow_hypothesis_instruction",
     ),
-    "tool_surface": (
-        "available_tools",
-        "manager_scope_policy",
-    ),
+    "tool_surface": ("available_tools", "manager_scope_policy"),
     "tool_evidence": ("tool_results",),
     "contract_constraints": (
         "constraints",
         "manager_product_policy_hints",
     ),
-    "loop_control": (
-        "round_index",
-        "manager_loop_scope",
-    ),
+    "loop_control": ("round_index", "manager_loop_scope"),
     "guard_repair": ("guard_feedback",),
 }
 
@@ -67,6 +56,7 @@ def build_manager_prompt_layer_contract(
     system_prompt_sha256 = hashlib.sha256(system_prompt.encode("utf-8")).hexdigest()
     dynamic_suffix_sha256 = hashlib.sha256(_json_text(user_payload).encode("utf-8")).hexdigest()
     runtime_payload_layer_plan = _runtime_payload_layer_plan(dynamic_payload_keys)
+    system_section_contract = single_manager_system_prompt_section_contract()
     return {
         "contract_version": MANAGER_PROMPT_LAYER_CONTRACT_VERSION,
         "manager_loop_scope": str(manager_loop_scope),
@@ -80,6 +70,7 @@ def build_manager_prompt_layer_contract(
             "prompt_id": str(system_prompt_id),
             "prompt_version": str(system_prompt_version),
             "stable_prefix_sha256": system_prompt_sha256,
+            **system_section_contract,
         },
         "provider_overlay_contract": {
             "owner": PROVIDER_OVERLAY_OWNER,
@@ -87,6 +78,7 @@ def build_manager_prompt_layer_contract(
             "may_set_model": True,
             "may_set_transport": True,
             "may_change_system_contract": False,
+            "may_change_system_prompt_sections": False,
             "may_inject_product_semantics": False,
         },
         "runtime_payload_layer_plan": runtime_payload_layer_plan,
@@ -109,6 +101,7 @@ def build_manager_prompt_layer_contract(
             "stable_prefix_sha256": system_prompt_sha256,
             "dynamic_suffix_sha256": dynamic_suffix_sha256,
             "stable_prefix_component_order": ["system_prompt"],
+            "stable_prefix_section_order": list(system_section_contract["section_order"]),
             "dynamic_suffix_component_order": ["runtime_user_payload"],
             "provider_overlay_hash_source": "provider_trace.prompt_cache_request",
             "cache_truth_source": "provider_reported_usage_only",

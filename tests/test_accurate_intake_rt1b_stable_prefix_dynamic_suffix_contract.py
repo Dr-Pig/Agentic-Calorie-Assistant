@@ -50,6 +50,7 @@ def test_rt1b_records_prompt_layer_and_cache_profile_without_prompt_payload_leak
     assert observed["prompt_cache_profile"]["static_prefix_first"] is True
     assert observed["prompt_cache_profile"]["dynamic_context_last"] is True
     assert observed["prompt_cache_identity"]["stable_prefix_component_order"] == ["system_prompt"]
+    assert observed["prompt_cache_identity"]["stable_prefix_section_order"] == observed["system_contract"]["section_order"]
     assert observed["prompt_cache_identity"]["dynamic_suffix_component_order"] == ["runtime_user_payload"]
     assert observed["prompt_cache_identity"]["provider_overlay_hash_source"] == "provider_trace.prompt_cache_request"
     assert observed["prompt_cache_identity"]["provider_usage_is_cache_truth"] is True
@@ -58,7 +59,20 @@ def test_rt1b_records_prompt_layer_and_cache_profile_without_prompt_payload_leak
     assert observed["progressive_disclosure"]["contract_constraints_dynamic_payload_mode"] == "runtime_state_and_refs_only"
     assert observed["progressive_disclosure"]["contract_static_guidance_refs_only"] is True
     assert observed["system_contract"]["owner"] == "ManagerRuntime"
+    assert observed["system_contract"]["section_manifest_version"] == "single_manager_system_prompt_sections.v1"
+    assert observed["system_contract"]["section_order"] == [
+        "base_manager_role_and_react_loop",
+        "product_policy_guidance",
+        "runtime_contract_policy",
+        "scope_boundary_policy",
+        "user_facing_reply_policy",
+    ]
+    assert all(
+        section["provider_overlay_allowed"] is False
+        for section in observed["system_contract"]["sections"]
+    )
     assert observed["provider_overlay_contract"]["owner"] == "ProviderAdapter"
+    assert observed["provider_overlay_contract"]["may_change_system_prompt_sections"] is False
     assert observed["provider_overlay_contract"]["may_inject_product_semantics"] is False
     assert observed["runtime_payload_layer_plan"]["uncategorized_dynamic_keys"] == []
     section_ids = [

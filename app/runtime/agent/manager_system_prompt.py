@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import hashlib
+from typing import Any
+
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
 SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v10"
+SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
 _BASE_MANAGER_SYSTEM_PROMPT = (
@@ -77,15 +81,43 @@ _USER_FACING_REPLY_PROMPT = (
 )
 
 
-SINGLE_MANAGER_SYSTEM_PROMPT = (
-    _BASE_MANAGER_SYSTEM_PROMPT
-    + _PRODUCT_POLICY_PROMPT
-    + _CONTRACT_POLICY_PROMPT
-    + _SCOPE_POLICY_PROMPT
-    + _USER_FACING_REPLY_PROMPT
+_SINGLE_MANAGER_SYSTEM_PROMPT_SECTIONS = (
+    {
+        "section_id": "base_manager_role_and_react_loop",
+        "owner": "ManagerRuntime.SystemContract",
+        "cache_role": "stable_role_and_output_contract",
+        "text": _BASE_MANAGER_SYSTEM_PROMPT,
+    },
+    {
+        "section_id": "product_policy_guidance",
+        "owner": "ManagerRuntime.ProductPolicy",
+        "cache_role": "stable_product_policy",
+        "text": _PRODUCT_POLICY_PROMPT,
+    },
+    {
+        "section_id": "runtime_contract_policy",
+        "owner": "ManagerRuntime.RuntimeContract",
+        "cache_role": "stable_guard_and_tool_policy",
+        "text": _CONTRACT_POLICY_PROMPT,
+    },
+    {
+        "section_id": "scope_boundary_policy",
+        "owner": "ManagerRuntime.ScopePolicy",
+        "cache_role": "stable_scope_policy",
+        "text": _SCOPE_POLICY_PROMPT,
+    },
+    {
+        "section_id": "user_facing_reply_policy",
+        "owner": "ManagerRuntime.ResponsePolicy",
+        "cache_role": "stable_response_policy",
+        "text": _USER_FACING_REPLY_PROMPT,
+    },
 )
 
 
+SINGLE_MANAGER_SYSTEM_PROMPT = "".join(
+    str(section["text"]) for section in _SINGLE_MANAGER_SYSTEM_PROMPT_SECTIONS
+)
 SINGLE_MANAGER_ENTRY_SCOPE_SYSTEM_PROMPT = SINGLE_MANAGER_SYSTEM_PROMPT
 
 
@@ -93,10 +125,38 @@ def single_manager_system_prompt_for_scope(manager_loop_scope: str) -> str:
     return SINGLE_MANAGER_SYSTEM_PROMPT
 
 
+def single_manager_system_prompt_section_manifest() -> list[dict[str, Any]]:
+    return [
+        {
+            "section_id": str(section["section_id"]),
+            "owner": str(section["owner"]),
+            "layer": "static_prefix",
+            "cache_role": str(section["cache_role"]),
+            "provider_overlay_allowed": False,
+            "utf8_bytes": len(str(section["text"]).encode("utf-8")),
+            "sha256": hashlib.sha256(str(section["text"]).encode("utf-8")).hexdigest(),
+        }
+        for section in _SINGLE_MANAGER_SYSTEM_PROMPT_SECTIONS
+    ]
+
+
+def single_manager_system_prompt_section_contract() -> dict[str, Any]:
+    sections = single_manager_system_prompt_section_manifest()
+    return {
+        "section_manifest_version": SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION,
+        "section_order": [str(section["section_id"]) for section in sections],
+        "section_sha256": {str(section["section_id"]): str(section["sha256"]) for section in sections},
+        "sections": sections,
+    }
+
+
 __all__ = [
     "SINGLE_MANAGER_ENTRY_SCOPE_SYSTEM_PROMPT",
+    "SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION",
     "SINGLE_MANAGER_SYSTEM_PROMPT",
     "SINGLE_MANAGER_SYSTEM_PROMPT_ID",
     "SINGLE_MANAGER_SYSTEM_PROMPT_VERSION",
     "single_manager_system_prompt_for_scope",
+    "single_manager_system_prompt_section_contract",
+    "single_manager_system_prompt_section_manifest",
 ]
