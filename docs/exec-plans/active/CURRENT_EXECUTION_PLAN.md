@@ -47,7 +47,7 @@ Execution ownership may consolidate in one agent window, but architecture owners
 
 - Kiro steering files
 - placeholder cloud/deploy workflows
-- `docs/index.md` or `docs/V2_DOC_INDEX.md`
+- retired duplicate docs indexes such as `docs/index.md` or `docs/V2_DOC_INDEX.md`
 - `docs/specs/APP_V2_IMPLEMENTATION_PLAN.md`
 - `docs/quality/V2_CAPABILITY_MAP.md`
 - legacy Product Loop / PLCE planning prose unless explicitly using compatibility paths

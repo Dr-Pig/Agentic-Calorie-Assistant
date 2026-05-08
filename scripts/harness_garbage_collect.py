@@ -253,6 +253,8 @@ def external_tool_residue_check() -> list[Finding]:
     forbidden_paths = (
         ".kiro",
         ".github/workflows/cd.yml",
+        "docs/index.md",
+        "docs/V2_DOC_INDEX.md",
     )
     for relative in forbidden_paths:
         if (REPO_ROOT / relative).exists():

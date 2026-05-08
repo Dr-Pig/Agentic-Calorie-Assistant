@@ -11,7 +11,7 @@ if ($env:LHC_ALLOW_SPEC_DELETE -eq "1") {
 
 $protectedExact = @(
     "AGENTS.md",
-    "docs/index.md",
+    "docs/DOC_INDEX.md",
     "docs/governance/ENCODING_POLICY.md",
     "docs/governance/SPEC_EDITING_PROTOCOL.md",
     "docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md",
