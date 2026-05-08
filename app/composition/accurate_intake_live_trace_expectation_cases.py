@@ -153,6 +153,7 @@ def _grade_no_plan_query(case: dict[str, Any]) -> dict[str, Any]:
     remaining = _dict(turn.get("remaining_budget"))
     reply_texts = _case_reply_texts(case)
     zero_claims = [text for text in reply_texts if _contains_missing_budget_zero_claim(text)]
+    coach_message = str(turn.get("coach_message") or "")
     checks = _read_only_checks(case)
     checks.append(
         _check(
@@ -166,6 +167,13 @@ def _grade_no_plan_query(case: dict[str, Any]) -> dict[str, Any]:
             "no_plan_reply_does_not_claim_zero_budget_or_remaining",
             not zero_claims,
             {"reply_texts_checked": reply_texts, "forbidden_zero_claims": zero_claims},
+        )
+    )
+    checks.append(
+        _check(
+            "no_plan_coach_message_is_user_facing_degraded_reply",
+            _looks_like_degraded_no_plan_reply(coach_message),
+            {"coach_message": coach_message},
         )
     )
     return _grade("no_plan_consumed_without_budget_target", checks)
@@ -254,6 +262,12 @@ def _append_reply_text(texts: list[str], value: Any) -> None:
 
 def _contains_missing_budget_zero_claim(text: str) -> bool:
     return bool(_CJK_MISSING_BUDGET_ZERO_RE.search(text) or _EN_MISSING_BUDGET_ZERO_RE.search(text))
+
+
+def _looks_like_degraded_no_plan_reply(text: str) -> bool:
+    if not text.strip() or "Onboarding is required" in text:
+        return False
+    return "設定" in text and ("剩餘" in text or "熱量" in text)
 
 
 __all__ = ["grade_case_trace_expectation"]

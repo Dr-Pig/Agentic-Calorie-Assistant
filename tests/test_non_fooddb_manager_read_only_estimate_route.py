@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from types import SimpleNamespace
 from typing import Any
 
 from fastapi import FastAPI
@@ -739,6 +740,88 @@ def test_day_meal_log_finalizer_rejects_remaining_budget_tool_result() -> None:
     )
 
     assert result is None
+
+
+def test_answer_remaining_budget_finalizer_uses_manager_reply_for_degraded_no_plan() -> None:
+    trace_events: list[dict[str, object]] = []
+    remaining_budget = SimpleNamespace(
+        status="onboarding_required",
+        daily_target_kcal=None,
+        consumed_kcal=0,
+        remaining_kcal=None,
+        meal_count=0,
+    )
+
+    class _Decision:
+        intent_type = "answer_remaining_budget"
+        workflow_effect = "answer_only"
+        final_action = "answer_remaining_budget"
+        tool_results = []
+        answer_contract = {
+            "reply_text": "今天尚未設定每日熱量目標，尚未記錄任何餐食。請先完成個人化設定以追蹤攝取與剩餘熱量。"
+        }
+        response_summary = ""
+        tool_calls = []
+        semantic_decision = {
+            "current_turn_intent": "answer_remaining_budget",
+            "workflow_effect": "answer_only",
+            "mutation_intent_candidate": "no_mutation",
+        }
+
+    result = finalize_non_fooddb_read_only_manager_intent(
+        db=None,
+        manager_decision=_Decision(),
+        user_id=1,
+        local_date="2026-05-06",
+        request_id="req-no-plan-degraded",
+        build_remaining_budget=lambda *args, **kwargs: remaining_budget,
+        append_trace_event=lambda **kwargs: trace_events.append(kwargs),
+    )
+
+    assert result == {
+        "remaining_budget": remaining_budget,
+        "assistant_message_override": "今天尚未設定每日熱量目標，尚未記錄任何餐食。請先完成個人化設定以追蹤攝取與剩餘熱量。",
+    }
+    assert trace_events[0]["summary"]["assistant_message_source"] == "manager_answer_contract"
+
+
+def test_answer_remaining_budget_finalizer_downgrades_bad_degraded_budget_reply() -> None:
+    remaining_budget = SimpleNamespace(
+        status="onboarding_required",
+        daily_target_kcal=None,
+        consumed_kcal=0,
+        remaining_kcal=None,
+        meal_count=0,
+    )
+
+    class _Decision:
+        intent_type = "answer_remaining_budget"
+        workflow_effect = "answer_only"
+        final_action = "answer_remaining_budget"
+        tool_results = []
+        answer_contract = {"reply_text": "今天已消耗 0 卡路里，但預算為 0 卡路里，剩餘 0 卡路里。"}
+        response_summary = ""
+        tool_calls = []
+        semantic_decision = {
+            "current_turn_intent": "answer_remaining_budget",
+            "workflow_effect": "answer_only",
+            "mutation_intent_candidate": "no_mutation",
+        }
+
+    result = finalize_non_fooddb_read_only_manager_intent(
+        db=None,
+        manager_decision=_Decision(),
+        user_id=1,
+        local_date="2026-05-06",
+        request_id="req-no-plan-degraded-bad-reply",
+        build_remaining_budget=lambda *args, **kwargs: remaining_budget,
+        append_trace_event=lambda **kwargs: None,
+    )
+
+    assert result == {
+        "remaining_budget": remaining_budget,
+        "assistant_message_override": "尚未設定每日熱量目標；今天已記錄 0 kcal，但剩餘熱量要等完成設定後才能計算。",
+    }
 
 
 def test_entry_answer_only_finalizer_stops_log_meal_compat_route_without_mutation() -> None:

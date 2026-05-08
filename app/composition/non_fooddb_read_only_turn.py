@@ -5,6 +5,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.composition.current_budget_answer import build_remaining_budget_answer_contract
+from app.composition.degraded_budget_reply_policy import build_degraded_budget_reply
 from app.composition.non_fooddb_read_tool_executor import execute_non_fooddb_read_tool_calls
 from app.intake.application.intake_trace_tools import append_trace_event_tool
 from app.runtime.agent.manager import IntakeManagerResult
@@ -28,7 +29,6 @@ _LEGACY_PUBLIC_TOOL_COMPAT = {
     "body.get_latest_observation": ("read_latest_weight_observation",),
     "calibration.get_pending_proposal": ("read_calibration_pending_proposal",),
 }
-
 
 def build_non_fooddb_read_tool_executor(
     db: Session,
@@ -100,6 +100,13 @@ def finalize_non_fooddb_read_only_manager_intent(
             user_id=user_id,
             local_date=local_date,
         )
+        assistant_message_override = None
+        assistant_message_source = "deterministic_budget_renderer"
+        if str(getattr(remaining_budget, "status", "") or "") == "onboarding_required":
+            assistant_message_override, assistant_message_source = build_degraded_budget_reply(
+                manager_decision,
+                remaining_budget,
+            )
         append_trace_event(
             request_id=request_id,
             stage="v2_remaining_budget_read",
@@ -110,9 +117,10 @@ def finalize_non_fooddb_read_only_manager_intent(
                 "consumed_kcal": remaining_budget.consumed_kcal,
                 "remaining_kcal": remaining_budget.remaining_kcal,
                 "meal_count": remaining_budget.meal_count,
+                "assistant_message_source": assistant_message_source,
             },
         )
-        return {"remaining_budget": remaining_budget, "assistant_message_override": None}
+        return {"remaining_budget": remaining_budget, "assistant_message_override": assistant_message_override}
 
     if _is_entry_answer_only_no_mutation(manager_decision):
         remaining_budget = build_remaining_budget(
@@ -152,6 +160,10 @@ def finalize_non_fooddb_read_only_manager_intent(
             user_id=user_id,
             local_date=local_date,
         )
+        assistant_message_override, assistant_message_source = build_degraded_budget_reply(
+            manager_decision,
+            remaining_budget,
+        )
         append_trace_event(
             request_id=request_id,
             stage="v2_onboarding_required",
@@ -159,9 +171,10 @@ def finalize_non_fooddb_read_only_manager_intent(
             summary={
                 "status": remaining_budget.status,
                 "reason": "budget_query_without_active_plan",
+                "assistant_message_source": assistant_message_source,
             },
         )
-        return {"remaining_budget": remaining_budget, "assistant_message_override": None}
+        return {"remaining_budget": remaining_budget, "assistant_message_override": assistant_message_override}
 
     if (
         manager_decision.intent_type == "general_chat"
