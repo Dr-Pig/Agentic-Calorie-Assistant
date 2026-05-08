@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -316,6 +317,50 @@ async def test_run_intake_manager_sends_manager_context_packet_v1_sidecar_withou
     assert "messages" not in sidecar_trace["recent_chat_window"]
     assert result.final_action == "no_commit"
     assert result.workflow_effect == "safe_failure"
+
+
+@pytest.mark.asyncio
+async def test_run_intake_manager_compacts_legacy_resolved_state_prompt_payload() -> None:
+    resolved_state = _resolved_state_with_recent_chat_turns()
+    resolved_state.injected_context["TRACE_ONLY_BULK_STATE"] = {
+        "debug_blob": "x" * 20_000,
+        "full_transcript": ["not manager prompt input"] * 100,
+    }
+    resolved_state.injected_context["RECENT_COMMITTED_MEALS_SUMMARY"][0]["item_candidates"] = [
+        {"meal_item_id": 501, "canonical_name": "soup", "estimated_kcal": 120},
+    ]
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="remove soup",
+        resolved_state=resolved_state,
+    )
+    packet = build_manager_context_packet_v1(
+        current_turn_context=current_turn_context,
+        user_id="user-1",
+        local_date="2026-04-29",
+        session_id="session-1",
+    )
+    provider = _FakeProvider()
+
+    await run_intake_manager(
+        provider=provider,
+        raw_user_input="remove soup",
+        resolved_state=resolved_state,
+        current_turn_context=current_turn_context,
+        manager_context_pack=build_manager_context_pack(current_turn_context=current_turn_context),
+        manager_context_packet_v1=packet,
+        available_tools=("budget.get_today_summary",),
+    )
+
+    payload = provider.calls[0]["user_payload"]
+    resolved_payload = payload["resolved_state"]
+    assert resolved_payload["prompt_payload_kind"] == "resolved_state_compact_summary"
+    assert resolved_payload["full_state_omitted_from_prompt"] is True
+    assert resolved_payload["primary_context_source"] == "manager_context_packet_v1"
+    assert resolved_payload["summary"]["onboarding_ready"] is True
+    assert "TRACE_ONLY_BULK_STATE" in resolved_payload["omitted_injected_context_keys"]
+    assert "debug_blob" not in json.dumps(resolved_payload, ensure_ascii=False)
+    assert len(json.dumps(resolved_payload, ensure_ascii=False)) < 1500
+    assert payload["manager_context_packet_v1"]["target_candidates"]["for_correction_or_removal"]
 
 
 @pytest.mark.asyncio

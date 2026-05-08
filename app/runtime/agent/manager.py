@@ -20,6 +20,7 @@ from app.runtime.agent.manager_prompt_registry import build_manager_prompt_regis
 from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT, single_manager_system_prompt_for_scope  # noqa: F401
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 from app.runtime.agent.manager_payload_utils import (
+    compact_resolved_state_prompt_payload,
     json_safe,
     maybe_await,
     stable_available_tools,
@@ -33,7 +34,6 @@ from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansion
 ToolExecutor = Callable[..., Awaitable[list[dict[str, Any]]] | list[dict[str, Any]]]
 GuardChecker = Callable[..., Awaitable[dict[str, Any]] | dict[str, Any]]
 ManagerContextRefresher = Callable[..., Awaitable[dict[str, Any]] | dict[str, Any]]
-
 def _with_phase_a_repair_trace(
     guard_outcome: dict[str, Any],
     *,
@@ -112,7 +112,7 @@ async def run_intake_manager(
         manager_context_trace["manager_loop_scope"] = effective_manager_loop_scope
         user_payload = {
             "raw_user_input": raw_user_input,
-            "resolved_state": json_safe(resolved_state),
+            "resolved_state": compact_resolved_state_prompt_payload(resolved_state),
             "resolved_state_role": "compatibility_legacy",
             "phase_a_current_turn_context": (
                 current_turn_context.model_dump(mode="json")
