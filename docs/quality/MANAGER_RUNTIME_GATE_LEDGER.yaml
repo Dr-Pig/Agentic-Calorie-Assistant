@@ -206,11 +206,18 @@ gates:
     pass_type: runtime_backed
     depends_on:
       - rt14a_provider_health_schema_live_foundation
+  - gate_id: rt14c_schema_contract_live_canary
+    title: Schema-contract real-live canary
+    status: green
+    pass_type: runtime_backed
+    depends_on:
+      - rt14b_provider_health_live_canary
   - gate_id: rt14_limited_live_ladder
     title: Limited live diagnostic ladder
     status: pending
     pass_type: runtime_backed
     depends_on:
+      - rt14c_schema_contract_live_canary
       - rt14b_provider_health_live_canary
       - rt14a_provider_health_schema_live_foundation
       - rt1c_cache_metrics_observability
