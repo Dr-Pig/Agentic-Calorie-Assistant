@@ -309,6 +309,11 @@ def test_live_cost_summary_aggregates_prompt_cache_identity_reuse() -> None:
                             "prompt_cache_request": {
                                 "identity_version": "provider_prompt_cache_request.v1",
                                 "stable_prefix_sha256": "stable-a",
+                                "stable_prefix_component_sha256": {
+                                    "tools": "tools-a",
+                                    "response_format": "schema-a",
+                                    "system_messages": "system-a",
+                                },
                                 "dynamic_suffix_sha256": "dynamic-turn-1",
                                 "provider_request_includes_prompt_cache_key": False,
                                 "cache_truth_source": "provider_reported_usage_only",
@@ -327,6 +332,11 @@ def test_live_cost_summary_aggregates_prompt_cache_identity_reuse() -> None:
                             "prompt_cache_request": {
                                 "identity_version": "provider_prompt_cache_request.v1",
                                 "stable_prefix_sha256": "stable-a",
+                                "stable_prefix_component_sha256": {
+                                    "tools": "tools-a",
+                                    "response_format": "schema-a",
+                                    "system_messages": "system-a",
+                                },
                                 "dynamic_suffix_sha256": "dynamic-turn-2",
                                 "provider_request_includes_prompt_cache_key": False,
                                 "cache_truth_source": "provider_reported_usage_only",
@@ -339,6 +349,11 @@ def test_live_cost_summary_aggregates_prompt_cache_identity_reuse() -> None:
     )
 
     assert summary["provider_invocation_records"][0]["prompt_cache_stable_prefix_sha256"] == "stable-a"
+    assert summary["provider_invocation_records"][0]["prompt_cache_stable_prefix_component_sha256"] == {
+        "tools": "tools-a",
+        "response_format": "schema-a",
+        "system_messages": "system-a",
+    }
     assert summary["provider_invocation_records"][1]["prompt_cache_dynamic_suffix_sha256"] == "dynamic-turn-2"
     assert summary["prompt_cache_identity_summary"] == {
         "provider_trace_identity_count": 2,
