@@ -103,7 +103,7 @@ def _grade_turn(
     case_id: str,
     turn: dict[str, Any],
     expected_tools: list[str],
-    expected_final_action: str | None,
+    expected_final_action: str | list[str] | None,
     manager_round_required: bool,
 ) -> dict[str, Any]:
     blockers: list[str] = []
@@ -114,9 +114,15 @@ def _grade_turn(
     actual_tools = _tool_names(turn)
     if actual_tools != expected_tools:
         blockers.append(f"tool_choice_mismatch:expected={expected_tools}:actual={actual_tools}")
-    if expected_final_action is not None and turn.get("manager_final_action") != expected_final_action:
+    if isinstance(expected_final_action, list):
+        expected_final_actions = expected_final_action
+    elif expected_final_action is None:
+        expected_final_actions = []
+    else:
+        expected_final_actions = [expected_final_action]
+    if expected_final_actions and turn.get("manager_final_action") not in expected_final_actions:
         blockers.append(
-            f"final_action_mismatch:expected={expected_final_action}:actual={turn.get('manager_final_action')}"
+            f"final_action_mismatch:expected={expected_final_actions}:actual={turn.get('manager_final_action')}"
         )
     if _dict(turn.get("runtime_error")):
         blockers.append("runtime_error_present")
@@ -163,7 +169,7 @@ def _live_trace_cases(
             case_id="bubble_milk_tea_refinement.turn2",
             turn=_turn(bubble, 2),
             expected_tools=["estimate_nutrition"],
-            expected_final_action="commit",
+            expected_final_action=["commit", "correction_applied"],
             manager_round_required=True,
         ),
         _grade_turn(

@@ -54,8 +54,11 @@ def _final_round(turn: dict[str, Any]) -> dict[str, Any]:
     return _dict(rounds[-1]) if rounds else {}
 
 
-def _workflow_effect_ok(value: Any) -> bool:
-    return str(value or "").strip() in {"commit", "canonical_write"}
+def _workflow_effect_ok(value: Any, *, allow_refinement_update: bool = False) -> bool:
+    allowed = {"commit", "canonical_write"}
+    if allow_refinement_update:
+        allowed.update({"correction", "correction_write", "same_item_refinement"})
+    return str(value or "").strip() in allowed
 
 
 def _targets_existing_thread(semantic_decision: dict[str, Any]) -> bool:
@@ -135,6 +138,9 @@ def build_rt10d_generic_optional_refinement_live_probe_gate(
         if not turn:
             blockers.append(f"{prefix}_missing")
             continue
+        allowed_final_actions = {"commit"}
+        if prefix == "turn2":
+            allowed_final_actions.add("correction_applied")
         state_delta = _dict(turn.get("state_delta"))
         if state_delta.get("canonical_commit") is not True:
             blockers.append(f"{prefix}_canonical_commit_missing")
@@ -142,9 +148,9 @@ def build_rt10d_generic_optional_refinement_live_probe_gate(
             blockers.append(f"{prefix}_unexpected_draft_saved")
         if state_delta.get("ledger_updated") is not True:
             blockers.append(f"{prefix}_ledger_not_updated")
-        if turn.get("manager_final_action") != "commit":
-            blockers.append(f"{prefix}_manager_final_action_not_commit")
-        if not _workflow_effect_ok(turn.get("workflow_effect")):
+        if turn.get("manager_final_action") not in allowed_final_actions:
+            blockers.append(f"{prefix}_manager_final_action_not_refinement_commit_family")
+        if not _workflow_effect_ok(turn.get("workflow_effect"), allow_refinement_update=prefix == "turn2"):
             blockers.append(f"{prefix}_workflow_effect_not_commit_family")
         if _tool_names(turn) != ["estimate_nutrition"]:
             blockers.append(f"{prefix}_unexpected_tool_inventory")

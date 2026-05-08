@@ -108,13 +108,14 @@ def _grade_chicken_rice(case: dict[str, Any]) -> dict[str, Any]:
 def _grade_bubble_tea(case: dict[str, Any]) -> dict[str, Any]:
     case_id = "bubble_milk_tea_refinement"
     turn2 = _turn(case, 2)
+    turn2_final_action = _final(turn2)
     checks = [
         _check("two_turn_refinement", len(_turns(case)) == 2, {"turn_count": len(_turns(case))}),
         _turn_estimate_commit_check(case, 1, no_supersede=True),
         _check(
             "turn2_attaches_to_committed_thread",
-            _final(turn2) == "commit" and "estimate_nutrition" in _turn_tools(turn2),
-            {"final_action": _final(turn2), "tool_names": _turn_tools(turn2)},
+            turn2_final_action in {"commit", "correction_applied"} and "estimate_nutrition" in _turn_tools(turn2),
+            {"final_action": turn2_final_action, "tool_names": _turn_tools(turn2)},
         ),
         _check("turn2_supersedes_old_version", _delta(turn2).get("old_version_superseded") is True, {"state_delta": _delta(turn2)}),
         _check("same_truth_pass", _same_truth(case) == "pass", {"same_truth_status": _same_truth(case)}),

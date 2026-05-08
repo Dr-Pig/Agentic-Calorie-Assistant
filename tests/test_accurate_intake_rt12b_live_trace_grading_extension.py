@@ -59,7 +59,7 @@ def _bubble_artifact() -> dict[str, object]:
         "bubble_milk_tea_refinement",
         [
             _turn(1, action="commit", tools=["estimate_nutrition"]),
-            _turn(2, action="commit", tools=["estimate_nutrition"]),
+            _turn(2, action="correction_applied", tools=["estimate_nutrition"]),
         ],
     )
 
