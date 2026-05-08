@@ -157,10 +157,24 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
             assert "coach_message" in turn
             assert "show_macro" in turn
             assert "macro_guard_reason" in turn
+            assert isinstance(turn["latency_ms"], int)
+            assert isinstance(turn["non_provider_latency_ms"], int)
+            assert turn["latency_attribution"] == {
+                "turn_total_ms": turn["latency_ms"],
+                "provider_invocation_ms": turn["provider_invocation_summary"]["provider_invocation_latency_ms"],
+                "non_provider_runtime_ms": turn["non_provider_latency_ms"],
+            }
             assert turn["provider_invocation_summary"]["provider_invocation_count"] >= 1
             assert isinstance(turn["provider_invocation_summary"]["provider_invocation_latency_ms"], int)
         assert case["provider_invocation_count"] >= len(case["turns"])
         assert isinstance(case["provider_invocation_latency_ms"], int)
+        assert isinstance(case["latency_ms"], int)
+        assert isinstance(case["non_provider_latency_ms"], int)
+        assert case["latency_attribution"] == {
+            "case_total_ms": case["latency_ms"],
+            "provider_invocation_ms": case["provider_invocation_latency_ms"],
+            "non_provider_runtime_ms": case["non_provider_latency_ms"],
+        }
         for invocation in case["provider_invocations"]:
             assert invocation["span_kind"] == "provider_request"
             assert invocation["diagnostic_stage_id"] in {

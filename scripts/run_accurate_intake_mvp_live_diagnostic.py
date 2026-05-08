@@ -1069,10 +1069,18 @@ def _run_case_batch(
                     provider_invocations=provider.invocations[invocation_start_index:],
                 )
             case_invocations = _json_safe(provider.invocations[invocation_start_index:])
+            case_latency_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
+            case_provider_latency_ms = sum(int(item.get("latency_ms") or 0) for item in case_invocations)
             case_result.setdefault("provider_invocations", case_invocations)
             case_result["provider_invocation_count"] = len(case_invocations)
-            case_result["provider_invocation_latency_ms"] = sum(int(item.get("latency_ms") or 0) for item in case_invocations)
-            case_result["latency_ms"] = int((datetime.now(UTC) - started).total_seconds() * 1000)
+            case_result["provider_invocation_latency_ms"] = case_provider_latency_ms
+            case_result["latency_ms"] = case_latency_ms
+            case_result["non_provider_latency_ms"] = max(0, case_latency_ms - case_provider_latency_ms)
+            case_result["latency_attribution"] = {
+                "case_total_ms": case_latency_ms,
+                "provider_invocation_ms": case_provider_latency_ms,
+                "non_provider_runtime_ms": max(0, case_latency_ms - case_provider_latency_ms),
+            }
             case_result["stage_id"] = stage_id
             results.append(_decorate_case(case_result, profile=profile))
     finally:
@@ -1181,6 +1189,7 @@ async def _run_case(
                 }
             )
             turn_invocation_start_index = len(provider.invocations)
+            turn_started = datetime.now(UTC)
             result = await _active_entrypoint()(
                 db,
                 user_external_id=case.user_external_id,
@@ -1192,10 +1201,12 @@ async def _run_case(
                 search_port=None,
                 extract_port=None,
             )
+            turn_latency_ms = int((datetime.now(UTC) - turn_started).total_seconds() * 1000)
             turns.append(
                 _turn_summary(
                     step,
                     result,
+                    latency_ms=turn_latency_ms,
                     provider_invocations=provider.invocations[turn_invocation_start_index:],
                 )
             )
@@ -1471,16 +1482,26 @@ def _turn_summary(
     step: LiveStep,
     result: dict[str, Any],
     *,
+    latency_ms: int,
     provider_invocations: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     execution = _dict(result.get("intake_execution_manager"))
     final = _dict(execution.get("final"))
     invocation_summary = _provider_invocation_summary(provider_invocations or [])
+    provider_latency_ms = int(invocation_summary.get("provider_invocation_latency_ms") or 0)
+    non_provider_latency_ms = max(0, int(latency_ms) - provider_latency_ms)
     return {
         "turn": step.turn,
         "kind": step.kind,
         "text": step.text,
         "request_id": result.get("request_id"),
+        "latency_ms": int(latency_ms),
+        "non_provider_latency_ms": non_provider_latency_ms,
+        "latency_attribution": {
+            "turn_total_ms": int(latency_ms),
+            "provider_invocation_ms": provider_latency_ms,
+            "non_provider_runtime_ms": non_provider_latency_ms,
+        },
         "coach_message": result.get("coach_message") or result.get("assistant_message"),
         "show_macro": result.get("show_macro"),
         "macro_guard_reason": result.get("macro_guard_reason"),
