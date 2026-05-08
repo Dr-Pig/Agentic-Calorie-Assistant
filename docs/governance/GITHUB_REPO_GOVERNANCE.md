@@ -29,7 +29,7 @@ If workflow job names change, this document must be updated in the same governan
 Advisory-only workflows are not required status checks:
 
 - `merge-governance`
-- `wave1-runtime-smoke`
+- `legacy-pre-self-use-runtime-smoke`
 
 Minimal policy for this repo:
 
@@ -38,7 +38,7 @@ Minimal policy for this repo:
 - browser verification is kept because it validates user-visible CurrentShell behavior
 - the required browser wall must validate user-visible product surfaces and required read-model sync only; hidden readiness markers, debug panels, and trace panels are not merge-path pass criteria
 - merge-governance reports remain available for manual review, but they do not block merges
-- legacy `ci-advisory` has been retired from GitHub workflows; old MVP, PLCE, EDD, and phase-labeled audit packs may be run locally only when explicitly invoked as historical diagnostics
+- legacy `ci-advisory` has been retired from GitHub workflows; old MVP, PLCE, EDD, Wave 1, and phase-labeled audit packs may be run locally only when explicitly invoked as historical diagnostics
 - placeholder `cd` workflow has been retired from GitHub workflows; add real deployment automation only when deployment is a current mainline slice
 - broad candidate-bundle, EDD, or phase-labeled audit packs should not sit on the required merge path unless they directly prove merge safety
 - merge governance advisory reports are diagnostic-only; no legacy debt-matrix verdict engine should sit on the merge path
