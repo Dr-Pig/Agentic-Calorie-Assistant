@@ -83,3 +83,87 @@ def test_entry_handoff_preserves_manager_owned_target_evidence_operation_alias()
             },
         }
     ]
+
+
+def test_entry_handoff_executes_manager_owned_nutrition_evidence_requirement() -> None:
+    decision = SimpleNamespace(
+        workflow_effect="route_to_intake",
+        target_attachment={"canonical_name": "milk tea"},
+        semantic_decision={
+            "final_action_candidate": "commit",
+            "mutation_intent_candidate": "canonical_write",
+            "estimation_posture": "pending_tool_call",
+            "base_dish": "milk tea",
+            "size_hint": "large",
+            "modifier_hints": ["half sugar"],
+            "target_attachment": {"mode": "new_meal"},
+        },
+    )
+
+    assert entry_handoff_tool_calls(decision) == [
+        {
+            "name": "estimate_nutrition",
+            "arguments": {
+                "manager_semantic_decision": {
+                    "base_dish": "milk tea",
+                    "size_hint": "large",
+                    "modifier_hints": ["half sugar"],
+                    "retrieval_goal": "generic_anchor_lookup",
+                    "semantic_authority_source": "live_manager_structured_output",
+                },
+                "handoff_source": "entry_manager_semantic_decision",
+                "deterministic_role": "execute_manager_owned_evidence_requirement_only",
+            },
+        }
+    ]
+
+
+def test_entry_handoff_executes_correction_target_and_nutrition_requirements() -> None:
+    decision = SimpleNamespace(
+        workflow_effect="route_to_intake",
+        target_attachment={"canonical_name": "chicken rice"},
+        semantic_decision={
+            "final_action_candidate": "correction_applied",
+            "mutation_intent_candidate": "correction_write",
+            "estimation_posture": "pending_tool_call",
+            "base_dish": "chicken rice",
+            "target_attachment": {"mode": "target_committed_thread"},
+        },
+    )
+
+    assert entry_handoff_tool_calls(decision) == [
+        {
+            "name": "resolve_correction_target",
+            "arguments": {
+                "canonical_name": "chicken rice",
+                "target_proposal_source": "entry_manager_handoff",
+            },
+        },
+        {
+            "name": "estimate_nutrition",
+            "arguments": {
+                "manager_semantic_decision": {
+                    "base_dish": "chicken rice",
+                    "retrieval_goal": "generic_anchor_lookup",
+                    "semantic_authority_source": "live_manager_structured_output",
+                },
+                "handoff_source": "entry_manager_semantic_decision",
+                "deterministic_role": "execute_manager_owned_evidence_requirement_only",
+            },
+        },
+    ]
+
+
+def test_entry_handoff_does_not_estimate_composition_unknown_followup() -> None:
+    decision = SimpleNamespace(
+        workflow_effect="route_to_intake",
+        target_attachment={},
+        semantic_decision={
+            "final_action_candidate": "ask_followup",
+            "mutation_intent_candidate": "no_mutation",
+            "estimation_posture": "composition_unknown_basket",
+            "target_attachment": {},
+        },
+    )
+
+    assert entry_handoff_tool_calls(decision) == []
