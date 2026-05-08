@@ -127,9 +127,117 @@ def _appshell_claim_boundary_blockers(group_id: str, payload: dict[str, Any]) ->
     return blockers
 
 
+def _any_truthy_claim(evidence: dict[str, Any], *keys: str) -> bool:
+    for payload in evidence.values():
+        if isinstance(payload, dict) and _truthy_claim(payload, *keys):
+            return True
+    return False
+
+
+def _int_value(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _appshell_browser_evidence_chain(evidence: dict[str, Any]) -> dict[str, Any]:
+    product_pages_flow = _resolved_required_payload(evidence, "product_pages_self_use_flow_gate")
+    browser_activation = _resolved_required_payload(evidence, "browser_activation_evidence_gate")
+    product_pages_summary = (
+        product_pages_flow.get("summary")
+        if isinstance(product_pages_flow.get("summary"), dict)
+        else {}
+    )
+    browser_activation_summary = (
+        browser_activation.get("summary")
+        if isinstance(browser_activation.get("summary"), dict)
+        else {}
+    )
+    claim_boundary = (
+        browser_activation.get("appshell_claim_boundary")
+        if isinstance(browser_activation.get("appshell_claim_boundary"), dict)
+        else {}
+    )
+
+    return _json_safe(
+        {
+            "product_pages_self_use_flow_status": str(product_pages_flow.get("status") or ""),
+            "browser_activation_status": str(browser_activation.get("status") or ""),
+            "claim_boundary_status": str(claim_boundary.get("status") or ""),
+            "runtime_backed_claim_ready": claim_boundary.get("runtime_backed_claim_ready") is True,
+            "browser_executed_claim_ready": claim_boundary.get("browser_executed_claim_ready") is True,
+            "browser_artifact_count": _int_value(
+                browser_activation_summary.get("browser_artifact_count")
+            ),
+            "browser_executed_count": _int_value(
+                browser_activation_summary.get("browser_executed_count")
+            ),
+            "all_required_browser_artifacts_executed": (
+                browser_activation.get("all_required_browser_artifacts_executed") is True
+            ),
+            "browser_executed_required": (
+                browser_activation.get("browser_executed_required") is True
+            ),
+            "product_pages_self_use_flow_checked": (
+                browser_activation_summary.get("self_use_flow_gate_checked") is True
+            ),
+            "self_use_flow_gate_strongest_pass_type": str(
+                browser_activation_summary.get("self_use_flow_gate_strongest_pass_type")
+                or product_pages_summary.get("strongest_consumed_pass_type")
+                or ""
+            ),
+            "today_macro_runtime_mirror_checked": (
+                product_pages_summary.get("today_macro_runtime_mirror_checked") is True
+            ),
+            "renderer_source_closure_checked": (
+                product_pages_summary.get("renderer_source_closure_checked") is True
+            ),
+            "context_target_browser_closure_checked": (
+                product_pages_summary.get("context_target_browser_closure_checked") is True
+            ),
+            "body_noplan_degraded_checked": (
+                product_pages_summary.get("body_noplan_degraded_checked") is True
+            ),
+            "fixture_product_loop_steps_checked": _int_value(
+                product_pages_summary.get("fixture_product_loop_steps_checked")
+            ),
+            "live_llm_invoked": _any_truthy_claim(
+                evidence,
+                "live_provider_called",
+                "live_provider_used",
+                "live_provider_invoked",
+                "live_llm_invoked",
+            ),
+            "fooddb_evidence_used": _any_truthy_claim(
+                evidence,
+                "ready_for_fdb_integration",
+                "fooddb_truth_updated",
+                "fooddb_evidence_used",
+                "fooddb_used",
+                "real_fooddb_pass_claimed",
+                "fooddb_schema_changed",
+                "food_evidence_promotion_policy_changed",
+            ),
+            "websearch_evidence_used": _any_truthy_claim(
+                evidence,
+                "web_tavily_used",
+                "web_tavily_invoked",
+                "web_tavily",
+                "websearch_evidence_used",
+                "WebSearch",
+            ),
+            "runtime_truth_changed": _any_truthy_claim(evidence, "runtime_truth_changed"),
+            "mutation_changed": _any_truthy_claim(evidence, "mutation_changed"),
+            "frontend_semantic_owner": _any_truthy_claim(evidence, "frontend_semantic_owner"),
+        }
+    )
+
+
 def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str, Any]:
     required_evidence_output = {}
     blockers = []
+    appshell_browser_evidence_chain = _appshell_browser_evidence_chain(evidence)
 
     # 1. Check all required evidence is present and clean
     for group_id in REQUIRED_EVIDENCE:
@@ -386,6 +494,7 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
         "local_web_self_use_candidate_v2": {
             "candidate_prepared": candidate_prepared,
             "required_evidence": required_evidence_output,
+            "appshell_browser_evidence_chain": appshell_browser_evidence_chain,
             "blockers": blockers,
             "next_recommended_slice": (
                 ["one_day_realistic_web_dogfood_scenario"]
