@@ -232,6 +232,11 @@ def _runtime_payload_section_owner(section_id: str) -> str:
 
 def _progressive_disclosure(user_payload: dict[str, Any]) -> dict[str, Any]:
     context_packet_primary = isinstance(user_payload.get("manager_context_packet_v1"), dict)
+    constraints = user_payload.get("constraints")
+    dynamic_payload_mode = (
+        str(constraints.get("manager_contract_dynamic_payload_mode")) if isinstance(constraints, dict) else None
+    )
+    compact_contract_constraints = dynamic_payload_mode == "runtime_state_and_refs_only"
     current_turn = user_payload.get("phase_a_current_turn_context")
     context_pack = user_payload.get("phase_a_manager_context_pack")
     legacy_lineage_only = (
@@ -256,6 +261,16 @@ def _progressive_disclosure(user_payload: dict[str, Any]) -> dict[str, Any]:
         ),
         "prompt_registry_trace_only": True,
         "provider_metadata_trace_only": True,
+        "compact_contract_constraints": compact_contract_constraints,
+        "contract_constraints_dynamic_payload_mode": dynamic_payload_mode,
+        "contract_static_guidance_refs_only": (
+            compact_contract_constraints
+            and "manager_contract_policy" not in constraints
+            and "manager_contract_policy_summary" not in constraints
+            and "manager_contract_evidence_instruction" not in constraints
+            and "manager_contract_followup_instruction" not in constraints
+            and "manager_contract_examples" not in constraints
+        ),
         "tool_results_dynamic_key": "tool_results",
         "manager_context_dynamic_keys": [
             "phase_a_current_turn_context",

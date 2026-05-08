@@ -4,7 +4,6 @@ from typing import Any
 
 from app.shared.contracts.correction_operation import structured_payload_requests_remove_item
 
-
 FOUNDER_LIVE_MANAGER_CONTRACT_PROFILE_ID = "founder_live_contract"
 FOUNDER_LIVE_MANAGER_SCHEMA_NAME = "founder_live_manager_contract"
 FOUNDER_LIVE_MANAGER_SCHEMA_VERSION = "v1"
@@ -62,8 +61,6 @@ FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES = [
     "manager_unavailable",
     "log_meal",
 ]
-
-
 FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS = [
     "commit",
     "ask_followup",
@@ -94,7 +91,6 @@ FOUNDER_LIVE_MANAGER_FOLLOWUP_QUESTION_REQUIRED_POSTURES = {
     "refinement_not_commit_gate",
     "size_clarification",
 }
-
 
 FOUNDER_LIVE_MANAGER_INTENT_TYPE_BY_SEMANTIC_INTENT = {
     "complete_onboarding": "complete_onboarding",
@@ -353,12 +349,16 @@ def founder_live_manager_contract_constraints(
         "manager_contract_provider_profile_id": profile_id,
         "manager_contract_schema_name": FOUNDER_LIVE_MANAGER_SCHEMA_NAME,
         "manager_contract_schema_version": FOUNDER_LIVE_MANAGER_SCHEMA_VERSION,
+        "manager_contract_dynamic_constraints_version": "founder_live_manager_dynamic_constraints.v2",
         "manager_contract_transport_policy": FOUNDER_LIVE_MANAGER_TRANSPORT_POLICY,
-        "manager_contract_policy": dict(FOUNDER_LIVE_MANAGER_CONTRACT_POLICY),
-        "manager_contract_policy_summary": FOUNDER_LIVE_MANAGER_CONTRACT_POLICY_SUMMARY,
-        "manager_contract_evidence_instruction": FOUNDER_LIVE_MANAGER_EVIDENCE_INSTRUCTION,
-        "manager_contract_followup_instruction": FOUNDER_LIVE_MANAGER_FOLLOWUP_INSTRUCTION,
-        "manager_contract_examples": [dict(item) for item in FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES],
+        "manager_contract_refs": {
+            "policy": "founder_live_manager_contract_policy.v1",
+            "static_guidance": "founder_live_manager_static_system_and_tool_guidance.v1",
+            "examples": "founder_live_manager_contract_examples.v1",
+        },
+        "manager_contract_static_guidance_in_system_prompt": True,
+        "manager_contract_static_guidance_in_tool_schema": True,
+        "manager_contract_dynamic_payload_mode": "runtime_state_and_refs_only",
         "manager_contract_evidence_state": {
             "tool_result_names": tool_result_names,
             "nutrition_evidence_present": _nutrition_evidence_present(tool_results),

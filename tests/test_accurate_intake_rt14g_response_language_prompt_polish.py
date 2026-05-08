@@ -23,7 +23,7 @@ def test_rt14g_prompt_polish_contract_passes() -> None:
     assert artifact["summary"] == {
         "case_count": 6,
         "passed_case_count": 6,
-        "system_prompt_version": "v8",
+        "system_prompt_version": "v9",
         "prompt_cache_safe_static_policy": True,
     }
 

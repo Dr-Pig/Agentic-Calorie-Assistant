@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.runtime.application import manager_service  # noqa: E402
+from app.runtime.agent.founder_live_manager_contract import founder_live_manager_contract_constraints  # noqa: E402
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
 
@@ -65,8 +66,7 @@ async def _inspect_single_turn_call() -> dict[str, Any]:
         resolved_state=SimpleNamespace(onboarding_ready=True),
         available_tools=("body.get_latest_observation", "budget.get_today_summary", "budget.get_today_summary"),
         constraints={
-            "manager_contract_schema_version": "v1",
-            "manager_contract_provider_profile_id": "builderspace-grok-4-fast-founder-live-contract",
+            **founder_live_manager_contract_constraints("builderspace-grok-4-fast-founder-live-contract"),
             "manager_contract_provider_profile_transport_mode": "structured_outputs",
         },
     )
