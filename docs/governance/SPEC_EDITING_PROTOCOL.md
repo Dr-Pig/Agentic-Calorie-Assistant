@@ -6,9 +6,9 @@ This protocol exists to prevent silent content loss during architecture and spec
 
 Entry and loading context:
 
-- [AGENTS.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/AGENTS.md) is the only root agent bootstrap
-- [docs/index.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/index.md) is the human docs map
-- [AGENTS.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/AGENTS.md) defines the default progressive reading path into the active execution dashboard, slice registry, and ordering spec
+- [AGENTS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/AGENTS.md) is the only root agent bootstrap
+- [docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md) is the active docs map
+- [AGENTS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/AGENTS.md) defines the default progressive reading path into the active docs taxonomy and current-shell truth
 
 It applies to:
 
@@ -68,7 +68,7 @@ After editing a spec file:
 
 Use the repository snapshot script before high-risk edits:
 
-- [`scripts/spec_snapshot.ps1`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/scripts/spec_snapshot.ps1)
+- [`scripts/spec_snapshot.ps1`](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/scripts/spec_snapshot.ps1)
 
 This script creates:
 

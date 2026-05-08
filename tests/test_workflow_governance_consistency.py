@@ -174,3 +174,21 @@ def test_provider_docs_do_not_hardlink_missing_local_artifacts() -> None:
     assert "Historical local candidate-eval artifact filenames from the first BuilderSpace pass are no longer retained in tracked repo state." in candidate_matrix
     assert "](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/" not in provider_profile
     assert "](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/" not in candidate_matrix
+
+
+def test_active_governance_protocols_are_repo_localized() -> None:
+    for relative_path in (
+        "docs/governance/SPEC_EDITING_PROTOCOL.md",
+        "docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md",
+        "docs/governance/TASK_CHECKIN_PROTOCOL.md",
+        "docs/governance/HANDOFF_CONTRACT.md",
+        "docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md",
+    ):
+        content = (ROOT / relative_path).read_text(encoding="utf-8")
+        assert "line-liff-calorie-helper-text-meal-canary-main" not in content
+
+    task_checkin = (ROOT / "docs" / "governance" / "TASK_CHECKIN_PROTOCOL.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs" / "governance" / "HANDOFF_CONTRACT.md").read_text(encoding="utf-8")
+
+    assert "CURRENT_EXECUTION_PLAN.md" not in task_checkin
+    assert "CURRENT_EXECUTION_PLAN.md" not in handoff
