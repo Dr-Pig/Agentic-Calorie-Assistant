@@ -16,7 +16,7 @@ if str(ROOT) not in sys.path:
 
 from app.budget.infrastructure.models import DayBudgetLedgerRecord  # noqa: E402
 from app.composition.canonical_persistence import commit_meal_payload_to_canonical  # noqa: E402
-from app.composition.intake_execution_orchestrator import _build_remove_item_target_evidence_artifact  # noqa: E402
+from app.composition.remove_item_target_evidence import build_remove_item_target_evidence_artifact  # noqa: E402
 from app.composition.intake_manager_tool_batch import nutrition_tool_output  # noqa: E402
 from app.composition.state_resolver import resolve_intake_state  # noqa: E402
 from app.database import get_or_create_user  # noqa: E402
@@ -235,7 +235,7 @@ def _remove_target_evidence_case() -> dict[str, Any]:
         initial = commit_meal_payload_to_canonical(db, user=user, candidate=_two_item_candidate(request_id="rt7a-target-evidence-initial"), budget_kcal=1800)
         assert initial is not None
         soup = next(item for item in _items_for_version(db, initial.meal_version_id) if item.name == "soup")
-        artifact = _build_remove_item_target_evidence_artifact(
+        artifact = build_remove_item_target_evidence_artifact(
             db,
             user_external_id="rt7a-target-evidence-user",
             raw_user_input="remove soup",
