@@ -38,7 +38,7 @@ def _grade_seeded_removal(case: dict[str, Any]) -> dict[str, Any]:
     checks = [
         _check("entry_scope_not_repeated", scopes.count("turn_entry_or_read_only") <= 1, {"scopes": scopes}),
         _check("intake_execution_scope_present", "intake_execution" in scopes, {"scopes": scopes}),
-        _check("provider_invocation_count_at_most_3", len(invocations) <= 3, {"count": len(invocations)}),
+        _check("provider_invocation_count_at_most_2", len(invocations) <= 2, {"count": len(invocations)}),
         _check("resolve_target_used", "resolve_correction_target" in tool_names, {"tool_names": tool_names}),
         _check("estimate_nutrition_not_used_for_removal", "estimate_nutrition" not in tool_names, {"tool_names": tool_names}),
         _check("correction_final_present", "correction_applied" in _final_actions(case), {"final_actions": _final_actions(case)}),
