@@ -22,6 +22,7 @@ from app.composition.accurate_intake_trace_expectation_primitives import (
     _turns,
     _decision_tools,
 )
+from app.composition.accurate_intake_call_topology_expectations import call_topology_check
 from app.composition.accurate_intake_live_trace_expectation_catalog import EXPECTED_TRACE_BY_CASE_ID
 
 
@@ -53,6 +54,7 @@ def _grade_exact_item(case: dict[str, Any]) -> dict[str, Any]:
     tool_names = _tools(case)
     checks = [
         _check("single_turn_only", len(_turns(case)) == 1, {"turn_count": len(_turns(case))}),
+        call_topology_check(case_id, case),
         _check("estimate_nutrition_used", "estimate_nutrition" in tool_names, {"tool_names": tool_names}),
         _check("target_resolution_not_used", "resolve_correction_target" not in tool_names, {"tool_names": tool_names}),
         _check("commit_final_present", _final(turn) == "commit", {"final_action": _final(turn)}),
@@ -64,7 +66,10 @@ def _grade_exact_item(case: dict[str, Any]) -> dict[str, Any]:
 def _grade_chicken_rice(case: dict[str, Any]) -> dict[str, Any]:
     case_id = "chinese_chicken_rice_correction_removal_debug"
     turn_count = len(_turns(case))
-    checks = [_check("turn_prefix_or_full_path", 1 <= turn_count <= 4, {"turn_count": turn_count})]
+    checks = [
+        _check("turn_prefix_or_full_path", 1 <= turn_count <= 4, {"turn_count": turn_count}),
+        call_topology_check(case_id, case),
+    ]
     if turn_count >= 1:
         checks.append(_turn_estimate_commit_check(case, 1))
     if turn_count >= 2:
@@ -111,6 +116,7 @@ def _grade_bubble_tea(case: dict[str, Any]) -> dict[str, Any]:
     turn2_final_action = _final(turn2)
     checks = [
         _check("two_turn_refinement", len(_turns(case)) == 2, {"turn_count": len(_turns(case))}),
+        call_topology_check(case_id, case),
         _turn_estimate_commit_check(case, 1, no_supersede=True),
         _check(
             "turn2_attaches_to_committed_thread",
@@ -129,6 +135,7 @@ def _grade_luwei(case: dict[str, Any]) -> dict[str, Any]:
     turn2 = _turn(case, 2)
     checks = [
         _check("two_turn_blocking_clarify", len(_turns(case)) == 2, {"turn_count": len(_turns(case))}),
+        call_topology_check(case_id, case),
         _check("turn1_asks_followup", _final(turn1) == "ask_followup", {"final_action": _final(turn1)}),
         _check(
             "turn1_draft_saved_without_commit",
@@ -155,7 +162,7 @@ def _grade_no_plan_query(case: dict[str, Any]) -> dict[str, Any]:
     reply_texts = _case_reply_texts(case)
     zero_claims = [text for text in reply_texts if _contains_missing_budget_zero_claim(text)]
     coach_message = str(turn.get("coach_message") or "")
-    checks = _read_only_checks(case)
+    checks = _read_only_checks("no_plan_consumed_without_budget_target", case)
     checks.append(
         _check(
             "no_plan_target_or_remaining_not_invented",
@@ -181,13 +188,14 @@ def _grade_no_plan_query(case: dict[str, Any]) -> dict[str, Any]:
 
 
 def _grade_read_only_query(case_id: str, case: dict[str, Any]) -> dict[str, Any]:
-    return _grade(case_id, _read_only_checks(case))
+    return _grade(case_id, _read_only_checks(case_id, case))
 
 
-def _read_only_checks(case: dict[str, Any]) -> list[dict[str, Any]]:
+def _read_only_checks(case_id: str, case: dict[str, Any]) -> list[dict[str, Any]]:
     turn = _turn(case, 1)
     return [
         _check("single_turn_only", len(_turns(case)) == 1, {"turn_count": len(_turns(case))}),
+        call_topology_check(case_id, case),
         _check("answer_only_workflow", _effect(turn) == "answer_only", {"workflow_effect": _effect(turn)}),
         _check("no_tool_call_needed", _tools(case) == [], {"tool_names": _tools(case)}),
         _check(

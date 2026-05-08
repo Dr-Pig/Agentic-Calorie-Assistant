@@ -514,6 +514,40 @@ def test_accurate_intake_live_trace_expectation_catches_entry_loop_regression() 
     assert checks["provider_invocation_count_at_most_2"] == "fail"
 
 
+def test_accurate_intake_live_trace_expectation_catches_extra_exact_item_call() -> None:
+    from app.composition.accurate_intake_live_trace_expectations import grade_live_trace_expectations
+
+    case = {
+        "case_id": "exact_item_official_label",
+        "provider_invocations": [
+            {"diagnostic_turn": 1, "manager_loop_scope": "turn_entry_or_read_only"},
+            {"diagnostic_turn": 1, "manager_loop_scope": "intake_execution"},
+            {"diagnostic_turn": 1, "manager_loop_scope": "intake_execution"},
+        ],
+        "turns": [
+            {
+                "turn": 1,
+                "manager_final_action": "commit",
+                "manager_rounds": [
+                    {"decision": {"tool_calls": [{"name": "estimate_nutrition"}]}},
+                ],
+                "state_delta": {"canonical_commit": True},
+            }
+        ],
+    }
+
+    grade = grade_live_trace_expectations(case)
+
+    assert grade["required_status"] == "fail"
+    checks = {check["check_id"]: check for check in grade["checks"]}
+    assert checks["call_topology_matches_expected"]["status"] == "fail"
+    assert checks["call_topology_matches_expected"]["observed"] == {
+        "expected_by_turn": {1: ["turn_entry_or_read_only", "intake_execution"]},
+        "observed_by_turn": {1: ["turn_entry_or_read_only", "intake_execution", "intake_execution"]},
+        "unexpected_turns": [],
+    }
+
+
 def test_accurate_intake_live_trace_expectation_marks_entry_tool_call_as_ideal_target_gap() -> None:
     from app.composition.accurate_intake_live_trace_expectations import grade_live_trace_expectations
 
@@ -653,6 +687,7 @@ def test_accurate_intake_live_single_case_probe_supports_exact_item_official_lab
     assert grade["required_status"] == "pass"
     assert {check["check_id"]: check["status"] for check in grade["checks"]} == {
         "single_turn_only": "pass",
+        "call_topology_matches_expected": "pass",
         "estimate_nutrition_used": "pass",
         "target_resolution_not_used": "pass",
         "commit_final_present": "pass",
@@ -695,6 +730,7 @@ def test_accurate_intake_live_single_case_probe_bubble_refinement_inventory_cont
     assert grade["required_status"] == "pass"
     assert {check["check_id"]: check["status"] for check in grade["checks"]} == {
         "two_turn_refinement": "pass",
+        "call_topology_matches_expected": "pass",
         "turn1_estimate_and_commit": "pass",
         "turn2_attaches_to_committed_thread": "pass",
         "turn2_supersedes_old_version": "pass",
@@ -731,6 +767,7 @@ def test_accurate_intake_live_luwei_trace_expectation_blocks_bare_basket_commit(
     assert grade["required_status"] == "pass"
     assert {check["check_id"]: check["status"] for check in grade["checks"]} == {
         "two_turn_blocking_clarify": "pass",
+        "call_topology_matches_expected": "pass",
         "turn1_asks_followup": "pass",
         "turn1_draft_saved_without_commit": "pass",
         "turn2_estimates_after_listed_basket": "pass",
