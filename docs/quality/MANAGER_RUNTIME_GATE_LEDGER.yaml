@@ -224,11 +224,19 @@ gates:
     pass_type: runtime_backed
     depends_on:
       - rt14d_single_case_tool_choice_live_probe
+  - gate_id: rt9b_fooddb_packet_live_probe
+    title: FoodDB packet live probe
+    status: green
+    pass_type: runtime_backed
+    depends_on:
+      - rt9_packet_consumption_seam
+      - rt14e_context_conditioned_live_probe
   - gate_id: rt14_limited_live_ladder
     title: Limited live diagnostic ladder
     status: pending
     pass_type: runtime_backed
     depends_on:
+      - rt9b_fooddb_packet_live_probe
       - rt14e_context_conditioned_live_probe
       - rt14d_single_case_tool_choice_live_probe
       - rt14c_schema_contract_live_canary
