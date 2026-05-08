@@ -12,7 +12,7 @@ from app.runtime.agent.manager_system_prompt import (
 
 
 def test_remove_item_target_evidence_reuse_is_static_prompt_policy() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v11"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v12"
     assert "target_evidence_present=true" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "target_evidence_operation='remove_item'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not call resolve_correction_target again" in SINGLE_MANAGER_SYSTEM_PROMPT
@@ -20,6 +20,8 @@ def test_remove_item_target_evidence_reuse_is_static_prompt_policy() -> None:
     assert "nutrition evidence is present" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "workflow_effect='route_to_intake'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "final_action='no_commit'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "final_action_candidate must be the intended intake action" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "not route_to_intake or no_commit" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
 def test_remove_item_target_evidence_reuse_is_tool_schema_policy() -> None:

@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v11"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v12"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -20,7 +20,9 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "Only call tool names listed in user_payload.available_tools. If a needed tool is not listed, do not call it or invent a compatible alias. "
     "When manager_loop_scope='turn_entry_or_read_only' and intake execution is needed, return manager_action='final', "
     "tool_calls=[], intent_type='log_meal', final_action='no_commit', workflow_effect='route_to_intake', "
-    "and preserve semantic_decision for intake_execution.\n"
+    "and preserve semantic_decision for intake_execution. In that handoff semantic_decision, final_action_candidate "
+    "must be the intended intake action such as commit, correction_applied, overshoot_note, or ask_followup, "
+    "not route_to_intake or no_commit; use estimation_posture='pending_tool_call' when nutrition evidence should be gathered.\n"
 )
 
 
