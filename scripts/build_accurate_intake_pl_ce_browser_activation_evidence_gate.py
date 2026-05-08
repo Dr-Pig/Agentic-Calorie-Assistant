@@ -14,11 +14,14 @@ from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate impo
     REQUIRED_INPUTS,
     build_pl_ce_browser_activation_evidence_gate_artifact,
 )
+from app.composition.current_shell_compatibility_ids import (  # noqa: E402
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+)
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
 
 DEFAULT_ARTIFACT_PATHS = {
-    "pl_ce_local_mvp_candidate_bundle": ROOT
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_local_mvp_candidate_bundle.json",
     "product_pages_browser_smoke": ROOT
@@ -34,9 +37,15 @@ DEFAULT_ARTIFACT_PATHS = {
     / "artifacts"
     / "accurate_intake_product_pages_target_candidate_ui_smoke.json",
     "product_pages_visual_qa": ROOT / "artifacts" / "accurate_intake_product_pages_visual_qa.json",
+    "product_pages_body_noplan_degraded_smoke": ROOT
+    / "artifacts"
+    / "accurate_intake_product_pages_body_noplan_degraded_smoke.json",
     "fixture_full_product_loop_e2e": ROOT
     / "artifacts"
     / "accurate_intake_fixture_full_product_loop_e2e.json",
+    "product_pages_self_use_flow_gate": ROOT
+    / "artifacts"
+    / "accurate_intake_pl_ce_product_pages_self_use_flow_gate.json",
 }
 
 
