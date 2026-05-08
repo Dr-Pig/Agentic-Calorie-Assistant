@@ -211,7 +211,13 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt9_packet_consumption_seam",
         "rt14e_context_conditioned_live_probe",
     ]
+    assert gates["rt9c_websearch_candidate_live_probe"]["status"] == "green"
+    assert gates["rt9c_websearch_candidate_live_probe"]["pass_type"] == "runtime_backed"
+    assert gates["rt9c_websearch_candidate_live_probe"]["depends_on"] == [
+        "rt9b_fooddb_packet_live_probe",
+    ]
     assert gates["rt14_limited_live_ladder"]["depends_on"] == [
+        "rt9c_websearch_candidate_live_probe",
         "rt9b_fooddb_packet_live_probe",
         "rt14e_context_conditioned_live_probe",
         "rt14d_single_case_tool_choice_live_probe",
