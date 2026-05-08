@@ -105,6 +105,17 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
     assert report["user_facing_rollout"] is False
     assert report["provider_profile_id"] == module.DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID
     assert report["provider_profile_model"] == "grok-4-fast"
+    assert report["timeout_policy"] == {
+        "provider_request_timeout_ms": 20_000,
+        "case_timeout_ms": 30_000,
+        "case_timeout_override_supplied": False,
+        "case_timeout_grace_ms": 10_000,
+        "provider_request_retry_count": 0,
+        "provider_request_retry_backoff_ms": 250,
+        "provider_request_retry_jitter_ms": 100,
+        "strict_pass_requires_first_attempt": True,
+        "timeout_values_are_failure_boundaries_not_product_latency_targets": True,
+    }
     assert report["active_entrypoint_verified"] is True
     assert report["runner_inferred_semantics"] is False
     assert report["raw_text_routing_used"] is False
