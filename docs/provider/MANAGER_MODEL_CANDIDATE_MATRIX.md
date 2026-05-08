@@ -56,8 +56,8 @@ This first live pass upgraded `kimi-k2.5` and `gemini-3-flash-preview` from `hyp
 
 Artifacts:
 
-- `kimi-k2.5`: [manager_candidate_eval_20260427T163744.232384Z_kimi-k2-5_MC-001-MC-002-MC-003-MC-004_f30b8a.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/manager_candidate_eval_20260427T163744.232384Z_kimi-k2-5_MC-001-MC-002-MC-003-MC-004_f30b8a.json)
-- `gemini-3-flash-preview`: [manager_candidate_eval_20260427T163956.258231Z_gemini-3-flash-preview_MC-001-MC-002-MC-003-MC-004_a6ed6e.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/manager_candidate_eval_20260427T163956.258231Z_gemini-3-flash-preview_MC-001-MC-002-MC-003-MC-004_a6ed6e.json)
+- Historical local candidate-eval artifact filenames from the first BuilderSpace pass are no longer retained in tracked repo state.
+- Keep the comparison table and interpretation below as the historical summary; do not treat missing local JSON files as current proof.
 
 High-level comparison:
 

@@ -4,14 +4,9 @@
 
 - Raw OpenAPI: [docs/provider/builderspace_openapi.txt](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/provider/builderspace_openapi.txt)
 - Runtime evidence:
-  - [artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T152106.173839Z_natural-probe_targeted_B1-003_77b311.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T152106.173839Z_natural-probe_targeted_B1-003_77b311.json)
-  - [artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T152106.176917Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_9344e9.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T152106.176917Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_9344e9.json)
-  - [artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T171316.914759Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_5f54bf.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T171316.914759Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_5f54bf.json)
-  - [artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T172310.969052Z_natural-probe_targeted_B1-006_242ece.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T172310.969052Z_natural-probe_targeted_B1-006_242ece.json)
-  - [artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T180042.469158Z_natural-probe_targeted_B1-005_b176c8.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T180042.469158Z_natural-probe_targeted_B1-005_b176c8.json)
-  - [artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T181457.009924Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_b5362b.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260427T181457.009924Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_b5362b.json)
-  - [artifacts/manager_candidate_eval_20260427T163744.232384Z_kimi-k2-5_MC-001-MC-002-MC-003-MC-004_f30b8a.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/manager_candidate_eval_20260427T163744.232384Z_kimi-k2-5_MC-001-MC-002-MC-003-MC-004_f30b8a.json)
-  - [artifacts/manager_candidate_eval_20260427T163956.258231Z_gemini-3-flash-preview_MC-001-MC-002-MC-003-MC-004_a6ed6e.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/manager_candidate_eval_20260427T163956.258231Z_gemini-3-flash-preview_MC-001-MC-002-MC-003-MC-004_a6ed6e.json)
+  - Historical local artifact filenames referenced in older provider diagnostics are no longer retained in tracked repo state.
+  - Treat the narrative summaries below as historical transport interpretation only.
+  - Use current ManagerRuntime live-gate artifacts and the active CurrentShell quality pack for live evidence instead of chasing missing local JSON files from earlier waves.
 
 ## Current Capability Status
 
@@ -51,7 +46,7 @@ Treat `json_schema` and synthetic decision tool transport as separate capability
 
 Artifact:
 
-- [artifacts/b1_provider_transport_contract_diagnostic.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/b1_provider_transport_contract_diagnostic.json)
+- Historical local artifact filename omitted intentionally. The 2026-04-30 transport canary interpretation is preserved below, but the original local JSON file is not retained in tracked repo state.
 
 Current interpretation from the B1 transport canary:
 
@@ -65,9 +60,7 @@ Current interpretation from the B1 transport canary:
 
 Artifacts:
 
-- [artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260430T105302.700951Z_forced_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_fd8b48.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260430T105302.700951Z_forced_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_fd8b48.json)
-- [artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260430T105625.767486Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_2e4a58.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260430T105625.767486Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_2e4a58.json)
-- [artifacts/wave1_phase_b_minimal_tool_loop_readiness.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_readiness.json)
+- Historical local artifact filenames omitted intentionally. This section preserves the 2026-04-30 interpretation, not a currently retained local artifact bundle.
 
 Current interpretation:
 
@@ -81,9 +74,7 @@ Current interpretation:
 
 Artifacts:
 
-- [artifacts/b1_pass2_manager_contract_diagnostic.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/b1_pass2_manager_contract_diagnostic.json)
-- [artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260430T110919.670837Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_137685.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_smoke_20260430T110919.670837Z_natural-probe_full_B1-001-B1-002-B1-003-B1-004-B1-005-B1-006_137685.json)
-- [artifacts/wave1_phase_b_minimal_tool_loop_readiness.json](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/wave1_phase_b_minimal_tool_loop_readiness.json)
+- Historical local artifact filenames omitted intentionally. This section preserves the 2026-04-30 interpretation, not a currently retained local artifact bundle.
 
 Current interpretation:
 

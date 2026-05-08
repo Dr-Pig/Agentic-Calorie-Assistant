@@ -164,3 +164,13 @@ def test_docs_bootstrap_index_and_legacy_reference_are_consistent() -> None:
     assert "stop and return to [docs/DOC_INDEX.md]" in v2_index_stub
     assert "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md" in legacy_index
     assert "docs/specs/APP_V2_IMPLEMENTATION_PLAN.md" in legacy_index
+
+
+def test_provider_docs_do_not_hardlink_missing_local_artifacts() -> None:
+    provider_profile = (ROOT / "docs" / "provider" / "BUILDERSPACE_PROVIDER_PROFILE.md").read_text(encoding="utf-8")
+    candidate_matrix = (ROOT / "docs" / "provider" / "MANAGER_MODEL_CANDIDATE_MATRIX.md").read_text(encoding="utf-8")
+
+    assert "Historical local artifact filenames referenced in older provider diagnostics are no longer retained in tracked repo state." in provider_profile
+    assert "Historical local candidate-eval artifact filenames from the first BuilderSpace pass are no longer retained in tracked repo state." in candidate_matrix
+    assert "](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/" not in provider_profile
+    assert "](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/" not in candidate_matrix
