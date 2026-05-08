@@ -146,6 +146,25 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
             assert "coach_message" in turn
             assert "show_macro" in turn
             assert "macro_guard_reason" in turn
+            assert turn["provider_invocation_summary"]["provider_invocation_count"] >= 1
+            assert isinstance(turn["provider_invocation_summary"]["provider_invocation_latency_ms"], int)
+        assert case["provider_invocation_count"] >= len(case["turns"])
+        assert isinstance(case["provider_invocation_latency_ms"], int)
+        for invocation in case["provider_invocations"]:
+            assert invocation["span_kind"] == "provider_request"
+            assert invocation["diagnostic_stage_id"] in {
+                "fake_provider_active_runtime_gate",
+                "single_case_live_probe",
+                "full_suite_live_diagnostic",
+            }
+            assert invocation["diagnostic_case_id"] == case["case_id"]
+            assert isinstance(invocation["diagnostic_turn"], int)
+            assert invocation["diagnostic_turn_kind"]
+            assert "manager_round_index" in invocation
+    case_invocations = [item for item in report["provider_invocations"] if item.get("diagnostic_case_id")]
+    assert case_invocations
+    assert all(item["span_kind"] == "provider_request" for item in case_invocations)
+    assert all(item.get("diagnostic_turn") for item in case_invocations)
     assert report["summary"]["case_count"] == len(report["cases"])
     assert report["summary"]["strict_pass_count"] + report["summary"]["repaired_pass_count"] + report["summary"][
         "contract_fail_count"

@@ -38,6 +38,7 @@ _COST_KEYS = (
 )
 HIGH_PROVIDER_INVOCATION_COUNT = 8
 HIGH_STAGE_LATENCY_MS = 60_000
+HIGH_STAGE_OVERHEAD_MS = 10_000
 HIGH_TOTAL_PROMPT_TOKENS = 50_000
 HIGH_SINGLE_PROMPT_TOKENS = 8_000
 
@@ -52,6 +53,7 @@ def build_accurate_intake_live_cost_summary(
     usage_records: list[dict[str, Any]] = []
     cost_records: list[dict[str, Any]] = []
     provider_invocation_records: list[dict[str, Any]] = []
+    stage_latency_records: list[dict[str, Any]] = []
     stage_count = 0
     provider_invocation_count = 0
     total_stage_latency_ms = 0
@@ -78,6 +80,7 @@ def build_accurate_intake_live_cost_summary(
             [max_provider_invocation_latency_ms, *invocation_latencies],
             default=max_provider_invocation_latency_ms,
         )
+        stage_latency_records.extend(_stage_latency_records(stages, source_index=index))
         path = source_paths[index] if source_paths and index < len(source_paths) else None
         source_artifacts.append(
             {
@@ -107,9 +110,14 @@ def build_accurate_intake_live_cost_summary(
     max_prompt_tokens_per_usage_record = max((int(record.get("prompt_tokens") or 0) for record in usage_records), default=0)
     reported_cost_usd = sum(float(record["cost_usd"]) for record in cost_records) if cost_records else None
     cost_unavailable = bool(usage_records) and not cost_records
+    latency_breakdown = _latency_breakdown(
+        stage_latency_records=stage_latency_records,
+        provider_invocation_records=provider_invocation_records,
+    )
     latency_root_cause_hints = _latency_root_cause_hints(
         provider_invocation_count=provider_invocation_count,
         max_stage_latency_ms=max_stage_latency_ms,
+        stage_overhead_ms=int(latency_breakdown.get("stage_overhead_ms") or 0),
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         max_prompt_tokens_per_usage_record=max_prompt_tokens_per_usage_record,
@@ -130,6 +138,7 @@ def build_accurate_intake_live_cost_summary(
             "input_integrity": {"passed": not blockers, "blockers": sorted(set(blockers))},
             "source_artifacts": source_artifacts,
             "provider_invocation_records": provider_invocation_records,
+            "latency_breakdown": latency_breakdown,
             "usage_records": usage_records,
             "cost_records": cost_records,
             "summary": {
@@ -210,11 +219,21 @@ def _provider_invocation_records(invocations: list[dict[str, Any]], *, source_in
         provider_trace = _dict(invocation.get("provider_trace"))
         usage = _dict(provider_trace.get("usage"))
         cached_tokens = _cached_tokens(usage)
+        diagnostic_stage_id = _optional_string(invocation.get("diagnostic_stage_id"))
+        stage = _optional_string(invocation.get("stage"))
         records.append(
             {
                 "source_index": source_index,
                 "invocation_index": index,
-                "stage": _optional_string(invocation.get("stage")),
+                "stage": stage,
+                "diagnostic_stage_id": diagnostic_stage_id,
+                "diagnostic_case_id": _optional_string(invocation.get("diagnostic_case_id")),
+                "diagnostic_turn": _optional_int(invocation.get("diagnostic_turn")),
+                "diagnostic_turn_kind": _optional_string(invocation.get("diagnostic_turn_kind")),
+                "manager_round_index": _optional_int(invocation.get("manager_round_index")),
+                "provider_trace_stage": _optional_string(
+                    invocation.get("provider_trace_stage") or provider_trace.get("stage")
+                ),
                 "provider_profile_id": _optional_string(invocation.get("provider_profile_id")),
                 "model": _optional_string(invocation.get("provider_profile_model")),
                 "latency_ms": _int(invocation.get("latency_ms")),
@@ -226,6 +245,165 @@ def _provider_invocation_records(invocations: list[dict[str, Any]], *, source_in
             }
         )
     return records
+
+
+def _stage_latency_records(stages: list[dict[str, Any]], *, source_index: int) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for index, stage in enumerate(stages):
+        records.append(
+            {
+                "source_index": source_index,
+                "stage_index": index,
+                "diagnostic_stage_id": _optional_string(stage.get("stage_id")),
+                "stage_latency_ms": _int(stage.get("latency_ms")),
+                "timeout_budget_ms": _int(stage.get("timeout_budget_ms")),
+                "status": _optional_string(stage.get("status")),
+                "result_kind": _optional_string(stage.get("result_kind")),
+            }
+        )
+    return records
+
+
+def _latency_breakdown(
+    *,
+    stage_latency_records: list[dict[str, Any]],
+    provider_invocation_records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    total_stage_latency_ms = sum(int(record.get("stage_latency_ms") or 0) for record in stage_latency_records)
+    total_provider_latency_ms = sum(int(record.get("latency_ms") or 0) for record in provider_invocation_records)
+    return {
+        "stage_latency_ms": total_stage_latency_ms,
+        "provider_invocation_latency_ms": total_provider_latency_ms,
+        "stage_overhead_ms": max(0, total_stage_latency_ms - total_provider_latency_ms),
+        "unattributed_provider_invocation_count": sum(
+            1
+            for record in provider_invocation_records
+            if not record.get("diagnostic_stage_id") and not record.get("stage")
+        ),
+        "by_diagnostic_stage": _diagnostic_stage_latency_breakdown(
+            stage_latency_records=stage_latency_records,
+            provider_invocation_records=provider_invocation_records,
+            total_provider_latency_ms=total_provider_latency_ms,
+        ),
+        "by_case": _group_provider_latency(
+            provider_invocation_records,
+            keys=("source_index", "diagnostic_stage_id", "diagnostic_case_id"),
+            labels={"diagnostic_case_id": "diagnostic_probe"},
+            total_provider_latency_ms=total_provider_latency_ms,
+        ),
+        "by_turn": _group_provider_latency(
+            [record for record in provider_invocation_records if record.get("diagnostic_case_id")],
+            keys=(
+                "source_index",
+                "diagnostic_stage_id",
+                "diagnostic_case_id",
+                "diagnostic_turn",
+                "diagnostic_turn_kind",
+            ),
+            total_provider_latency_ms=total_provider_latency_ms,
+        ),
+        "slowest_provider_invocations": _slowest_provider_invocations(provider_invocation_records),
+    }
+
+
+def _diagnostic_stage_latency_breakdown(
+    *,
+    stage_latency_records: list[dict[str, Any]],
+    provider_invocation_records: list[dict[str, Any]],
+    total_provider_latency_ms: int,
+) -> list[dict[str, Any]]:
+    stage_totals: dict[tuple[int, str], int] = {}
+    provider_totals: dict[tuple[int, str], list[dict[str, Any]]] = {}
+    for record in stage_latency_records:
+        key = (
+            int(record.get("source_index") or 0),
+            str(record.get("diagnostic_stage_id") or "unknown_stage"),
+        )
+        stage_totals[key] = stage_totals.get(key, 0) + int(record.get("stage_latency_ms") or 0)
+    for record in provider_invocation_records:
+        key = (
+            int(record.get("source_index") or 0),
+            str(record.get("diagnostic_stage_id") or record.get("stage") or "unknown_stage"),
+        )
+        provider_totals.setdefault(key, []).append(record)
+    rows: list[dict[str, Any]] = []
+    for key in sorted(set(stage_totals) | set(provider_totals), key=lambda item: (item[0], item[1])):
+        records = provider_totals.get(key, [])
+        provider_latency_ms = sum(int(record.get("latency_ms") or 0) for record in records)
+        stage_latency_ms = stage_totals.get(key, 0)
+        rows.append(
+            {
+                "source_index": key[0],
+                "diagnostic_stage_id": key[1],
+                "stage_latency_ms": stage_latency_ms,
+                "provider_invocation_count": len(records),
+                "provider_invocation_latency_ms": provider_latency_ms,
+                "stage_overhead_ms": max(0, stage_latency_ms - provider_latency_ms),
+                "latency_share_pct": _latency_share_pct(provider_latency_ms, total_provider_latency_ms),
+            }
+        )
+    return sorted(rows, key=lambda item: (-int(item.get("stage_latency_ms") or 0), str(item.get("diagnostic_stage_id") or "")))
+
+
+def _group_provider_latency(
+    records: list[dict[str, Any]],
+    *,
+    keys: tuple[str, ...],
+    labels: dict[str, str] | None = None,
+    total_provider_latency_ms: int,
+) -> list[dict[str, Any]]:
+    labels = labels or {}
+    groups: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+    for record in records:
+        key = tuple(record.get(name) if record.get(name) is not None else labels.get(name) for name in keys)
+        groups.setdefault(key, []).append(record)
+    rows: list[dict[str, Any]] = []
+    for key, items in groups.items():
+        latency_ms = sum(int(item.get("latency_ms") or 0) for item in items)
+        row = {name: value for name, value in zip(keys, key, strict=True)}
+        row.update(
+            {
+                "provider_invocation_count": len(items),
+                "provider_invocation_latency_ms": latency_ms,
+                "prompt_tokens": sum(int(item.get("prompt_tokens") or 0) for item in items),
+                "completion_tokens": sum(int(item.get("completion_tokens") or 0) for item in items),
+                "cached_tokens": sum(int(item.get("cached_tokens") or 0) for item in items),
+                "cache_reporting_call_count": sum(1 for item in items if item.get("cached_tokens_reported") is True),
+                "latency_share_pct": _latency_share_pct(latency_ms, total_provider_latency_ms),
+            }
+        )
+        rows.append(row)
+    return sorted(rows, key=lambda item: (-int(item.get("provider_invocation_latency_ms") or 0), str(item)))
+
+
+def _slowest_provider_invocations(records: list[dict[str, Any]], *, limit: int = 10) -> list[dict[str, Any]]:
+    projected = [
+        {
+            "source_index": record.get("source_index"),
+            "invocation_index": record.get("invocation_index"),
+            "stage": record.get("stage"),
+            "diagnostic_stage_id": record.get("diagnostic_stage_id"),
+            "diagnostic_case_id": record.get("diagnostic_case_id"),
+            "diagnostic_turn": record.get("diagnostic_turn"),
+            "diagnostic_turn_kind": record.get("diagnostic_turn_kind"),
+            "manager_round_index": record.get("manager_round_index"),
+            "provider_trace_stage": record.get("provider_trace_stage"),
+            "latency_ms": int(record.get("latency_ms") or 0),
+            "timeout_budget_ms": int(record.get("timeout_budget_ms") or 0),
+            "prompt_tokens": int(record.get("prompt_tokens") or 0),
+            "completion_tokens": int(record.get("completion_tokens") or 0),
+            "cached_tokens_reported": record.get("cached_tokens_reported") is True,
+            "cached_tokens": int(record.get("cached_tokens") or 0),
+        }
+        for record in records
+    ]
+    return sorted(projected, key=lambda item: -int(item.get("latency_ms") or 0))[:limit]
+
+
+def _latency_share_pct(value_ms: int, total_ms: int) -> float:
+    if total_ms <= 0:
+        return 0.0
+    return round((value_ms / total_ms) * 100, 2)
 
 
 def _usage_records_from_invocations(invocations: list[dict[str, Any]], *, source_index: int) -> list[dict[str, Any]]:
@@ -333,6 +511,7 @@ def _latency_root_cause_hints(
     *,
     provider_invocation_count: int,
     max_stage_latency_ms: int,
+    stage_overhead_ms: int,
     prompt_tokens: int,
     completion_tokens: int,
     max_prompt_tokens_per_usage_record: int,
@@ -343,6 +522,7 @@ def _latency_root_cause_hints(
     return {
         "provider_invocation_count_high": provider_invocation_count >= HIGH_PROVIDER_INVOCATION_COUNT,
         "stage_latency_high": max_stage_latency_ms >= HIGH_STAGE_LATENCY_MS,
+        "stage_overhead_high": stage_overhead_ms >= HIGH_STAGE_OVERHEAD_MS,
         "prompt_token_volume_high": (
             prompt_tokens >= HIGH_TOTAL_PROMPT_TOKENS
             or max_prompt_tokens_per_usage_record >= HIGH_SINGLE_PROMPT_TOKENS
@@ -362,6 +542,8 @@ def _latency_optimization_priorities(hints: dict[str, bool]) -> list[str]:
                 "reduce_provider_request_count_per_user_turn",
             ]
         )
+    if hints.get("stage_overhead_high"):
+        priorities.append("attribute_stage_overhead_to_tool_db_renderer_spans")
     if hints.get("prompt_token_volume_high") or hints.get("stage_latency_high"):
         priorities.append("compact_dynamic_context_packets_before_full_suite")
     if hints.get("prompt_cache_metrics_missing") or hints.get("prompt_cache_hits_missing"):
@@ -396,6 +578,24 @@ def _list(value: Any) -> list[Any]:
 def _optional_string(value: Any) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return None
+        try:
+            return int(stripped)
+        except ValueError:
+            return None
+    return None
 
 
 def _int(value: Any) -> int:
