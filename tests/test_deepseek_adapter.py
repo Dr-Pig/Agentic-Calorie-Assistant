@@ -1,6 +1,7 @@
 import pytest
 
 from app.providers.deepseek_adapter import DeepSeekAdapter
+from app.providers.deepseek_config import format_user_message
 from app.runtime.agent.manager_branch_contract import (
     B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY,
     B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
@@ -22,6 +23,15 @@ def test_readiness_exposes_only_single_manager_stage_models() -> None:
         "intake_manager_round": adapter.model,
     }
     assert readiness["timeout_seconds"] <= 15
+
+
+def test_deepseek_format_user_message_uses_compact_json_for_prompt_payload() -> None:
+    serialized = format_user_message(
+        "intake_manager_round",
+        {"b": [1, 2], "a": {"c": 3}},
+    )
+
+    assert serialized == '{"stage":"intake_manager_round","payload":{"b":[1,2],"a":{"c":3}}}'
 
 
 def test_response_schema_only_exists_for_manager_stages() -> None:

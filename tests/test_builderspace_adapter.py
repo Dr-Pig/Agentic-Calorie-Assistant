@@ -2093,6 +2093,17 @@ def test_format_user_message_serializes_pydantic_objects() -> None:
     assert parsed["payload"]["original_answer"]["component_estimates"][0]["name"] == "Test"
 
 
+def test_format_user_message_uses_compact_json_for_prompt_payload() -> None:
+    adapter = BuilderSpaceAdapter()
+
+    serialized = adapter._format_user_message(
+        "intake_manager_round",
+        {"b": [1, 2], "a": {"c": 3}},
+    )
+
+    assert serialized == '{"stage":"intake_manager_round","payload":{"b":[1,2],"a":{"c":3}}}'
+
+
 def test_stage_temperatures_only_expose_single_manager_stages(monkeypatch) -> None:
     monkeypatch.delenv("AI_BUILDER_TIMEOUT_SECONDS", raising=False)
     adapter = BuilderSpaceAdapter()
