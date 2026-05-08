@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.shared.contracts.correction_operation import structured_payload_requests_remove_item
+from app.shared.contracts.correction_operation import structured_correction_operation, structured_payload_requests_remove_item
 
 FOUNDER_LIVE_MANAGER_CONTRACT_PROFILE_ID = "founder_live_contract"
 FOUNDER_LIVE_MANAGER_SCHEMA_NAME = "founder_live_manager_contract"
@@ -322,12 +322,10 @@ FOUNDER_LIVE_MANAGER_CONTRACT_EXAMPLES = [
     },
 ]
 
-
 def is_founder_live_manager_contract(constraints: dict[str, Any] | None) -> bool:
     if not isinstance(constraints, dict):
         return False
     return str(constraints.get("manager_contract_profile_id") or "") == FOUNDER_LIVE_MANAGER_CONTRACT_PROFILE_ID
-
 
 def founder_live_manager_repair_failure_family(constraints: dict[str, Any] | None) -> str:
     if not isinstance(constraints, dict):
@@ -335,7 +333,6 @@ def founder_live_manager_repair_failure_family(constraints: dict[str, Any] | Non
     if not bool(constraints.get("guard_feedback_repair_request")):
         return ""
     return str(constraints.get("guard_feedback_failure_family") or "")
-
 
 def founder_live_manager_contract_constraints(
     profile_id: str,
@@ -364,9 +361,9 @@ def founder_live_manager_contract_constraints(
             "nutrition_evidence_present": _nutrition_evidence_present(tool_results),
             "target_evidence_present": target_evidence["target_evidence_present"],
             "target_evidence_source": target_evidence["target_evidence_source"],
+            "target_evidence_operation": target_evidence["target_evidence_operation"],
         },
     }
-
 
 def founder_live_manager_tool_description() -> str:
     return (
@@ -407,7 +404,6 @@ def founder_live_manager_tool_description() -> str:
         "refinement_optional instead of refinement_not_commit_gate."
     )
 
-
 def _tool_result_names(tool_results: list[dict[str, Any]] | None) -> list[str]:
     names: list[str] = []
     for item in tool_results or []:
@@ -417,7 +413,6 @@ def _tool_result_names(tool_results: list[dict[str, Any]] | None) -> list[str]:
         if name:
             names.append(name)
     return names
-
 
 def _nutrition_evidence_present(tool_results: list[dict[str, Any]] | None) -> bool:
     for item in tool_results or []:
@@ -433,7 +428,6 @@ def _nutrition_evidence_present(tool_results: list[dict[str, Any]] | None) -> bo
             return True
     return False
 
-
 def _target_evidence_state(tool_results: list[dict[str, Any]] | None) -> dict[str, Any]:
     for item in tool_results or []:
         if not isinstance(item, dict):
@@ -448,6 +442,7 @@ def _target_evidence_state(tool_results: list[dict[str, Any]] | None) -> dict[st
             target = dict(provenance["correction_target"])
         elif isinstance(evidence, dict) and isinstance(evidence.get("correction_target"), dict):
             target = dict(evidence["correction_target"])
+        operation = structured_correction_operation(target)
         validation = target.get("manager_target_proposal_validation")
         if isinstance(validation, dict) and validation.get("status") == "rejected":
             continue
@@ -455,16 +450,19 @@ def _target_evidence_state(tool_results: list[dict[str, Any]] | None) -> dict[st
             return {
                 "target_evidence_present": True,
                 "target_evidence_source": "resolve_correction_target",
+                "target_evidence_operation": operation or None,
             }
     return {
         "target_evidence_present": False,
         "target_evidence_source": None,
+        "target_evidence_operation": None,
     }
-
 
 def _target_evidence_present(evidence_state: Any) -> bool:
     return isinstance(evidence_state, dict) and evidence_state.get("target_evidence_present") is True
 
+def _target_evidence_requests_remove_item(evidence_state: Any) -> bool:
+    return _target_evidence_present(evidence_state) and isinstance(evidence_state, dict) and str(evidence_state.get("target_evidence_operation") or "") == "remove_item"
 
 def _final_action_requires_nutrition_evidence(
     *,
@@ -474,10 +472,11 @@ def _final_action_requires_nutrition_evidence(
 ) -> bool:
     if final_action not in FOUNDER_LIVE_MANAGER_EVIDENCE_REQUIRED_FINAL_ACTIONS:
         return False
-    if final_action == "correction_applied" and structured_payload_requests_remove_item(payload):
+    if final_action == "correction_applied" and (
+        structured_payload_requests_remove_item(payload) or _target_evidence_requests_remove_item(evidence_state)
+    ):
         return not _target_evidence_present(evidence_state)
     return True
-
 
 def validate_founder_live_manager_contract_consistency(
     payload: dict[str, Any],
@@ -674,7 +673,6 @@ def validate_founder_live_manager_contract_consistency(
                 "founder live manager contract followup question missing: "
                 f"semantic_decision.followup_posture={followup_posture!r} requires followup_question"
             )
-
 
 __all__ = [
     "FOUNDER_LIVE_MANAGER_CONTRACT_PROFILE_ID",

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
+from app.shared.contracts.correction_operation import structured_correction_operation
 
 
 def entry_handoff_tool_calls(manager_decision: Any) -> list[dict[str, Any]]:
@@ -13,7 +14,7 @@ def entry_handoff_tool_calls(manager_decision: Any) -> list[dict[str, Any]]:
     semantic_target = dict(semantic_decision.get("target_attachment") or {})
     merged_target = {**target, **semantic_target}
     final_candidate = str(semantic_decision.get("final_action_candidate") or "")
-    operation = str(merged_target.get("operation") or merged_target.get("correction_operation") or "").strip()
+    operation = structured_correction_operation(merged_target)
     if final_candidate != "correction_applied" or operation != "remove_item":
         return []
     arguments = {

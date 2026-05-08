@@ -11,7 +11,10 @@ from app.composition.request_runtime_context import load_request_runtime_context
 from app.intake.application.target_evidence_artifacts import TargetEvidenceArtifact
 from app.intake.infrastructure.models import MealItemRecord
 from app.shared.contracts.common import EstimateRequest
-from app.shared.contracts.correction_operation import structured_payload_requests_remove_item
+from app.shared.contracts.correction_operation import (
+    structured_correction_operation,
+    structured_payload_requests_remove_item,
+)
 from app.shared.contracts.correction_target import validate_correction_target_ref
 from app.shared.contracts.intake import EstimatePayload
 
@@ -19,7 +22,8 @@ from app.shared.contracts.intake import EstimatePayload
 def remove_item_target_evidence_ready(*, manager_payload: dict[str, Any], correction_target: dict[str, Any]) -> bool:
     if str(manager_payload.get("final_action") or "") != "correction_applied":
         return False
-    if not structured_payload_requests_remove_item(manager_payload):
+    target_operation = structured_correction_operation(correction_target)
+    if not structured_payload_requests_remove_item(manager_payload) and target_operation != "remove_item":
         return False
     return validate_correction_target_ref(correction_target).get("resolved") is True
 
