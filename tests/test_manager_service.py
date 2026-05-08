@@ -547,6 +547,7 @@ async def test_run_intake_manager_records_prompt_layer_contract_trace_only() -> 
         "stable_prefix_sha256": layer["system_contract"]["stable_prefix_sha256"],
         "dynamic_suffix_sha256": layer["prompt_cache_identity"]["dynamic_suffix_sha256"],
         "stable_prefix_component_order": ["system_prompt"],
+        "stable_prefix_section_order": layer["system_contract"]["section_order"],
         "dynamic_suffix_component_order": ["runtime_user_payload"],
         "provider_overlay_hash_source": "provider_trace.prompt_cache_request",
         "cache_truth_source": "provider_reported_usage_only",
@@ -555,12 +556,28 @@ async def test_run_intake_manager_records_prompt_layer_contract_trace_only() -> 
     assert layer["dynamic_payload_keys"] == sorted(provider.calls[0]["user_payload"])
     assert layer["system_contract"]["owner"] == "ManagerRuntime"
     assert layer["system_contract"]["prompt_id"] == "single_manager_system_prompt"
+    assert layer["system_contract"]["section_manifest_version"] == "single_manager_system_prompt_sections.v1"
+    assert layer["system_contract"]["section_order"] == [
+        "base_manager_role_and_react_loop",
+        "product_policy_guidance",
+        "runtime_contract_policy",
+        "scope_boundary_policy",
+        "user_facing_reply_policy",
+    ]
+    assert set(layer["system_contract"]["section_sha256"]) == set(layer["system_contract"]["section_order"])
+    assert [
+        section["section_id"]
+        for section in layer["system_contract"]["sections"]
+    ] == layer["system_contract"]["section_order"]
+    assert all(section["provider_overlay_allowed"] is False for section in layer["system_contract"]["sections"])
+    assert all(section["layer"] == "static_prefix" for section in layer["system_contract"]["sections"])
     assert layer["provider_overlay_contract"] == {
         "owner": "ProviderAdapter",
         "trace_only": True,
         "may_set_model": True,
         "may_set_transport": True,
         "may_change_system_contract": False,
+        "may_change_system_prompt_sections": False,
         "may_inject_product_semantics": False,
     }
     assert layer["runtime_payload_layer_plan"]["uncategorized_dynamic_keys"] == []
