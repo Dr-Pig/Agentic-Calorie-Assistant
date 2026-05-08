@@ -15,6 +15,7 @@ from .builderspace_attempts import (
     remaining_retry_budget,
     run_structured_attempt,
 )
+from .builderspace_contract_repair import contract_repair_message
 from .builderspace_parsing import BuilderSpaceParseError, extract_finish_reason, extract_json_object, extract_text_content
 from .builderspace_prompt_cache import apply_prompt_cache_key
 from .builderspace_trace import build_success_trace, new_transport_attempt
@@ -314,12 +315,7 @@ def _with_contract_repair_message(
     messages.append(
         {
             "role": "user",
-            "content": (
-                "CONTRACT_REPAIR: Return the same manager decision using the required structured schema. "
-                "Do not change user intent, workflow_effect, target_attachment, exactness, confidence, "
-                "or evidence_posture. Fix only the contract shape. "
-                f"Previous validation error: {parse_attempt.get('error')}"
-            ),
+            "content": contract_repair_message(parse_attempt),
         }
     )
     repaired["messages"] = messages

@@ -7,6 +7,7 @@ from ..runtime.agent.manager_branch_contract import (
     manager_pass1_schema_for_constraints,
     validate_manager_pass1_branch,
 )
+from .builderspace_final_mapping_schema import apply_evidence_present_final_mapping_schema
 from ..runtime.agent.founder_live_manager_contract import (
     FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS,
     FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES,
@@ -220,6 +221,7 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
             "type": "string",
             "enum": allowed_final_actions,
         }
+        apply_evidence_present_final_mapping_schema(base_schema, constraints)
         base_schema["properties"]["tool_calls"] = {
             "type": "array",
             "items": {
