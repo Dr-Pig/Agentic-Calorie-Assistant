@@ -5,6 +5,7 @@ Use this before starting a new build wave. It should take about 30 seconds.
 ## Go
 
 - `main` branch protection requires the current CI job names from `.github/workflows/ci.yml`: `repo-hygiene-and-architecture`, `runtime-contract-tests`, and `product-pages-browser-e2e`
+- `repo-hygiene-and-architecture` runs the PR/merge-group diff quality gate so active app fat-file growth is blocked in CI, not only by local pre-commit
 - `python scripts/check_layer_integrity.py` passes
 - `python scripts/check_runtime_boundaries.py` passes
 - `powershell -ExecutionPolicy Bypass -File scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings` passes
