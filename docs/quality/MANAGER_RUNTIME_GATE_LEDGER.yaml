@@ -267,6 +267,14 @@ gates:
       - rt12b_live_trace_grading_extension
       - rt13b_latency_cost_cache_budget_pack
       - rt14e_context_conditioned_live_probe
+  - gate_id: rt14g_response_language_prompt_polish
+    title: Response-language prompt polish
+    status: green
+    pass_type: contract
+    depends_on:
+      - rt1b_stable_prefix_dynamic_suffix_contract
+      - rt11b_final_response_quality_live_wall
+      - rt14f_holdout_replay_anti_overfit_gate
   - gate_id: rt9b_fooddb_packet_live_probe
     title: FoodDB packet live probe
     status: green
@@ -329,6 +337,7 @@ gates:
       - rt13_observability_pack
       - rt13b_latency_cost_cache_budget_pack
       - rt14f_holdout_replay_anti_overfit_gate
+      - rt14g_response_language_prompt_polish
 journey_gate_map:
   A:
     - rt6_bootstrap_no_plan_body_closure
