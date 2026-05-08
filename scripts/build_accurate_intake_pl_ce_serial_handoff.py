@@ -20,7 +20,9 @@ DEFAULT_ACTIVATION_REVIEW_MANIFEST_PATH = (
     ROOT / "artifacts" / "accurate_intake_pl_ce_activation_review_manifest.json"
 )
 DEFAULT_CURRENT_METADATA_FRESHNESS_PATH = (
-    ROOT / "artifacts" / "accurate_intake_pl_ce_current_metadata_freshness_pack.json"
+    ROOT
+    / "artifacts"
+    / "accurate_intake_current_shell_compatibility_current_metadata_freshness_pack.json"
 )
 DEFAULT_QUEUE_JSON_PATH = ROOT / "artifacts" / "accurate_intake_pl_ce_merge_queue_metadata.json"
 DEFAULT_OUTPUT_PATH = ROOT / "artifacts" / "accurate_intake_pl_ce_serial_handoff.json"
