@@ -346,13 +346,6 @@ def build_local_web_self_use_candidate_v2(evidence: dict[str, Any]) -> dict[str,
     return _json_safe({
         "local_web_self_use_candidate_v2": {
             "candidate_prepared": candidate_prepared,
-            "private_self_use_approved": False,
-            "product_readiness_claimed": False,
-            "live_manager_required": False,
-            "production_selected": False,
-            "rollout_approved": False,
-            "kimi_activated": False,
-            "live_provider_called": False,
             "required_evidence": required_evidence_output,
             "blockers": blockers,
             "next_recommended_slice": (

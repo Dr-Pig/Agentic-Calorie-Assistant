@@ -474,7 +474,7 @@ def test_local_web_self_use_candidate_v2_gate_runner_writes_outputs(
     assert pre_live_evidence["_evidence_metadata"]["local_web_candidate_gate_blocked"] is False
     assert pre_live_pack["ready_for_pl_ce_local_review"] is True
     assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is True
-    assert candidate["local_web_self_use_candidate_v2"]["private_self_use_approved"] is False
+    assert "private_self_use_approved" not in candidate["local_web_self_use_candidate_v2"]
 
 
 def test_local_web_self_use_candidate_v2_gate_runner_keeps_distinct_default_phase_c_path() -> None:
@@ -891,7 +891,7 @@ def test_local_web_self_use_candidate_v2_gate_runner_blocks_pl_ce_overclaim(
     assert exit_code == 1
     assert printed["candidate_prepared"] is False
     assert "PL+CE local review overclaim" in candidate["local_web_self_use_candidate_v2"]["blockers"]
-    assert candidate["local_web_self_use_candidate_v2"]["private_self_use_approved"] is False
+    assert "private_self_use_approved" not in candidate["local_web_self_use_candidate_v2"]
 
 
 def test_local_web_self_use_candidate_v2_gate_runner_blocks_blocked_appshell_claim_boundary(
