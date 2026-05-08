@@ -45,19 +45,14 @@ def manager_context_pack_prompt_payload(
     available_if_needed = dict(full_payload.get("available_if_needed") or {})
     return {
         "prompt_payload_kind": "manager_context_pack_lineage_summary",
-        "source_role": "compatibility_context_pack_summary",
         "primary_context_source": "manager_context_packet_v1",
+        "legacy_payload_mode": "packet_primary_reference",
         "policy": {
-            "must_inject": list(dict(full_payload.get("policy") or {}).get("must_inject") or []),
-            "available_if_needed_fields": sorted(available_if_needed),
+            "must_inject_count": _list_count(dict(full_payload.get("policy") or {}).get("must_inject")),
+            "available_if_needed_field_count": len(available_if_needed),
         },
-        "manager_context_presence": _manager_context_presence(manager_context),
-        "available_if_needed_summary": {
-            "present_fields": sorted(available_if_needed),
-            "active_body_plan_snapshot_present": bool(available_if_needed.get("active_body_plan_snapshot")),
-            "recent_committed_meal_ref_count": _list_count(available_if_needed.get("recent_committed_meal_refs")),
-        },
-        "omitted_manager_context_fields": sorted(manager_context),
+        "context_packet_carries_full_fields": True,
+        "manager_context_field_count": len(manager_context),
         "full_context_omitted_from_prompt": True,
         "read_only": True,
         "mutation_authority": False,
@@ -73,26 +68,15 @@ def current_turn_context_prompt_payload(
         return None
     payload = current_turn_context.model_dump(mode="json")
     if primary_packet_present:
-        event = dict(payload.get("current_interaction_event") or {})
         return {
             "prompt_payload_kind": "current_turn_context_lineage_summary",
-            "source_role": "context_engineering_lineage_summary",
             "primary_context_source": "manager_context_packet_v1",
-            "current_interaction_event_summary": {
-                "source": event.get("source"),
-                "surface_mode": event.get("surface_mode"),
-                "event_type": event.get("event_type"),
-                "action_id": event.get("action_id"),
-                "target_object_type": event.get("target_object_type"),
-                "target_object_id": event.get("target_object_id"),
-            },
-            "open_workflow_type": payload.get("open_workflow_type"),
-            "context_presence": _current_turn_context_presence(payload),
+            "legacy_payload_mode": "packet_primary_reference",
+            "context_packet_carries_full_fields": True,
             "full_context_omitted_from_prompt": True,
             "read_only": True,
             "mutation_authority": False,
             "deterministic_semantic_authority": False,
-            "omitted_fields": sorted(payload),
         }
     exposed_keys = (
         "current_interaction_event",
@@ -121,37 +105,6 @@ def current_turn_context_prompt_payload(
         }
     )
     return summary
-
-
-def _manager_context_presence(manager_context: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "interaction_event": bool(manager_context.get("interaction_event")),
-        "active_meal_thread_ref": bool(manager_context.get("active_meal_thread_ref")),
-        "pending_followup": bool(manager_context.get("pending_followup")),
-        "candidate_attachment_target_count": _list_count(manager_context.get("candidate_attachment_targets")),
-        "current_budget_snapshot": bool(manager_context.get("current_budget_snapshot")),
-        "recent_chat_turn_count": _list_count(manager_context.get("recent_chat_turns")),
-        "recent_item_target_count": _list_count(manager_context.get("recent_item_targets")),
-        "session_atomic_block_count": _list_count(manager_context.get("session_atomic_blocks")),
-        "target_resolution_posture": bool(manager_context.get("target_resolution_posture")),
-        "context_freshness": bool(manager_context.get("context_freshness")),
-    }
-
-
-def _current_turn_context_presence(payload: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "last_system_question": bool(payload.get("last_system_question")),
-        "recent_chat_turn_count": _list_count(payload.get("recent_chat_turns")),
-        "active_meal_thread_ref": bool(payload.get("active_meal_thread_ref")),
-        "pending_followup": bool(payload.get("pending_followup")),
-        "recent_committed_meal_ref_count": _list_count(payload.get("recent_committed_meal_refs")),
-        "current_budget_snapshot": bool(payload.get("current_budget_snapshot")),
-        "active_body_plan_snapshot": bool(payload.get("active_body_plan_snapshot")),
-        "recent_item_target_count": _list_count(payload.get("recent_item_targets")),
-        "candidate_attachment_target_count": _list_count(payload.get("candidate_attachment_targets")),
-        "session_atomic_block_count": _list_count(payload.get("session_atomic_blocks")),
-        "source_view_count": len(dict(payload.get("source_views") or {})),
-    }
 
 
 def _list_count(value: Any) -> int:

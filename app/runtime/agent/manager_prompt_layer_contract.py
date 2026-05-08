@@ -241,11 +241,19 @@ def _progressive_disclosure(user_payload: dict[str, Any]) -> dict[str, Any]:
         and current_turn.get("prompt_payload_kind") == "current_turn_context_lineage_summary"
         and context_pack.get("prompt_payload_kind") == "manager_context_pack_lineage_summary"
     )
+    legacy_reference_only = (
+        legacy_lineage_only
+        and current_turn.get("legacy_payload_mode") == "packet_primary_reference"
+        and context_pack.get("legacy_payload_mode") == "packet_primary_reference"
+    )
     return {
         "full_context_in_user_payload": not legacy_lineage_only,
         "context_packet_primary": context_packet_primary,
         "primary_context_source": "manager_context_packet_v1" if context_packet_primary else "phase_a_manager_context_pack",
-        "legacy_context_payload_mode": "lineage_summary" if legacy_lineage_only else "direct_or_compact_summary",
+        "legacy_context_payload_mode": _legacy_context_payload_mode(
+            legacy_reference_only=legacy_reference_only,
+            legacy_lineage_only=legacy_lineage_only,
+        ),
         "prompt_registry_trace_only": True,
         "provider_metadata_trace_only": True,
         "tool_results_dynamic_key": "tool_results",
@@ -255,6 +263,18 @@ def _progressive_disclosure(user_payload: dict[str, Any]) -> dict[str, Any]:
             "manager_context_packet_v1",
         ],
     }
+
+
+def _legacy_context_payload_mode(
+    *,
+    legacy_reference_only: bool,
+    legacy_lineage_only: bool,
+) -> str:
+    if legacy_reference_only:
+        return "packet_primary_reference"
+    if legacy_lineage_only:
+        return "lineage_summary"
+    return "direct_or_compact_summary"
 
 
 def _json_char_count(value: Any) -> int:
