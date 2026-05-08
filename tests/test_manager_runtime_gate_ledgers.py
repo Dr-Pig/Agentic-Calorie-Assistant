@@ -185,7 +185,13 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt1c_cache_metrics_observability",
         "rt13_observability_pack",
     ]
+    assert gates["rt14b_provider_health_live_canary"]["status"] == "green"
+    assert gates["rt14b_provider_health_live_canary"]["pass_type"] == "runtime_backed"
+    assert gates["rt14b_provider_health_live_canary"]["depends_on"] == [
+        "rt14a_provider_health_schema_live_foundation",
+    ]
     assert gates["rt14_limited_live_ladder"]["depends_on"] == [
+        "rt14b_provider_health_live_canary",
         "rt14a_provider_health_schema_live_foundation",
         "rt1c_cache_metrics_observability",
         "rt10b_nutrition_estimate_quality_fake_provider",

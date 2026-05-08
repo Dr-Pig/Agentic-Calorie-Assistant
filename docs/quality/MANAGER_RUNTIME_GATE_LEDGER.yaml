@@ -193,23 +193,30 @@ gates:
     depends_on:
       - rt1a_prompt_registry_and_trace_versioning
       - rt3_react_trace_contract
-  - gate_id: rt14_limited_live_ladder
-    title: Limited live diagnostic ladder
-    status: pending
-    pass_type: runtime_backed
-    depends_on:
-      - rt14a_provider_health_schema_live_foundation
-      - rt1c_cache_metrics_observability
-      - rt10b_nutrition_estimate_quality_fake_provider
-      - rt11_final_response_quality
-      - rt12_trace_grading_v1
-      - rt13_observability_pack
   - gate_id: rt14a_provider_health_schema_live_foundation
     title: Provider health and schema-probe live foundation
     status: green
     pass_type: contract
     depends_on:
       - rt1c_cache_metrics_observability
+      - rt13_observability_pack
+  - gate_id: rt14b_provider_health_live_canary
+    title: Provider-health real-live canary
+    status: green
+    pass_type: runtime_backed
+    depends_on:
+      - rt14a_provider_health_schema_live_foundation
+  - gate_id: rt14_limited_live_ladder
+    title: Limited live diagnostic ladder
+    status: pending
+    pass_type: runtime_backed
+    depends_on:
+      - rt14b_provider_health_live_canary
+      - rt14a_provider_health_schema_live_foundation
+      - rt1c_cache_metrics_observability
+      - rt10b_nutrition_estimate_quality_fake_provider
+      - rt11_final_response_quality
+      - rt12_trace_grading_v1
       - rt13_observability_pack
 journey_gate_map:
   A:
