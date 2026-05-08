@@ -42,6 +42,22 @@ Optional Windows launchers live under `scripts/local/`:
 .\scripts\local\start_test_ui.bat
 ```
 
+## Local Harness Guardrails
+
+Install the repo hooks once per checkout so fat-file, protected-doc, encoding, layer, runtime-boundary, and diff-scope checks fail before commit instead of waiting for CI:
+
+```powershell
+.\scripts\install_git_hooks.ps1
+```
+
+For an explicit fat-file check while working:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\check_fat_files.ps1 -StagedOnly
+```
+
+If the fat-file gate fails, split or shrink the change. Do not add transition overrides just to move the failure to CI.
+
 ## Tests
 
 ```powershell

@@ -51,6 +51,15 @@ def test_harness_go_no_go_mentions_current_required_jobs() -> None:
         assert f"`{job_name}`" in harness
 
 
+def test_readme_bootstraps_local_harness_guardrails() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "Local Harness Guardrails" in readme
+    assert ".\\scripts\\install_git_hooks.ps1" in readme
+    assert "scripts\\check_fat_files.ps1 -StagedOnly" in readme
+    assert "Do not add transition overrides just to move the failure to CI" in readme
+
+
 def test_cloud_deploy_placeholder_workflow_is_retired() -> None:
     workflow_path = ROOT / ".github" / "workflows" / "cd.yml"
     governance = (ROOT / "docs" / "governance" / "GITHUB_REPO_GOVERNANCE.md").read_text(encoding="utf-8")
