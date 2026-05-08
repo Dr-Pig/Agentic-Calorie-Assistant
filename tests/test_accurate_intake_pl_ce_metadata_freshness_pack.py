@@ -10,6 +10,7 @@ from app.composition.accurate_intake_pl_ce_metadata_freshness_pack import (
 from app.composition.current_shell_compatibility_ids import (
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_ARTIFACT_TYPE,
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_METADATA_FRESHNESS_READY_STATUS,
 )
 
 
@@ -314,9 +315,9 @@ def test_pl_ce_metadata_freshness_pack_cli_writes_output(tmp_path: Path, capsys)
     pack = json.loads(output_path.read_text(encoding="utf-8"))
 
     assert exit_code == 0
-    assert printed["status"] == "metadata_freshness_ready_for_pl_ce_local_review"
+    assert printed["status"] == CURRENT_SHELL_COMPATIBILITY_METADATA_FRESHNESS_READY_STATUS
     assert printed["fresh_artifact_count"] == 6
-    assert pack["status"] == "metadata_freshness_ready_for_pl_ce_local_review"
+    assert pack["status"] == CURRENT_SHELL_COMPATIBILITY_METADATA_FRESHNESS_READY_STATUS
     assert pack["ready_for_fdb_integration"] is False
 
 
@@ -428,5 +429,6 @@ def test_ci_runs_pl_ce_metadata_freshness_pack_test() -> None:
     assert "test_accurate_intake_pl_ce_metadata_freshness_pack.py" not in workflow
     groups = {group["group_id"]: group for group in manifest["required_groups"]}
     assert groups["pl_ce_metadata_freshness_pack_contract"]["pytest"] == [
-        "tests/test_accurate_intake_pl_ce_metadata_freshness_pack.py"
+        "tests/test_accurate_intake_pl_ce_metadata_freshness_pack.py",
+        "tests/test_current_shell_compatibility_metadata_freshness_entrypoint.py",
     ]

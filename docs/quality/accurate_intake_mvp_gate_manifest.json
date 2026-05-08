@@ -156,7 +156,8 @@
     {
       "group_id": "pl_ce_metadata_freshness_pack_contract",
       "pytest": [
-        "tests/test_accurate_intake_pl_ce_metadata_freshness_pack.py"
+        "tests/test_accurate_intake_pl_ce_metadata_freshness_pack.py",
+        "tests/test_current_shell_compatibility_metadata_freshness_entrypoint.py"
       ]
     },
     {
