@@ -221,7 +221,7 @@ def build_context_live_response_contract_dry_run_artifact(
             "artifact_type": "accurate_intake_context_live_response_contract_dry_run",
             "status": "pass" if not blockers else "blocked",
             "generated_at_utc": datetime.now(UTC).isoformat(),
-            "claim_scope": "pl_ce_context_live_response_contract_dry_run_only",
+            "claim_scope": "current_shell_compatibility_context_live_response_contract_dry_run_only",
             "diagnostic_only": True,
             "plan_only": True,
             "local_only": True,
@@ -243,8 +243,6 @@ def build_context_live_response_contract_dry_run_artifact(
             "runtime_truth_changed": False,
             "mutation_changed": False,
             "manager_context_packet_schema_changed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
             "blockers": blockers,
             "summary": {
                 "case_count": len(responses),

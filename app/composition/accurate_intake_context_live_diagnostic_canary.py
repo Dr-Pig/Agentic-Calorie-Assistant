@@ -94,7 +94,7 @@ def build_missing_token_report(
 
 def build_provider_request_payload(provider_input: dict[str, Any]) -> dict[str, Any]:
     payload = {
-        "diagnostic_scope": "pl_ce_context_only_live_intent_probe",
+        "diagnostic_scope": "current_shell_compatibility_context_only_live_intent_probe",
         "case_id": provider_input.get("case_id"),
         "messages": provider_input.get("messages"),
         "manager_context_sidecar": provider_input.get("manager_context_sidecar"),
@@ -116,8 +116,6 @@ def build_provider_request_payload(provider_input: dict[str, Any]) -> dict[str, 
             "runtime_truth_changed": False,
             "mutation_changed": False,
             "manager_context_packet_schema_changed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
         },
     }
     return _json_safe(payload)
@@ -195,7 +193,7 @@ def _report_shell(
             "artifact_type": "accurate_intake_context_live_diagnostic_canary",
             "status": status,
             "generated_at_utc": datetime.now(UTC).isoformat(),
-            "claim_scope": "pl_ce_context_only_live_diagnostic",
+            "claim_scope": "current_shell_compatibility_context_only_live_diagnostic",
             "diagnostic_only": True,
             "provider_mode": provider_mode,
             "live_invoked": live_invoked,
@@ -217,12 +215,6 @@ def _report_shell(
             "manager_context_packet_schema_changed": False,
             "shared_contract_changed": False,
             "production_db_used": False,
-            "user_facing_rollout": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
-            "production_selected": False,
-            "not_production_selection": True,
-            "readiness_claimed": False,
             "readiness_claim": build_readiness_claim(
                 claim_scope="live_diagnostic" if live_invoked else "unit_contract",
                 activation_stage="live_diagnostic" if live_invoked else "contract",

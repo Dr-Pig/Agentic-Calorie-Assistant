@@ -32,8 +32,8 @@ def test_context_live_response_contract_dry_run_validates_fixture_manager_output
     assert artifact["web_tavily_used"] is False
     assert artifact["mutation_changed"] is False
     assert artifact["manager_context_packet_schema_changed"] is False
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
     assert artifact["blockers"] == []
     assert artifact["summary"]["case_count"] == len(REQUIRED_CASE_IDS)
     assert artifact["summary"]["validated_response_count"] == len(REQUIRED_CASE_IDS)

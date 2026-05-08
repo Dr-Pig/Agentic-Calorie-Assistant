@@ -46,8 +46,8 @@ def test_context_live_holdout_plan_requires_full_withheld_case_matrix_before_liv
     assert artifact["runtime_truth_changed"] is False
     assert artifact["mutation_changed"] is False
     assert artifact["manager_context_packet_schema_changed"] is False
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
     assert artifact["blockers"] == []
     assert artifact["summary"]["case_ids"] == list(REQUIRED_CASE_IDS)
     assert artifact["summary"]["withheld_holdout_variant_count"] >= len(REQUIRED_CASE_IDS) * 2

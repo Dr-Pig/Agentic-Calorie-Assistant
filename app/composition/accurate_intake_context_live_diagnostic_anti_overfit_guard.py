@@ -127,7 +127,7 @@ def build_context_live_diagnostic_anti_overfit_guard_artifact(
             "artifact_type": "accurate_intake_context_live_diagnostic_anti_overfit_guard",
             "status": "pass" if not blockers else "blocked",
             "generated_at_utc": datetime.now(UTC).isoformat(),
-            "claim_scope": "pl_ce_context_live_diagnostic_anti_overfit_guard",
+            "claim_scope": "current_shell_compatibility_context_live_diagnostic_anti_overfit_guard",
             "diagnostic_only": True,
             "plan_only": True,
             "local_only": True,
@@ -139,8 +139,6 @@ def build_context_live_diagnostic_anti_overfit_guard_artifact(
             "mutation_changed": False,
             "manager_context_packet_schema_changed": False,
             "shared_contract_changed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
             "blockers": blockers,
             "summary": {
                 "fixed_case_matrix_used": _case_ids(matrix) == list(REQUIRED_CASE_IDS),

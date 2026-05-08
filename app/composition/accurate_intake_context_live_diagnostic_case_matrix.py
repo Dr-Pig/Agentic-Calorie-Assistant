@@ -306,7 +306,7 @@ def build_context_live_diagnostic_case_matrix_artifact() -> dict[str, Any]:
             "artifact_type": "accurate_intake_context_live_diagnostic_case_matrix",
             "status": "pass" if not blockers else "fail",
             "generated_at_utc": datetime.now(UTC).isoformat(),
-            "claim_scope": "pl_ce_context_live_diagnostic_case_selection_contract",
+            "claim_scope": "current_shell_compatibility_context_live_diagnostic_case_selection_contract",
             "diagnostic_only": True,
             "plan_only": True,
             "local_only": True,
@@ -319,8 +319,6 @@ def build_context_live_diagnostic_case_matrix_artifact() -> dict[str, Any]:
             "mutation_changed": False,
             "manager_context_packet_schema_changed": False,
             "shared_contract_changed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
             "blockers": blockers,
             "summary": {
                 "case_count": len(cases),

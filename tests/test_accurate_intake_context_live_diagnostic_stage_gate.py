@@ -72,7 +72,7 @@ def test_stage_gate_accepts_one_fixed_case_live_probe_only() -> None:
     assert artifact["fooddb_used"] is False
     assert artifact["mutation_changed"] is False
     assert artifact["manager_context_packet_schema_changed"] is False
-    assert artifact["product_readiness_claimed"] is False
+    assert "product_readiness_claimed" not in artifact
     assert artifact["summary"]["provider_output_count"] == 1
     assert artifact["summary"]["case_ids"] == [REQUIRED_CASE_IDS[0]]
 
@@ -120,9 +120,6 @@ def test_stage_gate_requires_single_case_pass_before_full_matrix_live_probe() ->
 
 
 def test_stage_gate_cli_writes_artifact(tmp_path: Path) -> None:
-    from app.composition.accurate_intake_context_live_diagnostic_stage_gate import (
-        build_context_live_diagnostic_stage_gate_artifact,
-    )
     from scripts.build_accurate_intake_context_live_diagnostic_stage_gate import main
 
     canary = _live_canary_for_case_count(1)
