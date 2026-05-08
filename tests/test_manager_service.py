@@ -32,7 +32,7 @@ def test_single_manager_entrypoint_has_no_bundle_specific_modes() -> None:
 
 
 def test_single_manager_system_prompt_requires_semantic_contract_not_reasoning_dump() -> None:
-    source = Path(manager_service.__file__).resolve().parents[1] / "agent" / "manager.py"
+    source = Path(manager_service.__file__).resolve().parents[1] / "agent" / "manager_system_prompt.py"
     with open(source, "r", encoding="utf-8") as handle:
         content = handle.read()
 
@@ -48,6 +48,15 @@ def test_single_manager_system_prompt_consumes_product_policy_hints_without_owni
     assert "manager_product_policy_hints" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "pearl_milk_tea_missing_sugar_size" not in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "self_selected_basket_without_listed_items" not in SINGLE_MANAGER_SYSTEM_PROMPT
+
+
+def test_single_manager_system_prompt_restricts_tool_calls_to_available_surface() -> None:
+    from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT
+
+    assert "Only call tool names listed in user_payload.available_tools" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "do not call it or invent a compatible alias" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "manager_loop_scope='turn_entry_or_read_only'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "workflow_effect='route_to_intake'" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
 def test_stable_available_tools_normalizes_order_and_deduplicates() -> None:
@@ -326,7 +335,7 @@ async def test_run_intake_manager_keeps_prompt_registry_in_trace_only() -> None:
         "registry_version": "manager_prompt_registry.v1",
         "manager_loop_stage": "intake_manager_round",
         "system_prompt_id": "single_manager_system_prompt",
-        "system_prompt_version": "v2",
+        "system_prompt_version": "v3",
         "model_prompt_contract_id": "single_manager_user_payload_contract",
         "model_prompt_contract_version": "v1",
         "tool_surface_version": "current_shell_public_tools.v1",
@@ -458,6 +467,9 @@ async def test_run_intake_manager_max_rounds_is_hard_failure() -> None:
     )
 
     assert result.final_action == "no_commit"
+    assert result.intent == "manager_unavailable"
+    assert result.intent_type == "manager_unavailable"
+    assert result.workflow_effect == "safe_failure"
     assert result.request_failure_family == "max_rounds_exceeded"
     assert len(result.manager_rounds) == manager_service.MAX_MANAGER_ROUNDS
     assert result.trace["react_trace"]["request_failure_family"] == "max_rounds_exceeded"
@@ -467,6 +479,109 @@ async def test_run_intake_manager_max_rounds_is_hard_failure() -> None:
     assert (
         result.trace["react_trace"]["manager_pass_final"]["round_index"]
         == result.trace["react_trace"]["manager_passes"][-1]["round_index"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_run_intake_manager_routes_entry_scope_intake_tool_to_execution_without_executor_loop() -> None:
+    provider = FakeLoopProvider(
+        [
+            {
+                "manager_action": "call_tools",
+                "intent": "correct_meal",
+                "intent_type": "log_meal",
+                "workflow_effect": "correction",
+                "target_attachment": {"operation": "remove_item"},
+                "final_action": "correction_applied",
+                "tool_calls": [{"name": "resolve_correction_target", "arguments": {}}],
+                "semantic_decision": {
+                    "semantic_authority": "manager_llm",
+                    "current_turn_intent": "correct_meal",
+                    "target_attachment": {"operation": "remove_item"},
+                    "workflow_effect": "correction",
+                    "final_action_candidate": "correction_applied",
+                    "estimation_posture": "target_evidence_needed",
+                    "followup_posture": "none",
+                    "mutation_intent_candidate": "correction_write",
+                    "uncertainty_posture": "pending_tool",
+                    "source": "manager_structured_output",
+                },
+            }
+        ]
+    )
+    executor_called = False
+
+    async def tool_executor(**_: object) -> list[dict[str, object]]:
+        nonlocal executor_called
+        executor_called = True
+        return [{"tool_name": "resolve_correction_target", "evidence": {}, "failure_family": None}]
+
+    result = await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="remove that",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=("budget.get_day_meal_log",),
+        tool_executor=tool_executor,
+    )
+
+    assert executor_called is False
+    assert len(result.manager_rounds) == 1
+    assert result.intent_type == "log_meal"
+    assert result.final_action == "no_commit"
+    assert result.workflow_effect == "route_to_intake"
+    assert result.semantic_decision["workflow_effect"] == "correction"
+    assert result.request_failure_family is None
+    assert result.tool_results == (
+        {
+            "handoff_family": "entry_scope_requested_intake_tool",
+            "requested_tools": ["resolve_correction_target"],
+            "available_tools": ["budget.get_day_meal_log"],
+            "target_scope": "intake_execution",
+            "mutation_result": {"state_mutation": "none"},
+            "confidence": "bounded_handoff",
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_run_intake_manager_blocks_unknown_unavailable_tool_before_executor_loop() -> None:
+    provider = FakeLoopProvider(
+        [
+            {
+                "manager_action": "call_tools",
+                "tool_calls": [{"name": "unapproved.lookup", "arguments": {}}],
+            }
+        ]
+    )
+    executor_called = False
+
+    async def tool_executor(**_: object) -> list[dict[str, object]]:
+        nonlocal executor_called
+        executor_called = True
+        return [{"tool_name": "unapproved.lookup", "evidence": {}, "failure_family": None}]
+
+    result = await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="look this up",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=("budget.get_day_meal_log",),
+        tool_executor=tool_executor,
+    )
+
+    assert executor_called is False
+    assert len(result.manager_rounds) == 1
+    assert result.intent_type == "manager_unavailable"
+    assert result.final_action == "no_commit"
+    assert result.workflow_effect == "safe_failure"
+    assert result.request_failure_family == "tool_not_available"
+    assert result.tool_results == (
+        {
+            "failure_family": "tool_not_available",
+            "requested_tools": ["unapproved.lookup"],
+            "available_tools": ["budget.get_day_meal_log"],
+            "mutation_result": {"state_mutation": "none"},
+            "confidence": "none",
+        },
     )
 
 
@@ -504,6 +619,8 @@ async def test_run_intake_manager_malformed_final_target_attachment_returns_safe
     )
 
     assert result.final_action == "no_commit"
+    assert result.intent == "manager_unavailable"
+    assert result.intent_type == "manager_unavailable"
     assert result.workflow_effect == "safe_failure"
     assert result.request_failure_family == "final_payload_shape_error"
     assert result.trace["request_failure_family"] == "final_payload_shape_error"

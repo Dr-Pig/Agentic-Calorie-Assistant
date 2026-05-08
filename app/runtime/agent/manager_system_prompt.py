@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v2"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v3"
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT = (
@@ -12,6 +12,12 @@ SINGLE_MANAGER_SYSTEM_PROMPT = (
     "use a non-empty tool_calls array when manager_action='call_tools'. Do not put final_action only inside "
     "answer_contract.\n"
     "Follow manager_product_policy_hints when present; they are product policy context, not hidden state.\n"
+    "Only call tool names listed in user_payload.available_tools. If a needed tool is not listed, do not call "
+    "it or invent a compatible alias. When manager_loop_scope='turn_entry_or_read_only' and the user intent "
+    "needs intake execution tools such as estimate_nutrition, resolve_correction_target, or "
+    "compare_against_budget, return manager_action='final', tool_calls=[], intent_type='log_meal', "
+    "final_action='no_commit', workflow_effect='route_to_intake', and preserve the semantic_decision. "
+    "The intake_execution scope will run the intake tools.\n"
     "Follow constraints.manager_contract_policy when present; it is runtime contract policy. "
     "Follow manager_contract_policy_summary when present; it is the compact version of the same policy. "
     "Follow manager_contract_evidence_instruction when present; it is the current-loop evidence gate. "

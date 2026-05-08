@@ -129,8 +129,8 @@ def _blocking_followup_policy_case() -> dict[str, Any]:
 
 def _prompt_cache_static_prefix_policy_case() -> dict[str, Any]:
     blockers: list[str] = []
-    if SINGLE_MANAGER_SYSTEM_PROMPT_VERSION != "v2":
-        blockers.append("system_prompt_version_not_v2")
+    if SINGLE_MANAGER_SYSTEM_PROMPT_VERSION != "v3":
+        blockers.append("system_prompt_version_not_v3")
     if not _dynamic_request_markers_absent():
         blockers.append("dynamic_request_marker_in_system_prompt")
     if "User-facing reply policy:" not in SINGLE_MANAGER_SYSTEM_PROMPT:
