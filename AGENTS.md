@@ -293,17 +293,12 @@ Default deterministic guardrails include:
   - [docs/specs/](docs/specs)
   - [docs/governance/SPEC_EDITING_PROTOCOL.md](docs/governance/SPEC_EDITING_PROTOCOL.md)
   - [docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md](docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
-  - [docs/specs/WAVE_1_PHASE_B2_PRODUCT_INTELLIGENCE_ARCHITECTURE_DRAFT.md](docs/specs/WAVE_1_PHASE_B2_PRODUCT_INTELLIGENCE_ARCHITECTURE_DRAFT.md) when the work touches Wave 1 Phase B-2 product-intelligence, retrieval intent, packet compression, follow-up policy, or small-anchor planning
-  - [docs/specs/WAVE_1_PHASE_B2_P0_EXECUTION_PLAN.md](docs/specs/WAVE_1_PHASE_B2_P0_EXECUTION_PLAN.md) when the work is selecting or executing the B-2 P0 build order
-- Wave 1 implementation work:
-  - [docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md](docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md)
-  - [docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md](docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md)
-  - [docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md](docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md)
-  - [docs/specs/app_v2_ideal_architecture_final.md](docs/specs/app_v2_ideal_architecture_final.md)
-  - task-specific canonical spec
-  - task-specific micro-suite / eval gate
+- legacy pre-self-use runtime reference only:
+  - [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md)
+  - use only when the task explicitly needs historical runtime architecture, compatibility-era harness interpretation, or migration for older active runners
 - legacy acceptance-package / E2E regression work only:
-  - use current Manager-style Founder E2E diagnostics and Wave 1 capability micro-suites
+  - use current shell artifacts and active runtime traces first
+  - treat older capability micro-suites and acceptance bundles as legacy regression reference only
   - do not resurrect deleted Bundle Version 1 / Bundle Version 2 docs, runners, parity audits, or obsolete oracles
 - onboarding / budget / today-sync happy-path work:
   - [docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md](docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md)
@@ -319,7 +314,7 @@ Default deterministic guardrails include:
 - founder human gate testing or UX journey validation:
   - [docs/quality/UX_JOURNEY_TO_SLICE_MAP.md](docs/quality/UX_JOURNEY_TO_SLICE_MAP.md)
 - repo rules or file placement:
-  - [docs/specs/app_v2_ideal_architecture_final.md](docs/specs/app_v2_ideal_architecture_final.md)
+  - [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md)
   - [docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md](docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md)
 - task artifact use:
   - [docs/governance/TASK_CHECKIN_PROTOCOL.md](docs/governance/TASK_CHECKIN_PROTOCOL.md)

@@ -147,6 +147,15 @@ def test_agents_bootstrap_uses_current_docs_index_and_operating_entry() -> None:
     assert ".kiro/steering/best-practice-search.md" not in agents
     assert "[docs/V2_DOC_INDEX.md]" not in agents
     assert "[docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md]" not in agents
+    assert "WAVE_1_PHASE_B2_PRODUCT_INTELLIGENCE_ARCHITECTURE_DRAFT.md" not in agents
+    assert "WAVE_1_PHASE_B2_P0_EXECUTION_PLAN.md" not in agents
+    assert "V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md" not in agents
+    assert "V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md" not in agents
+    assert "V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md" not in agents
+    assert "app_v2_ideal_architecture_final.md" not in agents
+    assert "Wave 1 implementation work" not in agents
+    assert "Wave 1 capability micro-suites" not in agents
+    assert "[docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md]" in agents
     assert "artifacts/docs-snapshots" not in agents
 
 
