@@ -59,6 +59,20 @@ def _ready_body_observation_same_truth_gate() -> dict:
     }
 
 
+def _ready_bootstrap_same_truth_gate() -> dict:
+    return {
+        "status": "bootstrap_same_truth_gate_ready_for_human_review",
+        "source": "test",
+        "pass_type": "browser_executed",
+        "upstream_runtime_gate": "rt6_bootstrap_no_plan_body_closure",
+        "summary": {
+            "required_browser_flag_count": 10,
+            "all_required_browser_flags_true": True,
+            "upstream_gate_green": True,
+        },
+    }
+
+
 def _ready_clarify_commit_correction_same_truth_gate() -> dict:
     return {
         "status": "clarify_commit_correction_same_truth_gate_ready_for_human_review",
@@ -118,6 +132,7 @@ def _clean_evidence() -> dict:
         },
         "ui_context_alignment_pack": {"status": "ui_context_alignment_ready_for_human_review", "source": "test"},
         "today_macro_mirror_gate": _ready_today_macro_mirror_gate(),
+        "bootstrap_same_truth_gate": _ready_bootstrap_same_truth_gate(),
         "body_observation_same_truth_gate": _ready_body_observation_same_truth_gate(),
         "clarify_commit_correction_same_truth_gate": _ready_clarify_commit_correction_same_truth_gate(),
         "browser_activation_evidence_gate": {
