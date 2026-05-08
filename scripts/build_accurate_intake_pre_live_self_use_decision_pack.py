@@ -413,15 +413,13 @@ def build_pre_live_self_use_decision_pack(evidence: dict[str, Any]) -> dict[str,
                 if missing_evidence
                 else "pre_live_evidence_blocked"
                 if blockers
-                else "local_web_self_use_evidence_ready_for_human_live_decision"
-            ),
-            "ready_for_pl_ce_local_review": ready_for_pl_ce_local_review,
-            "ready_for_live_diagnostic_decision": False,
-            "private_self_use_approved": False,
-            "not_claiming": [
-                "product_ready",
-                "rollout_ready",
-                "live_llm_ready",
+            else "local_web_self_use_evidence_ready_for_human_live_decision"
+        ),
+        "ready_for_pl_ce_local_review": ready_for_pl_ce_local_review,
+        "not_claiming": [
+            "product_ready",
+            "rollout_ready",
+            "live_llm_ready",
                 "web_ready",
                 "production_db_ready",
                 "kimi_ready",

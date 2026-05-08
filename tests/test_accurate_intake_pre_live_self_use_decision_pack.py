@@ -8,6 +8,16 @@ from scripts.build_accurate_intake_pre_live_self_use_decision_pack import (
     build_pre_live_self_use_decision_pack,
 )
 
+_REMOVED_FIXED_FALSE_OUTPUT_FIELDS = (
+    "ready_for_live_diagnostic_decision",
+    "private_self_use_approved",
+)
+
+
+def _assert_removed_fixed_false_outputs(pack: dict) -> None:
+    for field in _REMOVED_FIXED_FALSE_OUTPUT_FIELDS:
+        assert field not in pack
+
 
 def _evidence(**overrides: dict) -> dict:
     evidence = {
@@ -378,6 +388,7 @@ def test_pre_live_decision_pack_lists_required_evidence_without_approving_live()
     assert "product_readiness_claimed" not in pack
     assert "runtime_web_activation_approved" not in pack
     assert "production_db_ready_claimed" not in pack
+    _assert_removed_fixed_false_outputs(pack)
     assert pack["blockers"] == []
     assert pack["capability_axis_summary"] == {
         "browser_execution": {
@@ -558,7 +569,7 @@ def test_pre_live_decision_pack_requires_pl_ce_local_review_gate_before_human_li
     assert pack["selected_option"] == "stay_local_self_use"
     assert "pl_ce_local_review_decision_pack" in pack["missing_evidence"]
     assert pack["ready_for_pl_ce_local_review"] is False
-    assert pack["ready_for_live_diagnostic_decision"] is False
+    _assert_removed_fixed_false_outputs(pack)
 
 
 def test_pre_live_decision_pack_requires_context_live_case_matrix_before_human_live_decision() -> None:
@@ -568,7 +579,7 @@ def test_pre_live_decision_pack_requires_context_live_case_matrix_before_human_l
 
     assert pack["selected_option"] == "stay_local_self_use"
     assert "context_live_diagnostic_case_matrix" in pack["missing_evidence"]
-    assert pack["ready_for_live_diagnostic_decision"] is False
+    _assert_removed_fixed_false_outputs(pack)
 
 
 def test_pre_live_decision_pack_requires_manager_intent_readiness_pack() -> None:
@@ -578,7 +589,7 @@ def test_pre_live_decision_pack_requires_manager_intent_readiness_pack() -> None
 
     assert pack["selected_option"] == "stay_local_self_use"
     assert "manager_intent_readiness_review_pack" in pack["missing_evidence"]
-    assert pack["ready_for_live_diagnostic_decision"] is False
+    _assert_removed_fixed_false_outputs(pack)
 
 
 def test_pre_live_decision_pack_blocks_manager_intent_readiness_overclaims() -> None:
@@ -613,7 +624,7 @@ def test_pre_live_decision_pack_blocks_manager_intent_readiness_overclaims() -> 
     assert "manager_intent_readiness_review_pack_live_llm_invoked" in pack["blockers"]
     assert "manager_intent_readiness_review_pack_fooddb_evidence_used" in pack["blockers"]
     assert "manager_intent_readiness_review_pack_mutation_changed" in pack["blockers"]
-    assert pack["ready_for_live_diagnostic_decision"] is False
+    _assert_removed_fixed_false_outputs(pack)
 
 
 def test_pre_live_decision_pack_blocks_manager_intent_readiness_weak_coverage() -> None:
@@ -653,7 +664,7 @@ def test_pre_live_decision_pack_requires_context_live_anti_overfit_guard() -> No
 
     assert pack["selected_option"] == "stay_local_self_use"
     assert "context_live_diagnostic_anti_overfit_guard" in pack["missing_evidence"]
-    assert pack["ready_for_live_diagnostic_decision"] is False
+    _assert_removed_fixed_false_outputs(pack)
 
 
 def test_pre_live_decision_pack_requires_context_live_holdout_plan() -> None:
@@ -663,7 +674,7 @@ def test_pre_live_decision_pack_requires_context_live_holdout_plan() -> None:
 
     assert pack["selected_option"] == "stay_local_self_use"
     assert "context_live_diagnostic_holdout_plan" in pack["missing_evidence"]
-    assert pack["ready_for_live_diagnostic_decision"] is False
+    _assert_removed_fixed_false_outputs(pack)
 
 
 def test_pre_live_decision_pack_requires_context_live_provider_input_preflight() -> None:
@@ -673,7 +684,7 @@ def test_pre_live_decision_pack_requires_context_live_provider_input_preflight()
 
     assert pack["selected_option"] == "stay_local_self_use"
     assert "context_live_provider_input_preflight" in pack["missing_evidence"]
-    assert pack["ready_for_live_diagnostic_decision"] is False
+    _assert_removed_fixed_false_outputs(pack)
 
 
 def test_pre_live_decision_pack_requires_context_live_response_contract_dry_run() -> None:
@@ -683,7 +694,7 @@ def test_pre_live_decision_pack_requires_context_live_response_contract_dry_run(
 
     assert pack["selected_option"] == "stay_local_self_use"
     assert "context_live_response_contract_dry_run" in pack["missing_evidence"]
-    assert pack["ready_for_live_diagnostic_decision"] is False
+    _assert_removed_fixed_false_outputs(pack)
 
 
 def test_pre_live_decision_pack_requires_context_live_diagnostic_gate() -> None:
@@ -693,7 +704,7 @@ def test_pre_live_decision_pack_requires_context_live_diagnostic_gate() -> None:
 
     assert pack["selected_option"] == "stay_local_self_use"
     assert "context_live_diagnostic_gate" in pack["missing_evidence"]
-    assert pack["ready_for_live_diagnostic_decision"] is False
+    _assert_removed_fixed_false_outputs(pack)
 
 
 def test_pre_live_decision_pack_blocks_live_context_gate_or_weak_child_evidence() -> None:
@@ -958,7 +969,7 @@ def test_pre_live_decision_pack_blocks_pl_ce_local_review_overclaims() -> None:
     assert "pl_ce_local_review_decision_pack_real_fooddb_pass_claimed" in pack["blockers"]
     assert "pl_ce_local_review_decision_pack_private_self_use_approved" in pack["blockers"]
     assert pack["ready_for_pl_ce_local_review"] is False
-    assert pack["ready_for_live_diagnostic_decision"] is False
+    _assert_removed_fixed_false_outputs(pack)
 
 
 def test_pre_live_decision_pack_blocks_shared_contract_changes() -> None:
