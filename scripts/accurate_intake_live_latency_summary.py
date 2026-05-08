@@ -183,6 +183,67 @@ def build_latency_root_cause_hints(
     }
 
 
+def build_prompt_cache_identity_summary(provider_invocation_records: list[dict[str, Any]]) -> dict[str, Any]:
+    identity_records = [
+        record
+        for record in provider_invocation_records
+        if record.get("prompt_cache_identity_version")
+    ]
+    stable_hashes = sorted(
+        {
+            str(record.get("prompt_cache_stable_prefix_sha256"))
+            for record in identity_records
+            if record.get("prompt_cache_stable_prefix_sha256")
+        }
+    )
+    dynamic_hashes = sorted(
+        {
+            str(record.get("prompt_cache_dynamic_suffix_sha256"))
+            for record in identity_records
+            if record.get("prompt_cache_dynamic_suffix_sha256")
+        }
+    )
+    stable_groups = [_prompt_cache_stable_group(stable_hash, identity_records) for stable_hash in stable_hashes]
+    return {
+        "provider_trace_identity_count": len(identity_records),
+        "missing_identity_count": max(0, len(provider_invocation_records) - len(identity_records)),
+        "stable_prefix_unique_count": len(stable_hashes),
+        "dynamic_suffix_unique_count": len(dynamic_hashes),
+        "repeated_stable_prefix_observed": any(
+            int(group.get("provider_invocation_count") or 0) > 1 for group in stable_groups
+        ),
+        "same_prefix_multiple_dynamic_suffix_observed": any(
+            int(group.get("dynamic_suffix_unique_count") or 0) > 1 for group in stable_groups
+        ),
+        "provider_request_prompt_cache_key_count": sum(
+            1 for record in identity_records if record.get("prompt_cache_key_present") is True
+        ),
+        "cache_reporting_call_count": sum(1 for record in identity_records if record.get("cached_tokens_reported") is True),
+        "cache_hit_call_count": sum(1 for record in identity_records if int(record.get("cached_tokens") or 0) > 0),
+        "stable_prefix_groups": stable_groups,
+    }
+
+
+def _prompt_cache_stable_group(stable_hash: str, records: list[dict[str, Any]]) -> dict[str, Any]:
+    group_records = [
+        record
+        for record in records
+        if str(record.get("prompt_cache_stable_prefix_sha256") or "") == stable_hash
+    ]
+    dynamic_hashes = {
+        str(record.get("prompt_cache_dynamic_suffix_sha256"))
+        for record in group_records
+        if record.get("prompt_cache_dynamic_suffix_sha256")
+    }
+    return {
+        "stable_prefix_sha256": stable_hash,
+        "provider_invocation_count": len(group_records),
+        "dynamic_suffix_unique_count": len(dynamic_hashes),
+        "cache_reporting_call_count": sum(1 for record in group_records if record.get("cached_tokens_reported") is True),
+        "cache_hit_call_count": sum(1 for record in group_records if int(record.get("cached_tokens") or 0) > 0),
+    }
+
+
 def latency_optimization_priorities(hints: dict[str, bool]) -> list[str]:
     priorities: list[str] = []
     if hints.get("provider_invocation_count_high"):

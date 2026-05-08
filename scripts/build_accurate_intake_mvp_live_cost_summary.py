@@ -17,6 +17,7 @@ from scripts.accurate_intake_live_latency_summary import (  # noqa: E402
     build_latency_breakdown,
     build_latency_root_cause_hints,
     build_latency_slo,
+    build_prompt_cache_identity_summary,
     latency_optimization_priorities,
 )
 
@@ -123,6 +124,7 @@ def build_accurate_intake_live_cost_summary(
         latency_breakdown=latency_breakdown,
         provider_invocation_records=provider_invocation_records,
     )
+    prompt_cache_identity_summary = build_prompt_cache_identity_summary(provider_invocation_records)
     latency_root_cause_hints = build_latency_root_cause_hints(
         provider_invocation_count=provider_invocation_count,
         max_stage_latency_ms=max_stage_latency_ms,
@@ -148,6 +150,7 @@ def build_accurate_intake_live_cost_summary(
             "input_integrity": {"passed": not blockers, "blockers": sorted(set(blockers))},
             "source_artifacts": source_artifacts,
             "provider_invocation_records": provider_invocation_records,
+            "prompt_cache_identity_summary": prompt_cache_identity_summary,
             "latency_breakdown": latency_breakdown,
             "latency_slo": latency_slo,
             "usage_records": usage_records,
@@ -229,6 +232,7 @@ def _provider_invocation_records(invocations: list[dict[str, Any]], *, source_in
     for index, invocation in enumerate(invocations):
         provider_trace = _dict(invocation.get("provider_trace"))
         usage = _dict(provider_trace.get("usage"))
+        prompt_cache_request = _dict(provider_trace.get("prompt_cache_request"))
         cached_tokens = _cached_tokens(usage)
         transport_summary = _transport_attempt_summary(provider_trace)
         latency_ms = _int(invocation.get("latency_ms"))
@@ -256,6 +260,15 @@ def _provider_invocation_records(invocations: list[dict[str, Any]], *, source_in
                 "completion_tokens": int(usage.get("completion_tokens") or usage.get("output_tokens") or 0),
                 "cached_tokens_reported": cached_tokens is not None,
                 "cached_tokens": int(cached_tokens or 0),
+                "prompt_cache_identity_version": _optional_string(prompt_cache_request.get("identity_version")),
+                "prompt_cache_stable_prefix_sha256": _optional_string(
+                    prompt_cache_request.get("stable_prefix_sha256")
+                ),
+                "prompt_cache_dynamic_suffix_sha256": _optional_string(
+                    prompt_cache_request.get("dynamic_suffix_sha256")
+                ),
+                "prompt_cache_key_present": prompt_cache_request.get("provider_request_includes_prompt_cache_key")
+                is True,
                 "provider_wrapper_overhead_ms": _provider_wrapper_overhead_ms(
                     latency_ms,
                     transport_summary,
