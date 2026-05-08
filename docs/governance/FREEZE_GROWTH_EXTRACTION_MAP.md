@@ -6,9 +6,9 @@ This document is the file-level extraction map for current freeze-growth and wat
 
 It complements, but does not replace:
 
-- [AGENTS.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/AGENTS.md)
-- [Build File Placement Rules](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/BUILD_FILE_PLACEMENT_RULES.md)
-- [Layer Dependency Rules](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/LAYER_DEPENDENCY_RULES.md)
+- [AGENTS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/AGENTS.md)
+- [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md)
+- [docs/governance/HARNESS_GO_NO_GO.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/governance/HARNESS_GO_NO_GO.md)
 
 Use this when a task needs to touch one of the large guarded modules below.
 

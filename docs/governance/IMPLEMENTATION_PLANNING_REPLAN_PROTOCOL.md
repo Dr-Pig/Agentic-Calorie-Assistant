@@ -6,9 +6,9 @@ This protocol exists to prevent long-running implementation work from drifting a
 
 Entry and loading context:
 
-- [AGENTS.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/AGENTS.md) is the only root agent bootstrap
-- [docs/index.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/index.md) identifies canonical vs non-canonical docs families
-- [AGENTS.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/AGENTS.md) defines what to read before entering execution work
+- [AGENTS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/AGENTS.md) is the only root agent bootstrap
+- [docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md) identifies active vs compatibility docs families
+- [AGENTS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/AGENTS.md) defines what to read before entering execution work
 
 It applies to:
 
@@ -18,9 +18,10 @@ It applies to:
 
 This protocol is repository-level operational guidance. It is not a product spec.
 
-Execution plans governed by this protocol must follow the canonical workflow ordering defined in:
+Execution plans governed by this protocol must follow the active capability dependency and mainline sequencing defined in:
 
-- [`docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/specs/WORKFLOW_DEPENDENCY_CONTEXT_ORDERING_SPEC.md)
+- [AGENTS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/AGENTS.md)
+- [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md)
 
 ## Core Principle
 
@@ -183,7 +184,7 @@ Larger files may still be acceptable when they remain single-responsibility, but
 
 Use:
 
-- [`scripts/check_fat_files.ps1`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/scripts/check_fat_files.ps1)
+- [`scripts/check_fat_files.ps1`](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/scripts/check_fat_files.ps1)
 
 Modes:
 
@@ -221,7 +222,8 @@ The staged fat-file gate treats missing freeze-growth justification as a violati
 
 Execution planning must follow the repository placement rules in:
 
-- [`docs/governance/BUILD_FILE_PLACEMENT_RULES.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/BUILD_FILE_PLACEMENT_RULES.md)
+- [AGENTS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/AGENTS.md)
+- [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md)
 
 Those rules define:
 
@@ -281,10 +283,10 @@ The CI harness enforces this through `scripts/check_migration_discipline.py`.
 
 ## Relationship To Other Repo Rules
 
-- [`docs/governance/SPEC_EDITING_PROTOCOL.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/SPEC_EDITING_PROTOCOL.md)
+- [`docs/governance/SPEC_EDITING_PROTOCOL.md`](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/governance/SPEC_EDITING_PROTOCOL.md)
   governs how durable spec documents are safely edited.
 - This protocol governs how implementation planning is written, revised, and kept aligned with the evolving codebase.
-- [`docs/governance/GITHUB_REPO_GOVERNANCE.md`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/governance/GITHUB_REPO_GOVERNANCE.md)
+- [`docs/governance/GITHUB_REPO_GOVERNANCE.md`](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/governance/GITHUB_REPO_GOVERNANCE.md)
   records the platform-side branch protection and required-check settings that must exist outside the repo.
 
 ## Harness Engineering Alignment

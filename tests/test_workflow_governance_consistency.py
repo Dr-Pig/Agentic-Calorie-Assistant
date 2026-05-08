@@ -175,7 +175,6 @@ def test_provider_docs_do_not_hardlink_missing_local_artifacts() -> None:
     assert "](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/" not in provider_profile
     assert "](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/" not in candidate_matrix
 
-
 def test_execution_governance_docs_are_compatibility_stubs_only() -> None:
     doc_index = (ROOT / "docs" / "DOC_INDEX.md").read_text(encoding="utf-8")
     operating_model = (ROOT / "docs" / "governance" / "EXECUTION_OPERATING_MODEL.md").read_text(encoding="utf-8")
@@ -189,3 +188,21 @@ def test_execution_governance_docs_are_compatibility_stubs_only() -> None:
     assert "WORKFLOW_SLICE_REGISTRY.md" not in operating_model
     assert "line-liff-calorie-helper-text-meal-canary-main" not in operating_model
     assert "line-liff-calorie-helper-text-meal-canary-main" not in selection_policy
+
+
+def test_active_governance_protocols_are_repo_localized() -> None:
+    for relative_path in (
+        "docs/governance/SPEC_EDITING_PROTOCOL.md",
+        "docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md",
+        "docs/governance/TASK_CHECKIN_PROTOCOL.md",
+        "docs/governance/HANDOFF_CONTRACT.md",
+        "docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md",
+    ):
+        content = (ROOT / relative_path).read_text(encoding="utf-8")
+        assert "line-liff-calorie-helper-text-meal-canary-main" not in content
+
+    task_checkin = (ROOT / "docs" / "governance" / "TASK_CHECKIN_PROTOCOL.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs" / "governance" / "HANDOFF_CONTRACT.md").read_text(encoding="utf-8")
+
+    assert "CURRENT_EXECUTION_PLAN.md" not in task_checkin
+    assert "CURRENT_EXECUTION_PLAN.md" not in handoff
