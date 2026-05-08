@@ -157,6 +157,7 @@ def test_live_cost_summary_flags_latency_root_cause_probe_without_readiness_clai
         "provider_invocation_count_high": True,
         "stage_latency_high": True,
         "stage_overhead_high": False,
+        "turn_non_provider_runtime_high": False,
         "prompt_token_volume_high": True,
         "prompt_cache_metrics_missing": False,
         "prompt_cache_hits_missing": True,
@@ -250,6 +251,74 @@ def test_live_cost_summary_breaks_down_latency_by_stage_case_turn_and_slowest_ca
         "cached_tokens_reported": True,
         "cached_tokens": 70,
     }
+
+
+def test_live_cost_summary_attributes_turn_runtime_without_changing_semantics() -> None:
+    artifact = _live_artifact(
+        usage={"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110},
+        stage_id="single_case_live_probe",
+        latency_ms=18_000,
+        provider_invocation_overrides=[
+            {
+                "latency_ms": 3_000,
+                "diagnostic_case_id": "bubble_milk_tea_refinement",
+                "diagnostic_turn": 1,
+                "diagnostic_turn_kind": "new_meal",
+                "manager_loop_scope": "intake_execution",
+            }
+        ],
+    )
+    artifact["cases"] = [
+        {
+            "case_id": "bubble_milk_tea_refinement",
+            "stage_id": "single_case_live_probe",
+            "turns": [
+                {
+                    "turn": 1,
+                    "kind": "new_meal",
+                    "latency_ms": 12_000,
+                    "non_provider_latency_ms": 9_000,
+                    "provider_invocation_summary": {
+                        "provider_invocation_count": 1,
+                        "provider_invocation_latency_ms": 3_000,
+                        "prompt_tokens": 100,
+                        "completion_tokens": 10,
+                        "cached_tokens": 0,
+                        "cache_reporting_call_count": 0,
+                    },
+                }
+            ],
+        }
+    ]
+
+    summary = build_accurate_intake_live_cost_summary([artifact])
+
+    breakdown = summary["latency_breakdown"]
+    assert breakdown["turn_latency_ms"] == 12_000
+    assert breakdown["turn_non_provider_latency_ms"] == 9_000
+    assert breakdown["max_turn_non_provider_latency_ms"] == 9_000
+    assert breakdown["by_case_turn_runtime"] == [
+        {
+            "source_index": 0,
+            "diagnostic_stage_id": "single_case_live_probe",
+            "diagnostic_case_id": "bubble_milk_tea_refinement",
+            "diagnostic_turn": 1,
+            "diagnostic_turn_kind": "new_meal",
+            "turn_latency_ms": 12_000,
+            "provider_invocation_count": 1,
+            "provider_invocation_latency_ms": 3_000,
+            "non_provider_latency_ms": 9_000,
+            "prompt_tokens": 100,
+            "completion_tokens": 10,
+            "cached_tokens": 0,
+            "cache_reporting_call_count": 0,
+            "latency_share_pct": 100.0,
+        }
+    ]
+    assert breakdown["slowest_turn_runtime_segments"][0]["non_provider_latency_ms"] == 9_000
+    assert summary["latency_root_cause_hints"]["turn_non_provider_runtime_high"] is True
+    assert "attribute_turn_non_provider_runtime_to_db_guard_renderer_spans" in summary["latency_optimization_priorities"]
+    assert "readiness_claimed" not in summary
 
 
 def test_live_cost_summary_classifies_product_turn_latency_slo_without_readiness_claim() -> None:
