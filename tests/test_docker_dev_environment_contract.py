@@ -53,6 +53,17 @@ def test_docker_dev_environment_is_local_manual_only_without_advisory_workflow()
     assert "docker/build-push-action" not in compose
 
 
+def test_dockerfile_is_local_parity_not_deploy_surface() -> None:
+    dockerfile = _read("Dockerfile")
+
+    assert "FROM base AS dev" in dockerfile
+    assert "FROM base AS runtime" not in dockerfile
+    assert "Render" not in dockerfile
+    assert "Railway" not in dockerfile
+    assert "Fly" not in dockerfile
+    assert "alembic upgrade head && uvicorn" not in dockerfile
+
+
 def test_readme_documents_mac_docker_and_python312_fallback() -> None:
     readme = _read("README.md")
 

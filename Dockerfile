@@ -17,28 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 FROM base AS dev
 
-# Dev/test target keeps repo verification inputs available for Docker Compose and devcontainers.
+# Dev/test target keeps repo verification inputs available for Docker Compose.
 COPY . .
 
 RUN mkdir -p runtime/db runtime/artifacts/session_records
 
 CMD ["python", "scripts/verify_environment.py"]
-
-FROM base AS runtime
-
-# Copy application code
-COPY alembic/ alembic/
-COPY alembic.ini .
-COPY app/ app/
-COPY static/ static/
-COPY data_build/ data_build/
-COPY .env.example .env.example
-
-# Ensure runtime directories exist
-RUN mkdir -p runtime/db runtime/artifacts/session_records
-
-# Expose port (Render / Railway / Fly default)
-EXPOSE 8000
-
-# Run Alembic migrations then start uvicorn
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
