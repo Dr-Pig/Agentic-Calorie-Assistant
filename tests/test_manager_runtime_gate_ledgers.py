@@ -236,6 +236,13 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
     assert gates["rt14e_context_conditioned_live_probe"]["depends_on"] == [
         "rt14d_single_case_tool_choice_live_probe",
     ]
+    assert gates["rt14f_holdout_replay_anti_overfit_gate"]["status"] == "green"
+    assert gates["rt14f_holdout_replay_anti_overfit_gate"]["pass_type"] == "runtime_backed"
+    assert gates["rt14f_holdout_replay_anti_overfit_gate"]["depends_on"] == [
+        "rt12b_live_trace_grading_extension",
+        "rt13b_latency_cost_cache_budget_pack",
+        "rt14e_context_conditioned_live_probe",
+    ]
     assert gates["rt9b_fooddb_packet_live_probe"]["status"] == "green"
     assert gates["rt9b_fooddb_packet_live_probe"]["pass_type"] == "runtime_backed"
     assert gates["rt9b_fooddb_packet_live_probe"]["depends_on"] == [
@@ -288,6 +295,7 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt12_trace_grading_v1",
         "rt13_observability_pack",
         "rt13b_latency_cost_cache_budget_pack",
+        "rt14f_holdout_replay_anti_overfit_gate",
     ]
 
 
