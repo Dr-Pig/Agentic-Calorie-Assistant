@@ -47,15 +47,18 @@ def test_clean_local_workspace_removes_disposable_scratch_but_preserves_data_roo
 
 def test_clean_local_workspace_keeps_local_tooling_unless_explicitly_included(tmp_path: Path) -> None:
     (tmp_path / ".devcontainer").mkdir()
+    (tmp_path / ".kiro").mkdir()
 
     assert plan_cleanup(tmp_path) == []
 
     dry_run = clean_workspace(tmp_path, dry_run=True, include_local_tooling=True)
-    assert dry_run["planned"] == [".devcontainer"]
+    assert dry_run["planned"] == [".devcontainer", ".kiro"]
     assert dry_run["removed"] == []
     assert (tmp_path / ".devcontainer").exists()
+    assert (tmp_path / ".kiro").exists()
 
     report = clean_workspace(tmp_path, include_local_tooling=True)
 
-    assert report["removed"] == [".devcontainer"]
+    assert report["removed"] == [".devcontainer", ".kiro"]
     assert not (tmp_path / ".devcontainer").exists()
+    assert not (tmp_path / ".kiro").exists()
