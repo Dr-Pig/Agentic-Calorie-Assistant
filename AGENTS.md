@@ -2,7 +2,7 @@
 
 Use it as a map, not a handbook. Load the minimum path first, then retrieve deeper docs only when the task shape requires them.
 
-[docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md) owns document taxonomy, file-role mapping, and longer navigation guidance. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md) owns the minimal current execution pointer. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md) owns the product-wide anti-drift operating layer. `AGENTS.md` only owns bootstrap order, always-on repo rules, and conditional-read triggers.
+[docs/DOC_INDEX.md](docs/DOC_INDEX.md) owns document taxonomy, file-role mapping, and longer navigation guidance. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md) owns the minimal current execution pointer. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md) owns the product-wide anti-drift operating layer. `AGENTS.md` only owns bootstrap order, always-on repo rules, and conditional-read triggers.
 
 Before any plan or edit, first classify whether this is a capability-order trap, architecture-boundary trap, both, or neither; if either may apply, pause and use the relevant skill before choosing files, tests, classes, eval fixes, or local next steps.
 
@@ -10,12 +10,12 @@ Before any plan or edit, first classify whether this is a capability-order trap,
 
 Default truth families are:
 
-1. [docs/specs/](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs) — canonical product, runtime, and architecture truth
-2. [docs/quality/](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality) — eval bundle gates and E2E acceptance criteria
+1. [docs/specs/](docs/specs) — canonical product, runtime, and architecture truth
+2. [docs/quality/](docs/quality) — eval bundle gates and E2E acceptance criteria
 3. CI and harness output
 4. `git diff / commit history`
 
-Do not use preservation snapshots under [docs/_spec_snapshots/](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/_spec_snapshots), completed task artifacts, or handoff docs as default truth.
+Do not use preservation snapshots under [docs/_spec_snapshots/](docs/_spec_snapshots), completed task artifacts, or handoff docs as default truth.
 
 ## Product Truth Priority
 
@@ -138,17 +138,17 @@ Hard rule:
 
 ## Read First
 
-1. [docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md)
-2. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md)
-3. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md)
-4. [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md)
+1. [docs/DOC_INDEX.md](docs/DOC_INDEX.md)
+2. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md)
+3. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md)
+4. [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md)
 
 If the task needs architecture context or eval gate status, read next:
 
-5. [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml)
-6. [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml)
+5. [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml)
+6. [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml)
 7. task-specific canonical spec or runbook
-8. [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) only when historical pre-self-use runtime reference is explicitly needed
+8. [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) only when historical pre-self-use runtime reference is explicitly needed
 
 Bootstrap read path is:
 
@@ -162,13 +162,13 @@ Use deeper process docs only when the task shape requires them:
 
 - EvoMap:
   - conditional only
-  - use [docs/agent/EVOMAP_WORKFLOW.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/EVOMAP_WORKFLOW.md) when the slice introduces reusable capability or cross-repo workflow value
+  - use [docs/agent/EVOMAP_WORKFLOW.md](docs/agent/EVOMAP_WORKFLOW.md) when the slice introduces reusable capability or cross-repo workflow value
   - start from repo truth first for repo-local blockers
 - Best practice search:
   - before high-impact runtime, retrieval, database, API, testing, or security work, check current official or primary sources
   - record adopted and rejected guidance under `best_practice_evidence`
 - Product-wide anti-drift entry:
-  - read [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md) before high-impact provider, retrieval, DB, packet, mutation, or architecture-boundary slices
+  - read [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md) before high-impact provider, retrieval, DB, packet, mutation, or architecture-boundary slices
   - use it to identify owner docs, required planning fields, and forbidden shortcut patterns before editing
 - Provider/runtime transport:
   - BuilderSpace transport is a runtime contract
@@ -180,7 +180,7 @@ Use deeper process docs only when the task shape requires them:
   - historical bundle naming in active runtime files is compatibility vocabulary only until the entrypoint rename lands
 - Ownership / debt / reviewer triage:
   - architecture-sensitive slices must make selector ownership, debt triage, and reviewer `proceed / narrow / stop` framing explicit
-  - use [docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md) only for unattended / overnight / approval-light execution
+  - use [docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md](docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md) only for unattended / overnight / approval-light execution
 
 ## Encoding Evidence Contract
 
@@ -282,48 +282,48 @@ Default deterministic guardrails include:
 ## Conditional Reads
 
 - provider/runtime transport work:
-  - [docs/provider/builderspace_openapi.txt](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/provider/builderspace_openapi.txt)
-  - [docs/provider/BUILDERSPACE_PROVIDER_PROFILE.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/provider/BUILDERSPACE_PROVIDER_PROFILE.md)
-  - [docs/provider/MANAGER_MODEL_CANDIDATE_MATRIX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/provider/MANAGER_MODEL_CANDIDATE_MATRIX.md)
+  - [docs/provider/builderspace_openapi.txt](docs/provider/builderspace_openapi.txt)
+  - [docs/provider/BUILDERSPACE_PROVIDER_PROFILE.md](docs/provider/BUILDERSPACE_PROVIDER_PROFILE.md)
+  - [docs/provider/MANAGER_MODEL_CANDIDATE_MATRIX.md](docs/provider/MANAGER_MODEL_CANDIDATE_MATRIX.md)
 - agent memory / reusable-lesson workflow:
-  - [docs/agent/EVOMAP_WORKFLOW.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/EVOMAP_WORKFLOW.md)
+  - [docs/agent/EVOMAP_WORKFLOW.md](docs/agent/EVOMAP_WORKFLOW.md)
 - optional unattended / overnight autonomy protocol:
-  - [docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md)
+  - [docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md](docs/agent/OVERNIGHT_AUTONOMY_PROTOCOL.md)
 - spec or architecture work:
-  - [docs/specs/](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs)
-  - [docs/governance/SPEC_EDITING_PROTOCOL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/governance/SPEC_EDITING_PROTOCOL.md)
-  - [docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
-  - [docs/specs/WAVE_1_PHASE_B2_PRODUCT_INTELLIGENCE_ARCHITECTURE_DRAFT.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/WAVE_1_PHASE_B2_PRODUCT_INTELLIGENCE_ARCHITECTURE_DRAFT.md) when the work touches Wave 1 Phase B-2 product-intelligence, retrieval intent, packet compression, follow-up policy, or small-anchor planning
-  - [docs/specs/WAVE_1_PHASE_B2_P0_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/WAVE_1_PHASE_B2_P0_EXECUTION_PLAN.md) when the work is selecting or executing the B-2 P0 build order
+  - [docs/specs/](docs/specs)
+  - [docs/governance/SPEC_EDITING_PROTOCOL.md](docs/governance/SPEC_EDITING_PROTOCOL.md)
+  - [docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md](docs/governance/IMPLEMENTATION_PLANNING_REPLAN_PROTOCOL.md)
+  - [docs/specs/WAVE_1_PHASE_B2_PRODUCT_INTELLIGENCE_ARCHITECTURE_DRAFT.md](docs/specs/WAVE_1_PHASE_B2_PRODUCT_INTELLIGENCE_ARCHITECTURE_DRAFT.md) when the work touches Wave 1 Phase B-2 product-intelligence, retrieval intent, packet compression, follow-up policy, or small-anchor planning
+  - [docs/specs/WAVE_1_PHASE_B2_P0_EXECUTION_PLAN.md](docs/specs/WAVE_1_PHASE_B2_P0_EXECUTION_PLAN.md) when the work is selecting or executing the B-2 P0 build order
 - Wave 1 implementation work:
-  - [docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md)
-  - [docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md)
-  - [docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md)
-  - [docs/specs/app_v2_ideal_architecture_final.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/app_v2_ideal_architecture_final.md)
+  - [docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md](docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md)
+  - [docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md](docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md)
+  - [docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md](docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md)
+  - [docs/specs/app_v2_ideal_architecture_final.md](docs/specs/app_v2_ideal_architecture_final.md)
   - task-specific canonical spec
   - task-specific micro-suite / eval gate
 - legacy acceptance-package / E2E regression work only:
   - use current Manager-style Founder E2E diagnostics and Wave 1 capability micro-suites
   - do not resurrect deleted Bundle Version 1 / Bundle Version 2 docs, runners, parity audits, or obsolete oracles
 - onboarding / budget / today-sync happy-path work:
-  - [docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md)
-  - [docs/specs/L2_DATA_STATE_SPEC.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/L2_DATA_STATE_SPEC.md)
-  - [docs/specs/L2A_DATA_DICTIONARY_SPEC.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/L2A_DATA_DICTIONARY_SPEC.md)
+  - [docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md](docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md)
+  - [docs/specs/L2_DATA_STATE_SPEC.md](docs/specs/L2_DATA_STATE_SPEC.md)
+  - [docs/specs/L2A_DATA_DICTIONARY_SPEC.md](docs/specs/L2A_DATA_DICTIONARY_SPEC.md)
 - body observation, weight update, or exercise input work:
-  - [docs/specs/L3_5_BODY_OBSERVATION_EXERCISE_WORKFLOW_SPEC.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/L3_5_BODY_OBSERVATION_EXERCISE_WORKFLOW_SPEC.md)
+  - [docs/specs/L3_5_BODY_OBSERVATION_EXERCISE_WORKFLOW_SPEC.md](docs/specs/L3_5_BODY_OBSERVATION_EXERCISE_WORKFLOW_SPEC.md)
 - proactive scheduler, trigger conditions, suppression, or nudge design:
-  - [docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md)
+  - [docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md](docs/specs/L3_6_PROACTIVE_SCHEDULER_SPEC.md)
 - eval / benchmark / suite-governance work:
-  - [docs/quality/](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality)
+  - [docs/quality/](docs/quality)
   - task-specific eval gate or benchmark manifest under the active quality docs
 - founder human gate testing or UX journey validation:
-  - [docs/quality/UX_JOURNEY_TO_SLICE_MAP.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/UX_JOURNEY_TO_SLICE_MAP.md)
+  - [docs/quality/UX_JOURNEY_TO_SLICE_MAP.md](docs/quality/UX_JOURNEY_TO_SLICE_MAP.md)
 - repo rules or file placement:
-  - [docs/specs/app_v2_ideal_architecture_final.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/app_v2_ideal_architecture_final.md)
-  - [docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md)
+  - [docs/specs/app_v2_ideal_architecture_final.md](docs/specs/app_v2_ideal_architecture_final.md)
+  - [docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md](docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md)
 - task artifact use:
-  - [docs/governance/TASK_CHECKIN_PROTOCOL.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/governance/TASK_CHECKIN_PROTOCOL.md)
+  - [docs/governance/TASK_CHECKIN_PROTOCOL.md](docs/governance/TASK_CHECKIN_PROTOCOL.md)
 - optional resume or emergency transfer only:
-  - [docs/governance/HANDOFF_CONTRACT.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/governance/HANDOFF_CONTRACT.md)
+  - [docs/governance/HANDOFF_CONTRACT.md](docs/governance/HANDOFF_CONTRACT.md)
 - touching a freeze-growth file:
-  - [docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md)
+  - [docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md](docs/governance/FREEZE_GROWTH_EXTRACTION_MAP.md)

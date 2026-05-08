@@ -2,7 +2,7 @@
 
 This is the sole active docs index for the repository.
 
-Use [AGENTS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/AGENTS.md) for agent bootstrap. Use this file for document taxonomy, active-vs-legacy routing, and the current bootstrap path.
+Use [AGENTS.md](../AGENTS.md) for agent bootstrap. Use this file for document taxonomy, active-vs-legacy routing, and the current bootstrap path.
 
 Retired duplicate index files `docs/index.md` and `docs/V2_DOC_INDEX.md` must not be recreated. Historical links should be redirected here instead of preserving thin stubs.
 
@@ -10,11 +10,11 @@ Retired duplicate index files `docs/index.md` and `docs/V2_DOC_INDEX.md` must no
 
 For the current default mainline:
 
-1. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md)
-2. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md)
-3. [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md)
-4. [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml)
-5. [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml)
+1. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](specs/APP_ENGINEERING_OPERATING_ENTRY.md)
+2. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](exec-plans/active/CURRENT_EXECUTION_PLAN.md)
+3. [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md)
+4. [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](quality/CURRENT_SHELL_SYNC_CONTRACT.yaml)
+5. [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](quality/MANAGER_RUNTIME_GATE_LEDGER.yaml)
 6. the relevant track-specific runbook or scope doc
 
 ## Active Truth Rules
@@ -29,12 +29,12 @@ For the current default mainline:
 
 | Need | Primary location |
 | --- | --- |
-| current bootstrap and document taxonomy | [docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md) |
-| current execution pointer | [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md) |
-| high-impact operating rules | [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md) |
-| current split-delivery ownership and coordination | [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md) |
-| current shell contract and gate order | [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml), [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml) |
-| historical pre-self-use runtime interpretation | [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) |
+| current bootstrap and document taxonomy | [docs/DOC_INDEX.md](DOC_INDEX.md) |
+| current execution pointer | [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](exec-plans/active/CURRENT_EXECUTION_PLAN.md) |
+| high-impact operating rules | [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](specs/APP_ENGINEERING_OPERATING_ENTRY.md) |
+| current split-delivery ownership and coordination | [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md) |
+| current shell contract and gate order | [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](quality/CURRENT_SHELL_SYNC_CONTRACT.yaml), [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](quality/MANAGER_RUNTIME_GATE_LEDGER.yaml) |
+| historical pre-self-use runtime interpretation | [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) |
 
 ## Not Active Bootstrap
 

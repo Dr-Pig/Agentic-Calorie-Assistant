@@ -38,12 +38,12 @@ Treat this entry as required before slices that touch:
 
 | Concern | Owner doc |
 | --- | --- |
-| current bootstrap and document taxonomy | [docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md) |
-| minimal current execution pointer | [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md) |
-| current split-delivery ownership and coordination | [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md) |
-| current shell contract and gate order | [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml), [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml) |
-| historical pre-self-use runtime interpretation | [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) |
-| business-domain-first architecture and layer discipline | [docs/specs/app_v2_ideal_architecture_final.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/app_v2_ideal_architecture_final.md) |
+| current bootstrap and document taxonomy | [docs/DOC_INDEX.md](../DOC_INDEX.md) |
+| minimal current execution pointer | [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](../exec-plans/active/CURRENT_EXECUTION_PLAN.md) |
+| current split-delivery ownership and coordination | [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](../quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md) |
+| current shell contract and gate order | [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](../quality/CURRENT_SHELL_SYNC_CONTRACT.yaml), [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](../quality/MANAGER_RUNTIME_GATE_LEDGER.yaml) |
+| historical pre-self-use runtime interpretation | [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) |
+| business-domain-first architecture and layer discipline | [docs/specs/app_v2_ideal_architecture_final.md](app_v2_ideal_architecture_final.md) |
 
 This entry is an operating layer, not a new semantic owner.
 
@@ -58,11 +58,11 @@ This entry is an operating layer, not a new semantic owner.
 ## Read Order
 
 1. `AGENTS.md`
-2. [docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md)
-3. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md)
+2. [docs/DOC_INDEX.md](../DOC_INDEX.md)
+3. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](../exec-plans/active/CURRENT_EXECUTION_PLAN.md)
 4. this operating entry
 5. the active Current Shell bootstrap pack
 6. the relevant track-specific canonical spec or runbook
 7. task-specific tests or eval gates
 
-Use [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) only when the task explicitly needs historical pre-self-use architecture or harness reference.
+Use [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) only when the task explicitly needs historical pre-self-use architecture or harness reference.
