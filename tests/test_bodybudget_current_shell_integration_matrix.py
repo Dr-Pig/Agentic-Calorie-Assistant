@@ -13,10 +13,10 @@ def _resolve_symbol(dotted_path: str) -> object:
     return getattr(import_module(module_name), symbol_name)
 
 
-def test_bodybudget_plce_integration_matrix_names_backend_read_models_and_routes() -> None:
+def test_bodybudget_current_shell_integration_matrix_names_backend_read_models_and_routes() -> None:
     matrix = MATRIX_PATH.read_text(encoding="utf-8-sig")
 
-    assert "## BodyBudget PL/CE Integration Readiness Matrix" in matrix
+    assert "## BodyBudget CurrentShell Integration Readiness Matrix" in matrix
     expected_contracts = {
         "current_budget_view": [
             "/today/current-budget",
@@ -78,10 +78,10 @@ def test_bodybudget_plce_integration_matrix_names_backend_read_models_and_routes
             assert token in matrix
 
 
-def test_bodybudget_plce_integration_matrix_keeps_plce_render_only() -> None:
+def test_bodybudget_current_shell_integration_matrix_keeps_render_only() -> None:
     matrix = MATRIX_PATH.read_text(encoding="utf-8-sig")
 
-    assert "PL/CE may render, group, collapse, or label supplied values" in matrix
+    assert "CurrentShell may render, group, collapse, or label supplied values" in matrix
     assert "must not calculate BodyBudget truth" in matrix
     assert "must preserve backend-provided proposal order" in matrix
     assert "option `rank_order`, `is_primary`, and `proposal_status`" in matrix
@@ -91,7 +91,7 @@ def test_bodybudget_plce_integration_matrix_keeps_plce_render_only() -> None:
     assert "`proposal_cards` and `quick_actions`" in matrix
     assert "`calibration_proposal_container_id` and `calibration_action`" in matrix
     assert "`calibration_action_accepted_at`" in matrix
-    assert "PL/CE must not calculate the effective date" in matrix
+    assert "CurrentShell must not calculate the effective date" in matrix
     assert "must not authorize preview persistence" in matrix
     assert "raw chat text, chip label text, or reply wording must not authorize calibration mutation" in matrix
     assert "Chat-primary calibration proposal preview" in matrix
@@ -99,7 +99,7 @@ def test_bodybudget_plce_integration_matrix_keeps_plce_render_only() -> None:
     forbidden_tokens = [
         "Do not recompute consumed, remaining",
         "Do not calculate TDEE, target kcal, remaining kcal",
-        "Do not calculate effective budget, adjustment layer totals, or sign policy in PL/CE",
+        "Do not calculate effective budget, adjustment layer totals, or sign policy in CurrentShell",
         "Do not run BMR/TDEE formulas",
         "do not create, rank, rewrite, accept, defer, or reject proposals",
         "does not add fields to `ManagerContextPacket`",
@@ -108,7 +108,7 @@ def test_bodybudget_plce_integration_matrix_keeps_plce_render_only() -> None:
         assert token in matrix
 
 
-def test_bodybudget_plce_integration_matrix_references_importable_backend_read_models() -> None:
+def test_bodybudget_current_shell_integration_matrix_references_importable_backend_read_models() -> None:
     for dotted_path in [
         "app.composition.current_budget_read_model.build_current_budget_view",
         "app.composition.body_budget_deficit_summary.build_body_budget_deficit_summary",
@@ -121,29 +121,31 @@ def test_bodybudget_plce_integration_matrix_references_importable_backend_read_m
         assert callable(_resolve_symbol(dotted_path))
 
 
-def test_bodybudget_plce_integration_matrix_matches_readiness_artifact_contract() -> None:
+def test_bodybudget_current_shell_integration_matrix_matches_readiness_artifact_contract() -> None:
     from app.composition.body_budget_calibration_readiness import (
         build_body_budget_calibration_readiness_artifact,
     )
 
     matrix = MATRIX_PATH.read_text(encoding="utf-8-sig")
     artifact = build_body_budget_calibration_readiness_artifact()
-    integration_matrix = artifact["plce_contract"]["integration_readiness_matrix"]
+    integration_matrix = artifact["current_shell_contract"]["integration_readiness_matrix"]
 
     assert "machine-readable readiness artifact" in matrix
-    assert integration_matrix["doc_path"].endswith("#BodyBudget PL/CE Integration Readiness Matrix")
+    assert integration_matrix["doc_path"].endswith(
+        "#BodyBudget CurrentShell Integration Readiness Matrix"
+    )
     for read_model in artifact["stable_read_models"]:
         name = read_model["name"]
         assert name in integration_matrix["canonical_read_model_names"]
         assert integration_matrix["backend_routes"][name] == read_model["backend_route"]
         assert integration_matrix["read_functions"][name] == read_model["read_function"]
-        assert read_model["canonical_name_required_for_plce"] is True
+        assert read_model["canonical_name_required_for_current_shell"] is True
         assert read_model["backend_route"] in matrix
         assert read_model["read_function"] in matrix
-        assert read_model["plce_forbidden"]
+        assert read_model["current_shell_forbidden"]
 
 
-def test_bodybudget_plce_integration_matrix_tracks_calibration_router_activation_status() -> None:
+def test_bodybudget_current_shell_integration_matrix_tracks_calibration_router_activation_status() -> None:
     matrix = MATRIX_PATH.read_text(encoding="utf-8-sig")
     root_routes = ROOT_ROUTES_PATH.read_text(encoding="utf-8")
     public_router = _resolve_symbol("app.composition.calibration_routes.public_router")
@@ -165,7 +167,7 @@ def test_bodybudget_plce_integration_matrix_tracks_calibration_router_activation
     assert "`accepted_at` must include date and time" in matrix
 
 
-def test_bodybudget_plce_integration_matrix_distinguishes_proposal_route_projection() -> None:
+def test_bodybudget_current_shell_integration_matrix_distinguishes_proposal_route_projection() -> None:
     matrix = MATRIX_PATH.read_text(encoding="utf-8-sig")
     proposal_container = _resolve_symbol("app.shared.domain.ProposalContainer")
 

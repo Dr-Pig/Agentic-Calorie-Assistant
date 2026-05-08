@@ -23,7 +23,7 @@ def _stable_read_models() -> list[dict[str, Any]]:
         {
             "name": "current_budget_view",
             "aliases": [],
-            "canonical_name_required_for_plce": True,
+            "canonical_name_required_for_current_shell": True,
             "backend_route": "/today/current-budget",
             "read_function": "app.composition.current_budget_read_model.build_current_budget_view",
             "truth_owner": ["budget", "intake"],
@@ -38,8 +38,8 @@ def _stable_read_models() -> list[dict[str, Any]]:
                 "macro_guard_reason",
                 "last_recomputed_at",
             ],
-            "plce_allowed_use": "render_supplied_values_only",
-            "plce_forbidden": [
+            "current_shell_allowed_use": "render_supplied_values_only",
+            "current_shell_forbidden": [
                 "recompute_consumed",
                 "recompute_remaining",
                 "recompute_adjustment_sign",
@@ -49,7 +49,7 @@ def _stable_read_models() -> list[dict[str, Any]]:
         {
             "name": "body_budget_deficit_summary",
             "aliases": ["deficit_summary"],
-            "canonical_name_required_for_plce": True,
+            "canonical_name_required_for_current_shell": True,
             "backend_route": "/today/deficit-summary",
             "read_function": "app.composition.body_budget_deficit_summary.build_body_budget_deficit_summary",
             "truth_owner": ["body", "budget", "composition_read_model"],
@@ -72,8 +72,8 @@ def _stable_read_models() -> list[dict[str, Any]]:
                 "current_budget",
                 "active_body_plan",
             ],
-            "plce_allowed_use": "render_deficit_observation_loop_from_backend_values",
-            "plce_forbidden": [
+            "current_shell_allowed_use": "render_deficit_observation_loop_from_backend_values",
+            "current_shell_forbidden": [
                 "calculate_tdee",
                 "calculate_target_kcal",
                 "calculate_remaining_kcal",
@@ -85,7 +85,7 @@ def _stable_read_models() -> list[dict[str, Any]]:
         {
             "name": "body_budget_weekly_progress",
             "aliases": [],
-            "canonical_name_required_for_plce": True,
+            "canonical_name_required_for_current_shell": True,
             "backend_route": "/today/weekly-progress",
             "read_function": "app.composition.body_budget_weekly_progress.build_body_budget_weekly_progress",
             "truth_owner": ["body", "budget", "composition_read_model"],
@@ -107,8 +107,8 @@ def _stable_read_models() -> list[dict[str, Any]]:
                 "weight_delta_kg",
                 "weight_delta_policy",
             ],
-            "plce_allowed_use": "render_weekly_deficit_and_weight_loop_from_backend_values",
-            "plce_forbidden": [
+            "current_shell_allowed_use": "render_weekly_deficit_and_weight_loop_from_backend_values",
+            "current_shell_forbidden": [
                 "compute_weekly_deficit",
                 "compute_weight_delta",
                 "compute_logged_day_coverage",
@@ -122,7 +122,7 @@ def _stable_read_models() -> list[dict[str, Any]]:
         {
             "name": "body_budget_effective_budget_view",
             "aliases": [],
-            "canonical_name_required_for_plce": True,
+            "canonical_name_required_for_current_shell": True,
             "backend_route": "/today/effective-budget",
             "read_function": "app.composition.body_budget_effective_budget.build_body_budget_effective_budget_view",
             "truth_owner": ["budget", "composition_read_model"],
@@ -144,8 +144,8 @@ def _stable_read_models() -> list[dict[str, Any]]:
                 "sign_policy",
                 "calibration_adjustment_ledger_entry_enabled",
             ],
-            "plce_allowed_use": "render_effective_budget_layers_and_sign_policy_from_backend_values",
-            "plce_forbidden": [
+            "current_shell_allowed_use": "render_effective_budget_layers_and_sign_policy_from_backend_values",
+            "current_shell_forbidden": [
                 "calculate_effective_budget",
                 "calculate_adjustment_layer_totals",
                 "calculate_sign_policy",
@@ -156,7 +156,7 @@ def _stable_read_models() -> list[dict[str, Any]]:
         {
             "name": "active_body_plan_view",
             "aliases": [],
-            "canonical_name_required_for_plce": True,
+            "canonical_name_required_for_current_shell": True,
             "backend_route": "/body-plan/active",
             "read_function": "app.body.application.active_body_plan_read_model.build_active_body_plan_view",
             "truth_owner": ["body"],
@@ -176,8 +176,8 @@ def _stable_read_models() -> list[dict[str, Any]]:
                 "profile_status",
                 "last_updated_at",
             ],
-            "plce_allowed_use": "render_active_body_plan_backend_values",
-            "plce_forbidden": [
+            "current_shell_allowed_use": "render_active_body_plan_backend_values",
+            "current_shell_forbidden": [
                 "run_bmr_formula",
                 "run_tdee_formula",
                 "infer_manual_override_legality",
@@ -187,7 +187,7 @@ def _stable_read_models() -> list[dict[str, Any]]:
         {
             "name": "calibration_proposal_inbox",
             "aliases": [],
-            "canonical_name_required_for_plce": True,
+            "canonical_name_required_for_current_shell": True,
             "backend_route": "/calibration/proposals/open",
             "read_function": "app.composition.calibration_proposal_inbox.load_open_calibration_proposal_inbox",
             "truth_owner": ["calibration_proposal_artifacts"],
@@ -208,8 +208,8 @@ def _stable_read_models() -> list[dict[str, Any]]:
                 "options[].is_primary",
                 "options[].effect_payload",
             ],
-            "plce_allowed_use": "render_inbox_mirror_preserving_backend_order",
-            "plce_forbidden": [
+            "current_shell_allowed_use": "render_inbox_mirror_preserving_backend_order",
+            "current_shell_forbidden": [
                 "create_proposals",
                 "rank_proposals",
                 "rewrite_options",
@@ -220,7 +220,7 @@ def _stable_read_models() -> list[dict[str, Any]]:
         {
             "name": "calibration_proposal_history",
             "aliases": [],
-            "canonical_name_required_for_plce": True,
+            "canonical_name_required_for_current_shell": True,
             "backend_route": "/calibration/proposals/history",
             "read_function": "app.composition.calibration_proposal_inbox.load_calibration_proposal_history",
             "truth_owner": ["calibration_proposal_artifacts"],
@@ -239,8 +239,8 @@ def _stable_read_models() -> list[dict[str, Any]]:
                 "primary_option_label",
                 "primary_option_summary",
             ],
-            "plce_allowed_use": "render_read_only_calibration_proposal_audit_history",
-            "plce_forbidden": [
+            "current_shell_allowed_use": "render_read_only_calibration_proposal_audit_history",
+            "current_shell_forbidden": [
                 "create_proposals",
                 "rank_proposals",
                 "rewrite_options",
@@ -272,7 +272,7 @@ def _readiness_claim() -> dict[str, Any]:
                 "build_body_budget_calibration_readiness_artifact",
             ],
             "artifacts": [
-                "docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md#BodyBudget PL/CE Integration Readiness Matrix",
+                "docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md#BodyBudget CurrentShell Integration Readiness Matrix",
             ],
         },
         allowed_next_stage="calibration_acceptance_chat_surface_or_rescue_overlay_foundation",
@@ -303,7 +303,7 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
         "readiness_claimed": False,
         "readiness_claim": _readiness_claim(),
         "stable_read_models": stable_read_models,
-        "plce_contract": {
+        "current_shell_contract": {
             "stable_backend_read_models_required": True,
             "frontend_math_allowed": False,
             "context_engineering_summary_requires_separate_contract": True,
@@ -314,7 +314,7 @@ def build_body_budget_calibration_readiness_artifact() -> dict[str, Any]:
             "integration_readiness_matrix": {
                 "doc_path": (
                     "docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md"
-                    "#BodyBudget PL/CE Integration Readiness Matrix"
+                    "#BodyBudget CurrentShell Integration Readiness Matrix"
                 ),
                 "canonical_read_model_names": [read_model["name"] for read_model in stable_read_models],
                 "backend_routes": {
