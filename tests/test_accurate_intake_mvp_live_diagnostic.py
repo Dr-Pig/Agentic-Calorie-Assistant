@@ -193,8 +193,11 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
             assert "macro_guard_reason" in turn
             assert turn["prompt_footprint_summary"]["measurement"] == "json_utf8_bytes_trace_only"
             assert turn["prompt_footprint_summary"]["provider_usage_is_token_truth"] is True
-            assert turn["prompt_footprint_summary"]["manager_round_count"] == len(turn["manager_rounds"])
-            if turn["manager_rounds"]:
+            prompt_backed_round_count = sum(
+                1 for round_item in turn["manager_rounds"] if round_item.get("prompt_layer_contract")
+            )
+            assert turn["prompt_footprint_summary"]["manager_round_count"] == prompt_backed_round_count
+            if prompt_backed_round_count:
                 assert turn["prompt_footprint_summary"]["system_prompt_utf8_bytes_sent"] > 0
                 assert turn["prompt_footprint_summary"]["dynamic_payload_utf8_bytes_sent"] > 0
                 assert turn["prompt_footprint_summary"]["largest_dynamic_section_id"]
@@ -381,11 +384,13 @@ def test_accurate_intake_live_seeded_explicit_removal_single_turn_probe(tmp_path
     assert {check["check_id"]: check["status"] for check in grade["checks"]} == {
         "entry_scope_not_repeated": "pass",
         "intake_execution_scope_present": "pass",
-        "provider_invocation_count_at_most_3": "pass",
+        "provider_invocation_count_at_most_2": "pass",
         "resolve_target_used": "pass",
         "estimate_nutrition_not_used_for_removal": "pass",
         "correction_final_present": "pass",
     }
+    scopes = [item["manager_loop_scope"] for item in report["cases"][0]["provider_invocations"]]
+    assert scopes == ["turn_entry_or_read_only", "intake_execution"]
     assert report["cases"][0]["seeded_state"]["seed_kind"] == "canonical_two_item_meal"
     assert report["cases"][0]["runner_inferred_semantics"] is False
     assert report["cases"][0]["raw_text_routing_used"] is False
@@ -431,7 +436,7 @@ def test_accurate_intake_live_trace_expectation_catches_entry_loop_regression() 
     assert grade["required_status"] == "fail"
     checks = {check["check_id"]: check["status"] for check in grade["checks"]}
     assert checks["entry_scope_not_repeated"] == "fail"
-    assert checks["provider_invocation_count_at_most_3"] == "fail"
+    assert checks["provider_invocation_count_at_most_2"] == "fail"
 
 
 def test_accurate_intake_live_trace_expectation_marks_entry_tool_call_as_ideal_target_gap() -> None:
@@ -468,9 +473,10 @@ def test_accurate_intake_live_trace_expectation_marks_entry_tool_call_as_ideal_t
 
     grade = grade_live_trace_expectations(case)
 
-    assert grade["required_status"] == "pass"
+    assert grade["required_status"] == "fail"
     assert grade["ideal_target_status"] == "fail"
-    assert grade["ideal_targets"][0]["target_id"] == "entry_routes_without_intake_tool_call"
+    checks = {check["check_id"]: check["status"] for check in grade["checks"]}
+    assert checks["provider_invocation_count_at_most_2"] == "fail"
 
 
 def test_accurate_intake_live_trace_expectation_catches_no_plan_zero_budget_reply() -> None:

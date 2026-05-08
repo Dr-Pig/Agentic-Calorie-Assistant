@@ -328,16 +328,21 @@ class ScriptedAccurateIntakeLiveProvider:
                 evidence_posture="read_only_state",
                 estimation_posture="not_applicable",
             )
-        return self._final(
+        payload = self._final(
             intent_type="log_meal",
             current_turn_intent=str(self._current_step.get("semantic_intent") or "log_meal"),
-            final_action="commit",
+            final_action="no_commit",
             workflow_effect="route_to_intake",
             mutation_intent_candidate="canonical_write",
             target_attachment={"mode": self._current_step.get("target_mode") or "new_meal"},
             evidence_posture="needs_tool_evidence",
             estimation_posture="estimable",
         )
+        payload["semantic_decision"]["final_action_candidate"] = str(self._current_step.get("final_action") or "commit")
+        payload["semantic_decision"]["mutation_intent_candidate"] = str(
+            self._current_step.get("mutation_intent") or "canonical_write"
+        )
+        return payload
 
     def _execution_decision(
         self,

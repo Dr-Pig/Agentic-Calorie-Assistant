@@ -13,6 +13,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.composition.intake_execution_response import build_intake_execution_response, finalized_budget_summary
+from app.composition.intake_entry_handoff import execute_entry_handoff_seed
 from app.composition.manager_context_runtime import build_runtime_manager_context_packet_v1
 from app.composition.request_runtime_context import load_request_runtime_context
 from app.composition.remove_item_target_evidence import (
@@ -24,8 +25,8 @@ from app.composition.intake_manager_tool_batch import (
     attach_correction_target_ref_to_payload,
     execute_manager_tool_calls,
     nutrition_tool_output,
-    validate_manager_target_proposal,
 )
+from app.composition.intake_manager_target_validation import validate_final_manager_target_attachment
 from app.composition.state_resolver import resolve_intake_state
 from app.composition.commit_boundary_preflight import run_commit_boundary_preflight
 from app.intake.application.context_injection_policy import build_manager_context_pack
@@ -47,10 +48,9 @@ from app.nutrition.application.owner_lineage_trace import attach_owner_lineage_t
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
 from app.runtime.application.manager_service import run_intake_manager
-from app.shared.contracts.common import EstimateRequest
-from app.shared.contracts.correction_target import validate_correction_target_ref
-from app.shared.contracts.intake import EstimatePayload
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
+from app.shared.contracts.common import EstimateRequest
+from app.shared.contracts.intake import EstimatePayload
 
 
 _MANAGER_LOOP_GUARD_PERSISTENCE_ACTIONS = PERSISTENCE_EFFECT_ACTIONS - frozenset({"ask_followup"})
@@ -71,46 +71,6 @@ def _manager_result_payload(manager_result: Any) -> dict[str, Any]:
         "answer_contract": dict(getattr(manager_result, "answer_contract", {}) or {}),
         "semantic_decision": dict(getattr(manager_result, "semantic_decision", {}) or {}),
     }
-
-
-def _manager_result_target_proposals(manager_result: Any) -> list[tuple[str, dict[str, Any]]]:
-    proposals: list[tuple[str, dict[str, Any]]] = []
-    top_target = getattr(manager_result, "target_attachment", None)
-    if isinstance(top_target, dict) and top_target:
-        proposals.append(("manager_result.target_attachment", dict(top_target)))
-    semantic_decision = getattr(manager_result, "semantic_decision", None)
-    if isinstance(semantic_decision, dict):
-        semantic_target = semantic_decision.get("target_attachment")
-        if isinstance(semantic_target, dict) and semantic_target:
-            proposals.append(("manager_result.semantic_decision.target_attachment", dict(semantic_target)))
-    answer_contract = getattr(manager_result, "answer_contract", None)
-    if isinstance(answer_contract, dict):
-        answer_target = answer_contract.get("target_attachment")
-        if isinstance(answer_target, dict) and answer_target:
-            proposals.append(("manager_result.answer_contract.target_attachment", dict(answer_target)))
-    return proposals
-
-
-def _validate_final_manager_target_attachment(
-    *,
-    correction_target: dict[str, Any],
-    manager_result: Any,
-) -> dict[str, Any]:
-    if str(getattr(manager_result, "final_action", "") or "") != "correction_applied":
-        return dict(correction_target)
-    if validate_correction_target_ref(correction_target).get("resolved") is True:
-        return dict(correction_target)
-
-    last_validation = dict(correction_target)
-    for source, proposal in _manager_result_target_proposals(manager_result):
-        resolved = validate_manager_target_proposal(
-            correction_target=correction_target,
-            proposal={**proposal, "target_proposal_source": source},
-        )
-        last_validation = resolved
-        if validate_correction_target_ref(resolved).get("resolved") is True:
-            return resolved
-    return last_validation
 
 
 def _manager_ask_followup_question(manager_result: Any) -> str:
@@ -395,6 +355,15 @@ async def process_intake_execution_turn(
             }
         return {"ok": True, "phase_a_transition_guard_preflight": preflight_trace}
 
+    entry_handoff_seed = await execute_entry_handoff_seed(
+        manager_decision=manager_decision,
+        tool_executor=tool_executor,
+        raw_user_input=raw_user_input,
+        resolved_state=state_before,
+        now_ms=_now_ms,
+        record_timing=record_timing,
+    )
+
     stage_start = _now_ms()
     manager_result = await run_intake_manager(
         provider=active_manager_provider,
@@ -415,6 +384,8 @@ async def process_intake_execution_turn(
         tool_executor=tool_executor,
         manager_context_refresher=manager_context_refresher,
         guard_checker=guard_checker,
+        initial_tool_results=entry_handoff_seed["tool_results"],
+        initial_manager_rounds=entry_handoff_seed["manager_rounds"],
         constraints={
             "request_id": request_id,
             "manager_product_policy_hints": nutrition_manager_policy_hints(),
@@ -433,7 +404,7 @@ async def process_intake_execution_turn(
             "request_failure_family": manager_result.request_failure_family,
         },
     )
-    tool_state["correction_target"] = _validate_final_manager_target_attachment(
+    tool_state["correction_target"] = validate_final_manager_target_attachment(
         correction_target=dict(tool_state.get("correction_target") or {}),
         manager_result=manager_result,
     )

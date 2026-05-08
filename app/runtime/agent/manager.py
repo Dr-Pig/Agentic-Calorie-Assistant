@@ -52,7 +52,6 @@ def _with_phase_a_repair_trace(
         }
     return updated
 
-
 async def run_intake_manager(
     *,
     provider: Any,
@@ -68,6 +67,8 @@ async def run_intake_manager(
     tool_executor: ToolExecutor | None = None,
     manager_context_refresher: ManagerContextRefresher | None = None,
     guard_checker: GuardChecker | None = None,
+    initial_tool_results: list[dict[str, Any]] | tuple[dict[str, Any], ...] | None = None,
+    initial_manager_rounds: list[dict[str, Any]] | tuple[dict[str, Any], ...] | None = None,
     onboarding_payload: dict[str, Any] | None = None,
     constraints: dict[str, Any] | None = None,
     manager_loop_scope: str | None = None,
@@ -82,15 +83,14 @@ async def run_intake_manager(
             resolved_state=resolved_state,
             prompt_registry=prompt_registry,
         )
-
-    manager_rounds: list[dict[str, Any]] = []
-    tool_results: list[dict[str, Any]] = []
+    manager_rounds: list[dict[str, Any]] = [dict(item) for item in (initial_manager_rounds or [])]
+    tool_results: list[dict[str, Any]] = [dict(item) for item in (initial_tool_results or [])]
     repair_round_used = False
     guard_feedback: dict[str, Any] | None = None
     effective_history_expansion_policy = history_expansion_policy or HistoryExpansionPolicy()
     effective_manager_loop_scope = str(manager_loop_scope or _default_manager_loop_scope(normalized_available_tools))
 
-    for round_index in range(max_rounds):
+    for round_index in range(len(manager_rounds), max_rounds):
         effective_constraints = dict(constraints or {})
         effective_constraints.update(manager_loop_scope=effective_manager_loop_scope, available_tools=list(normalized_available_tools))
         manager_product_policy_hints = effective_constraints.pop("manager_product_policy_hints", None)
