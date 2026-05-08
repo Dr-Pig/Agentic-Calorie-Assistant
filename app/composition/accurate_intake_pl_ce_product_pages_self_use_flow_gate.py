@@ -13,36 +13,54 @@ from app.composition.current_shell_compatibility_ids import (
 
 REQUIRED_INPUTS = (
     "ui_same_truth_contract",
+    "today_macro_runtime_mirror_gate",
     "product_pages_renderer_source_map",
+    "product_pages_renderer_source_closure_gate",
     "product_pages_browser_smoke",
     "product_pages_seven_day_diary_smoke",
+    "product_pages_body_noplan_degraded_smoke",
     "product_pages_short_term_context_smoke",
     "product_pages_target_candidate_ui_smoke",
+    "product_pages_context_target_browser_closure",
     "product_pages_visual_qa",
     "fixture_full_product_loop_e2e",
 )
 
 EXPECTED_STATUSES = {
     "ui_same_truth_contract": "pass",
+    "today_macro_runtime_mirror_gate": "today_macro_runtime_mirror_gate_ready_for_browser",
     "product_pages_renderer_source_map": "product_pages_renderer_source_map_ready_for_human_review",
+    "product_pages_renderer_source_closure_gate": "product_pages_renderer_source_closure_ready_for_browser",
     "product_pages_browser_smoke": "pass",
     "product_pages_seven_day_diary_smoke": "pass",
+    "product_pages_body_noplan_degraded_smoke": "pass",
     "product_pages_short_term_context_smoke": "pass",
     "product_pages_target_candidate_ui_smoke": "pass",
+    "product_pages_context_target_browser_closure": "context_target_browser_closure_ready_for_self_use_flow_gate",
     "product_pages_visual_qa": "pass",
     "fixture_full_product_loop_e2e": "fixture_product_loop_e2e_diagnostic_pass",
 }
 
 EXPECTED_ARTIFACT_TYPES = {
     "ui_same_truth_contract": "accurate_intake_ui_same_truth_render_contract",
+    "today_macro_runtime_mirror_gate": "accurate_intake_today_macro_runtime_mirror_gate",
     "product_pages_renderer_source_map": "accurate_intake_product_pages_renderer_source_map",
+    "product_pages_renderer_source_closure_gate": "accurate_intake_product_pages_renderer_source_closure_gate",
+    "product_pages_context_target_browser_closure": "accurate_intake_product_pages_context_target_browser_closure",
     "product_pages_visual_qa": "accurate_intake_product_pages_visual_qa",
     "fixture_full_product_loop_e2e": "accurate_intake_fixture_full_product_loop_e2e",
+}
+
+EXPECTED_PASS_TYPES = {
+    "today_macro_runtime_mirror_gate": "runtime_backed",
+    "product_pages_renderer_source_closure_gate": "contract",
+    "product_pages_context_target_browser_closure": "browser_executed",
 }
 
 EXPECTED_SMOKE_IDS = {
     "product_pages_browser_smoke": "accurate_intake_product_pages_browser_smoke_v1",
     "product_pages_seven_day_diary_smoke": "accurate_intake_product_pages_seven_day_diary_smoke_v1",
+    "product_pages_body_noplan_degraded_smoke": "accurate_intake_product_pages_body_noplan_degraded_smoke_v1",
     "product_pages_short_term_context_smoke": "accurate_intake_product_pages_short_term_context_smoke_v1",
     "product_pages_target_candidate_ui_smoke": "accurate_intake_product_pages_target_candidate_ui_smoke_v1",
 }
@@ -50,8 +68,10 @@ EXPECTED_SMOKE_IDS = {
 BROWSER_INPUTS = (
     "product_pages_browser_smoke",
     "product_pages_seven_day_diary_smoke",
+    "product_pages_body_noplan_degraded_smoke",
     "product_pages_short_term_context_smoke",
     "product_pages_target_candidate_ui_smoke",
+    "product_pages_context_target_browser_closure",
     "product_pages_visual_qa",
 )
 
@@ -90,6 +110,9 @@ FORBIDDEN_TRUTHY_FLAGS = (
     "mutation_authority",
     "frontend_semantic_owner",
     "frontend_selected_target",
+    "frontend_selects_target",
+    "frontend_macro_math_used",
+    "assistant_text_macro_parsed",
     "deterministic_semantic_inference_used",
     "deterministic_selected_target",
     "raw_text_intent_router_used",
@@ -100,8 +123,17 @@ REQUIRED_TRUE_FLAGS = {
     "ui_same_truth_contract": (
         "frontend_render_only",
     ),
+    "today_macro_runtime_mirror_gate": (
+        "macro_visible_case_checked",
+        "macro_guarded_case_checked",
+        "backend_macro_fields_required",
+        "show_macro_false_suppresses_macro",
+    ),
     "product_pages_renderer_source_map": (
         "render_only_boundary_ok",
+    ),
+    "product_pages_renderer_source_closure_gate": (
+        "route_table_checked",
     ),
     "product_pages_browser_smoke": (
         "browser_executed",
@@ -141,6 +173,17 @@ REQUIRED_TRUE_FLAGS = {
         "desktop_no_overflow",
         "mobile_no_overflow",
     ),
+    "product_pages_body_noplan_degraded_smoke": (
+        "browser_executed",
+        "body_page_loaded",
+        "today_page_loaded",
+        "no_plan_body_status_rendered",
+        "body_targets_hidden_for_no_plan",
+        "body_budget_degraded_rendered",
+        "today_no_plan_budget_rendered",
+        "no_bootstrap_or_mutation_post",
+        "product_pages_no_debug_trace",
+    ),
     "product_pages_short_term_context_smoke": (
         "browser_executed",
         "browser_reload_checked",
@@ -168,6 +211,14 @@ REQUIRED_TRUE_FLAGS = {
         "target_candidate_list_read_only",
         "context_strip_read_only",
         "product_pages_no_debug_trace",
+    ),
+    "product_pages_context_target_browser_closure": (
+        "browser_executed",
+        "context_engineering_present",
+        "session_state_injected",
+        "pending_meal_or_correction_context_present",
+        "target_candidate_list_read_only",
+        "context_strip_read_only",
     ),
     "product_pages_visual_qa": (
         "browser_executed",
@@ -229,6 +280,9 @@ def _identity_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     expected_type = EXPECTED_ARTIFACT_TYPES.get(group_id)
     if expected_type and payload.get("artifact_type") != expected_type:
         blockers.append(f"{group_id}.unexpected_artifact_type:{payload.get('artifact_type')}")
+    expected_pass_type = EXPECTED_PASS_TYPES.get(group_id)
+    if expected_pass_type and payload.get("pass_type") != expected_pass_type:
+        blockers.append(f"{group_id}.unexpected_pass_type:{payload.get('pass_type')}")
     expected_smoke_id = EXPECTED_SMOKE_IDS.get(group_id)
     if expected_smoke_id and payload.get("smoke_id") != expected_smoke_id:
         blockers.append(f"{group_id}.unexpected_smoke_id:{payload.get('smoke_id')}")
@@ -264,11 +318,28 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
             blockers.append("product_pages_renderer_source_map.selector_count_too_low")
         if _int_value(summary.get("endpoint_count")) < 7:
             blockers.append("product_pages_renderer_source_map.endpoint_count_too_low")
+    if group_id == "product_pages_renderer_source_closure_gate":
+        summary = _object_dict(payload.get("summary"))
+        if _int_value(summary.get("page_count")) != 3:
+            blockers.append("product_pages_renderer_source_closure_gate.page_count_mismatch")
+        if _int_value(summary.get("endpoint_method_contract_count")) < 7:
+            blockers.append(
+                "product_pages_renderer_source_closure_gate.endpoint_method_contract_count_too_low"
+            )
     if group_id == "product_pages_seven_day_diary_smoke":
         if _int_value(payload.get("day_count_checked")) < 7:
             blockers.append("product_pages_seven_day_diary_smoke.seven_day_window_incomplete")
         if _int_value(payload.get("manager_provider_call_count")) != 0:
             blockers.append("product_pages_seven_day_diary_smoke.manager_provider_called")
+    if group_id == "product_pages_body_noplan_degraded_smoke":
+        body_values = _object_dict(payload.get("body_values"))
+        today_values = _object_dict(payload.get("today_values"))
+        for field in ("daily_target", "tdee", "active_target", "remaining"):
+            if str(body_values.get(field) or "") != "--":
+                blockers.append(f"product_pages_body_noplan_degraded_smoke.body_{field}_not_hidden")
+        for field in ("budget", "consumed", "remaining"):
+            if str(today_values.get(field) or "") != "0":
+                blockers.append(f"product_pages_body_noplan_degraded_smoke.today_{field}_not_zero")
     if group_id == "product_pages_target_candidate_ui_smoke":
         if _int_value(payload.get("target_candidate_count_rendered")) < 2:
             blockers.append("product_pages_target_candidate_ui_smoke.target_candidate_count_too_low")
@@ -280,6 +351,15 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
                 )
         if _int_value(payload.get("manager_provider_call_count")) != 0:
             blockers.append("product_pages_target_candidate_ui_smoke.manager_provider_called")
+    if group_id == "product_pages_context_target_browser_closure":
+        if _int_value(payload.get("target_candidate_count_rendered")) < 1:
+            blockers.append(
+                "product_pages_context_target_browser_closure.target_candidate_count_missing"
+            )
+        if not _list_value(payload.get("target_candidate_names_rendered")):
+            blockers.append(
+                "product_pages_context_target_browser_closure.target_candidate_names_missing"
+            )
     if group_id == "fixture_full_product_loop_e2e":
         completed_steps = {str(item) for item in _list_value(payload.get("completed_product_loop_steps"))}
         for required_step in REQUIRED_PRODUCT_LOOP_STEPS:
@@ -301,6 +381,24 @@ def _artifact_statuses(inputs: dict[str, dict[str, Any]]) -> dict[str, dict[str,
     }
 
 
+def _strongest_consumed_pass_type(inputs: dict[str, dict[str, Any]]) -> str:
+    ranking = {
+        "static": 0,
+        "contract": 1,
+        "fixture": 2,
+        "runtime_backed": 3,
+        "browser_executed": 4,
+    }
+    strongest = "contract"
+    for payload in inputs.values():
+        pass_type = str(payload.get("pass_type") or "")
+        if ranking.get(pass_type, -1) > ranking[strongest]:
+            strongest = pass_type
+    if any(inputs[group_id].get("browser_executed") is True for group_id in BROWSER_INPUTS):
+        return "browser_executed"
+    return strongest
+
+
 def build_pl_ce_product_pages_self_use_flow_gate_artifact(
     input_artifacts: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
@@ -317,6 +415,7 @@ def build_pl_ce_product_pages_self_use_flow_gate_artifact(
 
     all_browser_executed = all(inputs[group_id].get("browser_executed") is True for group_id in BROWSER_INPUTS)
     renderer_summary = _object_dict(inputs["product_pages_renderer_source_map"].get("summary"))
+    closure_summary = _object_dict(inputs["product_pages_renderer_source_closure_gate"].get("summary"))
     completed_steps = _list_value(inputs["fixture_full_product_loop_e2e"].get("completed_product_loop_steps"))
     status = "product_pages_self_use_flow_ready_for_human_review" if not blockers else "blocked"
     payload = {
@@ -339,10 +438,36 @@ def build_pl_ce_product_pages_self_use_flow_gate_artifact(
                 "renderer_source_map_page_count": _int_value(renderer_summary.get("page_count")),
                 "renderer_source_map_selector_count": _int_value(renderer_summary.get("selector_count")),
                 "renderer_source_map_endpoint_count": _int_value(renderer_summary.get("endpoint_count")),
+                "renderer_source_closure_checked": (
+                    inputs["product_pages_renderer_source_closure_gate"].get("route_table_checked") is True
+                    and inputs["product_pages_renderer_source_closure_gate"].get("status")
+                    == EXPECTED_STATUSES["product_pages_renderer_source_closure_gate"]
+                ),
+                "renderer_source_closure_endpoint_contract_count": _int_value(
+                    closure_summary.get("endpoint_method_contract_count")
+                ),
                 "seven_day_diary_checked": inputs["product_pages_seven_day_diary_smoke"].get("seven_day_window_checked") is True,
+                "body_noplan_degraded_checked": (
+                    inputs["product_pages_body_noplan_degraded_smoke"].get("status")
+                    == EXPECTED_STATUSES["product_pages_body_noplan_degraded_smoke"]
+                    and inputs["product_pages_body_noplan_degraded_smoke"].get("browser_executed") is True
+                ),
                 "short_term_context_checked": inputs["product_pages_short_term_context_smoke"].get("chat_history_context_fields_reloaded") is True,
                 "target_candidate_ui_checked": inputs["product_pages_target_candidate_ui_smoke"].get("target_candidate_surface_checked") is True,
+                "context_target_browser_closure_checked": (
+                    inputs["product_pages_context_target_browser_closure"].get("context_engineering_present")
+                    is True
+                    and inputs["product_pages_context_target_browser_closure"].get("status")
+                    == EXPECTED_STATUSES["product_pages_context_target_browser_closure"]
+                ),
+                "today_macro_runtime_mirror_checked": (
+                    inputs["today_macro_runtime_mirror_gate"].get("status")
+                    == EXPECTED_STATUSES["today_macro_runtime_mirror_gate"]
+                    and inputs["today_macro_runtime_mirror_gate"].get("macro_visible_case_checked") is True
+                    and inputs["today_macro_runtime_mirror_gate"].get("macro_guarded_case_checked") is True
+                ),
                 "fixture_product_loop_steps_checked": len(completed_steps),
+                "strongest_consumed_pass_type": _strongest_consumed_pass_type(inputs),
             },
             "human_review_required": True,
             "review_required_before_provider_call": True,
