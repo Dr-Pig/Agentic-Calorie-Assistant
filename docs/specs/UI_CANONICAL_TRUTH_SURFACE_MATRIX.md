@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This document defines the allowed read-only mapping between future UI surfaces and existing canonical product truth.
+This document defines the allowed read-only mapping between CurrentShell and future UI surfaces and existing canonical product truth.
 
-It exists to prevent L9 UI / same-truth work from becoming a parallel source of truth while Wave 1 B2 semantic closure remains the current mainline.
+It exists to prevent L9 UI / same-truth work from becoming a parallel source of truth while CurrentShell self-use MVP local desktop dogfood remains the current mainline.
 
 ## Non-Goals
 
@@ -16,33 +16,30 @@ It exists to prevent L9 UI / same-truth work from becoming a parallel source of 
 ## Upstream Docs
 
 - `docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md`
-- `docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md`
-- `docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md`
-- `docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md`
+- `docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md`
+- `docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml`
+- `docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml`
 - `docs/specs/L0_PRODUCT_CAPABILITY_SPEC.md`
 - `docs/specs/L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md`
 - `docs/specs/L3_1_INTAKE_RUNTIME_CONTRACT_SPEC.md`
-- `docs/specs/V2_WAVE_1_DEEP_CAPABILITY_SPEC.md`
-- `docs/specs/V2_WAVE_1_MINIMAL_IMPLEMENTATION_CONTRACTS.md`
-- `docs/quality/V2_WAVE_1_CAPABILITY_MICRO_SUITES.md`
-- `docs/quality/V2_WAVE_1_MICRO_SUITE_CASES.md`
+- `docs/specs/CAPABILITY_TO_MODULE_OWNERSHIP_MAP.md`
 
 ## Downstream Use
 
 - Required before implementing L9 UI same-truth, UI renderers, smart-chip action wiring, proposal inbox UI, proactive UI, or cross-surface sync tests.
-- Optional during B2 unless a B2 change exposes a new user-visible UI fact or action.
+- Optional unless a CurrentShell/AppShell change exposes a new user-visible UI fact or action.
 - Coding agents should read this only when touching UI-visible facts, UI actions, sidecar payloads, same-truth surfaces, or cross-surface acceptance criteria.
 
 ## Strategic Gate
 
 ```yaml
-current_mainline: Wave 1 B2 semantic closure, evidence/synthesis alignment, final mapping boundary
+current_mainline: CurrentShell self-use MVP local desktop dogfood
 is_detour: true
 blocked_mainline: not_blocked
 detour_reason: Read-only L9 surface inventory exposes same-truth dependencies without changing runtime truth or UI behavior.
 detour_exit_gate: Every UI-visible datum/action maps to an existing canonical owner/read model, or is explicitly marked gap/deferred.
 exit_gate_status: defined_by_this_matrix
-return_slice_after_exit: B2 final mapping and evidence/synthesis closure
+return_slice_after_exit: CurrentShell self-use MVP local desktop dogfood
 strategic_verdict: allowed_detour
 ```
 
@@ -58,7 +55,7 @@ upstream_dependencies:
     contract_status: contract_backed
     risk_if_missing: UI actions could bypass manager/guard/commit boundaries.
   - layer: L4-L7 Retrieval, Evidence, Synthesis, Final Mapping
-    contract_status: draft_to_contract_backed_B2_mainline
+    contract_status: contract_backed_for_current_shell_baseline
     risk_if_missing: UI could canonize unresolved exactness, evidence, or food semantics.
   - layer: L8 Mutation/Ledger/Version
     contract_status: contract_backed_baseline
@@ -155,9 +152,9 @@ ui_role: render_mirror_confirm_or_launch_existing_command
 | Record or review body observation | Weight surface | weight observation value, unit, observed date, source | `BodyObservation` | `body` domain | `/weight` | not required for intake same-truth | submit through existing body observation path | body observation command | turning observation into calibration proposal without proposal gate | L3.5 body workflow | body observation workflow tests | available |
 | Confirm meal correction or commit from UI | Future meal review / smart chip | proposed target meal/thread and action affordance | `MealThread`, `MealVersion`, transition guard result | `intake` plus `runtime` guard | not yet authorized as standalone UI path | Phase A trace, Phase C trace | launch guarded action only | `InteractionEvent(surface_mode=ui_anchored_action)` routed through manager/guard | direct ledger mutation, direct commit, keyword-based target inference | L1-L3, L8 | MS7, MS9, MS11 | deferred |
 | Inspect calibration or rescue proposal | Proposal inbox mirror | current open proposal, primary option, option summaries, status | `ProposalContainer`, `ProposalOption` | owning domain plus manager proposal policy | calibration public contract: `/calibration/proposals/open` via root-mounted `public_router`; rescue: no general proposal inbox read model yet | calibration response `ui_hints` only where produced | accept/defer/reject only through proposal command path | calibration public contract: `/calibration/proposal/stored-action` via root-mounted `public_router`; rescue: future proposal response command | letting UI host primary negotiation, invent options, or call internal direct-payload calibration actions | L0, L2, L8 | proposal-specific acceptance gate | contract_ready for calibration mirror; public route activation active; rescue deferred |
-| See proactive nudge context | Notification / proactive card | trigger status, trigger reason, linked context | `ProactiveTrigger` | proactive scheduler plus owning domain | no active Wave 1 proactive UI read model | scheduler trace when implemented | open chat or dashboard context only | proactive engagement event | auto-logging, auto-accepting, or inventing recommendation rationale | L9 proactive plus L4/L5 evidence | proactive scheduler gates | deferred |
+| See proactive nudge context | Notification / proactive card | trigger status, trigger reason, linked context | `ProactiveTrigger` | proactive scheduler plus owning domain | no active CurrentShell proactive UI read model | scheduler trace when implemented | open chat or dashboard context only | proactive engagement event | auto-logging, auto-accepting, or inventing recommendation rationale | L9 proactive plus L4/L5 evidence | proactive scheduler gates | deferred |
 | Debug same-truth closure | Internal diagnostics only | mutation outcome, same-truth read result, hard-fail conditions | trace artifacts, `phase_c_trace` | runtime diagnostics | request trace artifacts | `phase_c_trace.same_truth_closure_gate` | inspect only | none | exposing diagnostic labels as user-facing product status | Phase C baseline | MS12 | diagnostic_only |
-| Display memory or history summary | Future history / memory surface | stable user preference or history summary | memory model, meal/body history read models | owning domain plus memory layer | no Wave 1 user-facing memory UI read model | not active | read only until memory contract exists | future memory command | summarizing raw history into canonical preference without memory contract | L4A, L9 memory | memory acceptance gates | deferred |
+| Display memory or history summary | Future history / memory surface | stable user preference or history summary | memory model, meal/body history read models | owning domain plus memory layer | no active CurrentShell user-facing memory UI read model | not active | read only until memory contract exists | future memory command | summarizing raw history into canonical preference without memory contract | L4A, L9 memory | memory acceptance gates | deferred |
 
 ## BodyBudget PL/CE Integration Readiness Matrix
 
@@ -227,4 +224,4 @@ The machine-readable readiness artifact mirrors this matrix through `plce_contra
 
 ## Current Verdict
 
-The matrix is an allowed detour only as a read-only architecture mapping. After this document is created, default execution should return to Wave 1 B2 semantic closure unless a future UI-visible field/action exposes a concrete canonical-truth gap.
+The matrix is an allowed detour only as a read-only architecture mapping. Default execution should return to CurrentShell self-use MVP local desktop dogfood unless a future UI-visible field/action exposes a concrete canonical-truth gap.

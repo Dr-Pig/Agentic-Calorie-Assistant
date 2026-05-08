@@ -15,8 +15,8 @@ It exists to prevent detailed UX workflows from becoming ad hoc prompts, hardcod
 
 ## Upstream Docs
 
+- `docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md`
 - `docs/specs/L0_PRODUCT_CAPABILITY_SPEC.md`
-- `docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md`
 - `docs/quality/UX_JOURNEY_TO_SLICE_MAP.md`
 - `docs/specs/L3_2_RECOMMENDATION_RUNTIME_INTERFACE_CONTRACT_SPEC.md`
 - `docs/specs/L3_4_RESCUE_RUNTIME_CONTRACT_SPEC.md`
@@ -34,13 +34,13 @@ It exists to prevent detailed UX workflows from becoming ad hoc prompts, hardcod
 ## Strategic Gate
 
 ```yaml
-current_mainline: Wave 1 B2 semantic closure, evidence/synthesis alignment, final mapping boundary
+current_mainline: CurrentShell self-use MVP local desktop dogfood
 is_detour: true
 blocked_mainline: not_blocked
 detour_reason: Product-semantics inventory for later-wave UX moments; no runtime, schema, API, UI, or mutation behavior is added.
 detour_exit_gate: UX moments map to state category, owner object, allowed action, forbidden shortcut, and unresolved gap.
 exit_gate_status: in_progress
-return_slice_after_exit: B2 final mapping and evidence/synthesis closure
+return_slice_after_exit: CurrentShell self-use MVP local desktop dogfood
 strategic_verdict: allowed_detour
 ```
 
