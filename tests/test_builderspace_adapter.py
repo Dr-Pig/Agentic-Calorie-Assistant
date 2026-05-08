@@ -90,6 +90,16 @@ class _RecordingAsyncClientWithFailures:
         return outcome
 
 
+def _schema_key_count(value: object, key: str) -> int:
+    if isinstance(value, dict):
+        return sum(1 for item_key in value if item_key == key) + sum(
+            _schema_key_count(item, key) for item in value.values()
+        )
+    if isinstance(value, list):
+        return sum(_schema_key_count(item, key) for item in value)
+    return 0
+
+
 def _configure_adapter(monkeypatch: pytest.MonkeyPatch, response: _FakeResponse) -> BuilderSpaceAdapter:
     monkeypatch.setenv("AI_BUILDER_TOKEN", "test-token")
     monkeypatch.setenv("AI_BUILDER_BASE_URL", "https://example.test/backend/v1")
@@ -1039,6 +1049,39 @@ def test_founder_live_decision_transport_tool_schema_is_stable_across_evidence_s
     assert no_evidence_request["tools"] == evidence_present_request["tools"]
     assert no_evidence_request["tool_choice"] == evidence_present_request["tool_choice"]
     assert "no_commit" not in evidence_present_response_schema["properties"]["final_action"]["enum"]
+
+
+def test_founder_live_decision_transport_schema_is_compact_without_owning_runtime_guidance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        **_founder_live_constraints(),
+        "manager_loop_scope": "intake_execution",
+        "available_tools": ["estimate_nutrition"],
+        "manager_contract_evidence_state": {
+            "nutrition_evidence_present": True,
+            "tool_result_names": ["estimate_nutrition"],
+        },
+    }
+
+    transport_request, _ = adapter._decision_transport_request_for_stage(
+        "intake_manager_round",
+        constraints=constraints,
+    )
+    response_schema = adapter._response_schema_for_stage(
+        "intake_manager_round",
+        constraints=constraints,
+    )
+
+    assert transport_request is not None
+    transport_schema = transport_request["tools"][0]["function"]["parameters"]
+    assert _schema_key_count(transport_schema, "description") == 0
+    assert _schema_key_count(transport_schema, "x-field-consumers") == 0
+    assert "commit" in transport_schema["properties"]["workflow_effect"]["enum"]
+    assert "commit_intake" not in transport_schema["properties"]["workflow_effect"]["enum"]
+    assert "description" in response_schema["properties"]["final_action"]
+    assert "route_to_intake" not in response_schema["properties"]["workflow_effect"]["enum"]
 
 
 def test_founder_live_entry_scope_allows_downstream_correction_candidate_without_target_evidence(
@@ -2088,12 +2131,16 @@ def test_founder_live_manager_contract_uses_synthetic_tool_transport_with_schema
     assert response_format["json_schema"]["name"] == "founder_live_manager_contract"
     assert response_meta["schema_version"] == "v1"
 
-    semantic_schema = transport_request["tools"][0]["function"]["parameters"]["properties"]["semantic_decision"]
+    transport_schema = transport_request["tools"][0]["function"]["parameters"]
+    assert _schema_key_count(transport_schema, "description") == 0
+
+    response_schema = response_format["json_schema"]["schema"]
+    semantic_schema = response_schema["properties"]["semantic_decision"]
     semantic_properties = semantic_schema["properties"]
     assert "not a final ask_followup" in semantic_properties["final_action_candidate"]["description"]
     assert "pending_tool_call or tool_pending" in semantic_properties["estimation_posture"]["description"]
     assert "concrete user-facing followup_question" in semantic_properties["followup_posture"]["description"]
-    top_level_properties = transport_request["tools"][0]["function"]["parameters"]["properties"]
+    top_level_properties = response_schema["properties"]
     assert "requires_tool" in top_level_properties["evidence_posture"]["description"]
 
 
