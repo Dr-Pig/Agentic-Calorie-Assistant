@@ -1504,6 +1504,7 @@ def _turn_summary(
     invocation_summary = _provider_invocation_summary(provider_invocations or [])
     provider_latency_ms = int(invocation_summary.get("provider_invocation_latency_ms") or 0)
     non_provider_latency_ms = max(0, int(latency_ms) - provider_latency_ms)
+    runtime_stage_timings = _json_safe(_list(_dict(result.get("latency_tracking")).get("stage_timings")))
     return {
         "turn": step.turn,
         "kind": step.kind,
@@ -1527,8 +1528,21 @@ def _turn_summary(
         "manager_rounds": manager_rounds,
         "prompt_footprint_summary": _prompt_footprint_summary_from_rounds(manager_rounds),
         "provider_invocation_summary": invocation_summary,
+        "runtime_stage_timings": runtime_stage_timings,
+        "runtime_stage_timing_summary": _runtime_stage_timing_summary(runtime_stage_timings),
         "hard_fail_conditions": list(result.get("hard_fail_conditions") or []),
         "runtime_error": None,
+    }
+
+
+def _runtime_stage_timing_summary(stage_timings: list[dict[str, Any]]) -> dict[str, Any]:
+    durations = [int(_dict(item).get("duration_ms") or 0) for item in stage_timings]
+    slowest = max(stage_timings, key=lambda item: int(_dict(item).get("duration_ms") or 0), default={})
+    return {
+        "recorded_stage_count": len(stage_timings),
+        "recorded_stage_total_ms": sum(durations),
+        "slowest_stage_name": str(_dict(slowest).get("stage") or "none"),
+        "slowest_stage_ms": int(_dict(slowest).get("duration_ms") or 0),
     }
 
 

@@ -222,6 +222,16 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
             assert isinstance(turn["provider_invocation_summary"]["transport_attempt_count"], int)
             assert isinstance(turn["provider_invocation_summary"]["transport_attempt_latency_ms"], int)
             assert isinstance(turn["provider_invocation_summary"]["slowest_transport_attempt_ms"], int)
+            assert isinstance(turn["runtime_stage_timings"], list)
+            assert all("stage" in item and "duration_ms" in item for item in turn["runtime_stage_timings"])
+            assert turn["runtime_stage_timing_summary"]["recorded_stage_count"] == len(turn["runtime_stage_timings"])
+            assert turn["runtime_stage_timing_summary"]["recorded_stage_total_ms"] == sum(
+                int(item["duration_ms"]) for item in turn["runtime_stage_timings"]
+            )
+            assert isinstance(turn["runtime_stage_timing_summary"]["slowest_stage_name"], str)
+            assert isinstance(turn["runtime_stage_timing_summary"]["slowest_stage_ms"], int)
+            if prompt_backed_round_count:
+                assert turn["runtime_stage_timings"]
         assert case["provider_invocation_count"] >= len(case["turns"])
         assert case["prompt_footprint_summary"]["measurement"] == "json_utf8_bytes_trace_only"
         assert case["prompt_footprint_summary"]["manager_round_count"] == sum(
