@@ -15,6 +15,7 @@ from app.shared.infra.json_artifacts import read_json_artifact, write_json_artif
 
 REQUIRED_PRODUCT_LOOP_EVIDENCE = (
     "browser_shell_smoke",
+    "local_web_candidate",
     "browser_fixture_dogfood",
     "local_dogfood_hygiene",
     "browser_realistic_dogfood",
@@ -57,6 +58,66 @@ def _status(value: dict[str, Any]) -> str:
     return str(value.get("status") or "")
 
 
+def _local_web_candidate_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    return _object_dict(payload.get("local_web_self_use_candidate_v2"))
+
+
+def _local_web_candidate_status(payload: dict[str, Any]) -> str:
+    candidate = _local_web_candidate_payload(payload)
+    if candidate.get("candidate_prepared") is True:
+        return "candidate_prepared"
+    if payload:
+        return "blocked"
+    return ""
+
+
+def _appshell_chain(payload: dict[str, Any]) -> dict[str, Any]:
+    return _object_dict(
+        _local_web_candidate_payload(payload).get("appshell_browser_evidence_chain")
+    )
+
+
+def _local_web_candidate_blockers(payload: dict[str, Any]) -> list[str]:
+    candidate = _local_web_candidate_payload(payload)
+    chain = _appshell_chain(payload)
+    blockers: list[str] = []
+    if not payload:
+        return ["missing_product_loop_evidence:local_web_candidate"]
+    if candidate.get("candidate_prepared") is not True:
+        blockers.append("local_web_candidate_not_prepared")
+    if candidate.get("blockers") not in (None, []):
+        blockers.append("local_web_candidate_upstream_blockers_present")
+    if chain.get("browser_artifact_count") != 6 or chain.get("browser_executed_count") != 6:
+        blockers.append("local_web_candidate_browser_artifact_count_mismatch")
+    for field, blocker in (
+        (
+            "all_required_browser_artifacts_executed",
+            "local_web_candidate_browser_artifacts_not_all_executed",
+        ),
+        ("product_pages_self_use_flow_checked", "local_web_candidate_self_use_flow_missing"),
+        ("today_macro_runtime_mirror_checked", "local_web_candidate_today_macro_missing"),
+        ("renderer_source_closure_checked", "local_web_candidate_renderer_source_missing"),
+        (
+            "context_target_browser_closure_checked",
+            "local_web_candidate_context_target_browser_closure_missing",
+        ),
+        ("body_noplan_degraded_checked", "local_web_candidate_body_noplan_missing"),
+    ):
+        if chain.get(field) is not True:
+            blockers.append(blocker)
+    for field, blocker in (
+        ("live_llm_invoked", "local_web_candidate_live_llm_invoked"),
+        ("fooddb_evidence_used", "local_web_candidate_fooddb_evidence_used"),
+        ("websearch_evidence_used", "local_web_candidate_websearch_evidence_used"),
+        ("runtime_truth_changed", "local_web_candidate_runtime_truth_changed"),
+        ("mutation_changed", "local_web_candidate_mutation_changed"),
+        ("frontend_semantic_owner", "local_web_candidate_frontend_semantic_owner"),
+    ):
+        if chain.get(field) is True:
+            blockers.append(blocker)
+    return blockers
+
+
 def _pl_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     status = _status(payload)
     blockers: list[str] = []
@@ -65,6 +126,8 @@ def _pl_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     if group_id == "browser_shell_smoke":
         if status != "pass" or payload.get("browser_executed") is not True:
             blockers.append("browser_shell_smoke_not_browser_executed_pass")
+    elif group_id == "local_web_candidate":
+        blockers.extend(_local_web_candidate_blockers(payload))
     elif group_id == "browser_fixture_dogfood":
         if status != "browser_fixture_pass":
             blockers.append("browser_fixture_dogfood_not_fixture_pass")
@@ -99,9 +162,14 @@ def _product_loop_evidence_status(evidence: dict[str, Any]) -> tuple[dict[str, A
     for group_id in REQUIRED_PRODUCT_LOOP_EVIDENCE:
         payload = _object_dict(evidence.get(group_id))
         group_blockers = _pl_blockers(group_id, payload)
+        status = (
+            _local_web_candidate_status(payload)
+            if group_id == "local_web_candidate"
+            else _status(payload)
+        )
         statuses[group_id] = {
             "present": bool(payload),
-            "status": _status(payload),
+            "status": status,
             "blockers": group_blockers,
         }
         blockers.extend(group_blockers)
@@ -178,6 +246,7 @@ def build_product_loop_handoff_v3(
 ) -> dict[str, Any]:
     evidence_status, product_loop_blockers = _product_loop_evidence_status(evidence)
     fooddb = _fooddb_validation(fooddb_artifact)
+    local_web_candidate = _object_dict(evidence.get("local_web_candidate"))
     blockers = [*product_loop_blockers]
     if fooddb["status"] == "blocked_invalid_fooddb_metadata":
         blockers.extend(fooddb["blockers"])
@@ -205,6 +274,7 @@ def build_product_loop_handoff_v3(
             "selected_next_step": selected_next_step,
             "product_loop_required_evidence": list(REQUIRED_PRODUCT_LOOP_EVIDENCE),
             "product_loop_evidence_status": evidence_status,
+            "appshell_browser_evidence_chain": _appshell_chain(local_web_candidate),
             "fooddb_input_mode": "approved_packet_ready_metadata_validation_only",
             "fooddb_artifact_status": fooddb["status"],
             "fooddb_validation": fooddb,
@@ -251,6 +321,7 @@ def _load_evidence_from_args(args: argparse.Namespace) -> dict[str, Any]:
         evidence.update(read_json_artifact(Path(args.evidence_json)))
     for group_id, path in (
         ("browser_shell_smoke", args.browser_shell_smoke),
+        ("local_web_candidate", args.local_web_candidate),
         ("browser_fixture_dogfood", args.browser_fixture_dogfood),
         ("local_dogfood_hygiene", args.local_dogfood_hygiene),
         ("browser_realistic_dogfood", args.browser_realistic_dogfood),
@@ -271,6 +342,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--evidence-json")
     parser.add_argument("--browser-shell-smoke")
+    parser.add_argument("--local-web-candidate")
     parser.add_argument("--browser-fixture-dogfood")
     parser.add_argument("--local-dogfood-hygiene")
     parser.add_argument("--browser-realistic-dogfood")
