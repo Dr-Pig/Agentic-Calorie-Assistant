@@ -200,7 +200,13 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
     assert gates["rt14d_single_case_tool_choice_live_probe"]["depends_on"] == [
         "rt14c_schema_contract_live_canary",
     ]
+    assert gates["rt14e_context_conditioned_live_probe"]["status"] == "green"
+    assert gates["rt14e_context_conditioned_live_probe"]["pass_type"] == "runtime_backed"
+    assert gates["rt14e_context_conditioned_live_probe"]["depends_on"] == [
+        "rt14d_single_case_tool_choice_live_probe",
+    ]
     assert gates["rt14_limited_live_ladder"]["depends_on"] == [
+        "rt14e_context_conditioned_live_probe",
         "rt14d_single_case_tool_choice_live_probe",
         "rt14c_schema_contract_live_canary",
         "rt14b_provider_health_live_canary",
