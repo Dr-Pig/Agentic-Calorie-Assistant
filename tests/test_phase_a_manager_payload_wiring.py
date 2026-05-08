@@ -318,8 +318,11 @@ async def test_run_intake_manager_sends_manager_context_packet_v1_sidecar_withou
     assert payload["phase_a_manager_context_pack"]["legacy_payload_mode"] == "packet_primary_reference"
     assert "manager_context" not in payload["phase_a_manager_context_pack"]
     assert payload["phase_a_manager_context_pack"]["context_packet_carries_full_fields"] is True
+    assert payload["manager_context_packet_v1"]["prompt_payload_kind"] == "manager_context_packet_v1_prompt_compact"
     assert payload["manager_context_packet_v1"]["metadata"]["context_policy_version"] == MANAGER_CONTEXT_POLICY_VERSION
-    assert payload["manager_context_packet_v1"]["context_loading_artifact"]["loaded_message_count"] == 2
+    assert payload["manager_context_packet_v1"]["recent_chat_window"]["loaded_message_count"] == 2
+    assert "not_claiming" not in payload["manager_context_packet_v1"]
+    assert "omitted_context" not in payload["manager_context_packet_v1"]
     assert sidecar_trace["context_policy_version"] == MANAGER_CONTEXT_POLICY_VERSION
     assert sidecar_trace["loaded_context_summary"]["recent_chat_messages"] == 2
     assert sidecar_trace["omitted_context_summary"]["recent_chat_messages_omitted"] == 0
@@ -378,8 +381,10 @@ async def test_run_intake_manager_uses_packet_primary_progressive_context_disclo
     assert len(json.dumps(current_payload, ensure_ascii=False)) < 500
     assert len(json.dumps(context_pack_payload, ensure_ascii=False)) < 500
 
+    assert packet_payload["prompt_payload_kind"] == "manager_context_packet_v1_prompt_compact"
     assert packet_payload["hard_pins"]["pending_followup"]["meal_thread_id"] == 77
     assert packet_payload["target_candidates"]["for_correction_or_removal"]
+    assert len(json.dumps(packet_payload, ensure_ascii=False)) < len(json.dumps(packet, ensure_ascii=False))
     progressive = result.manager_rounds[0]["prompt_layer_contract"]["progressive_disclosure"]
     assert progressive["context_packet_primary"] is True
     assert progressive["full_context_in_user_payload"] is False

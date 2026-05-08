@@ -7,6 +7,7 @@ from app.runtime.agent.manager_context_payload import (
     current_turn_context_prompt_payload,
     manager_context_pack_payload as serialize_manager_context_pack,
     manager_context_pack_prompt_payload,
+    manager_context_packet_v1_prompt_payload,
     manager_context_packet_v1_trace_payload,
     manager_context_trace_payload,
     shadow_hypothesis_instruction,
@@ -31,7 +32,6 @@ from app.runtime.agent.manager_payload_utils import (
 from app.runtime.agent.manager_prompted_provider import complete_manager_round_with_prompt_trace
 from app.runtime.agent.manager_tool_scope import manager_scope_policy_payload, safe_failure_payload, tool_call_scope_boundary
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
-
 
 ToolExecutor = Callable[..., Awaitable[list[dict[str, Any]]] | list[dict[str, Any]]]
 GuardChecker = Callable[..., Awaitable[dict[str, Any]] | dict[str, Any]]
@@ -120,7 +120,7 @@ async def run_intake_manager(
                     primary_packet_present=manager_context_packet_v1 is not None,
                 )
             ),
-            "manager_context_packet_v1": json_safe(manager_context_packet_v1),
+            "manager_context_packet_v1": json_safe(manager_context_packet_v1_prompt_payload(manager_context_packet_v1)),
             "phase_a_manager_context_pack_role": manager_context_trace["phase_a_manager_context_pack_role"],
             "phase_a_surface_mode": phase_a_surface_mode,
             "phase_a_context_pack_version": "v1" if manager_context_pack_payload is not None else None,
