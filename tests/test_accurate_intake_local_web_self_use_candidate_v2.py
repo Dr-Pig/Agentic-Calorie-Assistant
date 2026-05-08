@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG,
+)
 from scripts.build_accurate_intake_local_web_self_use_candidate_v2 import build_local_web_self_use_candidate_v2
 
 def _ready_claim_boundary() -> dict:
@@ -105,7 +110,7 @@ def _clean_evidence() -> dict:
             "selected_option": "ready_for_human_limited_live_canary_decision",
             "missing_evidence": [],
             "blockers": [],
-            "ready_for_pl_ce_local_review": True,
+            CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG: True,
             "ready_for_live_diagnostic_decision": False,
             "live_canary_approved": False,
             "product_readiness_claimed": False,
@@ -268,6 +273,32 @@ def test_candidate_prepared_when_all_clean() -> None:
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is True
     assert pack["local_web_self_use_candidate_v2"]["blockers"] == []
 
+
+def test_candidate_prepared_with_canonical_current_shell_local_review_aliases() -> None:
+    evidence = _clean_evidence()
+    evidence["pre_live_decision_pack"][CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG] = True
+    evidence["pre_live_decision_pack"].pop("ready_for_pl_ce_local_review", None)
+    evidence[CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID] = {
+        "status": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+        "source": "test",
+        "ready_for_live_diagnostic_decision": False,
+        "ready_for_fdb_integration": False,
+        "live_llm_invoked": False,
+        "web_tavily_used": False,
+        "real_fooddb_pass_claimed": False,
+        "product_readiness_claimed": False,
+        "private_self_use_approved": False,
+    }
+    del evidence["pl_ce_local_review_decision_pack"]
+
+    pack = build_local_web_self_use_candidate_v2(evidence)
+
+    assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is True
+    assert (
+        f"missing evidence: {CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID}"
+        not in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
+
 def test_candidate_blocked_when_browser_shell_smoke_missing() -> None:
     evidence = _clean_evidence()
     del evidence["browser_shell_smoke"]
@@ -343,7 +374,10 @@ def test_candidate_blocked_when_pl_ce_local_review_decision_pack_missing() -> No
     del evidence["pl_ce_local_review_decision_pack"]
     pack = build_local_web_self_use_candidate_v2(evidence)
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
-    assert "missing evidence: pl_ce_local_review_decision_pack" in pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert (
+        f"missing evidence: {CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID}"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
 
 
 def test_candidate_blocked_when_browser_activation_or_non_fooddb_tool_evidence_missing() -> None:
@@ -579,10 +613,13 @@ def test_candidate_blocks_live_context_gate_overclaims() -> None:
 
 def test_candidate_requires_pre_live_pack_to_reference_pl_ce_local_review() -> None:
     evidence = _clean_evidence()
-    evidence["pre_live_decision_pack"]["ready_for_pl_ce_local_review"] = False
+    evidence["pre_live_decision_pack"][CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG] = False
     pack = build_local_web_self_use_candidate_v2(evidence)
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
-    assert "pre-live missing PL+CE local review gate" in pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert (
+        "pre-live missing CurrentShell compatibility local review gate"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
 
 def test_candidate_blocks_pre_live_live_decision_or_canary_approval() -> None:
     for flag in ("ready_for_live_diagnostic_decision", "live_canary_approved"):
@@ -603,7 +640,10 @@ def test_candidate_blocks_pl_ce_decision_pack_overclaims() -> None:
     )
     pack = build_local_web_self_use_candidate_v2(evidence)
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
-    assert "PL+CE local review overclaim" in pack["local_web_self_use_candidate_v2"]["blockers"]
+    assert (
+        "CurrentShell compatibility local review overclaim"
+        in pack["local_web_self_use_candidate_v2"]["blockers"]
+    )
 
 def test_candidate_blocked_if_private_self_use_approved_true() -> None:
     evidence = _clean_evidence()

@@ -118,7 +118,7 @@ def test_pl_ce_roadmap_doc_marks_plce_as_legacy_umbrella_vocabulary() -> None:
         "Legacy `PLCE` / `PL+CE` / `PL_CE` wording remains compatibility vocabulary only for old paths and artifacts; it is not the canonical track model.",
         "AppShell must not invent runtime semantics, frontend truth math, or mutation legality.",
         "Every legacy `PL+CE` / `CurrentShell` compatibility artifact must stay non-promotional.",
-        "the compatibility artifact `pl_ce_local_review_decision_pack` is green.",
+        "the compatibility artifact `current_shell_compatibility_local_review_decision_pack` is green (legacy input alias: `pl_ce_local_review_decision_pack`).",
         "The later live diagnostic gate starts only after deterministic CurrentShell closure.",
     ):
         assert fragment in text

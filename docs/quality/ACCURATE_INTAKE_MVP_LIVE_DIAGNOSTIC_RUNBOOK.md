@@ -254,7 +254,7 @@ The required evidence keys are:
 - `dogfood_review_queue`
 - `local_dogfood_data_hygiene`
 - `local_operator_data_hygiene_bundle`
-- `pl_ce_local_review_decision_pack`
+- `current_shell_compatibility_local_review_decision_pack` (legacy compatibility input alias: `pl_ce_local_review_decision_pack`)
 - `product_pages_self_use_flow_gate`
 - `ui_context_alignment_pack`
 - `browser_activation_evidence_gate`

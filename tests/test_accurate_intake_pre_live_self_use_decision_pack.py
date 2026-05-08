@@ -3,6 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG,
+)
 from scripts.build_accurate_intake_pre_live_self_use_decision_pack import (
     REQUIRED_PRE_LIVE_EVIDENCE,
     build_pre_live_self_use_decision_pack,
@@ -390,14 +395,16 @@ def test_pre_live_decision_pack_lists_required_evidence_without_approving_live()
     assert "production_db_ready_claimed" not in pack
     _assert_removed_fixed_false_outputs(pack)
     assert pack["blockers"] == []
+    assert pack[CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG] is True
+    assert "ready_for_pl_ce_local_review" not in pack
     assert pack["capability_axis_summary"] == {
         "browser_execution": {
             "status": "pass",
             "browser_executed": True,
         },
-        "product_loop_context_review": {
+        "current_shell_compatibility_local_review": {
             "status": "ready_for_human_review",
-            "ready_for_pl_ce_local_review": True,
+            CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG: True,
         },
         "manager_intent_readiness": {
             "status": "ready_for_human_review",
@@ -422,6 +429,30 @@ def test_pre_live_decision_pack_lists_required_evidence_without_approving_live()
             "selected_option": "ready_for_human_limited_live_canary_decision",
         },
     }
+
+
+def test_pre_live_decision_pack_accepts_canonical_local_review_group_alias() -> None:
+    pack = build_pre_live_self_use_decision_pack(
+        _evidence(
+            pl_ce_local_review_decision_pack={},
+            **{
+                CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: {
+                    "status": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+                    "shared_contract_changed": False,
+                    "ready_for_live_diagnostic_decision": False,
+                    "ready_for_fdb_integration": False,
+                    "live_llm_invoked": False,
+                    "web_tavily_used": False,
+                    "real_fooddb_pass_claimed": False,
+                    "private_self_use_approved": False,
+                }
+            },
+        )
+    )
+
+    assert pack["missing_evidence"] == []
+    assert pack[CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG] is True
+    assert "ready_for_pl_ce_local_review" not in pack
 
 
 def test_pre_live_decision_pack_stays_local_when_review_or_data_hygiene_evidence_missing() -> None:
@@ -567,8 +598,8 @@ def test_pre_live_decision_pack_requires_pl_ce_local_review_gate_before_human_li
     )
 
     assert pack["selected_option"] == "stay_local_self_use"
-    assert "pl_ce_local_review_decision_pack" in pack["missing_evidence"]
-    assert pack["ready_for_pl_ce_local_review"] is False
+    assert CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID in pack["missing_evidence"]
+    assert pack[CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG] is False
     _assert_removed_fixed_false_outputs(pack)
 
 
@@ -945,8 +976,8 @@ def test_pre_live_decision_pack_blocks_when_pl_ce_local_review_gate_is_blocked()
     )
 
     assert pack["selected_option"] == "stay_local_self_use"
-    assert "pl_ce_local_review_decision_pack" in pack["missing_evidence"]
-    assert pack["ready_for_pl_ce_local_review"] is False
+    assert CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID in pack["missing_evidence"]
+    assert pack[CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG] is False
     assert "live_canary_approved" not in pack
 
 
@@ -964,11 +995,23 @@ def test_pre_live_decision_pack_blocks_pl_ce_local_review_overclaims() -> None:
     )
 
     assert pack["selected_option"] == "stay_local_self_use"
-    assert "pl_ce_local_review_decision_pack_ready_for_live_diagnostic_decision" in pack["blockers"]
-    assert "pl_ce_local_review_decision_pack_ready_for_fdb_integration" in pack["blockers"]
-    assert "pl_ce_local_review_decision_pack_real_fooddb_pass_claimed" in pack["blockers"]
-    assert "pl_ce_local_review_decision_pack_private_self_use_approved" in pack["blockers"]
-    assert pack["ready_for_pl_ce_local_review"] is False
+    assert (
+        f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID}_ready_for_live_diagnostic_decision"
+        in pack["blockers"]
+    )
+    assert (
+        f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID}_ready_for_fdb_integration"
+        in pack["blockers"]
+    )
+    assert (
+        f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID}_real_fooddb_pass_claimed"
+        in pack["blockers"]
+    )
+    assert (
+        f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID}_private_self_use_approved"
+        in pack["blockers"]
+    )
+    assert pack[CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG] is False
     _assert_removed_fixed_false_outputs(pack)
 
 
@@ -991,8 +1034,8 @@ def test_pre_live_decision_pack_blocks_shared_contract_changes() -> None:
         )
 
         assert pack["selected_option"] == "stay_local_self_use"
-        assert f"pl_ce_local_review_decision_pack_{flag}" in pack["blockers"]
-        assert pack["ready_for_pl_ce_local_review"] is False
+        assert f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID}_{flag}" in pack["blockers"]
+        assert pack[CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG] is False
 
 
 def test_pre_live_decision_pack_does_not_accept_pl_ce_status_for_other_evidence() -> None:
@@ -1002,7 +1045,7 @@ def test_pre_live_decision_pack_does_not_accept_pl_ce_status_for_other_evidence(
 
     assert pack["selected_option"] == "stay_local_self_use"
     assert "phase_c_gate" in pack["missing_evidence"]
-    assert pack["ready_for_pl_ce_local_review"] is True
+    assert pack[CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG] is True
 
 
 def test_pre_live_decision_pack_script_writes_artifact(tmp_path: Path) -> None:

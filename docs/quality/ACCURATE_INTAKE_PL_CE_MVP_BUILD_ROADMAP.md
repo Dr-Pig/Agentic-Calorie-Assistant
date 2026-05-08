@@ -214,7 +214,7 @@ Before provider calls, human review must confirm:
 
 - PR123 browser shell checkpoint is accepted.
 - PR125 diagnostic review bundle is accepted.
-- the compatibility artifact `pl_ce_local_review_decision_pack` is green.
+- the compatibility artifact `current_shell_compatibility_local_review_decision_pack` is green (legacy input alias: `pl_ce_local_review_decision_pack`).
 - Context replay pack scenarios match real correction/removal use.
 - Fake-provider context smoke passes without live provider calls.
 - FoodDB remains separate and no runtime evidence truth was promoted by ManagerRuntime or AppShell.

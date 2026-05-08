@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG,
+)
+
 
 def _summary(payload: dict[str, Any]) -> dict[str, Any]:
     value = payload.get("summary")
@@ -19,7 +23,7 @@ def build_capability_axis_summary(
     evidence_status: dict[str, dict[str, Any]],
     *,
     selected_option: str,
-    ready_for_pl_ce_local_review: bool,
+    ready_for_current_shell_compatibility_local_review: bool,
 ) -> dict[str, Any]:
     browser = evidence_status["browser_shell_smoke"]
     manager_intent = evidence_status["manager_intent_readiness_review_pack"]
@@ -46,9 +50,15 @@ def build_capability_axis_summary(
             ),
             "browser_executed": browser.get("browser_executed") is True,
         },
-        "product_loop_context_review": {
-            "status": "ready_for_human_review" if ready_for_pl_ce_local_review else "blocked_or_missing",
-            "ready_for_pl_ce_local_review": ready_for_pl_ce_local_review,
+        "current_shell_compatibility_local_review": {
+            "status": (
+                "ready_for_human_review"
+                if ready_for_current_shell_compatibility_local_review
+                else "blocked_or_missing"
+            ),
+            CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG: (
+                ready_for_current_shell_compatibility_local_review
+            ),
         },
         "manager_intent_readiness": {
             "status": (
