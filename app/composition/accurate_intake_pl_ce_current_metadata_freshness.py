@@ -4,6 +4,36 @@ from datetime import UTC, datetime
 import json
 from typing import Any
 
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_CURRENT_METADATA_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_CURRENT_METADATA_CLAIM_SCOPE,
+    CURRENT_SHELL_COMPATIBILITY_CURRENT_METADATA_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_UI_CONTEXT_ALIGNMENT_ARTIFACT_TYPE,
+    LEGACY_ACTIVATION_REVIEW_ARTIFACT_TYPES,
+    LEGACY_ACTIVATION_REVIEW_GROUP_IDS,
+    LEGACY_ACTIVATION_REVIEW_READY_STATUSES,
+    LEGACY_BROWSER_ACTIVATION_ARTIFACT_TYPES,
+    LEGACY_CURRENT_METADATA_ARTIFACT_TYPES,
+    LEGACY_CURRENT_METADATA_CLAIM_SCOPES,
+    LEGACY_CURRENT_METADATA_READY_STATUSES,
+    LEGACY_LOCAL_MVP_ARTIFACT_TYPES,
+    LEGACY_LOCAL_MVP_GROUP_IDS,
+    LEGACY_LOCAL_MVP_READY_STATUSES,
+    LEGACY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPES,
+    LEGACY_UI_CONTEXT_ALIGNMENT_ARTIFACT_TYPES,
+    first_group_payload,
+    matches_alias,
+    set_legacy_alias_metadata,
+)
+
 
 REQUIRED_CURRENT_CHAIN_ARTIFACTS = (
     "ui_same_truth_contract",
@@ -11,11 +41,11 @@ REQUIRED_CURRENT_CHAIN_ARTIFACTS = (
     "product_pages_visual_qa",
     "product_pages_long_session_navigation_smoke",
     "pl_ce_ui_context_alignment_pack",
-    "pl_ce_local_mvp_candidate_bundle",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
     "pl_ce_product_pages_self_use_flow_gate",
     "pl_ce_browser_activation_evidence_gate",
     "non_fooddb_manager_tool_contract",
-    "pl_ce_activation_review_manifest",
+    CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID,
 )
 
 EXPECTED_ARTIFACT_TYPES = {
@@ -23,12 +53,16 @@ EXPECTED_ARTIFACT_TYPES = {
     "context_quality_pack": "accurate_intake_context_quality_pack",
     "product_pages_visual_qa": "accurate_intake_product_pages_visual_qa",
     "product_pages_long_session_navigation_smoke": "accurate_intake_product_pages_long_session_navigation_smoke",
-    "pl_ce_ui_context_alignment_pack": "accurate_intake_pl_ce_ui_context_alignment_pack",
-    "pl_ce_local_mvp_candidate_bundle": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
-    "pl_ce_product_pages_self_use_flow_gate": "accurate_intake_pl_ce_product_pages_self_use_flow_gate",
-    "pl_ce_browser_activation_evidence_gate": "accurate_intake_pl_ce_browser_activation_evidence_gate",
+    "pl_ce_ui_context_alignment_pack": CURRENT_SHELL_COMPATIBILITY_UI_CONTEXT_ALIGNMENT_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: (
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE
+    ),
+    "pl_ce_product_pages_self_use_flow_gate": CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE,
+    "pl_ce_browser_activation_evidence_gate": CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
     "non_fooddb_manager_tool_contract": "accurate_intake_non_fooddb_manager_tool_contract",
-    "pl_ce_activation_review_manifest": "accurate_intake_pl_ce_activation_review_manifest",
+    CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID: (
+        CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_ARTIFACT_TYPE
+    ),
 }
 
 EXPECTED_STATUSES = {
@@ -37,11 +71,15 @@ EXPECTED_STATUSES = {
     "product_pages_visual_qa": "pass",
     "product_pages_long_session_navigation_smoke": "pass",
     "pl_ce_ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
-    "pl_ce_local_mvp_candidate_bundle": "pl_ce_local_mvp_candidate_ready_for_human_review",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: (
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS
+    ),
     "pl_ce_product_pages_self_use_flow_gate": "product_pages_self_use_flow_ready_for_human_review",
     "pl_ce_browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
     "non_fooddb_manager_tool_contract": "non_fooddb_manager_tool_contract_ready_for_human_review",
-    "pl_ce_activation_review_manifest": "pl_ce_activation_review_manifest_ready",
+    CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID: (
+        CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_READY_STATUS
+    ),
 }
 
 FORBIDDEN_TRUTHY_FLAGS = (
@@ -121,11 +159,60 @@ def _group_blockers(group_id: str, payload: dict[str, Any], freshness_status: st
     blockers: list[str] = []
     if not payload or payload.get("status") == "missing":
         return [f"{group_id}.missing"]
-    if payload.get("artifact_type") != EXPECTED_ARTIFACT_TYPES[group_id]:
+    if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID:
+        if not matches_alias(
+            payload.get("artifact_type"),
+            EXPECTED_ARTIFACT_TYPES[group_id],
+            *LEGACY_LOCAL_MVP_ARTIFACT_TYPES,
+        ):
+            blockers.append(f"{group_id}.unexpected_artifact_type")
+    elif group_id == CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID:
+        if not matches_alias(
+            payload.get("artifact_type"),
+            EXPECTED_ARTIFACT_TYPES[group_id],
+            *LEGACY_ACTIVATION_REVIEW_ARTIFACT_TYPES,
+        ):
+            blockers.append(f"{group_id}.unexpected_artifact_type")
+    elif group_id == "pl_ce_ui_context_alignment_pack":
+        if not matches_alias(
+            payload.get("artifact_type"),
+            EXPECTED_ARTIFACT_TYPES[group_id],
+            *LEGACY_UI_CONTEXT_ALIGNMENT_ARTIFACT_TYPES,
+        ):
+            blockers.append(f"{group_id}.unexpected_artifact_type")
+    elif group_id == "pl_ce_browser_activation_evidence_gate":
+        if not matches_alias(
+            payload.get("artifact_type"),
+            EXPECTED_ARTIFACT_TYPES[group_id],
+            *LEGACY_BROWSER_ACTIVATION_ARTIFACT_TYPES,
+        ):
+            blockers.append(f"{group_id}.unexpected_artifact_type")
+    elif group_id == "pl_ce_product_pages_self_use_flow_gate":
+        if not matches_alias(
+            payload.get("artifact_type"),
+            EXPECTED_ARTIFACT_TYPES[group_id],
+            *LEGACY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPES,
+        ):
+            blockers.append(f"{group_id}.unexpected_artifact_type")
+    elif payload.get("artifact_type") != EXPECTED_ARTIFACT_TYPES[group_id]:
         blockers.append(f"{group_id}.unexpected_artifact_type")
     if payload.get("artifact_schema_version") != "1.0":
         blockers.append(f"{group_id}.missing_artifact_schema_version")
-    if payload.get("status") != EXPECTED_STATUSES[group_id]:
+    if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID:
+        if not matches_alias(
+            payload.get("status"),
+            EXPECTED_STATUSES[group_id],
+            *LEGACY_LOCAL_MVP_READY_STATUSES,
+        ):
+            blockers.append(f"{group_id}.unexpected_status:{payload.get('status')}")
+    elif group_id == CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID:
+        if not matches_alias(
+            payload.get("status"),
+            EXPECTED_STATUSES[group_id],
+            *LEGACY_ACTIVATION_REVIEW_READY_STATUSES,
+        ):
+            blockers.append(f"{group_id}.unexpected_status:{payload.get('status')}")
+    elif payload.get("status") != EXPECTED_STATUSES[group_id]:
         blockers.append(f"{group_id}.unexpected_status:{payload.get('status')}")
     if freshness_status != "fresh":
         blockers.append(f"{group_id}.{freshness_status}")
@@ -136,17 +223,21 @@ def _group_blockers(group_id: str, payload: dict[str, Any], freshness_status: st
 
 
 def _stop_gate_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
-    if group_id == "pl_ce_activation_review_manifest":
+    if group_id == CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID:
         gates = _object_dict(payload.get("remaining_stop_gates"))
         checks = (
             (gates.get("fooddb_artifact_status"), "blocked_waiting_for_fdb_artifact", "fooddb"),
             (gates.get("live_provider_status"), "blocked_pending_human_approval", "live_provider"),
         )
-        return [f"pl_ce_activation_review_manifest.{name}_stop_gate_missing" for actual, expected, name in checks if actual != expected]
-    if group_id == "pl_ce_local_mvp_candidate_bundle":
+        return [
+            f"{CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID}.{name}_stop_gate_missing"
+            for actual, expected, name in checks
+            if actual != expected
+        ]
+    if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID:
         fooddb = _object_dict(payload.get("fooddb_dependency"))
         if fooddb.get("fooddb_artifact_status") != "blocked_waiting_for_fdb_artifact":
-            return ["pl_ce_local_mvp_candidate_bundle.fooddb_stop_gate_missing"]
+            return [f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID}.fooddb_stop_gate_missing"]
     return []
 
 
@@ -160,7 +251,20 @@ def build_pl_ce_current_metadata_freshness_pack(
     input_statuses: dict[str, dict[str, Any]] = {}
     blockers: list[str] = []
     for group_id in REQUIRED_CURRENT_CHAIN_ARTIFACTS:
-        payload = _object_dict(evidence.get(group_id))
+        if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID:
+            payload, _ = first_group_payload(
+                evidence,
+                CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+                *LEGACY_LOCAL_MVP_GROUP_IDS,
+            )
+        elif group_id == CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID:
+            payload, _ = first_group_payload(
+                evidence,
+                CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID,
+                *LEGACY_ACTIVATION_REVIEW_GROUP_IDS,
+            )
+        else:
+            payload = _object_dict(evidence.get(group_id))
         freshness, age_hours = _freshness_status(
             payload.get("generated_at_utc"),
             now=current_time,
@@ -178,42 +282,37 @@ def build_pl_ce_current_metadata_freshness_pack(
         }
         blockers.extend(_group_blockers(group_id, payload, freshness))
         blockers.extend(_stop_gate_blockers(group_id, payload))
-    status = "current_metadata_freshness_ready_for_serial_handoff" if not blockers else "blocked"
-    return _json_safe(
-        {
-            "artifact_schema_version": "1.0",
-            "artifact_type": "accurate_intake_pl_ce_current_metadata_freshness_pack",
-            "claim_scope": "pl_ce_current_chain_metadata_freshness_status_only",
-            "status": status,
-            "generated_at_utc": current_time.isoformat(),
-            "producer_track": "PL_CE",
-            "required_artifacts": list(REQUIRED_CURRENT_CHAIN_ARTIFACTS),
-            "required_artifact_count": len(REQUIRED_CURRENT_CHAIN_ARTIFACTS),
-            "fresh_artifact_count": sum(
-                1 for row in input_statuses.values() if row["freshness_status"] == "fresh"
-            ),
-            "input_statuses": input_statuses,
-            "blockers": blockers,
-            "metadata_only": True,
-            "source_status_only": True,
-            "diagnostic_only": True,
-            "local_only": True,
-            "ready_for_serial_handoff": not blockers,
-            "ready_for_live_diagnostic_decision": False,
-            "ready_for_fdb_integration": False,
-            "shared_contract_changed": False,
-            "runtime_truth_changed": False,
-            "mutation_changed": False,
-            "live_llm_invoked": False,
-            "web_tavily_used": False,
-            "websearch_evidence_used": False,
-            "fooddb_evidence_used": False,
-            "real_fooddb_pass_claimed": False,
-            "dogfood_pass": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
-        }
+    status = CURRENT_SHELL_COMPATIBILITY_CURRENT_METADATA_READY_STATUS if not blockers else "blocked"
+    payload = {
+        "artifact_schema_version": "1.0",
+        "artifact_type": CURRENT_SHELL_COMPATIBILITY_CURRENT_METADATA_ARTIFACT_TYPE,
+        "claim_scope": CURRENT_SHELL_COMPATIBILITY_CURRENT_METADATA_CLAIM_SCOPE,
+        "status": status,
+        "generated_at_utc": current_time.isoformat(),
+        "producer_track": "CurrentShell",
+        "required_artifacts": list(REQUIRED_CURRENT_CHAIN_ARTIFACTS),
+        "required_artifact_count": len(REQUIRED_CURRENT_CHAIN_ARTIFACTS),
+        "fresh_artifact_count": sum(
+            1 for row in input_statuses.values() if row["freshness_status"] == "fresh"
+        ),
+        "input_statuses": input_statuses,
+        "blockers": blockers,
+        "metadata_only": True,
+        "source_status_only": True,
+        "diagnostic_only": True,
+        "local_only": True,
+        "ready_for_serial_handoff": not blockers,
+        "shared_contract_changed": False,
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+    }
+    set_legacy_alias_metadata(
+        payload,
+        legacy_artifact_types=LEGACY_CURRENT_METADATA_ARTIFACT_TYPES,
+        legacy_statuses=LEGACY_CURRENT_METADATA_READY_STATUSES,
+        legacy_claim_scopes=LEGACY_CURRENT_METADATA_CLAIM_SCOPES,
     )
+    return _json_safe(payload)
 
 
 __all__ = [

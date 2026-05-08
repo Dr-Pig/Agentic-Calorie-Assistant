@@ -8,9 +8,23 @@ from app.composition.accurate_intake_pl_ce_serial_handoff_metadata import (
     current_metadata_freshness_blockers,
     current_metadata_freshness_summary,
 )
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_MERGE_QUEUE_METADATA_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_SERIAL_HANDOFF_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_SERIAL_HANDOFF_CLAIM_SCOPE,
+    LEGACY_ACTIVATION_REVIEW_ARTIFACT_TYPES,
+    LEGACY_ACTIVATION_REVIEW_READY_STATUSES,
+    LEGACY_MERGE_QUEUE_METADATA_ARTIFACT_TYPES,
+    LEGACY_SERIAL_HANDOFF_ARTIFACT_TYPES,
+    LEGACY_SERIAL_HANDOFF_CLAIM_SCOPES,
+    matches_alias,
+    set_legacy_alias_metadata,
+)
 
 
-EXPECTED_QUEUE_METADATA_ARTIFACT_TYPE = "accurate_intake_pl_ce_merge_queue_metadata"
+EXPECTED_QUEUE_METADATA_ARTIFACT_TYPE = CURRENT_SHELL_COMPATIBILITY_MERGE_QUEUE_METADATA_ARTIFACT_TYPE
 ALLOWED_QUEUE_METADATA_SOURCES = {
     "github_merge_queue_snapshot",
     "merge_queue_snapshot",
@@ -69,11 +83,19 @@ def _claim_is_true(value: Any) -> bool:
 
 def _activation_manifest_blockers(payload: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
-    if payload.get("artifact_type") != "accurate_intake_pl_ce_activation_review_manifest":
+    if not matches_alias(
+        payload.get("artifact_type"),
+        CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_ARTIFACT_TYPE,
+        *LEGACY_ACTIVATION_REVIEW_ARTIFACT_TYPES,
+    ):
         blockers.append(f"activation_review_manifest.unexpected_artifact_type:{payload.get('artifact_type')}")
     if payload.get("artifact_schema_version") != "1.0":
         blockers.append("activation_review_manifest.missing_artifact_schema_version")
-    if payload.get("status") != "pl_ce_activation_review_manifest_ready":
+    if not matches_alias(
+        payload.get("status"),
+        CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_READY_STATUS,
+        *LEGACY_ACTIVATION_REVIEW_READY_STATUSES,
+    ):
         blockers.append(f"activation_review_manifest.unexpected_status:{payload.get('status')}")
     if payload.get("blockers") != []:
         blockers.append("activation_review_manifest.upstream_blockers_present")
@@ -108,18 +130,25 @@ def _queue_blockers(queue_metadata: dict[str, Any]) -> list[str]:
     if not queue_metadata:
         return ["queue_metadata.missing"]
     if queue_metadata.get("artifact_type") in {
+        "missing_current_shell_compatibility_merge_queue_metadata",
         "missing_pl_ce_pr_stack_metadata",
         "missing_pl_ce_merge_queue_metadata",
     }:
         return ["queue_metadata.missing"]
     if queue_metadata.get("artifact_type") in {
+        "invalid_missing_current_shell_compatibility_merge_queue_metadata",
+        "invalid_missing_current_shell_compatibility_merge_queue_metadata_shape",
         "invalid_missing_pl_ce_pr_stack_metadata",
         "invalid_missing_pl_ce_pr_stack_metadata_shape",
         "invalid_missing_pl_ce_merge_queue_metadata",
         "invalid_missing_pl_ce_merge_queue_metadata_shape",
     }:
         return ["queue_metadata.invalid"]
-    if queue_metadata.get("artifact_type") != EXPECTED_QUEUE_METADATA_ARTIFACT_TYPE:
+    if not matches_alias(
+        queue_metadata.get("artifact_type"),
+        EXPECTED_QUEUE_METADATA_ARTIFACT_TYPE,
+        *LEGACY_MERGE_QUEUE_METADATA_ARTIFACT_TYPES,
+    ):
         blockers.append(
             f"queue_metadata.unexpected_artifact_type:{queue_metadata.get('artifact_type')}"
         )
@@ -219,82 +248,74 @@ def build_pl_ce_serial_handoff_artifact(
         blocker.startswith(("queue.", "queue_metadata.", "stack_metadata.")) for blocker in blockers
     )
     policy = _object_dict(queue.get("queue_policy"))
-    return _json_safe(
-        {
-            "artifact_schema_version": "1.0",
-            "artifact_type": "accurate_intake_pl_ce_serial_handoff",
-            "claim_scope": "pl_ce_merge_queue_handoff_for_review_only",
-            "generated_at_utc": datetime.now(UTC).isoformat(),
-            "status": status,
-            "producer_track": "PL_CE",
-            "delivery_mode": "github_merge_queue",
-            "blockers": blockers,
-            "included_artifacts": _included_artifacts(manifest, current_metadata),
-            "queue_items": _queue_items(queue),
-            "expected_delivery_policy": {
-                "merge_mechanism": "github_merge_queue",
-                "source_branch_base": "main",
-                "after_pr_ready": "add_to_merge_queue",
-                "continue_after": "pr_merged_and_main_ci_green",
-                "cleanup": "cleanup_only_after_merged_and_clean",
-                "do_not_use": ["main-merge-lock", "manual_main_merge", "long_lived_stack"],
-            },
-            "queue_metadata_valid": queue_metadata_valid,
-            "stack_order_valid": queue_metadata_valid,
-            "stack_metadata_valid": queue_metadata_valid,
-            "activation_review_manifest_ready": not any(
-                blocker.startswith("activation_review_manifest.") for blocker in blockers
+    payload = {
+        "artifact_schema_version": "1.0",
+        "artifact_type": CURRENT_SHELL_COMPATIBILITY_SERIAL_HANDOFF_ARTIFACT_TYPE,
+        "claim_scope": CURRENT_SHELL_COMPATIBILITY_SERIAL_HANDOFF_CLAIM_SCOPE,
+        "generated_at_utc": datetime.now(UTC).isoformat(),
+        "status": status,
+        "producer_track": "CurrentShell",
+        "delivery_mode": "github_merge_queue",
+        "blockers": blockers,
+        "included_artifacts": _included_artifacts(manifest, current_metadata),
+        "queue_items": _queue_items(queue),
+        "expected_delivery_policy": {
+            "merge_mechanism": "github_merge_queue",
+            "source_branch_base": "main",
+            "after_pr_ready": "add_to_merge_queue",
+            "continue_after": "pr_merged_and_main_ci_green",
+            "cleanup": "cleanup_only_after_merged_and_clean",
+            "do_not_use": ["main-merge-lock", "manual_main_merge", "long_lived_stack"],
+        },
+        "queue_metadata_valid": queue_metadata_valid,
+        "stack_order_valid": queue_metadata_valid,
+        "stack_metadata_valid": queue_metadata_valid,
+        "activation_review_manifest_ready": not any(
+            blocker.startswith("activation_review_manifest.") for blocker in blockers
+        ),
+        "current_metadata_freshness_ready": not any(
+            blocker.startswith("current_metadata_freshness_pack.") for blocker in blockers
+        ),
+        "merge_queue_required": True,
+        "merge_owner_required": False,
+        "producer_should_manual_merge": False,
+        "producer_should_merge": False,
+        "producer_should_wait_for_queue_merge": True,
+        "producer_should_continue_after_merge": True,
+        "producer_should_continue_building": False,
+        "old_main_merge_lock_used": policy.get("old_main_merge_lock_used", "not_available"),
+        "cleanup_after_merged_only": True,
+        "autofix_attempted": False,
+        "local_only": True,
+        "diagnostic_only": True,
+        "aggregate_only": True,
+        "self_generated_evidence_used": False,
+        "human_review_required": True,
+        "remaining_stop_gates": {
+            "fooddb_artifact_status": stop_gates.get(
+                "fooddb_artifact_status",
+                "blocked_waiting_for_fdb_artifact",
             ),
-            "current_metadata_freshness_ready": not any(
-                blocker.startswith("current_metadata_freshness_pack.") for blocker in blockers
+            "live_provider_status": stop_gates.get(
+                "live_provider_status",
+                "blocked_pending_human_approval",
             ),
-            "merge_queue_required": True,
-            "merge_owner_required": False,
-            "producer_should_manual_merge": False,
-            "producer_should_merge": False,
-            "producer_should_wait_for_queue_merge": True,
-            "producer_should_continue_after_merge": True,
-            "producer_should_continue_building": False,
-            "old_main_merge_lock_used": policy.get("old_main_merge_lock_used", "not_available"),
-            "cleanup_after_merged_only": True,
-            "autofix_attempted": False,
-            "local_only": True,
-            "diagnostic_only": True,
-            "aggregate_only": True,
-            "self_generated_evidence_used": False,
-            "human_review_required": True,
-            "remaining_stop_gates": {
-                "fooddb_artifact_status": stop_gates.get(
-                    "fooddb_artifact_status",
-                    "blocked_waiting_for_fdb_artifact",
-                ),
-                "live_provider_status": stop_gates.get(
-                    "live_provider_status",
-                    "blocked_pending_human_approval",
-                ),
-                "merge_queue_status": "required",
-                "manual_merge_status": "forbidden",
-            },
-            "ready_for_live_diagnostic_decision": False,
-            "ready_for_fdb_integration": False,
-            "shared_contract_changed": False,
-            "runtime_truth_changed": False,
-            "mutation_changed": False,
-            "live_llm_invoked": False,
-            "web_tavily_used": False,
-            "websearch_evidence_used": False,
-            "fooddb_evidence_used": False,
-            "fooddb_truth_updated": False,
-            "real_fooddb_pass_claimed": False,
-            "dogfood_pass": False,
-            "web_readiness_claimed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
-            "production_db_used": False,
-            "manager_context_packet_schema_changed": False,
-            "mutation_authority": False,
-        }
+            "merge_queue_status": "required",
+            "manual_merge_status": "forbidden",
+        },
+        "shared_contract_changed": False,
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "production_db_used": False,
+        "manager_context_packet_schema_changed": False,
+        "mutation_authority": False,
+    }
+    set_legacy_alias_metadata(
+        payload,
+        legacy_artifact_types=LEGACY_SERIAL_HANDOFF_ARTIFACT_TYPES,
+        legacy_claim_scopes=LEGACY_SERIAL_HANDOFF_CLAIM_SCOPES,
     )
+    return _json_safe(payload)
 
 
 __all__ = [

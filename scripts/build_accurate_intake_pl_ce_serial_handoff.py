@@ -56,7 +56,7 @@ def _read_payload(path: Path, *, missing_type: str) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Build PL+CE Merge Queue handoff artifact for review."
+        description="Build CurrentShell compatibility Merge Queue handoff artifact for review."
     )
     parser.add_argument(
         "--activation-review-manifest",
@@ -88,11 +88,11 @@ def main(argv: list[str] | None = None) -> int:
         ),
         current_metadata_freshness_pack=_read_payload(
             Path(args.current_metadata_freshness_pack),
-            missing_type="missing_pl_ce_current_metadata_freshness_pack",
+            missing_type="missing_current_shell_compatibility_current_metadata_freshness_pack",
         ),
         queue_metadata=_read_payload(
             Path(queue_json_path),
-            missing_type="missing_pl_ce_merge_queue_metadata",
+            missing_type="missing_current_shell_compatibility_merge_queue_metadata",
         ),
     )
     write_json_artifact(Path(args.output), artifact)

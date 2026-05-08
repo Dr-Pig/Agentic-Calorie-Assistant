@@ -18,6 +18,16 @@ from app.composition.accurate_intake_pl_ce_context_live_manifest_checks import (
     context_live_gate_state,
     context_live_review_state,
 )
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_CLAIM_SCOPE,
+    CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+    LEGACY_ACTIVATION_REVIEW_ARTIFACT_TYPES,
+    LEGACY_ACTIVATION_REVIEW_CLAIM_SCOPES,
+    LEGACY_ACTIVATION_REVIEW_READY_STATUSES,
+    set_legacy_alias_metadata,
+)
 
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
@@ -109,7 +119,11 @@ def build_pl_ce_activation_review_manifest_artifact(
     blockers: list[str] = []
     for group_id, payload in inputs.items():
         blockers.extend(activation_manifest_blockers(group_id, payload))
-    status = "pl_ce_activation_review_manifest_ready" if not blockers else "blocked"
+    status = (
+        CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_READY_STATUS
+        if not blockers
+        else "blocked"
+    )
     context_live_review_pack = optional_inputs.get("context_live_diagnostic_review_pack", {})
     context_live_gate = optional_inputs.get("context_live_diagnostic_gate", {})
     context_live_review_checkpoint, context_live_provider_status, context_live_review_live_invoked = (
@@ -118,12 +132,11 @@ def build_pl_ce_activation_review_manifest_artifact(
     context_live_gate_checkpoint, context_live_gate_stop_status, context_live_gate_live_invoked = (
         context_live_gate_state(context_live_gate)
     )
-    return _json_safe(
-        {
+    payload = {
             "artifact_schema_version": "1.0",
-            "artifact_type": "accurate_intake_pl_ce_activation_review_manifest",
+            "artifact_type": CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_ARTIFACT_TYPE,
             "status": status,
-            "claim_scope": "pl_ce_activation_review_manifest_for_human_review_only",
+            "claim_scope": CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_CLAIM_SCOPE,
             "generated_at_utc": datetime.now(UTC).isoformat(),
             "required_inputs": list(REQUIRED_INPUTS),
             "blockers": blockers,
@@ -131,8 +144,8 @@ def build_pl_ce_activation_review_manifest_artifact(
             "review_checkpoints": {
                 "local_mvp_candidate_bundle": (
                     "ready_for_human_review"
-                    if inputs["pl_ce_local_mvp_candidate_bundle"].get("status")
-                    == EXPECTED_STATUSES["pl_ce_local_mvp_candidate_bundle"]
+                    if inputs[CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID].get("status")
+                    == EXPECTED_STATUSES[CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID]
                     else "blocked_or_missing"
                 ),
                 "browser_activation_evidence_gate": (
@@ -217,8 +230,6 @@ def build_pl_ce_activation_review_manifest_artifact(
                 context_live_gate,
                 context_live_review_pack,
             ),
-            "ready_for_live_diagnostic_decision": False,
-            "ready_for_fdb_integration": False,
             "shared_contract_changed": False,
             "runtime_truth_changed": False,
             "mutation_changed": False,
@@ -230,14 +241,17 @@ def build_pl_ce_activation_review_manifest_artifact(
             "fooddb_truth_updated": False,
             "real_fooddb_pass_claimed": False,
             "dogfood_pass": False,
-            "web_readiness_claimed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
             "production_db_used": False,
             "manager_context_packet_schema_changed": False,
             "mutation_authority": False,
         }
+    set_legacy_alias_metadata(
+        payload,
+        legacy_artifact_types=LEGACY_ACTIVATION_REVIEW_ARTIFACT_TYPES,
+        legacy_statuses=LEGACY_ACTIVATION_REVIEW_READY_STATUSES,
+        legacy_claim_scopes=LEGACY_ACTIVATION_REVIEW_CLAIM_SCOPES,
     )
+    return _json_safe(payload)
 
 
 __all__ = [

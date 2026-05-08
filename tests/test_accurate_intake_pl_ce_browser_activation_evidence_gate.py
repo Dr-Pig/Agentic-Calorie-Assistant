@@ -1,7 +1,11 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
+
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
+)
 
 from app.composition.accurate_intake_current_shell_claim_boundary import (
     build_current_shell_appshell_claim_boundary,
@@ -13,12 +17,10 @@ from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate impo
 
 def _valid_inputs() -> dict[str, dict[str, object]]:
     return {
-        "pl_ce_local_mvp_candidate_bundle": {
-            "artifact_type": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
-            "status": "pl_ce_local_mvp_candidate_ready_for_human_review",
+        "current_shell_compatibility_local_mvp_candidate_bundle": {
+            "artifact_type": "accurate_intake_current_shell_compatibility_local_mvp_candidate_bundle",
+            "status": "current_shell_compatibility_local_mvp_candidate_ready_for_human_review",
             "activation_gate_status": "blocked_pending_human_and_browser_activation",
-            "ready_for_live_diagnostic_decision": False,
-            "ready_for_fdb_integration": False,
             "live_llm_invoked": False,
             "web_tavily_used": False,
             "fooddb_evidence_used": False,
@@ -46,9 +48,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "body_active_plan_rendered": True,
             "body_plan_readback_checked": True,
             "body_plan_read_model_fields_rendered": True,
-            "body_weight_checkin_saved": True,
             "body_latest_weight_rendered_from_backend": True,
-            "body_weight_history_date_scoped_readback": True,
             "body_manual_target_read_model_rendered": True,
             "body_plan_read_model_values": {
                 "daily_target": "1550 kcal",
@@ -58,14 +58,6 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "activity": "light",
                 "goal": "Lose weight",
                 "weight_history": "2026-05-05 | 70.4 kg",
-            },
-            "body_budget_read_model_values": {
-                "active_target": "1550 kcal",
-                "consumed": "400 kcal",
-                "remaining": "1150 kcal",
-                "estimated_deficit": "269 kcal",
-                "effective_budget": "1550 kcal",
-                "weekly_progress": "400 kcal consumed",
             },
             "today_manual_target_readback_checked": True,
             "desktop_no_overflow": True,
@@ -229,7 +221,7 @@ def test_browser_activation_gate_requires_real_browser_evidence_without_readines
     artifact = build_pl_ce_browser_activation_evidence_gate_artifact(_valid_inputs())
     claim_boundary = build_current_shell_appshell_claim_boundary()
 
-    assert artifact["artifact_type"] == "accurate_intake_pl_ce_browser_activation_evidence_gate"
+    assert artifact["artifact_type"] == CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE
     assert artifact["status"] == "browser_activation_evidence_ready_for_human_review"
     assert artifact["pass_type"] == "contract"
     assert artifact["current_shell_sync_contract_source"] == claim_boundary["current_shell_sync_contract_source"]
@@ -245,16 +237,16 @@ def test_browser_activation_gate_requires_real_browser_evidence_without_readines
     assert artifact["summary"]["requires_target_candidate_ui"] is True
     assert artifact["summary"]["requires_fixture_full_product_loop_e2e"] is True
     assert artifact["summary"]["fixture_product_loop_step_count"] == 10
-    assert artifact["ready_for_live_diagnostic_decision"] is False
-    assert artifact["ready_for_fdb_integration"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
+    assert "ready_for_fdb_integration" not in artifact
     assert artifact["live_llm_invoked"] is False
     assert artifact["web_tavily_used"] is False
     assert artifact["fooddb_evidence_used"] is False
     assert artifact["real_fooddb_pass_claimed"] is False
     assert artifact["dogfood_pass"] is False
-    assert artifact["web_readiness_claimed"] is False
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "web_readiness_claimed" not in artifact
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
     assert artifact["blockers"] == []
 
 
@@ -282,19 +274,19 @@ def test_browser_activation_gate_blocks_missing_or_blocked_browser_execution() -
     assert "product_pages_browser_smoke.unexpected_status:blocked" in artifact["blockers"]
     assert "product_pages_browser_smoke.browser_not_executed" in artifact["blockers"]
     assert artifact["all_required_browser_artifacts_executed"] is False
-    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
 
 
 def test_browser_activation_gate_blocks_swapped_identity_and_unknown_mvp_candidate() -> None:
     inputs = _valid_inputs()
     inputs["product_pages_seven_day_diary_smoke"]["smoke_id"] = "accurate_intake_product_pages_browser_smoke_v1"
-    inputs["pl_ce_local_mvp_candidate_bundle"]["artifact_type"] = "wrong"
+    inputs["current_shell_compatibility_local_mvp_candidate_bundle"]["artifact_type"] = "wrong"
 
     artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
 
     assert artifact["status"] == "blocked"
     assert "product_pages_seven_day_diary_smoke.unexpected_smoke_id:accurate_intake_product_pages_browser_smoke_v1" in artifact["blockers"]
-    assert "pl_ce_local_mvp_candidate_bundle.unexpected_artifact_type:wrong" in artifact["blockers"]
+    assert "current_shell_compatibility_local_mvp_candidate_bundle.unexpected_artifact_type:wrong" in artifact["blockers"]
 
 
 def test_browser_activation_gate_blocks_frontend_semantics_live_or_fooddb_claims() -> None:

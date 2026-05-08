@@ -3,6 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE,
+)
+
 from app.composition.accurate_intake_current_shell_claim_boundary import (
     build_current_shell_appshell_claim_boundary,
 )
@@ -66,22 +70,11 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "today_no_debug_trace": True,
             "body_page_loaded": True,
             "body_active_plan_rendered": True,
-            "body_plan_form_saved": True,
             "body_plan_readback_checked": True,
             "body_plan_read_model_fields_rendered": True,
             "body_latest_weight_rendered_from_backend": True,
-            "body_budget_read_models_rendered": True,
-            "body_manual_target_saved": True,
             "body_manual_target_read_model_rendered": True,
             "today_manual_target_readback_checked": True,
-            "body_budget_read_model_values": {
-                "active_target": "1550 kcal",
-                "consumed": "400 kcal",
-                "remaining": "1150 kcal",
-                "estimated_deficit": "269 kcal",
-                "effective_budget": "1550 kcal",
-                "weekly_progress": "400 kcal consumed",
-            },
             "desktop_no_overflow": True,
             "mobile_no_overflow": True,
             "mobile_populated_state_checked": True,
@@ -237,7 +230,7 @@ def test_product_pages_self_use_flow_gate_accepts_complete_fixture_browser_chain
     artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(_valid_inputs())
     claim_boundary = build_current_shell_appshell_claim_boundary()
 
-    assert artifact["artifact_type"] == "accurate_intake_pl_ce_product_pages_self_use_flow_gate"
+    assert artifact["artifact_type"] == CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE
     assert artifact["status"] == "product_pages_self_use_flow_ready_for_human_review"
     assert artifact["pass_type"] == "contract"
     assert artifact["current_shell_sync_contract_source"] == claim_boundary["current_shell_sync_contract_source"]
@@ -256,16 +249,17 @@ def test_product_pages_self_use_flow_gate_accepts_complete_fixture_browser_chain
     assert artifact["blocked_browser_is_not_pass"] is True
     assert artifact["frontend_render_only"] is True
     assert artifact["frontend_semantic_owner"] is False
-    assert artifact["ready_for_live_diagnostic_decision"] is False
-    assert artifact["ready_for_fdb_integration"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
+    assert "ready_for_fdb_integration" not in artifact
     assert artifact["fixture_evidence_used"] is True
     assert artifact["live_llm_invoked"] is False
     assert artifact["web_tavily_used"] is False
     assert artifact["fooddb_evidence_used"] is False
     assert artifact["real_fooddb_pass_claimed"] is False
     assert artifact["dogfood_pass"] is False
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "web_readiness_claimed" not in artifact
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
 
 
 def test_product_pages_self_use_flow_gate_reports_runtime_claim_dependency_without_inventing_runtime_pass() -> None:
@@ -292,7 +286,7 @@ def test_product_pages_self_use_flow_gate_blocks_optional_browser_blocked_state(
     assert "product_pages_visual_qa.unexpected_status:blocked" in artifact["blockers"]
     assert "product_pages_visual_qa.browser_not_executed" in artifact["blockers"]
     assert artifact["all_required_browser_artifacts_executed"] is False
-    assert artifact["product_readiness_claimed"] is False
+    assert "product_readiness_claimed" not in artifact
 
 
 def test_product_pages_self_use_flow_gate_blocks_semantic_or_truth_overclaims() -> None:
@@ -309,7 +303,7 @@ def test_product_pages_self_use_flow_gate_blocks_semantic_or_truth_overclaims() 
     assert "product_pages_short_term_context_smoke.deterministic_semantic_inference_used" in artifact["blockers"]
     assert "fixture_full_product_loop_e2e.ready_for_fdb_integration" in artifact["blockers"]
     assert "fixture_full_product_loop_e2e.dogfood_pass" in artifact["blockers"]
-    assert artifact["ready_for_fdb_integration"] is False
+    assert "ready_for_fdb_integration" not in artifact
 
 
 def test_product_pages_self_use_flow_gate_blocks_missing_target_candidate_or_context_flow() -> None:

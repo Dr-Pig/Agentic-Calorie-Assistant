@@ -5,6 +5,11 @@ import json
 from typing import Any
 
 from app.composition.accurate_intake_current_shell_claim_boundary import build_current_shell_appshell_claim_boundary_fields
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE,
+    LEGACY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPES,
+    set_legacy_alias_metadata,
+)
 
 REQUIRED_INPUTS = (
     "ui_same_truth_contract",
@@ -314,10 +319,9 @@ def build_pl_ce_product_pages_self_use_flow_gate_artifact(
     renderer_summary = _object_dict(inputs["product_pages_renderer_source_map"].get("summary"))
     completed_steps = _list_value(inputs["fixture_full_product_loop_e2e"].get("completed_product_loop_steps"))
     status = "product_pages_self_use_flow_ready_for_human_review" if not blockers else "blocked"
-    return _json_safe(
-        {
+    payload = {
             "artifact_schema_version": "1.0",
-            "artifact_type": "accurate_intake_pl_ce_product_pages_self_use_flow_gate",
+            "artifact_type": CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE,
             "status": status,
             "claim_scope": "local_product_pages_self_use_flow_diagnostic_for_human_review_only",
             **build_current_shell_appshell_claim_boundary_fields(),
@@ -342,8 +346,6 @@ def build_pl_ce_product_pages_self_use_flow_gate_artifact(
             },
             "human_review_required": True,
             "review_required_before_provider_call": True,
-            "ready_for_live_diagnostic_decision": False,
-            "ready_for_fdb_integration": False,
             "frontend_render_only": inputs["ui_same_truth_contract"].get("frontend_render_only") is True,
             "frontend_semantic_owner": False,
             "fixture_evidence_used": True,
@@ -353,15 +355,13 @@ def build_pl_ce_product_pages_self_use_flow_gate_artifact(
             "websearch_evidence_used": False,
             "real_fooddb_pass_claimed": False,
             "dogfood_pass": False,
-            "web_readiness_claimed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
             "production_db_used": False,
             "manager_context_packet_schema_changed": False,
             "runtime_truth_changed": False,
             "mutation_changed": False,
         }
-    )
+    set_legacy_alias_metadata(payload, legacy_artifact_types=LEGACY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPES)
+    return _json_safe(payload)
 
 
 __all__ = [

@@ -2,9 +2,18 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_CURRENT_METADATA_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_CURRENT_METADATA_READY_STATUS,
+    LEGACY_CURRENT_METADATA_ARTIFACT_TYPES,
+    LEGACY_CURRENT_METADATA_READY_STATUSES,
+    matches_alias,
+)
 
-EXPECTED_CURRENT_METADATA_ARTIFACT_TYPE = "accurate_intake_pl_ce_current_metadata_freshness_pack"
-EXPECTED_CURRENT_METADATA_STATUS = "current_metadata_freshness_ready_for_serial_handoff"
+EXPECTED_CURRENT_METADATA_ARTIFACT_TYPE = (
+    CURRENT_SHELL_COMPATIBILITY_CURRENT_METADATA_ARTIFACT_TYPE
+)
+EXPECTED_CURRENT_METADATA_STATUS = CURRENT_SHELL_COMPATIBILITY_CURRENT_METADATA_READY_STATUS
 
 FORBIDDEN_METADATA_FLAGS = (
     "ready_for_live_diagnostic_decision",
@@ -40,22 +49,33 @@ def current_metadata_freshness_blockers(payload: dict[str, Any]) -> list[str]:
     if not payload:
         return ["current_metadata_freshness_pack.missing"]
     if payload.get("artifact_type") in {
+        "missing_current_shell_compatibility_current_metadata_freshness_pack",
         "missing_pl_ce_current_metadata_freshness_pack",
         "missing_pl_ce_current_metadata_input",
     }:
         return ["current_metadata_freshness_pack.missing"]
     if payload.get("artifact_type") in {
+        "invalid_missing_current_shell_compatibility_current_metadata_freshness_pack",
+        "invalid_missing_current_shell_compatibility_current_metadata_freshness_pack_shape",
         "invalid_pl_ce_current_metadata_freshness_pack",
         "invalid_pl_ce_current_metadata_input",
     }:
         return ["current_metadata_freshness_pack.invalid"]
-    if payload.get("artifact_type") != EXPECTED_CURRENT_METADATA_ARTIFACT_TYPE:
+    if not matches_alias(
+        payload.get("artifact_type"),
+        EXPECTED_CURRENT_METADATA_ARTIFACT_TYPE,
+        *LEGACY_CURRENT_METADATA_ARTIFACT_TYPES,
+    ):
         blockers.append(
             f"current_metadata_freshness_pack.unexpected_artifact_type:{payload.get('artifact_type')}"
         )
     if payload.get("artifact_schema_version") != "1.0":
         blockers.append("current_metadata_freshness_pack.missing_artifact_schema_version")
-    if payload.get("status") != EXPECTED_CURRENT_METADATA_STATUS:
+    if not matches_alias(
+        payload.get("status"),
+        EXPECTED_CURRENT_METADATA_STATUS,
+        *LEGACY_CURRENT_METADATA_READY_STATUSES,
+    ):
         blockers.append(f"current_metadata_freshness_pack.unexpected_status:{payload.get('status')}")
     if payload.get("blockers") != []:
         blockers.append("current_metadata_freshness_pack.upstream_blockers_present")

@@ -15,10 +15,17 @@ from app.composition.accurate_intake_pl_ce_ui_context_alignment_pack import (
 from app.composition.accurate_intake_context_live_diagnostic_case_matrix import (
     REQUIRED_CASE_IDS as CONTEXT_LIVE_REQUIRED_CASE_IDS,
 )
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_UI_CONTEXT_ALIGNMENT_ARTIFACT_TYPE,
+)
 
 
 REQUIRED_INPUTS = (
-    "pl_ce_local_mvp_candidate_bundle",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
     "pl_ce_browser_activation_evidence_gate",
     "pl_ce_ui_context_alignment_pack",
     "context_live_diagnostic_holdout_plan",
@@ -32,7 +39,9 @@ OPTIONAL_INPUTS = (
 )
 
 EXPECTED_STATUSES = {
-    "pl_ce_local_mvp_candidate_bundle": "pl_ce_local_mvp_candidate_ready_for_human_review",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: (
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS
+    ),
     "pl_ce_browser_activation_evidence_gate": "browser_activation_evidence_ready_for_human_review",
     "pl_ce_ui_context_alignment_pack": "ui_context_alignment_ready_for_human_review",
     "context_live_diagnostic_holdout_plan": "pass",
@@ -49,9 +58,11 @@ EXPECTED_STATUSES = {
 }
 
 EXPECTED_ARTIFACT_TYPES = {
-    "pl_ce_local_mvp_candidate_bundle": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
-    "pl_ce_browser_activation_evidence_gate": "accurate_intake_pl_ce_browser_activation_evidence_gate",
-    "pl_ce_ui_context_alignment_pack": "accurate_intake_pl_ce_ui_context_alignment_pack",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: (
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE
+    ),
+    "pl_ce_browser_activation_evidence_gate": CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
+    "pl_ce_ui_context_alignment_pack": CURRENT_SHELL_COMPATIBILITY_UI_CONTEXT_ALIGNMENT_ARTIFACT_TYPE,
     "context_live_diagnostic_holdout_plan": (
         "accurate_intake_context_live_diagnostic_holdout_plan"
     ),
@@ -66,13 +77,13 @@ EXPECTED_ARTIFACT_TYPES = {
 }
 
 EXPECTED_UPSTREAM_REQUIRED_INPUTS = {
-    "pl_ce_local_mvp_candidate_bundle": tuple(LOCAL_MVP_REQUIRED_INPUTS),
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: tuple(LOCAL_MVP_REQUIRED_INPUTS),
     "pl_ce_browser_activation_evidence_gate": tuple(BROWSER_GATE_REQUIRED_INPUTS),
     "pl_ce_ui_context_alignment_pack": tuple(UI_CONTEXT_REQUIRED_INPUTS),
 }
 
 EXPECTED_NESTED_STATUSES = {
-    "pl_ce_local_mvp_candidate_bundle": dict(LOCAL_MVP_EXPECTED_STATUSES),
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: dict(LOCAL_MVP_EXPECTED_STATUSES),
     "pl_ce_browser_activation_evidence_gate": dict(BROWSER_GATE_EXPECTED_STATUSES),
     "pl_ce_ui_context_alignment_pack": {
         "ui_same_truth_contract": "pass",
