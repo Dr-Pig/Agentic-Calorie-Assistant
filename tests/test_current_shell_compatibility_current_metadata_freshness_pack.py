@@ -7,6 +7,10 @@ from pathlib import Path
 from app.composition.accurate_intake_pl_ce_current_metadata_freshness import (
     build_pl_ce_current_metadata_freshness_pack,
 )
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_GROUP_ID,
+)
 
 
 def _timestamp(offset_hours: int = 0) -> str:
@@ -42,12 +46,12 @@ def _evidence() -> dict[str, dict[str, object]]:
             "accurate_intake_current_shell_compatibility_local_mvp_candidate_bundle",
             "current_shell_compatibility_local_mvp_candidate_ready_for_human_review",
         ),
-        "pl_ce_product_pages_self_use_flow_gate": _payload(
-            "accurate_intake_pl_ce_product_pages_self_use_flow_gate",
+        CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_GROUP_ID: _payload(
+            "accurate_intake_current_shell_compatibility_product_pages_self_use_flow_gate",
             "product_pages_self_use_flow_ready_for_human_review",
         ),
-        "pl_ce_browser_activation_evidence_gate": _payload(
-            "accurate_intake_pl_ce_browser_activation_evidence_gate",
+        CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_GROUP_ID: _payload(
+            "accurate_intake_current_shell_compatibility_browser_activation_evidence_gate",
             "browser_activation_evidence_ready_for_human_review",
         ),
         "non_fooddb_manager_tool_contract": _payload(
@@ -96,7 +100,10 @@ def test_current_metadata_freshness_pack_accepts_current_product_pages_chain() -
     assert pack["fresh_artifact_count"] == pack["required_artifact_count"] == 10
     assert "product_pages_long_session_navigation_smoke" in pack["required_artifacts"]
     assert "pl_ce_ui_context_alignment_pack" in pack["required_artifacts"]
-    assert "pl_ce_product_pages_self_use_flow_gate" in pack["required_artifacts"]
+    assert CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_GROUP_ID in pack["required_artifacts"]
+    assert "pl_ce_product_pages_self_use_flow_gate" not in pack["required_artifacts"]
+    assert CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_GROUP_ID in pack["required_artifacts"]
+    assert "pl_ce_browser_activation_evidence_gate" not in pack["required_artifacts"]
     assert "non_fooddb_manager_tool_contract" in pack["required_artifacts"]
     assert pack["blockers"] == []
 
@@ -105,16 +112,57 @@ def test_current_metadata_freshness_pack_blocks_missing_stale_or_overclaiming_in
     evidence = _evidence()
     evidence.pop("product_pages_visual_qa")
     evidence["context_quality_pack"]["generated_at_utc"] = _timestamp(-96)
-    evidence["pl_ce_product_pages_self_use_flow_gate"]["product_readiness_claimed"] = True
+    evidence[CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_GROUP_ID][
+        "product_readiness_claimed"
+    ] = True
 
     pack = build_pl_ce_current_metadata_freshness_pack(evidence=evidence, max_age_hours=24)
 
     assert pack["status"] == "blocked"
     assert "product_pages_visual_qa.missing" in pack["blockers"]
     assert "context_quality_pack.stale" in pack["blockers"]
-    assert "pl_ce_product_pages_self_use_flow_gate.product_readiness_claimed" in pack["blockers"]
+    assert (
+        f"{CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_GROUP_ID}.product_readiness_claimed"
+        in pack["blockers"]
+    )
     assert pack["ready_for_serial_handoff"] is False
     assert "ready_for_fdb_integration" not in pack
+
+
+def test_current_metadata_freshness_pack_accepts_legacy_product_pages_flow_alias() -> None:
+    evidence = _evidence()
+    evidence["pl_ce_product_pages_self_use_flow_gate"] = evidence.pop(
+        CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_GROUP_ID
+    )
+    evidence["pl_ce_product_pages_self_use_flow_gate"][
+        "artifact_type"
+    ] = "accurate_intake_pl_ce_product_pages_self_use_flow_gate"
+
+    pack = build_pl_ce_current_metadata_freshness_pack(evidence=evidence)
+
+    assert pack["status"] == (
+        "current_shell_compatibility_current_metadata_freshness_ready_for_serial_handoff"
+    )
+    assert CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_GROUP_ID in pack["input_statuses"]
+    assert "pl_ce_product_pages_self_use_flow_gate" not in pack["input_statuses"]
+
+
+def test_current_metadata_freshness_pack_accepts_legacy_browser_activation_alias() -> None:
+    evidence = _evidence()
+    evidence["pl_ce_browser_activation_evidence_gate"] = evidence.pop(
+        CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_GROUP_ID
+    )
+    evidence["pl_ce_browser_activation_evidence_gate"][
+        "artifact_type"
+    ] = "accurate_intake_pl_ce_browser_activation_evidence_gate"
+
+    pack = build_pl_ce_current_metadata_freshness_pack(evidence=evidence)
+
+    assert pack["status"] == (
+        "current_shell_compatibility_current_metadata_freshness_ready_for_serial_handoff"
+    )
+    assert CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_GROUP_ID in pack["input_statuses"]
+    assert "pl_ce_browser_activation_evidence_gate" not in pack["input_statuses"]
 
 
 def test_current_metadata_freshness_pack_blocks_missing_stop_gates() -> None:

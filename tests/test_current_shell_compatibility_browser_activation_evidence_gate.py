@@ -418,10 +418,16 @@ def test_browser_activation_gate_blocks_missing_target_candidate_or_fixture_loop
 def test_browser_activation_gate_blocks_missing_self_use_flow_or_body_noplan_evidence() -> None:
     inputs = _valid_inputs()
     inputs["product_pages_self_use_flow_gate"]["status"] = "blocked"
-    inputs["product_pages_self_use_flow_gate"]["summary"]["context_target_browser_closure_checked"] = False  # type: ignore[index]
-    inputs["product_pages_self_use_flow_gate"]["summary"]["strongest_consumed_pass_type"] = "contract"  # type: ignore[index]
+    inputs["product_pages_self_use_flow_gate"]["summary"][  # type: ignore[index]
+        "context_target_browser_closure_checked"
+    ] = False
+    inputs["product_pages_self_use_flow_gate"]["summary"][  # type: ignore[index]
+        "strongest_consumed_pass_type"
+    ] = "contract"
     inputs["product_pages_body_noplan_degraded_smoke"]["browser_executed"] = False
-    inputs["product_pages_body_noplan_degraded_smoke"]["body_values"]["daily_target"] = "1550 kcal"  # type: ignore[index]
+    inputs["product_pages_body_noplan_degraded_smoke"]["body_values"][  # type: ignore[index]
+        "daily_target"
+    ] = "1550 kcal"
 
     artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
 
@@ -478,7 +484,7 @@ def test_browser_activation_gate_accepts_browser_smoke_local_date_weight_history
 
 
 def test_browser_activation_gate_cli_writes_from_existing_artifacts(tmp_path: Path) -> None:
-    from scripts.build_accurate_intake_pl_ce_browser_activation_evidence_gate import main
+    from scripts.build_current_shell_compatibility_browser_activation_evidence_gate import main
 
     output_path = tmp_path / "browser-activation.json"
     args = ["--output", str(output_path)]
@@ -496,7 +502,7 @@ def test_browser_activation_gate_cli_writes_from_existing_artifacts(tmp_path: Pa
 
 
 def test_browser_activation_gate_cli_rejects_unknown_artifact_group(tmp_path: Path, capsys) -> None:
-    from scripts.build_accurate_intake_pl_ce_browser_activation_evidence_gate import main
+    from scripts.build_current_shell_compatibility_browser_activation_evidence_gate import main
 
     output_path = tmp_path / "browser-activation.json"
     exit_code = main(
@@ -518,6 +524,7 @@ def test_browser_activation_gate_cli_rejects_unknown_artifact_group(tmp_path: Pa
 def test_browser_activation_gate_source_stays_out_of_fooddb_websearch_live_boundaries() -> None:
     source_paths = [
         Path("app/composition/accurate_intake_pl_ce_browser_activation_evidence_gate.py"),
+        Path("scripts/build_current_shell_compatibility_browser_activation_evidence_gate.py"),
         Path("scripts/build_accurate_intake_pl_ce_browser_activation_evidence_gate.py"),
     ]
     forbidden = [
@@ -544,9 +551,11 @@ def test_ci_keeps_browser_activation_evidence_gate_out_of_required_merge_path() 
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
     assert "product-pages-browser-e2e" in workflow
-    assert "tests/test_accurate_intake_pl_ce_browser_activation_evidence_gate.py" in workflow
+    assert "tests/test_current_shell_compatibility_browser_activation_evidence_gate.py" in workflow
+    assert "tests/test_accurate_intake_pl_ce_browser_activation_evidence_gate.py" not in workflow
     assert "run_accurate_intake_product_pages_short_term_context_smoke.py --require-browser-execution" in workflow
     assert "run_accurate_intake_product_pages_target_candidate_ui_smoke.py --require-browser-execution" in workflow
     assert "run_accurate_intake_fixture_full_product_loop_e2e.py --require-browser-execution" not in workflow
     assert "build_accurate_intake_pl_ce_browser_activation_evidence_gate.py" not in workflow
+    assert "build_current_shell_compatibility_browser_activation_evidence_gate.py" not in workflow
     assert "accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json" not in workflow

@@ -6,10 +6,13 @@ from pathlib import Path
 from tests.test_accurate_intake_local_web_self_use_candidate_v2_gate_runner import (
     _required_payloads,
 )
-from tests.test_accurate_intake_pl_ce_browser_activation_evidence_gate import (
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+)
+from tests.test_current_shell_compatibility_browser_activation_evidence_gate import (
     _valid_inputs as _valid_browser_gate_inputs,
 )
-from tests.test_accurate_intake_pl_ce_product_pages_self_use_flow_gate import (
+from tests.test_current_shell_compatibility_product_pages_self_use_flow_gate import (
     _valid_inputs as _valid_product_pages_flow_inputs,
 )
 
@@ -57,18 +60,21 @@ def _seed_required_gate_inputs(artifact_dir: Path, *, omit_browser_target_ui: bo
         _write(target_path, payload)
 
     browser_input_groups = (
-        "current_shell_compatibility_local_mvp_candidate_bundle",
-        "product_pages_browser_smoke",
-        "product_pages_seven_day_diary_smoke",
-        "product_pages_short_term_context_smoke",
-        "product_pages_visual_qa",
-        "product_pages_body_noplan_degraded_smoke",
-        "fixture_full_product_loop_e2e",
-        "product_pages_self_use_flow_gate",
+        (
+            CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+            CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+        ),
+        ("product_pages_browser_smoke", "product_pages_browser_smoke"),
+        ("product_pages_seven_day_diary_smoke", "product_pages_seven_day_diary_smoke"),
+        ("product_pages_short_term_context_smoke", "product_pages_short_term_context_smoke"),
+        ("product_pages_visual_qa", "product_pages_visual_qa"),
+        ("product_pages_body_noplan_degraded_smoke", "product_pages_body_noplan_degraded_smoke"),
+        ("fixture_full_product_loop_e2e", "fixture_full_product_loop_e2e"),
+        ("product_pages_self_use_flow_gate", "product_pages_self_use_flow_gate"),
     )
-    for group_id in browser_input_groups:
-        target_path = artifact_dir / module.BROWSER_GATE_ARTIFACT_PATHS[group_id].name
-        _merge_write(target_path, browser_gate_inputs[group_id])
+    for path_group_id, payload_group_id in browser_input_groups:
+        target_path = artifact_dir / module.BROWSER_GATE_ARTIFACT_PATHS[path_group_id].name
+        _merge_write(target_path, browser_gate_inputs[payload_group_id])
     if not omit_browser_target_ui:
         target_path = (
             artifact_dir

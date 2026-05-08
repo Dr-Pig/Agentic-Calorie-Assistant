@@ -224,7 +224,9 @@ def test_serial_handoff_cli_writes_from_existing_artifacts(tmp_path: Path) -> No
 def test_serial_handoff_blocks_missing_or_invalid_current_metadata_freshness_pack() -> None:
     metadata = _current_metadata_freshness_pack()
     metadata["status"] = "blocked"
-    metadata["blockers"] = ["pl_ce_product_pages_self_use_flow_gate.stale"]
+    metadata["blockers"] = [
+        "current_shell_compatibility_product_pages_self_use_flow_gate.stale"
+    ]
 
     artifact = build_pl_ce_serial_handoff_artifact(
         activation_review_manifest=_activation_manifest(),

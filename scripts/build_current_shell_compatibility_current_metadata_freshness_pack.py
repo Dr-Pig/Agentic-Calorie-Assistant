@@ -16,10 +16,14 @@ from app.composition.accurate_intake_pl_ce_current_metadata_freshness import (  
 )
 from app.composition.current_shell_compatibility_ids import (  # noqa: E402
     CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_GROUP_ID,
     CURRENT_SHELL_COMPATIBILITY_CURRENT_METADATA_READY_STATUS,
     CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_GROUP_ID,
     LEGACY_ACTIVATION_REVIEW_GROUP_IDS,
+    LEGACY_BROWSER_ACTIVATION_GROUP_IDS,
     LEGACY_LOCAL_MVP_GROUP_IDS,
+    LEGACY_PRODUCT_PAGES_FLOW_GROUP_IDS,
 )
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 
@@ -37,12 +41,12 @@ DEFAULT_EVIDENCE_PATHS = {
     CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_local_mvp_candidate_bundle.json",
-    "pl_ce_product_pages_self_use_flow_gate": ROOT
+    CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_GROUP_ID: ROOT
     / "artifacts"
-    / "accurate_intake_pl_ce_product_pages_self_use_flow_gate.json",
-    "pl_ce_browser_activation_evidence_gate": ROOT
+    / "accurate_intake_current_shell_compatibility_product_pages_self_use_flow_gate.json",
+    CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_GROUP_ID: ROOT
     / "artifacts"
-    / "accurate_intake_pl_ce_browser_activation_evidence_gate.json",
+    / "accurate_intake_current_shell_compatibility_browser_activation_evidence_gate.json",
     "non_fooddb_manager_tool_contract": ROOT
     / "artifacts"
     / "accurate_intake_non_fooddb_manager_tool_contract.json",
@@ -121,6 +125,18 @@ def _parse_artifact_overrides(values: list[str], parser: argparse.ArgumentParser
             ]
             for legacy_group_id in LEGACY_ACTIVATION_REVIEW_GROUP_IDS
         },
+        **{
+            legacy_group_id: DEFAULT_EVIDENCE_PATHS[
+                CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_GROUP_ID
+            ]
+            for legacy_group_id in LEGACY_PRODUCT_PAGES_FLOW_GROUP_IDS
+        },
+        **{
+            legacy_group_id: DEFAULT_EVIDENCE_PATHS[
+                CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_GROUP_ID
+            ]
+            for legacy_group_id in LEGACY_BROWSER_ACTIVATION_GROUP_IDS
+        },
     }
     overrides: dict[str, Path] = {}
     for value in values:
@@ -134,6 +150,10 @@ def _parse_artifact_overrides(values: list[str], parser: argparse.ArgumentParser
             if group_id in LEGACY_LOCAL_MVP_GROUP_IDS
             else CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID
             if group_id in LEGACY_ACTIVATION_REVIEW_GROUP_IDS
+            else CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_GROUP_ID
+            if group_id in LEGACY_PRODUCT_PAGES_FLOW_GROUP_IDS
+            else CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_GROUP_ID
+            if group_id in LEGACY_BROWSER_ACTIVATION_GROUP_IDS
             else group_id
         )
         overrides[normalized_group_id] = Path(raw_path)

@@ -45,14 +45,14 @@ from app.composition.accurate_intake_today_macro_mirror_gate import (  # noqa: E
     build_today_macro_mirror_gate_artifact,
 )
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
-from scripts.build_accurate_intake_pl_ce_product_pages_self_use_flow_gate import (  # noqa: E402
+from scripts.build_current_shell_compatibility_product_pages_self_use_flow_gate import (  # noqa: E402
     DEFAULT_ARTIFACT_PATHS as PRODUCT_PAGES_FLOW_ARTIFACT_PATHS,
     build_input_artifacts as build_product_pages_flow_inputs,
 )
 from scripts.build_accurate_intake_local_web_self_use_candidate_v2 import (  # noqa: E402
     build_local_web_self_use_candidate_v2,
 )
-from scripts.build_accurate_intake_pl_ce_browser_activation_evidence_gate import (  # noqa: E402
+from scripts.build_current_shell_compatibility_browser_activation_evidence_gate import (  # noqa: E402
     DEFAULT_ARTIFACT_PATHS as BROWSER_GATE_ARTIFACT_PATHS,
 )
 from scripts.build_accurate_intake_pre_live_self_use_decision_pack import (  # noqa: E402
@@ -73,12 +73,16 @@ REFRESHED_ARTIFACT_FILENAMES = {
     "manager_tool_choice_regression_wall": "accurate_intake_manager_tool_choice_regression_wall.json",
     "non_fooddb_read_only_tool_loop_fake_smoke": "accurate_intake_non_fooddb_read_only_tool_loop_fake_smoke.json",
     "non_fooddb_mutation_tool_guard_smoke": "accurate_intake_non_fooddb_mutation_tool_guard_smoke.json",
-    "product_pages_self_use_flow_gate": "accurate_intake_pl_ce_product_pages_self_use_flow_gate.json",
+    "product_pages_self_use_flow_gate": (
+        "accurate_intake_current_shell_compatibility_product_pages_self_use_flow_gate.json"
+    ),
     "today_macro_mirror_gate": "accurate_intake_today_macro_mirror_gate.json",
     "bootstrap_same_truth_gate": "accurate_intake_bootstrap_same_truth_gate.json",
     "body_observation_same_truth_gate": "accurate_intake_body_observation_same_truth_gate.json",
     "clarify_commit_correction_same_truth_gate": "accurate_intake_clarify_commit_correction_same_truth_gate.json",
-    "browser_activation_evidence_gate": "accurate_intake_pl_ce_browser_activation_evidence_gate.json",
+    "browser_activation_evidence_gate": (
+        "accurate_intake_current_shell_compatibility_browser_activation_evidence_gate.json"
+    ),
     "non_fooddb_manager_tool_contract": "accurate_intake_non_fooddb_manager_tool_contract.json",
     "context_live_diagnostic_gate": "accurate_intake_context_live_diagnostic_gate.json",
     "pre_live_evidence": "accurate_intake_pre_live_evidence.json",

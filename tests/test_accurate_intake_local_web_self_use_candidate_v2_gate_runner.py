@@ -11,6 +11,8 @@ from app.composition.current_shell_compatibility_ids import (
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_ARTIFACT_TYPE,
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE,
     CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG,
 )
 
@@ -164,7 +166,7 @@ def _required_payloads() -> dict[str, dict[str, object]]:
         },
         "product_pages_self_use_flow_gate": {
             "artifact_schema_version": "1.0",
-            "artifact_type": "accurate_intake_pl_ce_product_pages_self_use_flow_gate",
+            "artifact_type": CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE,
             "status": "product_pages_self_use_flow_ready_for_human_review",
             "pass_type": "contract",
             "current_shell_sync_contract_source": "docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml",
@@ -193,7 +195,7 @@ def _required_payloads() -> dict[str, dict[str, object]]:
         "clarify_commit_correction_same_truth_gate": _ready_clarify_commit_correction_same_truth_gate(),
         "browser_activation_evidence_gate": {
             "artifact_schema_version": "1.0",
-            "artifact_type": "accurate_intake_pl_ce_browser_activation_evidence_gate",
+            "artifact_type": CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
             "status": "browser_activation_evidence_ready_for_human_review",
             "pass_type": "contract",
             "current_shell_sync_contract_source": "docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml",
