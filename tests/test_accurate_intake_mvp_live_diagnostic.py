@@ -106,10 +106,10 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
     assert report["provider_profile_id"] == module.DEFAULT_ACCURATE_INTAKE_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID
     assert report["provider_profile_model"] == "grok-4-fast"
     assert report["timeout_policy"] == {
-        "provider_request_timeout_ms": 20_000,
-        "case_timeout_ms": 30_000,
+        "provider_request_timeout_ms": 180_000,
+        "case_timeout_ms": 195_000,
         "case_timeout_override_supplied": False,
-        "case_timeout_grace_ms": 10_000,
+        "case_timeout_grace_ms": 15_000,
         "provider_request_retry_count": 0,
         "provider_request_retry_backoff_ms": 250,
         "provider_request_retry_jitter_ms": 100,
@@ -182,6 +182,14 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
     assert report["summary"]["strict_pass_count"] + report["summary"]["repaired_pass_count"] + report["summary"][
         "contract_fail_count"
     ] + report["summary"]["timeout_count"] == len(report["cases"])
+
+
+def test_accurate_intake_live_diagnostic_timeout_defaults_preserve_latency_observation_window() -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    assert module.DEFAULT_PROVIDER_REQUEST_TIMEOUT_MS == 180_000
+    assert module.DEFAULT_PROVIDER_REQUEST_TIMEOUT_MS > 30_000
+    assert module.DEFAULT_PROVIDER_REQUEST_RETRY_COUNT == 0
 
 
 def test_accurate_intake_live_cli_blocks_implicit_all_stage(tmp_path: Path) -> None:
