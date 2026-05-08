@@ -18,6 +18,12 @@ repos:
         entry: python scripts/run_powershell_hook.py scripts/check_fat_files.ps1 -AuditAll -NoFailOnWarnings
         language: system
         pass_filenames: false
+        stages: [manual]
+      - id: check-fat-files-staged
+        name: check-fat-files-staged
+        entry: python scripts/run_powershell_hook.py scripts/check_fat_files.ps1 -StagedOnly
+        language: system
+        pass_filenames: false
       - id: check-layer-integrity
         name: check-layer-integrity
         entry: python scripts/check_layer_integrity.py

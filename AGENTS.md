@@ -261,6 +261,9 @@ This contract exists because CJK mojibake can happen before the agent sees comma
   - `app/application/evidence_assembly.py`
   - `app/application/context_assembly.py`
   - `app/agent/knowledge_packets.py`
+- fat-file growth is a local-first hard wall, not a CI-only advisory
+  - before commit, `check-fat-files-staged` must reject staged growth across protected, freeze-growth, and active Python cap rules
+  - if it fails, extract or shrink the change instead of adding transition overrides or deferring the failure to CI
 - schema-sensitive ORM changes must ship with Alembic migrations
 - governance docs are conditional reads; pull them only when the task touches repo process, spec editing, task protocol, or handoff protocol
 
@@ -269,6 +272,7 @@ This contract exists because CJK mojibake can happen before the agent sees comma
 Default deterministic guardrails include:
 
 - diff scope and freeze-growth checks
+- staged fat-file hard gate via `check-fat-files-staged`
 - commit traceability checks
 - layer integrity and migration discipline checks
 - encoding, fat-file, smoke, integration, and targeted test gates
