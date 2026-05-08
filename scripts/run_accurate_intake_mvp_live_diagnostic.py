@@ -1552,6 +1552,7 @@ def _provider_invocation_summary(invocations: list[dict[str, Any]]) -> dict[str,
     transport_summaries = [
         _transport_attempt_summary(_dict(_dict(invocation).get("provider_trace"))) for invocation in invocations
     ]
+    prompt_cache = _provider_prompt_cache_summary(invocations)
     return {
         "provider_invocation_count": len(invocations),
         "provider_invocation_latency_ms": sum(int(_dict(item).get("latency_ms") or 0) for item in invocations),
@@ -1570,6 +1571,39 @@ def _provider_invocation_summary(invocations: list[dict[str, Any]]) -> dict[str,
             (int(item.get("slowest_transport_attempt_ms") or 0) for item in transport_summaries),
             default=0,
         ),
+        "prompt_cache": prompt_cache,
+    }
+
+
+def _provider_prompt_cache_summary(invocations: list[dict[str, Any]]) -> dict[str, Any]:
+    cache_requests = [
+        _dict(_dict(_dict(invocation).get("provider_trace")).get("prompt_cache_request"))
+        for invocation in invocations
+    ]
+    identity_requests = [item for item in cache_requests if item.get("identity_version")]
+    stable_hashes = {
+        str(item.get("stable_prefix_sha256"))
+        for item in identity_requests
+        if item.get("stable_prefix_sha256")
+    }
+    dynamic_hashes = {
+        str(item.get("dynamic_suffix_sha256"))
+        for item in identity_requests
+        if item.get("dynamic_suffix_sha256")
+    }
+    return {
+        "provider_usage_is_cache_truth": True,
+        "identity_count": len(identity_requests),
+        "missing_identity_count": max(0, len(invocations) - len(identity_requests)),
+        "prompt_cache_key_count": sum(
+            1 for item in identity_requests if item.get("provider_request_includes_prompt_cache_key") is True
+        ),
+        "stable_prefix_unique_count": len(stable_hashes),
+        "dynamic_suffix_unique_count": len(dynamic_hashes),
+        "repeated_stable_prefix_observed": len(stable_hashes) == 1 and len(identity_requests) > 1,
+        "request_payload_utf8_bytes": sum(int(item.get("request_payload_utf8_bytes") or 0) for item in identity_requests),
+        "stable_prefix_utf8_bytes": sum(int(item.get("stable_prefix_utf8_bytes") or 0) for item in identity_requests),
+        "dynamic_suffix_utf8_bytes": sum(int(item.get("dynamic_suffix_utf8_bytes") or 0) for item in identity_requests),
     }
 
 
