@@ -188,7 +188,7 @@ Build the human-reviewable candidate packet with:
 python scripts/build_accurate_intake_local_self_use_candidate.py --shell-artifact artifacts/accurate_intake_local_self_use_shell.json --output artifacts/accurate_intake_local_self_use_candidate.json
 ```
 
-The candidate packet may set `local_self_use_candidate_prepared=true` when the deterministic shell evidence is clean. It must keep `private_self_use_approved=false`, `product_readiness_claimed=false`, `production_selected=false`, and `live_manager_required=false`.
+The candidate packet may set `local_self_use_candidate_prepared=true` when the deterministic shell evidence is clean. It remains a local review packet only and must not claim private self-use approval, product readiness, production selection, or live-manager escalation.
 
 Build the v2 aggregated web candidate packet with:
 

@@ -48,11 +48,8 @@ def test_pl_ce_roadmap_doc_records_best_practice_sources_and_non_claims() -> Non
         "https://developers.openai.com/api/docs/guides/structured-outputs",
         "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents",
         "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview",
-        "product_readiness_claimed=false",
-        "private_self_use_approved=false",
-        "real_fooddb_pass_claimed=false",
-        "live_llm_invoked=false",
-        "web_tavily_used=false",
+        "must stay non-promotional",
+        "must not claim product readiness, private self-use approval, real FoodDB pass, dogfood pass, live LLM truth ownership, web/Tavily truth use, production DB truth, FoodDB truth updates, or manager-context schema advancement",
     ):
         assert fragment in text
 
@@ -120,7 +117,7 @@ def test_pl_ce_roadmap_doc_marks_plce_as_legacy_umbrella_vocabulary() -> None:
         "The file path retains `PL_CE` for compatibility",
         "Legacy `PLCE` / `PL+CE` / `PL_CE` wording remains compatibility vocabulary only for old paths and artifacts; it is not the canonical track model.",
         "AppShell must not invent runtime semantics, frontend truth math, or mutation legality.",
-        "Every legacy `PL+CE` / `CurrentShell` compatibility artifact must preserve:",
+        "Every legacy `PL+CE` / `CurrentShell` compatibility artifact must stay non-promotional.",
         "the compatibility artifact `pl_ce_local_review_decision_pack` is green.",
         "The later live diagnostic gate starts only after deterministic CurrentShell closure.",
     ):

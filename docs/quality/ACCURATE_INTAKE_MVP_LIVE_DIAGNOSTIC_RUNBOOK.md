@@ -185,7 +185,7 @@ Do not run Kimi provider calls during PR93-PR100. PR93-PR100 should finish the m
 
 Kimi failure creates attribution and review records only. It must not directly trigger prompt, schema, Manager contract, product semantic, Food KB, or runtime truth changes.
 
-Do not run a Kimi full-suite hardening loop before the deferred target-model validation slice. Future Kimi artifacts must keep `production_selected=false` and `private_self_use_approved=false`.
+Do not run a Kimi full-suite hardening loop before the deferred target-model validation slice. Future Kimi artifacts must stay diagnostic-only and must not claim production/default selection or private self-use approval.
 
 After every 3-5 live/provider-affecting stages, and before any prompt/schema/contract hardening, open a read-only reviewer pass. The reviewer checks canonical rule source, legal-flow or holdout coverage, raw-text routing risk, provider overfit risk, readiness overclaim, and alignment with the calorie-deficit logging MVP.
 
@@ -223,13 +223,7 @@ Repo truth for this sidecar is the runbook, scripts, tests, source code, and can
 
 ## Non-Claim Boundaries
 
-Every live diagnostic artifact and decision pack must preserve:
-
-- `private_self_use_approved=false`
-- `product_readiness_claimed=false`
-- `production_selected=false`
-- `mutation_rollout_approved=false`
-- `live_provider_used_as_truth=false`
+Every live diagnostic artifact and decision pack must stay non-promotional. They must not claim private self-use approval, product readiness, production/default selection, mutation rollout, or live provider truth ownership.
 
 Explicit non-goals:
 
@@ -248,7 +242,7 @@ Before any limited live canary is considered by a human reviewer, build a pre-li
 python scripts/build_accurate_intake_pre_live_self_use_decision_pack.py --evidence-json artifacts/accurate_intake_pre_live_evidence.json --output artifacts/accurate_intake_pre_live_self_use_decision_pack.json
 ```
 
-This pack is not a live run and must keep `live_llm_invoked=false`, `live_canary_approved=false`, `kimi_active_runtime_default_allowed=false`, `product_readiness_claimed=false`, and `runtime_web_activation_approved=false`.
+This pack is not a live run. It must stay offline/offline-review only and must not claim live-canary approval, Kimi default activation, product readiness, or runtime-web activation.
 
 The required evidence keys are:
 
