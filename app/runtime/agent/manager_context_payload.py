@@ -107,6 +107,46 @@ def current_turn_context_prompt_payload(
     return summary
 
 
+def manager_context_packet_v1_prompt_payload(packet: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(packet, dict):
+        return None
+    metadata = dict(packet.get("metadata") or {})
+    artifact = dict(packet.get("context_loading_artifact") or {})
+    recent_chat_window = dict(packet.get("recent_chat_window") or {})
+    return {
+        "prompt_payload_kind": "manager_context_packet_v1_prompt_compact",
+        "metadata": {
+            "local_date": metadata.get("local_date"),
+            "context_policy_version": metadata.get("context_policy_version"),
+            "claim_scope": metadata.get("claim_scope"),
+        },
+        "current_turn": _compact_current_turn(dict(packet.get("current_turn") or {})),
+        "recent_chat_window": {
+            "messages": list(recent_chat_window.get("messages") or []),
+            "loaded_message_count": artifact.get("loaded_message_count"),
+            "omitted_count": artifact.get("omitted_count"),
+            "char_truncated": artifact.get("char_truncated"),
+            "token_budget_status": artifact.get("token_budget_status"),
+        },
+        "hard_pins": dict(packet.get("hard_pins") or {}),
+        "active_day_state": dict(packet.get("active_day_state") or {}),
+        "target_candidates": dict(packet.get("target_candidates") or {}),
+        "constraints": list(packet.get("constraints") or []),
+        "read_only": True,
+        "mutation_authority": False,
+    }
+
+
+def _compact_current_turn(current_turn: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "channel": current_turn.get("channel"),
+        "manager_mode": current_turn.get("manager_mode"),
+        "interaction_event": current_turn.get("interaction_event"),
+        "read_only": True,
+        "mutation_authority": False,
+    }
+
+
 def _list_count(value: Any) -> int:
     return len(value) if isinstance(value, list) else 0
 
@@ -190,6 +230,7 @@ __all__ = [
     "current_turn_context_prompt_payload",
     "manager_context_pack_payload",
     "manager_context_pack_prompt_payload",
+    "manager_context_packet_v1_prompt_payload",
     "manager_context_packet_v1_trace_payload",
     "manager_context_trace_payload",
     "shadow_hypothesis_instruction",

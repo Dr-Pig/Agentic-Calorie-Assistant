@@ -161,6 +161,50 @@ def test_short_term_context_provider_treats_public_read_tools_as_entry() -> None
     assert trace["stage"] == "entry"
 
 
+def test_short_term_context_provider_accepts_compact_context_packet_prompt_view() -> None:
+    provider = module._ShortTermContextManagerProvider()
+
+    asyncio.run(
+        provider.complete_with_trace(
+            user_payload={
+                "available_tools": [
+                    "app.answer_usage_question",
+                    "budget.get_today_summary",
+                    "budget.get_remaining_calories",
+                    "budget.get_day_meal_log",
+                    "body.get_active_plan",
+                    "body.get_latest_observation",
+                    "calibration.get_pending_proposal",
+                ],
+                "round_index": 0,
+                "raw_user_input": module.BARE_BASKET_MESSAGE,
+                "manager_context_packet_v1": {
+                    "prompt_payload_kind": "manager_context_packet_v1_prompt_compact",
+                    "metadata": {"context_policy_version": "accurate_intake_mvp_context_policy_v1"},
+                    "recent_chat_window": {
+                        "messages": [],
+                        "loaded_message_count": 0,
+                        "omitted_count": 0,
+                        "char_truncated": False,
+                        "token_budget_status": "within_budget",
+                    },
+                    "hard_pins": {
+                        "pending_followup": {"meal_thread_id": 42},
+                    },
+                    "target_candidates": {"for_correction_or_removal": []},
+                },
+            }
+        )
+    )
+
+    call = provider.calls[0]
+    assert call["prompt_payload_kind"] == "manager_context_packet_v1_prompt_compact"
+    assert call["loaded_context_summary_present"] is True
+    assert call["omitted_context_summary_present"] is True
+    assert call["pending_followup_pin_present"] is True
+    assert call["forbidden_context_excluded"] is True
+
+
 def test_short_term_context_provider_rejects_legacy_read_tool_aliases_as_entry() -> None:
     provider = module._ShortTermContextManagerProvider()
 
