@@ -1298,6 +1298,37 @@ def test_founder_live_initial_contract_rejects_final_commit_without_current_evid
         constraints=constraints,
     )
 
+
+def test_founder_live_evidence_present_write_final_rejects_route_to_intake(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        **_founder_live_constraints(),
+        "manager_loop_scope": "intake_execution",
+        "manager_contract_evidence_state": {
+            "nutrition_evidence_present": True,
+            "tool_result_names": ["estimate_nutrition"],
+        },
+    }
+    stale_entry_handoff = _founder_live_payload(
+        final_action="commit",
+        workflow_effect="route_to_intake",
+        semantic_decision={
+            **_founder_live_payload()["semantic_decision"],
+            "workflow_effect": "route_to_intake",
+            "final_action_candidate": "commit",
+            "mutation_intent_candidate": "canonical_write",
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="workflow_effect invalid"):
+        adapter._validate_manager_payload(
+            "intake_manager_round",
+            stale_entry_handoff,
+            constraints=constraints,
+        )
+
     with_evidence_constraints = {
         **_founder_live_constraints(),
         "manager_contract_evidence_state": {
@@ -1305,9 +1336,10 @@ def test_founder_live_initial_contract_rejects_final_commit_without_current_evid
             "tool_result_names": ["estimate_nutrition"],
         },
     }
+    evidence_present_commit = _founder_live_payload(final_action="commit", workflow_effect="commit")
     adapter._validate_manager_payload(
         "intake_manager_round",
-        final_without_evidence,
+        evidence_present_commit,
         constraints=with_evidence_constraints,
     )
 
@@ -2205,7 +2237,10 @@ async def test_complete_with_trace_repairs_founder_live_contract_shape_once(
 
     assert parsed["evidence_posture"] == "bounded_estimate"
     assert len(posted_payloads) == 2
-    assert "CONTRACT_REPAIR" in posted_payloads[1]["json"]["messages"][-1]["content"]
+    repair_message = posted_payloads[1]["json"]["messages"][-1]["content"]
+    assert "CONTRACT_REPAIR" in repair_message
+    assert "if final_action and workflow_effect are inconsistent, update both consistently" in repair_message
+    assert "Do not change user intent, workflow_effect" not in repair_message
     assert trace["repair_attempted"] is True
     assert trace["repair_result"] == "passed_after_repair"
     assert trace["repair_attempt_count"] == 1

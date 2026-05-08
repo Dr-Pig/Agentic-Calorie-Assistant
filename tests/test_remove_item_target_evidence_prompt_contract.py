@@ -78,3 +78,6 @@ def test_evidence_present_canonical_write_commit_is_schema_guidance() -> None:
         "canonical_write",
         "correction_write",
     ]
+    assert "no_commit" not in schema["properties"]["final_action"]["enum"]
+    assert "route_to_intake" not in schema["properties"]["workflow_effect"]["enum"]
+    assert "Evidence-present intake final mapping" in schema["properties"]["workflow_effect"]["description"]
