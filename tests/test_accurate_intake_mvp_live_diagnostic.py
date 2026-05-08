@@ -157,6 +157,17 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
             assert "coach_message" in turn
             assert "show_macro" in turn
             assert "macro_guard_reason" in turn
+            assert turn["prompt_footprint_summary"]["measurement"] == "json_utf8_bytes_trace_only"
+            assert turn["prompt_footprint_summary"]["provider_usage_is_token_truth"] is True
+            assert turn["prompt_footprint_summary"]["manager_round_count"] == len(turn["manager_rounds"])
+            if turn["manager_rounds"]:
+                assert turn["prompt_footprint_summary"]["system_prompt_utf8_bytes_sent"] > 0
+                assert turn["prompt_footprint_summary"]["dynamic_payload_utf8_bytes_sent"] > 0
+                assert turn["prompt_footprint_summary"]["largest_dynamic_section_id"]
+            else:
+                assert turn["prompt_footprint_summary"]["system_prompt_utf8_bytes_sent"] == 0
+                assert turn["prompt_footprint_summary"]["dynamic_payload_utf8_bytes_sent"] == 0
+                assert turn["prompt_footprint_summary"]["largest_dynamic_section_id"] is None
             assert isinstance(turn["latency_ms"], int)
             assert isinstance(turn["non_provider_latency_ms"], int)
             assert turn["latency_attribution"] == {
@@ -171,6 +182,15 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
             assert isinstance(turn["provider_invocation_summary"]["transport_attempt_latency_ms"], int)
             assert isinstance(turn["provider_invocation_summary"]["slowest_transport_attempt_ms"], int)
         assert case["provider_invocation_count"] >= len(case["turns"])
+        assert case["prompt_footprint_summary"]["measurement"] == "json_utf8_bytes_trace_only"
+        assert case["prompt_footprint_summary"]["manager_round_count"] == sum(
+            turn["prompt_footprint_summary"]["manager_round_count"]
+            for turn in case["turns"]
+        )
+        assert case["prompt_footprint_summary"]["dynamic_payload_utf8_bytes_sent"] == sum(
+            turn["prompt_footprint_summary"]["dynamic_payload_utf8_bytes_sent"]
+            for turn in case["turns"]
+        )
         assert isinstance(case["provider_invocation_latency_ms"], int)
         assert isinstance(case["latency_ms"], int)
         assert isinstance(case["non_provider_latency_ms"], int)
@@ -200,6 +220,11 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
     assert report["summary"]["strict_pass_count"] + report["summary"]["repaired_pass_count"] + report["summary"][
         "contract_fail_count"
     ] + report["summary"]["timeout_count"] == len(report["cases"])
+    assert report["summary"]["prompt_footprint_summary"]["measurement"] == "json_utf8_bytes_trace_only"
+    assert report["summary"]["prompt_footprint_summary"]["manager_round_count"] == sum(
+        case["prompt_footprint_summary"]["manager_round_count"]
+        for case in report["cases"]
+    )
 
 
 def test_accurate_intake_live_diagnostic_timeout_defaults_preserve_latency_observation_window() -> None:

@@ -1495,6 +1495,7 @@ def _turn_summary(
 ) -> dict[str, Any]:
     execution = _dict(result.get("intake_execution_manager"))
     final = _dict(execution.get("final"))
+    manager_rounds = _json_safe(_list(execution.get("manager_rounds")))
     invocation_summary = _provider_invocation_summary(provider_invocations or [])
     provider_latency_ms = int(invocation_summary.get("provider_invocation_latency_ms") or 0)
     non_provider_latency_ms = max(0, int(latency_ms) - provider_latency_ms)
@@ -1518,7 +1519,8 @@ def _turn_summary(
         "workflow_effect": final.get("workflow_effect") or _dict(result.get("manager_decision")).get("workflow_effect"),
         "state_delta": _json_safe(_dict(result.get("state_delta"))),
         "remaining_budget": _json_safe(_dict(result.get("remaining_budget"))),
-        "manager_rounds": _json_safe(_list(execution.get("manager_rounds"))),
+        "manager_rounds": manager_rounds,
+        "prompt_footprint_summary": _prompt_footprint_summary_from_rounds(manager_rounds),
         "provider_invocation_summary": invocation_summary,
         "hard_fail_conditions": list(result.get("hard_fail_conditions") or []),
         "runtime_error": None,
@@ -1550,6 +1552,92 @@ def _provider_invocation_summary(invocations: list[dict[str, Any]]) -> dict[str,
             default=0,
         ),
     }
+
+
+def _prompt_footprint_summary_from_rounds(manager_rounds: list[dict[str, Any]]) -> dict[str, Any]:
+    footprints: list[dict[str, Any]] = []
+    for round_item in _list(manager_rounds):
+        prompt_layer = _dict(_dict(round_item).get("prompt_layer_contract"))
+        footprint = _dict(prompt_layer.get("prompt_footprint"))
+        if footprint:
+            footprints.append(footprint)
+    return _combine_prompt_footprint_summaries(
+        _prompt_footprint_summary_from_footprint(footprint) for footprint in footprints
+    )
+
+
+def _prompt_footprint_summary_from_turns(turns: list[dict[str, Any]]) -> dict[str, Any]:
+    return _combine_prompt_footprint_summaries(
+        _dict(_dict(turn).get("prompt_footprint_summary")) for turn in _list(turns)
+    )
+
+
+def _prompt_footprint_summary_from_cases(cases: list[dict[str, Any]]) -> dict[str, Any]:
+    return _combine_prompt_footprint_summaries(
+        _dict(_dict(case).get("prompt_footprint_summary")) for case in _list(cases)
+    )
+
+
+def _prompt_footprint_summary_from_footprint(footprint: dict[str, Any]) -> dict[str, Any]:
+    section_totals: dict[str, int] = {}
+    for section in _list(footprint.get("dynamic_sections")):
+        section_id = _optional_string(_dict(section).get("section_id"))
+        if not section_id:
+            continue
+        section_totals[section_id] = section_totals.get(section_id, 0) + int(
+            _dict(section).get("utf8_bytes") or 0
+        )
+    return {
+        "measurement": "json_utf8_bytes_trace_only",
+        "provider_usage_is_token_truth": bool(footprint.get("provider_usage_is_token_truth") is True),
+        "manager_round_count": 1,
+        "system_prompt_utf8_bytes_sent": int(footprint.get("system_prompt_utf8_bytes") or 0),
+        "dynamic_payload_utf8_bytes_sent": int(footprint.get("dynamic_payload_total_utf8_bytes") or 0),
+        "max_dynamic_payload_utf8_bytes": int(footprint.get("dynamic_payload_total_utf8_bytes") or 0),
+        "largest_dynamic_section_id": _largest_section_id(section_totals)
+        or _optional_string(footprint.get("largest_dynamic_section_id")),
+        "dynamic_section_utf8_bytes": dict(sorted(section_totals.items())),
+    }
+
+
+def _combine_prompt_footprint_summaries(summaries: Any) -> dict[str, Any]:
+    section_totals: dict[str, int] = {}
+    manager_round_count = 0
+    system_prompt_bytes = 0
+    dynamic_payload_bytes = 0
+    max_dynamic_payload_bytes = 0
+    provider_usage_is_token_truth = True
+    for raw_summary in summaries:
+        summary = _dict(raw_summary)
+        if not summary:
+            continue
+        manager_round_count += int(summary.get("manager_round_count") or 0)
+        system_prompt_bytes += int(summary.get("system_prompt_utf8_bytes_sent") or 0)
+        dynamic_payload_bytes += int(summary.get("dynamic_payload_utf8_bytes_sent") or 0)
+        max_dynamic_payload_bytes = max(
+            max_dynamic_payload_bytes,
+            int(summary.get("max_dynamic_payload_utf8_bytes") or 0),
+        )
+        if summary.get("provider_usage_is_token_truth") is False:
+            provider_usage_is_token_truth = False
+        for section_id, value in _dict(summary.get("dynamic_section_utf8_bytes")).items():
+            section_totals[str(section_id)] = section_totals.get(str(section_id), 0) + int(value or 0)
+    return {
+        "measurement": "json_utf8_bytes_trace_only",
+        "provider_usage_is_token_truth": provider_usage_is_token_truth,
+        "manager_round_count": manager_round_count,
+        "system_prompt_utf8_bytes_sent": system_prompt_bytes,
+        "dynamic_payload_utf8_bytes_sent": dynamic_payload_bytes,
+        "max_dynamic_payload_utf8_bytes": max_dynamic_payload_bytes,
+        "largest_dynamic_section_id": _largest_section_id(section_totals),
+        "dynamic_section_utf8_bytes": dict(sorted(section_totals.items())),
+    }
+
+
+def _largest_section_id(section_totals: dict[str, int]) -> str | None:
+    if not section_totals:
+        return None
+    return max(section_totals.items(), key=lambda item: item[1])[0]
 
 
 def _transport_attempt_summary(trace: dict[str, Any]) -> dict[str, Any]:
@@ -1645,6 +1733,7 @@ def _decorate_case(case: dict[str, Any], *, profile: dict[str, Any]) -> dict[str
     decorated["trace_expectation_grade"] = trace_expectation_grade
     decorated["runner_inferred_semantics"] = False
     decorated["raw_text_routing_used"] = False
+    decorated["prompt_footprint_summary"] = _prompt_footprint_summary_from_turns(_list(decorated.get("turns")))
     if failure_layer is not None:
         decorated["failure_layer"] = failure_layer
     if failure_family is not None:
@@ -1801,6 +1890,7 @@ def _summary(cases: list[dict[str, Any]]) -> dict[str, Any]:
         "failure_families": failure_families,
         "turn_limited_case_count": sum(1 for case in cases if _dict(case.get("turn_limit")).get("is_turn_limited") is True),
         "private_self_use_unlock_allowed": False,
+        "prompt_footprint_summary": _prompt_footprint_summary_from_cases(cases),
     }
 
 
