@@ -11,6 +11,16 @@ from scripts.build_accurate_intake_local_self_use_candidate import (
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNBOOK_PATH = ROOT / "docs" / "quality" / "ACCURATE_INTAKE_MVP_SELF_USE_RUNBOOK.md"
+_REMOVED_FIXED_FALSE_FIELDS = (
+    "private_self_use_approved",
+    "live_manager_required",
+    "production_selected",
+    "product_readiness_claimed",
+    "mutation_rollout_approved",
+    "live_llm_invoked",
+    "web_tavily_invoked",
+    "production_db_used",
+)
 
 
 def _valid_shell_artifact() -> dict[str, object]:
@@ -77,6 +87,11 @@ def _write_artifact(path: Path, artifact: dict[str, object]) -> None:
     path.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _assert_removed_fixed_false_fields(packet: dict[str, object]) -> None:
+    for field in _REMOVED_FIXED_FALSE_FIELDS:
+        assert field not in packet
+
+
 def test_candidate_packet_prepares_human_review_only_packet_from_valid_shell_artifact(tmp_path: Path) -> None:
     shell_path = tmp_path / "shell.json"
     _write_artifact(shell_path, _valid_shell_artifact())
@@ -87,18 +102,11 @@ def test_candidate_packet_prepares_human_review_only_packet_from_valid_shell_art
     assert packet["status"] == "prepared"
     assert packet["claim_scope"] == "local_deterministic_self_use_candidate"
     assert packet["local_self_use_candidate_prepared"] is True
-    assert packet["private_self_use_approved"] is False
-    assert packet["live_manager_required"] is False
-    assert packet["production_selected"] is False
-    assert packet["product_readiness_claimed"] is False
-    assert packet["mutation_rollout_approved"] is False
-    assert packet["live_llm_invoked"] is False
-    assert packet["web_tavily_invoked"] is False
-    assert packet["production_db_used"] is False
     assert packet["human_review_required_before_activation"] is True
     assert packet["evidence"]["shell_artifact"]["status"] == "pass"
     assert packet["evidence"]["operator_surface"]["today_summary"]["consumed_kcal"] == 1670
     assert packet["evidence"]["operator_surface"]["same_truth_status"] == "pass"
+    _assert_removed_fixed_false_fields(packet)
 
 
 def test_candidate_packet_blocks_when_shell_artifact_did_not_pass(tmp_path: Path) -> None:
@@ -113,8 +121,7 @@ def test_candidate_packet_blocks_when_shell_artifact_did_not_pass(tmp_path: Path
     assert packet["status"] == "blocked"
     assert packet["local_self_use_candidate_prepared"] is False
     assert "shell_artifact_not_passed" in packet["blockers"]
-    assert packet["private_self_use_approved"] is False
-    assert packet["product_readiness_claimed"] is False
+    _assert_removed_fixed_false_fields(packet)
 
 
 def test_candidate_packet_blocks_raw_text_routing_or_readiness_overclaim_artifacts(tmp_path: Path) -> None:
@@ -130,7 +137,7 @@ def test_candidate_packet_blocks_raw_text_routing_or_readiness_overclaim_artifac
     assert packet["local_self_use_candidate_prepared"] is False
     assert "raw_text_routing_used" in packet["blockers"]
     assert "shell_artifact_claimed_product_readiness" in packet["blockers"]
-    assert packet["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(packet)
 
 
 def test_candidate_packet_cli_writes_local_artifact(tmp_path: Path, capsys) -> None:
@@ -152,7 +159,7 @@ def test_candidate_packet_cli_writes_local_artifact(tmp_path: Path, capsys) -> N
     assert exit_code == 0
     assert artifact == printed
     assert artifact["local_self_use_candidate_prepared"] is True
-    assert artifact["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(artifact)
 
 
 def test_self_use_runbook_documents_candidate_packet_and_artifact_hygiene() -> None:

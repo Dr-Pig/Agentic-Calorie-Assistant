@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -32,14 +31,6 @@ def _base_packet(*, shell_artifact_path: Path) -> dict[str, Any]:
         "generated_at_utc": datetime.now(UTC).isoformat(),
         "shell_artifact_path": str(shell_artifact_path),
         "local_self_use_candidate_prepared": False,
-        "private_self_use_approved": False,
-        "live_manager_required": False,
-        "production_selected": False,
-        "product_readiness_claimed": False,
-        "mutation_rollout_approved": False,
-        "live_llm_invoked": False,
-        "web_tavily_invoked": False,
-        "production_db_used": False,
         "human_review_required_before_activation": True,
         "not_claiming": list(NOT_CLAIMING),
         "blockers": [],
