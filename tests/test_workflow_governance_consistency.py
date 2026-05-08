@@ -256,6 +256,28 @@ def test_legacy_plan_and_capability_stubs_are_removed() -> None:
     assert not (ROOT / "docs" / "quality" / "V2_CAPABILITY_MAP.md").exists()
 
 
+def test_active_architecture_docs_use_current_shell_mainline_language() -> None:
+    active_docs = {
+        "docs/specs/CAPABILITY_TO_MODULE_OWNERSHIP_MAP.md": (
+            ROOT / "docs" / "specs" / "CAPABILITY_TO_MODULE_OWNERSHIP_MAP.md"
+        ).read_text(encoding="utf-8-sig"),
+        "docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md": (
+            ROOT / "docs" / "specs" / "UI_CANONICAL_TRUTH_SURFACE_MATRIX.md"
+        ).read_text(encoding="utf-8-sig"),
+        "docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md": (
+            ROOT / "docs" / "specs" / "UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md"
+        ).read_text(encoding="utf-8-sig"),
+    }
+
+    for path, content in active_docs.items():
+        assert "Wave 1 B2 semantic closure" not in content, path
+        assert "V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md" not in content, path
+
+    assert "CurrentShell self-use MVP local desktop dogfood" in active_docs["docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md"]
+    assert "CurrentShell self-use MVP local desktop dogfood" in active_docs["docs/specs/UX_TO_SYSTEM_CAPABILITY_GAP_MATRIX.md"]
+    assert "CurrentShell-Safe Parallel Readiness" in active_docs["docs/specs/CAPABILITY_TO_MODULE_OWNERSHIP_MAP.md"]
+
+
 def test_active_governance_protocols_are_repo_localized() -> None:
     for relative_path in (
         "docs/governance/SPEC_EDITING_PROTOCOL.md",
