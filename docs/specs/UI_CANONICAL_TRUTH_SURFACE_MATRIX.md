@@ -15,7 +15,7 @@ It exists to prevent L9 UI / same-truth work from becoming a parallel source of 
 
 ## Upstream Docs
 
-- `docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md`
+- `docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md`
 - `docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md`
 - `docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md`
 - `docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md`
