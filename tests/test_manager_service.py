@@ -228,6 +228,7 @@ async def test_run_intake_manager_forwards_product_policy_hints_as_payload_conte
     )
 
     assert provider.calls[0]["user_payload"]["manager_product_policy_hints"] == policy_hints
+    assert "manager_product_policy_hints" not in provider.calls[0]["user_payload"]["constraints"]
 
 
 @pytest.mark.asyncio
