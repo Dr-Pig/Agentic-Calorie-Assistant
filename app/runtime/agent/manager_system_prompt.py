@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v8"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v9"
 
 
 _BASE_MANAGER_SYSTEM_PROMPT = (
@@ -33,9 +33,9 @@ _PRODUCT_POLICY_PROMPT = (
 
 
 _CONTRACT_POLICY_PROMPT = (
-    "Runtime contract policy in constraints.manager_contract_policy, manager_contract_policy_summary, "
-    "manager_contract_evidence_instruction, manager_contract_followup_instruction, manager_contract_examples, "
-    "guard_feedback, and tool_results is authoritative for this turn.\n"
+    "Runtime contract policy is static ManagerRuntime guidance in this system prompt plus the structured tool schema. "
+    "The dynamic constraints payload should carry compact policy/guidance refs, guard_feedback, tool_results, and "
+    "manager_contract_evidence_state only; do not require repeated long policy text in the user payload.\n"
     "Do not return final_action='commit' or apply nutrition-changing correction without current-loop nutrition evidence; if evidence is missing, "
     "return manager_action='call_tools' with estimate_nutrition. If guard_feedback says commit_without_evidence, repair by "
     "calling estimate_nutrition, not by finalizing.\n"

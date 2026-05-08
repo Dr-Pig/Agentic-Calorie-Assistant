@@ -41,7 +41,7 @@ def test_founder_live_provider_profile_is_diagnostic_only() -> None:
     assert profile["schema_version"] == "v1"
 
 
-def test_founder_live_diagnostic_injects_contract_policy_and_evidence_state() -> None:
+def test_founder_live_diagnostic_injects_compact_contract_refs_and_evidence_state() -> None:
     module = importlib.import_module("scripts.run_wave1_founder_e2e_live_diagnostic")
     profile = module.provider_profile(module.DEFAULT_FOUNDER_LIVE_DIAGNOSTIC_PROVIDER_PROFILE_ID)
 
@@ -51,29 +51,27 @@ def test_founder_live_diagnostic_injects_contract_policy_and_evidence_state() ->
     )
 
     constraints = kwargs["user_payload"]["constraints"]
-    policy = constraints["manager_contract_policy"]
     evidence_state = constraints["manager_contract_evidence_state"]
 
-    assert policy["intent_type_by_semantic_intent"]["log_meal"] == "log_meal"
-    assert policy["intent_type_by_semantic_intent"]["correct_meal"] == "log_meal"
-    assert policy["required_tool_when_evidence_missing"] == "estimate_nutrition"
-    assert "commit" in policy["final_actions_requiring_evidence"]
-    assert policy["query_only_rule"]["final_action"] == "answer_only"
-    assert policy["correction_rule"]["mutation_intent_candidate"] == "correction_write"
-    assert policy["composition_unknown_rule"]["final_action"] == "ask_followup"
-    assert policy["composition_unknown_rule"]["estimate_tool_allowed"] is False
-    assert "manager_contract_policy_summary" in kwargs["user_payload"]
-    assert "manager_contract_evidence_instruction" in kwargs["user_payload"]
-    assert "manager_contract_followup_instruction" in kwargs["user_payload"]
-    assert "manager_contract_examples" in kwargs["user_payload"]
-    assert list(kwargs["user_payload"].keys())[:5] == [
-        "manager_contract_policy_summary",
-        "manager_contract_evidence_instruction",
-        "manager_contract_followup_instruction",
-        "manager_contract_examples",
+    assert constraints["manager_contract_refs"] == {
+        "policy": "founder_live_manager_contract_policy.v1",
+        "static_guidance": "founder_live_manager_static_system_and_tool_guidance.v1",
+        "examples": "founder_live_manager_contract_examples.v1",
+    }
+    assert constraints["manager_contract_static_guidance_in_system_prompt"] is True
+    assert constraints["manager_contract_static_guidance_in_tool_schema"] is True
+    assert constraints["manager_contract_dynamic_payload_mode"] == "runtime_state_and_refs_only"
+    assert "manager_contract_policy" not in constraints
+    assert "manager_contract_policy_summary" not in constraints
+    assert "manager_contract_evidence_instruction" not in constraints
+    assert "manager_contract_followup_instruction" not in constraints
+    assert "manager_contract_examples" not in constraints
+    assert list(kwargs["user_payload"].keys())[:4] == [
+        "manager_contract_refs",
+        "manager_contract_dynamic_payload_mode",
         "constraints",
+        "tool_results",
     ]
-    assert "nutrition_evidence_present=true" in kwargs["user_payload"]["manager_contract_evidence_instruction"]
     assert evidence_state["nutrition_evidence_present"] is False
     assert evidence_state["tool_result_names"] == []
 
@@ -97,11 +95,9 @@ def test_single_manager_prompt_mentions_contract_policy() -> None:
 
     prompt = prompt_module.SINGLE_MANAGER_SYSTEM_PROMPT
 
-    assert "manager_contract_policy" in prompt
-    assert "manager_contract_policy_summary" in prompt
-    assert "manager_contract_evidence_instruction" in prompt
-    assert "manager_contract_followup_instruction" in prompt
-    assert "manager_contract_examples" in prompt
+    assert "static ManagerRuntime guidance" in prompt
+    assert "compact policy/guidance refs" in prompt
+    assert "manager_contract_evidence_state" in prompt
     assert "tool_results" in prompt
     assert "final_action='commit'" in prompt
     assert "estimate_nutrition" in prompt

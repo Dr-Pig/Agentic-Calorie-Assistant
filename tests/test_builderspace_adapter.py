@@ -1545,6 +1545,36 @@ def test_founder_live_contract_does_not_count_failed_tool_result_as_evidence() -
     }
 
 
+def test_founder_live_contract_constraints_are_compact_dynamic_refs() -> None:
+    from app.runtime.agent.founder_live_manager_contract import founder_live_manager_contract_constraints
+
+    constraints = founder_live_manager_contract_constraints(
+        "builderspace-grok-4-fast-founder-live-contract",
+        tool_results=[],
+    )
+
+    assert constraints["manager_contract_dynamic_constraints_version"] == "founder_live_manager_dynamic_constraints.v2"
+    assert constraints["manager_contract_refs"] == {
+        "policy": "founder_live_manager_contract_policy.v1",
+        "static_guidance": "founder_live_manager_static_system_and_tool_guidance.v1",
+        "examples": "founder_live_manager_contract_examples.v1",
+    }
+    assert constraints["manager_contract_static_guidance_in_system_prompt"] is True
+    assert constraints["manager_contract_static_guidance_in_tool_schema"] is True
+    assert constraints["manager_contract_dynamic_payload_mode"] == "runtime_state_and_refs_only"
+    assert "manager_contract_policy" not in constraints
+    assert "manager_contract_policy_summary" not in constraints
+    assert "manager_contract_evidence_instruction" not in constraints
+    assert "manager_contract_followup_instruction" not in constraints
+    assert "manager_contract_examples" not in constraints
+    assert constraints["manager_contract_evidence_state"] == {
+        "tool_result_names": [],
+        "nutrition_evidence_present": False,
+        "target_evidence_present": False,
+        "target_evidence_source": None,
+    }
+
+
 def test_founder_live_contract_blocks_composition_unknown_estimate_tool_call(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

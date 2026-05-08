@@ -14,13 +14,13 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.shared.contracts.readiness_claim import build_readiness_claim
-from app.runtime.agent.founder_live_manager_contract import (
+from app.shared.contracts.readiness_claim import build_readiness_claim  # noqa: E402
+from app.runtime.agent.founder_live_manager_contract import (  # noqa: E402
     FOUNDER_LIVE_MANAGER_SCHEMA_NAME,
     FOUNDER_LIVE_MANAGER_SCHEMA_VERSION,
     FOUNDER_LIVE_MANAGER_TRANSPORT_POLICY,
     founder_live_manager_contract_constraints,
-)
+)  # noqa: E402
 
 
 BASE_RUNNER = importlib.import_module("scripts.run_wave1_founder_e2e_deterministic_diagnostic")
@@ -141,7 +141,7 @@ class FounderLiveDiagnosticProvider:
                 "failure_family": None,
                 "provider_trace": enriched_trace,
             }
-        )
+)
         return payload, enriched_trace
 
 
@@ -366,10 +366,8 @@ def _with_founder_live_contract_constraints(kwargs: dict[str, Any], *, profile: 
         )
     )
     contract_frontmatter = {
-        "manager_contract_policy_summary": constraints.get("manager_contract_policy_summary"),
-        "manager_contract_evidence_instruction": constraints.get("manager_contract_evidence_instruction"),
-        "manager_contract_followup_instruction": constraints.get("manager_contract_followup_instruction"),
-        "manager_contract_examples": constraints.get("manager_contract_examples"),
+        "manager_contract_refs": constraints.get("manager_contract_refs"),
+        "manager_contract_dynamic_payload_mode": constraints.get("manager_contract_dynamic_payload_mode"),
         "constraints": constraints,
     }
     remaining_payload = {
