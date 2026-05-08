@@ -212,11 +212,18 @@ gates:
     pass_type: runtime_backed
     depends_on:
       - rt14b_provider_health_live_canary
+  - gate_id: rt14d_single_case_tool_choice_live_probe
+    title: Single-case tool-choice live probe
+    status: green
+    pass_type: runtime_backed
+    depends_on:
+      - rt14c_schema_contract_live_canary
   - gate_id: rt14_limited_live_ladder
     title: Limited live diagnostic ladder
     status: pending
     pass_type: runtime_backed
     depends_on:
+      - rt14d_single_case_tool_choice_live_probe
       - rt14c_schema_contract_live_canary
       - rt14b_provider_health_live_canary
       - rt14a_provider_health_schema_live_foundation
