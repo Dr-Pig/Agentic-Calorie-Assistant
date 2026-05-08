@@ -41,6 +41,21 @@ HIGH_STAGE_LATENCY_MS = 60_000
 HIGH_STAGE_OVERHEAD_MS = 10_000
 HIGH_TOTAL_PROMPT_TOKENS = 50_000
 HIGH_SINGLE_PROMPT_TOKENS = 8_000
+PRODUCT_LATENCY_TARGETS_MS = {
+    "diagnostic_probe": {"target_p50_ms": 3_000, "target_p95_ms": 8_000, "hard_timeout_ms": 20_000},
+    "read_only_or_entry": {"target_p50_ms": 3_000, "target_p95_ms": 8_000, "hard_timeout_ms": 20_000},
+    "body_observation": {"target_p50_ms": 3_000, "target_p95_ms": 8_000, "hard_timeout_ms": 20_000},
+    "intake_no_web": {"target_p50_ms": 6_000, "target_p95_ms": 12_000, "hard_timeout_ms": 20_000},
+    "intake_clarify_or_correction": {
+        "target_p50_ms": 8_000,
+        "target_p95_ms": 15_000,
+        "hard_timeout_ms": 20_000,
+    },
+    "fooddb_or_web_evidence": {"target_p50_ms": 10_000, "target_p95_ms": 20_000, "hard_timeout_ms": 30_000},
+}
+STAGE_OVERHEAD_TARGET_MS = 1_000
+STAGE_OVERHEAD_WARN_MS = 3_000
+STAGE_OVERHEAD_HARD_MS = 10_000
 
 
 def build_accurate_intake_live_cost_summary(
@@ -114,6 +129,10 @@ def build_accurate_intake_live_cost_summary(
         stage_latency_records=stage_latency_records,
         provider_invocation_records=provider_invocation_records,
     )
+    latency_slo = _latency_slo(
+        latency_breakdown=latency_breakdown,
+        provider_invocation_records=provider_invocation_records,
+    )
     latency_root_cause_hints = _latency_root_cause_hints(
         provider_invocation_count=provider_invocation_count,
         max_stage_latency_ms=max_stage_latency_ms,
@@ -139,6 +158,7 @@ def build_accurate_intake_live_cost_summary(
             "source_artifacts": source_artifacts,
             "provider_invocation_records": provider_invocation_records,
             "latency_breakdown": latency_breakdown,
+            "latency_slo": latency_slo,
             "usage_records": usage_records,
             "cost_records": cost_records,
             "summary": {
@@ -310,6 +330,197 @@ def _latency_breakdown(
             total_provider_latency_ms=total_provider_latency_ms,
         ),
         "slowest_provider_invocations": _slowest_provider_invocations(provider_invocation_records),
+    }
+
+
+def _latency_slo(
+    *,
+    latency_breakdown: dict[str, Any],
+    provider_invocation_records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    provider_turn_rows = [
+        _latency_slo_row(
+            row,
+            observed_latency_ms=int(row.get("provider_invocation_latency_ms") or 0),
+            latency_class=_latency_class_for_turn(row),
+            observed_latency_field="provider_invocation_latency_ms",
+        )
+        for row in _list(latency_breakdown.get("by_turn"))
+    ]
+    manager_scope_rows = [
+        _latency_slo_row(
+            row,
+            observed_latency_ms=int(row.get("provider_invocation_latency_ms") or 0),
+            latency_class=_latency_class_for_manager_scope(row.get("manager_loop_scope")),
+            observed_latency_field="provider_invocation_latency_ms",
+        )
+        for row in _list(latency_breakdown.get("by_manager_loop_scope"))
+    ]
+    stage_overhead_rows = [
+        _stage_overhead_slo_row(row)
+        for row in _list(latency_breakdown.get("by_diagnostic_stage"))
+        if int(row.get("stage_overhead_ms") or 0) > 0
+    ]
+    budget_rows = provider_turn_rows or manager_scope_rows
+    return {
+        "claim_scope": "diagnostic_latency_slo",
+        "diagnostic_only_not_readiness": True,
+        "single_sample_policy": (
+            "Compare individual observed rows with Current Shell v1 latency targets; "
+            "do not claim p50 or p95 distribution compliance from a single diagnostic sample."
+        ),
+        "targets_ms": PRODUCT_LATENCY_TARGETS_MS,
+        "stage_overhead_budget_ms": {
+            "target_ms": STAGE_OVERHEAD_TARGET_MS,
+            "warn_ms": STAGE_OVERHEAD_WARN_MS,
+            "hard_ms": STAGE_OVERHEAD_HARD_MS,
+        },
+        "provider_turn_budget": {
+            "row_source": "latency_breakdown.by_turn",
+            "rows": provider_turn_rows,
+            "status_counts": _status_counts(provider_turn_rows),
+        },
+        "manager_scope_budget": {
+            "row_source": "latency_breakdown.by_manager_loop_scope",
+            "debug_attribution_only": True,
+            "rows": manager_scope_rows,
+            "status_counts": _status_counts(manager_scope_rows),
+        },
+        "stage_overhead_budget": {
+            "row_source": "latency_breakdown.by_diagnostic_stage",
+            "debug_attribution_only": True,
+            "rows": stage_overhead_rows,
+            "status_counts": _status_counts(stage_overhead_rows),
+        },
+        "summary": _latency_slo_summary(
+            budget_rows=budget_rows,
+            stage_overhead_rows=stage_overhead_rows,
+            provider_invocation_records=provider_invocation_records,
+        ),
+    }
+
+
+def _latency_slo_row(
+    row: dict[str, Any],
+    *,
+    observed_latency_ms: int,
+    latency_class: str,
+    observed_latency_field: str,
+) -> dict[str, Any]:
+    thresholds = PRODUCT_LATENCY_TARGETS_MS.get(latency_class, PRODUCT_LATENCY_TARGETS_MS["diagnostic_probe"])
+    result = dict(row)
+    result.update(
+        {
+            "latency_class": latency_class,
+            "observed_latency_field": observed_latency_field,
+            "observed_latency_ms": observed_latency_ms,
+            "thresholds_ms": thresholds,
+            "single_sample_status": _latency_budget_status(observed_latency_ms, thresholds),
+        }
+    )
+    return result
+
+
+def _stage_overhead_slo_row(row: dict[str, Any]) -> dict[str, Any]:
+    observed_latency_ms = int(row.get("stage_overhead_ms") or 0)
+    result = dict(row)
+    result.update(
+        {
+            "observed_latency_field": "stage_overhead_ms",
+            "observed_latency_ms": observed_latency_ms,
+            "thresholds_ms": {
+                "target_ms": STAGE_OVERHEAD_TARGET_MS,
+                "warn_ms": STAGE_OVERHEAD_WARN_MS,
+                "hard_ms": STAGE_OVERHEAD_HARD_MS,
+            },
+            "single_sample_status": _stage_overhead_budget_status(observed_latency_ms),
+        }
+    )
+    return result
+
+
+def _latency_budget_status(observed_latency_ms: int, thresholds: dict[str, int]) -> str:
+    if observed_latency_ms <= int(thresholds.get("target_p95_ms") or 0):
+        return "within_interactive_budget"
+    if observed_latency_ms <= int(thresholds.get("hard_timeout_ms") or 0):
+        return "over_interactive_budget"
+    return "hard_timeout_budget_exceeded"
+
+
+def _stage_overhead_budget_status(observed_latency_ms: int) -> str:
+    if observed_latency_ms <= STAGE_OVERHEAD_WARN_MS:
+        return "within_stage_overhead_budget"
+    if observed_latency_ms <= STAGE_OVERHEAD_HARD_MS:
+        return "stage_overhead_over_budget"
+    return "stage_overhead_hard_budget_exceeded"
+
+
+def _latency_class_for_turn(row: dict[str, Any]) -> str:
+    turn_kind = str(row.get("diagnostic_turn_kind") or "").strip()
+    case_id = str(row.get("diagnostic_case_id") or "").strip()
+    if _metadata_contains(case_id, ("exact_item", "fooddb", "websearch", "web_search")):
+        return "fooddb_or_web_evidence"
+    if turn_kind in {"budget_query", "no_plan_budget_query", "remaining_query", "plan_query", "body_query"}:
+        return "read_only_or_entry"
+    if turn_kind in {"body_observation", "weight_record", "weight_query"}:
+        return "body_observation"
+    if turn_kind in {
+        "bare_basket",
+        "listed_basket",
+        "followup_refinement",
+        "explicit_item_correction",
+        "explicit_item_removal",
+        "correction",
+        "removal",
+    }:
+        return "intake_clarify_or_correction"
+    if turn_kind in {"exact_item_commit", "new_meal", "single_item_log"}:
+        return "intake_no_web"
+    return "diagnostic_probe"
+
+
+def _latency_class_for_manager_scope(scope: Any) -> str:
+    normalized = str(scope or "").strip()
+    if normalized == "turn_entry_or_read_only":
+        return "read_only_or_entry"
+    if normalized == "body_observation":
+        return "body_observation"
+    if normalized == "intake_execution":
+        return "intake_no_web"
+    return "diagnostic_probe"
+
+
+def _metadata_contains(value: str, needles: tuple[str, ...]) -> bool:
+    lowered = value.lower()
+    return any(needle in lowered for needle in needles)
+
+
+def _status_counts(rows: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        status = str(row.get("single_sample_status") or "unknown")
+        counts[status] = counts.get(status, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _latency_slo_summary(
+    *,
+    budget_rows: list[dict[str, Any]],
+    stage_overhead_rows: list[dict[str, Any]],
+    provider_invocation_records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    hard_statuses = {"hard_timeout_budget_exceeded", "stage_overhead_hard_budget_exceeded"}
+    over_statuses = {"over_interactive_budget", "stage_overhead_over_budget"}
+    all_rows = [*budget_rows, *stage_overhead_rows]
+    statuses = {str(row.get("single_sample_status") or "") for row in all_rows}
+    return {
+        "budget_row_source": "provider_turn_budget_or_manager_scope_fallback",
+        "provider_invocation_count": len(provider_invocation_records),
+        "budget_row_count": len(budget_rows),
+        "stage_overhead_row_count": len(stage_overhead_rows),
+        "single_sample_hard_budget_exceeded": bool(statuses & hard_statuses),
+        "single_sample_over_interactive_budget": bool(statuses & over_statuses),
+        "single_sample_clean": bool(all_rows) and not bool(statuses & (hard_statuses | over_statuses)),
     }
 
 

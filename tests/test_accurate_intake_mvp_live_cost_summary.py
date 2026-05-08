@@ -252,6 +252,90 @@ def test_live_cost_summary_breaks_down_latency_by_stage_case_turn_and_slowest_ca
     }
 
 
+def test_live_cost_summary_classifies_product_turn_latency_slo_without_readiness_claim() -> None:
+    summary = build_accurate_intake_live_cost_summary(
+        [
+            _live_artifact(
+                usage={"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110},
+                stage_id="single_case_live_probe",
+                latency_ms=45_000,
+                provider_invocation_overrides=[
+                    {
+                        "latency_ms": 7_000,
+                        "diagnostic_case_id": "remaining_budget_query",
+                        "diagnostic_turn": 1,
+                        "diagnostic_turn_kind": "budget_query",
+                        "manager_loop_scope": "turn_entry_or_read_only",
+                    },
+                    {
+                        "latency_ms": 13_000,
+                        "diagnostic_case_id": "chicken_rice_log",
+                        "diagnostic_turn": 1,
+                        "diagnostic_turn_kind": "new_meal",
+                        "manager_loop_scope": "intake_execution",
+                    },
+                    {
+                        "latency_ms": 21_000,
+                        "diagnostic_case_id": "bubble_milk_tea_refinement",
+                        "diagnostic_turn": 2,
+                        "diagnostic_turn_kind": "followup_refinement",
+                        "manager_loop_scope": "intake_execution",
+                    },
+                ],
+            )
+        ]
+    )
+
+    latency_slo = summary["latency_slo"]
+    assert latency_slo["diagnostic_only_not_readiness"] is True
+    assert latency_slo["summary"]["single_sample_hard_budget_exceeded"] is True
+    assert latency_slo["summary"]["single_sample_over_interactive_budget"] is True
+    rows_by_turn_kind = {
+        row["diagnostic_turn_kind"]: row
+        for row in latency_slo["provider_turn_budget"]["rows"]
+    }
+    assert rows_by_turn_kind["budget_query"]["latency_class"] == "read_only_or_entry"
+    assert rows_by_turn_kind["budget_query"]["single_sample_status"] == "within_interactive_budget"
+    assert rows_by_turn_kind["new_meal"]["latency_class"] == "intake_no_web"
+    assert rows_by_turn_kind["new_meal"]["single_sample_status"] == "over_interactive_budget"
+    assert rows_by_turn_kind["followup_refinement"]["latency_class"] == "intake_clarify_or_correction"
+    assert rows_by_turn_kind["followup_refinement"]["single_sample_status"] == "hard_timeout_budget_exceeded"
+    assert "readiness_claimed" not in summary
+
+
+def test_live_cost_summary_flags_stage_overhead_against_latency_slo() -> None:
+    summary = build_accurate_intake_live_cost_summary(
+        [
+            _live_artifact(
+                usage={"prompt_tokens": 40, "completion_tokens": 8, "total_tokens": 48},
+                stage_id="provider_health_smoke",
+                latency_ms=197_000,
+                provider_invocation_overrides=[
+                    {
+                        "latency_ms": 1_000,
+                        "manager_loop_scope": "turn_entry_or_read_only",
+                    }
+                ],
+            )
+        ]
+    )
+
+    latency_slo = summary["latency_slo"]
+    assert latency_slo["provider_turn_budget"]["rows"] == []
+    assert latency_slo["manager_scope_budget"]["rows"][0]["single_sample_status"] == "within_interactive_budget"
+    assert latency_slo["stage_overhead_budget"]["rows"][0]["observed_latency_ms"] == 196_000
+    assert latency_slo["stage_overhead_budget"]["rows"][0]["single_sample_status"] == "stage_overhead_hard_budget_exceeded"
+    assert latency_slo["summary"] == {
+        "budget_row_source": "provider_turn_budget_or_manager_scope_fallback",
+        "provider_invocation_count": 1,
+        "budget_row_count": 1,
+        "stage_overhead_row_count": 1,
+        "single_sample_hard_budget_exceeded": True,
+        "single_sample_over_interactive_budget": False,
+        "single_sample_clean": False,
+    }
+
+
 def test_live_cost_summary_omits_fixed_false_claim_fields() -> None:
     summary = build_accurate_intake_live_cost_summary([_live_artifact(usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2})])
 
