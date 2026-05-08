@@ -1,6 +1,7 @@
-# Runtime UI - One Click Launcher
+# Runtime UI - one-click local launcher.
 # This script checks if the server is running and opens the root UI in your default browser.
 
+$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $port = 8011
 $url = "http://127.0.0.1:$port/"
 
@@ -15,7 +16,7 @@ if ($activePort) {
     Write-Host "[SYSTEM] Running: python -m uvicorn app.main:app --host 127.0.0.1 --port $port" -ForegroundColor Gray
     
     # Start the server in a new window so it remains running
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "python -m uvicorn app.main:app --host 127.0.0.1 --port $port"
+    Start-Process powershell -WorkingDirectory $repoRoot -ArgumentList "-NoExit", "-Command", "python -m uvicorn app.main:app --host 127.0.0.1 --port $port"
     
     # Wait for startup
     Write-Host "[SYSTEM] Waiting for server startup (3 seconds)..." -ForegroundColor Gray

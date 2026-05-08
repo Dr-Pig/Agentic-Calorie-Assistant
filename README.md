@@ -35,6 +35,13 @@ Open [http://127.0.0.1:8011](http://127.0.0.1:8011).
 
 Native verification is authoritative only on Python 3.12 or newer. Python 3.9 is not authoritative for Phase C active-runtime, persistence, SQLAlchemy app paths, or broader CI gates; use Docker or a Python 3.12 virtual environment instead.
 
+Optional Windows launchers live under `scripts/local/`:
+
+```powershell
+.\scripts\local\open_dashboard.ps1
+.\scripts\local\start_test_ui.bat
+```
+
 ## Tests
 
 ```powershell
