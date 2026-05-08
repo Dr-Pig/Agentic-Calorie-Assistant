@@ -322,7 +322,7 @@ def test_live_stage_manifest_records_case_order_trace_layers_model_and_timeout_p
     }
     assert manifest["timeout_policy"] == {
         "max_provider_concurrency": 1,
-        "default_provider_timeout_ms": 20_000,
+        "default_provider_timeout_ms": 180_000,
         "default_provider_request_retry_count": 0,
         "retry_only_failed_provider_request": True,
         "never_rerun_whole_workflow_as_retry_success": True,
