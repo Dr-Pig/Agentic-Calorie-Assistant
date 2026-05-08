@@ -99,7 +99,7 @@ Required guard fields include:
 - `provider_overfit_risk`
 - `merge_allowed`
 
-`merge_allowed=true` requires canonical product-rule backing, an updated legal-flow matrix, holdout tests, no raw-text routing risk, no high provider-overfit risk, and `legal_flows_broken=[]`.
+`merge_allowed` may appear only when canonical product-rule backing exists, the legal-flow matrix is updated, holdout tests are present, no raw-text routing risk remains, no high provider-overfit risk remains, and `legal_flows_broken` is empty.
 
 The current PR74-PR84 audit is repo-tracked as:
 
@@ -116,9 +116,9 @@ The current PR74-PR84 audit is repo-tracked as:
 - fake-provider active runtime gate passes.
 - seeded explicit-removal single-turn probe passes as `strict_pass_first_attempt`.
 - original multi-turn single-case probe passes as `strict_pass_first_attempt`.
-- offline replay artifact is present and `strict_replay_ready=true`.
+- offline replay artifact is present and marked `strict_replay_ready`.
 - zero timeout and zero retry-dependent evidence.
-- provider robustness matrix has `model_inversion_evidence_passed=true` and `contract_overfit_risk=false`.
+- provider robustness matrix marks `model_inversion_evidence_passed` and leaves `contract_overfit_risk` absent/false.
 
 Do not run the full suite when a prior stage is missing, failed, timed out, only passed after retry, or when the offline replay gate would return `offline_replay_required`.
 
@@ -134,7 +134,7 @@ One strict full-suite artifact is diagnostic evidence only. It does not prepare 
 
 Before a decision pack may select `prepare_private_self_use_candidate`, the offline replay window must show:
 
-- `full_suite_replay_ready=true`.
+- `full_suite_replay_ready`.
 - at least three full-suite runs in the replay window.
 - every full-suite run is `strict_pass_first_attempt`.
 - zero full-suite timeout, retry-dependent pass, repaired pass, or failed case.
@@ -162,7 +162,7 @@ The cost summary is diagnostic-only. It aggregates provider-reported token usage
 The cost summary must preserve:
 
 - `billing_truth_source=provider_reported_artifact_fields_only`
-- `cost_unavailable_without_pricing=true` when token usage exists but no provider-reported cost field is present
+- set `cost_unavailable_without_pricing` when token usage exists but no provider-reported cost field is present
 - no repo-local pricing table override
 
 Do not infer paid cost from tokens inside this repo. Do not stage generated cost summary artifacts as repo truth.
