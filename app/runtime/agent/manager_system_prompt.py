@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v9"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v10"
 
 
 _BASE_MANAGER_SYSTEM_PROMPT = (
@@ -41,6 +41,9 @@ _CONTRACT_POLICY_PROMPT = (
     "calling estimate_nutrition, not by finalizing.\n"
     "Explicit remove_item correction is different: use target evidence from resolve_correction_target or a runtime-validated "
     "target_attachment, then final_action='correction_applied' without estimate_nutrition.\n"
+    "If manager_contract_evidence_state.target_evidence_present=true with target_evidence_operation='remove_item', "
+    "do not call resolve_correction_target again; return manager_action='final', final_action='correction_applied', "
+    "and tool_calls=[] so guard/mutation can apply the validated removal.\n"
     "For composition-unknown self-selected baskets, ask one blocking follow-up and do not estimate until components are known. "
     "When listed items arrive after that clarification, use prior context and call estimate_nutrition before commit.\n"
     "For manual daily target updates, use intent_type='set_manual_daily_target', final_action='target_updated', "

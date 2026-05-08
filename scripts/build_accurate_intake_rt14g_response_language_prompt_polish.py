@@ -140,8 +140,8 @@ def _no_plan_budget_honesty_policy_case() -> dict[str, Any]:
 
 def _prompt_cache_static_prefix_policy_case() -> dict[str, Any]:
     blockers: list[str] = []
-    if SINGLE_MANAGER_SYSTEM_PROMPT_VERSION != "v9":
-        blockers.append("system_prompt_version_not_v9")
+    if SINGLE_MANAGER_SYSTEM_PROMPT_VERSION != "v10":
+        blockers.append("system_prompt_version_not_v10")
     if not _dynamic_request_markers_absent():
         blockers.append("dynamic_request_marker_in_system_prompt")
     if "User-facing reply policy:" not in SINGLE_MANAGER_SYSTEM_PROMPT:
