@@ -14,7 +14,9 @@ if str(ROOT) not in sys.path:
 from app.composition.v2_routes import _compute_latency_bucket  # noqa: E402
 from app.intake.application.intake_turn_support import intake_turn_latency_tracking  # noqa: E402
 from app.runtime.agent.manager_prompt_registry import build_manager_prompt_registry  # noqa: E402
+from app.runtime.agent.manager_prompt_layer_contract import build_manager_prompt_layer_contract  # noqa: E402
 from app.runtime.agent.manager_react_trace import build_manager_react_trace  # noqa: E402
+from app.runtime.agent.manager_system_prompt import single_manager_system_prompt_for_scope  # noqa: E402
 from app.runtime.application.request_trace_artifacts import build_internal_trace_refs, build_trace_refs  # noqa: E402
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
@@ -81,6 +83,15 @@ def _evaluate_react_trace_case() -> dict[str, Any]:
             "manager_contract_provider_profile_transport_mode": "structured_outputs",
         },
     )
+    prompt_layer_contract = build_manager_prompt_layer_contract(
+        manager_loop_scope="intake_execution",
+        system_prompt=single_manager_system_prompt_for_scope("intake_execution"),
+        user_payload={
+            "raw_user_input": "fixture",
+            "available_tools": ["estimate_nutrition", "compare_against_budget"],
+            "tool_results": [],
+        },
+    )
     trace = build_manager_react_trace(
         manager_rounds=[
             {
@@ -93,6 +104,7 @@ def _evaluate_react_trace_case() -> dict[str, Any]:
                 },
                 "trace": {"provider": "fake_provider", "model": "fake-model"},
                 "prompt_registry": registry,
+                "prompt_layer_contract": prompt_layer_contract,
             },
             {
                 "round_index": 2,
@@ -105,6 +117,7 @@ def _evaluate_react_trace_case() -> dict[str, Any]:
                 },
                 "trace": {"provider": "fake_provider", "model": "fake-model"},
                 "prompt_registry": registry,
+                "prompt_layer_contract": prompt_layer_contract,
             },
         ],
         tool_results=[
