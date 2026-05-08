@@ -91,14 +91,11 @@ async def run_intake_manager(
     for round_index in range(max_rounds):
         effective_constraints = dict(constraints or {})
         effective_constraints.update(manager_loop_scope=effective_manager_loop_scope, available_tools=list(normalized_available_tools))
+        manager_product_policy_hints = effective_constraints.pop("manager_product_policy_hints", None)
         if isinstance(guard_feedback, dict):
             effective_constraints["guard_feedback_failure_family"] = str(guard_feedback.get("failure_family") or "")
             effective_constraints["guard_feedback_repair_request"] = bool(guard_feedback.get("repair_request"))
-        phase_a_surface_mode = (
-            current_turn_context.current_interaction_event.surface_mode
-            if current_turn_context is not None
-            else None
-        )
+        phase_a_surface_mode = current_turn_context.current_interaction_event.surface_mode if current_turn_context is not None else None
         manager_context_pack_payload = serialize_manager_context_pack(manager_context_pack)
         manager_context_trace = manager_context_trace_payload(
             current_turn_context=current_turn_context,
@@ -135,7 +132,7 @@ async def run_intake_manager(
             "manager_loop_scope": effective_manager_loop_scope,
             "manager_scope_policy": manager_scope_policy_payload(effective_manager_loop_scope, normalized_available_tools),
             "constraints": effective_constraints,
-            "manager_product_policy_hints": json_safe(effective_constraints.get("manager_product_policy_hints")),
+            "manager_product_policy_hints": json_safe(manager_product_policy_hints),
             "guard_feedback": guard_feedback,
         }
         payload, trace, prompt_layer_contract = await complete_manager_round_with_prompt_trace(
