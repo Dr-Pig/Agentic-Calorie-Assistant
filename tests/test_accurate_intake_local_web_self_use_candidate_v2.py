@@ -660,11 +660,16 @@ def test_candidate_blocked_if_any_artifact_claims_fooddb_truth_or_integration() 
         assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
         assert "FoodDB overclaim" in pack["local_web_self_use_candidate_v2"]["blockers"]
 
-def test_candidate_never_sets_product_readiness_claimed_true() -> None:
+def test_candidate_omits_duplicated_top_level_claim_flags() -> None:
     pack = build_local_web_self_use_candidate_v2(_clean_evidence())
-    assert pack["local_web_self_use_candidate_v2"]["product_readiness_claimed"] is False
-    assert pack["local_web_self_use_candidate_v2"]["private_self_use_approved"] is False
-    assert pack["local_web_self_use_candidate_v2"]["kimi_activated"] is False
+    candidate = pack["local_web_self_use_candidate_v2"]
+    assert "product_readiness_claimed" not in candidate
+    assert "private_self_use_approved" not in candidate
+    assert "kimi_activated" not in candidate
+    assert "live_manager_required" not in candidate
+    assert "production_selected" not in candidate
+    assert "rollout_approved" not in candidate
+    assert "live_provider_called" not in candidate
 
 def test_candidate_blocked_if_production_selected_or_rollout_approved_or_live_manager_required() -> None:
     for field in ("production_selected", "rollout_approved", "live_manager_required", "web_ready", "product_ready"):
