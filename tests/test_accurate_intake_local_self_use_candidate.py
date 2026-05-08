@@ -166,4 +166,4 @@ def test_self_use_runbook_documents_candidate_packet_and_artifact_hygiene() -> N
     assert "Windows" in runbook
     assert "Docker" in runbook
     assert "generated artifacts remain local-only" in runbook
-    assert "private_self_use_approved=false" in runbook
+    assert "must not claim private self-use approval, product readiness, production selection, or live-manager escalation" in runbook

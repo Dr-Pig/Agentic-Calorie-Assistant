@@ -48,7 +48,7 @@ PR93-PR100 should not register Kimi as an active Accurate Intake live diagnostic
 
 Kimi validation starts after the model-agnostic local web self-use loop is green. The first Kimi slice should run provider health, schema probe, fake runtime gate, selected staged probes, and cost/latency capture only.
 
-Kimi remains `production_selected=false`, `private_self_use_approved=false`, and outside routine smoke/default manager selection until an explicit future activation decision.
+Kimi remains outside production/default selection and private self-use approval until an explicit future activation decision.
 
 ### First Live BuilderSpace Candidate Observations
 

@@ -206,19 +206,7 @@ The operating guidance is:
 
 ## Required Non-Claims
 
-Every legacy `PL+CE` / `CurrentShell` compatibility artifact must preserve:
-
-```yaml
-product_readiness_claimed=false
-private_self_use_approved=false
-real_fooddb_pass_claimed=false
-dogfood_pass=false
-live_llm_invoked=false
-web_tavily_used=false
-production_db_used=false
-fooddb_truth_updated=false
-manager_context_packet_schema_changed=false
-```
+Every legacy `PL+CE` / `CurrentShell` compatibility artifact must stay non-promotional. It must not claim product readiness, private self-use approval, real FoodDB pass, dogfood pass, live LLM truth ownership, web/Tavily truth use, production DB truth, FoodDB truth updates, or manager-context schema advancement.
 
 ## Review Checkpoints
 

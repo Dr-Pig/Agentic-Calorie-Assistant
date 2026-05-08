@@ -133,8 +133,7 @@ def test_runbook_records_deferred_kimi_validation_without_full_suite_hardening()
         "Do not run a Kimi full-suite hardening loop before the deferred target-model validation slice",
         "After every 3-5 live/provider-affecting stages",
         "before any prompt/schema/contract hardening",
-        "production_selected=false",
-        "private_self_use_approved=false",
+        "must not claim production/default selection or private self-use approval",
     ]
     for fragment in required_fragments:
         assert fragment in runbook
@@ -150,7 +149,7 @@ def test_manager_candidate_matrix_records_deferred_kimi_validation_boundary() ->
         "builderspace-kimi-k2-5-accurate-intake-mvp-live-diagnostic",
         "PR93-PR100 should not register Kimi as an active Accurate Intake live diagnostic runtime profile",
         "Kimi validation starts after the model-agnostic local web self-use loop is green",
-        "Kimi remains `production_selected=false`",
+        "Kimi remains outside production/default selection",
     ]
     for fragment in required_fragments:
         assert fragment in matrix
