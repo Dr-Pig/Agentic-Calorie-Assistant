@@ -25,11 +25,8 @@ from .builderspace_transport import (
 
 MAX_PARSE_RETRIES = 1
 RETRYABLE_TRANSPORT_ERROR_TYPES = (
-    httpx.ConnectError,
-    httpx.ConnectTimeout,
-    httpx.ReadTimeout,
-    httpx.WriteTimeout,
-    httpx.PoolTimeout,
+    httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout,
+    httpx.WriteTimeout, httpx.PoolTimeout,
 )
 RETRYABLE_HTTP_STATUS_CODES = {429, 500, 503}
 
