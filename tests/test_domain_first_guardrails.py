@@ -347,7 +347,7 @@ def test_active_mainline_paths_do_not_import_archive_app_family() -> None:
 
 def test_canonical_specs_do_not_describe_v2_as_four_pass_runtime() -> None:
     spec_paths = (
-        ROOT / "docs" / "specs" / "APP_V2_IMPLEMENTATION_PLAN.md",
+        ROOT / "docs" / "specs" / "APP_ENGINEERING_OPERATING_ENTRY.md",
         ROOT / "docs" / "specs" / "app_v2_ideal_architecture_final.md",
         ROOT / "docs" / "specs" / "L0B_BUDGET_LEDGER_SYNC_HAPPY_PATH_SPEC.md",
         ROOT / "docs" / "specs" / "L1_RUNTIME_OWNERSHIP_SPEC.md",
@@ -367,7 +367,7 @@ def test_product_truth_first_guardrails_are_written_into_canonical_docs() -> Non
     required_markers = {
         ROOT / "AGENTS.md": "Product Truth Priority",
         ROOT / "docs" / "specs" / "L3_1_INTAKE_RUNTIME_CONTRACT_SPEC.md": "Product-Truth-First Build Frame",
-        ROOT / "docs" / "specs" / "APP_V2_IMPLEMENTATION_PLAN.md": "Single-Manager Guardrail Frame",
+        ROOT / "docs" / "specs" / "APP_ENGINEERING_OPERATING_ENTRY.md": "Product truth is higher-order than eval shape.",
     }
     missing: list[str] = []
     for path, marker in required_markers.items():

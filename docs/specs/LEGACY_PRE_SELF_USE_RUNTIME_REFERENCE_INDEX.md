@@ -27,8 +27,8 @@ The files below remain tracked because they still provide historical context or 
 | legacy coding bootstrap | `docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md` | historical bootstrap reference |
 | legacy execution and wave plan | `docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md` | historical architecture and sequencing reference |
 | legacy whole-product capability lattice | `docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md` | historical capability-map reference |
-| legacy implementation plan | `docs/specs/APP_V2_IMPLEMENTATION_PLAN.md` | reference-only repo-history appendix |
-| legacy capability map | `docs/quality/V2_CAPABILITY_MAP.md` | historical capability framing only |
+| legacy implementation plan | `docs/specs/APP_V2_IMPLEMENTATION_PLAN.md` | compatibility stub; historical repo-plan content preserved under `docs/_spec_snapshots/` |
+| legacy capability map | `docs/quality/V2_CAPABILITY_MAP.md` | compatibility stub; historical capability framing preserved under `docs/_spec_snapshots/` |
 
 ## Current Mainline Reminder
 

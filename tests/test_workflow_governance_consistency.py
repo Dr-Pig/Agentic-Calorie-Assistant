@@ -190,6 +190,22 @@ def test_execution_governance_docs_are_compatibility_stubs_only() -> None:
     assert "line-liff-calorie-helper-text-meal-canary-main" not in selection_policy
 
 
+def test_legacy_plan_and_capability_docs_are_compatibility_stubs_only() -> None:
+    doc_index = (ROOT / "docs" / "DOC_INDEX.md").read_text(encoding="utf-8")
+    legacy_index = (ROOT / "docs" / "specs" / "LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md").read_text(encoding="utf-8")
+    implementation_plan = (ROOT / "docs" / "specs" / "APP_V2_IMPLEMENTATION_PLAN.md").read_text(encoding="utf-8")
+    capability_map = (ROOT / "docs" / "quality" / "V2_CAPABILITY_MAP.md").read_text(encoding="utf-8")
+
+    assert "`docs/specs/APP_V2_IMPLEMENTATION_PLAN.md`" in doc_index
+    assert "`docs/quality/V2_CAPABILITY_MAP.md`" in doc_index
+    assert "compatibility stub; historical repo-plan content preserved under `docs/_spec_snapshots/`" in legacy_index
+    assert "compatibility stub; historical capability framing preserved under `docs/_spec_snapshots/`" in legacy_index
+    assert "This is a compatibility stub." in implementation_plan
+    assert "This is a compatibility stub." in capability_map
+    assert "reference-only" in implementation_plan
+    assert "reference-only" in capability_map
+
+
 def test_active_governance_protocols_are_repo_localized() -> None:
     for relative_path in (
         "docs/governance/SPEC_EDITING_PROTOCOL.md",
