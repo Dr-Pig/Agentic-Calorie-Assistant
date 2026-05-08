@@ -549,6 +549,15 @@ async def test_run_intake_manager_records_prompt_layer_contract_trace_only() -> 
     }["context_engineering"]
     assert context_footprint["utf8_bytes"] >= 0
     assert context_footprint["key_count"] == len(sections["context_engineering"]["keys"])
+    key_footprints = {
+        item["key"]: item
+        for item in context_footprint["key_footprints"]
+    }
+    assert set(key_footprints) == set(sections["context_engineering"]["keys"])
+    assert key_footprints["manager_context_packet_v1"]["utf8_bytes"] >= 0
+    assert context_footprint["largest_key"] in key_footprints
+    assert footprint["largest_dynamic_key"]["section_id"] in sections
+    assert footprint["largest_dynamic_key"]["key"]
     assert result.trace["react_trace"]["manager_pass_1"]["prompt_layer_contract"] == layer
 
 
