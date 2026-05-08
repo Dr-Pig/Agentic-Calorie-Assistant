@@ -179,7 +179,14 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt1a_prompt_registry_and_trace_versioning",
         "rt3_react_trace_contract",
     ]
+    assert gates["rt14a_provider_health_schema_live_foundation"]["status"] == "green"
+    assert gates["rt14a_provider_health_schema_live_foundation"]["pass_type"] == "contract"
+    assert gates["rt14a_provider_health_schema_live_foundation"]["depends_on"] == [
+        "rt1c_cache_metrics_observability",
+        "rt13_observability_pack",
+    ]
     assert gates["rt14_limited_live_ladder"]["depends_on"] == [
+        "rt14a_provider_health_schema_live_foundation",
         "rt1c_cache_metrics_observability",
         "rt10b_nutrition_estimate_quality_fake_provider",
         "rt11_final_response_quality",
