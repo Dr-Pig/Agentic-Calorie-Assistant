@@ -25,6 +25,28 @@ SAME_TRUTH_FIELD_CONTRACTS = {
     **SAME_TRUTH_FIELD_CONTRACTS_CHAT_TODAY,
     **SAME_TRUTH_FIELD_CONTRACTS_BODY,
 }
+RENDERER_READY_STATUS = "product_pages_renderer_source_map_ready_for_human_review"
+RENDERER_SOURCE_CLOSURE_READY_STATUS = "product_pages_renderer_source_closure_ready_for_browser"
+REQUIRED_MANAGER_SOURCE_CLOSURE_GATES = (
+    "rt6_bootstrap_no_plan_body_closure",
+    "rt7_clarify_commit_correction_closure",
+    "rt8_overshoot_runtime_truth",
+    "rt11c_renderer_input_basis_evidence_pack",
+    "rt14_limited_live_ladder",
+)
+ENDPOINT_METHOD_CONTRACT = {
+    "/estimate": ("POST",),
+    "/accurate-intake/chat-history": ("GET",),
+    "/today/current-budget": ("GET",),
+    "/body-plan/active": ("GET",),
+    "/weight/observations": ("GET",),
+    "/weight/observation": ("POST",),
+    "/onboarding/bootstrap": ("POST",),
+    "/body-plan/manual-daily-target": ("POST",),
+    "/today/deficit-summary": ("GET",),
+    "/today/effective-budget": ("GET",),
+    "/today/weekly-progress": ("GET",),
+}
 
 
 def _json_safe(value: Any) -> Any:
@@ -202,6 +224,60 @@ def _same_truth_contract_count() -> int:
     return sum(len(contracts) for contracts in SAME_TRUTH_FIELD_CONTRACTS.values())
 
 
+def _manager_gate_statuses(manager_gate_ledger_artifact: dict[str, Any] | None) -> dict[str, str | None]:
+    gates = (manager_gate_ledger_artifact or {}).get("gates") or []
+    if not isinstance(gates, list):
+        return {gate_id: None for gate_id in REQUIRED_MANAGER_SOURCE_CLOSURE_GATES}
+    by_id = {
+        str(gate.get("gate_id")): str(gate.get("status"))
+        for gate in gates
+        if isinstance(gate, dict) and gate.get("gate_id") is not None
+    }
+    return {gate_id: by_id.get(gate_id) for gate_id in REQUIRED_MANAGER_SOURCE_CLOSURE_GATES}
+
+
+def _runtime_route_table() -> dict[str, list[str]]:
+    from app.routes import router as app_router
+
+    route_methods: dict[str, set[str]] = {}
+    for route in app_router.routes:
+        path = getattr(route, "path", None)
+        methods = getattr(route, "methods", None)
+        if not path or not methods:
+            continue
+        route_methods.setdefault(str(path), set()).update(
+            str(method) for method in methods if method not in {"HEAD", "OPTIONS"}
+        )
+    return {path: sorted(methods) for path, methods in route_methods.items()}
+
+
+def _endpoint_contract_blockers(
+    *,
+    source_map: dict[str, dict[str, Any]],
+    route_table: dict[str, list[str]],
+) -> list[str]:
+    blockers: list[str] = []
+    page_endpoints = {
+        endpoint
+        for page in REQUIRED_PAGES
+        for endpoint in source_map.get(page, {}).get("endpoints", [])
+    }
+    for endpoint, required_methods in ENDPOINT_METHOD_CONTRACT.items():
+        if endpoint not in page_endpoints:
+            blockers.append(f"renderer_source_map.endpoint_missing_from_pages:{endpoint}")
+        if endpoint not in route_table:
+            blockers.append(f"route_table.missing_endpoint:{endpoint}")
+            continue
+        available_methods = set(route_table.get(endpoint) or [])
+        for method in required_methods:
+            if method not in available_methods:
+                blockers.append(f"route_table.endpoint_method_missing:{endpoint}:{method}")
+    for endpoint in page_endpoints:
+        if endpoint not in ENDPOINT_METHOD_CONTRACT:
+            blockers.append(f"renderer_source_map.endpoint_missing_method_contract:{endpoint}")
+    return blockers
+
+
 def build_product_pages_renderer_source_map_artifact(
     *,
     html_overrides: dict[str, str] | None = None,
@@ -288,7 +364,100 @@ def build_product_pages_renderer_source_map_artifact(
     )
 
 
+def build_product_pages_renderer_source_closure_artifact(
+    *,
+    manager_gate_ledger_artifact: dict[str, Any] | None,
+    renderer_source_map_artifact: dict[str, Any] | None = None,
+    route_table_override: dict[str, list[str]] | None = None,
+    html_overrides: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    source_map_artifact = renderer_source_map_artifact or build_product_pages_renderer_source_map_artifact(
+        html_overrides=html_overrides
+    )
+    source_map = source_map_artifact.get("source_map") or {}
+    route_table = route_table_override if route_table_override is not None else _runtime_route_table()
+    blockers: list[str] = []
+    if source_map_artifact.get("status") != RENDERER_READY_STATUS:
+        blockers.append(f"renderer_source_map.unexpected_status:{source_map_artifact.get('status')}")
+    if source_map_artifact.get("blockers"):
+        blockers.append("renderer_source_map.upstream_blockers_present")
+
+    upstream_gate_statuses = _manager_gate_statuses(manager_gate_ledger_artifact)
+    for gate_id, status in upstream_gate_statuses.items():
+        if status != "green":
+            blockers.append(f"manager_runtime_gate.{gate_id}_not_green:{status}")
+    blockers.extend(
+        _endpoint_contract_blockers(
+            source_map=source_map,
+            route_table=route_table,
+        )
+    )
+
+    status = RENDERER_SOURCE_CLOSURE_READY_STATUS if not blockers else "blocked"
+    return _json_safe(
+        {
+            "artifact_schema_version": "1.0",
+            "artifact_type": "accurate_intake_product_pages_renderer_source_closure_gate",
+            "status": status,
+            "pass_type": "contract",
+            "claim_scope": "appshell_renderer_source_closure_for_browser_gate_input",
+            "generated_at_utc": datetime.now(UTC).isoformat(),
+            "pages": list(REQUIRED_PAGES),
+            "blockers": blockers,
+            "source_map_status": source_map_artifact.get("status"),
+            "source_map_artifact_type": source_map_artifact.get("artifact_type"),
+            "upstream_manager_gates": upstream_gate_statuses,
+            "route_table_checked": True,
+            "endpoint_method_contract": {
+                endpoint: list(methods) for endpoint, methods in ENDPOINT_METHOD_CONTRACT.items()
+            },
+            "route_table_subset": {
+                endpoint: route_table.get(endpoint)
+                for endpoint in ENDPOINT_METHOD_CONTRACT
+                if endpoint in route_table
+            },
+            "summary": {
+                "page_count": len(REQUIRED_PAGES),
+                "manager_runtime_gates_checked": len(REQUIRED_MANAGER_SOURCE_CLOSURE_GATES),
+                "endpoint_method_contract_count": len(ENDPOINT_METHOD_CONTRACT),
+                "route_endpoint_count": len(route_table),
+            },
+            "local_only": True,
+            "diagnostic_only": True,
+            "fixture_only": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "ui_truth_owner": False,
+            "frontend_semantic_owner": False,
+            "frontend_calculates_kcal": False,
+            "frontend_calculates_remaining": False,
+            "frontend_calculates_tdee": False,
+            "frontend_selects_target": False,
+            "context_engineering_fault_claimed": False,
+            "ready_for_live_diagnostic_decision": False,
+            "ready_for_fdb_integration": False,
+            "live_llm_invoked": False,
+            "live_provider_called": False,
+            "web_tavily_used": False,
+            "websearch_evidence_used": False,
+            "fooddb_evidence_used": False,
+            "fooddb_truth_updated": False,
+            "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "web_readiness_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "production_db_used": False,
+            "manager_context_packet_schema_changed": False,
+            "mutation_authority": False,
+            "deterministic_semantic_inference_used": False,
+            "raw_text_intent_router_used": False,
+        }
+    )
+
+
 __all__ = [
     "REQUIRED_PAGES",
     "build_product_pages_renderer_source_map_artifact",
+    "build_product_pages_renderer_source_closure_artifact",
 ]
