@@ -127,3 +127,34 @@ def test_pull_request_template_includes_owner_lane_and_required_report_keys() ->
     assert "launch_claim_scope: none" in template
     assert "track_alias_target" not in template
     assert "gate_advanced" not in template
+
+
+def test_agents_bootstrap_uses_current_docs_index_and_operating_entry() -> None:
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+
+    assert "[docs/DOC_INDEX.md]" in agents
+    assert "[docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md]" in agents
+    assert "docs/_spec_snapshots" in agents
+    assert "[docs/V2_DOC_INDEX.md]" not in agents
+    assert "[docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md]" not in agents
+    assert "artifacts/docs-snapshots" not in agents
+
+
+def test_docs_bootstrap_index_and_legacy_reference_are_consistent() -> None:
+    doc_index = (ROOT / "docs" / "DOC_INDEX.md").read_text(encoding="utf-8")
+    operating_entry = (ROOT / "docs" / "specs" / "APP_ENGINEERING_OPERATING_ENTRY.md").read_text(encoding="utf-8")
+    legacy_index = (ROOT / "docs" / "specs" / "LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md").read_text(encoding="utf-8")
+    docs_index_stub = (ROOT / "docs" / "index.md").read_text(encoding="utf-8")
+    v2_index_stub = (ROOT / "docs" / "V2_DOC_INDEX.md").read_text(encoding="utf-8")
+
+    assert "sole active docs index: `docs/DOC_INDEX.md`" in doc_index
+    assert "`docs/index.md` is compatibility-only and must stay thin" in doc_index
+    assert "`docs/V2_DOC_INDEX.md` is compatibility-only and must stay thin" in doc_index
+    assert "sole active operating entry: `docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md`" in doc_index
+    assert "sole legacy runtime reference index: `docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md`" in doc_index
+    assert "canonical preservation path: `docs/_spec_snapshots/`" in doc_index
+    assert "Current Shell" in operating_entry
+    assert "stop and return to [docs/DOC_INDEX.md]" in docs_index_stub
+    assert "stop and return to [docs/DOC_INDEX.md]" in v2_index_stub
+    assert "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md" in legacy_index
+    assert "docs/specs/APP_V2_IMPLEMENTATION_PLAN.md" in legacy_index
