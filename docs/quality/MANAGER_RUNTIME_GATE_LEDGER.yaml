@@ -180,7 +180,7 @@ gates:
       - rt10a_nutrition_estimate_quality_deterministic
   - gate_id: rt12_trace_grading_v1
     title: Trace grading v1
-    status: pending
+    status: green
     pass_type: fixture
     depends_on:
       - rt3_react_trace_contract
