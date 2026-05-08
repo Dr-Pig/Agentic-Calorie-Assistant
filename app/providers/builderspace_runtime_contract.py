@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from typing import Any
-
 from ..runtime.agent.manager_branch_contract import (
     ManagerPass1BranchContractError,
     manager_pass1_schema_for_constraints,
     validate_manager_pass1_branch,
 )
 from .builderspace_final_mapping_schema import apply_evidence_present_final_mapping_schema
+from .builderspace_schema_compaction import compact_decision_transport_schema
 from ..runtime.agent.founder_live_manager_contract import (
     FOUNDER_LIVE_MANAGER_ALLOWED_FINAL_ACTIONS,
     FOUNDER_LIVE_MANAGER_ALLOWED_INTENT_TYPES,
@@ -305,7 +305,7 @@ def manager_loop_decision_transport_schema(constraints: dict[str, Any] | None = 
     stable_constraints.pop("manager_loop_scope", None)
     stable_constraints.pop("available_tools", None)
     stable_constraints.pop("manager_contract_evidence_state", None)
-    return manager_loop_schema(stable_constraints)
+    return compact_decision_transport_schema(manager_loop_schema(stable_constraints))
 
 
 def response_schema_for_stage(stage: str, constraints: dict[str, Any] | None = None) -> dict[str, Any] | None:
