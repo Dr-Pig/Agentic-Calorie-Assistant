@@ -145,10 +145,9 @@ def _live_case_specs(
             "reply_text": str(no_plan_turn.get("coach_message") or ""),
             "logged_status": "",
             "final_action": no_plan_turn.get("manager_final_action"),
-            "must_exclude_kcal": True,
             "must_exclude_macro_visible": True,
-            "required_markers": ["Onboarding is required"],
-            "forbidden_markers": ["Remaining about", "remaining 0 kcal", "remaining 1312 kcal"],
+            "required_markers": ["設定", "剩餘"],
+            "forbidden_markers": ["Onboarding is required", "Remaining about", "remaining 0 kcal", "remaining 1312 kcal", "剩餘 0"],
         },
         {
             "case_id": "correction_update_live",

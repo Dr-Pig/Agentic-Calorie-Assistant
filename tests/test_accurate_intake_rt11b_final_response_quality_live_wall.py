@@ -98,7 +98,7 @@ def _no_plan_artifact() -> dict[str, object]:
         [
             {
                 "turn": 1,
-                "coach_message": "Onboarding is required before I can answer remaining budget.",
+                "coach_message": "今天尚未設定每日熱量目標，尚未記錄任何餐食。請先完成個人化設定以追蹤攝取與剩餘熱量。",
                 "manager_final_action": None,
             }
         ],
