@@ -14,6 +14,23 @@ from scripts.build_accurate_intake_mvp_private_self_use_candidate import (
 )
 
 
+_REMOVED_FIXED_FALSE_FIELDS = (
+    "private_self_use_approved",
+    "product_readiness_claimed",
+    "production_selected",
+    "mutation_rollout_approved",
+    "runtime_web_activation_approved",
+    "shadow_or_canary_approved",
+    "model_portability_claimed",
+    "non_claim_boundaries",
+)
+
+
+def _assert_removed_fixed_false_fields(candidate: dict[str, object]) -> None:
+    for field in _REMOVED_FIXED_FALSE_FIELDS:
+        assert field not in candidate
+
+
 def _decision_pack(
     *,
     selected_option: str = "prepare_private_self_use_candidate",
@@ -91,14 +108,11 @@ def test_private_self_use_candidate_prepares_review_artifact_without_approval() 
     assert candidate["artifact_type"] == "accurate_intake_mvp_private_self_use_candidate"
     assert candidate["claim_scope"] == "private_self_use_candidate_review"
     assert candidate["candidate_prepared"] is True
-    assert candidate["private_self_use_approved"] is False
-    assert candidate["product_readiness_claimed"] is False
-    assert candidate["production_selected"] is False
-    assert candidate["mutation_rollout_approved"] is False
     assert candidate["requires_human_approval"] is True
     assert candidate["input_integrity"]["passed"] is True
     assert candidate["activation_status"] == "candidate_review_required"
     assert candidate["local_web_candidate_summary"]["candidate_prepared"] is True
+    _assert_removed_fixed_false_fields(candidate)
 
 
 def test_private_self_use_candidate_blocks_non_candidate_decision_pack() -> None:
@@ -114,7 +128,7 @@ def test_private_self_use_candidate_blocks_non_candidate_decision_pack() -> None
     assert candidate["candidate_prepared"] is False
     assert candidate["activation_status"] == "blocked"
     assert "decision_pack_not_candidate" in candidate["input_integrity"]["blockers"]
-    assert candidate["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(candidate)
 
 
 def test_private_self_use_candidate_blocks_overclaiming_decision_pack() -> None:
@@ -126,7 +140,7 @@ def test_private_self_use_candidate_blocks_overclaiming_decision_pack() -> None:
     assert candidate["candidate_prepared"] is False
     assert "decision_pack_product_readiness_claimed" in candidate["input_integrity"]["blockers"]
     assert "decision_pack_private_self_use_approved" in candidate["input_integrity"]["blockers"]
-    assert candidate["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(candidate)
 
 
 def test_private_self_use_candidate_requires_local_web_candidate_v2() -> None:
@@ -139,7 +153,7 @@ def test_private_self_use_candidate_requires_local_web_candidate_v2() -> None:
     assert candidate["activation_status"] == "blocked"
     assert "local_web_candidate_missing" in candidate["input_integrity"]["blockers"]
     assert candidate["requires_human_approval"] is False
-    assert candidate["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(candidate)
 
 
 def test_private_self_use_candidate_blocks_failed_local_web_candidate_v2() -> None:
@@ -178,7 +192,7 @@ def test_private_self_use_candidate_blocks_local_web_candidate_overclaims() -> N
     assert "local_web_candidate_runtime_web_activation_approved" in candidate["input_integrity"]["blockers"]
     assert "local_web_candidate_mutation_rollout_approved" in candidate["input_integrity"]["blockers"]
     assert "local_web_candidate_shadow_or_canary_approved" in candidate["input_integrity"]["blockers"]
-    assert candidate["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(candidate)
 
 
 def test_private_self_use_candidate_blocks_local_web_candidate_with_upstream_blockers() -> None:
@@ -210,7 +224,7 @@ def test_private_self_use_candidate_writer_creates_artifact(tmp_path: Path) -> N
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert output.name == "accurate_intake_mvp_private_self_use_candidate.json"
     assert payload["artifact_type"] == "accurate_intake_mvp_private_self_use_candidate"
-    assert payload["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(payload)
 
 
 def test_private_self_use_candidate_writer_accepts_run_specific_output_path(tmp_path: Path) -> None:

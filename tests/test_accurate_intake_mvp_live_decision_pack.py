@@ -10,6 +10,23 @@ from scripts.build_accurate_intake_mvp_live_decision_pack import (
 )
 
 
+_REMOVED_FIXED_FALSE_FIELDS = (
+    "readiness_claimed",
+    "product_readiness_claimed",
+    "private_self_use_approved",
+    "production_selected",
+    "model_portability_claimed",
+    "mutation_rollout_approved",
+    "runtime_web_activation_approved",
+    "shadow_or_canary_approved",
+)
+
+
+def _assert_removed_fixed_false_fields(pack: dict[str, object]) -> None:
+    for field in _REMOVED_FIXED_FALSE_FIELDS:
+        assert field not in pack
+
+
 def _artifact(
     *,
     live_invoked: bool = True,
@@ -150,10 +167,7 @@ def test_accurate_intake_live_decision_pack_routes_environment_blocker_to_stay_d
     assert pack["decision_options_ordered"] == list(DECISION_OPTION_IDS)
     assert pack["selected_option"] == "provider_health_blocked"
     assert pack["selection_reason"] == "environment_or_provider_blocker"
-    assert pack["private_self_use_approved"] is False
-    assert pack["product_readiness_claimed"] is False
-    assert pack["mutation_rollout_approved"] is False
-    assert pack["production_selected"] is False
+    _assert_removed_fixed_false_fields(pack)
 
 
 def test_accurate_intake_live_decision_pack_blocks_on_failed_provider_health_stage() -> None:
@@ -200,7 +214,7 @@ def test_accurate_intake_live_decision_pack_blocks_on_schema_contract_stage() ->
 
     assert pack["selected_option"] == "schema_contract_blocked"
     assert pack["selection_reason"] == "schema_contract_blocked"
-    assert pack["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(pack)
 
 
 def test_accurate_intake_live_decision_pack_requires_single_case_before_full_suite() -> None:
@@ -361,7 +375,7 @@ def test_accurate_intake_live_decision_pack_advances_strict_replay_to_full_suite
     assert pack["offline_replay_summary"]["strict_replay_ready"] is True
     assert pack["offline_replay_summary"]["model_diversity_status"] == "model_diversity_missing"
     assert pack["private_self_use_candidate_prepared"] is False
-    assert pack["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(pack)
 
 
 def test_accurate_intake_live_decision_pack_blocks_after_full_suite_when_model_diversity_missing() -> None:
@@ -375,7 +389,7 @@ def test_accurate_intake_live_decision_pack_blocks_after_full_suite_when_model_d
     assert pack["selection_reason"] == "model_diversity_missing"
     assert pack["stage_summary"]["full_suite_status"] == "pass"
     assert pack["private_self_use_candidate_prepared"] is False
-    assert pack["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(pack)
 
 
 def test_accurate_intake_live_decision_pack_blocks_missing_required_stage_manifest() -> None:
@@ -523,7 +537,7 @@ def test_accurate_intake_live_decision_pack_blocks_private_candidate_for_repaire
     assert pack["selected_option"] == "repeat_single_profile_diagnostic"
     assert pack["selection_reason"] == "live_clean_but_repair_dependent"
     assert pack["evidence_summary"]["repaired_case_ids"] == ["chinese_chicken_rice_correction_removal_debug"]
-    assert pack["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(pack)
 
 
 def test_accurate_intake_live_decision_pack_routes_single_strict_run_to_offline_replay() -> None:
@@ -531,7 +545,7 @@ def test_accurate_intake_live_decision_pack_routes_single_strict_run_to_offline_
 
     assert pack["selected_option"] == "offline_shadow_replay"
     assert pack["selection_reason"] == "single_live_run_requires_offline_replay_before_private_self_use_candidate"
-    assert pack["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(pack)
 
 
 def test_accurate_intake_live_decision_pack_can_prepare_private_candidate_but_not_approve_it() -> None:
@@ -564,10 +578,7 @@ def test_accurate_intake_live_decision_pack_can_prepare_private_candidate_but_no
     assert pack["selected_option"] == "prepare_private_self_use_candidate"
     assert pack["selection_reason"] == "strict_live_diagnostic_with_replay_evidence"
     assert pack["private_self_use_candidate_prepared"] is True
-    assert pack["private_self_use_approved"] is False
-    assert pack["product_readiness_claimed"] is False
-    assert pack["mutation_rollout_approved"] is False
-    assert pack["model_portability_claimed"] is False
+    _assert_removed_fixed_false_fields(pack)
     assert pack["max_model_claim"] == "multi_profile_live_diagnostic_observed"
 
 
@@ -693,7 +704,7 @@ def test_accurate_intake_live_decision_pack_blocks_candidate_on_contract_hardeni
     assert pack["contract_hardening_summary"]["present"] is True
     assert pack["contract_hardening_summary"]["debt_present"] is True
     assert pack["private_self_use_candidate_prepared"] is False
-    assert pack["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(pack)
 
 
 def test_accurate_intake_live_decision_pack_requires_full_suite_evidence_before_private_candidate() -> None:
@@ -752,7 +763,7 @@ def test_accurate_intake_live_decision_pack_blocks_private_candidate_when_replay
     assert pack["selected_option"] == "offline_shadow_replay"
     assert pack["selection_reason"] == "model_diversity_missing"
     assert pack["private_self_use_candidate_prepared"] is False
-    assert pack["private_self_use_approved"] is False
+    _assert_removed_fixed_false_fields(pack)
 
 
 def test_accurate_intake_live_decision_pack_writer_creates_artifact(tmp_path: Path) -> None:
@@ -764,7 +775,7 @@ def test_accurate_intake_live_decision_pack_writer_creates_artifact(tmp_path: Pa
     pack = json.loads(output.read_text(encoding="utf-8"))
     assert output.name == "accurate_intake_mvp_live_decision_pack.json"
     assert pack["artifact_type"] == "accurate_intake_mvp_live_decision_pack"
-    assert pack["runtime_web_activation_approved"] is False
+    _assert_removed_fixed_false_fields(pack)
 
 
 def test_accurate_intake_live_decision_pack_writer_accepts_run_specific_output_path(tmp_path: Path) -> None:
