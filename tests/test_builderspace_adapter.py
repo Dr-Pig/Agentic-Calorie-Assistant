@@ -998,6 +998,49 @@ def test_founder_live_decision_transport_tool_schema_is_stable_across_manager_sc
     assert intake_response_schema["properties"]["manager_action"]["enum"] == ["call_tools", "final"]
 
 
+def test_founder_live_decision_transport_tool_schema_is_stable_across_evidence_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    no_evidence_constraints = {
+        **_founder_live_constraints(),
+        "manager_loop_scope": "intake_execution",
+        "available_tools": ["estimate_nutrition"],
+        "manager_contract_evidence_state": {
+            "nutrition_evidence_present": False,
+            "tool_result_names": [],
+        },
+    }
+    evidence_present_constraints = {
+        **_founder_live_constraints(),
+        "manager_loop_scope": "intake_execution",
+        "available_tools": ["estimate_nutrition"],
+        "manager_contract_evidence_state": {
+            "nutrition_evidence_present": True,
+            "tool_result_names": ["estimate_nutrition"],
+        },
+    }
+
+    no_evidence_request, _ = adapter._decision_transport_request_for_stage(
+        "intake_manager_round",
+        constraints=no_evidence_constraints,
+    )
+    evidence_present_request, _ = adapter._decision_transport_request_for_stage(
+        "intake_manager_round",
+        constraints=evidence_present_constraints,
+    )
+    evidence_present_response_schema = adapter._response_schema_for_stage(
+        "intake_manager_round",
+        constraints=evidence_present_constraints,
+    )
+
+    assert no_evidence_request is not None
+    assert evidence_present_request is not None
+    assert no_evidence_request["tools"] == evidence_present_request["tools"]
+    assert no_evidence_request["tool_choice"] == evidence_present_request["tool_choice"]
+    assert "no_commit" not in evidence_present_response_schema["properties"]["final_action"]["enum"]
+
+
 def test_founder_live_entry_scope_allows_downstream_correction_candidate_without_target_evidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

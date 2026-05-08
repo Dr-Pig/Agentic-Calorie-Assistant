@@ -297,6 +297,7 @@ def manager_loop_decision_transport_schema(constraints: dict[str, Any] | None = 
     stable_constraints = dict(constraints or {})
     stable_constraints.pop("manager_loop_scope", None)
     stable_constraints.pop("available_tools", None)
+    stable_constraints.pop("manager_contract_evidence_state", None)
     return manager_loop_schema(stable_constraints)
 
 
