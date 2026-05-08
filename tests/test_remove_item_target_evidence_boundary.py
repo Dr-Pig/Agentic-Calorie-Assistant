@@ -6,8 +6,11 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.budget.infrastructure.models import DayBudgetLedgerRecord
 from app.composition.canonical_persistence import commit_meal_payload_to_canonical
-from app.composition.remove_item_target_evidence import build_remove_item_target_evidence_artifact
-from app.composition.intake_manager_tool_batch import nutrition_tool_output
+from app.composition.remove_item_target_evidence import (
+    build_remove_item_target_evidence_artifact,
+    remove_item_target_evidence_ready,
+)
+from app.composition.intake_manager_tool_batch import nutrition_tool_output, validate_manager_target_proposal
 from app.composition.intake_persistence_tools import persist_meal_log_tool
 from app.database import get_or_create_user
 from app.intake.application.target_evidence_artifacts import TargetEvidenceArtifact
@@ -70,6 +73,43 @@ def _resolved_target(*, meal_thread_id: int, item: MealItemRecord) -> dict[str, 
         "observed_canonical_name": item.name,
         "target_resolution_source": "manager_target_proposal_validated",
     }
+
+
+def test_target_validation_preserves_manager_owned_remove_operation_alias() -> None:
+    db = _session()
+    meal_thread_id, soup = _seed_two_item_meal(db)
+    correction_target = {
+        **_resolved_target(meal_thread_id=meal_thread_id, item=soup),
+        "item_candidates": [{"meal_item_id": soup.id, "canonical_name": soup.name}],
+    }
+
+    resolved = validate_manager_target_proposal(
+        correction_target=correction_target,
+        proposal={"meal_item_id": soup.id, "action_type": "remove_item"},
+    )
+
+    assert resolved["correction_operation"] == "remove_item"
+    assert resolved["operation"] == "remove_item"
+
+
+def test_remove_item_target_evidence_ready_can_use_target_evidence_operation() -> None:
+    manager_payload = {"final_action": "correction_applied", "target_attachment": {"canonical_name": "soup"}}
+    correction_target = {
+        "meal_thread_id": 1,
+        "meal_item_id": 2,
+        "canonical_name": "soup",
+        "target_resolution_source": "manager_target_proposal_validated",
+        "correction_operation": "remove_item",
+    }
+
+    assert remove_item_target_evidence_ready(
+        manager_payload=manager_payload,
+        correction_target=correction_target,
+    ) is True
+    assert remove_item_target_evidence_ready(
+        manager_payload=manager_payload,
+        correction_target={**correction_target, "correction_operation": ""},
+    ) is False
 
 
 def test_remove_item_target_evidence_uses_non_nutrition_artifact_and_canonical_remaining_totals() -> None:

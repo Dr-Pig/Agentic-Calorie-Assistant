@@ -954,6 +954,7 @@ def test_founder_live_entry_scope_allows_downstream_correction_candidate_without
             "nutrition_evidence_present": False,
             "target_evidence_present": False,
             "target_evidence_source": None,
+            "target_evidence_operation": None,
         },
     }
     payload = _founder_live_payload(
@@ -990,6 +991,7 @@ def test_founder_live_intake_scope_rejects_correction_candidate_without_target_e
             "nutrition_evidence_present": False,
             "target_evidence_present": False,
             "target_evidence_source": None,
+            "target_evidence_operation": None,
         },
     }
     payload = _founder_live_payload(
@@ -1493,6 +1495,46 @@ def test_founder_live_remove_item_can_finalize_with_target_evidence_without_nutr
     )
 
 
+def test_founder_live_remove_item_can_use_prior_target_evidence_operation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    constraints = {
+        **_founder_live_constraints(),
+        "manager_contract_evidence_state": {
+            "nutrition_evidence_present": False,
+            "target_evidence_present": True,
+            "target_evidence_operation": "remove_item",
+            "tool_result_names": ["resolve_correction_target"],
+        },
+    }
+    remove_item_final = _founder_live_payload(
+        final_action="correction_applied",
+        workflow_effect="correction_applied",
+        target_attachment={"meal_item_id": 2, "canonical_name": "soup"},
+        evidence_posture="target_evidence_present",
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "correct_meal",
+            "target_attachment": {"meal_item_id": 2, "canonical_name": "soup"},
+            "workflow_effect": "correction_applied",
+            "final_action_candidate": "correction_applied",
+            "estimation_posture": "target_resolved",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "correction_write",
+            "uncertainty_posture": "low",
+            "source": "live_manager_structured_output",
+        },
+        answer_contract={"response_mode": "correction_update"},
+    )
+
+    adapter._validate_manager_payload(
+        "intake_manager_round",
+        remove_item_final,
+        constraints=constraints,
+    )
+
+
 def test_founder_live_remove_item_schema_keeps_correction_action_with_target_evidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1542,6 +1584,7 @@ def test_founder_live_contract_does_not_count_failed_tool_result_as_evidence() -
         "nutrition_evidence_present": False,
         "target_evidence_present": False,
         "target_evidence_source": None,
+        "target_evidence_operation": None,
     }
 
 
@@ -1572,7 +1615,32 @@ def test_founder_live_contract_constraints_are_compact_dynamic_refs() -> None:
         "nutrition_evidence_present": False,
         "target_evidence_present": False,
         "target_evidence_source": None,
+        "target_evidence_operation": None,
     }
+
+
+def test_founder_live_contract_constraints_preserve_target_evidence_operation() -> None:
+    from app.runtime.agent.founder_live_manager_contract import founder_live_manager_contract_constraints
+
+    constraints = founder_live_manager_contract_constraints(
+        "builderspace-grok-4-fast-founder-live-contract",
+        tool_results=[
+            {
+                "tool_name": "resolve_correction_target",
+                "provenance": {
+                    "correction_target": {
+                        "meal_thread_id": 1,
+                        "meal_item_id": 2,
+                        "canonical_name": "soup",
+                        "correction_operation": "remove_item",
+                    }
+                },
+            }
+        ],
+    )
+
+    assert constraints["manager_contract_evidence_state"]["target_evidence_present"] is True
+    assert constraints["manager_contract_evidence_state"]["target_evidence_operation"] == "remove_item"
 
 
 def test_founder_live_contract_blocks_composition_unknown_estimate_tool_call(

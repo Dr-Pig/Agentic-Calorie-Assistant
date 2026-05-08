@@ -16,20 +16,17 @@ from app.intake.application.target_evidence_artifacts import payload_is_target_e
 from app.nutrition.application.evidence_eligibility import classify_query_family, summarize_eligibility_results
 from app.nutrition.application.web_extract_port import WebExtractPort
 from app.nutrition.application.web_search_port import WebSearchPort
-
+from app.shared.contracts.correction_operation import structured_correction_operation
 
 def payload_trace_contract(payload: Any) -> dict[str, Any]:
     return dict(getattr(payload, "trace_contract", None) or {})
-
 
 def payload_unresolved_info(payload: Any) -> list[str]:
     raw = payload_trace_contract(payload).get("unresolved_info") or []
     return [str(item) for item in raw if str(item).strip()]
 
-
 def macro_summary(payload: Any | None) -> dict[str, Any]:
     return build_payload_macro_summary(payload)
-
 
 def evidence_summary(*, raw_user_input: str, payload: Any | None) -> dict[str, Any]:
     trace_contract = payload_trace_contract(payload) if payload is not None else {}
@@ -116,6 +113,7 @@ def validate_manager_target_proposal(
     candidates = [dict(item) for item in (correction_target.get("item_candidates") or []) if isinstance(item, dict)]
     proposed_id = proposal.get("meal_item_id")
     proposed_name = str(proposal.get("canonical_name") or proposal.get("item_name") or "").strip()
+    operation = structured_correction_operation(proposal)
     matched: dict[str, Any] | None = None
     for candidate in candidates:
         id_matches = proposed_id is not None and candidate.get("meal_item_id") == proposed_id
@@ -145,6 +143,7 @@ def validate_manager_target_proposal(
         "meal_item_id": matched.get("meal_item_id"),
         "canonical_name": matched.get("canonical_name"),
         "observed_canonical_name": matched.get("canonical_name"),
+        **({"correction_operation": operation, "operation": operation} if operation else {}),
         "target_resolution_source": "manager_target_proposal_validated",
         "correction_confidence": "high",
         "manager_target_proposal_validation": {
