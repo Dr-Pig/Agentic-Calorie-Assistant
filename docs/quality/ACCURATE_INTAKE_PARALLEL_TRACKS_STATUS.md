@@ -184,7 +184,7 @@ Frontend must not infer:
 ManagerRuntime may also own chat-first Manager-managed app-state tools outside FoodDB/Search Evidence:
 - budget/day-status read-only tools
 - body read-only tools and guarded observation recording surfaces
-- calibration preview / pending proposal / stored proposal action surfaces
+- calibration preview / pending proposal / stored proposal action surfaces, but only as the CurrentShell calibration proposal seam; full calibration activation remains deferred
 - app usage/help answers
 
 AppShell must not infer tool choice, target selection, mutation legality, or nutrition truth in the frontend.

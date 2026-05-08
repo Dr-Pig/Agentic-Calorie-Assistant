@@ -17,7 +17,7 @@ def test_current_shell_sync_contract_records_launch_scope_and_claim_rules() -> N
     assert contract["runtime_contract_owner"] == "ManagerRuntime"
     assert contract["downstream_shell_owner"] == "AppShell"
     assert contract["in_scope_journeys"] == ["A", "B", "C", "D", "E", "G", "H", "J", "K"]
-    assert contract["read_only_seams"] == ["I"]
+    assert contract["proposal_seams"] == ["I"]
     assert "U" in contract["deferred_journeys"]
     assert contract["pass_taxonomy"] == [
         "static",
@@ -229,14 +229,14 @@ def test_manager_runtime_gate_artifacts_are_structurally_consistent() -> None:
 
     gates = {entry["gate_id"]: entry for entry in ledger["gates"]}
     in_scope_journeys = set(contract["in_scope_journeys"])
-    read_only_seams = set(contract["read_only_seams"])
+    proposal_seams = set(contract["proposal_seams"])
     deferred_journeys = set(contract["deferred_journeys"])
     journey_gate_map = ledger["journey_gate_map"]
 
     assert in_scope_journeys == set(journey_gate_map)
-    assert in_scope_journeys.isdisjoint(read_only_seams)
+    assert in_scope_journeys.isdisjoint(proposal_seams)
     assert in_scope_journeys.isdisjoint(deferred_journeys)
-    assert read_only_seams.isdisjoint(deferred_journeys)
+    assert proposal_seams.isdisjoint(deferred_journeys)
 
     for gate in ledger["gates"]:
         for dependency in gate["depends_on"]:
