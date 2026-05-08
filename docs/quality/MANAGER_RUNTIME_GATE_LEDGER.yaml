@@ -154,7 +154,7 @@ gates:
       - rt7_clarify_commit_correction_closure
   - gate_id: rt9_packet_consumption_seam
     title: FoodDB/WebSearch packet consumption seam
-    status: pending
+    status: green
     pass_type: runtime_backed
     depends_on:
       - rt7_clarify_commit_correction_closure

@@ -2,9 +2,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.shared.contracts.correction_target import validate_correction_target_ref
-
-from app.composition.intake_estimation_tools import estimate_nutrition_tool
+from app.composition.intake_estimation_tools import (
+    estimate_nutrition_tool,
+    manager_semantic_decision_from_tool_arguments,
+)
+from app.composition.intake_tool_context import (
+    contextualized_query_for_estimation,
+    correction_target_resolved,
+)
 from app.composition.intake_read_tools import compare_against_budget_tool
 from app.composition.payload_macro_summary import build_payload_macro_summary
 from app.intake.application.target_evidence_artifacts import payload_is_target_evidence
@@ -98,25 +103,6 @@ def evidence_summary(*, raw_user_input: str, payload: Any | None) -> dict[str, A
         "search_query": trace_contract.get("search_query"),
         "db_hit_type": db_hit_type or None,
     }
-
-
-def contextualized_query_for_estimation(*, raw_user_input: str, state_before: Any) -> str | None:
-    pending_followup = ((state_before.injected_context or {}).get("PENDING_FOLLOWUP") or {})
-    if not bool(pending_followup.get("is_open")):
-        return None
-    target = ((state_before.injected_context or {}).get("TARGET_MEAL_REFERENCE") or {})
-    meal_title = str(target.get("meal_title") or "").strip()
-    pending_question = str(pending_followup.get("pending_question") or "").strip()
-    answer = str(raw_user_input or "").strip()
-    if not meal_title or not answer:
-        return None
-    if pending_question:
-        return f"Follow-up for {meal_title}. Pending question: {pending_question} User answer: {answer}"
-    return f"Follow-up for {meal_title}: {answer}"
-
-
-def correction_target_resolved(correction_target: dict[str, Any]) -> bool:
-    return validate_correction_target_ref(correction_target).get("resolved") is True
 
 
 def validate_manager_target_proposal(
@@ -301,8 +287,9 @@ async def execute_manager_tool_calls(
     results: list[dict[str, Any]] = []
     for call in tool_calls:
         name = str(call.get("name") or call.get("tool_name") or "").strip()
+        arguments = dict(call.get("arguments") or {}) if isinstance(call.get("arguments"), dict) else {}
         if name == "resolve_correction_target":
-            proposed_target = dict(call.get("arguments") or {}) if isinstance(call.get("arguments"), dict) else {}
+            proposed_target = dict(arguments)
             resolved_target = validate_manager_target_proposal(
                 correction_target=correction_target,
                 proposal=proposed_target,
@@ -347,6 +334,7 @@ async def execute_manager_tool_calls(
                     search_port=search_port,
                     extract_port=extract_port,
                     allow_search=allow_search,
+                    manager_semantic_decision=manager_semantic_decision_from_tool_arguments(arguments),
                     force_new_meal_context=(
                         not bool(((state_before.injected_context or {}).get("PENDING_FOLLOWUP") or {}).get("is_open"))
                         and not correction_target_resolved(active_correction_target)
