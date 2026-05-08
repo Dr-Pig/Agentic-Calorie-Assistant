@@ -101,6 +101,17 @@ def test_required_runtime_contract_wall_does_not_run_pre_edd_readiness() -> None
     assert "tests/test_pre_edd_readiness.py" not in workflow
 
 
+def test_required_repo_hygiene_runs_pr_diff_quality_gate() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+
+    assert "Run PR diff quality gate" in workflow
+    assert "github.event_name == 'pull_request' || github.event_name == 'merge_group'" in workflow
+    assert "git fetch --no-tags origin main" in workflow
+    assert 'BASE_SHA="$(git merge-base origin/main HEAD)"' in workflow
+    assert "python scripts/merge_governance/pre_pr_quality_gate.py" in workflow
+    assert "--skip-boundary-checks" in workflow
+
+
 def test_current_shell_sync_contract_uses_canonical_track_and_conservative_launch_scope() -> None:
     contract = (ROOT / "docs" / "quality" / "CURRENT_SHELL_SYNC_CONTRACT.yaml").read_text(encoding="utf-8")
 
