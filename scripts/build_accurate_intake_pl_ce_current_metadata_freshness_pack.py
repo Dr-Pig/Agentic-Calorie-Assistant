@@ -14,6 +14,13 @@ from app.composition.accurate_intake_pl_ce_current_metadata_freshness import (  
     REQUIRED_CURRENT_CHAIN_ARTIFACTS,
     build_pl_ce_current_metadata_freshness_pack,
 )
+from app.composition.current_shell_compatibility_ids import (  # noqa: E402
+    CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_CURRENT_METADATA_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+    LEGACY_ACTIVATION_REVIEW_GROUP_IDS,
+    LEGACY_LOCAL_MVP_GROUP_IDS,
+)
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 
 
@@ -27,7 +34,7 @@ DEFAULT_EVIDENCE_PATHS = {
     "pl_ce_ui_context_alignment_pack": ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_ui_context_alignment_pack.json",
-    "pl_ce_local_mvp_candidate_bundle": ROOT
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_local_mvp_candidate_bundle.json",
     "pl_ce_product_pages_self_use_flow_gate": ROOT
@@ -39,7 +46,7 @@ DEFAULT_EVIDENCE_PATHS = {
     "non_fooddb_manager_tool_contract": ROOT
     / "artifacts"
     / "accurate_intake_non_fooddb_manager_tool_contract.json",
-    "pl_ce_activation_review_manifest": ROOT
+    CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID: ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_activation_review_manifest.json",
 }
@@ -56,13 +63,9 @@ def _fallback_payload(group_id: str, path: Path, *, status: str, error: str = ""
         "generated_at_utc": "",
         "read_error": error,
         "autofix_attempted": False,
-        "ready_for_live_diagnostic_decision": False,
-        "ready_for_fdb_integration": False,
         "live_llm_invoked": False,
         "web_tavily_used": False,
         "fooddb_evidence_used": False,
-        "product_readiness_claimed": False,
-        "private_self_use_approved": False,
     }
 
 
@@ -91,19 +94,39 @@ def build_pl_ce_current_metadata_freshness_report(
 
 
 def _parse_artifact_overrides(values: list[str], parser: argparse.ArgumentParser) -> dict[str, Path]:
+    allowed_aliases = {
+        **DEFAULT_EVIDENCE_PATHS,
+        **{
+            legacy_group_id: DEFAULT_EVIDENCE_PATHS[CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID]
+            for legacy_group_id in LEGACY_LOCAL_MVP_GROUP_IDS
+        },
+        **{
+            legacy_group_id: DEFAULT_EVIDENCE_PATHS[
+                CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID
+            ]
+            for legacy_group_id in LEGACY_ACTIVATION_REVIEW_GROUP_IDS
+        },
+    }
     overrides: dict[str, Path] = {}
     for value in values:
         if "=" not in value:
             parser.error(f"--artifact must be group_id=path, got: {value}")
         group_id, raw_path = value.split("=", 1)
-        if group_id not in DEFAULT_EVIDENCE_PATHS:
-            parser.error(f"Unknown PL+CE current metadata group: {group_id}")
-        overrides[group_id] = Path(raw_path)
+        if group_id not in allowed_aliases:
+            parser.error(f"Unknown CurrentShell compatibility current metadata group: {group_id}")
+        normalized_group_id = (
+            CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID
+            if group_id in LEGACY_LOCAL_MVP_GROUP_IDS
+            else CURRENT_SHELL_COMPATIBILITY_ACTIVATION_REVIEW_GROUP_ID
+            if group_id in LEGACY_ACTIVATION_REVIEW_GROUP_IDS
+            else group_id
+        )
+        overrides[normalized_group_id] = Path(raw_path)
     return overrides
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build PL+CE current metadata freshness pack.")
+    parser = argparse.ArgumentParser(description="Build CurrentShell compatibility current metadata freshness pack.")
     parser.add_argument("--artifact", action="append", default=[])
     parser.add_argument("--max-age-hours", type=int, default=72)
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT_PATH))
@@ -115,7 +138,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     write_json_artifact(Path(args.output), pack)
     print(json.dumps({"artifact": args.output, "status": pack["status"], "blockers": pack["blockers"]}, ensure_ascii=False))
-    return 0 if pack["status"] == "current_metadata_freshness_ready_for_serial_handoff" else 1
+    return 0 if pack["status"] == CURRENT_SHELL_COMPATIBILITY_CURRENT_METADATA_READY_STATUS else 1
 
 
 if __name__ == "__main__":

@@ -15,11 +15,15 @@ from app.composition.accurate_intake_pl_ce_activation_review_manifest import (  
     REQUIRED_INPUTS,
     build_pl_ce_activation_review_manifest_artifact,
 )
+from app.composition.current_shell_compatibility_ids import (  # noqa: E402
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+    LEGACY_LOCAL_MVP_GROUP_IDS,
+)
 from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
 
 
 DEFAULT_ARTIFACT_PATHS = {
-    "pl_ce_local_mvp_candidate_bundle": ROOT
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_local_mvp_candidate_bundle.json",
     "pl_ce_browser_activation_evidence_gate": ROOT
@@ -53,7 +57,12 @@ def _parse_artifact_override(value: str) -> tuple[str, Path]:
     group_id = group_id.strip()
     if not group_id:
         raise argparse.ArgumentTypeError("artifact group_id cannot be empty")
-    return group_id, Path(path.strip())
+    normalized_group_id = (
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID
+        if group_id in LEGACY_LOCAL_MVP_GROUP_IDS
+        else group_id
+    )
+    return normalized_group_id, Path(path.strip())
 
 
 def _read_payload(path: Path) -> dict[str, Any]:
@@ -97,7 +106,7 @@ def build_input_artifacts(path_overrides: dict[str, Path] | None = None) -> dict
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Build the PL+CE activation review manifest from existing gate artifacts."
+        description="Build the CurrentShell compatibility activation review manifest from existing gate artifacts."
     )
     parser.add_argument(
         "--artifact",

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -11,22 +11,13 @@ from app.composition.accurate_intake_pl_ce_serial_handoff import (
 def _activation_manifest() -> dict[str, object]:
     return {
         "artifact_schema_version": "1.0",
-        "artifact_type": "accurate_intake_pl_ce_activation_review_manifest",
-        "status": "pl_ce_activation_review_manifest_ready",
+        "artifact_type": "accurate_intake_current_shell_compatibility_activation_review_manifest",
+        "status": "current_shell_compatibility_activation_review_manifest_ready",
         "blockers": [],
         "aggregate_only": True,
         "self_generated_evidence_used": False,
         "human_review_required": True,
         "live_diagnostic_human_approval_required": True,
-        "ready_for_live_diagnostic_decision": False,
-        "ready_for_fdb_integration": False,
-        "live_llm_invoked": False,
-        "web_tavily_used": False,
-        "fooddb_evidence_used": False,
-        "real_fooddb_pass_claimed": False,
-        "dogfood_pass": False,
-        "product_readiness_claimed": False,
-        "private_self_use_approved": False,
         "remaining_stop_gates": {
             "fooddb_artifact_status": "blocked_waiting_for_fdb_artifact",
             "live_provider_status": "blocked_pending_human_approval",
@@ -36,7 +27,7 @@ def _activation_manifest() -> dict[str, object]:
 
 def _queue_metadata() -> dict[str, object]:
     return {
-        "artifact_type": "accurate_intake_pl_ce_merge_queue_metadata",
+        "artifact_type": "accurate_intake_current_shell_compatibility_merge_queue_metadata",
         "metadata_source": "github_merge_queue_snapshot",
         "queue_policy": {
             "merge_mechanism": "github_merge_queue",
@@ -66,23 +57,14 @@ def _queue_metadata() -> dict[str, object]:
 def _current_metadata_freshness_pack() -> dict[str, object]:
     return {
         "artifact_schema_version": "1.0",
-        "artifact_type": "accurate_intake_pl_ce_current_metadata_freshness_pack",
-        "status": "current_metadata_freshness_ready_for_serial_handoff",
+        "artifact_type": "accurate_intake_current_shell_compatibility_current_metadata_freshness_pack",
+        "status": "current_shell_compatibility_current_metadata_freshness_ready_for_serial_handoff",
         "blockers": [],
         "metadata_only": True,
         "source_status_only": True,
         "ready_for_serial_handoff": True,
         "fresh_artifact_count": 10,
         "required_artifact_count": 10,
-        "ready_for_live_diagnostic_decision": False,
-        "ready_for_fdb_integration": False,
-        "live_llm_invoked": False,
-        "web_tavily_used": False,
-        "fooddb_evidence_used": False,
-        "real_fooddb_pass_claimed": False,
-        "dogfood_pass": False,
-        "product_readiness_claimed": False,
-        "private_self_use_approved": False,
     }
 
 
@@ -93,9 +75,9 @@ def test_serial_handoff_reports_merge_queue_ready_for_review_only() -> None:
         queue_metadata=_queue_metadata(),
     )
 
-    assert artifact["artifact_type"] == "accurate_intake_pl_ce_serial_handoff"
+    assert artifact["artifact_type"] == "accurate_intake_current_shell_compatibility_serial_handoff"
     assert artifact["status"] == "ready_for_merge_queue_review"
-    assert artifact["producer_track"] == "PL_CE"
+    assert artifact["producer_track"] == "CurrentShell"
     assert artifact["delivery_mode"] == "github_merge_queue"
     assert artifact["merge_queue_required"] is True
     assert artifact["producer_should_manual_merge"] is False
@@ -105,15 +87,15 @@ def test_serial_handoff_reports_merge_queue_ready_for_review_only() -> None:
     assert artifact["queue_metadata_valid"] is True
     assert artifact["activation_review_manifest_ready"] is True
     assert artifact["current_metadata_freshness_ready"] is True
-    assert artifact["ready_for_live_diagnostic_decision"] is False
-    assert artifact["ready_for_fdb_integration"] is False
-    assert artifact["live_llm_invoked"] is False
-    assert artifact["web_tavily_used"] is False
-    assert artifact["fooddb_evidence_used"] is False
-    assert artifact["real_fooddb_pass_claimed"] is False
-    assert artifact["dogfood_pass"] is False
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
+    assert "ready_for_fdb_integration" not in artifact
+    assert "live_llm_invoked" not in artifact
+    assert "web_tavily_used" not in artifact
+    assert "fooddb_evidence_used" not in artifact
+    assert "real_fooddb_pass_claimed" not in artifact
+    assert "dogfood_pass" not in artifact
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
     assert artifact["remaining_stop_gates"]["fooddb_artifact_status"] == (
         "blocked_waiting_for_fdb_artifact"
     )
@@ -140,8 +122,8 @@ def test_serial_handoff_blocks_activation_manifest_overclaim() -> None:
     assert "activation_review_manifest.ready_for_live_diagnostic_decision" in artifact["blockers"]
     assert "activation_review_manifest.product_readiness_claimed" in artifact["blockers"]
     assert "activation_review_manifest.real_fooddb_pass_claimed" in artifact["blockers"]
-    assert artifact["ready_for_live_diagnostic_decision"] is False
-    assert artifact["product_readiness_claimed"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
+    assert "product_readiness_claimed" not in artifact
 
 
 def test_serial_handoff_blocks_manual_merge_or_stacked_child_claim() -> None:

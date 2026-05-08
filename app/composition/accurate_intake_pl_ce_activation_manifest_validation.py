@@ -21,6 +21,18 @@ from app.composition.accurate_intake_pl_ce_context_live_manifest_checks import (
     OPTIONAL_LIVE_EVIDENCE_ALLOWED_FLAGS,
     context_live_optional_group_blockers,
 )
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS,
+    CURRENT_SHELL_COMPATIBILITY_UI_CONTEXT_ALIGNMENT_ARTIFACT_TYPE,
+    LEGACY_BROWSER_ACTIVATION_ARTIFACT_TYPES,
+    LEGACY_LOCAL_MVP_ARTIFACT_TYPES,
+    LEGACY_LOCAL_MVP_READY_STATUSES,
+    LEGACY_UI_CONTEXT_ALIGNMENT_ARTIFACT_TYPES,
+    matches_alias,
+)
 
 
 def _object_dict(value: Any) -> dict[str, Any]:
@@ -59,9 +71,39 @@ def _list_contains_all(value: Any, expected_values: tuple[str, ...]) -> bool:
 
 def _identity_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
-    if _status(payload) not in _allowed_statuses(EXPECTED_STATUSES[group_id]):
+    if (
+        group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID
+        and not matches_alias(
+            payload.get("status"),
+            CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS,
+            *LEGACY_LOCAL_MVP_READY_STATUSES,
+        )
+    ):
         blockers.append(f"{group_id}.unexpected_status:{_status(payload)}")
-    if payload.get("artifact_type") != EXPECTED_ARTIFACT_TYPES[group_id]:
+    elif _status(payload) not in _allowed_statuses(EXPECTED_STATUSES[group_id]):
+        blockers.append(f"{group_id}.unexpected_status:{_status(payload)}")
+    if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID:
+        if not matches_alias(
+            payload.get("artifact_type"),
+            CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE,
+            *LEGACY_LOCAL_MVP_ARTIFACT_TYPES,
+        ):
+            blockers.append(f"{group_id}.unexpected_artifact_type:{payload.get('artifact_type')}")
+    elif group_id == "pl_ce_ui_context_alignment_pack":
+        if not matches_alias(
+            payload.get("artifact_type"),
+            CURRENT_SHELL_COMPATIBILITY_UI_CONTEXT_ALIGNMENT_ARTIFACT_TYPE,
+            *LEGACY_UI_CONTEXT_ALIGNMENT_ARTIFACT_TYPES,
+        ):
+            blockers.append(f"{group_id}.unexpected_artifact_type:{payload.get('artifact_type')}")
+    elif group_id == "pl_ce_browser_activation_evidence_gate":
+        if not matches_alias(
+            payload.get("artifact_type"),
+            CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
+            *LEGACY_BROWSER_ACTIVATION_ARTIFACT_TYPES,
+        ):
+            blockers.append(f"{group_id}.unexpected_artifact_type:{payload.get('artifact_type')}")
+    elif payload.get("artifact_type") != EXPECTED_ARTIFACT_TYPES[group_id]:
         blockers.append(f"{group_id}.unexpected_artifact_type:{payload.get('artifact_type')}")
     return blockers
 
@@ -127,7 +169,7 @@ def activation_manifest_blockers(group_id: str, payload: dict[str, Any]) -> list
     blockers = _identity_blockers(group_id, payload)
     blockers.extend(_claim_blockers(group_id, payload))
     blockers.extend(_structural_blockers(group_id, payload))
-    if group_id == "pl_ce_local_mvp_candidate_bundle":
+    if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID:
         blockers.extend(local_mvp_blockers(payload))
     elif group_id == "pl_ce_browser_activation_evidence_gate":
         blockers.extend(browser_gate_blockers(payload))

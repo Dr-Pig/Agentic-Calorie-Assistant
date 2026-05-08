@@ -6,6 +6,9 @@ from app.composition.accurate_intake_pl_ce_activation_manifest_contract import (
     BROWSER_ARTIFACTS,
     CONTEXT_LIVE_REQUIRED_CASE_IDS,
 )
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+)
 
 
 def _object_dict(value: Any) -> dict[str, Any]:
@@ -28,17 +31,27 @@ def _list_contains_all(value: Any, expected_values: tuple[str, ...]) -> bool:
 def local_mvp_blockers(payload: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
     if payload.get("activation_gate_status") != "blocked_pending_human_and_browser_activation":
-        blockers.append("pl_ce_local_mvp_candidate_bundle.unexpected_activation_gate_status")
+        blockers.append(
+            f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID}.unexpected_activation_gate_status"
+        )
     fooddb_dependency = _object_dict(payload.get("fooddb_dependency"))
     if fooddb_dependency.get("fooddb_artifact_status") != "blocked_waiting_for_fdb_artifact":
-        blockers.append("pl_ce_local_mvp_candidate_bundle.fooddb_stop_gate_missing")
+        blockers.append(
+            f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID}.fooddb_stop_gate_missing"
+        )
     if fooddb_dependency.get("ready_for_fdb_integration") is not False:
-        blockers.append("pl_ce_local_mvp_candidate_bundle.fooddb_integration_not_blocked")
+        blockers.append(
+            f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID}.fooddb_integration_not_blocked"
+        )
     activation_policy = _object_dict(_object_dict(payload.get("browser_gate_policy")).get("activation_gate"))
     if activation_policy.get("require_browser_execution") is not True:
-        blockers.append("pl_ce_local_mvp_candidate_bundle.activation_browser_not_required")
+        blockers.append(
+            f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID}.activation_browser_not_required"
+        )
     if activation_policy.get("browser_executed_required") is not True:
-        blockers.append("pl_ce_local_mvp_candidate_bundle.activation_browser_execution_not_required")
+        blockers.append(
+            f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID}.activation_browser_execution_not_required"
+        )
     return blockers
 
 
