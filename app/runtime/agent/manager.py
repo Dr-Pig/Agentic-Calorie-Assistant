@@ -25,6 +25,7 @@ from app.runtime.agent.manager_payload_utils import (
     stable_available_tools,
     tool_call_dicts,
 )
+from app.runtime.agent.manager_prompted_provider import complete_manager_round_with_prompt_trace
 from app.runtime.agent.manager_tool_scope import manager_scope_policy_payload, safe_failure_payload, tool_call_scope_boundary
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 
@@ -107,9 +108,7 @@ async def run_intake_manager(
             phase_a_history_expansion_enabled=phase_a_history_expansion_enabled,
             phase_a_shadow_hypothesis=phase_a_shadow_hypothesis,
         )
-        manager_context_trace["manager_context_packet_v1"] = manager_context_packet_v1_trace_payload(
-            manager_context_packet_v1
-        )
+        manager_context_trace["manager_context_packet_v1"] = manager_context_packet_v1_trace_payload(manager_context_packet_v1)
         manager_context_trace["manager_loop_scope"] = effective_manager_loop_scope
         user_payload = {
             "raw_user_input": raw_user_input,
@@ -139,8 +138,9 @@ async def run_intake_manager(
             "manager_product_policy_hints": json_safe(effective_constraints.get("manager_product_policy_hints")),
             "guard_feedback": guard_feedback,
         }
-        payload, trace = await provider.complete_with_trace(
-            system_prompt=single_manager_system_prompt_for_scope(effective_manager_loop_scope),
+        payload, trace, prompt_layer_contract = await complete_manager_round_with_prompt_trace(
+            provider=provider,
+            manager_loop_scope=effective_manager_loop_scope,
             user_payload=user_payload,
             stage=MANAGER_LOOP_STAGE,
             max_tokens=900,
@@ -155,6 +155,7 @@ async def run_intake_manager(
                 "trace": json_safe(trace),
                 "phase_a_input": json_safe(manager_context_trace),
                 "prompt_registry": json_safe(prompt_registry),
+                "prompt_layer_contract": json_safe(prompt_layer_contract),
             }
         )
         manager_action = str(parsed.get("manager_action") or "").strip()

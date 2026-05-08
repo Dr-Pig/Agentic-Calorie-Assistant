@@ -26,6 +26,10 @@ def test_rt13_observability_pack_records_prompt_registry_and_trace_lineage() -> 
     assert react_trace["trace_schema_version"] == "manager_react_trace.v1"
     assert react_trace["requested_tools"] == ["estimate_nutrition", "compare_against_budget"]
     assert react_trace["executed_tools"] == ["estimate_nutrition", "compare_against_budget"]
+    assert (
+        react_trace["manager_pass_1"]["prompt_layer_contract"]["contract_version"]
+        == "manager_prompt_layer_contract.v1"
+    )
 
 
 def test_rt13_observability_pack_records_request_links_and_latency_contracts() -> None:

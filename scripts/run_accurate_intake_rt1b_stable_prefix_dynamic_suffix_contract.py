@@ -134,6 +134,37 @@ def _evaluate_trace_only_registry(case: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _evaluate_prompt_layer_contract(case: dict[str, Any]) -> dict[str, Any]:
+    blockers: list[str] = []
+    provider_call = dict(case.get("provider_call") or {})
+    user_payload = dict(provider_call.get("user_payload") or {})
+    manager_trace = dict(case.get("manager_trace") or {})
+    manager_rounds = list(manager_trace.get("manager_rounds") or [])
+    first_round = dict(manager_rounds[0]) if manager_rounds and isinstance(manager_rounds[0], dict) else {}
+    layer = dict(first_round.get("prompt_layer_contract") or {})
+    if layer.get("system_prompt_layer") != "static_prefix":
+        blockers.append("system_prompt_layer_not_static_prefix")
+    if layer.get("runtime_payload_layer") != "dynamic_suffix":
+        blockers.append("runtime_payload_layer_not_dynamic_suffix")
+    if layer.get("provider_profile_layer") != "transport_overlay_trace_only":
+        blockers.append("provider_profile_layer_not_trace_only")
+    cache_profile = dict(layer.get("prompt_cache_profile") or {})
+    if cache_profile.get("static_prefix_first") is not True:
+        blockers.append("cache_profile_static_prefix_first_missing")
+    if cache_profile.get("dynamic_context_last") is not True:
+        blockers.append("cache_profile_dynamic_context_last_missing")
+    if layer.get("dynamic_payload_keys") != sorted(user_payload):
+        blockers.append("dynamic_payload_keys_do_not_match_user_payload")
+    if "prompt_layer_contract" in user_payload:
+        blockers.append("prompt_layer_contract_leaked_into_user_payload")
+    return {
+        "case_id": "prompt_layer_contract_supports_prefix_cache_and_progressive_disclosure",
+        "status": _status(blockers),
+        "blockers": blockers,
+        "observed": layer,
+    }
+
+
 async def build_rt1b_stable_prefix_dynamic_suffix_contract_artifact(
     *,
     output_path: Path | None = None,
@@ -143,6 +174,7 @@ async def build_rt1b_stable_prefix_dynamic_suffix_contract_artifact(
         _evaluate_system_prompt_and_dynamic_payload(first_call),
         _evaluate_tool_order(first_call),
         _evaluate_trace_only_registry(first_call),
+        _evaluate_prompt_layer_contract(first_call),
     ]
     blockers = [f"{case['case_id']}.{blocker}" for case in cases for blocker in case["blockers"]]
     resolved_output_path = Path(output_path) if output_path is not None else DEFAULT_OUTPUT_PATH

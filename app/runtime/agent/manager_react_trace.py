@@ -29,6 +29,7 @@ def _round_summary(round_payload: dict[str, Any] | None) -> dict[str, Any] | Non
         "decision_payload": json_safe(decision),
         "provider_trace": json_safe(dict(round_payload.get("trace") or {})),
         "prompt_registry": json_safe(dict(round_payload.get("prompt_registry") or {})),
+        "prompt_layer_contract": json_safe(dict(round_payload.get("prompt_layer_contract") or {})),
     }
 
 
