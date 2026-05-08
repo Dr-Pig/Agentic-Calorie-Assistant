@@ -897,6 +897,41 @@ def test_founder_live_intake_scope_schema_keeps_intake_tool_calls(
     ]
 
 
+def test_founder_live_decision_transport_tool_schema_is_stable_across_manager_scopes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _configure_adapter(monkeypatch, _FakeResponse(payload=_json_envelope("{}"), text="{}"))
+    entry_constraints = {
+        **_founder_live_constraints(),
+        "manager_loop_scope": "turn_entry_or_read_only",
+        "available_tools": ["budget.get_today_summary"],
+    }
+    intake_constraints = {
+        **_founder_live_constraints(),
+        "manager_loop_scope": "intake_execution",
+        "available_tools": ["resolve_correction_target", "estimate_nutrition"],
+    }
+
+    entry_request, _ = adapter._decision_transport_request_for_stage(
+        "intake_manager_round",
+        constraints=entry_constraints,
+    )
+    intake_request, _ = adapter._decision_transport_request_for_stage(
+        "intake_manager_round",
+        constraints=intake_constraints,
+    )
+    entry_response_schema = adapter._response_schema_for_stage("intake_manager_round", constraints=entry_constraints)
+    intake_response_schema = adapter._response_schema_for_stage("intake_manager_round", constraints=intake_constraints)
+
+    assert entry_request is not None
+    assert intake_request is not None
+    assert entry_request["tools"] == intake_request["tools"]
+    assert entry_request["tool_choice"] == intake_request["tool_choice"]
+    assert entry_response_schema["properties"]["manager_action"]["enum"] == ["final"]
+    assert entry_response_schema["properties"]["tool_calls"]["maxItems"] == 0
+    assert intake_response_schema["properties"]["manager_action"]["enum"] == ["call_tools", "final"]
+
+
 def test_founder_live_entry_scope_allows_downstream_correction_candidate_without_target_evidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1860,6 +1895,114 @@ async def test_complete_with_trace_uses_founder_live_synthetic_tool_transport(
     assert trace["repair_attempted"] is False
     assert trace["repair_result"] == "not_needed"
     assert trace["repair_attempt_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_complete_with_trace_reuses_stable_tool_prefix_across_founder_live_scopes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    posted_payloads: list[dict[str, object]] = []
+    entry_payload = _founder_live_payload(
+        manager_action="final",
+        tool_calls=[],
+        workflow_effect="route_to_intake",
+        final_action="no_commit",
+        evidence_posture="requires_intake_execution",
+        answer_contract={"reply_text": "I'll route this to intake execution."},
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {"mode": "none"},
+            "workflow_effect": "route_to_intake",
+            "final_action_candidate": "route_to_intake",
+            "estimation_posture": "requires_intake_execution",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "no_mutation",
+            "uncertainty_posture": "pending_intake_execution",
+            "source": "live_manager_structured_output",
+        },
+    )
+    intake_payload = _founder_live_payload(
+        manager_action="call_tools",
+        tool_calls=[{"name": "estimate_nutrition", "arguments": {"food_name": "chicken rice"}}],
+        final_action="commit",
+        evidence_posture="evidence_pending",
+        semantic_decision={
+            "semantic_authority": "manager_llm",
+            "current_turn_intent": "log_meal",
+            "target_attachment": {"mode": "new_meal"},
+            "workflow_effect": "estimate_with_followup",
+            "final_action_candidate": "commit",
+            "estimation_posture": "pending_tool_call",
+            "followup_posture": "none",
+            "mutation_intent_candidate": "canonical_write",
+            "uncertainty_posture": "bounded",
+            "source": "live_manager_structured_output",
+        },
+    )
+    monkeypatch.setenv("AI_BUILDER_TOKEN", "test-token")
+    monkeypatch.setenv("AI_BUILDER_BASE_URL", "https://example.test/backend/v1")
+    monkeypatch.setattr(
+        builderspace_adapter_module.httpx,
+        "AsyncClient",
+        lambda **kwargs: _RecordingAsyncClient(
+            responses=[
+                _FakeResponse(
+                    payload=_tool_call_envelope(
+                        tool_name="manager_structured_decision",
+                        arguments=entry_payload,
+                    ),
+                    text="ok",
+                ),
+                _FakeResponse(
+                    payload=_tool_call_envelope(
+                        tool_name="manager_structured_decision",
+                        arguments=intake_payload,
+                    ),
+                    text="ok",
+                ),
+            ],
+            recorder=posted_payloads,
+            **kwargs,
+        ),
+    )
+    adapter = BuilderSpaceAdapter(manager_model_override="grok-4-fast")
+
+    _, entry_trace = await adapter.complete_with_trace(
+        system_prompt="Return structured manager payload.",
+        user_payload={
+            "raw_user_input": "I ate chicken rice",
+            "constraints": {
+                **_founder_live_constraints(),
+                "manager_loop_scope": "turn_entry_or_read_only",
+                "available_tools": ["budget.get_today_summary"],
+            },
+        },
+        stage="intake_manager_round",
+    )
+    _, intake_trace = await adapter.complete_with_trace(
+        system_prompt="Return structured manager payload.",
+        user_payload={
+            "raw_user_input": "I ate chicken rice",
+            "constraints": {
+                **_founder_live_constraints(),
+                "manager_loop_scope": "intake_execution",
+                "available_tools": ["estimate_nutrition", "resolve_correction_target"],
+            },
+        },
+        stage="intake_manager_round",
+    )
+
+    assert posted_payloads[0]["json"]["tools"] == posted_payloads[1]["json"]["tools"]
+    assert entry_trace["prompt_cache_request"]["stable_prefix_component_sha256"]["tools"] == (
+        intake_trace["prompt_cache_request"]["stable_prefix_component_sha256"]["tools"]
+    )
+    assert entry_trace["prompt_cache_request"]["stable_prefix_sha256"] == (
+        intake_trace["prompt_cache_request"]["stable_prefix_sha256"]
+    )
+    assert entry_trace["prompt_cache_request"]["dynamic_suffix_sha256"] != (
+        intake_trace["prompt_cache_request"]["dynamic_suffix_sha256"]
+    )
 
 
 @pytest.mark.asyncio
