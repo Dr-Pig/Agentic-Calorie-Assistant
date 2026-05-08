@@ -164,10 +164,14 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
                 assert turn["prompt_footprint_summary"]["system_prompt_utf8_bytes_sent"] > 0
                 assert turn["prompt_footprint_summary"]["dynamic_payload_utf8_bytes_sent"] > 0
                 assert turn["prompt_footprint_summary"]["largest_dynamic_section_id"]
+                assert turn["prompt_footprint_summary"]["largest_dynamic_key"]["key"]
+                assert turn["prompt_footprint_summary"]["dynamic_key_utf8_bytes"]
             else:
                 assert turn["prompt_footprint_summary"]["system_prompt_utf8_bytes_sent"] == 0
                 assert turn["prompt_footprint_summary"]["dynamic_payload_utf8_bytes_sent"] == 0
                 assert turn["prompt_footprint_summary"]["largest_dynamic_section_id"] is None
+                assert turn["prompt_footprint_summary"]["largest_dynamic_key"] is None
+                assert turn["prompt_footprint_summary"]["dynamic_key_utf8_bytes"] == {}
             assert isinstance(turn["latency_ms"], int)
             assert isinstance(turn["non_provider_latency_ms"], int)
             assert turn["latency_attribution"] == {
@@ -191,6 +195,10 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
             turn["prompt_footprint_summary"]["dynamic_payload_utf8_bytes_sent"]
             for turn in case["turns"]
         )
+        if case["prompt_footprint_summary"]["manager_round_count"] > 0:
+            assert case["prompt_footprint_summary"]["dynamic_key_utf8_bytes"]
+        else:
+            assert case["prompt_footprint_summary"]["dynamic_key_utf8_bytes"] == {}
         assert isinstance(case["provider_invocation_latency_ms"], int)
         assert isinstance(case["latency_ms"], int)
         assert isinstance(case["non_provider_latency_ms"], int)
@@ -225,6 +233,8 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
         case["prompt_footprint_summary"]["manager_round_count"]
         for case in report["cases"]
     )
+    assert report["summary"]["prompt_footprint_summary"]["dynamic_key_utf8_bytes"]
+    assert report["summary"]["prompt_footprint_summary"]["largest_dynamic_key"]["key"]
 
 
 def test_accurate_intake_live_diagnostic_timeout_defaults_preserve_latency_observation_window() -> None:

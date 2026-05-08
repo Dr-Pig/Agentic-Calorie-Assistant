@@ -152,6 +152,7 @@ def _prompt_footprint(
         key=lambda section: section["utf8_bytes"],
         default={"section_id": None},
     )
+    largest_dynamic_key = _largest_dynamic_key(dynamic_sections)
     return {
         "measurement": "json_utf8_bytes_trace_only",
         "provider_usage_is_token_truth": True,
@@ -161,6 +162,7 @@ def _prompt_footprint(
         "dynamic_payload_total_chars": _json_char_count(user_payload),
         "dynamic_payload_total_utf8_bytes": _json_utf8_bytes(user_payload),
         "largest_dynamic_section_id": largest_dynamic_section["section_id"],
+        "largest_dynamic_key": largest_dynamic_key,
         "dynamic_sections": dynamic_sections,
     }
 
@@ -172,13 +174,49 @@ def _dynamic_section_footprint(
 ) -> dict[str, Any]:
     keys = [str(key) for key in section["keys"]]
     section_payload = {key: user_payload.get(key) for key in keys}
+    key_footprints = [
+        _dynamic_key_footprint(key=key, value=user_payload.get(key))
+        for key in keys
+    ]
+    largest_key = max(
+        key_footprints,
+        key=lambda item: item["utf8_bytes"],
+        default={"key": None},
+    )
     return {
         "section_id": str(section["section_id"]),
         "key_count": len(keys),
         "keys": keys,
         "chars": _json_char_count(section_payload),
         "utf8_bytes": _json_utf8_bytes(section_payload),
+        "largest_key": largest_key["key"],
+        "key_footprints": key_footprints,
     }
+
+
+def _dynamic_key_footprint(*, key: str, value: Any) -> dict[str, Any]:
+    return {
+        "key": key,
+        "chars": _json_char_count(value),
+        "utf8_bytes": _json_utf8_bytes(value),
+    }
+
+
+def _largest_dynamic_key(dynamic_sections: list[dict[str, Any]]) -> dict[str, Any] | None:
+    largest: dict[str, Any] | None = None
+    for section in dynamic_sections:
+        section_id = str(section.get("section_id") or "")
+        for key_footprint in section.get("key_footprints") or []:
+            if not isinstance(key_footprint, dict):
+                continue
+            candidate = {
+                "section_id": section_id,
+                "key": str(key_footprint.get("key") or ""),
+                "utf8_bytes": int(key_footprint.get("utf8_bytes") or 0),
+            }
+            if largest is None or candidate["utf8_bytes"] > int(largest.get("utf8_bytes") or 0):
+                largest = candidate
+    return largest
 
 
 def _runtime_payload_section_owner(section_id: str) -> str:

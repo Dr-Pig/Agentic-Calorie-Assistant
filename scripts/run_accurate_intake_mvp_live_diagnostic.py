@@ -1580,6 +1580,7 @@ def _prompt_footprint_summary_from_cases(cases: list[dict[str, Any]]) -> dict[st
 
 def _prompt_footprint_summary_from_footprint(footprint: dict[str, Any]) -> dict[str, Any]:
     section_totals: dict[str, int] = {}
+    key_totals: dict[str, int] = {}
     for section in _list(footprint.get("dynamic_sections")):
         section_id = _optional_string(_dict(section).get("section_id"))
         if not section_id:
@@ -1587,6 +1588,13 @@ def _prompt_footprint_summary_from_footprint(footprint: dict[str, Any]) -> dict[
         section_totals[section_id] = section_totals.get(section_id, 0) + int(
             _dict(section).get("utf8_bytes") or 0
         )
+        for key_footprint in _list(_dict(section).get("key_footprints")):
+            key = _optional_string(_dict(key_footprint).get("key"))
+            if not key:
+                continue
+            key_totals[key] = key_totals.get(key, 0) + int(
+                _dict(key_footprint).get("utf8_bytes") or 0
+            )
     return {
         "measurement": "json_utf8_bytes_trace_only",
         "provider_usage_is_token_truth": bool(footprint.get("provider_usage_is_token_truth") is True),
@@ -1597,11 +1605,16 @@ def _prompt_footprint_summary_from_footprint(footprint: dict[str, Any]) -> dict[
         "largest_dynamic_section_id": _largest_section_id(section_totals)
         or _optional_string(footprint.get("largest_dynamic_section_id")),
         "dynamic_section_utf8_bytes": dict(sorted(section_totals.items())),
+        "largest_dynamic_key": _largest_key_payload(key_totals)
+        or _dict(footprint.get("largest_dynamic_key"))
+        or None,
+        "dynamic_key_utf8_bytes": dict(sorted(key_totals.items())),
     }
 
 
 def _combine_prompt_footprint_summaries(summaries: Any) -> dict[str, Any]:
     section_totals: dict[str, int] = {}
+    key_totals: dict[str, int] = {}
     manager_round_count = 0
     system_prompt_bytes = 0
     dynamic_payload_bytes = 0
@@ -1622,6 +1635,8 @@ def _combine_prompt_footprint_summaries(summaries: Any) -> dict[str, Any]:
             provider_usage_is_token_truth = False
         for section_id, value in _dict(summary.get("dynamic_section_utf8_bytes")).items():
             section_totals[str(section_id)] = section_totals.get(str(section_id), 0) + int(value or 0)
+        for key, value in _dict(summary.get("dynamic_key_utf8_bytes")).items():
+            key_totals[str(key)] = key_totals.get(str(key), 0) + int(value or 0)
     return {
         "measurement": "json_utf8_bytes_trace_only",
         "provider_usage_is_token_truth": provider_usage_is_token_truth,
@@ -1631,6 +1646,8 @@ def _combine_prompt_footprint_summaries(summaries: Any) -> dict[str, Any]:
         "max_dynamic_payload_utf8_bytes": max_dynamic_payload_bytes,
         "largest_dynamic_section_id": _largest_section_id(section_totals),
         "dynamic_section_utf8_bytes": dict(sorted(section_totals.items())),
+        "largest_dynamic_key": _largest_key_payload(key_totals),
+        "dynamic_key_utf8_bytes": dict(sorted(key_totals.items())),
     }
 
 
@@ -1638,6 +1655,13 @@ def _largest_section_id(section_totals: dict[str, int]) -> str | None:
     if not section_totals:
         return None
     return max(section_totals.items(), key=lambda item: item[1])[0]
+
+
+def _largest_key_payload(key_totals: dict[str, int]) -> dict[str, Any] | None:
+    if not key_totals:
+        return None
+    key, utf8_bytes = max(key_totals.items(), key=lambda item: item[1])
+    return {"key": key, "utf8_bytes": utf8_bytes}
 
 
 def _transport_attempt_summary(trace: dict[str, Any]) -> dict[str, Any]:
