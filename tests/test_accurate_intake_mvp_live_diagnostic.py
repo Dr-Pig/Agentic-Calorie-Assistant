@@ -70,6 +70,40 @@ def test_accurate_intake_live_provider_profile_is_diagnostic_only() -> None:
     assert isinstance(profile["schema_version"], str) and profile["schema_version"]
 
 
+def test_scripted_provider_target_proposal_uses_manager_context_packet_v1_candidates() -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+    provider = module.ScriptedAccurateIntakeLiveProvider()
+    provider.begin_step({"target_canonical_name": "soup"})
+
+    proposal = provider._target_proposal(  # noqa: SLF001
+        user_payload={
+            "resolved_state": {
+                "prompt_payload_kind": "resolved_state_compact_summary",
+                "full_state_omitted_from_prompt": True,
+            },
+            "manager_context_packet_v1": {
+                "target_candidates": {
+                    "for_correction_or_removal": [
+                        {
+                            "meal_thread_id": 77,
+                            "meal_version_id": 88,
+                            "meal_item_id": 501,
+                            "canonical_name": "soup",
+                            "read_only": True,
+                            "mutation_authority": False,
+                        }
+                    ]
+                }
+            },
+        }
+    )
+
+    assert proposal["meal_thread_id"] == 77
+    assert proposal["meal_item_id"] == 501
+    assert proposal["canonical_name"] == "soup"
+    assert proposal["target_proposal_source"] == "manager_structured_tool_arguments"
+
+
 def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tmp_path: Path) -> None:
     module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
     output_path = tmp_path / "accurate_intake_mvp_live_diagnostic.json"

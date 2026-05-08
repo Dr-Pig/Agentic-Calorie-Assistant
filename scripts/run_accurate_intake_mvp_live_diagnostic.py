@@ -450,9 +450,9 @@ class ScriptedAccurateIntakeLiveProvider:
         proposal: dict[str, Any] = {}
         if target_name:
             proposal["canonical_name"] = target_name
-        target_reference = (
-            _dict(_dict(_dict(user_payload.get("resolved_state")).get("injected_context")).get("TARGET_MEAL_REFERENCE"))
-        )
+        target_reference = _target_reference_from_manager_context_packet(user_payload)
+        if not target_reference:
+            target_reference = _target_reference_from_legacy_resolved_state(user_payload)
         if target_reference.get("meal_thread_id") is not None:
             proposal["meal_thread_id"] = target_reference.get("meal_thread_id")
         for candidate in _list(target_reference.get("item_candidates")):
@@ -2306,6 +2306,26 @@ def _dict(value: Any) -> dict[str, Any]:
 
 def _list(value: Any) -> list[Any]:
     return list(value) if isinstance(value, list) else []
+
+
+def _target_reference_from_manager_context_packet(user_payload: dict[str, Any]) -> dict[str, Any]:
+    packet = _dict(user_payload.get("manager_context_packet_v1"))
+    target_candidates = _list(_dict(packet.get("target_candidates")).get("for_correction_or_removal"))
+    if not target_candidates:
+        target_candidates = _list(_dict(user_payload.get("phase_a_current_turn_context")).get("recent_item_targets"))
+    item_candidates = [_dict(candidate) for candidate in target_candidates if _dict(candidate)]
+    if not item_candidates:
+        return {}
+    selected = item_candidates[0]
+    return {
+        "meal_thread_id": selected.get("meal_thread_id"),
+        "meal_version_id": selected.get("meal_version_id"),
+        "item_candidates": item_candidates,
+    }
+
+
+def _target_reference_from_legacy_resolved_state(user_payload: dict[str, Any]) -> dict[str, Any]:
+    return _dict(_dict(_dict(user_payload.get("resolved_state")).get("injected_context")).get("TARGET_MEAL_REFERENCE"))
 
 
 def _has_tool_result(user_payload: dict[str, Any], tool_name: str) -> bool:
