@@ -1,6 +1,7 @@
 ﻿# Accurate Intake MVP Self-Use Runbook
 
 This runbook is the human-readable operating record for the Accurate Intake MVP v1.8 local deterministic closure.
+It is operator-shell supporting evidence, not the primary CurrentShell product-pages founder gate.
 
 The claim scope: `local_deterministic_mvp_gate`.
 
@@ -13,6 +14,7 @@ input -> Manager structured decision -> evidence/packet support -> synthesis/fin
 ```
 
 This is not product readiness, rollout readiness, live LLM readiness, web readiness, or production DB readiness.
+Chat / Today / Body product-pages founder gating belongs to `docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md` plus `product_pages_self_use_flow_gate`, `ui_context_alignment_pack`, and `browser_activation_evidence_gate`.
 
 ## Ownership Rules
 

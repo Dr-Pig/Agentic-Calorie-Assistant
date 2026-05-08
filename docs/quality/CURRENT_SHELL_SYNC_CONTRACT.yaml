@@ -26,7 +26,7 @@ in_scope_journeys:
   - H
   - J
   - K
-read_only_seams:
+proposal_seams:
   - I
 deferred_journeys:
   - F
