@@ -93,6 +93,12 @@ def test_ci_advisory_workflow_is_manual_only() -> None:
     assert "wave1-phase-a-contracts" in workflow
 
 
+def test_required_runtime_contract_wall_does_not_run_pre_edd_readiness() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+
+    assert "tests/test_pre_edd_readiness.py" not in workflow
+
+
 def test_current_shell_sync_contract_uses_canonical_track_and_conservative_launch_scope() -> None:
     contract = (ROOT / "docs" / "quality" / "CURRENT_SHELL_SYNC_CONTRACT.yaml").read_text(encoding="utf-8")
 

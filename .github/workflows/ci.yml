@@ -64,7 +64,6 @@ jobs:
             tests/test_builderspace_adapter.py \
             tests/test_bootstrap_semantic_ownership_guardrails.py \
             tests/test_long_term_context_shadow_lab_guards.py \
-            tests/test_pre_edd_readiness.py \
             tests/test_runner_timeout_contract.py \
             tests/test_tavily_timeout_contract.py \
             tests/test_text_integrity.py \
