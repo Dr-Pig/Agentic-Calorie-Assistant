@@ -265,7 +265,7 @@ Diagnostic case sets must trace:
 
 Only `case_set=full` may use `runtime_latency.readiness_claim_scope=full_actual_smoke` and enter full readiness evaluation.
 
-`full_readiness_claimed=true` only means the artifact is eligible for full-readiness evaluation. It does not imply `quality_pass=true`.
+Marking `full_readiness_claimed` only means the artifact is eligible for full-readiness evaluation. It does not imply `quality_pass=true`.
 
 Forbidden legacy terms: `thread_result`, `target_thread_action`, `clarify_mode`, `commit_status`, `canonical_commit`.
 
