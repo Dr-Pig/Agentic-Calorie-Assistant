@@ -293,6 +293,75 @@ def test_live_cost_summary_breaks_down_latency_by_stage_case_turn_and_slowest_ca
     }
 
 
+def test_live_cost_summary_aggregates_prompt_cache_identity_reuse() -> None:
+    summary = build_accurate_intake_live_cost_summary(
+        [
+            _live_artifact(
+                usage=None,
+                stage_id="single_case_live_probe",
+                latency_ms=24_000,
+                provider_invocation_overrides=[
+                    {
+                        "latency_ms": 11_000,
+                        "manager_loop_scope": "turn_entry_or_read_only",
+                        "provider_trace": {
+                            "usage": {"prompt_tokens": 7000, "completion_tokens": 300},
+                            "prompt_cache_request": {
+                                "identity_version": "provider_prompt_cache_request.v1",
+                                "stable_prefix_sha256": "stable-a",
+                                "dynamic_suffix_sha256": "dynamic-turn-1",
+                                "provider_request_includes_prompt_cache_key": False,
+                                "cache_truth_source": "provider_reported_usage_only",
+                            },
+                        },
+                    },
+                    {
+                        "latency_ms": 12_000,
+                        "manager_loop_scope": "intake_execution",
+                        "provider_trace": {
+                            "usage": {
+                                "prompt_tokens": 8200,
+                                "completion_tokens": 320,
+                                "prompt_tokens_details": {"cached_tokens": 0},
+                            },
+                            "prompt_cache_request": {
+                                "identity_version": "provider_prompt_cache_request.v1",
+                                "stable_prefix_sha256": "stable-a",
+                                "dynamic_suffix_sha256": "dynamic-turn-2",
+                                "provider_request_includes_prompt_cache_key": False,
+                                "cache_truth_source": "provider_reported_usage_only",
+                            },
+                        },
+                    },
+                ],
+            )
+        ]
+    )
+
+    assert summary["provider_invocation_records"][0]["prompt_cache_stable_prefix_sha256"] == "stable-a"
+    assert summary["provider_invocation_records"][1]["prompt_cache_dynamic_suffix_sha256"] == "dynamic-turn-2"
+    assert summary["prompt_cache_identity_summary"] == {
+        "provider_trace_identity_count": 2,
+        "missing_identity_count": 0,
+        "stable_prefix_unique_count": 1,
+        "dynamic_suffix_unique_count": 2,
+        "repeated_stable_prefix_observed": True,
+        "same_prefix_multiple_dynamic_suffix_observed": True,
+        "provider_request_prompt_cache_key_count": 0,
+        "cache_reporting_call_count": 1,
+        "cache_hit_call_count": 0,
+        "stable_prefix_groups": [
+            {
+                "stable_prefix_sha256": "stable-a",
+                "provider_invocation_count": 2,
+                "dynamic_suffix_unique_count": 2,
+                "cache_reporting_call_count": 1,
+                "cache_hit_call_count": 0,
+            }
+        ],
+    }
+
+
 def test_live_cost_summary_attributes_turn_runtime_without_changing_semantics() -> None:
     artifact = _live_artifact(
         usage={"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110},
