@@ -49,6 +49,10 @@ def test_rt1b_records_prompt_layer_and_cache_profile_without_prompt_payload_leak
     assert observed["provider_profile_layer"] == "transport_overlay_trace_only"
     assert observed["prompt_cache_profile"]["static_prefix_first"] is True
     assert observed["prompt_cache_profile"]["dynamic_context_last"] is True
+    assert observed["prompt_cache_identity"]["stable_prefix_component_order"] == ["system_prompt"]
+    assert observed["prompt_cache_identity"]["dynamic_suffix_component_order"] == ["runtime_user_payload"]
+    assert observed["prompt_cache_identity"]["provider_overlay_hash_source"] == "provider_trace.prompt_cache_request"
+    assert observed["prompt_cache_identity"]["provider_usage_is_cache_truth"] is True
     assert observed["progressive_disclosure"]["full_context_in_user_payload"] is True
     assert observed["system_contract"]["owner"] == "ManagerRuntime"
     assert observed["provider_overlay_contract"]["owner"] == "ProviderAdapter"

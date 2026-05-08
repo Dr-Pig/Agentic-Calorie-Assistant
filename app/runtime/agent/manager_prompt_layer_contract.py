@@ -65,6 +65,7 @@ def build_manager_prompt_layer_contract(
 ) -> dict[str, Any]:
     dynamic_payload_keys = sorted(str(key) for key in user_payload)
     system_prompt_sha256 = hashlib.sha256(system_prompt.encode("utf-8")).hexdigest()
+    dynamic_suffix_sha256 = hashlib.sha256(_json_text(user_payload).encode("utf-8")).hexdigest()
     runtime_payload_layer_plan = _runtime_payload_layer_plan(dynamic_payload_keys)
     return {
         "contract_version": MANAGER_PROMPT_LAYER_CONTRACT_VERSION,
@@ -102,6 +103,16 @@ def build_manager_prompt_layer_contract(
             "cache_truth_source": "provider_reported_usage_only",
             "stable_prefix_hash_source": "system_contract.stable_prefix_sha256",
             "provider_cache_hit_metric_owner": PROVIDER_OVERLAY_OWNER,
+        },
+        "prompt_cache_identity": {
+            "identity_version": "manager_prompt_cache_identity.v1",
+            "stable_prefix_sha256": system_prompt_sha256,
+            "dynamic_suffix_sha256": dynamic_suffix_sha256,
+            "stable_prefix_component_order": ["system_prompt"],
+            "dynamic_suffix_component_order": ["runtime_user_payload"],
+            "provider_overlay_hash_source": "provider_trace.prompt_cache_request",
+            "cache_truth_source": "provider_reported_usage_only",
+            "provider_usage_is_cache_truth": True,
         },
         "progressive_disclosure": {
             "full_context_in_user_payload": True,

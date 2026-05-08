@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
+import json
 from typing import Any
 
 
@@ -49,6 +51,7 @@ def build_success_trace(
         "status": data.get("status"),
         "incomplete_details": data.get("incomplete_details"),
         "usage": data.get("usage"),
+        "prompt_cache_request": build_prompt_cache_request_identity(request_payload),
         "transport_attempts": transport_attempts,
         "parse_attempts": parse_attempts + list(parse_meta.get("parse_attempts") or []),
         "finish_reason": finish_reason,
@@ -134,6 +137,7 @@ def build_failure_trace(
         "status": data.get("status") if isinstance(data, dict) else None,
         "incomplete_details": data.get("incomplete_details") if isinstance(data, dict) else None,
         "usage": data.get("usage") if isinstance(data, dict) else None,
+        "prompt_cache_request": build_prompt_cache_request_identity(request_payload),
         "finish_reason": _extract_finish_reason(data),
         "parse_contract_status": getattr(exc, "parse_contract_status", None),
         "parse_recovery_used": getattr(exc, "parse_recovery_used", False),
@@ -175,6 +179,43 @@ def _extract_finish_reason(data: dict[str, Any] | None) -> str | None:
         return None
     finish_reason = first_choice.get("finish_reason")
     return finish_reason if isinstance(finish_reason, str) else None
+
+
+def build_prompt_cache_request_identity(request_payload: dict[str, Any]) -> dict[str, Any]:
+    messages = request_payload.get("messages") if isinstance(request_payload.get("messages"), list) else []
+    system_messages = [
+        dict(message)
+        for message in messages
+        if isinstance(message, dict) and str(message.get("role") or "") in {"system", "developer"}
+    ]
+    user_messages = [
+        dict(message)
+        for message in messages
+        if isinstance(message, dict) and str(message.get("role") or "") not in {"system", "developer"}
+    ]
+    stable_prefix = {
+        "tools": request_payload.get("tools"),
+        "response_format": request_payload.get("response_format"),
+        "system_messages": system_messages,
+    }
+    dynamic_suffix = {"user_messages": user_messages}
+    return {
+        "identity_version": "provider_prompt_cache_request.v1",
+        "cacheable_prefix_component_order": ["tools", "response_format", "system_message"],
+        "dynamic_suffix_component_order": ["user_messages"],
+        "stable_prefix_sha256": _sha256_json(stable_prefix),
+        "dynamic_suffix_sha256": _sha256_json(dynamic_suffix),
+        "provider_request_includes_prompt_cache_key": "prompt_cache_key" in request_payload,
+        "prompt_cache_key": request_payload.get("prompt_cache_key"),
+        "cache_truth_source": "provider_reported_usage_only",
+        "exact_prefix_match_required": True,
+    }
+
+
+def _sha256_json(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(value, default=str, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    ).hexdigest()
 
 
 def _failure_family(
