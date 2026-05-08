@@ -3,17 +3,17 @@ from __future__ import annotations
 from pathlib import Path
 
 
-ROADMAP_PATH = Path("docs/quality/ACCURATE_INTAKE_PL_CE_MVP_BUILD_ROADMAP.md")
+ROADMAP_PATH = Path("docs/quality/ACCURATE_INTAKE_CURRENT_SHELL_MVP_BUILD_ROADMAP.md")
 LIVE_RUNBOOK_PATH = Path("docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md")
 
 
-def test_pl_ce_roadmap_doc_exists_with_utf8_bom_and_track_split() -> None:
+def test_current_shell_roadmap_doc_exists_with_utf8_bom_and_track_split() -> None:
     raw = ROADMAP_PATH.read_bytes()
     assert raw.startswith(b"\xef\xbb\xbf")
     text = raw.decode("utf-8-sig")
 
     assert "CurrentShell Coordination Roadmap" in text
-    assert "legacy-path document records the CurrentShell coordination map" in text
+    assert "active document records the CurrentShell coordination map" in text
     assert "canonical track is `CurrentShell`" in text
     assert "CurrentShell owner lanes are `ManagerRuntime`, `AppShell`, and `SharedCurrentShell`" in text
     assert "merged legacy PL+CE checkpoint train" in text
@@ -39,7 +39,7 @@ def test_pl_ce_roadmap_doc_exists_with_utf8_bom_and_track_split() -> None:
     assert "mode: stop_for_human_gate" in text
 
 
-def test_pl_ce_roadmap_doc_records_best_practice_sources_and_non_claims() -> None:
+def test_current_shell_roadmap_doc_records_best_practice_sources_and_non_claims() -> None:
     text = ROADMAP_PATH.read_text(encoding="utf-8-sig")
 
     for fragment in (
@@ -54,7 +54,7 @@ def test_pl_ce_roadmap_doc_records_best_practice_sources_and_non_claims() -> Non
         assert fragment in text
 
 
-def test_pl_ce_roadmap_doc_records_non_fooddb_manager_tool_convergence() -> None:
+def test_current_shell_roadmap_doc_records_non_fooddb_manager_tool_convergence() -> None:
     text = ROADMAP_PATH.read_text(encoding="utf-8-sig")
 
     for fragment in (
@@ -84,7 +84,7 @@ def test_pl_ce_roadmap_doc_records_non_fooddb_manager_tool_convergence() -> None
         assert fragment in text
 
 
-def test_pl_ce_roadmap_doc_records_semantic_owner_boundary_for_tool_choice() -> None:
+def test_current_shell_roadmap_doc_records_semantic_owner_boundary_for_tool_choice() -> None:
     text = ROADMAP_PATH.read_text(encoding="utf-8-sig")
 
     for fragment in (
@@ -97,7 +97,7 @@ def test_pl_ce_roadmap_doc_records_semantic_owner_boundary_for_tool_choice() -> 
         assert fragment in text
 
 
-def test_pl_ce_roadmap_doc_records_machine_readable_current_shell_coordination_artifacts() -> None:
+def test_current_shell_roadmap_doc_records_machine_readable_current_shell_coordination_artifacts() -> None:
     text = ROADMAP_PATH.read_text(encoding="utf-8-sig")
 
     for fragment in (
@@ -110,11 +110,11 @@ def test_pl_ce_roadmap_doc_records_machine_readable_current_shell_coordination_a
         assert fragment in text
 
 
-def test_pl_ce_roadmap_doc_marks_plce_as_legacy_umbrella_vocabulary() -> None:
+def test_current_shell_roadmap_doc_marks_plce_as_legacy_umbrella_vocabulary() -> None:
     text = ROADMAP_PATH.read_text(encoding="utf-8-sig")
 
     for fragment in (
-        "The file path retains `PL_CE` for compatibility",
+        "The legacy `PL_CE` path is retired; compatibility vocabulary belongs only to old artifact ids, old reports, and temporary alias readers.",
         "Legacy `PLCE` / `PL+CE` / `PL_CE` wording remains compatibility vocabulary only for old paths and artifacts; it is not the canonical track model.",
         "AppShell must not invent runtime semantics, frontend truth math, or mutation legality.",
         "Every legacy `PL+CE` / `CurrentShell` compatibility artifact must stay non-promotional.",

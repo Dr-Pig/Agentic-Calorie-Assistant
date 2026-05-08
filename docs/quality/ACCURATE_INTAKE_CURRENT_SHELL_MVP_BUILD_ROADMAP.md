@@ -1,7 +1,8 @@
 ﻿# CurrentShell Coordination Roadmap
 
-This legacy-path document records the CurrentShell coordination map for the Accurate Intake local web self-use candidate.
-The file path retains `PL_CE` for compatibility, but the canonical track is `CurrentShell`.
+This active document records the CurrentShell coordination map for the Accurate Intake local web self-use candidate.
+The legacy `PL_CE` path is retired; compatibility vocabulary belongs only to old artifact ids, old reports, and temporary alias readers.
+The canonical track is `CurrentShell`.
 CurrentShell owner lanes are `ManagerRuntime`, `AppShell`, and `SharedCurrentShell`.
 FoodDB remains an independent truth-owner track.
 Legacy `PLCE` / `PL+CE` / `PL_CE` wording remains compatibility vocabulary only for old paths and artifacts; it is not the canonical track model.
@@ -76,7 +77,7 @@ Semantic ownership for this convergence is:
 - Deterministic code must not infer final intent, choose the final tool, select the final target, or authorize mutation from raw text.
 - UI may render backend/read-model/trace structured fields only.
 
-The pre-FoodDB legacy PL+CE build train is:
+The pre-FoodDB CurrentShell compatibility build train is:
 
 1. Product Pages Evidence Into Pre-Live Pack
 2. Manager Tool Surface Inventory / Direct Lane Audit
