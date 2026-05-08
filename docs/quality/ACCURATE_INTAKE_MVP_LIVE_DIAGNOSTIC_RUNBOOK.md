@@ -37,6 +37,8 @@ Downstream browser or candidate-bundle stages should consume gate IDs from that 
 
 Run stages sequentially. Keep provider concurrency at one request at a time.
 
+CLI live diagnostics intentionally reject implicit `--stage all`. Normal live evidence must be produced by the staged commands below, one artifact per provider/case probe. `--allow-live-all-diagnostic` exists only for explicit debugging and does not produce clean staged evidence by itself.
+
 ```powershell
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage provider_health_smoke --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_provider_health.json
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage schema_contract_probe --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_schema_probe.json
