@@ -271,6 +271,15 @@ def manager_loop_schema(constraints: dict[str, Any] | None = None) -> dict[str, 
     return manager_pass1_schema_for_constraints(base_schema, constraints)
 
 
+def manager_loop_decision_transport_schema(constraints: dict[str, Any] | None = None) -> dict[str, Any]:
+    if not is_founder_live_manager_contract(constraints):
+        return manager_loop_schema(constraints)
+    stable_constraints = dict(constraints or {})
+    stable_constraints.pop("manager_loop_scope", None)
+    stable_constraints.pop("available_tools", None)
+    return manager_loop_schema(stable_constraints)
+
+
 def response_schema_for_stage(stage: str, constraints: dict[str, Any] | None = None) -> dict[str, Any] | None:
     if stage == MANAGER_LOOP_STAGE:
         return manager_loop_schema(constraints)
@@ -306,6 +315,7 @@ def validate_manager_payload(stage: str, payload: dict[str, Any], *, constraints
 
 __all__ = [
     "ManagerPass1BranchContractError",
+    "manager_loop_decision_transport_schema",
     "manager_loop_schema",
     "response_schema_for_stage",
     "validate_manager_payload",

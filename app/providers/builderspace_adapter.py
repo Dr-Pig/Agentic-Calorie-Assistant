@@ -21,7 +21,7 @@ from .builderspace_transport import (
     response_format_request_for_stage,
 )
 from .builderspace_runtime_contract import (
-    manager_loop_schema,
+    manager_loop_decision_transport_schema,
     response_schema_for_stage,
     validate_manager_payload,
 )
@@ -84,7 +84,7 @@ class BuilderSpaceAdapter:
         return decision_transport_request_for_stage(
             stage,
             constraints=constraints,
-            manager_loop_schema=manager_loop_schema(constraints),
+            manager_loop_schema=manager_loop_decision_transport_schema(constraints),
         )
 
     def _validate_manager_payload(
