@@ -44,6 +44,16 @@ def test_devcontainer_is_not_claimed_without_tracked_config() -> None:
     assert "No Dev Container is currently tracked" in readme
 
 
+def test_readme_uses_current_public_repo_identity() -> None:
+    readme = _read("README.md")
+
+    assert readme.lstrip("\ufeff").startswith("# Agentic Calorie Assistant")
+    assert "Text Meal Canary" not in readme
+    assert "](/C:/Users/User/" not in readme
+    assert "[AGENTS.md](AGENTS.md)" in readme
+    assert "[docs/DOC_INDEX.md](docs/DOC_INDEX.md)" in readme
+
+
 def test_docker_dev_environment_is_local_manual_only_without_advisory_workflow() -> None:
     assert not (ROOT / ".github" / "workflows" / "ci-advisory.yml").exists()
 
