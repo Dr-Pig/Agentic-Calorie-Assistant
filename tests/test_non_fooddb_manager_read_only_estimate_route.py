@@ -482,13 +482,13 @@ def test_estimate_route_uses_manager_read_only_tool_loop_for_budget_query(
 
     assert response.status_code == 200
     assert provider.calls[0]["available_tools"] == [
-        "budget.get_today_summary",
-        "budget.get_remaining_calories",
-        "budget.get_day_meal_log",
+        "app.answer_usage_question",
         "body.get_active_plan",
         "body.get_latest_observation",
+        "budget.get_day_meal_log",
+        "budget.get_remaining_calories",
+        "budget.get_today_summary",
         "calibration.get_pending_proposal",
-        "app.answer_usage_question",
     ]
     assert provider.calls[0]["tool_results"] == []
     assert provider.calls[1]["tool_results"][0]["tool_name"] == "budget.get_remaining_calories"
@@ -583,13 +583,13 @@ def test_estimate_route_uses_manager_read_only_tool_loop_for_app_usage_help(
 
     assert response.status_code == 200
     assert provider.calls[0]["available_tools"] == [
-        "budget.get_today_summary",
-        "budget.get_remaining_calories",
-        "budget.get_day_meal_log",
+        "app.answer_usage_question",
         "body.get_active_plan",
         "body.get_latest_observation",
+        "budget.get_day_meal_log",
+        "budget.get_remaining_calories",
+        "budget.get_today_summary",
         "calibration.get_pending_proposal",
-        "app.answer_usage_question",
     ]
     assert provider.calls[0]["tool_results"] == []
     assert provider.calls[1]["tool_results"][0]["tool_name"] == "app.answer_usage_question"
@@ -739,3 +739,49 @@ def test_day_meal_log_finalizer_rejects_remaining_budget_tool_result() -> None:
     )
 
     assert result is None
+
+
+def test_entry_answer_only_finalizer_stops_log_meal_compat_route_without_mutation() -> None:
+    trace_events: list[dict[str, object]] = []
+    remaining_budget = object()
+
+    class _Decision:
+        intent_type = "log_meal"
+        workflow_effect = "answer_only"
+        final_action = "answer_only"
+        tool_results = []
+        answer_contract = {"reply_text": "今天已消耗 0 kcal。"}
+        response_summary = ""
+        tool_calls = []
+        semantic_decision = {
+            "current_turn_intent": "answer_query",
+            "workflow_effect": "answer_only",
+            "mutation_intent_candidate": "no_mutation",
+        }
+
+    result = finalize_non_fooddb_read_only_manager_intent(
+        db=None,
+        manager_decision=_Decision(),
+        user_id=1,
+        local_date="2026-05-06",
+        request_id="req-entry-answer-only",
+        build_remaining_budget=lambda *args, **kwargs: remaining_budget,
+        append_trace_event=lambda **kwargs: trace_events.append(kwargs),
+    )
+
+    assert result == {
+        "remaining_budget": remaining_budget,
+        "assistant_message_override": "今天已消耗 0 kcal。",
+    }
+    assert trace_events == [
+        {
+            "request_id": "req-entry-answer-only",
+            "stage": "v2_entry_answer_only_read_only",
+            "status": "ok",
+            "summary": {
+                "workflow_effect": "answer_only",
+                "semantic_intent": "answer_query",
+                "state_mutation": "none",
+            },
+        }
+    ]

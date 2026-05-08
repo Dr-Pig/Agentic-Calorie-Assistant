@@ -69,6 +69,21 @@ def _has_public_tool_result(manager_decision: IntakeManagerResult, public_name: 
     )
 
 
+def _is_entry_answer_only_no_mutation(manager_decision: IntakeManagerResult) -> bool:
+    raw_semantic_decision = getattr(manager_decision, "semantic_decision", {})
+    semantic_decision = (
+        raw_semantic_decision
+        if isinstance(raw_semantic_decision, dict)
+        else {}
+    )
+    return (
+        getattr(manager_decision, "workflow_effect", "") == "answer_only"
+        and getattr(manager_decision, "final_action", "") in {"answer_only", "answer_remaining_budget"}
+        and str(semantic_decision.get("mutation_intent_candidate") or "") == "no_mutation"
+        and not getattr(manager_decision, "tool_calls", ())
+    )
+
+
 def finalize_non_fooddb_read_only_manager_intent(
     *,
     db: Session,
@@ -98,6 +113,38 @@ def finalize_non_fooddb_read_only_manager_intent(
             },
         )
         return {"remaining_budget": remaining_budget, "assistant_message_override": None}
+
+    if _is_entry_answer_only_no_mutation(manager_decision):
+        remaining_budget = build_remaining_budget(
+            db,
+            user_id=user_id,
+            local_date=local_date,
+        )
+        semantic_decision = manager_decision.semantic_decision
+        semantic_intent = (
+            str(semantic_decision.get("current_turn_intent") or "")
+            if isinstance(semantic_decision, dict)
+            else ""
+        )
+        assistant_message_override = str(
+            manager_decision.answer_contract.get("reply_text")
+            or manager_decision.response_summary
+            or ""
+        ) or None
+        append_trace_event(
+            request_id=request_id,
+            stage="v2_entry_answer_only_read_only",
+            status="ok",
+            summary={
+                "workflow_effect": manager_decision.workflow_effect,
+                "semantic_intent": semantic_intent,
+                "state_mutation": "none",
+            },
+        )
+        return {
+            "remaining_budget": remaining_budget,
+            "assistant_message_override": assistant_message_override,
+        }
 
     if manager_decision.intent_type == "onboarding_required":
         remaining_budget = build_remaining_budget(
