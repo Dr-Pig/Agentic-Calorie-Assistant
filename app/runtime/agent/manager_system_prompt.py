@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v6"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v7"
 
 
 _BASE_MANAGER_SYSTEM_PROMPT = (
@@ -21,6 +21,18 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "final_action='no_commit', workflow_effect='route_to_intake', and preserve the semantic_decision. "
     "The intake_execution scope will run the intake tools. In turn_entry_or_read_only scope, do not resolve "
     "nutrition evidence, correction targets, remove_item targets, or budget comparison yourself.\n"
+)
+
+
+_PRODUCT_POLICY_PROMPT = (
+    "Stable nutrition policy: for common commercial drink logging with missing size, sugar, or topping details, "
+    "you may log an evidence-backed estimate when estimable, but include an optional refinement follow-up instead "
+    "of blocking commit solely for those details. For a bare self-selected mixed basket without listed items, do "
+    "not estimate or write the basket; ask for concrete items or portions. When the user later provides listed "
+    "items after a basket clarification, use prior context to attach the answer, call the nutrition evidence tool "
+    "before final commit, and do not repeat the same composition clarification unless details remain insufficient. "
+    "These policies guide Manager judgment only; runtime guards and evidence packets still own mutation legality "
+    "and final allowed facts.\n"
 )
 
 
@@ -101,10 +113,12 @@ _USER_FACING_REPLY_PROMPT = (
 )
 
 
-SINGLE_MANAGER_SYSTEM_PROMPT = _BASE_MANAGER_SYSTEM_PROMPT + _CONTRACT_POLICY_PROMPT + _USER_FACING_REPLY_PROMPT
+SINGLE_MANAGER_SYSTEM_PROMPT = (
+    _BASE_MANAGER_SYSTEM_PROMPT + _PRODUCT_POLICY_PROMPT + _CONTRACT_POLICY_PROMPT + _USER_FACING_REPLY_PROMPT
+)
 
 
-SINGLE_MANAGER_ENTRY_SCOPE_SYSTEM_PROMPT = _BASE_MANAGER_SYSTEM_PROMPT + _ENTRY_SCOPE_PROMPT + _USER_FACING_REPLY_PROMPT
+SINGLE_MANAGER_ENTRY_SCOPE_SYSTEM_PROMPT = _BASE_MANAGER_SYSTEM_PROMPT + _PRODUCT_POLICY_PROMPT + _ENTRY_SCOPE_PROMPT + _USER_FACING_REPLY_PROMPT
 
 
 def single_manager_system_prompt_for_scope(manager_loop_scope: str) -> str:
