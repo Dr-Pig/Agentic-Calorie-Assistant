@@ -14,6 +14,7 @@ from .builderspace_config import (
     is_configured,
 )
 from .builderspace_parsing import jsonable
+from .builderspace_prompt_cache import apply_prompt_cache_key
 from .builderspace_trace import build_failure_trace
 from .builderspace_transport import (
     decision_transport_request_for_stage,
@@ -154,6 +155,11 @@ class BuilderSpaceAdapter:
         }
         if max_tokens is not None:
             base_request_payload["max_tokens"] = max_tokens
+        base_request_payload = apply_prompt_cache_key(
+            base_request_payload,
+            model=model,
+            stage=stage,
+        )
         return await complete_builderspace_with_trace(
             base_url=self.base_url,
             token=self.token,

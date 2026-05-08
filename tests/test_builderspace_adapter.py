@@ -346,10 +346,54 @@ async def test_complete_with_trace_strict_json_success(monkeypatch: pytest.Monke
         "system_message",
     ]
     assert trace["prompt_cache_request"]["dynamic_suffix_component_order"] == ["user_messages"]
-    assert trace["prompt_cache_request"]["provider_request_includes_prompt_cache_key"] is False
+    assert trace["prompt_cache_request"]["provider_request_includes_prompt_cache_key"] is True
+    assert trace["prompt_cache_request"]["prompt_cache_key"].startswith("bs:intake_manager_round:")
     assert trace["prompt_cache_request"]["cache_truth_source"] == "provider_reported_usage_only"
     assert trace["prompt_cache_request"]["stable_prefix_sha256"]
     assert trace["prompt_cache_request"]["dynamic_suffix_sha256"]
+
+
+@pytest.mark.asyncio
+async def test_complete_with_trace_prompt_cache_key_ignores_dynamic_user_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    first = _json_envelope(
+        "{\"manager_action\":\"final\",\"intent\":\"general_chat\",\"workflow_effect\":\"none\",\"target_attachment\":{},\"exactness\":\"unknown\",\"confidence\":\"unknown\",\"evidence_posture\":\"unknown\",\"repair_ack\":false}"
+    )
+    second = _json_envelope(
+        "{\"manager_action\":\"final\",\"intent\":\"log_meal\",\"workflow_effect\":\"none\",\"target_attachment\":{},\"exactness\":\"unknown\",\"confidence\":\"unknown\",\"evidence_posture\":\"unknown\",\"repair_ack\":false}"
+    )
+    posted_payloads: list[dict[str, object]] = []
+    monkeypatch.setenv("AI_BUILDER_TOKEN", "test-token")
+    monkeypatch.setenv("AI_BUILDER_BASE_URL", "https://example.test/backend/v1")
+    monkeypatch.setattr(
+        builderspace_adapter_module.httpx,
+        "AsyncClient",
+        lambda **kwargs: _RecordingAsyncClient(
+            responses=[
+                _FakeResponse(payload=first, text=json.dumps(first)),
+                _FakeResponse(payload=second, text=json.dumps(second)),
+            ],
+            recorder=posted_payloads,
+            **kwargs,
+        ),
+    )
+    adapter = BuilderSpaceAdapter(manager_model_override="grok-4-fast")
+
+    _, first_trace = await adapter.complete_with_trace(
+        system_prompt="Return JSON.",
+        user_payload={"raw_user_input": "today"},
+        stage="intake_manager_round",
+    )
+    _, second_trace = await adapter.complete_with_trace(
+        system_prompt="Return JSON.",
+        user_payload={"raw_user_input": "remove the milk tea", "manager_context_packet_v1": {"turn": 2}},
+        stage="intake_manager_round",
+    )
+
+    first_key = posted_payloads[0]["json"]["prompt_cache_key"]
+    second_key = posted_payloads[1]["json"]["prompt_cache_key"]
+    assert first_key == second_key
+    assert first_trace["prompt_cache_request"]["prompt_cache_key"] == first_key
+    assert second_trace["prompt_cache_request"]["prompt_cache_key"] == second_key
 
 
 @pytest.mark.asyncio
