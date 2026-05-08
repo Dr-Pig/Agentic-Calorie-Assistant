@@ -392,6 +392,68 @@ async def test_run_intake_manager_uses_packet_primary_progressive_context_disclo
 
 
 @pytest.mark.asyncio
+async def test_run_intake_manager_compacts_context_packet_after_tool_evidence() -> None:
+    class _ToolThenFinalProvider(_FakeProvider):
+        async def complete_with_trace(self, **kwargs: object) -> tuple[dict[str, object], dict[str, object]]:
+            self.calls.append(dict(kwargs))
+            if len(self.calls) == 1:
+                return (
+                    {"manager_action": "call_tools", "tool_calls": [{"name": "estimate_nutrition"}]},
+                    {"source": "fake"},
+                )
+            return await super().complete_with_trace(**kwargs)
+
+    resolved_state = _resolved_state_with_recent_chat_turns()
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="half sugar",
+        resolved_state=resolved_state,
+    )
+    packet = build_manager_context_packet_v1(
+        current_turn_context=current_turn_context,
+        user_id="user-1",
+        local_date="2026-04-29",
+        session_id="session-1",
+        target_candidates=current_turn_context.candidate_attachment_targets,
+    )
+    provider = _ToolThenFinalProvider()
+
+    async def tool_executor(**_: object) -> list[dict[str, object]]:
+        return [
+            {
+                "tool_name": "estimate_nutrition",
+                "evidence": {"nutrition_payload": {"estimated_kcal": 520}},
+                "failure_family": None,
+            }
+        ]
+
+    result = await run_intake_manager(
+        provider=provider,
+        raw_user_input="half sugar",
+        resolved_state=resolved_state,
+        current_turn_context=current_turn_context,
+        manager_context_pack=build_manager_context_pack(current_turn_context=current_turn_context),
+        manager_context_packet_v1=packet,
+        available_tools=("estimate_nutrition",),
+        tool_executor=tool_executor,
+    )
+
+    first_packet = provider.calls[0]["user_payload"]["manager_context_packet_v1"]
+    second_packet = provider.calls[1]["user_payload"]["manager_context_packet_v1"]
+    assert first_packet["prompt_payload_kind"] == "manager_context_packet_v1_prompt_compact"
+    assert first_packet["recent_chat_window"]["messages"]
+    assert first_packet["target_candidates"]["for_correction_or_removal"]
+    assert second_packet["prompt_payload_kind"] == "manager_context_packet_v1_post_tool_reference"
+    assert "messages" not in second_packet["recent_chat_window"]
+    assert second_packet["recent_chat_window"]["messages_omitted_after_tool_evidence"] is True
+    assert second_packet["target_candidates"]["candidate_count"] == len(
+        first_packet["target_candidates"]["for_correction_or_removal"]
+    )
+    assert "for_correction_or_removal" not in second_packet["target_candidates"]
+    assert second_packet["hard_pins"]["pending_followup"]["meal_thread_id"] == 77
+    assert result.final_action == "no_commit"
+
+
+@pytest.mark.asyncio
 async def test_run_intake_manager_compacts_legacy_resolved_state_prompt_payload() -> None:
     resolved_state = _resolved_state_with_recent_chat_turns()
     resolved_state.injected_context["TRACE_ONLY_BULK_STATE"] = {

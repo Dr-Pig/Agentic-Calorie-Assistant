@@ -107,12 +107,45 @@ def current_turn_context_prompt_payload(
     return summary
 
 
-def manager_context_packet_v1_prompt_payload(packet: dict[str, Any] | None) -> dict[str, Any] | None:
+def manager_context_packet_v1_prompt_payload(
+    packet: dict[str, Any] | None,
+    *,
+    tool_results: list[dict[str, Any]] | tuple[dict[str, Any], ...] | None = None,
+) -> dict[str, Any] | None:
     if not isinstance(packet, dict):
         return None
     metadata = dict(packet.get("metadata") or {})
     artifact = dict(packet.get("context_loading_artifact") or {})
     recent_chat_window = dict(packet.get("recent_chat_window") or {})
+    if _post_tool_context_reference_allowed(tool_results):
+        target_candidates = dict(packet.get("target_candidates") or {})
+        return {
+            "prompt_payload_kind": "manager_context_packet_v1_post_tool_reference",
+            "metadata": {
+                "local_date": metadata.get("local_date"),
+                "context_policy_version": metadata.get("context_policy_version"),
+                "claim_scope": metadata.get("claim_scope"),
+            },
+            "current_turn": _compact_current_turn(dict(packet.get("current_turn") or {})),
+            "recent_chat_window": {
+                "loaded_message_count": artifact.get("loaded_message_count"),
+                "omitted_count": artifact.get("omitted_count"),
+                "char_truncated": artifact.get("char_truncated"),
+                "token_budget_status": artifact.get("token_budget_status"),
+                "messages_omitted_after_tool_evidence": True,
+            },
+            "hard_pins": dict(packet.get("hard_pins") or {}),
+            "active_day_state": dict(packet.get("active_day_state") or {}),
+            "target_candidates": {
+                "candidate_count": len(list(target_candidates.get("for_correction_or_removal") or [])),
+                "candidates_omitted_after_tool_evidence": True,
+                "read_only": True,
+                "mutation_authority": False,
+            },
+            "constraints": list(packet.get("constraints") or []),
+            "read_only": True,
+            "mutation_authority": False,
+        }
     return {
         "prompt_payload_kind": "manager_context_packet_v1_prompt_compact",
         "metadata": {
@@ -135,6 +168,17 @@ def manager_context_packet_v1_prompt_payload(packet: dict[str, Any] | None) -> d
         "read_only": True,
         "mutation_authority": False,
     }
+
+
+def _post_tool_context_reference_allowed(tool_results: list[dict[str, Any]] | tuple[dict[str, Any], ...] | None) -> bool:
+    evidence_tools = {"estimate_nutrition", "resolve_correction_target", "compare_against_budget"}
+    for item in tool_results or []:
+        if not isinstance(item, dict):
+            continue
+        tool_name = str(item.get("tool_name") or item.get("name") or "").strip()
+        if tool_name in evidence_tools:
+            return True
+    return False
 
 
 def _compact_current_turn(current_turn: dict[str, Any]) -> dict[str, Any]:
