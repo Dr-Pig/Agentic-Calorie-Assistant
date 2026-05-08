@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -13,10 +13,10 @@ from app.composition.accurate_intake_pl_ce_activation_review_manifest import (
 
 def _valid_inputs() -> dict[str, dict[str, object]]:
     return {
-        "pl_ce_local_mvp_candidate_bundle": {
+        "current_shell_compatibility_local_mvp_candidate_bundle": {
             "artifact_schema_version": "1.0",
-            "artifact_type": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
-            "status": "pl_ce_local_mvp_candidate_ready_for_human_review",
+            "artifact_type": "accurate_intake_current_shell_compatibility_local_mvp_candidate_bundle",
+            "status": "current_shell_compatibility_local_mvp_candidate_ready_for_human_review",
             "activation_gate_status": "blocked_pending_human_and_browser_activation",
             "required_inputs": [
                 "ui_same_truth_contract",
@@ -60,11 +60,6 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                     "present": True,
                 },
                 "context_conditioned_intent_wall": {"status": "pass", "present": True},
-                "context_live_diagnostic_case_matrix": {"status": "pass", "present": True},
-                "context_live_diagnostic_anti_overfit_guard": {
-                    "status": "pass",
-                    "present": True,
-                },
                 "correction_removal_fixture_flow": {"status": "pass", "present": True},
                 "responder_input_contract_fake_smoke": {"status": "pass", "present": True},
                 "fixture_packet_emulator": {"status": "fixture_packet_emulator_ready", "present": True},
@@ -95,8 +90,6 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "aggregate_only": True,
             "self_generated_evidence_used": False,
             "review_required_before_provider_call": True,
-            "ready_for_live_diagnostic_decision": False,
-            "ready_for_fdb_integration": False,
             "live_llm_invoked": False,
             "web_tavily_used": False,
             "fooddb_evidence_used": False,
@@ -110,7 +103,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "artifact_type": "accurate_intake_pl_ce_browser_activation_evidence_gate",
             "status": "browser_activation_evidence_ready_for_human_review",
             "required_inputs": [
-                "pl_ce_local_mvp_candidate_bundle",
+                "current_shell_compatibility_local_mvp_candidate_bundle",
                 "product_pages_browser_smoke",
                 "product_pages_seven_day_diary_smoke",
                 "product_pages_short_term_context_smoke",
@@ -127,8 +120,8 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             ],
             "blockers": [],
             "included_artifact_statuses": {
-                "pl_ce_local_mvp_candidate_bundle": {
-                    "status": "pl_ce_local_mvp_candidate_ready_for_human_review",
+                "current_shell_compatibility_local_mvp_candidate_bundle": {
+                    "status": "current_shell_compatibility_local_mvp_candidate_ready_for_human_review",
                     "browser_executed": "not_applicable",
                 },
                 "product_pages_browser_smoke": {"status": "pass", "browser_executed": True},
@@ -241,7 +234,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_context_live_diagnostic_holdout_plan",
             "status": "pass",
-            "claim_scope": "pl_ce_context_live_diagnostic_holdout_overfit_control",
+            "claim_scope": "current_shell_compatibility_context_live_diagnostic_holdout_overfit_control",
             "diagnostic_only": True,
             "fixture_only": True,
             "plan_only": True,
@@ -286,7 +279,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_context_live_diagnostic_dry_run_evaluator",
             "status": "pass",
-            "claim_scope": "pl_ce_context_live_diagnostic_fixture_evaluator",
+            "claim_scope": "current_shell_compatibility_context_live_diagnostic_fixture_evaluator",
             "diagnostic_only": True,
             "fixture_only": True,
             "plan_only": True,
@@ -320,7 +313,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "artifact_schema_version": "1.0",
             "artifact_type": "accurate_intake_context_live_response_contract_dry_run",
             "status": "pass",
-            "claim_scope": "pl_ce_context_live_response_contract_dry_run",
+            "claim_scope": "current_shell_compatibility_context_live_response_contract_dry_run_only",
             "diagnostic_only": True,
             "fixture_only": True,
             "plan_only": True,
@@ -361,7 +354,7 @@ def _context_live_review_pack(*, live: bool = True) -> dict[str, object]:
             if live
             else "context_live_diagnostic_review_ready_without_live_canary"
         ),
-        "claim_scope": "pl_ce_context_live_diagnostic_review_for_human_review_only",
+        "claim_scope": "current_shell_compatibility_context_live_diagnostic_review_for_human_review_only",
         "blockers": [],
         "diagnostic_only": True,
         "aggregate_only": True,
@@ -418,7 +411,7 @@ def _context_live_gate(*, live: bool = True) -> dict[str, object]:
             if live
             else "context_live_diagnostic_gate_ready_without_live_canary"
         ),
-        "claim_scope": "pl_ce_context_live_diagnostic_gate",
+        "claim_scope": "current_shell_compatibility_context_live_diagnostic_stage_order_gate",
         "blockers": [],
         "review_pack_status": (
             "context_live_diagnostic_review_ready_with_live_canary"
@@ -470,22 +463,22 @@ def _context_live_gate(*, live: bool = True) -> dict[str, object]:
 def test_activation_review_manifest_summarizes_human_review_ready_evidence_only() -> None:
     artifact = build_pl_ce_activation_review_manifest_artifact(_valid_inputs())
 
-    assert artifact["artifact_type"] == "accurate_intake_pl_ce_activation_review_manifest"
-    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["artifact_type"] == "accurate_intake_current_shell_compatibility_activation_review_manifest"
+    assert artifact["status"] == "current_shell_compatibility_activation_review_manifest_ready"
     assert artifact["aggregate_only"] is True
     assert artifact["self_generated_evidence_used"] is False
     assert artifact["human_review_required"] is True
     assert artifact["live_diagnostic_human_approval_required"] is True
-    assert artifact["ready_for_live_diagnostic_decision"] is False
-    assert artifact["ready_for_fdb_integration"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
+    assert "ready_for_fdb_integration" not in artifact
     assert artifact["live_llm_invoked"] is False
     assert artifact["web_tavily_used"] is False
     assert artifact["fooddb_evidence_used"] is False
     assert artifact["real_fooddb_pass_claimed"] is False
     assert artifact["dogfood_pass"] is False
-    assert artifact["web_readiness_claimed"] is False
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "web_readiness_claimed" not in artifact
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
     assert artifact["review_checkpoints"]["local_mvp_candidate_bundle"] == "ready_for_human_review"
     assert artifact["review_checkpoints"]["browser_activation_evidence_gate"] == "ready_for_human_review"
     assert artifact["review_checkpoints"]["ui_context_alignment_pack"] == "ready_for_human_review"
@@ -515,7 +508,7 @@ def test_activation_review_manifest_accepts_optional_context_live_review_pack_wi
 
     artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
 
-    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["status"] == "current_shell_compatibility_activation_review_manifest_ready"
     assert artifact["review_checkpoints"]["context_live_diagnostic_review_pack"] == "live_canary_passed"
     assert (
         artifact["remaining_stop_gates"]["context_live_provider_status"]
@@ -525,11 +518,11 @@ def test_activation_review_manifest_accepts_optional_context_live_review_pack_wi
     assert artifact["upstream_live_llm_invoked"] is True
     assert artifact["live_llm_invoked"] is False
     assert artifact["live_provider_called"] is False
-    assert artifact["ready_for_live_diagnostic_decision"] is False
-    assert artifact["ready_for_fdb_integration"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
+    assert "ready_for_fdb_integration" not in artifact
     assert artifact["fooddb_evidence_used"] is False
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
     assert artifact["context_live_diagnostic_stage_summary"] == {
         "live_stage": "full-matrix",
         "stage_gate_status": "review_pack_full_matrix_live_diagnostic_pass",
@@ -558,7 +551,7 @@ def test_activation_review_manifest_summarizes_single_case_context_live_review_p
 
     artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
 
-    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["status"] == "current_shell_compatibility_activation_review_manifest_ready"
     assert artifact["context_live_diagnostic_stage_summary"] == {
         "live_stage": "single-case",
         "stage_gate_status": "review_pack_single_case_live_diagnostic_pass",
@@ -568,8 +561,8 @@ def test_activation_review_manifest_summarizes_single_case_context_live_review_p
         "single_case_live_probe_completed": True,
         "diagnostic_only_not_readiness": True,
     }
-    assert artifact["ready_for_live_diagnostic_decision"] is False
-    assert artifact["product_readiness_claimed"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
+    assert "product_readiness_claimed" not in artifact
 
 
 def test_activation_review_manifest_accepts_optional_context_live_gate_without_readiness_claim() -> None:
@@ -578,7 +571,7 @@ def test_activation_review_manifest_accepts_optional_context_live_gate_without_r
 
     artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
 
-    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["status"] == "current_shell_compatibility_activation_review_manifest_ready"
     assert artifact["review_checkpoints"]["context_live_diagnostic_gate"] == "gate_live_canary_passed"
     assert (
         artifact["remaining_stop_gates"]["context_live_gate_status"]
@@ -588,11 +581,11 @@ def test_activation_review_manifest_accepts_optional_context_live_gate_without_r
     assert artifact["upstream_context_live_gate_llm_invoked"] is True
     assert artifact["live_llm_invoked"] is False
     assert artifact["live_provider_called"] is False
-    assert artifact["ready_for_live_diagnostic_decision"] is False
-    assert artifact["ready_for_fdb_integration"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
+    assert "ready_for_fdb_integration" not in artifact
     assert artifact["fooddb_evidence_used"] is False
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
     assert artifact["context_live_diagnostic_stage_summary"] == {
         "live_stage": "full-matrix",
         "stage_gate_status": "context_live_full_matrix_probe_pass",
@@ -611,7 +604,7 @@ def test_activation_review_manifest_accepts_optional_context_live_gate_without_l
 
     artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
 
-    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["status"] == "current_shell_compatibility_activation_review_manifest_ready"
     assert artifact["review_checkpoints"]["context_live_diagnostic_gate"] == "gate_ready_without_live_canary"
     assert (
         artifact["remaining_stop_gates"]["context_live_gate_status"]
@@ -620,7 +613,7 @@ def test_activation_review_manifest_accepts_optional_context_live_gate_without_l
     assert artifact["context_live_gate_evidence_present"] is True
     assert artifact["upstream_context_live_gate_llm_invoked"] is False
     assert artifact["live_llm_invoked"] is False
-    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
     assert artifact["context_live_diagnostic_stage_summary"]["live_stage"] == "not_invoked"
     assert artifact["context_live_diagnostic_stage_summary"]["diagnostic_only_not_readiness"] is True
     assert artifact["blockers"] == []
@@ -636,7 +629,7 @@ def test_activation_review_manifest_summarizes_single_case_context_live_gate() -
 
     artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
 
-    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["status"] == "current_shell_compatibility_activation_review_manifest_ready"
     assert artifact["context_live_diagnostic_stage_summary"] == {
         "live_stage": "single-case",
         "stage_gate_status": "context_live_single_case_probe_pass",
@@ -646,8 +639,8 @@ def test_activation_review_manifest_summarizes_single_case_context_live_gate() -
         "single_case_live_probe_completed": True,
         "diagnostic_only_not_readiness": True,
     }
-    assert artifact["ready_for_live_diagnostic_decision"] is False
-    assert artifact["product_readiness_claimed"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
+    assert "product_readiness_claimed" not in artifact
 
 
 def test_activation_review_manifest_blocks_context_live_gate_overclaim_or_ad_hoc_probe() -> None:
@@ -666,7 +659,7 @@ def test_activation_review_manifest_blocks_context_live_gate_overclaim_or_ad_hoc
     assert "context_live_diagnostic_gate.ad_hoc_live_case_selection_allowed" in artifact["blockers"]
     assert "context_live_diagnostic_gate.fixed_case_matrix_not_used" in artifact["blockers"]
     assert "context_live_diagnostic_gate.live_blocked_response_count_nonzero" in artifact["blockers"]
-    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
 
 
 def test_activation_review_manifest_blocks_context_live_gate_missing_child_evidence_paths() -> None:
@@ -689,7 +682,7 @@ def test_activation_review_manifest_blocks_context_live_gate_missing_child_evide
         "context_live_diagnostic_gate.artifact_paths."
         "context_live_response_contract_dry_run_missing"
     ) in artifact["blockers"]
-    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
 
 
 def test_activation_review_manifest_blocks_context_live_review_pack_readiness_or_fooddb_overclaim() -> None:
@@ -706,8 +699,8 @@ def test_activation_review_manifest_blocks_context_live_review_pack_readiness_or
     assert "context_live_diagnostic_review_pack.product_readiness_claimed" in artifact["blockers"]
     assert "context_live_diagnostic_review_pack.readiness_claimed" in artifact["blockers"]
     assert "context_live_diagnostic_review_pack.fooddb_used" in artifact["blockers"]
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["ready_for_fdb_integration"] is False
+    assert "product_readiness_claimed" not in artifact
+    assert "ready_for_fdb_integration" not in artifact
 
 
 def test_activation_review_manifest_blocks_missing_or_blocked_inputs() -> None:
@@ -724,12 +717,12 @@ def test_activation_review_manifest_blocks_missing_or_blocked_inputs() -> None:
     assert artifact["status"] == "blocked"
     assert "pl_ce_browser_activation_evidence_gate.unexpected_status:blocked" in artifact["blockers"]
     assert "pl_ce_browser_activation_evidence_gate.browser_artifacts_not_all_executed" in artifact["blockers"]
-    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
 
 
 def test_activation_review_manifest_blocks_swapped_identity_or_readiness_overclaim() -> None:
     inputs = _valid_inputs()
-    inputs["pl_ce_local_mvp_candidate_bundle"]["artifact_type"] = "wrong"
+    inputs["current_shell_compatibility_local_mvp_candidate_bundle"]["artifact_type"] = "wrong"
     inputs["pl_ce_browser_activation_evidence_gate"]["ready_for_live_diagnostic_decision"] = True
     inputs["pl_ce_browser_activation_evidence_gate"]["product_readiness_claimed"] = True
     inputs["pl_ce_ui_context_alignment_pack"]["product_readiness_claimed"] = True
@@ -737,18 +730,18 @@ def test_activation_review_manifest_blocks_swapped_identity_or_readiness_overcla
     artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
 
     assert artifact["status"] == "blocked"
-    assert "pl_ce_local_mvp_candidate_bundle.unexpected_artifact_type:wrong" in artifact["blockers"]
+    assert "current_shell_compatibility_local_mvp_candidate_bundle.unexpected_artifact_type:wrong" in artifact["blockers"]
     assert "pl_ce_browser_activation_evidence_gate.ready_for_live_diagnostic_decision" in artifact["blockers"]
     assert "pl_ce_browser_activation_evidence_gate.product_readiness_claimed" in artifact["blockers"]
     assert "pl_ce_ui_context_alignment_pack.product_readiness_claimed" in artifact["blockers"]
-    assert artifact["product_readiness_claimed"] is False
+    assert "product_readiness_claimed" not in artifact
 
 
 def test_activation_review_manifest_blocks_thin_or_contradictory_ready_inputs() -> None:
     thin_inputs = {
-        "pl_ce_local_mvp_candidate_bundle": {
-            "artifact_type": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
-            "status": "pl_ce_local_mvp_candidate_ready_for_human_review",
+        "current_shell_compatibility_local_mvp_candidate_bundle": {
+            "artifact_type": "accurate_intake_current_shell_compatibility_local_mvp_candidate_bundle",
+            "status": "current_shell_compatibility_local_mvp_candidate_ready_for_human_review",
             "activation_gate_status": "blocked_pending_human_and_browser_activation",
         },
         "pl_ce_browser_activation_evidence_gate": {
@@ -763,16 +756,16 @@ def test_activation_review_manifest_blocks_thin_or_contradictory_ready_inputs() 
     artifact = build_pl_ce_activation_review_manifest_artifact(thin_inputs)
 
     assert artifact["status"] == "blocked"
-    assert "pl_ce_local_mvp_candidate_bundle.missing_artifact_schema_version" in artifact["blockers"]
-    assert "pl_ce_local_mvp_candidate_bundle.required_inputs_incomplete" in artifact["blockers"]
-    assert "pl_ce_local_mvp_candidate_bundle.included_artifact_statuses_missing" in artifact["blockers"]
+    assert "current_shell_compatibility_local_mvp_candidate_bundle.missing_artifact_schema_version" in artifact["blockers"]
+    assert "current_shell_compatibility_local_mvp_candidate_bundle.required_inputs_incomplete" in artifact["blockers"]
+    assert "current_shell_compatibility_local_mvp_candidate_bundle.included_artifact_statuses_missing" in artifact["blockers"]
     assert "pl_ce_browser_activation_evidence_gate.upstream_blockers_present" in artifact["blockers"]
     assert "pl_ce_browser_activation_evidence_gate.required_inputs_incomplete" in artifact["blockers"]
 
 
 def test_activation_review_manifest_blocks_nested_status_or_browser_contradiction() -> None:
     inputs = _valid_inputs()
-    inputs["pl_ce_local_mvp_candidate_bundle"]["included_artifact_statuses"][
+    inputs["current_shell_compatibility_local_mvp_candidate_bundle"]["included_artifact_statuses"][
         "mvp_gate_summary"
     ]["status"] = "blocked"
     inputs["pl_ce_browser_activation_evidence_gate"]["included_artifact_statuses"][
@@ -790,7 +783,7 @@ def test_activation_review_manifest_blocks_nested_status_or_browser_contradictio
 
     assert artifact["status"] == "blocked"
     assert (
-        "pl_ce_local_mvp_candidate_bundle.included_artifact_statuses.mvp_gate_summary.unexpected_status:blocked"
+        "current_shell_compatibility_local_mvp_candidate_bundle.included_artifact_statuses.mvp_gate_summary.unexpected_status:blocked"
         in artifact["blockers"]
     )
     assert (
@@ -837,7 +830,7 @@ def test_activation_review_manifest_blocks_missing_context_live_dry_run_evaluato
         artifact["remaining_stop_gates"]["context_live_dry_run_status"]
         == "blocked_before_live_diagnostic"
     )
-    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
 
 
 def test_activation_review_manifest_blocks_missing_context_live_holdout_plan() -> None:
@@ -856,7 +849,7 @@ def test_activation_review_manifest_blocks_missing_context_live_holdout_plan() -
         artifact["remaining_stop_gates"]["context_live_holdout_plan_status"]
         == "blocked_before_live_diagnostic"
     )
-    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
 
 
 def test_activation_review_manifest_blocks_missing_context_live_response_contract_dry_run() -> None:
@@ -875,7 +868,7 @@ def test_activation_review_manifest_blocks_missing_context_live_response_contrac
         artifact["remaining_stop_gates"]["context_live_response_contract_status"]
         == "blocked_before_live_diagnostic"
     )
-    assert artifact["ready_for_live_diagnostic_decision"] is False
+    assert "ready_for_live_diagnostic_decision" not in artifact
 
 
 def test_activation_review_manifest_blocks_context_live_dry_run_evaluator_blocked_status() -> None:
@@ -1106,13 +1099,13 @@ def test_activation_review_manifest_blocks_invalid_renderer_source_map_gate() ->
 
 def test_activation_review_manifest_accepts_context_matrix_known_runtime_gap_status() -> None:
     inputs = _valid_inputs()
-    inputs["pl_ce_local_mvp_candidate_bundle"]["included_artifact_statuses"][
+    inputs["current_shell_compatibility_local_mvp_candidate_bundle"]["included_artifact_statuses"][
         "context_coverage_matrix"
     ]["status"] = "context_coverage_matrix_ready_with_known_runtime_gaps"
 
     artifact = build_pl_ce_activation_review_manifest_artifact(inputs)
 
-    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["status"] == "current_shell_compatibility_activation_review_manifest_ready"
     assert artifact["blockers"] == []
 
 
@@ -1133,8 +1126,8 @@ def test_activation_review_manifest_cli_writes_from_existing_artifacts(tmp_path:
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
 
     assert exit_code == 0
-    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
-    assert artifact["included_artifact_statuses"]["pl_ce_local_mvp_candidate_bundle"]["source_artifact_path"]
+    assert artifact["status"] == "current_shell_compatibility_activation_review_manifest_ready"
+    assert artifact["included_artifact_statuses"]["current_shell_compatibility_local_mvp_candidate_bundle"]["source_artifact_path"]
 
 
 def test_activation_review_manifest_cli_accepts_optional_context_live_review_pack(
@@ -1162,7 +1155,7 @@ def test_activation_review_manifest_cli_accepts_optional_context_live_review_pac
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
 
     assert exit_code == 0
-    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["status"] == "current_shell_compatibility_activation_review_manifest_ready"
     assert artifact["review_checkpoints"]["context_live_diagnostic_review_pack"] == "live_canary_passed"
     assert artifact["upstream_live_llm_invoked"] is True
 
@@ -1189,7 +1182,7 @@ def test_activation_review_manifest_cli_accepts_optional_context_live_gate(
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
 
     assert exit_code == 0
-    assert artifact["status"] == "pl_ce_activation_review_manifest_ready"
+    assert artifact["status"] == "current_shell_compatibility_activation_review_manifest_ready"
     assert artifact["review_checkpoints"]["context_live_diagnostic_gate"] == "gate_live_canary_passed"
     assert artifact["upstream_context_live_gate_llm_invoked"] is True
 

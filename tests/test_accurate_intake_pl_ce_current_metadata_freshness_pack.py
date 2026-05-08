@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 import json
@@ -19,15 +19,6 @@ def _payload(artifact_type: str, status: str) -> dict[str, object]:
         "artifact_type": artifact_type,
         "status": status,
         "generated_at_utc": _timestamp(),
-        "ready_for_live_diagnostic_decision": False,
-        "ready_for_fdb_integration": False,
-        "live_llm_invoked": False,
-        "web_tavily_used": False,
-        "fooddb_evidence_used": False,
-        "real_fooddb_pass_claimed": False,
-        "dogfood_pass": False,
-        "product_readiness_claimed": False,
-        "private_self_use_approved": False,
     }
 
 
@@ -47,9 +38,9 @@ def _evidence() -> dict[str, dict[str, object]]:
             "accurate_intake_pl_ce_ui_context_alignment_pack",
             "ui_context_alignment_ready_for_human_review",
         ),
-        "pl_ce_local_mvp_candidate_bundle": _payload(
-            "accurate_intake_pl_ce_local_mvp_candidate_bundle",
-            "pl_ce_local_mvp_candidate_ready_for_human_review",
+        "current_shell_compatibility_local_mvp_candidate_bundle": _payload(
+            "accurate_intake_current_shell_compatibility_local_mvp_candidate_bundle",
+            "current_shell_compatibility_local_mvp_candidate_ready_for_human_review",
         ),
         "pl_ce_product_pages_self_use_flow_gate": _payload(
             "accurate_intake_pl_ce_product_pages_self_use_flow_gate",
@@ -63,16 +54,16 @@ def _evidence() -> dict[str, dict[str, object]]:
             "accurate_intake_non_fooddb_manager_tool_contract",
             "non_fooddb_manager_tool_contract_ready_for_human_review",
         ),
-        "pl_ce_activation_review_manifest": _payload(
-            "accurate_intake_pl_ce_activation_review_manifest",
-            "pl_ce_activation_review_manifest_ready",
+        "current_shell_compatibility_activation_review_manifest": _payload(
+            "accurate_intake_current_shell_compatibility_activation_review_manifest",
+            "current_shell_compatibility_activation_review_manifest_ready",
         ),
     }
-    evidence["pl_ce_local_mvp_candidate_bundle"]["fooddb_dependency"] = {
+    evidence["current_shell_compatibility_local_mvp_candidate_bundle"]["fooddb_dependency"] = {
         "fooddb_artifact_status": "blocked_waiting_for_fdb_artifact",
         "ready_for_fdb_integration": False,
     }
-    evidence["pl_ce_activation_review_manifest"]["remaining_stop_gates"] = {
+    evidence["current_shell_compatibility_activation_review_manifest"]["remaining_stop_gates"] = {
         "fooddb_artifact_status": "blocked_waiting_for_fdb_artifact",
         "live_provider_status": "blocked_pending_human_approval",
     }
@@ -82,20 +73,26 @@ def _evidence() -> dict[str, dict[str, object]]:
 def test_current_metadata_freshness_pack_accepts_current_product_pages_chain() -> None:
     pack = build_pl_ce_current_metadata_freshness_pack(evidence=_evidence())
 
-    assert pack["artifact_type"] == "accurate_intake_pl_ce_current_metadata_freshness_pack"
-    assert pack["status"] == "current_metadata_freshness_ready_for_serial_handoff"
+    assert (
+        pack["artifact_type"]
+        == "accurate_intake_current_shell_compatibility_current_metadata_freshness_pack"
+    )
+    assert (
+        pack["status"]
+        == "current_shell_compatibility_current_metadata_freshness_ready_for_serial_handoff"
+    )
     assert pack["ready_for_serial_handoff"] is True
     assert pack["metadata_only"] is True
     assert pack["source_status_only"] is True
-    assert pack["ready_for_live_diagnostic_decision"] is False
-    assert pack["ready_for_fdb_integration"] is False
-    assert pack["live_llm_invoked"] is False
-    assert pack["web_tavily_used"] is False
-    assert pack["fooddb_evidence_used"] is False
-    assert pack["real_fooddb_pass_claimed"] is False
-    assert pack["dogfood_pass"] is False
-    assert pack["product_readiness_claimed"] is False
-    assert pack["private_self_use_approved"] is False
+    assert "ready_for_live_diagnostic_decision" not in pack
+    assert "ready_for_fdb_integration" not in pack
+    assert "live_llm_invoked" not in pack
+    assert "web_tavily_used" not in pack
+    assert "fooddb_evidence_used" not in pack
+    assert "real_fooddb_pass_claimed" not in pack
+    assert "dogfood_pass" not in pack
+    assert "product_readiness_claimed" not in pack
+    assert "private_self_use_approved" not in pack
     assert pack["fresh_artifact_count"] == pack["required_artifact_count"] == 10
     assert "product_pages_long_session_navigation_smoke" in pack["required_artifacts"]
     assert "pl_ce_ui_context_alignment_pack" in pack["required_artifacts"]
@@ -117,12 +114,12 @@ def test_current_metadata_freshness_pack_blocks_missing_stale_or_overclaiming_in
     assert "context_quality_pack.stale" in pack["blockers"]
     assert "pl_ce_product_pages_self_use_flow_gate.product_readiness_claimed" in pack["blockers"]
     assert pack["ready_for_serial_handoff"] is False
-    assert pack["ready_for_fdb_integration"] is False
+    assert "ready_for_fdb_integration" not in pack
 
 
 def test_current_metadata_freshness_pack_blocks_missing_stop_gates() -> None:
     evidence = _evidence()
-    evidence["pl_ce_activation_review_manifest"]["remaining_stop_gates"] = {
+    evidence["current_shell_compatibility_activation_review_manifest"]["remaining_stop_gates"] = {
         "fooddb_artifact_status": "ready",
         "live_provider_status": "ready",
     }
@@ -130,8 +127,8 @@ def test_current_metadata_freshness_pack_blocks_missing_stop_gates() -> None:
     pack = build_pl_ce_current_metadata_freshness_pack(evidence=evidence)
 
     assert pack["status"] == "blocked"
-    assert "pl_ce_activation_review_manifest.fooddb_stop_gate_missing" in pack["blockers"]
-    assert "pl_ce_activation_review_manifest.live_provider_stop_gate_missing" in pack["blockers"]
+    assert "current_shell_compatibility_activation_review_manifest.fooddb_stop_gate_missing" in pack["blockers"]
+    assert "current_shell_compatibility_activation_review_manifest.live_provider_stop_gate_missing" in pack["blockers"]
 
 
 def test_current_metadata_freshness_pack_cli_writes_output(tmp_path: Path, capsys) -> None:
@@ -154,8 +151,14 @@ def test_current_metadata_freshness_pack_cli_writes_output(tmp_path: Path, capsy
     pack = json.loads(output_path.read_text(encoding="utf-8"))
 
     assert exit_code == 0
-    assert printed["status"] == "current_metadata_freshness_ready_for_serial_handoff"
-    assert pack["status"] == "current_metadata_freshness_ready_for_serial_handoff"
+    assert (
+        printed["status"]
+        == "current_shell_compatibility_current_metadata_freshness_ready_for_serial_handoff"
+    )
+    assert (
+        pack["status"]
+        == "current_shell_compatibility_current_metadata_freshness_ready_for_serial_handoff"
+    )
 
 
 def test_current_metadata_freshness_pack_source_stays_out_of_fooddb_websearch_boundaries() -> None:

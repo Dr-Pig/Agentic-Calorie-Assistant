@@ -5,9 +5,21 @@ import json
 from typing import Any
 
 from app.composition.accurate_intake_current_shell_claim_boundary import build_current_shell_appshell_claim_boundary_fields
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS,
+    LEGACY_BROWSER_ACTIVATION_ARTIFACT_TYPES,
+    LEGACY_LOCAL_MVP_ARTIFACT_TYPES,
+    LEGACY_LOCAL_MVP_GROUP_IDS,
+    LEGACY_LOCAL_MVP_READY_STATUSES,
+    matches_alias,
+    set_legacy_alias_metadata,
+)
 
 REQUIRED_INPUTS = (
-    "pl_ce_local_mvp_candidate_bundle",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
     "product_pages_browser_smoke",
     "product_pages_seven_day_diary_smoke",
     "product_pages_short_term_context_smoke",
@@ -17,7 +29,9 @@ REQUIRED_INPUTS = (
 )
 
 EXPECTED_STATUSES = {
-    "pl_ce_local_mvp_candidate_bundle": "pl_ce_local_mvp_candidate_ready_for_human_review",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: (
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS
+    ),
     "product_pages_browser_smoke": "pass",
     "product_pages_seven_day_diary_smoke": "pass",
     "product_pages_short_term_context_smoke": "pass",
@@ -27,7 +41,9 @@ EXPECTED_STATUSES = {
 }
 
 EXPECTED_ARTIFACT_TYPES = {
-    "pl_ce_local_mvp_candidate_bundle": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: (
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE
+    ),
     "product_pages_visual_qa": "accurate_intake_product_pages_visual_qa",
     "fixture_full_product_loop_e2e": "accurate_intake_fixture_full_product_loop_e2e",
 }
@@ -215,10 +231,27 @@ def _claim_is_true(value: Any) -> bool:
 
 def _identity_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
-    if _status(payload) != EXPECTED_STATUSES[group_id]:
+    if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID:
+        if not matches_alias(
+            payload.get("status"),
+            EXPECTED_STATUSES[group_id],
+            *LEGACY_LOCAL_MVP_READY_STATUSES,
+        ):
+            blockers.append(f"{group_id}.unexpected_status:{_status(payload)}")
+    elif _status(payload) != EXPECTED_STATUSES[group_id]:
         blockers.append(f"{group_id}.unexpected_status:{_status(payload)}")
     expected_type = EXPECTED_ARTIFACT_TYPES.get(group_id)
-    if expected_type and payload.get("artifact_type") != expected_type:
+    if (
+        group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID
+        and expected_type
+        and not matches_alias(
+            payload.get("artifact_type"),
+            expected_type,
+            *LEGACY_LOCAL_MVP_ARTIFACT_TYPES,
+        )
+    ):
+        blockers.append(f"{group_id}.unexpected_artifact_type:{payload.get('artifact_type')}")
+    elif expected_type and payload.get("artifact_type") != expected_type:
         blockers.append(f"{group_id}.unexpected_artifact_type:{payload.get('artifact_type')}")
     expected_smoke_id = EXPECTED_SMOKE_IDS.get(group_id)
     if expected_smoke_id and payload.get("smoke_id") != expected_smoke_id:
@@ -245,9 +278,11 @@ def _required_true_blockers(group_id: str, payload: dict[str, Any]) -> list[str]
 
 def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
-    if group_id == "pl_ce_local_mvp_candidate_bundle":
+    if group_id == CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID:
         if payload.get("activation_gate_status") != "blocked_pending_human_and_browser_activation":
-            blockers.append("pl_ce_local_mvp_candidate_bundle.unexpected_activation_gate_status")
+            blockers.append(
+                f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID}.unexpected_activation_gate_status"
+            )
     if group_id == "product_pages_browser_smoke":
         body_values = _object_dict(payload.get("body_plan_read_model_values"))
         if not body_values:
@@ -308,7 +343,19 @@ def build_pl_ce_browser_activation_evidence_gate_artifact(
     input_artifacts: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     inputs = {
-        group_id: _object_dict(input_artifacts.get(group_id))
+        group_id: _object_dict(
+            input_artifacts.get(group_id)
+            if group_id != CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID
+            else input_artifacts.get(group_id)
+            or next(
+                (
+                    input_artifacts.get(legacy_group_id)
+                    for legacy_group_id in LEGACY_LOCAL_MVP_GROUP_IDS
+                    if isinstance(input_artifacts.get(legacy_group_id), dict)
+                ),
+                {},
+            )
+        )
         for group_id in REQUIRED_INPUTS
     }
     blockers: list[str] = []
@@ -320,12 +367,11 @@ def build_pl_ce_browser_activation_evidence_gate_artifact(
 
     all_browser_executed = all(inputs[group_id].get("browser_executed") is True for group_id in BROWSER_ARTIFACTS)
     status = "browser_activation_evidence_ready_for_human_review" if not blockers else "blocked"
-    return _json_safe(
-        {
+    payload = {
             "artifact_schema_version": "1.0",
-            "artifact_type": "accurate_intake_pl_ce_browser_activation_evidence_gate",
+            "artifact_type": CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
             "status": status,
-            "claim_scope": "pl_ce_browser_activation_evidence_for_human_review_only",
+            "claim_scope": "current_shell_compatibility_browser_activation_evidence_for_human_review_only",
             **build_current_shell_appshell_claim_boundary_fields(),
             "generated_at_utc": datetime.now(UTC).isoformat(),
             "required_inputs": list(REQUIRED_INPUTS),
@@ -340,8 +386,6 @@ def build_pl_ce_browser_activation_evidence_gate_artifact(
             "aggregate_only": True,
             "self_generated_evidence_used": False,
             "review_required_before_provider_call": True,
-            "ready_for_live_diagnostic_decision": False,
-            "ready_for_fdb_integration": False,
             "shared_contract_changed": False,
             "runtime_truth_changed": False,
             "mutation_changed": False,
@@ -353,9 +397,6 @@ def build_pl_ce_browser_activation_evidence_gate_artifact(
             "fooddb_truth_updated": False,
             "real_fooddb_pass_claimed": False,
             "dogfood_pass": False,
-            "web_readiness_claimed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
             "production_db_used": False,
             "manager_context_packet_schema_changed": False,
             "mutation_authority": False,
@@ -378,7 +419,8 @@ def build_pl_ce_browser_activation_evidence_gate_artifact(
                 ),
             },
         }
-    )
+    set_legacy_alias_metadata(payload, legacy_artifact_types=LEGACY_BROWSER_ACTIVATION_ARTIFACT_TYPES)
+    return _json_safe(payload)
 
 
 __all__ = [
