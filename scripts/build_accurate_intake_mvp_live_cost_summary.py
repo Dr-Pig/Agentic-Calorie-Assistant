@@ -44,6 +44,12 @@ _COST_KEYS = (
     "total_cost_usd",
     "cost_usd",
 )
+_CACHE_REPORTING_FIELD_CANDIDATES = [
+    "prompt_tokens_details.cached_tokens",
+    "input_tokens_details.cached_tokens",
+    "cached_tokens",
+    "cache_read_input_tokens",
+]
 
 
 def build_accurate_intake_live_cost_summary(
@@ -152,6 +158,12 @@ def build_accurate_intake_live_cost_summary(
             "source_artifacts": source_artifacts,
             "provider_invocation_records": provider_invocation_records,
             "prompt_cache_identity_summary": prompt_cache_identity_summary,
+            "prompt_cache_reporting_capability": _prompt_cache_reporting_capability(
+                usage_records=usage_records,
+                cache_reporting_call_count=cache_reporting_call_count,
+                cache_hit_call_count=cache_hit_call_count,
+                cached_prompt_tokens=cached_prompt_tokens,
+            ),
             "provider_request_footprint_summary": provider_request_footprint_summary,
             "latency_breakdown": latency_breakdown,
             "latency_slo": latency_slo,
@@ -504,7 +516,56 @@ def _cached_tokens(usage: dict[str, Any]) -> int | None:
         return _int(input_details.get("cached_tokens"))
     if "cached_tokens" in usage:
         return _int(usage.get("cached_tokens"))
+    if "cache_read_input_tokens" in usage:
+        return _int(usage.get("cache_read_input_tokens"))
     return None
+
+
+def _prompt_cache_reporting_capability(
+    *,
+    usage_records: list[dict[str, Any]],
+    cache_reporting_call_count: int,
+    cache_hit_call_count: int,
+    cached_prompt_tokens: int,
+) -> dict[str, Any]:
+    usage_record_count = len(usage_records)
+    return {
+        "truth_source": "provider_reported_usage_only",
+        "cache_reporting_status": _cache_reporting_status(
+            usage_record_count=usage_record_count,
+            cache_reporting_call_count=cache_reporting_call_count,
+            cache_hit_call_count=cache_hit_call_count,
+        ),
+        "usage_record_count": usage_record_count,
+        "cache_reporting_call_count": cache_reporting_call_count,
+        "cache_hit_call_count": cache_hit_call_count,
+        "cached_prompt_tokens": cached_prompt_tokens,
+        "cache_hit_claim_allowed": cache_hit_call_count > 0,
+        "cache_miss_claim_allowed": (
+            usage_record_count > 0
+            and cache_reporting_call_count == usage_record_count
+            and cache_hit_call_count == 0
+        ),
+        "latency_may_infer_cache_hit": False,
+        "provider_passthrough_gap_possible": usage_record_count > 0 and cache_reporting_call_count == 0,
+        "requires_provider_usage_passthrough": usage_record_count > 0 and cache_reporting_call_count == 0,
+        "official_usage_field_candidates": list(_CACHE_REPORTING_FIELD_CANDIDATES),
+    }
+
+
+def _cache_reporting_status(
+    *,
+    usage_record_count: int,
+    cache_reporting_call_count: int,
+    cache_hit_call_count: int,
+) -> str:
+    if usage_record_count <= 0:
+        return "no_usage_records"
+    if cache_hit_call_count > 0:
+        return "cache_hit_reported"
+    if cache_reporting_call_count > 0:
+        return "zero_cached_tokens_reported"
+    return "not_reported"
 
 
 def _artifact_hash(artifact: dict[str, Any]) -> str:
