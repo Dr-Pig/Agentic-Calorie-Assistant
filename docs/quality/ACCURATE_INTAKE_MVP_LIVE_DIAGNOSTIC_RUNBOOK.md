@@ -177,11 +177,22 @@ The cost summary must preserve:
 - `latency_root_cause_hints` for request count, stage latency, prompt-token volume, cache metric visibility, cache-hit visibility, and output-token share
 - `latency_optimization_priorities` before repeating the same live diagnostic window
 - `latency_breakdown` with provider-call attribution by diagnostic stage, case, turn, Manager loop scope, and slowest provider invocation
+- `latency_slo` with Current Shell v1 product latency target comparison for observed turn/provider rows, Manager-scope debug rows, and stage-overhead debug rows
 - missing `cached_tokens` reporting is an optimization signal, not a live diagnostic failure, because not every provider exposes compatible cache usage fields
 
 Do not infer paid cost from tokens inside this repo. Do not stage generated cost summary artifacts as repo truth.
 
 The live diagnostic timeout values are diagnostic failure boundaries, not acceptable product latency targets. If a staged run is strict but slow, first inspect provider invocation count, per-stage latency, per-case/per-turn attribution, Manager loop scope, slowest provider invocations, stage overhead, prompt-token volume, and cache reporting before adding more repetition.
+
+Current Shell v1 product latency targets:
+
+- visible UI acknowledgement / loading state: within `1s` (AppShell/browser concern; not calculated by this cost summary).
+- read-only, entry, and body-observation turns: p50 at or below `3s`, p95 at or below `8s`, hard degraded-response boundary `20s`.
+- normal no-web food logging turns: p50 at or below `6s`, p95 at or below `12s`, hard degraded-response boundary `20s`.
+- clarify, correction, and removal turns: p50 at or below `8s`, p95 at or below `15s`, hard degraded-response boundary `20s`.
+- FoodDB/WebSearch evidence turns: p50 at or below `10s`, p95 at or below `20s`, hard degraded-response boundary `30s`.
+
+Single diagnostic rows are compared with the p95 and hard-timeout targets only. A single row may show `within_interactive_budget`, `over_interactive_budget`, or `hard_timeout_budget_exceeded`, but it must not be reported as p50/p95 distribution compliance until repeated product runs exist.
 
 ## Post-PR88 phase checkpoint
 
