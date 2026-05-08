@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v10"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v11"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -43,6 +43,10 @@ _CONTRACT_POLICY_PROMPT = (
     "Do not return final_action='commit' or apply nutrition-changing correction without current-loop nutrition evidence; if evidence is missing, "
     "return manager_action='call_tools' with estimate_nutrition. If guard_feedback says commit_without_evidence, repair by "
     "calling estimate_nutrition, not by finalizing.\n"
+    "Once current-loop nutrition evidence is present for an estimable intake write or correction, intake_execution final mapping "
+    "is no longer an entry handoff: do not return workflow_effect='route_to_intake' or final_action='no_commit'. "
+    "Use final_action='commit', 'correction_applied', or 'overshoot_note' according to semantic_decision.final_action_candidate, "
+    "with manager_action='final' and tool_calls=[].\n"
     "Explicit remove_item correction is different: use target evidence from resolve_correction_target or a runtime-validated "
     "target_attachment, then final_action='correction_applied' without estimate_nutrition.\n"
     "If manager_contract_evidence_state.target_evidence_present=true with target_evidence_operation='remove_item', "

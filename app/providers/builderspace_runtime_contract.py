@@ -52,6 +52,13 @@ def _apply_founder_live_contract_schema_guidance(base_schema: dict[str, Any]) ->
             "insufficient_details posture and final ask_followup with tool_calls=[]; do not use evidence_missing "
             "to trigger estimate_nutrition before components are known."
         )
+    if isinstance(workflow_effect := properties.get("workflow_effect"), dict):
+        workflow_effect["description"] = (
+            "Evidence-present intake final mapping: runtime workflow effect for the current manager scope. "
+            "route_to_intake is only an entry-scope handoff. After current-loop nutrition evidence is present "
+            "for an estimable intake write or correction, intake_execution final mapping must not remain route_to_intake; use commit, correction, or overshoot "
+            "according to semantic_decision.final_action_candidate."
+        )
     final_action = properties.get("final_action")
     if isinstance(final_action, dict):
         final_action["description"] = (

@@ -12,11 +12,14 @@ from app.runtime.agent.manager_system_prompt import (
 
 
 def test_remove_item_target_evidence_reuse_is_static_prompt_policy() -> None:
-    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v10"
+    assert SINGLE_MANAGER_SYSTEM_PROMPT_VERSION == "v11"
     assert "target_evidence_present=true" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "target_evidence_operation='remove_item'" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "do not call resolve_correction_target again" in SINGLE_MANAGER_SYSTEM_PROMPT
     assert "final_action='correction_applied'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "nutrition evidence is present" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "workflow_effect='route_to_intake'" in SINGLE_MANAGER_SYSTEM_PROMPT
+    assert "final_action='no_commit'" in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
 def test_remove_item_target_evidence_reuse_is_tool_schema_policy() -> None:
@@ -61,10 +64,13 @@ def test_evidence_present_canonical_write_commit_is_schema_guidance() -> None:
     )
 
     description = schema["properties"]["final_action"]["description"]
+    workflow_description = schema["properties"]["workflow_effect"]["description"]
     assert "final_action_candidate is commit" in description
     assert "mutation_intent_candidate canonical_write" in description
     assert "use commit" in description
     assert "do not use no_commit as a confirmation substitute" in description
+    assert "route_to_intake is only an entry-scope handoff" in workflow_description
+    assert "intake_execution final mapping must not remain route_to_intake" in workflow_description
     no_commit_write_guard = [
         item
         for item in schema["allOf"]
