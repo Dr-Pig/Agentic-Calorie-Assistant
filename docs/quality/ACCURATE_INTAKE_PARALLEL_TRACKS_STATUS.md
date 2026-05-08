@@ -218,7 +218,7 @@ Every track output intended for another track must report:
 
 If ManagerRuntime or AppShell uses fixture evidence, it must report:
 - fixture_evidence_used: true
-- real_fooddb_pass_claimed: false
+- it must not claim a real FoodDB pass
 
 If FoodDB produces packet-ready evidence, it must report:
 - approved_packet_ready_evidence_artifact.path
