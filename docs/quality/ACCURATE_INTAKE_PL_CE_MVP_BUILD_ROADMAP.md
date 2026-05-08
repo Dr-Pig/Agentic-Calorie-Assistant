@@ -57,6 +57,8 @@ The remaining non-FoodDB tool inventory is still partially diagnostic or direct-
 - `calibration.get_pending_proposal`
 - `calibration.apply_stored_proposal_action`
 
+These calibration surfaces are CurrentShell proposal-seam surfaces only. They do not make full calibration activation part of the current mainline.
+
 Tool staging is:
 
 - `read_only`: budget, body, and app-help reads from canonical read models.

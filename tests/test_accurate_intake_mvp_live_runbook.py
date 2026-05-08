@@ -12,6 +12,8 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
 
     required_fragments = [
         "claim scope: `live_diagnostic`",
+        "primary CurrentShell product-pages founder gate",
+        "operator-shell supporting evidence",
         "Generated live artifacts are local diagnostic evidence, not repo truth",
         "full_suite_live_diagnostic remains blocked",
         "offline replay artifact is present and `strict_replay_ready=true`",

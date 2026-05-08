@@ -102,6 +102,7 @@ def test_parallel_tracks_status_pack_declares_canonical_current_shell_model_and_
         "`ManagerRuntime`, `AppShell`, and `SharedCurrentShell` are `CurrentShell` owner lanes, not top-level tracks.",
         "`FoodDB` remains an independent truth-owner track.",
         "Legacy `PLCE` / `PL+CE` / `PL_CE` wording remains compatibility vocabulary only for older artifacts and file paths; it is not the active ownership model.",
+        "calibration proposal seam; full calibration activation remains deferred",
         "Draft PR bodies plus CI are the live sync truth; this file is the rule map and handoff template.",
         "This section is a status-block template, not the live status board.",
         "Live sync truth is Draft PR body plus CI state.",

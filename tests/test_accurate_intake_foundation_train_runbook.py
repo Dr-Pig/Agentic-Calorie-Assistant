@@ -9,6 +9,9 @@ RUNBOOK = Path("docs/quality/ACCURATE_INTAKE_MVP_SELF_USE_RUNBOOK.md")
 def test_foundation_train_runbook_mentions_context_policy_harness_and_fooddb_plan() -> None:
     text = RUNBOOK.read_text(encoding="utf-8-sig")
 
+    assert "operator-shell supporting evidence" in text
+    assert "not the primary CurrentShell product-pages founder gate" in text
+    assert "Chat / Today / Body product-pages founder gating belongs to" in text
     assert "Manager Context Policy v1" in text
     assert "LocalSQLiteRouteHarness" in text
     assert "write_json_artifact" in text
