@@ -17,10 +17,10 @@ is_detour: false
 
 Read these for current truth instead of reviving old Product Loop, PLCE, V2, or execution-dashboard docs:
 
-1. [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md)
-2. [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml)
-3. [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml)
-4. [docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md)
+1. [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](../../quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md)
+2. [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](../../quality/CURRENT_SHELL_SYNC_CONTRACT.yaml)
+3. [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](../../quality/MANAGER_RUNTIME_GATE_LEDGER.yaml)
+4. [docs/quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md](../../quality/ACCURATE_INTAKE_MVP_LIVE_DIAGNOSTIC_RUNBOOK.md)
 
 ## Ownership
 

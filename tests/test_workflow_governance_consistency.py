@@ -178,6 +178,35 @@ def test_docs_bootstrap_index_and_legacy_reference_are_consistent() -> None:
     assert "docs/specs/APP_V2_IMPLEMENTATION_PLAN.md" in legacy_index
 
 
+def test_active_bootstrap_docs_use_portable_repo_relative_links() -> None:
+    active_bootstrap_docs = (
+        "AGENTS.md",
+        "docs/DOC_INDEX.md",
+        "docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md",
+        "docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md",
+    )
+
+    for relative_path in active_bootstrap_docs:
+        content = (ROOT / relative_path).read_text(encoding="utf-8-sig")
+        assert "C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant" not in content
+        assert "/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant" not in content
+
+    doc_index = (ROOT / "docs" / "DOC_INDEX.md").read_text(encoding="utf-8-sig")
+    current_plan = (ROOT / "docs" / "exec-plans" / "active" / "CURRENT_EXECUTION_PLAN.md").read_text(
+        encoding="utf-8-sig"
+    )
+    operating_entry = (ROOT / "docs" / "specs" / "APP_ENGINEERING_OPERATING_ENTRY.md").read_text(encoding="utf-8-sig")
+
+    assert "[AGENTS.md](../AGENTS.md)" in doc_index
+    assert "[docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](specs/APP_ENGINEERING_OPERATING_ENTRY.md)" in doc_index
+    assert (
+        "[docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md]"
+        "(../../quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md)"
+        in current_plan
+    )
+    assert "[docs/DOC_INDEX.md](../DOC_INDEX.md)" in operating_entry
+
+
 def test_provider_docs_do_not_hardlink_missing_local_artifacts() -> None:
     provider_profile = (ROOT / "docs" / "provider" / "BUILDERSPACE_PROVIDER_PROFILE.md").read_text(encoding="utf-8")
     candidate_matrix = (ROOT / "docs" / "provider" / "MANAGER_MODEL_CANDIDATE_MATRIX.md").read_text(encoding="utf-8")
