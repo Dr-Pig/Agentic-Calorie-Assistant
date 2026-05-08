@@ -60,27 +60,44 @@ def _list(value: Any) -> list[Any]:
 
 def _context_input_summary(user_payload: dict[str, Any], *, stage: str, round_index: int) -> dict[str, Any]:
     packet = _dict(user_payload.get("manager_context_packet_v1"))
+    prompt_kind = str(packet.get("prompt_payload_kind") or "")
     metadata = _dict(packet.get("metadata"))
     loading = _dict(packet.get("context_loading_artifact"))
     loaded = _dict(loading.get("loaded_context_summary"))
     omitted = _dict(loading.get("omitted_context_summary"))
+    recent_chat_window = _dict(packet.get("recent_chat_window"))
     hard_pins = _dict(packet.get("hard_pins"))
     target_candidates = _dict(packet.get("target_candidates"))
     correction_targets = _list(target_candidates.get("for_correction_or_removal"))
+    compact_loaded_present = prompt_kind == "manager_context_packet_v1_prompt_compact" and (
+        bool(_list(recent_chat_window.get("messages")))
+        or recent_chat_window.get("loaded_message_count") is not None
+    )
+    compact_omitted_present = prompt_kind == "manager_context_packet_v1_prompt_compact" and (
+        recent_chat_window.get("omitted_count") is not None
+        or recent_chat_window.get("char_truncated") is not None
+        or bool(recent_chat_window.get("token_budget_status"))
+    )
+    compact_forbidden_context_excluded = prompt_kind == "manager_context_packet_v1_prompt_compact" and all(
+        marker not in json.dumps(packet, ensure_ascii=False)
+        for marker in ("debug_artifacts", "dogfood_review_artifacts", "food_gap_candidates")
+    )
     return {
         "stage": stage,
         "round_index": round_index,
+        "prompt_payload_kind": prompt_kind,
         "available_tools": sorted(str(item) for item in _list(user_payload.get("available_tools"))),
         "context_policy_version_present": bool(metadata.get("context_policy_version")),
-        "loaded_context_summary_present": bool(loaded),
-        "omitted_context_summary_present": bool(omitted),
+        "loaded_context_summary_present": bool(loaded) or compact_loaded_present,
+        "omitted_context_summary_present": bool(omitted) or compact_omitted_present,
         "pending_followup_pin_present": bool(_dict(hard_pins.get("pending_followup"))),
         "pending_draft_pin_present": bool(_dict(hard_pins.get("pending_draft"))),
         "target_candidate_count": len(correction_targets),
         "forbidden_context_excluded": all(
             item in omitted.get("policy_excluded_context_ids", [])
             for item in ("debug_artifacts", "dogfood_review_artifacts", "food_gap_candidates")
-        ),
+        )
+        or compact_forbidden_context_excluded,
         "raw_user_input_recorded_only": str(user_payload.get("raw_user_input") or ""),
         "raw_user_input_used_for_fixture_selection": False,
     }
