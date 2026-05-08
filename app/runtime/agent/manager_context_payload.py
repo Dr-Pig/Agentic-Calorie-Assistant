@@ -33,6 +33,39 @@ def manager_context_pack_payload(manager_context_pack: ManagerContextPack | None
     }
 
 
+def current_turn_context_prompt_payload(current_turn_context: CurrentTurnContextV1 | None) -> dict[str, Any] | None:
+    if current_turn_context is None:
+        return None
+    payload = current_turn_context.model_dump(mode="json")
+    exposed_keys = (
+        "current_interaction_event",
+        "active_meal_thread_ref",
+        "pending_followup",
+        "candidate_attachment_targets",
+        "recent_item_targets",
+        "target_resolution_posture",
+        "context_risk_flags",
+        "current_turn_runtime_summary",
+    )
+    summary = {
+        key: payload.get(key)
+        for key in exposed_keys
+        if payload.get(key) not in (None, [], {})
+    }
+    summary.update(
+        {
+            "prompt_payload_kind": "current_turn_context_compact_summary",
+            "source_role": "context_engineering_summary",
+            "primary_context_source": "manager_context_packet_v1",
+            "full_context_omitted_from_prompt": True,
+            "read_only": True,
+            "mutation_authority": False,
+            "omitted_fields": sorted(key for key in payload if key not in exposed_keys),
+        }
+    )
+    return summary
+
+
 def manager_context_packet_v1_trace_payload(packet: dict[str, Any] | None) -> dict[str, Any] | None:
     if not isinstance(packet, dict):
         return None
@@ -109,6 +142,7 @@ def manager_context_trace_payload(
 
 
 __all__ = [
+    "current_turn_context_prompt_payload",
     "manager_context_pack_payload",
     "manager_context_packet_v1_trace_payload",
     "manager_context_trace_payload",

@@ -209,7 +209,11 @@ async def test_run_intake_manager_sends_structured_phase_a_payload_to_provider()
 
     payload = provider.calls[0]["user_payload"]
     assert isinstance(payload, dict)
+    assert payload["phase_a_current_turn_context"]["prompt_payload_kind"] == "current_turn_context_compact_summary"
     assert payload["phase_a_current_turn_context"]["current_interaction_event"]["surface_mode"] == "chat_freeform"
+    assert payload["phase_a_current_turn_context"]["candidate_attachment_targets"][0]["target_object_id"] == "77"
+    assert "recent_chat_turns" in payload["phase_a_current_turn_context"]["omitted_fields"]
+    assert "recent_chat_turns" not in payload["phase_a_current_turn_context"]
     assert set(payload["phase_a_manager_context_pack"].keys()) == {
         "policy",
         "manager_context",
