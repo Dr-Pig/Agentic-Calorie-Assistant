@@ -4,6 +4,8 @@ import asyncio
 import importlib
 import json
 from pathlib import Path
+import subprocess
+import sys
 
 
 def _write_strict_offline_replay(path: Path) -> Path:
@@ -148,6 +150,26 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
     assert report["summary"]["strict_pass_count"] + report["summary"]["repaired_pass_count"] + report["summary"][
         "contract_fail_count"
     ] + report["summary"]["timeout_count"] == len(report["cases"])
+
+
+def test_accurate_intake_live_cli_blocks_implicit_all_stage(tmp_path: Path) -> None:
+    output_path = tmp_path / "should_not_be_written.json"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/run_accurate_intake_mvp_live_diagnostic.py",
+            "--output",
+            str(output_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert "stage all is disabled for live CLI diagnostics" in result.stderr
+    assert not output_path.exists()
 
 
 def test_accurate_intake_live_full_suite_is_blocked_without_offline_replay(tmp_path: Path) -> None:

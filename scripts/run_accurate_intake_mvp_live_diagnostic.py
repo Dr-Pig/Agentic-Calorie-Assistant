@@ -19,22 +19,22 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.composition.accurate_intake_debug_routes import build_accurate_intake_debug_payload
-from app.composition.canonical_persistence import commit_meal_payload_to_canonical
-from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date
-from app.database import get_or_create_user
-from app.intake.infrastructure.models import MealItemRecord
-from app.models import Base
-from app.runtime.agent.founder_live_manager_contract import (
+from app.composition.accurate_intake_debug_routes import build_accurate_intake_debug_payload  # noqa: E402
+from app.composition.canonical_persistence import commit_meal_payload_to_canonical  # noqa: E402
+from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date  # noqa: E402
+from app.database import get_or_create_user  # noqa: E402
+from app.intake.infrastructure.models import MealItemRecord  # noqa: E402
+from app.models import Base  # noqa: E402
+from app.runtime.agent.founder_live_manager_contract import (  # noqa: E402
     FOUNDER_LIVE_MANAGER_SCHEMA_NAME,
     FOUNDER_LIVE_MANAGER_SCHEMA_VERSION,
     FOUNDER_LIVE_MANAGER_REQUIRED_FIELDS,
     FOUNDER_LIVE_MANAGER_TRANSPORT_POLICY,
     founder_live_manager_contract_constraints,
 )
-from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
-from app.shared.contracts.readiness_claim import build_readiness_claim
-from app.shared.contracts.intake_payloads import CommitRequestCandidate, MealItemPayload
+from app.runtime.contracts.trace import MANAGER_LOOP_STAGE  # noqa: E402
+from app.shared.contracts.readiness_claim import build_readiness_claim  # noqa: E402
+from app.shared.contracts.intake_payloads import CommitRequestCandidate, MealItemPayload  # noqa: E402
 
 
 ARTIFACT_PATH = ROOT / "artifacts" / "accurate_intake_mvp_live_diagnostic.json"
@@ -2068,10 +2068,21 @@ def main() -> int:
     parser.add_argument("--provider-request-retry-backoff-ms", type=int, default=250)
     parser.add_argument("--provider-request-retry-jitter-ms", type=int, default=100)
     parser.add_argument("--stage", choices=(STAGE_ALL, *ORDERED_STAGE_IDS), default=STAGE_ALL)
+    parser.add_argument(
+        "--allow-live-all-diagnostic",
+        action="store_true",
+        help="Explicitly allow the live CLI to run every stage in one process. Prefer staged single-case artifacts.",
+    )
     parser.add_argument("--case-id", default=None)
     parser.add_argument("--max-turn", type=int, default=None)
     parser.add_argument("--offline-replay-artifact", default=str(DEFAULT_OFFLINE_REPLAY_ARTIFACT))
     args = parser.parse_args()
+
+    if args.stage == STAGE_ALL and not args.allow_live_all_diagnostic:
+        parser.error(
+            "stage all is disabled for live CLI diagnostics; run staged commands one at a time "
+            "or pass --allow-live-all-diagnostic for explicit debugging."
+        )
 
     report = run_diagnostic(
         output_path=Path(args.output),

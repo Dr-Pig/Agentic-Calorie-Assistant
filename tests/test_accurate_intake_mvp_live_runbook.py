@@ -39,6 +39,8 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "compound log-and-modify case",
         "stay_local_self_use",
         "python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage provider_health_smoke",
+        "CLI live diagnostics intentionally reject implicit `--stage all`",
+        "`--allow-live-all-diagnostic`",
         "python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage schema_contract_probe",
         "python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage fake_provider_active_runtime_gate",
         "tests/test_accurate_intake_mvp_offline_shadow_replay.py",
