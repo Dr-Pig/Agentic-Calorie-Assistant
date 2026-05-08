@@ -2,6 +2,8 @@
 .venv/
 .venv*/
 __pycache__/
+.codex_tmp/
+.import_linter_cache/
 .pytest_cache/
 .pytest_tmp/
 .pytest_tmp_local/
@@ -90,6 +92,7 @@ extracted_csv/**
 Thumbs.db
 .DS_Store
 .claude/
+.devcontainer/
 .test_req.json
 
 # Large binary assets should live outside Git or in Git LFS

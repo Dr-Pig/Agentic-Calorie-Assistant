@@ -15,6 +15,7 @@ Use this before starting a new build wave. It should take about 30 seconds.
 - placeholder `cd` is retired; this repo has no tracked cloud deploy workflow until deployment becomes a current mainline slice
 - merge-governance reports are manual diagnostics only; they do not decide queue eligibility or merge readiness by themselves
 - governance docs and workflow job names are synchronized in the same branch
+- local scratch is disposable and can be inspected with `python scripts/clean_local_workspace.py --dry-run`; this must not remove `.env`, `artifacts/`, `workspace_data/`, or `docs/_spec_snapshots/`
 
 ## No-Go
 
