@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from typing import Any
 
 
@@ -64,6 +65,7 @@ def build_manager_prompt_layer_contract(
 ) -> dict[str, Any]:
     dynamic_payload_keys = sorted(str(key) for key in user_payload)
     system_prompt_sha256 = hashlib.sha256(system_prompt.encode("utf-8")).hexdigest()
+    runtime_payload_layer_plan = _runtime_payload_layer_plan(dynamic_payload_keys)
     return {
         "contract_version": MANAGER_PROMPT_LAYER_CONTRACT_VERSION,
         "manager_loop_scope": str(manager_loop_scope),
@@ -86,7 +88,12 @@ def build_manager_prompt_layer_contract(
             "may_change_system_contract": False,
             "may_inject_product_semantics": False,
         },
-        "runtime_payload_layer_plan": _runtime_payload_layer_plan(dynamic_payload_keys),
+        "runtime_payload_layer_plan": runtime_payload_layer_plan,
+        "prompt_footprint": _prompt_footprint(
+            system_prompt=system_prompt,
+            user_payload=user_payload,
+            runtime_payload_layer_plan=runtime_payload_layer_plan,
+        ),
         "prompt_cache_profile": {
             "profile_id": MANAGER_PROMPT_CACHE_PROFILE_ID,
             "static_prefix_first": True,
@@ -130,6 +137,50 @@ def _runtime_payload_layer_plan(dynamic_payload_keys: list[str]) -> dict[str, An
     }
 
 
+def _prompt_footprint(
+    *,
+    system_prompt: str,
+    user_payload: dict[str, Any],
+    runtime_payload_layer_plan: dict[str, Any],
+) -> dict[str, Any]:
+    dynamic_sections = [
+        _dynamic_section_footprint(section=section, user_payload=user_payload)
+        for section in runtime_payload_layer_plan["sections"]
+    ]
+    largest_dynamic_section = max(
+        dynamic_sections,
+        key=lambda section: section["utf8_bytes"],
+        default={"section_id": None},
+    )
+    return {
+        "measurement": "json_utf8_bytes_trace_only",
+        "provider_usage_is_token_truth": True,
+        "token_estimate_used_for_gate": False,
+        "system_prompt_chars": len(system_prompt),
+        "system_prompt_utf8_bytes": len(system_prompt.encode("utf-8")),
+        "dynamic_payload_total_chars": _json_char_count(user_payload),
+        "dynamic_payload_total_utf8_bytes": _json_utf8_bytes(user_payload),
+        "largest_dynamic_section_id": largest_dynamic_section["section_id"],
+        "dynamic_sections": dynamic_sections,
+    }
+
+
+def _dynamic_section_footprint(
+    *,
+    section: dict[str, Any],
+    user_payload: dict[str, Any],
+) -> dict[str, Any]:
+    keys = [str(key) for key in section["keys"]]
+    section_payload = {key: user_payload.get(key) for key in keys}
+    return {
+        "section_id": str(section["section_id"]),
+        "key_count": len(keys),
+        "keys": keys,
+        "chars": _json_char_count(section_payload),
+        "utf8_bytes": _json_utf8_bytes(section_payload),
+    }
+
+
 def _runtime_payload_section_owner(section_id: str) -> str:
     if section_id == "context_engineering":
         return "ManagerRuntime.ContextEngineering"
@@ -138,6 +189,24 @@ def _runtime_payload_section_owner(section_id: str) -> str:
     if section_id == "guard_repair":
         return "ManagerRuntime.Guard"
     return "ManagerRuntime"
+
+
+def _json_char_count(value: Any) -> int:
+    return len(_json_text(value))
+
+
+def _json_utf8_bytes(value: Any) -> int:
+    return len(_json_text(value).encode("utf-8"))
+
+
+def _json_text(value: Any) -> str:
+    return json.dumps(
+        value,
+        default=str,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
 
 
 __all__ = [

@@ -67,3 +67,8 @@ def test_rt1b_records_prompt_layer_and_cache_profile_without_prompt_payload_leak
         "loop_control",
         "guard_repair",
     ]
+    assert observed["prompt_footprint"]["measurement"] == "json_utf8_bytes_trace_only"
+    assert observed["prompt_footprint"]["provider_usage_is_token_truth"] is True
+    assert observed["prompt_footprint"]["system_prompt_utf8_bytes"] > 0
+    assert observed["prompt_footprint"]["dynamic_payload_total_utf8_bytes"] > 0
+    assert observed["prompt_footprint"]["largest_dynamic_section_id"] in section_ids
