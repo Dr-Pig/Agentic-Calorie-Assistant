@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from app.composition.accurate_intake_trace_expectation_helpers import (
+from app.composition.accurate_intake_trace_expectation_primitives import (
     _aggregate,
     _check,
     _delta,
