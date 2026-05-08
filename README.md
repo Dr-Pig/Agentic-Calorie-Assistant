@@ -17,7 +17,7 @@ docker compose up app
 
 Open [http://127.0.0.1:8011](http://127.0.0.1:8011).
 
-For VS Code, reopen the repository in the checked-in Dev Container. It uses the same `compose.yaml` `app` service and keeps source files mounted at `/app`.
+No Dev Container is currently tracked. Use `compose.yaml` directly for container parity.
 
 ## Native Local Run
 

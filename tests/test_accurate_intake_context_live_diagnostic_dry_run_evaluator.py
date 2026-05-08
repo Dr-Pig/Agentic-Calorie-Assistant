@@ -113,12 +113,11 @@ def test_context_live_dry_run_evaluator_cli_writes_artifact(tmp_path: Path) -> N
 
 def test_context_live_dry_run_evaluator_is_not_on_required_merge_path() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
-    advisory_workflow = Path(".github/workflows/ci-advisory.yml").read_text(encoding="utf-8")
 
     assert "product-pages-browser-e2e" in workflow
     assert "build_accurate_intake_context_live_diagnostic_dry_run_evaluator.py" not in workflow
     assert "accurate_intake_context_live_diagnostic_dry_run_evaluator_ci.json" not in workflow
-    assert "build_accurate_intake_context_live_diagnostic_dry_run_evaluator.py" in advisory_workflow
+    assert not Path(".github/workflows/ci-advisory.yml").exists()
 
 
 def test_context_live_dry_run_evaluator_source_stays_out_of_forbidden_boundaries() -> None:

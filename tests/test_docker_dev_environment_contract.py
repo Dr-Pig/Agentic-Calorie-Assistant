@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 
@@ -38,24 +37,20 @@ def test_dockerignore_keeps_dev_verification_inputs_available() -> None:
         assert required in ignored
 
 
-def test_devcontainer_uses_compose_app_service_without_runtime_activation() -> None:
-    config = json.loads(_read(".devcontainer/devcontainer.json"))
+def test_devcontainer_is_not_claimed_without_tracked_config() -> None:
+    readme = _read("README.md")
 
-    assert config["dockerComposeFile"] == "../compose.yaml"
-    assert config["service"] == "app"
-    assert config["workspaceFolder"] == "/app"
-    assert config["overrideCommand"] is True
-    assert "python scripts/verify_environment.py" in config["postCreateCommand"]
+    assert not (ROOT / ".devcontainer" / "devcontainer.json").exists()
+    assert "No Dev Container is currently tracked" in readme
 
 
-def test_ci_has_docker_dev_environment_gate_without_deployment_side_effects() -> None:
-    ci = _read(".github/workflows/ci-advisory.yml")
+def test_docker_dev_environment_is_local_manual_only_without_advisory_workflow() -> None:
+    assert not (ROOT / ".github" / "workflows" / "ci-advisory.yml").exists()
 
-    assert "docker-dev-environment" in ci
-    assert "docker compose config" in ci
-    assert "docker compose build app" in ci
-    assert "docker compose run --rm test" in ci
-    assert "docker/build-push-action" not in ci
+    compose = _read("compose.yaml")
+    assert "  app:" in compose
+    assert "  test:" in compose
+    assert "docker/build-push-action" not in compose
 
 
 def test_readme_documents_mac_docker_and_python312_fallback() -> None:

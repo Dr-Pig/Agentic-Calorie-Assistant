@@ -228,13 +228,13 @@ def test_gate_runner_fails_fast_by_default_and_reports_failed_group(monkeypatch,
     assert output["groups"][-1]["returncode"] == 1
 
 
-def test_ci_has_independent_accurate_intake_mvp_gate_job() -> None:
-    workflow = (ROOT / ".github" / "workflows" / "ci-advisory.yml").read_text(encoding="utf-8")
+def test_legacy_mvp_gate_is_not_a_github_workflow_surface() -> None:
+    required_workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
 
-    assert "accurate-intake-mvp-gate:" in workflow
-    assert "python scripts/verify_accurate_intake_mvp.py --python python" in workflow
-    assert "--output artifacts/accurate_intake_mvp_gate.json" in workflow
-    assert "accurate-intake-mvp-gate-report" in workflow
+    assert not (ROOT / ".github" / "workflows" / "ci-advisory.yml").exists()
+    assert "accurate-intake-mvp-gate:" not in required_workflow
+    assert "python scripts/verify_accurate_intake_mvp.py --python python" not in required_workflow
+    assert "accurate-intake-mvp-gate-report" not in required_workflow
 
 
 def test_self_use_runbook_records_portable_local_deterministic_scope() -> None:
