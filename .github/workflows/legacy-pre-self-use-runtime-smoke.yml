@@ -1,7 +1,8 @@
-name: wave1-runtime-smoke
+name: legacy-pre-self-use-runtime-smoke
 
 # Manual diagnostic only. This workflow is not a required branch gate and may
-# be expected-red in natural-probe mode while Wave 1 runtime probes evolve.
+# be expected-red in natural-probe mode. The runner names remain compatibility
+# vocabulary for historical pre-self-use runtime diagnostics.
 
 on:
   workflow_dispatch:
@@ -32,7 +33,7 @@ env:
   PYTHONUTF8: "1"
 
 jobs:
-  wave1-runtime-smoke:
+  legacy-pre-self-use-runtime-smoke:
     runs-on: ubuntu-latest
 
     steps:
@@ -50,13 +51,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Wave 1 B-1 runtime smoke artifact
+      - name: Run legacy pre-self-use runtime smoke artifact
         run: |
           python scripts/run_wave1_phase_b_minimal_tool_loop_smoke.py \
             --mode "${{ inputs.mode }}" \
             --provider-timeout-ms "${{ inputs.provider_timeout_ms }}"
 
-      - name: Verify Wave 1 B-1 runtime smoke artifact
+      - name: Verify legacy pre-self-use runtime smoke artifact
         id: verify
         shell: bash
         continue-on-error: true
@@ -75,18 +76,18 @@ jobs:
           fi
 
           if [ "${{ inputs.continue_on_expected_red }}" = "true" ]; then
-            echo "::warning title=Wave 1 runtime smoke expected red::Verifier failed. Artifact is uploaded for review. This is allowed because continue_on_expected_red=true."
+            echo "::warning title=Legacy pre-self-use runtime smoke expected red::Verifier failed. Artifact is uploaded for review. This is allowed because continue_on_expected_red=true."
             exit 0
           fi
 
-          echo "::error title=Wave 1 runtime smoke failed::Verifier failed and continue_on_expected_red=false."
+          echo "::error title=Legacy pre-self-use runtime smoke failed::Verifier failed and continue_on_expected_red=false."
           exit 1
 
-      - name: Upload Wave 1 runtime smoke artifacts
+      - name: Upload legacy pre-self-use runtime smoke artifacts
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: wave1-runtime-smoke-${{ inputs.mode }}
+          name: legacy-pre-self-use-runtime-smoke-${{ inputs.mode }}
           path: |
             artifacts/wave1_phase_b_minimal_tool_loop_smoke*.json
             artifacts/wave1_phase_b_minimal_tool_loop_readiness*.json

@@ -61,8 +61,8 @@ def test_cloud_deploy_placeholder_workflow_is_retired() -> None:
     assert "placeholder `cd` is retired" in harness
 
 
-def test_wave1_runtime_smoke_stays_manual_only() -> None:
-    workflow = (ROOT / ".github" / "workflows" / "wave1-runtime-smoke.yml").read_text(encoding="utf-8")
+def test_legacy_pre_self_use_runtime_smoke_stays_manual_only() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "legacy-pre-self-use-runtime-smoke.yml").read_text(encoding="utf-8")
 
     assert "workflow_dispatch" in workflow
     assert "pull_request" not in workflow
