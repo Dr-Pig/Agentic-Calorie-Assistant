@@ -1,95 +1,42 @@
 from __future__ import annotations
 
-import argparse
-import json
-from pathlib import Path
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from app.shared.infra.json_artifacts import write_json_artifact  # noqa: E402
-from scripts.build_accurate_intake_pl_ce_local_review_decision_pack import (  # noqa: E402
-    build_pl_ce_local_review_decision_pack,
-)
-from scripts.build_accurate_intake_pl_ce_local_review_evidence_manifest import (  # noqa: E402
-    DEFAULT_EVIDENCE_PATHS,
-    build_pl_ce_local_review_evidence_manifest,
+from scripts.run_current_shell_compatibility_local_review_gate import (
+    DEFAULT_DECISION_OUTPUT,
+    DEFAULT_MANIFEST_OUTPUT,
+    main as _canonical_main,
+    run_current_shell_compatibility_local_review_gate,
+    run_pl_ce_local_review_gate,
 )
 
-DEFAULT_MANIFEST_OUTPUT = (
-    ROOT / "artifacts" / "accurate_intake_pl_ce_local_review_evidence_manifest.json"
+LEGACY_DEFAULT_MANIFEST_OUTPUT = (
+    "artifacts/accurate_intake_pl_ce_local_review_evidence_manifest.json"
 )
-DEFAULT_DECISION_OUTPUT = (
-    ROOT / "artifacts" / "accurate_intake_pl_ce_local_review_decision_pack.json"
+LEGACY_DEFAULT_DECISION_OUTPUT = (
+    "artifacts/accurate_intake_pl_ce_local_review_decision_pack.json"
 )
-
-
-def _parse_artifact_overrides(values: list[str]) -> dict[str, Path]:
-    overrides: dict[str, Path] = {}
-    for value in values:
-        if "=" not in value:
-            raise ValueError(f"--artifact must be group_id=path, got: {value}")
-        group_id, raw_path = value.split("=", 1)
-        if group_id not in DEFAULT_EVIDENCE_PATHS:
-            raise ValueError(f"Unknown PL+CE evidence group: {group_id}")
-        overrides[group_id] = Path(raw_path)
-    return overrides
-
-
-def run_pl_ce_local_review_gate(
-    *,
-    manifest_output: Path,
-    decision_output: Path,
-    path_overrides: dict[str, Path] | None = None,
-) -> dict[str, object]:
-    manifest = build_pl_ce_local_review_evidence_manifest(path_overrides=path_overrides)
-    decision_pack = build_pl_ce_local_review_decision_pack(manifest)
-    write_json_artifact(manifest_output, manifest)
-    write_json_artifact(decision_output, decision_pack)
-
-    manifest_metadata = manifest["_manifest_metadata"]
-    return {
-        "manifest": str(manifest_output),
-        "decision_pack": str(decision_output),
-        "manifest_status": manifest_metadata["status"],
-        "decision_status": decision_pack["status"],
-        "missing_evidence": decision_pack["missing_evidence"],
-        "blockers": decision_pack["blockers"],
-    }
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Run the local PL+CE review evidence manifest and decision gate."
-    )
-    parser.add_argument(
-        "--artifact",
-        action="append",
-        default=[],
-        help="Override an evidence path as group_id=path. May be passed multiple times.",
-    )
-    parser.add_argument("--manifest-output", default=str(DEFAULT_MANIFEST_OUTPUT))
-    parser.add_argument("--decision-output", default=str(DEFAULT_DECISION_OUTPUT))
-    args = parser.parse_args(argv)
+    args = list(sys.argv[1:] if argv is None else argv)
+    if not any(
+        arg == "--manifest-output" or arg.startswith("--manifest-output=") for arg in args
+    ):
+        args.extend(["--manifest-output", LEGACY_DEFAULT_MANIFEST_OUTPUT])
+    if not any(
+        arg == "--decision-output" or arg.startswith("--decision-output=") for arg in args
+    ):
+        args.extend(["--decision-output", LEGACY_DEFAULT_DECISION_OUTPUT])
+    return _canonical_main(args)
 
-    try:
-        path_overrides = _parse_artifact_overrides(args.artifact)
-    except ValueError as exc:
-        parser.error(str(exc))
-    summary = run_pl_ce_local_review_gate(
-        manifest_output=Path(args.manifest_output),
-        decision_output=Path(args.decision_output),
-        path_overrides=path_overrides,
-    )
-    print(json.dumps(summary, ensure_ascii=False))
-    return (
-        0
-        if summary["manifest_status"] == "complete"
-        and summary["decision_status"] == "ready_for_human_pl_ce_review"
-        else 1
-    )
+__all__ = [
+    "DEFAULT_DECISION_OUTPUT",
+    "DEFAULT_MANIFEST_OUTPUT",
+    "main",
+    "run_current_shell_compatibility_local_review_gate",
+    "run_pl_ce_local_review_gate",
+]
 
 
 if __name__ == "__main__":

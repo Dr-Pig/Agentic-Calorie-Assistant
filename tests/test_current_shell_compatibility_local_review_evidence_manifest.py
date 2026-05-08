@@ -3,8 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.build_accurate_intake_pl_ce_local_review_decision_pack import (
-    build_pl_ce_local_review_decision_pack,
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE_MANIFEST_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+)
+from scripts.build_current_shell_compatibility_local_review_decision_pack import (
+    build_current_shell_compatibility_local_review_decision_pack,
 )
 
 
@@ -72,6 +76,22 @@ def _required_payloads() -> dict[str, dict[str, object]]:
         },
         "review_eval_candidate_pipeline": {
             "status": "review_eval_candidate_pipeline_ready",
+            "review_candidates": [
+                {
+                    "source_artifact_id": "contextual_interaction_matrix",
+                    "suggested_taxonomy": "context_conditioned_intent_gap",
+                    "human_approval_required": True,
+                    "canonical_eval_promoted": False,
+                    "fooddb_truth_updated": False,
+                },
+                {
+                    "source_artifact_id": "session_context_carryover_qa_bundle",
+                    "suggested_taxonomy": "session_context_carryover_gap",
+                    "human_approval_required": True,
+                    "canonical_eval_promoted": False,
+                    "fooddb_truth_updated": False,
+                },
+            ],
             "canonical_eval_promoted": False,
             "fooddb_truth_updated": False,
         },
@@ -86,9 +106,9 @@ def _required_payloads() -> dict[str, dict[str, object]]:
 
 
 def test_pl_ce_local_review_evidence_manifest_reads_required_artifact_paths(tmp_path: Path) -> None:
-    from scripts.build_accurate_intake_pl_ce_local_review_evidence_manifest import (
+    from scripts.build_current_shell_compatibility_local_review_evidence_manifest import (
         DEFAULT_EVIDENCE_PATHS,
-        build_pl_ce_local_review_evidence_manifest,
+        build_current_shell_compatibility_local_review_evidence_manifest,
     )
 
     artifact_dir = tmp_path / "artifacts"
@@ -99,21 +119,26 @@ def test_pl_ce_local_review_evidence_manifest_reads_required_artifact_paths(tmp_
         for group_id in DEFAULT_EVIDENCE_PATHS
     }
 
-    manifest = build_pl_ce_local_review_evidence_manifest(path_overrides=path_overrides)
-    decision_pack = build_pl_ce_local_review_decision_pack(manifest)
+    manifest = build_current_shell_compatibility_local_review_evidence_manifest(
+        path_overrides=path_overrides
+    )
+    decision_pack = build_current_shell_compatibility_local_review_decision_pack(manifest)
 
-    assert manifest["_manifest_metadata"]["artifact_type"] == "accurate_intake_pl_ce_local_review_evidence_manifest"
+    assert (
+        manifest["_manifest_metadata"]["artifact_type"]
+        == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE_MANIFEST_ARTIFACT_TYPE
+    )
     assert manifest["_manifest_metadata"]["status"] == "complete"
     assert manifest["_manifest_metadata"]["missing_evidence"] == []
     assert manifest["_manifest_metadata"]["live_llm_invoked"] is False
     assert manifest["_manifest_metadata"]["web_tavily_used"] is False
-    assert decision_pack["status"] == "ready_for_human_pl_ce_review"
+    assert decision_pack["status"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
 
 
 def test_pl_ce_local_review_evidence_manifest_marks_missing_inputs_without_autofix(tmp_path: Path) -> None:
-    from scripts.build_accurate_intake_pl_ce_local_review_evidence_manifest import (
+    from scripts.build_current_shell_compatibility_local_review_evidence_manifest import (
         DEFAULT_EVIDENCE_PATHS,
-        build_pl_ce_local_review_evidence_manifest,
+        build_current_shell_compatibility_local_review_evidence_manifest,
     )
 
     artifact_dir = tmp_path / "artifacts"
@@ -126,8 +151,10 @@ def test_pl_ce_local_review_evidence_manifest_marks_missing_inputs_without_autof
         for group_id in DEFAULT_EVIDENCE_PATHS
     }
 
-    manifest = build_pl_ce_local_review_evidence_manifest(path_overrides=path_overrides)
-    decision_pack = build_pl_ce_local_review_decision_pack(manifest)
+    manifest = build_current_shell_compatibility_local_review_evidence_manifest(
+        path_overrides=path_overrides
+    )
+    decision_pack = build_current_shell_compatibility_local_review_decision_pack(manifest)
 
     assert manifest["_manifest_metadata"]["status"] == "blocked_missing_evidence"
     assert manifest["_manifest_metadata"]["missing_evidence"] == ["fake_provider_tool_loop_smoke"]
@@ -141,7 +168,7 @@ def test_pl_ce_local_review_evidence_manifest_cli_writes_decision_pack_input(
     tmp_path: Path,
     capsys,
 ) -> None:
-    from scripts import build_accurate_intake_pl_ce_local_review_evidence_manifest as module
+    from scripts import build_current_shell_compatibility_local_review_evidence_manifest as module
 
     artifact_dir = tmp_path / "artifacts"
     for group_id, payload in _required_payloads().items():
@@ -158,13 +185,16 @@ def test_pl_ce_local_review_evidence_manifest_cli_writes_decision_pack_input(
     assert exit_code == 0
     assert printed["status"] == "complete"
     assert manifest["_manifest_metadata"]["status"] == "complete"
-    assert build_pl_ce_local_review_decision_pack(manifest)["status"] == "ready_for_human_pl_ce_review"
+    assert (
+        build_current_shell_compatibility_local_review_decision_pack(manifest)["status"]
+        == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
+    )
 
 
 def test_pl_ce_local_review_evidence_manifest_script_stays_out_of_live_and_fooddb_boundaries() -> None:
-    source = Path("scripts/build_accurate_intake_pl_ce_local_review_evidence_manifest.py").read_text(
-        encoding="utf-8"
-    )
+    source = Path(
+        "scripts/build_current_shell_compatibility_local_review_evidence_manifest.py"
+    ).read_text(encoding="utf-8")
 
     for fragment in (
         "NutritionEvidenceStorePort",

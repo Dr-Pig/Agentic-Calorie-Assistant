@@ -1,0 +1,288 @@
+from __future__ import annotations
+
+import argparse
+from datetime import UTC, datetime
+import json
+from pathlib import Path
+import sys
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from app.composition.current_shell_compatibility_ids import (  # noqa: E402
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_CLAIM_SCOPE,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_FIX_STEP,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_NEXT_STEP,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+    LEGACY_LOCAL_REVIEW_ARTIFACT_TYPES,
+    LEGACY_LOCAL_REVIEW_CLAIM_SCOPES,
+    LEGACY_LOCAL_REVIEW_READY_STATUSES,
+    set_legacy_alias_metadata,
+)
+from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
+
+REQUIRED_CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE = (
+    "browser_shell_smoke",
+    "browser_fixture_dogfood",
+    "browser_realistic_dogfood",
+    "fixture_full_product_loop_e2e",
+    "pl_ce_review_bundle",
+    "context_review",
+    "context_target_candidate_eval",
+    "context_replay_pack",
+    "context_window_diagnostic",
+    "context_quality_pack",
+    "fixture_evidence_packet_emulator",
+    "fake_provider_tool_loop_smoke",
+    "review_eval_candidate_pipeline",
+    "local_operator_data_hygiene_bundle",
+    "mvp_gate",
+)
+REQUIRED_PL_CE_LOCAL_REVIEW_EVIDENCE = (
+    REQUIRED_CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE
+)
+
+_PASS_STATUSES = {
+    "pass",
+    "generated",
+    "browser_fixture_pass",
+    "browser_diagnostic_pass_with_fixture_evidence_gap",
+    "browser_diagnostic_pass_with_evidence_gap",
+    "fixture_product_loop_e2e_diagnostic_pass",
+    "product_loop_context_diagnostic_ready_for_human_review",
+    "context_quality_diagnostic_pass",
+    "fixture_packet_emulator_ready",
+    "fake_provider_tool_loop_smoke_pass",
+    "review_eval_candidate_pipeline_ready",
+    "local_operator_data_hygiene_ready",
+}
+
+
+def _json_safe(value: Any) -> Any:
+    return json.loads(json.dumps(value, ensure_ascii=False, default=str))
+
+
+def _object_dict(value: Any) -> dict[str, Any]:
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _status(payload: dict[str, Any]) -> str:
+    return str(payload.get("status") or "")
+
+
+def _missing(group_id: str, payload: dict[str, Any]) -> bool:
+    if not payload or _status(payload) not in _PASS_STATUSES:
+        return True
+    if group_id == "browser_shell_smoke" and payload.get("browser_executed") is not True:
+        return True
+    if group_id == "pl_ce_review_bundle" and payload.get("ready_for_fdb_integration") is not False:
+        return True
+    if group_id == "context_quality_pack" and payload.get("runtime_trace_input_used") is not True:
+        return True
+    if group_id == "context_quality_pack" and payload.get("short_term_context_runtime_replay_checked") is not True:
+        return True
+    return False
+
+
+def _overclaim_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    if payload.get("real_fooddb_pass_claimed") is True:
+        blockers.append(f"{group_id}_real_fooddb_overclaim")
+    if payload.get("dogfood_pass") is True:
+        blockers.append(f"{group_id}_dogfood_pass_overclaim")
+    if payload.get("product_readiness_claimed") is True:
+        blockers.append(f"{group_id}_product_readiness_overclaim")
+    if payload.get("private_self_use_approved") is True:
+        blockers.append(f"{group_id}_private_self_use_overclaim")
+    if payload.get("live_llm_invoked") is True:
+        blockers.append(f"{group_id}_live_llm_invoked")
+    if payload.get("web_tavily_used") is True or payload.get("web_tavily_invoked") is True:
+        blockers.append(f"{group_id}_web_tavily_used")
+    if payload.get("production_db_used") is True:
+        blockers.append(f"{group_id}_production_db_used")
+    if payload.get("fooddb_truth_updated") is True:
+        blockers.append(f"{group_id}_fooddb_truth_updated")
+    if payload.get("writes_performed") is True:
+        blockers.append(f"{group_id}_writes_performed")
+    if payload.get("import_allowed") is True:
+        blockers.append(f"{group_id}_import_allowed")
+    if payload.get("fixture_packet_truth") is True:
+        blockers.append(f"{group_id}_fixture_packet_truth")
+    if payload.get("evidence_packet_truth") is True:
+        blockers.append(f"{group_id}_evidence_packet_truth")
+    if payload.get("canonical_eval_promoted") is True:
+        blockers.append(f"{group_id}_canonical_eval_promoted")
+    if payload.get("manager_context_packet_schema_changed") is True:
+        blockers.append(f"{group_id}_manager_context_packet_schema_changed")
+    if payload.get("deterministic_semantic_inference_used") is True:
+        blockers.append(f"{group_id}_deterministic_semantic_inference_used")
+    if payload.get("raw_text_intent_router_used") is True:
+        blockers.append(f"{group_id}_raw_text_intent_router_used")
+    if payload.get("mutation_authority") is True:
+        blockers.append(f"{group_id}_mutation_authority")
+    if payload.get("ready_for_live_diagnostic_decision") is True:
+        blockers.append(f"{group_id}_ready_for_live_diagnostic_decision")
+    if payload.get("ready_for_fdb_integration") is True:
+        blockers.append(f"{group_id}_ready_for_fdb_integration")
+    if payload.get("fooddb_evidence_used") is True:
+        blockers.append(f"{group_id}_fooddb_evidence_used")
+    if payload.get("websearch_evidence_used") is True:
+        blockers.append(f"{group_id}_websearch_evidence_used")
+    if group_id == "context_quality_pack" and payload.get("runtime_trace_input_used") is not True:
+        blockers.append("context_quality_pack_runtime_trace_input_missing")
+    if group_id == "context_quality_pack" and payload.get("short_term_context_runtime_replay_checked") is not True:
+        blockers.append("context_quality_pack_short_term_runtime_replay_missing")
+    if group_id == "review_eval_candidate_pipeline":
+        candidates = payload.get("review_candidates")
+        if not isinstance(candidates, list):
+            blockers.append("review_eval_candidate_pipeline_candidates_missing")
+        else:
+            candidate_ids = {
+                str(candidate.get("source_artifact_id") or "")
+                for candidate in candidates
+                if isinstance(candidate, dict)
+            }
+            required_candidate_ids = {
+                "contextual_interaction_matrix",
+                "session_context_carryover_qa_bundle",
+            }
+            missing_candidate_ids = sorted(required_candidate_ids - candidate_ids)
+            blockers.extend(
+                f"review_eval_candidate_pipeline_missing_candidate:{candidate_id}"
+                for candidate_id in missing_candidate_ids
+            )
+            taxonomy_by_id = {
+                str(candidate.get("source_artifact_id") or ""): str(
+                    candidate.get("suggested_taxonomy") or ""
+                )
+                for candidate in candidates
+                if isinstance(candidate, dict)
+            }
+            if (
+                taxonomy_by_id.get("contextual_interaction_matrix")
+                != "context_conditioned_intent_gap"
+            ):
+                blockers.append(
+                    "review_eval_candidate_pipeline_contextual_interaction_taxonomy_missing"
+                )
+            if (
+                taxonomy_by_id.get("session_context_carryover_qa_bundle")
+                != "session_context_carryover_gap"
+            ):
+                blockers.append(
+                    "review_eval_candidate_pipeline_session_carryover_taxonomy_missing"
+                )
+            for candidate in candidates:
+                if not isinstance(candidate, dict):
+                    continue
+                candidate_id = str(candidate.get("source_artifact_id") or "unknown")
+                if candidate.get("human_approval_required") is not True:
+                    blockers.append(
+                        f"review_eval_candidate_pipeline_{candidate_id}_human_approval_missing"
+                    )
+                if candidate.get("canonical_eval_promoted") is True:
+                    blockers.append(
+                        f"review_eval_candidate_pipeline_{candidate_id}_canonical_eval_promoted"
+                    )
+                if candidate.get("fooddb_truth_updated") is True:
+                    blockers.append(
+                        f"review_eval_candidate_pipeline_{candidate_id}_fooddb_truth_updated"
+                    )
+    return blockers
+
+
+def build_current_shell_compatibility_local_review_decision_pack(
+    evidence: dict[str, Any],
+) -> dict[str, Any]:
+    evidence_status = {
+        group_id: _object_dict(evidence.get(group_id))
+        for group_id in REQUIRED_CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE
+    }
+    missing_evidence = [
+        group_id
+        for group_id, payload in evidence_status.items()
+        if _missing(group_id, payload)
+    ]
+    blockers: list[str] = []
+    for group_id, payload in evidence_status.items():
+        blockers.extend(_overclaim_blockers(group_id, payload))
+    status = (
+        "blocked"
+        if missing_evidence or blockers
+        else CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
+    )
+    payload = {
+        "artifact_schema_version": "1.0",
+        "artifact_type": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_ARTIFACT_TYPE,
+        "generated_at_utc": datetime.now(UTC).isoformat(),
+        "claim_scope": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_CLAIM_SCOPE,
+        "status": status,
+        "required_evidence": list(
+            REQUIRED_CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE
+        ),
+        "evidence_status": evidence_status,
+        "missing_evidence": missing_evidence,
+        "blockers": blockers,
+        "selected_next_step": (
+            CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_NEXT_STEP
+            if status == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
+            else CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_FIX_STEP
+        ),
+        "review_required_before_provider_call": True,
+        "ready_for_live_diagnostic_decision": False,
+        "ready_for_fdb_integration": False,
+        "shared_contract_changed": False,
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "local_only": True,
+        "live_llm_invoked": False,
+        "web_tavily_used": False,
+        "production_db_used": False,
+        "fooddb_truth_updated": False,
+        "real_fooddb_pass_claimed": False,
+        "dogfood_pass": False,
+        "product_readiness_claimed": False,
+        "private_self_use_approved": False,
+    }
+    return _json_safe(
+        set_legacy_alias_metadata(
+            payload,
+            legacy_artifact_types=LEGACY_LOCAL_REVIEW_ARTIFACT_TYPES,
+            legacy_statuses=LEGACY_LOCAL_REVIEW_READY_STATUSES,
+            legacy_claim_scopes=LEGACY_LOCAL_REVIEW_CLAIM_SCOPES,
+        )
+    )
+
+
+def build_pl_ce_local_review_decision_pack(evidence: dict[str, Any]) -> dict[str, Any]:
+    return build_current_shell_compatibility_local_review_decision_pack(evidence)
+
+
+def _default_output_path() -> str:
+    return (
+        "artifacts/"
+        "accurate_intake_current_shell_compatibility_local_review_decision_pack.json"
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Build a local CurrentShell compatibility review decision pack."
+    )
+    parser.add_argument("--evidence-json", required=True)
+    parser.add_argument("--output", default=_default_output_path())
+    args = parser.parse_args(argv)
+
+    pack = build_current_shell_compatibility_local_review_decision_pack(
+        read_json_artifact(Path(args.evidence_json))
+    )
+    write_json_artifact(Path(args.output), pack)
+    print(json.dumps({"artifact": args.output, "status": pack["status"]}, ensure_ascii=False))
+    return 1 if pack["status"] == "blocked" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

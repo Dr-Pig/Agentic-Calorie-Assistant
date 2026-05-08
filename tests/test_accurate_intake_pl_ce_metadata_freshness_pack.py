@@ -7,6 +7,10 @@ from pathlib import Path
 from app.composition.accurate_intake_pl_ce_metadata_freshness_pack import (
     build_pl_ce_metadata_freshness_pack,
 )
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+)
 
 
 def _fresh_timestamp() -> str:
@@ -72,9 +76,9 @@ def _fresh_evidence() -> dict[str, dict[str, object]]:
             "private_self_use_approved": False,
         },
         "pl_ce_local_review_decision_pack": {
-            "artifact_type": "accurate_intake_pl_ce_local_review_decision_pack",
+            "artifact_type": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_ARTIFACT_TYPE,
             "artifact_schema_version": "1.0",
-            "status": "ready_for_human_pl_ce_review",
+            "status": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
             "generated_at_utc": _fresh_timestamp(),
             "ready_for_live_diagnostic_decision": False,
             "ready_for_fdb_integration": False,
@@ -409,7 +413,13 @@ def test_pl_ce_metadata_freshness_pack_source_stays_out_of_fooddb_websearch_live
 
 
 def test_ci_runs_pl_ce_metadata_freshness_pack_test() -> None:
-    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    workflow = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            Path(".github/workflows/ci.yml"),
+            Path(".github/workflows/ci-advisory.yml"),
+        )
+    )
     manifest = json.loads(
         Path("docs/quality/accurate_intake_mvp_gate_manifest.json").read_text(encoding="utf-8")
     )

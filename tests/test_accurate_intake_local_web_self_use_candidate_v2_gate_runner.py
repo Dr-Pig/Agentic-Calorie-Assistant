@@ -8,7 +8,9 @@ import sys
 import pytest
 
 from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_ARTIFACT_TYPE,
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
     CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG,
 )
 
@@ -150,8 +152,8 @@ def _required_payloads() -> dict[str, dict[str, object]]:
         },
         CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: {
             "artifact_schema_version": "1.0",
-            "artifact_type": "accurate_intake_pl_ce_local_review_decision_pack",
-            "status": "ready_for_human_pl_ce_review",
+            "artifact_type": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_ARTIFACT_TYPE,
+            "status": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
             "shared_contract_changed": False,
             "ready_for_live_diagnostic_decision": False,
             "ready_for_fdb_integration": False,
