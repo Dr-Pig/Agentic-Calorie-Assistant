@@ -57,12 +57,14 @@ def _seed_required_gate_inputs(artifact_dir: Path, *, omit_browser_target_ui: bo
         _write(target_path, payload)
 
     browser_input_groups = (
-        "pl_ce_local_mvp_candidate_bundle",
+        "current_shell_compatibility_local_mvp_candidate_bundle",
         "product_pages_browser_smoke",
         "product_pages_seven_day_diary_smoke",
         "product_pages_short_term_context_smoke",
         "product_pages_visual_qa",
+        "product_pages_body_noplan_degraded_smoke",
         "fixture_full_product_loop_e2e",
+        "product_pages_self_use_flow_gate",
     )
     for group_id in browser_input_groups:
         target_path = artifact_dir / module.BROWSER_GATE_ARTIFACT_PATHS[group_id].name
@@ -163,7 +165,7 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
         == "clarify_commit_correction_same_truth_gate_ready_for_human_review"
     )
     assert pre_live_pack["selected_option"] == "stay_local_self_use"
-    assert pre_live_pack["ready_for_live_diagnostic_decision"] is False
+    assert "ready_for_live_diagnostic_decision" not in pre_live_pack
     assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert "pre-live selected option: stay_local_self_use" in candidate[
         "local_web_self_use_candidate_v2"
@@ -215,7 +217,7 @@ def test_refresh_chain_honestly_blocks_when_browser_activation_dependencies_are_
         in browser_activation["blockers"]
     )
     assert pre_live_pack["selected_option"] == "stay_local_self_use"
-    assert pre_live_pack["ready_for_live_diagnostic_decision"] is False
+    assert "ready_for_live_diagnostic_decision" not in pre_live_pack
 
 
 def test_refresh_chain_source_stays_out_of_fooddb_live_and_shared_contract_boundaries() -> None:
