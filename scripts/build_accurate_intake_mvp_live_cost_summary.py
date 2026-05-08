@@ -125,6 +125,7 @@ def build_accurate_intake_live_cost_summary(
         provider_invocation_records=provider_invocation_records,
     )
     prompt_cache_identity_summary = build_prompt_cache_identity_summary(provider_invocation_records)
+    provider_request_footprint_summary = _provider_request_footprint_summary(provider_invocation_records)
     latency_root_cause_hints = build_latency_root_cause_hints(
         provider_invocation_count=provider_invocation_count,
         max_stage_latency_ms=max_stage_latency_ms,
@@ -151,6 +152,7 @@ def build_accurate_intake_live_cost_summary(
             "source_artifacts": source_artifacts,
             "provider_invocation_records": provider_invocation_records,
             "prompt_cache_identity_summary": prompt_cache_identity_summary,
+            "provider_request_footprint_summary": provider_request_footprint_summary,
             "latency_breakdown": latency_breakdown,
             "latency_slo": latency_slo,
             "usage_records": usage_records,
@@ -270,6 +272,15 @@ def _provider_invocation_records(invocations: list[dict[str, Any]], *, source_in
                 "prompt_cache_dynamic_suffix_sha256": _optional_string(
                     prompt_cache_request.get("dynamic_suffix_sha256")
                 ),
+                "request_payload_utf8_bytes": _int(prompt_cache_request.get("request_payload_utf8_bytes")),
+                "stable_prefix_utf8_bytes": _int(prompt_cache_request.get("stable_prefix_utf8_bytes")),
+                "stable_prefix_component_utf8_bytes": _dict(
+                    prompt_cache_request.get("stable_prefix_component_utf8_bytes")
+                ),
+                "dynamic_suffix_utf8_bytes": _int(prompt_cache_request.get("dynamic_suffix_utf8_bytes")),
+                "dynamic_suffix_component_utf8_bytes": _dict(
+                    prompt_cache_request.get("dynamic_suffix_component_utf8_bytes")
+                ),
                 "prompt_cache_key_present": prompt_cache_request.get("provider_request_includes_prompt_cache_key")
                 is True,
                 "provider_wrapper_overhead_ms": _provider_wrapper_overhead_ms(
@@ -381,6 +392,44 @@ def _usage_records_from_invocations(invocations: list[dict[str, Any]], *, source
             }
         )
     return records
+
+
+def _provider_request_footprint_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
+    measured = [record for record in records if int(record.get("request_payload_utf8_bytes") or 0) > 0]
+    stable_component_totals: dict[str, int] = {}
+    dynamic_component_totals: dict[str, int] = {}
+    for record in measured:
+        for key, value in _dict(record.get("stable_prefix_component_utf8_bytes")).items():
+            stable_component_totals[str(key)] = stable_component_totals.get(str(key), 0) + _int(value)
+        for key, value in _dict(record.get("dynamic_suffix_component_utf8_bytes")).items():
+            dynamic_component_totals[str(key)] = dynamic_component_totals.get(str(key), 0) + _int(value)
+    return {
+        "measurement": "json_utf8_bytes_trace_only",
+        "provider_usage_is_token_truth": True,
+        "record_count": len(measured),
+        "total_request_payload_utf8_bytes": sum(_int(record.get("request_payload_utf8_bytes")) for record in measured),
+        "max_request_payload_utf8_bytes": max(
+            (_int(record.get("request_payload_utf8_bytes")) for record in measured),
+            default=0,
+        ),
+        "total_stable_prefix_utf8_bytes": sum(_int(record.get("stable_prefix_utf8_bytes")) for record in measured),
+        "total_dynamic_suffix_utf8_bytes": sum(_int(record.get("dynamic_suffix_utf8_bytes")) for record in measured),
+        "max_dynamic_suffix_utf8_bytes": max(
+            (_int(record.get("dynamic_suffix_utf8_bytes")) for record in measured),
+            default=0,
+        ),
+        "stable_prefix_component_utf8_bytes": dict(sorted(stable_component_totals.items())),
+        "dynamic_suffix_component_utf8_bytes": dict(sorted(dynamic_component_totals.items())),
+        "largest_stable_prefix_component": _largest_utf8_component(stable_component_totals),
+        "largest_dynamic_suffix_component": _largest_utf8_component(dynamic_component_totals),
+    }
+
+
+def _largest_utf8_component(totals: dict[str, int]) -> dict[str, Any] | None:
+    if not totals:
+        return None
+    key, utf8_bytes = max(totals.items(), key=lambda item: item[1])
+    return {"component": key, "utf8_bytes": utf8_bytes}
 
 
 def _cost_records_from_invocations(invocations: list[dict[str, Any]], *, source_index: int) -> list[dict[str, Any]]:
