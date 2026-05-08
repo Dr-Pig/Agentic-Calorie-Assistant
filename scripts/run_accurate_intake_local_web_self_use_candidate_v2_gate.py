@@ -35,7 +35,7 @@ DEFAULT_EVIDENCE_PATHS = {
     / "accurate_intake_local_operator_data_hygiene_bundle.json",
     CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: ROOT
     / "artifacts"
-    / "accurate_intake_pl_ce_local_review_decision_pack.json",
+    / "accurate_intake_current_shell_compatibility_local_review_decision_pack.json",
     "product_pages_self_use_flow_gate": ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_product_pages_self_use_flow_gate.json",

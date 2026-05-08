@@ -116,8 +116,8 @@ def _clean_evidence() -> dict:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
-        "pl_ce_local_review_decision_pack": {
-            "status": "ready_for_human_pl_ce_review",
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: {
+            "status": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
             "source": "test",
             "ready_for_live_diagnostic_decision": False,
             "ready_for_fdb_integration": False,
@@ -274,12 +274,12 @@ def test_candidate_prepared_when_all_clean() -> None:
     assert pack["local_web_self_use_candidate_v2"]["blockers"] == []
 
 
-def test_candidate_prepared_with_canonical_current_shell_local_review_aliases() -> None:
+def test_candidate_prepared_with_legacy_current_shell_local_review_alias() -> None:
     evidence = _clean_evidence()
     evidence["pre_live_decision_pack"][CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG] = True
     evidence["pre_live_decision_pack"].pop("ready_for_pl_ce_local_review", None)
-    evidence[CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID] = {
-        "status": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+    evidence["pl_ce_local_review_decision_pack"] = {
+        "status": "ready_for_human_pl_ce_review",
         "source": "test",
         "ready_for_live_diagnostic_decision": False,
         "ready_for_fdb_integration": False,
@@ -289,7 +289,7 @@ def test_candidate_prepared_with_canonical_current_shell_local_review_aliases() 
         "product_readiness_claimed": False,
         "private_self_use_approved": False,
     }
-    del evidence["pl_ce_local_review_decision_pack"]
+    del evidence[CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID]
 
     pack = build_local_web_self_use_candidate_v2(evidence)
 
@@ -371,7 +371,7 @@ def test_candidate_blocked_when_pre_live_decision_pack_missing() -> None:
 
 def test_candidate_blocked_when_pl_ce_local_review_decision_pack_missing() -> None:
     evidence = _clean_evidence()
-    del evidence["pl_ce_local_review_decision_pack"]
+    del evidence[CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID]
     pack = build_local_web_self_use_candidate_v2(evidence)
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
     assert (
@@ -631,7 +631,7 @@ def test_candidate_blocks_pre_live_live_decision_or_canary_approval() -> None:
 
 def test_candidate_blocks_pl_ce_decision_pack_overclaims() -> None:
     evidence = _clean_evidence()
-    evidence["pl_ce_local_review_decision_pack"].update(
+    evidence[CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID].update(
         {
             "ready_for_live_diagnostic_decision": True,
             "ready_for_fdb_integration": True,

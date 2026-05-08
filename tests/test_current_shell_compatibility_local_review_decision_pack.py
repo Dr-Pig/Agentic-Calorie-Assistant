@@ -3,9 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.build_accurate_intake_pl_ce_local_review_decision_pack import (
-    REQUIRED_PL_CE_LOCAL_REVIEW_EVIDENCE,
-    build_pl_ce_local_review_decision_pack,
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+)
+from scripts.build_current_shell_compatibility_local_review_decision_pack import (
+    REQUIRED_CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE,
+    build_current_shell_compatibility_local_review_decision_pack,
 )
 
 
@@ -187,11 +191,14 @@ def _evidence(**overrides: dict) -> dict:
 
 
 def test_pl_ce_local_review_pack_prepares_human_review_without_live_or_fooddb_claims() -> None:
-    pack = build_pl_ce_local_review_decision_pack(_evidence())
+    pack = build_current_shell_compatibility_local_review_decision_pack(_evidence())
 
-    assert pack["artifact_type"] == "accurate_intake_pl_ce_local_review_decision_pack"
-    assert pack["status"] == "ready_for_human_pl_ce_review"
-    assert pack["required_evidence"] == list(REQUIRED_PL_CE_LOCAL_REVIEW_EVIDENCE)
+    assert pack["artifact_type"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_ARTIFACT_TYPE
+    assert pack["status"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
+    assert pack["required_evidence"] == list(
+        REQUIRED_CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE
+    )
+    assert "ready_for_human_pl_ce_review" in pack["legacy_status_aliases"]
     assert pack["ready_for_live_diagnostic_decision"] is False
     assert pack["ready_for_fdb_integration"] is False
     assert pack["live_llm_invoked"] is False
@@ -211,7 +218,7 @@ def test_pl_ce_local_review_pack_blocks_fixture_only_context_quality_pack() -> N
         "runtime_trace_input_used": False,
     }
 
-    pack = build_pl_ce_local_review_decision_pack(evidence)
+    pack = build_current_shell_compatibility_local_review_decision_pack(evidence)
 
     assert pack["status"] == "blocked"
     assert "context_quality_pack" in pack["missing_evidence"]
@@ -225,7 +232,7 @@ def test_pl_ce_local_review_pack_blocks_missing_short_term_runtime_replay() -> N
         "short_term_context_runtime_replay_checked": False,
     }
 
-    pack = build_pl_ce_local_review_decision_pack(evidence)
+    pack = build_current_shell_compatibility_local_review_decision_pack(evidence)
 
     assert pack["status"] == "blocked"
     assert "context_quality_pack" in pack["missing_evidence"]
@@ -233,7 +240,7 @@ def test_pl_ce_local_review_pack_blocks_missing_short_term_runtime_replay() -> N
 
 
 def test_pl_ce_local_review_pack_blocks_overclaim_and_missing_context_or_hygiene_bundle() -> None:
-    pack = build_pl_ce_local_review_decision_pack(
+    pack = build_current_shell_compatibility_local_review_decision_pack(
         _evidence(
             browser_realistic_dogfood={
                 "status": "browser_diagnostic_pass_with_fixture_evidence_gap",
@@ -252,7 +259,7 @@ def test_pl_ce_local_review_pack_blocks_overclaim_and_missing_context_or_hygiene
 
 
 def test_pl_ce_local_review_pack_blocks_unsafe_local_operator_hygiene_flags() -> None:
-    pack = build_pl_ce_local_review_decision_pack(
+    pack = build_current_shell_compatibility_local_review_decision_pack(
         _evidence(
             local_operator_data_hygiene_bundle={
                 "artifact_type": "accurate_intake_local_operator_data_hygiene_bundle",
@@ -274,7 +281,7 @@ def test_pl_ce_local_review_pack_blocks_unsafe_local_operator_hygiene_flags() ->
 
 
 def test_pl_ce_local_review_pack_blocks_missing_or_overclaimed_evidence_closure_artifacts() -> None:
-    pack = build_pl_ce_local_review_decision_pack(
+    pack = build_current_shell_compatibility_local_review_decision_pack(
         _evidence(
             fixture_full_product_loop_e2e={},
             fixture_evidence_packet_emulator={
@@ -309,7 +316,7 @@ def test_pl_ce_local_review_pack_requires_context_review_candidate_families() ->
         not in {"contextual_interaction_matrix", "session_context_carryover_qa_bundle"}
     ]
 
-    pack = build_pl_ce_local_review_decision_pack(evidence)
+    pack = build_current_shell_compatibility_local_review_decision_pack(evidence)
 
     assert pack["status"] == "blocked"
     assert (
@@ -342,7 +349,7 @@ def test_pl_ce_local_review_pack_blocks_review_candidate_promotion() -> None:
         "fooddb_truth_updated"
     ] = True
 
-    pack = build_pl_ce_local_review_decision_pack(evidence)
+    pack = build_current_shell_compatibility_local_review_decision_pack(evidence)
 
     assert pack["status"] == "blocked"
     assert (
@@ -364,11 +371,11 @@ def test_pl_ce_local_review_pack_script_writes_artifact(tmp_path: Path) -> None:
     output_path = tmp_path / "pl_ce_pack.json"
     evidence_path.write_text(json.dumps(_evidence(), ensure_ascii=False), encoding="utf-8")
 
-    from scripts.build_accurate_intake_pl_ce_local_review_decision_pack import main
+    from scripts.build_current_shell_compatibility_local_review_decision_pack import main
 
     exit_code = main(["--evidence-json", str(evidence_path), "--output", str(output_path)])
 
     assert exit_code == 0
     artifact = json.loads(output_path.read_text(encoding="utf-8"))
-    assert artifact["status"] == "ready_for_human_pl_ce_review"
+    assert artifact["status"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
     assert artifact["ready_for_live_diagnostic_decision"] is False

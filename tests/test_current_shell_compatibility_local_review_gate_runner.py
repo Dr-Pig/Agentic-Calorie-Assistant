@@ -7,6 +7,10 @@ import sys
 
 import pytest
 
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -121,6 +125,22 @@ def _required_payloads() -> dict[str, dict[str, object]]:
             "artifact_type": "accurate_intake_review_eval_candidate_pipeline",
             "status": "review_eval_candidate_pipeline_ready",
             "raw_traces_review_input_only": True,
+            "review_candidates": [
+                {
+                    "source_artifact_id": "contextual_interaction_matrix",
+                    "suggested_taxonomy": "context_conditioned_intent_gap",
+                    "human_approval_required": True,
+                    "canonical_eval_promoted": False,
+                    "fooddb_truth_updated": False,
+                },
+                {
+                    "source_artifact_id": "session_context_carryover_qa_bundle",
+                    "suggested_taxonomy": "session_context_carryover_gap",
+                    "human_approval_required": True,
+                    "canonical_eval_promoted": False,
+                    "fooddb_truth_updated": False,
+                },
+            ],
             "canonical_eval_promoted": False,
             "fooddb_truth_updated": False,
             "ready_for_live_diagnostic_decision": False,
@@ -151,10 +171,10 @@ def test_pl_ce_local_review_gate_runner_writes_manifest_and_decision_pack(
     tmp_path: Path,
     capsys,
 ) -> None:
-    from scripts.build_accurate_intake_pl_ce_local_review_decision_pack import (
-        REQUIRED_PL_CE_LOCAL_REVIEW_EVIDENCE,
+    from scripts.build_current_shell_compatibility_local_review_decision_pack import (
+        REQUIRED_CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE,
     )
-    from scripts.run_accurate_intake_pl_ce_local_review_gate import main
+    from scripts.run_current_shell_compatibility_local_review_gate import main
 
     artifact_dir = tmp_path / "artifacts"
     for group_id, payload in _required_payloads().items():
@@ -168,7 +188,9 @@ def test_pl_ce_local_review_gate_runner_writes_manifest_and_decision_pack(
             str(manifest_output),
             "--decision-output",
             str(decision_output),
-            *_artifact_args(artifact_dir, REQUIRED_PL_CE_LOCAL_REVIEW_EVIDENCE),
+            *_artifact_args(
+                artifact_dir, REQUIRED_CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE
+            ),
         ]
     )
     printed = json.loads(capsys.readouterr().out)
@@ -177,9 +199,9 @@ def test_pl_ce_local_review_gate_runner_writes_manifest_and_decision_pack(
 
     assert exit_code == 0
     assert printed["manifest_status"] == "complete"
-    assert printed["decision_status"] == "ready_for_human_pl_ce_review"
+    assert printed["decision_status"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
     assert manifest["_manifest_metadata"]["status"] == "complete"
-    assert decision["status"] == "ready_for_human_pl_ce_review"
+    assert decision["status"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
     assert decision["ready_for_live_diagnostic_decision"] is False
     assert decision["ready_for_fdb_integration"] is False
 
@@ -188,10 +210,10 @@ def test_pl_ce_local_review_gate_runner_blocks_missing_artifact_without_autofix(
     tmp_path: Path,
     capsys,
 ) -> None:
-    from scripts.build_accurate_intake_pl_ce_local_review_decision_pack import (
-        REQUIRED_PL_CE_LOCAL_REVIEW_EVIDENCE,
+    from scripts.build_current_shell_compatibility_local_review_decision_pack import (
+        REQUIRED_CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE,
     )
-    from scripts.run_accurate_intake_pl_ce_local_review_gate import main
+    from scripts.run_current_shell_compatibility_local_review_gate import main
 
     artifact_dir = tmp_path / "artifacts"
     payloads = _required_payloads()
@@ -207,7 +229,9 @@ def test_pl_ce_local_review_gate_runner_blocks_missing_artifact_without_autofix(
             str(manifest_output),
             "--decision-output",
             str(decision_output),
-            *_artifact_args(artifact_dir, REQUIRED_PL_CE_LOCAL_REVIEW_EVIDENCE),
+            *_artifact_args(
+                artifact_dir, REQUIRED_CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE
+            ),
         ]
     )
     printed = json.loads(capsys.readouterr().out)
@@ -224,10 +248,10 @@ def test_pl_ce_local_review_gate_runner_blocks_missing_artifact_without_autofix(
 
 
 def test_pl_ce_local_review_gate_runner_blocks_unsafe_flags(tmp_path: Path, capsys) -> None:
-    from scripts.build_accurate_intake_pl_ce_local_review_decision_pack import (
-        REQUIRED_PL_CE_LOCAL_REVIEW_EVIDENCE,
+    from scripts.build_current_shell_compatibility_local_review_decision_pack import (
+        REQUIRED_CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE,
     )
-    from scripts.run_accurate_intake_pl_ce_local_review_gate import main
+    from scripts.run_current_shell_compatibility_local_review_gate import main
 
     artifact_dir = tmp_path / "artifacts"
     payloads = _required_payloads()
@@ -243,7 +267,9 @@ def test_pl_ce_local_review_gate_runner_blocks_unsafe_flags(tmp_path: Path, caps
             str(manifest_output),
             "--decision-output",
             str(decision_output),
-            *_artifact_args(artifact_dir, REQUIRED_PL_CE_LOCAL_REVIEW_EVIDENCE),
+            *_artifact_args(
+                artifact_dir, REQUIRED_CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_EVIDENCE
+            ),
         ]
     )
     printed = json.loads(capsys.readouterr().out)
@@ -259,7 +285,7 @@ def test_pl_ce_local_review_gate_runner_blocks_unsafe_flags(tmp_path: Path, caps
 def test_pl_ce_local_review_gate_runner_rejects_bad_artifact_overrides_with_argparse_error(
     capsys,
 ) -> None:
-    from scripts.run_accurate_intake_pl_ce_local_review_gate import main
+    from scripts.run_current_shell_compatibility_local_review_gate import main
 
     with pytest.raises(SystemExit) as missing_equals:
         main(["--artifact", "not_a_pair"])
@@ -272,11 +298,11 @@ def test_pl_ce_local_review_gate_runner_rejects_bad_artifact_overrides_with_argp
     assert missing_equals.value.code == 2
     assert unknown_group.value.code == 2
     assert "--artifact must be group_id=path" in first_error
-    assert "Unknown PL+CE evidence group" in second_error
+    assert "Unknown CurrentShell compatibility evidence group" in second_error
 
 
 def test_pl_ce_local_review_gate_runner_stays_out_of_live_fooddb_and_websearch_boundaries() -> None:
-    source = Path("scripts/run_accurate_intake_pl_ce_local_review_gate.py").read_text(
+    source = Path("scripts/run_current_shell_compatibility_local_review_gate.py").read_text(
         encoding="utf-8"
     )
     tree = ast.parse(source)

@@ -22,7 +22,7 @@ DEFAULT_EVIDENCE_PATHS = {
     "product_pages_visual_qa": ROOT / "artifacts" / "accurate_intake_product_pages_visual_qa.json",
     "pl_ce_local_review_decision_pack": ROOT
     / "artifacts"
-    / "accurate_intake_pl_ce_local_review_decision_pack.json",
+    / "accurate_intake_current_shell_compatibility_local_review_decision_pack.json",
     "pl_ce_local_mvp_candidate_bundle": ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_local_mvp_candidate_bundle.json",

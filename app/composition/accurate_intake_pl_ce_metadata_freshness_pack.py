@@ -4,19 +4,18 @@ from datetime import UTC, datetime
 import json
 from typing import Any
 
+from app.composition import current_shell_compatibility_ids as cs_ids
+
 REQUIRED_PL_CE_METADATA_ARTIFACTS = (
-    "context_quality_pack",
-    "product_pages_visual_qa",
-    "pl_ce_local_review_decision_pack",
-    "pl_ce_local_mvp_candidate_bundle",
-    "pl_ce_activation_review_manifest",
+    "context_quality_pack", "product_pages_visual_qa", "pl_ce_local_review_decision_pack",
+    "pl_ce_local_mvp_candidate_bundle", "pl_ce_activation_review_manifest",
     "ui_same_truth_render_contract",
 )
 
 EXPECTED_ARTIFACT_TYPES = {
     "context_quality_pack": "accurate_intake_context_quality_pack",
     "product_pages_visual_qa": "accurate_intake_product_pages_visual_qa",
-    "pl_ce_local_review_decision_pack": "accurate_intake_pl_ce_local_review_decision_pack",
+    "pl_ce_local_review_decision_pack": cs_ids.CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_ARTIFACT_TYPE,
     "pl_ce_local_mvp_candidate_bundle": "accurate_intake_pl_ce_local_mvp_candidate_bundle",
     "pl_ce_activation_review_manifest": "accurate_intake_pl_ce_activation_review_manifest",
     "ui_same_truth_render_contract": "accurate_intake_ui_same_truth_render_contract",
@@ -25,15 +24,14 @@ EXPECTED_ARTIFACT_TYPES = {
 EXPECTED_STATUSES = {
     "context_quality_pack": "context_quality_diagnostic_pass",
     "product_pages_visual_qa": "pass",
-    "pl_ce_local_review_decision_pack": "ready_for_human_pl_ce_review",
+    "pl_ce_local_review_decision_pack": cs_ids.CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
     "pl_ce_local_mvp_candidate_bundle": "pl_ce_local_mvp_candidate_ready_for_human_review",
     "pl_ce_activation_review_manifest": "pl_ce_activation_review_manifest_ready",
     "ui_same_truth_render_contract": "pass",
 }
 
 MIN_CONTEXT_SUMMARY_COUNTS = {
-    "context_replay_scenario_count": 12,
-    "pending_pin_scenarios": 3,
+    "context_replay_scenario_count": 12, "pending_pin_scenarios": 3,
     "manager_semantic_required_scenarios": 1,
     "short_term_runtime_replay_scenario_count": 7,
     "fake_provider_handoff_scenario_count": 6,
@@ -153,14 +151,16 @@ def _identity_blockers(group_id: str, payload: dict[str, Any]) -> list[str]:
     if _is_invalid_read_payload(payload):
         return [f"{group_id}.invalid_artifact_file"]
     expected_type = EXPECTED_ARTIFACT_TYPES[group_id]
-    if payload.get("artifact_type") != expected_type:
+    legacy_types = cs_ids.LEGACY_LOCAL_REVIEW_ARTIFACT_TYPES if group_id == "pl_ce_local_review_decision_pack" else ()
+    if not cs_ids.matches_alias(payload.get("artifact_type"), expected_type, *legacy_types):
         blockers.append(f"{group_id}.unexpected_artifact_type")
     if not payload.get("artifact_schema_version"):
         blockers.append(f"{group_id}.missing_artifact_schema_version")
     if not payload.get("generated_at_utc"):
         blockers.append(f"{group_id}.missing_generated_at_utc")
     expected_status = EXPECTED_STATUSES[group_id]
-    if payload.get("status") != expected_status:
+    legacy_statuses = cs_ids.LEGACY_LOCAL_REVIEW_READY_STATUSES if group_id == "pl_ce_local_review_decision_pack" else ()
+    if not cs_ids.matches_alias(payload.get("status"), expected_status, *legacy_statuses):
         blockers.append(f"{group_id}.unexpected_status")
     return blockers
 

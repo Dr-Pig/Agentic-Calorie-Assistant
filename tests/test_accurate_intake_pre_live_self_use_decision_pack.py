@@ -40,8 +40,8 @@ def _evidence(**overrides: dict) -> dict:
             "production_db_used": False,
             "fooddb_truth_updated": False,
         },
-        "pl_ce_local_review_decision_pack": {
-            "status": "ready_for_human_pl_ce_review",
+        CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: {
+            "status": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
             "shared_contract_changed": False,
             "ready_for_live_diagnostic_decision": False,
             "ready_for_fdb_integration": False,
@@ -431,24 +431,21 @@ def test_pre_live_decision_pack_lists_required_evidence_without_approving_live()
     }
 
 
-def test_pre_live_decision_pack_accepts_canonical_local_review_group_alias() -> None:
-    pack = build_pre_live_self_use_decision_pack(
-        _evidence(
-            pl_ce_local_review_decision_pack={},
-            **{
-                CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: {
-                    "status": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
-                    "shared_contract_changed": False,
-                    "ready_for_live_diagnostic_decision": False,
-                    "ready_for_fdb_integration": False,
-                    "live_llm_invoked": False,
-                    "web_tavily_used": False,
-                    "real_fooddb_pass_claimed": False,
-                    "private_self_use_approved": False,
-                }
-            },
-        )
-    )
+def test_pre_live_decision_pack_accepts_legacy_local_review_group_alias() -> None:
+    evidence = _evidence()
+    del evidence[CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID]
+    evidence["pl_ce_local_review_decision_pack"] = {
+        "status": "ready_for_human_pl_ce_review",
+        "shared_contract_changed": False,
+        "ready_for_live_diagnostic_decision": False,
+        "ready_for_fdb_integration": False,
+        "live_llm_invoked": False,
+        "web_tavily_used": False,
+        "real_fooddb_pass_claimed": False,
+        "private_self_use_approved": False,
+    }
+
+    pack = build_pre_live_self_use_decision_pack(evidence)
 
     assert pack["missing_evidence"] == []
     assert pack[CURRENT_SHELL_COMPATIBILITY_READY_FOR_LOCAL_REVIEW_FLAG] is True
@@ -594,7 +591,7 @@ def test_pre_live_decision_pack_requires_browser_executed_evidence_before_human_
 
 def test_pre_live_decision_pack_requires_pl_ce_local_review_gate_before_human_live_decision() -> None:
     pack = build_pre_live_self_use_decision_pack(
-        _evidence(pl_ce_local_review_decision_pack={})
+        _evidence(**{CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: {}})
     )
 
     assert pack["selected_option"] == "stay_local_self_use"
@@ -968,9 +965,11 @@ def test_pre_live_decision_pack_blocks_unsafe_context_live_case_matrix() -> None
 def test_pre_live_decision_pack_blocks_when_pl_ce_local_review_gate_is_blocked() -> None:
     pack = build_pre_live_self_use_decision_pack(
         _evidence(
-            pl_ce_local_review_decision_pack={
-                "status": "blocked",
-                "ready_for_live_diagnostic_decision": False,
+            **{
+                CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: {
+                    "status": "blocked",
+                    "ready_for_live_diagnostic_decision": False,
+                }
             }
         )
     )
@@ -984,12 +983,14 @@ def test_pre_live_decision_pack_blocks_when_pl_ce_local_review_gate_is_blocked()
 def test_pre_live_decision_pack_blocks_pl_ce_local_review_overclaims() -> None:
     pack = build_pre_live_self_use_decision_pack(
         _evidence(
-            pl_ce_local_review_decision_pack={
-                "status": "ready_for_human_pl_ce_review",
+            **{
+                CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: {
+                    "status": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
                 "ready_for_live_diagnostic_decision": True,
                 "ready_for_fdb_integration": True,
                 "real_fooddb_pass_claimed": True,
                 "private_self_use_approved": True,
+                }
             }
         )
     )
@@ -1027,10 +1028,14 @@ def test_pre_live_decision_pack_blocks_shared_contract_changes() -> None:
         "food_evidence_promotion_policy_changed",
     ):
         pack = build_pre_live_self_use_decision_pack(
-            _evidence(pl_ce_local_review_decision_pack={
-                "status": "ready_for_human_pl_ce_review",
-                flag: True,
-            })
+            _evidence(
+                **{
+                    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID: {
+                        "status": CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
+                        flag: True,
+                    }
+                }
+            )
         )
 
         assert pack["selected_option"] == "stay_local_self_use"
