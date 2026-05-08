@@ -166,6 +166,10 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
             }
             assert turn["provider_invocation_summary"]["provider_invocation_count"] >= 1
             assert isinstance(turn["provider_invocation_summary"]["provider_invocation_latency_ms"], int)
+            assert isinstance(turn["provider_invocation_summary"]["provider_wrapper_overhead_ms"], int)
+            assert isinstance(turn["provider_invocation_summary"]["transport_attempt_count"], int)
+            assert isinstance(turn["provider_invocation_summary"]["transport_attempt_latency_ms"], int)
+            assert isinstance(turn["provider_invocation_summary"]["slowest_transport_attempt_ms"], int)
         assert case["provider_invocation_count"] >= len(case["turns"])
         assert isinstance(case["provider_invocation_latency_ms"], int)
         assert isinstance(case["latency_ms"], int)

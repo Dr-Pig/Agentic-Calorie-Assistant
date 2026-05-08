@@ -61,11 +61,21 @@ def _live_artifact(
                 "provider_profile_model": "grok-4-fast",
                 "latency_ms": override.get("latency_ms", latency_ms),
                 "timeout_budget_ms": 180000,
-                "provider_trace": dict(provider_trace),
+                "provider_trace": _provider_trace_for_override(provider_trace, override),
             }
             for override in provider_invocation_overrides
         ],
     }
+
+
+def _provider_trace_for_override(
+    base_provider_trace: dict[str, object],
+    override: dict[str, object],
+) -> dict[str, object]:
+    override_trace = override.get("provider_trace")
+    if isinstance(override_trace, dict):
+        return dict(override_trace)
+    return dict(base_provider_trace)
 
 
 def test_live_cost_summary_totals_token_usage_and_reported_costs() -> None:
@@ -195,6 +205,18 @@ def test_live_cost_summary_breaks_down_latency_by_stage_case_turn_and_slowest_ca
                         "manager_round_index": 0,
                         "manager_loop_scope": "turn_entry_or_read_only",
                         "provider_trace_stage": "entry_decision",
+                        "provider_trace": {
+                            "stage": "entry_decision",
+                            "usage": {
+                                "prompt_tokens": 100,
+                                "completion_tokens": 10,
+                                "total_tokens": 110,
+                                "prompt_tokens_details": {"cached_tokens": 70},
+                            },
+                            "transport_attempts": [
+                                {"status": "success", "duration_ms": 2_800},
+                            ],
+                        },
                     },
                     {
                         "latency_ms": 1_000,
@@ -204,6 +226,19 @@ def test_live_cost_summary_breaks_down_latency_by_stage_case_turn_and_slowest_ca
                         "manager_round_index": 0,
                         "manager_loop_scope": "intake_execution",
                         "provider_trace_stage": "execution_decision",
+                        "provider_trace": {
+                            "stage": "execution_decision",
+                            "usage": {
+                                "prompt_tokens": 100,
+                                "completion_tokens": 10,
+                                "total_tokens": 110,
+                                "prompt_tokens_details": {"cached_tokens": 70},
+                            },
+                            "transport_attempts": [
+                                {"status": "parse_retry", "duration_ms": 600},
+                                {"status": "success", "duration_ms": 300},
+                            ],
+                        },
                     },
                 ],
             )
@@ -250,6 +285,11 @@ def test_live_cost_summary_breaks_down_latency_by_stage_case_turn_and_slowest_ca
         "completion_tokens": 10,
         "cached_tokens_reported": True,
         "cached_tokens": 70,
+        "provider_wrapper_overhead_ms": 200,
+        "transport_attempt_count": 1,
+        "transport_attempt_latency_ms": 2_800,
+        "slowest_transport_attempt_ms": 2_800,
+        "transport_attempt_statuses": ["success"],
     }
 
 

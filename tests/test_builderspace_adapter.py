@@ -2058,7 +2058,13 @@ async def test_complete_with_trace_retries_connect_error_and_preserves_attempt_t
     assert len(posted_payloads) == 2
     assert trace["transport_attempts"][0]["error_type"] == "ConnectError"
     assert trace["transport_attempts"][0]["status"] == "error"
+    assert isinstance(trace["transport_attempts"][0]["duration_ms"], int)
+    assert trace["transport_attempts"][0]["duration_ms"] >= 0
+    assert "_started_monotonic_s" not in trace["transport_attempts"][0]
     assert trace["transport_attempts"][1]["status"] == "success"
+    assert isinstance(trace["transport_attempts"][1]["duration_ms"], int)
+    assert trace["transport_attempts"][1]["duration_ms"] >= 0
+    assert "_started_monotonic_s" not in trace["transport_attempts"][1]
 
 
 def test_format_user_message_serializes_pydantic_objects() -> None:

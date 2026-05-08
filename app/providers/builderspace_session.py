@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+import time
 from typing import Any
 
 import httpx
@@ -76,6 +77,7 @@ async def complete_builderspace_with_trace(
         async with async_client_factory(timeout=timeout_seconds) as client:
             for attempt_index in range(1, max_attempt_count + 1):
                 attempt_trace = new_transport_attempt(attempt_index, base_url, model, stage)
+                _start_attempt_timer(attempt_trace)
                 try:
                     if decision_transport_request is not None:
                         request_payload = dict(active_base_request_payload)
@@ -253,6 +255,7 @@ def _record_attempt_failure(
 ) -> None:
     attempt_trace["status"] = "error"
     attempt_trace["ended_at_utc"] = _utc_now_iso()
+    _finish_attempt_timer(attempt_trace)
     attempt_trace["error_type"] = type(exc).__name__
     attempt_trace["error"] = str(exc)
     if isinstance(exc, httpx.HTTPStatusError):
@@ -266,6 +269,17 @@ def _record_attempt_failure(
 def _mark_attempt_completed(attempt_trace: dict[str, Any], *, status: str) -> None:
     attempt_trace["status"] = status
     attempt_trace["ended_at_utc"] = _utc_now_iso()
+    _finish_attempt_timer(attempt_trace)
+
+
+def _start_attempt_timer(attempt_trace: dict[str, Any]) -> None:
+    attempt_trace["_started_monotonic_s"] = time.perf_counter()
+
+
+def _finish_attempt_timer(attempt_trace: dict[str, Any]) -> None:
+    started = attempt_trace.pop("_started_monotonic_s", None)
+    if isinstance(started, (int, float)):
+        attempt_trace["duration_ms"] = max(0, int(round((time.perf_counter() - started) * 1000)))
 
 
 def _manager_contract_parse_attempt(
