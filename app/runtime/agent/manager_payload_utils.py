@@ -38,6 +38,28 @@ def compact_resolved_state_prompt_payload(value: Any) -> dict[str, Any]:
     }
 
 
+def compact_manager_product_policy_hints_prompt_payload(value: Any) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    payload = _object_mapping(value)
+    rules = payload.get("rules") if isinstance(payload.get("rules"), list) else []
+    policy_ids = [
+        str(rule.get("policy_id")).strip()
+        for rule in rules
+        if isinstance(rule, dict) and str(rule.get("policy_id") or "").strip()
+    ]
+    return {
+        "prompt_payload_kind": "manager_product_policy_hints_compact_summary",
+        "policy_source": payload.get("policy_source"),
+        "policy_role": payload.get("policy_role"),
+        "policy_ids": policy_ids,
+        "rule_count": len(rules),
+        "static_policy_text_source": "single_manager_system_prompt",
+        "full_policy_text_omitted_from_prompt": True,
+        "deterministic_semantic_authority": False,
+    }
+
+
 def _object_mapping(value: Any) -> dict[str, Any]:
     if value is None:
         return {}

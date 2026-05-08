@@ -19,9 +19,9 @@ from app.runtime.agent.manager_result_builder import (
     result_from_payload,
 )
 from app.runtime.agent.manager_prompt_registry import build_manager_prompt_registry
-from app.runtime.agent.manager_system_prompt import SINGLE_MANAGER_SYSTEM_PROMPT, single_manager_system_prompt_for_scope  # noqa: F401
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 from app.runtime.agent.manager_payload_utils import (
+    compact_manager_product_policy_hints_prompt_payload as compact_policy_hints,
     compact_resolved_state_prompt_payload,
     json_safe,
     maybe_await,
@@ -135,7 +135,7 @@ async def run_intake_manager(
             "manager_loop_scope": effective_manager_loop_scope,
             "manager_scope_policy": manager_scope_policy_payload(effective_manager_loop_scope, normalized_available_tools),
             "constraints": effective_constraints,
-            "manager_product_policy_hints": json_safe(manager_product_policy_hints),
+            "manager_product_policy_hints": json_safe(compact_policy_hints(manager_product_policy_hints)),
             "guard_feedback": guard_feedback,
         }
         payload, trace, prompt_layer_contract = await complete_manager_round_with_prompt_trace(
