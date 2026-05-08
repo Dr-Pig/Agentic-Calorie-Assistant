@@ -2,7 +2,7 @@
 
 Use it as a map, not a handbook. Load the minimum path first, then retrieve deeper docs only when the task shape requires them.
 
-[docs/V2_DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/V2_DOC_INDEX.md) owns document taxonomy, file-role mapping, and longer navigation guidance. [docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md) owns the product-wide anti-drift operating layer. `AGENTS.md` only owns bootstrap order, always-on repo rules, and conditional-read triggers.
+[docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md) owns document taxonomy, file-role mapping, and longer navigation guidance. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md) owns the product-wide anti-drift operating layer. `AGENTS.md` only owns bootstrap order, always-on repo rules, and conditional-read triggers.
 
 Before any plan or edit, first classify whether this is a capability-order trap, architecture-boundary trap, both, or neither; if either may apply, pause and use the relevant skill before choosing files, tests, classes, eval fixes, or local next steps.
 
@@ -15,7 +15,7 @@ Default truth families are:
 3. CI and harness output
 4. `git diff / commit history`
 
-Do not use deleted archive paths, [artifacts/docs-snapshots/](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/artifacts/docs-snapshots), completed task artifacts, or handoff docs as default truth.
+Do not use preservation snapshots under [docs/_spec_snapshots/](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/_spec_snapshots), completed task artifacts, or handoff docs as default truth.
 
 ## Product Truth Priority
 
@@ -138,20 +138,20 @@ Hard rule:
 
 ## Read First
 
-1. [docs/V2_DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/V2_DOC_INDEX.md)
-2. [docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md)
-3. [docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md)
+1. [docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md)
+2. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md)
+3. [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md)
 
 If the task needs architecture context or eval gate status, read next:
 
-4. [docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md)
-5. [docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md)
-6. task-specific canonical spec
-7. task-specific micro-suite / eval gate
+4. [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml)
+5. [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml)
+6. task-specific canonical spec or runbook
+7. [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) only when historical pre-self-use runtime reference is explicitly needed
 
 Bootstrap read path is:
 
-`AGENTS.md -> docs/V2_DOC_INDEX.md -> docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md -> docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md -> docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md -> docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md -> task-specific canonical spec -> task-specific micro-suite / eval gate`
+`AGENTS.md -> docs/DOC_INDEX.md -> docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md -> docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md -> docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml -> docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml -> track-specific canonical runbook / gate -> task-specific spec`
 
 Default workflow is repo-truth-first interactive implementation. Unattended / overnight autonomy is optional and should only be loaded when the task is intentionally using an approval-light continuation protocol.
 
@@ -167,7 +167,7 @@ Use deeper process docs only when the task shape requires them:
   - before high-impact code, follow `.kiro/steering/best-practice-search.md`
   - check current best practice for runtime, retrieval, database, API, testing, or security work
 - Product-wide anti-drift entry:
-  - read [docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md) before high-impact provider, retrieval, DB, packet, mutation, or architecture-boundary slices
+  - read [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md) before high-impact provider, retrieval, DB, packet, mutation, or architecture-boundary slices
   - use it to identify owner docs, required planning fields, and forbidden shortcut patterns before editing
 - Provider/runtime transport:
   - BuilderSpace transport is a runtime contract

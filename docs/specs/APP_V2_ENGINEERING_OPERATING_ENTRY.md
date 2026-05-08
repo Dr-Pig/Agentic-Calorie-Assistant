@@ -1,5 +1,10 @@
 ﻿# App V2 Engineering Operating Entry
 
+Compatibility notice:
+
+- this file is no longer the active operating entry
+- use `docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md` for new implementation work
+
 ## Purpose
 
 This document is the product-wide anti-drift operating entry for App V2 implementation work.
