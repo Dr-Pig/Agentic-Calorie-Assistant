@@ -2,7 +2,7 @@
 
 Use it as a map, not a handbook. Load the minimum path first, then retrieve deeper docs only when the task shape requires them.
 
-[docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md) owns document taxonomy, file-role mapping, and longer navigation guidance. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md) owns the product-wide anti-drift operating layer. `AGENTS.md` only owns bootstrap order, always-on repo rules, and conditional-read triggers.
+[docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md) owns document taxonomy, file-role mapping, and longer navigation guidance. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md) owns the minimal current execution pointer. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md) owns the product-wide anti-drift operating layer. `AGENTS.md` only owns bootstrap order, always-on repo rules, and conditional-read triggers.
 
 Before any plan or edit, first classify whether this is a capability-order trap, architecture-boundary trap, both, or neither; if either may apply, pause and use the relevant skill before choosing files, tests, classes, eval fixes, or local next steps.
 
@@ -139,19 +139,20 @@ Hard rule:
 ## Read First
 
 1. [docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md)
-2. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md)
-3. [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md)
+2. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md)
+3. [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md)
+4. [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md)
 
 If the task needs architecture context or eval gate status, read next:
 
-4. [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml)
-5. [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml)
-6. task-specific canonical spec or runbook
-7. [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) only when historical pre-self-use runtime reference is explicitly needed
+5. [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml)
+6. [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml)
+7. task-specific canonical spec or runbook
+8. [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) only when historical pre-self-use runtime reference is explicitly needed
 
 Bootstrap read path is:
 
-`AGENTS.md -> docs/DOC_INDEX.md -> docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md -> docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md -> docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml -> docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml -> track-specific canonical runbook / gate -> task-specific spec`
+`AGENTS.md -> docs/DOC_INDEX.md -> docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md -> docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md -> docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md -> docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml -> docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml -> track-specific canonical runbook / gate -> task-specific spec`
 
 Default workflow is repo-truth-first interactive implementation. Unattended / overnight autonomy is optional and should only be loaded when the task is intentionally using an approval-light continuation protocol.
 
@@ -164,8 +165,8 @@ Use deeper process docs only when the task shape requires them:
   - use [docs/agent/EVOMAP_WORKFLOW.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/agent/EVOMAP_WORKFLOW.md) when the slice introduces reusable capability or cross-repo workflow value
   - start from repo truth first for repo-local blockers
 - Best practice search:
-  - before high-impact code, follow `.kiro/steering/best-practice-search.md`
-  - check current best practice for runtime, retrieval, database, API, testing, or security work
+  - before high-impact runtime, retrieval, database, API, testing, or security work, check current official or primary sources
+  - record adopted and rejected guidance under `best_practice_evidence`
 - Product-wide anti-drift entry:
   - read [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md) before high-impact provider, retrieval, DB, packet, mutation, or architecture-boundary slices
   - use it to identify owner docs, required planning fields, and forbidden shortcut patterns before editing
@@ -220,7 +221,7 @@ This contract exists because CJK mojibake can happen before the agent sees comma
 ## Hard Rules Summary
 
 - source-of-truth sync is mandatory when canonical understanding changes
-- Wave 1 default is repo-truth-first interactive implementation, not detached autorun
+- Current Shell default is repo-truth-first interactive implementation, not detached autorun
 - product truth is higher-order than eval shape
   - do not design architecture, manager contracts, tool surfaces, or guards around the incidental shape of benchmark fixtures, replay packs, or runner payloads
   - first decide the intended user-visible behavior and truth ownership, then use evals to verify that behavior

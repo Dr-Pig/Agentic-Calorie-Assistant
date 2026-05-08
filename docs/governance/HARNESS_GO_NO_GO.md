@@ -12,8 +12,10 @@ Use this before starting a new build wave. It should take about 30 seconds.
 - the retained browser smoke wall for `product-pages-browser-e2e` passes on a fresh checkout
 - the retained browser smoke wall proves user-visible product surfaces and required read-model sync; it must not depend on hidden readiness markers or diagnostic trace panels
 - legacy `ci-advisory` is retired; pre-EDD, old MVP, PLCE, and phase-labeled audit packs are local historical diagnostics only, not GitHub workflow surfaces
+- placeholder `cd` is retired; this repo has no tracked cloud deploy workflow until deployment becomes a current mainline slice
 - merge-governance reports are manual diagnostics only; they do not decide queue eligibility or merge readiness by themselves
 - governance docs and workflow job names are synchronized in the same branch
+- local scratch is disposable and can be inspected with `python scripts/clean_local_workspace.py --dry-run`; this must not remove `.env`, `artifacts/`, `workspace_data/`, or `docs/_spec_snapshots/`
 
 ## No-Go
 

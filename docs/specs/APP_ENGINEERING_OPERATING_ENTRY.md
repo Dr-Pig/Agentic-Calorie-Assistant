@@ -14,10 +14,11 @@ The current default mainline is the `Current Shell` split-delivery plan for the 
 
 For new windows, the default bootstrap after this operating entry is:
 
-1. `docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md`
-2. `docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml`
-3. `docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml`
-4. the relevant track-specific runbook or scope doc
+1. `docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md`
+2. `docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md`
+3. `docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml`
+4. `docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml`
+5. the relevant track-specific runbook or scope doc
 
 `docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md` is the neutral entrypoint for older pre-self-use runtime docs.
 
@@ -38,6 +39,7 @@ Treat this entry as required before slices that touch:
 | Concern | Owner doc |
 | --- | --- |
 | current bootstrap and document taxonomy | [docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md) |
+| minimal current execution pointer | [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md) |
 | current split-delivery ownership and coordination | [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md) |
 | current shell contract and gate order | [docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml), [docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml) |
 | historical pre-self-use runtime interpretation | [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) |
@@ -57,9 +59,10 @@ This entry is an operating layer, not a new semantic owner.
 
 1. `AGENTS.md`
 2. [docs/DOC_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/DOC_INDEX.md)
-3. this operating entry
-4. the active Current Shell bootstrap pack
-5. the relevant track-specific canonical spec or runbook
-6. task-specific tests or eval gates
+3. [docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md)
+4. this operating entry
+5. the active Current Shell bootstrap pack
+6. the relevant track-specific canonical spec or runbook
+7. task-specific tests or eval gates
 
 Use [docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md) only when the task explicitly needs historical pre-self-use architecture or harness reference.

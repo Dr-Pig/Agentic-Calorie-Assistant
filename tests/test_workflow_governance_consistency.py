@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import subprocess
+import sys
 from pathlib import Path
 
 
@@ -49,13 +51,14 @@ def test_harness_go_no_go_mentions_current_required_jobs() -> None:
         assert f"`{job_name}`" in harness
 
 
-def test_cd_workflow_is_manual_placeholder_only() -> None:
-    workflow = (ROOT / ".github" / "workflows" / "cd.yml").read_text(encoding="utf-8")
+def test_cloud_deploy_placeholder_workflow_is_retired() -> None:
+    workflow_path = ROOT / ".github" / "workflows" / "cd.yml"
+    governance = (ROOT / "docs" / "governance" / "GITHUB_REPO_GOVERNANCE.md").read_text(encoding="utf-8")
+    harness = (ROOT / "docs" / "governance" / "HARNESS_GO_NO_GO.md").read_text(encoding="utf-8")
 
-    assert "workflow_dispatch" in workflow
-    assert "docker/build-push-action" not in workflow
-    assert "DEPLOY_WEBHOOK_URL" not in workflow
-    assert "Manual placeholder only." in workflow
+    assert not workflow_path.exists()
+    assert "placeholder `cd` workflow has been retired" in governance
+    assert "placeholder `cd` is retired" in harness
 
 
 def test_wave1_runtime_smoke_stays_manual_only() -> None:
@@ -138,8 +141,10 @@ def test_agents_bootstrap_uses_current_docs_index_and_operating_entry() -> None:
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
 
     assert "[docs/DOC_INDEX.md]" in agents
+    assert "[docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md]" in agents
     assert "[docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md]" in agents
     assert "docs/_spec_snapshots" in agents
+    assert ".kiro/steering/best-practice-search.md" not in agents
     assert "[docs/V2_DOC_INDEX.md]" not in agents
     assert "[docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md]" not in agents
     assert "artifacts/docs-snapshots" not in agents
@@ -147,6 +152,9 @@ def test_agents_bootstrap_uses_current_docs_index_and_operating_entry() -> None:
 
 def test_docs_bootstrap_index_and_legacy_reference_are_consistent() -> None:
     doc_index = (ROOT / "docs" / "DOC_INDEX.md").read_text(encoding="utf-8")
+    current_plan = (ROOT / "docs" / "exec-plans" / "active" / "CURRENT_EXECUTION_PLAN.md").read_text(
+        encoding="utf-8-sig"
+    )
     operating_entry = (ROOT / "docs" / "specs" / "APP_ENGINEERING_OPERATING_ENTRY.md").read_text(encoding="utf-8")
     legacy_index = (ROOT / "docs" / "specs" / "LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md").read_text(encoding="utf-8")
     docs_index_stub = (ROOT / "docs" / "index.md").read_text(encoding="utf-8")
@@ -158,6 +166,11 @@ def test_docs_bootstrap_index_and_legacy_reference_are_consistent() -> None:
     assert "sole active operating entry: `docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md`" in doc_index
     assert "sole legacy runtime reference index: `docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md`" in doc_index
     assert "canonical preservation path: `docs/_spec_snapshots/`" in doc_index
+    assert "current execution pointer" in doc_index
+    assert "Current Shell self-use MVP local desktop dogfood" in current_plan
+    assert "Do Not Start From" in current_plan
+    assert "Kiro steering files" in current_plan
+    assert "placeholder cloud/deploy workflows" in current_plan
     assert "Current Shell" in operating_entry
     assert "stop and return to [docs/DOC_INDEX.md]" in docs_index_stub
     assert "stop and return to [docs/DOC_INDEX.md]" in v2_index_stub
@@ -227,3 +240,18 @@ def test_active_governance_protocols_are_repo_localized() -> None:
 
     assert "CURRENT_EXECUTION_PLAN.md" not in task_checkin
     assert "CURRENT_EXECUTION_PLAN.md" not in handoff
+
+
+def test_harness_garbage_collect_runs_clean_for_current_repo_shape() -> None:
+    result = subprocess.run(
+        [sys.executable, "scripts/harness_garbage_collect.py"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+    assert result.stdout.strip() == "harness-garbage-collect: clean"
