@@ -462,6 +462,15 @@ def _group_provider_latency(
                 "provider_wrapper_overhead_ms": sum(
                     int(item.get("provider_wrapper_overhead_ms") or 0) for item in items
                 ),
+                "request_payload_utf8_bytes": sum(
+                    int(item.get("request_payload_utf8_bytes") or 0) for item in items
+                ),
+                "stable_prefix_utf8_bytes": sum(
+                    int(item.get("stable_prefix_utf8_bytes") or 0) for item in items
+                ),
+                "dynamic_suffix_utf8_bytes": sum(
+                    int(item.get("dynamic_suffix_utf8_bytes") or 0) for item in items
+                ),
                 "transport_attempt_count": sum(int(item.get("transport_attempt_count") or 0) for item in items),
                 "transport_attempt_latency_ms": sum(
                     int(item.get("transport_attempt_latency_ms") or 0) for item in items
@@ -543,6 +552,9 @@ def _slowest_provider_invocations(records: list[dict[str, Any]], *, limit: int =
             "completion_tokens": int(record.get("completion_tokens") or 0),
             "cached_tokens_reported": record.get("cached_tokens_reported") is True,
             "cached_tokens": int(record.get("cached_tokens") or 0),
+            "request_payload_utf8_bytes": int(record.get("request_payload_utf8_bytes") or 0),
+            "stable_prefix_utf8_bytes": int(record.get("stable_prefix_utf8_bytes") or 0),
+            "dynamic_suffix_utf8_bytes": int(record.get("dynamic_suffix_utf8_bytes") or 0),
             "provider_wrapper_overhead_ms": int(record.get("provider_wrapper_overhead_ms") or 0),
             "transport_attempt_count": int(record.get("transport_attempt_count") or 0),
             "transport_attempt_latency_ms": int(record.get("transport_attempt_latency_ms") or 0),

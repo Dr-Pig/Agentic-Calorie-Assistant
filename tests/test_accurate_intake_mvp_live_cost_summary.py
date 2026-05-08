@@ -285,6 +285,9 @@ def test_live_cost_summary_breaks_down_latency_by_stage_case_turn_and_slowest_ca
         "completion_tokens": 10,
         "cached_tokens_reported": True,
         "cached_tokens": 70,
+        "request_payload_utf8_bytes": 0,
+        "stable_prefix_utf8_bytes": 0,
+        "dynamic_suffix_utf8_bytes": 0,
         "provider_wrapper_overhead_ms": 200,
         "transport_attempt_count": 1,
         "transport_attempt_latency_ms": 2_800,
@@ -314,7 +317,18 @@ def test_live_cost_summary_aggregates_prompt_cache_identity_reuse() -> None:
                                     "response_format": "schema-a",
                                     "system_messages": "system-a",
                                 },
+                                "stable_prefix_utf8_bytes": 2000,
+                                "stable_prefix_component_utf8_bytes": {
+                                    "tools": 1200,
+                                    "response_format": 500,
+                                    "system_messages": 300,
+                                },
                                 "dynamic_suffix_sha256": "dynamic-turn-1",
+                                "dynamic_suffix_utf8_bytes": 3000,
+                                "dynamic_suffix_component_utf8_bytes": {
+                                    "user_messages": 3000,
+                                },
+                                "request_payload_utf8_bytes": 5100,
                                 "provider_request_includes_prompt_cache_key": False,
                                 "cache_truth_source": "provider_reported_usage_only",
                             },
@@ -337,7 +351,18 @@ def test_live_cost_summary_aggregates_prompt_cache_identity_reuse() -> None:
                                     "response_format": "schema-a",
                                     "system_messages": "system-a",
                                 },
+                                "stable_prefix_utf8_bytes": 2000,
+                                "stable_prefix_component_utf8_bytes": {
+                                    "tools": 1200,
+                                    "response_format": 500,
+                                    "system_messages": 300,
+                                },
                                 "dynamic_suffix_sha256": "dynamic-turn-2",
+                                "dynamic_suffix_utf8_bytes": 3500,
+                                "dynamic_suffix_component_utf8_bytes": {
+                                    "user_messages": 3500,
+                                },
+                                "request_payload_utf8_bytes": 5600,
                                 "provider_request_includes_prompt_cache_key": False,
                                 "cache_truth_source": "provider_reported_usage_only",
                             },
@@ -355,6 +380,25 @@ def test_live_cost_summary_aggregates_prompt_cache_identity_reuse() -> None:
         "system_messages": "system-a",
     }
     assert summary["provider_invocation_records"][1]["prompt_cache_dynamic_suffix_sha256"] == "dynamic-turn-2"
+    assert summary["provider_invocation_records"][1]["request_payload_utf8_bytes"] == 5600
+    assert summary["provider_request_footprint_summary"] == {
+        "measurement": "json_utf8_bytes_trace_only",
+        "provider_usage_is_token_truth": True,
+        "record_count": 2,
+        "total_request_payload_utf8_bytes": 10700,
+        "max_request_payload_utf8_bytes": 5600,
+        "total_stable_prefix_utf8_bytes": 4000,
+        "total_dynamic_suffix_utf8_bytes": 6500,
+        "max_dynamic_suffix_utf8_bytes": 3500,
+        "stable_prefix_component_utf8_bytes": {
+            "response_format": 1000,
+            "system_messages": 600,
+            "tools": 2400,
+        },
+        "dynamic_suffix_component_utf8_bytes": {"user_messages": 6500},
+        "largest_stable_prefix_component": {"component": "tools", "utf8_bytes": 2400},
+        "largest_dynamic_suffix_component": {"component": "user_messages", "utf8_bytes": 6500},
+    }
     assert summary["prompt_cache_identity_summary"] == {
         "provider_trace_identity_count": 2,
         "missing_identity_count": 0,

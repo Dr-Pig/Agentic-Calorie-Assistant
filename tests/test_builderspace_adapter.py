@@ -356,6 +356,15 @@ async def test_complete_with_trace_strict_json_success(monkeypatch: pytest.Monke
     assert trace["prompt_cache_request"]["cache_truth_source"] == "provider_reported_usage_only"
     assert trace["prompt_cache_request"]["stable_prefix_sha256"]
     assert trace["prompt_cache_request"]["dynamic_suffix_sha256"]
+    assert trace["prompt_cache_request"]["request_payload_utf8_bytes"] > 0
+    assert trace["prompt_cache_request"]["stable_prefix_utf8_bytes"] > 0
+    assert trace["prompt_cache_request"]["dynamic_suffix_utf8_bytes"] > 0
+    assert set(trace["prompt_cache_request"]["stable_prefix_component_utf8_bytes"]) == {
+        "tools",
+        "response_format",
+        "system_messages",
+    }
+    assert trace["prompt_cache_request"]["dynamic_suffix_component_utf8_bytes"]["user_messages"] > 0
 
 
 @pytest.mark.asyncio
