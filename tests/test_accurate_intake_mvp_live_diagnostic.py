@@ -104,6 +104,60 @@ def test_scripted_provider_target_proposal_uses_manager_context_packet_v1_candid
     assert proposal["target_proposal_source"] == "manager_structured_tool_arguments"
 
 
+def test_provider_invocation_summary_surfaces_prompt_cache_identity() -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    summary = module._provider_invocation_summary(  # noqa: SLF001 - script report-shape contract.
+        [
+            {
+                "latency_ms": 10,
+                "provider_trace": {
+                    "usage": {"prompt_tokens": 100, "completion_tokens": 10, "prompt_tokens_details": {"cached_tokens": 0}},
+                    "prompt_cache_request": {
+                        "identity_version": "provider_prompt_cache_request.v1",
+                        "provider_request_includes_prompt_cache_key": True,
+                        "stable_prefix_sha256": "stable-a",
+                        "dynamic_suffix_sha256": "dynamic-a",
+                        "request_payload_utf8_bytes": 1200,
+                        "stable_prefix_utf8_bytes": 800,
+                        "dynamic_suffix_utf8_bytes": 400,
+                    },
+                },
+            },
+            {
+                "latency_ms": 20,
+                "provider_trace": {
+                    "usage": {"prompt_tokens": 110, "completion_tokens": 12, "prompt_tokens_details": {"cached_tokens": 70}},
+                    "prompt_cache_request": {
+                        "identity_version": "provider_prompt_cache_request.v1",
+                        "provider_request_includes_prompt_cache_key": True,
+                        "stable_prefix_sha256": "stable-a",
+                        "dynamic_suffix_sha256": "dynamic-b",
+                        "request_payload_utf8_bytes": 1300,
+                        "stable_prefix_utf8_bytes": 800,
+                        "dynamic_suffix_utf8_bytes": 500,
+                    },
+                },
+            },
+        ]
+    )
+
+    assert summary["cached_tokens"] == 70
+    assert summary["cache_reporting_call_count"] == 2
+    assert summary["prompt_cache"] == {
+        "provider_usage_is_cache_truth": True,
+        "identity_count": 2,
+        "missing_identity_count": 0,
+        "prompt_cache_key_count": 2,
+        "stable_prefix_unique_count": 1,
+        "dynamic_suffix_unique_count": 2,
+        "repeated_stable_prefix_observed": True,
+        "request_payload_utf8_bytes": 2500,
+        "stable_prefix_utf8_bytes": 1600,
+        "dynamic_suffix_utf8_bytes": 900,
+    }
+
+
 def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tmp_path: Path) -> None:
     module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
     output_path = tmp_path / "accurate_intake_mvp_live_diagnostic.json"
@@ -222,6 +276,17 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
             assert isinstance(turn["provider_invocation_summary"]["transport_attempt_count"], int)
             assert isinstance(turn["provider_invocation_summary"]["transport_attempt_latency_ms"], int)
             assert isinstance(turn["provider_invocation_summary"]["slowest_transport_attempt_ms"], int)
+            prompt_cache = turn["provider_invocation_summary"]["prompt_cache"]
+            assert prompt_cache["provider_usage_is_cache_truth"] is True
+            assert isinstance(prompt_cache["identity_count"], int)
+            assert isinstance(prompt_cache["missing_identity_count"], int)
+            assert isinstance(prompt_cache["prompt_cache_key_count"], int)
+            assert isinstance(prompt_cache["stable_prefix_unique_count"], int)
+            assert isinstance(prompt_cache["dynamic_suffix_unique_count"], int)
+            assert isinstance(prompt_cache["repeated_stable_prefix_observed"], bool)
+            assert isinstance(prompt_cache["request_payload_utf8_bytes"], int)
+            assert isinstance(prompt_cache["stable_prefix_utf8_bytes"], int)
+            assert isinstance(prompt_cache["dynamic_suffix_utf8_bytes"], int)
             assert isinstance(turn["runtime_stage_timings"], list)
             assert all("stage" in item and "duration_ms" in item for item in turn["runtime_stage_timings"])
             assert turn["runtime_stage_timing_summary"]["recorded_stage_count"] == len(turn["runtime_stage_timings"])
