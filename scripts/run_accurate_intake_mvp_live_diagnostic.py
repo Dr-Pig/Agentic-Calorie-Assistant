@@ -20,6 +20,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.composition.accurate_intake_debug_routes import build_accurate_intake_debug_payload  # noqa: E402
+from app.composition.accurate_intake_live_trace_expectations import grade_live_trace_expectations  # noqa: E402
 from app.composition.canonical_persistence import commit_meal_payload_to_canonical  # noqa: E402
 from app.composition.onboarding_service import OnboardingBootstrapInput, bootstrap_body_plan_for_date  # noqa: E402
 from app.database import get_or_create_user  # noqa: E402
@@ -1575,6 +1576,12 @@ def _case_error(
 
 def _decorate_case(case: dict[str, Any], *, profile: dict[str, Any]) -> dict[str, Any]:
     decorated = dict(case)
+    trace_expectation_grade = grade_live_trace_expectations(decorated)
+    if trace_expectation_grade.get("required_status") == "fail":
+        decorated["verdict"] = "fail"
+        decorated["blockers"] = [*_list(decorated.get("blockers")), "trace_expectation_required_failed"]
+        decorated["failure_layer"] = "trace_expectation"
+        decorated["failure_family"] = "golden_trace_required_mismatch"
     result_kind = _case_result_kind(decorated)
     contract_status = _case_contract_status(decorated, result_kind=result_kind)
     failure_layer, failure_family = _classify_failure(decorated)
@@ -1598,6 +1605,7 @@ def _decorate_case(case: dict[str, Any], *, profile: dict[str, Any]) -> dict[str
     decorated["private_self_use_unlock_allowed"] = False
     decorated["readiness_claimed"] = False
     decorated["production_selected"] = False
+    decorated["trace_expectation_grade"] = trace_expectation_grade
     decorated["runner_inferred_semantics"] = False
     decorated["raw_text_routing_used"] = False
     if failure_layer is not None:
