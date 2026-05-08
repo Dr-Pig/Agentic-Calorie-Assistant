@@ -81,10 +81,10 @@ def test_offline_shadow_replay_records_single_clean_stage_run_without_candidate_
 
     assert replay["artifact_type"] == "accurate_intake_mvp_offline_shadow_replay"
     assert replay["claim_scope"] == "offline_shadow_replay"
-    assert replay["readiness_claimed"] is False
-    assert replay["product_readiness_claimed"] is False
-    assert replay["private_self_use_approved"] is False
-    assert replay["production_selected"] is False
+    assert "readiness_claimed" not in replay
+    assert "product_readiness_claimed" not in replay
+    assert "private_self_use_approved" not in replay
+    assert "production_selected" not in replay
     assert replay["summary"]["sample_run_count"] == 1
     assert replay["summary"]["strict_pass_first_attempt_count"] == 5
     assert replay["summary"]["pass_after_retry_count"] == 0

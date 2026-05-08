@@ -46,13 +46,7 @@ def build_accurate_intake_offline_shadow_replay(stage_manifest_artifacts: list[d
             "artifact_schema_version": "1.0",
             "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "claim_scope": "offline_shadow_replay",
-            "readiness_claimed": False,
             "readiness_claim": _readiness_claim(),
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
-            "production_selected": False,
-            "mutation_rollout_approved": False,
-            "runtime_web_activation_approved": False,
             "input_integrity": input_integrity,
             "summary": summary,
             "strictness_gate": {

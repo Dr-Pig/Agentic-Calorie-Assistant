@@ -88,13 +88,6 @@ def build_accurate_intake_live_cost_summary(
             "artifact_schema_version": "1.0",
             "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "claim_scope": "live_diagnostic_cost_summary",
-            "readiness_claimed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
-            "production_selected": False,
-            "mutation_rollout_approved": False,
-            "runtime_web_activation_approved": False,
-            "model_portability_claimed": False,
             "generated_artifact_policy": {
                 "commit_as_repo_truth": False,
                 "local_diagnostic_evidence_only": True,

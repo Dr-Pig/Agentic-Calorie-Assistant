@@ -78,8 +78,8 @@ def test_live_robustness_matrix_tracks_result_kinds_and_blocks_activation() -> N
 
     assert matrix["artifact_type"] == "accurate_intake_mvp_live_robustness_matrix"
     assert matrix["claim_scope"] == "live_diagnostic_robustness_matrix"
-    assert matrix["readiness_claimed"] is False
-    assert matrix["private_self_use_approved"] is False
+    assert "readiness_claimed" not in matrix
+    assert "private_self_use_approved" not in matrix
     assert matrix["result_kind_counts"] == {
         "strict_pass_first_attempt": 1,
         "pass_after_retry": 1,
@@ -91,7 +91,7 @@ def test_live_robustness_matrix_tracks_result_kinds_and_blocks_activation() -> N
     assert matrix["has_timeout_evidence"] is True
     assert matrix["private_self_use_candidate_blocked"] is True
     assert matrix["max_model_claim"] == "single_profile_live_diagnostic_observed"
-    assert matrix["model_portability_claimed"] is False
+    assert "model_portability_claimed" not in matrix
     assert matrix["model_diversity_status"] == "model_diversity_missing"
     assert matrix["model_inversion_evidence_passed"] is False
 
@@ -165,7 +165,7 @@ def test_live_robustness_matrix_marks_clean_multi_profile_evidence_without_porta
     assert matrix["model_diversity_status"] == "provider_diversity_present"
     assert matrix["model_inversion_evidence_passed"] is True
     assert matrix["contract_overfit_risk"] is False
-    assert matrix["model_portability_claimed"] is False
+    assert "model_portability_claimed" not in matrix
     assert matrix["max_model_claim"] == "multi_profile_live_diagnostic_observed"
 
 
