@@ -235,7 +235,7 @@ def payload_shape_failure_result(
         failure_family="final_payload_shape_error",
     )
     return IntakeManagerResult(
-        intent=str(payload.get("intent") or payload.get("intent_type") or "log_meal"),
+        intent="manager_unavailable",
         manager_action="final",
         final_action="no_commit",
         workflow_effect="safe_failure",
@@ -251,7 +251,7 @@ def payload_shape_failure_result(
             semantic_authority="missing",
             source="final_payload_shape_error",
         ),
-        intent_type=str(payload.get("intent_type") or "log_meal"),
+        intent_type="manager_unavailable",
         response_summary="",
         pending_followup=None,
         tool_calls=tool_names(payload.get("tool_calls") or []),

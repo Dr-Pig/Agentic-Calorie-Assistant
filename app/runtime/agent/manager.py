@@ -25,21 +25,13 @@ from app.runtime.agent.manager_payload_utils import (
     stable_available_tools,
     tool_call_dicts,
 )
+from app.runtime.agent.manager_tool_scope import safe_failure_payload, tool_call_scope_boundary
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 
 
 ToolExecutor = Callable[..., Awaitable[list[dict[str, Any]]] | list[dict[str, Any]]]
 GuardChecker = Callable[..., Awaitable[dict[str, Any]] | dict[str, Any]]
 ManagerContextRefresher = Callable[..., Awaitable[dict[str, Any]] | dict[str, Any]]
-
-# Contract marker kept here so prompt-governance tests still verify the
-# semantic fields required by the single-manager final payload.
-SINGLE_MANAGER_PROMPT_CONTRACT_MARKER = (
-    "intent, target_attachment; "
-    "semantic_decision; "
-    "exactness, confidence, evidence_posture, repair_ack"
-)
-
 
 def _with_phase_a_repair_trace(
     guard_outcome: dict[str, Any],
@@ -168,11 +160,26 @@ async def run_intake_manager(
             calls = tool_call_dicts(parsed.get("tool_calls") or [])
             if not calls:
                 return result_from_payload(
-                    {"manager_action": "final", "final_action": "no_commit", "workflow_effect": "safe_failure"},
+                    safe_failure_payload(),
                     manager_rounds=manager_rounds,
                     tool_results=tool_results,
                     prompt_registry=prompt_registry,
                     failure_family="tool_routing_gap",
+                )
+            boundary = tool_call_scope_boundary(
+                payload=parsed,
+                calls=calls,
+                available_tools=normalized_available_tools,
+                manager_loop_scope=effective_manager_loop_scope,
+            )
+            if boundary is not None:
+                tool_results.append(dict(boundary["tool_result"]))
+                return result_from_payload(
+                    dict(boundary["payload"]),
+                    manager_rounds=manager_rounds,
+                    tool_results=tool_results,
+                    prompt_registry=prompt_registry,
+                    failure_family=boundary.get("failure_family"),
                 )
             if tool_executor is None:
                 tool_results.append(
@@ -285,7 +292,7 @@ async def run_intake_manager(
                 )
 
         return result_from_payload(
-            {"manager_action": "final", "final_action": "no_commit", "workflow_effect": "safe_failure"},
+            safe_failure_payload(),
             manager_rounds=manager_rounds,
             tool_results=tool_results,
             prompt_registry=prompt_registry,
@@ -293,7 +300,7 @@ async def run_intake_manager(
         )
 
     return result_from_payload(
-        {"manager_action": "final", "final_action": "no_commit", "workflow_effect": "safe_failure"},
+        safe_failure_payload(),
         manager_rounds=manager_rounds,
         tool_results=tool_results,
         prompt_registry=prompt_registry,
