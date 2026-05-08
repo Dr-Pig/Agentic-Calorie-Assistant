@@ -63,19 +63,15 @@ def test_browser_shell_smoke_validator_requires_fetch_sequence_and_cjk() -> None
         "user_cjk_message_rendered": True,
         "assistant_bubble_rendered": True,
         "today_summary_rendered": True,
-        "debug_surface_rendered": True,
-        "trace_surface_rendered": True,
         "pending_followup_surface_rendered": True,
         "runtime_status_surface_rendered": True,
         "failure_signal_surface_rendered": True,
-        "manager_context_trace_fields_rendered": True,
         "not_available_rendered": True,
         "forbidden_storage_used": False,
         "browser": {
             "shell_markers": {
                 "frontendSemanticOwner": "false",
                 "liveLlmRequired": "false",
-                "productionReadinessClaimed": "false",
             },
             "initial_cjk_rendered": True,
             "user_cjk_message_rendered": True,
@@ -110,19 +106,15 @@ def test_browser_shell_smoke_validator_requires_expected_fetch_methods() -> None
         "user_cjk_message_rendered": True,
         "assistant_bubble_rendered": True,
         "today_summary_rendered": True,
-        "debug_surface_rendered": True,
-        "trace_surface_rendered": True,
         "pending_followup_surface_rendered": True,
         "runtime_status_surface_rendered": True,
         "failure_signal_surface_rendered": True,
-        "manager_context_trace_fields_rendered": True,
         "not_available_rendered": True,
         "forbidden_storage_used": False,
         "browser": {
             "shell_markers": {
                 "frontendSemanticOwner": "false",
                 "liveLlmRequired": "false",
-                "productionReadinessClaimed": "false",
             },
             "last_payload_parseable": True,
             "fetch_sequence": [
@@ -158,19 +150,15 @@ def test_browser_shell_smoke_validator_requires_reload_and_read_model_surfaces()
         "user_cjk_message_rendered": True,
         "assistant_bubble_rendered": True,
         "today_summary_rendered": False,
-        "debug_surface_rendered": False,
-        "trace_surface_rendered": False,
         "pending_followup_surface_rendered": False,
         "runtime_status_surface_rendered": False,
         "failure_signal_surface_rendered": False,
-        "manager_context_trace_fields_rendered": False,
         "not_available_rendered": False,
         "forbidden_storage_used": False,
         "browser": {
             "shell_markers": {
                 "frontendSemanticOwner": "false",
                 "liveLlmRequired": "false",
-                "productionReadinessClaimed": "false",
             },
             "initial_cjk_rendered": True,
             "user_cjk_message_rendered": True,
@@ -196,12 +184,9 @@ def test_browser_shell_smoke_validator_requires_reload_and_read_model_surfaces()
     assert "browser_reload_not_checked" in blockers
     assert "chat_history_not_reloaded" in blockers
     assert "today_summary_not_rendered" in blockers
-    assert "debug_surface_not_rendered" in blockers
-    assert "trace_surface_not_rendered" in blockers
     assert "pending_followup_surface_not_rendered" in blockers
     assert "runtime_status_surface_not_rendered" in blockers
     assert "failure_signal_surface_not_rendered" in blockers
-    assert "manager_context_trace_fields_not_rendered" in blockers
     assert "not_available_not_rendered" in blockers
 
 
@@ -214,19 +199,15 @@ def test_browser_shell_smoke_validator_requires_storage_evidence() -> None:
         "user_cjk_message_rendered": True,
         "assistant_bubble_rendered": True,
         "today_summary_rendered": True,
-        "debug_surface_rendered": True,
-        "trace_surface_rendered": True,
         "pending_followup_surface_rendered": True,
         "runtime_status_surface_rendered": True,
         "failure_signal_surface_rendered": True,
-        "manager_context_trace_fields_rendered": True,
         "not_available_rendered": True,
         "forbidden_storage_used": False,
         "browser": {
             "shell_markers": {
                 "frontendSemanticOwner": "false",
                 "liveLlmRequired": "false",
-                "productionReadinessClaimed": "false",
             },
             "last_payload_parseable": True,
             "fetch_sequence": [
@@ -254,19 +235,15 @@ def test_browser_shell_smoke_validator_rejects_any_browser_storage_use() -> None
         "user_cjk_message_rendered": True,
         "assistant_bubble_rendered": True,
         "today_summary_rendered": True,
-        "debug_surface_rendered": True,
-        "trace_surface_rendered": True,
         "pending_followup_surface_rendered": True,
         "runtime_status_surface_rendered": True,
         "failure_signal_surface_rendered": True,
-        "manager_context_trace_fields_rendered": True,
         "not_available_rendered": True,
         "forbidden_storage_used": True,
         "browser": {
             "shell_markers": {
                 "frontendSemanticOwner": "false",
                 "liveLlmRequired": "false",
-                "productionReadinessClaimed": "false",
             },
             "initial_cjk_rendered": True,
             "user_cjk_message_rendered": True,

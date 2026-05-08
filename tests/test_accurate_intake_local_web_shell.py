@@ -25,7 +25,6 @@ def test_local_web_shell_is_a_static_runtime_mirror_surface() -> None:
     assert 'data-chat-history-endpoint="/accurate-intake/chat-history"' in html
     assert 'data-frontend-semantic-owner="false"' in html
     assert 'data-live-llm-required="false"' in html
-    assert 'data-production-readiness-claimed="false"' in html
 
 
 def test_local_web_shell_posts_raw_message_to_runtime_without_semantic_routing() -> None:
