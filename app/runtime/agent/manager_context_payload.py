@@ -33,6 +33,48 @@ def manager_context_pack_payload(manager_context_pack: ManagerContextPack | None
     }
 
 
+def manager_context_pack_prompt_payload(
+    manager_context_pack: ManagerContextPack | None,
+    *,
+    primary_packet_present: bool,
+) -> dict[str, Any] | None:
+    full_payload = manager_context_pack_payload(manager_context_pack)
+    if full_payload is None or not primary_packet_present:
+        return full_payload
+    manager_context = dict(full_payload.get("manager_context") or {})
+    available_if_needed = dict(full_payload.get("available_if_needed") or {})
+    exposed_manager_context = {
+        key: manager_context.get(key)
+        for key in (
+            "interaction_event",
+            "active_meal_thread_ref",
+            "pending_followup",
+            "candidate_attachment_targets",
+            "current_budget_snapshot",
+        )
+        if manager_context.get(key) not in (None, [], {})
+    }
+    return {
+        "prompt_payload_kind": "manager_context_pack_compact_summary",
+        "source_role": "compatibility_context_pack_summary",
+        "primary_context_source": "manager_context_packet_v1",
+        "policy": {
+            "must_inject": list(dict(full_payload.get("policy") or {}).get("must_inject") or []),
+            "available_if_needed_fields": sorted(available_if_needed),
+        },
+        "manager_context_summary": exposed_manager_context,
+        "available_if_needed_summary": {
+            "present_fields": sorted(available_if_needed),
+            "active_body_plan_snapshot_present": bool(available_if_needed.get("active_body_plan_snapshot")),
+            "recent_committed_meal_ref_count": _list_count(available_if_needed.get("recent_committed_meal_refs")),
+        },
+        "omitted_manager_context_fields": sorted(key for key in manager_context if key not in exposed_manager_context),
+        "full_context_omitted_from_prompt": True,
+        "read_only": True,
+        "mutation_authority": False,
+    }
+
+
 def current_turn_context_prompt_payload(current_turn_context: CurrentTurnContextV1 | None) -> dict[str, Any] | None:
     if current_turn_context is None:
         return None
@@ -64,6 +106,10 @@ def current_turn_context_prompt_payload(current_turn_context: CurrentTurnContext
         }
     )
     return summary
+
+
+def _list_count(value: Any) -> int:
+    return len(value) if isinstance(value, list) else 0
 
 
 def manager_context_packet_v1_trace_payload(packet: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -144,6 +190,7 @@ def manager_context_trace_payload(
 __all__ = [
     "current_turn_context_prompt_payload",
     "manager_context_pack_payload",
+    "manager_context_pack_prompt_payload",
     "manager_context_packet_v1_trace_payload",
     "manager_context_trace_payload",
     "shadow_hypothesis_instruction",

@@ -6,6 +6,7 @@ from app.runtime.agent.manager_provider_readiness import provider_ready
 from app.runtime.agent.manager_context_payload import (
     current_turn_context_prompt_payload,
     manager_context_pack_payload as serialize_manager_context_pack,
+    manager_context_pack_prompt_payload,
     manager_context_packet_v1_trace_payload,
     manager_context_trace_payload,
     shadow_hypothesis_instruction,
@@ -113,7 +114,12 @@ async def run_intake_manager(
             "resolved_state": compact_resolved_state_prompt_payload(resolved_state),
             "resolved_state_role": "compatibility_legacy",
             "phase_a_current_turn_context": current_turn_context_prompt_payload(current_turn_context),
-            "phase_a_manager_context_pack": json_safe(manager_context_pack_payload),
+            "phase_a_manager_context_pack": json_safe(
+                manager_context_pack_prompt_payload(
+                    manager_context_pack,
+                    primary_packet_present=manager_context_packet_v1 is not None,
+                )
+            ),
             "manager_context_packet_v1": json_safe(manager_context_packet_v1),
             "phase_a_manager_context_pack_role": manager_context_trace["phase_a_manager_context_pack_role"],
             "phase_a_surface_mode": phase_a_surface_mode,

@@ -313,6 +313,10 @@ async def test_run_intake_manager_sends_manager_context_packet_v1_sidecar_withou
 
     payload = provider.calls[0]["user_payload"]
     sidecar_trace = result.trace["manager_rounds"][0]["phase_a_input"]["manager_context_packet_v1"]
+    assert payload["phase_a_manager_context_pack"]["prompt_payload_kind"] == "manager_context_pack_compact_summary"
+    assert payload["phase_a_manager_context_pack"]["primary_context_source"] == "manager_context_packet_v1"
+    assert "manager_context" not in payload["phase_a_manager_context_pack"]
+    assert "recent_chat_turns" in payload["phase_a_manager_context_pack"]["omitted_manager_context_fields"]
     assert payload["manager_context_packet_v1"]["metadata"]["context_policy_version"] == MANAGER_CONTEXT_POLICY_VERSION
     assert payload["manager_context_packet_v1"]["context_loading_artifact"]["loaded_message_count"] == 2
     assert sidecar_trace["context_policy_version"] == MANAGER_CONTEXT_POLICY_VERSION
