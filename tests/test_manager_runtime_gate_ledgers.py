@@ -169,6 +169,12 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt5_intent_tool_argument_walls",
         "rt11_final_response_quality",
     ]
+    assert gates["rt13_observability_pack"]["status"] == "green"
+    assert gates["rt13_observability_pack"]["pass_type"] == "contract"
+    assert gates["rt13_observability_pack"]["depends_on"] == [
+        "rt1a_prompt_registry_and_trace_versioning",
+        "rt3_react_trace_contract",
+    ]
     assert gates["rt14_limited_live_ladder"]["depends_on"] == [
         "rt1c_cache_metrics_observability",
         "rt10b_nutrition_estimate_quality_fake_provider",
