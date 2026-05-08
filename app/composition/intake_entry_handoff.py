@@ -5,6 +5,27 @@ from typing import Any
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 from app.shared.contracts.correction_operation import structured_correction_operation
 
+_NUTRITION_EVIDENCE_REQUIRED_FINAL_ACTIONS = {
+    "commit",
+    "correction_applied",
+    "overshoot_note",
+}
+_NUTRITION_WRITE_MUTATION_CANDIDATES = {
+    "canonical_write",
+    "correction_write",
+}
+_COMPOSITION_UNKNOWN_ESTIMATION_POSTURES = {
+    "composition_unknown",
+    "composition_unknown_basket",
+}
+_B2_RETRIEVAL_GOALS = {
+    "generic_anchor_lookup",
+    "exact_brand_lookup",
+    "listed_item_lookup",
+    "composition_clarification",
+    "query_only_answer",
+}
+
 
 def entry_handoff_tool_calls(manager_decision: Any) -> list[dict[str, Any]]:
     if str(getattr(manager_decision, "workflow_effect", "") or "") != "route_to_intake":
@@ -15,20 +36,104 @@ def entry_handoff_tool_calls(manager_decision: Any) -> list[dict[str, Any]]:
     merged_target = {**target, **semantic_target}
     final_candidate = str(semantic_decision.get("final_action_candidate") or "")
     operation = structured_correction_operation(merged_target)
-    if final_candidate != "correction_applied" or operation != "remove_item":
-        return []
+    if final_candidate == "correction_applied" and operation == "remove_item":
+        return [_remove_item_target_handoff_call(merged_target)]
+    calls: list[dict[str, Any]] = []
+    if _requires_target_resolution_handoff(semantic_decision, merged_target, final_candidate):
+        calls.append(_target_resolution_handoff_call(merged_target))
+    calls.extend(_nutrition_evidence_handoff_tool_calls(semantic_decision, merged_target, final_candidate))
+    return calls
+
+
+def _remove_item_target_handoff_call(target: dict[str, Any]) -> dict[str, Any]:
     arguments = {
         key: value
         for key, value in {
-            "canonical_name": merged_target.get("canonical_name"),
-            "meal_thread_id": merged_target.get("meal_thread_id"),
-            "meal_item_id": merged_target.get("meal_item_id"),
+            "canonical_name": target.get("canonical_name"),
+            "meal_thread_id": target.get("meal_thread_id"),
+            "meal_item_id": target.get("meal_item_id"),
             "operation": "remove_item",
             "target_proposal_source": "entry_manager_handoff",
         }.items()
         if value not in (None, "")
     }
-    return [{"name": "resolve_correction_target", "arguments": arguments}]
+    return {"name": "resolve_correction_target", "arguments": arguments}
+
+
+def _target_resolution_handoff_call(target: dict[str, Any]) -> dict[str, Any]:
+    arguments = {
+        key: value
+        for key, value in {
+            "canonical_name": target.get("canonical_name"),
+            "meal_thread_id": target.get("meal_thread_id"),
+            "meal_item_id": target.get("meal_item_id"),
+            "target_proposal_source": "entry_manager_handoff",
+        }.items()
+        if value not in (None, "")
+    }
+    return {"name": "resolve_correction_target", "arguments": arguments}
+
+
+def _requires_target_resolution_handoff(
+    semantic_decision: dict[str, Any],
+    target: dict[str, Any],
+    final_candidate: str,
+) -> bool:
+    if final_candidate != "correction_applied":
+        return False
+    if str(semantic_decision.get("mutation_intent_candidate") or "") != "correction_write":
+        return False
+    return any(target.get(key) not in (None, "") for key in ("canonical_name", "meal_thread_id", "meal_item_id"))
+
+
+def _nutrition_evidence_handoff_tool_calls(
+    semantic_decision: dict[str, Any],
+    target: dict[str, Any],
+    final_candidate: str,
+) -> list[dict[str, Any]]:
+    if final_candidate not in _NUTRITION_EVIDENCE_REQUIRED_FINAL_ACTIONS:
+        return []
+    mutation_candidate = str(semantic_decision.get("mutation_intent_candidate") or "")
+    if mutation_candidate not in _NUTRITION_WRITE_MUTATION_CANDIDATES:
+        return []
+    estimation_posture = str(semantic_decision.get("estimation_posture") or "")
+    if estimation_posture in _COMPOSITION_UNKNOWN_ESTIMATION_POSTURES:
+        return []
+    arguments = {
+        "manager_semantic_decision": {
+            key: value
+            for key, value in {
+                "base_dish": semantic_decision.get("base_dish") or target.get("canonical_name"),
+                "aliases": semantic_decision.get("aliases"),
+                "brand_hint": semantic_decision.get("brand_hint"),
+                "size_hint": semantic_decision.get("size_hint"),
+                "modifier_hints": semantic_decision.get("modifier_hints"),
+                "listed_items": semantic_decision.get("listed_items"),
+                "retrieval_goal": _handoff_retrieval_goal(semantic_decision),
+                "semantic_authority_source": _handoff_semantic_authority_source(semantic_decision),
+            }.items()
+            if value not in (None, "", [])
+        },
+        "handoff_source": "entry_manager_semantic_decision",
+        "deterministic_role": "execute_manager_owned_evidence_requirement_only",
+    }
+    return [{"name": "estimate_nutrition", "arguments": arguments}]
+
+
+def _handoff_retrieval_goal(semantic_decision: dict[str, Any]) -> str:
+    explicit = str(semantic_decision.get("retrieval_goal") or "")
+    if explicit in _B2_RETRIEVAL_GOALS:
+        return explicit
+    if isinstance(semantic_decision.get("listed_items"), list) and semantic_decision.get("listed_items"):
+        return "listed_item_lookup"
+    return "generic_anchor_lookup"
+
+
+def _handoff_semantic_authority_source(semantic_decision: dict[str, Any]) -> str:
+    authority = str(semantic_decision.get("semantic_authority") or "")
+    if authority == "deterministic_fake_provider":
+        return "synthetic_manager_structured_fixture"
+    return "live_manager_structured_output"
 
 
 def entry_handoff_manager_round(
