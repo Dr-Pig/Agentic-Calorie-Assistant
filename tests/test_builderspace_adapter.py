@@ -5,6 +5,7 @@ import pytest
 
 import app.providers.builderspace_adapter as builderspace_adapter_module
 from app.providers.builderspace_adapter import BuilderSpaceAdapter, BuilderSpaceResponseError
+from app.providers.builderspace_prompt_cache import build_prompt_cache_key
 from app.runtime.agent.manager_branch_contract import (
     B1_COMMON_COMMERCIAL_DRINK_CASE_FAMILY,
     B1_COMMON_COMMERCIAL_MEAL_CASE_FAMILY,
@@ -408,6 +409,62 @@ async def test_complete_with_trace_prompt_cache_key_ignores_dynamic_user_payload
     assert first_key == second_key
     assert first_trace["prompt_cache_request"]["prompt_cache_key"] == first_key
     assert second_trace["prompt_cache_request"]["prompt_cache_key"] == second_key
+    assert first_key == build_prompt_cache_key(
+        model="grok-4-fast",
+        stage="intake_manager_round",
+        request_payload=posted_payloads[0]["json"],
+    )
+
+
+def test_prompt_cache_key_tracks_actual_stable_transport_prefix() -> None:
+    base_payload = {
+        "model": "grok-4-fast",
+        "messages": [
+            {"role": "system", "content": "static manager contract"},
+            {"role": "user", "content": "{\"raw_user_input\":\"today\"}"},
+        ],
+        "response_format": {"type": "json_object"},
+    }
+    dynamic_changed = {
+        **base_payload,
+        "messages": [
+            {"role": "system", "content": "static manager contract"},
+            {"role": "user", "content": "{\"raw_user_input\":\"remove the tea\"}"},
+        ],
+    }
+    response_format_changed = {
+        **base_payload,
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {"name": "manager_loop_schema", "strict": True, "schema": {"type": "object"}},
+        },
+    }
+    tools_changed = {
+        **base_payload,
+        "tools": [{"type": "function", "function": {"name": "manager_structured_decision"}}],
+    }
+
+    base_key = build_prompt_cache_key(
+        model="grok-4-fast",
+        stage="intake_manager_round",
+        request_payload=base_payload,
+    )
+
+    assert build_prompt_cache_key(
+        model="grok-4-fast",
+        stage="intake_manager_round",
+        request_payload=dynamic_changed,
+    ) == base_key
+    assert build_prompt_cache_key(
+        model="grok-4-fast",
+        stage="intake_manager_round",
+        request_payload=response_format_changed,
+    ) != base_key
+    assert build_prompt_cache_key(
+        model="grok-4-fast",
+        stage="intake_manager_round",
+        request_payload=tools_changed,
+    ) != base_key
 
 
 @pytest.mark.asyncio

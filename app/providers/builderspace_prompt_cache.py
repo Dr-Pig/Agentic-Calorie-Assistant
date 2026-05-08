@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 
-PROMPT_CACHE_KEY_VERSION = "builderspace_prompt_cache_key.v1"
+PROMPT_CACHE_KEY_VERSION = "builderspace_prompt_cache_key.v2"
 
 
 def apply_prompt_cache_key(
@@ -48,7 +48,13 @@ def _stable_prompt_prefix_sha256(request_payload: dict[str, Any]) -> str:
         for message in messages
         if isinstance(message, dict) and str(message.get("role") or "") in {"system", "developer"}
     ]
-    return _sha256_json({"system_messages": system_messages})
+    return _sha256_json(
+        {
+            "tools": request_payload.get("tools"),
+            "response_format": request_payload.get("response_format"),
+            "system_messages": system_messages,
+        }
+    )
 
 
 def _safe_key_part(value: str) -> str:

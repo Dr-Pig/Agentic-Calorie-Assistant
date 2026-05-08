@@ -5,6 +5,7 @@ from typing import Any
 import httpx
 
 from .builderspace_parsing import BuilderSpaceParseError, extract_json_object, extract_text_content
+from .builderspace_prompt_cache import apply_prompt_cache_key
 from .builderspace_transport import is_structured_output_transport_rejection
 
 
@@ -19,6 +20,7 @@ async def run_structured_attempt(
     attempt_trace: dict[str, Any],
     constraints: dict[str, Any],
     stage: str,
+    model: str,
     attempt_index: int,
     parse_attempts: list[dict[str, Any]],
     parse_retry_budget_ref: dict[str, int],
@@ -34,6 +36,7 @@ async def run_structured_attempt(
     for format_index, current_response_format in enumerate(response_format_attempts, start=1):
         request_payload = dict(base_request_payload)
         request_payload["response_format"] = current_response_format
+        request_payload = apply_prompt_cache_key(request_payload, model=model, stage=stage)
         attempt_trace["response_format_type"] = current_response_format.get("type")
         attempt_trace["response_format_attempt_index"] = format_index
         response = await post_chat_completion(client, base_url, token, request_payload)
