@@ -117,6 +117,25 @@ def test_live_cost_summary_totals_token_usage_and_reported_costs() -> None:
     }
     assert summary["latency_root_cause_hints"]["provider_invocation_count_high"] is False
     assert summary["latency_root_cause_hints"]["prompt_cache_metrics_missing"] is True
+    assert summary["prompt_cache_reporting_capability"] == {
+        "truth_source": "provider_reported_usage_only",
+        "cache_reporting_status": "not_reported",
+        "usage_record_count": 1,
+        "cache_reporting_call_count": 0,
+        "cache_hit_call_count": 0,
+        "cached_prompt_tokens": 0,
+        "cache_hit_claim_allowed": False,
+        "cache_miss_claim_allowed": False,
+        "latency_may_infer_cache_hit": False,
+        "provider_passthrough_gap_possible": True,
+        "requires_provider_usage_passthrough": True,
+        "official_usage_field_candidates": [
+            "prompt_tokens_details.cached_tokens",
+            "input_tokens_details.cached_tokens",
+            "cached_tokens",
+            "cache_read_input_tokens",
+        ],
+    }
     assert summary["source_artifacts"][0]["sha256"]
 
 
@@ -139,6 +158,28 @@ def test_live_cost_summary_marks_cost_unavailable_when_tokens_have_no_pricing() 
         "pricing_table_applied": False,
         "cost_unavailable_without_pricing": True,
     }
+
+
+def test_live_cost_summary_accepts_anthropic_cache_read_usage_field() -> None:
+    summary = build_accurate_intake_live_cost_summary(
+        [
+            _live_artifact(
+                usage={
+                    "input_tokens": 100,
+                    "output_tokens": 10,
+                    "cache_read_input_tokens": 70,
+                    "cache_creation_input_tokens": 30,
+                },
+            )
+        ]
+    )
+
+    assert summary["summary"]["cache_reporting_call_count"] == 1
+    assert summary["summary"]["cache_hit_call_count"] == 1
+    assert summary["summary"]["cached_prompt_tokens"] == 70
+    assert summary["prompt_cache_reporting_capability"]["cache_reporting_status"] == "cache_hit_reported"
+    assert summary["prompt_cache_reporting_capability"]["cache_hit_claim_allowed"] is True
+    assert summary["prompt_cache_reporting_capability"]["cache_miss_claim_allowed"] is False
 
 
 def test_live_cost_summary_flags_latency_root_cause_probe_without_readiness_claim() -> None:

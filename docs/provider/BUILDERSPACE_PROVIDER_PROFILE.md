@@ -22,6 +22,7 @@
 | `gpt-5` token parameter conversion | documented | OpenAPI |
 | `kimi-k2.5` / `gpt-5` temperature constraint | documented | OpenAPI |
 | provider obeys forced `tool_choice` | unknown / probe-needed | no compliant artifact yet |
+| cached-token usage reporting passthrough | unknown / probe-needed | BuilderSpace OpenAPI usage schema only documents `prompt_tokens` / `completion_tokens` / `total_tokens`; active live summaries must treat missing cached-token fields as not reported, not as cache miss evidence |
 
 ## Rules
 
@@ -31,6 +32,7 @@
 - Do not hide fallback behavior; fallbacks must stay trace-visible.
 - Adapter code may choose transport mode, but shared branch-contract helpers remain the schema source of truth.
 - Adapter code must not own product semantics.
+- Do not infer prompt-cache hits or misses from latency. Cache-hit claims require provider-reported usage fields such as `prompt_tokens_details.cached_tokens`, `input_tokens_details.cached_tokens`, `cached_tokens`, or `cache_read_input_tokens`.
 
 ## Current Interpretation
 
