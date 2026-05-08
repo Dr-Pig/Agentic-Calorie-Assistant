@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.budget.infrastructure.models import DayBudgetLedgerRecord
 from app.composition.canonical_persistence import commit_meal_payload_to_canonical
-from app.composition.intake_execution_orchestrator import _build_remove_item_target_evidence_artifact
+from app.composition.remove_item_target_evidence import build_remove_item_target_evidence_artifact
 from app.composition.intake_manager_tool_batch import nutrition_tool_output
 from app.composition.intake_persistence_tools import persist_meal_log_tool
 from app.database import get_or_create_user
@@ -76,7 +76,7 @@ def test_remove_item_target_evidence_uses_non_nutrition_artifact_and_canonical_r
     db = _session()
     meal_thread_id, soup = _seed_two_item_meal(db)
 
-    artifact = _build_remove_item_target_evidence_artifact(
+    artifact = build_remove_item_target_evidence_artifact(
         db,
         user_external_id="remove-target-evidence-user",
         raw_user_input="remove soup",
@@ -121,7 +121,7 @@ def test_remove_item_target_evidence_uses_non_nutrition_artifact_and_canonical_r
 def test_remove_item_target_evidence_persistence_does_not_use_placeholder_kcal_for_legacy_or_canonical_truth() -> None:
     db = _session()
     meal_thread_id, soup = _seed_two_item_meal(db)
-    artifact = _build_remove_item_target_evidence_artifact(
+    artifact = build_remove_item_target_evidence_artifact(
         db,
         user_external_id="remove-target-evidence-user",
         raw_user_input="remove soup",
@@ -159,7 +159,7 @@ def test_remove_item_target_evidence_tool_output_cannot_be_counted_as_nutrition_
     db = _session()
     meal_thread_id, soup = _seed_two_item_meal(db)
     target = _resolved_target(meal_thread_id=meal_thread_id, item=soup)
-    artifact = _build_remove_item_target_evidence_artifact(
+    artifact = build_remove_item_target_evidence_artifact(
         db,
         user_external_id="remove-target-evidence-user",
         raw_user_input="remove soup",
