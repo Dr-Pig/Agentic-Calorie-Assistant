@@ -111,6 +111,30 @@ def _clean_required_stage_manifest(*, include_full_suite: bool = False) -> dict[
             "stage_id": "single_case_live_probe",
             "status": "pass",
             "result_kind": "strict_pass_first_attempt",
+            "case_ids": ["exact_item_official_label"],
+            "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+            "model": "grok-4-fast",
+        },
+        {
+            "stage_id": "single_case_live_probe",
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+            "case_ids": ["bubble_milk_tea_refinement"],
+            "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+            "model": "grok-4-fast",
+        },
+        {
+            "stage_id": "single_case_live_probe",
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+            "case_ids": ["luwei_bare_to_listed_basket"],
+            "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+            "model": "grok-4-fast",
+        },
+        {
+            "stage_id": "single_case_live_probe",
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
             "case_ids": ["chinese_chicken_rice_correction_removal_debug"],
             "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
             "model": "grok-4-fast",
@@ -347,6 +371,30 @@ def test_accurate_intake_live_decision_pack_uses_clean_stage_manifest_over_stale
                 "stage_id": "single_case_live_probe",
                 "status": "pass",
                 "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["exact_item_official_label"],
+                "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                "model": "grok-4-fast",
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["bubble_milk_tea_refinement"],
+                "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                "model": "grok-4-fast",
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["luwei_bare_to_listed_basket"],
+                "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+                "model": "grok-4-fast",
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
                 "case_ids": ["chinese_chicken_rice_correction_removal_debug"],
                 "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
                 "model": "grok-4-fast",
@@ -359,7 +407,7 @@ def test_accurate_intake_live_decision_pack_uses_clean_stage_manifest_over_stale
     assert pack["selected_option"] == "offline_shadow_replay"
     assert pack["selection_reason"] == "clean_stage_manifest_requires_replay_before_private_self_use_candidate"
     assert pack["stage_summary"]["source"] == "stage_manifest"
-    assert pack["stage_summary"]["result_kind_counts"] == {"strict_pass_first_attempt": 5}
+    assert pack["stage_summary"]["result_kind_counts"] == {"strict_pass_first_attempt": 8}
     assert pack["private_self_use_candidate_prepared"] is False
 
 
@@ -437,6 +485,24 @@ def test_accurate_intake_live_decision_pack_blocks_missing_required_single_case(
                 "result_kind": "strict_pass_first_attempt",
                 "case_ids": ["explicit_item_removal_seeded"],
             },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["exact_item_official_label"],
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["bubble_milk_tea_refinement"],
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["luwei_bare_to_listed_basket"],
+            },
         ],
     }
 
@@ -462,6 +528,24 @@ def test_accurate_intake_live_decision_pack_blocks_full_suite_when_offline_repla
                 "status": "pass",
                 "result_kind": "strict_pass_first_attempt",
                 "case_ids": ["explicit_item_removal_seeded"],
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["exact_item_official_label"],
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["bubble_milk_tea_refinement"],
+            },
+            {
+                "stage_id": "single_case_live_probe",
+                "status": "pass",
+                "result_kind": "strict_pass_first_attempt",
+                "case_ids": ["luwei_bare_to_listed_basket"],
             },
             {
                 "stage_id": "single_case_live_probe",

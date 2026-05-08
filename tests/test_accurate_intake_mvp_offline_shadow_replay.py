@@ -25,6 +25,9 @@ def _stage_manifest(
         "fake_provider_active_runtime_gate",
         "single_case_live_probe",
         "single_case_live_probe",
+        "single_case_live_probe",
+        "single_case_live_probe",
+        "single_case_live_probe",
     ]
     if include_full_suite:
         stage_ids.append("full_suite_live_diagnostic")
@@ -34,6 +37,9 @@ def _stage_manifest(
         [],
         [],
         ["explicit_item_removal_seeded"],
+        ["exact_item_official_label"],
+        ["bubble_milk_tea_refinement"],
+        ["luwei_bare_to_listed_basket"],
         ["chinese_chicken_rice_correction_removal_debug"],
     ]
     if include_full_suite:
@@ -86,7 +92,7 @@ def test_offline_shadow_replay_records_single_clean_stage_run_without_candidate_
     assert "private_self_use_approved" not in replay
     assert "production_selected" not in replay
     assert replay["summary"]["sample_run_count"] == 1
-    assert replay["summary"]["strict_pass_first_attempt_count"] == 5
+    assert replay["summary"]["strict_pass_first_attempt_count"] == 8
     assert replay["summary"]["pass_after_retry_count"] == 0
     assert replay["summary"]["timeout_count"] == 0
     assert replay["summary"]["strict_replay_ready"] is False
@@ -115,16 +121,30 @@ def test_offline_shadow_replay_excludes_retry_and_timeout_from_strict_replay() -
     replay = build_accurate_intake_offline_shadow_replay(
         [
             _stage_manifest(),
-            _stage_manifest(result_kinds=["strict_pass_first_attempt", "pass_after_retry", "strict_pass_first_attempt", "strict_pass_first_attempt", "strict_pass_first_attempt"]),
+            _stage_manifest(
+                result_kinds=[
+                    "strict_pass_first_attempt",
+                    "pass_after_retry",
+                    "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
+                ]
+            ),
             _stage_manifest(
                 result_kinds=[
                     "strict_pass_first_attempt",
                     "strict_pass_first_attempt",
                     "strict_pass_first_attempt",
                     "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
                     "timeout_after_retry",
                 ],
-                statuses=["pass", "pass", "pass", "pass", "timeout"],
+                statuses=["pass", "pass", "pass", "pass", "pass", "pass", "pass", "timeout"],
                 failure_family="environment_or_provider_blocker",
             ),
         ]
@@ -162,6 +182,9 @@ def test_offline_shadow_replay_rejects_retry_dependent_full_suite_window() -> No
             _stage_manifest(
                 include_full_suite=True,
                 result_kinds=[
+                    "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
+                    "strict_pass_first_attempt",
                     "strict_pass_first_attempt",
                     "strict_pass_first_attempt",
                     "strict_pass_first_attempt",

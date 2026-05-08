@@ -42,6 +42,9 @@ python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage provider_healt
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage schema_contract_probe --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_schema_probe.json
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage fake_provider_active_runtime_gate --output artifacts/accurate_intake_mvp_live_diagnostic_fake_runtime_gate.json
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id explicit_item_removal_seeded --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_seeded_removal.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id exact_item_official_label --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_exact_item.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id bubble_milk_tea_refinement --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_bubble_refinement.json
+python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id luwei_bare_to_listed_basket --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_luwei_basket.json
 python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage single_case_live_probe --case-id chinese_chicken_rice_correction_removal_debug --provider-profile-id builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic --provider-timeout-ms 180000 --output artifacts/accurate_intake_mvp_live_diagnostic_single_case.json
 python scripts/build_accurate_intake_mvp_live_stage_manifest.py
 python scripts/build_accurate_intake_contract_hardening_guard.py
@@ -115,6 +118,9 @@ The current PR74-PR84 audit is repo-tracked as:
 - schema contract probe passes.
 - fake-provider active runtime gate passes.
 - seeded explicit-removal single-turn probe passes as `strict_pass_first_attempt`.
+- exact-item official-label single-turn probe passes as `strict_pass_first_attempt`.
+- bubble-tea optional-refinement single-case probe passes as `strict_pass_first_attempt`.
+- luwei bare/listed basket single-case probe passes as `strict_pass_first_attempt`.
 - original multi-turn single-case probe passes as `strict_pass_first_attempt`.
 - offline replay artifact is present and marked `strict_replay_ready`.
 - zero timeout and zero retry-dependent evidence.
@@ -207,6 +213,9 @@ Do not stage:
 - `artifacts/accurate_intake_mvp_live_diagnostic_schema_probe.json`
 - `artifacts/accurate_intake_mvp_live_diagnostic_fake_runtime_gate.json`
 - `artifacts/accurate_intake_mvp_live_diagnostic_seeded_removal.json`
+- `artifacts/accurate_intake_mvp_live_diagnostic_exact_item.json`
+- `artifacts/accurate_intake_mvp_live_diagnostic_bubble_refinement.json`
+- `artifacts/accurate_intake_mvp_live_diagnostic_luwei_basket.json`
 - `artifacts/accurate_intake_mvp_live_diagnostic_single_case.json`
 - `artifacts/accurate_intake_mvp_live_diagnostic_full_suite.json`
 - `artifacts/accurate_intake_mvp_live_stage_manifest.json`
@@ -220,6 +229,28 @@ Do not stage:
 - provider raw traces
 
 Repo truth for this sidecar is the runbook, scripts, tests, source code, and canonical specs.
+
+## Model, Prompt Cache, And Trace Policy
+
+Each staged probe is a single-profile live run: one provider profile must drive Manager pass 1, Manager pass 2, and final response synthesis for that run. Use GrokFast first, Kimi later as a separate replay after the local/web loop is green and a human explicitly opens the target-model validation slice. Do not mix GrokFast and Kimi inside one clean-success artifact; fallback/profile mixing is failure or fallback evidence, not strict success evidence.
+
+Prompt cache policy: keep the static system/tool/schema prefix before dynamic context packets, current-turn user text, read-model summaries, and FoodDB/WebSearch evidence packets. Keep tool order stable. Log `cached_tokens` when the provider exposes usage fields, but do not require a cache hit for pass/fail. Prompt caching is an optimization and must not change output semantics.
+
+Trace Grading Layers for every live diagnostic case:
+
+- `provider_profile_and_prompt_versions`
+- `current_turn_context_packet`
+- `manager_pass_1_decision`
+- `requested_tools`
+- `filtered_tool_plan`
+- `executed_tools`
+- `compact_packets`
+- `manager_pass_2_synthesis`
+- `guard_result`
+- `mutation_result`
+- `renderer_input_basis`
+- `final_response_basis`
+- `latency_cost_cache_usage`
 
 ## Non-Claim Boundaries
 

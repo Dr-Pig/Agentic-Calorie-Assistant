@@ -168,6 +168,9 @@ def test_live_stage_manifest_default_sources_match_runbook_stage_artifacts() -> 
         "accurate_intake_mvp_live_diagnostic_schema_probe.json",
         "accurate_intake_mvp_live_diagnostic_fake_runtime_gate.json",
         "accurate_intake_mvp_live_diagnostic_seeded_removal.json",
+        "accurate_intake_mvp_live_diagnostic_exact_item.json",
+        "accurate_intake_mvp_live_diagnostic_bubble_refinement.json",
+        "accurate_intake_mvp_live_diagnostic_luwei_basket.json",
         "accurate_intake_mvp_live_diagnostic_single_case.json",
     ]
 
@@ -183,6 +186,30 @@ def test_live_stage_manifest_summarizes_required_single_case_coverage_and_result
                 stage_id="single_case_live_probe",
                 status="pass",
                 case_ids=["explicit_item_removal_seeded"],
+            ),
+        ),
+        (
+            "exact.json",
+            _live_artifact(
+                stage_id="single_case_live_probe",
+                status="pass",
+                case_ids=["exact_item_official_label"],
+            ),
+        ),
+        (
+            "bubble.json",
+            _live_artifact(
+                stage_id="single_case_live_probe",
+                status="pass",
+                case_ids=["bubble_milk_tea_refinement"],
+            ),
+        ),
+        (
+            "luwei.json",
+            _live_artifact(
+                stage_id="single_case_live_probe",
+                status="pass",
+                case_ids=["luwei_bare_to_listed_basket"],
             ),
         ),
         (
@@ -209,7 +236,7 @@ def test_live_stage_manifest_summarizes_required_single_case_coverage_and_result
     assert summary["missing_required_single_case_ids"] == []
     assert summary["has_missing_required_stage"] is False
     assert summary["result_kind_counts"] == {
-        "strict_pass_first_attempt": 4,
+        "strict_pass_first_attempt": 7,
         "pass_after_retry": 1,
     }
     assert summary["has_retry_dependent_stage"] is True
@@ -220,8 +247,108 @@ def test_live_stage_manifest_summarizes_required_single_case_coverage_and_result
             "result_kind": "strict_pass_first_attempt",
         },
         {
+            "case_ids": ["exact_item_official_label"],
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+        },
+        {
+            "case_ids": ["bubble_milk_tea_refinement"],
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+        },
+        {
+            "case_ids": ["luwei_bare_to_listed_basket"],
+            "status": "pass",
+            "result_kind": "strict_pass_first_attempt",
+        },
+        {
             "case_ids": ["chinese_chicken_rice_correction_removal_debug"],
             "status": "pass",
             "result_kind": "pass_after_retry",
         },
+    ]
+
+
+def test_live_stage_manifest_records_case_order_trace_layers_model_and_timeout_policy(tmp_path: Path) -> None:
+    paths: list[Path] = []
+    for filename, payload in [
+        ("health.json", _live_artifact(stage_id="provider_health_smoke", status="pass")),
+        ("schema.json", _live_artifact(stage_id="schema_contract_probe", status="pass")),
+        ("fake.json", _live_artifact(stage_id="fake_provider_active_runtime_gate", status="pass")),
+        (
+            "seeded.json",
+            _live_artifact(
+                stage_id="single_case_live_probe",
+                status="pass",
+                case_ids=["explicit_item_removal_seeded"],
+            ),
+        ),
+    ]:
+        path = tmp_path / filename
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        paths.append(path)
+
+    manifest = build_accurate_intake_live_stage_manifest(paths)
+
+    assert [item["case_id"] for item in manifest["diagnostic_case_order"]] == [
+        "provider_health_smoke",
+        "schema_contract_probe",
+        "fake_provider_active_runtime_gate",
+        "explicit_item_removal_seeded",
+        "exact_item_official_label",
+        "bubble_milk_tea_refinement",
+        "luwei_bare_to_listed_basket",
+        "chinese_chicken_rice_correction_removal_debug",
+        "full_suite_live_diagnostic",
+    ]
+    assert manifest["model_profile_policy"] == {
+        "primary_diagnostic_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
+        "primary_model": "grok-4-fast",
+        "single_profile_per_live_run": True,
+        "same_profile_across_manager_passes": True,
+        "cross_model_replay_is_separate_run": True,
+        "fallback_profile_mix_cannot_be_counted_as_clean_success": True,
+        "production_selected": False,
+    }
+    assert manifest["prompt_cache_policy"] == {
+        "stable_prefix_required": True,
+        "static_system_tools_schema_before_dynamic_context": True,
+        "dynamic_context_packet_after_static_prefix": True,
+        "stable_tool_order_required": True,
+        "cache_hit_not_required_for_pass": True,
+        "cached_tokens_must_be_reported_when_provider_exposes_usage": True,
+        "prompt_cache_does_not_change_output_semantics": True,
+        "cross_model_cache_not_assumed": True,
+    }
+    assert manifest["timeout_policy"] == {
+        "max_provider_concurrency": 1,
+        "default_provider_timeout_ms": 180000,
+        "default_provider_request_retry_count": 1,
+        "retry_only_failed_provider_request": True,
+        "never_rerun_whole_workflow_as_retry_success": True,
+        "strict_pass_first_attempt_only_clean": True,
+        "pass_after_retry_is_diagnostic_only": True,
+        "timeout_after_retry_blocks_full_suite": True,
+    }
+    assert manifest["trace_grade_layers"] == [
+        "provider_profile_and_prompt_versions",
+        "current_turn_context_packet",
+        "manager_pass_1_decision",
+        "requested_tools",
+        "filtered_tool_plan",
+        "executed_tools",
+        "compact_packets",
+        "manager_pass_2_synthesis",
+        "guard_result",
+        "mutation_result",
+        "renderer_input_basis",
+        "final_response_basis",
+        "latency_cost_cache_usage",
+    ]
+    summary = manifest["stage_summary"]
+    assert summary["missing_required_single_case_ids"] == [
+        "exact_item_official_label",
+        "bubble_milk_tea_refinement",
+        "luwei_bare_to_listed_basket",
+        "chinese_chicken_rice_correction_removal_debug",
     ]
