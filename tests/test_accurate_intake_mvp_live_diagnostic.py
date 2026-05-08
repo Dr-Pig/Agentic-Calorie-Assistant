@@ -278,6 +278,10 @@ def test_accurate_intake_live_full_suite_can_run_after_strict_offline_replay(tmp
         "today_consumed_query_only",
         "no_plan_consumed_without_budget_target",
     ]
+    for case in report["cases"]:
+        grade = case["trace_expectation_grade"]
+        assert grade["expectation_id"] == f"{case['case_id']}.trace.v1"
+        assert grade["required_status"] == "pass"
 
 
 def test_accurate_intake_live_seeded_explicit_removal_single_turn_probe(tmp_path: Path) -> None:
@@ -443,6 +447,22 @@ def test_accurate_intake_live_single_case_probe_supports_exact_item_official_lab
     assert case["case_id"] == "exact_item_official_label"
     assert case["case_contract_status"] == "strict_pass"
     assert case["turns"][0]["state_delta"]["canonical_commit"] is True
+    grade = case["trace_expectation_grade"]
+    assert grade["expectation_id"] == "exact_item_official_label.trace.v1"
+    assert grade["required_status"] == "pass"
+    assert {check["check_id"]: check["status"] for check in grade["checks"]} == {
+        "single_turn_only": "pass",
+        "estimate_nutrition_used": "pass",
+        "target_resolution_not_used": "pass",
+        "commit_final_present": "pass",
+        "canonical_commit_recorded": "pass",
+    }
+    assert grade["expected_trace"] == [
+        "entry: route_to_intake",
+        "pass2: estimate_nutrition",
+        "guard: commit allowed",
+        "mutation: canonical meal commit",
+    ]
     assert case["runner_inferred_semantics"] is False
     assert case["raw_text_routing_used"] is False
 
@@ -469,6 +489,16 @@ def test_accurate_intake_live_single_case_probe_bubble_refinement_inventory_cont
     assert all(turn["state_delta"]["draft_saved"] is False for turn in case["turns"])
     assert case["turns"][0]["state_delta"]["old_version_superseded"] is False
     assert case["turns"][1]["state_delta"]["old_version_superseded"] is True
+    grade = case["trace_expectation_grade"]
+    assert grade["expectation_id"] == "bubble_milk_tea_refinement.trace.v1"
+    assert grade["required_status"] == "pass"
+    assert {check["check_id"]: check["status"] for check in grade["checks"]} == {
+        "two_turn_refinement": "pass",
+        "turn1_estimate_and_commit": "pass",
+        "turn2_attaches_to_committed_thread": "pass",
+        "turn2_supersedes_old_version": "pass",
+        "same_truth_pass": "pass",
+    }
     tool_names = [
         call["name"]
         for turn in case["turns"]
@@ -477,6 +507,34 @@ def test_accurate_intake_live_single_case_probe_bubble_refinement_inventory_cont
     ]
     assert tool_names == ["estimate_nutrition", "estimate_nutrition"]
     assert case["debug_surface"]["model"]["same_truth"]["status"] == "pass"
+
+
+def test_accurate_intake_live_luwei_trace_expectation_blocks_bare_basket_commit(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+        stage="single_case_live_probe",
+        case_id="luwei_bare_to_listed_basket",
+    )
+
+    case = report["cases"][0]
+    grade = case["trace_expectation_grade"]
+    assert grade["expectation_id"] == "luwei_bare_to_listed_basket.trace.v1"
+    assert grade["required_status"] == "pass"
+    assert {check["check_id"]: check["status"] for check in grade["checks"]} == {
+        "two_turn_blocking_clarify": "pass",
+        "turn1_asks_followup": "pass",
+        "turn1_draft_saved_without_commit": "pass",
+        "turn2_estimates_after_listed_basket": "pass",
+        "turn2_commits_after_clarification": "pass",
+    }
 
 
 def test_accurate_intake_live_diagnostic_releases_stage_sqlite_handles(tmp_path: Path) -> None:
