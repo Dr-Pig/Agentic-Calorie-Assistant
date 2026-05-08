@@ -23,7 +23,7 @@ from app.runtime.agent.manager_prompt_registry import build_manager_prompt_regis
 from app.runtime.contracts.trace import MANAGER_LOOP_STAGE
 from app.runtime.agent.manager_payload_utils import (
     compact_manager_product_policy_hints_prompt_payload as compact_policy_hints,
-    compact_resolved_state_prompt_payload,
+    compact_resolved_state_prompt_payload, compact_tool_results_prompt_payload,
     json_safe,
     maybe_await,
     stable_available_tools,
@@ -130,7 +130,7 @@ async def run_intake_manager(
             "phase_a_shadow_hypothesis_role": manager_context_trace["phase_a_shadow_hypothesis_role"],
             "phase_a_shadow_hypothesis_instruction": shadow_hypothesis_instruction(phase_a_shadow_hypothesis),
             "available_tools": list(normalized_available_tools),
-            "tool_results": json_safe(tool_results),
+            "tool_results": json_safe(compact_tool_results_prompt_payload(tool_results)),
             "round_index": round_index,
             "manager_loop_scope": effective_manager_loop_scope,
             "manager_scope_policy": manager_scope_policy_payload(effective_manager_loop_scope, normalized_available_tools),
