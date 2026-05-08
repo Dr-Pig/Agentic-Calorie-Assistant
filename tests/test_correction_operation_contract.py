@@ -53,3 +53,33 @@ def test_entry_handoff_preserves_manager_owned_action_type_alias() -> None:
             },
         }
     ]
+
+
+def test_entry_handoff_preserves_manager_owned_target_evidence_operation_alias() -> None:
+    decision = SimpleNamespace(
+        workflow_effect="route_to_intake",
+        target_attachment={
+            "meal_thread_id": 1,
+            "meal_item_id": 2,
+            "canonical_name": "soup",
+            "target_evidence_operation": "remove_item",
+        },
+        semantic_decision={
+            "final_action_candidate": "correction_applied",
+            "target_attachment": {"canonical_name": "soup"},
+        },
+    )
+
+    assert structured_correction_operation(decision.target_attachment) == "remove_item"
+    assert entry_handoff_tool_calls(decision) == [
+        {
+            "name": "resolve_correction_target",
+            "arguments": {
+                "canonical_name": "soup",
+                "meal_thread_id": 1,
+                "meal_item_id": 2,
+                "operation": "remove_item",
+                "target_proposal_source": "entry_manager_handoff",
+            },
+        }
+    ]
