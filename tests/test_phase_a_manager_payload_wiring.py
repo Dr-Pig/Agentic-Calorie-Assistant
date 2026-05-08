@@ -313,7 +313,7 @@ async def test_run_intake_manager_sends_manager_context_packet_v1_sidecar_withou
 
     payload = provider.calls[0]["user_payload"]
     sidecar_trace = result.trace["manager_rounds"][0]["phase_a_input"]["manager_context_packet_v1"]
-    assert payload["phase_a_manager_context_pack"]["prompt_payload_kind"] == "manager_context_pack_compact_summary"
+    assert payload["phase_a_manager_context_pack"]["prompt_payload_kind"] == "manager_context_pack_lineage_summary"
     assert payload["phase_a_manager_context_pack"]["primary_context_source"] == "manager_context_packet_v1"
     assert "manager_context" not in payload["phase_a_manager_context_pack"]
     assert "recent_chat_turns" in payload["phase_a_manager_context_pack"]["omitted_manager_context_fields"]
@@ -325,6 +325,62 @@ async def test_run_intake_manager_sends_manager_context_packet_v1_sidecar_withou
     assert "messages" not in sidecar_trace["recent_chat_window"]
     assert result.final_action == "no_commit"
     assert result.workflow_effect == "safe_failure"
+
+
+@pytest.mark.asyncio
+async def test_run_intake_manager_uses_packet_primary_progressive_context_disclosure() -> None:
+    resolved_state = _resolved_state_with_recent_chat_turns()
+    current_turn_context = build_current_turn_context_v1(
+        raw_user_input="remove the milk tea",
+        resolved_state=resolved_state,
+    )
+    packet = build_manager_context_packet_v1(
+        current_turn_context=current_turn_context,
+        user_id="user-1",
+        local_date="2026-04-29",
+        session_id="session-1",
+        target_candidates=current_turn_context.candidate_attachment_targets,
+    )
+    provider = _FakeProvider()
+
+    result = await run_intake_manager(
+        provider=provider,
+        raw_user_input="remove the milk tea",
+        resolved_state=resolved_state,
+        current_turn_context=current_turn_context,
+        manager_context_pack=build_manager_context_pack(current_turn_context=current_turn_context),
+        manager_context_packet_v1=packet,
+        available_tools=("resolve_correction_target",),
+    )
+
+    payload = provider.calls[0]["user_payload"]
+    current_payload = payload["phase_a_current_turn_context"]
+    context_pack_payload = payload["phase_a_manager_context_pack"]
+    packet_payload = payload["manager_context_packet_v1"]
+
+    assert current_payload["prompt_payload_kind"] == "current_turn_context_lineage_summary"
+    assert current_payload["primary_context_source"] == "manager_context_packet_v1"
+    assert current_payload["full_context_omitted_from_prompt"] is True
+    assert current_payload["context_presence"]["pending_followup"] is True
+    assert current_payload["context_presence"]["candidate_attachment_target_count"] == 1
+    assert "candidate_attachment_targets" not in current_payload
+    assert "pending_followup" not in current_payload
+    assert "recent_chat_turns" not in current_payload
+
+    assert context_pack_payload["prompt_payload_kind"] == "manager_context_pack_lineage_summary"
+    assert context_pack_payload["primary_context_source"] == "manager_context_packet_v1"
+    assert context_pack_payload["full_context_omitted_from_prompt"] is True
+    assert context_pack_payload["manager_context_presence"]["pending_followup"] is True
+    assert context_pack_payload["manager_context_presence"]["candidate_attachment_target_count"] == 1
+    assert "manager_context" not in context_pack_payload
+    assert "manager_context_summary" not in context_pack_payload
+
+    assert packet_payload["hard_pins"]["pending_followup"]["meal_thread_id"] == 77
+    assert packet_payload["target_candidates"]["for_correction_or_removal"]
+    progressive = result.manager_rounds[0]["prompt_layer_contract"]["progressive_disclosure"]
+    assert progressive["context_packet_primary"] is True
+    assert progressive["full_context_in_user_payload"] is False
+    assert progressive["legacy_context_payload_mode"] == "lineage_summary"
 
 
 @pytest.mark.asyncio

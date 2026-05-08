@@ -113,7 +113,7 @@ async def run_intake_manager(
             "raw_user_input": raw_user_input,
             "resolved_state": compact_resolved_state_prompt_payload(resolved_state),
             "resolved_state_role": "compatibility_legacy",
-            "phase_a_current_turn_context": current_turn_context_prompt_payload(current_turn_context),
+            "phase_a_current_turn_context": current_turn_context_prompt_payload(current_turn_context, manager_context_packet_v1 is not None),
             "phase_a_manager_context_pack": json_safe(
                 manager_context_pack_prompt_payload(
                     manager_context_pack,
