@@ -105,13 +105,6 @@ def build_accurate_intake_live_robustness_matrix(
             "artifact_schema_version": "1.0",
             "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "claim_scope": "live_diagnostic_robustness_matrix",
-            "readiness_claimed": False,
-            "product_readiness_claimed": False,
-            "private_self_use_approved": False,
-            "production_selected": False,
-            "mutation_rollout_approved": False,
-            "runtime_web_activation_approved": False,
-            "model_portability_claimed": False,
             "max_model_claim": (
                 "single_profile_live_diagnostic_observed"
                 if single_profile_only

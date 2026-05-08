@@ -89,12 +89,12 @@ def test_live_stage_manifest_links_stage_artifacts_and_preserves_non_claims(tmp_
 
     assert manifest["artifact_type"] == "accurate_intake_mvp_live_stage_manifest"
     assert manifest["claim_scope"] == "live_diagnostic_stage_manifest"
-    assert manifest["readiness_claimed"] is False
-    assert manifest["product_readiness_claimed"] is False
-    assert manifest["private_self_use_approved"] is False
-    assert manifest["production_selected"] is False
-    assert manifest["mutation_rollout_approved"] is False
-    assert manifest["runtime_web_activation_approved"] is False
+    assert "readiness_claimed" not in manifest
+    assert "product_readiness_claimed" not in manifest
+    assert "private_self_use_approved" not in manifest
+    assert "production_selected" not in manifest
+    assert "mutation_rollout_approved" not in manifest
+    assert "runtime_web_activation_approved" not in manifest
     assert manifest["input_integrity"]["passed"] is True
     assert manifest["stage_summary"]["single_case_probe_status"] == "fail"
     assert manifest["stage_summary"]["stage_failures"] == [
@@ -119,7 +119,7 @@ def test_live_stage_manifest_integrity_blocks_overclaiming_source(tmp_path: Path
 
     assert manifest["input_integrity"]["passed"] is False
     assert "source_0_readiness_claimed" in manifest["input_integrity"]["blockers"]
-    assert manifest["readiness_claimed"] is False
+    assert "readiness_claimed" not in manifest
 
 
 def test_live_stage_manifest_writer_creates_artifact(tmp_path: Path) -> None:

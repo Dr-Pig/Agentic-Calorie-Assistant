@@ -64,10 +64,10 @@ def test_live_cost_summary_totals_token_usage_and_reported_costs() -> None:
 
     assert summary["artifact_type"] == "accurate_intake_mvp_live_cost_summary"
     assert summary["claim_scope"] == "live_diagnostic_cost_summary"
-    assert summary["readiness_claimed"] is False
-    assert summary["product_readiness_claimed"] is False
-    assert summary["private_self_use_approved"] is False
-    assert summary["production_selected"] is False
+    assert "readiness_claimed" not in summary
+    assert "product_readiness_claimed" not in summary
+    assert "private_self_use_approved" not in summary
+    assert "production_selected" not in summary
     assert summary["summary"] == {
         "source_artifact_count": 1,
         "stage_count": 1,
@@ -102,6 +102,21 @@ def test_live_cost_summary_marks_cost_unavailable_when_tokens_have_no_pricing() 
         "pricing_table_applied": False,
         "cost_unavailable_without_pricing": True,
     }
+
+
+def test_live_cost_summary_omits_fixed_false_claim_fields() -> None:
+    summary = build_accurate_intake_live_cost_summary([_live_artifact(usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2})])
+
+    for field in (
+        "readiness_claimed",
+        "product_readiness_claimed",
+        "private_self_use_approved",
+        "production_selected",
+        "mutation_rollout_approved",
+        "runtime_web_activation_approved",
+        "model_portability_claimed",
+    ):
+        assert field not in summary
 
 
 def test_live_cost_summary_writer_creates_run_specific_local_artifact(tmp_path: Path) -> None:
