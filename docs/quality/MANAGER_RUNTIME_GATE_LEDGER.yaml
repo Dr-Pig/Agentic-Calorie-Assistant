@@ -204,6 +204,15 @@ gates:
       - rt3_react_trace_contract
       - rt5_intent_tool_argument_walls
       - rt11_final_response_quality
+  - gate_id: rt12b_live_trace_grading_extension
+    title: Live trace grading extension
+    status: green
+    pass_type: runtime_backed
+    depends_on:
+      - rt12_trace_grading_v1
+      - rt11c_renderer_input_basis_evidence_pack
+      - rt10d_generic_optional_refinement_live_probe
+      - rt10e_blocking_clarify_correction_live_probe
   - gate_id: rt13_observability_pack
     title: Runtime observability pack
     status: green
@@ -299,6 +308,7 @@ gates:
       - rt10b_nutrition_estimate_quality_fake_provider
       - rt11b_final_response_quality_live_wall
       - rt11_final_response_quality
+      - rt12b_live_trace_grading_extension
       - rt12_trace_grading_v1
       - rt13_observability_pack
 journey_gate_map:
