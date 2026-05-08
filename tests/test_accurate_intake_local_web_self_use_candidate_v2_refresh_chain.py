@@ -167,6 +167,20 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
     assert pre_live_pack["selected_option"] == "stay_local_self_use"
     assert "ready_for_live_diagnostic_decision" not in pre_live_pack
     assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    chain = candidate["local_web_self_use_candidate_v2"]["appshell_browser_evidence_chain"]
+    assert printed["appshell_browser_evidence_chain"] == chain
+    assert chain["browser_artifact_count"] == 6
+    assert chain["browser_executed_count"] == 6
+    assert chain["all_required_browser_artifacts_executed"] is True
+    assert chain["product_pages_self_use_flow_checked"] is True
+    assert chain["self_use_flow_gate_strongest_pass_type"] == "browser_executed"
+    assert chain["today_macro_runtime_mirror_checked"] is True
+    assert chain["renderer_source_closure_checked"] is True
+    assert chain["context_target_browser_closure_checked"] is True
+    assert chain["body_noplan_degraded_checked"] is True
+    assert chain["live_llm_invoked"] is False
+    assert chain["fooddb_evidence_used"] is False
+    assert chain["websearch_evidence_used"] is False
     assert "pre-live selected option: stay_local_self_use" in candidate[
         "local_web_self_use_candidate_v2"
     ]["blockers"]

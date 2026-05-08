@@ -282,6 +282,9 @@ def build_local_web_self_use_candidate_refresh_chain(
     )
 
     candidate_payload = dict(local_web_candidate.get("local_web_self_use_candidate_v2") or {})
+    appshell_browser_evidence_chain = dict(
+        candidate_payload.get("appshell_browser_evidence_chain") or {}
+    )
     return {
         "artifact_type": "accurate_intake_local_web_self_use_candidate_v2_refresh_chain",
         "status": "pass" if candidate_payload.get("candidate_prepared") is True else "blocked",
@@ -292,6 +295,7 @@ def build_local_web_self_use_candidate_refresh_chain(
         },
         "browser_activation_status": browser_activation_evidence_gate.get("status"),
         "product_pages_self_use_flow_status": product_pages_self_use_flow_gate.get("status"),
+        "appshell_browser_evidence_chain": appshell_browser_evidence_chain,
         "context_live_diagnostic_gate_status": context_live_diagnostic_gate.get("status"),
         "pre_live_evidence_status": pre_live_evidence.get("_evidence_metadata", {}).get("status"),
         "pre_live_selected_option": pre_live_decision_pack.get("selected_option"),
