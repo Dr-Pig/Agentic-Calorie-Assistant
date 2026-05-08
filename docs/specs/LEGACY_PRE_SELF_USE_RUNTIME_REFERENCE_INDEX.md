@@ -18,11 +18,10 @@ Do not use this file as the default entrypoint for new windows.
 
 ## Legacy Reference Pack
 
-The files below remain tracked because they still provide historical context or compatibility value. Their names do not imply current mainline status.
+The files below remain tracked because they still provide historical context or compatibility value. Their names do not imply current mainline status. Retired duplicate docs indexes such as `docs/index.md` and `docs/V2_DOC_INDEX.md` are intentionally not tracked.
 
 | Neutral role | Compatibility file path | Current role |
 | --- | --- | --- |
-| legacy docs index | `docs/V2_DOC_INDEX.md` | compatibility entry only |
 | legacy operating entry | `docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md` | compatibility entry only |
 | legacy coding bootstrap | `docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md` | historical bootstrap reference |
 | legacy execution and wave plan | `docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md` | historical architecture and sequencing reference |

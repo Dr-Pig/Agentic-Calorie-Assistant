@@ -157,23 +157,23 @@ def test_docs_bootstrap_index_and_legacy_reference_are_consistent() -> None:
     )
     operating_entry = (ROOT / "docs" / "specs" / "APP_ENGINEERING_OPERATING_ENTRY.md").read_text(encoding="utf-8")
     legacy_index = (ROOT / "docs" / "specs" / "LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md").read_text(encoding="utf-8")
-    docs_index_stub = (ROOT / "docs" / "index.md").read_text(encoding="utf-8")
-    v2_index_stub = (ROOT / "docs" / "V2_DOC_INDEX.md").read_text(encoding="utf-8")
 
     assert "sole active docs index: `docs/DOC_INDEX.md`" in doc_index
-    assert "`docs/index.md` is compatibility-only and must stay thin" in doc_index
-    assert "`docs/V2_DOC_INDEX.md` is compatibility-only and must stay thin" in doc_index
+    assert "retired duplicate docs indexes must not exist: `docs/index.md`, `docs/V2_DOC_INDEX.md`" in doc_index
     assert "sole active operating entry: `docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md`" in doc_index
     assert "sole legacy runtime reference index: `docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md`" in doc_index
     assert "canonical preservation path: `docs/_spec_snapshots/`" in doc_index
     assert "current execution pointer" in doc_index
+    assert not (ROOT / "docs" / "index.md").exists()
+    assert not (ROOT / "docs" / "V2_DOC_INDEX.md").exists()
     assert "Current Shell self-use MVP local desktop dogfood" in current_plan
     assert "Do Not Start From" in current_plan
     assert "Kiro steering files" in current_plan
     assert "placeholder cloud/deploy workflows" in current_plan
+    assert "retired duplicate docs indexes" in current_plan
     assert "Current Shell" in operating_entry
-    assert "stop and return to [docs/DOC_INDEX.md]" in docs_index_stub
-    assert "stop and return to [docs/DOC_INDEX.md]" in v2_index_stub
+    assert "Retired duplicate index files" in doc_index
+    assert "intentionally not tracked" in legacy_index
     assert "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md" in legacy_index
     assert "docs/specs/APP_V2_IMPLEMENTATION_PLAN.md" in legacy_index
 

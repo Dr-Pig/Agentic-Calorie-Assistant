@@ -4,7 +4,7 @@ This is the sole active docs index for the repository.
 
 Use [AGENTS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/AGENTS.md) for agent bootstrap. Use this file for document taxonomy, active-vs-legacy routing, and the current bootstrap path.
 
-`docs/index.md` is compatibility-only. `docs/V2_DOC_INDEX.md` is compatibility-only and is no longer active bootstrap truth.
+Retired duplicate index files `docs/index.md` and `docs/V2_DOC_INDEX.md` must not be recreated. Historical links should be redirected here instead of preserving thin stubs.
 
 ## Active Bootstrap
 
@@ -20,8 +20,7 @@ For the current default mainline:
 ## Active Truth Rules
 
 - sole active docs index: `docs/DOC_INDEX.md`
-- `docs/index.md` is compatibility-only and must stay thin
-- `docs/V2_DOC_INDEX.md` is compatibility-only and must stay thin
+- retired duplicate docs indexes must not exist: `docs/index.md`, `docs/V2_DOC_INDEX.md`
 - sole active operating entry: `docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md`
 - sole legacy runtime reference index: `docs/specs/LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md`
 - canonical preservation path: `docs/_spec_snapshots/`
@@ -43,8 +42,7 @@ Do not start new implementation work from:
 
 - Kiro steering files
 - placeholder cloud/deploy workflows
-- `docs/index.md`
-- `docs/V2_DOC_INDEX.md`
+- retired duplicate docs indexes: `docs/index.md`, `docs/V2_DOC_INDEX.md`
 - `docs/governance/EXECUTION_OPERATING_MODEL.md`
 - `docs/governance/EXECUTION_SELECTION_POLICY.md`
 - `docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md`
