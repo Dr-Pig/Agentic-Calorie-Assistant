@@ -259,6 +259,14 @@ gates:
     pass_type: runtime_backed
     depends_on:
       - rt14d_single_case_tool_choice_live_probe
+  - gate_id: rt14f_holdout_replay_anti_overfit_gate
+    title: Holdout replay and anti-overfit gate
+    status: green
+    pass_type: runtime_backed
+    depends_on:
+      - rt12b_live_trace_grading_extension
+      - rt13b_latency_cost_cache_budget_pack
+      - rt14e_context_conditioned_live_probe
   - gate_id: rt9b_fooddb_packet_live_probe
     title: FoodDB packet live probe
     status: green
@@ -320,6 +328,7 @@ gates:
       - rt12_trace_grading_v1
       - rt13_observability_pack
       - rt13b_latency_cost_cache_budget_pack
+      - rt14f_holdout_replay_anti_overfit_gate
 journey_gate_map:
   A:
     - rt6_bootstrap_no_plan_body_closure
