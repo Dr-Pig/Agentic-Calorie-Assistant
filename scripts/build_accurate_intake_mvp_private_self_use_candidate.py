@@ -48,13 +48,6 @@ def build_accurate_intake_private_self_use_candidate(
             "candidate_prepared": candidate_prepared,
             "activation_status": "candidate_review_required" if candidate_prepared else "blocked",
             "requires_human_approval": candidate_prepared,
-            "private_self_use_approved": False,
-            "product_readiness_claimed": False,
-            "production_selected": False,
-            "mutation_rollout_approved": False,
-            "runtime_web_activation_approved": False,
-            "shadow_or_canary_approved": False,
-            "model_portability_claimed": False,
             "max_model_claim": decision_pack.get("max_model_claim"),
             "input_integrity": {"passed": not blockers, "blockers": sorted(set(blockers))},
             "decision_pack_summary": {
@@ -70,13 +63,6 @@ def build_accurate_intake_private_self_use_candidate(
                 "offline_replay_summary": _dict(decision_pack.get("offline_replay_summary")),
                 "provider_robustness_summary": _dict(decision_pack.get("provider_robustness_summary")),
                 "stage_summary": _dict(decision_pack.get("stage_summary")),
-            },
-            "non_claim_boundaries": {
-                "private_self_use_is_approved": False,
-                "product_ready": False,
-                "production_manager_selected": False,
-                "mutation_rollout_ready": False,
-                "runtime_web_activation_ready": False,
             },
         }
     )
