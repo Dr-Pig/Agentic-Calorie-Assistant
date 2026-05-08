@@ -203,6 +203,13 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt1a_prompt_registry_and_trace_versioning",
         "rt3_react_trace_contract",
     ]
+    assert gates["rt13b_latency_cost_cache_budget_pack"]["status"] == "green"
+    assert gates["rt13b_latency_cost_cache_budget_pack"]["pass_type"] == "runtime_backed"
+    assert gates["rt13b_latency_cost_cache_budget_pack"]["depends_on"] == [
+        "rt1c_cache_metrics_observability",
+        "rt12b_live_trace_grading_extension",
+        "rt13_observability_pack",
+    ]
     assert gates["rt14a_provider_health_schema_live_foundation"]["status"] == "green"
     assert gates["rt14a_provider_health_schema_live_foundation"]["pass_type"] == "contract"
     assert gates["rt14a_provider_health_schema_live_foundation"]["depends_on"] == [
@@ -280,6 +287,7 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt12b_live_trace_grading_extension",
         "rt12_trace_grading_v1",
         "rt13_observability_pack",
+        "rt13b_latency_cost_cache_budget_pack",
     ]
 
 
