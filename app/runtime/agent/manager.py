@@ -75,6 +75,7 @@ async def run_intake_manager(
     guard_checker: GuardChecker | None = None,
     onboarding_payload: dict[str, Any] | None = None,
     constraints: dict[str, Any] | None = None,
+    manager_loop_scope: str | None = None,
     max_rounds: int = 3,
 ) -> IntakeManagerResult:
     prompt_registry = build_manager_prompt_registry(provider=provider, constraints=constraints)
@@ -92,6 +93,7 @@ async def run_intake_manager(
     repair_round_used = False
     guard_feedback: dict[str, Any] | None = None
     effective_history_expansion_policy = history_expansion_policy or HistoryExpansionPolicy()
+    effective_manager_loop_scope = str(manager_loop_scope or _default_manager_loop_scope(normalized_available_tools))
 
     for round_index in range(max_rounds):
         effective_constraints = dict(constraints or {})
@@ -115,6 +117,7 @@ async def run_intake_manager(
         manager_context_trace["manager_context_packet_v1"] = manager_context_packet_v1_trace_payload(
             manager_context_packet_v1
         )
+        manager_context_trace["manager_loop_scope"] = effective_manager_loop_scope
         user_payload = {
             "raw_user_input": raw_user_input,
             "resolved_state": json_safe(resolved_state),
@@ -137,6 +140,7 @@ async def run_intake_manager(
             "available_tools": list(normalized_available_tools),
             "tool_results": json_safe(tool_results),
             "round_index": round_index,
+            "manager_loop_scope": effective_manager_loop_scope,
             "constraints": effective_constraints,
             "manager_product_policy_hints": json_safe(effective_constraints.get("manager_product_policy_hints")),
             "guard_feedback": guard_feedback,
@@ -152,6 +156,7 @@ async def run_intake_manager(
             {
                 "round_index": round_index,
                 "stage": MANAGER_LOOP_STAGE,
+                "manager_loop_scope": effective_manager_loop_scope,
                 "decision": json_safe(parsed),
                 "trace": json_safe(trace),
                 "phase_a_input": json_safe(manager_context_trace),
@@ -294,3 +299,12 @@ async def run_intake_manager(
         prompt_registry=prompt_registry,
         failure_family="max_rounds_exceeded",
     )
+
+
+def _default_manager_loop_scope(available_tools: tuple[str, ...]) -> str:
+    tool_names = set(available_tools)
+    if "body.record_observation" in tool_names:
+        return "body_observation"
+    if tool_names.intersection({"estimate_nutrition", "resolve_correction_target", "compare_against_budget"}):
+        return "intake_execution"
+    return "turn_entry_or_read_only"

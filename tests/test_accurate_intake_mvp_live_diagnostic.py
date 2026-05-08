@@ -161,10 +161,12 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
             assert isinstance(invocation["diagnostic_turn"], int)
             assert invocation["diagnostic_turn_kind"]
             assert "manager_round_index" in invocation
+            assert invocation["manager_loop_scope"] in {"turn_entry_or_read_only", "intake_execution"}
     case_invocations = [item for item in report["provider_invocations"] if item.get("diagnostic_case_id")]
     assert case_invocations
     assert all(item["span_kind"] == "provider_request" for item in case_invocations)
     assert all(item.get("diagnostic_turn") for item in case_invocations)
+    assert {item["manager_loop_scope"] for item in case_invocations} == {"turn_entry_or_read_only", "intake_execution"}
     assert report["summary"]["case_count"] == len(report["cases"])
     assert report["summary"]["strict_pass_count"] + report["summary"]["repaired_pass_count"] + report["summary"][
         "contract_fail_count"

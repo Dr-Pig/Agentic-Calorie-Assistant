@@ -216,6 +216,79 @@ async def test_run_intake_manager_forwards_product_policy_hints_as_payload_conte
 
 
 @pytest.mark.asyncio
+async def test_run_intake_manager_forwards_manager_loop_scope_for_latency_attribution() -> None:
+    provider = FakeLoopProvider(
+        [
+            {
+                "manager_action": "final",
+                "intent": "answer_remaining_budget",
+                "final_action": "answer_only",
+                "workflow_effect": "answer_only",
+                "target_attachment": {"mode": "none"},
+                "exactness": "unknown",
+                "confidence": "medium",
+                "evidence_posture": "read_only_state",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "ok"},
+            },
+        ]
+    )
+
+    result = await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="How much have I eaten?",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=("budget.get_today_summary",),
+        manager_loop_scope="turn_entry_or_read_only",
+    )
+
+    assert provider.calls[0]["user_payload"]["manager_loop_scope"] == "turn_entry_or_read_only"
+    assert result.trace["manager_rounds"][0]["manager_loop_scope"] == "turn_entry_or_read_only"
+    assert result.trace["manager_rounds"][0]["phase_a_input"]["manager_loop_scope"] == "turn_entry_or_read_only"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("available_tools", "expected_scope"),
+    [
+        (("budget.get_today_summary",), "turn_entry_or_read_only"),
+        (("body.record_observation",), "body_observation"),
+        (("estimate_nutrition", "compare_against_budget"), "intake_execution"),
+    ],
+)
+async def test_run_intake_manager_infers_latency_scope_from_tool_surface(
+    available_tools: tuple[str, ...],
+    expected_scope: str,
+) -> None:
+    provider = FakeLoopProvider(
+        [
+            {
+                "manager_action": "final",
+                "intent": "answer_remaining_budget",
+                "final_action": "answer_only",
+                "workflow_effect": "answer_only",
+                "target_attachment": {"mode": "none"},
+                "exactness": "unknown",
+                "confidence": "medium",
+                "evidence_posture": "read_only_state",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "ok"},
+            },
+        ]
+    )
+
+    result = await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="How much have I eaten?",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=available_tools,
+    )
+
+    assert provider.calls[0]["user_payload"]["manager_loop_scope"] == expected_scope
+    assert result.trace["manager_rounds"][0]["manager_loop_scope"] == expected_scope
+
+
+@pytest.mark.asyncio
 async def test_run_intake_manager_keeps_prompt_registry_in_trace_only() -> None:
     provider = FakeLoopProvider(
         [

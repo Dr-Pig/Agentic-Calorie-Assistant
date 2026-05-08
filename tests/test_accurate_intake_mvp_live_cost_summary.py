@@ -55,6 +55,7 @@ def _live_artifact(
                 "diagnostic_turn": override.get("diagnostic_turn"),
                 "diagnostic_turn_kind": override.get("diagnostic_turn_kind"),
                 "manager_round_index": override.get("manager_round_index"),
+                "manager_loop_scope": override.get("manager_loop_scope"),
                 "provider_trace_stage": override.get("provider_trace_stage"),
                 "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
                 "provider_profile_model": "grok-4-fast",
@@ -191,6 +192,7 @@ def test_live_cost_summary_breaks_down_latency_by_stage_case_turn_and_slowest_ca
                         "diagnostic_turn": 1,
                         "diagnostic_turn_kind": "new_meal",
                         "manager_round_index": 0,
+                        "manager_loop_scope": "turn_entry_or_read_only",
                         "provider_trace_stage": "entry_decision",
                     },
                     {
@@ -199,6 +201,7 @@ def test_live_cost_summary_breaks_down_latency_by_stage_case_turn_and_slowest_ca
                         "diagnostic_turn": 2,
                         "diagnostic_turn_kind": "followup_refinement",
                         "manager_round_index": 0,
+                        "manager_loop_scope": "intake_execution",
                         "provider_trace_stage": "execution_decision",
                     },
                 ],
@@ -225,6 +228,10 @@ def test_live_cost_summary_breaks_down_latency_by_stage_case_turn_and_slowest_ca
     assert breakdown["by_case"][0]["diagnostic_case_id"] == "bubble_milk_tea_refinement"
     assert breakdown["by_case"][0]["provider_invocation_latency_ms"] == 4_000
     assert [turn["diagnostic_turn"] for turn in breakdown["by_turn"]] == [1, 2]
+    assert {
+        scope["manager_loop_scope"]: scope["provider_invocation_latency_ms"]
+        for scope in breakdown["by_manager_loop_scope"]
+    } == {"turn_entry_or_read_only": 3_000, "intake_execution": 1_000}
     assert breakdown["slowest_provider_invocations"][0] == {
         "source_index": 0,
         "invocation_index": 0,
@@ -234,6 +241,7 @@ def test_live_cost_summary_breaks_down_latency_by_stage_case_turn_and_slowest_ca
         "diagnostic_turn": 1,
         "diagnostic_turn_kind": "new_meal",
         "manager_round_index": 0,
+        "manager_loop_scope": "turn_entry_or_read_only",
         "provider_trace_stage": "entry_decision",
         "latency_ms": 3_000,
         "timeout_budget_ms": 180000,
