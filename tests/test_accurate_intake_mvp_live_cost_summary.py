@@ -16,12 +16,15 @@ def _live_artifact(
     stage_id: str = "provider_health_smoke",
     latency_ms: int = 321,
     provider_invocation_count: int = 1,
+    provider_invocation_overrides: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     provider_trace: dict[str, object] = {}
     if usage is not None:
         provider_trace["usage"] = usage
     if estimated_cost_usd is not None:
         provider_trace["estimated_cost_usd"] = estimated_cost_usd
+    if provider_invocation_overrides is None:
+        provider_invocation_overrides = [{} for _ in range(provider_invocation_count)]
     return {
         "artifact_type": "accurate_intake_mvp_live_diagnostic",
         "generated_at_utc": "2026-05-03T00:00:00Z",
@@ -47,13 +50,19 @@ def _live_artifact(
         "provider_invocations": [
             {
                 "stage": stage_id,
+                "diagnostic_stage_id": override.get("diagnostic_stage_id", stage_id),
+                "diagnostic_case_id": override.get("diagnostic_case_id"),
+                "diagnostic_turn": override.get("diagnostic_turn"),
+                "diagnostic_turn_kind": override.get("diagnostic_turn_kind"),
+                "manager_round_index": override.get("manager_round_index"),
+                "provider_trace_stage": override.get("provider_trace_stage"),
                 "provider_profile_id": "builderspace-grok-4-fast-accurate-intake-mvp-live-diagnostic",
                 "provider_profile_model": "grok-4-fast",
-                "latency_ms": latency_ms,
+                "latency_ms": override.get("latency_ms", latency_ms),
                 "timeout_budget_ms": 180000,
-                "provider_trace": provider_trace,
+                "provider_trace": dict(provider_trace),
             }
-            for _ in range(provider_invocation_count)
+            for override in provider_invocation_overrides
         ],
     }
 
@@ -146,6 +155,7 @@ def test_live_cost_summary_flags_latency_root_cause_probe_without_readiness_clai
     assert summary["latency_root_cause_hints"] == {
         "provider_invocation_count_high": True,
         "stage_latency_high": True,
+        "stage_overhead_high": False,
         "prompt_token_volume_high": True,
         "prompt_cache_metrics_missing": False,
         "prompt_cache_hits_missing": True,
@@ -160,6 +170,78 @@ def test_live_cost_summary_flags_latency_root_cause_probe_without_readiness_clai
     ]
     assert summary["generated_artifact_policy"]["local_diagnostic_evidence_only"] is True
     assert "readiness_claimed" not in summary
+
+
+def test_live_cost_summary_breaks_down_latency_by_stage_case_turn_and_slowest_call() -> None:
+    summary = build_accurate_intake_live_cost_summary(
+        [
+            _live_artifact(
+                usage={
+                    "prompt_tokens": 100,
+                    "completion_tokens": 10,
+                    "total_tokens": 110,
+                    "prompt_tokens_details": {"cached_tokens": 70},
+                },
+                stage_id="single_case_live_probe",
+                latency_ms=15_000,
+                provider_invocation_overrides=[
+                    {
+                        "latency_ms": 3_000,
+                        "diagnostic_case_id": "bubble_milk_tea_refinement",
+                        "diagnostic_turn": 1,
+                        "diagnostic_turn_kind": "new_meal",
+                        "manager_round_index": 0,
+                        "provider_trace_stage": "entry_decision",
+                    },
+                    {
+                        "latency_ms": 1_000,
+                        "diagnostic_case_id": "bubble_milk_tea_refinement",
+                        "diagnostic_turn": 2,
+                        "diagnostic_turn_kind": "followup_refinement",
+                        "manager_round_index": 0,
+                        "provider_trace_stage": "execution_decision",
+                    },
+                ],
+            )
+        ]
+    )
+
+    breakdown = summary["latency_breakdown"]
+    assert breakdown["stage_latency_ms"] == 15_000
+    assert breakdown["provider_invocation_latency_ms"] == 4_000
+    assert breakdown["stage_overhead_ms"] == 11_000
+    assert breakdown["unattributed_provider_invocation_count"] == 0
+    assert breakdown["by_diagnostic_stage"][0] == {
+        "source_index": 0,
+        "diagnostic_stage_id": "single_case_live_probe",
+        "stage_latency_ms": 15_000,
+        "provider_invocation_count": 2,
+        "provider_invocation_latency_ms": 4_000,
+        "stage_overhead_ms": 11_000,
+        "latency_share_pct": 100.0,
+    }
+    assert summary["latency_root_cause_hints"]["stage_overhead_high"] is True
+    assert "attribute_stage_overhead_to_tool_db_renderer_spans" in summary["latency_optimization_priorities"]
+    assert breakdown["by_case"][0]["diagnostic_case_id"] == "bubble_milk_tea_refinement"
+    assert breakdown["by_case"][0]["provider_invocation_latency_ms"] == 4_000
+    assert [turn["diagnostic_turn"] for turn in breakdown["by_turn"]] == [1, 2]
+    assert breakdown["slowest_provider_invocations"][0] == {
+        "source_index": 0,
+        "invocation_index": 0,
+        "stage": "single_case_live_probe",
+        "diagnostic_stage_id": "single_case_live_probe",
+        "diagnostic_case_id": "bubble_milk_tea_refinement",
+        "diagnostic_turn": 1,
+        "diagnostic_turn_kind": "new_meal",
+        "manager_round_index": 0,
+        "provider_trace_stage": "entry_decision",
+        "latency_ms": 3_000,
+        "timeout_budget_ms": 180000,
+        "prompt_tokens": 100,
+        "completion_tokens": 10,
+        "cached_tokens_reported": True,
+        "cached_tokens": 70,
+    }
 
 
 def test_live_cost_summary_omits_fixed_false_claim_fields() -> None:

@@ -130,12 +130,14 @@ class AccurateIntakeLiveDiagnosticProvider:
         self.profile = dict(profile)
         self.live_invoked = live_invoked
         self.invocations: list[dict[str, Any]] = []
+        self._current_step: dict[str, Any] = {}
         self.provider_request_timeout_ms = max(1, int(provider_request_timeout_ms))
         self.provider_request_retry_count = max(0, int(provider_request_retry_count))
         self.provider_request_retry_backoff_ms = max(0, int(provider_request_retry_backoff_ms))
         self.provider_request_retry_jitter_ms = max(0, int(provider_request_retry_jitter_ms))
 
     def begin_step(self, step_script: dict[str, Any]) -> None:
+        self._current_step = dict(step_script)
         if hasattr(self._provider, "begin_step"):
             self._provider.begin_step(step_script)
 
@@ -154,6 +156,7 @@ class AccurateIntakeLiveDiagnosticProvider:
     async def complete_with_trace(self, **kwargs: Any) -> tuple[dict[str, Any], dict[str, Any]]:
         stage = str(kwargs.get("stage") or "")
         kwargs = _with_accurate_intake_live_contract_constraints(kwargs, profile=self.profile)
+        span_context = self._provider_span_context(stage=stage, kwargs=kwargs)
         max_attempts = self.provider_request_retry_count + 1
         retry_attempts: list[dict[str, Any]] = []
         for attempt_index in range(1, max_attempts + 1):
@@ -169,6 +172,7 @@ class AccurateIntakeLiveDiagnosticProvider:
                 error_trace = _provider_error_trace(exc, stage=stage, profile=self.profile)
                 error_trace.update(
                     {
+                        **span_context,
                         "attempt_index": attempt_index,
                         "attempt_count": attempt_index,
                         "max_attempt_count": max_attempts,
@@ -191,6 +195,7 @@ class AccurateIntakeLiveDiagnosticProvider:
             result_kind = "pass_after_retry" if attempt_index > 1 else "strict_pass_first_attempt"
             enriched_trace = {
                 **_dict(trace),
+                **span_context,
                 "provider_profile_id": self.profile["provider_profile_id"],
                 "provider_profile_model": self.profile["model"],
                 "provider_profile_role": self.profile["provider_profile_role"],
@@ -210,6 +215,8 @@ class AccurateIntakeLiveDiagnosticProvider:
             self.invocations.append(
                 {
                     "stage": stage,
+                    **span_context,
+                    "provider_trace_stage": _optional_string(_dict(trace).get("stage")),
                     "provider_profile_id": self.profile["provider_profile_id"],
                     "provider_profile_model": self.profile["model"],
                     "provider_profile_role": self.profile["provider_profile_role"],
@@ -228,6 +235,21 @@ class AccurateIntakeLiveDiagnosticProvider:
             )
             return payload, enriched_trace
         raise RuntimeError("provider retry loop exited without result")
+
+    def _provider_span_context(self, *, stage: str, kwargs: dict[str, Any]) -> dict[str, Any]:
+        user_payload = _dict(kwargs.get("user_payload"))
+        step = self._current_step
+        context: dict[str, Any] = {
+            "span_kind": "provider_request",
+            "diagnostic_stage_id": _optional_string(
+                step.get("diagnostic_stage_id") or user_payload.get("diagnostic_stage_id")
+            ),
+            "diagnostic_case_id": _optional_string(step.get("case_id")),
+            "diagnostic_turn": _optional_int(step.get("turn")),
+            "diagnostic_turn_kind": _optional_string(step.get("turn_kind") or step.get("kind")),
+            "manager_round_index": _optional_int(user_payload.get("round_index")),
+        }
+        return {key: value for key, value in context.items() if value is not None}
 
     def _retry_delay_seconds(self, attempt_index: int) -> float:
         backoff = (self.provider_request_retry_backoff_ms / 1000) * attempt_index
@@ -1010,7 +1032,13 @@ def _run_case_batch(
             try:
                 case_result = asyncio.run(
                     asyncio.wait_for(
-                        _run_case(SessionLocal, case=case, provider=provider, local_date=local_date),
+                        _run_case(
+                            SessionLocal,
+                            case=case,
+                            provider=provider,
+                            local_date=local_date,
+                            stage_id=stage_id,
+                        ),
                         timeout=max(0.001, case_timeout_ms / 1000),
                     )
                 )
@@ -1020,6 +1048,10 @@ def _run_case_batch(
                     exc,
                     provider_invocations=provider.invocations[invocation_start_index:],
                 )
+            case_invocations = _json_safe(provider.invocations[invocation_start_index:])
+            case_result.setdefault("provider_invocations", case_invocations)
+            case_result["provider_invocation_count"] = len(case_invocations)
+            case_result["provider_invocation_latency_ms"] = sum(int(item.get("latency_ms") or 0) for item in case_invocations)
             case_result["latency_ms"] = int((datetime.now(UTC) - started).total_seconds() * 1000)
             case_result["stage_id"] = stage_id
             results.append(_decorate_case(case_result, profile=profile))
@@ -1110,6 +1142,7 @@ async def _run_case(
     case: LiveCase,
     provider: AccurateIntakeLiveDiagnosticProvider,
     local_date: str,
+    stage_id: str,
 ) -> dict[str, Any]:
     with SessionLocal() as db:
         if case.body_plan_seeded:
@@ -1117,7 +1150,17 @@ async def _run_case(
         seeded_state = _seed_case_state(db, case=case, local_date=local_date)
         turns: list[dict[str, Any]] = []
         for step in case.steps:
-            provider.begin_step({**dict(step.script), "kind": step.kind})
+            provider.begin_step(
+                {
+                    **dict(step.script),
+                    "diagnostic_stage_id": stage_id,
+                    "case_id": case.case_id,
+                    "turn": step.turn,
+                    "turn_kind": step.kind,
+                    "kind": step.kind,
+                }
+            )
+            turn_invocation_start_index = len(provider.invocations)
             result = await _active_entrypoint()(
                 db,
                 user_external_id=case.user_external_id,
@@ -1129,7 +1172,13 @@ async def _run_case(
                 search_port=None,
                 extract_port=None,
             )
-            turns.append(_turn_summary(step, result))
+            turns.append(
+                _turn_summary(
+                    step,
+                    result,
+                    provider_invocations=provider.invocations[turn_invocation_start_index:],
+                )
+            )
         debug_surface = build_accurate_intake_debug_payload(
             db,
             user_external_id=case.user_external_id,
@@ -1398,9 +1447,15 @@ def _validate_case(
     return ("fail" if blockers else "pass"), blockers, failure_layer
 
 
-def _turn_summary(step: LiveStep, result: dict[str, Any]) -> dict[str, Any]:
+def _turn_summary(
+    step: LiveStep,
+    result: dict[str, Any],
+    *,
+    provider_invocations: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     execution = _dict(result.get("intake_execution_manager"))
     final = _dict(execution.get("final"))
+    invocation_summary = _provider_invocation_summary(provider_invocations or [])
     return {
         "turn": step.turn,
         "kind": step.kind,
@@ -1415,8 +1470,22 @@ def _turn_summary(step: LiveStep, result: dict[str, Any]) -> dict[str, Any]:
         "state_delta": _json_safe(_dict(result.get("state_delta"))),
         "remaining_budget": _json_safe(_dict(result.get("remaining_budget"))),
         "manager_rounds": _json_safe(_list(execution.get("manager_rounds"))),
+        "provider_invocation_summary": invocation_summary,
         "hard_fail_conditions": list(result.get("hard_fail_conditions") or []),
         "runtime_error": None,
+    }
+
+
+def _provider_invocation_summary(invocations: list[dict[str, Any]]) -> dict[str, Any]:
+    usage_records = [_dict(_dict(invocation).get("provider_trace")).get("usage") for invocation in invocations]
+    usage_dicts = [_dict(usage) for usage in usage_records]
+    return {
+        "provider_invocation_count": len(invocations),
+        "provider_invocation_latency_ms": sum(int(_dict(item).get("latency_ms") or 0) for item in invocations),
+        "prompt_tokens": sum(_usage_prompt_tokens(usage) for usage in usage_dicts),
+        "completion_tokens": sum(_usage_completion_tokens(usage) for usage in usage_dicts),
+        "cached_tokens": sum(_cached_tokens_from_usage(usage) or 0 for usage in usage_dicts),
+        "cache_reporting_call_count": sum(1 for usage in usage_dicts if _cached_tokens_from_usage(usage) is not None),
     }
 
 
@@ -2026,6 +2095,44 @@ def _has_tool_result(user_payload: dict[str, Any], tool_name: str) -> bool:
 def _optional_string(value: Any) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return None
+        try:
+            return int(stripped)
+        except ValueError:
+            return None
+    return None
+
+
+def _usage_prompt_tokens(usage: dict[str, Any]) -> int:
+    return int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
+
+
+def _usage_completion_tokens(usage: dict[str, Any]) -> int:
+    return int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
+
+
+def _cached_tokens_from_usage(usage: dict[str, Any]) -> int | None:
+    prompt_details = usage.get("prompt_tokens_details")
+    if isinstance(prompt_details, dict) and "cached_tokens" in prompt_details:
+        return int(prompt_details.get("cached_tokens") or 0)
+    input_details = usage.get("input_tokens_details")
+    if isinstance(input_details, dict) and "cached_tokens" in input_details:
+        return int(input_details.get("cached_tokens") or 0)
+    if "cached_tokens" in usage:
+        return int(usage.get("cached_tokens") or 0)
+    return None
 
 
 def _json_safe(value: Any) -> Any:
