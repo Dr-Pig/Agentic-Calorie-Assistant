@@ -163,7 +163,7 @@ The cost summary must preserve:
 
 - `billing_truth_source=provider_reported_artifact_fields_only`
 - `cost_unavailable_without_pricing=true` when token usage exists but no provider-reported cost field is present
-- `pricing_table_applied=false`
+- no repo-local pricing table override
 
 Do not infer paid cost from tokens inside this repo. Do not stage generated cost summary artifacts as repo truth.
 
@@ -281,13 +281,13 @@ Blocked optional browser evidence is allowed for local review artifacts, but it 
 Non-FoodDB Manager tool diagnostics remain app-state only and must not use FoodDB/WebSearch evidence.
 `manager_tool_surface_inventory`, `non_fooddb_manager_tool_contract`, `manager_tool_choice_regression_wall`, `context_conditioned_intent_wall`, `non_fooddb_read_only_tool_loop_fake_smoke`, and `non_fooddb_mutation_tool_guard_smoke` must prove the Manager can choose among budget/body/calibration/app-help tool postures without deterministic raw-text routing, FoodDB/WebSearch usage, runtime nutrition truth changes, or UI semantic ownership.
 
-The `context_live_diagnostic_case_matrix` evidence must be generated before any Stage 4 or Stage 5 live diagnostic. It is a plan-only anti-overfit gate: live probes must select from the fixed matrix instead of ad hoc easy cases. The matrix must keep `plan_only=true`, `live_llm_invoked=false`, `live_provider_invoked=false`, `fooddb_used=false`, `mutation_changed=false`, and `manager_context_packet_schema_changed=false`.
+The `context_live_diagnostic_case_matrix` evidence must be generated before any Stage 4 or Stage 5 live diagnostic. It is a plan-only anti-overfit gate: live probes must select from the fixed matrix instead of ad hoc easy cases. The matrix must remain offline planning evidence only: no live LLM/provider invocation, no FoodDB usage, no mutation change, and no ManagerContextPacket schema change.
 
 The matrix must include at least one compound log-and-modify case. Missing matrix evidence, provider-invoked matrix evidence, FoodDB-backed matrix evidence, or a matrix with too few cases keeps the selected option at `stay_local_self_use`.
 
-The `context_live_diagnostic_holdout_plan` evidence must prove the fixed live diagnostic matrix has withheld holdout utterance variants that are not used as default provider prompts. It must keep `plan_only=true`, `live_llm_invoked=false`, `live_provider_invoked=false`, `ad_hoc_live_case_selection_allowed=false`, `provider_optimized_case_selection_allowed=false`, `fooddb_used=false`, `mutation_changed=false`, and `manager_context_packet_schema_changed=false`.
+The `context_live_diagnostic_holdout_plan` evidence must prove the fixed live diagnostic matrix has withheld holdout utterance variants that are not used as default provider prompts. It must stay offline planning evidence only: no live LLM/provider invocation, no ad hoc or provider-optimized case selection, no FoodDB usage, no mutation change, and no ManagerContextPacket schema change.
 
-The `context_live_diagnostic_gate` evidence must be generated in no-live mode before this pre-live pack can select `ready_for_human_limited_live_canary_decision`. A gate artifact with `live_llm_invoked=true`, `live_provider_invoked=true`, `live_provider_allowed=true`, ad hoc live-case selection, missing anti-overfit evidence, missing holdout-plan evidence, missing response-contract dry-run evidence, FoodDB/WebSearch usage, mutation changes, or ManagerContextPacket schema changes keeps the selected option at `stay_local_self_use`.
+The `context_live_diagnostic_gate` evidence must be generated in no-live mode before this pre-live pack can select `ready_for_human_limited_live_canary_decision`. If the gate shows actual live invocation, allows ad hoc case selection, lacks the anti-overfit or holdout evidence, skips the response-contract dry-run, uses FoodDB/WebSearch, mutates runtime state, or changes the ManagerContextPacket schema, the selected option stays `stay_local_self_use`.
 
 The pre-live pack does not require `context_live_diagnostic_stage_gate`. That artifact is generated only after human approval when a live probe actually runs, and it exists to enforce single-case before full-matrix live order rather than to unblock pre-live local self-use review.
 

@@ -35,7 +35,7 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "`context_live_diagnostic_case_matrix`",
         "plan-only anti-overfit gate",
         "fixed matrix instead of ad hoc easy cases",
-        "plan_only=true",
+        "The matrix must remain offline planning evidence only",
         "compound log-and-modify case",
         "stay_local_self_use",
         "python scripts/run_accurate_intake_mvp_live_diagnostic.py --stage provider_health_smoke",
