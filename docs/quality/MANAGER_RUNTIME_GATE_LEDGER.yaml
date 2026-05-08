@@ -173,7 +173,7 @@ gates:
       - rt10a_nutrition_estimate_quality_deterministic
   - gate_id: rt11_final_response_quality
     title: Final response presentation quality wall
-    status: pending
+    status: green
     pass_type: fixture
     depends_on:
       - rt7_clarify_commit_correction_closure
