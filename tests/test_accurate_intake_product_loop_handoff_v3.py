@@ -11,6 +11,7 @@ from scripts.build_accurate_intake_product_loop_handoff_v3 import (
 def _product_loop_evidence(**overrides: dict) -> dict:
     evidence = {
         "browser_shell_smoke": {"status": "pass", "browser_executed": True},
+        "local_web_candidate": _local_web_candidate(),
         "browser_fixture_dogfood": {
             "status": "browser_fixture_pass",
             "fixture_evidence_used": True,
@@ -30,6 +31,33 @@ def _product_loop_evidence(**overrides: dict) -> dict:
     }
     evidence.update(overrides)
     return evidence
+
+
+def _local_web_candidate(**chain_overrides: object) -> dict:
+    chain = {
+        "browser_artifact_count": 6,
+        "browser_executed_count": 6,
+        "all_required_browser_artifacts_executed": True,
+        "product_pages_self_use_flow_checked": True,
+        "today_macro_runtime_mirror_checked": True,
+        "renderer_source_closure_checked": True,
+        "context_target_browser_closure_checked": True,
+        "body_noplan_degraded_checked": True,
+        "live_llm_invoked": False,
+        "fooddb_evidence_used": False,
+        "websearch_evidence_used": False,
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "frontend_semantic_owner": False,
+    }
+    chain.update(chain_overrides)
+    return {
+        "local_web_self_use_candidate_v2": {
+            "candidate_prepared": True,
+            "blockers": [],
+            "appshell_browser_evidence_chain": chain,
+        }
+    }
 
 
 def _fooddb_artifact(
@@ -60,6 +88,53 @@ def test_handoff_missing_fooddb_artifact_waits_without_claiming_real_pass() -> N
     assert pack["dogfood_pass"] is False
     assert pack["product_readiness_claimed"] is False
     assert pack["shared_contract_changed"] is False
+    assert pack["product_loop_evidence_status"]["local_web_candidate"]["status"] == (
+        "candidate_prepared"
+    )
+    assert pack["appshell_browser_evidence_chain"]["browser_artifact_count"] == 6
+    assert pack["appshell_browser_evidence_chain"]["all_required_browser_artifacts_executed"] is True
+    assert pack["appshell_browser_evidence_chain"]["live_llm_invoked"] is False
+    assert pack["appshell_browser_evidence_chain"]["fooddb_evidence_used"] is False
+    assert pack["appshell_browser_evidence_chain"]["websearch_evidence_used"] is False
+
+
+def test_handoff_blocks_missing_or_stale_local_web_candidate() -> None:
+    missing = build_product_loop_handoff_v3(
+        _product_loop_evidence(local_web_candidate={})
+    )
+    assert missing["status"] == "blocked"
+    assert "missing_product_loop_evidence:local_web_candidate" in missing["blockers"]
+
+    stale = build_product_loop_handoff_v3(
+        _product_loop_evidence(
+            local_web_candidate=_local_web_candidate(
+                browser_executed_count=5,
+                context_target_browser_closure_checked=False,
+            )
+        )
+    )
+    assert stale["status"] == "blocked"
+    assert "local_web_candidate_browser_artifact_count_mismatch" in stale["blockers"]
+    assert "local_web_candidate_context_target_browser_closure_missing" in stale["blockers"]
+
+
+def test_handoff_blocks_local_web_candidate_live_or_fooddb_overclaims() -> None:
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(
+            local_web_candidate=_local_web_candidate(
+                live_llm_invoked=True,
+                fooddb_evidence_used=True,
+                websearch_evidence_used=True,
+                frontend_semantic_owner=True,
+            )
+        )
+    )
+
+    assert pack["status"] == "blocked"
+    assert "local_web_candidate_live_llm_invoked" in pack["blockers"]
+    assert "local_web_candidate_fooddb_evidence_used" in pack["blockers"]
+    assert "local_web_candidate_websearch_evidence_used" in pack["blockers"]
+    assert "local_web_candidate_frontend_semantic_owner" in pack["blockers"]
 
 
 def test_handoff_fixture_fooddb_artifact_still_does_not_claim_real_fooddb_pass() -> None:
@@ -161,6 +236,7 @@ def test_handoff_runbook_documents_validation_only_gate() -> None:
     )
 
     assert "build_accurate_intake_product_loop_handoff_v3.py" in runbook
+    assert "--local-web-candidate artifacts/accurate_intake_local_web_self_use_candidate_v2.json" in runbook
     assert "ready_for_fdb_integration=false" in runbook
     assert "blocked_waiting_for_fdb_artifact" in runbook
     assert "Invalid FoodDB metadata blocks the gate" in runbook
