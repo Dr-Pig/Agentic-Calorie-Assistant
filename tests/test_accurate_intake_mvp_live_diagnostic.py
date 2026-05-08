@@ -139,6 +139,11 @@ def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tm
     assert all(case["case_contract_status"] in {"strict_pass", "repaired_pass", "fail", "timeout"} for case in report["cases"])
     assert all(case["runner_inferred_semantics"] is False for case in report["cases"])
     assert all(case["raw_text_routing_used"] is False for case in report["cases"])
+    for case in report["cases"]:
+        for turn in case["turns"]:
+            assert "coach_message" in turn
+            assert "show_macro" in turn
+            assert "macro_guard_reason" in turn
     assert report["summary"]["case_count"] == len(report["cases"])
     assert report["summary"]["strict_pass_count"] + report["summary"]["repaired_pass_count"] + report["summary"][
         "contract_fail_count"
