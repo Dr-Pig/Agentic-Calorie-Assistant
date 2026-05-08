@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.shared.contracts.readiness_claim import build_readiness_claim
-from scripts.build_accurate_intake_mvp_live_stage_manifest import (
+from app.shared.contracts.readiness_claim import build_readiness_claim  # noqa: E402
+from scripts.build_accurate_intake_mvp_live_stage_manifest import (  # noqa: E402
     DEFAULT_OUTPUT_DIR,
     REQUIRED_SINGLE_CASE_IDS,
     REQUIRED_STAGE_IDS,
@@ -21,6 +21,7 @@ from scripts.build_accurate_intake_mvp_live_stage_manifest import (
 
 
 DEFAULT_STAGE_MANIFEST_ARTIFACT = ROOT / "artifacts" / "accurate_intake_mvp_live_stage_manifest.json"
+MINIMUM_STRICT_REPLAY_RUNS_FOR_STAGED_LIVE_WINDOW = 1
 MINIMUM_STRICT_REPLAY_RUNS_FOR_PRIVATE_SELF_USE_CANDIDATE = 3
 
 _FORBIDDEN_TRUE_FLAGS = (
@@ -50,6 +51,9 @@ def build_accurate_intake_offline_shadow_replay(stage_manifest_artifacts: list[d
             "input_integrity": input_integrity,
             "summary": summary,
             "strictness_gate": {
+                "minimum_strict_replay_runs_for_staged_live_window": (
+                    MINIMUM_STRICT_REPLAY_RUNS_FOR_STAGED_LIVE_WINDOW
+                ),
                 "minimum_strict_replay_runs": MINIMUM_STRICT_REPLAY_RUNS_FOR_PRIVATE_SELF_USE_CANDIDATE,
                 "single_live_run_unlocks_private_self_use": False,
                 "pass_after_retry_counts_as_strict": False,
@@ -238,7 +242,7 @@ def _summary(runs: list[dict[str, Any]], *, input_integrity: dict[str, Any]) -> 
     )
     strict_replay_ready = (
         input_integrity.get("passed") is True
-        and sample_run_count >= MINIMUM_STRICT_REPLAY_RUNS_FOR_PRIVATE_SELF_USE_CANDIDATE
+        and sample_run_count >= MINIMUM_STRICT_REPLAY_RUNS_FOR_STAGED_LIVE_WINDOW
         and all_runs_strict_first_attempt
         and pass_after_retry_count == 0
         and timeout_count == 0
@@ -255,7 +259,10 @@ def _summary(runs: list[dict[str, Any]], *, input_integrity: dict[str, Any]) -> 
         and full_suite_failed_count == 0
     )
     single_profile_stability = (
-        strict_replay_ready and len(profile_ids) <= 1 and len(models) <= 1
+        strict_replay_ready
+        and sample_run_count >= MINIMUM_STRICT_REPLAY_RUNS_FOR_PRIVATE_SELF_USE_CANDIDATE
+        and len(profile_ids) <= 1
+        and len(models) <= 1
     )
     model_diversity_missing = len(profile_ids) <= 1 and len(models) <= 1
     if model_diversity_missing:
@@ -291,6 +298,9 @@ def _summary(runs: list[dict[str, Any]], *, input_integrity: dict[str, Any]) -> 
         "max_model_claim": max_model_claim,
         "all_runs_strict_first_attempt": all_runs_strict_first_attempt,
         "strict_replay_ready": strict_replay_ready,
+        "minimum_strict_replay_runs_for_staged_live_window": (
+            MINIMUM_STRICT_REPLAY_RUNS_FOR_STAGED_LIVE_WINDOW
+        ),
         "single_profile_stability": single_profile_stability,
         "minimum_strict_replay_runs_for_private_self_use_candidate": (
             MINIMUM_STRICT_REPLAY_RUNS_FOR_PRIVATE_SELF_USE_CANDIDATE

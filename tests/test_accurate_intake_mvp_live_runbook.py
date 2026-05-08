@@ -21,6 +21,9 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "`full_suite_replay_ready`",
         "One strict full-suite artifact is diagnostic evidence only",
         "provider robustness matrix marks `model_inversion_evidence_passed`",
+        "One clean staged live window is enough to unlock the next diagnostic decision",
+        "Do not repeat the same staged window three times during early live probing",
+        "run latency root-cause attribution before running broader live suites",
         "--stage full_suite_live_diagnostic --offline-replay-artifact artifacts/accurate_intake_mvp_offline_shadow_replay.json",
         "offline_replay_required",
         "strict_pass_first_attempt",
@@ -99,6 +102,10 @@ def test_accurate_intake_live_diagnostic_runbook_records_staged_protocol() -> No
         "token counts are not billing truth",
         "set `cost_unavailable_without_pricing` when token usage exists but no provider-reported cost field is present",
         "billing_truth_source=provider_reported_artifact_fields_only",
+        "`latency_root_cause_hints`",
+        "`latency_optimization_priorities`",
+        "missing `cached_tokens` reporting is an optimization signal, not a live diagnostic failure",
+        "diagnostic failure boundaries, not acceptable product latency targets",
         "The upstream runtime gate source is `docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml`.",
     ]
 
