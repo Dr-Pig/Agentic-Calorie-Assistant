@@ -699,6 +699,78 @@ async def test_run_intake_manager_clears_guard_repair_constraints_after_tool_cal
 
 
 @pytest.mark.asyncio
+async def test_run_intake_manager_sends_compact_tool_results_to_provider_only() -> None:
+    provider = FakeLoopProvider(
+        [
+            {"manager_action": "call_tools", "tool_calls": [{"name": "estimate_nutrition", "arguments": {}}]},
+            {
+                "manager_action": "final",
+                "intent": "log_meal",
+                "final_action": "commit",
+                "workflow_effect": "commit",
+                "target_attachment": {"mode": "new_meal"},
+                "exactness": "estimated",
+                "confidence": "medium",
+                "evidence_posture": "tool_estimated",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "ok"},
+                "uncertainty_posture": "bounded",
+                "evidence_honesty_posture": "tool_estimated",
+            },
+        ]
+    )
+    full_tool_result = {
+        "tool_name": "estimate_nutrition",
+        "evidence": {
+            "nutrition_payload": {
+                "meal_title": "milk tea",
+                "estimated_kcal": 520,
+                "reply_text": "logged",
+                "trace_contract": {
+                    "canonical_write_decision": {"can_write_canonical": True},
+                    "db_hit_type": "generic",
+                    "web_runtime_trace": {"debug_blob": "x" * 10_000},
+                    "raw_candidates": ["not prompt input"] * 50,
+                },
+            }
+        },
+        "provenance": {
+            "correction_target": {"canonical_name": "milk tea", "debug_blob": "x" * 10_000},
+            "budget_summary": {"predicted_remaining_kcal_after": 900, "debug_blob": "x" * 10_000},
+            "macro_summary": {"show_macro": False, "macro_guard_reason": "hidden_missing_source"},
+            "evidence_summary": {"eligibility": "generic", "candidate_count": 1},
+        },
+        "confidence": "available",
+        "failure_family": None,
+    }
+
+    async def tool_executor(**_: object) -> list[dict[str, object]]:
+        return [full_tool_result]
+
+    result = await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="milk tea",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=("estimate_nutrition",),
+        tool_executor=tool_executor,
+        constraints={"request_id": "req-compact-tool-result"},
+    )
+
+    prompt_tool_result = provider.calls[1]["user_payload"]["tool_results"][0]
+    prompt_nutrition = prompt_tool_result["evidence"]["nutrition_payload"]
+    assert prompt_tool_result["prompt_payload_kind"] == "manager_tool_result_prompt_compact"
+    assert prompt_nutrition["estimated_kcal"] == 520
+    assert prompt_nutrition["trace_contract"] == {
+        "db_hit_type": "generic",
+        "canonical_write_decision": {"can_write_canonical": True},
+    }
+    assert "web_runtime_trace" not in str(prompt_tool_result)
+    assert "raw_candidates" not in str(prompt_tool_result)
+    assert "debug_blob" not in str(prompt_tool_result)
+    assert result.tool_results[0]["evidence"]["nutrition_payload"]["trace_contract"]["web_runtime_trace"]["debug_blob"]
+
+
+@pytest.mark.asyncio
 async def test_run_intake_manager_max_rounds_is_hard_failure() -> None:
     provider = FakeLoopProvider([])
 
