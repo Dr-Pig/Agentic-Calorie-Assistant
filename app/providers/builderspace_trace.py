@@ -198,12 +198,18 @@ def build_prompt_cache_request_identity(request_payload: dict[str, Any]) -> dict
         "response_format": request_payload.get("response_format"),
         "system_messages": system_messages,
     }
+    stable_prefix_component_sha256 = {
+        "tools": _sha256_json(stable_prefix["tools"]),
+        "response_format": _sha256_json(stable_prefix["response_format"]),
+        "system_messages": _sha256_json(stable_prefix["system_messages"]),
+    }
     dynamic_suffix = {"user_messages": user_messages}
     return {
         "identity_version": "provider_prompt_cache_request.v1",
         "cacheable_prefix_component_order": ["tools", "response_format", "system_message"],
         "dynamic_suffix_component_order": ["user_messages"],
         "stable_prefix_sha256": _sha256_json(stable_prefix),
+        "stable_prefix_component_sha256": stable_prefix_component_sha256,
         "dynamic_suffix_sha256": _sha256_json(dynamic_suffix),
         "provider_request_includes_prompt_cache_key": "prompt_cache_key" in request_payload,
         "prompt_cache_key": request_payload.get("prompt_cache_key"),

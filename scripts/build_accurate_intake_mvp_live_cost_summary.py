@@ -264,6 +264,9 @@ def _provider_invocation_records(invocations: list[dict[str, Any]], *, source_in
                 "prompt_cache_stable_prefix_sha256": _optional_string(
                     prompt_cache_request.get("stable_prefix_sha256")
                 ),
+                "prompt_cache_stable_prefix_component_sha256": _dict(
+                    prompt_cache_request.get("stable_prefix_component_sha256")
+                ),
                 "prompt_cache_dynamic_suffix_sha256": _optional_string(
                     prompt_cache_request.get("dynamic_suffix_sha256")
                 ),
