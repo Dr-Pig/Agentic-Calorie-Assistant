@@ -106,8 +106,8 @@ def test_clarify_commit_correction_same_truth_gate_accepts_rt7_green_browser_tru
     assert artifact["summary"]["upstream_gate_green"] is True
     assert artifact["summary"]["target_candidate_count_rendered"] == 2
     assert artifact["summary"]["completed_fixture_step_count"] == 8
-    assert artifact["product_readiness_claimed"] is False
-    assert artifact["private_self_use_approved"] is False
+    assert "product_readiness_claimed" not in artifact
+    assert "private_self_use_approved" not in artifact
 
 
 def test_clarify_commit_correction_same_truth_gate_blocks_when_rt7_not_green() -> None:
