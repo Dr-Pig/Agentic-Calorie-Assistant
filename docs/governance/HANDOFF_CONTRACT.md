@@ -8,7 +8,7 @@ Routine local execution should not require a handoff document. Default execution
 
 1. `git diff / commit history`
 2. CI and harness output
-3. the minimal active state in [CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md)
+3. the minimal active state in [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md) when a written execution-state snapshot is needed
 
 ## When A Handoff Is Worth Writing
 
@@ -53,7 +53,7 @@ Suggested fields:
 
 - use git for the primary change record
 - use harness output for verification truth
-- use [CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md) for the active execution board
+- use [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md) for active current-shell execution state when a written board is needed
 - use this handoff contract only when an explicit transfer record is actually needed
 
 ## Locations

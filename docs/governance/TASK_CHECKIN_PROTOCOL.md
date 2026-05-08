@@ -8,7 +8,7 @@ It no longer governs the default day-to-day execution record. The repository's d
 
 1. `git diff / commit history`
 2. CI and harness output
-3. the minimal active state in [CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md)
+3. the minimal active state in [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md) when a written execution-state snapshot is needed
 
 Use a task artifact only when the task shape benefits from a separate written record.
 
@@ -68,12 +68,12 @@ The check-in concept remains valid, but it is now harness-first:
 
 1. run the required harness
 2. inspect the resulting diff and verification outcome
-3. update [CURRENT_EXECUTION_PLAN.md](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/docs/exec-plans/active/CURRENT_EXECUTION_PLAN.md) only if the active execution state changed
+3. update [docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/docs/quality/ACCURATE_INTAKE_PARALLEL_TRACKS_STATUS.md) only if the active execution state changed at track level
 4. write a task artifact only if the task meets the exception criteria above
 
 ## Script Status
 
-- [`scripts/check_task_checkin_and_handoff.ps1`](/C:/Users/User/Documents/Playground/line-liff-calorie-helper-text-meal-canary-main/scripts/check_task_checkin_and_handoff.ps1) is now an advisory compatibility audit
+- [`scripts/check_task_checkin_and_handoff.ps1`](/C:/Users/User/Documents/Playground/Agentic-Calorie-Assistant/scripts/check_task_checkin_and_handoff.ps1) is now an advisory compatibility audit
 - it no longer acts as the default blocking governance gate in CI or pre-commit
 - use it only when intentionally validating legacy task/handoff artifacts
 
