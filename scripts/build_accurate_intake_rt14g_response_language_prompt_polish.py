@@ -38,6 +38,7 @@ def build_rt14g_response_language_prompt_polish_artifact(
         _debug_surface_suppression_case(),
         _macro_visibility_policy_case(),
         _blocking_followup_policy_case(),
+        _no_plan_budget_honesty_policy_case(),
         _prompt_cache_static_prefix_policy_case(),
     ]
     blockers = [f"{case['case_id']}.{blocker}" for case in cases for blocker in case["blockers"]]
@@ -127,10 +128,20 @@ def _blocking_followup_policy_case() -> dict[str, Any]:
     return _case("blocking_followup_policy", _missing(required), {"required_markers": list(required)})
 
 
+def _no_plan_budget_honesty_policy_case() -> dict[str, Any]:
+    required = (
+        "When there is no active plan or the read model has no daily target",
+        "do not describe missing target or remaining budget as 0",
+        "daily_target_kcal or remaining_kcal is null",
+        "answer consumed/logged state only from read-model facts",
+    )
+    return _case("no_plan_budget_honesty_policy", _missing(required), {"required_markers": list(required)})
+
+
 def _prompt_cache_static_prefix_policy_case() -> dict[str, Any]:
     blockers: list[str] = []
-    if SINGLE_MANAGER_SYSTEM_PROMPT_VERSION != "v5":
-        blockers.append("system_prompt_version_not_v5")
+    if SINGLE_MANAGER_SYSTEM_PROMPT_VERSION != "v6":
+        blockers.append("system_prompt_version_not_v6")
     if not _dynamic_request_markers_absent():
         blockers.append("dynamic_request_marker_in_system_prompt")
     if "User-facing reply policy:" not in SINGLE_MANAGER_SYSTEM_PROMPT:

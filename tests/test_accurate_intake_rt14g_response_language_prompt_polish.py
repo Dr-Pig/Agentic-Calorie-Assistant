@@ -21,9 +21,9 @@ def test_rt14g_prompt_polish_contract_passes() -> None:
     assert artifact["runtime_backed"] is False
     assert artifact["live_llm_invoked"] is False
     assert artifact["summary"] == {
-        "case_count": 5,
-        "passed_case_count": 5,
-        "system_prompt_version": "v5",
+        "case_count": 6,
+        "passed_case_count": 6,
+        "system_prompt_version": "v6",
         "prompt_cache_safe_static_policy": True,
     }
 
@@ -36,6 +36,7 @@ def test_rt14g_prompt_policy_is_user_visible_not_trace_visible() -> None:
     assert by_id["debug_surface_suppression_policy"]["status"] == "pass"
     assert by_id["macro_visibility_policy"]["status"] == "pass"
     assert by_id["blocking_followup_policy"]["status"] == "pass"
+    assert by_id["no_plan_budget_honesty_policy"]["status"] == "pass"
 
 
 def test_rt14g_prompt_policy_preserves_prompt_cache_static_prefix_boundary() -> None:

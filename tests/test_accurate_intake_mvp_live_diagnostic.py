@@ -400,6 +400,53 @@ def test_accurate_intake_live_trace_expectation_marks_entry_tool_call_as_ideal_t
     assert grade["ideal_targets"][0]["target_id"] == "entry_routes_without_intake_tool_call"
 
 
+def test_accurate_intake_live_trace_expectation_catches_no_plan_zero_budget_reply() -> None:
+    from app.composition.accurate_intake_live_trace_expectations import grade_live_trace_expectations
+
+    case = {
+        "case_id": "no_plan_consumed_without_budget_target",
+        "provider_invocations": [
+            {
+                "provider_trace": {
+                    "parsed_object": {
+                        "answer_contract": {
+                            "reply_text": "今天已消耗 0 卡路里，但預算為 0 卡路里，剩餘 0 卡路里。"
+                        }
+                    }
+                }
+            }
+        ],
+        "turns": [
+            {
+                "turn": 1,
+                "workflow_effect": "answer_only",
+                "state_delta": {"canonical_commit": False, "ledger_updated": False},
+                "remaining_budget": {
+                    "status": "onboarding_required",
+                    "daily_target_kcal": None,
+                    "remaining_kcal": None,
+                    "consumed_kcal": 0,
+                },
+                "manager_rounds": [
+                    {
+                        "decision": {
+                            "answer_contract": {
+                                "reply_text": "今天已消耗 0 卡路里，但預算為 0 卡路里，剩餘 0 卡路里。"
+                            }
+                        }
+                    }
+                ],
+            }
+        ],
+    }
+
+    grade = grade_live_trace_expectations(case)
+
+    assert grade["required_status"] == "fail"
+    checks = {check["check_id"]: check for check in grade["checks"]}
+    assert checks["no_plan_reply_does_not_claim_zero_budget_or_remaining"]["status"] == "fail"
+
+
 def test_accurate_intake_live_single_case_probe_supports_turn_limit(tmp_path: Path) -> None:
     module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
 
