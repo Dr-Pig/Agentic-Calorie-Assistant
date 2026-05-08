@@ -134,6 +134,14 @@ def _clean_evidence() -> dict:
             "current_shell_sync_contract_source": "docs/quality/CURRENT_SHELL_SYNC_CONTRACT.yaml",
             "manager_runtime_gate_ledger_source": "docs/quality/MANAGER_RUNTIME_GATE_LEDGER.yaml",
             "appshell_claim_boundary": _ready_claim_boundary(),
+            "summary": {
+                "today_macro_runtime_mirror_checked": True,
+                "renderer_source_closure_checked": True,
+                "context_target_browser_closure_checked": True,
+                "body_noplan_degraded_checked": True,
+                "fixture_product_loop_steps_checked": 10,
+                "strongest_consumed_pass_type": "browser_executed",
+            },
         },
         "ui_context_alignment_pack": {"status": "ui_context_alignment_ready_for_human_review", "source": "test"},
         "today_macro_mirror_gate": _ready_today_macro_mirror_gate(),
@@ -149,6 +157,13 @@ def _clean_evidence() -> dict:
             "appshell_claim_boundary": _ready_claim_boundary(),
             "all_required_browser_artifacts_executed": True,
             "browser_executed_required": True,
+            "summary": {
+                "browser_artifact_count": 6,
+                "browser_executed_count": 6,
+                "requires_product_pages_self_use_flow_gate": True,
+                "self_use_flow_gate_checked": True,
+                "self_use_flow_gate_strongest_pass_type": "browser_executed",
+            },
         },
         "manager_tool_surface_inventory": {
             "status": "manager_tool_surface_inventory_ready_for_human_review",
@@ -272,6 +287,37 @@ def test_candidate_prepared_when_all_clean() -> None:
     pack = build_local_web_self_use_candidate_v2(evidence)
     assert pack["local_web_self_use_candidate_v2"]["candidate_prepared"] is True
     assert pack["local_web_self_use_candidate_v2"]["blockers"] == []
+
+
+def test_candidate_summarizes_appshell_browser_evidence_chain() -> None:
+    evidence = _clean_evidence()
+    pack = build_local_web_self_use_candidate_v2(evidence)
+    chain = pack["local_web_self_use_candidate_v2"]["appshell_browser_evidence_chain"]
+
+    assert chain["product_pages_self_use_flow_status"] == (
+        "product_pages_self_use_flow_ready_for_human_review"
+    )
+    assert chain["browser_activation_status"] == (
+        "browser_activation_evidence_ready_for_human_review"
+    )
+    assert chain["claim_boundary_status"] == "ready_for_runtime_and_browser_claims"
+    assert chain["runtime_backed_claim_ready"] is True
+    assert chain["browser_executed_claim_ready"] is True
+    assert chain["browser_artifact_count"] == 6
+    assert chain["browser_executed_count"] == 6
+    assert chain["all_required_browser_artifacts_executed"] is True
+    assert chain["product_pages_self_use_flow_checked"] is True
+    assert chain["self_use_flow_gate_strongest_pass_type"] == "browser_executed"
+    assert chain["today_macro_runtime_mirror_checked"] is True
+    assert chain["renderer_source_closure_checked"] is True
+    assert chain["context_target_browser_closure_checked"] is True
+    assert chain["body_noplan_degraded_checked"] is True
+    assert chain["live_llm_invoked"] is False
+    assert chain["fooddb_evidence_used"] is False
+    assert chain["websearch_evidence_used"] is False
+    assert chain["runtime_truth_changed"] is False
+    assert chain["mutation_changed"] is False
+    assert chain["frontend_semantic_owner"] is False
 
 
 def test_candidate_prepared_with_legacy_current_shell_local_review_alias() -> None:

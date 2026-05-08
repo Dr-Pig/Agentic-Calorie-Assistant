@@ -5,11 +5,20 @@ import json
 from typing import Any
 
 from app.composition.accurate_intake_current_shell_claim_boundary import build_current_shell_appshell_claim_boundary_fields
+from app.composition.current_shell_browser_activation_contract import (
+    BROWSER_ARTIFACTS,
+    EXPECTED_ARTIFACT_TYPES,
+    EXPECTED_SMOKE_IDS,
+    EXPECTED_STATUSES,
+    FORBIDDEN_TRUTHY_FLAGS,
+    REQUIRED_INPUTS,
+    REQUIRED_PRODUCT_LOOP_STEPS,
+    REQUIRED_SELF_USE_FLOW_SUMMARY_FLAGS,
+    REQUIRED_TRUE_FLAGS,
+)
 from app.composition.current_shell_compatibility_ids import (
     CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
-    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE,
     CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
-    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS,
     LEGACY_BROWSER_ACTIVATION_ARTIFACT_TYPES,
     LEGACY_LOCAL_MVP_ARTIFACT_TYPES,
     LEGACY_LOCAL_MVP_GROUP_IDS,
@@ -17,175 +26,6 @@ from app.composition.current_shell_compatibility_ids import (
     matches_alias,
     set_legacy_alias_metadata,
 )
-
-REQUIRED_INPUTS = (
-    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
-    "product_pages_browser_smoke",
-    "product_pages_seven_day_diary_smoke",
-    "product_pages_short_term_context_smoke",
-    "product_pages_target_candidate_ui_smoke",
-    "product_pages_visual_qa",
-    "fixture_full_product_loop_e2e",
-)
-
-EXPECTED_STATUSES = {
-    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: (
-        CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_READY_STATUS
-    ),
-    "product_pages_browser_smoke": "pass",
-    "product_pages_seven_day_diary_smoke": "pass",
-    "product_pages_short_term_context_smoke": "pass",
-    "product_pages_target_candidate_ui_smoke": "pass",
-    "product_pages_visual_qa": "pass",
-    "fixture_full_product_loop_e2e": "fixture_product_loop_e2e_diagnostic_pass",
-}
-
-EXPECTED_ARTIFACT_TYPES = {
-    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: (
-        CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_ARTIFACT_TYPE
-    ),
-    "product_pages_visual_qa": "accurate_intake_product_pages_visual_qa",
-    "fixture_full_product_loop_e2e": "accurate_intake_fixture_full_product_loop_e2e",
-}
-
-EXPECTED_SMOKE_IDS = {
-    "product_pages_browser_smoke": "accurate_intake_product_pages_browser_smoke_v1",
-    "product_pages_seven_day_diary_smoke": "accurate_intake_product_pages_seven_day_diary_smoke_v1",
-    "product_pages_short_term_context_smoke": "accurate_intake_product_pages_short_term_context_smoke_v1",
-    "product_pages_target_candidate_ui_smoke": "accurate_intake_product_pages_target_candidate_ui_smoke_v1",
-}
-
-BROWSER_ARTIFACTS = (
-    "product_pages_browser_smoke",
-    "product_pages_seven_day_diary_smoke",
-    "product_pages_short_term_context_smoke",
-    "product_pages_target_candidate_ui_smoke",
-    "product_pages_visual_qa",
-)
-
-REQUIRED_PRODUCT_LOOP_STEPS = (
-    "target_update",
-    "food_log",
-    "listed_basket_commit",
-    "correction",
-    "removal",
-    "remaining_query",
-    "reload_continuity",
-    "browser_render_same_truth",
-    "context_replay",
-    "fake_provider_context_smoke",
-)
-
-FORBIDDEN_TRUTHY_FLAGS = (
-    "ready_for_live_diagnostic_decision",
-    "ready_for_fdb_integration",
-    "live_llm_invoked",
-    "live_provider_called",
-    "web_tavily_used",
-    "web_tavily_invoked",
-    "websearch_evidence_used",
-    "fooddb_evidence_used",
-    "fooddb_truth_updated",
-    "real_fooddb_pass_claimed",
-    "dogfood_pass",
-    "web_readiness_claimed",
-    "product_readiness_claimed",
-    "private_self_use_approved",
-    "production_db_used",
-    "manager_context_packet_schema_changed",
-    "runtime_truth_changed",
-    "mutation_changed",
-    "frontend_semantic_owner",
-    "frontend_selected_target",
-    "deterministic_semantic_inference_used",
-    "deterministic_selected_target",
-    "raw_text_intent_router_used",
-    "mutation_authority",
-    "forbidden_storage_used",
-)
-
-REQUIRED_TRUE_FLAGS = {
-    "product_pages_browser_smoke": (
-        "browser_executed",
-        "chat_page_loaded",
-        "chat_sent_cjk_message",
-        "chat_assistant_bubble_rendered",
-        "chat_history_reloaded",
-        "chat_scroll_behavior_checked",
-        "chat_reload_scroll_behavior_checked",
-        "today_page_loaded",
-        "today_date_switch_checked",
-        "today_summary_rendered",
-        "today_meal_list_rendered",
-        "body_page_loaded",
-        "body_active_plan_rendered",
-        "body_plan_readback_checked",
-        "body_plan_read_model_fields_rendered",
-        "body_latest_weight_rendered_from_backend",
-        "body_manual_target_read_model_rendered",
-        "today_manual_target_readback_checked",
-        "desktop_no_overflow",
-        "mobile_no_overflow",
-        "mobile_populated_state_checked",
-        "product_cjk_copy_rendered",
-        "nav_session_query_preserved",
-    ),
-    "product_pages_seven_day_diary_smoke": (
-        "browser_executed",
-        "seven_day_window_checked",
-        "per_day_diary_isolated",
-        "per_day_budget_values_checked",
-        "today_date_strip_checked",
-        "today_nav_date_preserved",
-        "today_chat_link_date_preserved",
-        "desktop_no_overflow",
-        "mobile_no_overflow",
-    ),
-    "product_pages_short_term_context_smoke": (
-        "browser_executed",
-        "browser_reload_checked",
-        "fixture_manager_used",
-        "pending_followup_created",
-        "pending_followup_reloaded",
-        "context_policy_version_present",
-        "loaded_context_summary_present",
-        "omitted_context_summary_present",
-        "pending_pins_present_after_followup",
-        "chat_history_context_fields_reloaded",
-        "chat_cjk_roundtrip_rendered",
-        "assistant_followup_bubble_rendered",
-        "assistant_commit_bubble_rendered",
-        "today_same_day_meal_rendered",
-        "today_summary_rendered",
-        "product_pages_no_debug_trace",
-    ),
-    "product_pages_target_candidate_ui_smoke": (
-        "browser_executed",
-        "browser_reload_checked",
-        "chat_page_loaded",
-        "chat_history_reloaded",
-        "target_candidate_surface_checked",
-        "target_candidate_list_read_only",
-        "context_strip_read_only",
-        "product_pages_no_debug_trace",
-    ),
-    "product_pages_visual_qa": (
-        "browser_executed",
-        "desktop_screenshots_captured",
-        "mobile_screenshots_captured",
-        "chat_surface_verified",
-        "today_surface_verified",
-        "body_surface_verified",
-        "three_distinct_pages_verified",
-        "desktop_no_overflow",
-        "mobile_no_overflow",
-        "visible_trace_debug_terms_absent",
-    ),
-    "fixture_full_product_loop_e2e": (
-        "fixture_evidence_used",
-    ),
-}
-
 
 def _json_safe(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False, default=str))
@@ -318,11 +158,30 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
                 )
         if _int_value(payload.get("manager_provider_call_count")) != 0:
             blockers.append("product_pages_target_candidate_ui_smoke.manager_provider_called")
+    if group_id == "product_pages_body_noplan_degraded_smoke":
+        body_values = _object_dict(payload.get("body_values"))
+        today_values = _object_dict(payload.get("today_values"))
+        for field in ("daily_target", "tdee", "active_target", "remaining"):
+            if str(body_values.get(field) or "") != "--":
+                blockers.append(f"product_pages_body_noplan_degraded_smoke.body_{field}_not_hidden")
+        for field in ("budget", "consumed", "remaining"):
+            if str(today_values.get(field) or "") != "0":
+                blockers.append(f"product_pages_body_noplan_degraded_smoke.today_{field}_not_zero")
     if group_id == "fixture_full_product_loop_e2e":
         completed_steps = {str(item) for item in _list_value(payload.get("completed_product_loop_steps"))}
         for required_step in REQUIRED_PRODUCT_LOOP_STEPS:
             if required_step not in completed_steps:
                 blockers.append(f"fixture_full_product_loop_e2e.completed_step_missing:{required_step}")
+    if group_id == "product_pages_self_use_flow_gate":
+        summary = _object_dict(payload.get("summary"))
+        for flag in REQUIRED_SELF_USE_FLOW_SUMMARY_FLAGS:
+            if summary.get(flag) is not True:
+                blocker_name = flag.removesuffix("_checked")
+                blockers.append(f"product_pages_self_use_flow_gate.{blocker_name}_not_checked")
+        if str(summary.get("strongest_consumed_pass_type") or "") != "browser_executed":
+            blockers.append("product_pages_self_use_flow_gate.strongest_pass_type_not_browser_executed")
+        if _int_value(summary.get("fixture_product_loop_steps_checked")) < len(REQUIRED_PRODUCT_LOOP_STEPS):
+            blockers.append("product_pages_self_use_flow_gate.fixture_product_loop_step_count_too_low")
     return blockers
 
 
@@ -366,6 +225,14 @@ def build_pl_ce_browser_activation_evidence_gate_artifact(
         blockers.extend(_group_specific_blockers(group_id, payload))
 
     all_browser_executed = all(inputs[group_id].get("browser_executed") is True for group_id in BROWSER_ARTIFACTS)
+    self_use_flow_summary = _object_dict(inputs["product_pages_self_use_flow_gate"].get("summary"))
+    self_use_flow_checked = (
+        inputs["product_pages_self_use_flow_gate"].get("status")
+        == EXPECTED_STATUSES["product_pages_self_use_flow_gate"]
+        and inputs["product_pages_self_use_flow_gate"].get("all_required_browser_artifacts_executed") is True
+        and all(self_use_flow_summary.get(flag) is True for flag in REQUIRED_SELF_USE_FLOW_SUMMARY_FLAGS)
+        and self_use_flow_summary.get("strongest_consumed_pass_type") == "browser_executed"
+    )
     status = "browser_activation_evidence_ready_for_human_review" if not blockers else "blocked"
     payload = {
             "artifact_schema_version": "1.0",
@@ -411,9 +278,16 @@ def build_pl_ce_browser_activation_evidence_gate_artifact(
                 "requires_seven_day_today_diary": True,
                 "requires_short_term_context_render": True,
                 "requires_target_candidate_ui": True,
+                "requires_body_noplan_degraded_browser": True,
                 "requires_fixture_full_product_loop_e2e": True,
+                "requires_product_pages_self_use_flow_gate": True,
                 "requires_visual_qa": True,
                 "requires_no_debug_trace_leak": True,
+                "self_use_flow_gate_checked": self_use_flow_checked,
+                "self_use_flow_gate_strongest_pass_type": self_use_flow_summary.get(
+                    "strongest_consumed_pass_type"
+                )
+                or "not_available",
                 "fixture_product_loop_step_count": len(
                     _list_value(inputs["fixture_full_product_loop_e2e"].get("completed_product_loop_steps"))
                 ),

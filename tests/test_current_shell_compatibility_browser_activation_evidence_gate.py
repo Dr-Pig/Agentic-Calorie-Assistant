@@ -5,6 +5,7 @@ from pathlib import Path
 
 from app.composition.current_shell_compatibility_ids import (
     CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
+    CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE,
 )
 
 from app.composition.accurate_intake_current_shell_claim_boundary import (
@@ -46,9 +47,14 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "today_summary_rendered": True,
             "today_meal_list_rendered": True,
             "body_active_plan_rendered": True,
+            "body_plan_form_saved": True,
             "body_plan_readback_checked": True,
             "body_plan_read_model_fields_rendered": True,
+            "body_budget_read_models_rendered": True,
+            "body_manual_target_saved": True,
+            "body_weight_checkin_saved": True,
             "body_latest_weight_rendered_from_backend": True,
+            "body_weight_history_date_scoped_readback": True,
             "body_manual_target_read_model_rendered": True,
             "body_plan_read_model_values": {
                 "daily_target": "1550 kcal",
@@ -59,7 +65,19 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "goal": "Lose weight",
                 "weight_history": "2026-05-05 | 70.4 kg",
             },
+            "body_budget_read_model_values": {
+                "active_target": "1550 kcal",
+                "consumed": "400 kcal",
+                "remaining": "1150 kcal",
+                "estimated_deficit": "269 kcal",
+                "effective_budget": "1550 kcal",
+                "weekly_progress": "400 kcal consumed",
+            },
             "today_manual_target_readback_checked": True,
+            "body_session_status_rendered": True,
+            "today_session_status_rendered": True,
+            "body_no_debug_trace": True,
+            "today_no_debug_trace": True,
             "desktop_no_overflow": True,
             "mobile_no_overflow": True,
             "mobile_populated_state_checked": True,
@@ -183,6 +201,41 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "product_readiness_claimed": False,
             "private_self_use_approved": False,
         },
+        "product_pages_body_noplan_degraded_smoke": {
+            "smoke_id": "accurate_intake_product_pages_body_noplan_degraded_smoke_v1",
+            "status": "pass",
+            "browser_executed": True,
+            "body_page_loaded": True,
+            "today_page_loaded": True,
+            "no_plan_body_status_rendered": True,
+            "body_targets_hidden_for_no_plan": True,
+            "body_budget_degraded_rendered": True,
+            "today_no_plan_budget_rendered": True,
+            "no_bootstrap_or_mutation_post": True,
+            "product_pages_no_debug_trace": True,
+            "body_values": {
+                "status": "Set up your body plan to see targets.",
+                "daily_target": "--",
+                "tdee": "--",
+                "active_target": "--",
+                "remaining": "--",
+            },
+            "today_values": {
+                "budget": "0",
+                "consumed": "0",
+                "remaining": "0",
+            },
+            "frontend_semantic_owner": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "production_db_used": False,
+            "web_readiness_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+        },
         "fixture_full_product_loop_e2e": {
             "artifact_type": "accurate_intake_fixture_full_product_loop_e2e",
             "status": "fixture_product_loop_e2e_diagnostic_pass",
@@ -214,6 +267,36 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "manager_context_packet_schema_changed": False,
             "frontend_semantic_owner": False,
         },
+        "product_pages_self_use_flow_gate": {
+            "artifact_type": CURRENT_SHELL_COMPATIBILITY_PRODUCT_PAGES_FLOW_ARTIFACT_TYPE,
+            "status": "product_pages_self_use_flow_ready_for_human_review",
+            "pass_type": "contract",
+            "all_required_browser_artifacts_executed": True,
+            "browser_executed_required": True,
+            "frontend_semantic_owner": False,
+            "runtime_truth_changed": False,
+            "mutation_changed": False,
+            "live_llm_invoked": False,
+            "web_tavily_used": False,
+            "fooddb_evidence_used": False,
+            "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "web_readiness_claimed": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "summary": {
+                "three_distinct_pages_verified": True,
+                "seven_day_diary_checked": True,
+                "short_term_context_checked": True,
+                "target_candidate_ui_checked": True,
+                "today_macro_runtime_mirror_checked": True,
+                "renderer_source_closure_checked": True,
+                "context_target_browser_closure_checked": True,
+                "body_noplan_degraded_checked": True,
+                "strongest_consumed_pass_type": "browser_executed",
+                "fixture_product_loop_steps_checked": 10,
+            },
+        },
     }
 
 
@@ -233,9 +316,13 @@ def test_browser_activation_gate_requires_real_browser_evidence_without_readines
     )
     assert artifact["browser_executed_required"] is True
     assert artifact["all_required_browser_artifacts_executed"] is True
-    assert artifact["summary"]["browser_artifact_count"] == 5
+    assert artifact["summary"]["browser_artifact_count"] == 6
     assert artifact["summary"]["requires_target_candidate_ui"] is True
     assert artifact["summary"]["requires_fixture_full_product_loop_e2e"] is True
+    assert artifact["summary"]["requires_body_noplan_degraded_browser"] is True
+    assert artifact["summary"]["requires_product_pages_self_use_flow_gate"] is True
+    assert artifact["summary"]["self_use_flow_gate_checked"] is True
+    assert artifact["summary"]["self_use_flow_gate_strongest_pass_type"] == "browser_executed"
     assert artifact["summary"]["fixture_product_loop_step_count"] == 10
     assert "ready_for_live_diagnostic_decision" not in artifact
     assert "ready_for_fdb_integration" not in artifact
@@ -328,6 +415,37 @@ def test_browser_activation_gate_blocks_missing_target_candidate_or_fixture_loop
     assert "fixture_full_product_loop_e2e.completed_step_missing:fake_provider_context_smoke" in artifact["blockers"]
 
 
+def test_browser_activation_gate_blocks_missing_self_use_flow_or_body_noplan_evidence() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_self_use_flow_gate"]["status"] = "blocked"
+    inputs["product_pages_self_use_flow_gate"]["summary"][  # type: ignore[index]
+        "context_target_browser_closure_checked"
+    ] = False
+    inputs["product_pages_self_use_flow_gate"]["summary"][  # type: ignore[index]
+        "strongest_consumed_pass_type"
+    ] = "contract"
+    inputs["product_pages_body_noplan_degraded_smoke"]["browser_executed"] = False
+    inputs["product_pages_body_noplan_degraded_smoke"]["body_values"][  # type: ignore[index]
+        "daily_target"
+    ] = "1550 kcal"
+
+    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "product_pages_self_use_flow_gate.unexpected_status:blocked" in artifact["blockers"]
+    assert (
+        "product_pages_self_use_flow_gate.context_target_browser_closure_not_checked"
+        in artifact["blockers"]
+    )
+    assert "product_pages_self_use_flow_gate.strongest_pass_type_not_browser_executed" in artifact["blockers"]
+    assert "product_pages_body_noplan_degraded_smoke.browser_not_executed" in artifact["blockers"]
+    assert (
+        "product_pages_body_noplan_degraded_smoke.body_daily_target_not_hidden"
+        in artifact["blockers"]
+    )
+    assert artifact["summary"]["self_use_flow_gate_checked"] is False
+
+
 def test_browser_activation_gate_blocks_stale_body_read_model_values() -> None:
     inputs = _valid_inputs()
     inputs["product_pages_browser_smoke"]["body_plan_read_model_values"] = {
@@ -366,7 +484,7 @@ def test_browser_activation_gate_accepts_browser_smoke_local_date_weight_history
 
 
 def test_browser_activation_gate_cli_writes_from_existing_artifacts(tmp_path: Path) -> None:
-    from scripts.build_accurate_intake_pl_ce_browser_activation_evidence_gate import main
+    from scripts.build_current_shell_compatibility_browser_activation_evidence_gate import main
 
     output_path = tmp_path / "browser-activation.json"
     args = ["--output", str(output_path)]
@@ -384,7 +502,7 @@ def test_browser_activation_gate_cli_writes_from_existing_artifacts(tmp_path: Pa
 
 
 def test_browser_activation_gate_cli_rejects_unknown_artifact_group(tmp_path: Path, capsys) -> None:
-    from scripts.build_accurate_intake_pl_ce_browser_activation_evidence_gate import main
+    from scripts.build_current_shell_compatibility_browser_activation_evidence_gate import main
 
     output_path = tmp_path / "browser-activation.json"
     exit_code = main(
@@ -406,6 +524,7 @@ def test_browser_activation_gate_cli_rejects_unknown_artifact_group(tmp_path: Pa
 def test_browser_activation_gate_source_stays_out_of_fooddb_websearch_live_boundaries() -> None:
     source_paths = [
         Path("app/composition/accurate_intake_pl_ce_browser_activation_evidence_gate.py"),
+        Path("scripts/build_current_shell_compatibility_browser_activation_evidence_gate.py"),
         Path("scripts/build_accurate_intake_pl_ce_browser_activation_evidence_gate.py"),
     ]
     forbidden = [
@@ -432,8 +551,11 @@ def test_ci_keeps_browser_activation_evidence_gate_out_of_required_merge_path() 
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
     assert "product-pages-browser-e2e" in workflow
+    assert "tests/test_current_shell_compatibility_browser_activation_evidence_gate.py" in workflow
+    assert "tests/test_accurate_intake_pl_ce_browser_activation_evidence_gate.py" not in workflow
     assert "run_accurate_intake_product_pages_short_term_context_smoke.py --require-browser-execution" in workflow
     assert "run_accurate_intake_product_pages_target_candidate_ui_smoke.py --require-browser-execution" in workflow
     assert "run_accurate_intake_fixture_full_product_loop_e2e.py --require-browser-execution" not in workflow
     assert "build_accurate_intake_pl_ce_browser_activation_evidence_gate.py" not in workflow
+    assert "build_current_shell_compatibility_browser_activation_evidence_gate.py" not in workflow
     assert "accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json" not in workflow

@@ -108,11 +108,36 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "today_no_debug_trace": True,
             "body_page_loaded": True,
             "body_active_plan_rendered": True,
+            "body_plan_form_saved": True,
             "body_plan_readback_checked": True,
             "body_plan_read_model_fields_rendered": True,
+            "body_budget_read_models_rendered": True,
+            "body_manual_target_saved": True,
+            "body_weight_checkin_saved": True,
             "body_latest_weight_rendered_from_backend": True,
+            "body_weight_history_date_scoped_readback": True,
             "body_manual_target_read_model_rendered": True,
+            "body_plan_read_model_values": {
+                "daily_target": "1550 kcal",
+                "tdee": "1819 kcal",
+                "current_weight": "70 kg",
+                "target_weight": "65 kg",
+                "activity": "light",
+                "goal": "Lose weight",
+                "weight_history": "2026-05-05 | 70.4 kg",
+            },
+            "body_budget_read_model_values": {
+                "active_target": "1550 kcal",
+                "consumed": "400 kcal",
+                "remaining": "1150 kcal",
+                "estimated_deficit": "269 kcal",
+                "effective_budget": "1550 kcal",
+                "weekly_progress": "400 kcal consumed",
+            },
             "today_manual_target_readback_checked": True,
+            "body_session_status_rendered": True,
+            "today_session_status_rendered": True,
+            "body_no_debug_trace": True,
             "desktop_no_overflow": True,
             "mobile_no_overflow": True,
             "mobile_populated_state_checked": True,
@@ -457,7 +482,7 @@ def test_product_pages_self_use_flow_gate_cli_writes_from_existing_artifacts(
     tmp_path: Path,
     capsys,
 ) -> None:
-    from scripts.build_accurate_intake_pl_ce_product_pages_self_use_flow_gate import main
+    from scripts.build_current_shell_compatibility_product_pages_self_use_flow_gate import main
 
     output_path = tmp_path / "self-use-flow.json"
     args = ["--output", str(output_path)]
@@ -478,6 +503,7 @@ def test_product_pages_self_use_flow_gate_cli_writes_from_existing_artifacts(
 def test_product_pages_self_use_flow_gate_source_stays_out_of_forbidden_boundaries() -> None:
     source_paths = (
         Path("app/composition/accurate_intake_pl_ce_product_pages_self_use_flow_gate.py"),
+        Path("scripts/build_current_shell_compatibility_product_pages_self_use_flow_gate.py"),
         Path("scripts/build_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py"),
     )
     forbidden = (
@@ -500,7 +526,8 @@ def test_ci_keeps_product_pages_self_use_flow_gate_out_of_required_merge_path() 
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
     assert "product-pages-browser-e2e" in workflow
-    assert "tests/test_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py" in workflow
+    assert "tests/test_current_shell_compatibility_product_pages_self_use_flow_gate.py" in workflow
+    assert "tests/test_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py" not in workflow
     assert "build_accurate_intake_pl_ce_product_pages_self_use_flow_gate.py" not in workflow
     assert "ui_same_truth_contract=artifacts/accurate_intake_ui_same_truth_render_contract_ci.json" not in workflow
     assert (

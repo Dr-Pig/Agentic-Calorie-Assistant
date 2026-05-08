@@ -6,10 +6,13 @@ from pathlib import Path
 from tests.test_accurate_intake_local_web_self_use_candidate_v2_gate_runner import (
     _required_payloads,
 )
-from tests.test_accurate_intake_pl_ce_browser_activation_evidence_gate import (
+from app.composition.current_shell_compatibility_ids import (
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+)
+from tests.test_current_shell_compatibility_browser_activation_evidence_gate import (
     _valid_inputs as _valid_browser_gate_inputs,
 )
-from tests.test_accurate_intake_pl_ce_product_pages_self_use_flow_gate import (
+from tests.test_current_shell_compatibility_product_pages_self_use_flow_gate import (
     _valid_inputs as _valid_product_pages_flow_inputs,
 )
 
@@ -57,16 +60,21 @@ def _seed_required_gate_inputs(artifact_dir: Path, *, omit_browser_target_ui: bo
         _write(target_path, payload)
 
     browser_input_groups = (
-        "pl_ce_local_mvp_candidate_bundle",
-        "product_pages_browser_smoke",
-        "product_pages_seven_day_diary_smoke",
-        "product_pages_short_term_context_smoke",
-        "product_pages_visual_qa",
-        "fixture_full_product_loop_e2e",
+        (
+            CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+            CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+        ),
+        ("product_pages_browser_smoke", "product_pages_browser_smoke"),
+        ("product_pages_seven_day_diary_smoke", "product_pages_seven_day_diary_smoke"),
+        ("product_pages_short_term_context_smoke", "product_pages_short_term_context_smoke"),
+        ("product_pages_visual_qa", "product_pages_visual_qa"),
+        ("product_pages_body_noplan_degraded_smoke", "product_pages_body_noplan_degraded_smoke"),
+        ("fixture_full_product_loop_e2e", "fixture_full_product_loop_e2e"),
+        ("product_pages_self_use_flow_gate", "product_pages_self_use_flow_gate"),
     )
-    for group_id in browser_input_groups:
-        target_path = artifact_dir / module.BROWSER_GATE_ARTIFACT_PATHS[group_id].name
-        _merge_write(target_path, browser_gate_inputs[group_id])
+    for path_group_id, payload_group_id in browser_input_groups:
+        target_path = artifact_dir / module.BROWSER_GATE_ARTIFACT_PATHS[path_group_id].name
+        _merge_write(target_path, browser_gate_inputs[payload_group_id])
     if not omit_browser_target_ui:
         target_path = (
             artifact_dir
@@ -163,8 +171,22 @@ def test_refresh_chain_honestly_blocks_current_repo_truth_until_upstream_runtime
         == "clarify_commit_correction_same_truth_gate_ready_for_human_review"
     )
     assert pre_live_pack["selected_option"] == "stay_local_self_use"
-    assert pre_live_pack["ready_for_live_diagnostic_decision"] is False
+    assert "ready_for_live_diagnostic_decision" not in pre_live_pack
     assert candidate["local_web_self_use_candidate_v2"]["candidate_prepared"] is False
+    chain = candidate["local_web_self_use_candidate_v2"]["appshell_browser_evidence_chain"]
+    assert printed["appshell_browser_evidence_chain"] == chain
+    assert chain["browser_artifact_count"] == 6
+    assert chain["browser_executed_count"] == 6
+    assert chain["all_required_browser_artifacts_executed"] is True
+    assert chain["product_pages_self_use_flow_checked"] is True
+    assert chain["self_use_flow_gate_strongest_pass_type"] == "browser_executed"
+    assert chain["today_macro_runtime_mirror_checked"] is True
+    assert chain["renderer_source_closure_checked"] is True
+    assert chain["context_target_browser_closure_checked"] is True
+    assert chain["body_noplan_degraded_checked"] is True
+    assert chain["live_llm_invoked"] is False
+    assert chain["fooddb_evidence_used"] is False
+    assert chain["websearch_evidence_used"] is False
     assert "pre-live selected option: stay_local_self_use" in candidate[
         "local_web_self_use_candidate_v2"
     ]["blockers"]
@@ -215,7 +237,7 @@ def test_refresh_chain_honestly_blocks_when_browser_activation_dependencies_are_
         in browser_activation["blockers"]
     )
     assert pre_live_pack["selected_option"] == "stay_local_self_use"
-    assert pre_live_pack["ready_for_live_diagnostic_decision"] is False
+    assert "ready_for_live_diagnostic_decision" not in pre_live_pack
 
 
 def test_refresh_chain_source_stays_out_of_fooddb_live_and_shared_contract_boundaries() -> None:

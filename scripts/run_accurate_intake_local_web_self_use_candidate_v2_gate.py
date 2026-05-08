@@ -38,7 +38,7 @@ DEFAULT_EVIDENCE_PATHS = {
     / "accurate_intake_current_shell_compatibility_local_review_decision_pack.json",
     "product_pages_self_use_flow_gate": ROOT
     / "artifacts"
-    / "accurate_intake_pl_ce_product_pages_self_use_flow_gate.json",
+    / "accurate_intake_current_shell_compatibility_product_pages_self_use_flow_gate.json",
     "ui_context_alignment_pack": ROOT
     / "artifacts"
     / "accurate_intake_pl_ce_ui_context_alignment_pack.json",
@@ -52,7 +52,7 @@ DEFAULT_EVIDENCE_PATHS = {
     / "accurate_intake_clarify_commit_correction_same_truth_gate.json",
     "browser_activation_evidence_gate": ROOT
     / "artifacts"
-    / "accurate_intake_pl_ce_browser_activation_evidence_gate.json",
+    / "accurate_intake_current_shell_compatibility_browser_activation_evidence_gate.json",
     "manager_tool_surface_inventory": ROOT
     / "artifacts"
     / "accurate_intake_manager_tool_surface_inventory.json",
