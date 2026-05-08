@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from app.runtime.application import manager_service
+from app.runtime.agent.manager_payload_utils import stable_available_tools
 
 
 def test_manager_service_exposes_single_entrypoint_and_bounded_rounds() -> None:
@@ -49,6 +50,12 @@ def test_single_manager_system_prompt_consumes_product_policy_hints_without_owni
     assert "self_selected_basket_without_listed_items" not in SINGLE_MANAGER_SYSTEM_PROMPT
 
 
+def test_stable_available_tools_normalizes_order_and_deduplicates() -> None:
+    assert stable_available_tools(
+        ("budget.get_today_summary", "body.get_latest_observation", "budget.get_today_summary")
+    ) == ("body.get_latest_observation", "budget.get_today_summary")
+
+
 class FakeLoopProvider:
     def __init__(self, responses: list[dict[str, object]]) -> None:
         self.responses = list(responses)
@@ -90,8 +97,6 @@ async def test_run_intake_manager_executes_tools_and_feeds_results_into_next_rou
             },
         ]
     )
-    tool_calls: list[list[dict[str, object]]] = []
-
     async def tool_executor(*, tool_calls: list[dict[str, object]], **_: object) -> list[dict[str, object]]:
         tool_calls_copy = [dict(item) for item in tool_calls]
         tool_calls.append({"name": "sentinel"})  # mutate caller copy if implementation leaks it
@@ -260,6 +265,39 @@ async def test_run_intake_manager_keeps_prompt_registry_in_trace_only() -> None:
         "model_profile_overlay_transport_mode": "structured_outputs",
     }
     assert result.manager_rounds[0]["prompt_registry"] == registry
+
+
+@pytest.mark.asyncio
+async def test_run_intake_manager_stably_normalizes_available_tools_in_user_payload() -> None:
+    provider = FakeLoopProvider(
+        [
+            {
+                "manager_action": "final",
+                "intent": "general_chat",
+                "intent_type": "general_chat",
+                "final_action": "answer_only",
+                "workflow_effect": "answer_only",
+                "target_attachment": {"mode": "none"},
+                "exactness": "unknown",
+                "confidence": "low",
+                "evidence_posture": "none",
+                "repair_ack": False,
+                "answer_contract": {"reply_text": "ok"},
+            }
+        ]
+    )
+
+    await manager_service.run_intake_manager(
+        provider=provider,
+        raw_user_input="today",
+        resolved_state=SimpleNamespace(onboarding_ready=True),
+        available_tools=("budget.get_today_summary", "body.get_latest_observation", "budget.get_today_summary"),
+    )
+
+    assert provider.calls[0]["user_payload"]["available_tools"] == [
+        "body.get_latest_observation",
+        "budget.get_today_summary",
+    ]
 
 
 @pytest.mark.asyncio
