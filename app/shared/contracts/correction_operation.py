@@ -13,6 +13,7 @@ def structured_correction_operation(payload: dict[str, Any] | None) -> str:
         payload.get("operation"),
         payload.get("action_type"),
         payload.get("correction_type"),
+        payload.get("target_evidence_operation"),
     ]
     top_target = payload.get("target_attachment")
     if isinstance(top_target, dict):
@@ -21,6 +22,7 @@ def structured_correction_operation(payload: dict[str, Any] | None) -> str:
             top_target.get("operation"),
             top_target.get("action_type"),
             top_target.get("correction_type"),
+            top_target.get("target_evidence_operation"),
         ])
     answer_contract = payload.get("answer_contract")
     if isinstance(answer_contract, dict):
@@ -29,6 +31,7 @@ def structured_correction_operation(payload: dict[str, Any] | None) -> str:
             answer_contract.get("operation"),
             answer_contract.get("action_type"),
             answer_contract.get("correction_type"),
+            answer_contract.get("target_evidence_operation"),
         ])
     semantic_decision = payload.get("semantic_decision")
     if isinstance(semantic_decision, dict):
@@ -37,6 +40,7 @@ def structured_correction_operation(payload: dict[str, Any] | None) -> str:
             semantic_decision.get("operation"),
             semantic_decision.get("action_type"),
             semantic_decision.get("correction_type"),
+            semantic_decision.get("target_evidence_operation"),
         ])
         semantic_target = semantic_decision.get("target_attachment")
         if isinstance(semantic_target, dict):
@@ -45,6 +49,7 @@ def structured_correction_operation(payload: dict[str, Any] | None) -> str:
                 semantic_target.get("operation"),
                 semantic_target.get("action_type"),
                 semantic_target.get("correction_type"),
+                semantic_target.get("target_evidence_operation"),
             ])
     for operation in payload.get("operations") or []:
         if isinstance(operation, dict):
