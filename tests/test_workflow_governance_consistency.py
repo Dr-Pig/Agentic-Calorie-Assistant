@@ -175,7 +175,7 @@ def test_docs_bootstrap_index_and_legacy_reference_are_consistent() -> None:
     assert "Retired duplicate index files" in doc_index
     assert "intentionally not tracked" in legacy_index
     assert "docs/specs/V2_WAVE_1_CODING_AGENT_BOOTSTRAP.md" in legacy_index
-    assert "Former V2 operating and implementation stubs are also intentionally not tracked" in legacy_index
+    assert "Former V2 operating, implementation, and capability-map stubs are also intentionally not tracked" in legacy_index
     assert not (ROOT / "docs" / "specs" / "APP_V2_ENGINEERING_OPERATING_ENTRY.md").exists()
     assert not (ROOT / "docs" / "specs" / "APP_V2_IMPLEMENTATION_PLAN.md").exists()
 
@@ -233,21 +233,18 @@ def test_execution_governance_docs_are_compatibility_stubs_only() -> None:
     assert "line-liff-calorie-helper-text-meal-canary-main" not in selection_policy
 
 
-def test_legacy_plan_stubs_are_removed_and_capability_doc_is_compatibility_only() -> None:
+def test_legacy_plan_and_capability_stubs_are_removed() -> None:
     doc_index = (ROOT / "docs" / "DOC_INDEX.md").read_text(encoding="utf-8")
     legacy_index = (ROOT / "docs" / "specs" / "LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md").read_text(encoding="utf-8")
-    capability_map = (ROOT / "docs" / "quality" / "V2_CAPABILITY_MAP.md").read_text(encoding="utf-8")
 
     assert "`docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md`" not in doc_index
     assert "`docs/specs/APP_V2_IMPLEMENTATION_PLAN.md`" not in doc_index
-    assert "`docs/quality/V2_CAPABILITY_MAP.md`" in doc_index
-    assert "Former V2 operating and implementation stubs are also intentionally not tracked" in legacy_index
+    assert "`docs/quality/V2_CAPABILITY_MAP.md`" not in doc_index
+    assert "Former V2 operating, implementation, and capability-map stubs are also intentionally not tracked" in legacy_index
     assert "docs/_spec_snapshots/APP_V2_ENGINEERING_OPERATING_ENTRY.md_20260508_1356" in legacy_index
-    assert "compatibility stub; historical capability framing preserved under `docs/_spec_snapshots/`" in legacy_index
-    assert "This is a compatibility stub." in capability_map
-    assert "reference-only" in capability_map
     assert not (ROOT / "docs" / "specs" / "APP_V2_ENGINEERING_OPERATING_ENTRY.md").exists()
     assert not (ROOT / "docs" / "specs" / "APP_V2_IMPLEMENTATION_PLAN.md").exists()
+    assert not (ROOT / "docs" / "quality" / "V2_CAPABILITY_MAP.md").exists()
 
 
 def test_active_governance_protocols_are_repo_localized() -> None:

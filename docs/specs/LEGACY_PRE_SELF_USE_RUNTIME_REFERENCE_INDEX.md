@@ -18,7 +18,7 @@ Do not use this file as the default entrypoint for new windows.
 
 ## Legacy Reference Pack
 
-The files below remain tracked because they still provide historical context or compatibility value. Their names do not imply current mainline status. Retired duplicate docs indexes such as `docs/index.md` and `docs/V2_DOC_INDEX.md` are intentionally not tracked. Former V2 operating and implementation stubs are also intentionally not tracked under `docs/specs/`; use the current operating entry, the current execution pointer, this legacy index, and preserved snapshots instead.
+The files below remain tracked because they still provide historical context or compatibility value. Their names do not imply current mainline status. Retired duplicate docs indexes such as `docs/index.md` and `docs/V2_DOC_INDEX.md` are intentionally not tracked. Former V2 operating, implementation, and capability-map stubs are also intentionally not tracked under active docs directories; use the current operating entry, the current execution pointer, this legacy index, and preserved snapshots instead.
 
 | Neutral role | Compatibility file path | Current role |
 | --- | --- | --- |
@@ -26,7 +26,6 @@ The files below remain tracked because they still provide historical context or 
 | legacy execution and wave plan | `docs/specs/V2_EXECUTION_ARCHITECTURE_AND_WAVE_PLAN.md` | historical architecture and sequencing reference |
 | legacy whole-product capability lattice | `docs/specs/V2_WHOLE_PRODUCT_CAPABILITY_LATTICE.md` | historical capability-map reference |
 | legacy operating-entry snapshot | `docs/_spec_snapshots/APP_V2_ENGINEERING_OPERATING_ENTRY.md_20260508_1356` | preserved historical operating-layer content |
-| legacy capability map | `docs/quality/V2_CAPABILITY_MAP.md` | compatibility stub; historical capability framing preserved under `docs/_spec_snapshots/` |
 
 ## Current Mainline Reminder
 
