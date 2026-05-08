@@ -193,11 +193,17 @@ def test_execution_governance_docs_are_compatibility_stubs_only() -> None:
 def test_legacy_plan_and_capability_docs_are_compatibility_stubs_only() -> None:
     doc_index = (ROOT / "docs" / "DOC_INDEX.md").read_text(encoding="utf-8")
     legacy_index = (ROOT / "docs" / "specs" / "LEGACY_PRE_SELF_USE_RUNTIME_REFERENCE_INDEX.md").read_text(encoding="utf-8")
+    operating_entry = (ROOT / "docs" / "specs" / "APP_V2_ENGINEERING_OPERATING_ENTRY.md").read_text(encoding="utf-8")
     implementation_plan = (ROOT / "docs" / "specs" / "APP_V2_IMPLEMENTATION_PLAN.md").read_text(encoding="utf-8")
     capability_map = (ROOT / "docs" / "quality" / "V2_CAPABILITY_MAP.md").read_text(encoding="utf-8")
 
+    assert "`docs/specs/APP_V2_ENGINEERING_OPERATING_ENTRY.md`" in doc_index
     assert "`docs/specs/APP_V2_IMPLEMENTATION_PLAN.md`" in doc_index
     assert "`docs/quality/V2_CAPABILITY_MAP.md`" in doc_index
+    assert "compatibility entry only" in legacy_index
+    assert "This is a compatibility stub." in operating_entry
+    assert "reference-only" in operating_entry
+    assert "docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md" in operating_entry
     assert "compatibility stub; historical repo-plan content preserved under `docs/_spec_snapshots/`" in legacy_index
     assert "compatibility stub; historical capability framing preserved under `docs/_spec_snapshots/`" in legacy_index
     assert "This is a compatibility stub." in implementation_plan
