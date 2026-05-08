@@ -243,6 +243,13 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt13b_latency_cost_cache_budget_pack",
         "rt14e_context_conditioned_live_probe",
     ]
+    assert gates["rt14g_response_language_prompt_polish"]["status"] == "green"
+    assert gates["rt14g_response_language_prompt_polish"]["pass_type"] == "contract"
+    assert gates["rt14g_response_language_prompt_polish"]["depends_on"] == [
+        "rt1b_stable_prefix_dynamic_suffix_contract",
+        "rt11b_final_response_quality_live_wall",
+        "rt14f_holdout_replay_anti_overfit_gate",
+    ]
     assert gates["rt9b_fooddb_packet_live_probe"]["status"] == "green"
     assert gates["rt9b_fooddb_packet_live_probe"]["pass_type"] == "runtime_backed"
     assert gates["rt9b_fooddb_packet_live_probe"]["depends_on"] == [
@@ -296,6 +303,7 @@ def test_manager_runtime_gate_ledger_records_small_slice_gate_order() -> None:
         "rt13_observability_pack",
         "rt13b_latency_cost_cache_budget_pack",
         "rt14f_holdout_replay_anti_overfit_gate",
+        "rt14g_response_language_prompt_polish",
     ]
 
 

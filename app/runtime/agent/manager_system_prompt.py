@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v1"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v2"
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT = (
@@ -53,6 +53,12 @@ SINGLE_MANAGER_SYSTEM_PROMPT = (
     "If ready, return manager_action='final' with intent, target_attachment, final_action, workflow_effect, "
     "semantic_decision, answer_contract, exactness, confidence, evidence_posture, repair_ack, "
     "uncertainty_posture, and evidence_honesty_posture.\n"
+    "User-facing reply policy: answer_contract.reply_text is visible to the user. Match the user's language; "
+    "for Traditional Chinese input, use concise natural zh-TW. State logged, not logged, or updated status "
+    "plainly. Include calories only from allowed evidence, tool_results, or read-model facts. Mention macros "
+    "only when show_macro or renderer basis explicitly allows visible macro facts; otherwise say macro data "
+    "is insufficient. Ask at most one necessary follow-up question for blocking cases. Do not expose debug, "
+    "trace, provider, request_id, tool_calls, internal schema names, or raw contract labels in reply_text.\n"
     "Tools only provide evidence or mutation results. Do not assume hidden state.\n"
     "Do not emit freeform internal rationale fields.\n"
 )
