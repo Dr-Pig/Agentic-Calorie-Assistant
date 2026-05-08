@@ -50,3 +50,20 @@ def test_rt1b_records_prompt_layer_and_cache_profile_without_prompt_payload_leak
     assert observed["prompt_cache_profile"]["static_prefix_first"] is True
     assert observed["prompt_cache_profile"]["dynamic_context_last"] is True
     assert observed["progressive_disclosure"]["full_context_in_user_payload"] is True
+    assert observed["system_contract"]["owner"] == "ManagerRuntime"
+    assert observed["provider_overlay_contract"]["owner"] == "ProviderAdapter"
+    assert observed["provider_overlay_contract"]["may_inject_product_semantics"] is False
+    assert observed["runtime_payload_layer_plan"]["uncategorized_dynamic_keys"] == []
+    section_ids = [
+        section["section_id"]
+        for section in observed["runtime_payload_layer_plan"]["sections"]
+    ]
+    assert section_ids == [
+        "turn_state",
+        "context_engineering",
+        "tool_surface",
+        "tool_evidence",
+        "contract_constraints",
+        "loop_control",
+        "guard_repair",
+    ]

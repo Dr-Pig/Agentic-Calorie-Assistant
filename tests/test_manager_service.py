@@ -518,6 +518,25 @@ async def test_run_intake_manager_records_prompt_layer_contract_trace_only() -> 
     assert layer["prompt_cache_profile"]["dynamic_context_last"] is True
     assert layer["prompt_cache_profile"]["cache_metric_field"] == "usage.*.cached_tokens"
     assert layer["dynamic_payload_keys"] == sorted(provider.calls[0]["user_payload"])
+    assert layer["system_contract"]["owner"] == "ManagerRuntime"
+    assert layer["system_contract"]["prompt_id"] == "single_manager_system_prompt"
+    assert layer["provider_overlay_contract"] == {
+        "owner": "ProviderAdapter",
+        "trace_only": True,
+        "may_set_model": True,
+        "may_set_transport": True,
+        "may_change_system_contract": False,
+        "may_inject_product_semantics": False,
+    }
+    assert layer["runtime_payload_layer_plan"]["uncategorized_dynamic_keys"] == []
+    sections = {
+        section["section_id"]: section
+        for section in layer["runtime_payload_layer_plan"]["sections"]
+    }
+    assert "phase_a_current_turn_context" in sections["context_engineering"]["keys"]
+    assert "manager_context_packet_v1" in sections["context_engineering"]["keys"]
+    assert "tool_results" in sections["tool_evidence"]["keys"]
+    assert "constraints" in sections["contract_constraints"]["keys"]
     assert result.trace["react_trace"]["manager_pass_1"]["prompt_layer_contract"] == layer
 
 
