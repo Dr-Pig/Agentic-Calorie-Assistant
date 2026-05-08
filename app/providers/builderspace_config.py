@@ -13,7 +13,11 @@ MAX_TIMEOUT_SECONDS = 120
 
 
 def format_user_message(stage: str, user_payload: dict[str, Any]) -> str:
-    return json.dumps({"stage": stage, "payload": jsonable(user_payload)}, ensure_ascii=False)
+    return json.dumps(
+        {"stage": stage, "payload": jsonable(user_payload)},
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
 
 
 def check_encoding_safety(content: str) -> None:

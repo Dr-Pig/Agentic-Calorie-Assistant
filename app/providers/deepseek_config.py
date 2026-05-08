@@ -7,7 +7,11 @@ from ..text_integrity import corruption_summary, find_text_corruption
 
 
 def format_user_message(stage: str, user_payload: dict[str, Any]) -> str:
-    return json.dumps({"stage": stage, "payload": jsonable(user_payload)}, ensure_ascii=False)
+    return json.dumps(
+        {"stage": stage, "payload": jsonable(user_payload)},
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
 
 
 def check_encoding_safety(content: str) -> None:
