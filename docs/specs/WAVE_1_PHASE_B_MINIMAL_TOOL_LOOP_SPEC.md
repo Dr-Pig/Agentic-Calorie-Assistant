@@ -260,7 +260,7 @@ Diagnostic case sets must trace:
 - `requested_case_ids`
 - `completed_case_count`
 - `expected_full_case_count`
-- `full_readiness_claimed=false`
+- no full-readiness claim by default
 - `runtime_latency.readiness_claim_scope=diagnostic`
 
 Only `case_set=full` may use `runtime_latency.readiness_claim_scope=full_actual_smoke` and enter full readiness evaluation.
