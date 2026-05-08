@@ -248,6 +248,7 @@ class AccurateIntakeLiveDiagnosticProvider:
             "diagnostic_turn": _optional_int(step.get("turn")),
             "diagnostic_turn_kind": _optional_string(step.get("turn_kind") or step.get("kind")),
             "manager_round_index": _optional_int(user_payload.get("round_index")),
+            "manager_loop_scope": _optional_string(user_payload.get("manager_loop_scope")),
         }
         return {key: value for key, value in context.items() if value is not None}
 

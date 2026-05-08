@@ -231,6 +231,7 @@ def _provider_invocation_records(invocations: list[dict[str, Any]], *, source_in
                 "diagnostic_turn": _optional_int(invocation.get("diagnostic_turn")),
                 "diagnostic_turn_kind": _optional_string(invocation.get("diagnostic_turn_kind")),
                 "manager_round_index": _optional_int(invocation.get("manager_round_index")),
+                "manager_loop_scope": _optional_string(invocation.get("manager_loop_scope")),
                 "provider_trace_stage": _optional_string(
                     invocation.get("provider_trace_stage") or provider_trace.get("stage")
                 ),
@@ -300,6 +301,12 @@ def _latency_breakdown(
                 "diagnostic_turn",
                 "diagnostic_turn_kind",
             ),
+            total_provider_latency_ms=total_provider_latency_ms,
+        ),
+        "by_manager_loop_scope": _group_provider_latency(
+            provider_invocation_records,
+            keys=("source_index", "diagnostic_stage_id", "manager_loop_scope"),
+            labels={"manager_loop_scope": "unknown_manager_scope"},
             total_provider_latency_ms=total_provider_latency_ms,
         ),
         "slowest_provider_invocations": _slowest_provider_invocations(provider_invocation_records),
@@ -387,6 +394,7 @@ def _slowest_provider_invocations(records: list[dict[str, Any]], *, limit: int =
             "diagnostic_turn": record.get("diagnostic_turn"),
             "diagnostic_turn_kind": record.get("diagnostic_turn_kind"),
             "manager_round_index": record.get("manager_round_index"),
+            "manager_loop_scope": record.get("manager_loop_scope"),
             "provider_trace_stage": record.get("provider_trace_stage"),
             "latency_ms": int(record.get("latency_ms") or 0),
             "timeout_budget_ms": int(record.get("timeout_budget_ms") or 0),

@@ -176,12 +176,12 @@ The cost summary must preserve:
 - no repo-local pricing table override
 - `latency_root_cause_hints` for request count, stage latency, prompt-token volume, cache metric visibility, cache-hit visibility, and output-token share
 - `latency_optimization_priorities` before repeating the same live diagnostic window
-- `latency_breakdown` with provider-call attribution by diagnostic stage, case, turn, and slowest provider invocation
+- `latency_breakdown` with provider-call attribution by diagnostic stage, case, turn, Manager loop scope, and slowest provider invocation
 - missing `cached_tokens` reporting is an optimization signal, not a live diagnostic failure, because not every provider exposes compatible cache usage fields
 
 Do not infer paid cost from tokens inside this repo. Do not stage generated cost summary artifacts as repo truth.
 
-The live diagnostic timeout values are diagnostic failure boundaries, not acceptable product latency targets. If a staged run is strict but slow, first inspect provider invocation count, per-stage latency, per-case/per-turn attribution, slowest provider invocations, stage overhead, prompt-token volume, and cache reporting before adding more repetition.
+The live diagnostic timeout values are diagnostic failure boundaries, not acceptable product latency targets. If a staged run is strict but slow, first inspect provider invocation count, per-stage latency, per-case/per-turn attribution, Manager loop scope, slowest provider invocations, stage overhead, prompt-token volume, and cache reporting before adding more repetition.
 
 ## Post-PR88 phase checkpoint
 
