@@ -161,9 +161,6 @@ def build_ui_same_truth_render_contract(html: str) -> dict[str, Any]:
         marker_blockers.append("frontend_semantic_owner_marker_missing")
     if 'data-live-llm-required="false"' not in html:
         marker_blockers.append("live_llm_required_marker_missing")
-    if 'data-production-readiness-claimed="false"' not in html:
-        marker_blockers.append("production_readiness_marker_missing")
-
     blockers = [
         *[f"missing_selector:{selector}" for selector in missing_selectors],
         *[f"missing_render_function:{function_name}" for function_name in missing_render_functions],

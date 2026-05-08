@@ -68,7 +68,7 @@ def test_ui_same_truth_render_contract_rejects_frontend_semantic_or_kcal_inferen
 
 def test_ui_same_truth_render_contract_requires_real_function_declarations() -> None:
     html = """
-    <main data-frontend-semantic-owner="false" data-live-llm-required="false" data-production-readiness-claimed="false">
+    <main data-frontend-semantic-owner="false" data-live-llm-required="false">
       <span id="budget-kcal"></span><span id="consumed-kcal"></span><span id="remaining-kcal"></span>
       <ul id="meal-thread-list"></ul><ul id="pending-followup-list"></ul>
       <ul id="runtime-status-list"></ul><ul id="failure-signal-list"></ul><ul id="same-truth-list"></ul>

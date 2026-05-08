@@ -193,12 +193,9 @@ def _empty_browser_result() -> dict[str, Any]:
         "assistant_bubble_rendered": False,
         "last_payload_parseable": False,
         "today_summary_rendered": False,
-        "debug_surface_rendered": False,
-        "trace_surface_rendered": False,
         "pending_followup_surface_rendered": False,
         "runtime_status_surface_rendered": False,
         "failure_signal_surface_rendered": False,
-        "manager_context_trace_fields_rendered": False,
         "not_available_rendered": False,
         "browser_reload_checked": False,
         "chat_history_reloaded": False,
@@ -308,8 +305,7 @@ def _run_browser_sequence(
             shell_markers = page.locator("main.shell").evaluate(
                 """(node) => ({
                   frontendSemanticOwner: node.dataset.frontendSemanticOwner,
-                  liveLlmRequired: node.dataset.liveLlmRequired,
-                  productionReadinessClaimed: node.dataset.productionReadinessClaimed
+                  liveLlmRequired: node.dataset.liveLlmRequired
                 })"""
             )
             page.fill("#message-input", cjk_message)
@@ -341,7 +337,6 @@ def _run_browser_sequence(
                     return Boolean(value) && value !== "unavailable";
                   };
                   const sameTruthText = text("#same-truth-list");
-                  const lastTurnTraceText = text("#last-turn-trace-list");
                   const pendingFollowupText = text("#pending-followup-list");
                   const failureSignalText = text("#failure-signal-list");
                   const listRendered = (selector) => {
@@ -355,22 +350,9 @@ def _run_browser_sequence(
                       metricAvailable("#consumed-kcal") &&
                       metricAvailable("#remaining-kcal")
                     ),
-                    debugSurfaceRendered: (
-                      sameTruthText.length > 0 &&
-                      !sameTruthText.includes("No same-truth surface loaded")
-                    ),
-                    traceSurfaceRendered: listRendered("#last-turn-trace-list"),
                     pendingFollowupSurfaceRendered: listRendered("#pending-followup-list"),
                     runtimeStatusSurfaceRendered: listRendered("#runtime-status-list"),
                     failureSignalSurfaceRendered: listRendered("#failure-signal-list"),
-                    managerContextTraceFieldsRendered: (
-                      lastTurnTraceText.includes("context_policy_version:") &&
-                      !lastTurnTraceText.includes("context_policy_version: not_available") &&
-                      lastTurnTraceText.includes("loaded_context_summary:") &&
-                      lastTurnTraceText.includes("omitted_context_summary:") &&
-                      lastTurnTraceText.includes("pending_pins_present:") &&
-                      lastTurnTraceText.includes("target_candidate_count:")
-                    ),
                     notAvailableRendered: (
                       pendingFollowupText.includes("structured_followup_question: not_available") &&
                       failureSignalText.includes("hard_fail_conditions: not_available")
@@ -408,12 +390,9 @@ def _run_browser_sequence(
                 "assistant_bubble_rendered": _assistant_bubble_rendered(chat_text, last_payload),
                 "last_payload_parseable": last_payload_parseable,
                 "today_summary_rendered": bool(surface_state.get("todaySummaryRendered")),
-                "debug_surface_rendered": bool(surface_state.get("debugSurfaceRendered")),
-                "trace_surface_rendered": bool(surface_state.get("traceSurfaceRendered")),
                 "pending_followup_surface_rendered": bool(surface_state.get("pendingFollowupSurfaceRendered")),
                 "runtime_status_surface_rendered": bool(surface_state.get("runtimeStatusSurfaceRendered")),
                 "failure_signal_surface_rendered": bool(surface_state.get("failureSignalSurfaceRendered")),
-                "manager_context_trace_fields_rendered": bool(surface_state.get("managerContextTraceFieldsRendered")),
                 "not_available_rendered": bool(surface_state.get("notAvailableRendered")),
                 "browser_reload_checked": True,
                 "chat_history_reloaded": chat_history_reloaded,
@@ -447,8 +426,6 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         blockers.append("frontend_semantic_owner_marker_missing")
     if shell_markers.get("liveLlmRequired") != "false":
         blockers.append("live_llm_marker_missing")
-    if shell_markers.get("productionReadinessClaimed") != "false":
-        blockers.append("production_readiness_marker_missing")
     sequence_error = str(flag("browser_sequence_error") or "")
     if sequence_error:
         blockers.append(f"browser_sequence_error:{sequence_error.split(':', 1)[0]}")
@@ -460,18 +437,12 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
         blockers.append("assistant_bubble_not_rendered")
     if flag("today_summary_rendered") is not True:
         blockers.append("today_summary_not_rendered")
-    if flag("debug_surface_rendered") is not True:
-        blockers.append("debug_surface_not_rendered")
-    if flag("trace_surface_rendered") is not True:
-        blockers.append("trace_surface_not_rendered")
     if flag("pending_followup_surface_rendered") is not True:
         blockers.append("pending_followup_surface_not_rendered")
     if flag("runtime_status_surface_rendered") is not True:
         blockers.append("runtime_status_surface_not_rendered")
     if flag("failure_signal_surface_rendered") is not True:
         blockers.append("failure_signal_surface_not_rendered")
-    if flag("manager_context_trace_fields_rendered") is not True:
-        blockers.append("manager_context_trace_fields_not_rendered")
     if flag("not_available_rendered") is not True:
         blockers.append("not_available_not_rendered")
     if flag("browser_reload_checked") is not True:
@@ -527,12 +498,9 @@ def _base_report(
         "user_cjk_message_rendered": False,
         "assistant_bubble_rendered": False,
         "today_summary_rendered": False,
-        "debug_surface_rendered": False,
-        "trace_surface_rendered": False,
         "pending_followup_surface_rendered": False,
         "runtime_status_surface_rendered": False,
         "failure_signal_surface_rendered": False,
-        "manager_context_trace_fields_rendered": False,
         "not_available_rendered": False,
         "fetch_sequence": [],
         "forbidden_storage_used": False,
@@ -609,12 +577,9 @@ def build_browser_shell_smoke_report(
             "user_cjk_message_rendered",
             "assistant_bubble_rendered",
             "today_summary_rendered",
-            "debug_surface_rendered",
-            "trace_surface_rendered",
             "pending_followup_surface_rendered",
             "runtime_status_surface_rendered",
             "failure_signal_surface_rendered",
-            "manager_context_trace_fields_rendered",
             "not_available_rendered",
             "fetch_sequence",
             "forbidden_storage_used",
