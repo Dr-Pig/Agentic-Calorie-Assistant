@@ -181,10 +181,10 @@ def test_today_weekly_progress_route_returns_backend_read_model() -> None:
     assert payload["latest_weight_kg"] == 69.5
 
 
-def test_bodybudget_plce_matrix_lists_weekly_progress_as_backend_owned_read_model() -> None:
+def test_bodybudget_current_shell_matrix_lists_weekly_progress_as_backend_owned_read_model() -> None:
     matrix = Path("docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md")
     text = matrix.read_text(encoding="utf-8-sig")
 
     assert "`body_budget_weekly_progress`" in text
     assert "/today/weekly-progress" in text
-    assert "Do not compute weekly deficit, weight delta, or logged-day coverage in PL/CE" in text
+    assert "Do not compute weekly deficit, weight delta, or logged-day coverage in CurrentShell" in text

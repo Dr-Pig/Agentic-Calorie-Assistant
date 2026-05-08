@@ -9,7 +9,7 @@ from app.shared.contracts.readiness_claim import validate_readiness_claim_integr
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_body_budget_calibration_readiness_artifact_freezes_plce_read_model_contract() -> None:
+def test_body_budget_calibration_readiness_artifact_freezes_current_shell_read_model_contract() -> None:
     from app.composition.body_budget_calibration_readiness import (
         build_body_budget_calibration_readiness_artifact,
     )
@@ -35,12 +35,12 @@ def test_body_budget_calibration_readiness_artifact_freezes_plce_read_model_cont
     ]
     deficit_summary = artifact["stable_read_models"][1]
     assert deficit_summary["aliases"] == ["deficit_summary"]
-    assert deficit_summary["canonical_name_required_for_plce"] is True
-    assert artifact["plce_contract"]["frontend_math_allowed"] is False
-    assert artifact["plce_contract"]["manager_context_packet_changed"] is False
-    integration_matrix = artifact["plce_contract"]["integration_readiness_matrix"]
+    assert deficit_summary["canonical_name_required_for_current_shell"] is True
+    assert artifact["current_shell_contract"]["frontend_math_allowed"] is False
+    assert artifact["current_shell_contract"]["manager_context_packet_changed"] is False
+    integration_matrix = artifact["current_shell_contract"]["integration_readiness_matrix"]
     assert integration_matrix["doc_path"] == (
-        "docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md#BodyBudget PL/CE Integration Readiness Matrix"
+        "docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md#BodyBudget CurrentShell Integration Readiness Matrix"
     )
     assert integration_matrix["canonical_read_model_names"] == stable_names
     assert integration_matrix["frontend_fallback_calculation_authorized"] is False
@@ -75,21 +75,21 @@ def test_body_budget_calibration_readiness_artifact_freezes_plce_read_model_cont
     assert weekly_progress["read_function"] == "app.composition.body_budget_weekly_progress.build_body_budget_weekly_progress"
     assert "estimated_weekly_deficit_kcal" in weekly_progress["stable_fields"]
     assert "weight_delta_kg" in weekly_progress["stable_fields"]
-    assert "compute_weekly_deficit" in weekly_progress["plce_forbidden"]
-    assert "infer_calibration_eligibility" in weekly_progress["plce_forbidden"]
+    assert "compute_weekly_deficit" in weekly_progress["current_shell_forbidden"]
+    assert "infer_calibration_eligibility" in weekly_progress["current_shell_forbidden"]
     effective_budget = artifact["stable_read_models"][3]
     assert effective_budget["backend_route"] == "/today/effective-budget"
     assert "runtime_effective_budget_kcal" in effective_budget["stable_fields"]
     assert "adjustment_layers.runtime_adjustment_total_from_entries_kcal" in effective_budget["stable_fields"]
     assert "sign_policy" in effective_budget["stable_fields"]
-    assert "calculate_effective_budget" in effective_budget["plce_forbidden"]
+    assert "calculate_effective_budget" in effective_budget["current_shell_forbidden"]
     assert artifact["calibration_flow_contract"]["effective_budget_math"]["canonical_l3m_formula_enabled"] is True
     proposal_history = artifact["stable_read_models"][6]
     assert proposal_history["backend_route"] == "/calibration/proposals/history"
     assert proposal_history["read_function"] == "app.composition.calibration_proposal_inbox.load_calibration_proposal_history"
     assert "expired_at" in proposal_history["stable_fields"]
     assert "primary_option_summary" in proposal_history["stable_fields"]
-    assert "effect_payload" in proposal_history["plce_forbidden"]
+    assert "effect_payload" in proposal_history["current_shell_forbidden"]
 
 
 def test_body_budget_calibration_readiness_artifact_records_preview_and_action_mutation_boundaries() -> None:
@@ -234,4 +234,4 @@ def test_body_budget_calibration_readiness_script_writes_artifact(tmp_path: Path
     assert exit_code == 0
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload["artifact_type"] == "body_budget_calibration_readiness"
-    assert payload["plce_contract"]["stable_backend_read_models_required"] is True
+    assert payload["current_shell_contract"]["stable_backend_read_models_required"] is True

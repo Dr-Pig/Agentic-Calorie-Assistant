@@ -1,6 +1,6 @@
 ﻿# Accurate Intake RAKE Evidence Track Scope
 
-This document is repo truth for the RAKE Intake Evidence Track. It narrows the FoodDB/WebSearch workstream to the evidence side of the main intake flow: FoodDB retrieval/ranking, tool-calling evidence seam, compact evidence packets, and WebSearch candidate evidence. It does not approve Webshell work, Product Loop work, Context Engineering schema work, readiness, production DB work, or user-facing activation.
+This document is repo truth for the RAKE Intake Evidence Track. It narrows the FoodDB/WebSearch workstream to the evidence side of the main intake flow: FoodDB retrieval/ranking, tool-calling evidence seam, compact evidence packets, and WebSearch candidate evidence. It does not approve Webshell work, CurrentShell/AppShell work, Context Engineering schema work, readiness, production DB work, or user-facing activation.
 `FoodDB` remains an independent truth-owner track.
 `CurrentShell` consumes this evidence through owner lanes such as `ManagerRuntime`, `AppShell`, and `SharedCurrentShell`.
 
@@ -46,7 +46,7 @@ The RAKE Intake Evidence Track owns:
 - Diagnostic GrokFast seam smoke after deterministic packet closure.
 - WebSearch candidate evidence, with snippets and extracted pages remaining candidate-only until an approved promotion path exists.
 
-The RAKE Intake Evidence Track explicitly does not own Webshell, does not own Product Loop, does not own ManagerContextPacket, and has no runtime mutation authority. It must not change frontend rendering, Product Loop handoff behavior, Context Engineering packet shape, ledger mutation legality, or user-facing readiness claims.
+The RAKE Intake Evidence Track explicitly does not own Webshell, does not own CurrentShell/AppShell, does not own ManagerContextPacket, and has no runtime mutation authority. It must not change frontend rendering, CurrentShell/FoodDB handoff behavior, Context Engineering packet shape, ledger mutation legality, or user-facing readiness claims.
 
 ## Best-Practice Basis
 
@@ -142,4 +142,4 @@ Stop and report before editing if a slice requires:
 - treating per-100g source evidence as a common serving;
 - letting deterministic code infer user intent, workflow effect, or final action from raw text;
 - running live provider tests before deterministic packet closure;
-- claiming Product Loop, Webshell, private self-use, production DB, Kimi, shadow/canary, readiness, or mutation activation.
+- claiming CurrentShell, Webshell, private self-use, production DB, Kimi, shadow/canary, readiness, or mutation activation.

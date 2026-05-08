@@ -150,11 +150,11 @@ def test_today_effective_budget_route_returns_backend_owned_read_model() -> None
     assert payload["sign_policy"]["canonical_l3m_formula_enabled"] is True
 
 
-def test_bodybudget_plce_matrix_lists_effective_budget_as_backend_owned_read_model() -> None:
+def test_bodybudget_current_shell_matrix_lists_effective_budget_as_backend_owned_read_model() -> None:
     matrix = Path("docs/specs/UI_CANONICAL_TRUTH_SURFACE_MATRIX.md")
     text = matrix.read_text(encoding="utf-8-sig")
 
     assert "`body_budget_effective_budget_view`" in text
     assert "/today/effective-budget" in text
     assert "app.composition.body_budget_effective_budget.build_body_budget_effective_budget_view" in text
-    assert "Do not calculate effective budget, adjustment layer totals, or sign policy in PL/CE" in text
+    assert "Do not calculate effective budget, adjustment layer totals, or sign policy in CurrentShell" in text

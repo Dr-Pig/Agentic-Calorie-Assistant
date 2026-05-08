@@ -16,7 +16,7 @@ def test_rake_intake_evidence_scope_locks_track_ownership_and_boundaries() -> No
     assert "tool-calling evidence seam" in content
     assert "WebSearch candidate evidence" in content
     assert "does not own Webshell" in content
-    assert "does not own Product Loop" in content
+    assert "does not own CurrentShell/AppShell" in content
     assert "does not own ManagerContextPacket" in content
     assert "no runtime mutation authority" in content
 

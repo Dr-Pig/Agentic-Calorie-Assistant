@@ -232,5 +232,5 @@ non_claims:
   - no Kimi activation
   - no WebSearch runtime truth
   - no mutation authority
-  - no Product Loop integration claim
+  - no CurrentShell integration claim
 ```
