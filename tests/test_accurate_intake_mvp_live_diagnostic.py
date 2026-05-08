@@ -258,6 +258,30 @@ def test_accurate_intake_live_single_case_probe_supports_turn_limit(tmp_path: Pa
     assert report["stages"][-1]["summary"]["turn_limited_case_count"] == 1
 
 
+def test_accurate_intake_live_single_case_probe_supports_exact_item_official_label(tmp_path: Path) -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    report = module.run_diagnostic(
+        output_path=tmp_path / "accurate_intake_mvp_live_diagnostic.json",
+        db_path=tmp_path / "accurate_intake_mvp_live.sqlite3",
+        provider_override=module.ScriptedAccurateIntakeLiveProvider(),
+        provider_mode="fake_provider_contract_test",
+        live_invoked=False,
+        stage="single_case_live_probe",
+        case_id="exact_item_official_label",
+    )
+
+    case = report["cases"][0]
+    assert report["stages"][-1]["stage_id"] == "single_case_live_probe"
+    assert report["stages"][-1]["case_ids"] == ["exact_item_official_label"]
+    assert report["stages"][-1]["status"] == "pass"
+    assert case["case_id"] == "exact_item_official_label"
+    assert case["case_contract_status"] == "strict_pass"
+    assert case["turns"][0]["state_delta"]["canonical_commit"] is True
+    assert case["runner_inferred_semantics"] is False
+    assert case["raw_text_routing_used"] is False
+
+
 def test_accurate_intake_live_diagnostic_releases_stage_sqlite_handles(tmp_path: Path) -> None:
     module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
     db_path = tmp_path / "accurate_intake_mvp_live.sqlite3"

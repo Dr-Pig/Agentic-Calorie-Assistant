@@ -1314,6 +1314,27 @@ def _seeded_explicit_removal_case() -> LiveCase:
     )
 
 
+def _exact_item_official_label_case() -> LiveCase:
+    return LiveCase(
+        case_id="exact_item_official_label",
+        description="Exact-item single-turn commit uses official-card posture without followup drift.",
+        user_external_id="live-diag-exact-item",
+        body_plan_seeded=True,
+        steps=(
+            LiveStep(
+                1,
+                "exact_item_commit",
+                "\u6211\u559d\u4e86\u661f\u5df4\u514b\u51b0\u90a3\u5802\u5927\u676f",
+                {
+                    "entry_intent": "log_meal",
+                    "semantic_intent": "log_meal",
+                    "final_action": "commit",
+                },
+            ),
+        ),
+    )
+
+
 def _limit_case_turns(case: LiveCase, *, max_turn: int | None) -> LiveCase:
     if max_turn is None:
         return case
@@ -1331,7 +1352,7 @@ def _limit_case_turns(case: LiveCase, *, max_turn: int | None) -> LiveCase:
 
 
 def _single_case_probe_inventory(*, case_id: str | None = None, max_turn: int | None = None) -> list[LiveCase]:
-    cases = [_seeded_explicit_removal_case(), *_case_inventory()]
+    cases = [_seeded_explicit_removal_case(), _exact_item_official_label_case(), *_case_inventory()]
     selected = str(case_id or "explicit_item_removal_seeded")
     for case in cases:
         if case.case_id == selected:

@@ -88,6 +88,31 @@ async def test_exact_db_hit_bypasses_live_exact_brand_canary() -> None:
 
 
 @pytest.mark.asyncio
+async def test_exact_db_hit_bypasses_live_exact_brand_canary_for_prefixed_starbucks_sentence() -> None:
+    search_port = _FakeSearchPort([])
+    extract_port = _FakeExtractPort([])
+
+    artifact = await estimate_nutrition_tool(
+        None,
+        user_external_id="user-1b",
+        raw_user_input="\u6211\u559d\u4e86\u661f\u5df4\u514b\u51b0\u90a3\u5802\u5927\u676f",
+        request_id="req-1b",
+        local_date="2026-04-29",
+        provider=_ProviderStub(),
+        search_port=search_port,
+        extract_port=extract_port,
+        allow_search=True,
+    )
+
+    assert artifact.payload.best_estimate_mode == "exact_item"
+    assert artifact.payload.estimated_kcal == 154
+    assert artifact.payload.trace_contract["web_runtime_trace"]["attempted"] is False
+    assert artifact.payload.trace_contract["web_runtime_trace"]["skip_reason"] == "exact_db_hit"
+    assert search_port.calls == []
+    assert extract_port.calls == []
+
+
+@pytest.mark.asyncio
 async def test_exact_brand_canary_success_keeps_user_facing_fallback_unchanged_but_records_trace() -> None:
     search_port = _FakeSearchPort(
         [
