@@ -18,12 +18,30 @@ def test_build_placeholders_writes_expected_fast_pass_artifacts(tmp_path: Path, 
     )
 
     browser_smoke = json.loads(
-        (tmp_path / "artifacts/accurate_intake_product_pages_browser_smoke_ci.json").read_text(encoding="utf-8")
+        (tmp_path / "artifacts/accurate_intake_product_pages_browser_smoke_ci.json").read_text(
+            encoding="utf-8"
+        )
     )
     assert report["mode"] == "fast_pass"
     assert browser_smoke["status"] == "skipped"
     assert browser_smoke["reason"] == "non_shell_surface_currentshell"
     assert (tmp_path / "artifacts/product_pages_visual_qa_ci").exists()
+    canonical_current_metadata = (
+        tmp_path
+        / "artifacts/accurate_intake_current_shell_compatibility_current_metadata_freshness_pack_ci.json"
+    )
+    canonical_serial_handoff = (
+        tmp_path
+        / "artifacts/accurate_intake_current_shell_compatibility_serial_handoff_ci.json"
+    )
+    legacy_current_metadata = (
+        tmp_path / "artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json"
+    )
+    legacy_serial_handoff = tmp_path / "artifacts/accurate_intake_pl_ce_serial_handoff_ci.json"
+    assert canonical_current_metadata.exists()
+    assert canonical_serial_handoff.exists()
+    assert not legacy_current_metadata.exists()
+    assert not legacy_serial_handoff.exists()
 
 
 def test_build_placeholders_writes_blocked_upstream_status(tmp_path: Path, monkeypatch) -> None:

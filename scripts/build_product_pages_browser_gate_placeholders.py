@@ -32,8 +32,8 @@ PLACEHOLDER_ARTIFACTS = (
     "artifacts/accurate_intake_pl_ce_browser_activation_evidence_gate_ci.json",
     "artifacts/accurate_intake_non_fooddb_manager_tool_contract_ci.json",
     "artifacts/accurate_intake_pl_ce_activation_review_manifest_ci.json",
-    "artifacts/accurate_intake_pl_ce_current_metadata_freshness_pack_ci.json",
-    "artifacts/accurate_intake_pl_ce_serial_handoff_ci.json",
+    "artifacts/accurate_intake_current_shell_compatibility_current_metadata_freshness_pack_ci.json",
+    "artifacts/accurate_intake_current_shell_compatibility_serial_handoff_ci.json",
     "artifacts/accurate_intake_pl_ce_merge_queue_metadata_ci.json",
 )
 
