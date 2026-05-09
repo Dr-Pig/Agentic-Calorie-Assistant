@@ -144,6 +144,8 @@ def test_provider_invocation_summary_surfaces_prompt_cache_identity() -> None:
 
     assert summary["cached_tokens"] == 70
     assert summary["cache_reporting_call_count"] == 2
+    assert summary["cached_tokens_known"] is True
+    assert summary["cache_miss_claim_allowed"] is False
     assert summary["prompt_cache"] == {
         "provider_usage_is_cache_truth": True,
         "identity_count": 2,
@@ -156,6 +158,45 @@ def test_provider_invocation_summary_surfaces_prompt_cache_identity() -> None:
         "stable_prefix_utf8_bytes": 1600,
         "dynamic_suffix_utf8_bytes": 900,
     }
+
+
+def test_provider_invocation_summary_counts_cache_read_and_creation_usage_fields() -> None:
+    module = importlib.import_module("scripts.run_accurate_intake_mvp_live_diagnostic")
+
+    summary = module._provider_invocation_summary(  # noqa: SLF001 - script report-shape contract.
+        [
+            {
+                "latency_ms": 10,
+                "provider_trace": {
+                    "usage": {
+                        "input_tokens": 64,
+                        "output_tokens": 12,
+                        "cache_creation_input_tokens": 1024,
+                    },
+                },
+            },
+            {
+                "latency_ms": 20,
+                "provider_trace": {
+                    "usage": {
+                        "input_tokens": 50,
+                        "output_tokens": 8,
+                        "cache_read_input_tokens": 900,
+                        "cache_creation_input_tokens": 100,
+                    },
+                },
+            },
+        ]
+    )
+
+    assert summary["prompt_tokens"] == 2138
+    assert summary["completion_tokens"] == 20
+    assert summary["cached_tokens"] == 900
+    assert summary["cache_reporting_call_count"] == 2
+    assert summary["cache_hit_call_count"] == 1
+    assert summary["cached_tokens_known"] is True
+    assert summary["cache_miss_claim_allowed"] is False
+    assert summary["cached_tokens_unknown"] is False
 
 
 def test_accurate_intake_live_diagnostic_artifact_contract_with_fake_provider(tmp_path: Path) -> None:

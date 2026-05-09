@@ -129,6 +129,8 @@ def test_rt13b_budget_pack_passes_with_latency_cost_and_cache_visibility() -> No
         "usage_record_count": 2,
         "total_tokens": 3040,
         "cached_prompt_tokens": 2048,
+        "cached_prompt_tokens_known": True,
+        "uncached_prompt_tokens_known": True,
         "cache_reporting_call_count": 2,
         "cache_hit_call_count": 2,
         "reported_cost_usd": 0.008,
@@ -159,6 +161,9 @@ def test_rt13b_records_missing_cache_metric_reporting_without_blocking_green() -
     assert cache_case["status"] == "pass"
     assert cache_case["observed"]["prompt_cache_reporting_observed"] is False
     assert cache_case["observed"]["cache_reporting_missing_is_optimization_signal"] is True
+    assert cache_case["observed"]["cached_prompt_tokens_known"] is False
+    assert cache_case["observed"]["uncached_prompt_tokens_known"] is False
+    assert cache_case["observed"]["cache_miss_claim_allowed"] is False
 
 
 def test_rt13b_blocks_retry_dependent_or_timeout_budget_evidence() -> None:

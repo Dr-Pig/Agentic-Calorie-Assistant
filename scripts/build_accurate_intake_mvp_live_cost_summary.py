@@ -227,8 +227,8 @@ def write_accurate_intake_live_cost_summary(
 def _usage_records(value: Any, *, source_index: int) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for path, usage in _walk_usage(value):
-        prompt_tokens = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
-        completion_tokens = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
+        prompt_tokens = _prompt_tokens(usage)
+        completion_tokens = _completion_tokens(usage)
         total_tokens = int(usage.get("total_tokens") or usage.get("total_token") or 0)
         if total_tokens <= 0:
             total_tokens = prompt_tokens + completion_tokens
@@ -278,8 +278,8 @@ def _provider_invocation_records(invocations: list[dict[str, Any]], *, source_in
                 "model": _optional_string(invocation.get("provider_profile_model")),
                 "latency_ms": latency_ms,
                 "timeout_budget_ms": _int(invocation.get("timeout_budget_ms")),
-                "prompt_tokens": int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0),
-                "completion_tokens": int(usage.get("completion_tokens") or usage.get("output_tokens") or 0),
+                "prompt_tokens": _prompt_tokens(usage),
+                "completion_tokens": _completion_tokens(usage),
                 "cached_tokens_reported": cached_tokens is not None,
                 "cached_tokens": int(cached_tokens or 0),
                 "prompt_cache_identity_version": _optional_string(prompt_cache_request.get("identity_version")),
@@ -392,8 +392,8 @@ def _usage_records_from_invocations(invocations: list[dict[str, Any]], *, source
     records: list[dict[str, Any]] = []
     for index, invocation in enumerate(invocations):
         usage = _dict(_dict(invocation.get("provider_trace")).get("usage"))
-        prompt_tokens = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
-        completion_tokens = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
+        prompt_tokens = _prompt_tokens(usage)
+        completion_tokens = _completion_tokens(usage)
         total_tokens = int(usage.get("total_tokens") or usage.get("total_token") or 0)
         if total_tokens <= 0:
             total_tokens = prompt_tokens + completion_tokens
@@ -526,6 +526,28 @@ def _cached_tokens(usage: dict[str, Any]) -> int | None:
         return _int(usage.get("cached_tokens"))
     if "cache_read_input_tokens" in usage:
         return _int(usage.get("cache_read_input_tokens"))
+    if "cache_creation_input_tokens" in usage:
+        return 0
+    return None
+
+
+def _prompt_tokens(usage: dict[str, Any]) -> int:
+    if "prompt_tokens" in usage:
+        return _int(usage.get("prompt_tokens"))
+    cache_read_tokens = _optional_cache_int(usage, "cache_read_input_tokens")
+    cache_creation_tokens = _optional_cache_int(usage, "cache_creation_input_tokens")
+    if cache_read_tokens is not None or cache_creation_tokens is not None:
+        return _int(usage.get("input_tokens")) + _int(cache_read_tokens) + _int(cache_creation_tokens)
+    return _int(usage.get("input_tokens"))
+
+
+def _completion_tokens(usage: dict[str, Any]) -> int:
+    return _int(usage.get("completion_tokens") or usage.get("output_tokens"))
+
+
+def _optional_cache_int(usage: dict[str, Any], key: str) -> int | None:
+    if key in usage:
+        return _int(usage.get(key))
     return None
 
 

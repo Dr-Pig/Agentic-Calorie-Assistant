@@ -11,88 +11,8 @@ from app.shared.domain import (
     TraceMeta,
     TraceSpan,
 )
+from .token_usage import compute_token_usage
 from .trace_eval import evaluate_trace_contract
-
-
-def _coerce_int(value: Any) -> int:
-    if isinstance(value, bool):
-        return int(value)
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float):
-        return int(value)
-    if isinstance(value, str):
-        value = value.strip()
-        if not value:
-            return 0
-        try:
-            return int(value)
-        except ValueError:
-            return 0
-    return 0
-
-
-def _usage_dict(trace: dict[str, Any]) -> dict[str, Any]:
-    usage = trace.get("usage", {}) or {}
-    return usage if isinstance(usage, dict) else {}
-
-
-def _extract_prompt_tokens(trace: dict[str, Any], usage: dict[str, Any]) -> int:
-    return _coerce_int(
-        trace.get("prompt_tokens")
-        or usage.get("prompt_tokens")
-        or usage.get("input_tokens")
-    )
-
-
-def _extract_completion_tokens(trace: dict[str, Any], usage: dict[str, Any]) -> int:
-    return _coerce_int(
-        trace.get("completion_tokens")
-        or usage.get("completion_tokens")
-        or usage.get("output_tokens")
-    )
-
-
-def _extract_cached_prompt_tokens(usage: dict[str, Any]) -> int | None:
-    prompt_details = usage.get("prompt_tokens_details")
-    if isinstance(prompt_details, dict) and "cached_tokens" in prompt_details:
-        return _coerce_int(prompt_details.get("cached_tokens"))
-    input_details = usage.get("input_tokens_details")
-    if isinstance(input_details, dict) and "cached_tokens" in input_details:
-        return _coerce_int(input_details.get("cached_tokens"))
-    if "cached_tokens" in usage:
-        return _coerce_int(usage.get("cached_tokens"))
-    return None
-
-
-def compute_token_usage(llm_traces: list[dict[str, Any]]) -> dict[str, Any]:
-    total_prompt_tokens = 0
-    total_completion_tokens = 0
-    total_cached_prompt_tokens = 0
-    cache_reporting_call_count = 0
-    cache_hit_call_count = 0
-    for trace in llm_traces:
-        usage = _usage_dict(trace)
-        total_prompt_tokens += _extract_prompt_tokens(trace, usage)
-        total_completion_tokens += _extract_completion_tokens(trace, usage)
-        cached_prompt_tokens = _extract_cached_prompt_tokens(usage)
-        if cached_prompt_tokens is not None:
-            cache_reporting_call_count += 1
-            total_cached_prompt_tokens += cached_prompt_tokens
-            if cached_prompt_tokens > 0:
-                cache_hit_call_count += 1
-    return {
-        "total_prompt_tokens": total_prompt_tokens,
-        "total_completion_tokens": total_completion_tokens,
-        "total_tokens": total_prompt_tokens + total_completion_tokens,
-        "llm_call_count": len(llm_traces),
-        "total_cached_prompt_tokens": total_cached_prompt_tokens,
-        "total_uncached_prompt_tokens": max(total_prompt_tokens - total_cached_prompt_tokens, 0),
-        "cache_reporting_call_count": cache_reporting_call_count,
-        "cache_hit_call_count": cache_hit_call_count,
-        "prompt_cache_reporting_observed": cache_reporting_call_count > 0,
-        "prompt_cache_hit_observed": cache_hit_call_count > 0,
-    }
 
 
 def build_multi_turn_context(

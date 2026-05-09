@@ -85,6 +85,8 @@ def build_rt13b_latency_cost_cache_budget_pack(
                 "usage_record_count": int(cost_summary["summary"]["usage_record_count"]),
                 "total_tokens": int(cost_summary["summary"]["total_tokens"]),
                 "cached_prompt_tokens": int(token_usage["total_cached_prompt_tokens"]),
+                "cached_prompt_tokens_known": bool(token_usage["cached_prompt_tokens_known"]),
+                "uncached_prompt_tokens_known": bool(token_usage["uncached_prompt_tokens_known"]),
                 "cache_reporting_call_count": int(token_usage["cache_reporting_call_count"]),
                 "cache_hit_call_count": int(token_usage["cache_hit_call_count"]),
                 "reported_cost_usd": reported_cost_usd,
@@ -228,6 +230,13 @@ def _prompt_cache_case(live_artifacts: list[dict[str, Any]]) -> dict[str, Any]:
             "cache_reporting_call_count": token_usage.get("cache_reporting_call_count"),
             "cache_hit_call_count": token_usage.get("cache_hit_call_count"),
             "cached_prompt_tokens": token_usage.get("total_cached_prompt_tokens"),
+            "cached_prompt_tokens_known": token_usage.get("cached_prompt_tokens_known"),
+            "uncached_prompt_tokens_known": token_usage.get("uncached_prompt_tokens_known"),
+            "known_uncached_prompt_tokens": token_usage.get("known_uncached_prompt_tokens"),
+            "cache_miss_claim_allowed": (
+                token_usage.get("cached_prompt_tokens_known") is True
+                and int(token_usage.get("cache_hit_call_count") or 0) == 0
+            ),
             "prompt_cache_hit_observed": token_usage.get("prompt_cache_hit_observed"),
             "prompt_cache_reporting_observed": token_usage.get("prompt_cache_reporting_observed"),
             "cache_reporting_missing_is_optimization_signal": token_usage.get("prompt_cache_reporting_observed")
