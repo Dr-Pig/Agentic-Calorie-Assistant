@@ -123,7 +123,7 @@ def test_shadow_comparison_treats_live_guard_block_as_quality_finding() -> None:
         rescue_copy_live_diagnostic_artifact=_rescue_live_diagnostic(),
     )
 
-    assert artifact["status"] == "pass"
+    assert artifact["status"] == "blocked"
     assert artifact["source_statuses"]["recommendation_copy_live_diagnostic"] == "blocked"
     assert artifact["surface_status_rows"][1] == {
         "surface": "recommendation_prompt_reason_copy",
@@ -132,7 +132,9 @@ def test_shadow_comparison_treats_live_guard_block_as_quality_finding() -> None:
         "live_status": "blocked",
         "finding": "live_diagnostic_model_output_blocked",
     }
-    assert artifact["blockers"] == []
+    assert artifact["blockers"] == [
+        "recommendation_copy_live_diagnostic.status_blocked"
+    ]
 
 
 def test_shadow_comparison_treats_rescue_live_guard_block_as_quality_finding() -> None:
@@ -145,7 +147,7 @@ def test_shadow_comparison_treats_rescue_live_guard_block_as_quality_finding() -
         rescue_copy_live_diagnostic_artifact=rescue_live,
     )
 
-    assert artifact["status"] == "pass"
+    assert artifact["status"] == "blocked"
     assert artifact["source_statuses"]["rescue_copy_live_diagnostic"] == "blocked"
     assert artifact["surface_status_rows"][2] == {
         "surface": "rescue_proposal_copy_posture",
@@ -154,7 +156,25 @@ def test_shadow_comparison_treats_rescue_live_guard_block_as_quality_finding() -
         "live_status": "blocked",
         "finding": "live_diagnostic_model_output_blocked",
     }
-    assert artifact["blockers"] == []
+    assert artifact["blockers"] == ["rescue_copy_live_diagnostic.status_blocked"]
+
+
+def test_shadow_comparison_blocks_required_source_status_failures() -> None:
+    dogfood = _dogfood_replay()
+    dogfood["status"] = "blocked"
+
+    artifact = build_advanced_shadow_comparison_artifact(
+        fixture_chain_artifact=_fixture_chain(),
+        dogfood_replay_artifact=dogfood,
+        recommendation_copy_live_diagnostic_artifact=_live_diagnostic(),
+        rescue_copy_live_diagnostic_artifact=_rescue_live_diagnostic(),
+    )
+
+    assert artifact["status"] == "blocked"
+    assert artifact["blockers"] == ["dogfood_replay.status_blocked"]
+    assert artifact["source_statuses"]["dogfood_replay"] == "blocked"
+    assert artifact["product_readiness_claimed"] is False
+    assert artifact["user_facing_behavior_changed"] is False
 
 
 def test_shadow_comparison_allows_rescue_live_diagnostic_to_be_absent() -> None:
