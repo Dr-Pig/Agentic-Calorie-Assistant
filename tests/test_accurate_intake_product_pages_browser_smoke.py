@@ -29,6 +29,20 @@ def _passing_report(*, local_date: str = "2026-05-05") -> dict[str, object]:
         "chat_session_status_rendered": True,
         "chat_context_status_rendered": True,
         "chat_no_debug_trace": True,
+        "chat_body_observation_same_truth_checked": True,
+        "chat_body_observation_written": True,
+        "chat_body_observation_body_page_readback": True,
+        "chat_body_observation_values": {
+            "assistant_text": "Recorded weight 70.0 kg. Body plan was not changed.",
+            "weight_history": f"{local_date} | 70 kg",
+            "manager_call_count": 2,
+        },
+        "chat_body_observation_non_claims": {
+            "body_plan_mutated": False,
+            "ledger_updated": False,
+            "frontend_weight_parser_used": False,
+            "product_readiness_claimed": False,
+        },
         "today_page_loaded": True,
         "today_date_switch_checked": True,
         "today_previous_day_empty_checked": True,
@@ -208,6 +222,38 @@ def test_product_pages_browser_smoke_validator_requires_cross_page_evidence() ->
 
     assert status == "pass"
     assert blockers == []
+
+
+def test_product_pages_browser_smoke_validator_requires_chat_body_observation_same_truth() -> None:
+    report = _passing_report(local_date="2026-05-05")
+    report["chat_body_observation_same_truth_checked"] = False
+    report["chat_body_observation_written"] = False
+    report["chat_body_observation_body_page_readback"] = False
+    report["chat_body_observation_values"] = {
+        "assistant_text": "",
+        "weight_history": "",
+        "manager_call_count": 1,
+    }
+    report["chat_body_observation_non_claims"] = {
+        "body_plan_mutated": True,
+        "ledger_updated": True,
+        "frontend_weight_parser_used": True,
+        "product_readiness_claimed": True,
+    }
+
+    status, blockers = module._validate(report)
+
+    assert status == "fail"
+    assert "chat_body_observation_same_truth_not_checked" in blockers
+    assert "chat_body_observation_not_written" in blockers
+    assert "chat_body_observation_body_page_readback_missing" in blockers
+    assert "chat_body_observation_value_mismatch:assistant_text" in blockers
+    assert "chat_body_observation_value_mismatch:weight_history" in blockers
+    assert "chat_body_observation_value_mismatch:manager_call_count" in blockers
+    assert "chat_body_observation_non_claim_overclaim:body_plan_mutated" in blockers
+    assert "chat_body_observation_non_claim_overclaim:ledger_updated" in blockers
+    assert "chat_body_observation_non_claim_overclaim:frontend_weight_parser_used" in blockers
+    assert "chat_body_observation_non_claim_overclaim:product_readiness_claimed" in blockers
 
 
 def test_product_pages_browser_smoke_validator_rejects_missing_reload_body_user_and_overflow() -> None:
@@ -593,6 +639,17 @@ def test_product_pages_browser_smoke_runs_real_browser_when_playwright_available
     assert report["chat_reload_preserved_user_id"] is True
     assert report["chat_scroll_behavior_checked"] is True
     assert report["chat_reload_scroll_behavior_checked"] is True
+    assert report["chat_body_observation_same_truth_checked"] is True
+    assert report["chat_body_observation_written"] is True
+    assert report["chat_body_observation_body_page_readback"] is True
+    assert report["chat_body_observation_values"]["assistant_text"] == (
+        "Recorded weight 70.0 kg. Body plan was not changed."
+    )
+    assert f'{report["local_date"]} | 70 kg' in report["chat_body_observation_values"]["weight_history"]
+    assert report["chat_body_observation_values"]["manager_call_count"] == 2
+    assert report["chat_body_observation_non_claims"]["body_plan_mutated"] is False
+    assert report["chat_body_observation_non_claims"]["ledger_updated"] is False
+    assert report["chat_body_observation_non_claims"]["frontend_weight_parser_used"] is False
     assert report["today_previous_day_empty_checked"] is True
     assert report["today_current_day_restored_checked"] is True
     assert report["today_session_status_rendered"] is True

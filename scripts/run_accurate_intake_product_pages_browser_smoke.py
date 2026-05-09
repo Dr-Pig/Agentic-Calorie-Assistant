@@ -6,8 +6,10 @@ import os
 import secrets
 import sys
 import time
+from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +21,7 @@ from app.composition.current_shell_fooddb_triad_same_truth_contract import (  # 
     EXPECTED_FOODDB_TRIAD_SAME_TRUTH_CASES,
     FOODDB_TRIAD_SAME_TRUTH_REQUIRED_NON_CLAIMS,
 )
+from app.composition import intake_routes  # noqa: E402
 from app.database import get_or_create_user  # noqa: E402
 from app.runtime.interface.local_debug_auth import LOCAL_DEBUG_API_TOKEN_ENV  # noqa: E402
 from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
@@ -36,6 +39,9 @@ from scripts.run_accurate_intake_browser_shell_smoke import (  # noqa: E402
 from scripts.run_accurate_intake_mvp_manager_style_smoke import (  # noqa: E402
     DeterministicSelfUseManagerProvider,
 )
+from scripts.accurate_intake_body_observation_manager_fixture import (  # noqa: E402
+    BodyObservationManagerFixtureProvider,
+)
 from app.nutrition.application.approved_packet_ready_fooddb_artifact import (  # noqa: E402
     build_approved_packet_ready_fooddb_artifact,
 )
@@ -51,6 +57,18 @@ DEFAULT_LOCAL_DATE = resolve_today_local_date(None)
 DEFAULT_CJK_MESSAGE = "早餐吃茶葉蛋和拿鐵"
 DEFAULT_MACRO_EXACT_ITEM_MESSAGE = "統一巧克力牛乳(400ml)"
 DEFAULT_MACRO_MISSING_EXACT_ITEM_MESSAGE = "\u722d\u9bae\u7126\u7cd6\u9bae\u9b5a\u5169\u8cab"
+DEFAULT_BODY_OBSERVATION_MESSAGE = "my weight is 70kg"
+EXPECTED_CHAT_BODY_OBSERVATION_VALUES = {
+    "assistant_text": "Recorded weight 70.0 kg. Body plan was not changed.",
+    "weight_history": "{local_date} | 70 kg",
+    "manager_call_count": 2,
+}
+CHAT_BODY_OBSERVATION_NON_CLAIMS = {
+    "body_plan_mutated": False,
+    "ledger_updated": False,
+    "frontend_weight_parser_used": False,
+    "product_readiness_claimed": False,
+}
 EXPECTED_MACRO_EXACT_ITEM_VALUES = {
     "macro_state": "visible",
     "protein_text": "12",
@@ -139,6 +157,11 @@ def _base_report(
         "chat_session_status_rendered": False,
         "chat_context_status_rendered": False,
         "chat_no_debug_trace": False,
+        "chat_body_observation_same_truth_checked": False,
+        "chat_body_observation_written": False,
+        "chat_body_observation_body_page_readback": False,
+        "chat_body_observation_values": {},
+        "chat_body_observation_non_claims": dict(CHAT_BODY_OBSERVATION_NON_CLAIMS),
         "today_page_loaded": False,
         "today_date_switch_checked": False,
         "today_previous_day_empty_checked": False,
@@ -366,6 +389,120 @@ def _current_budget_macro_fields(payload: dict[str, Any]) -> dict[str, Any]:
         "show_macro": payload.get("show_macro"),
         "macro_guard_reason": payload.get("macro_guard_reason"),
     }
+
+
+@contextmanager
+def _body_observation_fixture_route() -> Any:
+    provider = BodyObservationManagerFixtureProvider()
+    previous_manager_provider = intake_routes.manager_provider
+    previous_routing_decision = intake_routes.build_workflow_routing_decision
+
+    def _route_to_body_observation(**_: Any) -> SimpleNamespace:
+        return SimpleNamespace(
+            target_workflow_family="body_observation",
+            disposition="open_new_workflow",
+            phase_a_trace={},
+            required_read_surfaces=[],
+        )
+
+    intake_routes.manager_provider = provider
+    intake_routes.build_workflow_routing_decision = _route_to_body_observation
+    try:
+        yield provider
+    finally:
+        intake_routes.manager_provider = previous_manager_provider
+        intake_routes.build_workflow_routing_decision = previous_routing_decision
+
+
+def _expected_chat_body_observation_values(local_date: str) -> dict[str, Any]:
+    values = dict(EXPECTED_CHAT_BODY_OBSERVATION_VALUES)
+    values["weight_history"] = str(values["weight_history"]).format(local_date=local_date)
+    return values
+
+
+def _run_chat_body_observation_same_truth_sequence(
+    browser: Any,
+    *,
+    base_url: str,
+    user_external_id: str,
+    local_date: str,
+    timeout_ms: int,
+    local_debug_token: str,
+    viewport: dict[str, int],
+) -> dict[str, Any]:
+    expected_values = _expected_chat_body_observation_values(local_date)
+    result: dict[str, Any] = {
+        "chat_body_observation_same_truth_checked": False,
+        "chat_body_observation_written": False,
+        "chat_body_observation_body_page_readback": False,
+        "chat_body_observation_values": {},
+        "chat_body_observation_non_claims": dict(CHAT_BODY_OBSERVATION_NON_CLAIMS),
+        "fetch_sequence": [],
+        "page_text": "",
+    }
+    chat = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "chat", user_external_id=user_external_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    try:
+        chat.wait_for_selector('[data-surface-role="chat"]', timeout=timeout_ms)
+        with _body_observation_fixture_route() as provider:
+            chat.fill("#message-input", DEFAULT_BODY_OBSERVATION_MESSAGE)
+            chat.press("#message-input", "Enter")
+            chat.wait_for_function(
+                """(expected) => {
+                  const text = document.querySelector("#chat-scroll")?.textContent || "";
+                  return text.includes(expected);
+                }""",
+                arg=expected_values["assistant_text"],
+                timeout=timeout_ms,
+            )
+            result["chat_body_observation_written"] = True
+            result["chat_body_observation_values"]["assistant_text"] = expected_values[
+                "assistant_text"
+            ]
+            result["chat_body_observation_values"]["manager_call_count"] = len(provider.calls)
+        result["fetch_sequence"].extend(_capture_fetches(chat))
+        result["page_text"] += "\n" + chat.locator("body").inner_text(timeout=timeout_ms)
+    finally:
+        chat.close()
+
+    body = _open_page(
+        browser,
+        viewport=viewport,
+        url=_page_url(base_url, "body", user_external_id=user_external_id, local_date=local_date),
+        timeout_ms=timeout_ms,
+        local_debug_token=local_debug_token,
+    )
+    try:
+        body.wait_for_selector('[data-surface-role="body-plan"]', timeout=timeout_ms)
+        body.wait_for_function(
+            """(expected) => (document.querySelector("#weight-history")?.textContent || "").includes(expected) """,
+            arg=expected_values["weight_history"],
+            timeout=timeout_ms,
+        )
+        weight_history = body.locator("#weight-history").inner_text(timeout=timeout_ms).strip()
+        result["chat_body_observation_body_page_readback"] = expected_values[
+            "weight_history"
+        ] in weight_history
+        result["chat_body_observation_values"]["weight_history"] = expected_values[
+            "weight_history"
+        ]
+        result["fetch_sequence"].extend(_capture_fetches(body))
+        result["page_text"] += "\n" + body.locator("body").inner_text(timeout=timeout_ms)
+    finally:
+        body.close()
+
+    result["chat_body_observation_same_truth_checked"] = (
+        result["chat_body_observation_written"] is True
+        and result["chat_body_observation_body_page_readback"] is True
+        and result["chat_body_observation_values"] == expected_values
+        and result["chat_body_observation_non_claims"] == CHAT_BODY_OBSERVATION_NON_CLAIMS
+    )
+    return result
 
 
 def _run_macro_present_exact_item_sequence(
@@ -633,6 +770,11 @@ def _run_browser_sequence(
         "mobile_overflow": {},
         "storage": {"localStorageKeys": [], "sessionStorageKeys": []},
         "product_page_text": "",
+        "chat_body_observation_same_truth_checked": False,
+        "chat_body_observation_written": False,
+        "chat_body_observation_body_page_readback": False,
+        "chat_body_observation_values": {},
+        "chat_body_observation_non_claims": dict(CHAT_BODY_OBSERVATION_NON_CLAIMS),
         "macro_present_exact_item_browser_checked": False,
         "macro_present_exact_item_values": {},
         "macro_missing_exact_item_browser_checked": False,
@@ -845,6 +987,34 @@ def _run_browser_sequence(
             )
             result["fetch_sequence"].extend(_capture_fetches(chat))
             chat.close()
+
+            result["current_step"] = "chat_body_observation_same_truth_check"
+            body_observation_result = _run_chat_body_observation_same_truth_sequence(
+                browser,
+                base_url=base_url,
+                user_external_id=user_external_id,
+                local_date=local_date,
+                timeout_ms=timeout_ms,
+                local_debug_token=local_debug_token,
+                viewport=desktop_viewport,
+            )
+            result["chat_body_observation_same_truth_checked"] = body_observation_result[
+                "chat_body_observation_same_truth_checked"
+            ]
+            result["chat_body_observation_written"] = body_observation_result[
+                "chat_body_observation_written"
+            ]
+            result["chat_body_observation_body_page_readback"] = body_observation_result[
+                "chat_body_observation_body_page_readback"
+            ]
+            result["chat_body_observation_values"] = body_observation_result[
+                "chat_body_observation_values"
+            ]
+            result["chat_body_observation_non_claims"] = body_observation_result[
+                "chat_body_observation_non_claims"
+            ]
+            result["fetch_sequence"].extend(body_observation_result["fetch_sequence"])
+            page_texts.append(str(body_observation_result.get("page_text") or ""))
 
             result["current_step"] = "macro_present_exact_item_browser_check"
             macro_result = _run_macro_present_exact_item_sequence(
@@ -1330,6 +1500,15 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     require_true("chat_session_status_rendered", "chat_session_status_not_rendered")
     require_true("chat_context_status_rendered", "chat_context_status_not_rendered")
     require_true("chat_no_debug_trace", "chat_debug_trace_leaked")
+    require_true(
+        "chat_body_observation_same_truth_checked",
+        "chat_body_observation_same_truth_not_checked",
+    )
+    require_true("chat_body_observation_written", "chat_body_observation_not_written")
+    require_true(
+        "chat_body_observation_body_page_readback",
+        "chat_body_observation_body_page_readback_missing",
+    )
     require_true("today_page_loaded", "today_page_not_loaded")
     require_true("today_date_switch_checked", "today_date_switch_not_checked")
     require_true("today_previous_day_empty_checked", "today_previous_day_empty_not_checked")
@@ -1421,6 +1600,15 @@ def _validate(report: dict[str, Any]) -> tuple[str, list[str]]:
     if body_values:
         if f"{local_date} | 70.4 kg" not in str(body_values.get("weight_history") or ""):
             blockers.append("body_read_model_value_mismatch:weight_history")
+    chat_body_values = dict(report.get("chat_body_observation_values") or {})
+    expected_chat_body_values = _expected_chat_body_observation_values(local_date)
+    for field, expected_value in expected_chat_body_values.items():
+        if chat_body_values.get(field) != expected_value:
+            blockers.append(f"chat_body_observation_value_mismatch:{field}")
+    chat_body_non_claims = dict(report.get("chat_body_observation_non_claims") or {})
+    for field, expected_value in CHAT_BODY_OBSERVATION_NON_CLAIMS.items():
+        if chat_body_non_claims.get(field) != expected_value:
+            blockers.append(f"chat_body_observation_non_claim_overclaim:{field}")
     body_budget_values = dict(report.get("body_budget_read_model_values") or browser.get("body_budget_read_model_values") or {})
     if not body_budget_values:
         blockers.append("body_budget_read_model_values_missing")
