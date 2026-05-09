@@ -106,3 +106,50 @@ def test_review_queue_builder_script_writes_artifact_from_runtime_trace(tmp_path
     assert artifact["review_candidates"][0]["trace_id"] == "turn-rescue-001"
     assert artifact["review_candidates"][0]["auto_flags"] == ["unsupported_intent"]
     assert artifact["status"] == "generated"
+
+
+def test_review_queue_builder_script_captures_browser_realistic_evidence_gap(
+    tmp_path: Path,
+) -> None:
+    diagnostic_path = tmp_path / "browser_realistic.json"
+    output_path = tmp_path / "review_queue.json"
+    diagnostic_path.write_text(
+        json.dumps(
+            {
+                "artifact_type": "accurate_intake_browser_realistic_web_dogfood_v2",
+                "status": "browser_diagnostic_pass_with_fixture_evidence_gap",
+                "summary": {
+                    "evidence_gap_observed": True,
+                    "manager_context_status": "present",
+                },
+                "fixture_evidence_used": True,
+                "fooddb_evidence_used": False,
+                "real_fooddb_pass_claimed": False,
+                "dogfood_pass": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    from scripts.build_accurate_intake_dogfood_review_queue import main
+
+    exit_code = main(
+        [
+            "--diagnostic-json",
+            str(diagnostic_path),
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    assert exit_code == 0
+    artifact = json.loads(output_path.read_text(encoding="utf-8"))
+    assert artifact["status"] == "generated"
+    assert artifact["review_candidate_count"] == 1
+    candidate = artifact["review_candidates"][0]
+    assert candidate["trace_id"] == "accurate_intake_browser_realistic_web_dogfood_v2"
+    assert candidate["auto_flags"] == ["evidence_gap"]
+    assert candidate["raw_trace"]["raw_trace_is_truth"] is False
+    assert candidate["canonical_eval_promotion"]["allowed"] is False
+    assert candidate["review_candidate"]["reviewer_agent_can_approve"] is False

@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
 
 from app.composition.dogfood_review_queue import (  # noqa: E402
     build_dogfood_review_queue_artifact,
+    build_review_candidate_from_product_loop_diagnostic,
     build_review_candidate_from_runtime_trace,
 )
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
@@ -33,6 +34,12 @@ def main(argv: list[str] | None = None) -> int:
         help="User correction feedback event JSON file. May be passed more than once.",
     )
     parser.add_argument(
+        "--diagnostic-json",
+        action="append",
+        default=[],
+        help="Product-loop diagnostic JSON file. May be passed more than once.",
+    )
+    parser.add_argument(
         "--output",
         default="artifacts/accurate_intake_dogfood_review_queue.json",
         help="Output artifact path.",
@@ -43,6 +50,10 @@ def main(argv: list[str] | None = None) -> int:
         build_review_candidate_from_runtime_trace(read_json_artifact(Path(path)))
         for path in args.trace_json
     ]
+    review_candidates.extend(
+        build_review_candidate_from_product_loop_diagnostic(read_json_artifact(Path(path)))
+        for path in args.diagnostic_json
+    )
     correction_feedback_events = [
         read_json_artifact(Path(path))
         for path in args.correction_event_json
