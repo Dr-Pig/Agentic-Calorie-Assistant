@@ -294,8 +294,8 @@ def _blocked_not_invoked(*, artifact_type: str, output: Path, reason: str) -> di
     artifact = {
         "artifact_type": artifact_type,
         "artifact_schema_version": "1.0",
-        "status": "blocked",
-        "provider_mode": "not_invoked",
+        "status": "not_run",
+        "provider_mode": "not_run",
         "live_invoked": False,
         "live_provider_used": False,
         "provider_invoked": False,

@@ -11,6 +11,7 @@ FIXTURE_TYPE = "advanced_shadow_e2e_fixture_chain_artifact"
 DOGFOOD_TYPE = "advanced_shadow_dogfood_replay_artifact"
 LIVE_TYPE = "advanced_shadow_recommendation_copy_live_diagnostic_artifact"
 RESCUE_LIVE_TYPE = "advanced_shadow_rescue_copy_live_diagnostic_artifact"
+OPTIONAL_NOT_RUN_SOURCES = ("recommendation_copy_live_diagnostic", "rescue_copy_live_diagnostic")
 FALSE_FLAG_NAMES = (
     "mainline_runtime_connected", "mainline_route_or_api_mount_allowed",
     "production_scheduler_delivery_allowed", "production_db_migration_allowed",
@@ -53,6 +54,7 @@ def build_advanced_shadow_comparison_artifact(
     )
     blockers = [
         *_source_type_blockers(source_inputs),
+        *_source_status_blockers(sources),
         *[f"{row['source']}.{row['flag']}" for row in invariant["observed_true_flags"]],
         *pairing_summary["schema_gaps"],
         *pairing_summary["activation_violations"],
@@ -100,6 +102,18 @@ def _source_type_blockers(sources: Mapping[str, tuple[str, Mapping[str, Any]]]) 
             continue
         if actual_type != expected_type:
             blockers.append(f"{name}.unsupported_artifact_type:{actual_type or 'missing'}")
+    return blockers
+
+
+def _source_status_blockers(sources: Mapping[str, Mapping[str, Any]]) -> list[str]:
+    blockers: list[str] = []
+    for name, artifact in sources.items():
+        status = str(artifact.get("status") or "missing")
+        if status == "pass" or status == "unsupported":
+            continue
+        if status == "not_run" and name in OPTIONAL_NOT_RUN_SOURCES:
+            continue
+        blockers.append(f"{name}.status_{status}")
     return blockers
 
 
