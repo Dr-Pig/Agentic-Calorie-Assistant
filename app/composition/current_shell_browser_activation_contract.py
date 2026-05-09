@@ -14,6 +14,7 @@ REQUIRED_INPUTS = (
     "product_pages_target_candidate_ui_smoke",
     "product_pages_visual_qa",
     "product_pages_body_noplan_degraded_smoke",
+    "body_observation_same_truth_gate",
     "fixture_full_product_loop_e2e",
     "product_pages_self_use_flow_gate",
 )
@@ -28,6 +29,7 @@ EXPECTED_STATUSES = {
     "product_pages_target_candidate_ui_smoke": "pass",
     "product_pages_visual_qa": "pass",
     "product_pages_body_noplan_degraded_smoke": "pass",
+    "body_observation_same_truth_gate": "body_observation_same_truth_gate_ready_for_human_review",
     "fixture_full_product_loop_e2e": "fixture_product_loop_e2e_diagnostic_pass",
     "product_pages_self_use_flow_gate": "product_pages_self_use_flow_ready_for_human_review",
 }
@@ -56,6 +58,7 @@ BROWSER_ARTIFACTS = (
     "product_pages_target_candidate_ui_smoke",
     "product_pages_visual_qa",
     "product_pages_body_noplan_degraded_smoke",
+    "body_observation_same_truth_gate",
 )
 
 REQUIRED_SELF_USE_FLOW_SUMMARY_FLAGS = (
@@ -69,6 +72,7 @@ REQUIRED_SELF_USE_FLOW_SUMMARY_FLAGS = (
     "renderer_source_closure_checked",
     "context_target_browser_closure_checked",
     "body_noplan_degraded_checked",
+    "body_observation_same_truth_checked",
 )
 
 EXPECTED_ROUTE_BACKED_MACRO_PRESENT_CURRENT_BUDGET = {
@@ -229,6 +233,9 @@ REQUIRED_TRUE_FLAGS = {
         "today_no_plan_budget_rendered",
         "no_bootstrap_or_mutation_post",
         "product_pages_no_debug_trace",
+    ),
+    "body_observation_same_truth_gate": (
+        "browser_executed",
     ),
     "fixture_full_product_loop_e2e": ("fixture_evidence_used",),
     "product_pages_self_use_flow_gate": (
