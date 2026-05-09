@@ -37,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
         default=str(DEFAULT_OUTPUT),
         help="Output artifact path. Defaults to ignored local artifacts directory.",
     )
-    parser.add_argument("--limit", type=int, default=1)
+    parser.add_argument("--limit", type=int, default=3)
     args = parser.parse_args(argv)
 
     artifact = build_approved_packet_ready_fooddb_artifact(
