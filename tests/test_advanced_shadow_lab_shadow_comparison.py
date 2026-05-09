@@ -12,6 +12,7 @@ def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> N
         fixture_chain_artifact=_fixture_chain(),
         dogfood_replay_artifact=_dogfood_replay(),
         recommendation_copy_live_diagnostic_artifact=_live_diagnostic(),
+        rescue_copy_live_diagnostic_artifact=_rescue_live_diagnostic(),
     )
     serialized = json.dumps(artifact, ensure_ascii=False)
 
@@ -21,6 +22,7 @@ def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> N
         "fixture_chain": "pass",
         "dogfood_replay": "pass",
         "recommendation_copy_live_diagnostic": "pass",
+        "rescue_copy_live_diagnostic": "pass",
     }
     assert artifact["surface_status_rows"] == [
         {
@@ -37,13 +39,28 @@ def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> N
             "live_status": "pass",
             "finding": "live_diagnostic_passed",
         },
+        {
+            "surface": "rescue_proposal_copy_posture",
+            "fixture_status": "not_applicable",
+            "dogfood_status": "not_applicable",
+            "live_status": "pass",
+            "finding": "live_diagnostic_passed",
+        },
     ]
     assert artifact["activation_invariant_summary"]["observed_true_flags"] == []
-    assert artifact["live_diagnostic_signal"] == {
-        "live_invoked": True,
-        "live_provider_used": True,
-        "provider_mode": "builderspace_live_diagnostic",
-        "output_guard_status": "pass",
+    assert artifact["live_diagnostic_signals"] == {
+        "recommendation_copy_live_diagnostic": {
+            "live_invoked": True,
+            "live_provider_used": True,
+            "provider_mode": "builderspace_live_diagnostic",
+            "output_guard_status": "pass",
+        },
+        "rescue_copy_live_diagnostic": {
+            "live_invoked": True,
+            "live_provider_used": True,
+            "provider_mode": "builderspace_live_diagnostic",
+            "output_guard_status": "pass",
+        },
     }
     assert artifact["mainline_runtime_connected"] is False
     assert artifact["delivery_attempted"] is False
@@ -53,6 +70,7 @@ def test_shadow_comparison_aggregates_fixture_dogfood_and_live_diagnostic() -> N
     assert artifact["user_facing_behavior_changed"] is False
     assert "private dogfood wording" not in serialized
     assert "Consider the FamilyMart" not in serialized
+    assert "Recover the rest of the week" not in serialized
 
 
 def test_shadow_comparison_blocks_activation_claim_drift() -> None:
@@ -60,17 +78,21 @@ def test_shadow_comparison_blocks_activation_claim_drift() -> None:
     dogfood["delivery_attempted"] = True
     live = _live_diagnostic()
     live["recommendation_served"] = True
+    rescue_live = _rescue_live_diagnostic()
+    rescue_live["proposal_committed"] = True
 
     artifact = build_advanced_shadow_comparison_artifact(
         fixture_chain_artifact=_fixture_chain(),
         dogfood_replay_artifact=dogfood,
         recommendation_copy_live_diagnostic_artifact=live,
+        rescue_copy_live_diagnostic_artifact=rescue_live,
     )
 
     assert artifact["status"] == "blocked"
     assert artifact["blockers"] == [
         "advanced_shadow_dogfood_replay_artifact.delivery_attempted",
         "advanced_shadow_recommendation_copy_live_diagnostic_artifact.recommendation_served",
+        "advanced_shadow_rescue_copy_live_diagnostic_artifact.proposal_committed",
     ]
     assert artifact["activation_invariant_summary"]["observed_true_flags"] == [
         {
@@ -80,6 +102,10 @@ def test_shadow_comparison_blocks_activation_claim_drift() -> None:
         {
             "source": "advanced_shadow_recommendation_copy_live_diagnostic_artifact",
             "flag": "recommendation_served",
+        },
+        {
+            "source": "advanced_shadow_rescue_copy_live_diagnostic_artifact",
+            "flag": "proposal_committed",
         },
     ]
     assert artifact["delivery_attempted"] is False
@@ -94,6 +120,7 @@ def test_shadow_comparison_treats_live_guard_block_as_quality_finding() -> None:
         fixture_chain_artifact=_fixture_chain(),
         dogfood_replay_artifact=_dogfood_replay(),
         recommendation_copy_live_diagnostic_artifact=live,
+        rescue_copy_live_diagnostic_artifact=_rescue_live_diagnostic(),
     )
 
     assert artifact["status"] == "pass"
@@ -108,6 +135,53 @@ def test_shadow_comparison_treats_live_guard_block_as_quality_finding() -> None:
     assert artifact["blockers"] == []
 
 
+def test_shadow_comparison_treats_rescue_live_guard_block_as_quality_finding() -> None:
+    rescue_live = _rescue_live_diagnostic(status="blocked", output_guard_status="blocked")
+
+    artifact = build_advanced_shadow_comparison_artifact(
+        fixture_chain_artifact=_fixture_chain(),
+        dogfood_replay_artifact=_dogfood_replay(),
+        recommendation_copy_live_diagnostic_artifact=_live_diagnostic(),
+        rescue_copy_live_diagnostic_artifact=rescue_live,
+    )
+
+    assert artifact["status"] == "pass"
+    assert artifact["source_statuses"]["rescue_copy_live_diagnostic"] == "blocked"
+    assert artifact["surface_status_rows"][2] == {
+        "surface": "rescue_proposal_copy_posture",
+        "fixture_status": "not_applicable",
+        "dogfood_status": "not_applicable",
+        "live_status": "blocked",
+        "finding": "live_diagnostic_model_output_blocked",
+    }
+    assert artifact["blockers"] == []
+
+
+def test_shadow_comparison_allows_rescue_live_diagnostic_to_be_absent() -> None:
+    artifact = build_advanced_shadow_comparison_artifact(
+        fixture_chain_artifact=_fixture_chain(),
+        dogfood_replay_artifact=_dogfood_replay(),
+        recommendation_copy_live_diagnostic_artifact=_live_diagnostic(),
+    )
+
+    assert artifact["status"] == "pass"
+    assert artifact["source_statuses"]["rescue_copy_live_diagnostic"] == "not_run"
+    assert artifact["surface_status_rows"][2] == {
+        "surface": "rescue_proposal_copy_posture",
+        "fixture_status": "not_applicable",
+        "dogfood_status": "not_applicable",
+        "live_status": "not_run",
+        "finding": "live_diagnostic_not_run",
+    }
+    assert artifact["live_diagnostic_signals"]["rescue_copy_live_diagnostic"] == {
+        "live_invoked": False,
+        "live_provider_used": False,
+        "provider_mode": "not_run",
+        "output_guard_status": "not_run",
+    }
+    assert artifact["blockers"] == []
+
+
 def test_shadow_comparison_blocks_unsupported_source_artifact_type() -> None:
     fixture = _fixture_chain()
     fixture["artifact_type"] = "legacy_fixture_report"
@@ -116,6 +190,7 @@ def test_shadow_comparison_blocks_unsupported_source_artifact_type() -> None:
         fixture_chain_artifact=fixture,
         dogfood_replay_artifact=_dogfood_replay(),
         recommendation_copy_live_diagnostic_artifact=_live_diagnostic(),
+        rescue_copy_live_diagnostic_artifact=_rescue_live_diagnostic(),
     )
 
     assert artifact["status"] == "blocked"
@@ -182,6 +257,34 @@ def _live_diagnostic(
         "delivery_attempted": False,
         "scheduler_enabled": False,
         "recommendation_served": False,
+        "proactive_sent": False,
+        "mutation_changed": False,
+        "user_facing_behavior_changed": False,
+    }
+
+
+def _rescue_live_diagnostic(
+    *,
+    status: str = "pass",
+    output_guard_status: str = "pass",
+) -> dict[str, object]:
+    return {
+        "artifact_type": "advanced_shadow_rescue_copy_live_diagnostic_artifact",
+        "status": status,
+        "target_surface": "rescue_proposal_copy_posture",
+        "provider_mode": "builderspace_live_diagnostic",
+        "live_invoked": True,
+        "live_provider_used": True,
+        "output_guard": {"status": output_guard_status},
+        "model_output_summary": {
+            "proposal_headline_present": True,
+            "diagnostic_copy_preview": "Recover the rest of the week",
+        },
+        "mainline_runtime_connected": False,
+        "delivery_attempted": False,
+        "scheduler_enabled": False,
+        "rescue_committed": False,
+        "proposal_committed": False,
         "proactive_sent": False,
         "mutation_changed": False,
         "user_facing_behavior_changed": False,
