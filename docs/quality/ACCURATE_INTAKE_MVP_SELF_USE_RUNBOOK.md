@@ -221,10 +221,19 @@ python scripts/build_accurate_intake_dogfood_operator_review.py --dogfood-json a
 
 This surface is a local-only triage view. It may classify turns as target update success, food evidence gap, blocked mutation, query/no-mutation, unsupported intent, manager/context gap, or not checked using structured artifact fields only. Runtime error / missing-payload status may classify a turn as `manager_context_gap`; raw user text and assistant text are display-only. Browser v2 manager context status is limited to `not_available`, `not_checked`, or `missing_context_snapshot`; this is diagnostic-only and must not claim a Context Engineering fault. The surface must not recompute kcal, update Food KB truth, promote canonical eval cases, or convert `diagnostic_pass_with_evidence_gap` or `browser_diagnostic_pass_with_fixture_evidence_gap` into `pass`.
 
-Build the legacy-named CurrentShell/FoodDB handoff v3 metadata gate with:
+Build the minimal approved packet-ready FoodDB artifact from the existing exact item seed lane with:
+
+```powershell
+python scripts/build_accurate_intake_approved_packet_ready_fooddb_artifact.py --output artifacts/accurate_intake_approved_packet_ready_fooddb_artifact.json
+```
+
+This artifact is the first real FoodDB handoff input for Current Shell validation. It selects only tracked exact item cards that already have kcal plus complete label macros, reports `fixture_or_real=real`, and includes the `macro_contract` required by the Current Shell handoff. It does not broaden FoodDB coverage, ingest WebSearch, promote raw source rows, update runtime truth, or claim dogfood pass.
+
+Build the legacy-named CurrentShell/FoodDB handoff v3 metadata gate without the FoodDB artifact to keep the previous blocked posture, or with the minimal approved artifact to validate the handoff:
 
 ```powershell
 python scripts/build_accurate_intake_product_loop_handoff_v3.py --browser-shell-smoke artifacts/accurate_intake_browser_shell_smoke.json --local-web-candidate artifacts/accurate_intake_local_web_self_use_candidate_v2.json --browser-fixture-dogfood artifacts/accurate_intake_browser_one_day_fixture_dogfood.json --local-dogfood-hygiene artifacts/accurate_intake_local_dogfood_export.json --browser-realistic-dogfood artifacts/accurate_intake_browser_realistic_web_dogfood_v2.json --operator-review artifacts/accurate_intake_dogfood_operator_review_v2.json --mvp-gate artifacts/accurate_intake_mvp_gate.json --output artifacts/accurate_intake_product_loop_handoff_v3.json
+python scripts/build_accurate_intake_product_loop_handoff_v3.py --browser-shell-smoke artifacts/accurate_intake_browser_shell_smoke.json --local-web-candidate artifacts/accurate_intake_local_web_self_use_candidate_v2.json --browser-fixture-dogfood artifacts/accurate_intake_browser_one_day_fixture_dogfood.json --local-dogfood-hygiene artifacts/accurate_intake_local_dogfood_export.json --browser-realistic-dogfood artifacts/accurate_intake_browser_realistic_web_dogfood_v2.json --operator-review artifacts/accurate_intake_dogfood_operator_review_v2.json --mvp-gate artifacts/accurate_intake_mvp_gate.json --fooddb-artifact artifacts/accurate_intake_approved_packet_ready_fooddb_artifact.json --output artifacts/accurate_intake_product_loop_handoff_v3.json
 ```
 
 The handoff gate is validation-only. It requires the local web self-use candidate so the FoodDB handoff sees the same AppShell browser evidence chain used by Chat / Today / Body gates. Without a FoodDB artifact it stays blocked with `fooddb_artifact_status=blocked_waiting_for_fdb_artifact` and `ready_for_fdb_integration=false`. Fixture FoodDB evidence remains fixture-only and cannot be presented as a real FoodDB pass. Invalid FoodDB metadata blocks the gate and must not trigger auto-fix or FoodDB truth updates. Approved real FoodDB metadata must include `macro_contract` packet fields for `protein_g`, `carbs_g`, `fat_g`, `macro_visibility_status`, `macro_source_basis`, and `macro_confidence`, with missing macro values preserved as null/unknown rather than invented.
