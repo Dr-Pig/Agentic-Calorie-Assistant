@@ -8,6 +8,8 @@ from tests.test_accurate_intake_local_web_self_use_candidate_v2_gate_runner impo
 )
 from app.composition.current_shell_compatibility_ids import (
     CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID,
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS,
 )
 from tests.test_current_shell_compatibility_browser_activation_evidence_gate import (
     _valid_inputs as _valid_browser_gate_inputs,
@@ -106,6 +108,20 @@ def _seed_required_gate_inputs(artifact_dir: Path, *, omit_browser_target_ui: bo
     }
     for group_id, payload in product_loop_support.items():
         _write(artifact_dir / module.PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES[group_id], payload)
+
+
+def _seed_local_review_gate_inputs(artifact_dir: Path) -> None:
+    from scripts.build_current_shell_compatibility_local_review_evidence_manifest import (
+        DEFAULT_EVIDENCE_PATHS as LOCAL_REVIEW_EVIDENCE_PATHS,
+    )
+    from tests.test_current_shell_compatibility_local_review_gate_runner import (
+        _required_payloads as _required_local_review_payloads,
+    )
+
+    for group_id, payload in _required_local_review_payloads().items():
+        target_path = artifact_dir / LOCAL_REVIEW_EVIDENCE_PATHS[group_id].name
+        if not target_path.exists():
+            _write(target_path, payload)
 
 
 def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evidence_are_green(
@@ -299,6 +315,38 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
             / module.REFRESHED_ARTIFACT_FILENAMES["context_live_diagnostic_gate"]
         ).read_text(encoding="utf-8")
     )["holdout_plan_required"] is True
+
+
+def test_refresh_chain_regenerates_current_shell_local_review_decision_from_evidence_inputs(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+    _seed_required_gate_inputs(artifact_dir)
+    _seed_local_review_gate_inputs(artifact_dir)
+    local_review_decision_path = (
+        artifact_dir / module.DEFAULT_EVIDENCE_PATHS[CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID].name
+    )
+    local_review_decision_path.unlink()
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+    manifest = json.loads(
+        (
+            artifact_dir
+            / "accurate_intake_current_shell_compatibility_local_review_evidence_manifest.json"
+        ).read_text(encoding="utf-8")
+    )
+    decision = json.loads(local_review_decision_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert printed["status"] == "pass"
+    assert manifest["_manifest_metadata"]["status"] == "complete"
+    assert decision["status"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
+    assert decision["ready_for_live_diagnostic_decision"] is False
+    assert decision["ready_for_fdb_integration"] is False
 
 
 def test_refresh_chain_honestly_blocks_when_browser_activation_dependencies_are_missing(
