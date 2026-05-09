@@ -51,6 +51,7 @@ SIDECAR_MODULES = [
     "app.runtime.contracts.pending_meal_intent",
     "app.runtime.contracts.proactive_gate",
     "app.runtime.application.proactive_deterministic_gate",
+    "app.runtime.application.proactive_no_send_interaction_model",
     "app.runtime.application.proactive_no_send_nudge_bridge",
     "app.runtime.application.proactive_no_send_nudge_candidate",
     "app.runtime.application.proactive_no_send_shadow_evaluator",
