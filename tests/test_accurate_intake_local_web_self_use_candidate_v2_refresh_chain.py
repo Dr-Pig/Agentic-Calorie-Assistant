@@ -35,7 +35,12 @@ def _merge_write(path: Path, payload: dict[str, object]) -> None:
     _write(path, payload)
 
 
-def _seed_required_gate_inputs(artifact_dir: Path, *, omit_browser_target_ui: bool = False) -> None:
+def _seed_required_gate_inputs(
+    artifact_dir: Path,
+    *,
+    omit_browser_target_ui: bool = False,
+    omit_fixture_full_product_loop_e2e: bool = False,
+) -> None:
     from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
 
     gate_payloads = _required_payloads()
@@ -58,6 +63,8 @@ def _seed_required_gate_inputs(artifact_dir: Path, *, omit_browser_target_ui: bo
     for group_id, payload in product_pages_flow_inputs.items():
         if group_id == "product_pages_target_candidate_ui_smoke" and omit_browser_target_ui:
             continue
+        if group_id == "fixture_full_product_loop_e2e" and omit_fixture_full_product_loop_e2e:
+            continue
         target_path = artifact_dir / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS[group_id].name
         _write(target_path, payload)
 
@@ -75,6 +82,8 @@ def _seed_required_gate_inputs(artifact_dir: Path, *, omit_browser_target_ui: bo
         ("product_pages_self_use_flow_gate", "product_pages_self_use_flow_gate"),
     )
     for path_group_id, payload_group_id in browser_input_groups:
+        if path_group_id == "fixture_full_product_loop_e2e" and omit_fixture_full_product_loop_e2e:
+            continue
         target_path = artifact_dir / module.BROWSER_GATE_ARTIFACT_PATHS[path_group_id].name
         _merge_write(target_path, browser_gate_inputs[payload_group_id])
     if not omit_browser_target_ui:
@@ -380,7 +389,7 @@ def test_refresh_chain_honestly_blocks_when_browser_activation_dependencies_are_
     from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
 
     artifact_dir = tmp_path / "artifacts"
-    _seed_required_gate_inputs(artifact_dir, omit_browser_target_ui=True)
+    _seed_required_gate_inputs(artifact_dir, omit_fixture_full_product_loop_e2e=True)
 
     exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
     printed = json.loads(capsys.readouterr().out)
@@ -405,14 +414,14 @@ def test_refresh_chain_honestly_blocks_when_browser_activation_dependencies_are_
     assert exit_code == 1
     assert printed["status"] == "blocked"
     assert printed["closeout_navigation"]["missing_evidence"] == [
-        "product_pages_target_candidate_ui_smoke"
+        "fixture_full_product_loop_e2e"
     ]
     assert printed["closeout_navigation"]["stale_evidence"] == []
     assert printed["closeout_navigation"]["first_blocking_gate"] == {
         "gate_id": "product_pages_self_use_flow_gate",
         "status": "blocked",
         "blocker_count": 13,
-        "first_blocker": "product_pages_target_candidate_ui_smoke.unexpected_status:missing",
+        "first_blocker": "fixture_full_product_loop_e2e.unexpected_status:missing",
     }
     assert printed["closeout_navigation"]["non_claims"]["private_self_use_approved"] is False
     assert printed["closeout_navigation"]["non_claims"]["product_ready"] is False
@@ -420,7 +429,7 @@ def test_refresh_chain_honestly_blocks_when_browser_activation_dependencies_are_
     assert printed["ready_for_fdb_integration_validation"] is False
     assert browser_activation["status"] == "blocked"
     assert (
-        "product_pages_target_candidate_ui_smoke.unexpected_status:missing"
+        "fixture_full_product_loop_e2e.unexpected_status:missing"
         in browser_activation["blockers"]
     )
     assert pre_live_pack["selected_option"] == "stay_local_self_use"
@@ -655,6 +664,42 @@ def test_refresh_chain_generates_required_short_term_context_smoke_before_next_b
     )
     assert (
         "product_pages_short_term_context_smoke"
+        not in printed["closeout_navigation"]["missing_evidence"]
+    )
+
+
+def test_refresh_chain_generates_required_target_candidate_ui_smoke_before_next_blocker(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+
+    target_candidate_path = (
+        artifact_dir
+        / module.PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["product_pages_target_candidate_ui_smoke"].name
+    )
+    target_candidate = json.loads(target_candidate_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
+    assert target_candidate["status"] == "pass"
+    assert target_candidate["browser_executed"] is True
+    assert target_candidate["browser_execution_required"] is True
+    assert target_candidate["target_candidate_surface_checked"] is True
+    assert target_candidate["target_candidate_count_rendered"] == 2
+    assert target_candidate["target_candidate_names_rendered"] == ["luwei", "milk tea"]
+    assert target_candidate["target_candidate_list_read_only"] is True
+    assert target_candidate["manager_provider_call_count"] == 0
+    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
+        "product_pages_target_candidate_ui_smoke.unexpected_status:missing"
+    )
+    assert (
+        "product_pages_target_candidate_ui_smoke"
         not in printed["closeout_navigation"]["missing_evidence"]
     )
 
