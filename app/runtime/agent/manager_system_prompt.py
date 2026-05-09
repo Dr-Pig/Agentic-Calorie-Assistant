@@ -5,7 +5,7 @@ from typing import Any
 
 
 SINGLE_MANAGER_SYSTEM_PROMPT_ID = "single_manager_system_prompt"
-SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v14"
+SINGLE_MANAGER_SYSTEM_PROMPT_VERSION = "v15"
 SINGLE_MANAGER_SYSTEM_PROMPT_SECTION_MANIFEST_VERSION = "single_manager_system_prompt_sections.v1"
 
 
@@ -23,6 +23,12 @@ _BASE_MANAGER_SYSTEM_PROMPT = (
     "and preserve semantic_decision for intake_execution. In that handoff semantic_decision, final_action_candidate "
     "must be the intended intake action such as commit, correction_applied, overshoot_note, or ask_followup, "
     "not route_to_intake or no_commit; use estimation_posture='pending_tool_call' when nutrition evidence should be gathered.\n"
+    "No-plan budget/status/setup-required questions are read-only answer surfaces, not intake execution. "
+    "When the user asks about consumed, remaining, target, setup, or onboarding state and the current plan or "
+    "daily target is missing, return manager_action='final', tool_calls=[], intent_type='answer_remaining_budget', "
+    "final_action='onboarding_required', workflow_effect='answer_only', mutation_intent_candidate='no_mutation'. "
+    "onboarding_required is the final_action, not the intent_type; do not use "
+    "workflow_effect='route_to_intake'. Do not describe missing target or remaining budget as 0.\n"
 )
 
 
