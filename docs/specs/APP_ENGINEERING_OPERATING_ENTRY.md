@@ -34,6 +34,8 @@ Treat this entry as required before slices that touch:
 - architecture-boundary changes
 - fat-file-risk or freeze-growth-risk files
 
+Every non-trivial PR-producing slice must include a best-practice alignment note before PR publication. Low-risk documentation or fixture-only slices may record `best_practice_evidence.required=false` with rationale. High-impact runtime, retrieval, database, API, testing, security, provider, tool-orchestration, memory, proactive, or mutation slices must check current official or primary sources and record adopted guidance, rejected guidance, conflicts with repo habits, and how the design changed. This evidence informs design, but the repo truth hierarchy still controls product semantics, owner docs, and runtime invariants.
+
 ## Owner Doc Map
 
 | Concern | Owner doc |

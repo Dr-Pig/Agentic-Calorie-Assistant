@@ -128,6 +128,8 @@ semantic_owner:
 
 For any high-impact runtime, retrieval, tool orchestration, evaluation, semantic routing, mutation, provider seam, structured extraction, or architecture-boundary slice, missing `best_practice_evidence`, `llm_deterministic_boundary`, or `semantic_owner` is a stop condition before implementation.
 
+For every non-trivial PR-producing slice, the implementer must explicitly align with current best practice before publishing the PR. For low-risk documentation or fixture-only work, this may be a short `best_practice_evidence.required=false` note with rationale. For high-impact runtime, retrieval, database, API, testing, security, provider, tool-orchestration, memory, proactive, or mutation work, use current official or primary sources and record adopted guidance, rejected guidance, conflicts with repo habits, and how the design changed. Best-practice evidence is advisory input under the repo truth hierarchy; it must not override canonical product truth, owner specs, or runtime invariants.
+
 `slice_mode` is a list, not a single enum. A slice may legitimately be more than one thing at once, for example `diagnostic_only + offline_runtime` or `fixture_only + producer_honesty`.
 
 Hard rule:
@@ -165,7 +167,8 @@ Use deeper process docs only when the task shape requires them:
   - use [docs/agent/EVOMAP_WORKFLOW.md](docs/agent/EVOMAP_WORKFLOW.md) when the slice introduces reusable capability or cross-repo workflow value
   - start from repo truth first for repo-local blockers
 - Best practice search:
-  - before high-impact runtime, retrieval, database, API, testing, or security work, check current official or primary sources
+  - before every non-trivial PR-producing slice, record best-practice alignment; for low-risk documentation or fixture-only work, state why a full external search is not required
+  - before high-impact runtime, retrieval, database, API, testing, security, provider, tool-orchestration, memory, proactive, or mutation work, check current official or primary sources
   - record adopted and rejected guidance under `best_practice_evidence`
 - Product-wide anti-drift entry:
   - read [docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md](docs/specs/APP_ENGINEERING_OPERATING_ENTRY.md) before high-impact provider, retrieval, DB, packet, mutation, or architecture-boundary slices
