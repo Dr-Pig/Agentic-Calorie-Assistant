@@ -842,6 +842,10 @@ async def test_run_intake_manager_sends_compact_tool_results_to_provider_only() 
             }
         },
         "provenance": {
+            "canonical_tool_name": "estimate_nutrition",
+            "truth_owner": "nutrition_evidence_packet",
+            "tool_kind": "read_only",
+            "mutation_authority": False,
             "correction_target": {"canonical_name": "milk tea", "debug_blob": "x" * 10_000},
             "budget_summary": {"predicted_remaining_kcal_after": 900, "debug_blob": "x" * 10_000},
             "macro_summary": {"show_macro": False, "macro_guard_reason": "hidden_missing_source"},
@@ -865,8 +869,13 @@ async def test_run_intake_manager_sends_compact_tool_results_to_provider_only() 
 
     prompt_tool_result = provider.calls[1]["user_payload"]["tool_results"][0]
     prompt_nutrition = prompt_tool_result["evidence"]["nutrition_payload"]
+    prompt_provenance = prompt_tool_result["provenance"]
     assert prompt_tool_result["prompt_payload_kind"] == "manager_tool_result_prompt_compact"
     assert prompt_nutrition["estimated_kcal"] == 520
+    assert prompt_provenance["canonical_tool_name"] == "estimate_nutrition"
+    assert prompt_provenance["truth_owner"] == "nutrition_evidence_packet"
+    assert prompt_provenance["tool_kind"] == "read_only"
+    assert prompt_provenance["mutation_authority"] is False
     assert prompt_nutrition["trace_contract"] == {
         "db_hit_type": "generic",
         "canonical_write_decision": {"can_write_canonical": True},

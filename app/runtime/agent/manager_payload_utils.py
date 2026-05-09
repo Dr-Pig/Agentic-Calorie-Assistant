@@ -159,6 +159,9 @@ def _compact_nutrition_payload_prompt_payload(payload: dict[str, Any]) -> dict[s
 
 def _compact_tool_provenance_prompt_payload(provenance: dict[str, Any]) -> dict[str, Any]:
     compact: dict[str, Any] = {}
+    for key in ("canonical_tool_name", "truth_owner", "tool_kind", "mutation_authority"):
+        if key in provenance and provenance.get(key) not in (None, ""):
+            compact[key] = json_safe(provenance[key])
     correction_target = _select_prompt_fields(
         _object_mapping(provenance.get("correction_target")),
         _CORRECTION_TARGET_PROMPT_FIELDS,
