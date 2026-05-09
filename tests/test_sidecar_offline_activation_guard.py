@@ -7,6 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 SIDECAR_MODULES = [
+    "app.advanced_shadow_lab",
+    "app.advanced_shadow_lab.manifest",
     "app.memory",
     "app.memory.domain",
     "app.memory.domain.summaries",
@@ -86,6 +88,7 @@ def test_sidecar_modules_are_not_imported_by_active_runtime_surfaces() -> None:
         "app.memory",
         "app.recommendation",
         "app.rescue",
+        "app.advanced_shadow_lab",
         "proactive_deterministic_gate",
         "proactive_no_send_shadow_evaluator",
         "pending_meal_intent",
@@ -105,6 +108,7 @@ def test_sidecar_modules_are_not_b2_readiness_inputs() -> None:
         "app.memory",
         "app.recommendation",
         "app.rescue",
+        "app.advanced_shadow_lab",
         "proactive_deterministic_gate",
         "proactive_no_send_shadow_evaluator",
         "pending_meal_intent",
