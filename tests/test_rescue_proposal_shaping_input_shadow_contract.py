@@ -149,3 +149,85 @@ def test_proposal_shaping_input_has_no_live_llm_or_runtime_attachment() -> None:
     assert packet["day_budget_mutated"] is False
     assert packet["body_plan_mutated"] is False
     assert packet["durable_memory_written"] is False
+
+
+def test_proposal_shaping_input_sanitizes_review_context_before_future_llm_boundary() -> None:
+    from app.rescue.application.proposal_shaping_input_shadow import (
+        build_rescue_proposal_shaping_input_shadow_packet,
+    )
+
+    packet = build_rescue_proposal_shaping_input_shadow_packet(
+        option_generation_shadow_packet=_option_packet(consumed=2100),
+        budget_context={
+            "current_date": "2026-05-09",
+            "overshoot_kcal": 300,
+            "raw_trace": {"hidden": "budget raw trace"},
+            "proposal_id": "hidden-budget-proposal",
+        },
+        body_plan_context={
+            "safety_floor_kcal": 1200,
+            "raw_body_plan": "hidden body plan detail",
+        },
+        rescue_history_context={
+            "recent_rescue_count": 1,
+            "summary": "prior rescue was accepted",
+            "proposal_id": "hidden-history-proposal",
+            "source_trace_ids": ["hidden-trace"],
+            "raw_candidate_output": {"headline": "hidden headline"},
+        },
+        suppression_context=[
+            {
+                "trigger_type": "rescue_nudge",
+                "summary": "dismissed once",
+                "candidate_id": "hidden-suppression-candidate",
+                "candidate_copy": "hidden copy",
+                "primary_actions": ["accept_rescue_plan"],
+            }
+        ],
+    )
+
+    review_context = packet["shaping_input_envelope"]["review_context"]
+
+    assert packet["status"] == "pass"
+    assert review_context == {
+        "budget_context": {"current_date": "2026-05-09", "overshoot_kcal": 300},
+        "body_plan_context": {"safety_floor_kcal": 1200},
+        "rescue_history_context": {
+            "recent_rescue_count": 1,
+            "summary": "prior rescue was accepted",
+        },
+        "suppression_context": [
+            {"trigger_type": "rescue_nudge", "summary": "dismissed once"}
+        ],
+    }
+    serialized = str(packet)
+    assert "hidden-budget-proposal" not in serialized
+    assert "hidden body plan detail" not in serialized
+    assert "hidden-history-proposal" not in serialized
+    assert "hidden-suppression-candidate" not in serialized
+    assert "hidden copy" not in serialized
+
+
+def test_proposal_shaping_input_blocks_context_authority_claim_drift() -> None:
+    from app.rescue.application.proposal_shaping_input_shadow import (
+        build_rescue_proposal_shaping_input_shadow_packet,
+    )
+
+    packet = build_rescue_proposal_shaping_input_shadow_packet(
+        option_generation_shadow_packet=_option_packet(consumed=2100),
+        budget_context={"day_budget_mutated": True},
+        rescue_history_context={"proposal_committed": True},
+        suppression_context=[{"manager_context_injected": True}],
+    )
+
+    assert packet["status"] == "blocked"
+    assert packet["option_generation_shadow_packet_used"] is False
+    assert packet["shaping_input_envelope"] == {}
+    assert packet["blockers"] == [
+        "budget_context.day_budget_mutated",
+        "rescue_history_context.proposal_committed",
+        "suppression_context[0].manager_context_injected",
+    ]
+    assert packet["proposal_committed"] is False
+    assert packet["day_budget_mutated"] is False
+    assert packet["manager_context_injected"] is False
