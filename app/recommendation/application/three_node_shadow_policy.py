@@ -6,7 +6,7 @@ from app.shared.contracts.sidecar_activation import offline_sidecar_contract
 
 
 SIDECAR_ACTIVATION_CONTRACT = offline_sidecar_contract(
-    "recommendation.application.three_node_shadow_support"
+    "recommendation.application.three_node_shadow_policy"
 )
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from app.recommendation.application.three_node_shadow_support import (
+from app.recommendation.application.three_node_shadow_policy import (
     build_fixture_recommendation_three_node_input,
     candidate_guard,
     empty_candidate_guard,
