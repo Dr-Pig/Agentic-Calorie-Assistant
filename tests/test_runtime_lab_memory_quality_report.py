@@ -146,6 +146,46 @@ def test_quality_report_covers_fixture_holdout_negative_and_regression(
     assert report["coverage"]["lab_injection_compared"] is True
 
 
+def test_quality_report_can_include_reviewed_dogfood_replay_review(
+    tmp_path: Path,
+) -> None:
+    from app.memory.application.runtime_lab_dogfood_replay import (
+        build_memory_dogfood_replay_review_artifact,
+    )
+    from app.memory.application.runtime_lab_quality_report import (
+        build_runtime_lab_memory_quality_report,
+    )
+
+    artifacts = _fixture_artifacts(tmp_path)
+    dogfood_replay_review = build_memory_dogfood_replay_review_artifact(
+        [
+            {
+                "trace": _trace(),
+                "review": {
+                    "reviewer_id": "fixture-human-reviewer",
+                    "case_type": "explicit_preference",
+                    "split": "holdout",
+                    "expected_outcome": "candidate",
+                    "expected_candidate_type": "preference",
+                    "semantic_oracle_source": "product_rule_and_trace_fields",
+                    "raw_keyword_route_allowed": False,
+                    "source_ref_confirmation": True,
+                },
+            }
+        ]
+    )
+
+    report = build_runtime_lab_memory_quality_report(
+        **artifacts,
+        dogfood_replay_review=dogfood_replay_review,
+    )
+
+    assert report["coverage"]["dogfood_reviewed_case_count"] == 1
+    assert report["coverage"]["dogfood_reviewed_proposed_split_counts"] == {
+        "holdout": 1
+    }
+
+
 def test_quality_report_activation_ladder_status_is_explicit(tmp_path: Path) -> None:
     from app.memory.application.runtime_lab_quality_report import (
         build_runtime_lab_memory_quality_report,
