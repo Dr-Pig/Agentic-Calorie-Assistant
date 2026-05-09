@@ -11,6 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app.nutrition.application.fooddb_macro_contract import (  # noqa: E402
+    MACRO_RUNTIME_POLICY,
+    MACRO_SOURCE_CLASS_POLICY,
+)
 from app.shared.infra.json_artifacts import read_json_artifact, write_json_artifact  # noqa: E402
 
 REQUIRED_PRODUCT_LOOP_EVIDENCE = (
@@ -279,6 +283,48 @@ def _fooddb_macro_contract_blockers(metadata: dict[str, Any]) -> list[str]:
         blockers.append("fooddb_macro_truth_owner_invalid")
     if macro_contract.get("missing_macro_policy") != FOODDB_MISSING_MACRO_POLICY:
         blockers.append("fooddb_macro_missing_policy_invalid")
+    blockers.extend(_fooddb_macro_runtime_policy_blockers(macro_contract))
+    blockers.extend(_fooddb_macro_source_policy_blockers(macro_contract))
+    return blockers
+
+
+def _fooddb_macro_runtime_policy_blockers(macro_contract: dict[str, Any]) -> list[str]:
+    runtime_policy = _object_dict(macro_contract.get("macro_runtime_policy"))
+    if not runtime_policy:
+        return ["fooddb_macro_runtime_policy_missing"]
+    blockers: list[str] = []
+    for field, expected in MACRO_RUNTIME_POLICY.items():
+        if runtime_policy.get(field) != expected:
+            blockers.append(f"fooddb_macro_runtime_policy_invalid:{field}")
+    return blockers
+
+
+def _fooddb_macro_source_policy_blockers(macro_contract: dict[str, Any]) -> list[str]:
+    source_policy = _object_dict(macro_contract.get("source_class_policy"))
+    if not source_policy:
+        return ["fooddb_macro_source_class_policy_missing"]
+
+    blockers: list[str] = []
+    for source_class in MACRO_SOURCE_CLASS_POLICY:
+        if source_class not in source_policy:
+            blockers.append(f"fooddb_macro_source_class_policy_missing:{source_class}")
+
+    exact = _object_dict(source_policy.get("exact_brand_item"))
+    generic = _object_dict(source_policy.get("generic_common_serving"))
+    component = _object_dict(source_policy.get("listed_component"))
+    basket = _object_dict(source_policy.get("basket_family_alias_modifier"))
+    source_evidence = _object_dict(source_policy.get("source_evidence_candidate"))
+
+    if exact.get("macro_truth_allowed") is not True:
+        blockers.append("fooddb_macro_source_policy_exact_not_truth_allowed")
+    if "null_unknown" not in list(generic.get("allowed_macro_values") or []):
+        blockers.append("fooddb_macro_source_policy_generic_null_unknown_missing")
+    if component.get("preferred_macro_granularity") != "per_unit":
+        blockers.append("fooddb_macro_source_policy_component_per_unit_missing")
+    if basket.get("macro_truth_allowed") is not False:
+        blockers.append("fooddb_macro_source_policy_basket_truth_allowed")
+    if source_evidence.get("macro_truth_allowed") is not False:
+        blockers.append("fooddb_macro_source_policy_evidence_candidate_truth_allowed")
     return blockers
 
 
