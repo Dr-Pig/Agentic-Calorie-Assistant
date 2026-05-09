@@ -1,0 +1,283 @@
+artifact_type: advanced_capability_activation_ladder
+version: 1
+status: active_guardrail_contract
+owner: MemoryRuntimeArchitecture
+consumer: advanced_capability_activation_review
+scope: advanced_runtime_lab_capabilities_only
+current_mainline_unchanged: true
+summary: >
+  Guard-only activation contract for later-wave long-term memory,
+  recommendation, rescue, and proactive capabilities. This contract constrains
+  promotion from shadow/lab artifacts toward read-only runtime, canary,
+  user-facing, and mutation-bearing stages without changing Current Shell
+  self-use behavior.
+
+stage_order:
+  - contract
+  - fake
+  - deterministic
+  - live_diagnostic
+  - shadow
+  - read_only_runtime
+  - canary
+  - user_facing
+  - mutation_bearing
+
+promotion_rules:
+  one_step_promotion_only: true
+  human_review_required_for_stage_change: true
+  evidence_must_name_holdouts: true
+  paired_baseline_comparison_required_from:
+    - read_only_runtime
+    - canary
+    - user_facing
+    - mutation_bearing
+  rollback_or_kill_switch_required_from:
+    - canary
+    - user_facing
+    - mutation_bearing
+  activation_decision_must_record:
+    - source_artifacts
+    - current_stage
+    - target_stage
+    - scope_keys
+    - user_facing_behavior_changed
+    - canonical_mutation_changed
+    - rollback_or_no_commit_fallback
+    - human_review_decision
+
+pre_promotion_no_go_flags:
+  user_facing_behavior_changed: false
+  canonical_mutation_changed: false
+  durable_product_memory_written: false
+  manager_context_packet_changed: false
+  scheduler_activation_allowed: false
+  notification_delivery_allowed: false
+  recommendation_served: false
+  rescue_proposal_committed: false
+  route_or_api_activation_allowed: false
+  product_db_migration_allowed: false
+  live_provider_delivery_path_allowed: false
+
+stage_requirements:
+  contract:
+    required_evidence:
+      - machine_readable_contract
+      - owner_and_consumer_declared
+      - non_claims_declared
+    allowed_outputs:
+      - contract_doc
+      - unit_tests
+    user_facing_behavior_changed: false
+    canonical_mutation_changed: false
+  fake:
+    required_evidence:
+      - fake_or_fixture_provider
+      - schema_validation
+      - no_runtime_imports
+    allowed_outputs:
+      - fixture_artifact
+      - fake_provider_artifact
+    user_facing_behavior_changed: false
+    canonical_mutation_changed: false
+  deterministic:
+    required_evidence:
+      - deterministic_replay
+      - scope_isolation_check
+      - no_live_llm_call
+    allowed_outputs:
+      - deterministic_diagnostic_artifact
+      - validator_decision
+    user_facing_behavior_changed: false
+    canonical_mutation_changed: false
+  live_diagnostic:
+    required_evidence:
+      - contract_backed_input_output_boundary
+      - runtime_trace_artifact
+      - no_direct_user_visible_authority
+      - no_mutation_authority
+    allowed_outputs:
+      - live_diagnostic_trace
+      - redacted_runtime_observation
+    runtime_connected: true
+    user_facing_behavior_changed: false
+    canonical_mutation_changed: false
+  shadow:
+    required_evidence:
+      - live_diagnostic_evidence
+      - comparable_current_path_output
+      - isolated_candidate_output
+      - holdout_or_negative_cases
+    allowed_outputs:
+      - shadow_artifact
+      - downstream_shadow_candidate
+    runtime_connected: true
+    user_facing_behavior_changed: false
+    canonical_mutation_changed: false
+  read_only_runtime:
+    required_evidence:
+      - shadow_evidence
+      - scope_isolation_check
+      - paired_baseline_comparison
+      - omission_trace
+      - latency_budget_observed
+      - no_commit_fallback
+    allowed_outputs:
+      - read_only_runtime_trace
+      - shadow_context_pack
+      - paired_baseline_comparison
+      - omission_trace
+    runtime_connected: true
+    user_facing_behavior_changed: false
+    canonical_mutation_changed: false
+    manager_context_packet_changed: false
+    durable_product_memory_written: false
+  canary:
+    required_evidence:
+      - read_only_runtime_evidence
+      - explicit_canary_scope
+      - rollback_or_kill_switch
+      - monitoring_plan
+      - human_review_approval
+    allowed_outputs:
+      - canary_decision_record
+      - sampled_comparison_trace
+    canonical_mutation_changed: false
+  user_facing:
+    required_evidence:
+      - canary_evidence
+      - user_visible_claim_boundary
+      - fallback_behavior
+      - human_review_approval
+    allowed_outputs:
+      - user_facing_activation_record
+    canonical_mutation_changed: false
+  mutation_bearing:
+    required_evidence:
+      - user_facing_stability_evidence
+      - explicit_mutation_boundary
+      - audit_trail
+      - rollback_or_compensation_path
+      - product_owner_approval
+    allowed_outputs:
+      - mutation_activation_record
+    canonical_mutation_changed: true
+
+capabilities:
+  long_term_memory:
+    owner_module: app/memory
+    current_stage: shadow
+    next_allowed_stage: read_only_runtime
+    depends_on: []
+    current_allowed_outputs:
+      - runtime_lab_memory_shadow_quality_report
+      - runtime_lab_memory_consumer_summary_projection
+    stage_specific_no_go:
+      durable_product_memory_written: false
+      manager_context_packet_changed: false
+      cross_session_personalization_allowed: false
+  recommendation:
+    owner_module: app/recommendation
+    current_stage: shadow
+    next_allowed_stage: read_only_runtime
+    depends_on:
+      - long_term_memory.read_only_runtime
+    current_allowed_outputs:
+      - recommendation_shadow_summary_consumer_quality_report
+      - recommendation_offer_silent_shadow_contract
+    stage_specific_no_go:
+      recommendation_served: false
+      live_search_allowed: false
+      app_open_recommendation_serving: false
+  rescue:
+    owner_module: app/rescue
+    current_stage: shadow
+    next_allowed_stage: read_only_runtime
+    depends_on:
+      - long_term_memory.read_only_runtime
+    current_allowed_outputs:
+      - rescue_shadow_summary_context_projection
+      - rescue_no_commit_viability_shadow_packet
+      - rescue_proposal_shaping_input_shadow_packet
+    stage_specific_no_go:
+      rescue_proposal_committed: false
+      budget_mutation_allowed: false
+      proposal_acceptance_route_allowed: false
+  proactive:
+    owner_module: app/runtime/application
+    current_stage: shadow
+    next_allowed_stage: read_only_runtime
+    depends_on:
+      - long_term_memory.read_only_runtime
+      - recommendation.read_only_runtime
+      - rescue.read_only_runtime
+    current_allowed_outputs:
+      - proactive_no_send_summary_consumer_projection
+      - proactive_no_send_decision_pack
+    stage_specific_no_go:
+      scheduler_activation_allowed: false
+      notification_delivery_allowed: false
+      trigger_persistence_allowed: false
+
+best_practice_evidence:
+  required: true
+  sources_checked:
+    - openai_agents_guardrails
+    - openai_agent_evals
+    - openai_evaluation_best_practices
+    - openai_agents_sessions
+    - openai_agents_sandbox_memory
+  source_urls:
+    openai_agents_guardrails: https://openai.github.io/openai-agents-python/guardrails/
+    openai_agent_evals: https://developers.openai.com/api/docs/guides/agent-evals
+    openai_evaluation_best_practices: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+    openai_agents_sessions: https://openai.github.io/openai-agents-python/sessions/
+    openai_agents_sandbox_memory: https://openai.github.io/openai-agents-python/sandbox/memory/
+  adopted_guidance:
+    - separate_session_history_from_durable_memory
+    - trace_grading_before_repeatable_eval_runs
+    - datasets_and_holdouts_for_repeatable_promotion_decisions
+    - tool_guardrails_for_side_effectful_tool_calls
+    - memory_as_guidance_not_canonical_truth
+    - separate_memory_layouts_for_isolation
+  rejected_guidance:
+    - durable_memory_write_before_user_review_and_rollback
+    - raw_transcript_memory_dump_as_context
+    - scheduler_or_delivery_activation_from_shadow_artifacts
+  conflict_with_repo_habits:
+    - existing_shadow_artifacts_are_useful_but_not_activation_permission
+  how_the_design_changed:
+    - promotion_is_recorded_as_manual_stage_review_not_shadow_report_success
+    - read_only_runtime_is_observation_and_comparison_before_user_facing_use
+
+llm_deterministic_boundary:
+  decision_surface: activation_stage_change
+  truth_owner: human
+  deterministic_role: validate_reject_downgrade_and_block_side_effects
+  llm_role: synthesize_candidates_only_when_stage_allows
+  do_not_override:
+    - canonical_meal_budget_body_or_ledger_truth
+    - user_confirmed_memory_revocation
+    - no_send_and_no_mutation_guards
+
+semantic_owner:
+  user_intent: ManagerRuntime_when_explicitly_activated
+  food_semantics: FoodDB_and_intake_runtime_contracts
+  routing_or_workflow_effect: ManagerRuntime_and_domain_workflow_contracts
+  mutation_legality: canonical_mutation_boundaries_and_ledger_owners
+  persistence_truth: approved_product_runtime_activation_ledger_entries
+
+harness_minimization:
+  artifact_classification: manual_promotion
+  required_merge_check: false
+  owner: MemoryRuntimeArchitecture
+  consumer: advanced_capability_activation_review
+  retirement_trigger: approved_product_runtime_activation_ledger_entries
+  new_report_family_created: false
+
+non_claims:
+  product_readiness_claimed: false
+  private_self_use_approved: false
+  user_facing_activation_approved: false
+  mutation_rollout_approved: false
+  scheduler_activation_approved: false
