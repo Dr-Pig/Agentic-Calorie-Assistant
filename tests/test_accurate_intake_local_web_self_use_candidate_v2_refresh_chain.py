@@ -131,9 +131,15 @@ def _seed_required_gate_inputs(
         },
         "operator_review": {
             "artifact_schema_version": "1.0",
-            "artifact_type": "accurate_intake_dogfood_operator_review_v2",
+            "artifact_type": "accurate_intake_dogfood_operator_review_surface",
             "status": "browser_diagnostic_review_with_fixture_evidence_gap",
+            "local_only": True,
+            "food_kb_truth_updated": False,
             "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "production_readiness_claimed": False,
         },
     }
     for group_id, payload in product_loop_support.items():

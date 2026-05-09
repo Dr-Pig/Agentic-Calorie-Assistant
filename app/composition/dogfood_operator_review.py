@@ -435,8 +435,8 @@ def build_dogfood_operator_review_surface(report: dict[str, Any]) -> dict[str, A
         "private_self_use_approved": False,
         "food_kb_truth_updated": False,
         "canonical_eval_promoted": False,
-        "real_fooddb_pass_claimed": False,
-        "dogfood_pass": False,
+        "real_fooddb_pass_claimed": False, "dogfood_pass": False,
+        "production_readiness_claimed": False,
         "manager_context_review": {
             "status": manager_context_status,
             "diagnostic_only": True,

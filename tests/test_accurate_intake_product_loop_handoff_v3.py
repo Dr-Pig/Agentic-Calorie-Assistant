@@ -25,8 +25,15 @@ def _product_loop_evidence(**overrides: dict) -> dict:
             "real_fooddb_pass_claimed": False,
         },
         "operator_review": {
+            "artifact_type": "accurate_intake_dogfood_operator_review_surface",
             "status": "browser_diagnostic_review_with_fixture_evidence_gap",
+            "local_only": True,
+            "food_kb_truth_updated": False,
             "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "production_readiness_claimed": False,
         },
         "mvp_gate": {"status": "pass"},
     }
@@ -295,6 +302,58 @@ def test_handoff_blocks_product_loop_overclaims_before_fooddb_validation() -> No
 
     assert pack["status"] == "blocked"
     assert "browser_realistic_dogfood_real_fooddb_overclaim" in pack["blockers"]
+    assert pack["ready_for_fdb_integration"] is False
+
+
+def test_handoff_blocks_non_operator_review_artifact_shape() -> None:
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(
+            operator_review={
+                "artifact_type": "accurate_intake_current_shell_compatibility_local_review_decision_pack",
+                "status": "browser_diagnostic_review_with_fixture_evidence_gap",
+                "local_only": True,
+                "food_kb_truth_updated": False,
+                "real_fooddb_pass_claimed": False,
+                "dogfood_pass": False,
+                "product_readiness_claimed": False,
+                "private_self_use_approved": False,
+                "production_readiness_claimed": False,
+            }
+        ),
+        fooddb_artifact=_fooddb_artifact(),
+    )
+
+    assert pack["status"] == "blocked"
+    assert "operator_review_invalid_artifact_type" in pack["blockers"]
+    assert pack["ready_for_fdb_integration"] is False
+
+
+def test_handoff_blocks_operator_review_readiness_overclaims() -> None:
+    pack = build_product_loop_handoff_v3(
+        _product_loop_evidence(
+            operator_review={
+                "artifact_type": "accurate_intake_dogfood_operator_review_surface",
+                "status": "browser_diagnostic_review_with_fixture_evidence_gap",
+                "local_only": False,
+                "food_kb_truth_updated": True,
+                "real_fooddb_pass_claimed": True,
+                "dogfood_pass": True,
+                "product_readiness_claimed": True,
+                "private_self_use_approved": True,
+                "production_readiness_claimed": True,
+            }
+        ),
+        fooddb_artifact=_fooddb_artifact(),
+    )
+
+    assert pack["status"] == "blocked"
+    assert "operator_review_not_local_only" in pack["blockers"]
+    assert "operator_review_food_kb_truth_updated" in pack["blockers"]
+    assert "operator_review_real_fooddb_overclaim" in pack["blockers"]
+    assert "operator_review_dogfood_pass_overclaim" in pack["blockers"]
+    assert "operator_review_product_readiness_overclaim" in pack["blockers"]
+    assert "operator_review_private_self_use_overclaim" in pack["blockers"]
+    assert "operator_review_production_readiness_overclaim" in pack["blockers"]
     assert pack["ready_for_fdb_integration"] is False
 
 
