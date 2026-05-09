@@ -45,6 +45,9 @@ DEFAULT_ARTIFACT_PATHS = {
     "local_operator_data_hygiene_bundle": ROOT
     / "artifacts"
     / "accurate_intake_local_operator_data_hygiene_bundle.json",
+    "fixture_full_product_loop_e2e": ROOT
+    / "artifacts"
+    / "accurate_intake_fixture_full_product_loop_e2e.json",
     "mvp_gate_summary": ROOT / "artifacts" / "accurate_intake_mvp_gate.json",
 }
 
