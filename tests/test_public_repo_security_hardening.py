@@ -75,6 +75,9 @@ def test_sensitive_routes_are_closed_when_local_debug_token_is_not_configured(mo
         ("GET", "/accurate-intake/chat-history"),
         ("GET", "/accurate-intake/debug/surface"),
         ("POST", "/accurate-intake/feedback"),
+        ("GET", "/accurate-intake/local-data-hygiene"),
+        ("POST", "/accurate-intake/local-data-hygiene/backup"),
+        ("POST", "/accurate-intake/local-data-hygiene/export"),
         ("GET", "/user/public-hardening/logs"),
         ("POST", "/user/public-hardening/context/reset"),
     ):

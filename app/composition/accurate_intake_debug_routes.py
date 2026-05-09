@@ -14,12 +14,14 @@ from app.composition.dogfood_review_queue import (
     append_desktop_feedback_record,
     build_feedback_record_from_desktop_capture,
 )
+from app.composition.local_data_hygiene_routes import router as local_data_hygiene_router
 from app.database import get_db
 from app.intake.interface.accurate_intake_debug_surface import render_accurate_intake_debug_surface
 from app.runtime.interface.local_debug_auth import require_local_debug_access
 from app.shared.infra.models import MessageBuffer, User
 
 router = APIRouter()
+router.include_router(local_data_hygiene_router)
 DOGFOOD_FEEDBACK_DIR = Path("workspace_data/local_dogfood_feedback")
 
 _NOT_CLAIMING = [
