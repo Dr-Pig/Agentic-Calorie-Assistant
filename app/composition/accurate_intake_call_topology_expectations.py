@@ -11,7 +11,7 @@ from app.composition.accurate_intake_trace_expectation_primitives import (
 
 
 EXPECTED_CALL_TOPOLOGY_BY_CASE_ID = {
-    "exact_item_official_label": {1: ["turn_entry_or_read_only", "intake_execution"]},
+    "exact_item_official_label": {1: ["turn_entry_or_read_only", "intake_execution", "intake_execution"]},
     "chinese_chicken_rice_correction_removal_debug": {
         1: ["turn_entry_or_read_only", "intake_execution"],
         2: ["turn_entry_or_read_only", "intake_execution"],
@@ -19,8 +19,8 @@ EXPECTED_CALL_TOPOLOGY_BY_CASE_ID = {
         4: ["turn_entry_or_read_only"],
     },
     "bubble_milk_tea_refinement": {
-        1: ["turn_entry_or_read_only", "intake_execution"],
-        2: ["turn_entry_or_read_only", "intake_execution"],
+        1: ["turn_entry_or_read_only", "intake_execution", "intake_execution"],
+        2: ["turn_entry_or_read_only", "intake_execution", "intake_execution"],
     },
     "luwei_bare_to_listed_basket": {
         1: ["turn_entry_or_read_only", "intake_execution"],
@@ -31,6 +31,13 @@ EXPECTED_CALL_TOPOLOGY_BY_CASE_ID = {
 }
 
 ACCEPTED_ALTERNATE_CALL_TOPOLOGY_BY_CASE_ID = {
+    "exact_item_official_label": {
+        1: [["turn_entry_or_read_only", "intake_execution"]],
+    },
+    "bubble_milk_tea_refinement": {
+        1: [["turn_entry_or_read_only", "intake_execution"]],
+        2: [["turn_entry_or_read_only", "intake_execution"]],
+    },
     "luwei_bare_to_listed_basket": {
         2: [["turn_entry_or_read_only", "intake_execution"]],
     },
