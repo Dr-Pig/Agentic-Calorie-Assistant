@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.runtime.agent.manager_context_post_tool_projection import (
+    compact_active_day_state_after_tool_evidence,
+    compact_hard_pins_after_tool_evidence,
+)
 from app.runtime.agent.manager_payload_utils import json_safe
 from app.runtime.contracts.phase_a import CurrentTurnContextV1, HistoryExpansionPolicy, ManagerContextPack
 
@@ -109,8 +113,10 @@ def manager_context_packet_v1_prompt_payload(
                 "token_budget_status": artifact.get("token_budget_status"),
                 "messages_omitted_after_tool_evidence": True,
             },
-            "hard_pins": dict(packet.get("hard_pins") or {}),
-            "active_day_state": dict(packet.get("active_day_state") or {}),
+            "hard_pins": compact_hard_pins_after_tool_evidence(packet.get("hard_pins")),
+            "active_day_state": compact_active_day_state_after_tool_evidence(
+                packet.get("active_day_state")
+            ),
             "target_candidates": {
                 "candidate_count": len(list(target_candidates.get("for_correction_or_removal") or [])),
                 "candidates_omitted_after_tool_evidence": True,
