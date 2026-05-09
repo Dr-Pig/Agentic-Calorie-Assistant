@@ -548,6 +548,43 @@ def test_accurate_intake_live_trace_expectation_catches_extra_exact_item_call() 
     }
 
 
+def test_accurate_intake_live_trace_expectation_allows_listed_basket_tool_pass_and_synthesis() -> None:
+    from app.composition.accurate_intake_live_trace_expectations import grade_live_trace_expectations
+
+    case = {
+        "case_id": "luwei_bare_to_listed_basket",
+        "provider_invocations": [
+            {"diagnostic_turn": 1, "manager_loop_scope": "turn_entry_or_read_only"},
+            {"diagnostic_turn": 1, "manager_loop_scope": "intake_execution"},
+            {"diagnostic_turn": 2, "manager_loop_scope": "turn_entry_or_read_only"},
+            {"diagnostic_turn": 2, "manager_loop_scope": "intake_execution"},
+            {"diagnostic_turn": 2, "manager_loop_scope": "intake_execution"},
+        ],
+        "turns": [
+            {
+                "turn": 1,
+                "manager_final_action": "ask_followup",
+                "state_delta": {"draft_saved": True, "canonical_commit": False},
+                "manager_rounds": [{"decision": {"tool_calls": [], "final_action": "ask_followup"}}],
+            },
+            {
+                "turn": 2,
+                "manager_final_action": "commit",
+                "state_delta": {"canonical_commit": True},
+                "manager_rounds": [
+                    {"decision": {"tool_calls": [{"name": "estimate_nutrition"}], "final_action": "commit"}},
+                    {"decision": {"tool_calls": [], "final_action": "commit"}},
+                ],
+            },
+        ],
+    }
+
+    grade = grade_live_trace_expectations(case)
+
+    checks = {check["check_id"]: check for check in grade["checks"]}
+    assert checks["call_topology_matches_expected"]["status"] == "pass"
+
+
 def test_accurate_intake_live_trace_expectation_marks_entry_tool_call_as_ideal_target_gap() -> None:
     from app.composition.accurate_intake_live_trace_expectations import grade_live_trace_expectations
 
