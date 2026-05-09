@@ -108,6 +108,30 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "today_no_debug_trace": True,
             "macro_present_exact_item_browser_checked": True,
             "macro_missing_exact_item_browser_checked": True,
+            "route_backed_macro_browser_checked": True,
+            "route_backed_macro_present_current_budget": {
+                "consumed_kcal": 300,
+                "consumed_protein": 12,
+                "consumed_carbs": 48,
+                "consumed_fat": 6,
+                "show_macro": True,
+                "macro_guard_reason": "committed_and_aligned",
+            },
+            "route_backed_macro_missing_current_budget": {
+                "consumed_kcal": 130,
+                "consumed_protein": 0,
+                "consumed_carbs": 0,
+                "consumed_fat": 0,
+                "show_macro": False,
+                "macro_guard_reason": "no_macro_data",
+            },
+            "route_backed_macro_non_claims": {
+                "live_llm_invoked": False,
+                "web_tavily_used": False,
+                "fooddb_truth_updated": False,
+                "product_readiness_claimed": False,
+                "private_self_use_approved": False,
+            },
             "body_page_loaded": True,
             "body_active_plan_rendered": True,
             "body_plan_form_saved": True,
@@ -372,6 +396,7 @@ def test_product_pages_self_use_flow_gate_accepts_complete_fixture_browser_chain
     assert artifact["summary"]["short_term_context_checked"] is True
     assert artifact["summary"]["target_candidate_ui_checked"] is True
     assert artifact["summary"]["today_macro_runtime_mirror_checked"] is True
+    assert artifact["summary"]["route_backed_macro_budget_truth_checked"] is True
     assert artifact["summary"]["renderer_source_closure_checked"] is True
     assert artifact["summary"]["context_target_browser_closure_checked"] is True
     assert artifact["summary"]["body_noplan_degraded_checked"] is True
@@ -464,6 +489,17 @@ def test_product_pages_self_use_flow_gate_requires_product_pages_macro_browser_e
     assert artifact["status"] == "blocked"
     assert "product_pages_browser_smoke.macro_present_exact_item_browser_checked_not_true" in artifact["blockers"]
     assert "product_pages_browser_smoke.macro_missing_exact_item_browser_checked_not_true" in artifact["blockers"]
+
+
+def test_product_pages_self_use_flow_gate_requires_route_backed_macro_budget_truth() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_browser_smoke"].pop("route_backed_macro_browser_checked", None)
+
+    artifact = build_pl_ce_product_pages_self_use_flow_gate_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "product_pages_browser_smoke.route_backed_macro_browser_checked_not_true" in artifact["blockers"]
+    assert artifact["summary"]["route_backed_macro_budget_truth_checked"] is False
 
 
 def test_product_pages_self_use_flow_gate_requires_runtime_and_browser_closure_inputs() -> None:

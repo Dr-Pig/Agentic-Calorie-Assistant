@@ -15,6 +15,7 @@ from app.composition.current_shell_browser_activation_contract import (
     REQUIRED_PRODUCT_LOOP_STEPS,
     REQUIRED_SELF_USE_FLOW_SUMMARY_FLAGS,
     REQUIRED_TRUE_FLAGS,
+    route_backed_macro_budget_truth_blockers,
 )
 from app.composition.current_shell_compatibility_ids import (
     CURRENT_SHELL_COMPATIBILITY_BROWSER_ACTIVATION_ARTIFACT_TYPE,
@@ -121,6 +122,7 @@ def _group_specific_blockers(group_id: str, payload: dict[str, Any]) -> list[str
                 f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID}.unexpected_activation_gate_status"
             )
     if group_id == "product_pages_browser_smoke":
+        blockers.extend(route_backed_macro_budget_truth_blockers(group_id, payload))
         body_values = _object_dict(payload.get("body_plan_read_model_values"))
         if not body_values:
             blockers.append("product_pages_browser_smoke.body_read_model_values_missing")

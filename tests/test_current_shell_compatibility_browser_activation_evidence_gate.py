@@ -48,6 +48,30 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "today_meal_list_rendered": True,
             "macro_present_exact_item_browser_checked": True,
             "macro_missing_exact_item_browser_checked": True,
+            "route_backed_macro_browser_checked": True,
+            "route_backed_macro_present_current_budget": {
+                "consumed_kcal": 300,
+                "consumed_protein": 12,
+                "consumed_carbs": 48,
+                "consumed_fat": 6,
+                "show_macro": True,
+                "macro_guard_reason": "committed_and_aligned",
+            },
+            "route_backed_macro_missing_current_budget": {
+                "consumed_kcal": 130,
+                "consumed_protein": 0,
+                "consumed_carbs": 0,
+                "consumed_fat": 0,
+                "show_macro": False,
+                "macro_guard_reason": "no_macro_data",
+            },
+            "route_backed_macro_non_claims": {
+                "live_llm_invoked": False,
+                "web_tavily_used": False,
+                "fooddb_truth_updated": False,
+                "product_readiness_claimed": False,
+                "private_self_use_approved": False,
+            },
             "body_active_plan_rendered": True,
             "body_plan_form_saved": True,
             "body_plan_readback_checked": True,
@@ -292,6 +316,7 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
                 "short_term_context_checked": True,
                 "target_candidate_ui_checked": True,
                 "today_macro_runtime_mirror_checked": True,
+                "route_backed_macro_budget_truth_checked": True,
                 "renderer_source_closure_checked": True,
                 "context_target_browser_closure_checked": True,
                 "body_noplan_degraded_checked": True,
@@ -494,6 +519,36 @@ def test_browser_activation_gate_requires_product_pages_macro_browser_evidence()
     assert artifact["status"] == "blocked"
     assert "product_pages_browser_smoke.macro_present_exact_item_browser_checked_not_true" in artifact["blockers"]
     assert "product_pages_browser_smoke.macro_missing_exact_item_browser_checked_not_true" in artifact["blockers"]
+
+
+def test_browser_activation_gate_requires_route_backed_macro_budget_truth() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_browser_smoke"]["route_backed_macro_browser_checked"] = False
+    inputs["product_pages_browser_smoke"]["route_backed_macro_missing_current_budget"] = {
+        "consumed_kcal": 130,
+        "consumed_protein": 0,
+        "consumed_carbs": 0,
+        "consumed_fat": 1,
+        "show_macro": False,
+        "macro_guard_reason": "no_macro_data",
+    }
+    inputs["product_pages_self_use_flow_gate"]["summary"][  # type: ignore[index]
+        "route_backed_macro_budget_truth_checked"
+    ] = False
+
+    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "product_pages_browser_smoke.route_backed_macro_browser_checked_not_true" in artifact["blockers"]
+    assert (
+        "product_pages_browser_smoke.route_backed_macro_missing_current_budget_mismatch:consumed_fat"
+        in artifact["blockers"]
+    )
+    assert (
+        "product_pages_self_use_flow_gate.route_backed_macro_budget_truth_not_checked"
+        in artifact["blockers"]
+    )
+    assert artifact["summary"]["self_use_flow_gate_checked"] is False
 
 
 def test_browser_activation_gate_accepts_browser_smoke_local_date_weight_history() -> None:
