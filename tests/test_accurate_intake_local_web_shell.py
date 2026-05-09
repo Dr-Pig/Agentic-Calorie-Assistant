@@ -253,6 +253,11 @@ def test_local_web_shell_uses_backend_budget_date_instead_of_browser_date_truth(
 def test_local_web_shell_uses_explicit_local_debug_token_without_storage() -> None:
     html = _shell_html()
 
+    assert 'localDebugSession: "/accurate-intake/local-debug-session"' in html
+    assert "async function establishLocalDebugSession()" in html
+    assert 'method: "POST"' in html
+    assert "credentials: \"same-origin\"" in html
+    assert "await establishLocalDebugSession();" in html
     assert "function localDebugHeaders(url = null)" in html
     assert '"X-Local-Debug-Token": token' in html
     assert "localDebugHeaders()" in html

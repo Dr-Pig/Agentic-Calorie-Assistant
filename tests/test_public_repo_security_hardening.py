@@ -101,6 +101,51 @@ def test_sensitive_routes_require_matching_local_debug_token(monkeypatch) -> Non
     assert "items" in allowed.json()
 
 
+def test_sensitive_routes_accept_server_set_local_debug_session_cookie(monkeypatch) -> None:
+    token = secrets.token_urlsafe(24)
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", token)
+    client = _client()
+
+    establish = client.post("/accurate-intake/local-debug-session", json={"token": token})
+    missing_header = client.get("/logs")
+
+    assert establish.status_code == 204
+    assert "local_debug_session" in client.cookies
+    assert missing_header.status_code == 200
+    assert "items" in missing_header.json()
+
+
+def test_local_debug_session_cookie_is_http_only_and_strict(monkeypatch) -> None:
+    token = secrets.token_urlsafe(24)
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", token)
+    client = _client()
+
+    response = client.post("/accurate-intake/local-debug-session", json={"token": token})
+
+    assert response.status_code == 204
+    set_cookie = response.headers["set-cookie"]
+    assert "local_debug_session=" in set_cookie
+    assert "HttpOnly" in set_cookie
+    assert "samesite=strict" in set_cookie.lower()
+    assert "Path=/" in set_cookie
+    assert "Domain=" not in set_cookie
+
+
+def test_local_debug_session_rejects_wrong_token_without_setting_cookie(monkeypatch) -> None:
+    token = secrets.token_urlsafe(24)
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", token)
+    client = _client()
+
+    response = client.post(
+        "/accurate-intake/local-debug-session",
+        json={"token": secrets.token_urlsafe(24)},
+    )
+
+    assert response.status_code == 403
+    assert "set-cookie" not in response.headers
+    assert "local_debug_session" not in client.cookies
+
+
 def test_sensitive_routes_stay_closed_for_non_loopback_clients(monkeypatch) -> None:
     token = secrets.token_urlsafe(24)
     monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", token)

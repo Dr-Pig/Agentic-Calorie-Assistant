@@ -127,6 +127,48 @@ def test_local_review_queue_route_reads_feedback_without_promotion(
     assert payload["promotion_policy"]["feedback_can_create_product_truth"] is False
 
 
+def test_local_feedback_review_and_data_routes_accept_local_debug_session_cookie(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    token = secrets.token_urlsafe(24)
+    monkeypatch.setenv("LOCAL_DEBUG_API_TOKEN", token)
+    monkeypatch.setattr(
+        accurate_intake_debug_routes,
+        "DOGFOOD_FEEDBACK_DIR",
+        tmp_path / "feedback",
+        raising=False,
+    )
+    monkeypatch.setattr(
+        accurate_intake_debug_routes,
+        "DOGFOOD_REVIEW_QUEUE_ARTIFACT_PATH",
+        tmp_path / "review_queue.json",
+        raising=False,
+    )
+    client = _client()
+
+    establish = client.post("/accurate-intake/local-debug-session", json={"token": token})
+    feedback = client.post(
+        "/accurate-intake/feedback",
+        json={
+            "category": "bug",
+            "feedback_text": "Cookie-only protected route check.",
+            "page": "review",
+            "selected_date": "2026-05-10",
+            "user_external_id": "local-self-use-001",
+        },
+    )
+    review = client.get("/accurate-intake/review-queue")
+    data = client.get("/accurate-intake/local-data-hygiene")
+
+    assert establish.status_code == 204
+    assert feedback.status_code == 200
+    assert review.status_code == 200
+    assert data.status_code == 200
+    assert review.json()["feedback_triage_record_count"] == 1
+    assert data.json()["artifact_type"] == "accurate_intake_local_operator_data_hygiene_bundle"
+
+
 def test_local_review_queue_route_preserves_existing_review_candidates(
     monkeypatch,
     tmp_path,

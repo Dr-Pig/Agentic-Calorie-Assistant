@@ -225,7 +225,7 @@ Start the desktop dogfood shell with a persistent local SQLite DB using:
 python scripts/run_accurate_intake_desktop_dogfood_launcher.py --db-path workspace_data/local_dogfood/accurate_intake.sqlite3
 ```
 
-The launcher prints a descriptor with the `/static/accurate-intake-local-shell.html` URL, `X-Local-Debug-Token` value, and persistent SQLite path. This command is a local operator entrypoint only; it does not approve private self-use, product readiness, production DB use, live LLM readiness, or FoodDB expansion.
+The launcher prints a descriptor with the `/static/accurate-intake-local-shell.html` URL, `X-Local-Debug-Token` value, and persistent SQLite path. Enter the token in the local shell once to establish the loopback-only `local_debug_session` cookie for Feedback / Review / Data pages. The cookie is server-set, `HttpOnly`, `SameSite=Strict`, host-only, and never placed in the URL or browser storage. This command is a local operator entrypoint only; it does not approve private self-use, product readiness, production DB use, live LLM readiness, or FoodDB expansion.
 
 Build the operator review surface from the one-day realistic dogfood diagnostic with:
 
