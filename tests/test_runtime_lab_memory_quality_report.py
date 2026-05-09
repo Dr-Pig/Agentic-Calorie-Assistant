@@ -417,6 +417,92 @@ def test_quality_report_runner_threads_review_contract_into_summary_projection(
     assert report["claim_boundaries"]["durable_product_memory_written"] is False
 
 
+def test_quality_report_runner_writes_reviewed_summary_projection_artifact(
+    tmp_path: Path,
+) -> None:
+    trace_path = tmp_path / "trace.json"
+    review_contract_path = tmp_path / "review_contract.json"
+    output_path = tmp_path / "quality_report.json"
+    consumer_summary_output = tmp_path / "consumer_summary_projection.json"
+    store_root = tmp_path / "store"
+    trace_path.write_text(json.dumps(_trace()), encoding="utf-8")
+    review_contract_path.write_text(json.dumps(_review_contract()), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "build_runtime_lab_memory_quality_report.py"),
+            "--trace-json",
+            str(trace_path),
+            "--store-root",
+            str(store_root),
+            "--output",
+            str(output_path),
+            "--as-of",
+            "2026-05-09T00:00:00+08:00",
+            "--review-contract-json",
+            str(review_contract_path),
+            "--consumer-summary-output",
+            str(consumer_summary_output),
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    projection = json.loads(consumer_summary_output.read_text(encoding="utf-8"))
+    assert projection["artifact_type"] == "runtime_lab_memory_consumer_summary_projection"
+    assert projection["status"] == "pass"
+    assert projection["runtime_effect_allowed"] is False
+    assert projection["durable_product_memory_written"] is False
+    assert projection["manager_context_packet_changed"] is False
+    assert projection["recommendation_served"] is False
+    assert projection["proactive_sent"] is False
+    assert projection["rescue_proposal_committed"] is False
+    assert projection["preference_profile_summary"]["accepted_shadow_candidate_ids"] == [
+        "reviewed-pref-1"
+    ]
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    assert report["coverage"]["consumer_summary_projection_present"] is True
+
+
+def test_quality_report_runner_rejects_summary_output_without_review_contract(
+    tmp_path: Path,
+) -> None:
+    trace_path = tmp_path / "trace.json"
+    output_path = tmp_path / "quality_report.json"
+    consumer_summary_output = tmp_path / "consumer_summary_projection.json"
+    store_root = tmp_path / "store"
+    trace_path.write_text(json.dumps(_trace()), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "build_runtime_lab_memory_quality_report.py"),
+            "--trace-json",
+            str(trace_path),
+            "--store-root",
+            str(store_root),
+            "--output",
+            str(output_path),
+            "--as-of",
+            "2026-05-09T00:00:00+08:00",
+            "--consumer-summary-output",
+            str(consumer_summary_output),
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert "requires --review-contract-json" in result.stderr
+    assert not consumer_summary_output.exists()
+
+
 def test_quality_report_runner_blocks_failed_review_contract_projection(
     tmp_path: Path,
 ) -> None:
