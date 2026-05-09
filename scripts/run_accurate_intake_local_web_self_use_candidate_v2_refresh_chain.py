@@ -88,6 +88,15 @@ from app.composition.accurate_intake_product_pages_renderer_source_map import ( 
 from app.composition.accurate_intake_contextual_interaction_matrix import (  # noqa: E402
     build_contextual_interaction_matrix_artifact,
 )
+from app.composition.accurate_intake_context_replay_pack import (  # noqa: E402
+    build_context_replay_pack_artifact,
+)
+from app.composition.accurate_intake_context_target_candidate_eval import (  # noqa: E402
+    build_context_target_candidate_eval_artifact,
+)
+from app.composition.accurate_intake_context_window_diagnostic import (  # noqa: E402
+    build_context_window_diagnostic_artifact,
+)
 from app.composition.accurate_intake_session_context_carryover_qa_bundle import (  # noqa: E402
     build_session_context_carryover_qa_bundle_artifact,
 )
@@ -106,6 +115,9 @@ from app.composition.accurate_intake_ui_same_truth_render_contract import (  # n
 from app.composition.dogfood_review_queue import (  # noqa: E402
     build_dogfood_review_queue_artifact,
     build_review_candidate_from_product_loop_diagnostic,
+)
+from app.composition.accurate_intake_product_loop_review_bundle import (  # noqa: E402
+    build_product_loop_review_bundle_artifact,
 )
 from app.composition.accurate_intake_responder_input_contract_fake_smoke import (  # noqa: E402
     build_responder_input_contract_fake_smoke_artifact,
@@ -162,6 +174,12 @@ from scripts.build_accurate_intake_review_eval_candidate_pipeline import (  # no
 )
 from scripts.run_accurate_intake_fixture_full_product_loop_e2e import (  # noqa: E402
     build_fixture_full_product_loop_e2e_report,
+)
+from scripts.run_accurate_intake_browser_one_day_fixture_dogfood import (  # noqa: E402
+    build_browser_one_day_fixture_dogfood_report,
+)
+from scripts.run_accurate_intake_browser_realistic_web_dogfood_v2 import (  # noqa: E402
+    build_browser_realistic_web_dogfood_v2_report,
 )
 from scripts.run_accurate_intake_product_pages_browser_smoke import (  # noqa: E402
     build_product_pages_browser_smoke_report,
@@ -323,6 +341,14 @@ def _restore_json_artifact_snapshot(snapshot: dict[Path, dict[str, Any]]) -> Non
     for path, payload in snapshot.items():
         if not path.exists():
             write_json_artifact(path, payload)
+
+
+def _read_or_generate_json_artifact(path: Path, builder: Any) -> dict[str, Any]:
+    if path.exists():
+        return read_json_artifact(path)
+    payload = builder()
+    write_json_artifact(path, payload)
+    return payload
 
 
 def _object_dict(value: Any) -> dict[str, Any]:
@@ -912,6 +938,21 @@ def _legacy_gate_alias(
     return payload
 
 
+def _normalize_fixture_dogfood_boundary(payload: dict[str, Any]) -> dict[str, Any]:
+    if (
+        payload.get("artifact_type") != "accurate_intake_browser_one_day_fixture_dogfood"
+        or payload.get("fixture_evidence_used") is not True
+        or payload.get("fooddb_evidence_used") is not True
+    ):
+        return payload
+    normalized = dict(payload)
+    normalized["fixture_fooddb_evidence_used"] = True
+    normalized["fooddb_evidence_used"] = False
+    normalized["fooddb_evidence_used_normalized_for_local_review"] = True
+    normalized["real_fooddb_pass_claimed"] = False
+    return normalized
+
+
 def _generate_current_shell_prelive_evidence_alignment(
     *,
     artifacts_dir: Path,
@@ -1055,6 +1096,128 @@ def _generate_current_shell_prelive_evidence_alignment(
             artifact,
         )
     return aligned_artifacts
+
+
+def _generate_current_shell_local_review_inputs(
+    *,
+    artifacts_dir: Path,
+    refreshed_artifacts: dict[str, dict[str, Any]],
+    prelive_alignment_artifacts: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    browser_fixture_dogfood_path = _artifact_path(
+        artifacts_dir,
+        PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["browser_fixture_dogfood"],
+    )
+    browser_fixture_dogfood = _normalize_fixture_dogfood_boundary(
+        _read_or_generate_json_artifact(
+            browser_fixture_dogfood_path,
+            lambda: build_browser_one_day_fixture_dogfood_report(
+                db_path=artifacts_dir / "accurate_intake_browser_one_day_fixture.sqlite3",
+                reset_db=True,
+                require_browser_execution=True,
+                timeout_ms=30000,
+                headless=True,
+            ),
+        )
+    )
+    write_json_artifact(browser_fixture_dogfood_path, browser_fixture_dogfood)
+    browser_realistic_dogfood = _read_or_generate_json_artifact(
+        _artifact_path(
+            artifacts_dir,
+            PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["browser_realistic_dogfood"],
+        ),
+        lambda: build_browser_realistic_web_dogfood_v2_report(
+            db_path=artifacts_dir / "accurate_intake_browser_realistic_web_dogfood_v2.sqlite3",
+            reset_db=True,
+            require_browser_execution=True,
+            timeout_ms=30000,
+            headless=True,
+        ),
+    )
+    context_target_candidate_eval = _read_or_generate_json_artifact(
+        _group_path(artifacts_dir, LOCAL_REVIEW_EVIDENCE_PATHS["context_target_candidate_eval"]),
+        build_context_target_candidate_eval_artifact,
+    )
+    context_replay_pack = _read_or_generate_json_artifact(
+        _group_path(artifacts_dir, LOCAL_REVIEW_EVIDENCE_PATHS["context_replay_pack"]),
+        build_context_replay_pack_artifact,
+    )
+    context_window_diagnostic = _read_or_generate_json_artifact(
+        _group_path(artifacts_dir, LOCAL_REVIEW_EVIDENCE_PATHS["context_window_diagnostic"]),
+        build_context_window_diagnostic_artifact,
+    )
+    context_quality_pack = _read_or_generate_json_artifact(
+        _group_path(artifacts_dir, LOCAL_REVIEW_EVIDENCE_PATHS["context_quality_pack"]),
+        lambda: build_context_quality_pack_report(
+            short_term_context_smoke=refreshed_artifacts[
+                "product_pages_short_term_context_smoke"
+            ],
+            require_runtime_trace_input=True,
+        ),
+    )
+    context_review = _read_or_generate_json_artifact(
+        _group_path(artifacts_dir, LOCAL_REVIEW_EVIDENCE_PATHS["context_review"]),
+        lambda: _object_dict(context_quality_pack.get("runtime_trace_context_review")),
+    )
+    fixture_packet_emulator = _read_or_generate_json_artifact(
+        _group_path(artifacts_dir, LOCAL_REVIEW_EVIDENCE_PATHS["fixture_evidence_packet_emulator"]),
+        build_fixture_evidence_packet_emulator_artifact,
+    )
+    fake_provider_tool_loop_smoke = _read_or_generate_json_artifact(
+        _group_path(artifacts_dir, LOCAL_REVIEW_EVIDENCE_PATHS["fake_provider_tool_loop_smoke"]),
+        lambda: build_fake_provider_tool_loop_smoke_artifact(
+            context_smoke=build_fake_provider_context_smoke_artifact(),
+            fixture_packet_emulator=fixture_packet_emulator,
+        ),
+    )
+    review_eval_candidate_pipeline = _read_or_generate_json_artifact(
+        _group_path(artifacts_dir, LOCAL_REVIEW_EVIDENCE_PATHS["review_eval_candidate_pipeline"]),
+        lambda: build_review_eval_candidate_pipeline_report(
+            short_term_context_smoke_path=_group_path(
+                artifacts_dir,
+                PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["product_pages_short_term_context_smoke"],
+            ),
+            target_candidate_ui_smoke_path=_group_path(
+                artifacts_dir,
+                PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["product_pages_target_candidate_ui_smoke"],
+            ),
+        ),
+    )
+    pl_ce_review_bundle = _read_or_generate_json_artifact(
+        _group_path(artifacts_dir, LOCAL_REVIEW_EVIDENCE_PATHS["pl_ce_review_bundle"]),
+        lambda: build_product_loop_review_bundle_artifact(
+            browser_shell_smoke=prelive_alignment_artifacts["browser_shell_smoke"],
+            browser_fixture_dogfood=browser_fixture_dogfood,
+            browser_realistic_dogfood=browser_realistic_dogfood,
+            context_review=context_review,
+            context_target_candidate_eval=context_target_candidate_eval,
+            context_window_diagnostic=context_window_diagnostic,
+        ),
+    )
+    local_review_inputs = {
+        "browser_shell_smoke": prelive_alignment_artifacts["browser_shell_smoke"],
+        "browser_fixture_dogfood": browser_fixture_dogfood,
+        "browser_realistic_dogfood": browser_realistic_dogfood,
+        "fixture_full_product_loop_e2e": refreshed_artifacts["fixture_full_product_loop_e2e"],
+        "pl_ce_review_bundle": pl_ce_review_bundle,
+        "context_review": context_review,
+        "context_target_candidate_eval": context_target_candidate_eval,
+        "context_replay_pack": context_replay_pack,
+        "context_window_diagnostic": context_window_diagnostic,
+        "context_quality_pack": context_quality_pack,
+        "fixture_evidence_packet_emulator": fixture_packet_emulator,
+        "fake_provider_tool_loop_smoke": fake_provider_tool_loop_smoke,
+        "review_eval_candidate_pipeline": review_eval_candidate_pipeline,
+        "local_operator_data_hygiene_bundle": prelive_alignment_artifacts[
+            "local_operator_data_hygiene_bundle"
+        ],
+    }
+    for group_id, artifact in local_review_inputs.items():
+        write_json_artifact(
+            _group_path(artifacts_dir, LOCAL_REVIEW_EVIDENCE_PATHS[group_id]),
+            artifact,
+        )
+    return local_review_inputs
 
 
 def _product_loop_handoff_evidence(
@@ -1311,6 +1474,11 @@ def build_local_web_self_use_candidate_refresh_chain(
         artifacts_dir=artifacts_dir,
         refreshed_artifacts=refreshed_artifacts,
     )
+    _generate_current_shell_local_review_inputs(
+        artifacts_dir=artifacts_dir,
+        refreshed_artifacts=refreshed_artifacts,
+        prelive_alignment_artifacts=prelive_alignment_artifacts,
+    )
 
     local_review_manifest = (
         build_current_shell_compatibility_local_review_evidence_manifest(
@@ -1456,15 +1624,19 @@ def build_local_web_self_use_candidate_refresh_chain(
         ("approved_packet_ready_fooddb_artifact", approved_fooddb_artifact),
         ("product_loop_handoff", product_loop_handoff),
     ]
+    closeout_navigation = _build_closeout_navigation(closeout_payloads)
+    closeout_clear = closeout_navigation["first_blocking_gate"] is None
     return {
         "artifact_type": "accurate_intake_local_web_self_use_candidate_v2_refresh_chain",
-        "status": "pass" if candidate_prepared and route_backed_macro_checked else "blocked",
+        "status": "pass"
+        if candidate_prepared and route_backed_macro_checked and closeout_clear
+        else "blocked",
         "artifacts_dir": str(artifacts_dir),
         "refreshed_artifacts": {
             group_id: str(_artifact_path(artifacts_dir, filename))
             for group_id, filename in REFRESHED_ARTIFACT_FILENAMES.items()
         },
-        "closeout_navigation": _build_closeout_navigation(closeout_payloads),
+        "closeout_navigation": closeout_navigation,
         "route_backed_macro_checked": route_backed_macro_checked,
         "route_backed_macro_closeout_status": route_backed_macro_closeout.get("status"),
         "route_backed_macro_closeout": route_backed_macro_closeout,
