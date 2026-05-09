@@ -3,6 +3,9 @@ from __future__ import annotations
 from typing import Any
 
 from app.memory.application.long_term_context_shadow.contracts import _base_artifact
+from app.memory.application.long_term_context_shadow.lab_review_surface import (
+    lab_review_correction_surface,
+)
 from app.memory.application.long_term_context_shadow.utils import _list_of_dicts
 from app.memory.domain.long_term_context_candidates import LongTermContextCandidate
 from app.shared.contracts.sidecar_activation import offline_sidecar_contract
@@ -62,6 +65,11 @@ def _memory_lab_review_loop_state_artifact(
             "summary": summary,
             "blockers": blockers,
             "lab_memory_records": records,
+            "lab_review_correction_surface": lab_review_correction_surface(
+                candidates=candidates,
+                records=records,
+                blockers=blockers,
+            ),
             "active_context_candidate_ids": [
                 record["source_candidate_id"]
                 for record in records
