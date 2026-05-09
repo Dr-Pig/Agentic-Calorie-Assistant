@@ -24,6 +24,27 @@ def _write(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
 
+def _assert_refresh_chain_closeout_pass(exit_code: int, printed: dict[str, object]) -> None:
+    assert exit_code == 0
+    assert printed["status"] == "pass"
+    closeout = printed["closeout_navigation"]
+    assert closeout["first_blocking_gate"] is None
+    assert closeout["non_claims"] == {
+        "product_ready": False,
+        "web_ready": False,
+        "private_self_use_approved": False,
+        "production_ready": False,
+        "live_llm_ready": False,
+        "fooddb_truth_promoted": False,
+    }
+    assert printed["private_self_use_approved"] is False
+    assert printed["product_readiness_claimed"] is False
+    assert printed["real_fooddb_pass_claimed"] is False
+    assert printed["live_llm_invoked"] is False
+    assert printed["web_tavily_used"] is False
+    assert printed["fooddb_evidence_used"] is False
+
+
 def _merge_write(path: Path, payload: dict[str, object]) -> None:
     if path.exists():
         existing = json.loads(path.read_text(encoding="utf-8"))
@@ -456,12 +477,8 @@ def test_refresh_chain_generates_static_product_page_inputs_before_reporting_bro
     exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
     printed = json.loads(capsys.readouterr().out)
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    _assert_refresh_chain_closeout_pass(exit_code, printed)
     navigation = printed["closeout_navigation"]
-    assert navigation["first_blocking_gate"]["first_blocker"] != (
-        "ui_same_truth_contract.unexpected_status:missing"
-    )
     assert "ui_same_truth_contract" not in navigation["missing_evidence"]
 
     static_artifacts = {
@@ -522,16 +539,12 @@ def test_refresh_chain_generates_required_product_pages_browser_smoke_before_nex
     )
     browser_smoke = json.loads(browser_smoke_path.read_text(encoding="utf-8"))
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    _assert_refresh_chain_closeout_pass(exit_code, printed)
     assert browser_smoke["status"] == "pass"
     assert browser_smoke["browser_executed"] is True
     assert browser_smoke["browser_execution_required"] is True
     assert browser_smoke["fooddb_triad_same_truth_non_claims"]["real_fooddb_pass_claimed"] is False
     assert browser_smoke["fooddb_triad_same_truth_non_claims"]["product_readiness_claimed"] is False
-    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
-        "product_pages_browser_smoke.unexpected_status:missing"
-    )
     assert "product_pages_browser_smoke" not in printed["closeout_navigation"]["missing_evidence"]
 
 
@@ -552,8 +565,7 @@ def test_refresh_chain_generates_required_seven_day_diary_smoke_before_next_bloc
     )
     seven_day = json.loads(seven_day_path.read_text(encoding="utf-8"))
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    _assert_refresh_chain_closeout_pass(exit_code, printed)
     assert seven_day["status"] == "pass"
     assert seven_day["browser_executed"] is True
     assert seven_day["browser_execution_required"] is True
@@ -561,9 +573,6 @@ def test_refresh_chain_generates_required_seven_day_diary_smoke_before_next_bloc
     assert seven_day["seven_day_window_checked"] is True
     assert seven_day["product_readiness_claimed"] is False
     assert seven_day["private_self_use_approved"] is False
-    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
-        "product_pages_seven_day_diary_smoke.unexpected_status:missing"
-    )
     assert (
         "product_pages_seven_day_diary_smoke"
         not in printed["closeout_navigation"]["missing_evidence"]
@@ -587,8 +596,7 @@ def test_refresh_chain_generates_required_body_noplan_smoke_before_next_blocker(
     )
     body_noplan = json.loads(body_noplan_path.read_text(encoding="utf-8"))
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    _assert_refresh_chain_closeout_pass(exit_code, printed)
     assert body_noplan["status"] == "pass"
     assert body_noplan["browser_executed"] is True
     assert body_noplan["browser_execution_required"] is True
@@ -597,9 +605,6 @@ def test_refresh_chain_generates_required_body_noplan_smoke_before_next_blocker(
     assert body_noplan["today_no_plan_budget_rendered"] is True
     assert body_noplan["manager_provider_call_count"] == 0
     assert body_noplan["no_bootstrap_or_mutation_post"] is True
-    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
-        "product_pages_body_noplan_degraded_smoke.unexpected_status:missing"
-    )
     assert (
         "product_pages_body_noplan_degraded_smoke"
         not in printed["closeout_navigation"]["missing_evidence"]
@@ -623,13 +628,9 @@ def test_refresh_chain_product_pages_flow_consumes_generated_body_same_truth_gat
     )
     body_same_truth = json.loads(body_same_truth_path.read_text(encoding="utf-8"))
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    _assert_refresh_chain_closeout_pass(exit_code, printed)
     assert body_same_truth["status"] == "body_observation_same_truth_gate_ready_for_human_review"
     assert body_same_truth["pass_type"] == "browser_executed"
-    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
-        "body_observation_same_truth_gate.unexpected_status:missing"
-    )
     assert "body_observation_same_truth_gate" not in printed["closeout_navigation"]["missing_evidence"]
 
 
@@ -650,8 +651,7 @@ def test_refresh_chain_generates_required_short_term_context_smoke_before_next_b
     )
     short_term = json.loads(short_term_path.read_text(encoding="utf-8"))
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    _assert_refresh_chain_closeout_pass(exit_code, printed)
     assert short_term["status"] == "pass"
     assert short_term["browser_executed"] is True
     assert short_term["browser_execution_required"] is True
@@ -662,9 +662,6 @@ def test_refresh_chain_generates_required_short_term_context_smoke_before_next_b
     assert short_term["pending_pins_present_after_followup"] is True
     assert short_term["chat_history_context_fields_reloaded"] is True
     assert short_term["product_pages_no_debug_trace"] is True
-    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
-        "product_pages_short_term_context_smoke.unexpected_status:missing"
-    )
     assert (
         "product_pages_short_term_context_smoke"
         not in printed["closeout_navigation"]["missing_evidence"]
@@ -688,8 +685,7 @@ def test_refresh_chain_generates_required_target_candidate_ui_smoke_before_next_
     )
     target_candidate = json.loads(target_candidate_path.read_text(encoding="utf-8"))
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    _assert_refresh_chain_closeout_pass(exit_code, printed)
     assert target_candidate["status"] == "pass"
     assert target_candidate["browser_executed"] is True
     assert target_candidate["browser_execution_required"] is True
@@ -698,9 +694,6 @@ def test_refresh_chain_generates_required_target_candidate_ui_smoke_before_next_
     assert target_candidate["target_candidate_names_rendered"] == ["luwei", "milk tea"]
     assert target_candidate["target_candidate_list_read_only"] is True
     assert target_candidate["manager_provider_call_count"] == 0
-    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
-        "product_pages_target_candidate_ui_smoke.unexpected_status:missing"
-    )
     assert (
         "product_pages_target_candidate_ui_smoke"
         not in printed["closeout_navigation"]["missing_evidence"]
@@ -724,8 +717,7 @@ def test_refresh_chain_generates_required_context_target_browser_closure_before_
     )
     closure = json.loads(closure_path.read_text(encoding="utf-8"))
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    _assert_refresh_chain_closeout_pass(exit_code, printed)
     assert closure["status"] == "context_target_browser_closure_ready_for_self_use_flow_gate"
     assert closure["pass_type"] == "browser_executed"
     assert closure["browser_executed"] is True
@@ -736,9 +728,6 @@ def test_refresh_chain_generates_required_context_target_browser_closure_before_
     assert closure["frontend_selects_target"] is False
     assert closure["product_readiness_claimed"] is False
     assert closure["private_self_use_approved"] is False
-    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
-        "product_pages_context_target_browser_closure.unexpected_status:missing"
-    )
     assert (
         "product_pages_context_target_browser_closure"
         not in printed["closeout_navigation"]["missing_evidence"]
@@ -761,8 +750,7 @@ def test_refresh_chain_generates_required_visual_qa_before_next_blocker(
     ].name
     visual_qa = json.loads(visual_qa_path.read_text(encoding="utf-8"))
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    _assert_refresh_chain_closeout_pass(exit_code, printed)
     assert visual_qa["status"] == "pass"
     assert visual_qa["browser_executed"] is True
     assert visual_qa["browser_execution_required"] is True
@@ -772,9 +760,6 @@ def test_refresh_chain_generates_required_visual_qa_before_next_blocker(
     assert visual_qa["desktop_no_overflow"] is True
     assert visual_qa["mobile_no_overflow"] is True
     assert visual_qa["visible_trace_debug_terms_absent"] is True
-    assert printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"] != (
-        "product_pages_visual_qa.unexpected_status:missing"
-    )
     assert "product_pages_visual_qa" not in printed["closeout_navigation"]["missing_evidence"]
 
 
@@ -794,18 +779,13 @@ def test_refresh_chain_generates_required_fixture_full_product_loop_before_next_
     ].name
     fixture_loop = json.loads(fixture_loop_path.read_text(encoding="utf-8"))
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    _assert_refresh_chain_closeout_pass(exit_code, printed)
     assert fixture_loop["status"] == "fixture_product_loop_e2e_diagnostic_pass"
     assert fixture_loop["browser_executed"] is True
     assert fixture_loop["diagnostic_only"] is True
     assert fixture_loop["local_only"] is True
     assert fixture_loop["product_readiness_claimed"] is False
     assert fixture_loop["private_self_use_approved"] is False
-    assert (
-        printed["closeout_navigation"]["first_blocking_gate"]["first_blocker"]
-        != "fixture_full_product_loop_e2e.unexpected_status:missing"
-    )
     assert (
         "fixture_full_product_loop_e2e"
         not in printed["closeout_navigation"]["missing_evidence"]
@@ -834,8 +814,7 @@ def test_refresh_chain_generates_local_mvp_candidate_bundle_before_browser_activ
         ).read_text(encoding="utf-8")
     )
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    _assert_refresh_chain_closeout_pass(exit_code, printed)
     assert bundle["status"] == "pl_ce_local_mvp_candidate_ready_for_human_review"
     assert bundle["local_only"] is True
     assert bundle["diagnostic_only"] is True
@@ -847,10 +826,7 @@ def test_refresh_chain_generates_local_mvp_candidate_bundle_before_browser_activ
         CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID
         not in printed["closeout_navigation"]["missing_evidence"]
     )
-    first_blocking_gate = printed["closeout_navigation"]["first_blocking_gate"]
-    assert first_blocking_gate is None or first_blocking_gate["first_blocker"] != (
-        f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID}.unexpected_status:missing"
-    )
+    assert printed["closeout_navigation"]["first_blocking_gate"] is None
 
 
 def test_refresh_chain_aligns_legacy_prelive_inputs_to_current_shell_evidence(
@@ -875,8 +851,7 @@ def test_refresh_chain_aligns_legacy_prelive_inputs_to_current_shell_evidence(
         ).read_text(encoding="utf-8")
     )
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    _assert_refresh_chain_closeout_pass(exit_code, printed)
     missing = set(printed["closeout_navigation"]["missing_evidence"])
     stale_legacy_groups = {
         "browser_shell_smoke",
@@ -904,7 +879,7 @@ def test_refresh_chain_aligns_legacy_prelive_inputs_to_current_shell_evidence(
     assert printed["product_readiness_claimed"] is False
 
 
-def test_refresh_chain_generates_current_shell_local_review_inputs_before_next_blocker(
+def test_refresh_chain_generates_current_shell_local_review_inputs_before_closeout_clear(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -936,9 +911,14 @@ def test_refresh_chain_generates_current_shell_local_review_inputs_before_next_b
             / module.REFRESHED_ARTIFACT_FILENAMES["pre_live_decision_pack"]
         ).read_text(encoding="utf-8")
     )
+    product_loop_handoff = json.loads(
+        (
+            artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["product_loop_handoff"]
+        ).read_text(encoding="utf-8")
+    )
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    assert exit_code == 0
+    assert printed["status"] == "pass"
     assert local_review_manifest["_manifest_metadata"]["status"] == "complete"
     assert local_review_decision["status"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
     assert local_review_decision["ready_for_live_diagnostic_decision"] is False
@@ -948,14 +928,59 @@ def test_refresh_chain_generates_current_shell_local_review_inputs_before_next_b
         CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID
         not in printed["closeout_navigation"]["missing_evidence"]
     )
-    first_blocking_gate = printed["closeout_navigation"]["first_blocking_gate"]
-    assert first_blocking_gate is not None
-    assert first_blocking_gate["gate_id"] == "product_loop_handoff"
+    assert printed["closeout_navigation"]["first_blocking_gate"] is None
     assert printed["candidate_prepared"] is True
-    assert printed["ready_for_fdb_integration_validation"] is False
-    assert printed["product_loop_handoff_status"] == "blocked"
+    assert printed["ready_for_fdb_integration_validation"] is True
+    assert printed["product_loop_handoff_status"] == (
+        "product_loop_handoff_ready_for_fdb_integration_validation"
+    )
+    assert product_loop_handoff["ready_for_fdb_integration"] is True
+    assert product_loop_handoff["real_fooddb_pass_claimed"] is False
+    assert product_loop_handoff["dogfood_pass"] is False
     assert printed["private_self_use_approved"] is False
     assert printed["product_readiness_claimed"] is False
+
+
+def test_refresh_chain_generates_operator_review_before_product_loop_handoff(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+    operator_review = json.loads(
+        (
+            artifact_dir
+            / module.PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["operator_review"]
+        ).read_text(encoding="utf-8")
+    )
+    product_loop_handoff = json.loads(
+        (
+            artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["product_loop_handoff"]
+        ).read_text(encoding="utf-8")
+    )
+
+    assert exit_code == 0
+    assert printed["status"] == "pass"
+    assert operator_review["artifact_type"] == "accurate_intake_dogfood_operator_review_surface"
+    assert operator_review["status"] == "browser_diagnostic_review_with_fixture_evidence_gap"
+    assert operator_review["local_only"] is True
+    assert operator_review["real_fooddb_pass_claimed"] is False
+    assert operator_review["dogfood_pass"] is False
+    assert operator_review["product_readiness_claimed"] is False
+    assert operator_review["private_self_use_approved"] is False
+    assert operator_review["food_kb_truth_updated"] is False
+    assert product_loop_handoff["product_loop_evidence_status"]["operator_review"][
+        "status"
+    ] == "browser_diagnostic_review_with_fixture_evidence_gap"
+    assert "operator_review_not_diagnostic_review" not in product_loop_handoff["blockers"]
+    assert "operator_review_real_fooddb_overclaim" not in product_loop_handoff["blockers"]
+    assert product_loop_handoff["ready_for_fdb_integration"] is True
+    assert product_loop_handoff["real_fooddb_pass_claimed"] is False
+    assert product_loop_handoff["dogfood_pass"] is False
 
 
 def test_closeout_navigation_reports_stale_evidence_without_readiness_claims() -> None:
