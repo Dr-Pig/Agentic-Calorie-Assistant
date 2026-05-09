@@ -499,6 +499,7 @@ def test_accurate_intake_live_seeded_explicit_removal_single_turn_probe(tmp_path
     assert grade["required_status"] == "pass"
     assert {check["check_id"]: check["status"] for check in grade["checks"]} == {
         "entry_scope_not_repeated": "pass",
+        "call_topology_matches_expected": "pass",
         "intake_execution_scope_present": "pass",
         "provider_invocation_count_at_most_2": "pass",
         "resolve_target_used": "pass",
