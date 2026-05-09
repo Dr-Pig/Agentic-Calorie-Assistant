@@ -324,7 +324,12 @@
       <a data-nav-target="body" href="/static/accurate-intake-body.html">Body</a>
     </nav>
   </header>
-  <main data-surface-role="today-diary">
+  <main
+    data-surface-role="today-diary"
+    data-read-model-source="/today/current-budget"
+    data-render-status="render_backend_structured_fields_only"
+    data-overshoot-source="backend_explicit_field_required"
+  >
     <section class="page-header">
       <div>
         <h1>Today</h1>
@@ -351,26 +356,26 @@
       <article class="card">
         <span class="eyebrow">Daily calories</span>
         <div class="kcal-grid">
-          <div class="metric"><strong>Target</strong><span id="budget-kcal">--</span></div>
-          <div class="metric"><strong>Consumed</strong><span id="consumed-kcal">--</span></div>
-          <div class="metric"><strong>Remaining</strong><span id="remaining-kcal">--</span></div>
+          <div class="metric"><strong>Target</strong><span id="budget-kcal" data-render-field="payload.budget_kcal">--</span></div>
+          <div class="metric"><strong>Consumed</strong><span id="consumed-kcal" data-render-field="payload.consumed_kcal">--</span></div>
+          <div class="metric"><strong>Remaining</strong><span id="remaining-kcal" data-render-field="payload.remaining_kcal">--</span></div>
         </div>
-        <section id="macro-panel" class="macro-panel" data-macro-state="guarded">
+        <section id="macro-panel" class="macro-panel" data-macro-state="guarded" data-render-field="payload.show_macro">
           <div id="macro-grid" class="macro-grid" hidden>
             <div class="metric">
               <strong>Protein</strong>
-              <div class="macro-value"><span id="protein-g">--</span><span class="macro-unit">g</span></div>
+              <div class="macro-value"><span id="protein-g" data-render-field="payload.consumed_protein">--</span><span class="macro-unit">g</span></div>
             </div>
             <div class="metric">
               <strong>Carbs</strong>
-              <div class="macro-value"><span id="carbs-g">--</span><span class="macro-unit">g</span></div>
+              <div class="macro-value"><span id="carbs-g" data-render-field="payload.consumed_carbs">--</span><span class="macro-unit">g</span></div>
             </div>
             <div class="metric">
               <strong>Fat</strong>
-              <div class="macro-value"><span id="fat-g">--</span><span class="macro-unit">g</span></div>
+              <div class="macro-value"><span id="fat-g" data-render-field="payload.consumed_fat">--</span><span class="macro-unit">g</span></div>
             </div>
           </div>
-          <p id="macro-guard-reason" class="macro-copy"></p>
+          <p id="macro-guard-reason" class="macro-copy" data-render-field="payload.macro_guard_reason"></p>
         </section>
         <p id="today-status" class="status">Daily record not loaded yet.</p>
       </article>
@@ -489,6 +494,11 @@
         list.append(row);
       }
     }
+    function renderBudgetSummary(payload) {
+      writeText("budget-kcal", payload.budget_kcal);
+      writeText("consumed-kcal", payload.consumed_kcal);
+      writeText("remaining-kcal", payload.remaining_kcal);
+    }
     function renderMacroPanel(payload) {
       const macroPanel = el("macro-panel");
       const macroGrid = el("macro-grid");
@@ -511,9 +521,7 @@
       el("today-status").textContent = "Loading this day...";
       const query = new URLSearchParams({ user_id: userId(), local_date: selectedDate() });
       const payload = await requestJson(`${endpoints.currentBudget}?${query.toString()}`);
-      writeText("budget-kcal", payload.budget_kcal);
-      writeText("consumed-kcal", payload.consumed_kcal);
-      writeText("remaining-kcal", payload.remaining_kcal);
+      renderBudgetSummary(payload);
       renderMacroPanel(payload);
       renderMeals(payload.meals || []);
       el("today-status").textContent = payload.status === "no_budget"

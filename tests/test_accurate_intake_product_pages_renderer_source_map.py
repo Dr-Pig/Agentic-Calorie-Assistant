@@ -70,6 +70,7 @@ def test_product_pages_renderer_source_map_covers_chat_today_body_sources() -> N
     assert "#carbs-g" in today["selectors"]
     assert "#fat-g" in today["selectors"]
     assert "#macro-guard-reason" in today["selectors"]
+    assert "renderBudgetSummary" in today["render_functions"]
     assert "renderMacroPanel" in today["render_functions"]
     assert "payload.remaining_kcal" in today["backend_fields"]
     assert "payload.consumed_protein" in today["backend_fields"]
@@ -237,6 +238,7 @@ def test_product_pages_renderer_source_map_rejects_missing_endpoint_or_backend_f
     html_overrides = {
         "today": Path("static/accurate-intake-today.html").read_text(encoding="utf-8")
         .replace('currentBudget: "/today/current-budget"', 'currentBudget: "/wrong"')
+        .replace('data-read-model-source="/today/current-budget"', 'data-read-model-source="/wrong"')
         .replace("payload.remaining_kcal", "payload.remaining_missing")
     }
 
