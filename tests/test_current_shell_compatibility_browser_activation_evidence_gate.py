@@ -46,6 +46,8 @@ def _valid_inputs() -> dict[str, dict[str, object]]:
             "today_date_switch_checked": True,
             "today_summary_rendered": True,
             "today_meal_list_rendered": True,
+            "macro_present_exact_item_browser_checked": True,
+            "macro_missing_exact_item_browser_checked": True,
             "body_active_plan_rendered": True,
             "body_plan_form_saved": True,
             "body_plan_readback_checked": True,
@@ -468,6 +470,18 @@ def test_browser_activation_gate_blocks_stale_body_read_model_values() -> None:
     assert "product_pages_browser_smoke.body_read_model_value_mismatch:activity" in artifact["blockers"]
     assert "product_pages_browser_smoke.body_read_model_value_mismatch:goal" in artifact["blockers"]
     assert "product_pages_browser_smoke.body_read_model_value_mismatch:weight_history" in artifact["blockers"]
+
+
+def test_browser_activation_gate_requires_product_pages_macro_browser_evidence() -> None:
+    inputs = _valid_inputs()
+    inputs["product_pages_browser_smoke"].pop("macro_present_exact_item_browser_checked", None)
+    inputs["product_pages_browser_smoke"].pop("macro_missing_exact_item_browser_checked", None)
+
+    artifact = build_pl_ce_browser_activation_evidence_gate_artifact(inputs)
+
+    assert artifact["status"] == "blocked"
+    assert "product_pages_browser_smoke.macro_present_exact_item_browser_checked_not_true" in artifact["blockers"]
+    assert "product_pages_browser_smoke.macro_missing_exact_item_browser_checked_not_true" in artifact["blockers"]
 
 
 def test_browser_activation_gate_accepts_browser_smoke_local_date_weight_history() -> None:
