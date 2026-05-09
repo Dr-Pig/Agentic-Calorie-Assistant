@@ -32,6 +32,24 @@ class CanonicalMealCommitResult:
     ledger_entry_id: int | None
 
 
+def payload_authorizes_macro_persistence(payload: EstimatePayload) -> bool:
+    trace_contract = payload.trace_contract or {}
+    return bool(payload.display_macro_breakdown) or trace_contract.get("macro_display_authorized") is not False
+
+
+def canonical_macro_values_from_payload(payload: EstimatePayload) -> tuple[int, int, int]:
+    display_macro = dict(payload.display_macro_breakdown or {})
+    if display_macro:
+        return (
+            int(display_macro.get("protein_g") or 0),
+            int(display_macro.get("carb_g") or 0),
+            int(display_macro.get("fat_g") or 0),
+        )
+    if not payload_authorizes_macro_persistence(payload):
+        return (0, 0, 0)
+    return (int(payload.protein_g or 0), int(payload.carb_g or 0), int(payload.fat_g or 0))
+
+
 def resolved_occurred_at(candidate: CommitRequestCandidate, occurred_at: datetime | None = None) -> datetime:
     chosen = occurred_at or candidate.occurred_at
     if isinstance(chosen, datetime):
@@ -53,6 +71,7 @@ def commit_candidate_from_payload(
     request_id: str | None,
 ) -> CommitRequestCandidate:
     trace_contract = payload.trace_contract or {}
+    protein_g, carb_g, fat_g = canonical_macro_values_from_payload(payload)
     return CommitRequestCandidate(
         request_id=request_id or payload.request_id,
         manager_intent=manager_intent,
@@ -60,9 +79,9 @@ def commit_candidate_from_payload(
         meal_title=payload.meal_title or raw_input,
         raw_input=raw_input,
         estimated_kcal=payload.estimated_kcal,
-        protein_g=payload.protein_g,
-        carb_g=payload.carb_g,
-        fat_g=payload.fat_g,
+        protein_g=protein_g,
+        carb_g=carb_g,
+        fat_g=fat_g,
         resolution_status="completed_meal",
         occurred_at=trace_contract.get("occurred_at"),
         local_date=str(trace_contract.get("local_date") or ""),

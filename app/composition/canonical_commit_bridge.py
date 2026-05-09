@@ -6,6 +6,8 @@ from app.budget.infrastructure.models import LedgerEntryRecord
 from app.composition.canonical_commit_support import (
     CanonicalCommitTarget,
     CanonicalMealCommitResult,
+    canonical_macro_values_from_payload,
+    payload_authorizes_macro_persistence,
     resolve_canonical_commit_target,
 )
 from app.composition.canonical_persistence import (
@@ -31,6 +33,8 @@ def build_commit_request_candidate(
     parent_version_id: int | None = None,
     version_reason: CommitVersionReason | None = None,
 ) -> CommitRequestCandidate:
+    macro_persistence_allowed = payload_authorizes_macro_persistence(payload)
+    payload_protein_g, payload_carb_g, payload_fat_g = canonical_macro_values_from_payload(payload)
     items = [
         MealItemPayload(
             name=item.name,
@@ -40,9 +44,9 @@ def build_commit_request_candidate(
             estimate_basis=item.estimate_basis,
             confidence_tier=item.confidence_tier,
             estimated_kcal=item.estimated_kcal,
-            protein_g=item.protein_g,
-            carb_g=item.carb_g,
-            fat_g=item.fat_g,
+            protein_g=item.protein_g if macro_persistence_allowed else 0,
+            carb_g=item.carb_g if macro_persistence_allowed else 0,
+            fat_g=item.fat_g if macro_persistence_allowed else 0,
             evidence_ids=list(item.evidence_ids),
             classification={},
         )
@@ -58,9 +62,9 @@ def build_commit_request_candidate(
                 estimate_basis="llm_only",
                 confidence_tier=str(payload.estimate_confidence_tier or "low"),
                 estimated_kcal=payload.estimated_kcal,
-                protein_g=payload.protein_g,
-                carb_g=payload.carb_g,
-                fat_g=payload.fat_g,
+                protein_g=payload_protein_g,
+                carb_g=payload_carb_g,
+                fat_g=payload_fat_g,
                 evidence_ids=list(payload.evidence_ids_used),
                 classification={},
             )
@@ -92,9 +96,9 @@ def build_commit_request_candidate(
         meal_title=payload.meal_title or raw_input,
         raw_input=raw_input,
         estimated_kcal=payload.estimated_kcal,
-        protein_g=payload.protein_g,
-        carb_g=payload.carb_g,
-        fat_g=payload.fat_g,
+        protein_g=payload_protein_g,
+        carb_g=payload_carb_g,
+        fat_g=payload_fat_g,
         resolution_status="completed_meal",
         occurred_at=trace_contract.get("occurred_at"),
         local_date=str(trace_contract.get("local_date") or ""),
