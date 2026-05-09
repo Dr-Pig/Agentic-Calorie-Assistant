@@ -56,11 +56,23 @@ def test_accurate_intake_one_day_realistic_web_dogfood_honest_gap():
         evi = scenario["evidence"]
         assert evi["food_logs_created"] is False
         assert evi["evidence_gap_observed"] is True
-        assert evi["manager_context_gap_observed"] is True
+        assert evi["manager_context_gap_observed"] is False
+        assert evi["manager_fixture_call_topology_gap_observed"] is True
+        assert evi["manager_gap_breakdown"]["missing_manager_response_turn_ids"] == []
+        assert evi["manager_gap_breakdown"]["fixture_provider_exhausted_turn_ids"] == [
+            "dinner_draft_001",
+            "dinner_basket_001",
+            "dinner_remove_001",
+            "query_001",
+        ]
         assert evi["evidence_gap_handled_without_fake_kcal"] is True
         assert "food evidence gap prevented realistic food logging" in scenario["blockers"]
         assert (
             "manager context/runtime gap prevented complete turn evaluation"
+            not in scenario["blockers"]
+        )
+        assert (
+            "dogfood manager fixture exhausted before all turns completed"
             in scenario["blockers"]
         )
 

@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 from app.composition import intake_routes  # noqa: E402
 from app.database import get_db  # noqa: E402
 from app.models import Base  # noqa: E402
+from app.paths import REQUEST_TRACE_DIR  # noqa: E402
 from app.routes import router  # noqa: E402
 from scripts.run_accurate_intake_local_web_shell_smoke import _local_debug_headers  # noqa: E402
 
@@ -200,6 +201,63 @@ class _ChineseOneDayManagerProvider:
         )
 
 
+def _load_runtime_error_trace(request_id: str | None) -> dict[str, Any]:
+    if not request_id:
+        return {}
+    path = REQUEST_TRACE_DIR / f"{request_id}.json"
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {"trace_error_family": "request_trace_decode_error"}
+    return {
+        "trace_error_family": _trace_error_family(str(payload.get("error") or "")),
+        "error": str(payload.get("error") or ""),
+    }
+
+
+def _trace_error_family(error_text: str) -> str:
+    if "Exceeded fixture turns" in error_text:
+        return "fixture_provider_exhausted"
+    if error_text:
+        return "unclassified_runtime_error"
+    return "none"
+
+
+def _manager_gap_breakdown(turns: list[dict[str, Any]]) -> dict[str, Any]:
+    breakdown: dict[str, Any] = {
+        "runtime_response_turn_ids": [],
+        "missing_manager_response_turn_ids": [],
+        "manager_error_turns": [],
+        "fixture_provider_exhausted_turn_ids": [],
+        "unclassified_error_turn_ids": [],
+    }
+    for turn in turns:
+        turn_id = str(turn.get("turn_id") or "")
+        if turn.get("manager_decision_source") == "runtime_response":
+            breakdown["runtime_response_turn_ids"].append(turn_id)
+            continue
+        raw_response = turn.get("raw_response") or {}
+        public_error = str(raw_response.get("error") or "")
+        if public_error:
+            runtime_error_trace = dict(turn.get("runtime_error_trace") or {})
+            trace_error_family = str(runtime_error_trace.get("trace_error_family") or "unclassified_runtime_error")
+            error_turn = {
+                "turn_id": turn_id,
+                "public_error": public_error,
+                "trace_error_family": trace_error_family,
+            }
+            breakdown["manager_error_turns"].append(error_turn)
+            if trace_error_family == "fixture_provider_exhausted":
+                breakdown["fixture_provider_exhausted_turn_ids"].append(turn_id)
+            else:
+                breakdown["unclassified_error_turn_ids"].append(turn_id)
+            continue
+        breakdown["missing_manager_response_turn_ids"].append(turn_id)
+    return breakdown
+
+
 def _build_test_client(db: Session, provider: Any) -> TestClient:
     old_manager = intake_routes.manager_provider
     old_search = intake_routes.search_provider
@@ -280,6 +338,7 @@ def _build_report(db_path: Path, *, debug_headers: dict[str, str]) -> dict[str, 
                 },
             )
             data = res.json() if res.content else {}
+            runtime_error_trace = _load_runtime_error_trace(str(data.get("request_id") or ""))
 
             debug_res_after = client.get(
                 "/accurate-intake/debug",
@@ -321,7 +380,8 @@ def _build_report(db_path: Path, *, debug_headers: dict[str, str]) -> dict[str, 
             mutation_or_query = "mutation" if mutation_applied else "query"
 
             # Detect evidence gaps honestly
-            if not mutation_applied and fixture["manager_decision"][
+            manager_response_available = bool(mgr_dec) and not data.get("error")
+            if manager_response_available and not mutation_applied and fixture["manager_decision"][
                 "mutation_intent_candidate"
             ] not in ("no_mutation",):
                 has_evidence_gap = True
@@ -341,6 +401,7 @@ def _build_report(db_path: Path, *, debug_headers: dict[str, str]) -> dict[str, 
                     "state_after": state_after,
                     "assistant_response_summary": data.get("coach_message"),
                     "raw_response": data,
+                    "runtime_error_trace": runtime_error_trace,
                     "state_delta": state_delta,
                 }
             )
@@ -352,10 +413,13 @@ def _build_report(db_path: Path, *, debug_headers: dict[str, str]) -> dict[str, 
     # Analyze final state
     active_meal_count = turns_output[-1]["state_after"].get("active_meal_count", 0)
     food_logs_created = active_meal_count > 0
-    manager_context_gap_observed = any(
-        turn.get("manager_decision_source") == "missing"
-        or bool((turn.get("raw_response") or {}).get("error"))
-        for turn in turns_output
+    manager_gap_breakdown = _manager_gap_breakdown(turns_output)
+    manager_fixture_call_topology_gap_observed = bool(
+        manager_gap_breakdown["fixture_provider_exhausted_turn_ids"]
+    )
+    manager_context_gap_observed = bool(
+        manager_gap_breakdown["missing_manager_response_turn_ids"]
+        or manager_gap_breakdown["unclassified_error_turn_ids"]
     )
 
     # Honest correction logic: we recorded a negative guard turn for removal.
@@ -381,6 +445,8 @@ def _build_report(db_path: Path, *, debug_headers: dict[str, str]) -> dict[str, 
                 "food_logs_created": food_logs_created,
                 "evidence_gap_observed": has_evidence_gap,
                 "manager_context_gap_observed": manager_context_gap_observed,
+                "manager_fixture_call_topology_gap_observed": manager_fixture_call_topology_gap_observed,
+                "manager_gap_breakdown": manager_gap_breakdown,
                 "evidence_gap_handled_without_fake_kcal": True,
                 "no_fake_kcal_truth": True,
                 "pending_followup_used": False,  # Skipped due to gap
@@ -403,8 +469,12 @@ def _build_report(db_path: Path, *, debug_headers: dict[str, str]) -> dict[str, 
                         has_evidence_gap,
                     ),
                     (
-                        "manager context/runtime gap prevented complete turn evaluation",
+                        "manager response missing or unclassified error prevented complete turn evaluation",
                         manager_context_gap_observed,
+                    ),
+                    (
+                        "dogfood manager fixture exhausted before all turns completed",
+                        manager_fixture_call_topology_gap_observed,
                     ),
                 )
                 if observed
