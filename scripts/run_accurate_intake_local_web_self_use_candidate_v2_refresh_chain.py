@@ -29,6 +29,30 @@ from app.composition.accurate_intake_bootstrap_same_truth_gate import (  # noqa:
 from app.composition.accurate_intake_clarify_commit_correction_same_truth_gate import (  # noqa: E402
     build_clarify_commit_correction_same_truth_gate_artifact,
 )
+from app.composition.accurate_intake_context_conditioned_intent_wall import (  # noqa: E402
+    build_context_conditioned_intent_wall_artifact,
+)
+from app.composition.accurate_intake_context_live_diagnostic_anti_overfit_guard import (  # noqa: E402
+    build_context_live_diagnostic_anti_overfit_guard_artifact,
+)
+from app.composition.accurate_intake_context_live_diagnostic_case_matrix import (  # noqa: E402
+    build_context_live_diagnostic_case_matrix_artifact,
+)
+from app.composition.accurate_intake_correction_removal_fixture_flow import (  # noqa: E402
+    build_correction_removal_fixture_flow_artifact,
+)
+from app.composition.accurate_intake_fake_provider_context_smoke import (  # noqa: E402
+    build_fake_provider_context_smoke_artifact,
+)
+from app.composition.accurate_intake_fake_provider_tool_loop_smoke import (  # noqa: E402
+    build_fake_provider_tool_loop_smoke_artifact,
+)
+from app.composition.accurate_intake_fixture_evidence_packet_emulator import (  # noqa: E402
+    build_fixture_evidence_packet_emulator_artifact,
+)
+from app.composition.accurate_intake_local_operator_data_hygiene_bundle import (  # noqa: E402
+    build_local_operator_data_hygiene_bundle,
+)
 from app.composition.accurate_intake_non_fooddb_manager_tool_contract import (  # noqa: E402
     build_non_fooddb_manager_tool_contract_artifact,
 )
@@ -44,6 +68,12 @@ from app.composition.accurate_intake_pl_ce_browser_activation_evidence_gate impo
 )
 from app.composition.accurate_intake_pl_ce_product_pages_self_use_flow_gate import (  # noqa: E402
     build_pl_ce_product_pages_self_use_flow_gate_artifact,
+)
+from app.composition.accurate_intake_pl_ce_context_coverage_matrix import (  # noqa: E402
+    build_pl_ce_context_coverage_matrix_artifact,
+)
+from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (  # noqa: E402
+    build_pl_ce_local_mvp_candidate_bundle_artifact,
 )
 from app.composition.accurate_intake_product_pages_renderer_source_map import (  # noqa: E402
     build_product_pages_renderer_source_closure_artifact,
@@ -64,6 +94,15 @@ from app.composition.accurate_intake_ui_same_truth_render_contract import (  # n
 from app.composition.dogfood_review_queue import (  # noqa: E402
     build_dogfood_review_queue_artifact,
     build_review_candidate_from_product_loop_diagnostic,
+)
+from app.composition.accurate_intake_responder_input_contract_fake_smoke import (  # noqa: E402
+    build_responder_input_contract_fake_smoke_artifact,
+)
+from app.composition.accurate_intake_short_term_context_runtime_replay import (  # noqa: E402
+    build_short_term_context_runtime_replay_artifact,
+)
+from app.composition.current_shell_compatibility_ids import (  # noqa: E402
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
 )
 from app.shared.domain.canonical_models import CurrentBudgetView  # noqa: E402
 from app.nutrition.application.approved_packet_ready_fooddb_artifact import (  # noqa: E402
@@ -97,8 +136,14 @@ from scripts.build_current_shell_compatibility_browser_activation_evidence_gate 
 from scripts.build_accurate_intake_pre_live_self_use_decision_pack import (  # noqa: E402
     build_pre_live_self_use_decision_pack,
 )
+from scripts.build_accurate_intake_context_quality_pack import (  # noqa: E402
+    build_context_quality_pack_report,
+)
 from scripts.run_accurate_intake_context_live_diagnostic_gate import (  # noqa: E402
     build_context_live_diagnostic_gate_artifact,
+)
+from scripts.build_accurate_intake_review_eval_candidate_pipeline import (  # noqa: E402
+    build_review_eval_candidate_pipeline_report,
 )
 from scripts.run_accurate_intake_fixture_full_product_loop_e2e import (  # noqa: E402
     build_fixture_full_product_loop_e2e_report,
@@ -129,6 +174,11 @@ from scripts.run_accurate_intake_local_web_self_use_candidate_v2_gate import (  
 from scripts.run_accurate_intake_mvp_manager_style_smoke import (  # noqa: E402
     DeterministicSelfUseManagerProvider,
     _seed_body_plan,
+)
+from scripts.verify_accurate_intake_mvp import (  # noqa: E402
+    build_gate_plan,
+    load_gate_manifest,
+    run_gate,
 )
 
 
@@ -172,6 +222,10 @@ REFRESHED_ARTIFACT_FILENAMES = {
     ),
     "product_pages_visual_qa": "accurate_intake_product_pages_visual_qa.json",
     "fixture_full_product_loop_e2e": "accurate_intake_fixture_full_product_loop_e2e.json",
+    "accurate_intake_mvp_gate": "accurate_intake_mvp_gate.json",
+    CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID: (
+        "accurate_intake_pl_ce_local_mvp_candidate_bundle.json"
+    ),
     "context_live_diagnostic_gate": "accurate_intake_context_live_diagnostic_gate.json",
     "current_shell_compatibility_local_review_evidence_manifest": (
         "accurate_intake_current_shell_compatibility_local_review_evidence_manifest.json"
@@ -720,6 +774,71 @@ def _generate_fixture_full_product_loop_e2e(*, artifacts_dir: Path) -> dict[str,
     )
 
 
+def _generate_accurate_intake_mvp_gate_summary() -> dict[str, Any]:
+    return run_gate(build_gate_plan(load_gate_manifest()), fail_fast=True)
+
+
+def _generate_current_shell_local_mvp_candidate_bundle(
+    *,
+    artifacts_dir: Path,
+    mvp_gate_summary: dict[str, Any],
+) -> dict[str, Any]:
+    context_conditioned_intent_wall = build_context_conditioned_intent_wall_artifact()
+    short_term_context_runtime_replay = build_short_term_context_runtime_replay_artifact()
+    fake_provider_context_smoke = build_fake_provider_context_smoke_artifact()
+    context_quality_pack = build_context_quality_pack_report()
+    context_coverage_matrix = build_pl_ce_context_coverage_matrix_artifact(
+        context_conditioned_intent_wall=context_conditioned_intent_wall,
+        short_term_context_runtime_replay=short_term_context_runtime_replay,
+        fake_provider_context_smoke=fake_provider_context_smoke,
+        context_quality_pack=context_quality_pack,
+    )
+    context_live_matrix = build_context_live_diagnostic_case_matrix_artifact()
+    context_live_anti_overfit = build_context_live_diagnostic_anti_overfit_guard_artifact(
+        context_live_matrix
+    )
+    fixture_packet_emulator = build_fixture_evidence_packet_emulator_artifact()
+    return build_pl_ce_local_mvp_candidate_bundle_artifact(
+        {
+            "ui_same_truth_contract": _read_payload(
+                _group_path(
+                    artifacts_dir,
+                    PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["ui_same_truth_contract"],
+                )
+            ),
+            "context_quality_pack": context_quality_pack,
+            "short_term_context_runtime_replay": short_term_context_runtime_replay,
+            "context_coverage_matrix": context_coverage_matrix,
+            "context_live_diagnostic_case_matrix": context_live_matrix,
+            "context_live_diagnostic_anti_overfit_guard": context_live_anti_overfit,
+            "context_conditioned_intent_wall": context_conditioned_intent_wall,
+            "correction_removal_fixture_flow": build_correction_removal_fixture_flow_artifact(),
+            "responder_input_contract_fake_smoke": (
+                build_responder_input_contract_fake_smoke_artifact()
+            ),
+            "fixture_packet_emulator": fixture_packet_emulator,
+            "fake_provider_tool_loop_smoke": build_fake_provider_tool_loop_smoke_artifact(
+                context_smoke=fake_provider_context_smoke,
+                fixture_packet_emulator=fixture_packet_emulator,
+            ),
+            "review_eval_candidate_pipeline": build_review_eval_candidate_pipeline_report(
+                short_term_context_smoke_path=_group_path(
+                    artifacts_dir,
+                    PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["product_pages_short_term_context_smoke"],
+                ),
+                target_candidate_ui_smoke_path=_group_path(
+                    artifacts_dir,
+                    PRODUCT_PAGES_FLOW_ARTIFACT_PATHS["product_pages_target_candidate_ui_smoke"],
+                ),
+            ),
+            "local_operator_data_hygiene_bundle": build_local_operator_data_hygiene_bundle(
+                db_path=artifacts_dir / "accurate_intake_fixture_full_product_loop_e2e.sqlite3"
+            ),
+            "mvp_gate_summary": mvp_gate_summary,
+        }
+    )
+
+
 def _product_loop_handoff_evidence(
     artifacts_dir: Path,
     *,
@@ -783,6 +902,7 @@ def build_local_web_self_use_candidate_refresh_chain(
     artifacts_dir: Path,
 ) -> dict[str, Any]:
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    mvp_gate_summary = _generate_accurate_intake_mvp_gate_summary()
     route_backed_macro_closeout = build_route_backed_macro_closeout(
         artifacts_dir=artifacts_dir
     )
@@ -857,6 +977,27 @@ def build_local_web_self_use_candidate_refresh_chain(
             REFRESHED_ARTIFACT_FILENAMES["product_pages_self_use_flow_gate"],
         ),
         product_pages_self_use_flow_gate,
+    )
+
+    write_json_artifact(
+        _artifact_path(
+            artifacts_dir,
+            REFRESHED_ARTIFACT_FILENAMES["accurate_intake_mvp_gate"],
+        ),
+        mvp_gate_summary,
+    )
+    local_mvp_candidate_bundle = _generate_current_shell_local_mvp_candidate_bundle(
+        artifacts_dir=artifacts_dir,
+        mvp_gate_summary=mvp_gate_summary,
+    )
+    write_json_artifact(
+        _artifact_path(
+            artifacts_dir,
+            REFRESHED_ARTIFACT_FILENAMES[
+                CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID
+            ],
+        ),
+        local_mvp_candidate_bundle,
     )
 
     today_macro_mirror_gate = build_today_macro_mirror_gate_artifact()
