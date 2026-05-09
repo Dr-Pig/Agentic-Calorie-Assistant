@@ -110,9 +110,15 @@ def _seed_required_gate_inputs(
         },
         "operator_review": {
             "artifact_schema_version": "1.0",
-            "artifact_type": "accurate_intake_dogfood_operator_review_v2",
+            "artifact_type": "accurate_intake_dogfood_operator_review_surface",
             "status": "browser_diagnostic_review_with_fixture_evidence_gap",
+            "local_only": True,
+            "food_kb_truth_updated": False,
             "real_fooddb_pass_claimed": False,
+            "dogfood_pass": False,
+            "product_readiness_claimed": False,
+            "private_self_use_approved": False,
+            "production_readiness_claimed": False,
         },
     }
     for group_id, payload in product_loop_support.items():
@@ -456,8 +462,8 @@ def test_refresh_chain_generates_static_product_page_inputs_before_reporting_bro
     exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
     printed = json.loads(capsys.readouterr().out)
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    assert exit_code == 0
+    assert printed["status"] == "pass"
     navigation = printed["closeout_navigation"]
     assert navigation["first_blocking_gate"]["first_blocker"] != (
         "ui_same_truth_contract.unexpected_status:missing"
@@ -522,8 +528,8 @@ def test_refresh_chain_generates_required_product_pages_browser_smoke_before_nex
     )
     browser_smoke = json.loads(browser_smoke_path.read_text(encoding="utf-8"))
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    assert exit_code == 0
+    assert printed["status"] == "pass"
     assert browser_smoke["status"] == "pass"
     assert browser_smoke["browser_executed"] is True
     assert browser_smoke["browser_execution_required"] is True
@@ -834,8 +840,8 @@ def test_refresh_chain_generates_local_mvp_candidate_bundle_before_browser_activ
         ).read_text(encoding="utf-8")
     )
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    assert exit_code == 0
+    assert printed["status"] == "pass"
     assert bundle["status"] == "pl_ce_local_mvp_candidate_ready_for_human_review"
     assert bundle["local_only"] is True
     assert bundle["diagnostic_only"] is True
@@ -848,9 +854,7 @@ def test_refresh_chain_generates_local_mvp_candidate_bundle_before_browser_activ
         not in printed["closeout_navigation"]["missing_evidence"]
     )
     first_blocking_gate = printed["closeout_navigation"]["first_blocking_gate"]
-    assert first_blocking_gate is None or first_blocking_gate["first_blocker"] != (
-        f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID}.unexpected_status:missing"
-    )
+    assert first_blocking_gate is None
 
 
 def test_refresh_chain_aligns_legacy_prelive_inputs_to_current_shell_evidence(
@@ -875,8 +879,8 @@ def test_refresh_chain_aligns_legacy_prelive_inputs_to_current_shell_evidence(
         ).read_text(encoding="utf-8")
     )
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    assert exit_code == 0
+    assert printed["status"] == "pass"
     missing = set(printed["closeout_navigation"]["missing_evidence"])
     stale_legacy_groups = {
         "browser_shell_smoke",
@@ -904,7 +908,7 @@ def test_refresh_chain_aligns_legacy_prelive_inputs_to_current_shell_evidence(
     assert printed["product_readiness_claimed"] is False
 
 
-def test_refresh_chain_generates_current_shell_local_review_inputs_before_next_blocker(
+def test_refresh_chain_generates_current_shell_local_review_inputs_before_closeout_clear(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -936,9 +940,14 @@ def test_refresh_chain_generates_current_shell_local_review_inputs_before_next_b
             / module.REFRESHED_ARTIFACT_FILENAMES["pre_live_decision_pack"]
         ).read_text(encoding="utf-8")
     )
+    product_loop_handoff = json.loads(
+        (
+            artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["product_loop_handoff"]
+        ).read_text(encoding="utf-8")
+    )
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    assert exit_code == 0
+    assert printed["status"] == "pass"
     assert local_review_manifest["_manifest_metadata"]["status"] == "complete"
     assert local_review_decision["status"] == CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_READY_STATUS
     assert local_review_decision["ready_for_live_diagnostic_decision"] is False
@@ -948,14 +957,51 @@ def test_refresh_chain_generates_current_shell_local_review_inputs_before_next_b
         CURRENT_SHELL_COMPATIBILITY_LOCAL_REVIEW_GROUP_ID
         not in printed["closeout_navigation"]["missing_evidence"]
     )
-    first_blocking_gate = printed["closeout_navigation"]["first_blocking_gate"]
-    assert first_blocking_gate is not None
-    assert first_blocking_gate["gate_id"] == "product_loop_handoff"
+    assert printed["closeout_navigation"]["first_blocking_gate"] is None
     assert printed["candidate_prepared"] is True
-    assert printed["ready_for_fdb_integration_validation"] is False
-    assert printed["product_loop_handoff_status"] == "blocked"
+    assert printed["ready_for_fdb_integration_validation"] is True
+    assert printed["product_loop_handoff_status"] == (
+        "product_loop_handoff_ready_for_fdb_integration_validation"
+    )
+    assert product_loop_handoff["ready_for_fdb_integration"] is True
+    assert product_loop_handoff["real_fooddb_pass_claimed"] is False
+    assert product_loop_handoff["dogfood_pass"] is False
     assert printed["private_self_use_approved"] is False
     assert printed["product_readiness_claimed"] is False
+
+
+def test_refresh_chain_generates_operator_review_before_product_loop_handoff(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    module.main(["--artifacts-dir", str(artifact_dir)])
+    capsys.readouterr()
+    operator_review = json.loads(
+        (
+            artifact_dir
+            / module.PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["operator_review"]
+        ).read_text(encoding="utf-8")
+    )
+    product_loop_handoff = json.loads(
+        (
+            artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["product_loop_handoff"]
+        ).read_text(encoding="utf-8")
+    )
+
+    assert operator_review["artifact_type"] == "accurate_intake_dogfood_operator_review_surface"
+    assert operator_review["status"] == "browser_diagnostic_review_with_fixture_evidence_gap"
+    assert operator_review["local_only"] is True
+    assert operator_review["real_fooddb_pass_claimed"] is False
+    assert operator_review["dogfood_pass"] is False
+    assert product_loop_handoff["product_loop_evidence_status"]["operator_review"][
+        "status"
+    ] == "browser_diagnostic_review_with_fixture_evidence_gap"
+    assert "operator_review_not_diagnostic_review" not in product_loop_handoff["blockers"]
+    assert "operator_review_real_fooddb_overclaim" not in product_loop_handoff["blockers"]
 
 
 def test_closeout_navigation_reports_stale_evidence_without_readiness_claims() -> None:

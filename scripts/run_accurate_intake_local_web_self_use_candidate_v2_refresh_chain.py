@@ -116,6 +116,9 @@ from app.composition.dogfood_review_queue import (  # noqa: E402
     build_dogfood_review_queue_artifact,
     build_review_candidate_from_product_loop_diagnostic,
 )
+from app.composition.dogfood_operator_review import (  # noqa: E402
+    build_dogfood_operator_review_surface,
+)
 from app.composition.accurate_intake_product_loop_review_bundle import (  # noqa: E402
     build_product_loop_review_bundle_artifact,
 )
@@ -1278,6 +1281,24 @@ def _dogfood_review_candidates_from_closeout_diagnostics(
     return []
 
 
+def _generate_product_loop_operator_review(artifacts_dir: Path) -> dict[str, Any]:
+    operator_review_path = _artifact_path(
+        artifacts_dir,
+        PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["operator_review"],
+    )
+    if operator_review_path.exists():
+        return read_json_artifact(operator_review_path)
+    browser_realistic = _read_payload(
+        _artifact_path(
+            artifacts_dir,
+            PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES["browser_realistic_dogfood"],
+        )
+    )
+    operator_review = build_dogfood_operator_review_surface(browser_realistic)
+    write_json_artifact(operator_review_path, operator_review)
+    return operator_review
+
+
 def build_local_web_self_use_candidate_refresh_chain(
     *,
     artifacts_dir: Path,
@@ -1523,6 +1544,7 @@ def build_local_web_self_use_candidate_refresh_chain(
         ),
         dogfood_review_queue,
     )
+    _generate_product_loop_operator_review(artifacts_dir)
 
     pre_live_evidence = build_local_web_candidate_gate_evidence(
         path_overrides=_local_gate_path_overrides(artifacts_dir)
