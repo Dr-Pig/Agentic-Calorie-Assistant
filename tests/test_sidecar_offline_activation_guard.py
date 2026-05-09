@@ -31,6 +31,8 @@ SIDECAR_MODULES = [
     "app.recommendation.application.candidate_quality_gate",
     "app.recommendation.application.intake_hint_shadow",
     "app.recommendation.application.summary_pool_posture",
+    "app.recommendation.application.three_node_shadow_contract",
+    "app.recommendation.application.three_node_shadow_support",
     "app.rescue",
     "app.rescue.domain",
     "app.rescue.domain.proposal_read_models",
