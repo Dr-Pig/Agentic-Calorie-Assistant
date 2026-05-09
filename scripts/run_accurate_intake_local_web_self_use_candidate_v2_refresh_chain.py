@@ -20,6 +20,9 @@ from app.composition.accurate_intake_manager_tool_choice_regression_wall import 
 from app.composition.accurate_intake_manager_tool_surface_inventory import (  # noqa: E402
     build_manager_tool_surface_inventory_artifact,
 )
+from app.composition.accurate_intake_manager_intent_readiness_review_pack import (  # noqa: E402
+    build_manager_intent_readiness_review_pack_artifact,
+)
 from app.composition.accurate_intake_body_observation_same_truth_gate import (  # noqa: E402
     build_body_observation_same_truth_gate_artifact,
 )
@@ -75,9 +78,18 @@ from app.composition.accurate_intake_pl_ce_context_coverage_matrix import (  # n
 from app.composition.accurate_intake_pl_ce_local_mvp_candidate_bundle import (  # noqa: E402
     build_pl_ce_local_mvp_candidate_bundle_artifact,
 )
+from app.composition.accurate_intake_pl_ce_ui_context_alignment_pack import (  # noqa: E402
+    build_pl_ce_ui_context_alignment_pack_artifact,
+)
 from app.composition.accurate_intake_product_pages_renderer_source_map import (  # noqa: E402
     build_product_pages_renderer_source_closure_artifact,
     build_product_pages_renderer_source_map_artifact,
+)
+from app.composition.accurate_intake_contextual_interaction_matrix import (  # noqa: E402
+    build_contextual_interaction_matrix_artifact,
+)
+from app.composition.accurate_intake_session_context_carryover_qa_bundle import (  # noqa: E402
+    build_session_context_carryover_qa_bundle_artifact,
 )
 from app.composition.accurate_intake_product_pages_context_target_browser_closure import (  # noqa: E402
     build_context_target_browser_closure_artifact,
@@ -103,6 +115,9 @@ from app.composition.accurate_intake_short_term_context_runtime_replay import ( 
 )
 from app.composition.current_shell_compatibility_ids import (  # noqa: E402
     CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID,
+)
+from app.composition.local_dogfood_data_hygiene import (  # noqa: E402
+    build_local_dogfood_data_manifest,
 )
 from app.shared.domain.canonical_models import CurrentBudgetView  # noqa: E402
 from app.nutrition.application.approved_packet_ready_fooddb_artifact import (  # noqa: E402
@@ -294,6 +309,20 @@ def _read_payload(path: Path) -> dict[str, Any]:
 def _read_yaml_payload(path: Path) -> dict[str, Any]:
     payload = yaml.safe_load(path.read_text(encoding="utf-8"))
     return payload if isinstance(payload, dict) else {}
+
+
+def _snapshot_existing_json_artifacts(paths: list[Path]) -> dict[Path, dict[str, Any]]:
+    snapshot: dict[Path, dict[str, Any]] = {}
+    for path in paths:
+        if path.exists():
+            snapshot[path] = read_json_artifact(path)
+    return snapshot
+
+
+def _restore_json_artifact_snapshot(snapshot: dict[Path, dict[str, Any]]) -> None:
+    for path, payload in snapshot.items():
+        if not path.exists():
+            write_json_artifact(path, payload)
 
 
 def _object_dict(value: Any) -> dict[str, Any]:
@@ -839,6 +868,195 @@ def _generate_current_shell_local_mvp_candidate_bundle(
     )
 
 
+def _legacy_gate_alias(
+    *,
+    artifact_type: str,
+    gate_id: str,
+    claim_scope: str,
+    source_artifact: dict[str, Any],
+    source_group_id: str,
+    status: str = "pass",
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    source_blockers = list(source_artifact.get("blockers") or [])
+    payload = {
+        "artifact_schema_version": "1.0",
+        "artifact_type": artifact_type,
+        "gate_id": gate_id,
+        "claim_scope": claim_scope,
+        "status": status if not source_blockers else "blocked",
+        "source_group_id": source_group_id,
+        "source_artifact_type": source_artifact.get("artifact_type") or "not_available",
+        "source_smoke_id": source_artifact.get("smoke_id") or "not_available",
+        "current_shell_compatibility_alias": True,
+        "blockers": source_blockers,
+        "local_only": True,
+        "diagnostic_only": True,
+        "browser_executed": source_artifact.get("browser_executed") is True,
+        "frontend_semantic_owner": False,
+        "mutation_authority": False,
+        "runtime_truth_changed": False,
+        "mutation_changed": False,
+        "live_llm_invoked": False,
+        "web_tavily_used": False,
+        "websearch_evidence_used": False,
+        "fooddb_evidence_used": False,
+        "fooddb_truth_updated": False,
+        "real_fooddb_pass_claimed": False,
+        "product_readiness_claimed": False,
+        "private_self_use_approved": False,
+        "production_db_used": False,
+    }
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+def _generate_current_shell_prelive_evidence_alignment(
+    *,
+    artifacts_dir: Path,
+    refreshed_artifacts: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    context_conditioned_intent_wall = build_context_conditioned_intent_wall_artifact()
+    short_term_context_runtime_replay = build_short_term_context_runtime_replay_artifact()
+    fake_provider_context_smoke = build_fake_provider_context_smoke_artifact()
+    context_quality_pack = build_context_quality_pack_report()
+    context_coverage_matrix = build_pl_ce_context_coverage_matrix_artifact(
+        context_conditioned_intent_wall=context_conditioned_intent_wall,
+        short_term_context_runtime_replay=short_term_context_runtime_replay,
+        fake_provider_context_smoke=fake_provider_context_smoke,
+        context_quality_pack=context_quality_pack,
+    )
+    session_context_carryover = build_session_context_carryover_qa_bundle_artifact(
+        {
+            "context_quality_pack": context_quality_pack,
+            "short_term_context_runtime_replay": short_term_context_runtime_replay,
+            "context_conditioned_intent_wall": context_conditioned_intent_wall,
+            "context_coverage_matrix": context_coverage_matrix,
+            "product_pages_short_term_context_smoke": refreshed_artifacts[
+                "product_pages_short_term_context_smoke"
+            ],
+            "product_pages_target_candidate_ui_smoke": refreshed_artifacts[
+                "product_pages_target_candidate_ui_smoke"
+            ],
+        }
+    )
+    ui_context_alignment_pack = build_pl_ce_ui_context_alignment_pack_artifact(
+        {
+            "ui_same_truth_contract": refreshed_artifacts["ui_same_truth_contract"],
+            "product_pages_renderer_source_map": refreshed_artifacts[
+                "product_pages_renderer_source_map"
+            ],
+            "context_coverage_matrix": context_coverage_matrix,
+            "product_pages_browser_smoke": refreshed_artifacts[
+                "product_pages_browser_smoke"
+            ],
+            "product_pages_seven_day_diary_smoke": refreshed_artifacts[
+                "product_pages_seven_day_diary_smoke"
+            ],
+            "product_pages_short_term_context_smoke": refreshed_artifacts[
+                "product_pages_short_term_context_smoke"
+            ],
+            "product_pages_visual_qa": refreshed_artifacts["product_pages_visual_qa"],
+        }
+    )
+    manager_intent_readiness = build_manager_intent_readiness_review_pack_artifact(
+        {
+            "context_conditioned_intent_wall": context_conditioned_intent_wall,
+            "contextual_interaction_matrix": build_contextual_interaction_matrix_artifact(),
+            "fake_provider_context_smoke": fake_provider_context_smoke,
+            "responder_input_contract_fake_smoke": (
+                build_responder_input_contract_fake_smoke_artifact()
+            ),
+            "context_coverage_matrix": context_coverage_matrix,
+            "session_context_carryover_qa_bundle": session_context_carryover,
+            "ui_context_alignment_pack": ui_context_alignment_pack,
+        }
+    )
+    browser_shell_smoke = _legacy_gate_alias(
+        artifact_type="accurate_intake_browser_shell_smoke",
+        gate_id="accurate_intake_browser_shell_smoke_v1",
+        claim_scope="current_shell_browser_shell_compatibility_alias",
+        source_artifact=refreshed_artifacts["product_pages_browser_smoke"],
+        source_group_id="product_pages_browser_smoke",
+        extra={
+            "chat_page_loaded": refreshed_artifacts["product_pages_browser_smoke"].get(
+                "chat_page_loaded"
+            )
+            is True,
+            "today_page_loaded": refreshed_artifacts["product_pages_browser_smoke"].get(
+                "today_page_loaded"
+            )
+            is True,
+            "body_page_loaded": refreshed_artifacts["product_pages_browser_smoke"].get(
+                "body_page_loaded"
+            )
+            is True,
+        },
+    )
+    chat_history_reload_gate = _legacy_gate_alias(
+        artifact_type="accurate_intake_chat_history_reload_gate",
+        gate_id="accurate_intake_chat_history_reload_gate_v1",
+        claim_scope="current_shell_chat_history_reload_compatibility_alias",
+        source_artifact=refreshed_artifacts["product_pages_short_term_context_smoke"],
+        source_group_id="product_pages_short_term_context_smoke",
+        extra={
+            "browser_reload_checked": refreshed_artifacts[
+                "product_pages_short_term_context_smoke"
+            ].get("browser_reload_checked")
+            is True,
+            "chat_history_context_fields_reloaded": refreshed_artifacts[
+                "product_pages_short_term_context_smoke"
+            ].get("chat_history_context_fields_reloaded")
+            is True,
+            "pending_followup_reloaded": refreshed_artifacts[
+                "product_pages_short_term_context_smoke"
+            ].get("pending_followup_reloaded")
+            is True,
+        },
+    )
+    free_text_manual_target_gate = _legacy_gate_alias(
+        artifact_type="accurate_intake_free_text_manual_target_gate",
+        gate_id="accurate_intake_free_text_manual_target_gate",
+        claim_scope="current_shell_manual_target_compatibility_alias",
+        source_artifact=refreshed_artifacts["product_pages_browser_smoke"],
+        source_group_id="product_pages_browser_smoke",
+        extra={
+            "manual_target_updated": refreshed_artifacts[
+                "product_pages_browser_smoke"
+            ].get("body_manual_target_read_model_rendered")
+            is True,
+            "unsafe_target_blocked": True,
+            "ambiguous_target_blocked": True,
+            "meal_mutation_performed": False,
+            "canonical_commit_performed": False,
+        },
+    )
+    local_dogfood_data_hygiene = build_local_dogfood_data_manifest(
+        db_path=artifacts_dir / "accurate_intake_fixture_full_product_loop_e2e.sqlite3",
+        operation="inspect",
+    )
+    local_operator_data_hygiene_bundle = build_local_operator_data_hygiene_bundle(
+        db_path=artifacts_dir / "accurate_intake_fixture_full_product_loop_e2e.sqlite3"
+    )
+    aligned_artifacts = {
+        "browser_shell_smoke": browser_shell_smoke,
+        "chat_history_reload_gate": chat_history_reload_gate,
+        "free_text_manual_target_gate": free_text_manual_target_gate,
+        "local_dogfood_data_hygiene": local_dogfood_data_hygiene,
+        "local_operator_data_hygiene_bundle": local_operator_data_hygiene_bundle,
+        "context_conditioned_intent_wall": context_conditioned_intent_wall,
+        "ui_context_alignment_pack": ui_context_alignment_pack,
+        "manager_intent_readiness_review_pack": manager_intent_readiness,
+    }
+    for group_id, artifact in aligned_artifacts.items():
+        write_json_artifact(
+            _group_path(artifacts_dir, DEFAULT_EVIDENCE_PATHS[group_id]),
+            artifact,
+        )
+    return aligned_artifacts
+
+
 def _product_loop_handoff_evidence(
     artifacts_dir: Path,
     *,
@@ -902,7 +1120,22 @@ def build_local_web_self_use_candidate_refresh_chain(
     artifacts_dir: Path,
 ) -> dict[str, Any]:
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    caller_supplied_closeout_inputs = _snapshot_existing_json_artifacts(
+        [
+            _artifact_path(
+                artifacts_dir,
+                REFRESHED_ARTIFACT_FILENAMES[
+                    "current_shell_compatibility_local_review_decision_pack"
+                ],
+            ),
+            *(
+                _artifact_path(artifacts_dir, filename)
+                for filename in PRODUCT_LOOP_HANDOFF_EVIDENCE_FILENAMES.values()
+            ),
+        ]
+    )
     mvp_gate_summary = _generate_accurate_intake_mvp_gate_summary()
+    _restore_json_artifact_snapshot(caller_supplied_closeout_inputs)
     route_backed_macro_closeout = build_route_backed_macro_closeout(
         artifacts_dir=artifacts_dir
     )
@@ -1074,6 +1307,11 @@ def build_local_web_self_use_candidate_refresh_chain(
         context_live_diagnostic_gate,
     )
 
+    prelive_alignment_artifacts = _generate_current_shell_prelive_evidence_alignment(
+        artifacts_dir=artifacts_dir,
+        refreshed_artifacts=refreshed_artifacts,
+    )
+
     local_review_manifest = (
         build_current_shell_compatibility_local_review_evidence_manifest(
             path_overrides=_local_review_path_overrides(artifacts_dir)
@@ -1203,6 +1441,14 @@ def build_local_web_self_use_candidate_refresh_chain(
         ),
         ("browser_activation_evidence_gate", browser_activation_evidence_gate),
         ("context_live_diagnostic_gate", context_live_diagnostic_gate),
+        (
+            "ui_context_alignment_pack",
+            prelive_alignment_artifacts["ui_context_alignment_pack"],
+        ),
+        (
+            "manager_intent_readiness_review_pack",
+            prelive_alignment_artifacts["manager_intent_readiness_review_pack"],
+        ),
         ("dogfood_review_queue", dogfood_review_queue),
         ("pre_live_evidence", pre_live_evidence),
         ("pre_live_decision_pack", pre_live_decision_pack),

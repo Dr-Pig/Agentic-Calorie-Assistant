@@ -277,7 +277,7 @@ def test_refresh_chain_prepares_candidate_when_upstream_runtime_and_browser_evid
         clarify_commit_correction_same_truth_gate["status"]
         == "clarify_commit_correction_same_truth_gate_ready_for_human_review"
     )
-    assert pre_live_pack["selected_option"] == "stay_local_self_use"
+    assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
     assert "ready_for_live_diagnostic_decision" not in pre_live_pack
     assert dogfood_review_queue["review_candidate_count"] == 1
     assert dogfood_review_queue["review_candidates"][0]["auto_flags"] == ["evidence_gap"]
@@ -410,27 +410,35 @@ def test_refresh_chain_generates_fixture_dependency_before_browser_activation_ga
             artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["product_loop_handoff"]
         ).read_text(encoding="utf-8")
     )
+    fixture_loop = json.loads(
+        (
+            artifact_dir
+            / module.REFRESHED_ARTIFACT_FILENAMES["fixture_full_product_loop_e2e"]
+        ).read_text(encoding="utf-8")
+    )
 
-    assert exit_code == 1
-    assert printed["status"] == "blocked"
+    assert exit_code == 0
+    assert printed["status"] == "pass"
     assert (
         "fixture_full_product_loop_e2e"
         not in printed["closeout_navigation"]["missing_evidence"]
     )
-    first_blocking_gate = printed["closeout_navigation"]["first_blocking_gate"]
-    assert first_blocking_gate is None or first_blocking_gate["first_blocker"] != (
-        "fixture_full_product_loop_e2e.unexpected_status:missing"
-    )
+    assert printed["closeout_navigation"]["first_blocking_gate"] is None
     assert printed["closeout_navigation"]["non_claims"]["private_self_use_approved"] is False
     assert printed["closeout_navigation"]["non_claims"]["product_ready"] is False
-    assert printed["candidate_prepared"] is False
-    assert printed["ready_for_fdb_integration_validation"] is False
+    assert printed["candidate_prepared"] is True
+    assert printed["ready_for_fdb_integration_validation"] is True
     assert browser_activation["status"] == "browser_activation_evidence_ready_for_human_review"
     assert browser_activation["blockers"] == []
-    assert pre_live_pack["selected_option"] == "stay_local_self_use"
+    assert pre_live_pack["selected_option"] == "ready_for_human_limited_live_canary_decision"
     assert "ready_for_live_diagnostic_decision" not in pre_live_pack
-    assert product_loop_handoff["status"] == "blocked"
-    assert product_loop_handoff["ready_for_fdb_integration"] is False
+    assert fixture_loop["status"] == "fixture_product_loop_e2e_diagnostic_pass"
+    assert fixture_loop["product_readiness_claimed"] is False
+    assert fixture_loop["private_self_use_approved"] is False
+    assert product_loop_handoff["status"] == (
+        "product_loop_handoff_ready_for_fdb_integration_validation"
+    )
+    assert product_loop_handoff["ready_for_fdb_integration"] is True
     assert product_loop_handoff["fooddb_artifact_status"] == (
         "approved_packet_ready_evidence_metadata_valid"
     )
@@ -843,6 +851,54 @@ def test_refresh_chain_generates_local_mvp_candidate_bundle_before_browser_activ
     assert first_blocking_gate is None or first_blocking_gate["first_blocker"] != (
         f"{CURRENT_SHELL_COMPATIBILITY_LOCAL_MVP_GROUP_ID}.unexpected_status:missing"
     )
+
+
+def test_refresh_chain_aligns_legacy_prelive_inputs_to_current_shell_evidence(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    from scripts import run_accurate_intake_local_web_self_use_candidate_v2_refresh_chain as module
+
+    artifact_dir = tmp_path / "artifacts"
+
+    exit_code = module.main(["--artifacts-dir", str(artifact_dir)])
+    printed = json.loads(capsys.readouterr().out)
+    pre_live_evidence = json.loads(
+        (artifact_dir / module.REFRESHED_ARTIFACT_FILENAMES["pre_live_evidence"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    pre_live_pack = json.loads(
+        (
+            artifact_dir
+            / module.REFRESHED_ARTIFACT_FILENAMES["pre_live_decision_pack"]
+        ).read_text(encoding="utf-8")
+    )
+
+    assert exit_code == 1
+    assert printed["status"] == "blocked"
+    missing = set(printed["closeout_navigation"]["missing_evidence"])
+    stale_legacy_groups = {
+        "browser_shell_smoke",
+        "chat_history_reload_gate",
+        "free_text_manual_target_gate",
+        "local_dogfood_data_hygiene",
+        "ui_context_alignment_pack",
+        "manager_intent_readiness_review_pack",
+        "context_conditioned_intent_wall",
+    }
+    assert missing.isdisjoint(stale_legacy_groups)
+    assert pre_live_evidence["_evidence_metadata"]["status"] != "blocked_missing_evidence"
+    assert pre_live_pack["selected_option"] == "stay_local_self_use"
+    blockers = set(pre_live_pack.get("blockers") or [])
+    assert not any(blocker.startswith("ui_context_alignment_pack.") for blocker in blockers)
+    assert not any(
+        blocker.startswith("manager_intent_readiness_review_pack.")
+        for blocker in blockers
+    )
+    assert "ready_for_live_diagnostic_decision" not in pre_live_pack
+    assert printed["private_self_use_approved"] is False
+    assert printed["product_readiness_claimed"] is False
 
 
 def test_closeout_navigation_reports_stale_evidence_without_readiness_claims() -> None:
