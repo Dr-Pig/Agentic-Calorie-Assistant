@@ -1,11 +1,26 @@
 from __future__ import annotations
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
 from app.composition.payload_macro_summary import build_payload_macro_summary
+from app.composition.current_budget_read_model import build_current_budget_view
+from app.composition.canonical_persistence import commit_meal_payload_to_canonical
 from app.composition.intake_manager_tool_batch import macro_summary
 from app.composition.payload_builders import build_payload
+from app.database import get_or_create_user
+from app.intake.infrastructure.models import MealItemRecord
+from app.models import Base
 from app.shared.contracts.intake_results import EstimatePayload
 from app.runtime.application.execution_guard import evaluate_macro_display
 from app.schemas import EstimateRequest
+
+
+def _session() -> Session:
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    testing_session = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+    Base.metadata.create_all(bind=engine)
+    return testing_session()
 
 
 def _parsed(**overrides: object) -> dict[str, object]:
@@ -117,6 +132,88 @@ def test_macro_summary_uses_explicit_display_macro_breakdown_when_present() -> N
     assert summary["protein_g"] == 20
     assert summary["carbs_g"] == 50
     assert summary["fat_g"] == 18
+
+
+def test_commit_does_not_promote_hidden_payload_macro_hint_to_current_budget_truth() -> None:
+    db = _session()
+    user = get_or_create_user(db, "macro-hidden-commit-boundary")
+    payload = _payload(
+        protein_g=20,
+        carb_g=50,
+        fat_g=18,
+        estimated_kcal=450,
+        follow_up_needed=False,
+        followup_question="",
+        uncertainty_factors=[],
+        component_breakdown=[
+            {"name": "milk tea", "estimated_kcal": 270, "protein_g": 15, "carb_g": 35, "fat_g": 12},
+            {"name": "pearls", "estimated_kcal": 180, "protein_g": 5, "carb_g": 15, "fat_g": 6},
+        ],
+    )
+    payload.trace_contract["local_date"] = "2026-05-09"
+
+    commit_meal_payload_to_canonical(
+        db,
+        user=user,
+        payload=payload,
+        raw_input="I had a pearl milk tea",
+        manager_intent="food_estimation",
+        request_id=payload.request_id,
+        budget_kcal=1200,
+    )
+
+    current_budget = build_current_budget_view(db, user_id=user.id, local_date="2026-05-09")
+
+    assert current_budget.consumed_kcal == 450
+    assert current_budget.consumed_protein == 0
+    assert current_budget.consumed_carbs == 0
+    assert current_budget.consumed_fat == 0
+    assert current_budget.show_macro is False
+    assert current_budget.macro_guard_reason == "no_macro_data"
+    item_rows = db.query(MealItemRecord).order_by(MealItemRecord.item_index.asc()).all()
+    assert [(item.protein_g, item.carb_g, item.fat_g) for item in item_rows] == [(0, 0, 0), (0, 0, 0)]
+
+
+def test_commit_promotes_explicit_display_macro_breakdown_to_current_budget_truth() -> None:
+    db = _session()
+    user = get_or_create_user(db, "macro-authorized-commit-boundary")
+    payload = _payload(
+        protein_g=3,
+        carb_g=80,
+        fat_g=8,
+        estimated_kcal=450,
+        follow_up_needed=False,
+        followup_question="",
+        uncertainty_factors=[],
+        answer_payload={
+            "display_macro_breakdown": {
+                "protein_g": 20,
+                "carb_g": 50,
+                "fat_g": 18,
+                "macro_source": "display_authorized_evidence",
+            }
+        },
+    )
+    payload.trace_contract["local_date"] = "2026-05-09"
+
+    commit_meal_payload_to_canonical(
+        db,
+        user=user,
+        payload=payload,
+        raw_input="I had a pearl milk tea",
+        manager_intent="food_estimation",
+        request_id=payload.request_id,
+        budget_kcal=1200,
+    )
+
+    current_budget = build_current_budget_view(db, user_id=user.id, local_date="2026-05-09")
+
+    assert current_budget.consumed_kcal == 450
+    assert current_budget.consumed_protein == 20
+    assert current_budget.consumed_carbs == 50
+    assert current_budget.consumed_fat == 18
+    assert current_budget.show_macro is True
+    assert current_budget.macro_guard_reason == "committed_and_aligned"
 
 
 def test_evaluate_macro_display_uses_canonical_guard_reason_names() -> None:

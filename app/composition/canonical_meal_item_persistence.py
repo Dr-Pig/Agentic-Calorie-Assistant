@@ -5,12 +5,17 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.composition.canonical_commit_support import (
+    canonical_macro_values_from_payload,
+    payload_authorizes_macro_persistence,
+)
 from app.intake.infrastructure.models import MealItemRecord, MealVersionRecord
 from app.schemas import CommitRequestCandidate, EstimatePayload
 
 
 def _item_records_from_payload(version_id: int, payload: EstimatePayload) -> list[MealItemRecord]:
     items: list[MealItemRecord] = []
+    macro_persistence_allowed = payload_authorizes_macro_persistence(payload)
     if payload.component_estimates:
         for index, component in enumerate(payload.component_estimates):
             items.append(
@@ -24,14 +29,15 @@ def _item_records_from_payload(version_id: int, payload: EstimatePayload) -> lis
                     estimate_basis=component.estimate_basis,
                     confidence_tier=component.confidence_tier,
                     estimated_kcal=component.estimated_kcal,
-                    protein_g=component.protein_g,
-                    carb_g=component.carb_g,
-                    fat_g=component.fat_g,
+                    protein_g=component.protein_g if macro_persistence_allowed else 0,
+                    carb_g=component.carb_g if macro_persistence_allowed else 0,
+                    fat_g=component.fat_g if macro_persistence_allowed else 0,
                     evidence_ids_json=list(component.evidence_ids),
                     classification_json={},
                 )
             )
     else:
+        protein_g, carb_g, fat_g = canonical_macro_values_from_payload(payload)
         items.append(
             MealItemRecord(
                 meal_version_id=version_id,
@@ -43,9 +49,9 @@ def _item_records_from_payload(version_id: int, payload: EstimatePayload) -> lis
                 estimate_basis="llm_only",
                 confidence_tier=str(payload.estimate_confidence_tier or "low"),
                 estimated_kcal=payload.estimated_kcal,
-                protein_g=payload.protein_g,
-                carb_g=payload.carb_g,
-                fat_g=payload.fat_g,
+                protein_g=protein_g,
+                carb_g=carb_g,
+                fat_g=fat_g,
                 evidence_ids_json=list(payload.evidence_ids_used),
                 classification_json={},
             )
