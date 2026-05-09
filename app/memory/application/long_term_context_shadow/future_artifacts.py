@@ -21,6 +21,9 @@ from app.memory.application.long_term_context_shadow.dependency_graph_artifact i
 from app.memory.application.long_term_context_shadow.do_not_save_policy_artifact import (
     _memory_do_not_save_policy_shadow_artifact,
 )
+from app.memory.application.long_term_context_shadow.lab_store import (
+    _memory_lab_review_loop_state_artifact,
+)
 from app.memory.application.long_term_context_shadow.memory_architecture_artifacts import (
     _memory_extraction_storage_rag_artifact,
 )
@@ -108,6 +111,9 @@ def _simulation_future_artifacts(fixture: dict, candidates: list) -> dict[str, d
         "memory_review_action_shadow_result": _memory_review_action_shadow_artifact(
             fixture, candidates
         ),
+        "memory_lab_review_loop_state": _memory_lab_review_loop_state_artifact(
+            fixture, candidates
+        ),
         "memory_promotion_demotion_shadow_eval": (
             _memory_promotion_demotion_shadow_artifact(fixture, candidates)
         ),
@@ -164,6 +170,7 @@ __all__ = [
     "_manager_memory_contract_shadow_artifact",
     "_memory_dependency_graph_shadow_artifact",
     "_memory_extraction_storage_rag_artifact",
+    "_memory_lab_review_loop_state_artifact",
     "_memory_promotion_demotion_shadow_artifact",
     "_memory_review_action_shadow_artifact",
     "_pr_review_autopilot_closeout_artifact",

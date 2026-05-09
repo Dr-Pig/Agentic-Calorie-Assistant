@@ -102,6 +102,16 @@ ARTIFACT_CONSUMER_CATALOG: dict[str, list[str]] = {
     "recommendation_shadow_eval": ["recommendation", "human_review"],
     "rescue_shadow_candidates": ["rescue_later", "human_review"],
     "memory_review_action_shadow_result": ["human_review", "memory_governance"],
+    "memory_lab_review_loop_state": [
+        "human_review",
+        "memory_governance",
+        "recommendation",
+        "intake_clarification",
+        "chat_context",
+        "calibration",
+        "proactive",
+        "rescue_later",
+    ],
     "memory_promotion_demotion_shadow_eval": ["human_review", "memory_governance"],
     "semantic_pattern_extraction_shadow_plan": [
         "recommendation",

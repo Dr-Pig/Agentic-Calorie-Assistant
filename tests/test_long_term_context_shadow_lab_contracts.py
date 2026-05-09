@@ -21,6 +21,7 @@ def test_shadow_lab_builds_review_artifacts_with_required_non_claim_flags() -> N
         "recommendation_shadow_eval",
         "rescue_shadow_candidates",
         "memory_review_action_shadow_result",
+        "memory_lab_review_loop_state",
         "conversation_recall_shadow_eval",
         "long_term_context_pack_shadow_eval",
         "conversation_recall_tool_shadow_plan",
