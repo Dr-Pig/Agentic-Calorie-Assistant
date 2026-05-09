@@ -28,6 +28,7 @@ def test_shadow_lab_builder_script_writes_all_artifacts(tmp_path: Path) -> None:
         "recommendation_shadow_eval.json",
         "rescue_shadow_candidates.json",
         "memory_review_action_shadow_result.json",
+        "memory_lab_review_loop_state.json",
         "conversation_recall_shadow_eval.json",
         "long_term_context_pack_shadow_eval.json",
         "conversation_recall_tool_shadow_plan.json",
